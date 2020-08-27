@@ -12,8 +12,19 @@ begin
 section \<open>Overview\<close>
 
 text \<open>
-One solution to check multipliers is to use algebraic method, like producing proofs on polynomials.
-We are here interested in checking PAC proofs on the Boolean ring.
+
+One solution to check circuit of multipliers is to use algebraic method, like producing proofs on
+polynomials.  We are here interested in checking PAC proofs on the Boolean ring. The idea is the
+following: each variable represents an input or the output of a gate and we want to prove the
+bitwise multiplication of the input bits yields the output, namely the bitwise representation of the
+multiplication of the input (modulo \<^term>\<open>(2::nat)^n\<close> where \<^term>\<open>n::nat\<close> is the number of bits of the
+circuit).
+
+Due to the process of generation of the proof, the variables are integers. However, since the
+variables can only have the value 0 and 1 and hence we work in the Boolean ring by enforcing that
+\<^term>\<open>(x::nat)^2 = x\<close> for all variables. Altogether, we consider polynomials over the integer ring with
+the additional constraint that \<^term>\<open>(x::nat)^2 = x\<close> for every variables.
+
 
 The checker takes as input 3 files:
   \<^enum> an input file containing all polynomials that are initially present;
@@ -130,9 +141,9 @@ lemma degree_sum_notin:
   \<open>x' \<notin> vars B \<Longrightarrow> degree (A + B) x' = degree A x'\<close>
   apply (auto simp: degree_def)
   apply (rule arg_cong[of _ _ Max])
+  apply standard+
   apply (auto simp: plus_mpoly.rep_eq UN_I UnE image_iff in_keys_iff subsetD vars_def lookup_add
-      dest: keys_add intro: in_keys_plusI1 cong: ball_cong)
-  apply (metis add.left_neutral in_keys_iff)
+    dest: keys_add intro: in_keys_plusI1 cong: ball_cong_simp)
   done
 
 lemma degree_notin_vars:
@@ -178,9 +189,12 @@ qed
 
 lemma vars_in_right_only:
   "x \<in> vars q \<Longrightarrow> x \<notin> vars p \<Longrightarrow> x \<in> vars (p+q)"
-  apply (auto simp: vars_def keys_def plus_mpoly.rep_eq
-    lookup_plus_fun)
-  by (metis add.left_neutral gr_implies_not0)
+  unfolding  vars_def keys_def plus_mpoly.rep_eq lookup_plus_fun
+  apply clarify
+  subgoal for xa
+    by (auto simp: vars_def keys_def plus_mpoly.rep_eq
+      lookup_plus_fun intro!: exI[of _ xa] dest!: spec[of _ xa])
+  done
 
 lemma [simp]:
   \<open>vars 0 = {}\<close>
@@ -217,15 +231,18 @@ proof -
       case (insert x F) note fin = this(1) and xF = this(2) and IH = this(3) and
         incl = this(4)
       let ?p = \<open>p - MPoly_Type.monom x (MPoly_Type.coeff p x)\<close>
+      have H: \<open>\<And>xa. x \<notin> F \<Longrightarrow> xa \<in> F \<Longrightarrow>
+        MPoly_Type.monom xa (MPoly_Type.coeff (p - MPoly_Type.monom x (MPoly_Type.coeff p x)) xa) =
+         MPoly_Type.monom xa (MPoly_Type.coeff p xa)\<close>
+        by (metis (mono_tags, hide_lams) add_diff_cancel_right' remove_term_coeff
+          remove_term_sum when_def)
       have \<open>?p = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff ?p xa))\<close>
         apply (rule IH)
         using incl apply -
         by standard (smt Diff_iff Diff_insert_absorb add_diff_cancel_right'
           remove_term_keys remove_term_sum subsetD xF)
       also have \<open>... = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff p xa))\<close>
-        apply (use xF in \<open>auto intro!: sum.cong\<close>)
-        by (metis (mono_tags, hide_lams) add_diff_cancel_right' remove_term_coeff
-          remove_term_sum when_def)
+        by (use xF in \<open>auto intro!: sum.cong simp: H\<close>)
       finally show ?case
         apply (subst (asm) remove_term_sum[of x p, symmetric])
         apply (subst remove_term_sum[of x p, symmetric])
@@ -296,18 +313,25 @@ proof -
     done
 qed
 
+
+  term \<open>(x', u, lookup u x', A)\<close>
 lemma in_mapping_mult_single:
   \<open>x \<in> (\<lambda>x. lookup x x') ` keys (A * (Var\<^sub>0 x' :: (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'b :: {monoid_mult,zero_neq_one,semiring_0})) \<longleftrightarrow>
-    x > 0 \<and> x - 1 \<in> (\<lambda>x. lookup x x') ` keys (A)\<close>
-  apply (auto  elim!: in_keys_timesE simp: lookup_add)
-  apply (auto simp: keys_def lookup_times_monomial_right Var\<^sub>0_def)
-  apply (metis One_nat_def lookup_single_eq lookup_single_not_eq one_neq_zero)
-  apply (metis (mono_tags) add_diff_cancel_right' imageI lookup_single_eq lookup_single_not_eq mem_Collect_eq)
-  apply (subst image_iff)
-  apply (cases x)
-  apply simp
-  apply (rule_tac x= \<open>xa + Poly_Mapping.single x' 1\<close> in bexI)
-  apply (auto simp: lookup_add)
+  x > 0 \<and> x - 1 \<in> (\<lambda>x. lookup x x') ` keys (A)\<close>
+  apply (standard+; clarify)
+  subgoal
+    apply (auto  elim!: in_keys_timesE simp: lookup_add)
+    apply (auto simp: keys_def lookup_times_monomial_right Var\<^sub>0_def lookup_single image_iff)
+    done
+  subgoal
+    apply (auto  elim!: in_keys_timesE simp: lookup_add)
+    apply (auto simp: keys_def lookup_times_monomial_right Var\<^sub>0_def lookup_single image_iff)
+    done
+  subgoal for  xa
+    apply (auto  elim!: in_keys_timesE simp: lookup_add)
+    apply (auto simp: keys_def lookup_times_monomial_right Var\<^sub>0_def lookup_single image_iff lookup_add
+      intro!: exI[of _ \<open>xa + Poly_Mapping.single x' 1\<close>])
+    done
   done
 
 lemma Max_Suc_Suc_Max:
@@ -323,16 +347,28 @@ lemma [simp]:
 
 lemma degree_mult_Var:
   \<open>degree (A * Var x') x' = (if A = 0 then 0 else Suc (degree A x'))\<close> for A :: \<open>int mpoly\<close>
-  apply (auto simp: degree_def times_mpoly.rep_eq)
-  apply (subst arg_cong[of _ \<open>insert 0
-          (Suc ` ((\<lambda>x. lookup x x') ` keys (mapping_of A)))\<close> Max])
-  apply (auto simp: image_image Var.rep_eq lookup_plus_fun in_mapping_mult_single
-    hom_Max_commute
-  elim!: in_keys_timesE intro!: Max_Suc_Suc_Max
-    split: if_splits)[]
-   apply (subst Max_Suc_Suc_Max)
-   apply auto
-   using mapping_of_inject by fastforce
+proof -
+  have [simp]: \<open>A \<noteq> 0 \<Longrightarrow>
+    Max (insert 0 ((\<lambda>x. Suc (lookup x x')) ` keys (mapping_of A))) =
+    Max (insert (Suc 0) ((\<lambda>x. Suc (lookup x x')) ` keys (mapping_of A)))\<close>
+    unfolding image_image[of Suc \<open>\<lambda>x. lookup x x'\<close>, symmetric] image_insert[symmetric]
+    by (subst Max_Suc_Suc_Max, use mapping_of_inject in fastforce, use mapping_of_inject in fastforce)+
+      (simp add: Max.hom_commute)
+  have \<open>A \<noteq> 0 \<Longrightarrow>
+    Max (insert 0
+    ((\<lambda>x. lookup x x') `
+    keys (mapping_of A * mapping_of (Var x')))) =
+    Suc (Max (insert 0 ((\<lambda>m. lookup m x') ` keys (mapping_of A))))\<close>
+    by (subst arg_cong[of _ \<open>insert 0
+      (Suc ` ((\<lambda>x. lookup x x') ` keys (mapping_of A)))\<close> Max])
+     (auto simp: image_image Var.rep_eq lookup_plus_fun in_mapping_mult_single
+      hom_Max_commute Max_Suc_Suc_Max
+      elim!: in_keys_timesE  split: if_splits)
+  then show ?thesis
+    by (auto simp: degree_def times_mpoly.rep_eq
+      intro!: arg_cong[of _ \<open>insert 0
+      (Suc ` ((\<lambda>x. lookup x x') ` keys (mapping_of A)))\<close> Max])
+qed
 
 lemma degree_mult_Var':
   \<open>degree (Var x' * A) x' = (if A = 0 then 0 else Suc (degree A x'))\<close> for A :: \<open>int mpoly\<close>
@@ -382,7 +418,7 @@ definition decrease_key::"'a \<Rightarrow> ('a \<Rightarrow>\<^sub>0 'b::{monoid
 
 lemma remove_key_lookup:
   "lookup (decrease_key k0 f) k = (if k = k0 \<and> lookup f k \<noteq> 0 then lookup f k - 1 else lookup f k)"
-  unfolding decrease_key_def using finite_subset apply (simp add: lookup_Abs_poly_mapping)
+  unfolding decrease_key_def using finite_subset apply (simp add: )
   apply (subst lookup_Abs_poly_mapping)
   apply (auto intro: finite_subset[of _ \<open>{x. lookup f x \<noteq> 0}\<close>])
   apply (subst lookup_Abs_poly_mapping)
@@ -431,8 +467,7 @@ proof -
      (auto intro!: sum.cong)
   have \<open>x' \<notin> vars ?qX\<close>
     using vars_setsum[of \<open>{x. x \<in> keys (mapping_of p) \<and> x' \<notin> keys x}\<close> \<open>?f\<close>]
-    by auto (metis (mono_tags, lifting) UN_E mem_Collect_eq subsetD vars_monom_subset)
-
+    by (auto dest!: vars_monom_subset[unfolded subset_eq Ball_def, rule_format])
   then show ?thesis
     using that[of ?pX' ?qX]
     unfolding pX[symmetric] 1[symmetric]
@@ -487,8 +522,8 @@ proof -
        then obtain A' B' where
          sA: \<open>s*A = (Var x' - s) * A' + B'\<close> and
          \<open>x' \<notin> vars B'\<close>
-         using IH[of \<open>m-1\<close> \<open>s*A\<close>] deg apply auto
-         by (metis \<open>x' \<notin> vars B\<close> add.right_neutral mult_zero_right vars_in_right_only)
+         using IH[of \<open>m-1\<close> \<open>s*A\<close>] deg \<open>x' \<notin> vars B\<close> that[of 0 0]
+         by (cases \<open>0 < n\<close>) (auto dest!: vars_in_right_only)
        have \<open>P = (Var x' - s) * (A + A') + (B' + B)\<close>
          unfolding P' sA by (auto simp: field_simps)
        moreover have \<open>x' \<notin> vars (B' + B)\<close>
@@ -503,6 +538,13 @@ proof -
     using that unfolding eq
     by blast
 qed
+
+lemma finit_whenI[intro]:
+  \<open>finite  {x. (0 :: nat) < (y x)} \<Longrightarrow> finite {x. 0 < (y x when x \<noteq> x')}\<close>
+  apply (rule finite_subset)
+    defer apply assumption
+  apply (auto simp: when_def)
+  done
 
 lemma polynomial_split_on_var_diff_sq2:
  fixes p :: \<open>int mpoly\<close>
@@ -551,8 +593,7 @@ proof -
     by auto
   obtain qr :: \<open>nat \<Rightarrow> int mpoly\<close> where
      qr: \<open>n > 0 \<Longrightarrow> ?v^n = ?v + qr n * (?v^2-?v)\<close> for n
-   using H[of ]
-   by metis
+   using H by metis
   have vn: \<open>(if lookup x x' = 0 then 1 else Var x' ^ lookup x x') =
     (if lookup x x' = 0 then 1 else ?v) + (if lookup x x' = 0 then 0 else 1) * qr (lookup x x') * (?v^2-?v)\<close> for x
     by (simp add: qr[symmetric] Var_def Var\<^sub>0_def monom.abs_eq[symmetric] cong: if_cong)
@@ -578,10 +619,8 @@ proof -
     apply (cases x, auto simp: poly_mapping.Abs_poly_mapping_inject plus_poly_mapping.abs_eq eq_onp_def)
     apply (subst plus_poly_mapping.abs_eq)
     apply (auto simp: poly_mapping.Abs_poly_mapping_inject plus_poly_mapping.abs_eq eq_onp_def)
-    apply (metis (no_types, lifting) finite_nat_set_iff_bounded less_numeral_extra(3) mem_Collect_eq when_neq_zero zero_less_iff_neq_zero)
     apply (subst Abs_poly_mapping_inject)
     apply auto
-    apply (metis (no_types, lifting) finite_nat_set_iff_bounded less_numeral_extra(3) mem_Collect_eq when_neq_zero zero_less_iff_neq_zero)
     done
   define f where
     \<open>f x = (MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x)) *
@@ -659,6 +698,7 @@ proof -
     done
 qed
 
+
 lemma polynomial_decomp_alien_var:
   fixes q A b :: \<open>int mpoly\<close>
   assumes
@@ -679,9 +719,10 @@ proof -
     by simp
   then have \<open>?A = 0\<close>
     by (auto simp: vars_mult_monom split: if_splits)
-  then show \<open>A = 0\<close>
-    apply auto
-    by (metis (full_types) empty_iff insert_iff mult_zero_right vars_mult_monom)
+  moreover have \<open>?A = 0 \<Longrightarrow> A = 0\<close>
+    by (metis empty_not_insert mult_zero_left vars_mult_monom)
+  ultimately show \<open>A = 0\<close>
+    by blast
   then show \<open>q = b\<close>
     using q by auto
 qed
@@ -783,14 +824,21 @@ lemma lookup_monomial_If:
 
 lemma vars_mult_Var:
   \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
-  apply (auto simp: vars_def times_mpoly.rep_eq Var.rep_eq
-    elim!: in_keys_timesE dest: keys_add')
-  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
-   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+proof -
+  have \<open>p \<noteq> 0 \<Longrightarrow>
+    \<exists>xa. (\<exists>k. xa = monomial (Suc 0) x + k) \<and>
+         lookup (mapping_of p) (xa - monomial (Suc 0) x) \<noteq> 0 \<and>
+         0 < lookup xa x\<close>
+   by (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
      add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
      neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
-  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
-
+  then show ?thesis
+    apply (auto simp: vars_def times_mpoly.rep_eq Var.rep_eq
+    elim!: in_keys_timesE dest: keys_add')
+    apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def
+      lookup_add eq_diff_eq'[symmetric])
+    done
+qed
 
 lemma keys_mult_monomial:
   \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>

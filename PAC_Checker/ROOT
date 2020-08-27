@@ -1,4 +1,4 @@
-chapter PAC_Checker
+chapter AFP
 
 session PAC_Checker = "Sepref_IICF" +
   description \<open>PAC proof checker\<close>

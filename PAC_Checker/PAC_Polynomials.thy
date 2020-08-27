@@ -323,18 +323,27 @@ next
     done
 
   have diff: \<open>poly_of_vars (x) - poly_of_vars (remdups_mset (x)) \<in> ideal polynomial_bool\<close> for x
-    apply (induction x)
-    apply (auto simp: remove_powers_def ideal.span_zero H1)
-    apply (metis ideal.span_scale right_diff_distrib)
-    done
+    by (induction x)
+     (auto simp: remove_powers_def ideal.span_zero H1
+      simp flip: right_diff_distrib intro!: ideal.span_scale)
+  have [simp]: \<open>polynomial_of_mset xs -
+    polynomial_of_mset (apfst remdups_mset `# xs)
+    \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+    poly_of_vars ys * poly_of_vars ys -
+    poly_of_vars ys * poly_of_vars (remdups_mset ys)
+    \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+    polynomial_of_mset xs + Const y * poly_of_vars ys -
+    (polynomial_of_mset (apfst remdups_mset `# xs) +
+    Const y * poly_of_vars (remdups_mset ys))
+    \<in> More_Modules.ideal polynomial_bool\<close> for y ys
+    by (metis add_diff_add diff ideal.scale_right_diff_distrib ideal.span_add ideal.span_scale)
   show ?case
     using add
     apply (cases x)
     subgoal for ys y
       using ideal_mult_right_in2[OF diff, of \<open>poly_of_vars ys\<close> ys]
-      apply (auto simp: remove_powers_def right_diff_distrib
+      by (auto simp: remove_powers_def right_diff_distrib
         ideal.span_diff ideal.span_add field_simps)
-      by (metis add_diff_add diff ideal.scale_right_diff_distrib ideal.span_add ideal.span_scale)
     done
 qed
 
@@ -429,11 +438,9 @@ lemma rtranclp_mult_poly_p_mult_ideal:
     apply (drule mult_poly_p_mult_ideal)
     apply (drule ideal.span_add)
     apply assumption
-    apply (auto simp: group_add_class.diff_add_eq_diff_diff_swap
-        add.inverse_distrib_swap ac_simps
-      simp flip: ab_group_add_class.ab_diff_conv_add_uminus)
-    by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
-      ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
+    by (auto simp: group_add_class.diff_add_eq_diff_diff_swap
+        add.inverse_distrib_swap ac_simps add_diff_eq
+      simp flip:  diff_add_eq_diff_diff_swap)
   done
 
 lemma rtranclp_mult_poly_p_mult_ideal_final:

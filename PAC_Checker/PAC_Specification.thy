@@ -489,12 +489,22 @@ lemma vars_subst_in_left_only:
   by (metis One_nat_def Var.abs_eq Var\<^sub>0_def group_eq_aux monom.abs_eq mult_numeral_1 polynomial_decomp_alien_var(1) zero_neq_numeral)
 
 lemma vars_subst_in_left_only_diff_iff:
-  \<open>x \<notin> vars p \<Longrightarrow> vars (p - Var x) = insert x (vars p)\<close> for p :: \<open>int mpoly\<close>
-  apply (auto simp: vars_subst_in_left_only)
-  apply (metis (no_types, hide_lams) diff_0_right diff_minus_eq_add empty_iff in_vars_addE insert_iff keys_single minus_diff_eq
-    monom_one mult.right_neutral one_neq_zero single_zero vars_monom_keys vars_mult_Var vars_uminus)
-  by (metis add.inverse_inverse diff_minus_eq_add empty_iff insert_iff keys_single minus_diff_eq monom_one mult.right_neutral
-    one_neq_zero single_zero vars_in_right_only vars_monom_keys vars_mult_Var vars_uminus)
+  fixes p :: \<open>int mpoly\<close>
+  assumes \<open>x \<notin> vars p\<close>
+  shows \<open>vars (p - Var x) = insert x (vars p)\<close>
+proof -
+  have \<open>\<And>xa. x \<notin> vars p \<Longrightarrow> xa \<in> vars (p - Var x) \<Longrightarrow> xa \<notin> vars p \<Longrightarrow> xa = x\<close>
+    by (metis (no_types, hide_lams) diff_0_right diff_minus_eq_add empty_iff in_vars_addE insert_iff
+      keys_single minus_diff_eq monom_one mult.right_neutral one_neq_zero single_zero
+      vars_monom_keys vars_mult_Var vars_uminus)
+  moreover have \<open>\<And>xa. x \<notin> vars p \<Longrightarrow> xa \<in> vars p \<Longrightarrow> xa \<in> vars (p - Var x)\<close>
+    by (metis add.inverse_inverse diff_minus_eq_add empty_iff insert_iff keys_single minus_diff_eq
+      monom_one mult.right_neutral one_neq_zero single_zero vars_in_right_only vars_monom_keys
+      vars_mult_Var vars_uminus)
+  ultimately show ?thesis
+    using assms
+    by (auto simp: vars_subst_in_left_only)
+qed
 
 lemma vars_subst_in_left_only_iff:
   \<open>x \<notin> vars p \<Longrightarrow> vars (p + Var x) = insert x (vars p)\<close> for p :: \<open>int mpoly\<close>

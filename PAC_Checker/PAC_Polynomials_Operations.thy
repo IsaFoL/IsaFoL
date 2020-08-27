@@ -376,13 +376,15 @@ lemma term_poly_list_rel_empty_iff[simp]:
   \<open>([], q') \<in> term_poly_list_rel \<longleftrightarrow> q' = {#}\<close>
   by (auto simp: term_poly_list_rel_def)
 
+lemma mset_eqD_set_mset: \<open>mset xs = A \<Longrightarrow> set xs = set_mset A\<close>
+  by auto
+
 lemma term_poly_list_rel_Cons_iff:
   \<open>(y # p, p') \<in> term_poly_list_rel \<longleftrightarrow>
     (p, remove1_mset y p') \<in> term_poly_list_rel \<and>
     y \<in># p' \<and> y \<notin> set p \<and> y \<notin># remove1_mset y p' \<and>
-    (\<forall>x\<in>#mset p. (y, x) \<in> var_order_rel)\<close>
-  apply (auto simp: term_poly_list_rel_def rel2p_def dest!: multi_member_split)
-  by (metis list.set_intros(1) list_of_mset_exi mset.simps(2) mset_eq_setD)
+  (\<forall>x\<in>#mset p. (y, x) \<in> var_order_rel)\<close>
+  by (auto simp: term_poly_list_rel_def rel2p_def dest!: multi_member_split mset_eqD_set_mset)
 
 lemma var_order_rel_antisym[simp]:
   \<open>(y, y) \<notin> var_order_rel\<close>
@@ -401,8 +403,15 @@ lemma term_poly_list_rel_set_mset:
   \<open>(p, q) \<in> term_poly_list_rel \<Longrightarrow> set p = set_mset q\<close>
   by (auto simp: term_poly_list_rel_def)
 
+
 lemma mult_monoms_spec:
   \<open>(mult_monoms, (\<lambda>a b. remdups_mset (a + b))) \<in> term_poly_list_rel \<rightarrow> term_poly_list_rel \<rightarrow> term_poly_list_rel\<close>
+proof -
+  have [dest]: \<open>remdups_mset (A + Aa) = add_mset y Ab \<Longrightarrow> y \<notin># A \<Longrightarrow>
+       y \<notin># Aa \<Longrightarrow>
+       False\<close> for Aa Ab y A
+    by (metis set_mset_remdups_mset union_iff union_single_eq_member)
+  show ?thesis
   apply (intro fun_relI)
   apply (rename_tac p p' q q')
   subgoal for p p' q q'
@@ -415,10 +424,9 @@ lemma mult_monoms_spec:
       apply (cases \<open>x = y\<close>)
       subgoal
         using p(1)[of \<open>remove1_mset y p'\<close> \<open>remove1_mset y q'\<close>] p(4-)
-        apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
+        by (auto simp: term_poly_list_rel_Cons_iff rel2p_def
           dest!: var_notin_notin_mult_monomsD
           dest!: multi_member_split)
-       by (metis set_mset_remdups_mset union_iff union_single_eq_member)
      apply (cases \<open>(x, y) \<in> var_order_rel\<close>)
      subgoal
         using p(2)[of \<open>remove1_mset x p'\<close> \<open>q'\<close>] p(4-)
@@ -447,6 +455,7 @@ lemma mult_monoms_spec:
        done
     done
   done
+qed
 
 definition mult_monomials :: \<open>term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int\<close> where
   \<open>mult_monomials = (\<lambda>(x, a) (y, b). (mult_monoms x y, a * b))\<close>
@@ -467,7 +476,7 @@ lemma map_append_alt_def:
 lemma foldl_append_empty:
   \<open>NO_MATCH [] xs \<Longrightarrow> foldl (\<lambda>b x. f x @ b) xs p = foldl (\<lambda>b x. f x @ b) [] p @ xs\<close>
   apply (induction p arbitrary: xs)
-  apply simp
+   apply simp
   by (metis (mono_tags, lifting) NO_MATCH_def append.assoc append_self_conv foldl_Cons)
 
 
@@ -518,7 +527,7 @@ proof -
           \<in> term_poly_list_rel\<close> for aa n
     using mult_monoms_spec[unfolded fun_rel_def, simplified] apply -
     apply (drule bspec[of _ _ \<open>(aa, (mset aa))\<close>])
-    apply (auto simp: term_poly_list_rel_def)[]
+     apply (auto simp: term_poly_list_rel_def)[]
     unfolding prod.case sorted_poly_list_rel_wrt_def
     apply clarsimp
     subgoal for y
@@ -652,8 +661,9 @@ lemma merge_coeffs_is_normalize_poly_p:
         remove1_mset_add_mset_If nonzero_coeffs_diff sorted_repeat_poly_list_rel_Cons_iff)
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto dest!: multi_member_split simp del: normalize_poly_p.merge_dup_coeff)
-      by (metis add_mset_commute converse_rtranclp_into_rtranclp)
+      by (auto dest!: multi_member_split simp del: normalize_poly_p.merge_dup_coeff
+        simp: add_mset_commute
+        intro: converse_rtranclp_into_rtranclp)
    subgoal
       using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
       apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
@@ -661,11 +671,12 @@ lemma merge_coeffs_is_normalize_poly_p:
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp
+      by (force intro: add_mset_commute[of \<open>(mset ys, n)\<close> \<open>(mset ys, -n)\<close>]
+          converse_rtranclp_into_rtranclp
         dest!: multi_member_split
         simp del: normalize_poly_p.rem_0_coeff
-        simp: add_eq_0_iff2)
-      by (metis (full_types) add.right_inverse converse_rtranclp_into_rtranclp merge_dup_coeff normalize_poly_p.rem_0_coeff same)
+        simp: add_eq_0_iff2
+        intro: normalize_poly_p.rem_0_coeff)
    subgoal
       using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
     apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
@@ -707,22 +718,30 @@ lemma sort_all_coeffs_gen:
   shows \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN ((a, n) # b)}) xs' \<le>
      \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (rev xs @ xs') = map (\<lambda>(a,b). (mset a, b)) (ys) \<and>
      (\<forall>xs \<in> mononoms ys. sorted_wrt (rel2p (var_order_rel)) xs)))\<close>
-  using assms
-  unfolding sort_all_coeffs_def sort_coeff_def
-  apply (induction xs arbitrary: xs')
-  subgoal
+proof -
+  have H: \<open>
+       \<forall>x\<in>set xs'. sorted_wrt var_order (fst x) \<Longrightarrow>
+       sorted_wrt (rel2p (Id \<union> var_order_rel)) x \<Longrightarrow>
+       (aaa, ba) \<in> set xs' \<Longrightarrow>
+       sorted_wrt (rel2p (Id \<union> var_order_rel)) aaa\<close> for xs  xs' ba aa b x aaa
+    by (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
+  show ?thesis
     using assms
-    by auto
-  subgoal premises p for a xs
-    using p(2-)
-    apply (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
-      intro_spec_refine_iff prod.case)
-    apply (auto 5 3 simp: intro_spec_refine_iff image_Un
-      dest: same_mset_distinct_iff
-      intro!: p(1)[THEN order_trans] distinct_var_order_Id_var_order)
-    apply (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
+    unfolding sort_all_coeffs_def sort_coeff_def
+    apply (induction xs arbitrary: xs')
+    subgoal
+      using assms
+      by auto
+    subgoal premises p for a xs
+      using p(2-)
+      apply (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
+        intro_spec_refine_iff prod.case)
+      by (auto 5 3 simp: intro_spec_refine_iff image_Un
+        dest: same_mset_distinct_iff
+        intro!: p(1)[THEN order_trans] distinct_var_order_Id_var_order
+        simp: H)
     done
-  done
+qed
 
 definition shuffle_coefficients where
   \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (rev xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
@@ -825,22 +844,18 @@ lemma sort_all_coeffs_unsorted_poly_rel_with0:
   assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
   shows \<open>sort_all_coeffs p \<le> \<Down> (unsorted_poly_rel_with0) (RETURN p')\<close>
 proof -
-  have \<open>(map (\<lambda>(a, y). (mset a, y)) (rev p)) =
+  have H: \<open>(map (\<lambda>(a, y). (mset a, y)) (rev p)) =
           map (\<lambda>(a, y). (mset a, y)) s \<longleftrightarrow>
           (map (\<lambda>(a, y). (mset a, y)) p) =
           map (\<lambda>(a, y). (mset a, y)) (rev s)\<close> for s
-    apply (auto simp flip: rev_map)
-    by (metis rev_rev_ident)
+    by (auto simp flip: rev_map simp: eq_commute[of \<open>rev (map _ _)\<close> \<open>map _ _\<close>])
   show ?thesis
   apply (rule sort_all_coeffs[THEN order_trans])
   using assms
   apply (auto simp: shuffle_coefficients_def poly_list_rel_def
        RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
-       br_def dest: list_rel_unsorted_term_poly_list_relD
-    intro!: RES_refine)
-  apply (rule_tac b= \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close> in relcompI)
-  apply (auto dest: list_rel_unsorted_term_poly_list_relD
-    simp:)
+    br_def dest: list_rel_unsorted_term_poly_list_relD
+    intro!: RES_refine relcompI[of _  \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close>])
   apply (auto simp: mset_map rev_map
     dest!: list_rel_unsorted_term_poly_list_relD
     intro!: map_mset_unsorted_term_poly_list_rel)
