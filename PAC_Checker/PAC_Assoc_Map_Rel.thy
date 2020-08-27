@@ -112,8 +112,13 @@ definition hash_of_assoc_map where
 
 lemma map_upd_map_add_left:
   \<open>m(a  \<mapsto> b) ++ m' = m ++ (if a \<notin> dom m' then m'(a  \<mapsto> b) else m')\<close>
-  apply (auto simp: )
-  by (metis (no_types) fun_upd_triv fun_upd_upd map_add_assoc map_add_empty map_add_upd map_le_iff_map_add_commute)
+proof -
+  have \<open>m' a = Some y \<Longrightarrow> m(a \<mapsto> b) ++ m' = m ++ m'\<close> for y
+    by (metis (no_types) fun_upd_triv fun_upd_upd map_add_assoc map_add_empty map_add_upd
+        map_le_iff_map_add_commute)
+  then show ?thesis
+    by auto
+qed
 
 lemma fold_map_of_alt:
   \<open>fold (\<lambda>(k, v) m. if m k \<noteq> None then m else m(k \<mapsto> v)) xs m' = map_of xs ++ m'\<close>

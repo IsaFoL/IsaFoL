@@ -359,6 +359,19 @@ proof -
     [simp, intro]:\<open>(A, B) \<in> polys_rel\<close>
     using AB
     by (auto simp: polys_rel_full_def)
+  have H0: \<open>2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+          r \<in> pac_ideal
+                (insert (the (fmlookup A x12))
+                  ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa))\<close> for x12 r Aa
+    by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute 
+         diff_in_polynomial_bool_pac_idealI
+       ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)+
+  then have H0': \<open>\<And>Aa. 2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+          r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+          spec \<in> pac_ideal (insert (the (fmlookup A x12)) ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa))\<close>
+    for r x12
+    by (metis (no_types, lifting) diff_in_polynomial_bool_pac_idealI)
+
   have H1: \<open> x12 \<in># dom_m A \<Longrightarrow>
        2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
@@ -369,12 +382,24 @@ proof -
          of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
       of \<open>set_mset B \<union> polynomial_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
-     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynomial_bool_pac_idealI)
-     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynomial_bool_pac_idealI
-       ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)
-
-  have H2: \<open>x11 \<in># dom_m A \<Longrightarrow>
+     by (auto dest!: multi_member_split simp: ran_m_def 
+         intro: H0')
+   have H2': \<open>the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+       B = add_mset (the (fmlookup A x11)) {#the (fmlookup A x). x \<in># Aa#} \<Longrightarrow>
+       (the (fmlookup A x11) + the (fmlookup A x12) - r
+        \<in> More_Modules.ideal
+            (insert (the (fmlookup A x11))
+              ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa \<union> polynomial_bool)) \<Longrightarrow>
+        - r
+        \<in> More_Modules.ideal
+            (insert (the (fmlookup A x11))
+              ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa \<union> polynomial_bool))) \<Longrightarrow>
+       r \<in> pac_ideal (insert (the (fmlookup A x11)) ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa))\<close>
+     for r x12 x11 A Aa
+     by (metis (mono_tags, lifting) Un_insert_left diff_diff_eq2 diff_in_polynomial_bool_pac_idealI diff_zero
+       ideal.span_diff ideal.span_neg minus_diff_eq pac_idealI1 pac_ideal_def set_image_mset
+       set_mset_add_mset_insert union_single_eq_member)
+   have H2: \<open>x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) + the (fmlookup A x12) - r
        \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
@@ -385,11 +410,16 @@ proof -
          of \<open>the (fmlookup A x11)\<close> _  \<open>the (fmlookup A x12)\<close>],
       of \<open>set_mset B \<union> polynomial_bool\<close> \<open>the (fmlookup A x11) + the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
-    apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base intro: diff_in_polynomial_bool_pac_idealI)
-     by (metis (mono_tags, lifting) Un_insert_left diff_diff_eq2 diff_in_polynomial_bool_pac_idealI diff_zero
-       ideal.span_diff ideal.span_neg minus_diff_eq pac_idealI1 pac_ideal_def set_image_mset
-       set_mset_add_mset_insert union_single_eq_member)
+     by (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+       (auto dest!: multi_member_split simp: ran_m_def ideal.span_base 
+         intro: diff_in_polynomial_bool_pac_idealI simp: H2')
+
+   have H3': \<open>the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+          r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+          r \<in> pac_ideal (insert (the (fmlookup A x12)) ((\<lambda>x. the (fmlookup A x)) ` set_mset Aa))\<close>
+     for Aa x12 r q
+     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynomial_bool_pac_idealI
+       ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)
 
   have H3: \<open>x12 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
@@ -400,10 +430,9 @@ proof -
          of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
       of \<open>set_mset B \<union> polynomial_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
-     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynomial_bool_pac_idealI)
-     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynomial_bool_pac_idealI
-       ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)
+     by (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+       (auto dest!: multi_member_split simp: ran_m_def H3'
+         intro: diff_in_polynomial_bool_pac_idealI)
 
   have [intro]: \<open>spec \<in> pac_ideal (set_mset B) \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close> and
     vars_B: \<open>\<Union> (vars ` set_mset B) \<subseteq> \<V>\<close>and
@@ -566,9 +595,8 @@ lemma PAC_checker_PAC_checker_specification2:
      apply (auto simp: PAC_checker_specification_spec_def polys_rel_full_def polys_rel_def
        dest: PAC_Format_subset_ideal
        dest: is_failed_is_success_completeD; fail)+
-     apply (auto simp: Image_iff intro: PAC_checker_specification_spec_trans)
-     by (metis (mono_tags, lifting) PAC_checker_specification_spec_trans mem_Collect_eq old.prod.case
-       polys_rel_def polys_rel_full_def prod.collapse)
+    by (auto simp: Image_iff intro: PAC_checker_specification_spec_trans
+        simp: polys_rel_def polys_rel_full_def)
   subgoal
     by auto
   done
@@ -592,8 +620,7 @@ definition remap_polys_change_all :: \<open>int mpoly \<Rightarrow> nat set \<Ri
 
 lemma fmap_eq_dom_iff:
   \<open>A = A' \<longleftrightarrow> dom_m A = dom_m A' \<and> (\<forall>i \<in># dom_m A. the (fmlookup A i) = the (fmlookup A' i))\<close>
-  apply auto
-  by (metis fmap_ext in_dom_m_lookup_iff option.collapse)
+  by (metis fmap_ext in_dom_m_lookup_iff option.expand)
 
 lemma ideal_remap_incl:
   \<open>finite A' \<Longrightarrow> (\<forall>a'\<in>A'. \<exists>a\<in>A. a-a' \<in> B) \<Longrightarrow> ideal (A' \<union> B) \<subseteq> ideal (A \<union> B)\<close>
@@ -746,6 +773,9 @@ lemma restricted_ideal_to_mono:
    restricted_ideal_to\<^sub>I \<U> I \<subseteq> restricted_ideal_to\<^sub>I \<U>  J\<close>
   by (auto simp: restricted_ideal_to_def)
 
+lemma pac_ideal_idemp: \<open>pac_ideal (pac_ideal A) = pac_ideal A\<close>
+  by (metis dual_order.antisym ideal.span_subset_spanI ideal.span_superset le_sup_iff pac_ideal_def)
+
 lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>
   shows
@@ -755,8 +785,8 @@ lemma full_checker_spec:
 proof -
   have H: \<open>set_mset b \<subseteq> pac_ideal (set_mset (ran_m A)) \<Longrightarrow>
        x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
-   using assms apply (auto simp: polys_rel_def)
-   by (metis (no_types, lifting) ideal.span_subset_spanI ideal.span_superset le_sup_iff pac_ideal_alt_def subsetD)
+    using assms apply -
+    by (drule pac_ideal_mono) (auto simp: polys_rel_def pac_ideal_idemp)
   have 1: \<open>x \<in> {(st, \<V>', A').
           ( \<not> is_failed st \<longrightarrow> pac_ideal (set_mset (ran_m x2)) =
               pac_ideal (set_mset (ran_m A')) \<and>

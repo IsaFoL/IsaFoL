@@ -381,18 +381,12 @@ lemma degree_times_le:
     dest!: set_rev_mp[OF _ Poly_Mapping.keys_add]
     elim!: in_keys_timesE)
 
-
 lemma monomial_inj:
   "monomial c s = monomial (d::'b::zero_neq_one) t \<longleftrightarrow> (c = 0 \<and> d = 0) \<or> (c = d \<and> s = t)"
-  apply (auto simp: monomial_inj Poly_Mapping.single_def
-    poly_mapping.Abs_poly_mapping_inject when_def
+  by (fastforce simp add: monomial_inj Poly_Mapping.single_def
+    poly_mapping.Abs_poly_mapping_inject when_def fun_eq_iff
     cong: if_cong
     split: if_splits)
-    apply metis
-    apply metis
-    apply metis
-    apply metis
-    done
 
 lemma MPoly_monomial_power':
   \<open>MPoly (monomial 1 x') ^ (n+1) =  MPoly (monomial (1) (((\<lambda>x. x + x') ^^ n) x'))\<close>

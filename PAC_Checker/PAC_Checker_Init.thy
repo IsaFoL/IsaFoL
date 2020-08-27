@@ -92,8 +92,8 @@ lemma sorted_msort:
 
 lemma mset_msort[simp]:
   "mset (msort f xs) = mset xs"
-  by (induct f xs rule: msort.induct)
-    (simp_all, metis append_take_drop_id mset.simps(2) mset_append)
+  by (induction f xs rule: msort.induct)
+    (simp_all add: union_code)
 
 
 subsection \<open>Sorting applied to monomials\<close>
@@ -320,7 +320,8 @@ lemma var_order_rel':
 
 lemma var_order_rel'':
   \<open>(x,y) \<in> var_order_rel \<longleftrightarrow> x < y\<close>
-  by (metis leD less_than_char_linear lexord_linear neq_iff var_order_rel' var_order_rel_antisym var_order_rel_def)
+  by (metis leD less_than_char_linear lexord_linear neq_iff var_order_rel' var_order_rel_antisym
+      var_order_rel_def)
 
 lemma lexord_eq_alt_def1:
   \<open>a \<le> b = lexord_eq a b\<close> for a b :: \<open>String.literal list\<close>
@@ -381,15 +382,23 @@ lemma [sepref_import_param]:
 
 lemma [sepref_import_param]:
   \<open>( (<), (<)) \<in> string_rel \<rightarrow> string_rel \<rightarrow>bool_rel\<close>
-  unfolding string_rel_def less_literal.rep_eq less_than_char_def
-    less_eq_list_def PAC_Polynomials_Term.less_char_def[symmetric]
-  apply (intro fun_relI)
-  apply (auto simp: string_rel_def less_literal.rep_eq PAC_Polynomials_Term.less_char_def
-    less_list_def char.lexordp_conv_lexord lexordp_eq_refl
-    lexord_code lexordp_eq_conv_lexord less_char_def[abs_def])
-  apply (metis PAC_Checker_Relation.less_char_def char.lexordp_conv_lexord less_list_def p2rel_def var_order_rel'' var_order_rel_def)
-  apply (metis PAC_Checker_Relation.less_char_def char.lexordp_conv_lexord less_list_def p2rel_def var_order_rel'' var_order_rel_def)
-  done
+proof -
+  have [iff]: \<open>ord.lexordp (<) (literal.explode a) (literal.explode aa) \<longleftrightarrow>
+       List.lexordp (<) (literal.explode a) (literal.explode aa)\<close> for a aa
+    apply (rule iffI)
+     apply (metis PAC_Checker_Relation.less_char_def char.lexordp_conv_lexord less_list_def
+        p2rel_def var_order_rel'' var_order_rel_def)
+    apply (metis PAC_Checker_Relation.less_char_def char.lexordp_conv_lexord less_list_def
+        p2rel_def var_order_rel'' var_order_rel_def)
+    done
+  show ?thesis
+    unfolding string_rel_def less_literal.rep_eq less_than_char_def
+      less_eq_list_def PAC_Polynomials_Term.less_char_def[symmetric]
+    by (intro fun_relI)
+     (auto simp: string_rel_def less_literal.rep_eq
+        less_list_def char.lexordp_conv_lexord lexordp_eq_refl
+        lexord_code lexordp_eq_conv_lexord)
+qed
 
 lemma [sepref_import_param]:
   \<open>( (\<le>), (\<le>)) \<in> string_rel \<rightarrow> string_rel \<rightarrow>bool_rel\<close>
@@ -418,7 +427,7 @@ lemmas [code] =
   msort_monoms_impl_def[unfolded msort_msort2]
 
 lemma term_order_rel_trans:
-  \<open>       (a, aa) \<in> term_order_rel \<Longrightarrow>
+  \<open>(a, aa) \<in> term_order_rel \<Longrightarrow>
        (aa, ab) \<in> term_order_rel \<Longrightarrow> (a, ab) \<in> term_order_rel\<close>
   by (metis PAC_Checker_Relation.less_char_def p2rel_def string_list_trans var_order_rel_def)
 

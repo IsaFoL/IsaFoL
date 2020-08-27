@@ -208,14 +208,26 @@ begin
   definition less_eq_list where "less_eq_list = lexordp_eq"
 
 instance
-  apply standard
-  apply (auto simp: less_list_def less_eq_list_def List.lexordp_def
+proof standard
+  have [dest]: \<open>\<And>x y :: 'a :: linorder list. (x, y) \<in> lexord {(x, y). x < y} \<Longrightarrow>
+           lexordp_eq y x \<Longrightarrow> False\<close>
+    by (metis lexordp_antisym lexordp_conv_lexord lexordp_eq_conv_lexord)
+  have [simp]: \<open>\<And>x y :: 'a :: linorder list. lexordp_eq x y \<Longrightarrow>
+           \<not> lexordp_eq y x \<Longrightarrow>
+           (x, y) \<in> lexord {(x, y). x < y}\<close>
+    using lexordp_conv_lexord lexordp_conv_lexordp_eq by blast
+  show
+   \<open>(x < y) = Restricted_Predicates.strict (\<le>) x y\<close>
+   \<open>x \<le> x\<close>
+   \<open>x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z\<close>
+   \<open>x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y\<close>
+   \<open>x \<le> y \<or> y \<le> x\<close>
+   for x y z :: \<open>'a :: linorder list\<close>
+    by (auto simp: less_list_def less_eq_list_def List.lexordp_def
     lexordp_conv_lexord lexordp_into_lexordp_eq lexordp_antisym
     antisym_def lexordp_eq_refl lexordp_eq_linear intro: lexordp_eq_trans
     dest: lexordp_eq_antisym)
-  apply (metis lexordp_antisym lexordp_conv_lexord lexordp_eq_conv_lexord)
-  using lexordp_conv_lexord lexordp_conv_lexordp_eq apply blast
-  done
+qed
 
 end
 
@@ -266,9 +278,7 @@ proof
        \<open>(aa, aa') \<in> string_rel\<close>
        \<open>(aaa, aaa') \<in> string_rel\<close>
       using assms
-      apply (auto simp: lexord_def List.lexordp_def
-        list_rel_append1 list_rel_split_right_iff dest: H)
-      by (metis (no_types, hide_lams) H list_rel_append2 list_rel_simp(4))
+      by (smt list_rel_append1 list_rel_split_right_iff single_valued_def single_valued_monom_rel)
     with \<open>aa < aaa\<close> have \<open>aa' < aaa'\<close>
       by (auto simp: string_rel_def less_literal.rep_eq less_list_def
         lexordp_conv_lexord lexordp_def char.lexordp_conv_lexord

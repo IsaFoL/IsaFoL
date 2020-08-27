@@ -366,18 +366,14 @@ lemma set_insort_key_rel[simp]: \<open>set (insort_key_rel R x xs) = insert x (s
 lemma sorted_wrt_insort_key_rel:
    \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> reflp R \<Longrightarrow>
     sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
-  apply (induction xs)
-  apply (auto dest: transpD)
-  apply (metis Restricted_Predicates.total_on_def in_mono insertI1 reflpD subset_insertI)
-  by (simp add: Restricted_Predicates.total_on_def)
+  by (induction xs)
+   (auto dest: transpD reflpD simp: Restricted_Predicates.total_on_def)
 
 lemma sorted_wrt_insort_key_rel2:
    \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> x \<notin> set xs \<Longrightarrow>
     sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
-  apply (induction xs)
-  apply (auto dest: transpD)
-  apply (metis Restricted_Predicates.total_on_def in_mono insertI1 subset_insertI)
-  by (simp add: Restricted_Predicates.total_on_def)
+  by (induction xs)
+   (auto dest: transpD simp: Restricted_Predicates.total_on_def in_mono)
 
 
 paragraph \<open>Step checking\<close>
@@ -575,11 +571,9 @@ proof -
 
   have H': \<open>(p, pa) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
      weak_equality_l p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa
-    using spec apply (auto simp: weak_equality_l_def weak_equality_spec_def
-       list_mset_rel_def br_def
-    dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
-    by (metis (mono_tags) mem_Collect_eq mset_poly_rel_def prod.simps(2)
-      sorted_poly_list_relD)
+    using spec by (auto simp: weak_equality_l_def weak_equality_spec_def
+        list_mset_rel_def br_def mset_poly_rel_def
+      dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
 
   have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
     ((False, \<V>, fmempty), False, \<V>', fmempty) \<in> bool_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> for \<V> \<V>'
@@ -1125,9 +1119,9 @@ proof -
         full_normalize_poly_diff_ideal)
       subgoal using AB by auto
       subgoal using AB by auto
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       subgoal by (auto intro: \<V>)
       apply assumption+
       subgoal
@@ -1143,10 +1137,10 @@ proof -
         full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
       subgoal using AB by auto
       subgoal using AB by auto
-      subgoal using AB by (auto simp: )
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
+      subgoal using AB by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       apply assumption+
       subgoal
         by (auto simp: code_status_status_rel_def)
@@ -1160,8 +1154,8 @@ proof -
         check_extension_l_check_extension)
       subgoal using AB by (auto intro!: fully_unsorted_poly_rel_diff[of _ \<open>-Var _ :: int mpoly\<close>, unfolded H3[symmetric]] simp: comp_def case_prod_beta)
       subgoal using AB by auto
-      subgoal using AB by (auto simp: )
-      subgoal by (auto simp: )
+      subgoal using AB by auto
+      subgoal by auto
       subgoal by auto
       subgoal
         by (auto simp: code_status_status_rel_def)

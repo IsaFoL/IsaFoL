@@ -196,16 +196,15 @@ lemma sorted_sublist_map_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs
   by (auto simp add: sorted_sublist_wrt_le)
 
 lemma sublist_cons: \<open>lo < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo hi = xs!lo # sublist xs (Suc lo) hi\<close>
-  apply (simp add: sublist_def)
-  by (metis Cons_nth_drop_Suc Suc_diff_le le_trans less_imp_le_nat not_le take_Suc_Cons)
+  by (metis Cons_eq_appendI append_self_conv2 less_imp_le_nat less_or_eq_imp_le less_trans
+      sublist_app sublist_single)
 
 lemma sorted_sublist_wrt_cons':
   \<open>sorted_sublist_wrt R xs (lo+1) hi \<Longrightarrow> lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> (\<forall>j. lo<j\<and>j\<le>hi \<longrightarrow> R (xs!lo) (xs!j)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
-  apply (simp add: sorted_sublist_wrt_def)
-  apply (auto simp add: nat_le_eq_or_lt)
-  subgoal by (simp add: sublist_single)
-  apply (auto simp add: sublist_cons sublist_el)
-  by (metis Suc_lessI ab_semigroup_add_class.add.commute less_add_Suc1 less_diff_conv)
+  apply (auto simp add: nat_le_eq_or_lt sorted_sublist_wrt_def)
+  apply (auto 5 4 simp add: sublist_cons sublist_el less_diff_conv add.commute[of _ lo]
+      dest: Suc_lessI sublist_single)
+  done
 
 lemma sorted_sublist_wrt_cons:
   assumes trans: \<open>(\<And> x y z. \<lbrakk>R x y; R y z\<rbrakk> \<Longrightarrow> R x z)\<close> and
@@ -260,8 +259,8 @@ lemma sorted_sublist_wrt_snoc':
   apply (simp add: sorted_sublist_wrt_def)
   apply (auto simp add: nat_le_eq_or_lt)
   subgoal by (simp add: sublist_single)
-  apply (auto simp add: sublist_snoc sublist_el sorted_wrt_append)
-  by (metis ab_semigroup_add_class.add.commute leI less_diff_conv nat_le_eq_or_lt not_add_less1)
+  by (auto simp add: sublist_snoc sublist_el sorted_wrt_append add.commute[of lo] less_diff_conv
+      simp: leI simp flip:nat_le_eq_or_lt)
 
 
 lemma sorted_sublist_wrt_snoc:
@@ -401,9 +400,11 @@ lemma partition_wrt_extend:
   (\<And> j. hi'<j \<Longrightarrow> j\<le>hi \<Longrightarrow> R (xs!p) (xs!j)) \<Longrightarrow>
   isPartition_wrt R xs lo hi p\<close>
   unfolding isPartition_wrt_def
-  apply auto
-  subgoal by (meson not_le)
-  subgoal by (metis nat_le_eq_or_lt nat_le_linear)
+  apply (intro conjI)
+  subgoal
+    by (force simp: not_le)
+  subgoal
+    using leI by blast
   done
 
 lemma partition_map_extend:
@@ -651,8 +652,7 @@ proof
     apply (rule mset_sublist_incl)
     using assms by auto
   show \<open>set (sublist xs lo hi) \<subseteq> set (sublist xs' lo hi)\<close>
-    apply (rule mset_sublist_incl)
-    by (metis assms size_mset)+
+    by (rule mset_sublist_incl) (metis assms size_mset)+
 qed
 
 

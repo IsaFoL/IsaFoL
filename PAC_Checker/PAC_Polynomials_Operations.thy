@@ -849,20 +849,31 @@ proof -
           (map (\<lambda>(a, y). (mset a, y)) p) =
           map (\<lambda>(a, y). (mset a, y)) (rev s)\<close> for s
     by (auto simp flip: rev_map simp: eq_commute[of \<open>rev (map _ _)\<close> \<open>map _ _\<close>])
+  have 1: \<open>\<And>s y. (p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+           p' = mset y \<Longrightarrow>
+           map (\<lambda>(a, y). (mset a, y)) (rev p) = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+           \<forall>x\<in>set s. sorted_wrt var_order (fst x) \<Longrightarrow>
+           (s, map (\<lambda>(a, y). (mset a, y)) s)
+           \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+    by (auto 4 4 simp: rel2p_def
+        dest!: list_rel_unsorted_term_poly_list_relD
+        dest: shuffle_terms_distinct_iff["THEN" iffD1]
+        intro!: map_mset_unsorted_term_poly_list_rel
+        sorted_wrt_mono_rel[of _ \<open>rel2p (var_order_rel)\<close> \<open>rel2p (Id \<union> var_order_rel)\<close>])
+  have 2: \<open>\<And>s y. (p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+           p' = mset y \<Longrightarrow>
+           map (\<lambda>(a, y). (mset a, y)) (rev p) = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+           \<forall>x\<in>set s. sorted_wrt var_order (fst x) \<Longrightarrow>
+           mset y = {#case x of (a, x) \<Rightarrow> (mset a, x). x \<in># mset s#}\<close>
+    by (metis (no_types, lifting) list_rel_unsorted_term_poly_list_relD mset_map mset_rev)
   show ?thesis
-  apply (rule sort_all_coeffs[THEN order_trans])
-  using assms
-  apply (auto simp: shuffle_coefficients_def poly_list_rel_def
-       RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
-    br_def dest: list_rel_unsorted_term_poly_list_relD
-    intro!: RES_refine relcompI[of _  \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close>])
-  apply (auto simp: mset_map rev_map
-    dest!: list_rel_unsorted_term_poly_list_relD
-    intro!: map_mset_unsorted_term_poly_list_rel)
-  apply (force dest: shuffle_terms_distinct_iff["THEN" iffD1])
-  apply (force dest: shuffle_terms_distinct_iff["THEN" iffD1])
-  apply (metis Un_iff fst_conv rel2p_def sorted_wrt_mono_rel)
-  by (metis mset_map mset_rev)
+    apply (rule sort_all_coeffs[THEN order_trans])
+    using assms
+    by (auto simp: shuffle_coefficients_def poly_list_rel_def
+        RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
+        br_def dest: list_rel_unsorted_term_poly_list_relD
+        intro!: RES_refine relcompI[of _  \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close>]
+        1 2)
 qed
 
 lemma sort_poly_spec_id':
@@ -1004,10 +1015,10 @@ lemma merge_coeffs0_is_normalize_poly_p:
         simp del: normalize_poly_p.merge_dup_coeff)
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute
+      by (auto intro: normalize_poly_p.intros 
          converse_rtranclp_into_rtranclp dest!: multi_member_split
-        simp del: normalize_poly_p.merge_dup_coeff)
-        by (metis add_mset_commute converse_rtranclp_into_rtranclp)
+         simp: add_mset_commute[of \<open>(mset ys, n)\<close> \<open>(mset ys, m)\<close>]
+         simp del: normalize_poly_p.merge_dup_coeff)
    subgoal
       using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(5-)
       apply (auto simp: sorted_repeat_poly_list_rel_with0_wrtl_Cons_iff ac_simps add_mset_commute
@@ -1015,9 +1026,10 @@ lemma merge_coeffs0_is_normalize_poly_p:
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
-        simp del: normalize_poly_p.rem_0_coeff)
-     by (metis add_mset_commute converse_rtranclp_into_rtranclp normalize_poly_p.simps)
+      by (force intro: normalize_poly_p.intros converse_rtranclp_into_rtranclp
+          dest!: multi_member_split
+        simp del: normalize_poly_p.rem_0_coeff
+         simp: add_mset_commute[of \<open>(mset ys, n)\<close> \<open>(mset ys, m)\<close>])
    apply (cases \<open>n = 0\<close>)
    subgoal
       using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
@@ -1025,11 +1037,10 @@ lemma merge_coeffs0_is_normalize_poly_p:
       remove1_mset_add_mset_If sorted_repeat_poly_list_rel_Cons_iff)
     apply (rule_tac x = \<open>r\<close> in exI)
     apply (auto dest!: in_set_merge_coeffsD)
-    apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset
+    by (force intro: rtranclp_normalize_poly_add_mset converse_rtranclp_into_rtranclp
       simp: rel2p_def var_order_rel_def sorted_poly_list_rel_Cons_iff
       dest!: multi_member_split
       dest: sorted_poly_list_rel_nonzeroD)
-    by (metis converse_rtranclp_into_rtranclp normalize_poly_p.simps)
    subgoal
       using p(4)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(5-)
     apply (auto simp: sorted_repeat_poly_list_rel_with0_wrtl_Cons_iff ac_simps add_mset_commute

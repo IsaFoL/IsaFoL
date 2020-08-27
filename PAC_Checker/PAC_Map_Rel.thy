@@ -86,18 +86,45 @@ sepref_decl_op fmap_update: "fmupd" :: "K \<rightarrow> V \<rightarrow> \<langle
   apply (intro fun_relI)
   by (rule fmap_rel_fmupd_fmap_rel)
 
+lemma remove1_mset_eq_add_mset_iff:
+   \<open>remove1_mset a A = add_mset a A' \<longleftrightarrow> A = add_mset a (add_mset a A')\<close>
+  by (metis add_mset_add_single add_mset_diff_bothsides diff_zero remove1_mset_eqE)
 
 lemma fmap_rel_fmdrop_fmap_rel:
-  \<open>(A, B) \<in> \<langle>K, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> K \<Longrightarrow>
-   (fmdrop p A, fmdrop p' B) \<in> \<langle>K, R\<rangle>fmap_rel\<close>
-  if "single_valued K" "single_valued (K\<inverse>)"
-  using that
-  unfolding fmap_rel_alt_def
-  apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
-  apply (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-  apply (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-  by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff
-      union_single_eq_member)+
+  \<open>(fmdrop p A, fmdrop p' B) \<in> \<langle>K, R\<rangle>fmap_rel\<close>
+  if single: "single_valued K" "single_valued (K\<inverse>)" and
+    H0: \<open>(A, B) \<in> \<langle>K, R\<rangle>fmap_rel\<close> \<open>(p, p') \<in> K\<close>
+proof -
+  have H: \<open>\<And>Aa j.
+       \<forall>i. i \<in># dom_m B \<longrightarrow> (\<forall>j. (j, i) \<in> K \<longrightarrow> (the (fmlookup A j), the (fmlookup B i)) \<in> R) \<Longrightarrow>
+       remove1_mset p' (dom_m B) = add_mset p' Aa \<Longrightarrow> (j, p') \<in> K \<Longrightarrow> False\<close>
+    by (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  have H2: \<open>\<And>i Aa j.
+       (p, p') \<in> K \<Longrightarrow>
+       \<forall>i. i \<in># dom_m B \<longrightarrow> (\<forall>j. (j, i) \<in> K \<longrightarrow> (the (fmlookup A j), the (fmlookup B i)) \<in> R) \<Longrightarrow>
+       \<forall>i j. (i, j) \<in> K \<longrightarrow> (j \<in># dom_m B) = (i \<in># dom_m A) \<Longrightarrow>
+       remove1_mset p' (dom_m B) = add_mset i Aa \<Longrightarrow>
+       (j, i) \<in> K \<Longrightarrow>
+            (the (fmlookup A j), the (fmlookup B i)) \<in> R \<and> j \<in># remove1_mset p (dom_m A) \<and>
+        i \<in># remove1_mset p' (dom_m B)\<close>
+    \<open>\<And>i j Aa.
+       (p, p') \<in> K \<Longrightarrow>
+       single_valued K \<Longrightarrow>
+       single_valued (K\<inverse>) \<Longrightarrow>
+       \<forall>i. i \<in># dom_m B \<longrightarrow> (\<forall>j. (j, i) \<in> K \<longrightarrow> (the (fmlookup A j), the (fmlookup B i)) \<in> R) \<Longrightarrow>
+       fset (fmdom A) \<subseteq> Domain K \<Longrightarrow>
+       fset (fmdom B) \<subseteq> Range K \<Longrightarrow>
+       \<forall>i j. (i, j) \<in> K \<longrightarrow> (j \<in># dom_m B) = (i \<in># dom_m A) \<Longrightarrow>
+       (i, j) \<in> K \<Longrightarrow> remove1_mset p (dom_m A) = add_mset i Aa \<Longrightarrow> j \<in># remove1_mset p' (dom_m B)\<close>
+    using single
+    by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff
+        union_single_eq_member)+
+  show \<open>(fmdrop p A, fmdrop p' B) \<in> \<langle>K, R\<rangle>fmap_rel\<close>
+    using that
+    unfolding fmap_rel_alt_def
+    by (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED
+        dest!: multi_member_split dest: H H2)
+qed
 
 sepref_decl_op fmap_delete: "fmdrop" :: "K \<rightarrow> \<langle>K,V\<rangle>fmap_rel \<rightarrow> \<langle>K,V\<rangle>fmap_rel"
   where "single_valued K" "single_valued (K\<inverse>)"
