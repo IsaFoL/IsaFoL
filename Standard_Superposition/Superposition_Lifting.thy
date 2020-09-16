@@ -4,7 +4,7 @@
 
 theory Superposition_Lifting
 imports
-    Saturation_Framework.Calculus Soundness
+    Saturation_Framework.Calculus Saturation_Framework_Extensions.Soundness
     "HOL-Library.Multiset" "HOL-Library.Uprod"
     First_Order_Terms.Unification
 begin
@@ -1014,7 +1014,7 @@ proof -
       using Red_ground_clause_def by auto
     (* construct a smaller set than NC0 in which \<iota> is also redundant. This contradicts the minimality of NC0. *)
     let ?NCC = \<open>NC0 - {D} \<union> ND1\<close>
-    have \<open>?NCC \<subseteq> N\<close> using ND1_subset and NC0_prop by autoc
+    have \<open>?NCC \<subseteq> N\<close> using ND1_subset and NC0_prop by auto
     moreover have \<open>finite ?NCC\<close>
       using ND1_finite NC0_prop by blast
     moreover have \<open>(?NCC, NC0) \<in> ground_clause_set_ord\<close>
@@ -1382,14 +1382,21 @@ qed
 
 (* rewriting *)
 
+inductive local_rewrite_by_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
+  where
+    eq: \<open>(t, s) \<in> S \<Longrightarrow> local_rewrite_by_trs S t s\<close> |
+    func: \<open>(t, s) \<in> S \<Longrightarrow> local_rewrite_by_trs S (Fun f (a1 @ t # a2)) (Fun f (a1 @ s # a2))\<close>
+
 inductive rewrite_by_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
   where
-    eq: \<open>(t, s) \<in> S \<Longrightarrow> rewrite_by_trs S t s\<close> |
-    func: \<open>rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S (Fun f (a1 @ t # a2)) (Fun f (a1 @ s # a2))\<close> |
-    trans: \<open>rewrite_by_trs S u t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S u s\<close>
+    rew: \<open>local_rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S t s\<close> |
+    trans: \<open>local_rewrite_by_trs S u t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S u s\<close>
 
 definition confluent :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
   where \<open>confluent TRS = (!s t u. rewrite_by_trs TRS s t \<longrightarrow> rewrite_by_trs TRS s u \<longrightarrow> (\<exists>v. rewrite_by_trs TRS t v \<and> rewrite_by_trs TRS u v))\<close>
+
+definition locally_confluent :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
+  where \<open>locally_confluent TRS = (!s t u. local_rewrite_by_trs TRS s t \<longrightarrow> local_rewrite_by_trs TRS s u \<longrightarrow> (\<exists>v. rewrite_by_trs TRS t v \<and> rewrite_by_trs TRS u v))\<close>
 
 definition irreducible :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
   where \<open>irreducible TRS t = (\<forall>s. \<not>rewrite_by_trs TRS t s)\<close>
@@ -1403,41 +1410,86 @@ definition equiv_class_of_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) inte
 abbreviation ordered :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
   where \<open>ordered S \<equiv> \<forall> (t, s) \<in> S. s \<prec> t\<close>
 
+lemma terminating_locally_confluent:
+  assumes \<open>locally_confluent TRS\<close>
+      and \<open>ordered TRS\<close>
+    shows \<open>confluent TRS\<close>
+proof -
+  have \<open>rewrite_by_trs TRS s t \<Longrightarrow> rewrite_by_trs TRS s u \<Longrightarrow> (\<exists>v. rewrite_by_trs TRS t v \<and> rewrite_by_trs TRS u v)\<close> for s t u
+    sorry
+  then show ?thesis unfolding confluent_def by blast
+qed
+
+lemma rewrite_trans: \<open>rewrite_by_trs S s t \<Longrightarrow> rewrite_by_trs S t u \<Longrightarrow> rewrite_by_trs S s u\<close>
+proof (induct rule: rewrite_by_trs.induct; simp add: rewrite_by_trs.trans) qed
+
+lemma non_ground_comparison:
+  \<open>ground_term t \<Longrightarrow> \<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close> for s t
+proof -
+  assume \<open>ground_term t\<close> and \<open>\<not> ground_term s\<close>
+  let ?\<sigma> = \<open>\<lambda>x. t\<close>
+  have grounding: \<open>ground_term (s \<cdot> ?\<sigma>)\<close> for s :: \<open>('f, 'v) term\<close> proof (induct s; simp add: \<open>ground_term t\<close>) qed
+  have \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
+  proof (induct s)
+    case (Var x)
+    then show ?case using subst_ground_term wf_term_ord \<open>ground_term t\<close> by fastforce
+  next
+    case (Fun f args)
+    then obtain s' where \<open>s' \<in> set args\<close>
+                     and \<open>vars_term s' \<noteq> {}\<close>
+                     and nlt: \<open>\<not> s' \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close> by auto
+    then have \<open>\<not> (Fun f args) \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
+      using term_ord_subterm_comp by auto
+    then have \<open>s' \<cdot> ?\<sigma> \<prec> Fun f args \<cdot> ?\<sigma>\<close>
+      using grounding term_ord_ground_total unfolding total_on_def by blast
+    moreover have le: \<open>t \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
+      using nlt grounding term_ord_ground_total unfolding total_on_def by blast
+    ultimately show \<open>\<not> Fun f args \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
+      using le term_ord_trans nlt unfolding trans_def by blast
+  qed
+  then show ?thesis
+    using \<open>\<not> ground_term s\<close> grounding term_ord_stable_grounding by blast
+qed
+
+lemma ordered_trs_preserve_groundness_local:
+  \<open>local_rewrite_by_trs S t t' \<Longrightarrow> ordered S \<Longrightarrow> ground_term t \<Longrightarrow> ground_term t'\<close>
+proof (induct rule: local_rewrite_by_trs.induct)
+  case (eq t s S)
+  then show ?case
+    using non_ground_comparison by fast
+next
+  case (func t s S f a1 a2)
+  then show ?case
+    using non_ground_comparison by fastforce
+qed
+
 lemma ordered_trs_preserve_groundness:
   \<open>rewrite_by_trs S t t' \<Longrightarrow> ordered S \<Longrightarrow> ground_term t \<Longrightarrow> ground_term t'\<close>
 proof (induct rule: rewrite_by_trs.induct)
-  case (eq t s S)
-  have \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close>
-  proof -
-    let ?\<sigma> = \<open>\<lambda>x. t\<close>
-    have grounding: \<open>ground_term (s \<cdot> ?\<sigma>)\<close> for s :: \<open>('f, 'v) term\<close> proof (induct s; simp add: \<open>ground_term t\<close>) qed
-    have \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
-    proof (induct s)
-      case (Var x)
-      then show ?case using subst_ground_term wf_term_ord \<open>ground_term t\<close> by fastforce
-    next
-      case (Fun f args)
-      then obtain s' where \<open>s' \<in> set args\<close>
-                       and \<open>vars_term s' \<noteq> {}\<close>
-                       and nlt: \<open>\<not> s' \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close> by auto
-      then have \<open>\<not> (Fun f args) \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
-        using term_ord_subterm_comp by auto
-      then have \<open>s' \<cdot> ?\<sigma> \<prec> Fun f args \<cdot> ?\<sigma>\<close>
-        using grounding term_ord_ground_total unfolding total_on_def by blast
-      moreover have le: \<open>t \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
-        using nlt grounding term_ord_ground_total unfolding total_on_def by blast
-      ultimately show \<open>\<not> Fun f args \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
-        using le term_ord_trans nlt unfolding trans_def by blast
-    qed
-    then show \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close> using term_ord_stable_grounding grounding by blast
-  qed
-  then show ?case using eq by blast
-next
-  case (func S t s f a1 a2)
-  then show ?case by auto
+  case (rew S t s)
+  then show ?case
+    using ordered_trs_preserve_groundness_local by auto
 next
   case (trans S u t s)
-  then show ?case by fast
+  then show ?case
+    using ordered_trs_preserve_groundness_local by blast
+qed
+
+lemma ordered_local_rewriting: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> local_rewrite_by_trs S t s \<Longrightarrow> s \<prec> t\<close>
+proof -
+  assume \<open>local_rewrite_by_trs S t s\<close>
+  then show \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> s \<prec> t\<close>
+  proof (induct rule: local_rewrite_by_trs.induct)
+    case (eq t s S)
+    then show ?case by blast
+  next
+    case (func t s S f a1 a2)
+    then have \<open>ground_term (Fun f (a1 @ s # a2)) \<and> ground_term (Fun f (a1 @ t # a2))\<close> 
+      using list.set(2) non_ground_comparison set_append by fastforce
+    moreover have \<open>\<not> Fun f (a1 @ t # a2) \<preceq> Fun f (a1 @ s # a2)\<close> using term_ord_term_comp func by blast
+    ultimately show ?case using term_ord_ground_total unfolding total_on_def
+      by (metis (mono_tags, lifting) mem_Collect_eq)
+  qed
 qed
 
 lemma ordered_rewriting: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> s \<prec> t\<close>
@@ -1445,22 +1497,14 @@ proof -
   assume \<open>rewrite_by_trs S t s\<close>
   then show \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> s \<prec> t\<close>
   proof (induct rule: rewrite_by_trs.induct)
-    case (eq t s S)
-    then show ?case by blast
-  next
-    case (func S t s f a1 a2)
-    then have \<open>ground_term (Fun f (a1 @ s # a2)) \<and> ground_term (Fun f (a1 @ t # a2))\<close> using ordered_trs_preserve_groundness by auto
-    moreover have \<open>\<not> Fun f (a1 @ t # a2) \<preceq> Fun f (a1 @ s # a2)\<close> using term_ord_term_comp func by auto
-    ultimately show ?case using term_ord_ground_total unfolding total_on_def
-      by (metis (mono_tags, lifting) mem_Collect_eq)
+    case (rew S t s)
+    then show ?case
+      using ordered_local_rewriting by blast
   next
     case (trans S u t s)
-    then have ground: \<open>ground_term s \<and> ground_term t \<and> ground_term u\<close> using ordered_trs_preserve_groundness by simp
-    moreover have \<open>\<not> u \<preceq> s\<close> using term_ord_trans trans ground unfolding trans_def
-      by (meson wf_not_sym wf_term_ord)
-    then show ?case
-      using ground term_ord_ground_total
-      unfolding total_on_def by blast
+    then have \<open>s \<prec> t \<and> t \<prec> u\<close> 
+      using ordered_local_rewriting ordered_trs_preserve_groundness_local by blast
+    then show ?case using term_ord_trans trans_def by fast
   qed
 qed
 
@@ -1483,15 +1527,16 @@ proof -
         then show ?thesis unfolding normal_form_def by blast
       next
         case False
-        then obtain s where rew: \<open>rewrite_by_trs S t s\<close> unfolding irreducible_def by blast
+        then obtain s where rew: \<open>local_rewrite_by_trs S t s\<close> unfolding irreducible_def
+          using rewrite_by_trs.cases by blast
         show ?thesis
         proof
           assume \<open>ground_term t\<close>
           then have \<open>ground_term s \<and> s \<prec> t\<close>
-            using ordered_rewriting ordered_trs_preserve_groundness \<open>ordered S\<close> rew by metis
+            using ordered_local_rewriting ordered_trs_preserve_groundness_local \<open>ordered S\<close> rew by metis
           then obtain s' where \<open>normal_form S s s'\<close> using ind by blast
           then have \<open>irreducible S s' \<and> rewrite_by_trs S t s'\<close>
-            using rewrite_by_trs.trans rew
+            using rewrite_by_trs.rew rewrite_by_trs.trans rew
             unfolding normal_form_def by blast
           then show \<open>\<exists>t'. normal_form S t t'\<close> unfolding normal_form_def by blast
         qed
@@ -1549,53 +1594,18 @@ lemma equiv_class_sym: \<open>sym (equiv_class_of_trs S)\<close>
 lemma equiv_class_trans: \<open>confluent S \<Longrightarrow> trans (equiv_class_of_trs S)\<close>
   by (smt Pair_inject mem_Collect_eq trans_def equiv_class_of_trs_def normal_form_def confluent_def irreducible_def)
 
-lemma equiv_class_rewrite:
-  assumes \<open>ordered S\<close>
-      and \<open>rewrite_by_trs S x y\<close>
-      and \<open>ground_term x\<close>
-      and \<open>ground_term y\<close>
-    shows \<open>(x, y) \<in> equiv_class_of_trs S\<close>
-proof -
-  obtain u where nf: \<open>normal_form S y u\<close> using ordered_normalizing assms by metis
-  with assms(2) have \<open>normal_form S x u\<close>
-    by (metis normal_form_def rewrite_by_trs.trans)
-  then show ?thesis using nf assms unfolding equiv_class_of_trs_def by blast
-qed
-
 lemma fun_comp_step:
-  assumes \<open>ordered S\<close>
-      and \<open>confluent S\<close>
+  assumes \<open>confluent S\<close>
       and \<open>(x, y) \<in> equiv_class_of_trs S\<close>
       and \<open>(Fun f (a1 @ x # a2'), Fun f (a1 @ x # a3')) \<in> equiv_class_of_trs S\<close>
     shows \<open>(Fun f (a1 @ x # a2'), Fun f (a1 @ y # a3')) \<in> equiv_class_of_trs S\<close>
 proof -
-  obtain u where nf_x: \<open>normal_form S x u\<close>
+  obtain u where \<open>normal_form S x u\<close>
              and \<open>normal_form S y u\<close>
-             and gr: \<open>ground_term (Fun f (a1 @ x # a2')) \<and> ground_term (Fun f (a1 @ x # a3')) \<and> ground_term (Fun f (a1 @ y # a3'))\<close>
-    using assms
+    using assms(2,3)
     unfolding equiv_class_of_trs_def by auto
-  then consider \<open>x = y\<close> | \<open>rewrite_by_trs S y x\<close> | \<open>rewrite_by_trs S x y\<close> | \<open>rewrite_by_trs S y u \<and> rewrite_by_trs S x u\<close> unfolding normal_form_def by auto
   then show ?thesis
-  proof cases
-    case 1
-    then show ?thesis using assms by auto
-  next
-    case 2
-    then have \<open>rewrite_by_trs S (Fun f (a1 @ y # a3')) (Fun f (a1 @ x # a3'))\<close>
-      using rewrite_by_trs.func by auto
-    then show ?thesis
-      by (meson assms(1,2,4) equiv_class_rewrite equiv_class_sym equiv_class_trans gr symD transD)
-  next
-    case 3
-    then have \<open>rewrite_by_trs S (Fun f (a1 @ x # a3')) (Fun f (a1 @ y # a3'))\<close>
-      using rewrite_by_trs.func by auto
-    then show ?thesis
-      by (meson assms(1,2,4) equiv_class_rewrite equiv_class_trans gr transD)
-  next
-    case 4
-    then show ?thesis
-      using nf_x assms(2) confluent_def irreducible_def normal_form_def by blast
-  qed
+    by (metis assms(1,3) confluent_def irreducible_def normal_form_def)
 qed
 
 lemma equiv_class_fun_comp:
@@ -1657,20 +1667,23 @@ definition canonical_interp_ground :: \<open>('f,'v) ground_clause set \<Rightar
 definition canonical_interp :: \<open>('f,'v) clause set \<Rightarrow> ('f,'v) fo_interp\<close>
   where \<open>canonical_interp N = canonical_interp_ground (Abs_ground_clause ` N)\<close>
 
+lemma local_rewrite_rel_subset:
+  \<open>local_rewrite_by_trs S1 t s \<Longrightarrow> S1 \<subseteq> S2 \<Longrightarrow> local_rewrite_by_trs S2 t s\<close>
+  using local_rewrite_by_trs.simps by auto
+
 lemma rewrite_rel_subset:
   \<open>rewrite_by_trs S1 t s \<Longrightarrow> S1 \<subseteq> S2 \<Longrightarrow> rewrite_by_trs S2 t s\<close>
 proof -
   assume \<open>rewrite_by_trs S1 t s\<close>
   then show \<open>S1 \<subseteq> S2 \<Longrightarrow> rewrite_by_trs S2 t s\<close>
   proof (induct rule: rewrite_by_trs.induct)
-    case (eq t s S)
-    then show ?case using rewrite_by_trs.eq by blast
-  next
-    case (func S t s f a1 a2)
-    then show ?case using rewrite_by_trs.func by blast
+    case (rew S t s)
+    then show ?case
+      using rewrite_by_trs.rew local_rewrite_rel_subset by blast
   next
     case (trans S u t s)
-    then show ?case using rewrite_by_trs.trans by blast
+    then show ?case
+      using rewrite_by_trs.trans local_rewrite_rel_subset by blast
   qed
 qed
 
@@ -1678,52 +1691,19 @@ lemma equiv_class_subset:
   \<open>ordered S2 \<Longrightarrow> S1 \<subseteq> S2 \<Longrightarrow> equiv_class_of_trs S1 \<subseteq> equiv_class_of_trs S2\<close>
 proof -
   assume ord: \<open>ordered S2\<close> and subset: \<open>S1 \<subseteq> S2\<close>
-  then have \<open>rewrite_by_trs S1 t s \<Longrightarrow> rewrite_by_trs S2 t s\<close>
-    for s t using rewrite_rel_subset by blast
-  then have \<open>(u, v) \<in> equiv_class_of_trs S1 \<Longrightarrow> (u, v) \<in> equiv_class_of_trs S2\<close> for u v
+  have \<open>(u, v) \<in> equiv_class_of_trs S1 \<Longrightarrow> (u, v) \<in> equiv_class_of_trs S2\<close> for u v
   proof -
     assume \<open>(u, v) \<in> equiv_class_of_trs S1\<close>
-    then obtain w where \<open>normal_form S1 u w\<close>
-                    and \<open>normal_form S1 v w\<close>
-                    and ground_u: \<open>ground_term u\<close>
-                    and ground_v: \<open>ground_term v\<close>
-      unfolding equiv_class_of_trs_def by blast
-    then consider \<open>u = v\<close> | \<open>rewrite_by_trs S1 u v\<close> | \<open>rewrite_by_trs S1 v u\<close> | \<open>rewrite_by_trs S1 u w \<and> rewrite_by_trs S1 v w\<close>
-      unfolding normal_form_def by blast
-    then show ?thesis
-    proof cases
-      case 1
-      then show ?thesis using ord equiv_class_refl ground_u ground_v unfolding refl_on_def by simp
-    next
-      case 2
-      then have \<open>rewrite_by_trs S2 u v\<close>
-        using subset rewrite_rel_subset by blast
-      moreover obtain z where \<open>normal_form S2 v z\<close> using ord ordered_normalizing ground_v by blast
-      ultimately have \<open>normal_form S2 u z \<and> normal_form S2 v z\<close>
-        unfolding normal_form_def
-        using rewrite_by_trs.trans by blast
-      then show ?thesis unfolding equiv_class_of_trs_def using ground_u ground_v by blast
-    next
-      case 3
-      then have \<open>rewrite_by_trs S2 v u\<close>
-        using subset rewrite_rel_subset by blast
-      moreover obtain z where \<open>normal_form S2 u z\<close> using ord ordered_normalizing ground_u by blast
-      ultimately have \<open>normal_form S2 u z \<and> normal_form S2 v z\<close>
-        unfolding normal_form_def
-        using rewrite_by_trs.trans by blast
-      then show ?thesis unfolding equiv_class_of_trs_def using ground_u ground_v by blast
-    next
-      case 4
-      then have rew: \<open>rewrite_by_trs S2 u w \<and> rewrite_by_trs S2 v w\<close>
-        using subset rewrite_rel_subset by blast
-      then have \<open>ground_term w\<close>
-        using ordered_trs_preserve_groundness ord ground_u by blast
-      then obtain z where \<open>normal_form S2 w z\<close> using ord ordered_normalizing by blast
-      then have \<open>normal_form S2 u z \<and> normal_form S2 v z\<close>
-        unfolding normal_form_def
-        using rewrite_by_trs.trans rew by blast
-      then show ?thesis unfolding equiv_class_of_trs_def using ground_u ground_v by blast
-    qed
+    then obtain w where nf_u: \<open>normal_form S1 u w\<close>
+                    and nf_v: \<open>normal_form S1 v w\<close>
+                    and ground: \<open>ground_term u \<and> ground_term v \<and> ground_term w\<close>
+      unfolding equiv_class_of_trs_def
+      by (smt Pair_inject mem_Collect_eq normal_form_def ord ordered_trs_preserve_groundness subset subset_eq)
+    then obtain w' where \<open>normal_form S2 w w'\<close>
+      using ord ordered_normalizing by metis
+    then have \<open>normal_form S2 u w' \<and> normal_form S2 v w'\<close>
+      using nf_u nf_v rewrite_trans [of S2] ord rewrite_rel_subset subset unfolding normal_form_def by blast
+    then show ?thesis using ground unfolding equiv_class_of_trs_def by blast
   qed
   then show ?thesis by auto
 qed
@@ -1756,18 +1736,18 @@ next
   qed
 qed
 
-lemma ordered_canonical_trs: \<open>ordered (\<Union> (trs_of_clause S ` S))\<close>
+lemma ordered_canonical_trs: \<open>ordered (\<Union> (trs_of_clause N ` N'))\<close>
   using ordered_trs_of_clause by fast
 
 lemma confluent_trs_of_clause: \<open>confluent (trs_of_clause N C)\<close>
   sorry
 
-lemma confluent_canonical_trs: \<open>confluent (\<Union> (trs_of_clause S ` S))\<close>
+lemma confluent_canonical_trs: \<open>confluent (\<Union> (trs_of_clause N ` N'))\<close>
   sorry
 
 lemma canonical_interp_fo: \<open>Rep_fo_interp (canonical_interp S) = equiv_class_of_trs (\<Union> (trs_of_clause (Abs_ground_clause ` S) ` Abs_ground_clause ` S))\<close>
   unfolding canonical_interp_def canonical_interp_ground_def
-  using equiv_class_fo ordered_canonical_trs confluent_canonical_trs by blast
+  using equiv_class_fo ordered_canonical_trs confluent_canonical_trs by metis
 
 lemma ex_max_literal: \<open>ground_cl C \<Longrightarrow> C \<noteq> \<bottom>F \<Longrightarrow> (\<exists>L \<in># C. \<forall>L' \<in># C. L' \<preceq>L L)\<close>
 proof (induction C rule: multiset_induct)
@@ -1805,13 +1785,13 @@ next
   qed
 qed
 
-lemma rewrite_requires_smaller_lhs:
-  \<open>rewrite_by_trs S t t' \<Longrightarrow> ground_term t \<Longrightarrow> ordered S \<Longrightarrow> \<exists>s s'. (s, s') \<in> S \<and> ground_term s \<and> s \<preceq> t\<close>
-proof (induct rule: rewrite_by_trs.induct)
+lemma local_rewrite_requires_smaller_lhs:
+  \<open>local_rewrite_by_trs S t t' \<Longrightarrow> ground_term t \<Longrightarrow> ordered S \<Longrightarrow> \<exists>s s'. (s, s') \<in> S \<and> ground_term s \<and> s \<preceq> t\<close>
+proof (induct rule: local_rewrite_by_trs.induct)
   case (eq t s S)
   then show ?case by blast
 next
-  case (func S t s f a1 a2)
+  case (func t s S f a1 a2)
   then obtain u u' where rule_elem: \<open>(u, u') \<in> S\<close>
                      and le: \<open>u \<preceq> t\<close>
                      and ground_u: \<open>ground_term u\<close> by auto
@@ -1820,10 +1800,11 @@ next
   then have \<open>u \<prec> Fun f (a1 @ t # a2)\<close>
     using le term_ord_trans func ground_u unfolding trans_def by blast
   then show ?case using rule_elem ground_u by blast
-next
-  case (trans S u t s)
-  then show ?case by auto
 qed
+
+lemma rewrite_requires_smaller_lhs:
+  \<open>rewrite_by_trs S t t' \<Longrightarrow> ground_term t \<Longrightarrow> ordered S \<Longrightarrow> \<exists>s s'. (s, s') \<in> S \<and> ground_term s \<and> s \<preceq> t\<close>
+  using rewrite_by_trs.simps local_rewrite_requires_smaller_lhs by blast
 
 (* Lemma 3 (negative literal) *)
 lemma production_lhs_greater_neg:
@@ -1946,6 +1927,27 @@ next
 qed
 
 (* rewrite rules with a LHS larger than t do not affect rewriting of t *)
+lemma lhs_gt_no_local_rewrite:
+  assumes \<open>local_rewrite_by_trs TRS2 t u\<close>
+      and \<open>ordered TRS2\<close>
+      and \<open>TRS1 \<subseteq> TRS2\<close>
+      and \<open>(\<forall>lhs rhs. (lhs, rhs) \<in> TRS2 - TRS1 \<longrightarrow> t \<prec> lhs)\<close>
+      and \<open>ground_term t\<close>
+    shows \<open>local_rewrite_by_trs TRS1 t u\<close>
+proof -
+  have no_rewrite: \<open>local_rewrite_by_trs TRS2 t' u \<Longrightarrow> ordered TRS2 \<Longrightarrow> TRS1 \<subseteq> TRS2 \<Longrightarrow> (\<forall>lhs rhs. (lhs, rhs) \<in> TRS2 - TRS1 \<longrightarrow> t \<prec> lhs) \<Longrightarrow> ground_term t' \<Longrightarrow> t' \<preceq> t \<Longrightarrow> local_rewrite_by_trs TRS1 t' u\<close> for t'
+  proof (induct rule: local_rewrite_by_trs.induct)
+    case (eq t' s' TRS)
+    then show ?case
+      by (meson DiffI local_rewrite_by_trs.eq wf_not_sym wf_term_ord)
+  next
+    case (func t' s' TRS f a1 a2)
+    then show ?case
+      by (meson DiffI local_rewrite_by_trs.func term_ord_ground_subterm_comp term_ord_trans transD wf_not_sym wf_term_ord)
+  qed
+  then show ?thesis using assms by blast
+qed
+
 lemma lhs_gt_no_rewrite:
   assumes \<open>rewrite_by_trs TRS2 t u\<close>
       and \<open>ordered TRS2\<close>
@@ -1954,27 +1956,21 @@ lemma lhs_gt_no_rewrite:
       and \<open>ground_term t\<close>
     shows \<open>rewrite_by_trs TRS1 t u\<close>
 proof -
-  have no_rewrite: \<open>rewrite_by_trs TRS2 t' u \<Longrightarrow> ordered TRS2 \<Longrightarrow> TRS1 \<subseteq> TRS2 \<Longrightarrow> (\<forall>lhs rhs. (lhs, rhs) \<in> TRS2 - TRS1 \<longrightarrow> t \<prec> lhs) \<Longrightarrow> ground_term t' \<Longrightarrow> t' \<preceq> t \<Longrightarrow> rewrite_by_trs TRS1 t' u\<close> for t'
+  have \<open>rewrite_by_trs TRS2 t u \<Longrightarrow> ordered TRS2 \<Longrightarrow> TRS1 \<subseteq> TRS2 \<Longrightarrow> (\<forall>lhs rhs. (lhs, rhs) \<in> TRS2 - TRS1 \<longrightarrow> t \<prec> lhs) \<Longrightarrow> ground_term t \<Longrightarrow> rewrite_by_trs TRS1 t u\<close>
   proof (induct rule: rewrite_by_trs.induct)
-    case (eq t' s' TRS)
-    then have \<open>(t', s') \<in> TRS1\<close>
-      by (meson DiffI wf_not_sym wf_term_ord)
-    then show ?case using rewrite_by_trs.eq by blast
+    case (rew S t s)
+    then have \<open>local_rewrite_by_trs TRS1 t s\<close> using lhs_gt_no_local_rewrite by blast
+    then show ?case
+      using rewrite_by_trs.rew by blast
   next
-    case (func TRS t' s' f a1 a2)
-    then have \<open>ground_term t'\<close> by auto
-    have \<open>t' \<prec> Fun f (a1 @ t' # a2)\<close> using func term_ord_ground_subterm_comp by blast
-    then have \<open>t' \<preceq> t\<close> using func \<open>ground_term t'\<close> \<open>ground_term t\<close> term_ord_trans unfolding trans_def by blast
-    then show ?case using rewrite_by_trs.func func \<open>ground_term t'\<close> by blast
-  next
-    case (trans TRS u' t' s')
-    then have \<open>ground_term t'\<close>
-      using ordered_trs_preserve_groundness by blast
-    then have \<open>t' \<prec> u'\<close> using trans ordered_rewriting by metis
-    with trans have \<open>t' \<preceq> t\<close> using \<open>ground_term t\<close> \<open>ground_term t'\<close> term_ord_trans unfolding trans_def by blast
-    with trans show ?case using \<open>ground_term t'\<close> rewrite_by_trs.trans by blast
+    case (trans S u t s)
+    then have \<open>local_rewrite_by_trs TRS1 u t\<close> using lhs_gt_no_local_rewrite by blast
+    moreover have \<open>rewrite_by_trs TRS1 t s\<close>
+      by (metis (mono_tags, lifting) transD trans(1,3-7) ordered_local_rewriting ordered_trs_preserve_groundness_local term_ord_trans)
+    ultimately show ?case 
+      using rewrite_by_trs.trans by blast
   qed
-  then show ?thesis using assms by blast
+  then show ?thesis using assms by auto
 qed
 
 lemma negative_literal_normalized:
@@ -2175,8 +2171,9 @@ proof -
             by (smt UN_I Un_iff mem_Collect_eq subsetI trs_of_clause.simps)
           ultimately have st_elem': \<open>\<forall>D \<in> N. C \<prec>G D \<longrightarrow> (s, t) \<in> equiv_class_of_trs (trs_of_clause N D)\<close>
             using equiv_class_subset ordered_trs_of_clause [of N] by (meson subsetD)
-          from st_elem C_elem have st_elem'': \<open>(s, t) \<in> equiv_class_of_trs (\<Union>(trs_of_clause N ` N))\<close>
-            using equiv_class_subset ordered_canonical_trs [of N] by blast
+          from st_elem C_elem have st_elem'': \<open>(s, t) \<in> equiv_class_of_trs (\<Union> (trs_of_clause N ` N))\<close>
+            using equiv_class_subset ordered_canonical_trs [of N]
+            by (smt confluent_canonical_trs confluent_def confluent_trs_of_clause equiv_class_of_trs_def irreducible_def mem_Collect_eq normal_form_def unique_normal_form)
           show ?thesis unfolding canonical_interp_ground_def using Pos st_elem' st_elem''
             by (metis Upair.abs_eq equiv_class_fo ordered_canonical_trs confluent_canonical_trs ordered_trs_of_clause confluent_trs_of_clause validate_eq.abs_eq validate_ground_lit.simps)
         next
@@ -2249,14 +2246,14 @@ proof -
     case left
     with ord ordered_normalizing obtain s' where \<open>normal_form TRS s s'\<close> using ground_s by blast
     then have \<open>rewrite_by_trs TRS t s' \<and> irreducible TRS s' \<and> (s' = s \<or> rewrite_by_trs TRS s s')\<close>
-      using left rewrite_by_trs.eq rewrite_by_trs.trans
+      using left local_rewrite_by_trs.eq rewrite_by_trs.trans rew
       unfolding normal_form_def by fast
     then show ?thesis using ground_s ground_t unfolding equiv_class_of_trs_def normal_form_def by blast
   next
     case right
     with ord ordered_normalizing obtain t' where \<open>normal_form TRS t t'\<close> using ground_t by blast
     then have \<open>rewrite_by_trs TRS s t' \<and> irreducible TRS t' \<and> (t' = t \<or> rewrite_by_trs TRS t t')\<close>
-      using right rewrite_by_trs.eq rewrite_by_trs.trans
+      using right local_rewrite_by_trs.eq rewrite_by_trs.trans rew
       unfolding normal_form_def by fast
     then show ?thesis using ground_s ground_t unfolding equiv_class_of_trs_def normal_form_def by blast
   qed
@@ -2371,10 +2368,7 @@ proof -
         assume \<open>rewrite_by_trs (?trs_upto D) u u'\<close>
         then show \<open>rewrite_by_trs (insert (t, s) (?trs_upto C)) u u'\<close>
         proof (induct)
-          case (eq t s S)
-          then show ?case sorry
-        next
-          case (func S t s f a1 a2)
+          case (rew S t s)
           then show ?case sorry
         next
           case (trans S u t s)
