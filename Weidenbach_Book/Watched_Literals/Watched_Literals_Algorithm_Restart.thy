@@ -34,7 +34,7 @@ where
   \<open>restart_prog_int last_GC last_Restart S m n brk = do {
      ASSERT(restart_prog_pre_int last_GC last_Restart S brk);
      b \<leftarrow> GC_required S (size (get_all_learned_clss last_GC))  n;
-     b2 \<leftarrow> restart_required S  (size (get_all_learned_clss last_Restart))  n;
+     b2 \<leftarrow> restart_required S (size (get_all_learned_clss last_Restart)) n;
      if b2 \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only S T);
        RETURN (last_GC, T, T, Suc m, n)
@@ -1016,9 +1016,9 @@ proof -
       by auto
     subgoal for ebrk ebrka x x'
       unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case case_prod_beta comp_def
-      apply (rule exI[of _ \<open>fst (snd (snd ((x'))))\<close>])
-      apply (rule exI[of _ \<open>fst (snd (snd (snd ((x')))))\<close>])
-      apply (rule_tac exI[of _ \<open>fst (snd (snd (snd (snd (snd (x'))))))\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd x'))\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd (snd x')))\<close>])
+      apply (rule_tac exI[of _ \<open>fst (snd (snd (snd (snd (snd x')))))\<close>])
       apply (rule_tac exI[of _ 0])
       apply (rule_tac exI[of _ S])
       apply (rule_tac exI[of _ S])
@@ -1044,9 +1044,9 @@ proof -
     subgoal for ebrk ebrka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h
       x2h x1i x2i x1j x2j xa x'a
       unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case case_prod_beta comp_def
-      apply (rule exI[of _ \<open>fst (snd (((x'a))))\<close>])
-      apply (rule exI[of _ \<open>fst (snd (snd (((x'a)))))\<close>])
-      apply (rule_tac exI[of _ \<open>fst ((snd (snd (snd (snd (x'a))))))\<close>])
+      apply (rule exI[of _ \<open>fst (snd x'a)\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd x'a))\<close>])
+      apply (rule_tac exI[of _ \<open>fst (snd (snd (snd (snd x'a))))\<close>])
       apply (rule_tac exI[of _ x1e])
       apply (rule_tac exI[of _ x1b])
       apply (rule_tac exI[of _ x1c])
