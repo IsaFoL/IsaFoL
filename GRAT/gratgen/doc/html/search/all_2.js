@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['c2p',['c2p',['../classClauseDB.html#a6c5800372f02eea49efb8c1defa99b98',1,'ClauseDB']]],
+  ['c2p',['c2p',['../classClauseDB.html#abe7d76a6043fa05d15f0f73fefcbce4d',1,'ClauseDB']]],
   ['cdb_5ft',['cdb_t',['../gratgen_8cpp.html#aa8bad35fe9da2e81b16bbaf5a0e32554',1,'gratgen.cpp']]],
   ['cfg_5fassume_5fnodup',['cfg_assume_nodup',['../gratgen_8cpp.html#a6a1fc387883ae853d2a9e4c763ffd275',1,'gratgen.cpp']]],
   ['cfg_5fbinary_5fdrat',['cfg_binary_drat',['../gratgen_8cpp.html#a8731c61c6e00c0f38a216bfa4bc0c742',1,'gratgen.cpp']]],
@@ -20,5 +20,5 @@ var searchData=
   ['clw1',['clw1',['../classClauseDB.html#a465d36e141a2d244a864b384bf3cfae7',1,'ClauseDB']]],
   ['clw2',['clw2',['../classClauseDB.html#a98b56ec228b03578ab3b71aba6bcb9fa',1,'ClauseDB']]],
   ['conflict',['CONFLICT',['../classVerifier.html#a26d3f670de123a1e352007570d257644addbe277f267f119df2ef18a8fe3364ae',1,'Verifier::CONFLICT()'],['../gratgen_8cpp.html#a8c2e74cbe5228c02be4d77db10cce705a3124eeef4801cbb117a96b9e4a0d7eb7',1,'CONFLICT():&#160;gratgen.cpp']]],
-  ['current',['current',['../classClauseDB.html#ad63e521e1b8b28a2806e9a6edb9a93a7',1,'ClauseDB']]]
+  ['current',['current',['../classClauseDB.html#a5d973877fc92bb55580ad4ad08fd32b7',1,'ClauseDB']]]
 ];

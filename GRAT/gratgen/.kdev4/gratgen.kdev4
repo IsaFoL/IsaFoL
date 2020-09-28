@@ -2,34 +2,30 @@
 BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x0e\x00g\x00r\x00a\x00t\x00g\x00e\x00n)
 
 [CMake]
-Build Directory Count=3
+Build Directory Count=2
 Current Build Directory Index=1
+Current Build Directory Index-Host System=0
 ProjectRootRelative=./
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/debug
-Build Type=Debug
-CMake Binary=file:///usr/bin/cmake
-Environment Profile=
-Extra Arguments=
-Install Directory=file:///usr/local
-
-[CMake][CMake Build Directory 1]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/release
+Build Directory Path=/home/j65266pl/devel/isabelle/isafol/GRAT/gratgen/release
 Build Type=Release
-CMake Binary=file:///usr/bin/cmake
+CMake Binary=/usr/bin/cmake
+CMake Executable=/usr/bin/cmake
 Environment Profile=
 Extra Arguments=
-Install Directory=file:///usr/local
+Install Directory=/usr/local
 Runtime=Host System
 
-[CMake][CMake Build Directory 2]
-Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/profile
-Build Type=RelWithDebInfo
-CMake Binary=file:///usr/bin/cmake
+[CMake][CMake Build Directory 1]
+Build Directory Path=/home/j65266pl/devel/isabelle/isafol/GRAT/gratgen/debug
+Build Type=Debug
+CMake Binary=/usr/bin/cmake
+CMake Executable=/usr/bin/cmake
 Environment Profile=
 Extra Arguments=
-Install Directory=file:///usr/local
+Install Directory=/usr/local
+Runtime=Host System
 
 [Defines And Includes][Compiler]
 Name=GCC
