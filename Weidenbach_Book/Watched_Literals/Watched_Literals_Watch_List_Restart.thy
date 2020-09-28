@@ -2409,20 +2409,6 @@ proof -
     done
 qed
 
-
-(* TODO: Kill -- seems unused*)
-(*
-definition cdcl_twl_stgy_restart_abs_wl_D_inv where
-  \<open>cdcl_twl_stgy_restart_abs_wl_D_inv S0 = (\<lambda>(brk ,T, last_GC, last_Restart, n).
-    cdcl_twl_stgy_restart_abs_wl_inv S0 (brk ,T, last_GC, last_Restart, n) \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T)\<close>
-
-definition cdcl_GC_clauses_pre_wl_D :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>cdcl_GC_clauses_pre_wl_D S \<longleftrightarrow> (
-  \<exists>T. (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
-    cdcl_GC_clauses_pre_wl T)\<close>
-*)
-
 end
 
 end
