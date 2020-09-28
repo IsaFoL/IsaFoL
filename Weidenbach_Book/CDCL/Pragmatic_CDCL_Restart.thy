@@ -1039,7 +1039,8 @@ lemma pcdcl_stgy_pget_all_init_clss:
     atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: pcdcl_stgy.induct)
     (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_stgy_pget_all_init_clss
-      simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss
+    simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
+        cdcl_inp_conflict.simps
         cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
 
 lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
