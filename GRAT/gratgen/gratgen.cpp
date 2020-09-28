@@ -818,6 +818,11 @@ public:
   /// Get the id for the first lemma, i.e., the id of the last clause + 1
   size_t get_fst_lemma_id() const {return fst_lemma_id;}
 
+  /// Check if this clause belongs to the original formula (true), or the proof (false)
+  bool is_formula_clause(lit_t *cl) const {return clid(cl) < get_fst_lemma_id();}
+  /// Check if this clause id belongs to the original formula (true), or the proof (false)
+  bool is_formula_clause(size_t id) const {return id < get_fst_lemma_id();}
+
   /**
    * Initialization after forward pass:
    *
@@ -1291,7 +1296,7 @@ void Parser::bin_parse_proof(istream &in) {
       pos_t pos = parse_clause(in,[this](istream &in){bin_parse_append_clause_raw(in);});
       glb.items.push_back(item_t(false,pos));
     } else {
-      fail("Binary format: Invalid ctrl byte " + ctrl);
+      fail("Binary format: Invalid ctrl byte " + std::to_string(ctrl));
     }
   }
 
@@ -1754,6 +1759,7 @@ private:
    */
   inline void add_to_wl(lit_t *cl) {
     auto id = clid(cl);
+
     auto &cst = wl_clause_state[id];
     assert(!cst.is_inwl());
 
@@ -1902,6 +1908,7 @@ Verifier::acres_t Verifier::add_clause(lit_t *cl) {
 
 bool Verifier::rem_clause(lit_t *cl) {
   auto id = clid(cl);
+
   auto &cst = wl_clause_state[id];
 
   if (!cst.is_inwl()) return false;
@@ -1923,6 +1930,7 @@ bool Verifier::rem_clause(lit_t *cl) {
   }
 
   cst.clear_inwl();
+
   return true;
 }
 
@@ -2351,8 +2359,8 @@ void Verifier::verify(lit_t *cl) {
     get_rat_candidates(pivot);
 
     size_t rat_pos = trail_pos();
-    // Iterate over candidates
 
+    // Iterate over candidates
     for (auto ccl : rat_candidates) {
       // Falsify literals and check blocked
       bool blocked=false;
@@ -2367,6 +2375,7 @@ void Verifier::verify(lit_t *cl) {
           if (!is_false(*l)) assign_true(-(*l),nullptr);
         }
       }
+
       if (!blocked) {
         lit_t *conflict = propagate_units();
         if (!conflict) {
@@ -2954,7 +2963,7 @@ template<bool include_lemmas, bool binary> void VController::dump_proof_aux(ostr
 
       if (item.is_deletion()) {
         if (!cfg_ignore_deletion) {
-          if (sdata->is_marked(cl)) {
+          if (sdata->is_marked(cl) || glb.is_formula_clause(cl)) {
             prw.write_del(clid(cl));
           }
         }
