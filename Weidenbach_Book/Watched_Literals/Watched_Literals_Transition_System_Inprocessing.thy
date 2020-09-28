@@ -36,16 +36,16 @@ text \<open>
 \<close>
 inductive cdcl_twl_subresolution :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 twl_subresolution_II_nonunit:
-  \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, DD, NE, UE, NS, US, {#}, Q)
-    (M, N + {#C, E#}, U, DD, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, None, NE, UE, NS, US, {#}, Q)
+    (M, N + {#C, E#}, U, None, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
    \<open>clause E = remdups_mset D'\<close>  \<open>size E \<ge> 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_II_unit:
-  \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, DD, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N + {#C#}, U, DD, add_mset {#K#} NE, UE,
+  \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
         add_mset (clause C') NS, US, {#}, add_mset (-K) Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
@@ -54,16 +54,16 @@ twl_subresolution_II_unit:
    \<open>remdups_mset D' = {#K#}\<close> \<open>undefined_lit M K\<close>|
 
 twl_subresolution_LL_nonunit:
-  \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, DD, NE, UE, NS, US, {#}, Q)
-    (M, N, U + {#C, E#}, DD, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, None, NE, UE, NS, US, {#}, Q)
+    (M, N, U + {#C, E#}, None, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_LL_unit:
-  \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, DD, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N, U + {#C#}, DD, NE, add_mset {#K#} UE, NS,
+  \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K {#K#} # M, N, U + {#C#}, None, NE, add_mset {#K#} UE, NS,
        add_mset (clause C') US, {#}, add_mset (-K) Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
@@ -72,16 +72,16 @@ twl_subresolution_LL_unit:
    \<open>remdups_mset D' = {#K#}\<close> \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>|
 
 twl_subresolution_LI_nonunit:
-  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, DD, NE, UE, NS, US, {#}, Q)
-    (M, N + {#C#}, U + {#E#}, DD, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, {#}, Q)
+    (M, N + {#C#}, U + {#E#}, None, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_LI_unit:
-  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, DD, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N + {#C#}, U, DD, NE, add_mset {#K#} UE, NS,
+  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K {#K#} # M, N + {#C#}, U, None, NE, add_mset {#K#} UE, NS,
       add_mset (clause C') US, {#}, add_mset (-K) Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
@@ -90,16 +90,16 @@ twl_subresolution_LI_unit:
    \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>|
 
 twl_subresolution_IL_nonunit:
-  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, DD, NE, UE, NS, US, {#}, Q)
-    (M, N + {#E#}, U + {#C#}, DD, NE, UE, add_mset (clause C') NS, add_mset (clause E) US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
+    (M, N + {#E#}, U + {#C#}, None, NE, UE, add_mset (clause C') NS, add_mset (clause E) US, {#}, Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
 twl_subresolution_IL_unit:
-  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, DD, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N, U + {#C#}, DD, add_mset {#K#} NE, UE,
+  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K {#K#} # M, N, U + {#C#}, None, add_mset {#K#} NE, UE,
        add_mset (clause C') NS, add_mset {#K#} US, {#}, add_mset (-K) Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
@@ -159,24 +159,23 @@ lemma cdcl_twl_subresolution_valid_enqueued:
   by (induction rule: cdcl_twl_subresolution.induct)
     (auto simp: get_level_cons_if)
 
-lemma
+lemma cdcl_twl_subresolution_decompE:
   assumes
     \<open>cdcl_twl_subresolution S T\<close> and \<open>Multiset.Ball (get_clauses S) (distinct_mset o clause)\<close> and
-    \<open>get_conflict S = None\<close> and
     subres: \<open>cdcl_subresolution (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)  \<Longrightarrow> thesis\<close> and
-    unit: \<open>\<And>S' T'. cdcl_subresolution (pstate\<^sub>W_of S) S' \<Longrightarrow> 
+    unit: \<open>\<And>S' T'. cdcl_subresolution (pstate\<^sub>W_of S) S' \<Longrightarrow>
      cdcl_propagate S' (T') \<Longrightarrow> cdcl_flush_unit (T') (pstate\<^sub>W_of T)  \<Longrightarrow> thesis\<close>
   shows thesis
     using assms(1,2,3)
   apply (cases rule: cdcl_twl_subresolution.cases)
-  subgoal for C L D C' D' M E N U DD NE UE NS US Q
+  subgoal for C L D C' D' M E N U NE UE NS US Q
     apply (rule subres)
-    using cdcl_subresolution.intros(1)[of M D D' \<open>clauses N\<close> L \<open>clauses U\<close> DD NE UE NS US]
+    using cdcl_subresolution.intros(1)[of M D D' \<open>clauses N\<close> L \<open>clauses U\<close> None NE UE NS US]
     by auto
-  subgoal for C L D C' D' M E N U DD NE UE NS US Q
-    apply (rule unit[of \<open>(M, clauses N + {#clause C, D'#}, clauses U, DD, NE, UE,
+  subgoal for C L D C' D' M E N U NE UE NS US Q
+    apply (rule unit[of \<open>(M, clauses N + {#clause C, D'#}, clauses U, None, NE, UE,
       add_mset (clause C') NS, US)\<close>
-      \<open>(Propagated E D' # M, clauses N + {#clause C, D'#}, clauses U, DD, NE, UE, add_mset (clause C') NS, US)\<close>])
+      \<open>(Propagated E D' # M, clauses N + {#clause C, D'#}, clauses U, None, NE, UE, add_mset (clause C') NS, US)\<close>])
     subgoal
       by (auto simp: cdcl_subresolution.simps distinct_mset_remdups_mset_id)
     subgoal
@@ -185,14 +184,14 @@ lemma
       by (auto simp: cdcl_flush_unit.simps distinct_mset_remdups_mset_id)
     done
     supply[[goals_limit=1]]
-    subgoal for C L D C' D' M E N U DD NE UE NS US Q
+    subgoal for C L D C' D' M E N U NE UE NS US Q
       apply (rule subres)
-      using cdcl_subresolution.intros(2)[of M D D' \<open>clauses N\<close> \<open>clauses U\<close> L DD NE UE NS US]
+      using cdcl_subresolution.intros(2)[of M D D' \<open>clauses N\<close> \<open>clauses U\<close> L None NE UE NS US]
       by auto
-    subgoal for C L D C' D' M E N U DD NE UE NS US Q
-      apply (rule unit[of \<open>(M, clauses N, clauses U + {#clause C, D'#}, DD, NE, UE,
+    subgoal for C L D C' D' M E N U NE UE NS US Q
+      apply (rule unit[of \<open>(M, clauses N, clauses U + {#clause C, D'#}, None, NE, UE,
         NS, add_mset (clause C') US)\<close>
-        \<open>(Propagated E D' # M, clauses N, clauses U + {#clause C, D'#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>])
+        \<open>(Propagated E D' # M, clauses N, clauses U + {#clause C, D'#}, None, NE, UE, NS, add_mset (clause C') US)\<close>])
       subgoal
         apply (auto simp: cdcl_subresolution.simps distinct_mset_remdups_mset_id)
         apply (rule_tac x=D in exI)
@@ -204,14 +203,14 @@ lemma
       subgoal
         by (auto simp: cdcl_flush_unit.simps distinct_mset_remdups_mset_id)
       done
-    subgoal for C L D C' D' M E N U DD NE UE NS US Q
+    subgoal for C L D C' D' M E N U NE UE NS US Q
       apply (rule subres)
-      using cdcl_subresolution.intros(3)[of M D D' \<open>clauses N\<close> L \<open>clauses U\<close> DD NE UE NS US]
+      using cdcl_subresolution.intros(3)[of M D D' \<open>clauses N\<close> L \<open>clauses U\<close> None NE UE NS US]
       by auto
-    subgoal for C L D C' D' M E N U DD NE UE NS US Q
-      apply (rule unit[of \<open>(M, clauses N + {#clause C#}, clauses U + {#D'#}, DD, NE, UE,
+    subgoal for C L D C' D' M E N U NE UE NS US Q
+      apply (rule unit[of \<open>(M, clauses N + {#clause C#}, clauses U + {#D'#}, None, NE, UE,
         NS, add_mset (clause C') US)\<close>
-        \<open>(Propagated E D' # M, clauses N + {#clause C#}, clauses U + {#D'#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>])
+        \<open>(Propagated E D' # M, clauses N + {#clause C#}, clauses U + {#D'#}, None, NE, UE, NS, add_mset (clause C') US)\<close>])
       subgoal
         apply (auto simp: cdcl_subresolution.simps distinct_mset_remdups_mset_id)
         apply (drule_tac x=D in spec)
@@ -223,14 +222,14 @@ lemma
       subgoal
         by (auto simp: cdcl_flush_unit.simps distinct_mset_remdups_mset_id)
       done
-    subgoal for C L D C' D' M E N U DD NE UE NS US Q
+    subgoal for C L D C' D' M E N U NE UE NS US Q
       apply (rule subres)
-      using cdcl_subresolution.intros(4)[of M D' D \<open>clauses N\<close> \<open>-L\<close> \<open>clauses U\<close> DD NE UE NS US]
+      using cdcl_subresolution.intros(4)[of M D' D \<open>clauses N\<close> \<open>-L\<close> \<open>clauses U\<close> None NE UE NS US]
       by (auto simp: ac_simps)
-    subgoal for C L D C' D' M K N U DD NE UE NS US Q
-      apply (rule unit[of \<open>(M, clauses N + {#D'#}, clauses U + {#clause C#}, DD, NE, UE,
+    subgoal for C L D C' D' M K N U NE UE NS US Q
+      apply (rule unit[of \<open>(M, clauses N + {#D'#}, clauses U + {#clause C#}, None, NE, UE,
         add_mset (clause C') NS, add_mset D' US)\<close>
-        \<open>(Propagated K D' # M, clauses N + {#D'#}, clauses U + {#clause C#}, DD, NE, UE,
+        \<open>(Propagated K D' # M, clauses N + {#D'#}, clauses U + {#clause C#}, None, NE, UE,
           add_mset (clause C') NS, add_mset D' US)\<close>])
       subgoal
         apply (auto simp: cdcl_subresolution.simps distinct_mset_remdups_mset_id)
@@ -246,5 +245,257 @@ lemma
         by (auto simp: cdcl_flush_unit.simps distinct_mset_remdups_mset_id)
       done
     done
+
+lemma cdcl_twl_subresolution_pcdcl_all_struct_invs:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
+  pcdcl_all_struct_invs (pstate\<^sub>W_of S) \<Longrightarrow> pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+  apply (elim cdcl_twl_subresolution_decompE)
+  subgoal
+    by (cases S)
+     (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+      dest!: multi_member_split)
+  subgoal
+    by (drule cdcl_subresolution)
+      (simp_all add: rtranclp_pcdcl_all_struct_invs)
+  subgoal
+    apply (drule pcdcl.intros pcdcl_core.intros)+
+    apply (drule cdcl_subresolution)
+    apply (auto intro: rtranclp_pcdcl_all_struct_invs)
+    using rtranclp_pcdcl_all_struct_invs by blast
+  done
+
+lemma cdcl_twl_subresolution_smaller_propa:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of T)\<close>
+  apply (induction rule: cdcl_twl_subresolution.induct)
+  apply (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def)
+  apply (case_tac M'; auto; fail)+
+  done
+lemma cdcl_twl_subresolution_twl_st_exception_inv:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow> no_dup (get_trail S) \<Longrightarrow>
+  twl_st_exception_inv S \<Longrightarrow> twl_st_exception_inv T\<close>
+  apply (induction rule: cdcl_twl_subresolution.induct)
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+    by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps no_has_blit_propagate twl_clause.sel(1) twl_clause.sel(2))+
+    done
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+    by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps no_has_blit_propagate twl_clause.sel(1) twl_clause.sel(2))+
+    done
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+    by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps no_has_blit_propagate twl_clause.sel(1) twl_clause.sel(2))+
+    done
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+    by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
+  subgoal
+    unfolding twl_st_exception_inv.simps
+    apply (intro ballI)
+    apply (rename_tac x; case_tac x)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (metis Un_iff clause.simps no_has_blit_propagate twl_clause.sel(1) twl_clause.sel(2))+
+    done
+  done
+
+
+lemma cdcl_twl_subresolution_dup_enqueued:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow> no_duplicate_queued S \<Longrightarrow> no_duplicate_queued T\<close>
+  by (induction rule: cdcl_twl_subresolution.induct) auto
+
+lemma cdcl_twl_subresolution_distinct_enqueued:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow> distinct_queued S \<Longrightarrow> no_duplicate_queued S \<Longrightarrow> distinct_queued T\<close>
+  apply (induction rule: cdcl_twl_subresolution.induct)
+  unfolding distinct_queued.simps
+  by (auto dest:  mset_le_add_mset simp: undefined_notin)
+
+lemma Cons_entails_CNotE:
+  assumes \<open>K # M \<Turnstile>as CNot Ca\<close> \<open>distinct_mset Ca\<close> and
+    1: \<open>M \<Turnstile>as CNot Ca \<Longrightarrow> -lit_of K \<notin># Ca \<Longrightarrow> thesis\<close> and
+    2: \<open>M \<Turnstile>as CNot (remove1_mset (-lit_of K) Ca) \<Longrightarrow> -lit_of K \<in># Ca \<Longrightarrow> thesis\<close>
+  shows thesis
+  using assms(1,2)
+  apply (cases \<open>-lit_of K \<in># Ca\<close>)
+  subgoal
+    by (rule 2)
+     (auto dest!: multi_member_split
+      simp: true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
+      add_mset_eq_add_mset)
+  subgoal
+    by (rule 1)
+     (auto dest!: multi_member_split
+      simp: true_annots_true_cls_def_iff_negation_in_model uminus_lit_swap
+      add_mset_eq_add_mset)
+  done
+
+lemma cdcl_twl_subresolution_confl_cands_enqueued:
+  \<open>cdcl_twl_subresolution S T \<Longrightarrow> no_dup (get_trail S) \<Longrightarrow> confl_cands_enqueued S \<Longrightarrow>
+  propa_cands_enqueued S \<Longrightarrow>
+  Multiset.Ball (get_clauses S) (distinct_mset o clause) \<Longrightarrow>
+  confl_cands_enqueued T\<close>
+  supply [simp] = distinct_mset_remdups_mset_id
+  apply (induction rule: cdcl_twl_subresolution.induct)
+  subgoal for C L D C' D' M E N U NE UE NS US Q
+    by (case_tac E)
+      (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
+  subgoal for C L D C' D' M K N U NE UE NS US Q
+    unfolding confl_cands_enqueued.simps
+    apply (intro ballI impI conjI)
+    apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
+    apply (elim disjE)
+    apply (elim Cons_entails_CNotE)
+    apply (solves auto)[]
+    apply simp
+    apply blast+
+    apply auto[]
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    done
+  subgoal for C L D C' D' M E N U NE UE NS US Q
+    by (case_tac E)
+      (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
+  subgoal for C L D C' D' M K N U NE UE NS US Q
+    unfolding confl_cands_enqueued.simps
+    apply (intro ballI impI conjI)
+    apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
+    apply (elim disjE)
+    apply (elim Cons_entails_CNotE)
+    apply (solves auto)[]
+    apply simp
+    apply blast+
+    apply auto[]
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    done
+  subgoal for C L D C' D' M E N U NE UE NS US Q
+    by (case_tac E)
+      (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
+  subgoal for C L D C' D' M K N U NE UE NS US Q
+    unfolding confl_cands_enqueued.simps
+    apply (intro ballI impI conjI)
+    apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
+    apply (elim disjE)
+    apply (elim Cons_entails_CNotE)
+    apply (solves auto)[]
+    apply simp
+    apply blast+
+    apply auto[]
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    done
+  subgoal for C L D C' D' M E N U NE UE NS US Q
+    by (case_tac E)
+      (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
+  subgoal for C L D C' D' M K N U NE UE NS US Q
+    unfolding confl_cands_enqueued.simps
+    apply (intro ballI impI conjI)
+    apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
+    apply (elim disjE)
+    apply (elim Cons_entails_CNotE)
+    apply (solves auto)[]
+    apply simp
+    apply blast+
+    apply auto[]
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    apply (elim Cons_entails_CNotE)
+    apply auto[]
+    apply simp
+    apply blast+
+    apply simp
+    apply blast+
+    done
+  done
+
+(* lemma cdcl_twl_subresolution_propa_cands_enqueued:
+ *   \<open>cdcl_twl_subresolution S T \<Longrightarrow> propa_cands_enqueued S \<Longrightarrow> propa_cands_enqueued T\<close>
+ *   by (induction rule: cdcl_twl_subresolution.induct) auto *)
+
+lemma \<open>cdcl_twl_subresolution S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
+  twl_struct_invs T\<close>
+  using cdcl_twl_subresolution_twl_st_inv[of S T]
+    cdcl_twl_subresolution_valid_enqueued[of S T]
+    cdcl_twl_subresolution_pcdcl_all_struct_invs[of S T]
+    cdcl_twl_subresolution_smaller_propa[of S T]
+    cdcl_twl_subresolution_twl_st_exception_inv[of S T]
+    cdcl_twl_subresolution_dup_enqueued[of S T]
+    cdcl_twl_subresolution_distinct_enqueued[of S T]
+    cdcl_twl_subresolution_confl_cands_enqueued[of S T]
+    (* cdcl_twl_subresolution_propa_cands_enqueued[of S T] *)
+    cdcl_twl_subresolution_confl_cands_enqueued[of S T]
+  unfolding twl_struct_invs_def
+  apply clarsimp
+    oops
 
 end
