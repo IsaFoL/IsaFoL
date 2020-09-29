@@ -745,4 +745,23 @@ proof -
     by clarsimp
 qed
 
+lemma Propagated_eq_DecidedD:
+  \<open>Propagated L C # M1 = M @ Decided K # M' \<longleftrightarrow>
+      M \<noteq> [] \<and> hd M = Propagated L C \<and> M1 = tl M @ Decided K # M'\<close>
+  by (cases M) auto
+
+lemma cdcl_twl_subresolution_twl_stgy_invs:
+  assumes \<open>cdcl_twl_subresolution S T\<close>
+    \<open>twl_struct_invs S\<close>
+    \<open>twl_stgy_invs S\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_subresolution.induct)
+   (auto simp: twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    Propagated_eq_DecidedD)
+
 end
