@@ -383,6 +383,26 @@ fun confl_cands_enqueued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 | \<open>confl_cands_enqueued (M, N, U, Some _, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
      True\<close>
 
+fun propa_confl_cands_enqueued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>propa_confl_cands_enqueued (M, N, U, None, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
+     (\<forall>C \<in># N + U. \<forall>L \<in># clause C. M \<Turnstile>as CNot (clause C - {#L#}) \<longrightarrow> L \<notin> lits_of_l M \<longrightarrow>
+       (\<exists>L'. L' \<in># watched C \<and> L' \<in># Q) \<or> (\<exists>L. (L, C) \<in># WS))\<close>
+| \<open>propa_confl_cands_enqueued (M, N, U, Some _, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
+     True\<close>
+
+lemma propa_confl_cands_enqueued_propa_confl_enqueued:
+  assumes \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close> and \<open>no_dup (get_trail S)\<close>
+  shows \<open>propa_confl_cands_enqueued S \<longleftrightarrow> propa_cands_enqueued S \<and> confl_cands_enqueued S\<close>
+  using assms
+  apply (cases S; cases \<open>get_conflict S\<close>)
+  apply (auto dest!: multi_member_split simp: Decided_Propagated_in_iff_in_lits_of_l no_dup_consistentD)
+  apply (case_tac C; case_tac \<open>watched C\<close>)
+  apply (clarsimp_all simp: imp_conjR all_conj_distrib no_dup_consistentD)
+  apply (case_tac C; case_tac \<open>watched C\<close>)
+  apply (clarsimp_all simp: imp_conjR all_conj_distrib no_dup_consistentD)
+  done
+
+find_theorems \<open>_ \<longrightarrow> _ \<and> _\<close>
 text \<open>This invariant talk about the decomposition of the trail and the invariants that holds in
   these states.\<close>
 fun past_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where

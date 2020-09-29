@@ -364,6 +364,76 @@ lemma Cons_entails_CNotE:
       add_mset_eq_add_mset)
   done
 
+lemma propa_confl_cands_enqueued_simps[simp]:
+  \<open>propa_confl_cands_enqueued
+  (M, N, U, None, add_mset {#E#} NE, UE, NS, US, {#}, Q) \<longleftrightarrow>
+  propa_confl_cands_enqueued
+     (M, N, U, None, NE, UE, NS, US, {#},Q)\<close>
+  \<open>propa_confl_cands_enqueued
+  (M, N, U, None, NE, UE, add_mset (clause C') NS, US, {#}, Q) \<longleftrightarrow>
+  propa_confl_cands_enqueued
+     (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+  apply (auto)
+  done
+
+lemma add_mset_diff_add_mset_If:
+  "(add_mset L' C) - add_mset L C'= (if L = L' then C - C' else remove1_mset L C + {#L'#} - C')"
+  by (auto simp: multiset_eq_iff)
+
+lemma
+  assumes
+    \<open>Multiset.Ball (N+U) (struct_wf_twl_cls)\<close> and
+    prev: \<open>propa_confl_cands_enqueued (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close> and
+    excep: \<open>twl_st_exception_inv (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close> and
+    \<open>count_decided M = 0\<close> and
+    nd: \<open>no_dup (Propagated L C # M)\<close>
+  shows \<open>propa_confl_cands_enqueued (Propagated L C # M, N, U, None, NE, UE, NS, US, {#}, add_mset (-L) Q)\<close>
+  unfolding propa_confl_cands_enqueued.simps
+proof (intro ballI impI)
+  fix Ca La
+  assume NU: \<open>Ca\<in>#N + U\<close> and La_Ca: \<open>La \<in># clause Ca\<close> and
+    ent: \<open>Propagated L C # M \<Turnstile>as CNot (remove1_mset La (clause Ca))\<close> and
+    not_true: \<open>La \<notin> lits_of_l (Propagated L C # M)\<close>
+  have [simp]: \<open>get_level M L = 0\<close> for L
+    using count_decided_ge_get_level[of M] assms
+      by auto
+  have dist2: \<open>distinct_mset (clause Ca)\<close> and watched: \<open>size (watched Ca) = 2\<close>
+    using assms(1) NU by (cases Ca; auto dest!: multi_member_split)+
+  then have dist: \<open>distinct_mset (remove1_mset La (clause Ca))\<close>
+    by auto
+  show \<open>(\<exists>L'. L' \<in># watched Ca \<and> L' \<in># add_mset (- L) Q) \<or> (\<exists>L. (L, Ca) \<in># {#})\<close>
+  proof (rule Cons_entails_CNotE[OF ent dist])
+    assume \<open>M \<Turnstile>as CNot (remove1_mset La (clause Ca))\<close> and
+      \<open>- lit_of (Propagated L C) \<notin># remove1_mset La (clause Ca)\<close>
+    then have \<open>\<exists>L'. L' \<in># watched Ca \<and> L' \<in># Q\<close>
+      using prev NU not_true La_Ca
+      by (auto simp: dest!: multi_member_split)
+    then show ?thesis
+      by auto
+  next
+    assume neg: \<open>M \<Turnstile>as CNot (remove1_mset (- lit_of (Propagated L C)) (remove1_mset La (clause Ca)))\<close> and
+      inL: \<open>- lit_of (Propagated L C) \<in># remove1_mset La (clause Ca)\<close>
+    with in_diffD[OF this(2)] have [simp]: \<open>L \<noteq> -La\<close> \<open>L \<noteq> La\<close>
+      using dist2 not_true by (auto dest!: multi_member_split)
+
+    have \<open>twl_exception_inv (M, N, U, None, NE, UE, NS, US, {#}, Q) Ca\<close>
+      using excep NU by auto
+    then show \<open>(\<exists>L'. L' \<in># watched Ca \<and> L' \<in># add_mset (- L) Q) \<or> (\<exists>L. (L, Ca) \<in># {#})\<close>
+      apply -
+      apply (rule ccontr)
+      using neg watched not_true nd inL
+      apply (cases Ca)
+      apply (auto elim!: Cons_entails_CNotE dest!: multi_member_split[of _ N] multi_member_split[of \<open>-L\<close>]
+        simp: distinct_mset_remove1_All uminus_lit_swap removeAll_notin has_blit_def add_mset_diff_add_mset_If
+        twl_exception_inv.simps size_2_iff all_conj_distrib remove1_mset_add_mset_If)
+      apply (auto split: if_splits simp: remove1_mset_add_mset_If Decided_Propagated_in_iff_in_lits_of_l
+        dest: no_dup_consistentD uminus_lits_of_l_definedD
+        dest!: multi_member_split; fail)+
+      done
+  qed
+qed
+
+
 lemma cdcl_twl_subresolution_confl_cands_enqueued:
   \<open>cdcl_twl_subresolution S T \<Longrightarrow> no_dup (get_trail S) \<Longrightarrow> confl_cands_enqueued S \<Longrightarrow>
   propa_cands_enqueued S \<Longrightarrow>
