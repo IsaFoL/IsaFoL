@@ -530,129 +530,6 @@ lemma cdcl_twl_subresolution_propa_confl_cands_enqueued:
     apply (simp_all add: twl_exception_inv.simps(1))
     done
   done
-(* oops
- *     apply (smt member_add_mset multi_member_split set_mset_union
- *       twl_exception_inv_skip_clause union_mset_add_mset_left)
- * 
- * oops
- * 
- * 
- * lemma cdcl_twl_subresolution_confl_cands_enqueued:
- *   \<open>cdcl_twl_subresolution S T \<Longrightarrow> no_dup (get_trail S) \<Longrightarrow> confl_cands_enqueued S \<Longrightarrow>
- *   propa_cands_enqueued S \<Longrightarrow>
- *   Multiset.Ball (get_clauses S) (distinct_mset o clause) \<Longrightarrow>
- *   confl_cands_enqueued T\<close>
- *   supply [simp] = distinct_mset_remdups_mset_id
- *   apply (induction rule: cdcl_twl_subresolution.induct)
- *   subgoal for C L D C' D' M E N U NE UE NS US Q
- *     by (case_tac E)
- *       (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
- *   subgoal for C L D C' D' M K N U NE UE NS US Q
- *     unfolding confl_cands_enqueued.simps
- *     apply (intro ballI impI conjI)
- *     apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
- *     apply (elim disjE)
- *     apply (elim Cons_entails_CNotE)
- *     apply (solves auto)[]
- *     apply simp
- *     apply blast+
- *     apply auto[]
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     done
- *   subgoal for C L D C' D' M E N U NE UE NS US Q
- *     by (case_tac E)
- *       (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
- *   subgoal for C L D C' D' M K N U NE UE NS US Q
- *     unfolding confl_cands_enqueued.simps
- *     apply (intro ballI impI conjI)
- *     apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
- *     apply (elim disjE)
- *     apply (elim Cons_entails_CNotE)
- *     apply (solves auto)[]
- *     apply simp
- *     apply blast+
- *     apply auto[]
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     done
- *   subgoal for C L D C' D' M E N U NE UE NS US Q
- *     by (case_tac E)
- *       (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
- *   subgoal for C L D C' D' M K N U NE UE NS US Q
- *     unfolding confl_cands_enqueued.simps
- *     apply (intro ballI impI conjI)
- *     apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
- *     apply (elim disjE)
- *     apply (elim Cons_entails_CNotE)
- *     apply (solves auto)[]
- *     apply simp
- *     apply blast+
- *     apply auto[]
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     done
- *   subgoal for C L D C' D' M E N U NE UE NS US Q
- *     by (case_tac E)
- *       (auto dest!: multi_member_split dest: true_annots_CNot_definedD)
- *   subgoal for C L D C' D' M K N U NE UE NS US Q
- *     unfolding confl_cands_enqueued.simps
- *     apply (intro ballI impI conjI)
- *     apply (clarsimp dest!: simp: all_conj_distrib elim!: Cons_entails_CNotE)
- *     apply (elim disjE)
- *     apply (elim Cons_entails_CNotE)
- *     apply (solves auto)[]
- *     apply simp
- *     apply blast+
- *     apply auto[]
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     apply (elim Cons_entails_CNotE)
- *     apply auto[]
- *     apply simp
- *     apply blast+
- *     apply simp
- *     apply blast+
- *     done
- *   done *)
-
-(* lemma cdcl_twl_subresolution_propa_cands_enqueued:
- *   \<open>cdcl_twl_subresolution S T \<Longrightarrow> propa_cands_enqueued S \<Longrightarrow> propa_cands_enqueued T\<close>
- *   by (induction rule: cdcl_twl_subresolution.induct) auto *)
 
 lemma cdcl_twl_subresolution_conflict:
   \<open>cdcl_twl_subresolution S T \<Longrightarrow> get_conflict T = None\<close>
@@ -731,9 +608,7 @@ proof -
       cdcl_twl_subresolution_twl_st_exception_inv[of S T]
       cdcl_twl_subresolution_dup_enqueued[of S T]
       cdcl_twl_subresolution_distinct_enqueued[of S T]
-      (* cdcl_twl_subresolution_confl_cands_enqueued[of S T] *)
       cdcl_twl_subresolution_propa_confl_cands_enqueued[of S T]
-      (* cdcl_twl_subresolution_propa_cands_enqueued[of S T] *)
       cdcl_twl_subresolution_propa_confl_cands_enqueued[of S T]
       propa_confl_cands_enqueued_propa_confl_enqueued[of S]
       propa_confl_cands_enqueued_propa_confl_enqueued[of T]
@@ -763,5 +638,44 @@ lemma cdcl_twl_subresolution_twl_stgy_invs:
     cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
     cdcl\<^sub>W_restart_mset.no_smaller_confl_def
     Propagated_eq_DecidedD)
+
+inductive cdcl_twl_unitres_true :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_unitres_true (M, N + {#C#}, U, None, NE, UE, NS, US, {#}, Q)
+    (M, N, U, None, add_mset (clause C) NE, UE, NS, US, {#}, Q)\<close>
+  if \<open>L \<in># clause C\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> |
+  \<open>cdcl_twl_unitres_true (M, N , U+ {#C#}, None, NE, UE, NS, US, {#}, Q)
+    (M, N, U, None, NE, add_mset (clause C) UE, NS, US, {#}, Q)\<close>
+  if \<open>L \<in># clause C\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
+
+lemma cdcl_twl_unitres_true_cdcl_unitres_true:
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> cdcl_unitres_true (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (force simp: cdcl_twl_unitres_true.simps cdcl_unitres_true.simps
+    dest!: multi_member_split)
+
+lemma cdcl_twl_unitres_invs:
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_st_inv S \<Longrightarrow> twl_st_inv T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> valid_enqueued S \<Longrightarrow> valid_enqueued T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_st_exception_inv S \<Longrightarrow> twl_st_exception_inv T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> no_duplicate_queued S \<Longrightarrow> no_duplicate_queued T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> distinct_queued S \<Longrightarrow> distinct_queued T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> confl_cands_enqueued S \<Longrightarrow> confl_cands_enqueued T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> propa_cands_enqueued S \<Longrightarrow> propa_cands_enqueued T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> clauses_to_update_inv S \<Longrightarrow> clauses_to_update_inv T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> past_invs S \<Longrightarrow> past_invs T\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> get_conflict T = None\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of (pstate\<^sub>W_of S)) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of (pstate\<^sub>W_of T))\<close>
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> pcdcl_all_struct_invs (pstate\<^sub>W_of S) \<Longrightarrow> pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+  apply (auto simp: cdcl_twl_unitres_true.simps twl_st_inv.simps
+    twl_exception_inv.simps filter_mset_empty_conv clauses_to_update_prop.simps
+    past_invs.simps dest: cdcl_twl_unitres_true_cdcl_unitres_true)[11]
+  apply (auto dest!: cdcl_twl_unitres_true_cdcl_unitres_true
+    pcdcl.intros(8) pcdcl_all_struct_invs)
+  done
+
+lemma cdcl_twl_unitres_true_twl_struct_invs:
+  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_struct_invs T\<close>
+  using cdcl_twl_unitres_invs[of S T]
+  by (auto simp: twl_struct_invs_def)
 
 end
