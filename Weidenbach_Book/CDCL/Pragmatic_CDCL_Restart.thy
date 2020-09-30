@@ -1034,6 +1034,10 @@ lemma pcdcl_core_stgy_pget_all_init_clss:
     cdcl_propagate.simps cdcl_decide.simps cdcl_backtrack_unit.simps cdcl_skip.simps
     cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
 
+lemma cdcl_unitres_true_all_init_clss:
+  \<open>cdcl_unitres_true S T \<Longrightarrow> (pget_all_init_clss S) = (pget_all_init_clss T)\<close>
+  by (induction rule: cdcl_unitres_true.induct) auto
+
 lemma pcdcl_stgy_pget_all_init_clss:
   \<open>pcdcl_stgy S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
     atms_of_mm (pget_all_init_clss T)\<close>
@@ -1041,7 +1045,8 @@ lemma pcdcl_stgy_pget_all_init_clss:
     (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_stgy_pget_all_init_clss
     simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
         cdcl_inp_conflict.simps
-        cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
+    cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
+    cdcl_unitres_true_all_init_clss)
 
 lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
   \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =

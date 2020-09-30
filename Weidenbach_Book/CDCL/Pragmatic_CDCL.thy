@@ -346,12 +346,23 @@ learn_clause:
     \<open>N +NE + NS \<Turnstile>pm C\<close> and
     \<open>\<not>tautology C\<close> and
     \<open>count_decided M = 0\<close> and
+    \<open>distinct_mset C\<close> |
+learn_clause_R:
+  \<open>cdcl_learn_clause (M, N, U, D, NE, UE, NS, US)
+    (M, N, add_mset C U, D, NE, UE, NS, US)\<close>
+  if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + NS)\<close> and
+    \<open>N +NE + NS \<Turnstile>pm C\<close> and
+    \<open>\<not>tautology C\<close> and
+    \<open>count_decided M = 0\<close> and
     \<open>distinct_mset C\<close>
 
 lemma cdcl_learn_clause_still_entailed:
   \<open>cdcl_learn_clause S T \<Longrightarrow> consistent_interp I \<Longrightarrow>
     I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
   apply (induction rule: cdcl_learn_clause.induct)
+  subgoal for C N NE NS M U D UE US
+    using true_clss_cls_true_clss_true_cls[of \<open>set_mset (N+NE+NS)\<close> C I]
+    by auto
   subgoal for C N NE NS M U D UE US
     using true_clss_cls_true_clss_true_cls[of \<open>set_mset (N+NE+NS)\<close> C I]
     by auto
@@ -391,6 +402,14 @@ learn_unit_clause_I:
     (M, N, U, D, NE, add_mset {#L#} UE, NS, US)\<close>
   if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
 
+inductive cdcl_unitres_true :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_unitres_true (M, add_mset (add_mset L C) N, U, D, NE, UE, NS, US)
+    (M, N, U, D, add_mset (add_mset L C) NE, UE, NS, US)\<close>
+  if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> |
+  \<open>cdcl_unitres_true (M, N, add_mset (add_mset L C) U, D, NE, UE, NS, US)
+    (M, N, U, D, NE, add_mset (add_mset L C) UE, NS, US)\<close>
+  if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
+
 inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
   \<open>pcdcl_core S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_learn_clause S T \<Longrightarrow> pcdcl S T\<close> |
@@ -398,7 +417,8 @@ inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool
   \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_flush_unit S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_inp_propagate S T \<Longrightarrow> pcdcl S T\<close> |
-  \<open>cdcl_inp_conflict S T \<Longrightarrow> pcdcl S T\<close>
+  \<open>cdcl_inp_conflict S T \<Longrightarrow> pcdcl S T\<close> |
+  \<open>cdcl_unitres_true S T \<Longrightarrow> pcdcl S T\<close>
 
 inductive pcdcl_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> for S T :: \<open>'v prag_st\<close> where
   \<open>pcdcl_core_stgy S T \<Longrightarrow> pcdcl_stgy S T\<close> |
@@ -407,7 +427,8 @@ inductive pcdcl_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow>
   \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl_stgy S T\<close>|
   \<open>cdcl_flush_unit S T \<Longrightarrow> pcdcl_stgy S T\<close> |
   \<open>cdcl_inp_propagate S T \<Longrightarrow> pcdcl_stgy S T\<close> |
-  \<open>cdcl_inp_conflict S T \<Longrightarrow> pcdcl_stgy S T\<close>
+  \<open>cdcl_inp_conflict S T \<Longrightarrow> pcdcl_stgy S T\<close> |
+  \<open>cdcl_unitres_true S T \<Longrightarrow> pcdcl_stgy S T\<close>
 
 lemma pcdcl_core_stgy_pcdcl: \<open>pcdcl_core_stgy S T \<Longrightarrow> pcdcl_core S T\<close>
   by (auto simp: pcdcl_core.simps pcdcl_core_stgy.simps)
@@ -904,6 +925,10 @@ lemma cdcl_inp_propagate_all_struct_inv:
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv
   by (blast dest!: cdcl_inp_propagate_is_propagate)
 
+lemma cdcl_unitres_true_same:
+  \<open>cdcl_unitres_true S T \<Longrightarrow> state_of S = state_of T\<close>
+  by (induction rule: cdcl_unitres_true.induct) auto
+
 lemma pcdcl_all_struct_inv:
   \<open>pcdcl S T \<Longrightarrow>
    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of S) \<Longrightarrow>
@@ -912,8 +937,18 @@ lemma pcdcl_all_struct_inv:
     (blast intro: cdcl_resolution_all_struct_inv cdcl_subsumed_all_struct_inv
     cdcl_learn_clause_all_struct_inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv
     cdcl_inp_conflict_all_struct_inv cdcl_inp_propagate_all_struct_inv
-    dest!: pcdcl_core_is_cdcl subst[OF cdcl_flush_unit_unchanged]
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart)+
+    dest!:
+      cdcl_unitres_true_same[THEN arg_cong[of _ _ cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv], THEN iffD1]
+      pcdcl_core_is_cdcl subst[OF cdcl_flush_unit_unchanged]
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart)+
+
+lemma cdcl_unitres_true_entailed_clss_inv:
+  \<open>cdcl_unitres_true S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  by (induction rule: cdcl_unitres_true.induct) (auto simp: entailed_clss_inv_def)
+
+lemma cdcl_unitres_true_psubsumed_invs:
+  \<open>cdcl_unitres_true S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
+  by (induction rule: cdcl_unitres_true.induct) (auto simp: psubsumed_invs_def)
 
 definition pcdcl_all_struct_invs :: \<open>_\<close> where
 \<open>pcdcl_all_struct_invs S \<longleftrightarrow>
@@ -1033,7 +1068,8 @@ lemma pcdcl_entails_clss_inv:
   by (induction rule: pcdcl.induct)
    (simp_all add: pcdcl_core_entails_clss_inv cdcl_learn_clause_entailed_clss_inv
     cdcl_resolution_entailed_clss_inv cdcl_subsumed_entailed_clss_inv
-   cdcl_flush_unit_invs cdcl_inp_propagate_invs cdcl_inp_conflict_invs)
+    cdcl_flush_unit_invs cdcl_inp_propagate_invs cdcl_inp_conflict_invs
+    cdcl_unitres_true_entailed_clss_inv)
 
 lemma rtranclp_pcdcl_entails_clss_inv:
   \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
@@ -1055,7 +1091,8 @@ lemma pcdcl_psubsumed_invs:
   by (induction rule: pcdcl.induct)
     (simp_all add: pcdcl_core_psubsumed_invs cdcl_learn_clause_psubsumed_invs
     cdcl_resolution_psubsumed_invs cdcl_subsumed_psubsumed_invs cdcl_flush_unit_invs
-    cdcl_inp_propagate_invs cdcl_inp_conflict_invs)
+    cdcl_inp_propagate_invs cdcl_inp_conflict_invs
+    cdcl_unitres_true_psubsumed_invs)
 
 lemma rtranclp_pcdcl_psubsumed_invs:
   \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
@@ -1160,7 +1197,8 @@ lemma pcdcl_entailed_by_init:
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed pcdcl_all_struct_invs_def pcdcl_core_is_cdcl)
   by (simp_all add: cdcl_learn_clause_entailed_by_init cdcl_subsumed_entailed_by_init
     cdcl_resolution_entailed_by_init cdcl_flush_unit_unchanged
-    cdcl_inp_conflict_entailed_by_init cdcl_inp_propagate_entailed_by_init)
+    cdcl_inp_conflict_entailed_by_init cdcl_inp_propagate_entailed_by_init
+    cdcl_unitres_true_same)
 
 
 lemma pcdcl_core_stgy_stgy_invs:
@@ -1244,10 +1282,139 @@ lemma pcdcl_stgy_stgy_invs:
       cdcl_inp_propagate_is_propagate by blast
   subgoal
     by (simp add: cdcl_inp_conflict_stgy_stgy_invs)
+  subgoal by (simp add: cdcl_unitres_true_same)
   done
 
 
 section \<open>Higher-level rules\<close>
+
+subsection \<open>Simplify unit clauses\<close>
+
+inductive cdcl_unitres :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+cdcl_unitresI:
+  \<open>cdcl_unitres (M, N + {#add_mset L C#}, U, D, NE, UE, NS, US)
+    (M, N + {#C#}, U, D, NE, UE, add_mset (add_mset L C) NS, US)\<close>
+  if \<open>count_decided M = 0\<close> and \<open>add_mset (add_mset L C) (N + NE + NS) \<Turnstile>psm {#{#-L#}#}\<close>
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>|
+cdcl_unitresR:
+  \<open>cdcl_unitres (M, N, U + {#add_mset L C#}, D, NE, UE, NS, US)
+    (M, N, U + {#C#}, D, NE, UE, NS, add_mset (add_mset L C) US)\<close>
+ if \<open>count_decided M = 0\<close> and \<open>N + NE + NS \<Turnstile>psm {#{#-L#}#}\<close>  \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+   \<open>atms_of C \<subseteq> atms_of_mm (N+NE+NS)\<close>
+
+lemma cdcl_unitres_learn_subsumeE:
+  assumes \<open>cdcl_unitres S U\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  obtains T where \<open>cdcl_learn_clause S T\<close> \<open>cdcl_subsumed T U\<close>
+  subgoal premises noone_wants_that_premise
+    using assms
+    apply (cases rule: cdcl_unitres.cases)
+    subgoal for M L C N NE NS U D UE US
+      apply (rule that[of \<open>(M, N + {#add_mset L C, C#}, U, D, NE, UE, NS, US)\<close>])
+      apply (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps)
+      apply (metis add.left_neutral insertI1 true_clss_cls_in
+        true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+      done
+    subgoal for M N NE NS L C U D UE US
+      by (rule that[of \<open>(M, N, U + {#add_mset L C, C#}, D, NE, UE, NS, US)\<close>])
+       (auto simp: cdcl_learn_clause.simps cdcl_subsumed.simps
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+        dest: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+    done
+  done
+
+lemma cdcl_unitres_learn_subsume:
+  assumes \<open>cdcl_unitres S U\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>pcdcl\<^sup>*\<^sup>* S U\<close>
+  by (rule cdcl_unitres_learn_subsumeE[OF assms]) (auto dest!: pcdcl.intros)
+
+lemma get_all_ann_decomposition_count_decided0:
+  \<open>count_decided M = 0 \<Longrightarrow> get_all_ann_decomposition M = [([], M)]\<close>
+  by (induction M rule: ann_lit_list_induct)  auto
+
+text \<open>The following two lemmas gives the nicer introduction rule that are what anyone expects
+from removing false literals.\<close>
+lemma cdcl_unitresI1:
+  assumes
+    invs: \<open>pcdcl_all_struct_invs (M, N, U + {#add_mset L C#}, D, NE, UE, NS, US)\<close> and
+    L: \<open>-L \<in> lits_of_l M\<close> and
+    [simp]: \<open>count_decided M = 0\<close> and
+    \<open>\<not> tautology C\<close> and
+    ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
+       (state_of (M, N, U + {#add_mset L C#}, D, NE, UE, NS, US))\<close>
+  shows \<open>cdcl_unitres (M, N, U + {#add_mset L C#}, D, NE, UE, NS, US)
+    (M, N, U + {#C#}, D, NE, UE, NS, add_mset (add_mset L C) US)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
+proof
+  show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close>
+    by (rule assms)+
+  have ent: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state_of ?S))
+      (get_all_ann_decomposition (trail (state_of ?S)))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of ?S)\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of ?S)\<close>
+    using invs
+    unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have [iff]: \<open>insert (add_mset L C)
+        (set_mset N \<union> set_mset NE \<union> set_mset NS \<union>
+    (set_mset U \<union> set_mset UE \<union> set_mset US)) \<Turnstile>p NC \<longleftrightarrow>
+    set_mset N \<union> set_mset NE \<union> set_mset NS \<Turnstile>p NC\<close> for NC
+    using true_clss_clss_generalise_true_clss_clss[of \<open>(set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>
+      \<open>insert (add_mset L C) (set_mset U \<union> set_mset UE \<union> set_mset US)\<close>
+      \<open>{NC}\<close>
+       \<open>(set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>] ent_init
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+
+  show \<open>N + NE + NS \<Turnstile>psm {#{#- L#}#}\<close>
+    using ent L ent_init
+    by (auto simp: clauses_def all_decomposition_implies_def lits_of_def uminus_lit_swap
+      eq_commute[of _ \<open>lit_of _\<close>] cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      get_all_ann_decomposition_count_decided0 dest!: split_list)
+  show \<open>distinct_mset C\<close>
+    using dist by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
+  show \<open>atms_of C \<subseteq> atms_of_mm (N + NE + NS)\<close>
+    using alien
+    by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def)
+qed
+
+lemma cdcl_unitresI2:
+  assumes
+    invs: \<open>pcdcl_all_struct_invs (M, N + {#add_mset L C#}, U, D, NE, UE, NS, US)\<close> and
+    L: \<open>-L \<in> lits_of_l M\<close> and
+    [simp]: \<open>count_decided M = 0\<close> and
+    \<open>\<not> tautology C\<close> and
+    ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
+       (state_of (M, N + {#add_mset L C#}, U, D, NE, UE, NS, US))\<close>
+  shows \<open>cdcl_unitres (M, N + {#add_mset L C#}, U, D, NE, UE, NS, US)
+    (M, N + {#C#}, U, D, NE, UE, add_mset (add_mset L C) NS, US)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
+proof
+  show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close>
+    by (rule assms)+
+  have ent: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state_of ?S))
+      (get_all_ann_decomposition (trail (state_of ?S)))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of ?S)\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of ?S)\<close>
+    using invs
+    unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have [iff]: \<open>insert (add_mset L C)
+        (set_mset N \<union> set_mset NE \<union> set_mset NS \<union>
+    (set_mset U \<union> set_mset UE \<union> set_mset US)) \<Turnstile>p NC \<longleftrightarrow>
+    insert (add_mset L C) (set_mset N \<union> set_mset NE \<union> set_mset NS) \<Turnstile>p NC\<close> for NC
+    using true_clss_clss_generalise_true_clss_clss[of \<open>insert (add_mset L C) (set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>
+      \<open>(set_mset U \<union> set_mset UE \<union> set_mset US)\<close>
+      \<open>{NC}\<close>
+       \<open>insert (add_mset L C) (set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>] ent_init
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      dest: true_clss_cs_mono_l)
+
+  show \<open>add_mset (add_mset L C) (N + NE + NS) \<Turnstile>psm {#{#- L#}#}\<close>
+    using ent L ent_init
+    by (auto simp: clauses_def all_decomposition_implies_def lits_of_def uminus_lit_swap
+      eq_commute[of _ \<open>lit_of _\<close>] cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      get_all_ann_decomposition_count_decided0 dest!: split_list)
+  show \<open>distinct_mset C\<close>
+    using dist by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def)
+qed
+
 
 subsection \<open>Subsumption resolution\<close>
 text \<open>
@@ -1559,6 +1726,7 @@ lemma pcdcl_stgy_no_smaller_propa:
     done
   subgoal
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl_inp_conflict.simps)
+  subgoal by (auto simp: cdcl_unitres_true_same)
   done
 
 lemma rtranclp_pcdcl_stgy_no_smaller_propa:
@@ -1607,7 +1775,7 @@ lemma pcdcl_tcore_nocp_pcdcl_tcore_stgy:
 
 
 lemma pcdcl_tcore_stgy_pcdcl_stgy': \<open>pcdcl_tcore_stgy S T \<Longrightarrow> pcdcl_stgy\<^sup>*\<^sup>* S T\<close>
-  by (auto simp: pcdcl_stgy.simps pcdcl_tcore_stgy.simps 
+  by (auto simp: pcdcl_stgy.simps pcdcl_tcore_stgy.simps
       pcdcl_tcore_stgy.simps pcdcl_tcore_stgy_pcdcl_stgy rtranclp_unfold)
 
 lemma rtranclp_pcdcl_tcore_stgy_pcdcl_stgy': \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_stgy\<^sup>*\<^sup>* S T\<close>
@@ -1617,7 +1785,7 @@ lemma rtranclp_pcdcl_tcore_stgy_pcdcl_stgy': \<open>pcdcl_tcore_stgy\<^sup>*\<^s
 lemma pcdcl_core_stgy_conflict_non_zero_unless_level_0:
   \<open>pcdcl_core_stgy S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
       cdcl\<^sub>W_restart_mset.no_false_clause (state_of S) \<Longrightarrow>
-      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of S) \<Longrightarrow> 
+      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of S) \<Longrightarrow>
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of T)\<close>
   using pcdcl_core_stgy_is_cdcl_stgy[of S T]
   using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0[of \<open>state_of S\<close> \<open>state_of T\<close>]
@@ -1626,7 +1794,7 @@ lemma pcdcl_core_stgy_conflict_non_zero_unless_level_0:
 lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
   \<open>pcdcl_stgy S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
       cdcl\<^sub>W_restart_mset.no_false_clause (state_of S) \<Longrightarrow>
-      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of S) \<Longrightarrow> 
+      cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of S) \<Longrightarrow>
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of T)\<close>
   apply (induction rule: pcdcl_stgy.induct)
   subgoal using pcdcl_core_stgy_conflict_non_zero_unless_level_0[of S T] by fast
@@ -1642,6 +1810,7 @@ lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
     by (auto simp: cdcl_inp_propagate.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
   subgoal
     by (auto simp: cdcl_inp_conflict.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
+  subgoal by (auto simp: cdcl_unitres_true_same)
   done
 
 

@@ -42,7 +42,7 @@ twl_subresolution_II_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>size E \<ge> 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>size E \<ge> 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_II_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
