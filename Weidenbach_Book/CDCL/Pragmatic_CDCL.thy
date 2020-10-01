@@ -1444,6 +1444,55 @@ proof
     using dist by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def dest: distinct_mset_union)
 qed
 
+lemma cdcl_unitresI2_unit:
+  fixes K :: \<open>'v literal\<close>
+  defines \<open>C \<equiv> {#K#}\<close>
+  assumes
+    invs: \<open>pcdcl_all_struct_invs (M, N + {#C+C'#}, U, None, NE, UE, NS, US)\<close> and
+    L: \<open>\<forall>L. L \<in># C' \<longrightarrow> -L \<in> lits_of_l M\<close> and
+    [simp]: \<open>count_decided M = 0\<close> and
+    \<open>\<not> tautology C\<close> and
+    undef: \<open>undefined_lit M K\<close> and
+    ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
+       (state_of (M, N + {#C+C'#}, U, None, NE, UE, NS, US))\<close>
+  shows \<open>cdcl_unitres (M, N + {#C+C'#}, U, None, NE, UE, NS, US)
+    (Propagated K C # M, N, U, None, NE + {#C#}, UE, add_mset (C+C') NS, US)\<close> (is \<open>cdcl_unitres ?S ?T\<close>)
+proof
+  show \<open>count_decided M = 0\<close> and \<open>\<not> tautology C\<close> and \<open>undefined_lit M K\<close>
+    by (rule assms)+
+  show \<open>C = {#K#}\<close>
+    unfolding C_def ..
+  have ent: \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses (state_of ?S))
+      (get_all_ann_decomposition (trail (state_of ?S)))\<close> and
+    dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state_of ?S)\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state_of ?S)\<close>
+    using invs
+    unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  have [iff]: \<open>insert (C+C')
+        (set_mset N \<union> set_mset NE \<union> set_mset NS \<union>
+    (set_mset U \<union> set_mset UE \<union> set_mset US)) \<Turnstile>p NC \<longleftrightarrow>
+    insert (C+C') (set_mset N \<union> set_mset NE \<union> set_mset NS) \<Turnstile>p NC\<close> for NC
+    using true_clss_clss_generalise_true_clss_clss[of \<open>insert (C+C') (set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>
+      \<open>(set_mset U \<union> set_mset UE \<union> set_mset US)\<close>
+      \<open>{NC}\<close>
+       \<open>insert (C+C') (set_mset N \<union> set_mset NE \<union> set_mset NS)\<close>] ent_init
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      dest: true_clss_cs_mono_l)
+  have \<open>add_mset (C+C') (N + NE + NS) \<Turnstile>psm mset_set (CNot C'')\<close> if \<open>C'' \<subseteq># C'\<close> for C''
+    using that
+    apply (induction C'')
+      using ent L ent_init
+    by (auto simp: clauses_def all_decomposition_implies_def lits_of_def uminus_lit_swap
+      eq_commute[of _ \<open>lit_of _\<close>] cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      get_all_ann_decomposition_count_decided0 dest!: split_list mset_subset_eq_insertD)
+
+  from this[of C'] show \<open>add_mset (C+C') (N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
+   by auto
+  show \<open>distinct_mset C\<close>
+    using dist by (auto simp: cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def dest: distinct_mset_union)
+qed
+
 
 subsection \<open>Subsumption resolution\<close>
 text \<open>
