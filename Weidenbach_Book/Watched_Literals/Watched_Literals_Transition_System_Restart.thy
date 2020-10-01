@@ -1226,67 +1226,6 @@ lemma (in -) cdcl_twl_stgy_restart_only_twl_stgy_invs:
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
       dest!: get_all_ann_decomposition_exists_prepend)
 
-(* lemma cdcl_twl_stgy_restart_twl_stgy_invs:
- *   assumes
- *     \<open>cdcl_twl_stgy_restart S T\<close> and
- *     \<open>twl_struct_invs (fst S)\<close> and
- *     \<open>twl_stgy_invs (fst S)\<close>
- *   shows \<open>twl_stgy_invs (fst T)\<close>
- *   using assms
- *   by (induction rule: cdcl_twl_stgy_restart.induct)
- *    (auto simp add: full1_def intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
- *     dest: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs
- *     rtranclp_cdcl_twl_stgy_twl_struct_invs
- *     cdcl_twl_restart_only_twl_struct_invs
- *     cdcl_twl_stgy_restart_only_twl_stgy_invs
- *     cdcl_twl_restart_twl_stgy_invs
- *     dest!: tranclp_into_rtranclp)
- * 
- * lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
- *   assumes
- *     \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
- *     \<open>twl_struct_invs (fst S)\<close> and
- *     \<open>twl_stgy_invs (fst S)\<close>
- *   shows \<open>twl_stgy_invs (fst T)\<close>
- *   using assms
- *   by (induction rule: rtranclp_induct)
- *    (auto
- *     dest: rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
- *     intro: cdcl_twl_stgy_restart_twl_stgy_invs)
- * 
- * lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
- *   \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
- *     twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst U)\<close>
- *   unfolding cdcl_twl_stgy_restart_with_leftovers_def
- *   by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs
- *    rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs) *)
-
-(*
-lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S m T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs[of T U]
-      rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of S T]
-    by auto
-  done
-*)
-(*
-lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy[of T U]
-    rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of S T]
-    rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs[of S T]
-    by auto
-  done
-*)
-
 definition partial_conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>partial_conclusive_TWL_run S = SPEC(\<lambda>(b, T). \<exists>R1 R2 m m\<^sub>0 n\<^sub>0.
        cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> (\<not>b \<longrightarrow> final_twl_state T))\<close>
