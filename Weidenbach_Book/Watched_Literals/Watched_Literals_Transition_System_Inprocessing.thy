@@ -652,7 +652,7 @@ lemma cdcl_twl_unitres_true_cdcl_unitres_true:
   by (force simp: cdcl_twl_unitres_true.simps cdcl_unitres_true.simps
     dest!: multi_member_split)
 
-lemma cdcl_twl_unitres_invs:
+lemma cdcl_twl_unitres_true_invs:
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_st_inv S \<Longrightarrow> twl_st_inv T\<close>
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> valid_enqueued S \<Longrightarrow> valid_enqueued T\<close>
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_st_exception_inv S \<Longrightarrow> twl_st_exception_inv T\<close>
@@ -675,7 +675,171 @@ lemma cdcl_twl_unitres_invs:
 
 lemma cdcl_twl_unitres_true_twl_struct_invs:
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_struct_invs T\<close>
-  using cdcl_twl_unitres_invs[of S T]
+  using cdcl_twl_unitres_true_invs[of S T]
   by (auto simp: twl_struct_invs_def)
+
+term cdcl_unitres
+inductive cdcl_twl_unitres :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, {#}, Q)
+    (M, add_mset E N, U, None, NE, UE, add_mset (clause D)  NS, US, {#}, Q)\<close>
+  if \<open>count_decided M = 0\<close> and
+    \<open>clause D = C+C'\<close>
+    \<open>add_mset (C+C') (clauses N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+    \<open>struct_wf_twl_cls E\<close>
+    \<open>Multiset.Ball (clause E) (undefined_lit M)\<close>
+    \<open>clause E = C\<close> |
+\<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K C # M, N, U, None, add_mset C NE, UE, add_mset (clause D) NS, US, {#}, add_mset (-K) Q)\<close>
+  if \<open>count_decided M = 0\<close> and
+    \<open>clause D = C+C'\<close>
+    \<open>add_mset (C+C') (clauses N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+    \<open>C = {#K#}\<close>
+    \<open>undefined_lit M K\<close> |
+\<open>cdcl_twl_unitres (M, N, U + {#D#}, None, NE, UE, NS, US, {#}, Q)
+    (M, N, add_mset E U, None, NE, UE, NS, add_mset (clause D) US, {#}, Q)\<close>
+  if \<open>count_decided M = 0\<close> and
+    \<open>clause D = C+C'\<close>
+    \<open>(clauses N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+    \<open>struct_wf_twl_cls E\<close>
+    \<open>clause E = C\<close>
+    \<open>Multiset.Ball (clause E) (undefined_lit M)\<close>
+    \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close> |
+\<open>cdcl_twl_unitres (M, N, U + {#D#}, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K C # M, N, U, None, NE, add_mset C UE, NS, add_mset (clause D) US, {#}, add_mset (-K) Q)\<close>
+  if \<open>count_decided M = 0\<close> and
+    \<open>clause D = C+C'\<close>
+    \<open>clauses N + NE + NS \<Turnstile>psm mset_set (CNot C')\<close>
+    \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+    \<open>C = {#K#}\<close>
+    \<open>undefined_lit M K\<close>
+    \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close>
+
+lemma cdcl_twl_unitres_cdcl_unitres:
+  \<open>cdcl_twl_unitres S T \<Longrightarrow> cdcl_unitres (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (induction rule: cdcl_twl_unitres.cases)
+   (fastforce simp: cdcl_unitres.simps)+
+
+lemma cdcl_twl_unitres_invs:
+  \<open>cdcl_twl_unitres S T \<Longrightarrow> twl_st_inv S \<Longrightarrow> twl_st_inv T\<close>
+  by (induction rule: cdcl_twl_unitres.induct)
+   (auto simp: twl_st_inv.simps twl_lazy_update_subresII
+    twl_lazy_update_undefined watched_literals_false_of_max_level_lvl0
+    twl_is_an_exception_add_mset_to_queue)
+
+lemma struct_wf_twl_cls_alt_def:
+  \<open>struct_wf_twl_cls C \<longleftrightarrow> distinct_mset (clause C) \<and> size (watched C) = 2\<close>
+  by (cases C) auto
+
+lemma
+  assumes \<open>cdcl_twl_unitres S T\<close> and \<open>twl_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows \<open>twl_struct_invs T\<close>
+  unfolding twl_struct_invs_def
+proof (intro conjI)
+  have st_inv: \<open>twl_st_inv S\<close> and
+    valid: \<open>valid_enqueued S\<close> and
+    except: \<open>twl_st_exception_inv S\<close> and
+    dup: \<open>no_duplicate_queued S\<close> and
+    dist: \<open>distinct_queued S\<close> and
+    clss: \<open>clauses_to_update_inv S\<close> and
+    past: \<open>past_invs S\<close> and
+    confl_cands: \<open>confl_cands_enqueued S\<close> and
+    propa_cands: \<open>propa_cands_enqueued S\<close> and
+    dupq: \<open>no_duplicate_queued S\<close> and
+    distq: \<open>distinct_queued S\<close> and
+    invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
+    propa:  \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close>
+    using assms(2) unfolding twl_struct_invs_def by fast+
+
+  have n_d: \<open>no_dup (get_trail S)\<close>
+    using invs unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  show st_inv_T: \<open>twl_st_inv T\<close> and \<open>valid_enqueued T\<close>
+    using valid count_decided_ge_get_level[of \<open>get_trail S\<close>] assms(1) st_inv n_d except
+    by (auto simp: twl_st_inv.simps twl_lazy_update_subresII
+    twl_lazy_update_undefined watched_literals_false_of_max_level_lvl0 get_level_cons_if
+    twl_is_an_exception_add_mset_to_queue cdcl_twl_unitres.simps
+    twl_exception_inv.simps filter_mset_empty_conv clauses_to_update_prop.simps
+    past_invs.simps Decided_Propagated_in_iff_in_lits_of_l clause_alt_def
+      uminus_lit_swap
+    dest!: multi_member_split
+      dest: mset_le_add_mset simp: undefined_notin; fail)+
+
+  show \<open>twl_st_exception_inv T\<close>
+    using count_decided_ge_get_level[of \<open>get_trail S\<close>] assms(1) except n_d
+    by (auto simp: twl_st_inv.simps twl_lazy_update_subresII
+    twl_lazy_update_undefined watched_literals_false_of_max_level_lvl0 get_level_cons_if
+    twl_is_an_exception_add_mset_to_queue cdcl_twl_unitres.simps
+    twl_exception_inv.simps filter_mset_empty_conv clauses_to_update_prop.simps
+    past_invs.simps Decided_Propagated_in_iff_in_lits_of_l clause_alt_def
+      uminus_lit_swap
+    dest!: multi_member_split
+      dest: mset_le_add_mset simp: undefined_notin)
+  show \<open>clauses_to_update_inv T\<close>
+    using clss assms(1) n_d
+    by (auto simp: cdcl_twl_unitres.simps filter_mset_empty_conv all_conj_distrib
+      Decided_Propagated_in_iff_in_lits_of_l clauses_to_update_prop.simps
+      split: if_splits dest: has_blit_Cons)
+     (auto simp:  clause_alt_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits; fail)+
+  show invs_T: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+    using cdcl_twl_unitres_cdcl_unitres[OF assms(1)] assms(3) invs
+    by (auto dest!: cdcl_unitres_learn_subsume rtranclp_pcdcl_all_struct_invs)
+  show \<open>past_invs T\<close>
+    using assms(1)
+    by (auto simp: cdcl_twl_unitres.simps past_invs.simps Propagated_eq_DecidedD)
+  have struct: \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close>
+    by (use st_inv n_d propa_cands confl_cands in \<open>cases S; auto simp: twl_st_inv.simps; fail\<close>)+
+  then have \<open>propa_confl_cands_enqueued S\<close>
+    by (subst  propa_confl_cands_enqueued_propa_confl_enqueued[of S])
+     (use st_inv n_d propa_cands confl_cands in \<open>auto simp: twl_st_inv.simps; fail\<close>)+
+  with assms(1) have \<open>propa_confl_cands_enqueued T\<close>
+    using n_d struct except
+    by (induction rule: cdcl_twl_unitres.cases)
+     (auto 5 4 intro!: propa_confl_cands_enqueued_propagate
+      simp: propa_confl_cands_enqueued_learn 
+      dest: propa_confl_cands_enqueuedD twl_exception_inv_skip_clause
+      dest: multi_member_split[of \<open>_ :: _ twl_clause\<close>]
+      simp del: propa_confl_cands_enqueued.simps)
+  moreover have struct: \<open>\<forall>C \<in># get_clauses T. struct_wf_twl_cls C\<close>
+    by (use st_inv_T  in \<open>cases T; auto simp: twl_st_inv.simps; fail\<close>)+
+  moreover have \<open>no_dup (get_trail T)\<close>
+    using invs_T unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  ultimately show \<open>confl_cands_enqueued T\<close> and \<open>propa_cands_enqueued T\<close>
+    by (subst (asm) propa_confl_cands_enqueued_propa_confl_enqueued[of T]; auto; fail)+
+  show \<open>no_duplicate_queued T\<close> and \<open>distinct_queued T\<close>
+    using dupq distq n_d assms(1)
+    by (force simp: cdcl_twl_unitres.simps past_invs.simps Propagated_eq_DecidedD undefined_notin
+      dest!: multi_member_split split_list dest: mset_le_add_mset)+
+
+  show \<open>get_conflict T \<noteq> None \<longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
+    using assms(1)
+    by (auto simp: cdcl_twl_unitres.simps past_invs.simps Propagated_eq_DecidedD)
+
+
+  show \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of T)\<close>
+    using assms(1)
+    by (auto simp: cdcl_twl_unitres.simps past_invs.simps Propagated_eq_DecidedD
+      cdcl\<^sub>W_restart_mset.no_smaller_propa_def)
+qed
+
+lemma cdcl_twl_unitres_twl_stgy_invs:
+  assumes \<open>cdcl_twl_unitres S T\<close>
+    \<open>twl_struct_invs S\<close>
+    \<open>twl_stgy_invs S\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_unitres.induct)
+   (auto simp: twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    Propagated_eq_DecidedD)
 
 end
