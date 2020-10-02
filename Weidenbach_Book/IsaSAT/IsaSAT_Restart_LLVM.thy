@@ -144,9 +144,6 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_countD[dest]
   supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI2
-  (* supply [dest] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI1
-   *   cdcl_twl_stgy_restart_prog_bounded_wl_heurI2 
-    * supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI3 *)
   supply [sepref_bounds_simps del] = uint32_max_def sint32_max_def uint64_max_def sint64_max_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref

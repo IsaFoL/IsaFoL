@@ -842,7 +842,7 @@ definition cdcl_twl_stgy_restart_abs_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, m, p, n) \<leftarrow> restart_abs_l T m p n brk;
-        RETURN (brk, T, m, p, n)
+        RETURN (brk \<or> get_conflict_l T \<noteq> None, T, m, p, n)
       })
       (False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN T
@@ -4564,7 +4564,7 @@ definition cdcl_twl_stgy_restart_abs_early_l :: "'v twl_st_l \<Rightarrow> 'v tw
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, last_GC, last_Restart,n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart,n)
+        RETURN (ebrk, brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart,n)
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
@@ -4575,7 +4575,7 @@ definition cdcl_twl_stgy_restart_abs_early_l :: "'v twl_st_l \<Rightarrow> 'v tw
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, last_GC, last_Restart,n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
-        RETURN (brk, T, last_GC, last_Restart, n)
+        RETURN (brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (False, T, last_GC, last_Restart, n);
       RETURN T
@@ -4594,7 +4594,7 @@ definition cdcl_twl_stgy_restart_abs_bounded_l :: "'v twl_st_l \<Rightarrow> (bo
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN (ebrk, T)
@@ -4610,7 +4610,7 @@ definition cdcl_twl_stgy_restart_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_
 	T \<leftarrow> unit_propagation_outer_loop_l S;
 	(brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
 	(T, last_GC, last_Restart, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
-	RETURN (brk, T, last_GC, last_Restart, n)
+	RETURN (brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN T
@@ -4629,7 +4629,7 @@ definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v t
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, n)
+        RETURN (ebrk, brk \<or> get_conflict_l T \<noteq> None, T, n)
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
@@ -4640,7 +4640,7 @@ definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v t
 	  T \<leftarrow> unit_propagation_outer_loop_l S;
 	  (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
 	  (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
-	  RETURN (brk, T, last_GC, last_Restart, n)
+	  RETURN (brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart, n)
 	})
 	(False, T, last_GC, last_Restart, n);
       RETURN T
@@ -4699,76 +4699,6 @@ proof -
     subgoal by auto
     done
 qed
-
-
-(* lemma cdcl_twl_stgy_restart_abs_early_l_cdcl_twl_stgy_restart_abs_early_l:
- *   \<open>(cdcl_twl_stgy_restart_abs_early_l, cdcl_twl_stgy_restart_prog_early) \<in>
- *      {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
- *        clauses_to_update_l S  = {#}} \<rightarrow>\<^sub>f
- *       \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle> nres_rel\<close>
- *   unfolding cdcl_twl_stgy_restart_abs_early_l_def cdcl_twl_stgy_restart_prog_early_def uncurry_def
- *   apply (intro frefI nres_relI)
- *   apply (refine_rcg WHILEIT_refine[where R = \<open>{((brk :: bool, S, n :: nat), (brk', S', n')).
- *       (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> brk = brk' \<and> n = n' \<and>
- *         clauses_to_update_l S = {#}}\<close>]
- * 	WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool, S, n :: nat), (ebrk' :: bool, brk', S', n')).
- *       (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> brk = brk' \<and> n = n' \<and> ebrk = ebrk' \<and>
- *         clauses_to_update_l S = {#}}\<close>]
- *       unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
- *       cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
- *       restart_abs_l_restart_prog[THEN fref_to_Down_curry2])
- *   subgoal by simp
- *   subgoal for x y _ _ xa x' x1 x2 x1a x2a
- *     unfolding cdcl_twl_stgy_restart_abs_l_inv_def
- *     apply (rule_tac x=y in exI)
- *     apply (rule_tac x=\<open>fst (snd (snd x'))\<close> in exI)
- *     by auto
- *   subgoal by fast
- *   subgoal
- *     unfolding cdcl_twl_stgy_restart_prog_inv_def
- *       cdcl_twl_stgy_restart_abs_l_inv_def
- *     apply (simp only: prod.case)
- *     apply (normalize_goal)+
- *     by (simp add: twl_st_l twl_st)
- *   subgoal by (auto simp: twl_st_l twl_st)
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal for x y _ _ xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e xb x'a x1f x2f x1g
- *     unfolding cdcl_twl_stgy_restart_abs_l_inv_def
- *     apply (rule_tac x=y in exI)
- *     apply (rule_tac x=\<open>fst (snd x'a)\<close> in exI)
- *     by auto
- *   subgoal by auto
- *   subgoal
- *     unfolding cdcl_twl_stgy_restart_prog_inv_def
- *       cdcl_twl_stgy_restart_abs_l_inv_def
- *     apply (simp only: prod.case)
- *     apply (normalize_goal)+
- *     by (simp add: twl_st_l twl_st)
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal by auto
- *   subgoal by auto
- *   done
- * 
- * 
- * lemma (in twl_restart) cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_prog_early:
- *   \<open>(cdcl_twl_stgy_restart_prog_early_l, cdcl_twl_stgy_restart_prog_early)
- *     \<in> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
- *       \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle>nres_rel\<close>
- *   apply (intro frefI nres_relI)
- *   apply (rule order_trans)
- *   defer
- *   apply (rule cdcl_twl_stgy_restart_abs_early_l_cdcl_twl_stgy_restart_abs_early_l[THEN fref_to_Down])
- *     apply fast
- *     apply assumption
- *   apply (rule cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_abs_early_l[THEN fref_to_Down,
- *     simplified])
- *   apply simp
- *   done *)
 
 lemma cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_abs_l:
   \<open>(cdcl_twl_stgy_restart_prog_l, cdcl_twl_stgy_restart_abs_l) \<in> {(S, S').
@@ -4840,19 +4770,12 @@ definition cdcl_twl_stgy_restart_prog_bounded_l :: "'v twl_st_l \<Rightarrow> (b
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict_l T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN (ebrk, T)
   }\<close>
 
-  (*
-size (get_learned_clss_l x_) + size (get_unit_learned_clss_l x_) +
-    size (get_subsumed_learned_clauses_l x_) =
-    size (get_all_learned_clss y_)
- size (get_learned_clss_l x_) + size (get_unit_learned_clss_l x_) =
-    size (get_learned_clss y_) + size (get_init_learned_clss y_)
-*)
 lemma (in -) [simp]:
   \<open>(S, T) \<in> twl_st_l b \<Longrightarrow> size (get_learned_clss T) = size (get_learned_clss_l S)\<close>
   \<open>(S, T) \<in> twl_st_l b \<Longrightarrow> (get_init_learned_clss T) = (get_unit_learned_clss_l S)\<close>
@@ -4890,7 +4813,7 @@ lemma cdcl_twl_stgy_restart_abs_bounded_l_cdcl_twl_stgy_restart_abs_bounded_l:
     by (simp add: twl_st_l twl_st)
   subgoal by (auto simp: twl_st_l twl_st)
   subgoal by auto
-  subgoal by auto
+  subgoal by (auto simp: twl_st_l twl_st)
   subgoal by (auto simp: prod_rel_fst_snd_iff)
   done
 
@@ -4990,8 +4913,6 @@ proof -
     subgoal by auto
     done
 qed
-
-
 
 lemma (in twl_restart) cdcl_twl_stgy_restart_prog_bounded_l_cdcl_twl_stgy_restart_prog_bounded:
   \<open>(cdcl_twl_stgy_restart_prog_bounded_l, cdcl_twl_stgy_restart_prog_bounded)

@@ -30,7 +30,7 @@ where
         T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
         (T, last_GC, last_Rephase, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Rephase n brk;
-        RETURN (brk, T, last_GC, last_Rephase, n)
+        RETURN (brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Rephase, n)
       })
       (False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN T
@@ -108,7 +108,8 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal unfolding get_conflict_wl_is_None
+      by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
     subgoal by auto
     done
 qed
@@ -140,7 +141,7 @@ where
         ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
         (T, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
-        RETURN (ebrk, brk, T, n)
+        RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, n)
       })
       (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
     ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
@@ -154,7 +155,7 @@ where
 	           T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
 	           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
 	           (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
-	           RETURN (brk, T, last_GC, last_Restart, n)
+	           RETURN (brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
 	         })
 	         (False, T, n);
        RETURN T
@@ -180,7 +181,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
 	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	          (T, last_GC, last_Res, n) \<leftarrow> restart_prog_wl T last_GC last_Res n brk;
 	          ebrk \<leftarrow> RES UNIV;
-	          RETURN (ebrk, brk, T, last_GC, last_Res, n)
+	          RETURN (ebrk, brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Res, n)
 	        })
           (ebrk, False, S\<^sub>0::nat twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0),
             size (get_all_learned_clss_wl S\<^sub>0),0);
@@ -193,7 +194,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
 	    T \<leftarrow> unit_propagation_outer_loop_wl S;
 	    (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	    (T, last_GC, last_Res, n) \<leftarrow> restart_prog_wl T last_GC last_Res n brk;
-	    RETURN (brk, T, last_GC, last_Res, n)
+	    RETURN (brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Res, n)
 	  })
 	  (False, T::nat twl_st_wl, last_GC, last_Res, n);
 	RETURN T
@@ -378,7 +379,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     apply (rule twl_st_heur'''; assumption)
     subgoal by (auto simp: isasat_fast_def uint64_max_def sint64_max_def uint32_max_def)
     apply (rule H'''; assumption)
-    subgoal by auto
+    subgoal unfolding get_conflict_wl_is_None
+      by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
     subgoal by auto
     subgoal by (subst (asm)(2) twl_st_heur_def) force
     subgoal by auto
@@ -395,7 +397,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     apply (rule twl_st_heur''; auto; fail)
     apply (rule twl_st_heur'''; assumption)
     apply (rule H4; assumption)
-    subgoal by auto
+    subgoal unfolding get_conflict_wl_is_None
+      by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
     subgoal by auto
     subgoal by auto
     done
@@ -459,7 +462,7 @@ where
         T \<leftarrow> update_all_phases T;
         ASSERT(isasat_fast_relaxed T);
 	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN (ebrk, T)
@@ -487,7 +490,7 @@ proof -
 	          (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
                   T \<leftarrow> RETURN (id T);
 	          ebrk \<leftarrow> RES UNIV;
-	          RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+	          RETURN (ebrk, brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Restart, n)
 	        })
 	        (ebrk, False, S\<^sub>0::nat twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0),
                     size (get_all_learned_clss_wl S\<^sub>0), 0);
@@ -541,20 +544,6 @@ proof -
       bool_rel\<close> for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e T Ta xb
        x'a x1f x2f x1g x2g
     by auto
-  (* have abs_inv: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
-   *   (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x \<and> x2g < uint64_max)} \<Longrightarrow>
-   *   (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
-   *   case x'a of
-   *   (brk, xa, xb) \<Rightarrow>
-   *     cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
-   *   x2f = (x1g, x2g) \<Longrightarrow>
-   *   xb = (x1f, x2f) \<Longrightarrow>
-   *   cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
-   *  for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
-   *      x1e x2e T Ta xb x'a x1f x2f x1g x2g
-   *   unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def
-   *   apply (rule_tac x=y in exI)
-   *   by fastforce *)
   let ?R = \<open>{((ebrk, brk, T, last_GC, last_Rephase, n), ebrk', brk', T',
           last_GC', last_Rephase', n').
           ebrk = ebrk' \<and>
@@ -717,8 +706,9 @@ proof -
     subgoal
       by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
         isasat_fast_relaxed_def)
-    subgoal
-      by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def)
+    subgoal unfolding get_conflict_wl_is_None
+      by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
+        get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
     subgoal by auto
     done
 qed

@@ -1866,7 +1866,7 @@ where
         T \<leftarrow> unit_propagation_outer_loop_wl S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
-        RETURN (brk, T, last_GC, last_Restart, n)
+        RETURN (brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (False, S\<^sub>0::'v twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0), size (get_all_learned_clss_wl S\<^sub>0), 0);
     RETURN T
@@ -1916,7 +1916,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0::'v twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0), size (get_all_learned_clss_wl S\<^sub>0), 0);
     if \<not> brk then do {
@@ -1927,7 +1927,7 @@ where
             T \<leftarrow> unit_propagation_outer_loop_wl S;
             (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
             (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart  n brk;
-            RETURN (brk, T, last_GC, last_Restart, n)
+            RETURN (brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Restart, n)
           })
          (False, T::'v twl_st_wl, last_GC, last_Restart, n);
       RETURN T
@@ -2002,7 +2002,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict_wl T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0::'v twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0), size (get_all_learned_clss_wl S\<^sub>0), 0);
     RETURN (ebrk, T)

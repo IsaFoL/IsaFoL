@@ -43,7 +43,7 @@ where
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
        U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_stgy\<^sup>*\<^sup>* T U \<and> clauses_to_update U = {#} \<and>
-          get_conflict U = None);
+          (get_conflict U \<noteq> None \<longrightarrow> count_decided (get_trail U) = 0));
        RETURN (U, U, U, m, Suc n)
      }
      else
@@ -95,7 +95,7 @@ where
         T \<leftarrow> unit_propagation_outer_loop S'';
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (S, S', T, m', n') \<leftarrow> restart_prog_int S S' T m n brk;
-        RETURN (brk, S, S', T, m', n')
+        RETURN (brk \<or> get_conflict T \<noteq> None, S, S', T, m', n')
       })
       (False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0);
     RETURN T
@@ -105,14 +105,6 @@ abbreviation cdcl_twl_stgy_restart_prog_int where
   \<open>cdcl_twl_stgy_restart_prog_int S \<equiv> cdcl_twl_stgy_restart_prog_intg 0 0 S S S\<close>
 
 lemmas cdcl_twl_stgy_restart_prog_int_def = cdcl_twl_stgy_restart_prog_intg_def
-
-(* abbreviation cdcl_algo_termination_rel :: \<open>((bool \<times> 'v twl_st \<times> nat \<times> nat\<times> nat) \<times> _) set\<close> where
- *   \<open>cdcl_algo_termination_rel \<equiv>
- *     {((brkT, T, lgc', lrc', n'), brkS, S, lgc, lrc, n).
- *                               \<not> brkS \<and>
- *        (\<exists>Q Q' R R' m m'. twl_restart_inv (Q, R, S, m, n, \<not>brkS) \<and>
- *          cdcl_twl_stgy_restart (Q, R, S, m, n, \<not>brkS) (Q', R', T, m', n', \<not>brkT))} \<union>
- *    {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close> *)
 
 abbreviation cdcl_algo_termination_early_rel
   :: \<open>((bool \<times> bool \<times> 'v twl_st \<times> 'v twl_st \<times>  'v twl_st \<times> nat \<times> nat) \<times> _) set\<close>
@@ -187,7 +179,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (Q, R, T, m, n) \<leftarrow> restart_prog_int Q R T m n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, Q, R, T, m, n)
+        RETURN (ebrk, brk \<or> get_conflict T \<noteq> None, Q, R, T, m, n)
       })
       (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m, n);
     RETURN (ebrk, T)
@@ -252,7 +244,7 @@ lemma restart_prog_bounded_spec:
          \<le> SPEC
             (\<lambda>x. (case x of (Q, R, T, m, n) \<Rightarrow> do {
                                 ebrk \<leftarrow> RES UNIV;
-                                RETURN (ebrk, brkW, Q, R, T, m, n)
+                                RETURN (ebrk, brkW \<or> get_conflict T \<noteq> None, Q, R, T, m, n)
                               })
                  \<le> SPEC
                     (\<lambda>s'. (cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) \<circ> snd) s' \<and>
@@ -322,8 +314,8 @@ proof -
   have UW: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, T, U, m, n, True) (S, T, W, m, n, True)\<close>
     apply (rule cdcl_twl_stgy_restart_rtranclpI)
     by (meson \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> assms(6) rtranclp_cdcl_twl_cp_stgyD rtranclp_trans)
-  have restart_only: \<open>?I (ebrk', False, S, X, X, Suc m, n)\<close> (is ?A) and
-    restart_only_term: \<open>((ebrk', False, S, X, X, Suc m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
+  have restart_only: \<open>?I (ebrk', False \<or> get_conflict X \<noteq> None, S, X, X, Suc m, n)\<close> (is ?A) and
+    restart_only_term: \<open>((ebrk', False \<or> get_conflict X \<noteq> None, S, X, X, Suc m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
     if 
       \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow>
@@ -344,8 +336,8 @@ proof -
       using STU_inv UW WX'
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
-  have GC: \<open>?I (ebrk', False, Y, Y, Y, m, Suc n)\<close> (is ?A) and
-    GC_term: \<open>((ebrk', False, Y, Y, Y, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
+  have GC: \<open>?I (ebrk', False \<or> get_conflict Y \<noteq> None, Y, Y, Y, m, Suc n)\<close> (is ?A) and
+    GC_term: \<open>((ebrk', False \<or> get_conflict Y \<noteq> None, Y, Y, Y, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
     if 
       \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
@@ -355,30 +347,36 @@ proof -
       \<open>\<not> brkW\<close> and
       XY: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* X Y\<close>
         \<open>clauses_to_update Y = {#}\<close>
-        \<open>get_conflict Y = None\<close>
+        \<open>get_conflict Y \<noteq> None \<longrightarrow> count_decided (get_trail Y) = 0\<close>
     for x X Y ebrk'
   proof -
     have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (Y, Y, Y, m, Suc n, True)\<close>
       by (rule cdcl_twl_stgy_restart.intros)
         (use less WX XY in auto)
-    show ?A
+    have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow> final_twl_state Y\<close>
+      by (auto simp: final_twl_state_def)
+    moreover have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow>
+      cdcl_twl_stgy_restart (Y, Y, Y, m, Suc n, True) (Y, Y, Y, m, Suc n, False)\<close>
+      by (rule cdcl_twl_stgy_restart.intros)
+        (auto simp: pcdcl_twl_final_state_def)
+    ultimately show ?A
       using UW WX twl_res WX' XY
-      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def)
+      by (cases \<open>get_conflict Y = None\<close>) (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def)
     show ?B
       using STU_inv UW WX'
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
-  have continue: \<open>?I (ebrk', brkW, S, T, W, m, n)\<close> (is ?A) and
-    continue_term: \<open>((ebrk', brkW, S, T, W, m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B) for ebrk'
+  have continue: \<open>?I (ebrk', brkW \<or> get_conflict W \<noteq> None, S, T, W, m, n)\<close> (is ?A) and
+    continue_term: \<open>((ebrk', brkW \<or> get_conflict W \<noteq> None, S, T, W, m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B) for ebrk'
   proof -
     show ?A
       using brk'_no_step confl_W clss_to_upd_W UW twl_res
         cdcl_twl_stgy_restart.intros(4)[of W S T m n]
-      apply (cases brkW)
+      apply (cases \<open>get_conflict W = None\<close>; cases brkW)
       apply (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
-      apply (metis (no_types, lifting) final_twl_state_def pcdcl_twl_final_state_def rtranclp.simps rtranclp_trans)
+      apply (metis (no_types, lifting) final_twl_state_def pcdcl_twl_final_state_def rtranclp.simps rtranclp_trans)+
       done
-    have\<open>cdcl_twl_stgy\<^sup>+\<^sup>+ V W\<close> if \<open>\<not>brkW\<close>
+    have \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ V W\<close> if \<open>\<not>brkW\<close>
       using  \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> lits_to_upd_W that assms(7) unfolding rtranclp_unfold
       by auto
     then have [simp]: \<open>cdcl_twl_stgy_restart\<^sup>+\<^sup>+ (S, T, U, m, n, True) (S, T, W, m, n, True)\<close> if \<open>\<not>brkW\<close>
@@ -387,7 +385,7 @@ proof -
 
     show ?B
       using STU_inv brk'_no_step
-      apply (cases brkW)
+      apply (cases \<open>get_conflict W = None\<close>; cases brkW)
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
   show ?thesis 
@@ -476,7 +474,7 @@ proof -
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (S, S', T, m', n') \<leftarrow> restart_prog_int S S' T m n brk;
         _ \<leftarrow> RETURN_FALSE;
-        RETURN (brk, S, S', T, m', n')
+        RETURN (brk \<or> get_conflict T \<noteq> None, S, S', T, m', n')
       })
       (False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0);
     RETURN T
@@ -624,7 +622,7 @@ where
         T \<leftarrow> unit_propagation_outer_loop S'';
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (T, S, S', n') \<leftarrow> restart_prog T S S' n brk;
-        RETURN (brk, T, S, S', n')
+        RETURN (brk \<or> get_conflict T \<noteq> None, T, S, S', n')
       })
       (False, S\<^sub>0, last_GC, last_Restart, n\<^sub>0);
     RETURN T
@@ -734,7 +732,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0, last_GC, last_Restart, n\<^sub>0);
     RETURN (ebrk, T)
@@ -838,7 +836,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, last_GC, last_Restart, T, m, n)
+        RETURN (ebrk, brk \<or> get_conflict T \<noteq> None, last_GC, last_Restart, T, m, n)
       })
       (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0);
     if \<not>brk then do {
@@ -849,7 +847,7 @@ where
 	  T \<leftarrow> unit_propagation_outer_loop S;
 	  (brk, T) \<leftarrow> cdcl_twl_o_prog T;
 	  (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
-	  RETURN (brk, last_GC, last_Restart, T, m, n)
+	  RETURN (brk \<or> get_conflict T \<noteq> None, last_GC, last_Restart, T, m, n)
 	})
 	(False, last_GC, last_Restart, T, m, n);
       RETURN T
@@ -872,7 +870,7 @@ lemma cdcl_twl_stgy_restart_prog_early_intg_alt_def:
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, last_GC, last_Restart, T, m, n)
+        RETURN (ebrk, brk \<or> get_conflict T \<noteq> None, last_GC, last_Restart, T, m, n)
       })
       (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0);
     if \<not>brk then do {
@@ -894,7 +892,7 @@ definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_s
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+        RETURN (ebrk, brk \<or> get_conflict T \<noteq> None, T, last_GC, last_Restart, n)
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
     if \<not>brk then do {
@@ -905,7 +903,7 @@ definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_s
 	  T \<leftarrow> unit_propagation_outer_loop S;
 	  (brk, T) \<leftarrow> cdcl_twl_o_prog T;
 	  (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
-	  RETURN (brk, T, last_GC, last_Restart, n)
+	  RETURN (brk \<or> get_conflict T \<noteq> None, T, last_GC, last_Restart, n)
 	})
 	(False, T, last_GC, last_Restart, n);
       RETURN T
