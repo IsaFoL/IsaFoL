@@ -231,6 +231,12 @@ lemma pcdcl_entailed_iff:
     by (auto simp: cdcl_subsumed.simps)
   subgoal
     by (auto simp: cdcl_flush_unit.simps)
+  subgoal
+    by (auto simp: cdcl_inp_propagate.simps)
+  subgoal
+    by (auto simp: cdcl_inp_conflict.simps)
+  subgoal
+    by (auto simp: cdcl_unitres_true.simps)
   done
 
 lemma pcdcl_core_same_init_vars:
@@ -252,6 +258,12 @@ lemma pcdcl_same_init_vars:
     by (auto simp: cdcl_subsumed.simps)
   subgoal
     by (auto simp: cdcl_flush_unit.simps)
+  subgoal
+    by (auto simp: cdcl_inp_propagate.simps)
+  subgoal
+    by (auto simp: cdcl_inp_conflict.simps)
+  subgoal
+    by (auto simp: cdcl_unitres_true.simps)
   done
 
 lemma rtranclp_pcdcl_same_init_vars:

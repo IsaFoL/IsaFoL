@@ -706,9 +706,12 @@ proof -
     subgoal
       by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
         isasat_fast_relaxed_def)
-    subgoal unfolding get_conflict_wl_is_None
-      by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
-        get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
+    subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i T Ta xb x'a x1j x2j x1k x2k xc x'b x1l x2l
+       x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q Tb Tc ebrkb ebrkc
+      unfolding get_conflict_wl_is_None (*auto with the simp rules also works, but takes forever*)
+      apply (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id, of _ Tc])
+        apply fast
+      by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def)
     subgoal by auto
     done
 qed
