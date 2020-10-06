@@ -41,10 +41,11 @@ where
      }
      else
      if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
-       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_stgy\<^sup>*\<^sup>* T U \<and> clauses_to_update U = {#} \<and>
-          (get_conflict U \<noteq> None \<longrightarrow> count_decided (get_trail U) = 0));
-       RETURN (U, U, U, m, Suc n)
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+       V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
+          (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
+       RETURN (V, V, V, m, Suc n)
      }
      else
        RETURN (last_GC, last_Restart, S, m, n)
@@ -283,7 +284,10 @@ proof -
     confl: \<open>\<not> brk \<longrightarrow> get_conflict U = None\<close> and
     STU_inv: \<open>pcdcl_stgy_restart_inv (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, \<not> brk)\<close> and
     [simp]: \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close>
-      \<open>twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close>
+    \<open>twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close> and
+    init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
+       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of U)\<close>
     using inv unfolding cdcl_twl_stgy_restart_prog_int_inv_alt_def prod.case comp_def snd_conv
       twl_restart_inv_def twl_stgy_restart_inv_def by fast+
 
@@ -333,26 +337,28 @@ proof -
       using UW WX twl_res WX' clss_to_upd_W
       by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def cdcl_twl_restart_only.simps)
     show ?B
-      using STU_inv UW WX'
-      by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
+      using STU_inv UW WX' init
+        by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
   have GC: \<open>?I (ebrk', False \<or> get_conflict Y \<noteq> None, Y, Y, Y, m, Suc n)\<close> (is ?A) and
     GC_term: \<open>((ebrk', False \<or> get_conflict Y \<noteq> None, Y, Y, Y, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
     if 
       \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
-      WX: \<open>cdcl_twl_restart W X\<close> and
+      WX: \<open>cdcl_twl_subsumption_inp\<^sup>*\<^sup>* W W'\<close>
+        \<open>count_decided (get_trail W') = 0\<close>
+        \<open>cdcl_twl_restart W' X\<close> and
       \<open>ebrk' \<in> UNIV\<close> and
       x and
       \<open>\<not> brkW\<close> and
       XY: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* X Y\<close>
         \<open>clauses_to_update Y = {#}\<close>
         \<open>get_conflict Y \<noteq> None \<longrightarrow> count_decided (get_trail Y) = 0\<close>
-    for x X Y ebrk'
+    for x X Y ebrk' W'
   proof -
     have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (Y, Y, Y, m, Suc n, True)\<close>
-      by (rule cdcl_twl_stgy_restart.intros)
-        (use less WX XY in auto)
+      by (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W'])
+       (use less WX XY in auto)
     have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow> final_twl_state Y\<close>
       by (auto simp: final_twl_state_def)
     moreover have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow>
@@ -363,7 +369,7 @@ proof -
       using UW WX twl_res WX' XY
       by (cases \<open>get_conflict Y = None\<close>) (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def)
     show ?B
-      using STU_inv UW WX'
+      using STU_inv UW WX' init
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
   have continue: \<open>?I (ebrk', brkW \<or> get_conflict W \<noteq> None, S, T, W, m, n)\<close> (is ?A) and
@@ -384,11 +390,11 @@ proof -
         rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp that)
 
     show ?B
-      using STU_inv brk'_no_step
+      using STU_inv brk'_no_step init
       apply (cases \<open>get_conflict W = None\<close>; cases brkW)
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
-  show ?thesis 
+  show ?thesis
     unfolding restart_prog_int_def restart_required_def GC_required_def
     apply (refine_vcg; remove_dummy_vars)
     subgoal by (rule restart_W)
@@ -542,10 +548,10 @@ where
      }
      else
      if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
-       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_stgy\<^sup>*\<^sup>* T U \<and> clauses_to_update U = {#} \<and>
-          get_conflict U = None);
-       RETURN (U, (size (get_all_learned_clss U)), (size (get_all_learned_clss U)), Suc n)
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+       V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
+       RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
      }
      else
        RETURN (S, last_GC, last_Restart, n)
@@ -576,6 +582,8 @@ proof -
     subgoal
       by auto
     apply (rule this_is_the_identity)
+    subgoal
+      by auto
     subgoal
       by auto
     subgoal
@@ -709,7 +717,7 @@ lemma (in twl_restart) cdcl_twl_stgy_restart_prog_spec:
   fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
   by (rule order_trans[OF cdcl_twl_stgy_restart_prog_specg[of _ _ _ 0]])
@@ -803,10 +811,10 @@ proof -
     apply (auto simp add: )
     done
 qed
-
+thm twl_restart_inv_def
 lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> partial_conclusive_TWL_run S\<close>
   apply (rule order_trans)
@@ -917,7 +925,7 @@ abbreviation cdcl_twl_stgy_restart_prog_early_int where
 
 lemma (in twl_restart) cdcl_twl_stgy_prog_early_int_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_restart_prog_early_int S \<le> conclusive_TWL_run S\<close>
 proof -
@@ -1073,7 +1081,7 @@ qed
 
 lemma (in twl_restart) cdcl_twl_stgy_restart_prog_early_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_restart_prog_early S \<le> conclusive_TWL_run S\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_restart_prog_early_cdcl_twl_stgy_restart_prog_early])

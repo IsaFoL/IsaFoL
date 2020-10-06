@@ -472,6 +472,15 @@ abbreviation (in -)last_restart_state :: \<open>'v prag_st_restart \<Rightarrow>
 abbreviation (in -)restart_continue :: \<open>'v prag_st_restart \<Rightarrow> bool\<close> where
   \<open>restart_continue S \<equiv> snd (snd (snd (snd (snd S))))\<close>
 
+text \<open>As inprocessing, we allow a slightly different set of rules, including restart. Remember that
+the termination below takes the inprocessing as a granted (terminated) process. And without 
+restriction, the inprocessing does not restart (due to the restarts).\<close>
+
+inductive (in -)pcdcl_inprocessing :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close>
+where
+  \<open>pcdcl S T \<Longrightarrow> pcdcl_inprocessing S T\<close> |
+  \<open>pcdcl_restart S T \<Longrightarrow> pcdcl_inprocessing S T\<close>
+
 inductive pcdcl_stgy_restart
   :: \<open>'v prag_st_restart \<Rightarrow> 'v prag_st_restart \<Rightarrow> bool\<close>
 where
@@ -480,11 +489,12 @@ step:
   if
     \<open>pcdcl_tcore_stgy T T'\<close> |
 restart_step:
-  \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (V, V, V, m, Suc n, True)\<close>
+  \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (W, W, W, m, Suc n, True)\<close>
   if
     \<open>size (pget_all_learned_clss T) - size (pget_all_learned_clss R) > f n\<close> and
-    \<open>pcdcl_restart T U\<close> and
-    \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> |
+    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* T U\<close> \<open>count_decided (pget_trail U) = 0\<close>
+    \<open>pcdcl_restart U V\<close> and
+    \<open>pcdcl_stgy\<^sup>*\<^sup>* V W\<close> |
 restart_noGC_step:
   \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (R, U, U, Suc m, n, True)\<close>
   if
@@ -1054,8 +1064,54 @@ lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
   by (induction rule: rtranclp_induct)
     (auto dest!: pcdcl_stgy_pget_all_init_clss)
 
+lemma pcdcl_tcore_pget_all_init_clss:
+  \<open>pcdcl_tcore S T \<Longrightarrow> pget_all_init_clss S = pget_all_init_clss T\<close>
+  by (auto simp: pcdcl_tcore.simps pcdcl_core.simps cdcl_conflict.simps
+    cdcl_propagate.simps cdcl_decide.simps cdcl_backtrack_unit.simps cdcl_skip.simps
+    cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
+
+lemma rtranclp_pcdcl_tcore_pget_all_init_clss:
+  \<open>pcdcl_tcore\<^sup>*\<^sup>* S T \<Longrightarrow> pget_all_init_clss S = pget_all_init_clss T\<close>
+  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_tcore_pget_all_init_clss)
+
+lemma pcdcl_core_pget_all_init_clss:
+  \<open>pcdcl_core S T \<Longrightarrow> pget_all_init_clss S = pget_all_init_clss T\<close>
+  by (auto simp: pcdcl_core.simps pcdcl_core.simps cdcl_conflict.simps
+    cdcl_propagate.simps cdcl_decide.simps cdcl_backtrack_unit.simps cdcl_skip.simps
+    cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
+
+lemma rtranclp_pcdcl_core_pget_all_init_clss:
+  \<open>pcdcl_core\<^sup>*\<^sup>* S T \<Longrightarrow> pget_all_init_clss S = pget_all_init_clss T\<close>
+  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_core_pget_all_init_clss)
+
+lemma pcdcl_pget_all_init_clss:
+  \<open>pcdcl S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+    atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: pcdcl.induct)
+   (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_pget_all_init_clss
+      pcdcl_core_pget_all_init_clss
+    simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
+        cdcl_inp_conflict.simps
+    cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
+    cdcl_unitres_true_all_init_clss)
+
+lemma rtranclp_pcdcl_pget_all_init_clss:
+  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+    atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_pget_all_init_clss)
+
 context twl_restart_ops
 begin
+
+lemma pcdcl_inprocessing_pget_all_init_clss:
+  \<open>pcdcl_inprocessing S T \<Longrightarrow> atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
+  by (induction rule: pcdcl_inprocessing.induct)
+   (auto dest!: rtranclp_pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss pcdcl_pget_all_init_clss
+    simp: pcdcl_restart.simps pcdcl_restart_only.simps)
+
+lemma rtranclp_pcdcl_inprocessing_pget_all_init_clss:
+  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
+  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_inprocessing_pget_all_init_clss)
 
 lemma pcdcl_stgy_restart_pget_all_init_clss:
   \<open>pcdcl_stgy_restart S T \<Longrightarrow>
@@ -1066,7 +1122,8 @@ lemma pcdcl_stgy_restart_pget_all_init_clss:
   atms_of_mm (pget_all_init_clss (last_GC_state T)) = atms_of_mm (pget_all_init_clss (current_state S))\<close>
   apply (induction rule: pcdcl_stgy_restart.induct)
   apply (simp add: pcdcl_tcore_stgy_pget_all_init_clss)
-  apply (auto dest!: rtranclp_pcdcl_tcore_stgy_pget_all_init_clss rtranclp_pcdcl_stgy_pget_all_init_clss
+  apply (auto 5 4 dest!: rtranclp_pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss
+      rtranclp_pcdcl_inprocessing_pget_all_init_clss
     simp: pcdcl_restart.simps pcdcl_restart_only.simps)[]
   apply (smt fst_conv pcdcl_restart_only.simps pget_all_init_clss.simps snd_conv)
   apply simp
@@ -1095,6 +1152,30 @@ proof -
     by blast
 qed
 
+lemma no_smaller_propa_lvl0:
+  \<open>count_decided (pget_trail U) = 0 \<Longrightarrow> cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of U)\<close>
+  by (auto simp add: cdcl\<^sub>W_restart_mset.no_smaller_propa_def)
+
+lemma (in -) pcdcl_inprocessing_pcdcl_all_struct_invs:
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_inprocessing S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows 
+    \<open>pcdcl_all_struct_invs V\<close>
+  using assms by (induction rule: pcdcl_inprocessing.induct)
+    (simp_all add: pcdcl_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs)
+
+lemma (in -) rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs:
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows
+    \<open>pcdcl_all_struct_invs V\<close>
+  using assms by (induction rule: rtranclp_induct)
+    (simp_all add: pcdcl_inprocessing_pcdcl_all_struct_invs)
+
 lemma pcdcl_stgy_restart_pcdcl_stgy_restart_inv:
   assumes \<open>pcdcl_stgy_restart S T\<close>\<open>pcdcl_stgy_restart_inv S\<close>
   shows \<open>pcdcl_stgy_restart_inv T\<close>
@@ -1107,14 +1188,18 @@ lemma pcdcl_stgy_restart_pcdcl_stgy_restart_inv:
       rtranclp_pcdcl_stgy_only_restart_all_struct_invs rtranclp_pcdcl_tcore_stgy_no_smaller_propa
       rtranclp_pcdcl_stgy_only_restart_no_smaller_propa pcdcl_restart_no_smaller_propa'
       rtranclp_pcdcl_stgy_no_smaller_propa)
-  subgoal for T R n U V S
+  subgoal for T R n U V W S m
     using pcdcl_stgy_only_restart.intros[of S T U] apply -
     apply (subst (asm) pcdcl_stgy_restart_inv_alt_def)
     unfolding pcdcl_stgy_restart_inv_def prod.case
     apply normalize_goal+
     apply (rule conjI)
-    using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl apply blast
-    using pcdcl_restart_no_smaller_propa' pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_no_smaller_propa by blast
+    using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
+      rtranclp_pcdcl_stgy_pcdcl apply blast
+    apply simp
+    using pcdcl_restart_no_smaller_propa' pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_no_smaller_propa
+      no_smaller_propa_lvl0[of U] rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
+    by blast
   subgoal for T S U R n
     apply (subst (asm) pcdcl_stgy_restart_inv_alt_def)
     unfolding pcdcl_stgy_restart_inv_def prod.case
