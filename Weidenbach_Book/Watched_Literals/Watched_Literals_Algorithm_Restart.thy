@@ -1,5 +1,6 @@
 theory Watched_Literals_Algorithm_Restart
 imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
+  Watched_Literals_Transition_System_Reduce
   Weidenbach_Book_Base.Explorer
 begin
 
@@ -33,14 +34,13 @@ definition restart_prog_int
 where
   \<open>restart_prog_int last_GC last_Restart S m n brk = do {
      ASSERT(restart_prog_pre_int last_GC last_Restart S brk);
-     b \<leftarrow> GC_required S (size (get_all_learned_clss last_GC))  n;
+     b \<leftarrow> GC_required S (size (get_all_learned_clss last_GC)) n;
      b2 \<leftarrow> restart_required S  (size (get_all_learned_clss last_Restart))  n;
      if b2 \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only S T);
        RETURN (last_GC, T, T, Suc m, n)
      }
-     else
-     if b \<and> \<not>brk then do {
+     else if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
        U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
        V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
@@ -349,7 +349,6 @@ proof -
         \<open>count_decided (get_trail W') = 0\<close>
         \<open>cdcl_twl_restart W' X\<close> and
       \<open>ebrk' \<in> UNIV\<close> and
-      x and
       \<open>\<not> brkW\<close> and
       XY: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* X Y\<close>
         \<open>clauses_to_update Y = {#}\<close>
@@ -404,10 +403,8 @@ proof -
     subgoal by (rule restart_only_term)
     subgoal by (rule GC)
     subgoal by (rule GC_term)
-    subgoal
-      by (rule continue)
-    subgoal
-      by (rule continue_term)
+    subgoal by (rule continue)
+    subgoal by (rule continue_term)
     done
 qed
 

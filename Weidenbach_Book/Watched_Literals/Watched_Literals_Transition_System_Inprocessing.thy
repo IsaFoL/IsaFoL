@@ -841,12 +841,6 @@ lemma cdcl_twl_unitres_twl_stgy_invs:
     cdcl\<^sub>W_restart_mset.no_smaller_confl_def
     Propagated_eq_DecidedD)
 
-inductive cdcl_twl_subsumption_inp :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
-  \<open>cdcl_twl_subsumed S T \<Longrightarrow> cdcl_twl_subsumption_inp S T\<close> |
-  \<open>cdcl_twl_subresolution S T \<Longrightarrow> cdcl_twl_subsumption_inp S T\<close> |
-  \<open>cdcl_twl_unitres S T \<Longrightarrow> cdcl_twl_subsumption_inp S T\<close> |
-  \<open>cdcl_twl_unitres_true S T \<Longrightarrow> cdcl_twl_subsumption_inp S T\<close>
-
 lemma twl_exception_inv_add_subsumed:
   \<open>twl_exception_inv (M1, N, U, D, NE, UE, add_mset (C') NS, US, WS, Q) =
   twl_exception_inv (M1, N, U, D, NE, UE, NS, US, WS, Q)\<close>
@@ -1026,104 +1020,5 @@ lemma rtranclp_pcdcl_entailed_by_init:
   using pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs by blast+
 
 
-lemma cdcl_twl_subsumption_inp_invs:
-  assumes \<open>cdcl_twl_subsumption_inp S T\<close>
-    \<open>twl_struct_invs S\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-  shows
-    cdcl_twl_subsumption_inp_twl_struct_invs: \<open>twl_struct_invs T\<close> (is ?A) and
-    cdcl_twl_subsumption_inp_twl_stgy_invs: \<open>twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close> (is \<open>_ \<Longrightarrow> ?B\<close>) and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close> (is ?C)
-proof -
-  show ?A
-    using assms(1,2,3)
-    by (induction rule: cdcl_twl_subsumption_inp.induct)
-      (blast dest: cdcl_twl_subsumed_struct_invs cdcl_twl_subresolution_twl_struct_invs
-      cdcl_twl_unitres_struct_invs cdcl_twl_unitres_true_twl_struct_invs)+
-  show ?C
-    using assms(1,2,3)
-    apply (induction rule: cdcl_twl_subsumption_inp.induct)
-    apply (metis (no_types, lifting) cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed)
-    unfolding state\<^sub>W_of_def
-    apply (elim cdcl_twl_subresolution_decompE)
-    apply (auto elim!: cdcl_twl_subresolution_decompE
-      simp: twl_struct_invs_def struct_wf_twl_cls_alt_def twl_st_inv_alt_def; fail)[]
-    apply (rule cdcl_subresolutions_entailed_by_init; assumption)
-    apply (metis cdcl_flush_unit_unchanged cdcl_subresolution cdcl_subresolutions_entailed_by_init
-      pcdcl.intros(1) pcdcl_core.intros(2) pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs
-      twl_struct_invs_def)
-    apply (drule cdcl_twl_unitres_cdcl_unitres, drule cdcl_unitres_learn_subsume)
-    apply assumption+
-    using rtranclp_pcdcl_entailed_by_init twl_struct_invs_def apply blast
-    apply (drule cdcl_twl_unitres_true_cdcl_unitres_true, drule pcdcl.intros)
-    using pcdcl_entailed_by_init twl_struct_invs_def apply blast
-    done
-  with assms show ?B if \<open>twl_stgy_invs S\<close>
-    using that
-    apply (induction rule: cdcl_twl_subsumption_inp.induct)
-    apply (metis (no_types, lifting) cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed twl_stgy_invs_def)
-    using cdcl_twl_subresolution_twl_stgy_invs apply blast
-    using cdcl_twl_unitres_twl_stgy_invs apply blast
-    by (metis (no_types, lifting) cdcl_twl_unitres_true_cdcl_unitres_true cdcl_unitres_true_same state\<^sub>W_of_def twl_stgy_invs_def)
-qed
-
-lemma rtranclp_cdcl_twl_subsumption_inp_invs:
-  assumes \<open>cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T\<close>
-    \<open>twl_struct_invs S\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
-  shows
-    rtranclp_cdcl_twl_subsumption_inp_twl_struct_invs: \<open>twl_struct_invs T\<close> and
-    rtranclp_cdcl_twl_subsumption_inp_twl_stgy_invs: \<open>twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close> and
-    rtranclp_cdcl_twl_subsumption_inp_entailed_init:
-      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
-  using assms
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal for T U using cdcl_twl_subsumption_inp_invs[of T U] by auto
-  subgoal for T U using cdcl_twl_subsumption_inp_invs[of T U] by auto
-  subgoal for T U using cdcl_twl_subsumption_inp_invs[of T U] by auto
-  done
-
-lemma cdcl_twl_subsumption_inp_no_new_conflict:
-  \<open>cdcl_twl_subsumption_inp S T \<Longrightarrow> get_conflict T = get_conflict S \<or> get_conflict T \<noteq> None \<and> count_decided(get_trail T) = 0\<close>
-  by (induction rule: cdcl_twl_subsumption_inp.induct)
-   (auto simp: cdcl_twl_subsumed.simps cdcl_twl_subresolution.simps cdcl_twl_unitres.simps
-    cdcl_twl_unitres_true.simps)
-
-lemma cdcl_twl_subsumption_inp_pcdcl:
-  \<open>cdcl_twl_subsumption_inp S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
-  apply (induction rule: cdcl_twl_subsumption_inp.induct)
-  subgoal by (simp add: cdcl_twl_subsumed_cdcl_subsumed pcdcl.intros(4) r_into_rtranclp)
-  subgoal
-    apply (elim cdcl_twl_subresolution_decompE)
-    apply (auto elim!: cdcl_twl_subresolution_decompE
-      simp: twl_struct_invs_def struct_wf_twl_cls_alt_def twl_st_inv_alt_def; fail)[]
-      apply (drule cdcl_subresolution)
-    apply (auto elim!: cdcl_twl_subresolution_decompE
-      simp: twl_struct_invs_def struct_wf_twl_cls_alt_def twl_st_inv_alt_def; fail)[]
-    apply (simp; fail)
-    apply assumption
-    by (metis cdcl_subresolution pcdcl.intros(1) pcdcl.intros(5) pcdcl_core.intros(2)
-      rtranclp.rtrancl_into_rtrancl state\<^sub>W_of_def twl_struct_invs_def)
-  subgoal
-    by (simp add: cdcl_twl_unitres_cdcl_unitres cdcl_unitres_learn_subsume)
-  subgoal
-    by (simp add: cdcl_twl_unitres_true_cdcl_unitres_true pcdcl.intros(8) r_into_rtranclp)
-  done
-
-lemma rtranclp_cdcl_twl_subsumption_inp_pcdcl:
-  \<open>cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_twl_subsumption_inp_pcdcl[of T U] rtranclp_cdcl_twl_subsumption_inp_invs[of S T]
-    by simp
-  done
 
 end
