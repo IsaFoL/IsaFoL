@@ -26,6 +26,33 @@ lemma cdcl_twl_subsumed_cdcl_subsumed:
   subgoal by (auto simp: cdcl_subsumed.simps)
   done
 
+lemma cdcl_twl_subsumed_II_simp:
+  \<open>cdcl_twl_subsumed S S'\<close>
+  if \<open>S = (M, N, U, D, NE, UE, NS, US, {#}, Q)\<close>
+     \<open>S' = (M, remove1_mset C' N, U, D, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+    \<open>clause C \<subseteq># clause C'\<close>
+    \<open>C \<in># N\<close>
+    \<open>C' \<in># remove1_mset C N\<close>
+  using that subsumed_II[of C C'] by (auto dest!: multi_member_split)
+
+lemma cdcl_twl_subsumed_RR_simp:
+  \<open>cdcl_twl_subsumed S S'\<close>
+  if \<open>S = (M, N, U, D, NE, UE, NS, US, {#}, Q)\<close>
+     \<open>S' = (M, N, remove1_mset C' U, D, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+    \<open>clause C \<subseteq># clause C'\<close>
+    \<open>C \<in># U\<close>
+    \<open>C' \<in># remove1_mset C U\<close>
+  using that subsumed_RR[of C C' M N \<open>U -{#C,C'#}\<close> D NE UE NS US Q] by (auto dest!: multi_member_split)
+
+lemma cdcl_twl_subsumed_IR_simp:
+  \<open>cdcl_twl_subsumed S S'\<close>
+  if \<open>S = (M, N, U, D, NE, UE, NS, US, {#}, Q)\<close>
+     \<open>S' = (M, N, remove1_mset C' U, D, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+    \<open>clause C \<subseteq># clause C'\<close>
+    \<open>C \<in># N\<close>
+    \<open>C' \<in># U\<close>
+  using that subsumed_IR[of C C' M \<open>N - {#C#}\<close> \<open>U -{#C'#}\<close> D NE UE NS US Q] by (auto dest!: multi_member_split)
+
 text \<open>
   The lifting from \<^term>\<open>cdcl_subresolution\<close> is a lot more complicated due to the handling of
   unit and nonunit clauses. Basically, we have to split every rule in two. Hence we don't have a
