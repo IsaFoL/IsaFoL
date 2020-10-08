@@ -58,6 +58,15 @@ lemma cdcl_twl_subsumed_IR_simp:
     \<open>C' \<in># U\<close>
   using that subsumed_IR[of C C' M \<open>N - {#C#}\<close> \<open>U -{#C'#}\<close> D NE UE NS US Q] by (auto dest!: multi_member_split)
 
+lemma cdcl_twl_subsumed_RI_simp:
+  \<open>cdcl_twl_subsumed S T\<close>
+  if \<open>S =  (M, N, U, D, NE, UE, NS, US, {#}, Q)\<close> \<open>clause C \<subseteq># clause C'\<close>
+    \<open>T = (M, add_mset C (remove1_mset C' N), remove1_mset C U, D, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+    \<open>\<not>tautology (clause C)\<close> \<open>distinct_mset (clause C)\<close>
+    \<open>C' \<in># N\<close> \<open>C \<in># U\<close>
+  using that subsumed_RI[of C C' M \<open>N - {#C'#}\<close> \<open>U - {#C#}\<close> D NE UE NS US Q]
+  by (auto dest!: multi_member_split)
+
 text \<open>
   The lifting from \<^term>\<open>cdcl_subresolution\<close> is a lot more complicated due to the handling of
   unit and nonunit clauses. Basically, we have to split every rule in two. Hence we don't have a

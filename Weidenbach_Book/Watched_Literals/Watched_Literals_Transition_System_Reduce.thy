@@ -17,6 +17,32 @@ lemma cdcl_twl_restart_entailed_init:
    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     subset_mset.le_iff_add Un_left_commute image_Un sup_commute)
 
+lemma cdcl_subsumed_RI_stgy_invs:
+  \<open>cdcl_subsumed_RI (pstate\<^sub>W_of S) (pstate\<^sub>W_of T) \<Longrightarrow> twl_stgy_invs S \<Longrightarrow>
+  twl_stgy_invs T\<close>
+  apply (cases rule: cdcl_subsumed_RI.cases, assumption)
+  apply (cases S; cases T; auto simp: twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    clauses_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    all_conj_distrib)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis image_mset_add_mset member_add_mset multi_member_split set_image_mset)
+  done
+
+lemma cdcl_twl_subsumed_stgy_invs:
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow>
+          twl_struct_invs S \<Longrightarrow>
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<Longrightarrow>
+          twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  apply (drule cdcl_twl_subsumed_cdcl_subsumed)
+  apply (elim disjE)
+  apply (simp add: state_of_cdcl_subsumed twl_stgy_invs_def)
+  apply (simp add: cdcl_subsumed_RI_stgy_invs)
+  done
+
 lemma cdcl_twl_subsumption_inp_invs:
   assumes \<open>cdcl_twl_subsumption_inp S T\<close>
     \<open>twl_struct_invs S\<close>
@@ -35,7 +61,8 @@ proof -
   show ?C
     using assms(1,2,3)
     apply (induction rule: cdcl_twl_subsumption_inp.induct)
-    apply (metis (no_types, lifting) cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed)
+    apply (metis cdcl_subsumed_RI_pcdcl cdcl_subsumed_entailed_by_init cdcl_twl_subsumed_cdcl_subsumed
+      rtranclp_pcdcl_entailed_by_init state\<^sub>W_of_def twl_struct_invs_def)
     unfolding state\<^sub>W_of_def
     apply (elim cdcl_twl_subresolution_decompE)
     apply (auto elim!: cdcl_twl_subresolution_decompE
@@ -53,7 +80,7 @@ proof -
   with assms show ?B if \<open>twl_stgy_invs S\<close>
     using that
     apply (induction rule: cdcl_twl_subsumption_inp.induct)
-    apply (metis (no_types, lifting) cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed twl_stgy_invs_def)
+    apply (metis (no_types, lifting) cdcl_twl_subsumed_stgy_invs)
     using cdcl_twl_subresolution_twl_stgy_invs apply blast
     using cdcl_twl_unitres_twl_stgy_invs apply blast
     apply (metis (no_types, lifting) cdcl_twl_unitres_true_cdcl_unitres_true cdcl_unitres_true_same state\<^sub>W_of_def twl_stgy_invs_def)
@@ -93,8 +120,9 @@ lemma cdcl_twl_subsumption_inp_pcdcl:
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
   pcdcl_inprocessing\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
   apply (induction rule: cdcl_twl_subsumption_inp.induct)
-  subgoal by (simp add: cdcl_twl_subsumed_cdcl_subsumed pcdcl.intros(4) r_into_rtranclp
-    rtranclp_pcdcl_restart_inprocessing)
+  subgoal
+    by (meson cdcl_subsumed_RI_pcdcl cdcl_twl_subsumed_cdcl_subsumed pcdcl.intros(4) r_into_rtranclp
+      rtranclp_pcdcl_restart_inprocessing)
   subgoal
     apply (rule rtranclp_pcdcl_restart_inprocessing, elim cdcl_twl_subresolution_decompE)
     apply (auto elim!: cdcl_twl_subresolution_decompE
@@ -102,10 +130,8 @@ lemma cdcl_twl_subsumption_inp_pcdcl:
       apply (drule cdcl_subresolution)
     apply (auto elim!: cdcl_twl_subresolution_decompE
       simp: twl_struct_invs_def struct_wf_twl_cls_alt_def twl_st_inv_alt_def; fail)[]
-    apply (simp; fail)
-    apply assumption
-    by (metis cdcl_subresolution pcdcl.intros(1) pcdcl.intros(5) pcdcl_core.intros(2)
-      rtranclp.rtrancl_into_rtrancl state\<^sub>W_of_def twl_struct_invs_def)
+    by (meson cdcl_subresolution pcdcl.intros(1) pcdcl.intros(5) pcdcl_core.intros(2)
+      rtranclp.rtrancl_into_rtrancl)
   subgoal
     by (simp add: cdcl_twl_unitres_cdcl_unitres cdcl_unitres_learn_subsume rtranclp_pcdcl_restart_inprocessing)
   subgoal
