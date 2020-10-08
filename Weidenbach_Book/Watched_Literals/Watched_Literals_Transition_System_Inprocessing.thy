@@ -1009,9 +1009,6 @@ proof (intro conjI)
     done
 qed
 
-lemma \<open>N \<Turnstile>p add_mset L C \<Longrightarrow> N \<Turnstile>p add_mset (-L) C' \<Longrightarrow> N \<Turnstile>p C + C'\<close>
-  by (metis add.commute true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
-
 lemma cdcl_subresolutions_entailed_by_init:
   \<open>cdcl_subresolution S T \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
@@ -1045,7 +1042,5 @@ lemma rtranclp_pcdcl_entailed_by_init:
   using assms
   apply (induction rule: rtranclp_induct)
   using pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs by blast+
-
-
 
 end

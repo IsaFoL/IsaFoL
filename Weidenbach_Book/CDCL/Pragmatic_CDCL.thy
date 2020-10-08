@@ -337,6 +337,8 @@ text \<open>
 
   This function has nothing to with CDCL's learn: any clause can be learned by this function,
   including the empty clause.
+
+TODO: for clauses in U, drop entailement and level test!
  \<close>
 inductive cdcl_learn_clause :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 learn_clause:
@@ -1781,6 +1783,41 @@ lemma cdcl_backtrack_unit_is_CDCL_backtrack:
      \<open>the (pget_conflict S) - {#lit_of (hd (pget_trail T))#}\<close>
      _ _ _ \<open>mark_of (hd (pget_trail T)) - {#lit_of (hd (pget_trail T))#}\<close>])
   by (auto simp: clauses_def ac_simps cdcl\<^sub>W_restart_mset_reduce_trail_to)
+
+
+section \<open>Subsume and promote\<close>
+
+inductive subsumed_RI :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+subsumed_RI:
+  \<open>subsumed_RI (M, add_mset C' N, add_mset C U, D, NE, UE, NS, US)
+     (M, add_mset C N, U, D, NE, UE, NS + {#C'#}, US + {#C#})\<close>
+  if \<open>C \<subseteq># C'\<close> \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
+
+lemma
+  assumes
+    \<open>subsumed_RI S W\<close> and
+    entailed: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close> 
+    \<open>count_decided (pget_trail S) = 0\<close>
+  obtains T U where
+    \<open>cdcl_learn_clause S T\<close> and
+    \<open>cdcl_subsumed T U\<close>and
+    \<open>cdcl_subsumed U W\<close>
+  using assms(1)
+proof (cases rule: subsumed_RI.cases)
+  case (subsumed_RI C C' M N U D NE UE NS US)
+  let ?T = \<open>(M, add_mset C (add_mset C' N), add_mset C U, D, NE, UE, NS, US)\<close>
+  let ?U = \<open>(M, add_mset C (add_mset C' N), U, D, NE, UE, NS, add_mset C US)\<close>
+  show ?thesis
+    apply (rule that[of ?T ?U])
+    subgoal
+      using entailed subsumed_RI by (auto simp: cdcl_learn_clause.simps
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def mset_subset_eq_exists_conv)
+    subgoal
+      using subsumed_RI by (auto simp: cdcl_subsumed.simps)
+    subgoal
+      using subsumed_RI by (auto simp: cdcl_subsumed.simps)
+    done
+qed
 
 
 section \<open>Termination\<close>
