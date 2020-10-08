@@ -1049,20 +1049,23 @@ lemma cdcl_unitres_true_all_init_clss:
   by (induction rule: cdcl_unitres_true.induct) auto
 
 lemma pcdcl_stgy_pget_all_init_clss:
-  \<open>pcdcl_stgy S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+  \<open>pcdcl_stgy S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
     atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: pcdcl_stgy.induct)
     (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_stgy_pget_all_init_clss
     simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
-        cdcl_inp_conflict.simps
+    cdcl_inp_conflict.simps pcdcl_all_struct_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.no_strange_atm_def
     cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
     cdcl_unitres_true_all_init_clss)
 
 lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
-  \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
-    atms_of_mm (pget_all_init_clss T)\<close>
+  \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+  atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: rtranclp_induct)
-    (auto dest!: pcdcl_stgy_pget_all_init_clss)
+   (auto dest: pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_all_struct_invs
+    dest!: rtranclp_pcdcl_stgy_pcdcl)
 
 lemma pcdcl_tcore_pget_all_init_clss:
   \<open>pcdcl_tcore S T \<Longrightarrow> pget_all_init_clss S = pget_all_init_clss T\<close>
@@ -1085,7 +1088,7 @@ lemma rtranclp_pcdcl_core_pget_all_init_clss:
   by (induction rule: rtranclp_induct) (auto dest!: pcdcl_core_pget_all_init_clss)
 
 lemma pcdcl_pget_all_init_clss:
-  \<open>pcdcl S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+  \<open>pcdcl S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>  atms_of_mm (pget_all_init_clss S) =
     atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: pcdcl.induct)
    (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_pget_all_init_clss
@@ -1093,28 +1096,45 @@ lemma pcdcl_pget_all_init_clss:
     simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
         cdcl_inp_conflict.simps
     cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
-    cdcl_unitres_true_all_init_clss)
+    cdcl_unitres_true_all_init_clss
+    cdcl_inp_conflict.simps pcdcl_all_struct_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.no_strange_atm_def)
 
 lemma rtranclp_pcdcl_pget_all_init_clss:
-  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
-    atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_pget_all_init_clss)
+  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>  atms_of_mm (pget_all_init_clss S) =
+  atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: rtranclp_induct)
+   (auto dest!: pcdcl_pget_all_init_clss rtranclp_pcdcl_all_struct_invs)
 
-context twl_restart_ops
-begin
 
 lemma pcdcl_inprocessing_pget_all_init_clss:
-  \<open>pcdcl_inprocessing S T \<Longrightarrow> atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
+  \<open>pcdcl_inprocessing S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+    atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
   by (induction rule: pcdcl_inprocessing.induct)
    (auto dest!: rtranclp_pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss pcdcl_pget_all_init_clss
     simp: pcdcl_restart.simps pcdcl_restart_only.simps)
 
-lemma rtranclp_pcdcl_inprocessing_pget_all_init_clss:
-  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
-  by (induction rule: rtranclp_induct) (auto dest!: pcdcl_inprocessing_pget_all_init_clss)
+lemma pcdcl_inprocessing_pcdcl_all_struct_invs:
+  \<open>pcdcl_inprocessing S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs T\<close>
+  by (cases rule: pcdcl_inprocessing.cases, assumption)
+    (blast dest: pcdcl_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs)+
 
+lemma rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs:
+  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs T\<close>
+  by (induction rule: rtranclp_induct)
+    (blast dest: pcdcl_inprocessing_pcdcl_all_struct_invs)+
+
+lemma rtranclp_pcdcl_inprocessing_pget_all_init_clss:
+  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>atms_of_mm (pget_all_init_clss T) = atms_of_mm (pget_all_init_clss S)\<close>
+  by (induction rule: rtranclp_induct)
+   (auto dest!: pcdcl_inprocessing_pget_all_init_clss
+    dest: pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs)
+
+context twl_restart_ops
+begin
 lemma pcdcl_stgy_restart_pget_all_init_clss:
-  \<open>pcdcl_stgy_restart S T \<Longrightarrow>
+  \<open>pcdcl_stgy_restart S T \<Longrightarrow> pcdcl_all_struct_invs (current_state S) \<Longrightarrow>
     atms_of_mm (pget_all_init_clss (last_restart_state S)) = atms_of_mm (pget_all_init_clss (current_state S)) \<Longrightarrow>
     atms_of_mm (pget_all_init_clss (last_GC_state S)) = atms_of_mm (pget_all_init_clss (current_state S)) \<Longrightarrow>
   atms_of_mm (pget_all_init_clss (current_state T)) = atms_of_mm (pget_all_init_clss (current_state S)) \<and>
@@ -1122,10 +1142,12 @@ lemma pcdcl_stgy_restart_pget_all_init_clss:
   atms_of_mm (pget_all_init_clss (last_GC_state T)) = atms_of_mm (pget_all_init_clss (current_state S))\<close>
   apply (induction rule: pcdcl_stgy_restart.induct)
   apply (simp add: pcdcl_tcore_stgy_pget_all_init_clss)
-  apply (auto 5 4 dest!: rtranclp_pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss
-      rtranclp_pcdcl_inprocessing_pget_all_init_clss
-    simp: pcdcl_restart.simps pcdcl_restart_only.simps)[]
-  apply (smt fst_conv pcdcl_restart_only.simps pget_all_init_clss.simps snd_conv)
+  apply simp
+  apply (metis (full_types) pcdcl_inprocessing.intros(2) pcdcl_inprocessing_pcdcl_all_struct_invs
+    pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
+    rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_stgy_pget_all_init_clss)
+  apply simp
+  apply (smt pcdcl_restart_only.cases pget_all_init_clss.simps)
   apply simp
   done
 
@@ -1155,26 +1177,6 @@ qed
 lemma no_smaller_propa_lvl0:
   \<open>count_decided (pget_trail U) = 0 \<Longrightarrow> cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of U)\<close>
   by (auto simp add: cdcl\<^sub>W_restart_mset.no_smaller_propa_def)
-
-lemma (in -) pcdcl_inprocessing_pcdcl_all_struct_invs:
-  fixes S V :: \<open>'v prag_st\<close>
-  assumes
-    \<open>pcdcl_inprocessing S V\<close> and
-    \<open>pcdcl_all_struct_invs S\<close>
-  shows 
-    \<open>pcdcl_all_struct_invs V\<close>
-  using assms by (induction rule: pcdcl_inprocessing.induct)
-    (simp_all add: pcdcl_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs)
-
-lemma (in -) rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs:
-  fixes S V :: \<open>'v prag_st\<close>
-  assumes
-    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S V\<close> and
-    \<open>pcdcl_all_struct_invs S\<close>
-  shows
-    \<open>pcdcl_all_struct_invs V\<close>
-  using assms by (induction rule: rtranclp_induct)
-    (simp_all add: pcdcl_inprocessing_pcdcl_all_struct_invs)
 
 lemma pcdcl_stgy_restart_pcdcl_stgy_restart_inv:
   assumes \<open>pcdcl_stgy_restart S T\<close>\<open>pcdcl_stgy_restart_inv S\<close>
@@ -1659,7 +1661,7 @@ proof (rule ccontr)
 
   have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
     using pcdcl_stgy_restart_pget_all_init_clss[OF g[of i]]
-    by (metis rest_decomp rest_decomp2 rtranclp_pcdcl_stgy_only_restart_pget_all_init_clss
+    by (metis inv_c rest_decomp rest_decomp2 rtranclp_pcdcl_stgy_only_restart_pget_all_init_clss
       rtranclp_pcdcl_tcore_stgy_pget_all_init_clss)
   then have atms_init[simp]: \<open>NO_MATCH 0 i \<Longrightarrow>
       atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i

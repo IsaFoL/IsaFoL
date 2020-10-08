@@ -16,14 +16,19 @@ subsumed_RR:
 subsumed_IR:
   \<open>cdcl_twl_subsumed (M, add_mset C N, add_mset C' U, D, NE, UE, NS, US, {#}, Q)
      (M, add_mset C N, U, D, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
-  if \<open>clause C \<subseteq># clause C'\<close>
+  if \<open>clause C \<subseteq># clause C'\<close> |
+subsumed_RI:
+  \<open>cdcl_twl_subsumed (M, add_mset C' N, add_mset C U, D, NE, UE, NS, US, {#}, Q)
+     (M, add_mset C N, U, D, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close> \<open>\<not>tautology (clause C)\<close> \<open>distinct_mset (clause C)\<close>
 
 lemma cdcl_twl_subsumed_cdcl_subsumed:
-  \<open>cdcl_twl_subsumed S T \<Longrightarrow> cdcl_subsumed (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow> cdcl_subsumed (pstate\<^sub>W_of S) (pstate\<^sub>W_of T) \<or> cdcl_subsumed_RI (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
   apply (induction rule: cdcl_twl_subsumed.induct)
   subgoal by (auto simp: cdcl_subsumed.simps)
   subgoal by (auto simp: cdcl_subsumed.simps)
   subgoal by (auto simp: cdcl_subsumed.simps)
+  subgoal by (auto simp: cdcl_subsumed_RI.simps)
   done
 
 lemma cdcl_twl_subsumed_II_simp:
@@ -118,7 +123,7 @@ twl_subresolution_LI_unit:
 
 twl_subresolution_IL_nonunit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
-    (M, N + {#E#}, U + {#C#}, None, NE, UE, add_mset (clause C') NS, add_mset (clause E) US, {#}, Q)\<close>
+    (M, N + {#E#}, U + {#C#}, None, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
@@ -127,7 +132,7 @@ twl_subresolution_IL_nonunit:
 twl_subresolution_IL_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, None, add_mset {#K#} NE, UE,
-       add_mset (clause C') NS, add_mset {#K#} US, {#}, add_mset (-K) Q)\<close>
+       add_mset (clause C') NS, US, {#}, add_mset (-K) Q)\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
@@ -255,16 +260,12 @@ lemma cdcl_twl_subresolution_decompE:
       by (auto simp: ac_simps)
     subgoal for C L D C' D' M K N U NE UE NS US Q
       apply (rule unit[of \<open>(M, clauses N + {#D'#}, clauses U + {#clause C#}, None, NE, UE,
-        add_mset (clause C') NS, add_mset D' US)\<close>
+        add_mset (clause C') NS, US)\<close>
         \<open>(Propagated K D' # M, clauses N + {#D'#}, clauses U + {#clause C#}, None, NE, UE,
-          add_mset (clause C') NS, add_mset D' US)\<close>])
+          add_mset (clause C') NS, US)\<close>])
       subgoal
         apply (auto simp: cdcl_subresolution.simps distinct_mset_remdups_mset_id)
-        apply (rule_tac x=D' in exI)
-        apply (rule_tac x=D in exI)
-        apply (rule_tac x= \<open>clauses N\<close> in exI)
-        apply (rule_tac x= \<open>-L\<close> in exI)
-        apply auto
+        apply (auto 5 5  intro: dest: spec[of _ \<open>-L\<close>] dest!: spec[of _ \<open>clauses N\<close>])
         done
       subgoal
         by (auto simp: cdcl_propagate.simps distinct_mset_remdups_mset_id)
@@ -275,7 +276,6 @@ lemma cdcl_twl_subresolution_decompE:
 
 lemma cdcl_twl_subresolution_pcdcl_all_struct_invs:
   \<open>cdcl_twl_subresolution S T \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
   pcdcl_all_struct_invs (pstate\<^sub>W_of S) \<Longrightarrow> pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
   apply (elim cdcl_twl_subresolution_decompE)
   subgoal
@@ -289,7 +289,6 @@ lemma cdcl_twl_subresolution_pcdcl_all_struct_invs:
   subgoal
     apply (drule pcdcl.intros pcdcl_core.intros)+
     apply (drule cdcl_subresolution)
-    apply (auto intro: rtranclp_pcdcl_all_struct_invs)
     using rtranclp_pcdcl_all_struct_invs by blast
   done
 
@@ -611,7 +610,6 @@ lemma cdcl_twl_subresolution_clauses_to_update_inv:
 lemma cdcl_twl_subresolution_twl_struct_invs:
   assumes \<open>cdcl_twl_subresolution S T\<close>
     \<open>twl_struct_invs S\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows \<open>twl_struct_invs T\<close>
 proof -
   have \<open>Multiset.Ball (get_clauses S) struct_wf_twl_cls\<close> \<open>no_dup (get_trail S)\<close>
@@ -656,7 +654,6 @@ lemma cdcl_twl_subresolution_twl_stgy_invs:
   assumes \<open>cdcl_twl_subresolution S T\<close>
     \<open>twl_struct_invs S\<close>
     \<open>twl_stgy_invs S\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows \<open>twl_stgy_invs T\<close>
   using assms
   by (induction rule: cdcl_twl_subresolution.induct)
@@ -705,7 +702,7 @@ lemma cdcl_twl_unitres_true_twl_struct_invs:
   using cdcl_twl_unitres_true_invs[of S T]
   by (auto simp: twl_struct_invs_def)
 
-term cdcl_unitres
+
 inductive cdcl_twl_unitres :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 \<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, {#}, Q)
     (M, add_mset E N, U, None, NE, UE, add_mset (clause D)  NS, US, {#}, Q)\<close>
@@ -762,7 +759,7 @@ lemma struct_wf_twl_cls_alt_def:
 
 lemma cdcl_twl_unitres_struct_invs:
   assumes \<open>cdcl_twl_unitres S T\<close> and \<open>twl_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of S))\<close>
   shows \<open>twl_struct_invs T\<close>
   unfolding twl_struct_invs_def
 proof (intro conjI)
@@ -813,7 +810,7 @@ proof (intro conjI)
       split: if_splits dest: has_blit_Cons)
      (auto simp:  clause_alt_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits; fail)+
   show invs_T: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
-    using cdcl_twl_unitres_cdcl_unitres[OF assms(1)] assms(3) invs
+    using cdcl_twl_unitres_cdcl_unitres[OF assms(1)] invs assms(3)
     by (auto dest!: cdcl_unitres_learn_subsume rtranclp_pcdcl_all_struct_invs)
   show \<open>past_invs T\<close>
     using assms(1)
@@ -858,7 +855,6 @@ lemma cdcl_twl_unitres_twl_stgy_invs:
   assumes \<open>cdcl_twl_unitres S T\<close>
     \<open>twl_struct_invs S\<close>
     \<open>twl_stgy_invs S\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows \<open>twl_stgy_invs T\<close>
   using assms
   by (induction rule: cdcl_twl_unitres.induct)
@@ -896,9 +892,15 @@ lemma propa_confl_cands_enqueued_remove_learnD2:
   propa_confl_cands_enqueued (M,  add_mset C N, U, D, NE, UE, NS, US, WS, Q)\<close>
   by (cases D; auto)+
 
+lemma cdcl_subsumed_RI_all_struct_invs:
+  \<open>cdcl_subsumed_RI S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs T\<close>
+  by (elim cdcl_subsumed_RID)
+    (simp add: cdcl_learn_clause_all_struct_inv cdcl_learn_clause_entailed_clss_inv
+      cdcl_learn_clause_psubsumed_invs cdcl_subsumed_all_struct_inv cdcl_subsumed_entailed_clss_inv
+      cdcl_subsumed_psubsumed_invs pcdcl_all_struct_invs_def)
+
 lemma cdcl_twl_subsumed_struct_invs:
-  assumes \<open>cdcl_twl_subsumed S T\<close> and \<open>twl_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  assumes \<open>cdcl_twl_subsumed S T\<close> and \<open>twl_struct_invs S\<close>
   shows \<open>twl_struct_invs T\<close>
   unfolding twl_struct_invs_def
 proof (intro conjI)
@@ -953,8 +955,8 @@ proof (intro conjI)
       Decided_Propagated_in_iff_in_lits_of_l clauses_to_update_prop.simps
       split: if_splits dest: has_blit_Cons)
   show invs_T: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
-    using cdcl_twl_subsumed_cdcl_subsumed[OF assms(1)] assms(3) invs
-    by (auto dest!: cdcl_unitres_learn_subsume rtranclp_pcdcl_all_struct_invs
+    using cdcl_twl_subsumed_cdcl_subsumed[OF assms(1)] assms(2) invs
+    by (auto dest!: cdcl_unitres_learn_subsume rtranclp_pcdcl_all_struct_invs cdcl_subsumed_RI_all_struct_invs
       simp: cdcl_subsumed_all_struct_inv cdcl_subsumed_entailed_clss_inv cdcl_subsumed_psubsumed_invs
       pcdcl_all_struct_invs_def)
 
@@ -969,6 +971,9 @@ proof (intro conjI)
         dest!: multi_member_split
           dest: mset_le_add_mset simp: undefined_notin)
 
+  have propa_confl_cands_enqueued_IR: \<open>propa_confl_cands_enqueued  (M, add_mset C' N, add_mset C U, D, NE, UE, NS, US, {#}, Q) \<Longrightarrow>
+    propa_confl_cands_enqueued  (M, add_mset C N, U, D, NE, UE, NS, US, {#}, Q)\<close> for M C' N C U D NE UE US Q NS
+    by (cases D)  (auto simp: )
   have struct: \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close>
     by (use st_inv n_d propa_cands confl_cands in \<open>cases S; auto simp: twl_st_inv.simps; fail\<close>)+
   then have \<open>propa_confl_cands_enqueued S\<close>
@@ -981,7 +986,7 @@ proof (intro conjI)
       simp: propa_confl_cands_enqueued_learn twl_exception_inv_add_subsumed
         propa_confl_cands_enqueued_add_subsumed add_mset_commute
       dest: propa_confl_cands_enqueuedD twl_exception_inv_skip_clause
-        propa_confl_cands_enqueued_remove_learnD2
+        propa_confl_cands_enqueued_remove_learnD2 propa_confl_cands_enqueued_IR
       dest: multi_member_split[of \<open>_ :: _ twl_clause\<close>]
       simp del: propa_confl_cands_enqueued.simps)
   moreover have struct: \<open>\<forall>C \<in># get_clauses T. struct_wf_twl_cls C\<close>
