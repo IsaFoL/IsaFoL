@@ -47,7 +47,8 @@ lemma cdcl_twl_subsumed_RR_simp:
     \<open>clause C \<subseteq># clause C'\<close>
     \<open>C \<in># U\<close>
     \<open>C' \<in># remove1_mset C U\<close>
-  using that subsumed_RR[of C C' M N \<open>U -{#C,C'#}\<close> D NE UE NS US Q] by (auto dest!: multi_member_split)
+  using that subsumed_RR[of C C' M N \<open>U -{#C,C'#}\<close> D NE UE NS US Q]
+  by (auto dest!: multi_member_split)
 
 lemma cdcl_twl_subsumed_IR_simp:
   \<open>cdcl_twl_subsumed S S'\<close>
@@ -83,7 +84,7 @@ twl_subresolution_II_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>size E \<ge> 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_II_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
@@ -101,7 +102,7 @@ twl_subresolution_LL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_LL_unit:
   \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, None, NE, add_mset {#K#} UE, NS,
@@ -119,7 +120,7 @@ twl_subresolution_LI_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_LI_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, None, NE, add_mset {#K#} UE, NS,
@@ -137,7 +138,7 @@ twl_subresolution_IL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
 twl_subresolution_IL_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, None, add_mset {#K#} NE, UE,
@@ -184,7 +185,8 @@ lemma twl_lazy_update_undefined: \<open>\<forall>L \<in># clause E. undefined_li
    (auto simp: has_blit_def Decided_Propagated_in_iff_in_lits_of_l
     dest!: multi_member_split)
 
-lemma struct_wf_twl_cls_remdupsI: \<open>clause E = remdups_mset D' \<Longrightarrow> 2 \<le> size E \<Longrightarrow>  struct_wf_twl_cls E\<close>
+lemma struct_wf_twl_cls_remdupsI:
+  \<open>clause E = remdups_mset D' \<Longrightarrow> size (watched E) = 2 \<Longrightarrow>  struct_wf_twl_cls E\<close>
   by (cases E) auto
 
 lemma cdcl_twl_subresolution_twl_st_inv:
@@ -316,6 +318,8 @@ lemma cdcl_twl_subresolution_twl_st_exception_inv:
     apply (intro ballI)
     apply (rename_tac x; case_tac x)
     apply (auto simp: twl_exception_inv.simps)
+    apply (metis mset_subset_eqD mset_subset_eq_add_left set_mset_remdups_mset
+      uminus_lits_of_l_definedD)
     apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
     by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
   subgoal
@@ -330,6 +334,8 @@ lemma cdcl_twl_subresolution_twl_st_exception_inv:
     apply (intro ballI)
     apply (rename_tac x; case_tac x)
     apply (auto simp: twl_exception_inv.simps)
+    apply (metis mset_subset_eqD mset_subset_eq_add_left set_mset_remdups_mset
+      uminus_lits_of_l_definedD)
     apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
     by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
   subgoal
@@ -344,6 +350,8 @@ lemma cdcl_twl_subresolution_twl_st_exception_inv:
     apply (intro ballI)
     apply (rename_tac x; case_tac x)
     apply (auto simp: twl_exception_inv.simps)
+    apply (metis mset_subset_eqD mset_subset_eq_add_left set_mset_remdups_mset
+      uminus_lits_of_l_definedD)
     apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
     by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
   subgoal
@@ -358,6 +366,8 @@ lemma cdcl_twl_subresolution_twl_st_exception_inv:
     apply (intro ballI)
     apply (rename_tac x; case_tac x)
     apply (auto simp: twl_exception_inv.simps)
+    apply (metis mset_subset_eqD mset_subset_eq_add_left set_mset_remdups_mset
+      uminus_lits_of_l_definedD)
     apply (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
     by (metis Un_iff clause.simps twl_clause.sel(1) twl_clause.sel(2))
   subgoal
