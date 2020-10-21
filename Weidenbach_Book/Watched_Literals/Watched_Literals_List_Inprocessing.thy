@@ -251,43 +251,54 @@ twl_subresolution_LL_unit:
     \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
     \<open>remdups_mset D' = {#K#}\<close>
     \<open>undefined_lit M K\<close>
-    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>\<not>irred N C'\<close>
-(* |
+    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>\<not>irred N C'\<close> |
 twl_subresolution_LI_nonunit:
-  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, {#}, Q)
-    (M, N + {#C#}, U + {#E#}, None, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (M, fmupd C' (E, False) N, None, NE, UE, NS, add_mset (mset (N \<propto> C'))  US, {#}, Q)\<close>
  if
-   \<open>clause C = add_mset L D\<close>
-   \<open>clause C' = add_mset (-L) D'\<close>
-   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+    \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close>
+   \<open>mset (N \<propto> C) = add_mset L D\<close>
+    \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
+   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+   \<open>mset E = remdups_mset D'\<close> \<open>length E \<ge> 2\<close> \<open>distinct E\<close> \<open>\<forall>L \<in># mset E. undefined_lit M L\<close>
+    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>\<not>irred N C'\<close> |
 twl_subresolution_LI_unit:
-  \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N + {#C#}, U, None, NE, add_mset {#K#} UE, NS,
-      add_mset (clause C') US, {#}, add_mset (-K) Q)\<close>
- if
-   \<open>clause C = add_mset L D\<close>
-   \<open>clause C' = add_mset (-L) D'\<close>
-   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>|
-
+  \<open>cdcl_twl_subresolution_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K 0 # M, fmdrop C' N, None, NE, add_mset {#K#} UE, NS,  add_mset (mset (N \<propto> C')) US, {#}, add_mset (-K) Q)\<close>
+  if
+    \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close>
+    \<open>mset (N \<propto> C) = add_mset L D\<close>
+    \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>remdups_mset D' = {#K#}\<close>
+    \<open>undefined_lit M K\<close>
+    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>\<not>irred N C'\<close> |
 twl_subresolution_IL_nonunit:
-  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
-    (M, N + {#E#}, U + {#C#}, None, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+  \<open>cdcl_twl_subresolution_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (M, fmupd C' (E, True) N, None, NE, UE, add_mset (mset (N \<propto> C')) NS, US, {#}, Q)\<close>
  if
-   \<open>clause C = add_mset L D\<close>
-   \<open>clause C' = add_mset (-L) D'\<close>
-   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size E \<ge> 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
+    \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close>
+   \<open>mset (N \<propto> C) = add_mset L D\<close>
+    \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
+   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+   \<open>mset E = remdups_mset D'\<close> \<open>length E \<ge> 2\<close> \<open>distinct E\<close> \<open>\<forall>L \<in># mset E. undefined_lit M L\<close>
+    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>irred N C'\<close> |
 twl_subresolution_IL_unit:
-  \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, None, NE, UE, NS, US, {#}, Q)
-    (Propagated K {#K#} # M, N, U + {#C#}, None, add_mset {#K#} NE, UE,
-       add_mset (clause C') NS, US, {#}, add_mset (-K) Q)\<close>
- if
-   \<open>clause C = add_mset L D\<close>
-   \<open>clause C' = add_mset (-L) D'\<close>
-   \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close> *)
+  \<open>cdcl_twl_subresolution_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (Propagated K 0 # M, fmdrop C' N, None, add_mset {#K#} NE, UE, add_mset (mset (N \<propto> C')) NS, US, {#}, add_mset (-K) Q)\<close>
+  if
+    \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close>
+    \<open>mset (N \<propto> C) = add_mset L D\<close>
+    \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>remdups_mset D' = {#K#}\<close>
+    \<open>undefined_lit M K\<close>
+    \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>irred N C'\<close>
+
 
 lemma convert_lits_l_update_sel2:
   \<open>C \<in># dom_m N \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> 
@@ -359,11 +370,68 @@ lemma twl_subresolution_LL_unit_simps:
   using cdcl_twl_subresolution.twl_subresolution_LL_unit[of C L D C' D' M K N \<open>U - {#C, C'#}\<close>] that
   by (auto dest!: multi_member_split simp: add_mset_eq_add_mset add_mset_commute)
 
-lemma cdcl_twl_subresolution_eqD:
-  \<open>cdcl_twl_subresolution S T \<Longrightarrow> S = S' \<Longrightarrow> T = T' \<Longrightarrow> cdcl_twl_subresolution S' T'\<close>
-  by auto
-thm cdcl_twl_subresolution_eqD[OF cdcl_twl_subresolution.twl_subresolution_II_nonunit]
-  
+lemma twl_subresolution_LI_nonunit_simps:
+  \<open>cdcl_twl_subresolution S T\<close>
+  if
+    \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (M, N, add_mset E (remove1_mset C' U), None, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+    \<open>clause C = add_mset L D\<close>
+    \<open>clause C' = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close> \<open>struct_wf_twl_cls E\<close>
+    \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>
+    \<open>C \<in># N\<close>
+    \<open>C' \<in># U\<close>
+  using cdcl_twl_subresolution.twl_subresolution_LI_nonunit[of C L D C' D' M E \<open>N - {#C#}\<close> \<open>U - {#C'#}\<close>] that
+  by (auto dest!: multi_member_split simp: add_mset_eq_add_mset add_mset_commute)
+
+lemma twl_subresolution_LI_unit_simps:
+  \<open>cdcl_twl_subresolution S T\<close>
+  if
+    \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (Propagated K {#K#} # M, (N), remove1_mset C' U, None, NE, add_mset {#K#} UE,
+      NS, add_mset (clause C') US, {#}, add_mset (-K) Q)\<close>
+    \<open>clause C = add_mset L D\<close>
+    \<open>clause C' = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>remdups_mset D' = {#K#}\<close>
+    \<open>undefined_lit M K\<close>
+    \<open>C \<in># N\<close>
+    \<open>C' \<in># U\<close>
+  using cdcl_twl_subresolution.twl_subresolution_LI_unit[of C L D C' D' M K \<open>N - {#C#}\<close> \<open>U - {#C'#}\<close>] that
+  by (auto dest!: multi_member_split simp: add_mset_eq_add_mset add_mset_commute)
+
+lemma twl_subresolution_IL_nonunit_simps:
+  \<open>cdcl_twl_subresolution S T\<close>
+  if
+    \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (M, add_mset E (remove1_mset C' N), U, None, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+    \<open>clause C = add_mset L D\<close>
+    \<open>clause C' = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close> \<open>struct_wf_twl_cls E\<close>
+    \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>
+    \<open>C' \<in># N\<close>
+    \<open>C \<in># U\<close>
+  using cdcl_twl_subresolution.twl_subresolution_IL_nonunit[of C L D C' D' M E \<open>N - {#C'#}\<close> \<open>U - {#C#}\<close>] that
+  by (auto dest!: multi_member_split simp: add_mset_eq_add_mset add_mset_commute)
+
+lemma twl_subresolution_IL_unit_simps:
+  \<open>cdcl_twl_subresolution S T\<close>
+  if
+    \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (Propagated K {#K#} # M, remove1_mset C' N,  U, None, add_mset {#K#} NE, UE,
+      add_mset (clause C') NS, US, {#}, add_mset (-K) Q)\<close>
+    \<open>clause C = add_mset L D\<close>
+    \<open>clause C' = add_mset (-L) D'\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>remdups_mset D' = {#K#}\<close>
+    \<open>undefined_lit M K\<close>
+    \<open>C' \<in># N\<close>
+    \<open>C \<in># U\<close>
+  using cdcl_twl_subresolution.twl_subresolution_IL_unit[of C L D C' D' M K \<open>N - {#C'#}\<close> \<open>U - {#C#}\<close>] that
+  by (auto dest!: multi_member_split simp: add_mset_eq_add_mset add_mset_commute)
+
 lemma cdcl_twl_subresolution_l_cdcl_twl_subresolution:
   assumes \<open>cdcl_twl_subresolution_l S T\<close> and
     SS': \<open>(S, S') \<in> twl_st_l None\<close>
@@ -438,6 +506,164 @@ proof -
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
           )
         done
+    subgoal for C N C' L D D' M E NE UE NS US Q
+      apply (auto simp: twl_st_l_def)
+      apply (rule_tac x = \<open>get_trail S'\<close> in exI)
+      apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+        intro!: twl_subresolution_LI_nonunit_simps[where
+          C' = \<open>(TWL_Clause (mset (watched_l (N \<propto> C'))) (mset (unwatched_l (N \<propto> C'))))\<close> and
+        C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+        simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset'
+        init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+          init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+          init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+          learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev; fail
+          )+
+        done
+    subgoal for C N C' L D D' M K NE UE NS US Q
+      apply (auto simp: twl_st_l_def)
+      apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
+      apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+        intro!: twl_subresolution_LI_unit_simps[where
+          C' = \<open>(TWL_Clause (mset (watched_l (N \<propto> C'))) (mset (unwatched_l (N \<propto> C'))))\<close> and
+        C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+        simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset'
+        init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+          init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+          init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+          learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+          )
+        done
+    subgoal for C N C' L D D' M E NE UE NS US Q
+      apply (auto simp: twl_st_l_def)
+      apply (rule_tac x = \<open>get_trail S'\<close> in exI)
+      apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+        intro!: twl_subresolution_IL_nonunit_simps[where
+          C' = \<open>(TWL_Clause (mset (watched_l (N \<propto> C'))) (mset (unwatched_l (N \<propto> C'))))\<close> and
+        C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+        simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset'
+        init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+          init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+          init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+          learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+        init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev; fail
+        )+
+        done
+    subgoal for C N C' L D D' M K NE UE NS US Q
+      apply (auto simp: twl_st_l_def)
+      apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
+      apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+        intro!: twl_subresolution_IL_unit_simps[where
+          C' = \<open>(TWL_Clause (mset (watched_l (N \<propto> C'))) (mset (unwatched_l (N \<propto> C'))))\<close> and
+        C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+        simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset'
+        init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+        learned_clss_l_mapsto_upd_irrel
+        mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+          init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+          init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+          learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+        init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+          )
+        done
       done
 qed
+
+inductive cdcl_twl_unitres_true_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_unitres_true_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (M, fmdrop C N, None, add_mset (mset (N \<propto> C)) NE, UE, NS, US, {#}, Q)\<close>
+  if \<open>L \<in># mset (N \<propto> C)\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
+    \<open>C \<in># dom_m N\<close> \<open>irred N C\<close>
+    \<open>C \<notin> set (get_all_mark_of_propagated M)\<close> |
+  \<open>cdcl_twl_unitres_true_l (M, N, None, NE, UE, NS, US, {#}, Q)
+    (M, fmdrop C N, None, NE, add_mset (mset (N \<propto> C)) UE, NS, US, {#}, Q)\<close>
+  if \<open>L \<in># mset (N \<propto> C)\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
+    \<open>C \<in># dom_m N\<close> \<open>\<not>irred N C\<close>
+    \<open>C \<notin> set (get_all_mark_of_propagated M)\<close>
+
+lemma cdcl_twl_unitres_true_intro1:
+  \<open>cdcl_twl_unitres_true S T\<close>
+  if \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (M, remove1_mset C N, U, None, add_mset (clause C) NE, UE, NS, US, {#}, Q)\<close>
+    \<open>L \<in># clause C\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> \<open>C \<in># N\<close>
+  using cdcl_twl_unitres_true.intros(1)[of L C M \<open>N - {#C#}\<close> U] that
+  by auto
+
+lemma cdcl_twl_unitres_true_intro2:
+  \<open>cdcl_twl_unitres_true S T\<close>
+  if  \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+    \<open>T = (M, N, remove1_mset C U, None, NE, add_mset (clause C) UE, NS, US, {#}, Q)\<close>
+    \<open>L \<in># clause C\<close> \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> \<open>C \<in># U\<close>
+
+  using cdcl_twl_unitres_true.intros(2)[of L C M N \<open>U - {#C#}\<close>] that
+  by auto
+
+lemma cdcl_twl_unitres_true_l_cdcl_twl_unitres_true:
+  assumes \<open>cdcl_twl_unitres_true_l S T\<close> and
+    SS': \<open>(S, S') \<in> twl_st_l None\<close>
+  shows \<open>\<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_unitres_true S' T'\<close>
+  using assms
+  apply (induction rule: cdcl_twl_unitres_true_l.induct)
+  subgoal for L N C M NE UE NS US Q
+    apply (auto simp: twl_st_l_def)
+    apply (rule_tac x=x in exI)
+    apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+      intro!: cdcl_twl_unitres_true_intro1[where
+      C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+      simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+      learned_clss_l_mapsto_upd_irrel
+      mset_take_mset_drop_mset'
+      init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+      init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+      learned_clss_l_mapsto_upd_irrel convert_lits_l_drop
+      mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+      init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+      init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+      learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+      init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+      )
+    done
+  subgoal for L N C M NE UE NS US Q
+    apply (auto simp: twl_st_l_def)
+    apply (rule_tac x=x in exI)
+    apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
+      intro!: cdcl_twl_unitres_true_intro2[where
+      C = \<open>(TWL_Clause (mset (watched_l (N \<propto> C))) (mset (unwatched_l (N \<propto> C))))\<close>]
+      simp:  init_clss_l_mapsto_upd image_mset_remove1_mset_if
+      learned_clss_l_mapsto_upd_irrel
+      mset_take_mset_drop_mset'
+      init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+      init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+      learned_clss_l_mapsto_upd_irrel convert_lits_l_drop
+      mset_take_mset_drop_mset' init_clss_l_mapsto_upd_irrelev
+      init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+      init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_irrel
+      learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
+      init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
+      )
+    done
+  done
+
 end
