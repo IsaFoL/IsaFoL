@@ -1,0 +1,4 @@
+session "Splitting_Framework" = Saturation_Framework +
+  options [timeout=300]
+  theories
+    Preliminaries
