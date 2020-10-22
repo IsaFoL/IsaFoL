@@ -725,35 +725,7 @@ inductive cdcl_twl_unitres_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<R
     \<open>Multiset.Ball (mset E) (undefined_lit M)\<close>
     \<open>D \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N D\<close>
     \<open>undefined_lit M K\<close>
-    \<open>atm_of K \<in> atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close> 
-(* |
- * \<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, {#}, Q)
- *     (Propagated K C # M, N, U, None, add_mset C NE, UE, add_mset (clause D) NS, US, {#}, add_mset (-K) Q)\<close>
- *   if \<open>count_decided M = 0\<close> and
- *     \<open>clause D = C+C'\<close>
- *     \<open>add_mset (C+C') (clauses N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
- *     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
- *     \<open>C = {#K#}\<close>
- *     \<open>undefined_lit M K\<close> |
- * \<open>cdcl_twl_unitres (M, N, U + {#D#}, None, NE, UE, NS, US, {#}, Q)
- *     (M, N, add_mset E U, None, NE, UE, NS, add_mset (clause D) US, {#}, Q)\<close>
- *   if \<open>count_decided M = 0\<close> and
- *     \<open>clause D = C+C'\<close>
- *     \<open>(clauses N + NE + NS) \<Turnstile>psm mset_set (CNot C')\<close>
- *     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
- *     \<open>struct_wf_twl_cls E\<close>
- *     \<open>clause E = C\<close>
- *     \<open>Multiset.Ball (clause E) (undefined_lit M)\<close>
- *     \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close> |
- * \<open>cdcl_twl_unitres (M, N, U + {#D#}, None, NE, UE, NS, US, {#}, Q)
- *     (Propagated K C # M, N, U, None, NE, add_mset C UE, NS, add_mset (clause D) US, {#}, add_mset (-K) Q)\<close>
- *   if \<open>count_decided M = 0\<close> and
- *     \<open>clause D = C+C'\<close>
- *     \<open>clauses N + NE + NS \<Turnstile>psm mset_set (CNot C')\<close>
- *     \<open>\<not>tautology C\<close> \<open>distinct_mset C\<close>
- *     \<open>C = {#K#}\<close>
- *     \<open>undefined_lit M K\<close>
- *     \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close> *)
+    \<open>atm_of K \<in> atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close>
 
 lemma cdcl_twl_unitres_I1:
   \<open>cdcl_twl_unitres S T\<close>
@@ -886,4 +858,84 @@ lemma cdcl_twl_unitres_l_cdcl_twl_unitres:
     done
   done
 
+definition forward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_one_pre = (\<lambda>C (M, N, D, NE, UE, NS, US, WS, Q). C \<in># dom_m N \<and>
+    (\<forall>L \<in># mset (N \<propto> C). undefined_lit M L))\<close>
+
+datatype 'v subsumption = SUBSUMED nat | STRENGTHEN \<open>'v literal\<close> nat | NONE
+definition try_to_subsume :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v clauses_l \<Rightarrow> 'v subsumption \<Rightarrow> bool\<close> where
+  \<open>try_to_subsume C C' N s = (case s of
+    NONE \<Rightarrow> True
+  | SUBSUMED C'' \<Rightarrow> mset (N \<propto> C') \<subseteq># mset (N \<propto> C) \<and> C'' = C'
+  | STRENGTHEN L C'' \<Rightarrow> L \<in># mset (N \<propto> C') \<and> -L \<in># mset (N \<propto> C) \<and>
+   mset (N \<propto> C) - {#L#} \<subseteq># mset (N \<propto> C') - {#L#} \<and> C'' = C')\<close>
+
+definition strengthen_clause where
+  \<open>strengthen_clause = (\<lambda>C C' L (N, NE, UE, NS, US).
+  if size C = size C'
+  then RETURN (fmupd C (remove1 (-L) (N \<propto> C), irred N C \<or> irred N C') N, NE, UE,
+     ((if irred N C' then add_mset (mset (N \<propto> C')) else id)  o (if irred N C then add_mset (mset (N \<propto> C)) else id)) NS,
+     ((if \<not>irred N C' then add_mset (mset (N \<propto> C')) else id) o (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id)) US)
+  else RETURN (fmupd C (remove1 (-L) (N \<propto> C), irred N C) N, NE, UE,
+    (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
+    (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US))\<close>
+
+definition subsume_or_strengthen_pre :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> _ \<Rightarrow> 'v clauses_l \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<Rightarrow> bool\<close> where
+  \<open>subsume_or_strengthen_pre = (\<lambda>C s M (N, NE, UE, NS, US). C \<in># dom_m N \<and>
+   (case s of
+    NONE \<Rightarrow> True
+  | SUBSUMED C' \<Rightarrow> mset (N \<propto> C') \<subseteq># mset (N \<propto> C) \<and> C \<notin> set (get_all_mark_of_propagated M) \<and> distinct (N \<propto> C') \<and> C \<noteq> C' \<and> \<not>tautology (mset (N \<propto> C')) \<and> C' \<in># dom_m N
+  | STRENGTHEN L C' \<Rightarrow> L \<in># mset (N \<propto> C') \<and> -L \<in># mset (N \<propto> C) \<and>
+   mset (N \<propto> C) - {#L#} \<subseteq># mset (N \<propto> C') - {#L#} \<and> C' \<in># dom_m N))\<close>
+
+definition subsume_or_strengthen :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> _ \<Rightarrow> 'v clauses_l \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<Rightarrow>
+   ('v clauses_l \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses) nres\<close> where
+  \<open>subsume_or_strengthen = (\<lambda>C s M (N, NE, UE, NS, US). do {
+   ASSERT(subsume_or_strengthen_pre C s M (N, NE, UE, NS, US));
+   (case s of
+     NONE \<Rightarrow> RETURN (N, NE, UE, NS, US)
+   | SUBSUMED C' \<Rightarrow> RETURN (fmdrop C (if \<not>irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N),
+          NE, UE, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
+      (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US)
+   | STRENGTHEN L C' \<Rightarrow> strengthen_clause C C' L (N, NE, UE, NS, US))
+  })\<close>
+
+inductive cdcl_twl_inprocessing_l where
+  \<open>cdcl_twl_unitres_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
+  \<open>cdcl_twl_unitres_true_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
+  \<open>cdcl_twl_subsumed_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>|
+  \<open>cdcl_twl_subresolution_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>
+
+lemma
+  assumes \<open>subsume_or_strengthen_pre C s M (N, NE, UE, NS, US)\<close>
+  shows
+    \<open>subsume_or_strengthen C s M (N, NE, UE, NS, US) \<le>\<Down>Id (SPEC(\<lambda>(N', NE', UE', NS', US').
+  cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NS, US, {#}, Q)
+  (M, N', None, NE', UE', NS', US', {#}, Q)))\<close>
+  using assms unfolding subsume_or_strengthen_def
+  apply refine_vcg+
+  subgoal by auto
+  subgoal
+    apply (cases s)
+    subgoal for C'
+      by (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
+        intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp)
+
+      oops
+definition forward_subsumption_one :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>forward_subsumption_one = (\<lambda>C (M, N, D, NE, UE, NS, US, WS, Q). do {
+  ASSERT(forward_subsumption_one_pre C (M, N, D, NE, UE, NS, US, WS, Q));
+  xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># (dom_m N) - {#C#});
+  (xs, s) \<leftarrow>
+    WHILE (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
+    (\<lambda>(xs, _). do {
+      C' \<leftarrow> SPEC(\<lambda>C'. C' \<in># dom_m N);
+      s \<leftarrow> SPEC(try_to_subsume C C' N);
+     RETURN (xs, s)
+    })
+    (xs, NONE);
+  (N, NE, UE, NS, US) \<leftarrow> subsume_or_strengthen C s M (N, NE, UE, NS, US);
+  RETURN (M, N, D, NE, UE, NS, US, WS, Q)
+  }
+)\<close>
 end
