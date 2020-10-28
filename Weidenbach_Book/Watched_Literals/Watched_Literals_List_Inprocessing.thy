@@ -863,6 +863,13 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
      (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)))
   })\<close>
 
+definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>simplify_clause_with_unit_st_pre = (\<lambda>C S.
+    C \<in># dom_m (get_clauses_l S) \<and> count_decided (get_trail_l S) = 0 \<and> get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
+    C \<notin> set (get_all_mark_of_propagated (get_trail_l S)) \<and>
+   (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T)
+)\<close>
+
 definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>simplify_clause_with_unit_st = (\<lambda>C (M, N, D, NE, UE, NS, US, WS, Q). do {
     ASSERT (C \<in># dom_m N \<and> count_decided M = 0 \<and> D = None \<and> WS = {#} \<and> C \<notin> set (get_all_mark_of_propagated M));
@@ -875,6 +882,8 @@ definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l 
     then do {
       let L = ((N \<propto> C) ! 0);
       RETURN (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, WS, add_mset (-L) Q)}
+    else if size (N \<propto> C) = 0
+    then RETURN (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, WS, Q)
     else
       RETURN (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, WS, Q)
   })\<close>
@@ -923,7 +932,7 @@ lemma true_clss_clss_def_iff_negation_in_model:
     done
   done
 
-lemma 
+lemma
   fixes M :: \<open>('v, nat) ann_lit list\<close> and N NE UE NS US Q
   defines \<open>S \<equiv> (M, N, None, NE, UE, NS, US, {#}, Q)\<close>
   assumes
@@ -994,6 +1003,24 @@ lemma fmdrop_eq_update_eq: \<open>fmdrop C aa = fmdrop C bh \<Longrightarrow> C 
   apply auto[]
   by (metis fmlookup_drop)
 
+lemma twl_st_l_struct_invs_distinct:
+  assumes 
+    ST: \<open>(S, T) \<in> twl_st_l b\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
+    invs: \<open>twl_struct_invs T\<close>
+  shows \<open>distinct (get_clauses_l S \<propto> C)\<close>
+proof -
+  have \<open>(\<forall>C \<in># get_clauses T. struct_wf_twl_cls C)\<close>
+    using invs unfolding twl_struct_invs_def by (cases T) (auto simp: twl_st_inv.simps)
+  moreover have \<open>twl_clause_of (get_clauses_l S \<propto> C) \<in># (get_clauses T)\<close>
+    using ST C by (cases S; cases T) (auto simp: twl_st_l_def)
+  ultimately show ?thesis
+    by (auto dest!: multi_member_split simp: mset_take_mset_drop_mset')
+qed
+
+lemma \<open>distinct xs \<Longrightarrow> mset ys \<subseteq># mset xs \<Longrightarrow> distinct ys\<close>
+  using distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct] distinct_mset_mset_distinct by blast
+
 lemma
   assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
     \<open>get_conflict_l S = None\<close> and
@@ -1032,21 +1059,19 @@ lemma
        \<open>get_unit_init_clauses_l S\<close> \<open>get_unit_learned_clss_l S\<close>
       \<open>get_subsumed_init_clauses_l S\<close> \<open>get_subsumed_learned_clauses_l S\<close>
       \<open>literals_to_update_l S\<close> T
-       \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>]
+      \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>]
+      twl_st_l_struct_invs_distinct[of S T None C]
     apply (auto simp: cdcl_twl_unitres_l.simps
+      dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
       intro!: exI[of _ C])
     apply (rule_tac x = \<open>mset (aa \<propto> C) - mset (bh \<propto> C)\<close> in exI)
     apply (rule_tac x = \<open>bh \<propto> C\<close> in exI)
-    apply (auto dest: fmdrop_eq_update_eq)
+    apply (auto dest: fmdrop_eq_update_eq not_tautology_mono
+      distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
+      simp: mset_take_mset_drop_mset')
     sledgehammer
 
 oops
-find_theorems \<open>length _ = Suc _ \<close>
-    using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
-    apply (auto simp: cdcl_twl_unitres_l.simps)
-apply (rule_tac x= C in exI)
-apply auto
-  oops
 
 definition forward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_pre = (\<lambda>C (M, N, D, NE, UE, NS, US, WS, Q). C \<in># dom_m N \<and>
@@ -1110,6 +1135,10 @@ lemma
     subgoal for C'
       by (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
         intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp)
+    subgoal
+      apply (auto simp: eq_commute[of N] eq_commute[of NE] eq_commute[of UE] eq_commute[of NS]
+        eq_commute[of US])
+      apply (auto simp: strengthen_clause_def)
 
       oops
 definition forward_subsumption_one :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
