@@ -856,7 +856,7 @@ lemma cdcl_twl_unitres_l_cdcl_twl_unitres:
 
 definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> (bool \<times> 'v clauses_l) nres\<close> where
   \<open>simplify_clause_with_unit = (\<lambda>C M N. do {
-  SPEC(\<lambda>(b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and>
+  SPEC(\<lambda>(b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and> C \<in># dom_m N' \<and>
      (\<not>b \<longrightarrow> (\<forall>L \<in># mset (N' \<propto> C). undefined_lit M L)) \<and>
      (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). -L \<in> lits_of_l M) \<and>
      (irred N C = irred N' C) \<and>
@@ -876,60 +876,133 @@ definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l 
       let L = ((N \<propto> C) ! 0);
       RETURN (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, WS, add_mset (-L) Q)}
     else
-      RETURN (M, fmdrop C N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, WS, Q)
+      RETURN (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, WS, Q)
   })\<close>
 
+lemma true_clss_clss_def_more_atms:
+  "N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> N' \<union> N'') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
+  (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof (rule iffI)
+  assume ?A
+  then show ?B
+    by (simp add: true_clss_clss_def)
+next
+  assume ?B
+  show ?A
+    unfolding true_clss_clss_def
+  proof (intro allI impI)
+    fix I
+    assume tot: \<open>total_over_m I (N \<union> N')\<close> and
+      cons: \<open>consistent_interp I\<close> and
+      IN: \<open>I \<Turnstile>s N\<close>
+    let ?I = \<open>I \<union> Pos ` {A. A \<in> atms_of_ms N'' \<and> A \<notin> atm_of ` I}\<close>
+    have \<open>total_over_m ?I (N \<union> N' \<union> N'')\<close>
+      using tot atms_of_s_def by (fastforce simp: total_over_m_def total_over_set_def)
+    moreover have \<open>consistent_interp ?I\<close>
+      using cons unfolding consistent_interp_def
+      by (force simp: uminus_lit_swap)
+    moreover have \<open>?I \<Turnstile>s N\<close>
+      using IN by auto
+    ultimately have \<open>?I \<Turnstile>s N'\<close>
+      using \<open>?B\<close> by blast
+    then show \<open>I \<Turnstile>s N'\<close>
+      by (smt atms_of_ms_mono atms_of_s_def imageE literal.sel(1) mem_Collect_eq
+        notin_vars_union_true_clss_true_clss subsetD sup_ge2 tot total_over_m_alt_def)
+  qed
+qed
 
 lemma true_clss_clss_def_iff_negation_in_model:
-  \<open>atms_of C' \<subseteq> atms_of_ms A \<Longrightarrow> A \<Turnstile>ps CNot C' \<longleftrightarrow> (\<forall>L \<in># C'. A \<Turnstile>ps {{#-L#}})\<close>
+  \<open>A \<Turnstile>ps CNot C' \<longleftrightarrow> (\<forall>L \<in># C'. A \<Turnstile>ps {{#-L#}})\<close>
   apply (rule iffI)
-  defer
   subgoal
-    unfolding true_clss_clss_def true_clss_def_iff_negation_in_model
-    apply (clarify)
-    apply (drule_tac x=l in bspec)
-    apply assumption
-    apply (drule_tac x=I in spec)
-    apply (auto dest!: multi_member_split)
+    by (simp add: true_clss_clss_in_imp_true_clss_cls)
+  subgoal
+    apply (subst (asm)true_clss_clss_def_more_atms[of _ _ \<open>{C'}\<close>])
+    apply (auto simp: true_clss_clss_def true_clss_def_iff_negation_in_model
+      dest!: multi_member_split)
     done
-  subgoal
-    by (metis CNot_add_mset mset_add true_clss_clss_insert true_clss_clss_true_clss_cls)
   done
 
- lemma
+lemma 
+  fixes M :: \<open>('v, nat) ann_lit list\<close> and N NE UE NS US Q
+  defines \<open>S \<equiv> (M, N, None, NE, UE, NS, US, {#}, Q)\<close>
   assumes
     \<open>D \<in># dom_m N\<close>
     \<open>count_decided M = 0\<close> and
-    \<open>mset (N \<propto> D) = {#K#} +C'\<close>
-    \<open>D \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N D\<close>
-    \<open>undefined_lit M K\<close> and
+    \<open>D \<notin> set (get_all_mark_of_propagated M)\<close> and
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
     dec: \<open>count_decided (get_trail_l S) = 0\<close> and
     false: \<open>\<forall>L \<in># C'. -L \<in> lits_of_l (get_trail_l S)\<close> and
     ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
-  shows
-    \<open>cdcl_twl_unitres_l (M, N, None, NE, UE, NS, US, {#}, Q)
-    (Propagated K 0 # M, fmdrop D N, None, add_mset {#K#} NE, UE, add_mset (mset (N \<propto> D))  NS, US, {#}, add_mset (-K) Q)\<close>
+  shows cdcl_twl_unitres_l_intros2':
+      \<open>irred N D \<Longrightarrow> undefined_lit M K \<Longrightarrow> mset (N \<propto> D) = {#K#} +C' \<Longrightarrow>
+      cdcl_twl_unitres_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (Propagated K 0 # M, fmdrop D N, None, add_mset {#K#} NE, UE, add_mset (mset (N \<propto> D))  NS, US, {#}, add_mset (-K) Q)\<close>
+       (is \<open>?A \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> ?B\<close>) and
+    cdcl_twl_unitres_l_intros4':
+      \<open>\<not>irred N D \<Longrightarrow> undefined_lit M K \<Longrightarrow> mset (N \<propto> D) = {#K#} +C' \<Longrightarrow>
+      cdcl_twl_unitres_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (Propagated K 0 # M, fmdrop D N, None, NE, add_mset {#K#} UE, NS, add_mset (mset (N \<propto> D)) US, {#}, add_mset (-K) Q)\<close>
+    (is \<open>?A' \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow> ?B'\<close>) and
+    cdcl_twl_unitres_false_entailed:
+      \<open>(mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S + get_subsumed_init_clauses_l S) \<Turnstile>psm mset_set (CNot C')\<close>
 proof -
   have \<open>all_decomposition_implies_m (cdcl\<^sub>W_restart_mset.clauses ((state\<^sub>W_of T)))
-    (get_all_ann_decomposition (trail ((state\<^sub>W_of T))))\<close>
+    (get_all_ann_decomposition (trail ((state\<^sub>W_of T))))\<close> and
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
     using st_invs unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def state\<^sub>W_of_def
     by fast+
-      find_theorems get_all_ann_decomposition count_decided
-  then have \<open>(mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S + get_subsumed_init_clauses_l S) \<Turnstile>psm mset_set (CNot C')\<close>
+  moreover have \<open>(\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m b \<and> snd a} \<union> set_mset d \<union> f \<union> U\<Turnstile>ps
+       unmark_l aa \<Longrightarrow>
+       (a, aa) \<in> convert_lits_l b (d + e) \<Longrightarrow>
+       (\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m b \<and> snd a} \<union> set_mset d \<union> f \<Turnstile>ps U \<Longrightarrow>
+       - L \<in> lits_of_l a \<Longrightarrow>
+    (\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m b \<and> snd a} \<union> set_mset d \<union> f \<Turnstile>p {#- L#}\<close>
+    for aa :: \<open>('v, 'v clause) ann_lits\<close> and a :: \<open>('v, nat) ann_lit list\<close> and b d e f L U
+    by (smt in_unmark_l_in_lits_of_l_iff list_of_l_convert_lits_l
+      true_clss_clss_in_imp_true_clss_cls true_clss_clss_left_right
+      true_clss_clss_union_and)
+  ultimately show \<open>(mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S + get_subsumed_init_clauses_l S) \<Turnstile>psm mset_set (CNot C')\<close>
     using dec ST false ent
-    apply (cases S; cases T)
-    apply (auto simp: twl_st_l_def all_decomposition_implies_def clauses_def
+    by (cases S; cases T)
+     (auto simp: twl_st_l_def all_decomposition_implies_def clauses_def
       get_all_ann_decomposition_count_decided0 image_image mset_take_mset_drop_mset'
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
-sledgehammer
-      thm cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-find_theorems \<open>_ \<Turnstile>ps CNot _\<close>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def true_clss_clss_def_iff_negation_in_model
+      dest!: multi_member_split)
+  moreover {
+    have \<open>N \<propto> D \<in># init_clss_lf N \<or> N \<propto> D \<in># learned_clss_lf N\<close>
+      using assms(1,2) by (auto simp: ran_m_def)
+    then have \<open>atms_of (mset (N \<propto> D)) \<subseteq> atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close>
+      using alien assms(1) ST
+      by (fastforce simp: twl_st_l_def clauses_def mset_take_mset_drop_mset' image_image
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def conj_disj_distribR Collect_disj_eq Collect_conv_if
+        dest!: multi_member_split[of _ \<open>ran_m N\<close>])
+   } ultimately show \<open>?A \<Longrightarrow>  ?B\<close> \<open>?A' \<Longrightarrow> undefined_lit M K \<Longrightarrow> ?B'\<close>
+      if \<open>mset (N \<propto> D) = {#K#} + C'\<close> \<open>undefined_lit M K\<close>
+    using assms cdcl_twl_unitres_l.intros(2)[of D N M K C' NE NS UE US Q]
+      cdcl_twl_unitres_l.intros(4)[of D N M K C' NE NS UE US Q] that
+    by auto
+qed
+
+lemma fmdrop_eq_update_eq: \<open>fmdrop C aa = fmdrop C bh \<Longrightarrow> C \<in># dom_m bh \<Longrightarrow>
+  bh = fmupd C (bh \<propto> C, irred bh C) aa\<close>
+  apply (subst (asm) fmlookup_inject[symmetric])
+  apply (subst fmlookup_inject[symmetric])
+  apply (intro ext)
+  apply auto[]
+  by (metis fmlookup_drop)
+
 lemma
-  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close> \<open>get_conflict_l S = None\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close> \<open>no_dup (get_trail_l S)\<close>
+  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
+    \<open>get_conflict_l S = None\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
+    \<open>no_dup (get_trail_l S)\<close> and
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    st_invs: \<open>twl_struct_invs T\<close>
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close>
+    \<open>\<not>tautology (mset ((get_clauses_l S) \<propto> C))\<close>
   shows \<open>simplify_clause_with_unit_st C S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_unitres_l S T \<or> cdcl_twl_unitres_true_l S T))\<close>
   unfolding simplify_clause_with_unit_st_def simplify_clause_with_unit_def
   apply refine_vcg
@@ -940,23 +1013,33 @@ lemma
   subgoal using assms by auto
   subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
     using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
-    by (auto simp: cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
+    by (auto simp: cdcl_twl_unitres_true_l.simps
       intro!: exI[of _ C])
   subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
+    using ST st_invs apply -
     apply (rule disjI1)
-    apply (auto simp: length_list_Suc_0 cdcl_twl_unitres_l.simps)
-apply (rule_tac x=C in exI)
-apply auto
-apply (rule_tac x = \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close> in exI)
-apply auto
-apply (subgoal_tac \<open>fmdrop C bh = fmdrop C aa\<close>)
-apply auto
-subgoal
-apply (rule cdcl_twl_unitres_l.intros(2)[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>])
-apply (auto simp: length_list_Suc_0; fail)+
-defer
-  apply (auto; fail)+
-apply auto
+    apply (subgoal_tac \<open>fmdrop C bh = fmdrop C aa\<close>)
+    apply auto
+    apply (auto simp: length_list_Suc_0 cdcl_twl_unitres_l_intros2' cdcl_twl_unitres_l_intros4'
+      intro:  cdcl_twl_unitres_l_intros2'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>
+      and T = T]
+      cdcl_twl_unitres_l_intros4'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>
+      and T = T])[2]
+    done
+  subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
+    using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs
+      cdcl_twl_unitres_false_entailed[of C \<open>get_clauses_l S\<close> \<open>get_trail_l S\<close>
+       \<open>get_unit_init_clauses_l S\<close> \<open>get_unit_learned_clss_l S\<close>
+      \<open>get_subsumed_init_clauses_l S\<close> \<open>get_subsumed_learned_clauses_l S\<close>
+      \<open>literals_to_update_l S\<close> T
+       \<open>mset (get_clauses_l S \<propto> C) - mset (bh \<propto> C)\<close>]
+    apply (auto simp: cdcl_twl_unitres_l.simps
+      intro!: exI[of _ C])
+    apply (rule_tac x = \<open>mset (aa \<propto> C) - mset (bh \<propto> C)\<close> in exI)
+    apply (rule_tac x = \<open>bh \<propto> C\<close> in exI)
+    apply (auto dest: fmdrop_eq_update_eq)
+    sledgehammer
+
 oops
 find_theorems \<open>length _ = Suc _ \<close>
     using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
