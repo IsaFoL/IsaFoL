@@ -773,6 +773,10 @@ lemma pcdcl_core_is_cdcl:
       cdcl_resolve_is_resolve cdcl_backtrack_is_backtrack
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.intros)+
 
+lemma rtranclp_pcdcl_core_is_cdcl:
+  \<open>pcdcl_core\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (state_of S) (state_of T)\<close>
+  by (induction rule: rtranclp_induct) (auto dest: pcdcl_core_is_cdcl)
+
 lemma pcdcl_core_stgy_is_cdcl_stgy:
   assumes
     confl: \<open>pcdcl_core_stgy S T\<close> and

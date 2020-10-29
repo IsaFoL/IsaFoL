@@ -4788,28 +4788,30 @@ lemma cdcl_twl_o_cdcl\<^sub>W_o_stgy:
   using cdcl inv
 proof (induction rule: cdcl_twl_o.induct)
   case (decide M L N NE NS N0 U UE US U0) note undef = this(1) and atm = this(2) and inv = this(3)
-  have \<open>cdcl_decide (pstate\<^sub>W_of (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#}))
+  have 0: \<open>cdcl_decide (pstate\<^sub>W_of (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#}))
     (pstate\<^sub>W_of (Decided L # M, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#-L#}))\<close>
     unfolding pstate\<^sub>W_of.simps
     apply (rule cdcl_decide.intros)
       using undef apply (simp add: trail.simps; fail)
      using atm apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
      done
-  then show ?case
+  then show dec: ?case
     using no_literals_to_update_no_cp[of \<open>(M, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>] inv
      by (auto dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros pcdcl_core.intros simp: pcdcl_tcore_stgy.simps
        pcdcl_core_stgy.simps)
 next
-  case (skip L D C' M N U NE UE) note LD = this(1) and D = this(2)
-  show ?case
-    apply (rule pcdcl_tcore_stgy.intros(1), rule pcdcl_core_stgy.intros(4))
+  case (skip L D C' M N U NE UE NS US N0 U0) note LD = this(1) and D = this(2) and inv = this(3)
+  have skip': \<open>cdcl_skip (pstate\<^sub>W_of (Propagated L C' # M, N, U, Some D, NE, UE, NS, US, N0, U0, {#}, {#}))
+     (pstate\<^sub>W_of (M, N, U, Some D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
     unfolding pstate\<^sub>W_of.simps
     apply (rule cdcl_skip.intros)
       using LD apply (simp; fail)
      using D apply (simp; fail)
     done
+  show ?case
+    by (rule pcdcl_tcore_stgy.intros(1), rule pcdcl_core_stgy.intros(4)) (rule skip')
 next
-  case (resolve L D C M N U NE UE NS US) note LD = this(1) and lev = this(2) and inv = this(3)
+  case (resolve L D C M N U NE UE NS US N0 U0) note LD = this(1) and lev = this(2) and inv = this(3)
   have \<open>\<forall>La mark a b. a @ Propagated La mark # b = Propagated L C # M \<longrightarrow>
       b \<Turnstile>as CNot (remove1_mset La mark) \<and> La \<in># mark\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -4817,27 +4819,34 @@ next
     by (auto simp: trail.simps)
   then have LC: \<open>L \<in># C\<close>
     by blast
-  show ?case
-    apply (rule pcdcl_tcore_stgy.intros(1), rule pcdcl_core_stgy.intros(5))
+  have resolve: \<open>cdcl_resolve (pstate\<^sub>W_of (Propagated L C # M, N, U, Some D, NE, UE, NS, US, N0, U0, {#}, {#}))
+     (pstate\<^sub>W_of
+       (M, N, U, Some (remove1_mset (- L) D \<union># remove1_mset L C), NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
     unfolding pstate\<^sub>W_of.simps
     apply (rule cdcl_resolve.intros)
      using LD apply (simp; fail)
      using lev apply (simp add: cdcl\<^sub>W_restart_mset_state; fail)
      using LC apply (simp add: trail.simps; fail)
      done
+  show ?case
+    by (rule pcdcl_tcore_stgy.intros(1), rule pcdcl_core_stgy.intros(5))
+      (rule resolve)
 next
   case (backtrack_unit_clause L D K M1 M2 M D' i N U NE UE NS US N0 U0) note L_D = this(1) and
      decomp = this(2) and lev_L = this(3) and max_D'_L = this(4) and lev_D = this(5) and
-     lev_K = this(6) and D'_D = this(8) and NU_D' = this(9) and inv = this(10) and
-     D'[simp] = this(7)
+     lev_K = this(6) and D'_D = this(8) and NU_D' = this(9) and
+     D'[simp] = this(7) and inv = this(10)
   have D: \<open>D = add_mset L (remove1_mset L D)\<close>
     using L_D by auto
-  show ?case
-    apply (rule pcdcl_tcore_stgy.intros(4))
+  have bt: \<open>cdcl_backtrack_unit (pstate\<^sub>W_of (M, N, U, Some D, NE, UE, NS, US, N0, U0, {#}, {#}))
+     (pstate\<^sub>W_of
+       (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, NS, US, N0, U0, {#}, {#- L#}))\<close>
     unfolding pstate\<^sub>W_of.simps
     apply (subst D)
     apply (rule cdcl_backtrack_unit.intros)
     using backtrack_unit_clause by auto
+  then show ?case
+    by (rule pcdcl_tcore_stgy.intros(4))
 next
   case (backtrack_nonunit_clause L D K M1 M2 M D' i N U NE UE NS US N0 U0 L') note LD = this(1) and
     decomp = this(2) and lev_L = this(3) and max_lev = this(4) and i = this(5) and lev_K = this(6)
@@ -4896,32 +4905,35 @@ next
     done
 qed
 
+lemma pcdcl_tcore_stgy_conflict_non_zero_unless_level_0:
+  \<open>pcdcl_tcore_stgy S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of S) \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S) \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (state_of T)\<close>
+  apply (induction rule: pcdcl_tcore_stgy.induct)
+  subgoal
+    using pcdcl_core_is_cdcl[of S T]
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0[of \<open>state_of S\<close> \<open>state_of T\<close>]
+    by (auto dest!: pcdcl_core_stgy_pcdcl cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart)
+  subgoal
+     by (auto simp: cdcl_subsumed.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
+  subgoal
+     by (auto simp: cdcl_flush_unit.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
+   subgoal
+     by (metis cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart cdcl_backtrack_unit_is_backtrack
+       cdcl_flush_unit_unchanged pcdcl_core.intros(6) pcdcl_core_is_cdcl)
+  done
 
 lemma cdcl_twl_o_twl_stgy_invs:
   \<open>cdcl_twl_o S T \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
   using cdcl_twl_o_cdcl\<^sub>W_o_stgy[of S T]
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0[of \<open>state\<^sub>W_of S\<close> \<open>state\<^sub>W_of T\<close>,
-      OF ]
-  apply (auto simp:  twl_struct_invs_def twl_stgy_invs_def pcdcl_all_struct_invs_def
+    pcdcl_tcore_stgy_conflict_non_zero_unless_level_0[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of T\<close>]
+  by (auto simp:  twl_struct_invs_def twl_stgy_invs_def pcdcl_all_struct_invs_def
     intro!: rtranclp_pcdcl_stgy_stgy_invariant[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of T\<close>]
     dest: pcdcl_tcore_stgy_pcdcl_stgy')
-  apply (subgoal_tac \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart (state_of (pstate\<^sub>W_of S)) (state_of (pstate\<^sub>W_of T)) \<or> pstate\<^sub>W_of S = pstate\<^sub>W_of T\<close>)
-    apply auto
-    sledgehammer
-    find_theorems pcdcl_tcore_stgy name:cdcl
-  apply (metis (no_types, hide_lams) cdcl\<^sub>W_restart_mset.backtrack cdcl\<^sub>W_restart_mset.bj
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_conflict_non_zero_unless_level_0 cdcl\<^sub>W_restart_mset.other
-  cdcl_backtrack_unit_is_CDCL_backtrack pcdcl_all_struct_invs_def pcdcl_stgy.simps
-  pcdcl_stgy_conflict_non_zero_unless_level_0 pcdcl_tcore_stgy.cases state\<^sub>W_of_def twl_struct_invs_def
-  twl_struct_invs_no_false_clause)
-  by (metis cdcl_backtrack_unit_is_backtrack
-  cdcl_flush_unit_unchanged pcdcl_all_struct_invs_def pcdcl_core_stgy.simps pcdcl_stgy.intros(1)
-  pcdcl_stgy.intros(4) pcdcl_stgy.intros(5) pcdcl_stgy_conflict_non_zero_unless_level_0
-  pcdcl_tcore_stgy.simps state\<^sub>W_of_def twl_struct_invs_def twl_struct_invs_no_false_clause)
-thm cdcl_twl_stgy_cdcl\<^sub>W_stgy2
+
 
 paragraph \<open>Well-foundedness\<close>
-
 
 lemma wf_cdcl\<^sub>W_stgy_state\<^sub>W_of:
   \<open>wf {(T, S). pcdcl_all_struct_invs (pstate\<^sub>W_of S) \<and> pcdcl_tcore (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)}\<close>
@@ -5101,50 +5113,50 @@ lemma tranclp_wf_cdcl_twl_o:
 
 lemma (in -)propa_cands_enqueued_mono:
   \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
-     propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      propa_cands_enqueued  (M, N', U', D, NE', UE', NS, US, WS, Q)\<close>
+     propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      propa_cands_enqueued  (M, N', U', D, NE', UE', NS, US, N0, U0, WS, Q)\<close>
   by (cases D) (auto 5 5)
 
 lemma (in -)confl_cands_enqueued_mono:
   \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
-     confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      confl_cands_enqueued  (M, N', U', D, NE', UE', NS, US, WS, Q)\<close>
+     confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      confl_cands_enqueued  (M, N', U', D, NE', UE', NS, US, N0, U0, WS, Q)\<close>
   by (cases D) auto
 
 lemma (in -)twl_st_exception_inv_mono:
   \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
-     twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      twl_st_exception_inv  (M, N', U', D, NE', UE', NS, US, WS, Q)\<close>
+     twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_exception_inv  (M, N', U', D, NE', UE', NS, US, N0, U0, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_exception_inv.simps)+
 
 lemma (in -)twl_st_inv_mono:
   \<open>U' \<subseteq># U \<Longrightarrow> N' \<subseteq># N \<Longrightarrow>
-     twl_st_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      twl_st_inv (M, N', U', D, NE', UE', NS, US, WS, Q)\<close>
+     twl_st_inv (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_inv (M, N', U', D, NE', UE', NS, US, N0, U0, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -)propa_cands_enqueued_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
-     propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US', WS, Q)\<close>
+     propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) (auto 5 5)
 
 lemma (in -)confl_cands_enqueued_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
-     confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US', WS, Q)\<close>
+     confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) auto
 
 lemma (in -)twl_st_exception_inv_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
-     twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US', WS, Q)\<close>
+     twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_exception_inv.simps)+
 
 lemma (in -)twl_st_inv_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
-     twl_st_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow>
-      twl_st_inv (M, N, U, D, NE, UE, NS, US', WS, Q)\<close>
+     twl_st_inv (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_inv (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
