@@ -36,8 +36,8 @@ text \<open>
 \<close>
 inductive pcdcl_restart :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 restart_trail:
-   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US)
-        (M', N', U', None, NE + NE', UE + UE', NS, {#})\<close>
+   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US, N0, U0)
+        (M', N', U', None, NE + NE', UE + UE', NS, {#}, N0, U0)\<close>
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>U' + UE' \<subseteq># U\<close> and
@@ -45,8 +45,8 @@ restart_trail:
     \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#E. L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
     \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># (N + U') + NE + UE + UE'\<close> |
 restart_clauses:
-   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US)
-      (M, N', U', None, NE + NE', UE + UE', NS, US')\<close>
+   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US, N0, U0)
+      (M, N', U', None, NE + NE', UE + UE', NS, US', N0, U0)\<close>
   if
     \<open>U' + UE' \<subseteq># U\<close> and
     \<open>N = N' + NE'\<close> and
@@ -57,14 +57,15 @@ restart_clauses:
 
 inductive pcdcl_restart_only :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 restart_trail:
-   \<open>pcdcl_restart_only (M, N, U, None, NE, UE, NS, US)
-        (M', N, U, None, NE, UE, NS, US)\<close>
+   \<open>pcdcl_restart_only (M, N, U, None, NE, UE, NS, US, N0, U0)
+        (M', N, U, None, NE, UE, NS, US, N0, U0)\<close>
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<or> M = M'\<close>
 
 
 (*TODO Taken from Misc*)
-lemma mset_le_incr_right1: "a\<subseteq>#(b::'a multiset) \<Longrightarrow> a\<subseteq>#b+c" using mset_subset_eq_mono_add[of a b "{#}" c, simplified] .
+lemma mset_le_incr_right1:
+  "a\<subseteq>#(b::'a multiset) \<Longrightarrow> a\<subseteq>#b+c" using mset_subset_eq_mono_add[of a b "{#}" c, simplified] .
 
 lemma pcdcl_restart_cdcl\<^sub>W_stgy:
   fixes S V :: \<open>'v prag_st\<close>
@@ -78,13 +79,13 @@ lemma pcdcl_restart_cdcl\<^sub>W_stgy:
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of S) (state_of V)\<close>
   using assms
 proof (induction rule: pcdcl_restart.induct)
-  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US)
+  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US N0 U0)
   note decomp = this(1) and learned = this(2) and N = this(3) and
     has_true = this(4) and kept = this(5) and inv = this(6) and stgy_invs = this(7) and
     smaller_propa = this(8)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
-  let ?T = \<open>([], N + NE + NS,  U' + UE + UE', None)\<close>
-  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#})\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  let ?T = \<open>([], N + NE + NS + N0,  U' + UE + UE' + U0, None)\<close>
+  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#}, N0, U0)\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     using learned
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def
@@ -96,11 +97,11 @@ proof (induction rule: pcdcl_restart.induct)
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T
-      (drop (length M - length M') M, N + NE + NS,
-        U' + UE + UE', None)\<close> for n
-    apply (rule after_fast_restart_replay[of M \<open>N + NE + NS\<close>
-          \<open>U+UE+US\<close> _
-          \<open>U' + UE + UE'\<close>])
+      (drop (length M - length M') M, N + NE + NS + N0,
+        U' + UE + UE' + U0, None)\<close> for n
+    apply (rule after_fast_restart_replay[of M \<open>N + NE + NS + N0\<close>
+          \<open>U+UE+US+U0\<close> _
+          \<open>U' + UE + UE'+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using stgy_invs by simp
     subgoal using smaller_propa by simp
@@ -118,12 +119,12 @@ proof (induction rule: pcdcl_restart.induct)
       add.commute[of \<open>NE'\<close>]
     by fast
 next
-  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US)
+  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US N0 U0)
   note learned = this(1) and N = this(2) and has_true = this(3) and kept = this(4) and
     US = this(5) and inv = this(6) and stgy_invs = this(7) and  smaller_propa = this(8)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US) :: 'v prag_st\<close>
-  let ?T = \<open>([], N + NE + NS, U' + UE + UE' + US', None)\<close>
-  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US') :: 'v prag_st\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0) :: 'v prag_st\<close>
+  let ?T = \<open>([], N + NE + NS + N0, U' + UE + UE' + US' + U0, None)\<close>
+  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US', N0, U0) :: 'v prag_st\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     using learned US
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
@@ -135,11 +136,11 @@ next
     using inv unfolding pcdcl_all_struct_invs_def by auto
 
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T
-      (drop (length M - length M) M, N + NE+NS,
-        U' + UE+ UE'+US', None)\<close> for n
-    apply (rule after_fast_restart_replay[of M \<open>N + NE+NS\<close>
-           \<open>U+UE+US\<close> _
-          \<open>U' + UE + UE'+US'\<close>])
+      (drop (length M - length M) M, N + NE+NS+N0,
+        U' + UE+ UE'+US'+U0, None)\<close> for n
+    apply (rule after_fast_restart_replay[of M \<open>N + NE+NS+N0\<close>
+           \<open>U+UE+US+U0\<close> _
+          \<open>U' + UE + UE'+US'+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using stgy_invs by simp
     subgoal using smaller_propa by simp
@@ -168,12 +169,12 @@ lemma pcdcl_restart_cdcl\<^sub>W:
     \<open>\<exists>T. cdcl\<^sub>W_restart_mset.restart (state_of S) T \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* T (state_of V)\<close>
   using assms
 proof (induction rule: pcdcl_restart.induct)
-  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US)
+  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US N0 U0)
   note decomp = this(1) and learned = this(2) and N = this(3) and
     has_true = this(4) and kept = this(5) and inv = this(6)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
-  let ?T = \<open>([], N + NE + NS, U' + UE + UE', None)\<close>
-  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#})\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  let ?T = \<open>([], N + NE + NS + N0, U' + UE + UE' + U0, None)\<close>
+  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#}, N0, U0)\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     using learned
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
@@ -184,11 +185,11 @@ proof (induction rule: pcdcl_restart.induct)
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T
-      (drop (length M - length M') M,  N + NE + NS,
-          U' + UE+ UE', None)\<close> for n
+      (drop (length M - length M') M,  N + NE + NS + N0,
+          U' + UE+ UE' + U0, None)\<close> for n
     apply (rule after_fast_restart_replay_no_stgy[of M
-      \<open>N + NE + NS\<close> \<open>U+UE+US\<close> _
-          \<open>U' + UE + UE'\<close>])
+      \<open>N + NE + NS+N0\<close> \<open>U+UE+US+U0\<close> _
+          \<open>U' + UE + UE'+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using kept unfolding drop_M_M' by (auto simp add: ac_simps)
     subgoal using learned
@@ -200,12 +201,12 @@ proof (induction rule: pcdcl_restart.induct)
   then show ?case
     using restart by (auto simp: ac_simps N)
 next
-  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US)
+  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US N0 U0)
   note learned = this(1) and N = this(2) and has_true = this(3) and kept = this(4) and
     US = this(5) and inv = this(6)
-  let ?S = \<open>(M, N, U, None, NE, UE,NS, US)\<close>
-  let ?T = \<open>([], N + NE + NS, U' + UE + UE' + US', None)\<close>
-  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US')\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE,NS, US, N0, U0)\<close>
+  let ?T = \<open>([], N + NE + NS+N0, U' + UE + UE' + US' + U0, None)\<close>
+  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US', N0, U0)\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     using learned US
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
@@ -214,11 +215,11 @@ next
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close> 
     using inv unfolding pcdcl_all_struct_invs_def by fast+
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T
-      (drop (length M - length M) M, N + NE + NS,
-          U' + UE+ UE' + US', None)\<close> for n
+      (drop (length M - length M) M, N + NE + NS+N0,
+          U' + UE+ UE' + US'+U0, None)\<close> for n
     apply (rule after_fast_restart_replay_no_stgy[of M
-          \<open>N + NE + NS\<close> \<open>U+ UE + US\<close> _
-          \<open>U' + UE+ UE' + US'\<close>])
+          \<open>N + NE + NS+N0\<close> \<open>U+ UE + US+U0\<close> _
+          \<open>U' + UE+ UE' + US'+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using kept by (auto simp add: ac_simps)
     subgoal
@@ -250,13 +251,16 @@ lemma (in -) pcdcl_restart_pcdcl_all_struct_invs:
       using get_all_ann_decomposition_lvl0_still[of _ _ _ \<open>pget_trail S\<close>]
       apply (auto simp: pcdcl_all_struct_invs_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart
         cdcl\<^sub>W_restart_mset.rf)
-      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
+      by (auto 7 3 simp: entailed_clss_inv_def clauses0_inv_def psubsumed_invs_def
+        dest!: multi_member_split)
     subgoal
       apply (auto simp: pcdcl_all_struct_invs_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart
         cdcl\<^sub>W_restart_mset.rf)
-      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
+      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def clauses0_inv_def
+        dest!: multi_member_split)
     done
   done
+
 lemma (in conflict_driven_clause_learning_with_adding_init_clause\<^sub>W) restart_no_smaller_propa:
   \<open>restart S T \<Longrightarrow> no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
   by (induction rule: restart.induct)
@@ -311,12 +315,12 @@ lemma pcdcl_restart_only_cdcl\<^sub>W_stgy:
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of S) (state_of V)\<close>
   using assms
 proof (induction rule: pcdcl_restart_only.induct)
-  case (restart_trail K M' M2 M N U NE UE NS US)
+  case (restart_trail K M' M2 M N U NE UE NS US N0 U0)
   note decomp = this(1) and inv = this(2) and stgy_invs = this(3) and
     smaller_propa = this(4)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
-  let ?T = \<open>([], N + NE + NS,  U + UE + US, None)\<close>
-  let ?V = \<open>(M', N, U, None, NE, UE, NS, US)\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  let ?T = \<open>([], N + NE + NS + N0,  U + UE + US + U0, None)\<close>
+  let ?V = \<open>(M', N, U, None, NE, UE, NS, US, N0, U0)\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
         intro: mset_le_incr_right1)
@@ -331,10 +335,10 @@ proof (induction rule: pcdcl_restart_only.induct)
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T
-      (drop (length M - length M') M, N + NE + NS, U + UE + US, None)\<close> for n
-    apply (rule after_fast_restart_replay[of M \<open>N + NE + NS\<close>
-          \<open>U+UE+US\<close> _
-          \<open>U+UE+US\<close>])
+      (drop (length M - length M') M, N + NE + NS + N0, U + UE + US + U0, None)\<close> for n
+    apply (rule after_fast_restart_replay[of M \<open>N + NE + NS + N0\<close>
+          \<open>U+UE+US+U0\<close> _
+          \<open>U+UE+US+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using stgy_invs by simp
     subgoal using smaller_propa by simp
@@ -362,11 +366,11 @@ lemma pcdcl_restart_only_cdcl\<^sub>W:
     \<open>\<exists>T. cdcl\<^sub>W_restart_mset.restart (state_of S) T \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* T (state_of V)\<close>
   using assms
 proof (induction rule: pcdcl_restart_only.induct)
-  case (restart_trail K M' M2 M N U NE UE NS US)
+  case (restart_trail K M' M2 M N U NE UE NS US N0 U0)
   note decomp = this(1) and inv = this(2)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
-  let ?T = \<open>([], N + NE + NS, U + UE + US, None)\<close>
-  let ?V = \<open>(M', N, U, None, NE, UE + US, NS, {#})\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
+  let ?T = \<open>([], N + NE + NS+N0, U + UE + US+U0, None)\<close>
+  let ?V = \<open>(M', N, U, None, NE, UE + US, NS, {#}, N0, U0)\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
         intro: mset_le_incr_right1)
@@ -380,11 +384,11 @@ proof (induction rule: pcdcl_restart_only.induct)
   have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
     using decomp by (auto)
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T
-      (drop (length M - length M') M,  N + NE + NS,
-          U + UE+ US, None)\<close> for n
+      (drop (length M - length M') M,  N + NE + NS+N0,
+          U + UE+ US+U0, None)\<close> for n
     apply (rule after_fast_restart_replay_no_stgy[of M
-      \<open>N + NE + NS\<close> \<open>U+UE+US\<close> _
-          \<open>U + UE + US\<close>])
+      \<open>N + NE + NS+N0\<close> \<open>U+UE+US+U0\<close> _
+          \<open>U + UE + US+U0\<close>])
     subgoal using struct_invs by simp
     subgoal using reas unfolding cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
       by (auto simp: clauses_def get_all_mark_of_propagated_alt_def dest!: in_set_dropD)
@@ -415,7 +419,8 @@ lemma pcdcl_restart_only_pcdcl_all_struct_invs:
       using get_all_ann_decomposition_lvl0_still[of _ _ _ \<open>pget_trail S\<close>]
       apply (auto simp: pcdcl_all_struct_invs_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart
         cdcl\<^sub>W_restart_mset.rf)
-      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
+      by (auto 7 3 simp: entailed_clss_inv_def clauses0_inv_def psubsumed_invs_def
+        dest!: multi_member_split)
     done
   done
 
@@ -661,7 +666,9 @@ lemma
   pcdcl_tcore_stgy_init_learned:
     \<open>pcdcl_tcore_stgy S T \<Longrightarrow> pget_init_learned_clss S \<subseteq># pget_init_learned_clss T\<close> and
   pcdcl_tcore_stgy_psubsumed_learned_clauses:
-    \<open>pcdcl_tcore_stgy S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close>
+    \<open>pcdcl_tcore_stgy S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close>and
+  pcdcl_tcore_stgy_plearned_clauses0:
+    \<open>pcdcl_tcore_stgy S T \<Longrightarrow> plearned_clauses0 S \<subseteq># plearned_clauses0 T\<close>
   by (auto simp: pcdcl_tcore_stgy.simps pcdcl_core_stgy.simps cdcl_conflict.simps
     cdcl_propagate.simps cdcl_decide.simps cdcl_backtrack_unit.simps cdcl_skip.simps
     cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
@@ -670,18 +677,23 @@ lemma
   rtranclp_pcdcl_tcore_stgy_init_learned:
     \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pget_init_learned_clss S \<subseteq># pget_init_learned_clss T\<close> and
   rtranclp_pcdcl_tcore_stgy_psubsumed_learned_clauses:
-    \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close>
+    \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close> and
+  rtranclp_pcdcl_tcore_stgy_plearned_clauses0:
+    \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> plearned_clauses0 S \<subseteq># plearned_clauses0 T\<close>
   by (induction rule: rtranclp_induct)
-    (auto dest: pcdcl_tcore_stgy_init_learned pcdcl_tcore_stgy_psubsumed_learned_clauses)
+    (auto dest: pcdcl_tcore_stgy_init_learned pcdcl_tcore_stgy_psubsumed_learned_clauses
+      pcdcl_tcore_stgy_plearned_clauses0)
 
 lemma
   pcdcl_stgy_only_restart_init_learned:
     \<open>pcdcl_stgy_only_restart S T \<Longrightarrow> pget_init_learned_clss S \<subseteq># pget_init_learned_clss T\<close> and
   pcdcl_stgy_only_restart_psubsumed_learned_clauses:
-    \<open>pcdcl_stgy_only_restart S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close>
+    \<open>pcdcl_stgy_only_restart S T \<Longrightarrow> psubsumed_learned_clauses S \<subseteq># psubsumed_learned_clauses T\<close> and
+  pcdcl_stgy_only_restart_plearned_clauses0:
+    \<open>pcdcl_stgy_only_restart S T \<Longrightarrow> plearned_clauses0 S \<subseteq># plearned_clauses0 T\<close>
   by (auto simp: pcdcl_stgy_only_restart.simps pcdcl_restart_only.simps
     dest!: tranclp_into_rtranclp dest: rtranclp_pcdcl_tcore_stgy_init_learned
-    rtranclp_pcdcl_tcore_stgy_psubsumed_learned_clauses)
+    rtranclp_pcdcl_tcore_stgy_psubsumed_learned_clauses rtranclp_pcdcl_tcore_stgy_plearned_clauses0)
 
 
 lemma cdcl_twl_stgy_restart_new:
@@ -699,7 +711,8 @@ proof cases
     unfolding pcdcl_all_struct_invs_def
     by (auto dest!: tranclp_into_rtranclp)
 
- then have dist: \<open>distinct_mset (learned_clss (state_of T) - (A + pget_init_learned_clss S + psubsumed_learned_clauses S))\<close>
+  then have dist: \<open>distinct_mset (learned_clss (state_of T) - (A + pget_init_learned_clss S +
+      psubsumed_learned_clauses S + plearned_clauses0 S))\<close>
    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs)
    subgoal using invs unfolding pcdcl_all_struct_invs_def by fast
    subgoal using propa unfolding pcdcl_all_struct_invs_def by fast
@@ -707,10 +720,12 @@ proof cases
    done
  have [simp]: \<open>pget_all_learned_clss U = pget_all_learned_clss T\<close>
    by (use res in \<open>auto simp: pcdcl_restart_only.simps\<close>)
- have \<open>distinct_mset (learned_clss (state_of U) - (A + pget_init_learned_clss U + psubsumed_learned_clauses U))\<close>
+ have \<open>distinct_mset (learned_clss (state_of U) - (A + pget_init_learned_clss U +
+    psubsumed_learned_clauses U + plearned_clauses0 U))\<close>
    apply (rule distinct_mset_mono[OF _ dist])
    by (simp add: assms(1) diff_le_mono2_mset pcdcl_stgy_only_restart_init_learned
-     pcdcl_stgy_only_restart_psubsumed_learned_clauses subset_mset.add_mono)
+     pcdcl_stgy_only_restart_psubsumed_learned_clauses subset_mset.add_mono
+     pcdcl_stgy_only_restart_plearned_clauses0)
  then show \<open>?thesis\<close>
    using res by (auto simp add: pcdcl_restart_only.simps)
 qed
@@ -1098,7 +1113,7 @@ lemma pcdcl_pget_all_init_clss:
     cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
     cdcl_unitres_true_all_init_clss
     cdcl_inp_conflict.simps pcdcl_all_struct_invs_def
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_promote_false.simps
     cdcl\<^sub>W_restart_mset.no_strange_atm_def)
 
 lemma rtranclp_pcdcl_pget_all_init_clss:
