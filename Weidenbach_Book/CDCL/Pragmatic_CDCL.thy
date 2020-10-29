@@ -499,8 +499,8 @@ lemmas entailed_clss_inv_def = entailed_clss_inv.simps
 lemmas [simp del] = entailed_clss_inv.simps
 
 fun clauses0_inv :: \<open>'v prag_st \<Rightarrow> bool\<close> where
-  \<open>clauses0_inv  (M, N, U, D, NE, UE, NS, US, N0, U0) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#}) \<and>
-     (N0 + U0 \<noteq> {#} \<longrightarrow> D = Some {#})\<close>
+  \<open>clauses0_inv  (M, N, U, D, NE, UE, NS, US, N0, U0) \<longleftrightarrow> (\<forall>C \<in># N0 + U0. C = {#} \<or> tautology C) \<and>
+     ({#} \<in># N0 + U0 \<longrightarrow> D = Some {#})\<close>
 
 lemmas clauses0_inv_def = clauses0_inv.simps
 
@@ -597,15 +597,17 @@ proof -
     \<open>T \<sim>m update_conflicting (Some C) (state_of S)\<close>
     using cdcl\<^sub>W_restart_mset.conflictE[OF confl]
     by metis
+
   have n_d: \<open>no_dup (pget_trail S)\<close>
     using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by simp
   then have \<open>C \<notin># punit_clauses S\<close> \<open>C \<notin># pclauses0 S\<close>
     using ent confl conf clss0
+      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C] distinct_consistent_interp[OF n_d]
     by (cases S; auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state clauses0_inv_def
+        true_annots_true_cls
       dest!: multi_member_split dest: no_dup_consistentD; fail)+
-
   moreover have \<open>C \<in># psubsumed_clauses S \<Longrightarrow> \<exists>C' \<in># pget_clauses S. trail (state_of S) \<Turnstile>as CNot C'\<close>
     using sub confl conf n_d ent
       consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C, OF distinct_consistent_interp]
@@ -654,8 +656,11 @@ proof -
       by simp
   then have \<open>C \<notin># punit_clauses S\<close> \<open>C \<notin># pclauses0 S\<close>
     using ent confl conf LC undef clss0
+      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> \<open>remove1_mset L C\<close>]
+      distinct_consistent_interp[OF n_d]
     by (cases S;
-      auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state clauses0_inv_def
+      auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state clauses0_inv_def true_annots_true_cls
+      tautology_add_mset
       dest!: multi_member_split dest: no_dup_consistentD in_lits_of_l_defined_litD; fail)+
 
   have tauto: \<open>\<not> tautology (remove1_mset L C)\<close>
