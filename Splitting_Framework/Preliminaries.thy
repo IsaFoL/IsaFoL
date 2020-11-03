@@ -74,13 +74,63 @@ next
     fix C
     assume \<open>C \<in> P\<close>
     then have n_to_c: \<open>N \<Turnstile> {C}\<close> using trans2 unfolding entails_conjunctive_def by simp
-    have "M \<union> {C} \<Turnstile> {C}" using entails_subsets[OF _ _ entails_reflexive[of C], of "M \<union> {C}" "{C}"] by fast
+    have "M \<union> {C} \<Turnstile> {C}"
+      using entails_subsets[OF _ _ entails_reflexive[of C], of "M \<union> {C}" "{C}"] by fast
     then have m_c_to_c: \<open>\<forall>D\<in>{C}. M \<union> {D} \<Turnstile> {C}\<close> by blast
     have m_to_c_n: "\<forall>D\<in>N. M \<Turnstile> {C} \<union> {D}"
       using trans1 entails_subsets[of M M] unfolding entails_conjunctive_def by blast 
     show \<open>M \<Turnstile> {C}\<close>
       using entails_each[OF n_to_c m_to_c_n m_c_to_c] unfolding entails_conjunctive_def .
   qed
+qed
+
+end
+
+locale sound_inference_system = inference_system Inf + consequence_relation bot entails_sound
+  for
+    Inf :: "'f inference set" and
+    bot :: "'f" and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50)
+  + assumes
+    sound: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concle_of \<iota>}"
+    
+
+locale calculus = inference_system Inf + consequence_relation bot entails
+  for
+    bot :: "'f" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
+  + fixes
+    Red_I :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set"
+  assumes
+    Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
+    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {}" and (* /!\ check if this is ok *)
+    Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
+    Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
+    Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
+    Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" and
+    Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
+begin
+
+
+definition saturated :: "'f set \<Rightarrow> bool" where
+  "saturated N \<longleftrightarrow> Inf_from N \<subseteq> Red_I N"
+
+end
+  
+locale statically_complete_calculus = calculus +
+  assumes statically_complete: "saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N"
+begin
+
+lemma \<open>bot \<notin> Red_F N\<close>
+proof -
+  have \<open>saturated UNIV\<close>
+    unfolding saturated_def Inf_from_def by (simp add: Red_I_of_Inf_to_N subsetI)
+  have \<open>UNIV \<Turnstile> {bot}\<close>
+    using entails_reflexive[of bot] entails_subsets[of "{bot}" UNIV "{bot}" "{bot}"] by fast
+  have \<open>bot \<notin> Red_F UNIV\<close> sorry
+  then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
 
 end
