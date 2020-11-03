@@ -74,12 +74,14 @@ next
     fix C
     assume \<open>C \<in> P\<close>
     then have n_to_c: \<open>N \<Turnstile> {C}\<close> using trans2 unfolding entails_conjunctive_def by simp
-    have m_c_to_c: "M \<union> {C} \<Turnstile> {C}" using entails_subsets[OF _ _ entails_reflexive[of C], of "M \<union> {C}" "{C}"] by fast
-    then show \<open>M \<Turnstile> {C}\<close>
-      using entails_each[OF n_to_c, of M "{C}"] trans1 unfolding entails_conjunctive_def 
-
-
-oops
+    have "M \<union> {C} \<Turnstile> {C}" using entails_subsets[OF _ _ entails_reflexive[of C], of "M \<union> {C}" "{C}"] by fast
+    then have m_c_to_c: \<open>\<forall>D\<in>{C}. M \<union> {D} \<Turnstile> {C}\<close> by blast
+    have m_to_c_n: "\<forall>D\<in>N. M \<Turnstile> {C} \<union> {D}"
+      using trans1 entails_subsets[of M M] unfolding entails_conjunctive_def by blast 
+    show \<open>M \<Turnstile> {C}\<close>
+      using entails_each[OF n_to_c m_to_c_n m_c_to_c] unfolding entails_conjunctive_def .
+  qed
+qed
 
 end
 
