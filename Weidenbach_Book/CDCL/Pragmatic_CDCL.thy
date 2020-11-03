@@ -2164,6 +2164,15 @@ lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
   subgoal by (auto simp: cdcl_unitres_true_same)
   done
 
+(*TODO Move in this file*)
+lemma rtranclp_pcdcl_entailed_by_init:
+  assumes \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  using pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs by blast+
 
 text \<open>
   TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.

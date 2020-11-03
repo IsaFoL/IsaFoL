@@ -29,8 +29,8 @@ text \<open>
 
 inductive cdcl_twl_restart :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 restart_trail:
-   \<open>cdcl_twl_restart (M, N, U, None, NE, UE, NS, US, {#}, Q)
-        (M', N', U', None, NE + clauses NE', UE + clauses UE', NS, {#},
+   \<open>cdcl_twl_restart (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
+        (M', N', U', None, NE + clauses NE', UE + clauses UE', NS, {#},N0, U0, 
            {#}, {#})\<close>
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
@@ -39,9 +39,8 @@ restart_trail:
     \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#clause E. L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
     \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + NE + UE + clauses UE'\<close> |
 restart_clauses:
-   \<open>cdcl_twl_restart (M, N, U, None, NE, UE, NS, US, {#}, Q)
-      (M, N', U', None, NE + clauses NE', UE + clauses UE', NS, US',
-        {#}, Q)\<close>
+   \<open>cdcl_twl_restart (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
+      (M, N', U', None, NE + clauses NE', UE + clauses UE', NS, US', N0, U0, {#}, Q)\<close>
   if
     \<open>U' + UE' \<subseteq># U\<close> and
     \<open>N = N' + NE'\<close> and
@@ -54,19 +53,19 @@ inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
 
 inductive cdcl_twl_restart_only :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 restart_trail:
-  \<open>cdcl_twl_restart_only (M, N, U, None, NE, UE, NS, US, {#}, Q)
-  (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+  \<open>cdcl_twl_restart_only (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
+  (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
   if
     \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> |
 norestart_trail:
-  \<open>cdcl_twl_restart_only (M, N, U, None, NE, UE, NS, US, {#}, Q)
-    (M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
+  \<open>cdcl_twl_restart_only (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
+    (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
 
 
 
 lemma cdcl_twl_restart_pcdcl: \<open>cdcl_twl_restart S T \<Longrightarrow> pcdcl_restart (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
   by (induction rule: cdcl_twl_restart.induct)
-    (auto simp add: pcdcl_restart.simps dest: image_mset_subseteq_mono) 
+    (auto simp add: pcdcl_restart.simps dest: image_mset_subseteq_mono)
 
 lemma cdcl_twl_restart_twl_struct_invs:
   assumes
@@ -75,11 +74,11 @@ lemma cdcl_twl_restart_twl_struct_invs:
   shows \<open>twl_struct_invs T\<close>
   using assms cdcl_twl_restart_pcdcl[OF assms(1)]
 proof (induction rule: cdcl_twl_restart.induct)
-  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US Q)
+  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US N0 U0 Q)
   note decomp = this(1) and learned' = this(2) and N = this(3) and
     has_true = this(4) and kept = this(5) and inv = this(6) and st' = this(7)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
-  let ?S' = \<open>(M', N', U', None, NE+ clauses NE', UE + clauses UE', NS, {#}, {#}, {#})\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+  let ?S' = \<open>(M', N', U', None, NE+ clauses NE', UE + clauses UE', NS, {#}, N0, U0, {#}, {#})\<close>
   have learned: \<open>U' \<subseteq># U\<close>
     using learned' by (rule mset_le_decr_left1)
   have
@@ -101,16 +100,16 @@ proof (induction rule: cdcl_twl_restart.induct)
   have
     ex: \<open>(\<forall>C\<in>#N + U. twl_lazy_update M' C \<and>
            watched_literals_false_of_max_level M' C \<and>
-           twl_exception_inv (M', N, U, None, NE, UE, NS, US, {#}, {#}) C)\<close> and
-     conf_cands: \<open>confl_cands_enqueued (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close> and
-     propa_cands: \<open>propa_cands_enqueued (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close> and
-     clss_to_upd: \<open>clauses_to_update_inv (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+           twl_exception_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#}) C)\<close> and
+     conf_cands: \<open>confl_cands_enqueued (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+     propa_cands: \<open>propa_cands_enqueued (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+     clss_to_upd: \<open>clauses_to_update_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
      using past get_all_ann_decomposition_exists_prepend[OF decomp] unfolding past_invs.simps
      by force+
 
-   have excp_inv: \<open>twl_st_exception_inv (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+   have excp_inv: \<open>twl_st_exception_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
      using ex unfolding twl_st_exception_inv.simps by blast+
-   have twl_st_inv': \<open>twl_st_inv (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+   have twl_st_inv': \<open>twl_st_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
      using ex learned twl_st_inv
      unfolding twl_st_exception_inv.simps twl_st_inv.simps
      by auto
@@ -130,8 +129,8 @@ proof (induction rule: cdcl_twl_restart.induct)
    proof (intro conjI impI allI)
      fix M1 M2 K'
      assume H:\<open>M' = M2 @ Decided K' # M1\<close>
-     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, {#}, {#})\<close>
-     let ?U' = \<open>(M1, N', U', None, NE+clauses NE', UE+clauses UE', NS, {#}, {#}, {#})\<close>
+     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+     let ?U' = \<open>(M1, N', U', None, NE+clauses NE', UE+clauses UE', NS, {#}, N0, U0, {#}, {#})\<close>
      have \<open>M = (M3' @ Decided K # M2) @ Decided K' # M1\<close>
        using H M3' by simp
      then have
@@ -148,9 +147,9 @@ proof (induction rule: cdcl_twl_restart.induct)
           watched_literals_false_of_max_level M1 C \<and>
           twl_exception_inv ?U' C\<close>
        using 1 learned twl_st_exception_inv_mono[OF learned NN', of M1 None NE \<open>UE\<close>
-           NS US \<open>{#}\<close> \<open>{#}\<close> \<open>NE+clauses NE'\<close> \<open>UE+clauses UE'\<close>] N
+           NS US N0 U0 \<open>{#}\<close> \<open>{#}\<close> \<open>NE+clauses NE'\<close> \<open>UE+clauses UE'\<close>] N
          twl_st_exception_inv_subsumed_mono[of  \<open>{#}\<close> US M1 N' U' None \<open>NE+clauses NE'\<close>
-           \<open>UE + clauses UE'\<close> NS \<open>{#}\<close> \<open>{#}\<close>]
+           \<open>UE + clauses UE'\<close> NS N0 U0 \<open>{#}\<close> \<open>{#}\<close>]
         by auto
 
      show \<open>confl_cands_enqueued ?U'\<close>
@@ -191,11 +190,11 @@ proof (induction rule: cdcl_twl_restart.induct)
      subgoal by (rule past_invs)
      done
 next
-  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US Q)
+  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US N0 U0 Q)
   note learned' = this(1) and N = this(2) and has_true = this(3) and kept = this(4) and
     US = this(5) and invs = this(6) and st' = this(7)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
-  let ?T = \<open>(M, N', U', None, NE+clauses NE', UE +clauses UE', NS, US', {#}, Q)\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+  let ?T = \<open>(M, N', U', None, NE+clauses NE', UE +clauses UE', NS, US', N0, U0, {#}, Q)\<close>
   have learned: \<open>U' \<subseteq># U\<close>
     using learned' by (rule mset_le_decr_left1)
   have
@@ -226,8 +225,8 @@ next
    proof (intro conjI impI allI)
      fix M1 M2 K'
      assume H:\<open>M = M2 @ Decided K' # M1\<close>
-     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, {#}, {#})\<close>
-     let ?U' = \<open>(M1, N', U', None, NE+clauses NE', UE + clauses UE', NS, US', {#}, {#})\<close>
+     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+     let ?U' = \<open>(M1, N', U', None, NE+clauses NE', UE + clauses UE', NS, US', N0, U0, {#}, {#})\<close>
      have
        1: \<open>\<forall>C\<in>#N + U.
            twl_lazy_update M1 C \<and>
@@ -242,7 +241,7 @@ next
           watched_literals_false_of_max_level M1 C \<and>
           twl_exception_inv ?U' C\<close>
        using 1 learned twl_st_exception_inv_subsumed_mono[OF _
-              twl_st_exception_inv_mono[OF learned NN', of M1 None NE UE NS US \<open>{#}\<close> \<open>{#}\<close>
+              twl_st_exception_inv_mono[OF learned NN', of M1 None NE UE NS US N0 U0 \<open>{#}\<close> \<open>{#}\<close>
               \<open>NE + clauses NE'\<close> \<open>UE + clauses UE'\<close>], of \<open>US'\<close>] N US
        by (auto split: if_splits)
      show \<open>confl_cands_enqueued ?U'\<close>
@@ -255,7 +254,7 @@ next
        using 4 learned by (auto simp add: filter_mset_empty_conv N)
    qed
 
-   let ?S' = \<open>(M, N', U', None, NE + clauses NE', UE + clauses UE', NS, US', {#}, Q)\<close>
+   let ?S' = \<open>(M, N', U', None, NE + clauses NE', UE + clauses UE', NS, US', N0, U0, {#}, Q)\<close>
    have struct_inv': \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of ?S')\<close>
      using pcdcl_restart_pcdcl_all_struct_invs[OF st' struct_inv] by simp
    have smaller': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of ?S')\<close>
@@ -330,10 +329,10 @@ proof (induction rule: cdcl_twl_restart_only.induct)
   then show ?case
     by simp
 next
-  case (restart_trail K M' M2 M N U NE UE NS US Q)
+  case (restart_trail K M' M2 M N U NE UE NS US N0 U0 Q)
   note decomp = this(1) and inv = this(2) and st' = this(3)
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
-  let ?T = \<open>(M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+  let ?T = \<open>(M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
   have
     twl_st_inv: \<open>twl_st_inv ?S\<close> and
     \<open>valid_enqueued ?S\<close> and
@@ -353,10 +352,10 @@ next
   have
     ex: \<open>(\<forall>C\<in>#N + U. twl_lazy_update M' C \<and>
            watched_literals_false_of_max_level M' C \<and>
-           twl_exception_inv (M', N, U, None, NE, UE, NS, US, {#}, {#}) C)\<close> and
-     conf_cands: \<open>confl_cands_enqueued (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close> and
-     propa_cands: \<open>propa_cands_enqueued (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close> and
-     clss_to_upd: \<open>clauses_to_update_inv (M', N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+           twl_exception_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#}) C)\<close> and
+     conf_cands: \<open>confl_cands_enqueued (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+     propa_cands: \<open>propa_cands_enqueued (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+     clss_to_upd: \<open>clauses_to_update_inv (M', N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
     using past get_all_ann_decomposition_exists_prepend[OF decomp]
       confl propa to_upd excep
     unfolding past_invs.simps
@@ -383,11 +382,11 @@ next
    proof (intro conjI impI allI)
      fix M1 M2 K'
      assume H:\<open>M' = M2 @ Decided K' # M1\<close>
-     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, {#}, {#})\<close>
-     let ?U' = \<open>(M1, N, U, None, NE, UE, NS, US, {#}, {#})\<close>
+     let ?U = \<open>(M1, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+     let ?U' = \<open>(M1, N, U, None, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
      have \<open>M = (M3' @ Decided K # M2) @ Decided K' # M1\<close>
        using H M3' by simp
-     then show 
+     then show
        1: \<open>\<forall>C\<in>#N + U.
            twl_lazy_update M1 C \<and>
            watched_literals_false_of_max_level M1 C \<and>

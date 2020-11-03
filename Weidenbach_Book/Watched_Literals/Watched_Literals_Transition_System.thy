@@ -111,6 +111,15 @@ fun get_all_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> wh
   \<open>get_all_clss (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) =
      clause `# N + NE + NS + N0 + clause `# U + UE + US + U0\<close>
 
+fun get_init_clauses0 :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
+  \<open>get_init_clauses0 (_, N, U, _, _, UE, NS, US, N0, U0,_, _) = N0\<close>
+
+fun get_learned_clauses0 :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
+  \<open>get_learned_clauses0 (_, N, U, _, _, UE, NS, US, N0, U0,_, _) = U0\<close>
+
+fun get_all_clauses0 :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
+  \<open>get_all_clauses0 (_, N, U, _, _, UE, NS, US, N0, U0, _, _) = N0 + U0\<close>
+
 fun update_clause where
 \<open>update_clause (TWL_Clause W UW) L L' =
   TWL_Clause (add_mset L' (remove1_mset L W)) (add_mset L (remove1_mset L' UW))\<close>
