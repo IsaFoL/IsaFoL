@@ -22,6 +22,12 @@ section \<open>Executable Checker\<close>
 
 text \<open>In this layer we finally refine the checker to executable code.\<close>
 
+datatype ('a, 'b, 'lbls) pac_step =
+  CL (pac_srcs: \<open>('a \<times> 'lbls) list\<close>) (new_id: 'lbls) (pac_res: 'a) |
+  Extension (new_id: 'lbls) (new_var: 'b) (pac_res: 'a) |
+  Del (pac_src1: 'lbls)
+
+
 subsection \<open>Definitions\<close>
 
 text \<open>Compared to the previous layer, we add an error message when an error is discovered. We do not
@@ -32,11 +38,8 @@ text \<open>Compared to the previous layer, we add an error message when an erro
 paragraph \<open>Refinement relation\<close>
 
 fun pac_step_rel_raw :: \<open>('olbl \<times> 'lbl) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('c \<times> 'd) set \<Rightarrow> ('a, 'c, 'olbl) pac_step \<Rightarrow> ('b, 'd, 'lbl) pac_step \<Rightarrow> bool\<close> where
-\<open>pac_step_rel_raw R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
-   (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
-   (r, r') \<in> R2\<close> |
-\<open>pac_step_rel_raw R1 R2 R3 (Mult p1 p2 i r) (Mult p1' p2' i' r') \<longleftrightarrow>
-   (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R2 \<and> (i, i') \<in> R1 \<and>
+\<open>pac_step_rel_raw R1 R2 R3 (CL p i r) (CL p' i' r') \<longleftrightarrow>
+   (p, p') \<in> \<langle>R2 \<times>\<^sub>r R1\<rangle>list_rel \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
 \<open>pac_step_rel_raw R1 R2 R3 (Del p1) (Del p1') \<longleftrightarrow>
    (p1, p1') \<in> R1\<close> |
@@ -45,12 +48,8 @@ fun pac_step_rel_raw :: \<open>('olbl \<times> 'lbl) set \<Rightarrow> ('a \<tim
 \<open>pac_step_rel_raw R1 R2 R3 _ _ \<longleftrightarrow> False\<close>
 
 fun pac_step_rel_assn :: \<open>('olbl \<Rightarrow> 'lbl \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('c \<Rightarrow> 'd \<Rightarrow> assn) \<Rightarrow> ('a, 'c, 'olbl) pac_step \<Rightarrow> ('b, 'd, 'lbl) pac_step \<Rightarrow> assn\<close> where
-\<open>pac_step_rel_assn R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') =
-   R1 p1 p1' * R1 p2 p2' * R1 i i' *
-   R2 r r'\<close> |
-\<open>pac_step_rel_assn R1 R2 R3 (Mult p1 p2 i r) (Mult p1' p2' i' r') =
-   R1 p1 p1' * R2 p2 p2' * R1 i i' *
-   R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 R3 (CL p i r) (CL p' i' r') =
+   list_assn (R2 \<times>\<^sub>a R1) p p' * R1 i i' * R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 R3 (Del p1) (Del p1') =
    R1 p1 p1'\<close> |
 \<open>pac_step_rel_assn R1 R2 R3 (Extension i x p1) (Extension i' x' p1') =
@@ -60,10 +59,8 @@ fun pac_step_rel_assn :: \<open>('olbl \<Rightarrow> 'lbl \<Rightarrow> assn) \<
 lemma pac_step_rel_assn_alt_def:
   \<open>pac_step_rel_assn R1 R2 R3 x y = (
   case (x, y) of
-      (Add p1 p2 i r, Add p1' p2' i' r') \<Rightarrow>
-        R1 p1 p1' * R1 p2 p2' * R1 i i' * R2 r r'
-    | (Mult p1 p2 i r, Mult p1' p2' i' r') \<Rightarrow>
-        R1 p1 p1' * R2 p2 p2' * R1 i i' * R2 r r'
+      (CL p i r, CL p' i' r') \<Rightarrow>
+        list_assn (R2 \<times>\<^sub>a R1) p p' * R1 i i' * R2 r r'
     | (Del p1, Del p1') \<Rightarrow> R1 p1 p1'
     | (Extension i x p1, Extension i' x' p1') \<Rightarrow> R1 i i' * R3 x x' * R2 p1 p1'
     | _ \<Rightarrow> false)\<close>
@@ -97,6 +94,22 @@ definition vars_llist :: \<open>llist_polynomial \<Rightarrow> string set\<close
 \<open>vars_llist  xs = \<Union>(set ` fst ` set xs)\<close>
 
 
+definition check_addition_l0 :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (llist_polynomial \<times> string code_status) nres\<close> where
+\<open>check_addition_l0 spec A \<V> p q i = do {
+   let b = p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A;
+   if \<not>b
+   then RETURN ([], error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @ (if q \<notin># dom_m A then error_msg_notin_dom p else []) @
+      (if i \<in># dom_m A then error_msg_reused_dom p else [])))
+   else do {
+     ASSERT (p \<in># dom_m A);
+     let p = the (fmlookup A p);
+     ASSERT (q \<in># dom_m A);
+     let q = the (fmlookup A q);
+     pq \<leftarrow> add_poly_l (p, q);
+     RETURN (pq, CSUCCESS)
+  }
+}\<close>
+
 definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynomial \<Rightarrow> string code_status nres\<close> where
 \<open>check_addition_l spec A \<V> p q i r = do {
    let b = p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist r \<subseteq> \<V>;
@@ -128,6 +141,21 @@ definition check_mult_l_dom_err :: \<open>bool \<Rightarrow> nat \<Rightarrow> b
 definition check_mult_l_mult_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> string nres\<close> where
   \<open>check_mult_l_mult_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
+definition check_mult_l0 :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynomial \<Rightarrow>  nat \<Rightarrow>
+   (llist_polynomial \<times> string code_status) nres\<close> where
+\<open>check_mult_l0 spec A \<V> p q i = do {
+    let b = p \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist q \<subseteq> \<V>;
+    if \<not>b
+    then do {
+      c \<leftarrow> check_mult_l_dom_err (p \<notin># dom_m A) p (i \<in># dom_m A) i;
+      RETURN ([], error_msg i c)}
+    else do {
+       ASSERT (p \<in># dom_m A);
+       let p = the (fmlookup A p);
+       pq \<leftarrow> mult_poly_full p q;
+       RETURN (pq, CSUCCESS)
+     }
+  }\<close>
 
 definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynomial \<Rightarrow>  nat \<Rightarrow> llist_polynomial \<Rightarrow> string code_status nres\<close> where
 \<open>check_mult_l spec A \<V> p q i r = do {
@@ -264,11 +292,6 @@ proof -
    done
 qed
 
-(* Copy of WB_More_Refinement *)
-lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
-  by (auto simp: pw_eq_iff refine_pw_simps)
-
-
 lemma check_add_alt_def:
   \<open>check_add A \<V> p q i r \<ge>
     do {
@@ -329,28 +352,6 @@ lemma check_mult_alt_def:
     intro!:  ideal.span_zero
       exI[of _ \<open>the (fmlookup A p) * q\<close>])
 
-primrec insort_key_rel :: "('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> 'b list" where
-"insort_key_rel f x [] = [x]" |
-"insort_key_rel f x (y#ys) =
-  (if f x y then (x#y#ys) else y#(insort_key_rel f x ys))"
-
-lemma set_insort_key_rel[simp]: \<open>set (insort_key_rel R x xs) = insert x (set xs)\<close>
-  by (induction xs)
-   auto
-
-lemma sorted_wrt_insort_key_rel:
-   \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> reflp R \<Longrightarrow>
-    sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
-  by (induction xs)
-   (auto dest: transpD reflpD simp: Restricted_Predicates.total_on_def)
-
-lemma sorted_wrt_insort_key_rel2:
-   \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> x \<notin> set xs \<Longrightarrow>
-    sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
-  by (induction xs)
-   (auto dest: transpD simp: Restricted_Predicates.total_on_def in_mono)
-
-
 paragraph \<open>Step checking\<close>
 
 definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynomial, string, nat) pac_step \<Rightarrow> _\<close> where
@@ -371,17 +372,6 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq, \<V>, fmdrop (pac_src1 st) A)
-        else RETURN (eq, \<V>, A)
-   }
-   | Mult _ _ _ _ \<Rightarrow>
-       do {
-         r \<leftarrow> full_normalize_poly (pac_res st);
-         q \<leftarrow> full_normalize_poly (pac_mult st);
-        eq \<leftarrow> check_mult_l spec A \<V> (pac_src1 st) q (new_id st) r;
-        let _ = eq;
-        if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq,
-          \<V>, fmupd (new_id st) r A)
         else RETURN (eq, \<V>, A)
    }
    | Extension _ _ _ \<Rightarrow>
