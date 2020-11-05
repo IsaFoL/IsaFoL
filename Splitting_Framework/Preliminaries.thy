@@ -86,7 +86,7 @@ qed
 
 end
 
-
+(* formalizing negated formulas uncovered a mistake in the corresponding paper-definition *)
 datatype 'f neg = Pos "'f" | Neg "'f neg" (*| Pos (nval_of: "'f neg") *)
   
 fun to_F :: "'f neg \<Rightarrow> 'f" where
@@ -94,10 +94,10 @@ fun to_F :: "'f neg \<Rightarrow> 'f" where
   "to_F (Neg C) = to_F C"
   (* "to_F (Pos C) = to_F C" |*)
   
-fun simplify :: "'f neg \<Rightarrow> 'f neg" where
-  "simplify (Pos C) = Pos C" |
-  "simplify (Neg (Neg C)) = simplify C" |
-  "simplify (Neg (Pos C)) = Neg (Pos C)"
+fun simplify_Neg :: "'f neg \<Rightarrow> 'f neg" where
+  "simplify_Neg (Pos C) = Pos C" |
+  "simplify_Neg (Neg (Neg C)) = simplify_Neg C" |
+  "simplify_Neg (Neg (Pos C)) = Neg (Pos C)"
 
     
 
