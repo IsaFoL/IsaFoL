@@ -86,6 +86,22 @@ qed
 
 end
 
+
+datatype 'f neg = Pos "'f" | Neg "'f neg" (*| Pos (nval_of: "'f neg") *)
+  
+fun to_F :: "'f neg \<Rightarrow> 'f" where
+  "to_F (Pos C) = C" |
+  "to_F (Neg C) = to_F C"
+  (* "to_F (Pos C) = to_F C" |*)
+  
+fun simplify :: "'f neg \<Rightarrow> 'f neg" where
+  "simplify (Pos C) = Pos C" |
+  "simplify (Neg (Neg C)) = simplify C" |
+  "simplify (Neg (Pos C)) = Neg (Pos C)"
+
+    
+
+
 locale sound_inference_system = inference_system Inf + consequence_relation bot entails_sound
   for
     Inf :: "'f inference set" and
