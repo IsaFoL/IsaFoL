@@ -6,7 +6,27 @@ imports Saturation_Framework.Calculus
   (* Finite_Set *)
 begin
   
+  (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition *)
+datatype 'f neg = Pos "'f" | Neg "'f neg" (*| Pos (nval_of: "'f neg") *)
+  
+fun to_F :: "'f neg \<Rightarrow> 'f" where
+  "to_F (Pos C) = C" |
+  "to_F (Neg C) = to_F C"
+  (* "to_F (Pos C) = to_F C" |*)
+  
+fun simplify_Neg :: "'f neg \<Rightarrow> 'f neg" where
+  "simplify_Neg (Pos C) = Pos C" |
+  "simplify_Neg (Neg (Pos C)) = Neg (Pos C)" |
+  "simplify_Neg (Neg (Neg C)) = simplify_Neg C"
 
+fun has_Pos_const :: "'f neg \<Rightarrow> bool" where 
+  "has_Pos_const (Pos C) = True" |
+  "has_Pos_const (Neg C) = False"
+  
+fun is_Pos :: "'f neg \<Rightarrow> bool" where
+  "is_Pos (Pos C) = True" |
+  "is_Pos (Neg C) = has_Pos_const (simplify_Neg C)"
+  
 locale consequence_relation =
   fixes
     bot :: "'f" and
@@ -30,14 +50,6 @@ lemma entails_empty_reflexive_dangerous: \<open>{} \<Turnstile> {} \<Longrightar
 
 definition entails_conjunctive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>\<inter>" 50) where
   "M \<Turnstile>\<inter> N \<equiv> \<forall>C\<in>N. M \<Turnstile> {C}"
-
-(* lemma \<open>M \<union> N \<Turnstile> {C} \<Longrightarrow> M \<Turnstile>\<inter> N \<Longrightarrow> \<forall>C' \<in> N. M \<union> {C'} \<Turnstile> {C}\<close>
- * proof (cases "N = {}" "N = {C}")
- *   assume \<open>N = {}\<close>
- *   then show \<open>\<forall>C' \<in> N. M \<union> {C'} \<Turnstile> {C}\<close> by simp
- * next
- *   assume \<open>N \<noteq> {}\<close>
- *     then show *)
 
 sublocale Calculus.consequence_relation "{bot}" "(\<Turnstile>\<inter>)"
 proof
@@ -84,22 +96,11 @@ next
   qed
 qed
 
+definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
+  "entails_neg M N \<equiv> True"
+
 end
-
-(* formalizing negated formulas uncovered a mistake in the corresponding paper-definition *)
-datatype 'f neg = Pos "'f" | Neg "'f neg" (*| Pos (nval_of: "'f neg") *)
-  
-fun to_F :: "'f neg \<Rightarrow> 'f" where
-  "to_F (Pos C) = C" |
-  "to_F (Neg C) = to_F C"
-  (* "to_F (Pos C) = to_F C" |*)
-  
-fun simplify_Neg :: "'f neg \<Rightarrow> 'f neg" where
-  "simplify_Neg (Pos C) = Pos C" |
-  "simplify_Neg (Neg (Neg C)) = simplify_Neg C" |
-  "simplify_Neg (Neg (Pos C)) = Neg (Pos C)"
-
-    
+   
 
 
 locale sound_inference_system = inference_system Inf + consequence_relation bot entails_sound
