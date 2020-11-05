@@ -83,9 +83,27 @@ fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow
 abbreviation get_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_init_clss_wl S \<equiv> init_clss_lf (get_clauses_wl S)\<close>
 
-abbreviation all_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause\<close> where
+definition all_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause\<close> where
   \<open>all_lits_of_wl S' \<equiv> all_lits_of_mm (mset `# ran_mf (get_clauses_wl S') + get_unit_clauses_wl S' +
           get_subsumed_clauses_wl S' + get_clauses0_wl S')\<close>
+
+definition all_init_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause\<close> where
+  \<open>all_init_lits_of_wl S' \<equiv> all_lits_of_mm (mset `# get_init_clss_wl S' + get_unit_init_clss_wl S' +
+          get_subsumed_init_clauses_wl S' + get_init_clauses0_wl S')\<close>
+
+definition all_learned_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause\<close> where
+  \<open>all_learned_lits_of_wl S' \<equiv> all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S') + get_unit_learned_clss_wl S' +
+          get_subsumed_learned_clauses_wl S' + get_learned_clauses0_wl S')\<close>
+
+lemma all_init_lits_of_wl_all_lits_of_wl:
+  \<open>set_mset (all_init_lits_of_wl S) \<subseteq> set_mset (all_lits_of_wl S)\<close>
+  unfolding all_lits_of_wl_def all_init_lits_of_wl_def
+  apply (subst (2) all_clss_l_ran_m[symmetric])
+  unfolding image_mset_union
+  apply (cases S)
+  apply (auto simp: all_lits_of_mm_union)
+  done
+
 
 section \<open>Watch List Function\<close>
 
@@ -3145,11 +3163,10 @@ proof -
       subgoal by (auto simp: state_wl_l_def)
       apply (rule mop_clauses_swap_itself_spec2)
       subgoal by (auto simp: state_wl_l_def)
-      subgoal by (cases X2; cases S; cases S')
-         (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def
-             propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
-           simp flip: all_lits_alt_def2 all_lits_def
-           intro!: ASSERT_refine_right)
+      subgoal
+        by (cases X2; cases S; cases S')
+         (clarsimp simp: state_wl_l_def mop_clauses_swap_def drop_map
+          op_clauses_swap_def keep_watch_def)
       apply (rule eq)
       subgoal by (cases X2; cases S; cases S')
          (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def

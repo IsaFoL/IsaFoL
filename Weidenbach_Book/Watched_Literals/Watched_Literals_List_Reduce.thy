@@ -31,13 +31,13 @@ where
      else
      if b \<and> \<not>brk then do {
        b \<leftarrow> RETURN False;
-       if b then do {
+       if \<not>b then do {
          T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-         T \<leftarrow> RETURN T;
-         T \<leftarrow> RETURN T;
          RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        } else do {
          T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+         T \<leftarrow> RETURN T;
+         T \<leftarrow> RETURN T;
          RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        }
      }
@@ -86,6 +86,8 @@ proof -
     apply (rule_tac x=Ta in exI)
     apply (auto intro!: RETURN_RES_refine)
     done
+  have [refine0]: \<open>RETURN False \<le> \<Down> {(a,b). \<not>a \<and> \<not>b} (inprocessing_required S)\<close> for S
+    by (auto simp: inprocessing_required_def intro!: RETURN_RES_refine)
 
   show ?thesis
    supply [[goals_limit=1]]
@@ -109,13 +111,17 @@ proof -
     subgoal by (auto simp: get_learned_clss_l_def)
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal unfolding restart_prog_pre_def by auto
-    subgoal unfolding restart_prog_pre_def by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
     subgoal by (auto simp: get_learned_clss_l_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     done
 qed
@@ -872,7 +878,7 @@ lemma (in -) [simp]:
 
 lemma (in -) get_all_learned_clss_alt_def:
   \<open>get_all_learned_clss S = clauses (get_learned_clss S) + get_init_learned_clss S +
-         subsumed_learned_clauses S\<close>
+         subsumed_learned_clauses S + get_learned_clauses0 S\<close>
   by (cases S) auto
 
 lemma cdcl_twl_stgy_restart_abs_bounded_l_cdcl_twl_stgy_restart_abs_bounded_l:
