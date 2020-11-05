@@ -23,6 +23,11 @@ definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<
     SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) > last_Restart_learnt_clss)
   }\<close>
 
+definition inprocessing_required :: "'v twl_st \<Rightarrow> bool nres" where
+  \<open>inprocessing_required S = do {
+    SPEC (\<lambda>b. True)
+  }\<close>
+
 definition (in -) restart_prog_pre_int :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_prog_pre_int last_GC last_Restart S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
     (\<not>brk \<longrightarrow> get_conflict S = None) \<and>
@@ -41,15 +46,22 @@ where
        RETURN (last_GC, T, T, Suc m, n)
      }
      else if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-       V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
-          (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
-       RETURN (V, V, V, m, Suc n)
-     }
-     else
-       RETURN (last_GC, last_Restart, S, m, n)
-   }\<close>
+       b \<leftarrow> inprocessing_required S;
+       if \<not>b then do {
+         T  \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
+         RETURN (T, T, T, m, Suc n)
+      }
+      else do {
+         T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+         U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+         V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
+            (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
+         RETURN (V, V, V, m, Suc n)
+      }
+    }
+    else
+      RETURN (last_GC, last_Restart, S, m, n)
+  }\<close>
 
 fun cdcl_twl_stgy_restart_prog_int_inv where
   \<open>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) (brk, R, S, T, m, n) \<longleftrightarrow>
@@ -393,14 +405,44 @@ proof -
       apply (cases \<open>get_conflict W = None\<close>; cases brkW)
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
+  have noinp_continue: \<open>?I (xd, False \<or> get_conflict ab \<noteq> None, ab, ab, ab, m, Suc n)\<close> (is ?A) and
+    noinp_term: \<open>((xd, False \<or> get_conflict ab \<noteq> None, ab, ab, ab, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close>
+      (is ?B)
+    if
+      \<open>restart_prog_pre_int S T W False\<close> and
+      \<open>size (get_all_learned_clss S) \<le> size (get_all_learned_clss W)\<close> and
+      less: \<open>True \<longrightarrow>
+       f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
+      \<open>size (get_all_learned_clss T) \<le> size (get_all_learned_clss W)\<close> and
+      \<open>xa \<longrightarrow> size (get_all_learned_clss T) < size (get_all_learned_clss W)\<close> and
+      \<open>\<not> (xa \<and> \<not> False)\<close> and
+      WX: \<open>cdcl_twl_restart W ab\<close> and
+      \<open>xd \<in> UNIV\<close> and
+      [simp]: x \<open>\<not> brkW\<close> \<open>\<not> xb\<close>
+      for x xa xb ab xd
+  proof -
+    have [simp]: \<open>get_conflict W = None\<close> \<open>get_conflict ab = None\<close> \<open>clauses_to_update ab = {#}\<close>
+      using that(1) WX
+      by (auto simp: restart_prog_pre_int_def cdcl_twl_restart.simps)
+    have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (ab, ab, ab, m, Suc n, True)\<close>
+      by (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W]) (use less WX in auto)
+    then show ?A
+      using UW twl_res by (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
+    show ?B
+      using UW twl_res WX' \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close> by (auto
+        dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
+  qed
+
   show ?thesis
-    unfolding restart_prog_int_def restart_required_def GC_required_def
-    apply (refine_vcg; remove_dummy_vars)
+    unfolding restart_prog_int_def restart_required_def GC_required_def inprocessing_required_def
+    apply (refine_vcg lhs_step_If; remove_dummy_vars)
     subgoal by (rule restart_W)
     subgoal by (auto simp: restart_prog_pre_int_def)
     subgoal by (auto simp: restart_prog_pre_int_def)
     subgoal by (rule restart_only)
     subgoal by (rule restart_only_term)
+    subgoal by (rule noinp_continue)
+    subgoal by (rule noinp_term)
     subgoal by (rule GC)
     subgoal by (rule GC_term)
     subgoal by (rule continue)
@@ -538,17 +580,23 @@ where
   \<open>restart_prog S last_GC last_Restart n brk = do {
      ASSERT(restart_prog_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required S last_GC  n;
-     b2 \<leftarrow> restart_required S  last_Restart  n;
+     b2 \<leftarrow> restart_required S last_Restart  n;
      if b2 \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only S T);
        RETURN (T, last_GC, (size (get_all_learned_clss T)), n)
      }
      else
      if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-       U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-       V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
-       RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
+         b \<leftarrow> inprocessing_required S;
+         if \<not>b then  do {
+           V \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart S U);
+           RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
+       } else do {
+           T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+           U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+           V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
+           RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
+        }
      }
      else
        RETURN (S, last_GC, last_Restart, n)
@@ -581,6 +629,15 @@ proof -
     apply (rule this_is_the_identity)
     subgoal
       by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
     subgoal
       by auto
     subgoal

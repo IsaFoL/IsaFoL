@@ -194,8 +194,8 @@ lemma all_lits_alt_def:
   by auto
 
 lemma all_lits_alt_def2:
-  \<open>all_lits S (NUE + NUS) = all_lits_of_mm (mset `# ran_mf S + NUE + NUS)\<close>
-  \<open>all_lits S (NUE + NUS) = all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m S + NUE + NUS)\<close>
+  \<open>all_lits S (NUE + NUS + N0S) = all_lits_of_mm (mset `# ran_mf S + NUE + NUS + N0S)\<close>
+  \<open>all_lits S (NUE + NUS + N0S) = all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m S + NUE + NUS + N0S)\<close>
   unfolding all_lits_def
   by (auto simp: ac_simps)
 

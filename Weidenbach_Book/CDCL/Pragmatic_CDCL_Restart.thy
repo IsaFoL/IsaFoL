@@ -497,8 +497,9 @@ restart_step:
   \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (W, W, W, m, Suc n, True)\<close>
   if
     \<open>size (pget_all_learned_clss T) - size (pget_all_learned_clss R) > f n\<close> and
-    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* T U\<close> \<open>count_decided (pget_trail U) = 0\<close>
+    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* T U\<close>
     \<open>pcdcl_restart U V\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of V)\<close> and
     \<open>pcdcl_stgy\<^sup>*\<^sup>* V W\<close> |
 restart_noGC_step:
   \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (R, U, U, Suc m, n, True)\<close>
@@ -1215,7 +1216,7 @@ lemma pcdcl_stgy_restart_pcdcl_stgy_restart_inv:
       rtranclp_pcdcl_stgy_pcdcl apply blast
     apply simp
     using pcdcl_restart_no_smaller_propa' pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_no_smaller_propa
-      no_smaller_propa_lvl0[of U] rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
+      rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
     by blast
   subgoal for T S U R n
     apply (subst (asm) pcdcl_stgy_restart_inv_alt_def)

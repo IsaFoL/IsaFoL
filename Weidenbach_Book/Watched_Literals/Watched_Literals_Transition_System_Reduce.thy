@@ -181,7 +181,7 @@ restart_step:
   if
     \<open>size (get_all_learned_clss T) - size (get_all_learned_clss R) > f n\<close> and
     \<open>cdcl_twl_subsumption_inp\<^sup>*\<^sup>* T U\<close> and
-    \<open>count_decided (get_trail U) = 0\<close>
+    (* \<open>get_conflict U \<noteq> None \<longrightarrow> count_decided (get_trail U) = 0\<close> *)
     \<open>cdcl_twl_restart U V\<close> and
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close>
     \<open>clauses_to_update W = {#}\<close>
@@ -204,7 +204,6 @@ lemma cdcl_twl_stgy_restart_induct[consumes 1, case_names restart_step restart_n
       f n < size (get_all_learned_clss T) - size (get_all_learned_clss R) \<Longrightarrow> cdcl_twl_subsumption_inp\<^sup>*\<^sup>* T U \<Longrightarrow>
       cdcl_twl_restart U V \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* V W \<Longrightarrow>
      clauses_to_update W = {#} \<Longrightarrow> (get_conflict W \<noteq> None \<Longrightarrow> count_decided (get_trail W) = 0) \<Longrightarrow>
-     count_decided (get_trail U) = 0 \<Longrightarrow> 
       m' = m \<Longrightarrow> n' = Suc n \<Longrightarrow>
       P R S T m n True W W W m (Suc n) True\<close>and
     \<open>\<And>R S T U.
@@ -286,13 +285,15 @@ lemma cdcl_twl_stgy_restart_pcdcl:
   subgoal
     apply (rule r_into_rtranclp)
     apply (rule pcdcl_stgy_restart.intros(2))
+      term pcdcl_stgy_restart
     apply simp
     apply (rule rtranclp_cdcl_twl_subsumption_inp_pcdcl_inprocessing; assumption)
-    apply (simp; fail)
     apply (rule cdcl_twl_restart_pcdcl, assumption)
     using cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_tcore_stgy_pcdcl_stgy'
-    by (simp add: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
+    apply (simp_all add: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
       rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_cdcl_twl_subsumption_inp_twl_struct_invs)
+    apply (smt cdcl_twl_restart_pcdcl pcdcl_restart_no_smaller_propa' rtranclp_cdcl_twl_subsumption_inp_twl_struct_invs state\<^sub>W_of_def twl_struct_invs_def)
+    done
   subgoal
     apply (rule r_into_rtranclp)
     apply (rule pcdcl_stgy_restart.intros(3))
@@ -439,11 +440,11 @@ lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2:
     apply simp
     apply (rule rtranclp_cdcl_twl_subsumption_inp_pcdcl_inprocessing)
     apply assumption+
-    apply (simp; fail)
     apply (rule cdcl_twl_restart_pcdcl, assumption)
     using cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_tcore_stgy_pcdcl_stgy'
-    by (simp add: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
+    apply (simp_all add: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
       rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_cdcl_twl_subsumption_inp_twl_struct_invs)
+    by (smt cdcl_twl_restart_pcdcl pcdcl_restart_no_smaller_propa' rtranclp_cdcl_twl_subsumption_inp_twl_struct_invs state\<^sub>W_of_def twl_struct_invs_def)
   subgoal
     apply (rule disjI1)
     apply (rule pcdcl_stgy_restart.intros(3))

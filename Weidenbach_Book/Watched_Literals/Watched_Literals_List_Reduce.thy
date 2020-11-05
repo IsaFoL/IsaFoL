@@ -30,9 +30,16 @@ where
      }
      else
      if b \<and> \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-       T \<leftarrow> RETURN T;
-       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+       b \<leftarrow> RETURN False;
+       if b then do {
+         T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+         T \<leftarrow> RETURN T;
+         T \<leftarrow> RETURN T;
+         RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+       } else do {
+         T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+         RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+       }
      }
      else
        RETURN (S, last_GC, last_Restart, n)
