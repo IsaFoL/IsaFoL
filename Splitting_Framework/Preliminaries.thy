@@ -2,13 +2,13 @@
 * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
 
 theory Preliminaries
-imports Saturation_Framework.Calculus
+  imports Saturation_Framework.Calculus
   (* Finite_Set *)
 begin
   
   (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition *)
-datatype 'f neg = Pos "'f" | Neg "'f neg" (*| Pos (nval_of: "'f neg") *)
-  
+datatype 'f neg = Pos "'f" | Neg "'f neg" (* ("\<sim>_" 55) (*| Pos (nval_of: "'f neg") *) term "\<sim>F" *)
+
 fun to_F :: "'f neg \<Rightarrow> 'f" where
   "to_F (Pos C) = C" |
   "to_F (Neg C) = to_F C"
@@ -25,7 +25,7 @@ fun has_Pos_const :: "'f neg \<Rightarrow> bool" where
   
 fun is_Pos :: "'f neg \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
-  "is_Pos (Neg C) = has_Pos_const (simplify_Neg C)"
+  "is_Pos (Neg C) = (\<not>(is_Pos C))"
 
 lemma \<open>is_Pos C \<Longrightarrow> is_Pos (simplify_Neg C)\<close>
 proof (induct C rule: simplify_Neg.induct)
@@ -33,14 +33,12 @@ proof (induct C rule: simplify_Neg.induct)
   then show "is_Pos (simplify_Neg (Pos Ca))" by simp
 next
   case (2 Ca)
-  then have "has_Pos_const (simplify_Neg (Pos Ca))" by simp
+  then have "False" by simp
+  then show \<open>is_Pos (simplify_Neg (Neg (Pos Ca)))\<close> by blast
+next
+  case (3 Ca)
+oops    
 
-  then have \<open>False\<close>
-
-
-(*proof (induct rule: simplify_Neg.induct)
-  case (1 C)*)
-  
 locale consequence_relation =
   fixes
     bot :: "'f" and
@@ -112,8 +110,42 @@ qed
 
 definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
   "entails_neg M N \<equiv>
-    {C. Pos C \<in> simplify_Neg ` M} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` N} \<Turnstile> {C. Pos C \<in> simplify_Neg ` N} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` M} "
+    {C. Pos C \<in> simplify_Neg ` M} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` N} \<Turnstile>
+      {C. Pos C \<in> simplify_Neg ` N} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` M} "
 
+definition entails_neg2 :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
+  "entails_neg2 M N \<equiv>
+    {to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+      {to_F C |C. C \<in> N \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C} "
+  
+sublocale ext_cons_rel2: consequence_relation "Pos bot" entails_neg2
+proof
+  show "entails_neg2 {Pos bot} {}"
+    unfolding entails_neg2_def using bot_entails_empty by simp
+next
+  fix C
+  show \<open>entails_neg2 {C} {C}\<close>
+    unfolding entails_neg2_def using entails_cond_reflexive by auto
+next
+  fix M N P Q
+  assume
+    subs1: "M \<subseteq> N" and
+    subs2: "P \<subseteq> Q" and
+    entails1: "entails_neg2 M P"
+  have union_subs1: \<open>{to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> P \<and> \<not> is_Pos C} \<subseteq>
+    {to_F C |C. C \<in> N \<and> is_Pos C} \<union> {to_F C |C. C \<in> Q \<and> \<not> is_Pos C}\<close>
+    using subs1 subs2 by auto
+  have union_subs2: \<open>{to_F C |C. C \<in> P \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq>
+    {to_F C |C. C \<in> Q \<and> is_Pos C} \<union> {to_F C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
+    using subs1 subs2 by auto
+  have union_entails1: "{to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> P \<and> \<not> is_Pos C} \<Turnstile>
+    {to_F C |C. C \<in> P \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C}"
+    using entails1 unfolding entails_neg2_def .
+  show \<open>entails_neg2 N Q\<close>
+    using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg2_def .
+next
+    oops
+  
 sublocale ext_cons_rel: consequence_relation "Pos bot" entails_neg
 proof
   show "entails_neg {Pos bot} {}"
@@ -123,7 +155,7 @@ next
   show \<open>entails_neg {C} {C}\<close>
   proof (cases "is_Pos C")
     case True
-    then obtain D where "simplify_Neg C = Pos D" using simplify_Neg.elims sledgehammer
+    then obtain D where "simplify_Neg C = Pos D" using simplify_Neg.elims 
 
       oops
 
