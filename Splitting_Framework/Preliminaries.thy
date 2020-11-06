@@ -26,6 +26,20 @@ fun has_Pos_const :: "'f neg \<Rightarrow> bool" where
 fun is_Pos :: "'f neg \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
   "is_Pos (Neg C) = has_Pos_const (simplify_Neg C)"
+
+lemma \<open>is_Pos C \<Longrightarrow> is_Pos (simplify_Neg C)\<close>
+proof (induct C rule: simplify_Neg.induct)
+  case (1 Ca)
+  then show "is_Pos (simplify_Neg (Pos Ca))" by simp
+next
+  case (2 Ca)
+  then have "has_Pos_const (simplify_Neg (Pos Ca))" by simp
+
+  then have \<open>False\<close>
+
+
+(*proof (induct rule: simplify_Neg.induct)
+  case (1 C)*)
   
 locale consequence_relation =
   fixes
@@ -97,7 +111,21 @@ next
 qed
 
 definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
-  "entails_neg M N \<equiv> True"
+  "entails_neg M N \<equiv>
+    {C. Pos C \<in> simplify_Neg ` M} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` N} \<Turnstile> {C. Pos C \<in> simplify_Neg ` N} \<union> {to_F C |C. Neg C \<in> simplify_Neg ` M} "
+
+sublocale ext_cons_rel: consequence_relation "Pos bot" entails_neg
+proof
+  show "entails_neg {Pos bot} {}"
+    unfolding entails_neg_def using bot_entails_empty by simp
+next
+  fix C
+  show \<open>entails_neg {C} {C}\<close>
+  proof (cases "is_Pos C")
+    case True
+    then obtain D where "simplify_Neg C = Pos D" using simplify_Neg.elims sledgehammer
+
+      oops
 
 end
    
