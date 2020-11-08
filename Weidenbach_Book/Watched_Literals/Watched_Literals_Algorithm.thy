@@ -55,7 +55,7 @@ definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Righta
         }
   })\<close>
 
-abbreviation all_lits_of_st where
+definition all_lits_of_st :: \<open>'v twl_st \<Rightarrow> 'v literal multiset\<close> where
 \<open>all_lits_of_st S \<equiv> all_lits_of_mm (clauses (get_clauses S) + unit_clss S + subsumed_clauses S +
     get_all_clauses0 S)\<close>
 
@@ -190,7 +190,7 @@ proof -
       show \<open>K' \<in># all_lits_of_st (set_clauses_to_update
                       (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
         using K' \<open>C \<in># N + U\<close> by (auto dest!: multi_member_split
-            simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset clauses_def S)
+            simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset clauses_def S all_lits_of_st_def)
 
       show \<open>no_dup (get_trail
                     (set_clauses_to_update
@@ -229,7 +229,7 @@ proof -
       show \<open>L' \<in># all_lits_of_st (set_clauses_to_update
                       (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
         using L'_C' \<open>C \<in># N + U\<close> by (auto dest!: multi_member_split
-            simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset clauses_def S)
+            simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset clauses_def S all_lits_of_st_def)
 
 
     { \<comment> \<open>if \<^term>\<open>L' \<in> lits_of_l M\<close>, then:\<close>
@@ -561,9 +561,9 @@ definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal opti
   \<open>find_unassigned_lit = (\<lambda>S.
       SPEC (\<lambda>L.
         (L \<noteq> None \<longrightarrow> undefined_lit (get_trail S) (the L) \<and>
-          atm_of (the L) \<in> atms_of_mm (get_all_clss S)) \<and>
+           (the L) \<in># all_lits_of_st S) \<and>
         (L = None \<longrightarrow> (\<nexists>L. undefined_lit (get_trail S) L \<and>
-         atm_of L \<in> atms_of_mm (get_all_clss S)))))\<close>
+         L \<in># all_lits_of_st S))))\<close>
 
 definition propagate_dec where
   \<open>propagate_dec = (\<lambda>L (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q).
@@ -623,6 +623,10 @@ proof -
       using S cdcl_twl_o_twl_stgy_invs o twl twl_s by blast
     note o twl' twl_s'
   } note H = this
+  have H'[unfolded S, simp]:
+    \<open>L \<in># all_lits_of_st S \<longleftrightarrow> atm_of L \<in> atms_of_mm (clauses N + NE + NS + N0)\<close> for L
+    using atm_N_U(2)
+    by (auto simp: S all_lits_of_st_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
   show ?thesis
     using assms unfolding S find_unassigned_lit_def propagate_dec_def decide_or_skip_def
       atm_N_U
@@ -637,15 +641,15 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal by (auto elim!: cdcl_twl_oE)
-    subgoal using atm_N_U(1) by (auto simp: ac_simps cdcl_twl_o.simps decide)
+    subgoal using atm_N_U(1) H' by (auto simp: cdcl_twl_o.simps decide)
     subgoal by auto
     subgoal by (auto elim!: cdcl_twl_oE)
     subgoal using atm_N_U H by auto
-    subgoal using H atm_N_U by auto
-    subgoal using H atm_N_U by auto
+    subgoal using H H' atm_N_U by auto
+    subgoal using H H' atm_N_U by auto
     subgoal by auto
     subgoal by auto
-    subgoal using H atm_N_U by auto
+    subgoal using H H' atm_N_U by auto
     done
 qed
 
@@ -849,7 +853,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
   show alien_L: \<open>- L  \<in># all_lits_of_st T\<close>
     using alien M
     by (cases T)
-      (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_st_def
         cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff)
 
   have LD': \<open>L \<notin># D'\<close>
@@ -878,7 +882,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       by (auto intro!: ASSERT_leI simp: T tl_state_def in_all_lits_of_mm_uminus_iff)
     ultimately show \<open>mop_tl_state T \<le> ?R brk T\<close>
       using WS Q D D' twl_stgy_S twl alien_L LD
-      unfolding skip_and_resolve_loop_inv_def mop_tl_state_pre_def mop_tl_state_def
+      unfolding skip_and_resolve_loop_inv_def mop_tl_state_pre_def mop_tl_state_def all_lits_of_st_def
       by (auto intro!: ASSERT_leI simp: T tl_state_def in_all_lits_of_mm_uminus_iff)
   }
 
@@ -942,7 +946,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using WS Q D D' mop_maximum_level_removed_pre twl_stgy_T twl twl_stgy_S M LD count_dec
         confl_proped[of \<open>[]\<close> L C \<open>M'\<close>] alien_L
       unfolding skip_and_resolve_loop_inv_def
-      by (auto simp add: cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
+      by (auto simp add: cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps all_lits_of_st_def
           cdcl\<^sub>W_restart_mset_state update_confl_tl_def T update_confl_tl_pre_def in_all_lits_of_mm_uminus_iff)
     ultimately show  \<open>mop_update_confl_tl L C T \<le> ?R brk T\<close>
       using WS Q D D' mop_maximum_level_removed_pre M count_dec unfolding skip_and_resolve_loop_inv_def
@@ -1202,7 +1206,7 @@ proof -
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   then have alien_L: \<open>lit_of (hd M) \<in># all_lits_of_st ?S\<close>
     using trail unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def all_lits_of_st_def
     by (cases M) (auto simp: S cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff)
 
     assume
@@ -1347,18 +1351,18 @@ proof -
       moreover have \<open>K \<in># all_lits_of_st ?S\<close>
         using alien  neq  mset_subset_eqD[OF D'_D in_diffD[OF K_D,
             unfolded get_conflict.simps option.sel]] assms(1)
-        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_st_def all_lits_of_st_def
         by (auto simp: S cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff
           dest!: multi_member_split)
       moreover have \<open>set_mset (all_lits_of_m D') \<subseteq> set_mset (all_lits_of_st ?S)\<close>
         using alien assms(1) atms_of_subset_mset_mono[OF D'_D]
-        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_st_def
         by (fastforce simp: S cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff
              in_all_lits_of_m_ain_atms_of_iff)
       ultimately show \<open>propagate_bt_pre (lit_of (hd (get_trail ?S))) K ?U\<close>
         using \<open>the D \<noteq> {#}\<close> assms D'_D D'_empty L'_D K_D uL'_D lev_K
            get_all_ann_decomposition_exists_prepend[OF decomp] uL_D
-        unfolding propagate_bt_pre_def S
+        unfolding propagate_bt_pre_def S all_lits_of_st_def
         by (auto simp: L_D' intro!: exI[of _ \<open>take (length M - length M1) M\<close>]
            exI[of _ \<open>the D\<close>])
       have \<open>\<forall>L' \<in># D'. -L' \<in> lits_of_l M\<close>
@@ -1497,7 +1501,7 @@ proof -
       then show \<open>propagate_unit_bt_pre (lit_of (hd (get_trail ?S))) ?U\<close>
         using \<open>the D \<noteq> {#}\<close> assms D'_D D'_empty L'_D uL'_D alien_L cdcl
            get_all_ann_decomposition_exists_prepend[OF decomp] uL_D
-        unfolding propagate_unit_bt_pre_def S
+        unfolding propagate_unit_bt_pre_def S all_lits_of_st_def
         by (auto simp: L_D' D' intro!: exI[of _ \<open>take (length M - length M1) M\<close>]
            exI[of _ \<open>the D\<close>])
     }
