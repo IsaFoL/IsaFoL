@@ -25,9 +25,9 @@ lemma all_init_lits_alt_def:
   \<open>all_init_lits b (d + f + g) = all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + g)\<close>
   by (auto simp: all_init_lits_def ac_simps)
 
-abbreviation all_init_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
-  \<open>all_init_lits_st S \<equiv> all_init_lits (get_clauses_wl S)
-    (get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S)\<close>
+(* abbreviation all_init_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
+ *   \<open>all_init_lits_of_wl S \<equiv> all_init_lits (get_clauses_wl S)
+ *     (get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S)\<close> *)
 
 definition all_init_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms N NUE = atm_of `# all_init_lits N NUE\<close>
@@ -64,13 +64,21 @@ lemma all_init_atms_fmdrop_add_mset_unit:
     simp: all_init_atms_def all_init_lits_def
       init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
 
+lemma all_init_lits_of_wl_all_lits_st: \<open>set_mset (all_init_lits_of_wl S) \<subseteq> set_mset (all_lits_st S)\<close>
+  unfolding all_lits_st_def all_lits_def all_lits_of_mm_union all_init_lits_of_wl_def
+  apply (subst (2)all_clss_l_ran_m[symmetric])
+  unfolding image_mset_union
+  apply (cases S)
+  apply (auto simp: all_init_lits_def all_lits_def all_lits_of_mm_union)
+  done
+
 text \<open>To ease the proof, we introduce the following ``alternative'' definitions, that only considers
   variables that are present in the initial clauses (which are never deleted from the set of
   clauses, but only moved to another component).
 \<close>
 fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching' (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0).
+    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
@@ -81,7 +89,7 @@ fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
 
 fun correct_watching'' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching'' (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0).
+    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
@@ -95,28 +103,52 @@ declare correct_watching'.simps[simp del] correct_watching''.simps[simp del]
 
 definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>blits_in_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow>
-    (\<forall>L \<in># all_init_lits_st S.
-      \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_init_lits_st S)\<close>
+    (\<forall>L \<in># all_init_lits_of_wl S.
+      \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_init_lits_of_wl S)\<close>
 
 definition literals_are_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<equiv>
     set_mset (all_learned_lits_of_wl S) \<subseteq> set_mset (all_init_lits_of_wl S) \<and>
      blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
 
-abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
+definition all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
   \<open>all_init_atms_st S \<equiv> all_init_atms (get_clauses_wl S)
     (get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S)\<close>
 
+lemma all_init_atms_st_alt_def: \<open>all_init_atms_st S = atm_of `# all_init_lits_of_wl S\<close>
+  by (auto simp: all_atms_def all_lits_st_def all_init_atms_st_def all_init_lits_of_wl_def
+    atm_of_all_lits_of_mm all_init_atms_def all_init_lits_def ac_simps
+    simp del: all_init_atms_def[symmetric])
+
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NU)) = set_mset (all_init_lits N NU)\<close>
-  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (all_init_lits_st S)\<close>
-  by (simp_all add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_init_atms_def all_init_lits_def)
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (all_init_lits_of_wl S)\<close>
+  by (simp_all add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_init_atms_def all_init_lits_def
+    all_init_lits_of_wl_def ac_simps all_init_atms_st_def)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S = literals_are_\<L>\<^sub>i\<^sub>n \<B> S\<close>
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   unfolding literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
+
+lemma all_learned_lits_of_wl_all_lits_st:
+  \<open>set_mset (all_learned_lits_of_wl S) \<subseteq> set_mset (all_lits_st S)\<close>
+  unfolding all_learned_lits_of_wl_def all_lits_st_def all_lits_def
+  apply (subst (2) all_clss_l_ran_m[symmetric])
+  unfolding image_mset_union
+  by (cases S) (auto simp: all_lits_of_mm_union)
+
+lemma all_lits_st_init_learned:
+  \<open>set_mset (all_lits_st S) = set_mset (all_init_lits_of_wl S) \<union> set_mset (all_learned_lits_of_wl S)\<close>
+  unfolding all_learned_lits_of_wl_def all_lits_st_def all_lits_def all_init_lits_of_wl_def
+  apply (subst (1) all_clss_l_ran_m[symmetric])
+  unfolding image_mset_union
+  by (cases S) (auto simp: all_lits_of_mm_union)
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)) = set_mset (all_lits_st S)\<close>
+  by (metis \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_atms_st_alt_def_sym all_lits_def all_lits_st_def)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
   assumes
@@ -127,7 +159,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?A)
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?B)
     \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C) and
-    \<open>set_mset (all_init_lits_st S) = set_mset (all_lits_st S)\<close> (is ?D)
+    \<open>set_mset (all_init_lits_of_wl S) = set_mset (all_lits_st S)\<close> (is ?D)
 proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -142,52 +174,48 @@ proof -
       \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of xa))\<close>
     using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (auto 5 2 simp add: twl_st twl_st_l twl_st_wl)
-  have all_init_lits_alt_def2: \<open>all_lits_of_mm
-       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
-        get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S) = all_init_lits_st S\<close>
-    by (auto simp: all_init_lits_def ac_simps)
+  (* have all_init_lits_alt_def2: \<open>all_lits_of_mm
+   *      ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
+   *       get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S) = all_init_lits_of_wl S\<close>
+   *   by (auto simp: all_init_lits_def ac_simps) *)
 
-  have H: \<open>set_mset (all_init_lits_of_wl S) = set_mset (all_lits_of_wl S)\<close>
+  show 1: \<open>set_mset (all_init_lits_of_wl S) = set_mset (all_lits_st S)\<close>
+    unfolding all_lits_st_def all_lits_def all_init_lits_of_wl_def
     apply (subst (2) all_clss_l_ran_m[symmetric])
     using alien_learned Sx x_xa
     unfolding image_mset_union all_lits_of_mm_union
     by (auto simp : in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
       twl_st twl_st_l twl_st_wl get_learned_clss_wl_def)
-
-  show A: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for \<A>
+  have \<open>set_mset (all_init_lits_of_wl S) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S))\<close>
+    unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) ..
+ show A: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for \<A>
   proof -
-    have sub: \<open>set_mset (all_lits_of_wl S) \<subseteq> set_mset (all_init_lits_st S) \<longleftrightarrow>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) (all_lits_st S)\<close>
-     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def all_lits_def
-     apply (subst (2) all_clss_l_ran_m[symmetric])
-     unfolding image_mset_union get_unit_clauses_wl_alt_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms
-     apply (simp add: all_lits_of_mm_union all_init_lits_def ac_simps)
-       sorry
-
-    have 1: \<open>set_mset (all_init_lits_st S) = set_mset (all_lits_st S)\<close>
-      by (metis H all_init_lits_alt_def2 all_lits_alt_def2(2))
-    then show ?thesis
+    have sub: \<open>set_mset (all_lits_st S) \<subseteq> set_mset (all_init_lits_of_wl S) \<longleftrightarrow>
+      is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) (all_lits_st S)\<close>
+     using all_init_lits_of_wl_all_lits_st[of S]
+     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) by auto
+   have \<open>set_mset (all_learned_lits_of_wl S) \<subseteq> set_mset (all_lits_st S) \<longleftrightarrow>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) (all_lits_st S)\<close>
+     using all_init_lits_of_wl_all_lits_st[of S]
+     unfolding all_lits_st_init_learned is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms
+     by auto
+   then show ?thesis
       unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
 	literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def sub
 	all_init_lits_def[symmetric] all_lits_alt_def2[symmetric]
         all_lits_alt_def[symmetric] all_init_lits_alt_def[symmetric]
-        is_\<L>\<^sub>a\<^sub>l\<^sub>l_def[symmetric] all_init_atms_def[symmetric]
-sledgehammer
-      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+        is_\<L>\<^sub>a\<^sub>l\<^sub>l_def[symmetric] all_init_atms_def[symmetric] 1
+      by simp
    qed
 
-  show C: ?C
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
-      literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_atms_def all_init_atms_def
-      all_init_lits_def all_lits_def all_init_lits_alt_def2
-    by (metis (no_types, lifting) H all_init_lits_alt_def2 all_init_lits_def set_image_mset
-      union_assoc)
+   show C: ?C
+     using 1 unfolding all_atms_st_alt_def all_init_atms_st_alt_def
+     apply (simp add: 1 del: all_init_atms_def[symmetric])
+     by (metis all_atms_st_alt_def set_image_mset)
 
   show ?B
     apply (subst A)
     ..
-  show ?D
-    by (metis H all_init_lits_alt_def2 all_lits_alt_def2(2))
 qed
 
 
@@ -227,6 +255,7 @@ lemma rtranclp_GC_remap_all_init_lits:
 lemma subsumed_clauses_alt_def:
   \<open>subsumed_clauses S = subsumed_init_clauses S + subsumed_learned_clauses S\<close>
   by (cases S) auto
+(*
 lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
@@ -240,11 +269,12 @@ proof -
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by fast+
-  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
+
+  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_st T)\<close>
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
       subsumed_clauses_alt_def
     by (cases T)
-      (auto simp: cdcl\<^sub>W_restart_mset_state Un_assoc)
+      (auto simp: cdcl\<^sub>W_restart_mset_state Un_assoc all_lits_of_st_def all_lits_def)
   moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
     using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
   moreover {
@@ -253,13 +283,14 @@ proof -
       unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by fast+
-    then have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss S))\<close>
+    then have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_st S)\<close>
       using L
       unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
       by (cases S)
         (auto simp: cdcl\<^sub>W_restart_mset_state)
   }
   ultimately show ?thesis
+sledgehammer
     by argo
 qed
 
@@ -287,6 +318,7 @@ proof -
     using L
     by argo
 qed
+*)
 
 definition remove_all_annot_true_clause_imp_wl_inv
   :: \<open>'v twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
@@ -346,6 +378,43 @@ lemma reduce_dom_clauses_fmdrop:
   using distinct_mset_dom[of N]
   by (auto simp: reduce_dom_clauses_def distinct_mset_remove1_All)
 
+lemma all_init_lits_of_wl_simps[simp]:
+  \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>
+  all_init_lits_of_wl (M, fmdrop C N, D, NE, UE, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH {#} US \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH [] M \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow>
+   all_init_lits_of_wl (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, US, N0, U0, Q, W) =
+  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_init_lits_of_wl (M, N, D, NE, add_mset E UE, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
+    image_mset_remove1_mset_if)
+
+lemma all_learned_lits_of_wl_simps[simp]:
+  \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow>
+  all_learned_lits_of_wl (M, fmdrop C N, D, NE, UE, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  (* \<open>NO_MATCH {#} NS \<Longrightarrow>
+   * all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
+   *   all_learned_lits_of_wl (M, N, D, NE, UE, {#}, US, N0, U0, Q, W)\<close> *)
+  \<open>NO_MATCH [] M \<Longrightarrow>
+  all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_learned_lits_of_wl (M, N, D, add_mset E NE, UE, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_learned_lits_of_wl (M, N, D, NE, UE, add_mset E NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>
+  all_learned_lits_of_wl (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, US, N0, U0, Q, W) =
+  all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  by (auto simp: all_learned_lits_of_wl_def all_lits_of_mm_add_mset
+    image_mset_remove1_mset_if)
 
 lemma correct_watching_fmdrop:
   assumes
@@ -357,15 +426,16 @@ lemma correct_watching_fmdrop:
   shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close> and
      \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
 proof -
+  let ?S = \<open>(M', N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
   have
-    Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    Hdist: \<open>\<And>L i K b. L\<in>#all_init_lits_of_wl ?S \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#all_init_lits_of_wl ?S \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
          correctly_marked_as_binary N (i, K, b)\<close> and
-    H1': \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H1': \<open>\<And>L i K b. L\<in>#all_init_lits_of_wl ?S \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> b \<Longrightarrow>  i \<in># dom_m N\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in># all_init_lits_of_wl ?S \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#})).
         L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#}) \<propto> C))#}\<close>
@@ -416,17 +486,16 @@ proof -
       using C irred apply -
       unfolding get_clauses_l.simps
       apply (subst 1)
-      apply (subst (asm) init_clss_lf_fmdrop_irrelev, assumption)
       by (auto 5 1  simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  have [dest!]: \<open>x \<in># all_lits_of_mm
-              (remove1_mset (mset (N \<propto> C))
-                ({#mset (fst x). x \<in># learned_clss_l N#} + UE + U0)) \<Longrightarrow>
-           x \<in># all_lits_of_mm
-              ({#mset (fst x). x \<in># learned_clss_l N#} + UE + U0)\<close> for x
-   by (auto dest: all_lits_of_mm_diffD)
+  have [dest!]: \<open>x \<in># all_learned_lits_of_wl ([], fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W) \<Longrightarrow>
+    x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> for x
+    using assms(1,2)
+    by (auto dest: all_lits_of_mm_diffD simp: all_learned_lits_of_wl_def all_lits_of_mm_union
+      image_mset_remove1_mset_if)
+
   show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
      using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def all_lits_of_mm_union
@@ -442,12 +511,14 @@ lemma correct_watching''_fmdrop:
   shows \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
 proof -
+  let ?S = \<open>(M', N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  let ?\<L> = \<open>all_init_lits_of_wl ?S\<close>
   have
-    Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    Hdist: \<open>\<And>L i K b. L\<in>#?\<L> \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#?\<L> \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#?\<L> \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US,N0, U0,  {#}, {#})).
         L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#}) \<propto> C))#}\<close>
@@ -489,17 +560,15 @@ proof -
       using C irred apply -
       unfolding get_clauses_l.simps
       apply (subst 1)
-      apply (subst (asm) init_clss_lf_fmdrop_irrelev, assumption)
       by (auto 5 1  simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  have [dest!]: \<open>x \<in># all_lits_of_mm
-              (remove1_mset (mset (N \<propto> C))
-                ({#mset (fst x). x \<in># learned_clss_l N#} + UE + U0)) \<Longrightarrow>
-           x \<in># all_lits_of_mm
-              ({#mset (fst x). x \<in># learned_clss_l N#} + UE + U0)\<close> for x
-   by (auto dest: all_lits_of_mm_diffD)
+  have [dest!]: \<open>x \<in># all_learned_lits_of_wl ([], fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W) \<Longrightarrow>
+           x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> for x
+    using assms
+    by (auto dest: all_lits_of_mm_diffD simp: all_learned_lits_of_wl_def
+      all_lits_of_mm_union image_mset_remove1_mset_if)
   show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def all_lits_of_mm_union
@@ -515,13 +584,15 @@ lemma correct_watching''_fmdrop':
   shows \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, N0, U0, Q, W)\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, N0, U0, Q, W)\<close>
 proof -
+  let ?S = \<open>(M', N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  let ?\<L> = \<open>all_init_lits_of_wl ?S\<close>
   have
-    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    Hdist: \<open>\<And>L. L\<in>#?\<L> \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#?\<L> \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow>
           K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#?\<L> \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#})).
         L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#}) \<propto> C))#}\<close>
@@ -549,7 +620,7 @@ proof -
     apply (intro conjI impI ballI)
     subgoal for L
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
-        Hdist[of L]
+        Hdist[of L] irred C
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
       distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
         dest: multi_member_split)
@@ -568,6 +639,11 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
+  have [dest!]: \<open>x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, {#}, N0, U0, Q, W) \<Longrightarrow>
+           x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> for x
+    using assms
+    by (auto dest: all_lits_of_mm_diffD simp: all_learned_lits_of_wl_def
+      all_lits_of_mm_union image_mset_remove1_mset_if)
   have \<open>(N \<propto> C, irred N C) \<in># (init_clss_l N)\<close>
     using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse)
   from multi_member_split[OF this]
@@ -588,13 +664,15 @@ lemma correct_watching''_fmdrop'':
   shows \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#}, N0, U0, Q, W)\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#},  N0, U0, Q, W)\<close>
 proof -
+  let ?S = \<open>(M', N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  let ?\<L> = \<open>all_init_lits_of_wl ?S\<close>
   have
-    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    Hdist: \<open>\<And>L. L\<in>#?\<L> \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#?\<L> \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and>
           K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS + N0) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#?\<L> \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
        {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#})).
         L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, N0, U0, {#}, {#}) \<propto> C))#}\<close>
@@ -622,7 +700,7 @@ proof -
     apply (intro conjI impI ballI)
     subgoal for L
       using distinct_mset_dom[of N] H1[of L \<open>fst iK\<close> \<open>fst (snd iK)\<close> \<open>snd (snd iK)\<close>] C irred
-        Hdist[of L]
+        Hdist[of L] assms
       apply (auto simp: image_mset_remove1_mset_if clause_to_update_def image_filter_replicate_mset
       distinct_mset_remove1_All filter_mset_neq_cond correctly_marked_as_binary.simps dest: all_lits_of_mm_diffD
         dest: multi_member_split)
@@ -642,12 +720,17 @@ proof -
         dest: multi_member_split)
     done
 
+  have [dest!]: \<open>x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, {#}, N0, U0, Q, W) \<Longrightarrow>
+           x \<in># all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> for x
+    using assms
+    by (auto dest: all_lits_of_mm_diffD simp: all_learned_lits_of_wl_def
+      all_lits_of_mm_union image_mset_remove1_mset_if)
   have \<open>(N \<propto> C, irred N C) \<in># (learned_clss_l N)\<close>
     using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse)
   from multi_member_split[OF this]
   show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#}, N0, U0, Q, W)\<close>
     using distinct_mset_dom[of N]
-    using assms by (fastforce simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
           all_lits_of_mm_union literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def
        dest: multi_member_split all_lits_of_mm_diffD)
 qed
@@ -660,7 +743,7 @@ definition remove_one_annot_true_clause_one_imp_wl_pre where
 
 definition replace_annot_wl_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
 \<open>replace_annot_wl_pre L C S \<longleftrightarrow>
-  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> L \<in># all_init_lits_st S \<and>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> L \<in># all_init_lits_of_wl S \<and>
     replace_annot_l_pre L C S' \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
     correct_watching'' S)\<close>
 
@@ -682,7 +765,15 @@ lemma replace_annot_l_pre_replace_annot_wl_pre: \<open>(((L, C), S), (L', C'), S
     unfolding replace_annot_wl_pre_def replace_annot_l_pre_alt_def
     unfolding replace_annot_l_pre_def[symmetric]
     by (rule exI[of _ \<open>S'\<close>])
-      (auto simp add: ac_simps all_init_lits_def)
+      (auto simp add: ac_simps all_init_lits_of_wl_def)
+
+lemma all_learned_lits_of_wl_all_init_lits_of_wlD[intro]:
+  \<open>set_mset (all_learned_lits_of_wl (M, ab, ac, ad, ae, af, ag, ah, ai, aj, ba))
+       \<subseteq> set_mset (all_init_lits_of_wl (M, ab, ac, ad, ae, af, {#}, ah, ai, aj, ba)) \<Longrightarrow>
+       x \<in># all_learned_lits_of_wl (M, ab, ac, ad, ae, af, {#}, ah, ai, aj, ba) \<Longrightarrow>
+       x \<in># all_init_lits_of_wl (M, ab, ac, ad, ae, af, {#}, ah, ai, aj, ba)\<close>
+  by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_wl_def
+    all_lits_of_mm_union)
 
 lemma replace_annot_wl_replace_annot_l:
   \<open>(uncurry2 replace_annot_wl, uncurry2 replace_annot_l) \<in>
@@ -698,7 +789,7 @@ lemma replace_annot_wl_replace_annot_l:
       by (force intro!: replace_annot_l_pre_replace_annot_wl_pre)
     subgoal
       by (rule RES_refine)
-        (fastforce simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
+        (force simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
           all_lits_of_mm_union
           correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
     done
@@ -720,7 +811,7 @@ where
       ASSERT(is_proped (rev (get_trail_wl S) ! i));
       (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev (get_trail_wl S))!i = Propagated L C);
       ASSERT(Propagated L C \<in> set (get_trail_wl S));
-      ASSERT(L \<in># all_init_lits_st S);
+      ASSERT(L \<in># all_init_lits_of_wl S);
       if C = 0 then RETURN (i+1, S)
       else do {
         ASSERT(C \<in># dom_m (get_clauses_wl S));
@@ -929,7 +1020,7 @@ lemma mark_to_delete_clauses_wl_invD1:
 proof -
   have \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
     using assms unfolding mark_to_delete_clauses_wl_inv_def by blast
-  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
+  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_of_wl T\<close>
     using assms(2,3) by (auto dest!: multi_member_split
       simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
         in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
@@ -1092,7 +1183,7 @@ proof -
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by auto
-  then have eq: \<open>set_mset (all_init_lits_of_wl T) = set_mset (all_lits_of_wl T)\<close>
+  then have eq: \<open>set_mset (all_init_lits_of_wl T) = set_mset (all_lits_st T)\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using T_Ta Ta_y
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1251,7 +1342,7 @@ proof -
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
       twl_st get_unit_clauses_wl_alt_def)
-  moreover have eq: \<open>set_mset (all_lits_of_wl S) \<subseteq> set_mset (all_init_lits_of_wl S))\<close>
+  moreover have eq: \<open>set_mset (all_lits_st S) \<subseteq> set_mset (all_init_lits_of_wl S))\<close>
     using Sa_x S_Sa alien
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
@@ -1462,7 +1553,7 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l S' T' \<and> correct_watching' T \<and>
     set_mset (all_init_lits_of_wl T) =
-    set_mset (all_lits_of_wl T))\<close>
+    set_mset (all_lits_st T))\<close>
 
 definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
@@ -1524,7 +1615,7 @@ lemma mark_to_delete_clauses_wl2_invD1:
 proof -
   have \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
     using assms unfolding mark_to_delete_clauses_wl2_inv_def by blast
-  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
+  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_of_wl T\<close>
     using assms(2,3) by (auto dest!: multi_member_split
       simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
         in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
@@ -1629,7 +1720,7 @@ lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
     y_Va: \<open>cdcl_twl_restart_l y Va\<close>
     \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
   shows \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
-    \<open>set_mset (all_init_lits_of_wl V) = set_mset (all_lits_of_wl V)\<close>
+    \<open>set_mset (all_init_lits_of_wl V) = set_mset (all_lits_st V)\<close>
 proof -
   obtain x where
     y_x: \<open>(y, x) \<in> twl_st_l None\<close> and
@@ -1645,7 +1736,7 @@ proof -
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by blast
-  then show eq: \<open>set_mset (all_init_lits_of_wl V) = set_mset (all_lits_of_wl V)\<close>
+  then show eq: \<open>set_mset (all_init_lits_of_wl V) = set_mset (all_lits_st V)\<close>
     using assms(3) Va_V'
     by (subst all_clss_l_ran_m[symmetric], subst image_mset_union)
      (auto simp flip: state\<^sub>W_of_def simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
@@ -1741,12 +1832,12 @@ proof -
       pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by blast
   then have eq:
-    \<open>set_mset (all_init_lits_of_wl x1c) = set_mset (all_lits_of_wl x1c)\<close>
+    \<open>set_mset (all_init_lits_of_wl x1c) = set_mset (all_lits_st x1c)\<close>
     using y_x x1c_y
     by (subst all_clss_l_ran_m[symmetric], subst image_mset_union)
      (auto dest!: cdcl\<^sub>W_restart_mset.no_strange_atm_decomp(3)
       simp flip: state\<^sub>W_of_def simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def)
-  moreover have eq: \<open>set_mset (all_learned_lits_of_wl x1c) \<subseteq> set_mset (all_lits_of_wl x1c)\<close>
+  moreover have eq: \<open>set_mset (all_learned_lits_of_wl x1c) \<subseteq> set_mset (all_lits_st x1c)\<close>
     using y_x x1c_y alien
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def

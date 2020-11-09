@@ -378,11 +378,11 @@ fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v 
 definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
 
-abbreviation all_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
+definition all_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
   \<open>all_atms_st S \<equiv> all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_clauses_wl S + get_clauses0_wl S)\<close>
 
 lemma all_atms_st_alt_def: \<open>all_atms_st S = atm_of `# all_lits_st S\<close>
-  by (auto simp: all_atms_def all_lits_st_def)
+  by (auto simp: all_atms_def all_lits_st_def all_atms_st_def)
 
 lemmas all_atms_st_alt_def_sym[simp] =  all_atms_st_alt_def[symmetric]
 
@@ -427,7 +427,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[si
     in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_st_def
     all_lits_def
   by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_atms_def simp del: all_atms_st_alt_def_sym
-    simp: all_lits_def)
+    simp: all_lits_def all_atms_st_def)
 
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]:
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S) \<Longrightarrow>
@@ -438,7 +438,7 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l[s
     set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits N NUE)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
   using in_all_lits_of_mm_ain_atms_of_iff
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n all_lits_st_def
+    in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n all_lits_st_def all_atms_st_def
   by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_lits_def all_atms_def)
 
 
@@ -470,7 +470,7 @@ proof -
     by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
       (auto split: if_splits elim!: in_set_upd_cases)
   moreover have \<open>all_atms_st ?S = all_atms_st ?T\<close>
-    by (auto simp: all_lits_def all_atms_def)
+    by (auto simp: all_lits_def all_atms_def all_atms_st_def)
   ultimately show ?thesis
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
     by force
