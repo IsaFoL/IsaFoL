@@ -2906,17 +2906,18 @@ proof -
       all_lits_of_st_l_def mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: propagate_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
-    subgoal apply (auto simp: twl_list_invs_def propagate_bt_def twl_st_l_def
-        propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin
-        learned_clss_l_mapsto_upd_notin
-      intro!: convert_lit.intros(2)
-      intro: convert_lit_bind_new convert_lits_l_bind_new)
-      defer
-      apply (rule convert_lits_l_bind_new)
-      apply (auto simp: init_clss_l_mapsto_upd_irrel_notin
-       learned_clss_l_mapsto_upd_notin)
-      by (metis insert_DiffM member_add_mset set_mset_mset)
+    subgoal (*TODO Proof*)
+      by (clarsimp simp add: twl_list_invs_def propagate_bt_def twl_st_l_def
+             propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin
+             learned_clss_l_mapsto_upd_notin)
+       (auto 4 3 simp: twl_list_invs_def propagate_bt_def twl_st_l_def
+             propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin
+             learned_clss_l_mapsto_upd_notin
+           intro!: convert_lit.intros(2)
+        intro!: convert_lits_l_bind_new
+        dest: in_diffD)
     done
+
 
   have propagate_unit_bt_l: \<open>(Sb, Sc) \<in> ?J' \<Longrightarrow>
        (L, La) \<in> Id \<Longrightarrow>

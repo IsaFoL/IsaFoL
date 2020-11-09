@@ -5339,7 +5339,7 @@ proof -
     N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def 
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
@@ -5352,7 +5352,5 @@ proof -
   then show ?thesis
     by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
-
-
 
 end
