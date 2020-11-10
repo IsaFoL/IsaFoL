@@ -1568,8 +1568,8 @@ lemma lit_redundant_rec_wl:
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W NS US where
-    S: \<open>S = (M, NU, D', NE, UE, NS, US, Q, W)\<close>
+  obtain D' NE UE Q W NS US N0 U0 where
+    S: \<open>S = (M, NU, D', NE, UE, NS, US, N0, U0, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE + UE)\<close>
     using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
@@ -1966,8 +1966,8 @@ lemma literal_redundant_wl_literal_redundant:
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W NS US where
-    S: \<open>S = (M, NU, D', NE, UE, NS, US, Q, W)\<close>
+  obtain D' NE UE Q W NS US N0 U0 where
+    S: \<open>S = (M, NU, D', NE, UE, NS, US, N0, U0, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE+UE)\<close>
     using NU S_S' S'_S'' S M' by (auto simp: twl_st_l_def state_wl_l_def)
