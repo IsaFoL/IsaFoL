@@ -185,26 +185,26 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
-     (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
+     (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))) \<and>
+    vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
+    cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
     lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_atms N (NE + UE + NS + US))  W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
+    isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
+    heuristic_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) heur
   }\<close>
 
 lemma twl_st_heur_state_simp:
@@ -217,7 +217,7 @@ lemma twl_st_heur_state_simp:
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
      twl_st_heur_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
        nat_of_lit C < length(get_watched_wl_heur S)\<close>
-  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def ac_simps)
+  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def ac_simps all_atms_st_def)
 
 definition learned_clss_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
@@ -255,24 +255,24 @@ where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
        avdom, lcount, opts, old_arena),
-      (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
+      (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US + N0 + U0))) \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US + N0 + U0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE + NS + US + N0 + U0)) cach \<and>
     out_learned M D outl \<and>
     lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE + NS + US + N0 + U0)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_bounded (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    isasat_input_nempty (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
+    heuristic_rel (all_atms N (NE + UE + NS + US + N0 + U0)) heur
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
@@ -284,7 +284,8 @@ lemma twl_st_heur_ana_state_simp:
   shows
     \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
     \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
-  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def ac_simps)
+  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def ac_simps
+    all_atms_st_def)
 
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
 from the refined state, where the conflict has been removed from the data structure to a
@@ -293,24 +294,24 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
 \<open>twl_st_heur_bt =
   {((M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
        old_arena),
-     (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
+     (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US + N0 + U0))) \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US + N0 + U0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>
-    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE + NS + US + N0 + U0)) cach \<and>
     out_learned M None outl \<and>
     lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE + NS + US + N0 + U0)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_bounded (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    isasat_input_nempty (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
+    heuristic_rel (all_atms N (NE + UE + NS + US + N0 + U0)) heur
   }\<close>
 
 
@@ -387,6 +388,12 @@ lemma atm_is_in_conflict_st_heur_alt_def:
 lemma atm_of_in_atms_of_iff: \<open>atm_of x \<in> atms_of D \<longleftrightarrow> x \<in># D \<or> -x \<in># D\<close>
   by (cases x) (auto simp: atms_of_def dest!: multi_member_split)
 
+
+lemma all_lits_st_alt_def: \<open>set_mset (all_lits_st S) =  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
+  by (auto simp: all_lits_st_def all_lits_def all_lits_of_mm_union
+    in_all_lits_of_mm_ain_atms_of_iff in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n all_atms_st_def
+    all_atms_def)
+
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
   \<open>(uncurry (atm_is_in_conflict_st_heur), uncurry (mop_lit_notin_conflict_wl)) \<in>
    [\<lambda>(L, S). True]\<^sub>f
@@ -396,9 +403,10 @@ proof -
     by (auto simp: atms_of_def)
   show ?thesis
   unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def uncurry_def comp_def
-    mop_lit_notin_conflict_wl_def
+    mop_lit_notin_conflict_wl_def all_lits_st_alt_def
   apply (intro frefI nres_relI)
   apply refine_rcg
+find_theorems all_atms_st \<L>\<^sub>a\<^sub>l\<^sub>l
   apply clarsimp
   subgoal
      apply (rule atm_in_conflict_lookup_pre)
