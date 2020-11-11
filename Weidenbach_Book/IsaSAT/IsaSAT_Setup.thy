@@ -186,7 +186,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
@@ -256,28 +256,28 @@ where
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
        avdom, lcount, opts, old_arena),
       (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US + N0 + U0))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US + N0 + U0)) M \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))) \<and>
+    vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_atms N (NE + UE + NS + US + N0 + U0)) cach \<and>
+    cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
     lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_atms N (NE + UE + NS + US + N0 + U0)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
+    isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms N (NE + UE + NS + US + N0 + U0)) heur
+    heuristic_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) heur
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
   \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> (S, T) \<in> twl_st_heur_conflict_ana\<close>
-  by (auto simp: twl_st_heur_def twl_st_heur_conflict_ana_def ac_simps)
+  by (auto simp: twl_st_heur_def twl_st_heur_conflict_ana_def ac_simps all_atms_st_def)
 
 lemma twl_st_heur_ana_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close>
@@ -295,23 +295,23 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
   {((M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
        old_arena),
      (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US + N0 + U0))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US + N0 + U0)) M \<and>
+    (D', None) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))) \<and>
+    vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>
-    cach_refinement_empty (all_atms N (NE + UE + NS + US + N0 + U0)) cach \<and>
+    cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M None outl \<and>
     lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_atms N (NE + UE + NS + US + N0 + U0)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
+    isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
+    isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms N (NE + UE + NS + US + N0 + U0)) heur
+    heuristic_rel (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) heur
   }\<close>
 
 
@@ -409,11 +409,7 @@ proof -
 find_theorems all_atms_st \<L>\<^sub>a\<^sub>l\<^sub>l
   apply clarsimp
   subgoal
-     apply (rule atm_in_conflict_lookup_pre)
-     unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
-     apply assumption+
-     apply (auto simp: ac_simps)
-     done
+     by (rule atm_in_conflict_lookup_pre)
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x1e x2d x2e
     apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
     apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def)[]
@@ -595,7 +591,7 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset:
 lemma correct_watching_dom_watched:
   assumes \<open>correct_watching S\<close> and \<open>\<And>C. C \<in># ran_mf (get_clauses_wl S) \<Longrightarrow> C \<noteq> []\<close>
   shows \<open>set_mset (dom_m (get_clauses_wl S)) \<subseteq>
-     \<Union>(((`) fst) ` set ` (get_watched_wl S) ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)))\<close>
+     \<Union>(((`) fst) ` set ` (get_watched_wl S) ` set_mset (all_lits_st S))\<close>
     (is \<open>?A \<subseteq> ?B\<close>)
 proof
   fix C
@@ -605,10 +601,10 @@ proof
     D': \<open>D = get_clauses_wl S \<propto> C\<close> and
     C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
     by auto
-  have \<open>atm_of (hd D) \<in># atm_of `# all_lits_st S\<close>
+  have \<open>(hd D) \<in># all_lits_st S\<close>
     using D D' assms(2)[of D]
     by (cases S; cases D)
-      (auto simp: all_lits_def
+      (auto simp: all_lits_def all_lits_st_def all_lits_def
           all_lits_of_mm_add_mset all_lits_of_m_add_mset
         dest!: multi_member_split)
   then show \<open>C \<in> ?B\<close>
@@ -616,13 +612,10 @@ proof
       multi_member_split[OF C]
     by (cases S; cases \<open>get_clauses_wl S \<propto> C\<close>;
          cases \<open>hd (get_clauses_wl S \<propto> C)\<close>)
-       (auto simp: correct_watching.simps clause_to_update_def
-           all_lits_of_mm_add_mset all_lits_of_m_add_mset
-	  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+     (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset correct_watching.simps clause_to_update_def
 	  eq_commute[of \<open>_ # _\<close>] atm_of_eq_atm_of
-        simp flip: all_atms_def
-	dest!: multi_member_split eq_insertD
-	dest!:  arg_cong[of \<open>filter_mset _ _\<close> \<open>add_mset _ _\<close> set_mset])
+      split: if_splits
+	dest!: arg_cong[of \<open>filter_mset _ _\<close> \<open>add_mset _ _\<close> set_mset] eq_insertD)
 qed
 
 
@@ -653,14 +646,14 @@ definition rewatch_heur_st_fast_pre where
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{
-     (M, N, D, NE, UE, NS, US, Q, W) \<leftarrow> RETURN S;
+     (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<leftarrow> RETURN S;
      W \<leftarrow> rewatch N W;
-     RETURN ((M, N, D, NE, UE, NS, US, Q, W))
+     RETURN ((M, N, D, NE, UE, NS, US, N0, U0, Q, W))
   }\<close>
 
 
 fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
-  \<open>remove_watched_wl (M, N, D, NE, UE, NS, US, Q, _) = (M, N, D, NE, UE, NS, US, Q)\<close>
+  \<open>remove_watched_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, _) = (M, N, D, NE, UE, NS, US, N0, U0, Q)\<close>
 
 lemma rewatch_st_correctness:
   assumes \<open>get_watched_wl S = (\<lambda>_. [])\<close> and
@@ -672,12 +665,12 @@ lemma rewatch_st_correctness:
   subgoal
     using rewatch_correctness[OF assms]
     unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b i\<close>)
+    apply (cases S, case_tac \<open>rewatch (get_clauses_wl S) (get_watched_wl S)\<close>)
     by (auto simp: RES_RETURN_RES)
   subgoal
     using rewatch_correctness[OF assms]
     unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b i\<close>)
+    apply (cases S, case_tac \<open>rewatch (get_clauses_wl S) (get_watched_wl S)\<close>)
     by (force simp: RES_RETURN_RES)+
   done
 
@@ -709,7 +702,7 @@ lemma length_watched_le:
 proof -
   have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using prop_inv x2 unfolding all_atms_def all_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps ac_simps)
+    by (cases x1; auto simp: correct_watching.simps ac_simps all_lits_st_alt_def[symmetric])
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a
     by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
@@ -717,8 +710,7 @@ proof -
     using xb_x'a
     by (cases x1)
       (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1)
-      (get_unit_clauses_wl x1 + get_subsumed_clauses_wl x1))\<close>
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
     using x2 xb_x'a unfolding all_atms_def
     by auto
 
@@ -757,7 +749,7 @@ lemma length_watched_le2:
   assumes
     prop_inv: \<open>correct_watching_except i j L x1\<close> and
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r lcount\<close> and
-    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> and diff: \<open>L \<noteq> x2\<close>
+    x2: \<open>x2 \<in># all_lits_st x1\<close> and diff: \<open>L \<noteq> x2\<close>
   shows \<open>length (watched_by x1 x2) \<le> r - MIN_HEADER_SIZE\<close>
 proof -
   from prop_inv diff have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
@@ -770,9 +762,6 @@ proof -
     using xb_x'a
     by (cases x1)
       (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1 + get_subsumed_clauses_wl x1))\<close>
-    using x2 xb_x'a
-    by (auto simp flip: all_atms_def all_lits_alt_def2 simp: ac_simps)
 
   have
       valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
@@ -785,7 +774,7 @@ proof -
     by (cases x1)
       (auto simp: twl_st_heur_def twl_st_heur'_def ac_simps simp flip: all_atms_def)
   then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
-    using x2 unfolding vdom_m_def
+    using x2 unfolding vdom_m_def all_lits_st_alt_def[symmetric]
     by (cases x1)
       (force simp: twl_st_heur'_def twl_st_heur_def ac_simps simp flip: all_atms_def all_lits_alt_def2
         dest!: multi_member_split)
@@ -808,16 +797,15 @@ lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + a
    \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
   by (induction C; auto simp: all_lits_of_m_add_mset)+
 
-
+find_theorems \<L>\<^sub>a\<^sub>l\<^sub>l all_lits_st
 (* TODO Move in this buffer *)
 lemma mop_watched_by_app_heur_mop_watched_by_at:
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
     twl_st_heur \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric] all_lits_alt_def[symmetric]
-  by (intro frefI nres_relI, refine_rcg,
-     auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def
-      simp flip: all_lits_alt_def2)
-    (auto simp: add.assoc)
+  unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric]
+    all_lits_alt_def[symmetric]
+  by (intro frefI nres_relI, refine_rcg)
+    (auto simp: twl_st_heur_def map_fun_rel_def all_lits_st_alt_def[symmetric])
 
 lemma mop_watched_by_app_heur_mop_watched_by_at'':
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
@@ -843,8 +831,8 @@ lemma mop_polarity_st_heur_mop_polarity_wl:
    [\<lambda>_. True]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
   unfolding mop_polarity_wl_def mop_polarity_st_heur_def uncurry_def mop_polarity_pol_def
   apply (intro frefI nres_relI)
-  apply (refine_rcg polarity_pol_polarity[of \<open>all_atms _ _\<close>, THEN fref_to_Down_unRET_uncurry])
-  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits ac_simps
+  apply (refine_rcg polarity_pol_polarity[of \<open>all_atms_st _\<close>, THEN fref_to_Down_unRET_uncurry])
+  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits ac_simps all_lits_st_alt_def[symmetric]
     intro!: polarity_pol_pre simp flip: all_atms_def)
   done
 
@@ -856,7 +844,7 @@ lemma mop_polarity_st_heur_mop_polarity_wl'':
 
 (* TODO Kill lhs*)
 lemma [simp,iff]: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<longleftrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
-  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_st_alt_def[symmetric]
   by auto
 
 
@@ -1263,13 +1251,13 @@ definition empty_US_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<
   )\<close>
 
 definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, {#}, {#}, W))\<close>
+\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NS, N0, U0, {#}, {#}, W))\<close>
 
 definition empty_Q_wl2  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_Q_wl2 = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, US, {#}, W))\<close>
+\<open>empty_Q_wl2 = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NS, US, N0, U0, {#}, W))\<close>
 
 definition empty_US_heur_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NS, US, Q, W). (M', N, D, NE, UE, NS, {#}, Q, W))\<close>
+\<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, Q, W). (M', N, D, NE, UE, NS, {#}, N0, U0, Q, W))\<close>
 
 lemma incr_wasted_st_twl_st[simp]:
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
