@@ -113,7 +113,7 @@ lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
     mop_tl_state_pre_def tl_state_wl_heur_pre_def
   apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
-      rev_map[symmetric] last_rev hd_map
+      rev_map[symmetric] last_rev hd_map simp flip: all_lits_st_alt_def
     intro!: vmtf_unset_pre'[where M = \<open>get_trail_wl y\<close>])
   apply (auto simp: neq_Nil_conv literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons phase_saving_def isa_vmtf_def
       vmtf_def
@@ -121,22 +121,31 @@ lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   done
 
 lemma mop_tl_state_wl_pre_simps:
-  \<open>mop_tl_state_wl_pre ([], ax, ay, az, bga, NS, US, bh, bi) \<longleftrightarrow> False\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, bh, bi) \<Longrightarrow>
-     lit_of (hd xa) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms ax (az + bga + NS + US))\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># the ay\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># the ay\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># ay'\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># ay'\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, bh, bi) \<Longrightarrow> is_proped (hd xa)\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, bh, bi) \<Longrightarrow> count_decided xa > 0\<close>
+  \<open>mop_tl_state_wl_pre ([], ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<longleftrightarrow> False\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow>
+     lit_of (hd xa) \<in># all_lits_st (xa', ax, ay'', az, bga, NS, US, N0, U0, bh'', bi'')\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> is_proped (hd xa)\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> count_decided xa > 0\<close>
   unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
     mop_tl_state_pre_def tl_state_wl_heur_pre_def
   apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
       rev_map[symmetric] last_rev hd_map mset_take_mset_drop_mset' \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
-    simp flip: image_mset_union all_lits_def all_lits_alt_def2)
+    simp flip: image_mset_union all_lits_def all_lits_st_alt_def; fail)[]
+  apply (normalize_goal+; simp add: all_lits_st_def; fail)+
   done
 
+lemma all_atms_st_st_simps2[simp]:
+  \<open>all_atms_st (tl xaa, bu, bv, bw, bx, by, bz, ca, cb, cc, cd) =
+  all_atms_st (xaa, bu, bv, bw, bx, by, bz, ca, cb, cc, cd)\<close>
+  \<open>all_atms_st (xaa, bu, Some (bv' \<union># tt - uu), bw, bx, by, bz, ca, cb, cc, cd) =
+  all_atms_st (xaa, bu, Some bv', bw, bx, by, bz, ca, cb, cc, cd)\<close>
+  by (auto simp: all_atms_st_def)
+
+declare isasat_input_bounded_def[simp del]
 lemma tl_state_wl_heur_tl_state_wl:
    \<open>(tl_state_wl_heur, mop_tl_state_wl) \<in>
   [\<lambda>_. True]\<^sub>f twl_st_heur_conflict_ana' r lcount \<rightarrow>
@@ -151,7 +160,7 @@ lemma tl_state_wl_heur_tl_state_wl:
     apply (auto simp: twl_st_heur_conflict_ana_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
          mop_tl_state_wl_pre_simps lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id]
          card_max_lvl_tl tl_state_out_learned
-      dest: no_dup_tlD
+      dest: no_dup_tlD simp flip: all_lits_st_alt_def
       intro!: tl_trail_tr[THEN fref_to_Down_unRET] isa_vmtf_tl_isa_vmtf)
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
   apply (auto simp: lit_of_hd_trail_def mop_tl_state_wl_pre_simps counts_maximum_level_def)
@@ -221,7 +230,7 @@ definition update_confl_tl_wl_pre' :: \<open>((nat literal \<times> nat) \<times
       - L \<in># the (get_conflict_wl S) \<and>
       L \<notin># the (get_conflict_wl S) \<and>
       (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S)) \<and>
-      L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
+      L \<in># all_lits_st S \<and>
       is_proped (hd (get_trail_wl S)) \<and>
       C > 0 \<and>
       card_max_lvl (get_trail_wl S) (the (get_conflict_wl S)) \<ge> 1 \<and>
@@ -492,6 +501,12 @@ lemma mset_as_position_remove3:
 lemma imply_itself: \<open>P \<Longrightarrow> P\<close>
   by auto
 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_ran_m[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (all_atms_st (x1a, x1b, y))
+      {#mset (fst x). x \<in># ran_m x1b#}\<close>
+  by (cases y; auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_def all_lits_of_mm_union
+    simp flip: all_lits_st_alt_def)
+
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 mop_update_confl_tl_wl) \<in>
   [\<lambda>_. True]\<^sub>f
@@ -562,7 +577,9 @@ note [[goals_limit=1]]
       \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<close>, THEN order_trans])
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre' simp: update_confl_tl_wl_pre'_def)
-     subgoal by auto
+     subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_of_mm_union
+         all_lits_def
+       simp flip: all_lits_st_alt_def)
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
@@ -574,7 +591,9 @@ note [[goals_limit=1]]
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
-         simp: update_confl_tl_wl_pre'_def intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n)
+         simp: update_confl_tl_wl_pre'_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_of_mm_union
+         all_lits_def simp flip: all_lits_st_alt_def
+        intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
@@ -600,7 +619,8 @@ note [[goals_limit=1]]
            atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def lookup_conflict_remove1_def
            remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
-          subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+        subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+        simp flip: all_lits_st_alt_def[symmetric]
          intro!: mset_as_position_remove3
          intro!: ASSERT_leI)
      done
@@ -623,6 +643,7 @@ note [[goals_limit=1]]
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def
            merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
            remove1_mset_union_distrib1 remove1_mset_union_distrib2
+         simp flip: all_lits_st_alt_def[symmetric]
          intro!: mset_as_position_remove3
          intro!: ASSERT_leI)
       done
@@ -702,7 +723,8 @@ note [[goals_limit=1]]
            atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def lookup_conflict_remove1_def
            remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
-          subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+         simp flip: all_lits_st_alt_def
          intro!: mset_as_position_remove3
          intro!: ASSERT_leI)
      done
@@ -726,6 +748,7 @@ note [[goals_limit=1]]
            merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
            remove1_mset_union_distrib1 remove1_mset_union_distrib2
          intro!: mset_as_position_remove3
+         simp flip: all_lits_st_alt_def
          intro!: ASSERT_leI)
       done
     done
@@ -763,18 +786,22 @@ note [[goals_limit=1]]
       apply (rule rr; assumption)
       subgoal by (simp add: arena_act_pre_def)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
-         simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
-           intro!: vmtf_unset_pre')
+        simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
+        simp flip: all_lits_st_alt_def
+        intro!: vmtf_unset_pre'
+        dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
        x1k x1l x2k x1m x1n x1o x1p x1q x1r x1t D x1v x1w x2v x1x x1y
-         by (rule tl_trailt_tr_pre[of x1a _ \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>])
+         by (rule tl_trailt_tr_pre[of x1c x1k \<open>all_atms_st (x1c, x1d, x1e, x1f, x1g, x2g, ha, ia, ja, x1, x2)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
+             simp flip: all_lits_st_alt_def
              intro!: tl_trailt_tr_pre)
       subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
            valid_arena_mark_used subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
           tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_vmtf_tl_isa_vmtf no_dup_tlD
-          counts_maximum_level_def)
+          counts_maximum_level_def
+        simp flip: all_lits_st_alt_def)
     done
   done
 qed
@@ -885,13 +912,13 @@ proof -
   apply refine_rcg
   apply clarsimp
   subgoal
-     apply (rule atm_in_conflict_lookup_pre)
-     unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
-     apply assumption+
+     apply (rule atm_in_conflict_lookup_pre[of _ \<open>all_atms_st _\<close>])
+     unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric] all_lits_st_alt_def[symmetric]
+     apply auto
      done
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x1e x2d x2e
     apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
-    apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def)[]
+    apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def all_lits_st_alt_def[symmetric])[]
     apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def)[]
     apply (simp add: atm_in_conflict_def atm_of_in_atms_of_iff)
     done

@@ -8,7 +8,7 @@ chapter \<open>Propagation Loop And Conflict\<close>
 section \<open>Unit Propagation, Inner Loop\<close>
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
-  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, _, W) L. length (W L))\<close>
+  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, _, _, _, W) L. length (W L))\<close>
 
 definition (in -) length_ll_fs_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs_heur S L = length (watched_by_int S L)\<close>
