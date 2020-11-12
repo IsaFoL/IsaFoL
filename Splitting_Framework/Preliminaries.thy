@@ -31,6 +31,9 @@ locale consequence_relation =
     it was detected to be unsufficient thanks to the forma*)
 begin
 
+abbreviation equi_entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>|" 50) where
+  "M \<Turnstile>| N \<equiv> (M \<Turnstile> N \<and> N \<Turnstile> M)"
+
 lemma entails_cond_reflexive: \<open>N \<noteq> {} \<Longrightarrow> N \<Turnstile> N\<close>
   using entails_reflexive entails_subsets by (meson bot.extremum from_nat_into insert_subset)
     
