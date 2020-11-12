@@ -256,6 +256,7 @@ lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> I
 
 lemma \<open>bot \<notin> Red_F N\<close>
 proof -
+  (* first "have" is not needed, TODO: remove here and in paper proof *)
   have \<open>saturated UNIV\<close>
     unfolding saturated_def Inf_from_def by (simp add: Red_I_of_Inf_to_N subsetI)
   have \<open>UNIV \<Turnstile> {bot}\<close>
