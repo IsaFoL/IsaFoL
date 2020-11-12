@@ -233,7 +233,7 @@ locale calculus = inference_system Inf + consequence_relation bot entails
     Red_F :: "'f set \<Rightarrow> 'f set"
   assumes
     Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
-    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {}" and (* /!\ check if this is ok *)
+    Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and (* /!\ check if this is ok *)
     Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
     Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
     Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
@@ -251,13 +251,22 @@ locale statically_complete_calculus = calculus +
   assumes statically_complete: "saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N"
 begin
 
+lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> Inf_from N"
+  unfolding Inf_from_def by blast
+
 lemma \<open>bot \<notin> Red_F N\<close>
 proof -
   have \<open>saturated UNIV\<close>
     unfolding saturated_def Inf_from_def by (simp add: Red_I_of_Inf_to_N subsetI)
   have \<open>UNIV \<Turnstile> {bot}\<close>
     using entails_reflexive[of bot] entails_subsets[of "{bot}" UNIV "{bot}" "{bot}"] by fast
-  have \<open>bot \<notin> Red_F UNIV\<close> sorry
+  then have non_red_entails_bot: \<open>UNIV - (Red_F UNIV) \<Turnstile> {bot}\<close> using Red_F_Bot[of UNIV] by simp
+  have \<open>Inf_from UNIV \<subseteq> Red_I UNIV\<close>
+    unfolding Inf_from_def using Red_I_of_Inf_to_N[of _ UNIV] by blast
+  then have sat_non_red: \<open>saturated (UNIV - Red_F UNIV)\<close>
+    unfolding saturated_def Inf_from_def using Red_I_of_Red_F_subset[of "Red_F UNIV" UNIV] by blast 
+  have \<open>bot \<notin> Red_F UNIV\<close> 
+    using statically_complete[OF sat_non_red non_red_entails_bot] by fast
   then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
 
