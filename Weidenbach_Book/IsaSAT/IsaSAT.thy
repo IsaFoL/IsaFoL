@@ -833,19 +833,22 @@ proof -
       \<open>get_conflict_init T = None \<longrightarrow>
        literals_to_update_init T =
        uminus `# lit_of `# mset (get_trail_init T)\<close> and
-      clss: \<open>mset `# mset CS +
-       clause `# get_init_clauses_init (to_init_state0 init_state0) +
-       other_clauses_init (to_init_state0 init_state0) +
-       get_unit_init_clauses_init (to_init_state0 init_state0) +
-       get_subsumed_init_clauses_init (to_init_state0 init_state0) =
-       clause `# get_init_clauses_init T + other_clauses_init T +
-       get_unit_init_clauses_init T + get_subsumed_init_clauses_init T\<close> and
+      clss: \<open>mset `# mset CS + clauses (get_init_clauses_init (to_init_state0 init_state0)) +
+     other_clauses_init (to_init_state0 init_state0) +
+     get_unit_init_clauses_init (to_init_state0 init_state0) +
+     get_subsumed_init_clauses_init (to_init_state0 init_state0) +
+     get_init_clauses0_init (to_init_state0 init_state0) =
+     clauses (get_init_clauses_init T) + other_clauses_init T + get_unit_init_clauses_init T +
+     get_subsumed_init_clauses_init T +
+     get_init_clauses0_init T\<close> and
       learned: \<open>get_learned_clauses_init (to_init_state0 init_state0) =
           get_learned_clauses_init T\<close>
         \<open>get_unit_learned_clauses_init T =
           get_unit_learned_clauses_init (to_init_state0 init_state0)\<close>
         \<open>get_subsumed_learned_clauses_init T =
-          get_subsumed_learned_clauses_init (to_init_state0 init_state0)\<close> and
+          get_subsumed_learned_clauses_init (to_init_state0 init_state0)\<close>
+        \<open>get_learned_clauses0_init T =
+          get_learned_clauses0_init (to_init_state0 init_state0)\<close> and
       stgy_invs: \<open>twl_stgy_invs (fst T)\<close> and
       oth: \<open>other_clauses_init T \<noteq> {#} \<longrightarrow> get_conflict_init T \<noteq> None\<close> and
       \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T \<noteq> None\<close> and

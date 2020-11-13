@@ -432,7 +432,7 @@ lemma (in -) isasat_fast_alt_def:
      clss_size_allcount lcount < uint64_max))\<close>
   unfolding isasat_fast_def
   by (auto intro!: ext simp: learned_clss_count_def clss_size_allcount_def clss_size_lcount_def
-    clss_size_lcountUS_def clss_size_lcountUE_def)
+    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcountU0_def)
 
 definition isasat_fast_relaxed :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
@@ -470,7 +470,7 @@ where
 
 (*TODO Move*)
 lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) = learned_clss_count S\<close>
-    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def
+    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
       clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
 
 lemma cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D:
@@ -529,7 +529,7 @@ proof -
           length (get_clauses_wl_heur S) = r \<and>
           learned_clss_count S = clss_size_allcount lcount}\<close>
     for x1e x1b r \<D> lcount
-    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def
+    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
       clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
