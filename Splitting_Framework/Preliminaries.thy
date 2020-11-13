@@ -241,9 +241,41 @@ locale calculus = inference_system Inf + consequence_relation bot entails
     Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
 begin
 
-
 definition saturated :: "'f set \<Rightarrow> bool" where
   "saturated N \<longleftrightarrow> Inf_from N \<subseteq> Red_I N"
+  
+definition Red_I_strict :: "'f set \<Rightarrow> 'f inference set" where
+  "Red_I_strict N = {\<iota>. \<iota> \<in> Red_I N \<or> (\<iota> \<in> Inf \<and> bot \<in> N)}"
+  
+  (* /!\ patched definition, TODO: confirm this is what is wanted *)
+definition Red_F_strict :: "'f set \<Rightarrow> 'f set" where
+  "Red_F_strict N = {C. (bot \<notin> N \<and> C \<in> Red_F N) \<or> (bot \<in> N \<and> C \<noteq> bot)}"
+  
+interpretation strict_redundancy_criterion: calculus bot Inf entails Red_I_strict Red_F_strict
+proof
+  fix N
+  show \<open>Red_I_strict N \<subseteq> Inf\<close> unfolding Red_I_strict_def using Red_I_to_Inf by blast
+next
+  fix N
+  assume entails_bot: \<open>N \<Turnstile> {bot}\<close>
+  show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close>
+  proof (cases "bot \<in> N")
+    assume bot_in: "bot \<in> N"
+    then have \<open>Red_F_strict N = UNIV - {bot}\<close>
+      unfolding Red_F_strict_def by blast
+    then have \<open>N - Red_F_strict N = {bot}\<close> using bot_in by blast
+    then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using entails_reflexive[of bot] by simp
+  next
+    assume \<open>bot \<notin> N\<close>
+    then have \<open>Red_F_strict N = Red_F N\<close> unfolding Red_F_strict_def by blast
+    then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using Red_F_Bot[OF entails_bot] by simp
+  qed
+next
+
+    oops
+
+
+
 
 end
   
