@@ -197,7 +197,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US \<and>
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -221,7 +221,8 @@ lemma twl_st_heur_state_simp:
 
 definition learned_clss_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
-    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S)\<close>
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) +
+    clss_size_lcountU0 (get_learned_count S)\<close>
 
 lemma get_learned_count_learned_clss_countD:
   \<open>get_learned_count S = clss_size_resetUS (get_learned_count T) \<Longrightarrow>
@@ -265,7 +266,7 @@ where
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US \<and>
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -304,7 +305,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     clvls \<in> counts_maximum_level M None \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M None outl \<and>
-    lcount = clss_size N NE UE NS US \<and>
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -328,8 +329,9 @@ lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get
     \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < uint64_max\<close>
     \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
     \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountU0 (get_learned_count S) < uint64_max\<close>
   by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
-    clss_size_lcountUE_def clss_size_lcount_def
+    clss_size_lcountUE_def clss_size_lcount_def clss_size_lcountU0_def
     clss_size_allcount_def learned_clss_count_def\<close>)+
 
 
@@ -1217,17 +1219,18 @@ lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrig
                       learned_clss_count T =
                       size (get_learned_clss_wl Ta) +
                       size (get_unit_learned_clss_wl Ta) +
-  size (get_subsumed_learned_clauses_wl Ta)\<close>
+                     size (get_subsumed_learned_clauses_wl Ta) +
+                     size (get_learned_clauses0_wl Ta)\<close>
   by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def
     clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def
-    get_learned_clss_wl_def)
+    get_learned_clss_wl_def clss_size_lcountU0_def)
 
 
 lemma clss_size_allcount_alt_def:
-  \<open>clss_size_allcount S = clss_size_lcountUS S + clss_size_lcountUE S + 
+  \<open>clss_size_allcount S = clss_size_lcountUS S + clss_size_lcountU0 S + clss_size_lcountUE S + 
     clss_size_lcount S\<close>
   by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountUS_def
-    clss_size_lcount_def clss_size_lcountUE_def)
+    clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountU0_def)
 
 definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
@@ -1251,7 +1254,7 @@ definition empty_US_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<
   )\<close>
 
 definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NS, N0, U0, {#}, {#}, W))\<close>
+\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NS, {#}, N0, U0, {#}, W))\<close>
 
 definition empty_Q_wl2  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
 \<open>empty_Q_wl2 = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NS, US, N0, U0, {#}, W))\<close>

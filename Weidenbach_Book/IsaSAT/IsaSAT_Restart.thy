@@ -230,7 +230,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
           length (get_clauses_wl_heur S) = r \<and>
           learned_clss_count S = clss_size_allcount lcount}\<close>
     for x1e x1b r \<D> lcount
-    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def
+    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
       clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f

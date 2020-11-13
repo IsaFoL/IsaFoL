@@ -53,6 +53,7 @@ lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longri
   twl_stgy_invs S \<Longrightarrow>
   clauses_to_update S = {#} \<Longrightarrow>
   get_conflict S = None \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
   cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
   apply (rule order_trans)
   apply (rule cdcl_twl_stgy_restart_prog_spec; assumption?)
@@ -65,6 +66,7 @@ lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longri
 lemma cdcl_twl_stgy_restart_prog_bounded_spec: \<open>twl_struct_invs S \<Longrightarrow>
   twl_stgy_invs S \<Longrightarrow>
   clauses_to_update S = {#} \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
   get_conflict S = None \<Longrightarrow>
   cdcl_twl_stgy_restart_prog_bounded S \<le> conclusive_TWL_run_bounded S\<close>
   apply (rule order_trans)
@@ -116,7 +118,7 @@ lemma pcdcl_tcore_is_cdclD:
       cdcl_backtrack_unit_is_CDCL_backtrack)
 
 fun pinit_state :: \<open>'v clauses \<Rightarrow> 'v prag_st\<close> where
-"pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#})"
+"pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#}, {#}, {#})"
 
 lemma get_all_clss_alt_def:
   \<open>get_all_clss S = get_all_init_clss S + get_all_learned_clss S\<close>
@@ -159,6 +161,30 @@ lemma pcdcl_restart_only_entailed_by_init:
       subset_mset.le_iff_add ac_simps)
   done
 
+lemma pcdcl_inprocessing_entailed_by_init:
+  \<open>pcdcl_inprocessing S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  apply (induction rule: pcdcl_inprocessing.induct)
+  subgoal for S T
+    using pcdcl_entailed_by_init[of S T] by auto
+  subgoal
+    using pcdcl_restart_entailed_by_init by blast
+  done
+
+lemma rtranclp_pcdcl_inprocessing_entailed_by_init:
+  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal
+    by auto
+  subgoal for T U
+    using pcdcl_inprocessing_entailed_by_init[of T U] rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S T]
+    by blast
+  done
+
+find_theorems cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init pcdcl
 lemma pcdcl_stgy_restart_entailed_by_init:
   assumes \<open>pcdcl_stgy_restart (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
     \<open>pcdcl_all_struct_invs S\<close> and
@@ -169,8 +195,10 @@ lemma pcdcl_stgy_restart_entailed_by_init:
   subgoal
     using pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init rtranclp_pcdcl_stgy_pcdcl
     by blast
-  subgoal for U
-    using pcdcl_restart_entailed_by_init[of S U]
+  subgoal for U V
+    using pcdcl_restart_entailed_by_init[of U V] pcdcl_restart_pcdcl_all_struct_invs[of S U]
+      rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S U]
+      rtranclp_pcdcl_inprocessing_entailed_by_init[of S U]
     by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
       rtranclp_pcdcl_stgy_pcdcl
       dest: pcdcl_restart_pcdcl_all_struct_invs)
@@ -191,7 +219,8 @@ lemma pcdcl_stgy_restart_pcdcl_all_struct_invs:
   apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
   apply (simp_all add: pcdcl_tcore_stgy_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs
     rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl)
-  using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl apply blast
+  using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl
+    rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs apply blast
   using pcdcl_restart_only_pcdcl_all_struct_invs by blast
 
 lemma rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs:
@@ -218,12 +247,16 @@ lemma pcdcl_core_entailed_iff:
     cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
 
 lemma pcdcl_entailed_iff:
-  \<open>pcdcl S T \<Longrightarrow> consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  \<open>pcdcl S T \<Longrightarrow> consistent_interp M \<Longrightarrow>
+  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+    M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
   apply (induction rule: pcdcl.induct)
   subgoal
     by (auto simp: pcdcl_core_entailed_iff)
   subgoal
     by (auto simp: cdcl_learn_clause.simps true_clss_cls_def total_over_m_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
       dest: spec[of _ M])
   subgoal
     by (auto simp: cdcl_resolution.simps total_over_m_def consistent_interp_def)
@@ -237,6 +270,8 @@ lemma pcdcl_entailed_iff:
     by (auto simp: cdcl_inp_conflict.simps)
   subgoal
     by (auto simp: cdcl_unitres_true.simps)
+  subgoal
+    by (auto simp: cdcl_promote_false.simps)
   done
 
 lemma pcdcl_core_same_init_vars:
@@ -245,31 +280,9 @@ lemma pcdcl_core_same_init_vars:
    (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
     cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
 
-lemma pcdcl_same_init_vars:
-  \<open>pcdcl S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  apply (induction rule: pcdcl.induct)
-  subgoal
-    by (auto simp: pcdcl_core_same_init_vars)
-  subgoal
-    by (auto simp: cdcl_learn_clause.simps)
-  subgoal
-    by (auto simp: cdcl_resolution.simps)
-  subgoal
-    by (auto simp: cdcl_subsumed.simps)
-  subgoal
-    by (auto simp: cdcl_flush_unit.simps)
-  subgoal
-    by (auto simp: cdcl_inp_propagate.simps)
-  subgoal
-    by (auto simp: cdcl_inp_conflict.simps)
-  subgoal
-    by (auto simp: cdcl_unitres_true.simps)
-  done
-
-lemma rtranclp_pcdcl_same_init_vars:
-  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: rtranclp_induct)
-    (auto dest: pcdcl_same_init_vars)
+    (*TODO: del*)
+lemmas pcdcl_same_init_vars = pcdcl_pget_all_init_clss
+lemmas rtranclp_pcdcl_same_init_vars = rtranclp_pcdcl_pget_all_init_clss
 
 lemma pcdcl_restart_same_init_vars:
   \<open>pcdcl_restart S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
@@ -280,34 +293,66 @@ lemma pcdcl_restart_only_same_init_vars:
   by (induction rule: pcdcl_restart_only.induct) auto
 
 lemma rtranclp_pcdcl_entailed_iff:
-  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
     using rtranclp_pcdcl_same_init_vars[of S T] pcdcl_same_init_vars[of T U]
+      Pragmatic_CDCL.rtranclp_pcdcl_entailed_by_init[of S T]
+      rtranclp_pcdcl_all_struct_invs[of S T]
     by (auto dest!: pcdcl_entailed_iff[of _ _ M] simp del: atms_of_ms_union)
   done
+
 
 lemma pcdcl_restart_entailed_iff:
   \<open>pcdcl_restart S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
   by (induction rule: pcdcl_restart.induct) (auto)
 
+lemma pcdcl_inprocessing_entailed_iff:
+  \<open>pcdcl_inprocessing S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  apply (induction rule: pcdcl_inprocessing.induct)
+  using pcdcl_entailed_iff apply blast
+  using pcdcl_restart_entailed_iff by blast
+
+lemma rtranclp_pcdcl_inprocessing_entailed_iff:
+  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using
+      pcdcl_inprocessing_entailed_iff[of T U M] rtranclp_pcdcl_inprocessing_entailed_by_init[of T U]
+      rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S T]
+      rtranclp_pcdcl_inprocessing_pget_all_init_clss[of S T]
+      pcdcl_inprocessing_pget_all_init_clss[of T U]
+      apply auto
+      using rtranclp_pcdcl_inprocessing_entailed_by_init apply blast+
+      done
+  done
+
 lemma pcdcl_restart_only_entailed_iff:
   \<open>pcdcl_restart_only S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
   by (induction rule: pcdcl_restart_only.induct) (auto)
 
-
 lemma pcdcl_stgy_restart_same_init_vars:
   \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow>
      atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
   apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
   subgoal
     by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
       simp: rtranclp_pcdcl_same_init_vars)
-  subgoal
-    by (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_same_init_vars
+  subgoal for U V
+    apply (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_same_init_vars
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy')
+    using pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss apply blast
+      by (smt pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss)
   subgoal
     by (auto simp: pcdcl_restart_only_same_init_vars)
   subgoal
@@ -316,6 +361,7 @@ lemma pcdcl_stgy_restart_same_init_vars:
 
 lemma rtranclp_pcdcl_stgy_restart_same_init_vars:
   \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow>
      atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
   apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
   subgoal
@@ -323,29 +369,36 @@ lemma rtranclp_pcdcl_stgy_restart_same_init_vars:
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
       rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_same_init_vars)
   subgoal
-    by (auto dest!: pcdcl_stgy_restart_same_init_vars)
+    by (auto dest: rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs
+      pcdcl_stgy_restart_same_init_vars)
   done
 
 lemma pcdcl_stgy_restart_entailed_iff:
   \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
   consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
   M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  by (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
-   (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
-    dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-      rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_entailed_iff)
+  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
+  apply (auto dest: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
+    dest: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+    rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_entailed_iff)[]
+  apply (smt pcdcl_restart_entailed_iff pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars
+    rtranclp_pcdcl_entailed_iff rtranclp_pcdcl_inprocessing_entailed_by_init
+    rtranclp_pcdcl_inprocessing_entailed_iff rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
+    rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_stgy_pget_all_init_clss twl_restart_ops.pcdcl_restart_entailed_by_init)
+  using pcdcl_restart_only_entailed_iff apply blast
+  by simp
 
 lemma rtranclp_pcdcl_restart_entailed_iff:
   \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
   consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
   M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
   apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
   subgoal by auto
   subgoal for T U
-    apply (frule pcdcl_stgy_restart_entailed_iff; assumption?)
-    apply (frule rtranclp_pcdcl_stgy_restart_same_init_vars)
-    apply (frule pcdcl_stgy_restart_same_init_vars)
-    by (auto dest: )
+    by (simp add: pcdcl_stgy_restart_entailed_iff pcdcl_stgy_restart_same_init_vars
+      rtranclp_pcdcl_stgy_restart_entailed_by_init rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs)
   done
 
 lemma [simp]: \<open>pget_all_init_clss (pstate\<^sub>W_of S) = (get_all_init_clss S)\<close>
@@ -377,11 +430,11 @@ proof (rule RES_refine)
     by fast
   have pcdcl_invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close>
     using struct unfolding twl_struct_invs_def by auto
-  from rtranclp_cdcl_twl_stgy_restart_pcdcl[OF st struct struct struct]
+  from rtranclp_cdcl_twl_stgy_restart_pcdcl[OF st struct struct struct init init init]
   have pcdcl: \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (pstate\<^sub>W_of S, pstate\<^sub>W_of S, pstate\<^sub>W_of S, m\<^sub>0, n\<^sub>0, True)
     (pstate\<^sub>W_of T0, pstate\<^sub>W_of T0', pstate\<^sub>W_of s, m', n', f')\<close> .
   have struct_invs_s: \<open>twl_struct_invs s\<close>
-    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[OF st] struct
+    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[OF st] struct init
     by auto
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of s)\<close>
     using struct_invs_s unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
@@ -390,8 +443,10 @@ proof (rule RES_refine)
   then have atms_eq: \<open>atms_of_mm (get_all_clss s) = atms_of_mm (pget_all_init_clss (pstate\<^sub>W_of s))\<close>
     unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
     by (cases s) (auto)
+  have pinvs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of s)\<close>
+    using struct_invs_s unfolding twl_struct_invs_def by auto
   have stgy_invs_s: \<open>twl_stgy_invs s\<close>
-    using rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[OF st] stgy struct
+    using rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[OF st] stgy struct init
     by (auto simp: twl_restart_inv_def pcdcl_stgy_restart_inv_def
       twl_struct_invs_def)
   have H1: \<open>consistent_interp (lits_of_l (get_trail s))\<close>
@@ -422,7 +477,7 @@ proof (rule RES_refine)
     }
     ultimately show \<open>get_trail s \<Turnstile>asm get_all_init_clss S\<close>
       using struct_invs_s rtranclp_pcdcl_restart_entailed_iff[OF pcdcl, of \<open>lits_of_l  (get_trail s)\<close>]
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2[OF nss] confl
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2[OF nss] confl init pcdcl_invs
       unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by (auto simp: get_all_clss_alt_def true_annots_true_cls)
@@ -452,8 +507,8 @@ proof (rule RES_refine)
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def\<close>)
     then show \<open>unsatisfiable (set_mset (get_all_init_clss S))\<close>
       using rtranclp_pcdcl_restart_entailed_iff[OF pcdcl]
-        rtranclp_pcdcl_stgy_restart_same_init_vars[OF pcdcl]
-      by (auto simp: satisfiable_def total_over_m_def)
+        rtranclp_pcdcl_stgy_restart_same_init_vars[OF pcdcl] struct_invs_s init pcdcl_invs
+      by (auto simp: satisfiable_def total_over_m_def twl_struct_invs_def)
   qed
  
   have H5: False
@@ -490,13 +545,13 @@ proof (rule RES_refine)
 qed
 
 definition init_state_l :: \<open>'v twl_st_l_init\<close> where
-  \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
+  \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
 
 definition to_init_state_l :: \<open>nat twl_st_l_init \<Rightarrow> nat twl_st_l_init\<close> where
   \<open>to_init_state_l S = S\<close>
 
 definition init_state0 :: \<open>'v twl_st_init\<close> where
-  \<open>init_state0 = (([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
+  \<open>init_state0 = (([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
 
 definition to_init_state0 :: \<open>nat twl_st_init \<Rightarrow> nat twl_st_init\<close> where
   \<open>to_init_state0 S = S\<close>
@@ -506,7 +561,7 @@ lemma init_dt_pre_init:
   shows  \<open>init_dt_pre CS (to_init_state_l init_state_l)\<close>
   using dist apply -
   unfolding init_dt_pre_def to_init_state_l_def init_state_l_def
-  by (rule exI[of _ \<open>(([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>])
+  by (rule exI[of _ \<open>(([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>])
     (auto simp: twl_st_l_init_def twl_init_invs)
 
 
@@ -527,9 +582,10 @@ definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init
       (get_conflict_init T' = None \<longrightarrow>
 	 literals_to_update_init T' = uminus `# lit_of `# mset (get_trail_init T')) \<and>
       (mset `# mset CS + clause `# (get_init_clauses_init SOC) + other_clauses_init SOC +
-	    get_unit_init_clauses_init SOC + get_subsumed_init_clauses_init SOC =
+	    get_unit_init_clauses_init SOC + get_init_clauses0_init SOC + get_subsumed_init_clauses_init SOC =
        clause `# (get_init_clauses_init T') + other_clauses_init T' +
-	    get_unit_init_clauses_init T' + get_subsumed_init_clauses_init T') \<and>
+	    get_unit_init_clauses_init T' + get_subsumed_init_clauses_init T' + get_init_clauses0_init T') \<and>
+      get_learned_clauses0_init SOC = get_learned_clauses0_init T' \<and>
       get_learned_clauses_init SOC = get_learned_clauses_init T' \<and>
       get_subsumed_learned_clauses_init SOC = get_subsumed_learned_clauses_init T' \<and>
       get_unit_learned_clauses_init T' = get_unit_learned_clauses_init SOC \<and>
@@ -558,7 +614,7 @@ definition SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close
         else do {
           ASSERT (extract_atms_clss CS {} \<noteq> {});
 	  ASSERT (clauses_to_update T = {#});
-          ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T = mset `# mset CS);
+          ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T + get_init_clauses0 T = mset `# mset CS);
           ASSERT(get_learned_clss T = {#});
           ASSERT(subsumed_learned_clss T = {#});
           cdcl_twl_stgy_restart_prog T
@@ -577,7 +633,7 @@ definition SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close
           else do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
             ASSERT (clauses_to_update T = {#});
-            ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T = mset `# mset CS);
+            ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T + get_init_clauses0 T = mset `# mset CS);
             ASSERT(get_learned_clss T = {#});
             cdcl_twl_stgy_restart_prog T
         }
@@ -589,7 +645,7 @@ definition SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close
           else do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
             ASSERT (clauses_to_update T = {#});
-            ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T = mset `# mset CS);
+            ASSERT(clause `# (get_clauses T) + unit_clss T + subsumed_clauses T + get_init_clauses0 T = mset `# mset CS);
             ASSERT(get_learned_clss T = {#});
             cdcl_twl_stgy_restart_prog_early T
           }
@@ -599,7 +655,8 @@ definition SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close
 
 lemma pget_all_init_clss_pstate\<^sub>W_of_init:
   \<open>pget_all_init_clss (pstate\<^sub>W_of_init T) = get_subsumed_init_clauses_init T +
-                  get_unit_init_clauses_init T+ 
+  get_unit_init_clauses_init T+
+  get_init_clauses0_init T +
                    other_clauses_init T+
                     clause `# (get_init_clauses_init T)\<close>
   by (cases T) auto
@@ -608,7 +665,7 @@ lemma pget_all_init_clss_pstate\<^sub>W_of_init:
 lemma [twl_st_init,simp]:
   \<open>pget_trail (pstate\<^sub>W_of_init T) = get_trail_init T\<close>
   \<open>pget_conflict (pstate\<^sub>W_of_init T) = get_conflict_init T\<close>
-  \<open>pget_all_learned_clss (pstate\<^sub>W_of_init T) = clause `# get_learned_clauses_init T+ get_unit_learned_clauses_init T +
+  \<open>pget_all_learned_clss (pstate\<^sub>W_of_init T) = clause `# get_learned_clauses_init T+ get_unit_learned_clauses_init T + get_learned_clauses0_init T +
   get_subsumed_learned_clauses_init T\<close>
   \<open>get_init_learned_clss (fst T) = get_unit_learned_clauses_init T\<close>
   \<open>subsumed_learned_clauses (fst T) = get_subsumed_learned_clauses_init T\<close>
@@ -619,7 +676,7 @@ lemma [twl_st_init,simp]:
 (*TODO this should have a _init pendant!*)
 lemma get_all_init_clss_alt_init_def:
   \<open>get_all_init_clss (fst T)  = clauses (get_init_clauses_init T) +
-     get_unit_init_clauses_init T + get_subsumed_init_clauses_init T\<close>
+     get_unit_init_clauses_init T + get_subsumed_init_clauses_init T + get_init_clauses0_init T\<close>
   by (cases T) (auto simp: )
 
 
@@ -648,15 +705,19 @@ proof -
        clause `# get_init_clauses_init (to_init_state0 init_state0) +
        other_clauses_init (to_init_state0 init_state0) +
        get_unit_init_clauses_init (to_init_state0 init_state0) +
+       get_init_clauses0_init (to_init_state0 init_state0) +
        get_subsumed_init_clauses_init (to_init_state0 init_state0) =
        clause `# get_init_clauses_init T + other_clauses_init T +
-       get_unit_init_clauses_init T + get_subsumed_init_clauses_init T\<close> and
+        get_unit_init_clauses_init T + get_subsumed_init_clauses_init T +
+        get_init_clauses0_init T\<close> and
       learned: \<open>get_learned_clauses_init (to_init_state0 init_state0) =
           get_learned_clauses_init T\<close>
         \<open>get_unit_learned_clauses_init T =
           get_unit_learned_clauses_init (to_init_state0 init_state0)\<close>
         \<open>get_subsumed_learned_clauses_init T =
-          get_subsumed_learned_clauses_init (to_init_state0 init_state0)\<close> and
+          get_subsumed_learned_clauses_init (to_init_state0 init_state0)\<close>
+        \<open>get_learned_clauses0_init T =
+          get_learned_clauses0_init (to_init_state0 init_state0)\<close>  and
       \<open>twl_stgy_invs (fst T)\<close> and
       \<open>other_clauses_init T \<noteq> {#} \<longrightarrow> get_conflict_init T \<noteq> None\<close> and
       \<open>{#} \<in># mset `# mset CS \<longrightarrow> get_conflict_init T \<noteq> None\<close> and
