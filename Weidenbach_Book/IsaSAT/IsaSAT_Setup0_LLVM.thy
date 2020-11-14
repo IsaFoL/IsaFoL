@@ -25,7 +25,7 @@ type_synonym twl_st_wll_trail_fast =
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
     heur_assn \<times>
-    vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word) \<times> opts_assn \<times> arena_assn\<close>
+    vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> opts_assn \<times> arena_assn\<close>
 
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where

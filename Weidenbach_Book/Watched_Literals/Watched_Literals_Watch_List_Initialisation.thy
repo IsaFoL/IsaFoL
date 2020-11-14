@@ -7,7 +7,7 @@ subsection \<open>Initialisation\<close>
 
 
 type_synonym 'v twl_st_wl_init' = \<open>(('v, nat) ann_lits \<times> 'v clauses_l \<times>
-    'v cconflict \<times> 'v clauses \<times> 'v clauses  \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl)\<close>
+    'v cconflict \<times> 'v clauses \<times> 'v clauses  \<times> 'v clauses \<times> 'v clauses  \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl)\<close>
 
 type_synonym 'v twl_st_wl_init = \<open>'v twl_st_wl_init' \<times> 'v clauses\<close>
 type_synonym 'v twl_st_wl_init_full = \<open>'v twl_st_wl \<times> 'v clauses\<close>
@@ -22,21 +22,21 @@ fun get_conflict_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v cconflict\
   \<open>get_conflict_init_wl ((_, _, D, _, _, _), _) = D\<close>
 
 fun literals_to_update_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clause\<close> where
-  \<open>literals_to_update_init_wl ((_, _, _, _, _, NS, US, Q), _) = Q\<close>
+  \<open>literals_to_update_init_wl ((_, _, _, _, _, NS, US, _, _, Q), _) = Q\<close>
 
 fun other_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clauses\<close> where
   \<open>other_clauses_init_wl ((_, _, _, _, _, _), OC) = OC\<close>
 
 fun add_empty_conflict_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
   add_empty_conflict_init_wl_def[simp del]:
-   \<open>add_empty_conflict_init_wl ((M, N, D, NE, UE, NS, US, Q), OC) =
-       ((M, N, Some {#}, NE, UE, NS, US, {#}), add_mset {#} OC)\<close>
+   \<open>add_empty_conflict_init_wl ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC) =
+       ((M, N, Some {#}, NE, UE, NS, US, add_mset {#} N0, U0, {#}), OC)\<close>
 
 fun propagate_unit_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> ('v twl_st_wl_init) nres\<close> where
   propagate_unit_init_wl_def[simp del]:
-   \<open>propagate_unit_init_wl L ((M, N, D, NE, UE, NS, US, Q), OC) = do {
+   \<open>propagate_unit_init_wl L ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC) = do {
      M \<leftarrow> cons_trail_propagate_l L 0 M;
-     RETURN ((M, N, D, add_mset {#L#} NE, UE, NS, US, add_mset (-L) Q), OC)}\<close>
+     RETURN ((M, N, D, add_mset {#L#} NE, UE, NS, US, N0, U0, add_mset (-L) Q), OC)}\<close>
 
 
 fun already_propagated_unit_init_wl :: \<open>'v clause \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
@@ -47,8 +47,8 @@ fun already_propagated_unit_init_wl :: \<open>'v clause \<Rightarrow> 'v twl_st_
 
 fun set_conflict_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
   set_conflict_init_wl_def[simp del]:
-   \<open>set_conflict_init_wl L ((M, N, _, NE, UE, NS, US, Q), OC) =
-       ((M, N, Some {#L#}, add_mset {#L#} NE, UE, NS, US, {#}), OC)\<close>
+   \<open>set_conflict_init_wl L ((M, N, _, NE, UE, NS, US, N0, U0, Q), OC) =
+       ((M, N, Some {#L#}, add_mset {#L#} NE, UE, NS, US, N0, U0, {#}), OC)\<close>
 
 
 fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
@@ -80,7 +80,7 @@ definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
       RETURN (add_to_other_init C S))\<close>
 
 fun st_l_of_wl_init :: \<open>'v twl_st_wl_init' \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>st_l_of_wl_init (M, N, D, NE, UE, NS, US, Q) = (M, N, D, NE, UE, NS, US, {#}, Q)\<close>
+  \<open>st_l_of_wl_init (M, N, D, NE, UE, NS, US, N0, U0, Q) = (M, N, D, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
 
 definition state_wl_l_init' where
   \<open>state_wl_l_init' = {(S ,S'). S' = st_l_of_wl_init S}\<close>
@@ -94,12 +94,12 @@ definition state_wl_l_init :: \<open>('v twl_st_wl_init \<times> 'v twl_st_l_ini
 
 
 fun all_blits_are_in_problem_init where
-  [simp del]: \<open>all_blits_are_in_problem_init (M, N, D, NE, UE, NS, US, Q, W) \<longleftrightarrow>
-      (\<forall>L. (\<forall>(i, K, b)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US))))\<close>
+  [simp del]: \<open>all_blits_are_in_problem_init (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+      (\<forall>L. (\<forall>(i, K, b)\<in>#mset (W L). K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US) + (N0 + U0))))\<close>
 
 text \<open>We assume that no clause has been deleted during initialisation. The definition is
   slightly redundant since \<^term>\<open>i \<in># dom_m N\<close> is already entailed by
-  \<^term>\<open>fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, {#}, {#})\<close>.\<close>
+  \<^term>\<open>fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>.\<close>
 
 named_theorems twl_st_wl_init
 
@@ -120,7 +120,7 @@ lemma [twl_st_wl_init]:
   by (cases T; auto simp: correct_watching.simps correct_watching_init.simps; fail)+
  *)
 lemma in_clause_to_update_in_dom_mD:
-  \<open>bb \<in># clause_to_update L (a, aa, ab, ac, ad, NS, US, {#}, {#}) \<Longrightarrow> bb \<in># dom_m aa\<close>
+  \<open>bb \<in># clause_to_update L (a, aa, ab, ac, ad, NS, US, N0, U0, {#}, {#}) \<Longrightarrow> bb \<in># dom_m aa\<close>
   unfolding clause_to_update_def
   by force
 
@@ -263,13 +263,13 @@ qed
 
 
 fun correct_watching_init :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  [simp del]: \<open>correct_watching_init (M, N, D, NE, UE, NS, US, Q, W) \<longleftrightarrow>
-    all_blits_are_in_problem_init (M, N, D, NE, UE, NS, US, Q, W) \<and>
+  [simp del]: \<open>correct_watching_init (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    all_blits_are_in_problem_init (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<and>
     (\<forall>L.
         distinct_watched (W L) \<and>
         (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
            correctly_marked_as_binary N (i, K, b)) \<and>
-        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, {#}, {#}))\<close>
+        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
 
 lemma correct_watching_init_correct_watching:
   \<open>correct_watching_init T \<Longrightarrow> correct_watching T\<close>
@@ -282,8 +282,8 @@ lemma image_mset_Suc: \<open>Suc `# {#C \<in># M. P C#} = {#C \<in># Suc `# M. P
   by (induction M) auto
 
 lemma correct_watching_init_add_unit:
-  assumes \<open>correct_watching_init (M, N, D, NE, UE, NS, US, Q, W)\<close>
-  shows \<open>correct_watching_init (M, N, D, add_mset C NE, UE, NS, US, Q, W)\<close>
+  assumes \<open>correct_watching_init (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  shows \<open>correct_watching_init (M, N, D, add_mset C NE, UE, NS, US, N0, U0, Q, W)\<close>
 proof -
   have [intro!]: \<open>(a, x) \<in> set (W L) \<Longrightarrow> a \<in># dom_m N \<Longrightarrow> b \<in> set (N \<propto>a)  \<Longrightarrow>
        b \<notin># all_lits_of_mm {#mset (fst x). x \<in># ran_m N#} \<Longrightarrow> b \<in># all_lits_of_mm NE\<close>
@@ -301,33 +301,33 @@ proof -
 qed
 
 lemma correct_watching_init_propagate:
-  \<open>correct_watching_init ((L # M, N, D, NE, UE, NS, US, Q, W)) \<longleftrightarrow>
-         correct_watching_init ((M, N, D, NE, UE, NS, US, Q, W))\<close>
-  \<open>correct_watching_init ((M, N, D, NE, UE, NS, US, add_mset C Q, W)) \<longleftrightarrow>
-         correct_watching_init ((M, N, D, NE, UE, NS, US, Q, W))\<close>
+  \<open>correct_watching_init ((L # M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<longleftrightarrow>
+         correct_watching_init ((M, N, D, NE, UE, NS, US, N0, U0, Q, W))\<close>
+  \<open>correct_watching_init ((M, N, D, NE, UE, NS, US, N0, U0, add_mset C Q, W)) \<longleftrightarrow>
+         correct_watching_init ((M, N, D, NE, UE, NS, US, N0, U0, Q, W))\<close>
   unfolding correct_watching_init.simps clause_to_update_def Ball_def
   by (auto simp: correct_watching.simps all_lits_of_mm_add_mset
       all_lits_of_m_add_mset Ball_def all_conj_distrib clause_to_update_def
       all_blits_are_in_problem_init.simps)
 
 lemma all_blits_are_in_problem_cons[simp]:
-  \<open>all_blits_are_in_problem_init (Propagated L i # a, aa, ab, ac, ad, NS, US, ae, b) \<longleftrightarrow>
-     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, ae, b)\<close>
-  \<open>all_blits_are_in_problem_init (Decided L # a, aa, ab, ac, ad, NS, US, ae, b) \<longleftrightarrow>
-     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, ae, b)\<close>
-  \<open>all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, add_mset L ae, b) \<longleftrightarrow>
-     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, ae, b)\<close>
-  \<open>NO_MATCH None y \<Longrightarrow> all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, ae, b) \<longleftrightarrow>
-     all_blits_are_in_problem_init (a, aa, None, ac, ad, NS, US, ae, b)\<close>
-  \<open>NO_MATCH {#} ae \<Longrightarrow> all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, ae, b) \<longleftrightarrow>
-     all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, {#}, b)\<close>
+  \<open>all_blits_are_in_problem_init (Propagated L i # a, aa, ab, ac, ad, NS, US, N0, U0, ae, b) \<longleftrightarrow>
+     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, N0, U0, ae, b)\<close>
+  \<open>all_blits_are_in_problem_init (Decided L # a, aa, ab, ac, ad, NS, US, N0, U0, ae, b) \<longleftrightarrow>
+     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, N0, U0, ae, b)\<close>
+  \<open>all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, N0, U0, add_mset L ae, b) \<longleftrightarrow>
+     all_blits_are_in_problem_init (a, aa, ab, ac, ad, NS, US, N0, U0, ae, b)\<close>
+  \<open>NO_MATCH None y \<Longrightarrow> all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, N0, U0, ae, b) \<longleftrightarrow>
+     all_blits_are_in_problem_init (a, aa, None, ac, ad, NS, US, N0, U0, ae, b)\<close>
+  \<open>NO_MATCH {#} ae \<Longrightarrow> all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, N0, U0, ae, b) \<longleftrightarrow>
+     all_blits_are_in_problem_init (a, aa, y, ac, ad, NS, US, N0, U0, {#}, b)\<close>
   by (auto simp: all_blits_are_in_problem_init.simps)
 
 lemma correct_watching_init_cons[simp]:
-  \<open>NO_MATCH None y \<Longrightarrow> correct_watching_init ((a, aa, y, ac, ad, NS, US, ae, b)) \<longleftrightarrow>
-     correct_watching_init ((a, aa, None, ac, ad, NS, US, ae, b))\<close>
-  \<open>NO_MATCH {#} ae \<Longrightarrow> correct_watching_init ((a, aa, y, ac, ad, NS, US, ae, b)) \<longleftrightarrow>
-     correct_watching_init ((a, aa, y, ac, ad, NS, US, {#}, b))\<close>
+  \<open>NO_MATCH None y \<Longrightarrow> correct_watching_init ((a, aa, y, ac, ad, NS, US, N0, U0, ae, b)) \<longleftrightarrow>
+     correct_watching_init ((a, aa, None, ac, ad, NS, US, N0, U0, ae, b))\<close>
+  \<open>NO_MATCH {#} ae \<Longrightarrow> correct_watching_init ((a, aa, y, ac, ad, NS, US, N0, U0, ae, b)) \<longleftrightarrow>
+     correct_watching_init ((a, aa, y, ac, ad, NS, US, N0, U0, {#}, b))\<close>
      apply (auto simp: correct_watching_init.simps clause_to_update_def)
    apply (subst (asm) all_blits_are_in_problem_cons(4))
   apply auto
@@ -344,25 +344,25 @@ lemma clause_to_update_mapsto_upd_notin:
   assumes
     i: \<open>i \<notin># dom_m N\<close>
   shows
-  \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, NS, US, WS, Q) =
+  \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, NS, US, N0, U0, WS, Q) =
     (if L \<in> set (watched_l C')
-     then add_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, WS, Q))
-     else (clause_to_update L (M, N, C, NE, UE, NS, US, WS, Q)))\<close>
-  \<open>clause_to_update L (M, fmupd i (C', b) N, C, NE, UE, NS, US, WS, Q) =
+     then add_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q))
+     else (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q)))\<close>
+  \<open>clause_to_update L (M, fmupd i (C', b) N, C, NE, UE, NS, US, N0, U0, WS, Q) =
     (if L \<in> set (watched_l C')
-     then add_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, WS, Q))
-     else (clause_to_update L (M, N, C, NE, UE, NS, US, WS, Q)))\<close>
+     then add_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q))
+     else (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q)))\<close>
   using assms
   by (auto simp: clause_to_update_def intro!: filter_mset_cong)
 
 lemma correct_watching_init_add_clause:
   assumes
-    corr: \<open>correct_watching_init ((a, aa, None, ac, ad, NS, US, Q, b))\<close> and
+    corr: \<open>correct_watching_init ((a, aa, None, ac, ad, NS, US, N0, U0, Q, b))\<close> and
     leC: \<open>2 \<le> length C\<close> and
     i_notin[simp]: \<open>i \<notin># dom_m aa\<close> and
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching_init
-          ((a, fmupd i (C, red) aa, None, ac, ad, NS, US, Q, b
+          ((a, fmupd i (C, red) aa, None, ac, ad, NS, US, N0, U0, Q, b
             (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
              C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])))\<close>
 proof -
@@ -419,16 +419,16 @@ lemma rewatch_correctness:
   assumes [simp]: \<open>W = (\<lambda>_. [])\<close> and
     H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close>
   shows
-    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching_init (M, N, C, NE, UE, NS, US, Q, W))\<close>
+    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching_init (M, N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, W))\<close>
 proof -
   define I where
     \<open>I \<equiv> \<lambda>(a :: nat list) (b :: nat list) W.
-        correct_watching_init ((M, fmrestrict_set (set a) N, C, NE, UE, NS, US, Q, W))\<close>
+        correct_watching_init ((M, fmrestrict_set (set a) N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, W))\<close>
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
     unfolding I_def by (auto simp: correct_watching_init.simps
        all_blits_are_in_problem_init.simps clause_to_update_def)
   have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
-     if \<open>correct_watching_init (M, fmrestrict_set (set l1) N, C, NE, UE, NS, US, Q, \<sigma>)\<close> and
+     if \<open>correct_watching_init (M, fmrestrict_set (set l1) N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, \<sigma>)\<close> and
       \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
      \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close>
      for L l1 \<sigma> xa l2 x
@@ -475,8 +475,8 @@ definition state_wl_l_init_full :: \<open>('v twl_st_wl_init_full \<times> 'v tw
       snd S = snd S'}\<close>
 
 definition added_only_watched  :: \<open>('v twl_st_wl_init_full \<times> 'v twl_st_wl_init) set\<close> where
-  \<open>added_only_watched = {(((M, N, D, NE, UE, NS, US, Q, W), OC), ((M', N', D', NE', UE', NS', US', Q'), OC')).
-        (M, N, D, NE, UE, NS, US, Q) = (M', N', D', NE', UE', NS', US', Q') \<and> OC = OC'}\<close>
+  \<open>added_only_watched = {(((M, N, D, NE, UE, NS, US, N0, U0, Q, W), OC), ((M', N', D', NE', UE', NS', US', N0', U0', Q'), OC')).
+        (M, N, D, NE, UE, NS, US, N0, U0, Q) = (M', N', D', NE', UE', NS', US', N0', U0', Q') \<and> OC = OC'}\<close>
 
 definition init_dt_wl_spec_full
   :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full \<Rightarrow> bool\<close>
@@ -487,9 +487,9 @@ where
 
 definition init_dt_wl_full :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where
   \<open>init_dt_wl_full CS S = do{
-     ((M, N, D, NE, UE, NS, US, Q), OC) \<leftarrow> init_dt_wl CS S;
+     ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC) \<leftarrow> init_dt_wl CS S;
      W \<leftarrow> rewatch N (\<lambda>_. []);
-     RETURN ((M, N, D, NE, UE, NS, US, Q, W), OC)
+     RETURN ((M, N, D, NE, UE, NS, US, N0, U0, Q, W), OC)
   }\<close>
 
 lemma init_dt_wl_spec_rewatch_pre:
@@ -507,13 +507,14 @@ proof -
     \<open>get_conflict_l_init xa = None \<longrightarrow>
      literals_to_update_l_init xa = uminus `# lit_of `# mset (get_trail_l_init xa)\<close> and
     \<open>mset `# mset CS + mset `# ran_mf (get_clauses_l_init x) + other_clauses_l_init x +
-     get_unit_clauses_l_init x + get_subsumed_init_clauses_l_init x =
+     get_unit_clauses_l_init x + get_subsumed_init_clauses_l_init x + get_init_clauses0_l_init x =
      mset `# ran_mf (get_clauses_l_init xa) + other_clauses_l_init xa +
-     get_unit_clauses_l_init xa + get_subsumed_init_clauses_l_init xa\<close> and
+     get_unit_clauses_l_init xa + get_subsumed_init_clauses_l_init xa + get_init_clauses0_l_init xa\<close> and
     \<open>learned_clss_lf (get_clauses_l_init x) =
      learned_clss_lf (get_clauses_l_init xa)\<close> and
     \<open>get_learned_unit_clauses_l_init xa = get_learned_unit_clauses_l_init x\<close> and
     \<open>get_subsumed_learned_clauses_l_init xa = get_subsumed_learned_clauses_l_init x\<close>
+    \<open>get_learned_clauses0_l_init xa = get_learned_clauses0_l_init x\<close>
     \<open>twl_list_invs (fst xa)\<close> and
     \<open>twl_stgy_invs (fst xb)\<close> and
     \<open>other_clauses_l_init xa \<noteq> {#} \<longrightarrow> get_conflict_l_init xa \<noteq> None\<close> and
@@ -546,13 +547,13 @@ proof -
     apply clarify
     apply (rule specify_left)
     apply (rule_tac M =a and N=aa and C=ab and NE=ac and UE=ad and Q=b and
-       NS=ae and US=af in
+       NS=ae and US=af and N\<^sub>0=ag and U\<^sub>0=ah in
         rewatch_correctness[OF _ init_dt_wl_spec_rewatch_pre])
-    subgoal by rule
+    subgoal by simp
        apply assumption
     subgoal by simp
     subgoal by simp
-    subgoal for a aa ab ac ad b ba W
+    subgoal for a aa ab ac ad ae af ag ah b ba W
       using assms
       unfolding init_dt_wl_spec_full_def init_dt_wl_pre_def init_dt_wl_spec_def
       by (auto simp: added_only_watched_def state_wl_l_init_def state_wl_l_init'_def)

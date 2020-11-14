@@ -32,7 +32,7 @@ lemma rephase_heur_st_spec:
   unfolding rephase_heur_st_def
   apply (cases S')
   apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-  apply (simp_all add:  twl_st_heur_def)
+  apply (simp_all add:  twl_st_heur_def all_atms_st_def)
   done
 
 definition save_rephase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
@@ -65,7 +65,7 @@ lemma save_phase_st_spec:
   unfolding save_phase_st_def
   apply (cases S')
   apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-  apply (simp_all add:  twl_st_heur_def isa_length_trail_pre)
+  apply (simp_all add:  twl_st_heur_def isa_length_trail_pre all_atms_st_def flip: all_lits_st_alt_def)
   apply (rule isa_length_trail_pre)
   apply blast
   done

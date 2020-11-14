@@ -52,9 +52,11 @@ lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9
   clss_size_lcount (get_learned_count S) < 18446744073709551615 - clss_size_lcountUE (get_learned_count S) \<and>
   clss_size_lcount (get_learned_count S) + clss_size_lcountUE (get_learned_count S) < 18446744073709551615 - clss_size_lcountUS (get_learned_count S) \<and>
    clss_size_lcount (get_learned_count S) +
-    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) < 18446744073709551615)\<close>
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S)  < 18446744073709551615 - clss_size_lcountU0 (get_learned_count S) \<and>
+   clss_size_lcount (get_learned_count S) +
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) + clss_size_lcountU0 (get_learned_count S) < 18446744073709551615)\<close>
   by (cases S; auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def
-    uint64_max_def learned_clss_count_def)
+    uint64_max_def learned_clss_count_def clss_size_lcountU0_def)
 
 sepref_def isasat_fast_impl
   is \<open>RETURN o isasat_fast\<close>
@@ -64,7 +66,5 @@ sepref_def isasat_fast_impl
   apply (rewrite at \<open>_ < \<hole> - _\<close> unat_const_fold[where 'a=64])+
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
-declare isasat_fast_impl.refine[sepref_fr_rules]
 
 end

@@ -595,10 +595,6 @@ definition get_conflict_wl_is_None :: \<open>nat twl_st_wl \<Rightarrow> bool\<c
 lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightarrow> get_conflict_wl_is_None S\<close>
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
 
-lemma watched_by_nth_watched_app':
-  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd o snd) S) K\<close>
-  by (cases S) (auto)
-
 lemma hd_decided_count_decided_ge_1:
   \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close>
   by (cases x) auto

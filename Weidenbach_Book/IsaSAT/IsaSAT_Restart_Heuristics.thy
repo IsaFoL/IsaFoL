@@ -7,24 +7,29 @@ begin
 chapter \<open>Restarts\<close>
 
 lemma twl_st_heur_change_subsumed_clauses:
+  fixes lcount lcount' :: clss_size
   assumes \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
-     (M, N, D, NE, UE, NS, US, Q, W)) \<in> twl_st_heur\<close>
-    \<open>set_mset (all_atms N ((NE+UE)+(NS+US))) = set_mset (all_atms N ((NE+UE)+(NS'+US')))\<close> and
-    \<open>lcount' = clss_size N NE UE NS' US'\<close>
+     (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<in> twl_st_heur\<close>
+    \<open>set_mset (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) = set_mset (all_atms_st (M, N, D, NE, UE, NS', US', N0, U0, Q, W))\<close>and
+    \<open>lcount' = clss_size N NE UE NS' US' N0 U0\<close>
   shows \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount', opts, old_arena),
-     (M, N, D, NE, UE, NS', US', Q, W)) \<in> twl_st_heur\<close>
+     (M, N, D, NE, UE, NS', US', N0, U0, Q, W)) \<in> twl_st_heur\<close>
 proof -
   note cong = trail_pol_cong heuristic_rel_cong
-      option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
-      cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-      isasat_input_bounded_cong heuristic_rel_cong
+      option_lookup_clause_rel_cong isa_vmtf_cong heuristic_rel_cong
+  note cong2 = D\<^sub>0_cong phase_saving_cong cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
+    isasat_input_bounded_cong
   show ?thesis
-    using cong[OF assms(2)] assms(1) assms(3)
-    apply (auto simp add: twl_st_heur_def)
-    apply fastforce
-    apply force
+    supply[[goals_limit=1]]
+    supply [dest!] = cong[OF assms(2)]
+    using assms(1) assms(3) apply -
+    unfolding twl_st_heur_def in_pair_collect_simp prod.simps
+    apply normalize_goal+
+    apply (subst (asm) cong2[OF assms(2)])+
+    apply (intro conjI)
+    apply ((drule cong[OF assms(2)])+; assumption)+
     done
 qed
 
@@ -54,25 +59,25 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
 \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
-     (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_init_atms N (NE+NS)) \<and>
+     (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
+    (M', M) \<in> trail_pol (all_init_atms N (NE+NS+N0)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_init_atms N (NE+NS)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_init_atms N (NE+NS+N0)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NS))) \<and>
-    vm \<in> isa_vmtf (all_init_atms N (NE+NS)) M \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NS+N0))) \<and>
+    vm \<in> isa_vmtf (all_init_atms N (NE+NS+N0)) M \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_init_atms N (NE+NS)) cach \<and>
+    cach_refinement_empty (all_init_atms N (NE+NS+N0)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US \<and>
-    vdom_m (all_init_atms N (NE+NS))  W N \<subseteq> set vdom \<and>
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    vdom_m (all_init_atms N (NE+NS+N0))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
-    isasat_input_bounded (all_init_atms N (NE+NS)) \<and>
-    isasat_input_nempty (all_init_atms N (NE+NS)) \<and>
+    isasat_input_bounded (all_init_atms N (NE+NS+N0)) \<and>
+    isasat_input_nempty (all_init_atms N (NE+NS+N0)) \<and>
     distinct vdom \<and> old_arena = [] \<and>
-    heuristic_rel (all_init_atms N (NE+NS)) heur
+    heuristic_rel (all_init_atms N (NE+NS+N0)) heur
   }\<close>
 
 
@@ -241,7 +246,8 @@ lemma [twl_st_heur_restart]:
   shows \<open>(get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
   using assms by (cases S; cases T)
    (simp only: twl_st_heur_restart_def get_trail_wl_heur.simps get_trail_wl.simps
-    mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps
+    mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
+    all_init_atms_def get_init_clauses0_wl.simps
     get_subsumed_init_clauses_wl.simps)
 
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
@@ -257,15 +263,15 @@ lemma refine_generalise2: "A \<le> B \<Longrightarrow> do {x \<leftarrow> do {x 
   by (simp add: refine_generalise1)
 
 lemma cdcl_twl_local_restart_wl_D_spec_int:
-  \<open>cdcl_twl_local_restart_wl_spec (M, N, D, NE, UE, NS, US, Q, W) \<ge> ( do {
-      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) last_GC last_Restart False);
+  \<open>cdcl_twl_local_restart_wl_spec (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<ge> ( do {
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NS, US, N0, U0, Q, W) last_GC last_Restart False);
       i \<leftarrow> SPEC(\<lambda>_. True);
       if i
-      then RETURN (M, N, D, NE, UE, NS, US, Q, W)
+      then RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W)
       else do {
         (M, Q') \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
               Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-        RETURN (M, N, D, NE, UE, NS, US, Q', W)
+        RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q', W)
      }
    })\<close>
 proof -
@@ -316,8 +322,8 @@ proof -
   by (cases S) auto
 
   have [dest]: \<open>av = None\<close> \<open>out_learned a av am \<Longrightarrow> out_learned x1 av am\<close>
-    if \<open>restart_abs_wl_pre (a, au, av, aw, ax, NS, US, ay, bd) last_GC last_Restart False\<close>
-    for a au av aw ax ay bd x1 am NS US last_GC last_Restart
+    if \<open>restart_abs_wl_pre (a, au, av, aw, ax, NS, US, N0, U0, ay, bd) last_GC last_Restart False\<close>
+    for a au av aw ax ay bd x1 am NS US last_GC last_Restart N0 U0
     using that
     unfolding restart_abs_wl_pre_def restart_abs_l_pre_def
       restart_prog_pre_def
@@ -337,7 +343,7 @@ proof -
       \<open>set_mset (all_atms_st S) =
            set_mset (all_init_atms_st S)\<close> (is ?A)
       \<open>set_mset (all_atms_st S) =
-           set_mset (all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_init_clauses_wl S))\<close>
+           set_mset (all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_init_clauses_wl S + get_init_clauses0_wl S))\<close>
            (is ?B)
       \<open>get_conflict_wl S = None\<close> (is ?C)
      if pre: \<open>restart_abs_wl_pre S last_GC last_Restart False\<close>
@@ -364,16 +370,12 @@ proof -
        pcdcl_all_struct_invs_def state\<^sub>W_of_def
      by fast+
    then show ?A and ?B
-      subgoal
+      subgoal A
         using ST TU unfolding set_eq_iff in_set_all_atms_iff
           in_set_all_atms_iff in_set_all_init_atms_iff get_unit_clauses_wl_alt_def
-        apply (subst all_clss_lf_ran_m[symmetric])
-        unfolding image_mset_union
-        apply (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def twl_st twl_st_l in_set_all_atms_iff
-          in_set_all_init_atms_iff)
-        done
+          using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3) struct by blast
       subgoal
-        using ST TU alien unfolding set_eq_iff in_set_all_atms_iff
+        using ST TU alien unfolding set_eq_iff in_set_all_atms_iff all_atms_st_def
           in_set_all_atms_iff in_set_all_init_atms_iff get_unit_clauses_wl_alt_def
         apply (subst all_clss_lf_ran_m[symmetric])
         apply (subst all_clss_lf_ran_m[symmetric])
@@ -388,9 +390,9 @@ proof -
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs),
-	bt, bu, bv, bw, bx, NS, US, by, bz)
+	bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)
        \<in> twl_st_heur\<close> and
-      \<open>\<exists>last_GC last_Restart. restart_abs_wl_pre (bt, bu, bv, bw, bx, NS, US, by, bz) last_GC last_Restart False\<close> and
+      \<open>\<exists>last_GC last_Restart. restart_abs_wl_pre (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz) last_GC last_Restart False\<close> and
       \<open>restart_abs_wl_heur_pre
 	((a, aa, ab, ac, ad, b), ae, heur, ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
@@ -399,8 +401,8 @@ proof -
 	False\<close> and
       lvl: \<open>(lvl, i)
        \<in> {(i, b).
-	  b = (i = count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, by, bz))) \<and>
-	  i \<le> count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, by, bz))}\<close> and
+	  b = (i = count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz))) \<and>
+	  i \<le> count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz))}\<close> and
       \<open>i \<in> {_. True}\<close> and
       \<open>lvl \<noteq>
        count_decided_st_heur
@@ -409,19 +411,19 @@ proof -
 	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs)\<close> and
       i: \<open>\<not> i\<close> and
-    H: \<open>(\<And>vm0. ((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) \<Longrightarrow>
-           ((aj, ak, al, am, bb), vm0) \<in> vmtf (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) bt \<Longrightarrow>
+    H: \<open>(\<And>vm0. ((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) \<Longrightarrow>
+           ((aj, ak, al, am, bb), vm0) \<in> vmtf (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) bt \<Longrightarrow>
       isa_find_decomp_wl_imp (a, aa, ab, ac, ad, b) lvl
         ((aj, ak, al, am, bb), an, bc)
-	\<le> \<Down> {(a, b). (a,b) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) \<times>\<^sub>f
-               (Id \<times>\<^sub>f distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)))}
-	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
+	\<le> \<Down> {(a, b). (a,b) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) \<times>\<^sub>f
+               (Id \<times>\<^sub>f distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)))}
+	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
     for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at'
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
        bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
-       x1g x2g x1h x2h x1i x2i P NS US heur last_GC last_Restart
+       x1g x2g x1h x2h x1i x2i P NS US heur last_GC last_Restart N0 U0
   proof -
-    let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)\<close>
+    let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)\<close>
     have
       tr: \<open>((a, aa, ab, ac, ad, b), bt) \<in> trail_pol ?\<A>\<close> and
       \<open>valid_arena ae bu (set bo)\<close> and
@@ -434,7 +436,7 @@ proof -
       \<open>ao \<in> counts_maximum_level bt bv\<close> and
       \<open>cach_refinement_empty ?\<A> (aq, bd)\<close> and
       \<open>out_learned bt bv as\<close> and
-      \<open>bq = clss_size bu bw bx NS US\<close> and
+      \<open>bq = clss_size bu bw bx NS US N0 U0\<close> and
       \<open>vdom_m ?\<A> bz bu \<subseteq> set bo\<close> and
       \<open>set bp \<subseteq> set bo\<close> and
       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>. nat_of_lit L \<le> uint32_max\<close> and
@@ -501,7 +503,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
@@ -509,7 +511,7 @@ proof -
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
       apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cn\<close> and NS' = cm and
-        lcount' = \<open>(cc, cd, ce)\<close>])
+        lcount' = \<open>(cb, cc, cd, ce)\<close>])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (solves \<open>auto simp: twl_st_heur_def\<close>)[]
       apply (frule H(2))
@@ -517,6 +519,7 @@ proof -
 	apply (clarsimp simp: twl_st_heur_def)
 	apply (rule_tac x=aja in exI)
 	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] learned_clss_count_def
+          all_atms_st_def
 	  intro: isa_vmtfI trail_pol_no_dup)
       (* apply (rule trail_pol_cong)
        * apply assumption
@@ -990,7 +993,8 @@ proof -
       apply (rule exI[of _ V])
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def
+        del: isasat_input_nempty_def)
     apply normalize_goal+
     subgoal for T U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
@@ -1004,7 +1008,8 @@ proof -
       apply (rule exI[of _ V])
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def all_atms_st_def
+        del: isasat_input_nempty_def)
     done
   show \<open>mark_to_delete_clauses_wl_pre T \<Longrightarrow> ?B\<close>
     supply [[goals_limit=1]]
@@ -1019,14 +1024,16 @@ proof -
       apply -
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def all_atms_st_def
+        del: isasat_input_nempty_def)
     subgoal for U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
 	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
       apply -
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def all_atms_st_def
+        del: isasat_input_nempty_def)
     done
   show  \<open>mark_to_delete_clauses_wl_post T0 T \<Longrightarrow> ?C\<close>
     supply [[goals_limit=1]]
@@ -1040,7 +1047,8 @@ proof -
       apply -
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      apply (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      apply (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def all_atms_st_def
+        del: isasat_input_nempty_def)
       done
     subgoal for U0 U V0 V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
@@ -1048,7 +1056,8 @@ proof -
 	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
       apply -
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def all_init_atms_st_def all_atms_st_def
+        del: isasat_input_nempty_def)
     done
 
 qed
@@ -1372,14 +1381,8 @@ lemma all_lits_of_mm_mono2:
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_init_all:
   \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1a) \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1a)\<close>
-  apply (rule \<L>\<^sub>a\<^sub>l\<^sub>l_mono)
-  defer
-  apply assumption
-  by (cases x1a)
-    (auto simp: all_init_atms_def all_lits_def all_init_lits_def
-        \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_atms_def intro: all_lits_of_mm_mono2 intro!: imageI
-      simp del: all_init_atms_def[symmetric]
-      simp flip: image_mset_union)
+  using Watched_Literals_Watch_List_Restart.all_init_lits_of_wl_all_lits_st \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms
+    \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) by blast
 
 lemma get_vdom_mark_garbage[simp]:
   \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
@@ -1591,7 +1594,8 @@ proof -
       subgoal
         using xa_x' L L' by (auto simp add: twl_st_heur_restart_def st)
       subgoal
-        using xa_x' L' dom by (auto simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def st arena_lifting)
+        using xa_x' L' dom by (auto simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def st arena_lifting
+          all_init_atms_st_def)
       using that unfolding get_the_propagation_reason_def reason_rel_def apply -
       by (auto simp: twl_st_heur_restart lits_of_def get_the_propagation_reason_def
           conc_fun_RES
@@ -1827,7 +1831,7 @@ proof -
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
       remove_all_learned_subsumed_clauses_wl_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
-      clss_size_resetUS_def clss_size_lcount_def
+      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def 
         RES_RETURN_RES)
 
   have [refine0]: \<open>mark_clauses_as_unused_wl_D_heur i T\<bind> incr_restart_stat
@@ -2030,7 +2034,7 @@ proof -
   let ?\<A> = \<open>all_init_atms_st ?S\<close>
   have pol: \<open>((x1b, x1c, x1d, x1e, x2d), ys @ Propagated x2 C # zs)
          \<in> trail_pol (all_init_atms_st ?S)\<close>
-    using assms(3) unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
+    using assms(3) unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def all_init_atms_st_def
     by auto
   obtain x y where
     x2d: \<open>x2d = (count_decided (ys @ Propagated x2 C # zs), y)\<close> and
@@ -2062,11 +2066,7 @@ proof -
       count_decided (ys @ Propagated x2 0 # zs)\<close>
     by (auto simp: get_level_cons_if get_level_append_if)
   have [simp]: \<open>atm_of x2 < length x1e\<close>
-    using reasons x2 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
-    by (auto simp: ann_lits_split_reasons_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_def
-        \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_init_lits_of_mm
-      simp del: all_init_atms_def[symmetric]
-      dest: multi_member_split)
+    using reasons x2 assms(1) by blast
 
   have \<open>((x1b, x1e[atm_of x2 := 0]), ys @ Propagated x2 0 # zs)
        \<in> ann_lits_split_reasons ?\<A>\<close>
@@ -2130,7 +2130,7 @@ proof -
   ultimately show ?thesis
     using assms(3) unfolding twl_st_heur_restart_ana_def
     by (cases x2n; cases x2n')
-      (auto simp: twl_st_heur_restart_def
+      (auto simp: twl_st_heur_restart_def all_init_atms_st_def
         simp flip: mset_map drop_map)
 qed
 
@@ -2151,9 +2151,9 @@ lemma twl_st_heur_restart_ana_US_empty:
    by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
 
 fun equality_except_trail_empty_US_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>equality_except_trail_empty_US_wl (M, N, D, NE, UE, NS, US, WS, Q)
-     (M', N', D', NE', UE', NS', US', WS', Q') \<longleftrightarrow>
-    N = N' \<and> D = D' \<and> NE = NE' \<and> NS = NS' \<and> US = {#} \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
+\<open>equality_except_trail_empty_US_wl (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)
+     (M', N', D', NE', UE', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
+    N = N' \<and> D = D' \<and> NE = NE' \<and> NS = NS' \<and> US = {#} \<and> UE = UE' \<and> N0' = N0 \<and> U0' = U0 \<and> WS = WS' \<and> Q = Q'\<close>
 
 lemma equality_except_conflict_wl_get_clauses_wl:
     \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close> and
@@ -2178,8 +2178,9 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
     uncurry_def
   apply refine_rcg
   subgoal
-    by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all
-      twl_st_heur_restart_def twl_st_heur_restart_ana_def replace_annot_wl_pre_def)
+    by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all all_init_lits_of_wl_def
+      twl_st_heur_restart_def twl_st_heur_restart_ana_def replace_annot_wl_pre_def
+      all_init_lits_alt_def(2))
   subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
       x2f x1g x2g x1h x1i
       x2h x1j x2i x1k x2j x1l
@@ -2196,8 +2197,9 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
     by (cases x1l; auto intro!: trail_pol_replace_annot_in_trail_spec[where C=C]
         trail_pol_replace_annot_in_trail_spec2
       simp: atm_of_eq_atm_of all_init_atms_def replace_annot_wl_pre_def
-        \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all replace_annot_l_pre_def state_wl_l_def
-        twl_st_heur_restart_ana_US_empty learned_clss_count_def
+      \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all replace_annot_l_pre_def state_wl_l_def all_init_lits_of_wl_def
+      all_init_lits_def ac_simps
+        twl_st_heur_restart_ana_US_empty learned_clss_count_def  all_init_atms_st_def
       simp del: all_init_atms_def[symmetric]; fail)+
   done
 
@@ -2234,7 +2236,7 @@ definition remove_one_annot_true_clause_imp_wl_D_heur_inv
      learned_clss_count T \<le> learned_clss_count S))\<close>
 
 definition empty_US  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_US = (\<lambda>(M', N, D, NE, UE, NS, US, Q, W). (M', N, D, NE, UE, NS, US, Q, W))\<close>
+\<open>empty_US = (\<lambda>(M', N, D, NE, UE, NS, US, N0, U0, Q, W). (M', N, D, NE, UE, NS, US, N0, U0, Q, W))\<close>
 
 
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -2317,7 +2319,7 @@ lemma twl_st_heur_restart_count_decided_st_alt_def:
 lemma twl_st_heur_restart_trailD:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
     (get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
-  by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+  by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def all_init_atms_st_def)
 
 lemma no_dup_nth_proped_dec_notin:
   \<open>no_dup M \<Longrightarrow> k < length M \<Longrightarrow> M ! k = Propagated L C \<Longrightarrow> Decided L \<notin> set M\<close>
@@ -2366,7 +2368,7 @@ proof -
   then have \<open>rev_trail_nth (fst T) k' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)\<close>
     using k'' assms nth_mem[OF k']
     by (auto simp: twl_st_heur_restart_ana_def rev_trail_nth_def
-      trail_pol_alt_def twl_st_heur_restart_def)
+      trail_pol_alt_def twl_st_heur_restart_def all_init_atms_st_def)
   then have 1: \<open>(SPEC (\<lambda>p. rev (get_trail_wl T) ! k' = Propagated (fst p) (snd p))) =
     do {
       L \<leftarrow> RETURN (rev_trail_nth (fst T) k');
@@ -2413,7 +2415,8 @@ proof -
     subgoal using assms by (cases S; auto dest: twl_st_heur_restart_trailD)
     subgoal by auto
     subgoal for K K'
-      using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+      using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+        all_init_atms_st_def)
     subgoal
       by auto
     done
@@ -2467,7 +2470,7 @@ proof -
   moreover have \<open>(get_trail_wl_heur (snd x), get_trail_wl (snd y)) \<in> trail_pol (all_init_atms_st (snd y))\<close>
     using assms
     by (cases x, cases y) (simp add: twl_st_heur_restart_ana_def
-      twl_st_heur_restart_def)
+      twl_st_heur_restart_def all_init_atms_st_def)
   ultimately show \<open>?thesis\<close>
     by (auto simp add: trail_pol_alt_def)
 qed
@@ -2569,10 +2572,10 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
 
     *)
 definition find_decomp_wl0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>find_decomp_wl0 = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W) (M', N', D', NE', UE', NS', US', Q', W').
+  \<open>find_decomp_wl0 = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W) (M', N', D', NE', UE', NS', US', N0', U0', Q', W').
 	 (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
 	    count_decided M' = 0) \<and>
-	  (N', D', NE', UE', NS, US, Q', W') = (N, D, NE, UE, NS', US', Q, W))\<close>
+	  (N', D', NE', UE', NS, US, N0, U0, Q', W') = (N, D, NE, UE, NS', US', N0', U0', Q, W))\<close>
 
 (*TODO Move clean: cdcl_twl_local_restart_wl_spec0 vs cdcl_twl_local_restart_wl_spec is mess*)
 lemma cdcl_twl_local_restart_wl_spec0_alt_def:
@@ -2584,7 +2587,7 @@ lemma cdcl_twl_local_restart_wl_spec0_alt_def:
       RETURN (empty_Q_wl T)
     } else RETURN (empty_US_heur_wl S)})\<close>
   by (intro ext; case_tac S)
-   (auto 5 3 simp: cdcl_twl_local_restart_wl_spec0_def
+   (auto 6 4 simp: cdcl_twl_local_restart_wl_spec0_def
 	RES_RETURN_RES2 image_iff RES_RETURN_RES empty_US_heur_wl_def
 	find_decomp_wl0_def empty_Q_wl_def uncurry_def
        intro!: bind_cong[OF refl]
@@ -2658,7 +2661,8 @@ proof -
     have \<open>get_vmtf_heur S \<in> isa_vmtf ?\<A> (get_trail_wl y)\<close>and
       n_d: \<open>no_dup (get_trail_wl y)\<close>
       using Sy
-      by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+      by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+        all_init_atms_st_def)
     then obtain vm' where
       vm': \<open>(get_vmtf_heur S, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel ?\<A>\<close> and
       vm: \<open>vm' \<in> vmtf (all_init_atms_st y) (get_trail_wl y)\<close>
@@ -2669,6 +2673,7 @@ proof -
       \<open>find_decomp_w_ns_pre (all_init_atms_st y) ((get_trail_wl y, 0), vm')\<close>
       using that assms vm' vm unfolding find_decomp_w_ns_pre_def
       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+        all_init_atms_st_def
         dest: trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail)
     have 1: \<open>isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S) \<le>
        \<Down> ({(M, M'). (M, M') \<in> trail_pol ?\<A> \<and> count_decided M' = 0} \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel ?\<A>))
@@ -2679,7 +2684,8 @@ proof -
       subgoal using that by auto
       subgoal
         using Sy vm'
-	by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+	by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+          all_init_atms_st_def)
       apply (rule order_trans, rule ref_two_step')
       apply (rule find_decomp_wl_imp_find_decomp_wl'[THEN fref_to_Down_curry2,
         of ?\<A> \<open>get_trail_wl y\<close> 0 vm'])
@@ -2699,6 +2705,7 @@ proof -
       by (auto  simp: upd_def find_decomp_wl0_def
         intro!: RETURN_SPEC_refine simp: twl_st_heur_restart_def out_learned_def
 	    empty_Q_wl2_def twl_st_heur_restart_ana_def learned_clss_count_def
+            all_init_atms_st_def
 	intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
        (auto  simp: upd_def find_decomp_wl0_def
         intro!: RETURN_SPEC_refine simp: twl_st_heur_restart_def out_learned_def
@@ -2709,7 +2716,7 @@ proof -
   have Sy': \<open>(empty_US_heur S, empty_US_heur_wl y) \<in> twl_st_heur_restart_ana' r u\<close>
     using Sy by (cases y; cases S; auto simp: twl_st_heur_restart_ana_def
       empty_US_heur_wl_def twl_st_heur_restart_def empty_US_heur_def
-      clss_size_resetUS_def clss_size_lcount_def
+      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def
       learned_clss_count_def clss_size_def clss_size_lcountUS_def clss_size_lcountUE_def)
   show ?thesis
     unfolding find_decomp_wl_st_int_alt_def
@@ -2724,7 +2731,7 @@ proof -
       by refine_vcg
        (auto simp add: mop_isa_length_trail_def twl_st_heur_restart_ana_def
         twl_st_heur_restart_def learned_clss_count_def clss_size_resetUS_def
-        clss_size_lcount_def
+        clss_size_lcount_def clss_size_lcountU0_def
       learned_clss_count_def clss_size_def clss_size_lcountUS_def clss_size_lcountUE_def)
     subgoal
       using Sy' .
@@ -2793,9 +2800,10 @@ next
 qed
 (*TODO Move*)
 lemma clss_size_simps3[simp]:
-  \<open>clss_size_lcountUE (clss_size baa da ea fa x) = size ea\<close>
-  \<open>clss_size_lcountUS (clss_size baa da ea fa x) = size x\<close>
-  by (auto simp: clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def)
+  \<open>clss_size_lcountUE (clss_size baa da ea fa x N0 U0) = size ea\<close>
+  \<open>clss_size_lcountUS (clss_size baa da ea fa x N0 U0) = size x\<close>
+  \<open>clss_size_lcountU0 (clss_size baa da ea fa x N0 U0) = size U0\<close>
+  by (auto simp: clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def clss_size_def)
 
 lemma remove_all_learned_subsumed_clauses_wl_id:
   \<open>(x2a, x2) \<in> twl_st_heur_restart_ana' r u \<Longrightarrow>
@@ -2829,7 +2837,8 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
         of \<open>get_trail_wl y\<close> 0 _ _ \<open>all_init_atms_st y\<close>])
     subgoal by (auto simp: get_pos_of_level_in_trail_pre_def
       twl_st_heur_restart_count_decided_st_alt_def)
-    subgoal by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+        all_init_atms_st_def)
     subgoal
       apply (subst get_pos_of_level_in_trail_decomp_iff)
       apply (solves \<open>auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def\<close>)
@@ -2968,7 +2977,8 @@ proof -
       subgoal
         using xa_x' L L' by (auto simp add: twl_st_heur_restart_def st)
       subgoal
-        using xa_x' L' dom by (auto simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def st arena_lifting)
+        using xa_x' L' dom by (auto simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def st
+        all_init_atms_st_def arena_lifting)
       using that unfolding get_the_propagation_reason_def reason_rel_def apply -
       by (auto simp: twl_st_heur_restart lits_of_def get_the_propagation_reason_def
           conc_fun_RES
@@ -3228,6 +3238,7 @@ proof -
     subgoal by auto
     subgoal for x y S T unfolding number_clss_to_keep_def by (cases S) (auto)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+        all_init_atms_st_def
        dest!: valid_arena_vdom_subset size_mset_mono)
     apply (rule init; solves auto)
     subgoal by auto
@@ -3247,7 +3258,8 @@ proof -
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
       by (rule bex_leI[of _ \<open>get_avdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x1\<close>])
-        (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+        (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+        all_init_atms_st_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal premises p using p(7-) by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
      apply (rule mop_access_lit_in_clauses_heur; assumption)
@@ -4001,12 +4013,12 @@ qed
 
 
 lemma cdcl_GC_clauses_prog_wl_alt_def:
-  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, NS, US, Q, WS). do {
-    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, NS, US, Q, WS));
-    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N0 (all_init_atms N0 (NE+NS)) WS;
-    RETURN (M, N', D, NE, UE, NS, US, Q, WS)
-     })\<close>
- proof -
+  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, WS). do {
+    ASSERT(cdcl_GC_clauses_pre_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, WS));
+    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N (all_init_atms N (NE+NS+N0)) WS;
+    RETURN (M, N', D, NE, UE, NS, US, N0, U0, Q, WS)
+  })\<close>
+proof -
    have [refine0]: \<open>(x1c, x1) \<in> Id \<Longrightarrow> RES (set_mset x1c)
        \<le> \<Down> Id  (RES (set_mset x1))\<close> for x1 x1c
      by auto
@@ -4032,9 +4044,11 @@ lemma cdcl_GC_clauses_prog_wl_alt_def:
      apply (subst order_class.eq_iff[of \<open>(_ :: _ nres)\<close>])
      apply (intro conjI)
      subgoal
-       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric]) (refine_rcg WHILEIT_refine[where R = Id], auto)
+       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+        (refine_rcg WHILEIT_refine[where R = Id], auto simp add: all_init_atms_st_def)
      subgoal
-       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric]) (refine_rcg WHILEIT_refine[where R = Id], auto)
+       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+        (refine_rcg WHILEIT_refine[where R = Id], auto simp add: all_init_atms_st_def)
      done
 qed
 
@@ -4083,7 +4097,7 @@ proof
   have \<open>vdom_m (all_init_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_restart_def all_atms_def[symmetric])
+      (auto simp: twl_st_heur_restart_def all_atms_def[symmetric] all_init_atms_st_def)
   then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
     using x2 unfolding vdom_m_def
     by (cases x1)
@@ -4121,46 +4135,47 @@ proof-
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US N0 U0.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       isasat_input_bounded (all_init_atms x1a (x1c + NS))\<close>
+       isasat_input_bounded (all_init_atms x1a (x1c + NS + N0))\<close>
+     unfolding twl_st_heur_restart_def
+     by (auto simp: all_init_atms_st_def)
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US N0 U0.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q,
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e)
+       \<in> ?T \<Longrightarrow>
+       vdom_m (all_init_atms x1a (x1c+NS+N0)) x2e x1a \<subseteq> set x1z\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
-       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q,
-         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
-       \<in> ?T \<Longrightarrow>
-       vdom_m (all_init_atms x1a (x1c+NS)) x2e x1a \<subseteq> set x1z\<close>
-     unfolding twl_st_heur_restart_def
-     by auto
-  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US N0 U0.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       all_init_atms x1a (x1c+NS) \<noteq> {#}\<close>
+       all_init_atms x1a (x1c+NS+N0) \<noteq> {#}\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US N0 U0.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a (x1c+NS)) x1\<close>
+       ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a (x1c+NS+N0)) x1\<close>
        \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US N0 U0.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
-       \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a (x1c+NS)))\<close>
-     unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+        x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e)
+       \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a (x1c+NS+N0)))\<close>
+    unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+      all_init_atms_st_def
      by auto
   have H: \<open>vdom_m (all_init_atms x1a x1c) x2ad x1ad \<subseteq> set x2af\<close>
     if
@@ -4195,7 +4210,7 @@ proof-
       by (drule length_watched_le'')
         (clarsimp_all simp add: twl_st_heur_restart_def
           cdcl_GC_clauses_prog_wl_inv_def H H'
-          rtranclp_GC_remap_all_init_atms
+          rtranclp_GC_remap_all_init_atms all_init_atms_st_def
         rtranclp_GC_remap_learned_clss_l
         dest!: )
     subgoal
@@ -4207,23 +4222,29 @@ proof-
 qed
 
 definition cdcl_remap_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-\<open>cdcl_remap_st = (\<lambda>(M, N0, D, NE, UE, NS, US, Q, WS).
-  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', Q', WS').
-         (M', D', NE', UE', NS', US', Q') = (M, D, NE, UE, NS, US, Q) \<and>
-         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
+\<open>cdcl_remap_st = (\<lambda>(M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
+         (M', D', NE', UE', NS', US', N0', U0', Q') = (M, D, NE, UE, NS, US, N0, U0, Q) \<and>
+         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N\<^sub>0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
          0 \<notin># dom_m N'))\<close>
 
 definition rewatch_spec :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NS, US, Q, WS).
-  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', Q', WS').
-     (M', N', D', NE', UE', NS', US', Q') = (M, N, D, NE, UE, NS, {#}, Q) \<and>
-     correct_watching' (M, N', D, NE, UE, NS', US, Q', WS') \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NS', US, Q', WS')))\<close>
+\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
+     (M', N', D', NE', UE', NS', US', N0', U0', Q') = (M, N, D, NE, UE, NS, {#}, N0, U0, Q) \<and>
+     correct_watching' (M, N', D, NE, UE, NS', US, N0, U0, Q', WS') \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NS', US, N0, U0, Q', WS')))\<close>
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0':
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, Q, b) \<Longrightarrow>
-       literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, {#}, b)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, N0, U0, Q, b) \<Longrightarrow>
+       literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, N0, U0, {#}, b)\<close>
   by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_empty blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0)
+
+lemma RES_RES11_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
 
 lemma cdcl_GC_clauses_wl_D_alt_def:
   \<open>cdcl_GC_clauses_wl = (\<lambda>S. do {
@@ -4238,10 +4259,11 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
   supply [[goals_limit=1]]
   unfolding cdcl_GC_clauses_wl_def
   by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def
-      RES_RES9_RETURN_RES uncurry_def image_iff cdcl_remap_st_def
+      RES_RES11_RETURN_RES uncurry_def image_iff cdcl_remap_st_def
       RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
       rewatch_spec_def remove_all_learned_subsumed_clauses_wl_def
       literals_are_\<L>\<^sub>i\<^sub>n'_empty blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0'
+      all_init_lits_alt_def[symmetric]
     intro!: bind_cong_nres intro: literals_are_\<L>\<^sub>i\<^sub>n'_empty(4))
 
 definition isasat_GC_clauses_pre_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -4272,25 +4294,33 @@ lemma cdcl_GC_clauses_prog_wl2_st:
        Pos ` set_mset (all_init_atms_st T))
        (get_watched_wl T) \<and>
     literals_are_\<L>\<^sub>i\<^sub>n' T\<close> and
-    \<open>get_clauses_wl T = N0'\<close>
+    \<open>get_clauses_wl T = N\<^sub>0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl T \<le>
-       \<Down> {((M', N'', D', NE', UE', NS', US', Q', WS'), (N, N')).
-       (M', D', NE', UE', NS', US', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
+       \<Down> {((M', N'', D', NE', UE', NS', US', N0', U0', Q', WS'), (N, N')).
+       (M', D', NE', UE', NS', US', N0', U0', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
            get_unit_learned_clss_wl T, get_subsumed_init_clauses_wl T, get_subsumed_learned_clauses_wl T,
+           get_init_clauses0_wl T, get_learned_clauses0_wl T,
            literals_to_update_wl T) \<and> N'' = N \<and>
-           (\<forall>L\<in>#all_init_lits_st T. WS' L = []) \<and>
-           all_init_lits_st T = all_init_lits N (NE'+NS') \<and>
+           (\<forall>L\<in>#all_init_lits_of_wl T. WS' L = []) \<and>
+           all_init_lits_of_wl T = all_init_lits N (NE'+NS'+N0') \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl T, Map.empty, fmempty)
                (fmempty, m, N))}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
-         GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
-	  0 \<notin># dom_m N'))\<close>
-   using cdcl_GC_clauses_prog_wl2[of \<open>get_trail_wl T\<close> \<open>get_clauses_wl T\<close> \<open>get_conflict_wl T\<close>
-     \<open>get_unit_init_clss_wl T\<close> \<open>get_unit_learned_clss_wl T\<close> \<open>get_subsumed_init_clauses_wl T\<close>
-     \<open>get_subsumed_learned_clauses_wl T\<close> \<open>literals_to_update_wl T\<close>
-     \<open>get_watched_wl T\<close> S N0'] assms
-   by (cases T) auto
+         GC_remap\<^sup>*\<^sup>* (N\<^sub>0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
+    0 \<notin># dom_m N'))\<close>
+  using assms apply -
+  apply (rule order_trans)
+  apply (rule order_trans)
+    prefer 2
+  apply (rule cdcl_GC_clauses_prog_wl2[of \<open>get_trail_wl T\<close> \<open>get_clauses_wl T\<close> \<open>get_conflict_wl T\<close>
+    \<open>get_unit_init_clss_wl T\<close> \<open>get_unit_learned_clss_wl T\<close> \<open>get_subsumed_init_clauses_wl T\<close>
+    \<open>get_subsumed_learned_clauses_wl T\<close> \<open>get_init_clauses0_wl T\<close> \<open>get_learned_clauses0_wl T\<close> \<open>literals_to_update_wl T\<close>
+    \<open>get_watched_wl T\<close> S N\<^sub>0'])
+  apply (cases T; auto simp: all_init_atms_st_def; fail)+
+  apply (auto 5 3 simp: all_init_lits_of_wl_def all_init_lits_def ac_simps
+    dest: rtranclp_GC_remap_init_clss_l_old_new intro!: RES_refine)
+  done
 
 lemma correct_watching''_clauses_pointed_to:
   assumes
@@ -4300,20 +4330,16 @@ lemma correct_watching''_clauses_pointed_to:
     L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close>
   shows \<open>set_mset (dom_m (get_clauses_wl xa))
          \<subseteq> clauses_pointed_to
-            (Neg `
-             set_mset
-              (all_init_atms_st xa) \<union>
-             Pos `
-             set_mset
-              (all_init_atms_st xa))
+            (Neg ` set_mset (all_init_atms_st xa) \<union>
+             Pos ` set_mset (all_init_atms_st xa))
             (get_watched_wl xa)\<close>
         (is \<open>_ \<subseteq> ?A\<close>)
 proof
   let ?\<A> = \<open>all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)\<close>
   fix C
   assume C: \<open>C \<in># dom_m (get_clauses_wl xa)\<close>
-  obtain M N D NE UE NS US Q W where
-    xa: \<open>xa = (M, N, D, NE, UE, NS, US, Q, W)\<close>
+  obtain M N D NE UE NS US N0 U0 Q W where
+    xa: \<open>xa = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
     by (cases xa)
   obtain x where
     xb_x: \<open>(xb, x) \<in> twl_st_l None\<close> and
@@ -4343,13 +4369,13 @@ proof
         simp: all_init_atms_def xa \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm[symmetric]
           all_init_lits_def)
 
-  have H: \<open>get_clauses_wl xa \<propto> C ! 0 \<in># all_init_lits_st xa\<close>
+  have H: \<open>get_clauses_wl xa \<propto> C ! 0 \<in># all_init_lits_of_wl xa\<close>
     using L C le0 apply -
     unfolding all_init_atms_def[symmetric] all_init_lits_def[symmetric]
     apply (subst literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(4)[OF xa_xb xb_x struct_invs])
     apply (cases \<open>N \<propto> C\<close>; auto simp: literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def ran_m_def eq
           all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_def xa all_lits_of_m_add_mset
-          \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+          \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_st_def
         dest!: multi_member_split)
     done
 
@@ -4373,21 +4399,23 @@ proof
     by (cases \<open>N \<propto> C ! 0\<close>)
       (auto simp: clauses_pointed_to_def correct_watching''.simps xa
         simp flip: all_init_lits_def all_init_atms_alt_def
-          all_init_lits_alt_def
-        simp: clause_to_update_def all_init_atms_def
+          all_init_lits_alt_def 
+        simp: clause_to_update_def all_init_atms_st_def all_init_lits_of_wl_def all_init_atms_def
         simp del: all_init_atms_def[symmetric]
       dest!: multi_member_split)
 qed
 
 abbreviation isasat_GC_clauses_rel where
   \<open>isasat_GC_clauses_rel y u \<equiv> {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
-           (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
+           (\<forall>L\<in>#all_init_lits_of_wl y. get_watched_wl T L = [])\<and>
            get_trail_wl T = get_trail_wl y \<and>
            get_conflict_wl T = get_conflict_wl y \<and>
            get_unit_init_clss_wl T = get_unit_init_clss_wl y \<and>
            get_unit_learned_clss_wl T = get_unit_learned_clss_wl y \<and>
            get_subsumed_init_clauses_wl T = get_subsumed_init_clauses_wl y \<and>
            get_subsumed_learned_clauses_wl T = get_subsumed_learned_clauses_wl y \<and>
+           get_init_clauses0_wl T = get_init_clauses0_wl y \<and>
+           get_learned_clauses0_wl T = get_learned_clauses0_wl y \<and>
            learned_clss_count S \<le> u \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T)) \<and>
            arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)}\<close>
@@ -4416,13 +4444,15 @@ proof -
   have H: \<open>isasat_GC_clauses_rel y u=
     {(S, T). (S, T) \<in> twl_st_heur_restart \<and> arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T) \<and> 
            learned_clss_count S \<le> u} O
-    {(S, T). S = T \<and> (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
+    {(S, T). S = T \<and> (\<forall>L\<in>#all_init_lits_of_wl y. get_watched_wl T L = [])\<and>
            get_trail_wl T = get_trail_wl y \<and>
            get_conflict_wl T = get_conflict_wl y \<and>
            get_unit_init_clss_wl T = get_unit_init_clss_wl y \<and>
            get_unit_learned_clss_wl T = get_unit_learned_clss_wl y \<and>
            get_subsumed_init_clauses_wl T = get_subsumed_init_clauses_wl y \<and>
            get_subsumed_learned_clauses_wl T = get_subsumed_learned_clauses_wl y \<and>
+           get_init_clauses0_wl T = get_init_clauses0_wl y \<and>
+           get_learned_clauses0_wl T = get_learned_clauses0_wl y \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T))}\<close>
     by blast
   show ?thesis
@@ -4445,24 +4475,24 @@ proof -
 qed
 
 fun correct_watching''' :: \<open>_ \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching''' \<A> (M, N, D, NE, UE, NS, US, Q, W) \<longleftrightarrow>
+  \<open>correct_watching''' \<A> (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm \<A>.
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
-        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, {#}, {#}))\<close>
+        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
 
 declare correct_watching'''.simps[simp del]
 
 lemma correct_watching'''_add_clause:
   assumes
-    corr: \<open>correct_watching''' \<A> ((a, aa, CD, ac, ad, NS, US, Q, b))\<close> and
+    corr: \<open>correct_watching''' \<A> ((a, aa, CD, ac, ad, NS, US, N0, U0, Q, b))\<close> and
     leC: \<open>2 \<le> length C\<close> and
     i_notin[simp]: \<open>i \<notin># dom_m aa\<close> and
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching''' \<A>
-          ((a, fmupd i (C, red) aa, CD, ac, ad, NS, US, Q, b
+          ((a, fmupd i (C, red) aa, CD, ac, ad, NS, US, N0, U0, Q, b
             (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
              C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])))\<close>
 proof -
@@ -4492,17 +4522,17 @@ lemma rewatch_correctness:
     H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close> and
     incl: \<open>set_mset (all_lits_of_mm (mset `# ran_mf N)) \<subseteq> set_mset (all_lits_of_mm \<A>)\<close>
   shows
-    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, NS, US, Q, W))\<close>
+    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, W))\<close>
 proof -
   define I where
     \<open>I \<equiv> \<lambda>(a :: nat list) (b :: nat list) W.
-        correct_watching''' \<A> ((M, fmrestrict_set (set a) N, C, NE, UE, NS, US, Q, W))\<close>
+        correct_watching''' \<A> ((M, fmrestrict_set (set a) N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, W))\<close>
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
     using empty unfolding I_def by (auto simp: correct_watching'''.simps
        all_blits_are_in_problem_init.simps clause_to_update_def
        all_lits_of_mm_union)
   have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
-     if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, NS, US, Q, \<sigma>)\<close> and
+     if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, NS, US, N\<^sub>0, U\<^sub>0, Q, \<sigma>)\<close> and
       \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
      \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close> \<open>L \<in> set (N \<propto> xa)\<close>
      for L l1 \<sigma> xa l2 x
@@ -4597,8 +4627,8 @@ lemma rewatch_heur_st_correct_watching:
   shows \<open>rewatch_heur_st (empty_US_heur S) \<le> \<Down> (twl_st_heur_restart'''u (length (get_clauses_wl_heur S)) u)
     (rewatch_spec (T))\<close>
 proof -
-  obtain M N D NE UE NS US Q W where
-    T: \<open>T = (M, N, D, NE, UE, NS, US, Q, W)\<close>
+  obtain M N D NE UE NS US N0 U0 Q W where
+    T: \<open>T = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
     by (cases T) auto
 
   obtain M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema ccount
@@ -4612,13 +4642,15 @@ proof -
     dist: \<open>distinct vdom\<close> and
     dom_m_vdom: \<open>set_mset (dom_m N) \<subseteq> set vdom\<close> and
     W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T))\<close> and
-    empty: \<open>\<And>L. L \<in># all_init_lits_st y \<Longrightarrow> W L = []\<close> and
+    empty: \<open>\<And>L. L \<in># all_init_lits_of_wl y \<Longrightarrow> W L = []\<close> and
     NUE:\<open>get_unit_init_clss_wl y = NE \<close>
       \<open>get_unit_learned_clss_wl y = UE\<close>
       \<open>get_trail_wl y = M\<close>
       \<open>get_subsumed_init_clauses_wl y = NS\<close>
       \<open>get_subsumed_learned_clauses_wl y = US\<close>
-    using assms by (auto simp: twl_st_heur_restart_def S T)
+      \<open>get_init_clauses0_wl y = N0\<close>
+      \<open>get_learned_clauses0_wl y = U0\<close>
+    using assms by (auto simp: twl_st_heur_restart_def S T all_init_atms_st_def)
   obtain m where
     m: \<open>GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, Map.empty, fmempty)
              (fmempty, m, N)\<close>
@@ -4665,94 +4697,90 @@ proof -
   have eq_UnD: \<open>A = A' \<union> A'' \<Longrightarrow> A' \<subseteq> A\<close> for A A' A''
       by blast
 
-  have eq3: \<open>all_init_lits (get_clauses_wl y) (NE+NS) = all_init_lits N (NE+NS)\<close>
-    using rtranclp_GC_remap_init_clss_l_old_new[OF m]
-    by (auto simp: all_init_lits_def)
+  have eq3: \<open>all_init_lits_of_wl y = all_init_lits N (NE+NS+N0)\<close>
+    using rtranclp_GC_remap_init_clss_l_old_new[OF m] NUE
+    by (auto simp: all_init_lits_def all_init_lits_of_wl_def ac_simps)
   moreover have \<open>all_lits_st y = all_lits_st T\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m] rtranclp_GC_remap_learned_clss_l_old_new[OF m]
-    apply (auto simp: all_init_lits_def T NUE all_lits_def)
-    by (metis NUE(1) NUE(2) all_clss_l_ran_m all_lits_def get_unit_clauses_wl_alt_def)
-  ultimately have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms N (NE+NS)) (mset `# ran_mf N)\<close>
+      NUE
+      apply (cases y)
+    apply (auto simp: all_init_lits_def T NUE all_lits_def all_lits_st_def)
+    by (metis all_clss_l_ran_m all_lits_def)
+  moreover have \<open>set_mset (all_init_lits_of_wl y) = set_mset (all_lits_st T)\<close>
+    by (smt \<open>\<And>thesis. (\<And>x xa xb. \<lbrakk>(y, x) \<in> Id; x = y; literals_are_\<L>\<^sub>i\<^sub>n' y; (x, xa) \<in> state_wl_l None; correct_watching'' x; (xa, xb) \<in> twl_st_l None; twl_list_invs xa; twl_struct_invs xb; get_conflict_l xa = None; clauses_to_update_l xa = {#}; count_decided (get_trail_l xa) = 0; \<forall>L\<in>set (get_trail_l xa). mark_of L = 0\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> calculation(2) literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(4))
+  ultimately have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))
+    (mset `# ran_mf N)\<close>
     using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[OF x_xa xa_xb struct_invs] lits_y
       rtranclp_GC_remap_init_clss_l_old_new[OF m]
       rtranclp_GC_remap_learned_clss_l_old_new[OF m]
-    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
-      y_x literals_are_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def[of N] T
-      get_unit_clauses_wl_alt_def all_lits_def atm_of_eq_atm_of
-      is_\<L>\<^sub>a\<^sub>l\<^sub>l_def NUE all_init_atms_def all_init_lits_def all_atms_def conj_disj_distribR
-      in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def atm_of_all_lits_of_mm
-      ex_disj_distrib Collect_disj_eq atms_of_def \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
-      dest!: multi_member_split[of _ \<open>ran_m _\<close>]
-      split: if_splits
-      simp del: all_init_atms_def[symmetric] all_atms_def[symmetric])
+    unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_init_lits_alt_def[symmetric] \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
+     all_init_atms_st_def
+    by (auto simp: T all_lits_st_def all_lits_def all_lits_of_mm_union)
 
-  have eq: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N (NE+NS))) = set_mset (all_init_lits_st y)\<close>
-    using rtranclp_GC_remap_init_clss_l_old_new[OF m]
-    by (auto simp: T all_init_lits_def NUE
-      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
-  then have vd: \<open>vdom_m (all_init_atms N (NE+NS)) W N \<subseteq> set_mset (dom_m N)\<close>
+  have eq: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N (NE+NS+N0))) = set_mset (all_init_lits_of_wl y)\<close>
+    unfolding eq3 \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits ..
+  then have vd: \<open>vdom_m (all_init_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set_mset (dom_m N)\<close>
     using empty dom_m_vdom
-    by (auto simp: vdom_m_def)
-  have \<open>{#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, {#}, {#}).
+    by (auto simp: vdom_m_def all_init_atms_st_def)
+  have \<open>{#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, {#}, {#}).
          i \<in># dom_m N#} =
-       {#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, {#}, {#}).
+       {#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, {#}, {#}).
          True#}\<close> for L
        by (rule filter_mset_cong2)  (auto simp: clause_to_update_def)
   then have corr2: \<open>correct_watching'''
-        ({#mset (fst x). x \<in># init_clss_l (get_clauses_wl y)#} + NE + NS)
-        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
-       correct_watching' (M, N, get_conflict_wl y, NE, UE,NS, US, Q, W'a)\<close> for W'a
+        ({#mset (fst x). x \<in># init_clss_l (get_clauses_wl y)#} + NE + NS+N0)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
+       correct_watching' (M, N, get_conflict_wl y, NE, UE,NS, US, N0, U0, Q, W'a)\<close> for W'a
      using rtranclp_GC_remap_init_clss_l_old_new[OF m]
-     by (auto simp: correct_watching'''.simps correct_watching'.simps)
-  have eq2: \<open>all_init_lits (get_clauses_wl y) (NE+NS) = all_init_lits N (NE+NS)\<close>
+     by (auto simp: correct_watching'''.simps correct_watching'.simps all_init_lits_of_wl_def)
+  have eq2: \<open>all_init_lits (get_clauses_wl y) (NE+NS+N0) = all_init_lits N (NE+NS+N0)\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m]
     by (auto simp: T all_init_lits_def NUE
       \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
-  have \<open>i \<in># dom_m N \<Longrightarrow> set (N \<propto> i) \<subseteq> set_mset (all_init_lits N (NE+NS))\<close> for i
+  have \<open>i \<in># dom_m N \<Longrightarrow> set (N \<propto> i) \<subseteq> set_mset (all_init_lits N (NE+NS+N0))\<close> for i
     using lits by (auto dest!: multi_member_split split_list
-      simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def ran_m_def
+      simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def ran_m_def all_init_atms_st_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset
         \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
   then have blit2: \<open>correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS)
-        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n' (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a)\<close> for W'a
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS + N0)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n' (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W'a)\<close> for W'a
+      using rtranclp_GC_remap_init_clss_l_old_new[OF m]
+      unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def eq2
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_alt_def[symmetric] all_init_lits_of_wl_def
+      by (fastforce simp add: all_init_lits_def blits_in_\<L>\<^sub>i\<^sub>n'_def dest!: multi_member_split)
+  have \<open>correct_watching'''
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + (NE + NS+N0))
+        (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
+        vdom_m (all_init_atms N (NE+NS+N0)) W'a N \<subseteq> set_mset (dom_m N)\<close> for W'a
       using rtranclp_GC_remap_init_clss_l_old_new[OF m]
       unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def eq2
         \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_alt_def[symmetric]
-      by (fastforce simp: correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def
-        simp: eq \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms eq2
-        dest!: multi_member_split[of _ \<open>all_init_lits N (NE+NS)\<close>]
-        dest: mset_eq_setD)
-  have \<open>correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + (NE + NS))
-        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
-        vdom_m (all_init_atms N (NE+NS)) W'a N \<subseteq> set_mset (dom_m N)\<close> for W'a
-      unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def
-        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_def[symmetric]
-        all_init_lits_alt_def[symmetric]
-      using eq eq3
-      by (force simp: correct_watching'''.simps vdom_m_def NUE
-        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
-  then have st: \<open>(x, W'a) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NS))) \<Longrightarrow>
+      by (auto simp add: all_init_lits_def blits_in_\<L>\<^sub>i\<^sub>n'_def vdom_m_def NUE all_init_atms_def
+          \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
+        simp flip: all_lits_st_alt_def
+        dest!: multi_member_split)
+    then have st:
+      \<open>(x, W'a) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W))) \<Longrightarrow>
      correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS)
-        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS + N0)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
       ((M', N', D', j, x, vm, clvls, cach, lbd, outl, stats, (fast_ema,
          slow_ema, ccount), vdom, avdom, clss_size_resetUS lcount, opts, old_arena),
-        M, N, get_conflict_wl y, NE, UE, NS, {#}, Q, W'a)
+        M, N, get_conflict_wl y, NE, UE, NS, {#}, N0, U0, Q, W'a)
        \<in> twl_st_heur_restart\<close> for W'a m x
        using S_T dom_m_vdom
-       by (auto simp: S T twl_st_heur_restart_def y_x NUE ac_simps)
-  have truc: \<open>xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># learned_clss_l N#} + (UE + US)) \<Longrightarrow>
-       xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l N#} + (NE + NS))\<close> for xa
-    using lits_y eq3 rtranclp_GC_remap_learned_clss_l[OF m]
-    unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def NUE
-      all_lits_of_mm_union all_init_lits_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
-    by auto
-
+       by (auto simp: S T twl_st_heur_restart_def all_init_atms_st_def y_x NUE ac_simps)
   have Su: \<open>learned_clss_count S \<le> u\<close>
     using S_T by auto
+  have truc: \<open>xa \<in># all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
+       xa \<in># all_init_lits_of_wl (M, N, D, NE, UE, NS, {#}, N0, U0, Q, W'a)\<close> for W'a M D xa
+    using lits_y eq3 rtranclp_GC_remap_learned_clss_l[OF m]
+    unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def NUE all_learned_lits_of_wl_def
+      all_learned_lits_of_wl_def all_init_lits_of_wl_def
+      all_lits_of_mm_union all_init_lits_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
+    by auto
   show ?thesis
     supply [[goals_limit=1]]
     using assms
@@ -4768,18 +4796,18 @@ proof -
     apply (rule vd)
     apply (rule order_trans[OF ref_two_step'])
     apply (rule rewatch_correctness[where M=M and N=N and NE=NE and UE=UE and C=D and Q=Q and
-        NS=NS and US=US])
-    apply (rule empty[unfolded all_init_lits_def]; assumption)
+        NS=NS and US=US and N\<^sub>0=N0 and U\<^sub>0=U0])
+    apply (rule empty[unfolded all_init_lits_of_wl_def]; assumption)
     apply (rule struct_wf; assumption)
     subgoal using lits eq2 by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_init_atms_def all_init_lits_def
-         \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
+      \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_init_atms_st_def ac_simps
        simp del: all_init_atms_def[symmetric])
     apply (subst conc_fun_RES)
     apply (rule order.refl)
     using Su unfolding S
     by (fastforce simp: rewatch_spec_def RETURN_RES_refine_iff NUE learned_clss_count_def
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n'_def add.assoc
-      intro: corr2 blit2 st dest: truc)
+      intro: corr2 blit2 st dest: truc intro!: )
 qed
 
 lemma GC_remap_dom_m_subset:
@@ -4848,7 +4876,7 @@ lemma isasat_GC_clauses_rel_packed_le:
 proof -
   obtain m where
     \<open>(S, T) \<in> twl_st_heur_restart\<close> and
-    \<open>\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = []\<close> and
+    \<open>\<forall>L\<in>#all_init_lits_of_wl y. get_watched_wl T L = []\<close> and
     \<open>get_trail_wl T = get_trail_wl y\<close> and
     \<open>get_conflict_wl T = get_conflict_wl y\<close> and
     \<open>get_unit_init_clss_wl T = get_unit_init_clss_wl y\<close> and
@@ -4942,15 +4970,15 @@ proof -
       apply -
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_ana_def
-        twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_ana_def all_atms_st_def
+        twl_st_heur_restart_def all_init_atms_st_def del: isasat_input_nempty_def)
     subgoal for U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
 	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
       apply -
       by (cases S; cases T)
-         (simp add: twl_st_heur_def twl_st_heur_restart_ana_def
+         (simp add: twl_st_heur_def twl_st_heur_restart_ana_def all_init_atms_st_def
         twl_st_heur_restart_def del: isasat_input_nempty_def)
     done
   show \<open>cdcl_twl_full_restart_wl_GC_prog_post S0 T \<Longrightarrow> ?B\<close>
@@ -4969,7 +4997,8 @@ proof -
       apply -
       apply (clarsimp simp del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T; cases T')
-      apply (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      apply (simp add: twl_st_heur_def twl_st_heur_restart_def all_atms_st_def all_init_atms_st_def
+        del: isasat_input_nempty_def)
       using isa_vmtf_cong option_lookup_clause_rel_cong trail_pol_cong heuristic_rel_cong
       by presburger
     subgoal
@@ -4979,7 +5008,7 @@ proof -
         cdcl_twl_restart_l_invs[of S0' S0'' T']
       apply -
       apply (cases S; cases T)
-      by (clarsimp simp add: twl_st_heur_def twl_st_heur_restart_def
+      by (clarsimp simp add: twl_st_heur_def twl_st_heur_restart_def all_atms_st_def all_init_atms_st_def
         simp del: isasat_input_nempty_def)
     done
     done
@@ -5075,33 +5104,37 @@ definition restart_prog_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat \<times> nat \<times> nat) nres\<close>
 where
   \<open>restart_prog_wl_D_heur S last_GC last_Restart n brk = do {
-    b \<leftarrow> restart_required_heur S last_GC last_Restart n;
-    if \<not>brk \<and> b = FLAG_restart
-    then do {
-       T \<leftarrow> cdcl_twl_restart_wl_heur S;
-       ASSERT(learned_clss_count T \<le> learned_clss_count S);
-       RETURN (T, last_GC, learned_clss_count T, n)
-    }
-    else if \<not>brk \<and> b \<noteq> FLAG_no_restart
-    then do {
-       if b = FLAG_Reduce_restart
-       then do {
-         T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
+   if brk then RETURN (S, last_GC, last_Restart, n)
+   else do {
+      b \<leftarrow> restart_required_heur S last_GC last_Restart n;
+      if b = FLAG_restart
+      then do {
+         T \<leftarrow> cdcl_twl_restart_wl_heur S;
          ASSERT(learned_clss_count T \<le> learned_clss_count S);
-         RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
-       }
-       else do {
-         T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
-         ASSERT(learned_clss_count T \<le> learned_clss_count S);
-         RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
-       }
+         RETURN (T, last_GC, learned_clss_count T, n)
+      }
+      else if b \<noteq> FLAG_no_restart
+      then do {
+         if b = FLAG_Reduce_restart
+         then do {
+           T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
+           ASSERT(learned_clss_count T \<le> learned_clss_count S);
+           RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+         }
+         else do {
+           T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
+           ASSERT(learned_clss_count T \<le> learned_clss_count S);
+           RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+         }
+      }
+      else RETURN (S, last_GC, last_Restart, n)
     }
-    else RETURN (S, last_GC, last_Restart, n)
   }\<close>
 
 lemma restart_required_heur_restart_required_wl0:
   \<open>(uncurry3 restart_required_heur, uncurry3 restart_required_wl) \<in>
-    twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>restart_flag_rel\<rangle>nres_rel\<close>
+    [\<lambda>(((S, _), _), _). (get_init_clauses0_wl S = {#} \<and> get_learned_clauses0_wl S = {#})]\<^sub>f
+    twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>restart_flag_rel\<rangle>nres_rel\<close>
     unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
       restart_flag_rel_def  FLAG_GC_restart_def FLAG_restart_def FLAG_no_restart_def
       GC_required_heur_def FLAG_Reduce_restart_def learned_clss_count_def
@@ -5121,7 +5154,7 @@ lemma restart_required_heur_restart_required_wl0:
       by
        (auto simp add: twl_st_heur_def get_learned_clss_wl_def
         clss_size_def clss_size_lcount_def clss_size_lcountUE_def RETURN_RES_refine_iff
-        clss_size_lcountUS_def)
+        clss_size_lcountUS_def clss_size_lcountU0_def)
     done
 
 (*heuristic_rel (all_atms cd (cf + cg + ch + ci))
@@ -5138,15 +5171,17 @@ lemma [intro!]:
 
 
 lemma restart_prog_wl_D_heur_alt_def:
-  \<open>restart_prog_wl_D_heur S last_GC last_Restart n brk = do {
+  \<open>restart_prog_wl_D_heur S last_GC last_Restart n brk =
+    (if brk then RETURN (S, last_GC, last_Restart, n)
+    else do {
     b \<leftarrow> restart_required_heur S last_GC last_Restart n;
-    if \<not>brk \<and> b = FLAG_restart
+    if b = FLAG_restart
     then do {
        T \<leftarrow> cdcl_twl_restart_wl_heur S;
        ASSERT(learned_clss_count T \<le> learned_clss_count S);
        RETURN (T, last_GC, learned_clss_count T, n)
     }
-    else if \<not>brk \<and> b \<noteq> FLAG_no_restart
+    else if b \<noteq> FLAG_no_restart
     then do {
        let b = b;
        T \<leftarrow> (if b = FLAG_Reduce_restart
@@ -5156,7 +5191,7 @@ lemma restart_prog_wl_D_heur_alt_def:
        RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
     }
     else RETURN (S, last_GC, last_Restart, n)
-  }\<close>
+  })\<close>
    unfolding restart_prog_wl_D_heur_def Let_def
    by (auto intro: bind_cong[OF refl])
 
@@ -5175,6 +5210,75 @@ lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2:
   apply assumption
   apply (rule conc_fun_R_mono)
   by auto
+
+lemma restart_prog_wl_alt_def2:
+  \<open>restart_prog_wl S last_GC last_Restart n brk = do{
+     ASSERT(restart_abs_wl_pre S last_GC last_Restart brk);
+     ASSERT (last_GC
+            \<le> size (get_learned_clss_wl S) + size (get_unit_learned_clss_wl S) +
+              size (get_subsumed_learned_clauses_wl S) +
+              size (get_learned_clauses0_wl S));
+    ASSERT  (last_Restart
+            \<le> size (get_learned_clss_wl S) + size (get_unit_learned_clss_wl S) +
+              size (get_subsumed_learned_clauses_wl S) +
+              size (get_learned_clauses0_wl S));
+    if brk then RETURN (S, last_GC, last_Restart, n)
+    else do {
+     b \<leftarrow> restart_required_wl S last_GC last_Restart n;
+      if b = RESTART \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_restart_wl_prog S;
+       RETURN (T, last_GC, size (get_all_learned_clss_wl T), n)
+     }
+     else if b = GC \<and> \<not>brk then do {
+       b \<leftarrow> SPEC(\<lambda>_. True);
+       T \<leftarrow> (if b then cdcl_twl_full_restart_wl_prog S else cdcl_twl_full_restart_wl_GC_prog S);
+       RETURN (T, size (get_all_learned_clss_wl T), size (get_all_learned_clss_wl T), n + 1)
+     }
+     else
+       RETURN (S, last_GC, last_Restart, n)
+   }}\<close> (is \<open>?A = ?B\<close>)
+proof -
+  have \<open>?A \<le> \<Down> Id ?B\<close>
+    unfolding restart_prog_wl_def restart_required_wl_def
+    by refine_vcg
+      (auto simp: restart_required_wl_def RES_RETURN_RES intro!: bind_cong[OF refl])
+  moreover have \<open>?B \<le> \<Down> Id ?A\<close>
+    unfolding restart_prog_wl_def restart_required_wl_def nres_monad3
+    by refine_vcg
+      (auto simp: restart_required_wl_def RES_RETURN_RES intro!: bind_cong[OF refl])
+  ultimately show ?thesis by simp
+qed
+
+lemma restart_abs_wl_pre_emptyN0S:
+  assumes \<open>restart_abs_wl_pre S lastGC lastRestart C\<close> and [simp]: \<open>\<not>C\<close>
+  shows \<open>get_init_clauses0_wl S = {#} \<and> get_learned_clauses0_wl S = {#}\<close>
+proof -
+  obtain x xa where
+    Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
+    \<open>correct_watching S\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
+    xxa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    struct: \<open>twl_struct_invs xa\<close> and
+    \<open>twl_list_invs x\<close> and
+    \<open>clauses_to_update_l x = {#}\<close> and
+    \<open>twl_stgy_invs xa\<close> and
+    \<open>\<not> C \<longrightarrow> get_conflict xa = None\<close> and
+    \<open>lastRestart \<le> size (get_all_learned_clss xa)\<close> and
+    \<open>lastGC \<le> size (get_all_learned_clss xa)\<close>
+    using assms unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def apply -
+    apply normalize_goal+
+    by fast
+
+  then have \<open>get_conflict xa = None\<close>
+    by simp
+  moreover have \<open>clauses0_inv (pstate\<^sub>W_of xa)\<close>
+    using struct unfolding twl_struct_invs_def pcdcl_all_struct_invs_def by fast
+  ultimately have \<open>get_init_clauses0 xa = {#} \<and> get_learned_clauses0 xa = {#}\<close>
+    unfolding clauses0_inv_def
+    by (cases xa; auto simp: clauses0_inv_def)
+  then show ?thesis
+    using Sx xxa by auto
+qed
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
@@ -5201,15 +5305,19 @@ proof -
 
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del] learned_clss_count_twl_st_heur[simp]
-    unfolding restart_prog_wl_D_heur_alt_def restart_prog_wl_def uncurry_def
+    unfolding restart_prog_wl_D_heur_alt_def restart_prog_wl_alt_def2 uncurry_def
     apply (intro frefI nres_relI)
     subgoal for x y
     apply (refine_rcg
-        restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
+      restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down, THEN order_trans]
       cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2[where r=r and
         u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down])
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest: restart_abs_wl_pre_emptyN0S)
+    subgoal by (auto dest: restart_abs_wl_pre_emptyN0S)
     subgoal by auto
     subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
       FLAG_no_restart_def FLAG_Reduce_restart_def)
@@ -5227,7 +5335,7 @@ proof -
     subgoal
       by auto
     subgoal
-      by auto
+      by (auto dest: restart_abs_wl_pre_emptyN0S)
     subgoal
       by auto
     done
