@@ -157,6 +157,16 @@ sepref_def clss_size_lcountUSt_fast_code
   unfolding lcount_assn_def clss_size_lcountUS_alt_def clss_size_lcount_def
   by sepref
 
+lemma clss_size_lcountU0_alt_def:
+  \<open>RETURN o clss_size_lcountU0 = (\<lambda>(lcount, lcountUE, lcountUS, lcountU0). RETURN lcountU0)\<close>
+  by (auto simp: clss_size_lcountU0_def)
+
+sepref_def clss_size_lcountU0_fast_code
+  is \<open>RETURN o clss_size_lcountU0\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountU0_alt_def clss_size_lcount_def
+  by sepref
+
 lemma clss_size_incr_allcount_alt_def:
   \<open>RETURN o clss_size_allcount =
   (\<lambda>(lcount, lcountUE, lcountUS, lcountU0). RETURN (lcount + lcountUE + lcountUS + lcountU0))\<close>

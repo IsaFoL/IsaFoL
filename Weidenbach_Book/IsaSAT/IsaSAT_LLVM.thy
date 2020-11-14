@@ -149,26 +149,44 @@ sepref_def isasat_fast_bound_impl
   by sepref
 
 lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount).
-     RETURN (length N \<le> isasat_fast_bound \<and>
-     (clss_size_lcount (lcount) < 18446744073709551615 - clss_size_lcountUE (lcount) \<and>
-      clss_size_lcount (lcount) + clss_size_lcountUE (lcount) < 18446744073709551615 - clss_size_lcountUS (lcount) \<and>
-      clss_size_lcount (lcount) + clss_size_lcountUE (lcount) + clss_size_lcountUS (lcount) < 18446744073709551615)))\<close>
-  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def
-    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcount_def learned_clss_count_init_def
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount). do{
+     ASSERT(18446744073709551615 \<in> unats LENGTH(64));
+     c \<leftarrow> RETURN 18446744073709551615;
+     if \<not>(length N \<le> isasat_fast_bound \<and> clss_size_lcount lcount < c - clss_size_lcountUE lcount) then RETURN False
+     else do {
+        ASSERT(clss_size_lcount lcount + clss_size_lcountUE lcount \<in> unats LENGTH(64));
+        a  \<leftarrow> RETURN (clss_size_lcount lcount + clss_size_lcountUE lcount);
+        if \<not>a < c - clss_size_lcountUS lcount then RETURN False
+        else do {
+          ASSERT(a +  clss_size_lcountUS lcount \<in> unats LENGTH(64));
+          a \<leftarrow> RETURN (a + clss_size_lcountUS lcount);
+          if \<not>a < c - clss_size_lcountU0 lcount then RETURN False
+          else do {
+             ASSERT(a +  clss_size_lcountU0 lcount \<in> unats LENGTH(64));
+             a \<leftarrow> RETURN (a + clss_size_lcountU0 lcount);
+             RETURN(a < c)
+         }
+
+      }
+   }})\<close>
+  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def max_uint_def
+    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcount_def learned_clss_count_init_def unats_def
+    clss_size_lcountU0_def Let_def bind_ASSERT_eq_if split: if_splits intro!: ASSERT_leI
   intro!: ext)
+
+lemma isasat_fast_init_codeI: \<open>(aa :: 64 word, b) \<in> unat_rel64 \<Longrightarrow>  b \<le> 18446744073709551615\<close>
+  using unat_lt_max_unat[of aa]
+  by (auto simp: unat_rel_def unat.rel_def br_def max_unat_def)
 
 sepref_def isasat_fast_init_code
   is \<open>RETURN o isasat_fast_init\<close>
   :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_fast_init_alt_def isasat_init_assn_def isasat_fast_bound_def[symmetric]
-  apply (rewrite at \<open>_ < \<hole> - _\<close> unat_const_fold[where 'a=64])+
-  apply (rewrite at \<open>_ + _ < \<hole>\<close> unat_const_fold[where 'a=64])+
-  unfolding  short_circuit_conv
+  supply [sepref_bounds_simps del] = max_snat_def max_unat_def max_sint_def min_sint_def
+  supply [intro] = isasat_fast_init_codeI
+  unfolding isasat_fast_init_alt_def isasat_init_assn_def isasat_fast_bound_def[symmetric] if_not_swap
+  apply (rewrite at \<open>RETURN \<hole>\<close> unat_const_fold[where 'a=64])
   by sepref
-
-declare isasat_fast_init_code.refine[sepref_fr_rules]
 
 declare convert_state_hnr[sepref_fr_rules]
 
@@ -367,7 +385,6 @@ sepref_def IsaSAT_code_wrapped
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
 
 text \<open>The setup to transmit the version is a bit complicated, because
   it LLVM does not support direct export of string

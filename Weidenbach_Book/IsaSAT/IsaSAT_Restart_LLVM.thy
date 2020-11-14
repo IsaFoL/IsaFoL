@@ -99,7 +99,8 @@ lemma isasat_fast_bound_alt_def:
 
 lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292156 \<and>
    clss_size_lcount (get_learned_count S) +
-    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) < 18446744073709551615)\<close>
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) +
+      clss_size_lcountU0 (get_learned_count S) < 18446744073709551615)\<close>
   by (cases S; auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def
     uint64_max_def learned_clss_count_def)
 
@@ -164,9 +165,9 @@ begin
     cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
     cdcl_twl_restart_wl_heur_fast_code
     cdcl_twl_full_restart_wl_prog_heur_fast_code
-  cdcl_twl_local_restart_wl_D_heur_fast_code
+    cdcl_twl_local_restart_wl_D_heur_fast_code
   (* cdcl_twl_stgy_restart_prog_wl_heur_fast_code *)
-  get_conflict_wl_is_None_fast_code
+   get_conflict_wl_is_None_fast_code
 end
 
 end

@@ -51,7 +51,7 @@ definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
        64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
   32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times>
-  (64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
+  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
@@ -262,12 +262,13 @@ declare set_empty_clause_as_conflict_code.refine[sepref_fr_rules]
 
 definition (in -) add_clause_to_others_heur'
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, NS, US, WS).
-      RETURN (M, N, D, Q, NS, US, WS))\<close>
+  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, NS, US, N0, U0, WS).
+      RETURN (M, N, D, Q, NS, US, N0, U0, WS))\<close>
 
 lemma add_clause_to_others_heur'_alt: \<open>add_clause_to_others_heur L = add_clause_to_others_heur'\<close>
   unfolding add_clause_to_others_heur'_def add_clause_to_others_heur_def
   ..
+
 sepref_def add_clause_to_others_code
   is \<open>add_clause_to_others_heur'\<close>
   :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
@@ -689,7 +690,8 @@ sepref_def init_state_wl_D'_code
   apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>let _ = (\<hole>, _, _) in RETURN _\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>let _ = (_, \<hole>, _) in RETURN _\<close> unat_const_fold[where 'a=64])
-  apply (rewrite at \<open>let _ = ( _, _, \<hole>) in RETURN _\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>let _ = ( _, _, \<hole>, _) in RETURN _\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>let _ = ( _, _, _, \<hole>) in RETURN _\<close> unat_const_fold[where 'a=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
      conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def lcount_assn_def])
