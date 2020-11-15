@@ -51,7 +51,7 @@ Weidenbach_Book:
 	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 PAC:
-	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker
+	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
 
 Functional_Ordered_Resolution_Prover:
 	$(RUN_ISABELLE2019) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
@@ -76,9 +76,6 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 doc:
 	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE2020_HOME)/Weidenbach_Book $(DESTINATION)/current || :
-	cp -R $(ISABELLE2020_HOME)/Saturation_Framework $(DESTINATION)/current || :
-	cp -R $(ISABELLE2019_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
-	cp -R $(ISABELLE2020_HOME)/PAC_Checker $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2020" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2020_version)"
 
