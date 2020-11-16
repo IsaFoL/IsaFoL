@@ -23,7 +23,7 @@ proof -
     apply (case_tac x; case_tac xi; case_tac \<open>snd xi\<close>)
        apply (sep_auto simp: br_def)
       apply (sep_auto simp: nat_ann_lit_rel_def uint64_nat_rel_def br_def
-        ann_lit_of_pair_if cong: )+
+        ann_lit_of_pair_alt_def cong: )+
      apply (sep_auto simp: hr_comp_def)
     apply (sep_auto simp: hr_comp_def uint64_nat_rel_def br_def)
      apply (auto simp: nat_ann_lit_rel_def elim: option_relE)[]

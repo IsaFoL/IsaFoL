@@ -3,6 +3,20 @@ theory IsaSAT_Initialisation
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
 
+(*TODO Move*)
+definition [to_relAPP]: \<open>mset_rel A \<equiv> p2rel (rel_mset (rel2p A))\<close>
+
+lemma in_mset_rel_eq_f_iff:
+  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
+  using ex_mset[of a]
+  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
+      list_all2_op_eq_map_right_iff' cong: ex_cong)
+
+lemma in_mset_rel_eq_f_iff_set:
+  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
+  using in_mset_rel_eq_f_iff[of _ _ f] by blast
+
+
 chapter \<open>Initialisation\<close>
 
 
@@ -2044,17 +2058,7 @@ proof -
 qed
 
 (*TODO Move *)
-definition [to_relAPP]: \<open>mset_rel A \<equiv> p2rel (rel_mset (rel2p A))\<close>
-lemma in_mset_rel_eq_f_iff:
-  \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
-  using ex_mset[of a]
-  by (auto simp: mset_rel_def br_def rel2p_def[abs_def] p2rel_def rel_mset_def
-      list_all2_op_eq_map_right_iff' cong: ex_cong)
 
-
-lemma in_mset_rel_eq_f_iff_set:
-  \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
-  using in_mset_rel_eq_f_iff[of _ _ f] by blast
 (*END Move*)
 lemma init_state_wl_D0:
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
@@ -2086,10 +2090,10 @@ proof -
     by (rule init_trail_D_ref[unfolded fref_def nres_rel_def, simplified, rule_format])
       (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def)
 
-  have [simp]: \<open>comp_fun_idem (max :: 'a :: {zero,linorder} \<Rightarrow> _)\<close>
+  have [simp]: \<open>comp_fun_idem (max :: 'b :: {zero,linorder} \<Rightarrow> _)\<close>
     unfolding comp_fun_idem_def comp_fun_commute_def comp_fun_idem_axioms_def
     by (auto simp: max_def[abs_def] intro!: ext)
-  have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'a :: {zero,linorder}\<close>
+  have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'b :: {zero,linorder}\<close>
     by (auto simp: Max.eq_fold comp_fun_idem.fold_set_fold)
   have in_N0: \<open>L \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> L  < Suc ((Max (insert 0 (set \<A>\<^sub>i\<^sub>n))))\<close>
     for L \<A>\<^sub>i\<^sub>n

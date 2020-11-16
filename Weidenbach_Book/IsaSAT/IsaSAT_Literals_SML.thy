@@ -406,7 +406,7 @@ lemma
 proof -
   have 1: \<open>hr_comp ann_lit_wl_assn nat_ann_lit_rel = pair_nat_ann_lit_assn\<close>
     by (fastforce simp: case_prod_beta hr_comp_def[abs_def] pure_def nat_ann_lit_rel_def
-        prod_assn_def ann_lit_of_pair_if ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
+        prod_assn_def ann_lit_of_pair_alt_def ex_assn_def imp_ex Abs_assn_eqI(1) ex_simps(1)[symmetric]
         simp del: pair_of_ann_lit.simps literal_of_nat.simps ex_simps(1)
         split: if_splits)
   show ?slow

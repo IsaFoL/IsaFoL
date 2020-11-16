@@ -2,6 +2,10 @@ theory IsaSAT_Reluctant
     imports More_Sepref.WB_More_Refinement "HOL-Word.More_Word"
 begin
 
+text \<open>
+  In this file, we define the Luby sequence, based on the implementation from CaDiCaL.
+\<close>
+
 datatype reluctant =
   Reluctant
     (reluctant_limited: bool)

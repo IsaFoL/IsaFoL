@@ -22,7 +22,7 @@ abbreviation  model_stat_assn where
 abbreviation lits_with_max_assn where
   \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
 lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl_assn uint32_assn \<times>\<^sub>a uint32_assn)
-          (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
+          (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel)\<close>
 proof -
   have 1: \<open>arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn =
      hr_comp (arl_assn uint32_assn \<times>\<^sub>a uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r uint32_nat_rel)\<close>
@@ -37,7 +37,7 @@ proof -
     done
 
   have 2: \<open>((\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel) O lits_with_max_rel) =
-     (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
+     (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel)\<close>
     apply (rule; rule)
     apply (case_tac x)
     apply (simp only: relcomp.simps)
@@ -47,7 +47,7 @@ proof -
        apply (rule exI[of _ \<open>uint32_of_nat `# mset (fst xb)\<close>])
        apply (rule exI[of _ \<open>mset (fst xb)\<close>])
        apply (cases xa)
-       by (auto simp: uint32_nat_rel_def IsaSAT_Initialisation.mset_rel_def p2rel_def rel2p_def[abs_def] br_def
+       by (auto simp: uint32_nat_rel_def mset_rel_def p2rel_def rel2p_def[abs_def] br_def
          rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
     apply (case_tac x)
     apply (simp only: relcomp.simps)
@@ -55,7 +55,7 @@ proof -
     subgoal for yx a b xa xb xc
        apply (rule exI[of _ a])
        apply (cases xa)
-       by (auto simp: uint32_nat_rel_def IsaSAT_Initialisation.mset_rel_def p2rel_def rel2p_def[abs_def] br_def
+       by (auto simp: uint32_nat_rel_def mset_rel_def p2rel_def rel2p_def[abs_def] br_def
          rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
     done
 
@@ -74,7 +74,7 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
   by auto
 
 lemma list_assn_list_mset_rel_clauses_l_assn:
-  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>IsaSAT_Initialisation.mset_rel)) xs xs'
+  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
 proof -
   have ex_remove_xs:
@@ -89,7 +89,7 @@ proof -
     apply (auto simp: hr_comp_def)
     apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
-    by (auto simp add: list_mset_rel_def br_def IsaSAT_Initialisation.mset_rel_def unat_lit_rel_def
+    by (auto simp add: list_mset_rel_def br_def mset_rel_def unat_lit_rel_def
         uint32_nat_rel_def nat_lit_rel_def WB_More_Refinement.list_mset_rel_def
         p2rel_def Collect_eq_comp rel2p_def
         list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]

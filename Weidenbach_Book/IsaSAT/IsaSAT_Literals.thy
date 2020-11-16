@@ -7,7 +7,6 @@ begin
 
 chapter \<open>Refinement of Literals\<close>
 
-
 section \<open>Literals as Natural Numbers\<close>
 
 subsection \<open>Definition\<close>
@@ -112,7 +111,7 @@ definition sint32_max :: nat where
 
 definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
-
+  
 
 lemma uint64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
 proof -
@@ -140,8 +139,7 @@ definition length_ll_f where
   \<open>length_ll_f W L = length (W L)\<close>
 
 text \<open>
-  The following lemma was necessary at some point to prove the existence of some
-  list.
+  The following lemma was necessary at some point to prove the existence of a watch list.
 \<close>
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> 'a list\<close>
@@ -537,10 +535,6 @@ lemma in_nat_list_rel_list_all2_in_set_iff:
 definition is_decided_wl where
   \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
 
-lemma ann_lit_of_pair_if:
-  \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
-  by (cases D) auto
-
 definition get_maximum_level_remove where
   \<open>get_maximum_level_remove M D L =  get_maximum_level M (remove1_mset L D)\<close>
 
@@ -621,7 +615,8 @@ lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
   by (force simp add:  atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
       atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
        eq_commute[of \<open>set_mset (all_lits_of_mm _)\<close> \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>]
-      dest: multi_member_split)
+    dest: multi_member_split)
+
 
 section \<open>Polarities\<close>
 

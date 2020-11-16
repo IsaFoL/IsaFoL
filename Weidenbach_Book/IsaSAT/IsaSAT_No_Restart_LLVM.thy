@@ -29,10 +29,10 @@ abbreviation lits_with_max_assn\<^sub>0 :: \<open>nat multiset
   \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn \<times>\<^sub>a unat32_assn) lits_with_max_rel\<close>
 
 lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)
-          (lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
+          (lits_with_max_rel O \<langle>nat_rel\<rangle>mset_rel)\<close>
 proof -
 
-  have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel) = lits_with_max_rel\<close>
+  have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>mset_rel) = lits_with_max_rel\<close>
     by (auto simp: mset_rel_def  p2rel_def rel2p_def[abs_def] br_def
          rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff' list.rel_eq)
   show ?thesis
@@ -51,7 +51,7 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
 
 (*
 lemma list_assn_list_mset_rel_clauses_l_assn:
-  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>IsaSAT_Initialisation.mset_rel)) xs xs'
+  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
 proof -
   have ex_remove_xs:
@@ -66,7 +66,7 @@ proof -
     apply (auto simp: hr_comp_def)
     apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
     using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
-    by (auto simp add: list_mset_rel_def br_def IsaSAT_Initialisation.mset_rel_def unat_lit_rel_def
+    by (auto simp add: list_mset_rel_def br_def mset_rel_def unat_lit_rel_def
         uint32_nat_rel_def nat_lit_rel_def WB_More_Refinement.list_mset_rel_def
         p2rel_def Collect_eq_comp rel2p_def
         list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]

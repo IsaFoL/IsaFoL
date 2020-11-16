@@ -115,51 +115,6 @@ proof -
 
   have ID_R: \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>option_rel = Id\<close>
     by auto
-  (* have atms: \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N, D, NE, UE, NS, US, WS, Q))) =
-   *        atms_of_mm (mset `# init_clss_lf N) \<union>
-   *        atms_of_mm NE \<union> atms_of_mm NS \<and> D = None\<close> (is ?A) and
-   *   atms_2: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N (NE + UE + NS + US))) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N (NE+NS)))\<close> (is ?B) and
-   *   atms_3: \<open>y \<in> atms_of_ms ((\<lambda>x. mset (fst x)) ` set_mset (ran_m N)) \<Longrightarrow>
-   *      y \<notin> atms_of_mm NE \<Longrightarrow> y \<notin> atms_of_mm NS \<Longrightarrow>
-   *      y \<in> atms_of_ms ((\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m N \<and> snd a})\<close> (is \<open>?C1 \<Longrightarrow> ?C2 \<Longrightarrow>?C3 \<Longrightarrow> ?C\<close>)
-   *     if inv: \<open>find_unassigned_lit_wl_D_heur_pre (M, N, D, NE, UE, NS, US, WS, Q)\<close>
-   *     for M N D NE UE WS Q y NS US
-   * proof -
-   *   obtain T U where
-   *     S_T: \<open>((M, N, D, NE, UE, NS, US, WS, Q), T) \<in> state_wl_l None\<close> and
-   *     T_U: \<open>(T, U) \<in> twl_st_l None\<close> and
-   *     inv: \<open>twl_struct_invs U\<close> and
-   *     \<A>\<^sub>i\<^sub>n : \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st (M, N, D, NE, UE, NS, US, WS, Q)) (M, N, D, NE, UE, NS, US, WS, Q)\<close> and
-   *     confl: \<open>get_conflict_wl (M, N, D, NE, UE, NS, US, WS, Q) = None\<close>
-   *     using inv unfolding find_unassigned_lit_wl_D_heur_pre_def
-   *      apply - apply normalize_goal+
-   *      by blast
-   * 
-   *   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
-   *     using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-   *       pcdcl_all_struct_invs_def state\<^sub>W_of_def
-   *     by fast+
-   *   then show ?A
-   *     using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def
-   *     literals_are_\<L>\<^sub>i\<^sub>n_def all_atms_def all_lits_def all_atms_st_def all_atms_def
-   *     apply -
-   *     apply (subst (asm) all_clss_l_ran_m[symmetric], subst (asm) image_mset_union)+
-   *     apply (subst all_clss_l_ran_m[symmetric], subst image_mset_union)
-   *     by  (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def entailed_clss_inv.simps
-   *           mset_take_mset_drop_mset mset_take_mset_drop_mset' atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n all_lits_def
-   *           clauses_def all_lits_of_mm_union atm_of_all_lits_of_mm
-   *         simp del: entailed_clss_inv.simps)
-   * 
-   *   then show ?B and \<open>?C1 \<Longrightarrow> ?C2 \<Longrightarrow> ?C3 \<Longrightarrow> ?C\<close>
-   *     apply -
-   *     unfolding atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n all_atms_def all_lits_def
-   *     apply (subst (asm) all_clss_l_ran_m[symmetric], subst (asm) image_mset_union)+
-   *     apply (subst all_clss_l_ran_m[symmetric], subst image_mset_union)+
-   *     by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff
-   *       all_lits_of_mm_union atms_of_def \<L>\<^sub>a\<^sub>l\<^sub>l_union image_Un atm_of_eq_atm_of
-   *       atm_of_all_lits_of_mm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-   * qed *)
-
 
   define unassigned_atm where
      \<open>unassigned_atm S L \<longleftrightarrow> (\<exists> M N D NE UE NS US WS Q.
@@ -171,45 +126,6 @@ proof -
              atm_of L' \<in># all_atms_st S)))\<close>
     for L :: \<open>nat literal option\<close> and S :: \<open>nat twl_st_wl\<close>
 
-(*
-  have eq: \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<exists> x. P x) = (\<exists> x. Q x)\<close> for P Q
-   by auto
-  have unassigned_atm_alt_def:  \<open>unassigned_atm S L \<longleftrightarrow> (\<exists> M N D NE UE NS US WS Q.
-         S = (M, N, D, NE, UE, NS, US, WS, Q) \<and>
-         (L \<noteq> None \<longrightarrow>
-            undefined_lit M (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS)) \<and>
-         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS))))\<close> for S L
-    unfolding unassigned_atm_def apply (intro eq ext)
-    apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits mset_take_mset_drop_mset')
-    apply (auto simp: unassigned_atm_def atm_of_eq_atm_of simp: in_all_lits_of_mm_ain_atms_of_iff
-        mset_take_mset_drop_mset' atms_of_ms_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_def
-      dest: multi_member_split)
-    done
-  have 1: \<open>clause `# twl_clause_of `# S = mset `# S\<close> for S
-    by (auto simp: mset_take_mset_drop_mset')
-  have unassigned_atm_alt_def2:
-    \<open>find_unassigned_lit_wl_D_heur_pre S \<Longrightarrow> unassigned_atm S L \<longleftrightarrow> (\<exists> M N D NE UE NS US WS Q.
-         S = (M, N, D, NE, UE, NS, US, WS, Q) \<and>
-         (L \<noteq> None \<longrightarrow>
-            undefined_lit M (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N (NE+NS)) \<and>
-             atm_of (the L) \<in># all_atms_st S) \<and>
-         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-             atm_of L' \<in># all_atms_st S)))\<close>
-    for L :: \<open>nat literal option\<close> and S :: \<open>nat twl_st_wl\<close>
-    unfolding unassigned_atm_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits 1
-      in_all_lits_of_mm_ain_atms_of_iff[symmetric] all_lits_alt_def2[symmetric]
-      all_lits_def[symmetric] all_lits_alt_def[symmetric]
-    apply (intro eq ext)
-    apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits mset_take_mset_drop_mset'
-      in_all_lits_of_mm_ain_atms_of_iff in_set_all_atms_iff
-      simp del: all_atms_def[symmetric] dest!: atms)
-    apply simp
-    find_theorems \<open>atms_of  (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>
-    supply[[goals_limit=1]]
-    apply (simp add: unassigned_atm_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
-         in_all_lits_of_mm_ain_atms_of_iff del: all_atms_def[symmetric])*)
   have all_lits_st_atm: \<open>L \<in># all_lits_st S \<longleftrightarrow> atm_of L \<in># all_atms_st S\<close> for L S
     unfolding all_lits_st_def all_atms_st_def in_all_lits_of_mm_ain_atms_of_iff
       all_lits_def all_atms_def by (metis atm_of_all_lits_of_mm(1))

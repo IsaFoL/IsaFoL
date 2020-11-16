@@ -1784,17 +1784,6 @@ lemma ccmin_less_length:
 lemma ccmin_same_cond:
   shows \<open>(x2i \<le> x1i) = (x2f \<le> x1f)\<close>
   using le ana unfolding x1g_x1d st3 by (simp split: if_splits)
-(*TODO Move + remove duplicate *)
-lemma list_rel_butlast:
-  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close>
-  shows \<open>(butlast xs, butlast ys) \<in> \<langle>R\<rangle>list_rel\<close>
-proof -
-  have \<open>length xs = length ys\<close>
-    using assms list_rel_imp_same_length by blast
-  then show ?thesis
-    using rel
-    by (induction xs ys rule: list_induct2) (auto split: nat.splits)
-qed
 
 lemma ccmin_set_removable:
   assumes

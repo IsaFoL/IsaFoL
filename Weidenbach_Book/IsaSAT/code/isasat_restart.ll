@@ -6,18 +6,6 @@ target triple = "x86_64-pc-linux-gnu"
 
 declare void @isabelle_llvm_free(i8*)
 declare i8* @isabelle_llvm_calloc(i64, i64)
-declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
-declare void @IsaSAT_LLVM_print_propa_impl(i64)
-declare void @IsaSAT_LLVM_print_confl_impl(i64)
-declare void @IsaSAT_LLVM_print_dec_impl(i64)
-declare void @IsaSAT_LLVM_print_res_impl(i64)
-declare void @IsaSAT_LLVM_print_lres_impl(i64)
-declare void @IsaSAT_LLVM_print_uset_impl(i64)
-declare void @IsaSAT_LLVM_print_gc_impl(i64)
 
 
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i32* }, { i32, i32 } } %x) {
@@ -862,19 +850,19 @@ define i32* @llvm_version() {
     %xh = add i32 %xg, 1
     %xi = call i32* @LLVM_DS_NArray_narray_new_init5 (i32 %xh, i32 0)
     %p = getelementptr i32, i32* %xi, i32 0
-    store i32 99, i32* %p
+    store i32 55, i32* %p
     %xk = add i32 0, 1
     %pa = getelementptr i32, i32* %xi, i32 %xk
-    store i32 98, i32* %pa
+    store i32 54, i32* %pa
     %xm = add i32 0, 1
     %xn = add i32 %xm, 1
     %pb = getelementptr i32, i32* %xi, i32 %xn
-    store i32 98, i32* %pb
+    store i32 53, i32* %pb
     %xp = add i32 0, 1
     %xq = add i32 %xp, 1
     %xr = add i32 %xq, 1
     %pc = getelementptr i32, i32* %xi, i32 %xr
-    store i32 101, i32* %pc
+    store i32 51, i32* %pc
     %xt = add i32 0, 1
     %xu = add i32 %xt, 1
     %xv = add i32 %xu, 1
@@ -887,7 +875,7 @@ define i32* @llvm_version() {
     %yb = add i32 %ya, 1
     %yc = add i32 %yb, 1
     %pe = getelementptr i32, i32* %xi, i32 %yc
-    store i32 52, i32* %pe
+    store i32 97, i32* %pe
     %ye = add i32 0, 1
     %yf = add i32 %ye, 1
     %yg = add i32 %yf, 1
@@ -895,7 +883,7 @@ define i32* @llvm_version() {
     %yi = add i32 %yh, 1
     %yj = add i32 %yi, 1
     %pf = getelementptr i32, i32* %xi, i32 %yj
-    store i32 98, i32* %pf
+    store i32 49, i32* %pf
     %yl = add i32 0, 1
     %ym = add i32 %yl, 1
     %yn = add i32 %ym, 1
@@ -904,7 +892,7 @@ define i32* @llvm_version() {
     %yq = add i32 %yp, 1
     %yr = add i32 %yq, 1
     %pg = getelementptr i32, i32* %xi, i32 %yr
-    store i32 100, i32* %pg
+    store i32 99, i32* %pg
     %yt = add i32 0, 1
     %yu = add i32 %yt, 1
     %yv = add i32 %yu, 1
@@ -918,6 +906,11 @@ define i32* @llvm_version() {
     ret i32* %xi
 }
 
+define void @IsaSAT_LLVM_print_gc_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64* @LLVM_DS_NArray_array_grow(i64 %newsz, i64 %oldsz, i64* %src) {
 
@@ -965,7 +958,17 @@ define i32* @LLVM_DS_NArray_array_grow1(i64 %newsz, i64 %oldsz, i32* %src) {
     ret i32* %dst
 }
 
+define void @IsaSAT_LLVM_print_dec_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_res_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i1 @LBD_LLVM_level_in_lbd_code(i32 %x, { { i64, i32* }, { i32, i32 } } %x1) {
 
@@ -1155,7 +1158,17 @@ define i64 @Sorting_Log2_word_clz_impl(i64 %x) {
     ret i64 %x3
 }
 
+define void @IsaSAT_LLVM_print_lres_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_uset_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @Sorting_Log2_word_clz_impl1(i64 %x) {
 
@@ -1267,7 +1280,17 @@ define { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64,
     ret { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } } } } %x2
 }
 
+define void @IsaSAT_LLVM_print_confl_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_propa_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_loop_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -1346,6 +1369,11 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
     ret i32 %x1
 }
 
+define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_cheap_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -2336,6 +2364,11 @@ define { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } @
     ret { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } %a1o
 }
 
+define void @IsaSAT_Show_LLVM_print_char_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i2 @IsaSAT_Arena_LLVM_arena_used_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
@@ -2680,6 +2713,11 @@ define i1 @IsaSAT_Other_LLVM_isasat_fast_impl({ { { i64, { i64, i32* } }, { { i6
     ret i1 %x6
 }
 
+define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @IsaSAT_Stats_LLVM_QUIET_PHASE_impl() {
 
@@ -4184,6 +4222,11 @@ define i64 @IsaSAT_Setup3_LLVM_wasted_bytes_st_impl({ { { i64, { i64, i32* } }, 
     ret i64 %a1o
 }
 
+define void @IsaSAT_Show_LLVM_print_open_colour_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
@@ -4941,6 +4984,11 @@ define i64 @IsaSAT_Setup3_LLVM_get_restart_phase_imp({ { { i64, { i64, i32* } },
     ret i64 %x12
 }
 
+define void @IsaSAT_Show_LLVM_print_close_colour_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @IsaSAT_Stats_LLVM_ema_extract_value_impl({ i64, { i64, { i64, { i64, i64 } } } } %x) {
 
@@ -6786,7 +6834,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_introsort_aux_impl({ i64
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_aux_impl_f_018428516 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment15322394_VMTF_it_introsort_aux_impl_f_015495654 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i32* } } %x7
 }
 
@@ -12217,7 +12265,7 @@ define { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_introsort_aux_im
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_aux_impl_f_018348114 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment15322394_LBD_it_introsort_aux_impl_f_015415252 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i64* } } %x7
 }
 
@@ -18609,7 +18657,7 @@ define i1 @IsaSAT_Conflict_Analysis_LLVM_extract_values_of_lookup_conflict_impl(
     ret i1 %a1
 }
 
-define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_aux_impl_f_018348114({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
+define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment15322394_LBD_it_introsort_aux_impl_f_015415252({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 0
@@ -18641,7 +18689,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_a
     %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
     %xj = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %a1c, 0
     %xk = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_aux_impl_f_018348114 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
+    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment15322394_LBD_it_introsort_aux_impl_f_015415252 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
     %xia = sub i64 %a2b, 1
     %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
     %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
@@ -18649,7 +18697,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_a
     %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
     %xo = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %xha, 0
     %x2 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment18255256_LBD_it_introsort_aux_impl_f_018348114 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
+    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment15322394_LBD_it_introsort_aux_impl_f_015415252 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
     br label %ctd_ifa
 
   ctd_ifa:
@@ -18887,7 +18935,7 @@ define { { i64, { i64, i32* } }, { { i64, { i64, i32* } }, { { i64, { i64, i64* 
     ret { { i64, { i64, i32* } }, { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } } } %x22
 }
 
-define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_aux_impl_f_018428516({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment15322394_VMTF_it_introsort_aux_impl_f_015495654({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 0
@@ -18919,7 +18967,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_
     %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
     %xj = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %a1c, 0
     %xk = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_aux_impl_f_018428516 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
+    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment15322394_VMTF_it_introsort_aux_impl_f_015495654 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
     %xia = sub i64 %a2b, 1
     %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
     %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
@@ -18927,7 +18975,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_
     %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
     %xo = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %xha, 0
     %x2 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment18255256_VMTF_it_introsort_aux_impl_f_018428516 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
+    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment15322394_VMTF_it_introsort_aux_impl_f_015495654 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
     br label %ctd_ifa
 
   ctd_ifa:
