@@ -88,6 +88,7 @@ definition linear_combi_l where
            RETURN (p, xs, CFAILED err)
          } else do {
            let r = the (fmlookup A i);
+           q \<leftarrow> full_normalize_poly (q);
            pq \<leftarrow> mult_poly_full q r;
            pq \<leftarrow> add_poly_l (p, pq);
            RETURN (pq, tl xs, CSUCCESS)
@@ -220,6 +221,27 @@ proof -
       intro!: RES_refine\<close>)
 qed
 
+lemma full_normalize_poly_full_spec:
+  assumes
+    \<open>(p, p'') \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
+  shows
+    \<open>full_normalize_poly p \<le> \<Down>(sorted_poly_rel O mset_poly_rel)
+    (SPEC (\<lambda>s.  s - (p'')\<in> ideal polynomial_bool \<and> vars s \<subseteq> vars p''))\<close>
+proof -
+  obtain p' q' where
+    pq: \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+    \<open>(p', p'') \<in> mset_poly_rel\<close>
+    using assms by auto
+  show ?thesis
+    apply (rule full_normalize_poly_normalize_poly_p[THEN order_trans, OF pq(1)])
+    apply (subst conc_fun_chain[symmetric])
+    apply (rule ref_two_step')
+    by (use pq assms in \<open>clarsimp simp: add_poly_p'_def mset_poly_rel_def ideal.span_zero
+          ideal.span_zero rtranclp_normalize_poly_p_poly_of_mset
+      dest!: rtranclp_add_poly_p_polynomial_of_mset_full
+      intro!: RES_refine\<close>)
+qed
+
 lemma empty_sorted_poly_rel[simp,intro]: \<open> ([], 0) \<in> sorted_poly_rel O mset_poly_rel\<close>
   by (auto intro!: relcompI[of \<open>[]\<close>] simp: mset_poly_rel_def)
 
@@ -238,6 +260,8 @@ lemma single_valued_term: \<open>single_valued (sorted_poly_rel O mset_poly_rel)
 
 definition term_rel :: \<open>_\<close> where
   \<open>term_rel = sorted_poly_rel O mset_poly_rel\<close>
+definition raw_term_rel where
+  \<open>raw_term_rel = fully_unsorted_poly_rel O mset_poly_rel\<close>
 
 lemma single_valued_poly:
   \<open>(ysa, cs) \<in> \<langle>sorted_poly_rel O mset_poly_rel \<times>\<^sub>r nat_rel\<rangle>list_rel \<Longrightarrow>
@@ -250,7 +274,7 @@ lemma check_linear_combi_l_check_linear_comb:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close>
     \<open>(i, i') \<in> nat_rel\<close>
     \<open>(\<V>', \<V>) \<in> \<langle>var_rel\<rangle>set_rel\<close> and
-    xs: \<open>(xs, xs') \<in> \<langle>(sorted_poly_rel O mset_poly_rel) \<times>\<^sub>r nat_rel\<rangle>list_rel\<close>
+    xs: \<open>(xs, xs') \<in> \<langle>(fully_unsorted_poly_rel O mset_poly_rel) \<times>\<^sub>r nat_rel\<rangle>list_rel\<close>
   shows
     \<open>check_linear_combi_l spec A \<V>' i xs r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
     (is_cfound st \<longrightarrow> spec = r)} (check_linear_comb B \<V> xs' i' r')\<close>
@@ -265,7 +289,7 @@ proof -
   let ?I = \<open>\<lambda>(p, xs'', err). \<not>is_cfailed err \<longrightarrow> 
     (\<exists>r ys. (p, r) \<in> sorted_poly_rel O mset_poly_rel \<and> f ys \<and>
     (\<Sum>(p,n) \<in># mset (take (length ys) xs'). the (fmlookup B n) * p) - r \<in> ideal polynomial_bool \<and> xs = ys @ xs'' \<and>
-    (xs'', drop (length ys) xs') \<in> \<langle>(sorted_poly_rel O mset_poly_rel) \<times>\<^sub>r nat_rel\<rangle>list_rel)\<close>
+    (xs'', drop (length ys) xs') \<in> \<langle>(fully_unsorted_poly_rel O mset_poly_rel) \<times>\<^sub>r nat_rel\<rangle>list_rel)\<close>
 
   have [simp]: \<open>length xs = length xs'\<close>
     using xs by (auto simp: list_rel_imp_same_length)
@@ -290,12 +314,14 @@ have Hf2:
   have H[simp]: \<open>length ys < length xs \<Longrightarrow>
     i < length xs' - length ys \<longleftrightarrow> (i < length xs' - Suc (length ys) \<or> i = length xs' - length ys - 1)\<close> for ys i
     by auto
+      find_theorems full_normalize_poly
   have lin: \<open>linear_combi_l A \<V>' xs \<le> \<Down> {((p, xs, err), (b, p')). (\<not>b \<longrightarrow> is_cfailed err) \<and>
         (b \<longrightarrow>(p, p') \<in> sorted_poly_rel O mset_poly_rel)}
     (SPEC(\<lambda>(b, r). b \<longrightarrow> ((\<forall>i \<in> set xs'. snd i \<in># dom_m B \<and> vars (fst i) \<subseteq> \<V>) \<and>
        (\<Sum>(p,n) \<in># mset xs'. the (fmlookup B n) * p) - r \<in> ideal polynomial_bool)))\<close>
     using assms(1) xs
     unfolding linear_combi_l_def conc_fun_RES check_linear_combi_l_dom_err_def term_rel_def[symmetric]
+      raw_term_rel_def[symmetric]
     apply (subst (2) RES_SPEC_eq)
     apply (rule WHILET_rule[where R = \<open>measure (\<lambda>(_, xs, p). if is_cfailed p then 0 else Suc (length xs))\<close>
       and I = \<open>?I\<close>])
@@ -303,15 +329,22 @@ have Hf2:
     subgoal using xs by (auto 5 5 intro!: exI[of _ 0] intro: exI[of _xs] exI[of _ \<open>[]\<close>] ideal.span_zero simp: f_def)
     subgoal for s
       unfolding term_rel_def[symmetric]
-      apply (refine_vcg)
+      apply (refine_vcg full_normalize_poly_full_spec[THEN order_trans, unfolded term_rel_def[symmetric]
+        raw_term_rel_def[symmetric]])
       subgoal
         by clarsimp
       subgoal
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
       subgoal
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
-          apply auto
-      apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
+        apply auto
+          find_theorems \<open>?P \<Longrightarrow> ?P\<close>
+        apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
+        apply (rule_tac P = \<open>(x, fst (hd (drop (length xs' - length (fst (snd s))) xs'))) \<in> raw_term_rel\<close> in TrueE)
+        apply (auto simp: list_rel_imp_same_length)[2]
+        apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
+        apply (auto simp: conc_fun_RES)
+        apply refine_vcg
       apply (rule mult_poly_full_spec[THEN order_trans, unfolded term_rel_def[symmetric]])
       apply assumption
       apply auto
@@ -323,14 +356,14 @@ have Hf2:
       apply (auto simp: )
       apply (subst conc_fun_RES)
       apply clarsimp_all
-      apply (intro conjI)
-      apply (rule_tac x=xc in exI)
       apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length single_valued_poly)
-      apply (auto dest!: sorted_poly_rel_vars_llist[unfolded term_rel_def[symmetric]] simp: \<V>)[]
-      apply blast
-      apply (auto simp: Hf2)
-
-      done
+      apply (rule_tac x=xf in exI)
+      apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length[symmetric] single_valued_poly)
+        apply (auto dest!: sorted_poly_rel_vars_llist[unfolded term_rel_def[symmetric]]
+          fully_unsorted_poly_rel_vars_subset_vars_llist[unfolded raw_term_rel_def[symmetric]]
+          simp: \<V>)[]
+        apply blast
+     sorry 
     subgoal for s
       unfolding term_rel_def[symmetric] f_def
       apply simp
@@ -476,7 +509,7 @@ proof -
       subgoal using AB by auto
       subgoal by auto
       subgoal by auto
-      subgoal apply auto sorry
+      subgoal by auto
       apply assumption+
       subgoal
         by (auto simp: code_status_status_rel_def)
