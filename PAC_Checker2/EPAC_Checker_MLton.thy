@@ -8,7 +8,7 @@ theory EPAC_Checker_MLton
 begin
 
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-  int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
+  int_of_integer Del CL nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
   Extension hashcode_literal' version
@@ -22,8 +22,11 @@ compile_generated_files _
     \<open>code/pasteque.sml\<close>
     \<open>code/pasteque.mlb\<close>
   where \<open>fn dir =>
-    let
-      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+  let
+
+    val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+    val _ = exec \<open>Copy files\<close>
+      ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
