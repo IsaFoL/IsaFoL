@@ -293,28 +293,31 @@ proof -
 
   have [simp]: \<open>length xs = length xs'\<close>
     using xs by (auto simp: list_rel_imp_same_length)
-  (* have f: \<open>f ((xa, bb) # ys) \<Longrightarrow>  (length ys) < length xs' \<Longrightarrow> snd (xs'!(length xs' - Suc (length ys))) \<in># dom_m B \<Longrightarrow>
-   *    vars (fst (xs'!(length xs' - Suc (length ys)))) \<subseteq> \<V> \<Longrightarrow> f ys\<close> for xa bb ys
-   *   unfolding f_def apply simp_all
-   *   apply (intro allI impI)
-   *   apply (subgoal_tac \<open>i < length xs' - Suc (length ys) \<or> i = (length xs' - Suc (length ys))\<close>)
-   *   apply auto
-   *   done *)
+
   have [simp]: \<open>drop (length ysa) xs' = cs @ (b) # ysb \<Longrightarrow> length ysa < length xs'\<close> for ysa cs b ysb
     by (rule ccontr) auto
 
-have Hf2:
-  \<open>(\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
-  xa - ac * the (fmlookup B b) \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
-  xc - (r + xa) \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
-  (\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) + the (fmlookup B b) * ac - xc \<in> More_Modules.ideal polynomial_bool
-  \<close>
-  for xa ad bb r xc B ac cs b
-  sorry
+  have Hf2: \<open>(\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) + the (fmlookup B bb) * ad - xf \<in> More_Modules.ideal polynomial_bool\<close>
+    if 1: \<open>(\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) - r \<in> More_Modules.ideal polynomial_bool\<close> and
+      2: \<open>xd - xb * the (fmlookup B bb) \<in> More_Modules.ideal polynomial_bool\<close> and
+      3: \<open>xb - ad \<in> More_Modules.ideal polynomial_bool\<close> and
+      4: \<open>xf - (r + xd)  \<in> More_Modules.ideal polynomial_bool\<close>
+    for a ba bb r ys cs ysa ad ysc x y xa xb xc xd xe xf
+  proof -
+    have 2: \<open>xd - ad * the (fmlookup B bb) \<in> More_Modules.ideal polynomial_bool\<close> 
+      using 2 3
+      by (smt diff_add_eq group_eq_aux ideal.scale_left_diff_distrib ideal.span_add_eq
+          ideal_mult_right_in)
+    note two = ideal.span_neg[OF 2]
+    note 4 = ideal.span_neg[OF 4]
+    note 5 = ideal.span_add[OF 1 two, simplified]
+    note 6 = ideal.span_add[OF 4 5]
+    show ?thesis
+      using 6 by (auto simp: algebra_simps)
+  qed
   have H[simp]: \<open>length ys < length xs \<Longrightarrow>
     i < length xs' - length ys \<longleftrightarrow> (i < length xs' - Suc (length ys) \<or> i = length xs' - length ys - 1)\<close> for ys i
     by auto
-      find_theorems full_normalize_poly
   have lin: \<open>linear_combi_l A \<V>' xs \<le> \<Down> {((p, xs, err), (b, p')). (\<not>b \<longrightarrow> is_cfailed err) \<and>
         (b \<longrightarrow>(p, p') \<in> sorted_poly_rel O mset_poly_rel)}
     (SPEC(\<lambda>(b, r). b \<longrightarrow> ((\<forall>i \<in> set xs'. snd i \<in># dom_m B \<and> vars (fst i) \<subseteq> \<V>) \<and>
@@ -361,9 +364,10 @@ have Hf2:
       apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length[symmetric] single_valued_poly)
         apply (auto dest!: sorted_poly_rel_vars_llist[unfolded term_rel_def[symmetric]]
           fully_unsorted_poly_rel_vars_subset_vars_llist[unfolded raw_term_rel_def[symmetric]]
-          simp: \<V>)[]
-        apply blast
-     sorry 
+          simp: \<V> intro: Hf2)[]
+       apply blast
+      apply (auto intro: Hf2)
+      done 
     subgoal for s
       unfolding term_rel_def[symmetric] f_def
       apply simp
