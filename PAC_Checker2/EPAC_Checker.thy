@@ -76,7 +76,7 @@ definition check_linear_combi_l_mult_err :: \<open>llist_polynomial \<Rightarrow
   \<open>check_linear_combi_l_mult_err pq r = SPEC (\<lambda>_. True)\<close>
 
 definition linear_combi_l where
-\<open>linear_combi_l A \<V> xs = do {
+\<open>linear_combi_l i A \<V> xs = do {
     WHILE\<^sub>T
       (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
       (\<lambda>(p, xs, _). do {
@@ -85,8 +85,9 @@ definition linear_combi_l where
          if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
          then do {
            err \<leftarrow> check_linear_combi_l_dom_err q i;
-           RETURN (p, xs, CFAILED err)
+           RETURN (p, xs, error_msg i err)
          } else do {
+           ASSERT(fmlookup A i \<noteq> None);  
            let r = the (fmlookup A i);
            q \<leftarrow> full_normalize_poly (q);
            pq \<leftarrow> mult_poly_full q r;
@@ -102,10 +103,10 @@ definition check_linear_combi_l where
   (if i \<in># dom_m A \<or> xs = [] \<or> \<not>(vars_llist r \<subseteq> \<V>)
   then do {
     err \<leftarrow> check_linear_combi_l_pre_err i;
-    RETURN (CFAILED err)
+    RETURN (error_msg i err)
   }
   else do {
-    (p, _, err) \<leftarrow> linear_combi_l A \<V> xs;
+    (p, _, err) \<leftarrow> linear_combi_l i A \<V> xs;
     if (is_cfailed err) 
     then do {
       RETURN err
@@ -318,13 +319,13 @@ proof -
   have H[simp]: \<open>length ys < length xs \<Longrightarrow>
     i < length xs' - length ys \<longleftrightarrow> (i < length xs' - Suc (length ys) \<or> i = length xs' - length ys - 1)\<close> for ys i
     by auto
-  have lin: \<open>linear_combi_l A \<V>' xs \<le> \<Down> {((p, xs, err), (b, p')). (\<not>b \<longrightarrow> is_cfailed err) \<and>
+  have lin: \<open>linear_combi_l  i' A \<V>' xs \<le> \<Down> {((p, xs, err), (b, p')). (\<not>b \<longrightarrow> is_cfailed err) \<and>
         (b \<longrightarrow>(p, p') \<in> sorted_poly_rel O mset_poly_rel)}
     (SPEC(\<lambda>(b, r). b \<longrightarrow> ((\<forall>i \<in> set xs'. snd i \<in># dom_m B \<and> vars (fst i) \<subseteq> \<V>) \<and>
        (\<Sum>(p,n) \<in># mset xs'. the (fmlookup B n) * p) - r \<in> ideal polynomial_bool)))\<close>
     using assms(1) xs
     unfolding linear_combi_l_def conc_fun_RES check_linear_combi_l_dom_err_def term_rel_def[symmetric]
-      raw_term_rel_def[symmetric]
+      raw_term_rel_def[symmetric] error_msg_def in_dom_m_lookup_iff[symmetric]
     apply (subst (2) RES_SPEC_eq)
     apply (rule WHILET_rule[where R = \<open>measure (\<lambda>(_, xs, p). if is_cfailed p then 0 else Suc (length xs))\<close>
       and I = \<open>?I\<close>])
@@ -341,7 +342,6 @@ proof -
       subgoal
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
         apply auto
-          find_theorems \<open>?P \<Longrightarrow> ?P\<close>
         apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
         apply (rule_tac P = \<open>(x, fst (hd (drop (length xs' - length (fst (snd s))) xs'))) \<in> raw_term_rel\<close> in TrueE)
         apply (auto simp: list_rel_imp_same_length)[2]
@@ -388,6 +388,7 @@ proof -
       fmap_rel_nat_rel_dom_m[OF assms(1)] assms(3) assms(2)
     unfolding check_linear_combi_l_def check_linear_comb_def check_linear_combi_l_mult_err_def
       weak_equality_l_def conc_fun_RES term_rel_def[symmetric] check_linear_combi_l_pre_err_def
+      error_msg_def
     apply simp
     apply (refine_vcg lin[THEN order_trans, unfolded term_rel_def[symmetric]])
     apply (clarsimp simp add: conc_fun_RES bind_RES_RETURN_eq split: if_splits)
@@ -629,84 +630,5 @@ lemma full_checker_l_full_checker':
 
 end
 
-definition remap_polys_l2 :: \<open>llist_polynomial \<Rightarrow> string set \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_l2 spec = (\<lambda>\<V> A. do{
-   n \<leftarrow> upper_bound_on_dom A;
-   b \<leftarrow> RETURN (n \<ge> 2^64);
-   if b
-   then do {
-     c \<leftarrow> remap_polys_l_dom_err;
-     RETURN (error_msg (0 ::nat) c, \<V>, fmempty)
-   }
-   else do {
-       (b, \<V>, A) \<leftarrow> nfoldli ([0..<n]) (\<lambda>_. True)
-       (\<lambda>i (b, \<V>, A').
-          if i \<in># dom_m A
-          then do {
-            ASSERT(fmlookup A i \<noteq> None);
-            p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-            eq \<leftarrow> weak_equality_l p spec;
-            \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist (the (fmlookup A i)));
-            RETURN(b \<or> eq, \<V>, fmupd i p A')
-          } else RETURN (b, \<V>, A')
-        )
-       (False, \<V>, fmempty);
-     RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
-    }
- })\<close>
-
-lemma remap_polys_l2_remap_polys_l:
-  \<open>remap_polys_l2 spec \<V> A \<le> \<Down> Id (remap_polys_l spec \<V> A)\<close>
-proof -
-  have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
-    \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
-    unfolding upper_bound_on_dom_def
-    apply (rule RES_refine)
-    apply (auto simp: upper_bound_on_dom_def)
-    done
-  have 1: \<open>inj_on id dom\<close> for dom
-    by auto
-  have 2: \<open>x \<in># dom_m A \<Longrightarrow>
-       x' \<in># dom_m A' \<Longrightarrow>
-       (x, x') \<in> nat_rel \<Longrightarrow>
-       (A, A') \<in> Id \<Longrightarrow>
-       full_normalize_poly (the (fmlookup A x))
-       \<le> \<Down> Id
-          (full_normalize_poly (the (fmlookup A' x')))\<close>
-       for A A' x x'
-       by (auto)
-  have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
-       ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
-  by (auto simp: list_set_rel_def br_def)
-  have 4: \<open>(p,q) \<in> Id \<Longrightarrow>
-    weak_equality_l p spec \<le> \<Down>Id (weak_equality_l q spec)\<close> for p q spec
-    by auto
-
-  have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
-    by auto
-  show ?thesis
-    unfolding remap_polys_l2_def remap_polys_l_def
-    apply (refine_rcg LFO_refine[where R= \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>set_rel \<times>\<^sub>r Id\<close>])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule 3)
-    subgoal by auto
-    subgoal by (simp add: in_dom_m_lookup_iff)
-    subgoal by (simp add: in_dom_m_lookup_iff)
-    apply (rule 2)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule 4; assumption)
-    apply (rule 6)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
 
 end
