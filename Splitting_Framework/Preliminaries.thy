@@ -356,7 +356,9 @@ interpretation strict_calculus:
   statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict
 proof -
   interpret strict_calc: calculus bot Inf entails Red_I_strict Red_F_strict
-    using strict_calc_if_nobot nobot_in_Red by blast 
+  using strict_calc_if_nobot nobot_in_Red by blast 
+    (* next property is probably not needed for the proof, but it is one of the claims from Rmk 3
+    that must be verified *)
   have \<open>saturated N \<Longrightarrow> strict_calc.saturated N\<close>
     unfolding saturated_def strict_calc.saturated_def Red_I_strict_def by blast
   have \<open>strict_calc.saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N\<close> using statically_complete[of N] sorry
