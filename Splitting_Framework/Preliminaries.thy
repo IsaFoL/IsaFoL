@@ -251,7 +251,8 @@ definition Red_F_strict :: "'f set \<Rightarrow> 'f set" where
   "Red_F_strict N = {C. C \<in> Red_F N \<or> (bot \<in> N \<and> C \<noteq> bot)}"
   
 (* This proof helped detect a lack of precision in rmk 3 (missing restriction in the hypotheses *)
-lemma "\<forall>N. bot \<notin> Red_F N \<Longrightarrow> calculus bot Inf entails Red_I_strict Red_F_strict"
+lemma strict_calc_if_nobot:
+  "\<forall>N. bot \<notin> Red_F N \<Longrightarrow> calculus bot Inf entails Red_I_strict Red_F_strict"
 proof
   fix N
   show \<open>Red_I_strict N \<subseteq> Inf\<close> unfolding Red_I_strict_def using Red_I_to_Inf by blast
@@ -323,12 +324,10 @@ next
   qed
 next
   fix \<iota> N
-    assume "\<iota> \<in> Inf"
-    then show "concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_strict N"
-      unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
+  assume "\<iota> \<in> Inf"
+  then show "concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_strict N"
+    unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
 qed
-
-
 
 end
   
@@ -339,11 +338,8 @@ begin
 lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> Inf_from N"
   unfolding Inf_from_def by blast
 
-lemma \<open>bot \<notin> Red_F N\<close>
+lemma nobot_in_Red: \<open>bot \<notin> Red_F N\<close>
 proof -
-  (* first "have" is not needed, TODO: remove here and in paper proof *)
-  have \<open>saturated UNIV\<close>
-    unfolding saturated_def Inf_from_def by (simp add: Red_I_of_Inf_to_N subsetI)
   have \<open>UNIV \<Turnstile> {bot}\<close>
     using entails_reflexive[of bot] entails_subsets[of "{bot}" UNIV "{bot}" "{bot}"] by fast
   then have non_red_entails_bot: \<open>UNIV - (Red_F UNIV) \<Turnstile> {bot}\<close> using Red_F_Bot[of UNIV] by simp
@@ -355,6 +351,19 @@ proof -
     using statically_complete[OF sat_non_red non_red_entails_bot] by fast
   then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
+
+interpretation strict_calculus:
+  statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict
+proof -
+  interpret strict_calc: calculus bot Inf entails Red_I_strict Red_F_strict
+    using strict_calc_if_nobot nobot_in_Red by blast 
+  have \<open>saturated N \<Longrightarrow> strict_calc.saturated N\<close>
+    unfolding saturated_def strict_calc.saturated_def Red_I_strict_def by blast
+  have \<open>strict_calc.saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N\<close> using statically_complete[of N] sorry
+  show \<open>statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict\<close>
+
+
+    oops
 
 end
 
