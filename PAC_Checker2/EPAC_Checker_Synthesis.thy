@@ -15,13 +15,18 @@ hide_const (open) PAC_Checker.PAC_checker_l
 
 section \<open>Code Synthesis of the Complete Checker\<close>
 
-definition check_linear_combi_l_pre_err_impl :: \<open>uint64 \<Rightarrow> string\<close> where
-  \<open>check_linear_combi_l_pre_err_impl i =
-  ''No new variable could be found in polynomial '' @ show (nat_of_uint64 i)\<close>
+definition check_linear_combi_l_pre_err_impl :: \<open>uint64 \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> string\<close> where
+  \<open>check_linear_combi_l_pre_err_impl i adom emptyl ivars =
+  ''Precondition for '%' failed '' @ show (nat_of_uint64 i) @
+  ''(already in domain: '' @ show adom @
+  ''; empty CL'' @ show emptyl @
+  ''; new vars: '' @ show ivars @ '')''\<close>
+
+abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
 
 lemma [sepref_fr_rules]:
-  \<open>(((return o (check_linear_combi_l_pre_err_impl))),
-  (check_linear_combi_l_pre_err)) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(uncurry3 (return oooo check_linear_combi_l_pre_err_impl),
+   uncurry3 check_linear_combi_l_pre_err) \<in> uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   unfolding list_assn_pure_conv check_linear_combi_l_pre_err_impl_def
     check_linear_combi_l_pre_err_def 
   apply sepref_to_hoare
@@ -71,7 +76,7 @@ sepref_definition linear_combi_l_impl
   by sepref
 
 declare linear_combi_l_impl.refine[sepref_fr_rules]
-
+  sepref_register check_linear_combi_l_pre_err
 sepref_definition check_linear_combi_l_impl
   is \<open>uncurry5 check_linear_combi_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a

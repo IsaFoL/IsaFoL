@@ -66,8 +66,8 @@ paragraph \<open>Addition checking\<close>
 
 paragraph \<open>Linear Combination\<close>
 
-definition check_linear_combi_l_pre_err :: \<open>nat \<Rightarrow> string nres\<close> where
-  \<open>check_linear_combi_l_pre_err r = SPEC (\<lambda>_. True)\<close>
+definition check_linear_combi_l_pre_err :: \<open>nat \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> string nres\<close> where
+  \<open>check_linear_combi_l_pre_err r _ _ _ = SPEC (\<lambda>_. True)\<close>
 
 definition check_linear_combi_l_dom_err :: \<open>llist_polynomial \<Rightarrow> nat \<Rightarrow> string nres\<close> where
   \<open>check_linear_combi_l_dom_err p r = SPEC (\<lambda>_. True)\<close>
@@ -102,7 +102,7 @@ definition check_linear_combi_l where
   \<open>check_linear_combi_l spec A \<V> i xs r =
   (if i \<in># dom_m A \<or> xs = [] \<or> \<not>(vars_llist r \<subseteq> \<V>)
   then do {
-    err \<leftarrow> check_linear_combi_l_pre_err i;
+    err \<leftarrow> check_linear_combi_l_pre_err i (i \<in># dom_m A) (xs = []) (\<not>(vars_llist r \<subseteq> \<V>));
     RETURN (error_msg i err)
   }
   else do {
