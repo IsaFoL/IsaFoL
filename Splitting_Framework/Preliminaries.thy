@@ -247,22 +247,26 @@ definition saturated :: "'f set \<Rightarrow> bool" where
 definition Red_I_strict :: "'f set \<Rightarrow> 'f inference set" where
   "Red_I_strict N = {\<iota>. \<iota> \<in> Red_I N \<or> (\<iota> \<in> Inf \<and> bot \<in> N)}"
   
-  (* /!\ patched definition, TODO: confirm this is what is wanted *)
 definition Red_F_strict :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_strict N = {C. (bot \<notin> N \<and> C \<in> Red_F N) \<or> (bot \<in> N \<and> C \<noteq> bot)}"
+  "Red_F_strict N = {C. C \<in> Red_F N \<or> (bot \<in> N \<and> C \<noteq> bot)}"
   
-interpretation strict_redundancy_criterion: calculus bot Inf entails Red_I_strict Red_F_strict
+(* This proof helped detect a lack of precision in rmk 3 (missing restriction in the hypotheses *)
+lemma "\<forall>N. bot \<notin> Red_F N \<Longrightarrow> calculus bot Inf entails Red_I_strict Red_F_strict"
 proof
   fix N
   show \<open>Red_I_strict N \<subseteq> Inf\<close> unfolding Red_I_strict_def using Red_I_to_Inf by blast
 next
   fix N
-  assume entails_bot: \<open>N \<Turnstile> {bot}\<close>
+  assume
+    bot_notin: "\<forall>N. bot \<notin> Red_F N" and
+    entails_bot: \<open>N \<Turnstile> {bot}\<close>
   show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close>
   proof (cases "bot \<in> N")
     assume bot_in: "bot \<in> N"
+    have \<open>bot \<notin> Red_F N\<close> using bot_notin by blast
+    then have \<open>bot \<notin> Red_F_strict N\<close> unfolding Red_F_strict_def by blast 
     then have \<open>Red_F_strict N = UNIV - {bot}\<close>
-      unfolding Red_F_strict_def by blast
+      unfolding Red_F_strict_def using bot_in by blast
     then have \<open>N - Red_F_strict N = {bot}\<close> using bot_in by blast
     then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using entails_reflexive[of bot] by simp
   next
@@ -271,9 +275,58 @@ next
     then show \<open>N - Red_F_strict N \<Turnstile> {bot}\<close> using Red_F_Bot[OF entails_bot] by simp
   qed
 next
-
-    oops
-
+  fix N N' :: "'f set"
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>Red_F_strict N \<subseteq> Red_F_strict N'\<close>
+    unfolding Red_F_strict_def using Red_F_of_subset by blast
+next
+  fix N N' :: "'f set"
+  assume \<open>N \<subseteq> N'\<close>
+  then show \<open>Red_I_strict N \<subseteq> Red_I_strict N'\<close>
+    unfolding Red_I_strict_def using Red_I_of_subset by blast
+next
+  fix N' N
+  assume
+    bot_notin: "\<forall>N. bot \<notin> Red_F N" and
+    subs_red: "N' \<subseteq> Red_F_strict N"
+  have \<open>bot \<notin> Red_F_strict N\<close>
+    using bot_notin unfolding Red_F_strict_def by blast
+  then have nbot_in: \<open>bot \<notin> N'\<close> using subs_red by blast 
+  show \<open>Red_F_strict N \<subseteq> Red_F_strict (N - N')\<close>
+  proof (cases "bot \<in> N")
+    case True
+    then have bot_in: "bot \<in> N - N'" using nbot_in by blast
+    then show ?thesis unfolding Red_F_strict_def using bot_notin by force
+  next
+    case False
+    then have eq_red: "Red_F_strict N = Red_F N" unfolding Red_F_strict_def by simp
+    then have "N' \<subseteq> Red_F N" using subs_red by simp
+    then have "Red_F N \<subseteq> Red_F (N - N')" using Red_F_of_Red_F_subset by simp
+    then show ?thesis using eq_red Red_F_strict_def by blast 
+  qed
+next
+  fix N' N
+  assume
+    "\<forall>N. bot \<notin> Red_F N" and
+    subs_red: "N' \<subseteq> Red_F_strict N"
+  then have bot_notin: "bot \<notin> N'" unfolding Red_F_strict_def by blast 
+  then show "Red_I_strict N \<subseteq> Red_I_strict (N - N')"
+  proof (cases "bot \<in> N")
+    case True
+    then show ?thesis
+      unfolding Red_I_strict_def using bot_notin Red_I_to_Inf by fastforce 
+  next
+    case False
+    then show ?thesis
+      using bot_notin Red_I_to_Inf subs_red Red_I_of_Red_F_subset 
+      unfolding Red_I_strict_def Red_F_strict_def by simp
+  qed
+next
+  fix \<iota> N
+    assume "\<iota> \<in> Inf"
+    then show "concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I_strict N"
+      unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
+qed
 
 
 
