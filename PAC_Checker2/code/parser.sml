@@ -84,7 +84,16 @@ exception Parser_Error of string
        if TextIO.lookahead(istream) = SOME #" "
       then (TextIO.input1(istream); skip_spaces istream)
       else ())
-
+  fun skip_spaces_and_line_breaks istream =
+      (let
+          val c = TextIO.lookahead(istream)
+      in
+          if c = NONE
+          then raise Parser_Error ("unexpected end of file")
+          else if is_space (valOf c)
+          then (TextIO.input1(istream); skip_spaces_and_line_breaks istream)
+          else ()
+      end)
 
   (* string_num is a very imperative to do the parser. We use is for 'string' until we need real
   'strings'. Once we need them (to convert them to a number), we convert them via slices.
@@ -324,9 +333,9 @@ exception Parser_Error of string
                         in parse_close_parenthesis istream;
                            skip_spaces istream; q end)
                    else [([], 1)])
-          val _ = skip_spaces istream;
+          val _ = skip_spaces_and_line_breaks istream;
           val c2 = TextIO.lookahead istream;
-          val _ = skip_spaces istream;
+          val _ = skip_spaces_and_line_breaks istream;
       in
           if c2 = SOME #","
           then [(q,p)]
