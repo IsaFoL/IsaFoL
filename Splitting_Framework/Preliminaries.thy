@@ -361,11 +361,23 @@ proof -
     that must be verified *)
   have \<open>saturated N \<Longrightarrow> strict_calc.saturated N\<close>
     unfolding saturated_def strict_calc.saturated_def Red_I_strict_def by blast
-  have \<open>strict_calc.saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N\<close> using statically_complete[of N] sorry
-  show \<open>statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict\<close>
-
-
-    oops
+  have \<open>strict_calc.saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N\<close> for N
+  proof -
+    assume
+      strict_sat: "strict_calc.saturated N" and
+      entails_bot: "N \<Turnstile> {bot}"
+    have \<open>bot \<notin> N \<Longrightarrow> Red_I_strict N = Red_I N\<close> unfolding Red_I_strict_def by simp
+    then have \<open>bot \<notin> N \<Longrightarrow> saturated N\<close>
+      unfolding saturated_def using strict_sat by (simp add: strict_calc.saturated_def) 
+    then have \<open>bot \<notin> N \<Longrightarrow> bot \<in> N\<close>
+      using statically_complete[OF _ entails_bot] by simp
+    then show \<open>bot \<in> N\<close> by auto 
+  qed
+    find_theorems name: strict_calc
+  then show \<open>statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict\<close>
+    unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
+    using strict_calc.calculus_axioms by blast
+qed
 
 end
 
