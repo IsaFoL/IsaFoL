@@ -222,6 +222,19 @@ locale sound_inference_system = inference_system Inf + consequence_relation bot 
   + assumes
     sound: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concle_of \<iota>}"
     
+    
+definition is_derivation :: "('f set \<Rightarrow> 'f set \<Rightarrow> bool) \<Rightarrow> (nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
+  "is_derivation R Ns \<equiv> \<forall>i. R (Ns i) (Ns (Suc i))"
+  
+definition terminates :: "(nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
+  "terminates Ns \<equiv> \<exists>i. \<forall>j>i. Ns j = Ns i"
+
+definition lim_inf :: "(nat \<Rightarrow> 'f set) \<Rightarrow> 'f set" where
+  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns j)"
+
+definition lim_sup :: "(nat \<Rightarrow> 'f set) \<Rightarrow> 'f set" where
+  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns j)"
+  
 
 locale calculus = inference_system Inf + consequence_relation bot entails
   for
@@ -329,6 +342,22 @@ next
     unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
 qed
 
+
+definition weakly_fair :: "(nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
+  "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns i)))"
+
+definition derive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
+  "M \<rhd> N \<equiv> (M - N \<subseteq> Red_F N)"
+  
+  (* for reference, the definition used in the saturation framework *)
+(* inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
+  derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd> N" *)
+
+lemma derive_refl: "M \<rhd> M" unfolding derive_def by simp
+lemma derive_trans: "M \<rhd> N \<Longrightarrow> N \<rhd> N' \<Longrightarrow> M \<rhd> N'" 
+  unfolding derive_def using Red_F_of_Red_F_subset[of "M - N" N] 
+sorry
+
 end
   
 locale statically_complete_calculus = calculus +
@@ -373,7 +402,6 @@ proof -
       using statically_complete[OF _ entails_bot] by simp
     then show \<open>bot \<in> N\<close> by auto 
   qed
-    find_theorems name: strict_calc
   then show \<open>statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict\<close>
     unfolding statically_complete_calculus_def statically_complete_calculus_axioms_def
     using strict_calc.calculus_axioms by blast
@@ -383,4 +411,3 @@ end
 
 
 end
-    
