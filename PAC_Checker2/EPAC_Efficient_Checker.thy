@@ -4,8 +4,7 @@ begin
 
 context poly_embed
 begin
-  term term_order_rel
-thm add_poly_l_def
+
 definition add_poly_l' where
   \<open>add_poly_l' _ = add_poly_l\<close>
 
@@ -21,12 +20,14 @@ where
        else if xs = [] then RETURN (LESS, xs, ys)
        else if ys = [] then RETURN (GREATER, xs, ys)
        else do {
-         ASSERT(xs \<noteq> [] \<and> ys \<noteq> []);
-         x \<leftarrow> get_var_name \<V> (hd xs);
-         y \<leftarrow> get_var_name \<V> (hd ys);
-         if x = y then RETURN (b, tl xs, tl ys)
-         else if (x, y) \<in> var_order_rel then RETURN (LESS, xs, ys)
-         else RETURN (GREATER, xs, ys)
+         ASSERT(xs \<noteq> [] \<and> ys \<noteq> []); 
+         eq \<leftarrow> perfectly_shared_strings_equal \<V> (hd xs) (hd ys);
+         if eq then RETURN (b, tl xs, tl ys)
+         else do {
+           x \<leftarrow> get_var_name \<V> (hd xs);
+           y \<leftarrow> get_var_name \<V> (hd ys);
+           if (x, y) \<in> var_order_rel then RETURN (LESS, xs, ys)
+           else RETURN (GREATER, xs, ys)}
        }
     }) (UNKNOWN, xs, ys);
     RETURN b
@@ -38,7 +39,7 @@ lemma var_roder_rel_total:
   using less_than_char_linear lexord_linear by blast
 
 lemma perfect_shared_term_order_rel_spec:
-  assumes \<open>set xs \<subseteq> snd \<V>\<close>  \<open>set ys \<subseteq> snd \<V>\<close>
+  assumes \<open>set xs \<subseteq> set_mset \<V>\<close>  \<open>set ys \<subseteq> set_mset \<V>\<close>
   shows
     \<open>perfect_shared_term_order_rel \<V> xs ys \<le> \<Down> Id (SPEC(\<lambda>b. ((b=LESS \<longrightarrow> (xs, ys) \<in> term_order_rel) \<and>
     (b=GREATER \<longrightarrow> (ys, xs) \<in> term_order_rel) \<and>
@@ -48,7 +49,7 @@ proof -
   [simp]:  \<open>I=  (\<lambda>(b, xs0, ys0). ?f b \<and> (\<exists>xs'. xs = xs' @ xs0 \<and> ys = xs' @ ys0))\<close>
   show ?thesis
     using assms
-    unfolding perfect_shared_term_order_rel_def get_var_name_def
+    unfolding perfect_shared_term_order_rel_def get_var_name_def perfectly_shared_strings_equal_def
     apply (refine_vcg WHILET_rule[where I= \<open>I\<close> and
       R = \<open>measure (\<lambda>(b, xs, ys). length xs + (if b = UNKNOWN then 1 else 0))\<close>])
     subgoal by auto
@@ -87,31 +88,34 @@ lemma term_order_rel_irreflexive:
   using lexord_trans[of x1f x1d var_order_rel x1f] lexord_irreflexive[of var_order_rel x1f]
   by simp
 
-lemma add_poly_alt_def[unfolded conc_Id id_apply]:
-  fixes xs ys :: llist_polynomial
-  assumes \<open>\<Union>(set ` (fst`set xs)) \<subseteq> snd \<D>\<close>  \<open>\<Union>(set ` fst ` set ys) \<subseteq> snd \<D>\<close>
-  shows \<open>\<Down> Id (add_poly_l' \<D> (xs, ys)) \<ge> REC\<^sub>T
+definition add_poly_l_prep :: \<open>(nat,string)vars \<Rightarrow> llist_polynomial \<times> llist_polynomial \<Rightarrow>  llist_polynomial nres\<close> where
+  \<open>add_poly_l_prep \<D> = REC\<^sub>T
   (\<lambda>add_poly_l (p, q).
   case (p,q) of
     (p, []) \<Rightarrow> RETURN p
     | ([], q) \<Rightarrow> RETURN q
     | ((xs, n) # p, (ys, m) # q) \<Rightarrow> do {
-      comp \<leftarrow> perfect_shared_term_order_rel \<D> xs ys;
-      if comp = EQUAL then if n + m = 0 then add_poly_l (p, q)
+    comp \<leftarrow> perfect_shared_term_order_rel \<D> xs ys;
+    if comp = EQUAL then if n + m = 0 then add_poly_l (p, q)
       else do {
-        pq \<leftarrow> add_poly_l (p, q);
-        RETURN ((xs, n + m) # pq)
+      pq \<leftarrow> add_poly_l (p, q);
+      RETURN ((xs, n + m) # pq)
       }
       else if comp = LESS
-     then do {
-        pq \<leftarrow> add_poly_l (p, (ys, m) # q);
-        RETURN ((xs, n) # pq)
-      }
-      else do {
-        pq \<leftarrow> add_poly_l ((xs, n) # p, q);
-        RETURN ((ys, m) # pq)
-      }
-       }) (xs, ys)\<close>
+  then do {
+    pq \<leftarrow> add_poly_l (p, (ys, m) # q);
+    RETURN ((xs, n) # pq)
+    }
+    else do {
+    pq \<leftarrow> add_poly_l ((xs, n) # p, q);
+    RETURN ((ys, m) # pq)
+    }
+    })\<close>
+
+lemma add_poly_alt_def[unfolded conc_Id id_apply]:
+  fixes xs ys :: llist_polynomial
+  assumes \<open>\<Union>(set ` (fst`set xs)) \<subseteq> set_mset \<D>\<close>  \<open>\<Union>(set ` fst ` set ys) \<subseteq> set_mset \<D>\<close>
+  shows \<open>add_poly_l_prep \<D> (xs, ys) \<le> \<Down> Id (add_poly_l' \<D> (xs, ys))\<close>
 proof -
   let ?Rx = \<open>{(xs', ys'). (xs', ys') \<in> \<langle>Id\<rangle> list_rel \<and> (\<exists>xs\<^sub>0. xs = xs\<^sub>0 @ xs')}\<close>
   let ?Ry = \<open>{(xs', ys'). (xs', ys') \<in> \<langle>Id\<rangle> list_rel \<and> (\<exists>xs\<^sub>0. ys = xs\<^sub>0 @ xs')}\<close>
@@ -124,7 +128,7 @@ proof -
      by blast
    show ?thesis
      using assms
-    unfolding add_poly_l'_def add_poly_l_def
+     unfolding add_poly_l'_def add_poly_l_def add_poly_l_prep_def
     apply (refine_vcg perfect_shared_term_order_rel_spec[THEN order_trans])
     apply (rule H)
     subgoal by auto
@@ -149,4 +153,5 @@ proof -
 qed
 
 end
+
 end
