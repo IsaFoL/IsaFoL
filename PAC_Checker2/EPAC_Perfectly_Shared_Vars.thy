@@ -248,6 +248,7 @@ lemma import_monom_no_new_spec:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal by auto
   done
 
 lemma import_monom_no_newS_import_monom_no_new:
