@@ -2,7 +2,8 @@
 * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
 
 theory Preliminaries
-  imports Saturation_Framework.Calculus
+  imports Saturation_Framework.Calculus 
+    "HOL-Library.Library"
   (* Finite_Set *)
 begin
   
@@ -222,19 +223,32 @@ locale sound_inference_system = inference_system Inf + consequence_relation bot 
   + assumes
     sound: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile>s {concle_of \<iota>}"
     
-    
-definition is_derivation :: "('f set \<Rightarrow> 'f set \<Rightarrow> bool) \<Rightarrow> (nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
-  "is_derivation R Ns \<equiv> \<forall>i. R (Ns i) (Ns (Suc i))"
-  
-definition terminates :: "(nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
-  "terminates Ns \<equiv> \<exists>i. \<forall>j>i. Ns j = Ns i"
+   (* There are several options to represent sequences that I considered:
+      - using everywhere a type \<open>nat \<Rightarrow> 'f set\<close> (pros: super simple, cons: maintenance heavy, i.e. any
+    change must be propagated everywhere)
+      - creating an abstract type as in Multiset.thy for the above type (pros: clean, cons: requires
+    lifted definitions, i.e. more work)
+      - restricting the lazy list codatatype used in RP and the saturation framework to only
+    infinite lists (pros: closest to previous work, cons: propagate the restriction everywhere)
+      - using one of the existing theory about infinite lists (which one?): HOL-library.Stream,
+    lazy lists, infinite lists...
 
-definition lim_inf :: "(nat \<Rightarrow> 'f set) \<Rightarrow> 'f set" where
-  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns j)"
+    Temporary conclusion: I'll try the last option with the Stream library.
+    *)
 
-definition lim_sup :: "(nat \<Rightarrow> 'f set) \<Rightarrow> 'f set" where
-  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns j)"
+no_notation IArray.sub (infixl "!!" 100)
   
+definition is_derivation :: "('f set \<Rightarrow> 'f set \<Rightarrow> bool) \<Rightarrow> ('f set stream) \<Rightarrow> bool" where
+  "is_derivation R Ns \<equiv> \<forall>i. R (Ns !! i) (Ns !! (Suc i))"
+  
+definition terminates :: "'f set stream \<Rightarrow> bool" where
+  "terminates Ns \<equiv> \<exists>i. \<forall>j>i. Ns !! j = Ns !! i"
+
+definition lim_inf :: "'f set stream \<Rightarrow> 'f set" where
+  "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns !! j)"
+
+definition lim_sup :: "'f set stream \<Rightarrow> 'f set" where
+  "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns !! j)"
 
 locale calculus = inference_system Inf + consequence_relation bot entails
   for
@@ -343,12 +357,12 @@ next
 qed
 
 
-definition weakly_fair :: "(nat \<Rightarrow> 'f set) \<Rightarrow> bool" where
-  "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns i)))"
+definition weakly_fair :: "'f set stream \<Rightarrow> bool" where
+  "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))"
 
 definition derive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
   "M \<rhd> N \<equiv> (M - N \<subseteq> Red_F N)"
-  
+
   (* for reference, the definition used in the saturation framework *)
 (* inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
   derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd> N" *)
