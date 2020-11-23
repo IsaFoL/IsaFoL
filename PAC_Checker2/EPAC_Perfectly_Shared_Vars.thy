@@ -2,7 +2,6 @@ theory EPAC_Perfectly_Shared_Vars
   imports EPAC_Checker_Specification
 begin
 
-
 text \<open>We now introduce sharing of variables to make a more efficient representation possible.\<close>
 
 section \<open>Perfectly sharing of elements\<close>
@@ -44,7 +43,7 @@ proof -
     V'\<V>: \<open>set_mset (dom_m V') = set_mset \<V>\<close> and
     map: \<open>\<And>i. i \<in>#dom_m V \<Longrightarrow> fmlookup V' (the (fmlookup V i)) = Some i\<close> and
     map_str: \<open>\<And>str. str \<in>#dom_m V' \<Longrightarrow> fmlookup V (the (fmlookup V' str)) = Some str\<close> and
-    perfect: \<open>\<And>i j. i\<in>#dom_m V \<Longrightarrow> j\<in>#dom_m V \<Longrightarrow> fmlookup V i = fmlookup V j \<longleftrightarrow> i = j\<close>
+    perfect: \<open>\<And>i j.  i\<in>#dom_m V \<Longrightarrow> j\<in>#dom_m V \<Longrightarrow> fmlookup V i = fmlookup V j \<longleftrightarrow> i = j\<close>
     using assms unfolding perfectly_shared_vars_def
     by auto
   have v_notin[simp]: \<open>v \<notin># dom_m V'\<close>
@@ -131,13 +130,14 @@ definition is_new_variable :: \<open>'string \<Rightarrow> ('nat, 'string) vars 
     RETURN (v \<notin># \<V>')
   )\<close>
 
-
 lemma import_variableS_import_variable:
   fixes \<V> :: \<open>('nat, 'string) vars\<close>
   assumes \<open>(\<A>, \<V>) \<in> perfectly_shared_vars_rel\<close> and \<open>(v, v') \<in> Id\<close>
   shows \<open>import_variableS v \<A> \<le> \<Down>({((mem, \<A>', i), (mem', \<V>', j)). mem = mem' \<and>
-    (\<A>', \<V>') \<in> perfectly_shared_vars_rel \<and> (\<not>alloc_failed mem' \<longrightarrow> (i, j) \<in> perfectly_shared_var_rel \<A>') \<and>
-    (\<forall>xs. xs \<in> perfectly_shared_var_rel \<A> \<longrightarrow> xs \<in> perfectly_shared_var_rel \<A>')}) (import_variable v' \<V>)\<close>
+      (\<A>', \<V>') \<in> perfectly_shared_vars_rel \<and>
+      (\<not>alloc_failed mem' \<longrightarrow> (i, j) \<in> perfectly_shared_var_rel \<A>') \<and>
+      (\<forall>xs. xs \<in> perfectly_shared_var_rel \<A> \<longrightarrow> xs \<in> perfectly_shared_var_rel \<A>')})
+    (import_variable v' \<V>)\<close>
   using assms
   unfolding import_variableS_def import_variable_def
   by (refine_vcg lhs_step_If)
@@ -226,8 +226,8 @@ where
 
 lemma import_monom_no_new_spec:
   shows \<open>import_monom_no_new \<A> xs \<le> \<Down> Id
-    (SPEC(\<lambda>(new, ys). (new \<longrightarrow> \<not>set xs \<subseteq> set_mset \<A>) \<and>
-      \<not>new \<longrightarrow> ys = xs))\<close>
+    (SPEC(\<lambda>(new, ys). (new \<longleftrightarrow> \<not>set xs \<subseteq> set_mset \<A>) \<and>
+      (\<not>new \<longrightarrow> ys = xs)))\<close>
   unfolding import_monom_no_new_def is_new_variable_def get_var_name_def
   apply (refine_vcg
     WHILET_rule[where I = \<open>(\<lambda>(new, ys, zs). (\<not>new \<longrightarrow> xs = zs @ ys) \<and> (\<not>new \<longrightarrow> set zs \<subseteq> set_mset \<A>) \<and>
@@ -239,7 +239,7 @@ lemma import_monom_no_new_spec:
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal by auto
+  subgoal by (auto simp: neq_Nil_conv)
   subgoal by (auto simp: neq_Nil_conv)
   subgoal by auto
   subgoal by auto
@@ -577,4 +577,30 @@ proof -
       distinct_mset_dom distinct_mset_remove1_All)
     by (metis option.inject)
 qed
+
+definition perfectly_shared_strings_equal
+  :: \<open>('nat, 'string) vars \<Rightarrow> 'string \<Rightarrow> 'string \<Rightarrow> bool nres\<close>
+where
+  \<open>perfectly_shared_strings_equal \<V> x y = do {
+    ASSERT(x \<in># \<V> \<and> y \<in># \<V>);
+    RETURN (x = y)
+  }\<close>
+
+definition perfectly_shared_strings_equal_l
+  :: \<open>('nat,'string)shared_vars \<Rightarrow> 'nat \<Rightarrow> 'nat \<Rightarrow> bool nres\<close>
+where
+  \<open>perfectly_shared_strings_equal_l \<V> x y = do {
+    RETURN (x = y)
+  }\<close>
+
+lemma perfectly_shared_strings_equal_l_perfectly_shared_strings_equal:
+  assumes \<open>(\<A>, \<V>) \<in> perfectly_shared_vars_rel\<close> and
+    \<open>(x, x') \<in> perfectly_shared_var_rel \<A>\<close> and
+    \<open>(y, y') \<in> perfectly_shared_var_rel \<A>\<close>
+  shows \<open>perfectly_shared_strings_equal_l \<A> x y \<le> \<Down>bool_rel (perfectly_shared_strings_equal \<V> x' y')\<close>
+  using assms unfolding perfectly_shared_strings_equal_l_def perfectly_shared_strings_equal_def
+    perfectly_shared_vars_rel_def perfectly_shared_var_rel_def br_def
+  by refine_rcg
+    (auto simp: perfectly_shared_vars_def simp: add_mset_eq_add_mset dest!: multi_member_split)
+
 end
