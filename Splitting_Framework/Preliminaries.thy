@@ -8,14 +8,14 @@ theory Preliminaries
 begin
   
   (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
-  (sect. 2.1 *)
-datatype 'f neg = Pos "'f" | Neg "'f neg" (* ("\<sim>_" 55) (*| Pos (nval_of: "'f neg") *) term "\<sim>F" *)
+  (sect. 2.1) *)
+datatype 'a neg = Pos "'a" | Neg "'a neg" (* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
 
-fun to_F :: "'f neg \<Rightarrow> 'f" where
-  "to_F (Pos C) = C" |
-  "to_F (Neg C) = to_F C"
+fun to_V :: "'a neg \<Rightarrow> 'a" where
+  "to_V (Pos C) = C" |
+  "to_V (Neg C) = to_V C"
 
-fun is_Pos :: "'f neg \<Rightarrow> bool" where
+fun is_Pos :: "'a neg \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
   "is_Pos (Neg C) = (\<not>(is_Pos C))"
 
@@ -92,8 +92,8 @@ next
 qed
 
 definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
-  "entails_neg M N \<equiv> {to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-      {to_F C |C. C \<in> N \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C} "
+  "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+      {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} "
   
 interpretation ext_cons_rel2: consequence_relation "Pos bot" entails_neg
 proof
@@ -109,14 +109,14 @@ next
     subs1: "M \<subseteq> N" and
     subs2: "P \<subseteq> Q" and
     entails1: "entails_neg M P"
-  have union_subs1: \<open>{to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> P \<and> \<not> is_Pos C} \<subseteq>
-    {to_F C |C. C \<in> N \<and> is_Pos C} \<union> {to_F C |C. C \<in> Q \<and> \<not> is_Pos C}\<close>
+  have union_subs1: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<subseteq>
+    {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> Q \<and> \<not> is_Pos C}\<close>
     using subs1 subs2 by auto
-  have union_subs2: \<open>{to_F C |C. C \<in> P \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq>
-    {to_F C |C. C \<in> Q \<and> is_Pos C} \<union> {to_F C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
+  have union_subs2: \<open>{to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq>
+    {to_V C |C. C \<in> Q \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
     using subs1 subs2 by auto
-  have union_entails1: "{to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> P \<and> \<not> is_Pos C} \<Turnstile>
-    {to_F C |C. C \<in> P \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C}"
+  have union_entails1: "{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<Turnstile>
+    {to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
     using entails1 unfolding entails_neg_def .
   show \<open>entails_neg N Q\<close>
     using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
@@ -126,41 +126,41 @@ next
     D4_hyp1: "entails_neg M P" and
     n_to_qm: "\<forall>C\<in>M. entails_neg N (Q \<union> {C})" and
     np_to_q: "\<forall>D\<in>P. entails_neg (N \<union> {D}) Q"
-  define NpQm where "NpQm = {to_F C |C. C \<in> N \<and> is_Pos C} \<union> {to_F C |C. C \<in> Q \<and> \<not> is_Pos C}"
-  define NmQp where "NmQp = {to_F C |C. C \<in> Q \<and> is_Pos C} \<union> {to_F C |C. C \<in> N \<and> \<not> is_Pos C}"
-  define MpPm where "MpPm = {to_F C |C. C \<in> M \<and> is_Pos C} \<union> {to_F C |C. C \<in> P \<and> \<not> is_Pos C}"
-  define MmPp where "MmPp = {to_F C |C. C \<in> P \<and> is_Pos C} \<union> {to_F C |C. C \<in> M \<and> \<not> is_Pos C}"
+  define NpQm where "NpQm = {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> Q \<and> \<not> is_Pos C}"
+  define NmQp where "NmQp = {to_V C |C. C \<in> Q \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}"
+  define MpPm where "MpPm = {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C}"
+  define MmPp where "MmPp = {to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
     
   have "Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow>
-    {to_F Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} = {to_F Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca}" for Cn
+    {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca}" for Cn
     by blast
-  also have "Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_F Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} =
-    {to_F Ca |Ca. Ca \<in> Q \<and> is_Pos Ca} \<union> {to_F Cn}" for Cn
+  also have "Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} =
+    {to_V Ca |Ca. Ca \<in> Q \<and> is_Pos Ca} \<union> {to_V Cn}" for Cn
     by blast
-  ultimately have m_pos: \<open>Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_F Cn}\<close> for Cn
+  ultimately have m_pos: \<open>Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_V Cn}\<close> for Cn
     using n_to_qm unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_m_pos: \<open>\<forall>C\<in>{to_F C |C. C \<in> M \<and> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
+  have entails_m_pos: \<open>\<forall>C\<in>{to_V C |C. C \<in> M \<and> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
   proof
     fix C
-    assume "C \<in> {to_F C |C. C \<in> M \<and> is_Pos C}"
-    then obtain Ca where "to_F Ca = C" "Ca \<in> M" "is_Pos Ca" by blast
+    assume "C \<in> {to_V C |C. C \<in> M \<and> is_Pos C}"
+    then obtain Ca where "to_V Ca = C" "Ca \<in> M" "is_Pos Ca" by blast
     then show "NpQm \<Turnstile> NmQp \<union> {C}"
       using m_pos[of Ca] by blast
   qed
     
-  have "Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_F Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_F Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca} \<union> {to_F Cn}" for Cn
+  have "Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
+    {to_V Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca} \<union> {to_V Cn}" for Cn
     by blast
   also have "Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow>
-    {to_F Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} = {to_F Ca |Ca. Ca \<in> N \<and> is_Pos Ca}" for Cn
+    {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> N \<and> is_Pos Ca}" for Cn
     by blast
-  ultimately have p_neg: \<open>Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_F Cn}\<close> for Cn
+  ultimately have p_neg: \<open>Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_V Cn}\<close> for Cn
     using np_to_q unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_p_neg: \<open>\<forall>C\<in>{to_F C |C. C \<in> P \<and> \<not> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
+  have entails_p_neg: \<open>\<forall>C\<in>{to_V C |C. C \<in> P \<and> \<not> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
   proof
     fix C
-    assume "C \<in> {to_F C |C. C \<in> P \<and> \<not> is_Pos C}"
-    then obtain Ca where "to_F Ca = C" "Ca \<in> P" "\<not> is_Pos Ca" by blast
+    assume "C \<in> {to_V C |C. C \<in> P \<and> \<not> is_Pos C}"
+    then obtain Ca where "to_V Ca = C" "Ca \<in> P" "\<not> is_Pos Ca" by blast
     then show "NpQm \<Turnstile> NmQp \<union> {C}"
       using p_neg[of Ca] by blast
   qed
@@ -168,36 +168,36 @@ next
   have D4_hyp2: \<open>\<forall>C\<in>MpPm. NpQm \<Turnstile> NmQp \<union> {C}\<close>
     using entails_m_pos entails_p_neg unfolding MpPm_def by fast
       
-  have "Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_F Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_F Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca} \<union> {to_F Cn}" for Cn
+  have "Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} =
+    {to_V Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca} \<union> {to_V Cn}" for Cn
     by blast
   also have "Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow>
-    {to_F Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} = {to_F Ca |Ca. Ca \<in> Q \<and> is_Pos Ca}" for Cn
+    {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> Q \<and> is_Pos Ca}" for Cn
     by blast
-  ultimately have m_neg: \<open>Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm  \<union> {to_F Cn} \<Turnstile> NmQp\<close> for Cn
+  ultimately have m_neg: \<open>Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm  \<union> {to_V Cn} \<Turnstile> NmQp\<close> for Cn
     using n_to_qm unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_m_neg: \<open>\<forall>C\<in>{to_F C |C. C \<in> M \<and> \<not> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
+  have entails_m_neg: \<open>\<forall>C\<in>{to_V C |C. C \<in> M \<and> \<not> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
   proof
     fix C
-    assume "C \<in> {to_F C |C. C \<in> M \<and> \<not> is_Pos C}"
-    then obtain Ca where "to_F Ca = C" "Ca \<in> M" "\<not> is_Pos Ca" by blast
+    assume "C \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
+    then obtain Ca where "to_V Ca = C" "Ca \<in> M" "\<not> is_Pos Ca" by blast
     then show "NpQm \<union> {C} \<Turnstile> NmQp"
       using m_neg[of Ca] by blast
   qed
     
-  have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_F Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_F Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca}" for Cn
+  have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
+    {to_V Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca}" for Cn
     by blast
-  also have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_F Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} =
-    {to_F Ca |Ca. Ca \<in> N \<and> is_Pos Ca} \<union> {to_F Cn}" for Cn
+  also have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} =
+    {to_V Ca |Ca. Ca \<in> N \<and> is_Pos Ca} \<union> {to_V Cn}" for Cn
     by blast
-  ultimately have p_pos: \<open>Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<union> {to_F Cn} \<Turnstile> NmQp\<close> for Cn
+  ultimately have p_pos: \<open>Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<union> {to_V Cn} \<Turnstile> NmQp\<close> for Cn
     using np_to_q unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_p_pos: \<open>\<forall>C\<in>{to_F C |C. C \<in> P \<and> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
+  have entails_p_pos: \<open>\<forall>C\<in>{to_V C |C. C \<in> P \<and> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
   proof
     fix C
-    assume "C \<in> {to_F C |C. C \<in> P \<and> is_Pos C}"
-    then obtain Ca where "to_F Ca = C" "Ca \<in> P" "is_Pos Ca" by blast
+    assume "C \<in> {to_V C |C. C \<in> P \<and> is_Pos C}"
+    then obtain Ca where "to_V Ca = C" "Ca \<in> P" "is_Pos Ca" by blast
     then show "NpQm \<union> {C} \<Turnstile> NmQp"
       using p_pos[of Ca] by blast
   qed
@@ -447,4 +447,26 @@ locale dynamically_complete_calculus = calculus +
   assumes dynamically_complete:
     \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> shd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> Ns !! i\<close>
     
+    (* First attempt at formalizing sect. 2.3 *)
+    (* below, I force 'v to be countable, but not infinite, alternative, enforce bijection with nat
+    in the first locale where it is used? *)
+
+    (* records are definitely overkill for this *)
+(* record ('f, 'v::countable) AF =
+ *   F :: 'f
+ *     A :: "'v neg set" *)
+    
+    (* discussions on this datatype allowed to detect a spurious assumption: 'v doesn't need to be
+    infinite*)
+datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v neg set")
+
+definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
+  \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> is_Pos v1 = is_Pos v2)))\<close>
+
+definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
+  \<open>to_AF C = Pair C {}\<close>
+
+(* definition enabled :: "('f, 'v::countable) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+ *   \<open>enabled C J = ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> True))\<close> *)
+
 end
