@@ -18,6 +18,12 @@ hide_const (open) PAC_Checker_Specification.PAC_checker_step
 hide_fact (open) PAC_Checker_Specification.PAC_checker_step_def
   PAC_Checker.PAC_checker_l_def PAC_Checker_Specification.PAC_checker_def
 
+lemma vars_llist[simp]:
+  \<open>vars_llist [] = {}\<close>
+  \<open>vars_llist (xs @ ys) = vars_llist xs \<union> vars_llist ys\<close>
+  \<open>vars_llist (x # ys) = set (fst x) \<union> vars_llist ys\<close>
+  by (auto simp: vars_llist_def)
+
 section \<open>Executable Checker\<close>
 
 text \<open>In this layer we finally refine the checker to executable code.\<close>
@@ -81,15 +87,16 @@ definition linear_combi_l where
       (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
       (\<lambda>(p, xs, _). do {
          ASSERT(xs \<noteq> []);
-         let (q :: llist_polynomial, i) = hd xs;
-         if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
+         let (q\<^sub>0 :: llist_polynomial, i) = hd xs;
+         if (i \<notin># dom_m A \<or> \<not>(vars_llist q\<^sub>0 \<subseteq> \<V>))
          then do {
-           err \<leftarrow> check_linear_combi_l_dom_err q i;
+           err \<leftarrow> check_linear_combi_l_dom_err q\<^sub>0 i;
            RETURN (p, xs, error_msg i err)
          } else do {
            ASSERT(fmlookup A i \<noteq> None);  
            let r = the (fmlookup A i);
-           q \<leftarrow> full_normalize_poly (q);
+           q \<leftarrow> full_normalize_poly (q\<^sub>0);
+           ASSERT(vars_llist q \<subseteq> \<V>);
            pq \<leftarrow> mult_poly_full q r;
            pq \<leftarrow> add_poly_l (p, pq);
            RETURN (pq, tl xs, CSUCCESS)
@@ -199,6 +206,136 @@ proof -
       intro!: RES_refine\<close>)
 qed
 
+lemma vars_llist_merge_coeff0: \<open>vars_llist (merge_coeffs0 paa) \<subseteq> vars_llist paa\<close>
+  by (induction paa rule: merge_coeffs0.induct)
+    auto
+
+lemma sort_poly_spec_id'2:
+  assumes \<open>(p, p') \<in> unsorted_poly_rel_with0\<close>
+  shows \<open>sort_poly_spec p \<le> \<Down> {(xs, ys). (xs, ys) \<in> sorted_repeat_poly_rel_with0 \<and>
+     vars_llist xs \<subseteq> vars_llist p} (RETURN p')\<close>
+proof -
+  obtain y where
+    py: \<open>(p, y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+    p'_y: \<open>p' = mset y\<close>
+    using assms
+    unfolding fully_unsorted_poly_list_rel_def poly_list_rel_def sorted_poly_list_rel_wrt_def
+    by (auto simp: list_mset_rel_def br_def)
+  then have [simp]: \<open>length y = length p\<close>
+    by (auto simp: list_rel_def list_all2_conv_all_nth)
+  have H: \<open>(x, p')
+        \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
+     if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (Id \<union> lexord var_order_rel)) (map fst x)\<close>
+     for x :: \<open>llist_polynomial\<close>
+  proof -
+    obtain f where
+      f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
+      [simp]: \<open>\<And>i. i<length x \<Longrightarrow> x ! i = p ! (f i)\<close>
+      using px apply - apply (subst (asm)(2) eq_commute)  unfolding mset_eq_perm
+      by (auto dest!: permutation_Ex_bij)
+    let ?y = \<open>map (\<lambda>i. y ! f i) [0 ..< length x]\<close>
+    have \<open>i < length y \<Longrightarrow> (p ! f i, y ! f i) \<in> term_poly_list_rel \<times>\<^sub>r int_rel\<close> for i
+      using list_all2_nthD[of _ p y
+         \<open>f i\<close>, OF py[unfolded list_rel_def mem_Collect_eq prod.case]]
+         mset_eq_length[OF px] f
+      by (auto simp: list_rel_def list_all2_conv_all_nth bij_betw_def)
+    then have \<open>(x, ?y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+      xy: \<open>length x = length y\<close>
+      using py list_all2_nthD[of \<open>rel2p (term_poly_list_rel \<times>\<^sub>r int_rel)\<close> p y
+         \<open>f i\<close> for i, simplified] mset_eq_length[OF px]
+      by (auto simp: list_rel_def list_all2_conv_all_nth)
+    moreover {
+      have f: \<open>mset_set {0..<length x} = f `# mset_set {0..<length x}\<close>
+        using f mset_eq_length[OF px]
+        by (auto simp: bij_betw_def lessThan_atLeast0 image_mset_mset_set)
+      have \<open>mset y = {#y ! f x. x \<in># mset_set {0..<length x}#}\<close>
+        by (subst drop_0[symmetric], subst mset_drop_upto, subst xy[symmetric], subst f)
+          auto
+      then have \<open>(?y, p') \<in> list_mset_rel\<close>
+        by (auto simp: list_mset_rel_def br_def p'_y)
+    }
+    ultimately show ?thesis
+      by (auto intro!: relcompI[of _ ?y])
+  qed
+  show ?thesis
+    unfolding sort_poly_spec_def poly_list_rel_def sorted_repeat_poly_list_rel_with0_wrt_def
+    by refine_rcg (auto intro: H simp: vars_llist_def dest: mset_eq_setD)
+qed
+
+lemma sort_all_coeffs_unsorted_poly_rel_with02:
+  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+  shows \<open>sort_all_coeffs p \<le> \<Down> {(xs, ys). (xs, ys) \<in> unsorted_poly_rel_with0 \<and> vars_llist xs \<subseteq> vars_llist p} (RETURN p')\<close>
+proof -
+  have H: \<open>(map (\<lambda>(a, y). (mset a, y)) (rev p)) =
+          map (\<lambda>(a, y). (mset a, y)) s \<longleftrightarrow>
+          (map (\<lambda>(a, y). (mset a, y)) p) =
+          map (\<lambda>(a, y). (mset a, y)) (rev s)\<close> for s
+    by (auto simp flip: rev_map simp: eq_commute[of \<open>rev (map _ _)\<close> \<open>map _ _\<close>])
+  have 1: \<open>\<And>s y. (p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+           p' = mset y \<Longrightarrow>
+           map (\<lambda>(a, y). (mset a, y)) (rev p) = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+           \<forall>x\<in>set s. sorted_wrt var_order (fst x) \<Longrightarrow>
+           (s, map (\<lambda>(a, y). (mset a, y)) s)
+           \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+    by (auto 4 4 simp: rel2p_def
+        dest!: list_rel_unsorted_term_poly_list_relD
+        dest: shuffle_terms_distinct_iff["THEN" iffD1]
+        intro!: map_mset_unsorted_term_poly_list_rel
+        sorted_wrt_mono_rel[of _ \<open>rel2p (var_order_rel)\<close> \<open>rel2p (Id \<union> var_order_rel)\<close>])
+  have 2: \<open>\<And>s y. (p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+           p' = mset y \<Longrightarrow>
+           map (\<lambda>(a, y). (mset a, y)) (rev p) = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+           \<forall>x\<in>set s. sorted_wrt var_order (fst x) \<Longrightarrow>
+           mset y = {#case x of (a, x) \<Rightarrow> (mset a, x). x \<in># mset s#}\<close>
+    by (metis (no_types, lifting) list_rel_unsorted_term_poly_list_relD mset_map mset_rev)
+  have vars_llits_alt_def:
+    \<open>x \<in> vars_llist p \<longleftrightarrow> x \<in> \<Union>(set_mset ` fst ` set (map (\<lambda>(a, y). (mset a, y)) (rev p)))\<close> for p x
+    by (force simp: vars_llist_def)
+ 
+  have [intro]: \<open>map (\<lambda>(a, y). (mset a, y)) (rev p) = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+    x \<in> vars_llist s \<Longrightarrow> x \<in> vars_llist p\<close> for s x
+    unfolding vars_llits_alt_def
+    by (auto simp: vars_llist_def image_image dest!: split_list)
+  show ?thesis
+    by (rule sort_all_coeffs[THEN order_trans])
+     (use assms in \<open>auto simp: shuffle_coefficients_def poly_list_rel_def
+      RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
+      br_def dest: list_rel_unsorted_term_poly_list_relD
+      intro!: RES_refine 1 2
+      intro!: relcompI[of _  \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close>]\<close>)
+qed
+
+lemma full_normalize_poly_normalize_poly_p2:
+  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+  shows \<open>full_normalize_poly p \<le> \<Down> {(xs, ys). (xs, ys) \<in> sorted_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p}
+      (SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r))\<close>
+  (is \<open>?A \<le> \<Down> ?R ?B\<close>)
+proof -
+  have 1: \<open>?B = do {
+     p' \<leftarrow> RETURN p';
+     p' \<leftarrow> RETURN p';
+     SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r)
+    }\<close>
+    by auto
+  have [refine0]: \<open>sort_all_coeffs p \<le> SPEC(\<lambda>q. (q, p') \<in> {(xs, ys). (xs, ys) \<in> unsorted_poly_rel_with0\<and> vars_llist xs \<subseteq> vars_llist p})\<close>
+    by (rule sort_all_coeffs_unsorted_poly_rel_with02[OF assms, THEN order_trans])
+     (auto simp: conc_fun_RES RETURN_def)
+  have [refine0]: \<open>sort_poly_spec p \<le> SPEC (\<lambda>c. (c, p') \<in> 
+      {(xs, ys). (xs, ys) \<in> sorted_repeat_poly_rel_with0 \<and> vars_llist xs \<subseteq> vars_llist p})\<close>
+    if \<open>(p, p') \<in> unsorted_poly_rel_with0\<close>
+    for p p'
+    by (rule sort_poly_spec_id'2[THEN order_trans, OF that])
+      (auto simp: conc_fun_RES RETURN_def)
+  show ?thesis
+    apply (subst 1)
+    unfolding full_normalize_poly_def
+    apply (refine_rcg)
+    by (use in \<open>auto intro!: RES_refine
+      dest!: merge_coeffs0_is_normalize_poly_p
+      dest!:  set_mp[OF vars_llist_merge_coeff0]
+      simp: RETURN_def\<close>)
+qed
+
 lemma add_poly_full_spec:
   assumes
     \<open>(p, p'') \<in> sorted_poly_rel O mset_poly_rel\<close> and
@@ -222,19 +359,23 @@ proof -
       intro!: RES_refine\<close>)
 qed
 
-lemma full_normalize_poly_full_spec:
+lemma full_normalize_poly_full_spec2:
   assumes
     \<open>(p, p'') \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
   shows
-    \<open>full_normalize_poly p \<le> \<Down>(sorted_poly_rel O mset_poly_rel)
+    \<open>full_normalize_poly p \<le> \<Down>{(xs, ys). (xs, ys) \<in> sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p}
     (SPEC (\<lambda>s.  s - (p'')\<in> ideal polynomial_bool \<and> vars s \<subseteq> vars p''))\<close>
 proof -
   obtain p' q' where
     pq: \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
     \<open>(p', p'') \<in> mset_poly_rel\<close>
     using assms by auto
+  have 1: \<open>\<Down> {(xs, ys). (xs, ys) \<in> sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p} =
+    \<Down> ({(xs, ys). (xs, ys) \<in> sorted_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p} O mset_poly_rel)\<close>
+    by (rule cong[of \<open>\<lambda>u. \<Down>u\<close>]) auto
   show ?thesis
-    apply (rule full_normalize_poly_normalize_poly_p[THEN order_trans, OF pq(1)])
+    apply (rule full_normalize_poly_normalize_poly_p2[THEN order_trans, OF pq(1)])
+    apply (subst 1)
     apply (subst conc_fun_chain[symmetric])
     apply (rule ref_two_step')
     by (use pq assms in \<open>clarsimp simp: add_poly_p'_def mset_poly_rel_def ideal.span_zero
@@ -316,6 +457,8 @@ proof -
     show ?thesis
       using 6 by (auto simp: algebra_simps)
   qed
+
+
   have H[simp]: \<open>length ys < length xs \<Longrightarrow>
     i < length xs' - length ys \<longleftrightarrow> (i < length xs' - Suc (length ys) \<or> i = length xs' - length ys - 1)\<close> for ys i
     by auto
@@ -333,7 +476,7 @@ proof -
     subgoal using xs by (auto 5 5 intro!: exI[of _ 0] intro: exI[of _xs] exI[of _ \<open>[]\<close>] ideal.span_zero simp: f_def)
     subgoal for s
       unfolding term_rel_def[symmetric]
-      apply (refine_vcg full_normalize_poly_full_spec[THEN order_trans, unfolded term_rel_def[symmetric]
+      apply (refine_vcg full_normalize_poly_full_spec2[THEN order_trans, unfolded term_rel_def[symmetric]
         raw_term_rel_def[symmetric]])
       subgoal
         by clarsimp
@@ -348,6 +491,8 @@ proof -
         apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
         apply (auto simp: conc_fun_RES)
         apply refine_vcg
+        subgoal for a ba bb r ys cs ysa ad ysc x y xa xb
+           by auto
       apply (rule mult_poly_full_spec[THEN order_trans, unfolded term_rel_def[symmetric]])
       apply assumption
       apply auto
@@ -360,7 +505,7 @@ proof -
       apply (subst conc_fun_RES)
       apply clarsimp_all
       apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length single_valued_poly)
-      apply (rule_tac x=xf in exI)
+      apply (rule_tac x=xe in exI)
       apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length[symmetric] single_valued_poly)
         apply (auto dest!: sorted_poly_rel_vars_llist[unfolded term_rel_def[symmetric]]
           fully_unsorted_poly_rel_vars_subset_vars_llist[unfolded raw_term_rel_def[symmetric]]
