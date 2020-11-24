@@ -466,7 +466,35 @@ definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
-(* definition enabled :: "('f, 'v::countable) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
- *   \<open>enabled C J = ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> True))\<close> *)
+definition Neg_set :: "'v neg set \<Rightarrow> 'v neg set" ("\<sim>_" 55) where
+  \<open>\<sim>V \<equiv> {Neg v |v. v \<in> V}\<close>
+
+locale propositional_interpretations =
+  fixes
+    \<J> :: "'v::countable neg set set"
+  assumes
+    all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
+    all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>"
+
+
+locale A_calculus = calculus bot Inf entails Red_I Red_F + propositional_interpretations \<J>
+  for
+    bot :: "'f" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    Red_I :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set" and
+    \<J> :: "'v::countable neg set set"
+begin
+
+definition enabled :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  \<open>enabled C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close>
+
+inductive "enabled2" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled2 C J" |
+  cond2: "is_interpretation J \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled2 C J"
+
+
+end
 
 end
