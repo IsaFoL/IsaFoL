@@ -247,6 +247,8 @@ definition terminates :: "'f set stream \<Rightarrow> bool" where
 definition lim_inf :: "'f set stream \<Rightarrow> 'f set" where
   "lim_inf Ns = (\<Union>i. \<Inter>j \<in> {j. i \<le> j}. Ns !! j)"
 
+abbreviation limit :: "'f set stream \<Rightarrow> 'f set" where "limit Ns \<equiv> lim_inf Ns"
+
 definition lim_sup :: "'f set stream \<Rightarrow> 'f set" where
   "lim_sup Ns = (\<Inter>i. \<Union>j \<in> {j. i \<le> j}. Ns !! j)"
 
@@ -360,17 +362,35 @@ qed
 definition weakly_fair :: "'f set stream \<Rightarrow> bool" where
   "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))"
 
+abbreviation fair :: "'f set stream \<Rightarrow> bool" where "fair N \<equiv> weakly_fair N"
+
 definition derive :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
   "M \<rhd> N \<equiv> (M - N \<subseteq> Red_F N)"
 
-  (* for reference, the definition used in the saturation framework *)
+(* for reference, the definition used in the saturation framework *)
 (* inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>" 50) where
-  derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd> N" *)
+     derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd> N" *)
 
 lemma derive_refl: "M \<rhd> M" unfolding derive_def by simp
+
+lemma deriv_red_in: \<open>M \<rhd> N \<Longrightarrow> Red_F M \<subseteq> N \<union> Red_F N\<close>
+proof -
+  fix M N
+  assume deriv: \<open>M \<rhd> N\<close>
+  then have \<open>M \<subseteq> N \<union> Red_F N\<close>
+    unfolding derive_def by blast 
+  then have red_m_in: \<open>Red_F M \<subseteq> Red_F (N \<union> Red_F N)\<close>
+    using Red_F_of_subset by blast 
+  have \<open>Red_F (N \<union> Red_F N) \<subseteq> Red_F (N \<union> Red_F N - (Red_F N - N))\<close>
+    using Red_F_of_Red_F_subset[of "Red_F N - N" "N \<union> Red_F N"]
+      Red_F_of_subset[of "N" "N \<union> Red_F N"] by fast
+  then have \<open>Red_F (N \<union> Red_F N) \<subseteq> Red_F N\<close>
+    by (metis Diff_subset_conv Red_F_of_subset Un_Diff_cancel lfp.leq_trans subset_refl sup.commute)
+  then show \<open>Red_F M \<subseteq> N \<union> Red_F N\<close> using red_m_in by blast
+qed
+
 lemma derive_trans: "M \<rhd> N \<Longrightarrow> N \<rhd> N' \<Longrightarrow> M \<rhd> N'" 
-  unfolding derive_def using Red_F_of_Red_F_subset[of "M - N" N] 
-sorry
+  using deriv_red_in by (smt Diff_subset_conv derive_def subset_trans sup.absorb_iff2)
 
 end
   
@@ -400,7 +420,7 @@ interpretation strict_calculus:
 proof -
   interpret strict_calc: calculus bot Inf entails Red_I_strict Red_F_strict
   using strict_calc_if_nobot nobot_in_Red by blast 
-    (* next property is probably not needed for the proof, but it is one of the claims from Rmk 3
+    (* next property is not needed for the proof, but it is one of the claims from Rmk 3
     that must be verified *)
   have \<open>saturated N \<Longrightarrow> strict_calc.saturated N\<close>
     unfolding saturated_def strict_calc.saturated_def Red_I_strict_def by blast
@@ -423,5 +443,8 @@ qed
 
 end
 
-
+locale dynamically_complete_calculus = calculus +
+  assumes dynamically_complete:
+    \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> shd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> Ns !! i\<close>
+    
 end
