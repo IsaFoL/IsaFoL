@@ -113,13 +113,19 @@ proof -
     using st by auto
 qed
 
+definition PAC_checker_step_inv where
+  \<open>PAC_checker_step_inv spec stat \<V> A \<longleftrightarrow>
+  (\<forall>i\<in>#dom_m A. vars (the (fmlookup A i)) \<subseteq> \<V>) \<and>
+  vars spec \<subseteq> \<V>\<close>
+
 definition PAC_checker_step
   ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat, nat) pac_step \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
 where
   \<open>PAC_checker_step = (\<lambda>spec (stat, (\<V>, A)) st. case st of
      CL _ _ _ \<Rightarrow>
-       do {
+  do {
+         ASSERT(PAC_checker_step_inv spec stat \<V> A);
          r \<leftarrow> normalize_poly_spec (pac_res st);
         eq \<leftarrow> check_linear_comb A \<V> (pac_srcs st) (new_id st) r;
         st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynomial_bool));
@@ -129,6 +135,7 @@ where
    }
    | Del _ \<Rightarrow>
        do {
+        ASSERT(PAC_checker_step_inv spec stat \<V> A);
         eq \<leftarrow> check_del A (pac_src1 st);
         if eq
         then RETURN (stat, (\<V>, fmdrop (pac_src1 st) A))
@@ -136,6 +143,7 @@ where
    }
    | Extension _ _ _ \<Rightarrow>
        do {
+         ASSERT(PAC_checker_step_inv spec stat \<V> A);
          r \<leftarrow> normalize_poly_spec (pac_res st - Var (new_var st));
         (eq) \<leftarrow> check_extension A \<V> (new_id st) (new_var st) r;
         if eq
@@ -242,6 +250,10 @@ proof -
     by (auto simp del: vars_uminus)
   have vars_add_inv: \<open>vars (Var x2 + r) = vars (r + Var x2 :: int mpoly)\<close> for x2 r
     unfolding add.commute[of \<open>Var x2\<close> r] ..
+  have pre: \<open>PAC_checker_step_inv spec a \<V> A\<close>
+    unfolding PAC_checker_step_inv_def
+    using assms
+    by (smt UN_I in_dom_in_ran_m  rtranclp_PAC_Format_subset_ideal subset_iff vars_B)
 
   have [iff]: \<open>a \<noteq> FAILED\<close> and
     [intro]: \<open>a \<noteq> SUCCESS \<Longrightarrow> a = FOUND\<close> and
@@ -256,6 +268,7 @@ proof -
     apply clarsimp_all
     subgoal for x11 x12 x13
       apply (refine_vcg lhs_step_If)
+      subgoal by (rule pre)
       subgoal for r eqa st'
         using assms vars_B PAC_Format_LC[OF assms(1), of \<V>\<^sub>0 A\<^sub>0 \<open>mset x11\<close> r]
           spec_found[of \<V> r B] rtranclp_trans[of PAC_Format \<open>(\<V>\<^sub>0, A\<^sub>0)\<close> \<open>(\<V>, B)\<close> \<open>(\<V>, add_mset r B)\<close>]
@@ -271,6 +284,7 @@ proof -
       done
     subgoal for x31 x32 x34
       apply (refine_vcg lhs_step_If)
+      subgoal by (rule pre)
       subgoal for r x
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
@@ -285,6 +299,7 @@ proof -
     subgoal for x11
       unfolding check_del_def
       apply (refine_vcg lhs_step_If)
+      subgoal by (rule pre)
       subgoal for eq
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
