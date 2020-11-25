@@ -289,7 +289,7 @@ proof -
     by auto
 qed
 
-lemma mult_poly_full_mult_poly_p':
+lemma mult_poly_full_mult_poly_p'2:
   assumes \<open>(p, p') \<in> sorted_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel\<close>
   shows \<open>mult_poly_full p q \<le> \<Down> {(xs,ys). (xs,ys)\<in>sorted_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p \<union> vars_llist q} (mult_poly_p' p' q')\<close>
   unfolding mult_poly_full_def mult_poly_p'_def
@@ -325,7 +325,7 @@ proof -
     \<open>(q', q'') \<in> mset_poly_rel\<close>
     using assms by auto
   show ?thesis
-    apply (rule mult_poly_full_mult_poly_p'[THEN order_trans, OF pq(1,3)])
+    apply (rule mult_poly_full_mult_poly_p'2[THEN order_trans, OF pq(1,3)])
     apply (subst 1)
     apply (subst conc_fun_chain[symmetric])
     apply (rule ref_two_step')
@@ -550,7 +550,7 @@ lemma check_linear_combi_l_check_linear_comb:
     A: \<open>\<And>i. i \<in># dom_m A \<Longrightarrow> vars_llist (the (fmlookup A i)) \<subseteq> \<V>'\<close>
   shows
     \<open>check_linear_combi_l spec A \<V>' i xs r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-    (is_cfound st \<longrightarrow> spec = r)} (check_linear_comb B \<V> xs' i' r')\<close>
+    (is_cfound st \<longrightarrow> spec = r) \<and> (b \<longrightarrow> vars_llist r \<subseteq> \<V>' \<and> i \<notin># dom_m A)} (check_linear_comb B \<V> xs' i' r')\<close>
 proof -
   have \<V>: \<open>\<V> = \<phi>`\<V>'\<close>
     using assms(4) unfolding set_rel_def var_rel_def
@@ -737,13 +737,14 @@ qed
 
 lemma keys_Const\<^sub>0_mult_left:
   \<open>keys (Const\<^sub>0 (b::int) * aa) = (if b = 0 then {} else keys aa)\<close> for aa :: \<open>('a :: {cancel_semigroup_add,monoid_add} \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 _\<close>
-
   by (auto elim!: in_keys_timesE simp: keys_mult_monomial keys_single Const\<^sub>0_def keys_mult_monomial2)
 
 hide_fact (open) poly_embed.PAC_checker_l_PAC_checker
 context poly_embed
 begin
 
+definition fmap_polys_rel2 where
+  \<open>fmap_polys_rel2 err \<V> \<equiv> {(xs, ys). (xs, ys) \<in> fmap_polys_rel \<and> (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs. \<phi> ` vars_llist (the (fmlookup xs i)) \<subseteq> \<V>))}\<close>
 
 lemma check_del_l_check_del:
   \<open>(A, B) \<in> fmap_polys_rel \<Longrightarrow> (x3, x3a) \<in> Id \<Longrightarrow> check_del_l spec A (pac_src1 (Del x3))
@@ -752,13 +753,115 @@ lemma check_del_l_check_del:
   by (refine_vcg lhs_step_If RETURN_SPEC_refine)
     (auto simp: fmap_rel_nat_rel_dom_m bind_RES_RETURN_eq)
 
+lemma check_extension_l_check_extension:
+  assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close> \<open>(x, x') \<in> var_rel\<close>
+  shows
+    \<open>check_extension_l spec A \<V> i x r \<le>
+      \<Down>{((st), (b)).
+        (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+    (is_cfound st \<longrightarrow> spec = r) \<and>
+    (b \<longrightarrow> vars_llist r \<subseteq> insert x \<V>)} (check_extension B \<V>' i' x' r')\<close>
+proof -
+  have \<open>x' = \<phi> x\<close>
+    using assms(5) by (auto simp: var_rel_def br_def)
+  have [refine]:
+    \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
+    if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
+      \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
+    for p p' q q'
+    using that
+    by (auto intro!: mult_poly_full_mult_poly_p'[THEN order_trans] ref_two_step'
+         mult_poly_p'_mult_poly_spec
+      simp flip: conc_fun_chain)
+  have [refine]:
+    \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (add_poly_spec p' q')\<close>
+    if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
+      \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
+    for p p' q q'
+    using that
+    by (auto intro!: add_poly_l_add_poly_p'[THEN order_trans] ref_two_step'
+         add_poly_p'_add_poly_spec
+      simp flip: conc_fun_chain)
+
+  have [simp]: \<open>(l, l') \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+       (map (\<lambda>(a, b). (a, - b)) l, map (\<lambda>(a, b). (a, - b)) l')
+       \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> for l l'
+     by (induction l l'  rule: list_rel_induct)
+        (auto simp: list_mset_rel_def br_def)
+
+  have [intro!]:
+    \<open>(x2c, za) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<Longrightarrow>
+     (map (\<lambda>(a, b). (a, - b)) x2c,
+        {#case x of (a, b) \<Rightarrow> (a, - b). x \<in># za#})
+       \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close> for x2c za
+     apply (auto)
+     subgoal for y
+       apply (induction x2c y  rule: list_rel_induct)
+       apply (auto simp: list_mset_rel_def br_def)
+       apply (rule_tac b = \<open>(aa, - ba) # map (\<lambda>(a, b). (a, - b)) l'\<close> in relcompI)
+       by auto
+     done
+  have [simp]: \<open>(\<lambda>x. fst (case x of (a, b) \<Rightarrow> (a, - b))) = fst\<close>
+    by (auto intro: ext)
+
+  have uminus: \<open>(x2c, x2a) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+       (map (\<lambda>(a, b). (a, - b)) x2c,
+        - x2a)
+       \<in> sorted_poly_rel O mset_poly_rel\<close> for x2c x2a x1c x1a
+     apply (clarsimp simp: sorted_poly_list_rel_wrt_def
+      mset_poly_rel_def)
+    apply (rule_tac b = \<open>(\<lambda>(a, b). (a, - b)) `# za\<close> in relcompI)
+    by (auto simp: sorted_poly_list_rel_wrt_def
+      mset_poly_rel_def comp_def polynomial_of_mset_uminus)
+   have [simp]: \<open>([], 0) \<in> sorted_poly_rel O mset_poly_rel\<close>
+     by (auto simp: sorted_poly_list_rel_wrt_def
+      mset_poly_rel_def list_mset_rel_def br_def
+      intro!: relcompI[of _ \<open>{#}\<close>])
+   show ?thesis
+     unfolding check_extension_l_def
+       check_extension_l_dom_err_def
+       check_extension_l_no_new_var_err_def
+       check_extension_l_new_var_multiple_err_def
+       check_extension_l_side_cond_err_def
+      apply (rule order_trans)
+      defer
+      apply (rule ref_two_step')
+      apply (rule check_extension_alt_def)
+      apply (refine_vcg )
+      subgoal using assms(1,3,4,5)
+        by (auto simp: var_rel_set_rel_iff)
+      subgoal using assms(1,3,4,5)
+        by (auto simp: var_rel_set_rel_iff)
+      subgoal by auto
+      subgoal by auto
+      apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel_minus)
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>] assms
+        by (force simp: set_rel_def var_rel_def br_def
+          dest!: sorted_poly_rel_vars_llist)
+      subgoal by auto
+      subgoal by auto
+      subgoal using assms by auto
+      apply (rule uminus)
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by (auto simp: in_set_conv_decomp_first[of _ r] remove1_append)
+      subgoal using assms by auto
+      done
+  qed
+
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
-    \<open>(Ast, Bst) \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> and
+    \<open>(Ast, Bst) \<in>{((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>')}\<close> and
     \<open>(st, st') \<in> epac_step_rel\<close> and
     spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close>
   shows
-    \<open>PAC_checker_l_step spec Ast st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (PAC_checker_step spec' Bst st')\<close>
+    \<open>PAC_checker_l_step spec Ast st \<le>
+    \<Down>{((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>')}
+      (PAC_checker_step spec' Bst st')\<close>
 proof -
   obtain A \<V> cst B \<V>' cst' where
    Ast: \<open>Ast = (cst, \<V>, A)\<close> and
@@ -766,18 +869,21 @@ proof -
    \<V>[intro]: \<open>(\<V>, \<V>') \<in>  \<langle>var_rel\<rangle>set_rel\<close>  and
    AB: \<open>(A, B) \<in> fmap_polys_rel\<close>
      \<open>(cst, cst') \<in> code_status_status_rel\<close>
-    using assms(1)
+    using assms(1) unfolding fmap_polys_rel2_def
     by (cases Ast; cases Bst; auto)
+  have [intro]: \<open>xc \<in> \<V> \<Longrightarrow> \<phi> xc \<in> \<V>'\<close> for xc
+    using  \<V> by (auto simp: set_rel_def var_rel_def br_def)
+
   have [refine]: \<open>(r, ra) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
        (eqa, eqaa)
-       \<in> {(st, b). (\<not> is_cfailed st \<longleftrightarrow> b) \<and> (is_cfound st \<longrightarrow> spec = r)} \<Longrightarrow>
+       \<in> {(st, b). (\<not> is_cfailed st \<longleftrightarrow> b) \<and> (is_cfound st \<longrightarrow> spec = r) \<and> (b \<longrightarrow> vars_llist r \<subseteq> \<V> \<and> new_id step \<notin># dom_m A)} \<Longrightarrow>
        RETURN eqa
        \<le> \<Down> code_status_status_rel
           (SPEC
             (\<lambda>st'. (\<not> is_failed st' \<and>
                    is_found st' \<longrightarrow>
                     ra - spec' \<in> More_Modules.ideal polynomial_bool)))\<close>
-     for r ra eqa eqaa
+     for r ra eqa eqaa step
      using spec
      by (cases eqa)
        (auto intro!: RETURN_RES_refine dest!: sorted_poly_list_relD
@@ -800,6 +906,9 @@ proof -
          relcompI[of _ \<open>[({#x32#}, -1)]\<close>])
   have H3: \<open>p - Var a = (-Var a) + p\<close> for p :: \<open>int mpoly\<close> and a
     by auto
+  have [iff]: \<open>x3a \<in># remove1_mset x3a (dom_m B) \<longleftrightarrow> False\<close> for x3a B
+    using distinct_mset_dom[of B]
+    by (cases \<open>x3a \<in># dom_m B\<close>) (auto dest!: multi_member_split)
   show ?thesis
     using assms(2)
     unfolding PAC_checker_l_step_def PAC_checker_step_def Ast Bst prod.case
@@ -808,28 +917,27 @@ proof -
     subgoal
       apply (refine_rcg normalize_poly_normalize_poly_spec check_linear_combi_l_check_linear_comb
         full_normalize_poly_diff_ideal)
+      subgoal unfolding PAC_checker_l_step_inv_def sorry
       subgoal using AB by auto
       subgoal using AB by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal using AB unfolding PAC_checker_step_inv_def fmap_rel_alt_def
-        apply (auto simp: all_conj_distrib dest!: multi_member_split sorted_poly_rel_vars_llist2)
-          find_theorems mset_poly_rel vars_llist
-          thm sorted_poly_rel_va bbrs_llist
-        sledgehammer
-        sorry
+      subgoal using AB unfolding PAC_checker_step_inv_def fmap_rel_alt_def PAC_checker_l_step_inv_def
+        by (auto simp: all_conj_distrib dest!: multi_member_split sorted_poly_rel_vars_llist2)
       apply assumption+
       subgoal
         by (auto simp: code_status_status_rel_def)
       subgoal
-        by (auto intro!: fmap_rel_fmupd_fmap_rel
-          fmap_rel_fmdrop_fmap_rel AB)
-      subgoal using AB by auto
+        using AB
+        by (auto intro!: fmap_rel_fmupd_fmap_rel fmap_rel_fmdrop_fmap_rel AB simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def subset_iff)
+      subgoal using AB
+        by (auto intro!: fmap_rel_fmupd_fmap_rel fmap_rel_fmdrop_fmap_rel AB simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def subset_iff)
       done
     subgoal
       apply (refine_rcg full_normalize_poly_diff_ideal
         check_extension_l_check_extension)
+      subgoal unfolding PAC_checker_l_step_inv_def sorry
       subgoal using AB by (auto intro!: fully_unsorted_poly_rel_diff[of _ \<open>-Var _ :: int mpoly\<close>, unfolded H3[symmetric]] simp: comp_def case_prod_beta)
       subgoal using AB by auto
       subgoal using AB by auto
@@ -837,66 +945,181 @@ proof -
       subgoal by auto
       subgoal
         by (auto simp: code_status_status_rel_def)
+      subgoal using AB
+        by (auto simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def
+          intro!: fmap_rel_fmupd_fmap_rel insert_var_rel_set_rel dest!: in_diffD)
+         (auto simp add: var_rel_def br_def)
       subgoal
-        by (auto simp: AB
-          intro!: fmap_rel_fmupd_fmap_rel insert_var_rel_set_rel)
-      subgoal
-        by (auto simp: code_status_status_rel_def AB
+        by (auto simp: code_status_status_rel_def AB fmap_polys_rel2_def
           code_status.is_cfailed_def)
       done
     subgoal
       apply (refine_rcg normalize_poly_normalize_poly_spec
         check_del_l_check_del check_addition_l_check_add
         full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
+      subgoal unfolding PAC_checker_l_step_inv_def sorry
       subgoal using AB by auto
       subgoal using AB by auto
-      subgoal
+      subgoal using AB
         by (auto intro!: fmap_rel_fmupd_fmap_rel
-          fmap_rel_fmdrop_fmap_rel code_status_status_rel_def AB)
+          fmap_rel_fmdrop_fmap_rel code_status_status_rel_def
+          simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def
+          dest: in_diffD)
       subgoal
+        using AB
         by (auto intro!: fmap_rel_fmupd_fmap_rel
-          fmap_rel_fmdrop_fmap_rel AB)
+          fmap_rel_fmdrop_fmap_rel simp: fmap_polys_rel2_def)
       done
     done
 qed
-
+thm PAC_checker_l_def
 lemma PAC_checker_l_PAC_checker:
   assumes
-    \<open>(A, B) \<in> \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> and
+    \<open>(A, B) \<in>{((\<V>, A), (\<V>', A')). ((\<V>, A), (\<V>', A')) \<in> (\<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 b \<V>')}\<close>
+    (is \<open>_ \<in> ?A\<close>) and
     \<open>(st, st') \<in> \<langle>epac_step_rel\<rangle>list_rel\<close> and
     \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(b, b') \<in> code_status_status_rel\<close>
   shows
-    \<open>PAC_checker_l spec A b st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (PAC_checker spec' B b' st')\<close>
+    \<open>PAC_checker_l spec A b st \<le>
+      \<Down> {((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>')} (PAC_checker spec' B b' st')\<close>
 proof -
-  have [refine0]: \<open>(((b, A), st), (b', B), st') \<in> ((code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r  \<langle>epac_step_rel\<rangle>list_rel)\<close>
+  have [refine0]: \<open>(((b, A), st), (b', B), st') \<in>
+    ({((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>')} \<times>\<^sub>r
+     \<langle>epac_step_rel\<rangle>list_rel)\<close>
     using assms by (auto simp: code_status_status_rel_def)
   show ?thesis
     using assms
     unfolding PAC_checker_l_def PAC_checker_def
-    apply (refine_rcg PAC_checker_l_step_PAC_checker_step
-      WHILEIT_refine[where R = \<open>((bool_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r \<langle>pac_step_rel\<rangle>list_rel)\<close>])
-    subgoal by (auto simp: code_status_status_rel_discrim_iff)
+    apply (refine_rcg PAC_checker_l_step_PAC_checker_step)
+    subgoal by (auto simp: code_status_status_rel_discrim_iff
+       WHILEIT_refine[where R = \<open>(?A \<times>\<^sub>r \<langle>pac_step_rel\<rangle>list_rel)\<close>])
     subgoal by auto
     subgoal by (auto simp: neq_Nil_conv)
     subgoal by (auto simp: neq_Nil_conv intro!: param_nth)
     subgoal by (auto simp: neq_Nil_conv)
+    subgoal by (auto simp: neq_Nil_conv fmap_polys_rel2_def)
+    done
+qed
+
+lemma fully_unsorted_poly_rel_extend_vars2:
+  \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+  (x1c, x1a) \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+   RETURN (x1c \<union> vars_llist A)
+    \<le> \<Down> {(a,b). (a,b) \<in> \<langle>var_rel\<rangle>set_rel \<and> a = x1c \<union> vars_llist A}
+       (SPEC ((\<subseteq>) (x1a \<union> vars (B))))\<close>
+  using fully_unsorted_poly_rel_vars_subset_vars_llist[of A B]
+  apply (subst RETURN_RES_refine_iff)
+  apply clarsimp
+  apply (rule exI[of _ \<open>x1a \<union> \<phi> ` vars_llist A\<close>])
+  apply (auto simp: set_rel_def var_rel_def br_def
+    dest: fully_unsorted_poly_rel_vars_subset_vars_llist)
+  done
+
+lemma remap_polys_l_remap_polys:
+  assumes
+    AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
+    spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    V: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
+  shows \<open>remap_polys_l spec \<V> A \<le>
+    \<Down>{((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>')}
+    (remap_polys spec' \<V>' B)\<close>
+  (is \<open>_ \<le> \<Down> ?R _\<close>)
+proof -
+  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
+    by auto
+  have H: \<open>x \<in># dom_m A \<Longrightarrow>
+     (\<And>p. (the (fmlookup A x), p) \<in> fully_unsorted_poly_rel \<Longrightarrow>
+       (p, the (fmlookup B x)) \<in> mset_poly_rel \<Longrightarrow> thesis) \<Longrightarrow>
+     thesis\<close> for x thesis
+    using fmap_rel_nat_the_fmlookup[OF AB, of x x] fmap_rel_nat_rel_dom_m[OF AB] by auto
+
+  have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
+       \<le> \<Down>  {(xs, ys). (xs, ys) \<in> sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist (the (fmlookup A x))}
+          (SPEC
+            (\<lambda>p. the (fmlookup B x') - p \<in> More_Modules.ideal polynomial_bool \<and>
+                 vars p \<subseteq> vars (the (fmlookup B x'))))\<close> (is \<open>_ \<le> \<Down>?A _\<close>)
+      if x_dom: \<open>x \<in># dom_m A\<close> and \<open>(x, x') \<in> Id\<close> for x x'
+      apply (rule H[OF x_dom])
+      subgoal for p
+      apply (rule full_normalize_poly_normalize_poly_p2[THEN order_trans])
+      apply assumption
+      subgoal
+        using that(2) apply -
+        unfolding conc_fun_chain[symmetric]
+        by
+         (auto simp: rtranclp_normalize_poly_p_poly_of_mset conc_fun_RES
+            mset_poly_rel_def ideal.span_zero
+            intro!: exI[of _ \<open>polynomial_of_mset _\<close>])
+      done
+      done
+
+  have H': \<open>(p, pa) \<in> (?A x) \<Longrightarrow>
+     weak_equality_l p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa x
+    using spec by (auto simp: weak_equality_l_def weak_equality_spec_def
+        list_mset_rel_def br_def mset_poly_rel_def
+      dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
+  have XXX: \<open>(\<V>'', \<V>''') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow> x \<in> \<V>'' \<Longrightarrow> \<phi> x \<in> \<V>'''\<close> for x \<V>'' \<V>'''
+    by (auto simp: br_def set_rel_def var_rel_def)
+
+  have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+    ((False, \<V>, fmempty), False, \<V>', fmempty) \<in>
+     {((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (bool_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 CSUCCESS \<V>')}\<close> for \<V> \<V>'
+    by (auto simp: fmap_polys_rel2_def)
+  show ?thesis
+    using assms
+    unfolding remap_polys_l_def remap_polys_l_dom_err_def
+      remap_polys_def prod.case
+    apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: error_msg_def fmap_polys_rel2_def)
+    apply (rule 1)
     subgoal by auto
+    apply (rule emp)
+    subgoal
+      using V by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (rule H')
+    apply (rule fully_unsorted_poly_rel_extend_vars2)
+    subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
+    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
+    subgoal
+      apply simp
+      unfolding fmap_polys_rel2_def
+      apply clarsimp
+        apply (intro conjI)
+        apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: )[]
+        apply clarsimp
+        apply (rule XXX, assumption)
+        apply blast
+        apply (intro conjI impI ballI)
+        apply (clarsimp dest: in_diffD simp add: XXX subset_iff)
+        apply (simp add: XXX subset_iff)
+        by (meson in_diffD)
+    subgoal by auto
+    subgoal by (auto simp: fmap_polys_rel2_def)
     done
 qed
 
 lemma full_checker_l_full_checker:
  assumes
     \<open>(A, B) \<in> unsorted_fmap_polys_rel\<close> and
-    \<open>(st, st') \<in> \<langle>epac_step_rel\<rangle>list_rel\<close> and
-    \<open>(spec, spec') \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
+    st: \<open>(st, st') \<in> \<langle>epac_step_rel\<rangle>list_rel\<close> and
+    spec: \<open>(spec, spec') \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
   shows
-    \<open>full_checker_l spec A st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (full_checker spec' B st')\<close>
+    \<open>full_checker_l spec A st \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
+          ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>'} (full_checker spec' B st')\<close>
 proof -
   have [refine]:
     \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
     (\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
-    remap_polys_l spec \<V> A \<le> \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel)
+    remap_polys_l spec \<V> A \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
+          ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>'}
         (remap_polys_change_all spec' \<V>' B)\<close> for spec spec' \<V> \<V>'
     apply (rule remap_polys_l_remap_polys[THEN order_trans, OF assms(1)])
     apply assumption+
@@ -917,7 +1140,9 @@ proof -
     apply (rule fully_unsorted_poly_rel_extend_vars)
     subgoal using assms(3) .
     subgoal by auto
-    subgoal by auto
+    subgoal
+      by (fastforce simp: fmap_polys_rel2_def set_rel_def var_rel_def br_def
+        dest!: multi_member_split)
     subgoal
       using assms(2) by (auto simp: p2rel_def)
     subgoal by auto
@@ -928,9 +1153,12 @@ qed
 lemma full_checker_l_full_checker':
   \<open>(uncurry2 full_checker_l, uncurry2 full_checker) \<in>
   ((fully_unsorted_poly_rel O mset_poly_rel) \<times>\<^sub>r unsorted_fmap_polys_rel) \<times>\<^sub>r \<langle>epac_step_rel\<rangle>list_rel \<rightarrow>\<^sub>f
-    \<langle>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel)\<rangle>nres_rel\<close>
+    \<langle>{((err, \<V>, A), err', \<V>', A').
+    ((err, \<V>, A), err', \<V>', A')
+    \<in> code_status_status_rel \<times>\<^sub>r  \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r {(xs, ys). (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
+     (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs. \<phi> ` vars_llist (the (fmlookup xs i)) \<subseteq> \<V>'))}}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  using full_checker_l_full_checker by force
+  using full_checker_l_full_checker unfolding fmap_polys_rel2_def by force
 
 end
 
