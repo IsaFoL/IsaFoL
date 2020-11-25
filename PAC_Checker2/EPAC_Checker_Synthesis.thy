@@ -359,10 +359,14 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
   \<open>(uncurry2 full_checker_l_impl,
      uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
     \<in> (full_poly_assn)\<^sup>k *\<^sub>a (full_poly_input_assn)\<^sup>d *\<^sub>a (fully_epac_assn)\<^sup>k \<rightarrow>\<^sub>a hr_comp
-      (code_status_assn \<times>\<^sub>a full_vars_assn \<times>\<^sub>a hr_comp polys_assn
-                              (\<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
-                            {((st, G), st', G').
-                             st = st' \<and> (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
+              (hr_comp  (status_assn raw_string_assn \<times>\<^sub>a hs.assn string_assn \<times>\<^sub>a polys_assn)
+             {((err, \<V>, A), err', \<V>', A').
+              ((err, \<V>, A), err', \<V>', A')
+              \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r
+               {(xs, ys).
+              (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
+              (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs.  \<phi> ` vars_llist (the (fmlookup xs i)) \<subseteq> \<V>'))}})
+        {((st, G), st', G').  (st, st') \<in> status_rel \<and>  (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
   using
     full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
       FCOMP full_checker_spec',
