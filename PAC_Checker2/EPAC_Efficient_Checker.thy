@@ -248,11 +248,13 @@ proof -
     for x1e x2e
     by auto
   have linear_combi_l_alt_def:
-      \<open>linear_combi_l i A \<V> xs = do {
+    \<open>linear_combi_l i A \<V> xs = do {
+      ASSERT(linear_combi_l_pre i A \<V> xs);
       WHILE\<^sub>T
         (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
         (\<lambda>(p, xs, _). do {
           ASSERT(xs \<noteq> []);
+          ASSERT(vars_llist p \<subseteq> \<V>);
           let (q :: llist_polynomial, i) = hd xs;
           if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
           then do {
@@ -266,6 +268,7 @@ proof -
           ASSERT (vars_llist q \<subseteq> \<V>);
           let q = q;
           pq \<leftarrow> mult_poly_full q r;
+          ASSERT (vars_llist pq \<subseteq> \<V>);
           pq \<leftarrow> add_poly_l (p, pq);
           RETURN (pq, tl xs, CSUCCESS)
           }
@@ -303,11 +306,6 @@ proof -
     done 
 qed
 
-thm mult_poly_full_def
-thm mult_poly_raw_def
-thm mult_monomials_def
-thm mult_monoms.simps
-term REC\<^sub>T
 
 definition mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list nres\<close> where
   \<open>mult_monoms_prep \<D> xs ys = REC\<^sub>T (\<lambda>f (xs, ys).
@@ -453,10 +451,10 @@ proof -
     unfolding mult_poly_full_prop_def mult_poly_full_def normalize_poly_def
     by (refine_vcg mult_poly_raw_prop_mult_poly_raw) auto
 qed
-  term linear_combi_l_prep
-thm linear_combi_l_prep_def
+
 definition linear_combi_l_prep2 where
-\<open>linear_combi_l_prep2 i A \<V> xs = do {
+  \<open>linear_combi_l_prep2 i A \<V> xs = do {
+    ASSERT(linear_combi_l_pre i A (set_mset \<V>) xs);
     WHILE\<^sub>T
       (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
       (\<lambda>(p, xs, _). do {
@@ -480,8 +478,7 @@ definition linear_combi_l_prep2 where
     }\<close>
 
 lemma
-  assumes \<V>: \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close> and
-    A: \<open>\<And>xs. xs \<in># dom_m A \<Longrightarrow> vars_llist (A \<propto> xs) \<subseteq> set_mset \<V>\<close>
+  assumes \<V>: \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close>
   shows \<open>linear_combi_l_prep2 i A \<V> xs \<le> \<Down>Id (linear_combi_l i A \<V>' xs)\<close>
 proof -
   have H1: \<open>(if p \<or> q then P else Q) = (if p then P else if q then P else Q)\<close> for p q P Q
@@ -490,12 +487,14 @@ proof -
     for x1e x2e
     by auto
   have linear_combi_l_alt_def:
-      \<open>linear_combi_l i A \<V> xs = do {
+    \<open>linear_combi_l i A \<V> xs = do {
+      ASSERT(linear_combi_l_pre i A \<V> xs);
       WHILE\<^sub>T
         (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
         (\<lambda>(p, xs, _). do {
-          ASSERT(xs \<noteq> []);
-          let (q :: llist_polynomial, i) = hd xs;
+         ASSERT(xs \<noteq> []);
+         ASSERT (vars_llist p \<subseteq> \<V>);
+         let (q :: llist_polynomial, i) = hd xs;
           if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
           then do {
             err \<leftarrow> check_linear_combi_l_dom_err q i;
@@ -508,6 +507,7 @@ proof -
           ASSERT (vars_llist q \<subseteq> \<V>);
           let q = q;
           pq \<leftarrow> mult_poly_full q r;
+          ASSERT (vars_llist pq \<subseteq> \<V>);
           pq \<leftarrow> add_poly_l' \<V>' (p, pq);
           RETURN (pq, tl xs, CSUCCESS)
           }
@@ -527,6 +527,7 @@ proof -
     apply (refine_rcg import_poly_no_new_spec[THEN order_trans]
       mult_poly_full_prop_mult_poly_full[THEN order_trans]
       add_poly_alt_def[THEN order_trans])
+    subgoal using \<V> by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -540,20 +541,16 @@ proof -
     subgoal using \<V> by auto
     subgoal by auto
     subgoal using \<V> by auto
-    subgoal using \<V> A by auto
+    subgoal using \<V> unfolding linear_combi_l_pre_def by auto
     apply (rule H)
     subgoal by auto
-    subgoal using \<V> A apply auto
-      sorry
-    subgoal using \<V> A apply auto
-      sorry
+    subgoal using \<V> by (auto dest!: split_list)
+    subgoal using \<V> by (auto dest!: split_list)
     apply (rule H)
     subgoal by (auto simp: add_poly_l'_def)
     subgoal by auto
     done
 qed
-    find_theorems linear_combi_l_prep
-oops
 end
 
 end

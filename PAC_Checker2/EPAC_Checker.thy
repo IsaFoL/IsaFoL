@@ -80,9 +80,13 @@ definition check_linear_combi_l_dom_err :: \<open>llist_polynomial \<Rightarrow>
 
 definition check_linear_combi_l_mult_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> string nres\<close> where
   \<open>check_linear_combi_l_mult_err pq r = SPEC (\<lambda>_. True)\<close>
+definition linear_combi_l_pre where
+  \<open>linear_combi_l_pre i A \<V> xs \<longleftrightarrow>
+  (\<forall>i\<in>#dom_m A. vars_llist (the (fmlookup A i)) \<subseteq> \<V>)\<close>
 
 definition linear_combi_l where
 \<open>linear_combi_l i A \<V> xs = do {
+    ASSERT(linear_combi_l_pre i A \<V> xs);
     WHILE\<^sub>T
       (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
       (\<lambda>(p, xs, _). do {
@@ -692,7 +696,9 @@ proof -
        (\<Sum>(p,n) \<in># mset xs'. the (fmlookup B n) * p) - r \<in> ideal polynomial_bool)))\<close>
     using assms(1) xs
     unfolding linear_combi_l_def conc_fun_RES check_linear_combi_l_dom_err_def term_rel_def[symmetric]
-      raw_term_rel_def[symmetric] error_msg_def in_dom_m_lookup_iff[symmetric]
+      raw_term_rel_def[symmetric] error_msg_def in_dom_m_lookup_iff[symmetric] apply -
+    apply (rule ASSERT_leI)
+    subgoal using assms unfolding linear_combi_l_pre_def by blast
     apply (subst (2) RES_SPEC_eq)
     apply (rule WHILET_rule[where R = \<open>measure (\<lambda>(_, xs, p). if is_cfailed p then 0 else Suc (length xs))\<close>
       and I = \<open>?I\<close>])
