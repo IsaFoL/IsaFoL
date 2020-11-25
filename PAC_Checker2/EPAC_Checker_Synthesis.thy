@@ -365,7 +365,7 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
               \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r
                {(xs, ys).
               (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
-              (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs.  \<phi> ` vars_llist (the (fmlookup xs i)) \<subseteq> \<V>'))}})
+              (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs. vars_llist (the (fmlookup xs i)) \<subseteq> \<V>))}})
         {((st, G), st', G').  (st, st') \<in> status_rel \<and>  (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
   using
     full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
