@@ -32,8 +32,8 @@ locale consequence_relation =
     it was detected to be unsufficient thanks to the forma*)
 begin
 
-abbreviation equi_entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>|" 50) where
-  "M \<Turnstile>| N \<equiv> (M \<Turnstile> N \<and> N \<Turnstile> M)"
+abbreviation equi_entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
+  "equi_entails M N \<equiv> (M \<Turnstile> N \<and> N \<Turnstile> M)"
 
 lemma entails_cond_reflexive: \<open>N \<noteq> {} \<Longrightarrow> N \<Turnstile> N\<close>
   using entails_reflexive entails_subsets by (meson bot.extremum from_nat_into insert_subset)
@@ -215,7 +215,7 @@ end
    
 
 
-locale sound_inference_system = inference_system Inf + consequence_relation bot entails_sound
+locale sound_inference_system = inference_system Inf + sound_cons: consequence_relation bot entails_sound
   for
     Inf :: "'f inference set" and
     bot :: "'f" and
@@ -358,7 +358,6 @@ next
     unfolding Red_I_strict_def using Red_I_of_Inf_to_N Red_I_to_Inf by simp
 qed
 
-
 definition weakly_fair :: "'f set stream \<Rightarrow> bool" where
   "weakly_fair Ns \<equiv> Inf_from (lim_inf Ns) \<subseteq> (\<Union>i. (Red_I (Ns !! i)))"
 
@@ -394,6 +393,32 @@ lemma derive_trans: "M \<rhd> N \<Longrightarrow> N \<rhd> N' \<Longrightarrow> 
 
 end
   
+locale sound_calculus = sound_inference_system Inf bot entails_sound +
+  consequence_relation bot entails
+  for
+    bot :: "'f" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50)
+    + fixes
+    Red_I :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set"
+    assumes
+      Red_I_to_Inf: "Red_I N \<subseteq> Inf" and
+      Red_F_Bot: "N \<Turnstile> {bot} \<Longrightarrow> N - Red_F N \<Turnstile> {bot}" and (* /!\ check if this is ok *)
+      Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" and
+      Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" and
+      Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" and
+      Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" and
+      Red_I_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
+begin
+
+sublocale calculus bot Inf entails
+  by (simp add: Preliminaries.calculus.intro Preliminaries.calculus_axioms.intro Red_F_Bot
+    Red_F_of_Red_F_subset Red_F_of_subset Red_I_of_Inf_to_N Red_I_of_Red_F_subset Red_I_of_subset
+    Red_I_to_Inf consequence_relation_axioms)
+end
+      
 locale statically_complete_calculus = calculus +
   assumes statically_complete: "saturated N \<Longrightarrow> N \<Turnstile> {bot} \<Longrightarrow> bot \<in> N"
 begin
@@ -469,31 +494,63 @@ definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
 definition Neg_set :: "'v neg set \<Rightarrow> 'v neg set" ("\<sim>_" 55) where
   \<open>\<sim>V \<equiv> {Neg v |v. v \<in> V}\<close>
 
-locale propositional_interpretations =
-  fixes
-    \<J> :: "'v::countable neg set set"
-  assumes
-    all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
-    all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>"
+definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f inference" where
+  \<open>F_of_Inf \<iota>AF = (Infer (map F_of (prems_of \<iota>AF)) (F_of (concl_of \<iota>AF)))\<close>
+  
+(* locale propositional_interpretations =
+ *   fixes
+ *     \<J> :: "'v::countable neg set set"
+ *   assumes
+ *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
+ *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
 
 
-locale A_calculus = calculus bot Inf entails Red_I Red_F + propositional_interpretations \<J>
+locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
     Inf :: \<open>'f inference set\<close> and
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red_I :: "'f set \<Rightarrow> 'f inference set" and
-    Red_F :: "'f set \<Rightarrow> 'f set" and
-    \<J> :: "'v::countable neg set set"
+    Red_F :: "'f set \<Rightarrow> 'f set"
+  + fixes
+    \<J> :: "'v::countable neg set set" and
+    fml :: "'v \<Rightarrow> 'f"
+  assumes
+    j_is: \<open>\<J> = {J. is_interpretation J}\<close>
 begin
 
-definition enabled :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
-  \<open>enabled C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close>
+definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close>
 
-inductive "enabled2" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
-  cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled2 C J" |
-  cond2: "is_interpretation J \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled2 C J"
+  (* J must be an interpretation, but this could also be verified outside of the definitions *)
+inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
+  cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J"
+  
+definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
 
+definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+  \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
+  
+definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v neg set \<Rightarrow> ('f, 'v) AF set" where
+  \<open>enabled_projection N J = {C. C \<in> N \<and> enabled C J}\<close>
+
+definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" where
+  \<open>propositional_projection N = {C. C \<in> N \<and> F_of C = bot}\<close>
+
+definition enabled_projection_Inf ::
+  "('f, 'v) AF inference set \<Rightarrow> 'v neg set \<Rightarrow> ('f, 'v) AF inference set" where
+  \<open>enabled_projection_Inf I J = {\<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
+
+fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
+  "fml_ext (Pos v) = Pos (fml v)" |
+  "fml_ext (Neg v) = Neg (fml_ext v)"
+
+
+definition sound_consistent :: "'v neg set \<Rightarrow> bool" where
+  \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` J) {Pos bot})\<close>
 
 end
 
