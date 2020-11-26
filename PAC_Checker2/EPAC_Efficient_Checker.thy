@@ -3,15 +3,12 @@ theory EPAC_Efficient_Checker
 begin
 type_synonym shared_poly = \<open>(nat list \<times> int) list\<close>
 
-context poly_embed
-begin
-
-definition add_poly_l' where
+definition (in -) add_poly_l' where
   \<open>add_poly_l' _ = add_poly_l\<close>
 
-datatype ordered = LESS | EQUAL | GREATER | UNKNOWN
+datatype(in -) ordered = LESS | EQUAL | GREATER | UNKNOWN
 
-definition perfect_shared_var_order :: \<open>(nat, string)vars \<Rightarrow> string \<Rightarrow> string \<Rightarrow> ordered nres\<close> where
+definition (in -)perfect_shared_var_order :: \<open>(nat, string)vars \<Rightarrow> string \<Rightarrow> string \<Rightarrow> ordered nres\<close> where
   \<open>perfect_shared_var_order \<D> x y = do {
     ASSERT(x \<in># \<D> \<and> y \<in># \<D>);
     eq \<leftarrow> perfectly_shared_strings_equal \<D> x y;
@@ -40,13 +37,13 @@ lemma perfect_shared_var_order_spec:
    (auto dest: var_roder_rel_total)
 
 
-definition perfect_shared_term_order_rel_pre
+definition (in -) perfect_shared_term_order_rel_pre
   :: \<open>(nat, string) vars \<Rightarrow> string list \<Rightarrow> string list \<Rightarrow> bool\<close>
 where
   \<open>perfect_shared_term_order_rel_pre \<V> xs ys \<longleftrightarrow>
     set xs \<subseteq> set_mset \<V> \<and> set ys \<subseteq> set_mset \<V>\<close>
 
-definition perfect_shared_term_order_rel
+definition (in -) perfect_shared_term_order_rel
   :: \<open>(nat, string) vars \<Rightarrow> string list \<Rightarrow> string list \<Rightarrow> ordered nres\<close>
 where
   \<open>perfect_shared_term_order_rel \<V> xs ys  = do {
@@ -66,8 +63,8 @@ where
     RETURN b
   }\<close>
 
-
-lemma perfect_shared_term_order_rel_spec:
+thm perfect_shared_var_order_spec
+lemma (in -)perfect_shared_term_order_rel_spec:
   assumes \<open>set xs \<subseteq> set_mset \<V>\<close>  \<open>set ys \<subseteq> set_mset \<V>\<close>
   shows
     \<open>perfect_shared_term_order_rel \<V> xs ys \<le> \<Down> Id (SPEC(\<lambda>b. ((b=LESS \<longrightarrow> (xs, ys) \<in> term_order_rel) \<and>
@@ -105,17 +102,17 @@ proof -
     done
 qed
 
-lemma trans_var_order_rel[simp]: \<open>trans var_order_rel\<close>
+lemma (in-) trans_var_order_rel[simp]: \<open>trans var_order_rel\<close>
   unfolding trans_def var_order_rel_def
   apply (intro conjI impI allI)
   by (meson lexord_partial_trans trans_def trans_less_than_char)
  
-lemma term_order_rel_irreflexive:
+lemma (in-) term_order_rel_irreflexive:
   \<open>(x1f, x1d) \<in> term_order_rel \<Longrightarrow> (x1d, x1f) \<in> term_order_rel \<Longrightarrow> x1f = x1d\<close>
   using lexord_trans[of x1f x1d var_order_rel x1f] lexord_irreflexive[of var_order_rel x1f]
   by simp
 
-definition add_poly_l_prep :: \<open>(nat,string)vars \<Rightarrow> llist_polynomial \<times> llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
+definition (in -)add_poly_l_prep :: \<open>(nat,string)vars \<Rightarrow> llist_polynomial \<times> llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
   \<open>add_poly_l_prep \<D> = REC\<^sub>T
   (\<lambda>add_poly_l (p, q).
   case (p,q) of
@@ -179,7 +176,7 @@ proof -
     done
 qed
 
-definition normalize_poly_shared
+definition (in -)normalize_poly_shared
   :: \<open>(nat,string) vars \<Rightarrow> llist_polynomial \<Rightarrow>
   (bool \<times> llist_polynomial) nres\<close>
   where
@@ -198,7 +195,7 @@ where
   }\<close>
 
 
-definition linear_combi_l_prep where
+definition (in -)linear_combi_l_prep where
   \<open>linear_combi_l_prep i A \<V> xs = do {
   WHILE\<^sub>T
     (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
@@ -222,7 +219,7 @@ definition linear_combi_l_prep where
         }\<close>
 
 
-lemma import_poly_no_new_spec:
+lemma (in -) import_poly_no_new_spec:
     \<open>import_poly_no_new \<V> xs \<le> \<Down>Id (SPEC(\<lambda>(b, xs'). (\<not>b \<longrightarrow> xs = xs') \<and> (\<not>b \<longleftrightarrow> vars_llist xs \<subseteq> set_mset \<V>)))\<close>
   unfolding import_poly_no_new_def
   apply (refine_vcg WHILET_rule[where I = \<open> \<lambda>(b, xs', ys'). (\<not>b \<longrightarrow> xs = ys' @ xs')  \<and>
@@ -239,7 +236,7 @@ lemma import_poly_no_new_spec:
   subgoal by auto
   done
 
-lemma linear_combi_l_prep_linear_combi_l:
+lemma (in -) linear_combi_l_prep_linear_combi_l:
   \<open>linear_combi_l_prep i A \<V> xs  \<le> \<Down>Id (linear_combi_l i A (set_mset \<V>) xs) \<close>
 proof -
   have H1: \<open>(if p \<or> q then P else Q) = (if p then P else if q then P else Q)\<close> for p q P Q
@@ -307,7 +304,7 @@ proof -
 qed
 
 
-definition mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list nres\<close> where
+definition (in -) mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list nres\<close> where
   \<open>mult_monoms_prep \<D> xs ys = REC\<^sub>T (\<lambda>f (xs, ys).
  do {
     if xs = [] then RETURN ys
@@ -330,8 +327,8 @@ definition mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term_poly_l
    }
  }) (xs, ys)\<close>
 
-
-lemma mult_monoms_prep_mult_monoms:
+thm perfect_shared_term_order_rel_spec
+lemma (in -) mult_monoms_prep_mult_monoms:
   assumes \<open>set xs \<subseteq> set_mset \<V>\<close> \<open>set ys \<subseteq> set_mset \<V>\<close>
   shows \<open>mult_monoms_prep \<V> xs ys \<le> \<Down>Id (SPEC ((=) (mult_monoms xs ys)))\<close>
 proof -
@@ -431,7 +428,7 @@ proof -
     by (rule H[THEN order_trans]) (auto simp: conc_fun_RES)
 qed
 
-definition mult_poly_full_prop :: \<open>_\<close> where
+definition (in -) mult_poly_full_prop :: \<open>_\<close> where
 \<open>mult_poly_full_prop \<V> p q = do {
   pq \<leftarrow> mult_poly_raw_prop \<V> p q;
   normalize_poly pq
@@ -452,7 +449,7 @@ proof -
     by (refine_vcg mult_poly_raw_prop_mult_poly_raw) auto
 qed
 
-definition linear_combi_l_prep2 where
+definition (in -) linear_combi_l_prep2 where
   \<open>linear_combi_l_prep2 i A \<V> xs = do {
     ASSERT(linear_combi_l_pre i A (set_mset \<V>) xs);
     WHILE\<^sub>T
@@ -477,9 +474,9 @@ definition linear_combi_l_prep2 where
      ([], xs, CSUCCESS)
     }\<close>
 
-lemma
-  assumes \<V>: \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close>
-  shows \<open>linear_combi_l_prep2 i A \<V> xs \<le> \<Down>Id (linear_combi_l i A \<V>' xs)\<close>
+lemma linear_combi_l_prep2_linear_combi_l:
+  assumes \<V>: \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close>\<open>(i,i')\<in>nat_rel\<close>\<open>(A,A')\<in>Id\<close>\<open>(xs,xs')\<in>Id\<close>
+  shows \<open>linear_combi_l_prep2 i A \<V> xs \<le> \<Down>Id (linear_combi_l i' A' \<V>' xs')\<close>
 proof -
   have H1: \<open>(if p \<or> q then P else Q) = (if p then P else if q then P else Q)\<close> for p q P Q
     by auto
@@ -523,6 +520,7 @@ proof -
     for xa \<V> q
     using that by auto
   show ?thesis
+    using assms
     unfolding linear_combi_l_prep2_def linear_combi_l_alt_def normalize_poly_shared_def nres_monad3
     apply (refine_rcg import_poly_no_new_spec[THEN order_trans]
       mult_poly_full_prop_mult_poly_full[THEN order_trans]
@@ -551,6 +549,242 @@ proof -
     subgoal by auto
     done
 qed
-end
+
+definition check_linear_combi_l_prop where
+  \<open>check_linear_combi_l_prop spec A \<V> i xs r = do {
+  (mem_err, r) \<leftarrow> import_poly_no_new \<V> r;
+  if mem_err \<or> i \<in># dom_m A \<or> xs = []
+  then do {
+    err \<leftarrow> check_linear_combi_l_pre_err i (i \<in># dom_m A) (xs = []) (mem_err);
+    RETURN (error_msg i err, r)
+  }
+  else do {
+    (p, _, err) \<leftarrow> linear_combi_l_prep2 i A \<V> xs;
+    if (is_cfailed err)
+    then do {
+      RETURN (err, r)
+    }
+    else do {
+      b \<leftarrow> weak_equality_l p r;
+      b' \<leftarrow> weak_equality_l r spec;
+      if b then (if b' then RETURN (CFOUND, r) else RETURN (CSUCCESS, r)) else do {
+        c \<leftarrow> check_linear_combi_l_mult_err p r;
+        RETURN (error_msg i c, r)
+      }
+    }
+  }}\<close>
+
+lemma check_linear_combi_l_prop_check_linear_combi_l:
+  assumes \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A, A') \<in> Id\<close> \<open>(i,i')\<in>nat_rel\<close> \<open>(xs,xs')\<in>Id\<close>\<open>(r,r')\<in>Id\<close>
+  shows \<open>check_linear_combi_l_prop spec A \<V> i xs r \<le> \<Down>{((b,r'), b'). b=b' \<and> (\<not>is_cfailed b \<longrightarrow> r=r')} (check_linear_combi_l spec A' \<V>' i' xs' r')\<close>
+proof -
+  have [refine]: \<open>import_poly_no_new \<V> r \<le> \<Down> {((mem, r'), b). (b=mem) \<and> (\<not>b \<longrightarrow> r'=r \<and> vars_llist r \<subseteq> set_mset \<V>)} (RES UNIV)\<close>
+    apply (rule order_trans)
+    apply (rule import_poly_no_new_spec)
+    apply (auto simp: conc_fun_RES)
+    done
+  have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
+    by auto
+
+  show ?thesis
+    using assms
+    unfolding check_linear_combi_l_prop_def check_linear_combi_l_def
+    apply (refine_vcg linear_combi_l_prep2_linear_combi_l)
+    subgoal using assms by auto
+    apply (rule H)
+    subgoal by (auto simp: check_linear_combi_l_pre_err_def)
+    subgoal by (auto simp:error_msg_def)
+    subgoal using assms by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition (in -)check_extension_l2_prop
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> string multiset \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> llist_polynomial \<times> string multiset) nres\<close>
+where
+\<open>check_extension_l2_prop spec A \<V> i v p = do {
+  (pre, nonew, mem, p, p', \<V>) \<leftarrow> do {
+      let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V> \<and> ([v], -1) \<in> set p;
+      let p' = remove1 ([v], -1) p;
+      let b = vars_llist p' \<subseteq> set_mset \<V>;
+      (mem, p, \<V>) \<leftarrow> import_poly \<V> p;
+      RETURN (pre \<and> \<not>alloc_failed mem, b, mem, p, p', \<V>)
+   };
+  if \<not>pre
+  then do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c, [], \<V>)
+  } else do {
+      if \<not>nonew
+      then do {
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p';
+        RETURN (error_msg i c, [], \<V>)
+      }
+      else do {
+         p2 \<leftarrow> mult_poly_full p' p';
+         let p'' = map (\<lambda>(a,b). (a, -b)) p';
+         q \<leftarrow> add_poly_l (p2, p'');
+         eq \<leftarrow> weak_equality_l q [];
+         if eq then do {
+           RETURN (CSUCCESS, p, \<V>)
+         } else do {
+          c \<leftarrow> check_extension_l_side_cond_err v p p'' q;
+          RETURN (error_msg i c, [], \<V>)
+        }
+      }
+    }
+  }\<close>
+
+lemma check_extension_l2_prop_check_extension_l2:
+  assumes \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(spec, spec') \<in> Id\<close>  \<open>(A, A') \<in> Id\<close> \<open>(i,i') \<in> nat_rel\<close> \<open>(v, v') \<in> Id\<close> \<open>(p, p') \<in> Id\<close>
+  shows \<open>check_extension_l2_prop spec A \<V> i v p \<le>\<Down>{((err, q, \<A>), b). (b = err) \<and> (\<not>is_cfailed err \<longrightarrow> q=p \<and> set_mset \<A> = insert v \<V>')}
+    (check_extension_l2 spec' A' \<V>' i' v' p')\<close>
+proof -
+
+  have [refine]: \<open>do {
+   (mem, pa, \<V>') \<leftarrow> import_poly \<V> p;
+   RETURN
+    ((i \<notin># dom_m A \<and> v \<notin># \<V> \<and> ([v], - 1) \<in> set p) \<and> \<not>alloc_failed mem,
+    vars_llist (remove1 ([v], - 1) p) \<subseteq> set_mset \<V>, mem, pa, remove1 ([v], - 1) p, \<V>')
+    } \<le> \<Down> {((pre, nonew, mem, p', pa, \<A>), b). (b=pre) \<and> (nonew \<longleftrightarrow> vars_llist (remove1 ([v], - 1) p) \<subseteq> set_mset \<V>) \<and>
+       pa = (remove1 ([v], - 1) p) \<and>  (b \<longrightarrow> \<not>alloc_failed mem) \<and>
+       (\<not>alloc_failed mem \<longrightarrow> p'=p \<and> set_mset \<A> = set_mset \<V> \<union> vars_llist p)}
+    (SPEC (\<lambda>b. b \<longrightarrow> i' \<notin># dom_m A' \<and> v' \<notin> \<V>' \<and> ([v'], - 1) \<in> set p'))\<close>
+    using assms unfolding conc_fun_RES
+    apply (subst RES_SPEC_eq)
+    apply (refine_vcg import_poly_spec[THEN order_trans])
+    apply (clarsimp simp: vars_llist_def)
+    done
+
+  have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
+    by auto
+  show ?thesis
+    using assms
+    unfolding check_extension_l2_prop_def check_extension_l2_def
+    apply (refine_vcg)
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by (simp add: error_msg_def)
+    subgoal by auto
+    apply (rule H)
+    subgoal by (auto simp: check_extension_l_new_var_multiple_err_def)
+    subgoal by (simp add: error_msg_def)
+    apply (rule H)
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto dest!: split_list_first simp: remove1_append)
+    apply (rule H)
+    subgoal by (auto simp: check_extension_l_new_var_multiple_err_def)
+    subgoal by (auto simp: error_msg_def)
+    done
+qed
+
+
+definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status \<times> string multiset \<times> _ \<Rightarrow> (llist_polynomial, string, nat) pac_step \<Rightarrow> _\<close> where
+  \<open>PAC_checker_l_step_prep = (\<lambda>spec (st', \<V>, A) st. do {
+    ASSERT (PAC_checker_l_step_inv spec st' (set_mset \<V>) A);
+    ASSERT (\<not>is_cfailed st');
+    case st of
+     CL _ _ _ \<Rightarrow>
+       do {
+        r \<leftarrow> full_normalize_poly (pac_res st);
+        (eq, r) \<leftarrow> check_linear_combi_l_prop spec A \<V> (new_id st) (pac_srcs st) r;
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmupd (new_id st) r A)
+       else RETURN (eq, \<V>, A)
+     }
+    | Del _ \<Rightarrow>
+       do {
+        eq \<leftarrow> check_del_l spec A (pac_src1 st);
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmdrop (pac_src1 st) A)
+        else RETURN (eq, \<V>, A)
+     }
+   | Extension _ _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
+        (eq, r, \<V>) \<leftarrow> check_extension_l2_prop spec A (\<V>) (new_id st) (new_var st) r;
+        if \<not>is_cfailed eq
+        then RETURN (st', \<V>, fmupd (new_id st) r A)
+        else RETURN (eq, \<V>, A)
+     }}
+          )\<close>
+
+lemma
+  assumes \<open>(state, state') \<in> {((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}\<close>
+  shows \<open>PAC_checker_l_step_prep spec state step \<le>
+    \<Down>{((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}
+    (PAC_checker_l_step spec state' step)\<close>
+proof -
+  have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
+    by auto
+  term CL
+  show ?thesis
+    using assms apply -
+    unfolding PAC_checker_l_step_prep_def PAC_checker_l_step_def
+    apply (simp only: split: prod.splits)
+    apply (simp only: split:prod.splits pac_step.splits)
+    apply (intro conjI impI allI)
+    subgoal
+      apply (refine_rcg check_linear_combi_l_prop_check_linear_combi_l)
+      subgoal using assms by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      apply (refine_rcg check_extension_l2_prop_check_extension_l2)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      apply (refine_rcg)
+      subgoal by auto
+      subgoal by auto
+      apply (rule H)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      done
+    done
+qed
 
 end

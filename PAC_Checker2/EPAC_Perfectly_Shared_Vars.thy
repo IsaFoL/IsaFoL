@@ -1,5 +1,7 @@
 theory EPAC_Perfectly_Shared_Vars
   imports EPAC_Checker_Specification
+    PAC_Checker.PAC_Checker (*for vars_llist*)
+    EPAC_Checker (*for vars_llist*)
 begin
 
 text \<open>We now introduce sharing of variables to make a more efficient representation possible.\<close>
@@ -329,6 +331,26 @@ lemma import_poly_no_newS_import_poly_no_new:
   subgoal by (force simp: list_rel_append1)
   subgoal by auto
   done
+
+lemma import_poly_no_new_spec:
+  shows \<open>import_poly_no_new \<A> xs \<le> \<Down> Id
+    (SPEC(\<lambda>(new, ys). \<not>new \<longrightarrow> ys = xs \<and> vars_llist xs \<subseteq> set_mset \<A>))\<close>
+proof -
+  define I where
+    [simp]: \<open>I = (\<lambda>(new, ys, zs). \<not>new \<longrightarrow> (xs = zs @ ys \<and> vars_llist zs \<subseteq> set_mset \<A>))\<close>
+  show ?thesis
+  unfolding import_poly_no_new_def is_new_variable_def get_var_name_def import_variable_def
+  apply (refine_vcg import_monom_no_new_spec[THEN order_trans]
+    WHILET_rule[where I = \<open>I\<close> and
+    R = \<open>measure (\<lambda>(mem, ys, _). (if mem then 0 else 1) + length ys)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: neq_Nil_conv)
+  subgoal by auto
+  subgoal by auto
+  done
+qed
 
 definition import_monomS
   :: \<open>('nat, 'string) shared_vars \<Rightarrow> 'string list \<Rightarrow> (_ \<times> 'nat list \<times> ('nat, 'string) shared_vars) nres\<close>
