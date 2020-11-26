@@ -492,19 +492,27 @@ typedef 'v propositional_interpretation = "{J :: 'v neg set. is_interpretation J
 proof
   show \<open>{} \<in> {J :: 'v neg set. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
 qed
-
+  
+  find_theorems name: Abs name: propositional_interpretation
+  
 context
 begin
   setup_lifting type_definition_propositional_interpretation
 
-  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90) is "(\<in>)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
+  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90)
+    is "(\<in>)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
   
 end
 
-lemma \<open>belong_to v J \<Longrightarrow> \<not> (belong_to (Neg v) J)\<close>
+lemma \<open>(v::'v neg) \<in>\<^sub>v J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>v J)\<close>
 proof transfer
-  oops
-  
+  fix v J
+  assume
+    j_is: \<open>is_interpretation (J:: 'v neg set)\<close> and
+    v_in: \<open>v \<in> J\<close>
+  then show \<open>Neg v \<notin> J\<close>
+    unfolding is_interpretation_def using is_Pos.simps(2) to_V.simps(2) by blast
+qed 
 
 
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
