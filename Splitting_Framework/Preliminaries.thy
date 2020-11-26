@@ -488,6 +488,25 @@ datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v neg set")
 definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
   \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> is_Pos v1 = is_Pos v2)))\<close>
 
+typedef 'v propositional_interpretation = "{J :: 'v neg set. is_interpretation J}"
+proof
+  show \<open>{} \<in> {J :: 'v neg set. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
+qed
+
+context
+begin
+  setup_lifting type_definition_propositional_interpretation
+
+  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90) is "(\<in>)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
+  
+end
+
+lemma \<open>belong_to v J \<Longrightarrow> \<not> (belong_to (Neg v) J)\<close>
+proof transfer
+  oops
+  
+
+
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
@@ -513,7 +532,8 @@ locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F (* 
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red_I :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
-  + fixes
+    + fixes
+    V:: "'v::countable itself" and
     \<J> :: "'v::countable neg set set" and
     fml :: "'v \<Rightarrow> 'f"
   assumes
