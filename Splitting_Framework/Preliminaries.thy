@@ -483,17 +483,22 @@ locale dynamically_complete_calculus = calculus +
     
     (* discussions on this datatype allowed to detect a spurious assumption: 'v doesn't need to be
     infinite*)
+    (* TODO: should "countable" be added as a requirement of the A_calculus locale? *)
 datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v neg set")
 
 definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
   \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> is_Pos v1 = is_Pos v2)))\<close>
-
+  
+  (* TODO: find a shorter name for this type (?) *)
 typedef 'v propositional_interpretation = "{J :: 'v neg set. is_interpretation J}"
 proof
   show \<open>{} \<in> {J :: 'v neg set. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
 qed
   
   find_theorems name: Abs name: propositional_interpretation
+
+abbreviation "interp_of \<equiv> Abs_propositional_interpretation"
+abbreviation "strip \<equiv> Rep_propositional_interpretation"
   
 context
 begin
@@ -531,8 +536,8 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
  *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
  *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
 
-
-locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F (* + propositional_interpretations \<J>*)
+locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
+  (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
     Inf :: \<open>'f inference set\<close> and
@@ -542,34 +547,38 @@ locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F (* 
     Red_F :: "'f set \<Rightarrow> 'f set"
     + fixes
     V:: "'v::countable itself" and
-    \<J> :: "'v::countable neg set set" and
+    (* \<J> :: "'v::countable neg set set" and *)
     fml :: "'v \<Rightarrow> 'f"
-  assumes
-    j_is: \<open>\<J> = {J. is_interpretation J}\<close>
+    (* assumes
+    j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
 
-definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
-  \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close>
+(* definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+ *   \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close> *)
 
   (* J must be an interpretation, but this could also be verified outside of the definitions *)
-inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
-  cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
-  cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J"
+(* inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+ *   cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
+  *   cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J" *)
   
-definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+inductive "enabled" :: "('f, 'v::countable) AF \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
+  cond1: "(A_of C) \<subseteq> (strip J) \<Longrightarrow> enabled C J" |
+  cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (strip J) = {}) \<Longrightarrow> enabled C J"
+  
+definition enabled_set :: "('f, 'v::countable) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
   \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
 
-definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v neg set \<Rightarrow> bool" where
+definition enabled_inf :: "('f, 'v::countable) AF inference \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
   \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
   
-definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v neg set \<Rightarrow> ('f, 'v) AF set" where
+definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set" where
   \<open>enabled_projection N J = {C. C \<in> N \<and> enabled C J}\<close>
 
 definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" where
   \<open>propositional_projection N = {C. C \<in> N \<and> F_of C = bot}\<close>
 
 definition enabled_projection_Inf ::
-  "('f, 'v) AF inference set \<Rightarrow> 'v neg set \<Rightarrow> ('f, 'v) AF inference set" where
+  "('f, 'v) AF inference set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> ('f, 'v) AF inference set" where
   \<open>enabled_projection_Inf I J = {\<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
 
 fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
