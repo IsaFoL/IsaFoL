@@ -19,6 +19,10 @@ fun is_Pos :: "'a neg \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
   "is_Pos (Neg C) = (\<not>(is_Pos C))"
 
+fun is_in :: "'a neg \<Rightarrow> 'a neg set \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90) where
+  \<open>(Pos C) \<in>\<^sub>v J = (\<exists>v\<in>J. is_Pos v \<and> to_V v = C)\<close> |
+  \<open>(Neg C) \<in>\<^sub>v J = (\<exists>v\<in>J. (is_Pos v = is_Pos (Neg C)) \<and> to_V v = to_V C)\<close>
+
 locale consequence_relation =
   fixes
     bot :: "'f" and
@@ -91,7 +95,7 @@ next
   qed
 qed
 
-definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" where
+definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
   "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
       {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} "
   
@@ -499,25 +503,38 @@ qed
 
 abbreviation "interp_of \<equiv> Abs_propositional_interpretation"
 abbreviation "strip \<equiv> Rep_propositional_interpretation"
-  
+
 context
 begin
   setup_lifting type_definition_propositional_interpretation
 
-  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90)
-    is "(\<in>)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
-  
+  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
+    is "(\<in>\<^sub>v)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
+
 end
 
-lemma \<open>(v::'v neg) \<in>\<^sub>v J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>v J)\<close>
+definition total :: "'v propositional_interpretation \<Rightarrow> bool" where
+  \<open>total J \<equiv> \<forall>v. v \<in>\<^sub>J J\<close>
+  
+lemma \<open>(v::'v neg) \<in>\<^sub>J J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>J J)\<close>
 proof transfer
   fix v J
   assume
     j_is: \<open>is_interpretation (J:: 'v neg set)\<close> and
-    v_in: \<open>v \<in> J\<close>
-  then show \<open>Neg v \<notin> J\<close>
-    unfolding is_interpretation_def using is_Pos.simps(2) to_V.simps(2) by blast
-qed 
+    v_in: \<open>v \<in>\<^sub>v J\<close>
+  then show \<open>\<not> Neg v \<in>\<^sub>v J\<close>
+  proof (induction v)
+    case (Pos C)
+    then show ?case
+      using is_in.simps(2)[of "Pos C"] is_in.simps(1) unfolding is_interpretation_def
+      by (metis is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1))
+  next
+    case (Neg w)
+    then show ?case
+      unfolding is_interpretation_def 
+      by (metis is_Pos.simps(2) is_in.simps(2) to_V.simps(2))
+  qed
+qed
 
 
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
@@ -585,10 +602,19 @@ fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
   "fml_ext (Pos v) = Pos (fml v)" |
   "fml_ext (Neg v) = Neg (fml_ext v)"
 
-
 definition sound_consistent :: "'v neg set \<Rightarrow> bool" where
   \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` J) {Pos bot})\<close>
 
+abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
+  \<open>F_of_set N \<equiv> F_of ` N\<close>
+  
+definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
+  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> F_of_set (enabled_projection M J) \<Turnstile> F_of_set N))\<close>
+  
+definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
+  \<open>AF_entails_sound M N \<equiv> (\<forall>J. ((total J \<and> enabled_set N J) \<longrightarrow>
+    ((fml_ext ` (strip J)) \<union> (Pos ` F_of_set (enabled_projection M J))) \<Turnstile>\<^sub>\<sim> (Pos ` F_of_set N)))\<close>
+  
 end
 
 end
