@@ -582,13 +582,16 @@ inductive "enabled" :: "('f, 'v::countable) AF \<Rightarrow> 'v propositional_in
   cond1: "(A_of C) \<subseteq> (strip J) \<Longrightarrow> enabled C J" |
   cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (strip J) = {}) \<Longrightarrow> enabled C J"
   
-definition enabled_set :: "('f, 'v::countable) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
+definition enabled_set :: "('f, 'v::countable) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool"
+  where
   \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
 
-definition enabled_inf :: "('f, 'v::countable) AF inference \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
+definition enabled_inf :: "('f, 'v::countable) AF inference \<Rightarrow> 'v propositional_interpretation \<Rightarrow>
+  bool" where
   \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
   
-definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set" where
+definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow>
+  ('f, 'v) AF set" where
   \<open>enabled_projection N J = {C. C \<in> N \<and> enabled C J}\<close>
 
 definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" where
@@ -602,19 +605,38 @@ fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
   "fml_ext (Pos v) = Pos (fml v)" |
   "fml_ext (Neg v) = Neg (fml_ext v)"
 
-definition sound_consistent :: "'v neg set \<Rightarrow> bool" where
-  \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` J) {Pos bot})\<close>
-
-abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
-  \<open>F_of_set N \<equiv> F_of ` N\<close>
+definition sound_consistent :: "'v propositional_interpretation \<Rightarrow> bool" where
+  \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (strip J)) {Pos bot})\<close>
   
+  (* most probably overkill *)
+(* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
+  \<open>F_of_set N \<equiv> F_of ` N\<close> *)
+ 
+definition propositional_model :: "'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p" 50) where
+  \<open>J \<Turnstile>\<^sub>p N \<equiv> bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J))\<close>
+
+definition sound_propositional_model :: "'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>s\<^sub>p" 50) where
+  \<open>J \<Turnstile>s\<^sub>p N \<equiv> (bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J)) \<or>
+    \<not> sound_consistent J)\<close>
+
+definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
+  \<open>propositionally_unsatisfiable N \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p N)\<close>
+
+ 
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
-  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> F_of_set (enabled_projection M J) \<Turnstile> F_of_set N))\<close>
+  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> F_of ` (enabled_projection M J) \<Turnstile> F_of ` N))\<close>
   
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails_sound M N \<equiv> (\<forall>J. ((total J \<and> enabled_set N J) \<longrightarrow>
-    ((fml_ext ` (strip J)) \<union> (Pos ` F_of_set (enabled_projection M J))) \<Turnstile>\<^sub>\<sim> (Pos ` F_of_set N)))\<close>
+    sound_cons.entails_neg ((fml_ext ` (strip J)) \<union> (Pos ` F_of ` (enabled_projection M J))) (Pos ` F_of ` N)))\<close>
   
+lemma "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml v) {Pos v}}"
+  unfolding AF_entails_sound_def enabled_projection_def enabled_set_def total_def
+    sound_cons.entails_neg_def using enabled.simps
+  sorry
+
 end
 
 end
