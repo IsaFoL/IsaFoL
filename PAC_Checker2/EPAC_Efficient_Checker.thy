@@ -728,7 +728,7 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
      }}
           )\<close>
 
-lemma
+lemma PAC_checker_l_step_prep_PAC_checker_l_step:
   assumes \<open>(state, state') \<in> {((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}\<close>
   shows \<open>PAC_checker_l_step_prep spec state step \<le>
     \<Down>{((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}
@@ -736,7 +736,6 @@ lemma
 proof -
   have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
     by auto
-  term CL
   show ?thesis
     using assms apply -
     unfolding PAC_checker_l_step_prep_def PAC_checker_l_step_def

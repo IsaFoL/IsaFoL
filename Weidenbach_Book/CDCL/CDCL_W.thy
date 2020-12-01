@@ -34,7 +34,7 @@ text \<open>We will abstract the representation of clause and clauses via two lo
   multisets, contrary to @{file CDCL_W_Abstract_State.thy} where we assume only the existence of a
   conversion to the state.\<close>
 
-locale state\<^sub>W_ops =
+  locale state\<^sub>W_ops =
   fixes
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'b" and
@@ -54,20 +54,20 @@ locale state\<^sub>W_ops =
 begin
 
 abbreviation hd_trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lit" where
-"hd_trail S \<equiv> hd (trail S)"
+  "hd_trail S \<equiv> hd (trail S)"
 
 definition clauses :: "'st \<Rightarrow> 'v clauses" where
-"clauses S = init_clss S + learned_clss S"
+  "clauses S = init_clss S + learned_clss S"
 
 abbreviation resolve_cls :: \<open>'a literal \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a clause\<close> where
-"resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
+  "resolve_cls L D' E \<equiv> remove1_mset (-L) D' \<union># remove1_mset L E"
 
 abbreviation state_butlast :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses
   \<times> 'v clause option" where
-"state_butlast S \<equiv> (trail S, init_clss S, learned_clss S, conflicting S)"
+  "state_butlast S \<equiv> (trail S, init_clss S, learned_clss S, conflicting S)"
 
 definition additional_info :: "'st \<Rightarrow> 'b" where
-"additional_info S = (\<lambda>(_, _, _, _, D). D) (state S)"
+  "additional_info S = (\<lambda>(_, _, _, _, D). D) (state S)"
 
 end
 
@@ -172,7 +172,7 @@ locale state\<^sub>W_no_state =
       \<open>\<And>D D' S S'. S \<sim> S' \<Longrightarrow>
         update_conflicting D (update_conflicting D' S) \<sim> update_conflicting D S'\<close> and
     update_conflicting_itself:
-    \<open>\<And>D S'. conflicting S' = D \<Longrightarrow> update_conflicting D S' \<sim> S'\<close>
+      \<open>\<And>D S'. conflicting S' = D \<Longrightarrow> update_conflicting D S' \<sim> S'\<close>
 
 locale state\<^sub>W =
   state\<^sub>W_no_state
@@ -448,7 +448,7 @@ proof -
     using H by auto
   show ?thesis
     by (rule reduce_trail_to_trail_tl_trail_decomp[of _ "c @ M2" K])
-     (auto simp: tr_S L)
+      (auto simp: tr_S L)
 qed
 
 lemma reduce_trail_to_state_eq:
@@ -478,7 +478,7 @@ proof -
       by (subst reduce_trail_to.simps; cases \<open>length F < length (trail S) - Suc 0\<close>)
         (auto simp: less_iff_Suc_add funpow_swap1)
     done
- qed
+qed
 
 lemma reduce_trail_to_compow_tl_trail_eq:
   \<open>length M = length (trail M') \<Longrightarrow> reduce_trail_to M M' = (tl_trail^^(length (trail M') - length M)) M'\<close>
@@ -818,13 +818,13 @@ next
 next
   case (other S')
   then show ?case
-    proof (induct rule: cdcl\<^sub>W_o.induct)
-      case (decide U)
-      then show ?case using assms(6) by auto
-    next
-      case (bj S')
-      then show ?case using assms(7-9) by (induction rule: cdcl\<^sub>W_bj.induct) auto
-    qed
+  proof (induct rule: cdcl\<^sub>W_o.induct)
+    case (decide U)
+    then show ?case using assms(6) by auto
+  next
+    case (bj S')
+    then show ?case using assms(7-9) by (induction rule: cdcl\<^sub>W_bj.induct) auto
+  qed
 next
   case (rf S')
   then show ?case
@@ -1157,7 +1157,7 @@ proof -
     tr: "trail S \<Turnstile>as CNot (remove1_mset L C)" and
     undef: "undefined_lit (trail S) L" and
     T: "T \<sim> cons_trail (Propagated L C) S"
-  using propa by (elim propagateE) auto
+    using propa by (elim propagateE) auto
 
   have C': "C \<in># clauses S'"
     using SS' C
@@ -1182,7 +1182,7 @@ proof -
     D: "D \<in># clauses S" and
     tr: " trail S \<Turnstile>as CNot D" and
     T: "T \<sim> update_conflicting (Some D) S"
-  using confl by (elim conflictE) auto
+    using confl by (elim conflictE) auto
 
   have D': "D \<in># clauses S'"
     using D SS' by fastforce
@@ -1673,7 +1673,7 @@ next
     assume a2: "
       (\<Union>x\<in>set_mset (learned_clss S). atms_of x) \<subseteq> (\<Union>x\<in>set_mset (init_clss S). atms_of x)"
     assume "xa \<in># D"
-    then have "atm_of xa \<in> \<Union>(atms_of ` (set_mset (init_clss S)))"
+    then have "atm_of xa \<in> UNION (set_mset (init_clss S)) atms_of"
       using a2 a1 by (metis (no_types) Un_iff atm_of_lit_in_atms_of atms_of_def subset_Un_eq)
     then have "\<exists>m\<in>set_mset (init_clss S). atm_of xa \<in> atms_of m"
       by blast
