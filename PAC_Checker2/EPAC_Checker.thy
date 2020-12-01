@@ -1392,7 +1392,7 @@ lemma fully_unsorted_poly_rel_extend_vars2:
 
 
 
-lemma remap_polys_l_remap_polys:
+lemma remap_polys_l_with_err_remap_polys_with_err:
   assumes
     AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
     spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
@@ -1409,194 +1409,6 @@ proof -
        (p, the (fmlookup B x)) \<in> mset_poly_rel \<Longrightarrow> thesis) \<Longrightarrow>
      thesis\<close> for x thesis
      using fmap_rel_nat_the_fmlookup[OF AB, of x x] fmap_rel_nat_rel_dom_m[OF AB] by auto
-  have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
-       \<le> \<Down> (sorted_poly_rel O mset_poly_rel)
-          (SPEC
-            (\<lambda>p. the (fmlookup B x') - p \<in> More_Modules.ideal polynomial_bool \<and>
-                 vars p \<subseteq> vars (the (fmlookup B x'))))\<close>
-      if x_dom: \<open>x \<in># dom_m A\<close> and \<open>(x, x') \<in> Id\<close> for x x'
-      apply (rule H[OF x_dom])
-      subgoal for p
-      apply (rule full_normalize_poly_normalize_poly_p[THEN order_trans])
-      apply assumption
-      subgoal
-        using that(2) apply -
-        unfolding conc_fun_chain[symmetric]
-        by (rule ref_two_step', rule RES_refine)
-         (auto simp: rtranclp_normalize_poly_p_poly_of_mset
-          mset_poly_rel_def ideal.span_zero)
-      done
-      done
-
-  have H': \<open>(p, pa) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
-    weak_equality_l p spec \<le> \<Down>{(b,enn). b = (enn=FOUND)}
-    (SPEC (\<lambda>eqa. eqa \<noteq> FAILED \<and> (eqa = FOUND \<longrightarrow> pa = spec')))\<close> for p pa
-    using spec by (auto simp: weak_equality_l_def weak_equality_spec_def RETURN_def
-        list_mset_rel_def br_def mset_poly_rel_def intro!: RES_refine
-      dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
-  have [refine]: \<open>SPEC (\<lambda>err. err \<noteq> CFOUND) \<le> \<Down>code_status_status_rel (RES {FAILED, SUCCESS})\<close>
-    by (auto simp: code_status_status_rel_def intro!: RES_refine)
-       (case_tac s, auto)
-  have [intro!]: \<open>\<exists>a. (aa, a) \<in> \<langle>var_rel\<rangle>set_rel\<close> for aa
-    by (auto simp: set_rel_def var_rel_def br_def)
-
-  have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
-    ((CSUCCESS, \<V>, fmempty), SUCCESS, \<V>', fmempty) \<in>
-    {((err, \<V>, A), (f', \<V>', A')). ((err, \<V>, A), (f',  \<V>', A')) \<in>
-      (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>)}\<close>
-    for \<V> \<V>'
-    by (auto simp: fmap_polys_rel2_def)
-
-  show ?thesis
-    using assms
-    unfolding remap_polys_l_with_err_def remap_polys_l_dom_err_def
-      remap_polys_with_err_def prod.case
-    apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: error_msg_def fmap_polys_rel2_def)
-    apply (rule 1)
-    subgoal by auto
-    apply (rule emp)
-    subgoal
-      using V by auto
-    subgoal by (auto simp: code_status_status_rel_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: code_status_status_rel_def RETURN_def fmap_polys_rel2_def intro!: RES_refine)
-    apply (rule H')
-    subgoal by auto
-    apply (rule fully_unsorted_poly_rel_extend_vars)
-    subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
-    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
-    subgoal for dom doma failed faileda x it \<sigma> x' it' \<sigma>' x1 x2 x1a x2a x1b x2b x1c x2c p pa err' err eqa eqaa \<V>'' \<V>'''
-      apply (cases eqaa)
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: fmap_polys_rel2_def code_status_status_rel_def)[]
-      apply simp
-
-        sorry
-    subgoal by (auto simp: code_status_status_rel_def is_cfailed_def)
-    subgoal by (auto simp: code_status_status_rel_def)
-    done
-  show ?thesis
-    using assms
-    unfolding remap_polys_l_with_err_def remap_polys_l_dom_err_def
-      remap_polys_with_err_def prod.case
-    apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: error_msg_def fmap_polys_rel2_def)
-    apply (rule 1)
-    subgoal by auto
-    apply (rule emp)
-    subgoal
-      using V by auto
-    subgoal by (auto simp: code_status_status_rel_def)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule H')
-    apply assumption
-    apply (rule fully_unsorted_poly_rel_extend_vars2)
-    subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
-    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
-    subgoal
-      apply clarsimp
-      unfolding fmap_polys_rel2_def
-      apply clarsimp
-      apply (intro conjI impI allI)
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: is_cfailed_def)[]
-        oops
-        find_theorems "is_cfailed _ \<longleftrightarrow> _"
-        apply clarsimp
-        apply blast
-        apply (intro conjI impI ballI)
-        apply (clarsimp dest: in_diffD simp add: XXX subset_iff)
-        apply (simp add: XXX subset_iff)
-        try0 dest: in_diffD
-          sledgehammer
-        by (meson in_diffD)
-    subgoal by auto
-    subgoal by (auto simp: fmap_polys_rel2_def)
-    done
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: error_msg_def fmap_polys_rel2_def)
-    apply (rule 1)
-    subgoal by auto
-    apply (rule emp)
-    subgoal
-      using V by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (rule H')
-    apply (rule fully_unsorted_poly_rel_extend_vars)
-    subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
-    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
-    subgoal for dom doma failed faileda x it \<sigma> x' it' \<sigma>' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d p pa eqa eqaa \<A> \<A>' err
-      apply (cases err; cases x1c)
-      apply (clarsimp_all simp: fmap_polys_rel2_def)
-      apply (intro conjI impI fmap_rel_fmupd_fmap_rel)
-      apply auto[]
-      apply auto[]
-      apply auto[]
-      apply auto[]
-      apply auto[]
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: fmap_polys_rel2_def; fail)[]
-      apply (intro conjI impI fmap_rel_fmupd_fmap_rel)
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (intro conjI impI fmap_rel_fmupd_fmap_rel)
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-      apply (auto; fail)[]
-
-      oops
-
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: fmap_polys_rel2_def; fail)[]
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: fmap_polys_rel2_def; fail)
-      apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: fmap_polys_rel2_def; fail)
-
-      sorry
-    subgoal by auto
-    subgoal apply (auto simp:fmap_polys_rel2_def)
-
-    done
-qed
-
-lemma remap_polys_l_remap_polys:
-  assumes
-    AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
-    spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
-    V: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
-  shows \<open>remap_polys_l spec \<V> A \<le>
-    \<Down>{((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>)}
-    (remap_polys spec' \<V>' B)\<close>
-  (is \<open>_ \<le> \<Down> ?R _\<close>)
-proof -
-  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
-    by auto
-  have H: \<open>x \<in># dom_m A \<Longrightarrow>
-     (\<And>p. (the (fmlookup A x), p) \<in> fully_unsorted_poly_rel \<Longrightarrow>
-       (p, the (fmlookup B x)) \<in> mset_poly_rel \<Longrightarrow> thesis) \<Longrightarrow>
-     thesis\<close> for x thesis
-    using fmap_rel_nat_the_fmlookup[OF AB, of x x] fmap_rel_nat_rel_dom_m[OF AB] by auto
 
   have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
        \<le> \<Down>  {(xs, ys). (xs, ys) \<in> sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist (the (fmlookup A x))}
@@ -1618,22 +1430,31 @@ proof -
       done
       done
 
-  have H': \<open>(p, pa) \<in> (?A x) \<Longrightarrow>
-     weak_equality_l p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa x
-    using spec by (auto simp: weak_equality_l_def weak_equality_spec_def
-        list_mset_rel_def br_def mset_poly_rel_def
+  have H': \<open>(p, pa) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+    weak_equality_l p spec \<le> \<Down>{(b,enn). b = (enn=FOUND)}
+    (SPEC (\<lambda>eqa. eqa \<noteq> FAILED \<and> (eqa = FOUND \<longrightarrow> pa = spec')))\<close> for p pa
+    using spec by (auto simp: weak_equality_l_def weak_equality_spec_def RETURN_def
+        list_mset_rel_def br_def mset_poly_rel_def intro!: RES_refine
       dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
+  have [refine]: \<open>SPEC (\<lambda>err. err \<noteq> CFOUND) \<le> \<Down>code_status_status_rel (RES {FAILED, SUCCESS})\<close>
+    by (auto simp: code_status_status_rel_def intro!: RES_refine)
+       (case_tac s, auto)
+  have [intro!]: \<open>\<exists>a. (aa, a) \<in> \<langle>var_rel\<rangle>set_rel\<close> for aa
+    by (auto simp: set_rel_def var_rel_def br_def)
+
+  have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+    ((CSUCCESS, \<V>, fmempty), SUCCESS, \<V>', fmempty) \<in>
+    {((err, \<V>, A), (f', \<V>', A')). ((err, \<V>, A), (f',  \<V>', A')) \<in>
+      (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>)}\<close>
+    for \<V> \<V>'
+    by (auto simp: fmap_polys_rel2_def)
   have XXX: \<open>(\<V>'', \<V>''') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow> x \<in> \<V>'' \<Longrightarrow> \<phi> x \<in> \<V>'''\<close> for x \<V>'' \<V>'''
     by (auto simp: br_def set_rel_def var_rel_def)
 
-  have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
-    ((False, \<V>, fmempty), False, \<V>', fmempty) \<in>
-     {((err, \<V>, A), (err', \<V>', A')). ((err, \<V>, A), (err', \<V>', A')) \<in> (bool_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 CSUCCESS \<V>)}\<close> for \<V> \<V>'
-    by (auto simp: fmap_polys_rel2_def)
   show ?thesis
     using assms
-    unfolding remap_polys_l_def remap_polys_l_dom_err_def
-      remap_polys_def prod.case
+    unfolding remap_polys_l_with_err_def remap_polys_l_dom_err_def
+      remap_polys_with_err_def prod.case term_rel_def[symmetric]
     apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
     subgoal
       by auto
@@ -1646,28 +1467,49 @@ proof -
     apply (rule emp)
     subgoal
       using V by auto
+    subgoal by (auto simp: code_status_status_rel_def)
     subgoal by auto
     subgoal by auto
-    subgoal by (rule H')
-    apply (rule fully_unsorted_poly_rel_extend_vars2)
+    subgoal by auto
+    subgoal by (auto simp: code_status_status_rel_def RETURN_def fmap_polys_rel2_def intro!: RES_refine)
+    apply (rule H')
+    subgoal by auto
+    apply (rule fully_unsorted_poly_rel_extend_vars2[unfolded term_rel_def[symmetric]])
     subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
     subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
-    subgoal
-      apply simp
-      unfolding fmap_polys_rel2_def
-      apply clarsimp
-        apply (intro conjI)
-        apply (auto intro!: fmap_rel_fmupd_fmap_rel simp: )[]
-        apply clarsimp
-        apply blast
-        apply (intro conjI impI ballI)
-        apply (clarsimp dest: in_diffD simp add: XXX subset_iff)
-        apply (simp add: XXX subset_iff)
-        by (meson in_diffD)
-    subgoal by auto
-    subgoal by (auto simp: fmap_polys_rel2_def)
+    subgoal for dom doma failed faileda x it \<sigma> x' it' \<sigma>' x1 x2 x1a x2a x1b x2b x1c x2c p pa err' err eqa eqaa \<V>'' \<V>'''
+      unfolding term_rel_def[symmetric]
+      by (cases eqaa)
+       (auto simp: fmap_rel_fmupd_fmap_rel[where R = \<open>sorted_poly_rel O mset_poly_rel\<close>, unfolded term_rel_def[symmetric]]
+        simp: fmap_polys_rel2_def code_status_status_rel_def term_rel_def[symmetric]
+        dest: in_diffD) (*very slow*)
+    subgoal by (auto simp: code_status_status_rel_def is_cfailed_def)
+    subgoal by (auto simp: code_status_status_rel_def)
     done
 qed
+
+
+definition full_checker_l
+  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
+    (string code_status \<times> _) nres\<close>
+where
+  \<open>full_checker_l spec A st = do {
+    spec' \<leftarrow> full_normalize_poly spec;
+    (b, \<V>, A) \<leftarrow> remap_polys_l_with_err spec' {} A;
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      (err, \<V>) \<leftarrow> SPEC( \<lambda>(err, \<V>'). (err = CSUCCESS \<or> is_cfailed err) \<and> (err = CSUCCESS \<longrightarrow> \<V>' = \<V> \<union> vars_llist spec));
+      if \<not>is_cfailed err then PAC_checker_l spec' (\<V>, A) b st
+      else  RETURN (err, \<V>, A)
+    }
+        }\<close>
+
+lemma (in -)RES_RES_RETURN_RES3: \<open>RES A \<bind> (\<lambda>(a,b,c). RES (f a b c)) = RES (\<Union>((\<lambda>(a,b,c). f a b c) ` A))\<close> for A f
+  by (auto simp: pw_eq_iff refine_pw_simps)
+
+definition vars_rel2 :: \<open>_\<close> where
+  \<open>vars_rel2 err = {(A,B). \<not>is_cfailed err \<longrightarrow> (A,B)\<in> \<langle>var_rel\<rangle>set_rel} \<close>
 
 lemma full_checker_l_full_checker:
  assumes
@@ -1676,39 +1518,161 @@ lemma full_checker_l_full_checker:
     spec: \<open>(spec, spec') \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
   shows
     \<open>full_checker_l spec A st \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
-          ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>} (full_checker spec' B st')\<close>
+          ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r vars_rel2 err \<times>\<^sub>r fmap_polys_rel2 err \<V>} (full_checker spec' B st')\<close>
 proof -
+  have 0[simp]: \<open>\<Phi> \<noteq> {} \<Longrightarrow> do {(a,b) \<leftarrow> RES \<Phi>; RETURN P} = RETURN P\<close> for \<Phi> P
+    by (auto simp: pw_eq_iff refine_pw_simps)
+  have H:  \<open>do {spec \<leftarrow> RES A; (a,b,c) \<leftarrow> RES (B spec); f a b c spec} =
+    do { (spec, a,b,c) \<leftarrow> SPEC(\<lambda>(spec,a,b,c). spec \<in> A \<and> (a,b,c) \<in> B spec); f a b c spec}\<close> for A f g spec B
+    by (auto simp: pw_eq_iff refine_pw_simps)
+  have 1: \<open>(if is_failed st then RETURN (st, \<V>, A) else do {
+    \<V> \<leftarrow> SPEC ((\<subseteq>) (\<V> \<union> vars spec0));
+    PAC_checker spec (\<V>, A) st pac
+    }) = ( do {
+    \<V>' \<leftarrow> SPEC ((\<subseteq>) (\<V> \<union> vars spec0));
+    if is_failed st then RETURN (st, \<V>, A) else PAC_checker spec (\<V>', A) st pac
+      })\<close>
+    for \<V> A st pac spec spec0
+    by (auto simp: bind_RES_RETURN_eq)
+  have 2: \<open>(if is_failed st then RETURN (st, \<V>, A)
+    else do {
+    (err, \<V>') \<leftarrow>  SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> \<V> \<union> vars spec0 \<subseteq> \<V>'));
+    if \<not> is_failed err then PAC_checker spec (\<V>', A) st pac else RETURN (err, \<V>, A)
+      }) = (do {
+      (err, \<V>') \<leftarrow>  SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> \<V> \<union> vars spec0 \<subseteq> \<V>'));
+    if is_failed st then RETURN (st, \<V>, A)
+      else
+    if \<not> is_failed err then PAC_checker spec (\<V>', A) st pac else RETURN (err, \<V>, A)
+      })\<close>
+
+    for st \<V> A spec pac spec0
+    by (auto simp: bind_RES_RETURN_eq bind_RES_RETURN2_eq)
+
+
+  have full_checker_alt_def:
+   \<open>full_checker spec0 A pac = do {
+     spec \<leftarrow> normalize_poly_spec spec0;
+     (st, \<V>, A) \<leftarrow> remap_polys_change_all spec {} A;
+     if is_failed st then
+     RETURN (st, \<V>, A)
+     else do {
+       (err, \<V>') \<leftarrow> SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> \<V> \<union> vars spec0 \<subseteq> \<V>'));
+     if \<not>is_failed err then PAC_checker spec (\<V>', A) st pac
+       else RETURN (err, \<V>, A)
+    }
+       }\<close>  (is \<open>?A = ?B\<close>) for spec0 A pac
+   proof -
+     have [refine]: \<open>(spec, speca) \<in> Id \<Longrightarrow> remap_polys_change_all spec {} A \<le> \<Down> Id (remap_polys_change_all speca {} A)\<close> for spec speca A
+       by auto
+     have  1:\<open>(x1c, x1a) \<in> Id \<Longrightarrow> SPEC ((\<subseteq>) (x1c \<union> vars spec0))
+       \<le> \<Down> {(\<V>, (err, \<V>')). err = SUCCESS \<and> (\<V>,\<V>')\<in>Id}
+       (SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> x1a \<union> vars spec0 \<subseteq> \<V>')))\<close> for x1c x1a spec0
+       by (auto simp: conc_fun_RES)
+
+     have AB: \<open>?A \<le> \<Down>Id ?B\<close>
+       unfolding full_checker_def normalize_poly_spec_def
+       apply (refine_rcg 1)
+       subgoal by auto
+       subgoal by auto
+       subgoal by auto
+       subgoal by auto
+       done
+     define f where
+       \<open>f spec A (spec0::int mpoly) \<equiv> do {  (st, \<V>, A) \<leftarrow> remap_polys_change_all spec {} A;
+       (err, \<V>') \<leftarrow> SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> \<V> \<union> vars spec0 \<subseteq> \<V>'));
+       RETURN (st, \<V>, A, err, \<V>')
+       }\<close> for spec A \<V> spec0
+     have B: \<open>?B = do {
+       spec \<leftarrow> SPEC (\<lambda>r. spec0 - r \<in> More_Modules.ideal polynomial_bool \<and> vars r \<subseteq> vars spec0);
+       (st, \<V>, A, err, \<V>') \<leftarrow> f spec A spec0;
+       if is_failed st \<or> is_failed err then RETURN (merge_status err st, \<V>, A)
+        else do {let \<V>' = \<V>'; PAC_checker spec (\<V>', A) st pac}
+         } \<close>
+       unfolding full_checker_def normalize_poly_spec_def 2 f_def
+       by (auto intro!: bind_cong[OF refl] simp: is_failed_def)
+
+     have [simp]: \<open>merge_status SUCCESS a = a\<close> for a
+       by (cases a) auto
+     have [simp]: \<open>merge_status a SUCCESS = a\<close> for a
+       by (cases a) auto
+     have [refine]: \<open>(spec, speca) \<in> Id \<Longrightarrow>
+       f spec A spec0 \<le> \<Down>{((st, \<V>, A, err, \<V>''),  (st', \<V>', A')).
+          ((merge_status st err, \<V>, A), (st', \<V>', A')) \<in> Id \<and>
+            (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> \<V> \<union> vars spec0 \<subseteq> \<V>'') } (remap_polys_change_all speca {} A)\<close>
+       for spec A speca spec0
+       unfolding f_def remap_polys_change_all_def
+       by (auto simp: bind_RES_RETURN_eq bind_RES_RETURN2_eq RES_RES_RETURN_RES3
+         intro!:RES_refine lhs_step_If)
+     have BA: \<open>?B \<le> \<Down>Id ?A\<close>
+       unfolding B unfolding full_checker_def normalize_poly_spec_def
+       apply (refine_rcg)
+       subgoal by auto
+       subgoal by (auto simp: is_failed_def)
+       subgoal by auto
+       subgoal by auto
+       done
+     show ?thesis
+       using AB BA by auto
+   qed
+
   have [refine]:
     \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
     (\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
-    remap_polys_l spec \<V> A \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
-          ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>}
-        (remap_polys_change_all spec' \<V>' B)\<close> for spec spec' \<V> \<V>'
-    apply (rule remap_polys_l_remap_polys[THEN order_trans, OF assms(1)])
+    remap_polys_l_with_err spec \<V> A \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
+    ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 err \<V>}
+    (remap_polys_change_all spec' \<V>' B)\<close> for spec spec' \<V> \<V>'
+    apply (rule remap_polys_l_with_err_remap_polys_with_err[THEN order_trans, OF assms(1)])
     apply assumption+
     apply (rule ref_two_step[OF order.refl])
-    apply(rule remap_polys_spec[THEN order_trans])
-    by (rule remap_polys_polynomial_bool_remap_polys_change_all)
+    apply (rule remap_polys_with_err_spec[THEN order_trans])
+    apply (rule remap_polys_polynomial_bool_remap_polys_change_all)
+    done
 
+   have unfold_code_status: \<open>(\<exists>(a). P a) \<longleftrightarrow> (\<exists>a. P (CFAILED a)) \<or> P CFOUND \<or> P CSUCCESS\<close> for P
+     by (auto, case_tac a, auto)
+   have unfold_status: \<open>(\<exists>(a). P a) \<longleftrightarrow> ( P (FAILED)) \<or> P FOUND \<or> P SUCCESS\<close> for P
+     by (auto, case_tac a, auto)
+   have var_rel_set_rel_alt_def: \<open>(A, B) \<in> \<langle>var_rel\<rangle>set_rel \<longleftrightarrow> B = \<phi> ` A\<close> for A B
+     by (auto simp: var_rel_def set_rel_def br_def)
+   have [refine]: \<open>(x1c, x1a) \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+      SPEC (\<lambda>(err, \<V>'). (err = CSUCCESS \<or> is_cfailed err) \<and> (err = CSUCCESS \<longrightarrow> \<V>' = x1c \<union> vars_llist spec))
+    \<le> \<Down> (code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel)
+     (SPEC (\<lambda>(err, \<V>'). (err = SUCCESS \<or> is_failed err) \<and> (err = SUCCESS \<longrightarrow> x1a \<union> vars spec' \<subseteq> \<V>')))\<close> for x1c x1a
+     using fully_unsorted_poly_rel_vars_subset_vars_llist[OF spec]
+     by (force simp: code_status_status_rel_def is_failed_def unfold_code_status unfold_status is_cfailed_def
+         var_rel_set_rel_alt_def
+       intro!: RES_refine
+       intro: )
+   have [refine]: \<open>(b,b') \<in> {((\<V>, A), \<V>', A'). ((\<V>, A), \<V>', A') \<in> \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel2 c \<V>} \<Longrightarrow>
+     (spec, spec') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+     (c, c') \<in> code_status_status_rel \<Longrightarrow>
+     PAC_checker_l spec b c  st
+    \<le> \<Down> {((err, \<V>, A), err', \<V>', A').
+      ((err, \<V>, A), err', \<V>', A') \<in> code_status_status_rel \<times>\<^sub>r vars_rel2 err \<times>\<^sub>r fmap_polys_rel2 err \<V>}
+     (PAC_checker spec' b' c' st')\<close> for spec b c spec' b' c'
+     using assms apply -
+     apply (rule order_trans)
+     apply (rule ref_two_step[OF PAC_checker_l_PAC_checker])
+     apply assumption+
+     apply (rule order_refl)
+     apply (rule conc_fun_R_mono)
+     apply (auto simp: vars_rel2_def)
+     done
   show ?thesis
-    unfolding full_checker_l_def full_checker_def
+    unfolding full_checker_alt_def full_checker_l_def
     apply (refine_rcg remap_polys_l_remap_polys
-       full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]]
-       PAC_checker_l_PAC_checker)
+       full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
     subgoal
       using assms(3) .
     subgoal by auto
     subgoal by (auto simp: is_cfailed_def is_failed_def)
+    subgoal by (auto simp: vars_rel2_def)
     subgoal by auto
-    apply (rule fully_unsorted_poly_rel_extend_vars)
-    subgoal using assms(3) .
+    subgoal by auto
+    subgoal by (auto simp: fmap_polys_rel2_def vars_rel2_def)
     subgoal by auto
     subgoal
-      by (fastforce simp: fmap_polys_rel2_def set_rel_def var_rel_def br_def
-        dest!: multi_member_split)
-    subgoal
-      using assms(2) by (auto simp: p2rel_def)
-    subgoal by auto
+      by (auto simp: vars_rel2_def fmap_polys_rel2_def)
     done
 qed
 

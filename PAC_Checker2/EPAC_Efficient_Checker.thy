@@ -63,7 +63,7 @@ where
     RETURN b
   }\<close>
 
-thm perfect_shared_var_order_spec
+
 lemma (in -)perfect_shared_term_order_rel_spec:
   assumes \<open>set xs \<subseteq> set_mset \<V>\<close>  \<open>set ys \<subseteq> set_mset \<V>\<close>
   shows
