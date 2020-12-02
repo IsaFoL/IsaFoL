@@ -545,17 +545,22 @@ lemma import_monomS_import_monom:
   subgoal by auto
   done
 
+abbreviation perfectly_shared_polynom
+  :: \<open>('nat,'string) shared_vars \<Rightarrow> (('nat list \<times> 'a) list \<times> ('string list \<times> 'a) list) set\<close>
+where
+  \<open>perfectly_shared_polynom \<V> \<equiv> \<langle>perfectly_shared_monom \<V> \<times>\<^sub>r Id\<rangle>list_rel\<close>
+
 lemma import_polyS_import_poly:
   assumes \<open>(\<A>, \<V>\<D>) \<in> perfectly_shared_vars_rel\<close> \<open>(xs, xs') \<in>  \<langle>\<langle>Id\<rangle>list_rel\<times>\<^sub>rId\<rangle>list_rel\<close>
   shows \<open>import_polyS \<A> xs \<le> \<Down> {((mem, xs\<^sub>0, \<A>), (mem', ys\<^sub>0, \<A>')). mem = mem' \<and> 
-    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> \<langle>perfectly_shared_monom \<A> \<times>\<^sub>r Id\<rangle>list_rel)}
+    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>)}
     (import_poly \<V>\<D> xs')\<close>
   using assms
   unfolding import_poly_def import_polyS_def
   apply (refine_rcg WHILET_refine[where
     R = \<open>{((mem, zs, xs\<^sub>0, \<A>), (mem', zs', ys\<^sub>0, \<A>')). mem = mem' \<and> 
     (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and> (zs, zs') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r Id\<rangle>list_rel
-    \<and> (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> \<langle>perfectly_shared_monom \<A> \<times>\<^sub>r Id\<rangle>list_rel)}\<close>]
+    \<and> (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>)}\<close>]
     import_monomS_import_monom)
   subgoal by auto
   subgoal by auto

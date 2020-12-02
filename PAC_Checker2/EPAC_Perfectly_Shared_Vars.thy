@@ -104,6 +104,29 @@ lemma get_var_pos_c_get_var_posS:
     using assms by (auto simp: perfect_shared_vars_rel_c_def fmap_rel_nat_rel_dom_m_iff dest: fmap_rel_fmlookup_rel)
   done
 
+
+
+definition get_var_name_c :: \<open> ('string, nat) shared_vars_c \<Rightarrow> nat \<Rightarrow> 'string nres\<close> where
+  \<open>get_var_name_c = (\<lambda>(xs, \<V>) x. do {
+    ASSERT(x < length xs);
+    RETURN (xs ! x)
+  })\<close>
+
+
+lemma get_var_name_c_get_var_nameS:
+  fixes A' :: \<open>(nat,'string) shared_vars\<close>
+  assumes
+    V: \<open>single_valued R\<close> \<open>single_valued (R\<inverse>)\<close>
+  shows \<open>(uncurry get_var_name_c, uncurry get_var_nameS) \<in> perfect_shared_vars_rel_c R \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>R\<rangle>nres_rel\<close>
+  unfolding get_var_name_c_def get_var_nameS_def uncurry_def
+    apply (clarify intro!: frefI nres_relI)
+  apply refine_vcg
+  subgoal using assms by (auto dest!: multi_member_split simp: perfect_shared_vars_rel_c_def)
+  subgoal
+    using assms by (auto simp: perfect_shared_vars_rel_c_def fmap_rel_nat_rel_dom_m_iff
+      dest: multi_member_split)
+  done
+
 abbreviation perfect_shared_vars_assn :: \<open>(string, nat) shared_vars_c \<Rightarrow> _ \<Rightarrow> assn\<close> where
   \<open>perfect_shared_vars_assn \<equiv> arl_assn string_assn \<times>\<^sub>a hm_fmap_assn string_assn uint64_nat_assn\<close>
 abbreviation shared_vars_assn where
@@ -125,6 +148,59 @@ sepref_definition is_new_variable_c_impl
   unfolding is_new_variable_c_def fmlookup'_def[symmetric] in_dom_m_lookup_iff
   by sepref
 
+definition nth_uint64 where
+  \<open>nth_uint64 = (!)\<close>
+
+definition arl_get' :: \<open>'a::heap array_list \<Rightarrow> integer \<Rightarrow> 'a Heap\<close> where
+  [code del]: \<open>arl_get' a i = arl_get a (nat_of_integer i)\<close>
+
+definition arl_get_u :: \<open>'a::heap array_list \<Rightarrow> uint64 \<Rightarrow> 'a Heap\<close> where
+  \<open>arl_get_u \<equiv> \<lambda>a i. arl_get' a (integer_of_uint64 i)\<close>
+
+lemma arl_get_hnr_u[sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure A\<close>
+  shows \<open>(uncurry arl_get_u, uncurry (RETURN \<circ>\<circ> op_list_get))
+     \<in> [pre_list_get]\<^sub>a (arl_assn A)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> A\<close>
+proof -
+  obtain A' where
+    A: \<open>pure A' = A\<close>
+    using assms pure_the_pure by auto
+  then have A': \<open>the_pure A = A'\<close>
+    by auto
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> ((c, a) \<in> A')) = A'\<close>
+    unfolding pure_def[symmetric] by auto
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: uint64_nat_rel_def br_def array_assn_def is_array_def
+        hr_comp_def list_rel_pres_length param_nth arl_assn_def
+        A' A[symmetric] pure_def arl_get_u_def Array.nth'_def arl_get'_def
+     nat_of_uint64_code[symmetric])
+qed
+
+
+definition arl_get_u' where
+  [symmetric, code]: \<open>arl_get_u' = arl_get_u\<close>
+
+lemma arl_get'_nth'[code]: \<open>arl_get' = (\<lambda>(a, n). Array.nth' a)\<close>
+  unfolding arl_get_def arl_get'_def Array.nth'_def
+  by (intro ext) auto
+
+definition nat_of_uint64_s :: \<open>nat \<Rightarrow> nat\<close> where
+  [simp]: \<open>nat_of_uint64_s x = x\<close>
+
+lemma [refine]:
+  \<open>(return o nat_of_uint64, RETURN o nat_of_uint64_s) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: uint64_nat_rel_def br_def)
+
+
+sepref_definition get_var_name_c_impl
+  is \<open>uncurry get_var_name_c\<close>
+  :: \<open>perfect_shared_vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
+  supply [simp] = in_dom_m_lookup_iff
+  unfolding get_var_name_c_def fmlookup'_def[symmetric]
+  by sepref
+
 lemma [sepref_fr_rules]:
   \<open>(uncurry is_new_variable_c_impl, uncurry is_new_variableS) \<in> string_assn\<^sup>k *\<^sub>a shared_vars_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   using is_new_variable_c_impl.refine[FCOMP is_new_variable_c_is_new_variableS, of Id]
@@ -135,6 +211,11 @@ lemma [sepref_fr_rules]:
   using get_var_pos_c_impl.refine[FCOMP get_var_pos_c_get_var_posS, of Id]
   by auto
 
-    term perfect_shared_term_order_rel
+lemma [sepref_fr_rules]:
+  \<open>(uncurry get_var_name_c_impl, uncurry get_var_nameS) \<in> shared_vars_assn\<^sup>k *\<^sub>a  uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a string_assn\<close>
+  using get_var_name_c_impl.refine[FCOMP get_var_name_c_get_var_nameS, of Id]
+ by auto
+
+sepref_register get_var_nameS get_var_posS is_new_variableS
 
 end
