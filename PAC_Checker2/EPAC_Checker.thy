@@ -845,10 +845,10 @@ definition remap_polys_with_err :: \<open>int mpoly \<Rightarrow> nat set \<Righ
           if i \<in># dom_m A
           then do {
             ASSERT(\<not>is_failed b);
-            p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynomial_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
             err \<leftarrow> RES {FAILED,SUCCESS};
             if is_failed err then SPEC(\<lambda>(err', \<V>, A'). err = err')
             else do {
+              p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynomial_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
               eq \<leftarrow> SPEC(\<lambda>eq. eq \<noteq> FAILED \<and> (eq = FOUND \<longrightarrow> p = spec));
               \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars (the (fmlookup A i)) \<subseteq> \<V>');
               RETURN(merge_status eq err, \<V>, fmupd i p A')
@@ -930,10 +930,10 @@ definition (in -) remap_polys_l_with_err :: \<open>llist_polynomial \<Rightarrow
        (\<lambda>i (err, \<V>,  A').
           if i \<in># dom_m A
           then  do {
-            p \<leftarrow> full_normalize_poly (the (fmlookup A i));
             err' \<leftarrow> SPEC(\<lambda>err. err \<noteq> CFOUND);
             if is_cfailed err' then RETURN((err', \<V>, A'))
             else do {
+              p \<leftarrow> full_normalize_poly (the (fmlookup A i));
               eq  \<leftarrow> weak_equality_l p spec;
               \<V> \<leftarrow> RETURN(\<V> \<union> vars_llist (the (fmlookup A i)));
               RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
@@ -1013,8 +1013,8 @@ proof -
     subgoal by (auto simp: code_status_status_rel_def)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
     subgoal by (auto simp: code_status_status_rel_def RETURN_def intro!: RES_refine)
+    subgoal by auto
     apply (rule H')
     subgoal by auto
     apply (rule fully_unsorted_poly_rel_extend_vars)
@@ -1470,8 +1470,8 @@ proof -
     subgoal by (auto simp: code_status_status_rel_def)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
     subgoal by (auto simp: code_status_status_rel_def RETURN_def fmap_polys_rel2_def intro!: RES_refine)
+    subgoal by auto
     apply (rule H')
     subgoal by auto
     apply (rule fully_unsorted_poly_rel_extend_vars2[unfolded term_rel_def[symmetric]])
@@ -1676,13 +1676,12 @@ proof -
     done
 qed
 
-
 lemma full_checker_l_full_checker':
   \<open>(uncurry2 full_checker_l, uncurry2 full_checker) \<in>
   ((fully_unsorted_poly_rel O mset_poly_rel) \<times>\<^sub>r unsorted_fmap_polys_rel) \<times>\<^sub>r \<langle>epac_step_rel\<rangle>list_rel \<rightarrow>\<^sub>f
     \<langle>{((err, \<V>, A), err', \<V>', A').
     ((err, \<V>, A), err', \<V>', A')
-    \<in> code_status_status_rel \<times>\<^sub>r  \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r {(xs, ys). (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
+    \<in> code_status_status_rel \<times>\<^sub>r  vars_rel2 err \<times>\<^sub>r {(xs, ys). (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
      (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs. vars_llist (the (fmlookup xs i)) \<subseteq> \<V>))}}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   using full_checker_l_full_checker unfolding fmap_polys_rel2_def by force

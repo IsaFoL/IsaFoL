@@ -1,5 +1,5 @@
 theory EPAC_Efficient_Checker
-  imports EPAC_Checker EPAC_Perfectly_Shared_Vars
+  imports EPAC_Checker EPAC_Perfectly_Shared
 begin
 type_synonym shared_poly = \<open>(nat list \<times> int) list\<close>
 
@@ -327,7 +327,6 @@ definition (in -) mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term
    }
  }) (xs, ys)\<close>
 
-thm perfect_shared_term_order_rel_spec
 lemma (in -) mult_monoms_prep_mult_monoms:
   assumes \<open>set xs \<subseteq> set_mset \<V>\<close> \<open>set ys \<subseteq> set_mset \<V>\<close>
   shows \<open>mult_monoms_prep \<V> xs ys \<le> \<Down>Id (SPEC ((=) (mult_monoms xs ys)))\<close>
@@ -403,7 +402,6 @@ proof -
     apply (induction ps arbitrary: b)
       apply simp
     by (metis (no_types, lifting) append_assoc foldl_Cons self_append_conv)
-
 
   have H: \<open>nfoldli ps (\<lambda>_. True) (mult_monoms_prop \<V> qs) b0
     \<le> \<Down> {(xs, ys). mset xs = mset ys} (RES {foldl (\<lambda>b x. map (mult_monomials x) qs @ b) b0 ps})\<close> for b0
@@ -785,5 +783,83 @@ proof -
       done
     done
 qed
+
+definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
+   (string code_status \<times> (nat, string) vars \<times> (nat, llist_polynomial) fmap) nres\<close> where
+  \<open>remap_polys_l2_with_err spec = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
+   }
+   else do {
+     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
+       (\<lambda>i (err, \<V>,  A').
+          if i \<in># dom_m A
+          then  do {
+           (err', p, \<V>) \<leftarrow> import_poly \<V> (the (fmlookup A i));
+            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
+            else do {
+              p \<leftarrow> full_normalize_poly p;
+              eq  \<leftarrow> weak_equality_l p spec;
+              let \<V> = \<V>;
+              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
+            }
+          } else RETURN (err, \<V>, A'))
+       (CSUCCESS, \<V>, fmempty);
+     RETURN (err, \<V>, A)
+  }})\<close>
+
+lemma
+  assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close>
+  shows \<open>remap_polys_l2_with_err spec \<V> A \<le> \<Down>{((st, \<V>, A), st', \<V>', A').
+   (st, st') \<in> Id \<and>
+   (A, A') \<in> Id \<and>
+    (\<not> is_cfailed st \<longrightarrow> (\<V>, \<V>') \<in> {(x, y). y = set_mset x})}
+    (remap_polys_l_with_err spec' \<V>' A')\<close>
+proof -
+  have [refine]: \<open>inj_on id dom\<close> for dom
+    by (auto simp: inj_on_def)
+  have [refine]: \<open>((CSUCCESS, \<V>, fmempty), CSUCCESS, \<V>', fmempty) \<in> {((st, \<V>, A), st', \<V>', A').
+    (st, st') \<in> Id \<and>  (A, A') \<in> Id \<and> (\<not> is_cfailed st \<longrightarrow> (\<V>, \<V>') \<in> {(x, y). y = set_mset x})}\<close>
+    using assms
+    by auto
+  have [refine]: \<open>import_poly x1c p \<le>\<Down>{((mem, ys, \<A>'), (err :: string code_status)). (alloc_failed mem \<longleftrightarrow> err = CFAILED ''memory out'') \<and>
+    (\<not>alloc_failed mem \<longleftrightarrow> err = CSUCCESS) \<and>
+    (\<not> alloc_failed mem \<longrightarrow> ys = p \<and> set_mset \<A>' = set_mset x1c \<union> \<Union> (set ` fst ` set p))}
+    (SPEC (\<lambda>err. err \<noteq> CFOUND))\<close> for x1c p
+    apply (rule order_trans[OF import_poly_spec])
+    apply (auto simp: conc_fun_RES)
+    done
+  have id: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
+    by auto
+  have id2: \<open>(f,g)\<in>{(x, y). y = set_mset x} \<Longrightarrow> (f,g)\<in>{(x, y). y = set_mset x}\<close> for f g
+    by auto
+  show ?thesis
+    unfolding remap_polys_l2_with_err_def remap_polys_l_with_err_def
+    apply (refine_rcg)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule id)
+    subgoal using assms by auto
+    apply (rule id)
+    subgoal using assms by auto
+    apply (rule id2)
+    subgoal using assms by (simp add: vars_llist_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 
 end
