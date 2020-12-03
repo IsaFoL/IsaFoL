@@ -466,6 +466,73 @@ proof -
   done
 qed
 
+lemma merge_list_rel:
+  assumes \<open>\<And>x y x' y'. x\<in>set xs \<Longrightarrow> y\<in>set ys \<Longrightarrow> x'\<in>set xs' \<Longrightarrow> y'\<in>set ys' \<Longrightarrow> (x,x')\<in>R \<Longrightarrow> (y,y')\<in>R \<Longrightarrow> f x y = f' x' y'\<close> and
+    \<open>(xs,xs') \<in> \<langle>R\<rangle>list_rel\<close> and
+    \<open>(ys,ys') \<in> \<langle>R\<rangle>list_rel\<close>
+  shows \<open>(merge f xs ys, merge f' xs' ys') \<in> \<langle>R\<rangle>list_rel\<close>
+proof -
+  show ?thesis
+    using assms
+  proof (induction f' xs' ys' arbitrary: f xs ys rule: merge.induct)
+    case (1 f' x' xs' y' y's)
+    have \<open>f' x' y' \<Longrightarrow>
+      (PAC_Checker_Init.merge f (tl xs) ys, PAC_Checker_Init.merge f' xs' (y' # y's)) \<in> \<langle>R\<rangle>list_rel\<close>
+      apply (rule 1)
+      apply assumption
+      apply (rule 1(3); auto dest: in_set_tlD)
+      using 1(4-5) apply (auto simp: list_rel_split_left_iff)
+      done
+    moreover have \<open>\<not>f' x' y' \<Longrightarrow>
+      (PAC_Checker_Init.merge f ( xs) (tl ys), PAC_Checker_Init.merge f' (x' # xs') (y's)) \<in> \<langle>R\<rangle>list_rel\<close>
+      apply (rule 1)
+      apply assumption
+      apply (rule 1(3); auto dest: in_set_tlD)
+      using 1(4-5) apply (auto simp: list_rel_split_left_iff)
+      done
+    ultimately show ?case
+      using 1(1,4-5) 1(3)[of \<open>hd xs\<close> \<open>hd ys\<close> x' y']
+      by (auto simp: list_rel_split_left_iff)
+  qed  (auto simp: list_rel_split_left_iff)
+
+qed
+
+lemma
+  assumes  \<open>\<And>x y x' y'. x\<in>set xs \<Longrightarrow> x'\<in>set xs' \<Longrightarrow> (x,x')\<in>R \<Longrightarrow> f x y = f' x' y'\<close> and
+    \<open>(xs,xs') \<in> \<langle>R\<rangle>list_rel\<close>
+  shows \<open>(msort f xs, msort f' xs') \<in> \<langle>R\<rangle>list_rel\<close>
+proof -
+  show ?thesis
+    using assms
+  proof (induction f' xs' arbitrary: xs f rule: msort.induct)
+    case (3 f'' v vb vc)
+      have \<open>(xs, take (length (v # vb # vc) div 2) (v # vb # vc)) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow>
+        (msort f xs, msort f'' (take (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
+        \<open>(xs, drop (length (v # vb # vc) div 2) (v # vb # vc)) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow>
+        (msort f xs, msort f'' (drop (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
+        subgoal
+          apply (rule 3)
+          using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD)+
+          done
+        subgoal
+          apply (rule 3)
+          using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD)+
+          done
+        done
+    then show ?case
+      using 3(3-) apply (auto simp: list_rel_split_left_iff)
+
+        oops
+    subgoal by auto
+    subgoal
+      by (auto simp: list_rel_split_left_iff)
+    subgoal
+      apply (auto simp: list_rel_split_left_iff
+        intro!: merge_list_rel dest: in_set_dropD in_set_takeD)
+        apply (force dest: in_set_dropD in_set_takeD)[]
+        find_theorems "(_, _ # _)" list_rel
+
+  
   term REC\<^sub>T
 
 lemma msortR_alt_def:
