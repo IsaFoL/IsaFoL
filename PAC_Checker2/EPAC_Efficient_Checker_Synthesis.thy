@@ -497,8 +497,8 @@ proof -
 
 qed
 
-lemma
-  assumes  \<open>\<And>x y x' y'. x\<in>set xs \<Longrightarrow> x'\<in>set xs' \<Longrightarrow> (x,x')\<in>R \<Longrightarrow> f x y = f' x' y'\<close> and
+lemma msort_list_rel:
+  assumes  \<open>\<And>x y x' y'. x\<in>set xs \<Longrightarrow> y\<in>set xs \<Longrightarrow> x'\<in>set xs' \<Longrightarrow> y'\<in>set xs' \<Longrightarrow> (x,x')\<in>R \<Longrightarrow> (y,y')\<in>R \<Longrightarrow> f x y = f' x' y'\<close> and
     \<open>(xs,xs') \<in> \<langle>R\<rangle>list_rel\<close>
   shows \<open>(msort f xs, msort f' xs') \<in> \<langle>R\<rangle>list_rel\<close>
 proof -
@@ -506,40 +506,53 @@ proof -
     using assms
   proof (induction f' xs' arbitrary: xs f rule: msort.induct)
     case (3 f'' v vb vc)
-      have \<open>(xs, take (length (v # vb # vc) div 2) (v # vb # vc)) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow>
-        (msort f xs, msort f'' (take (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
-        \<open>(xs, drop (length (v # vb # vc) div 2) (v # vb # vc)) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow>
-        (msort f xs, msort f'' (drop (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
-        subgoal
-          apply (rule 3)
-          using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD)+
-          done
-        subgoal
-          apply (rule 3)
-          using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD)+
-          done
+    have xs: \<open>
+      (msort f (take (length xs div 2) xs), msort f'' (take (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
+      \<open>(msort f (drop (length xs div 2) xs), msort f'' (drop (length (v # vb # vc) div 2) (v # vb # vc))) \<in> \<langle>R\<rangle>list_rel\<close>
+      subgoal
+        apply (rule 3)
+        using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD list_rel_imp_same_length)
+        using 3(4) apply (auto simp: list_rel_imp_same_length dest: list_rel_takeD)
         done
-    then show ?case
-      using 3(3-) apply (auto simp: list_rel_split_left_iff)
+      subgoal
+        apply (rule 3)
+        using 3(3-) apply (force dest!:  in_set_dropD in_set_takeD list_rel_imp_same_length
+          dest: )
+        using 3(4) apply (auto simp: list_rel_imp_same_length dest: list_rel_dropD)
+        done
+      done
+    have H: \<open>(PAC_Checker_Init.merge f (msort f (x # take (length xsaa div 2) (xa # xsaa)))
+      (msort f (drop (length xsaa div 2) (xa # xsaa))),
+      PAC_Checker_Init.merge f''  (msort f'' (v # take (length vc div 2) (vb # vc)))
+      (msort f'' (drop (length vc div 2) (vb # vc))))
+      \<in> \<langle>R\<rangle>list_rel\<close>
+      if \<open>xs = x # xa # xsaa\<close> and
+        \<open> (x, v) \<in> R\<close> and
+        \<open>(xa, vb) \<in> R\<close> and
+        \<open> (xa, vb) \<in> R\<close>
+      for x xa xsaa
+      apply (rule merge_list_rel)
+      subgoal for xb y x' y'
+        by (rule 3(3))
+          (use that in \<open>auto dest: in_set_takeD in_set_dropD\<close>)
+      subgoal
+        by (use xs(1) 3(4) that in auto)
+      subgoal
+        by (use xs(2) 3(4) that in auto)
+      done
+    show ?case
+      using 3(3-) H by (auto simp: list_rel_split_left_iff)
+  qed (auto simp: list_rel_split_left_iff intro!: )
+qed
 
-        oops
-    subgoal by auto
-    subgoal
-      by (auto simp: list_rel_split_left_iff)
-    subgoal
-      apply (auto simp: list_rel_split_left_iff
-        intro!: merge_list_rel dest: in_set_dropD in_set_takeD)
-        apply (force dest: in_set_dropD in_set_takeD)[]
-        find_theorems "(_, _ # _)" list_rel
-
-  
-  term REC\<^sub>T
 
 lemma msortR_alt_def:
   \<open>(msortR \<Phi> f xs) = REC\<^sub>T(\<lambda>msortR' xs.
-    if length xs \<le> 1 then RETURN xs else do {
-    as \<leftarrow> msortR' (take ((size xs) div 2) xs);
-    bs \<leftarrow> msortR' (drop ((size xs) div 2) xs);
+  if length xs \<le> 1 then RETURN xs else do {
+    let xs1 = (take ((size xs) div 2) xs);
+    let xs2 = (drop ((size xs) div 2) xs);
+    as \<leftarrow> msortR' xs1;
+    bs \<leftarrow> msortR' xs2;
     (mergeR \<Phi> f as bs)
   }) xs
       \<close>
@@ -559,13 +572,14 @@ lemma perfectly_shared_monom_eqD: \<open>(a, ab) \<in> perfectly_shared_monom \<
    (auto simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
       list_rel_append1 list_rel_split_right_iff perfectly_shared_var_rel_def br_def)
 
-lemma
+
+lemma msortR_sort_spec:
   assumes \<open>(\<V>, \<V>\<D>) \<in> perfectly_shared_vars_rel\<close> and
     \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
     \<open>vars_llist xs' \<subseteq> set_mset \<V>\<D>\<close>
  shows
   \<open>msortR (\<lambda>xs ys. (\<forall>a\<in>set (fst xs). a \<in># dom_m (fst (snd \<V>))) \<and>  (\<forall>a\<in>set(fst ys). a \<in># dom_m (fst (snd \<V>))))
-     (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a = LESS)}) xs
+     (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a \<noteq> GREATER)}) xs
   \<le>\<Down>(perfectly_shared_polynom \<V>)
   (sort_poly_spec xs')
    \<close>
@@ -580,60 +594,170 @@ proof -
     \<open>(a,b)\<in> \<langle>\<langle>(perfectly_shared_var_rel \<V>)\<inverse>\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<longleftrightarrow> (b,a)\<in>perfectly_shared_polynom \<V>\<close> for a b
     by (metis converse_Id converse_iff inv_list_rel_eq inv_prod_rel_eq)
 
-
-    show ?thesis
-      apply (rule order_trans[OF msortR_msort[where
-        f'=\<open> \<lambda>xs ys. (map (the o fmlookup (fst (snd \<V>))) (fst xs), map (the o fmlookup (fst (snd \<V>))) (fst ys)) \<in> term_order_rel\<close>]])
+  show ?thesis
+    apply (rule order_trans[OF msortR_msort[where
+      f'=\<open> \<lambda>xs ys. (map (the o fmlookup (fst (snd \<V>))) (fst xs), map (the o fmlookup (fst (snd \<V>))) (fst ys)) \<in> Id \<union> term_order_rel\<close>]])
+    subgoal for x y
+      apply (cases x, cases y)
+      using assms by (auto simp: list_rel_append1 list_rel_split_right_iff perfectly_shared_var_rel_def br_def
+        perfectly_shared_vars_rel_def append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
+        dest!: split_list split: prod.splits)
       subgoal for x y
-        apply (cases x, cases y)
-        using assms by (auto simp: list_rel_append1 list_rel_split_right_iff perfectly_shared_var_rel_def br_def
-          perfectly_shared_vars_rel_def append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
-          dest!: split_list split: prod.splits)
-        subgoal for x y
-          using assms(2,3) apply -
-          apply (frule in_set_rel_inD)
-          apply assumption
-          apply (frule in_set_rel_inD[of _ _ _ y])
-          apply assumption
-          apply (elim bexE)+
-          subgoal for x' y'
-            term x
-            apply (refine_vcg perfect_shared_term_order_rel_s_perfect_shared_term_order_rel[OF assms(1), THEN order_trans,
-              of _ \<open>fst x'\<close> _ \<open>fst y'\<close>])
-            subgoal
-              by (cases x', cases x) auto
-            subgoal
-              by (cases y', cases y) auto
-            subgoal
-              using assms
-              apply (clarsimp dest!: split_list intro!: perfect_shared_term_order_rel_spec[THEN order_trans]
-                simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
-                vars_llist_def)
-              apply (rule perfect_shared_term_order_rel_spec[THEN order_trans])
-              apply auto[]
-              apply auto[]
-              apply simp
-              apply (clarsimp_all simp: perfectly_shared_monom_eqD)
-              apply (cases x, cases y, cases x', cases y')
-              apply (clarsimp_all simp flip: perfectly_shared_monom_eqD)
-              apply (case_tac xa)
-              apply (clarsimp_all simp flip: perfectly_shared_monom_eqD simp: lexord_irreflexive)
-              by (meson lexord_irreflexive term_order_rel_trans var_order_rel_antisym)
-            done
+        using assms(2,3) apply -
+        apply (frule in_set_rel_inD)
+        apply assumption
+        apply (frule in_set_rel_inD[of _ _ _ y])
+        apply assumption
+        apply (elim bexE)+
+        subgoal for x' y'
+          apply (refine_vcg perfect_shared_term_order_rel_s_perfect_shared_term_order_rel[OF assms(1), THEN order_trans,
+            of _ \<open>fst x'\<close> _ \<open>fst y'\<close>])
+          subgoal
+            by (cases x', cases x) auto
+          subgoal
+            by (cases y', cases y) auto
+          subgoal
+            using assms
+            apply (clarsimp dest!: split_list intro!: perfect_shared_term_order_rel_spec[THEN order_trans]
+              simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
+              vars_llist_def)
+            apply (rule perfect_shared_term_order_rel_spec[THEN order_trans])
+            apply auto[]
+            apply auto[]
+            apply simp
+            apply (clarsimp_all simp: perfectly_shared_monom_eqD)
+            apply (cases x, cases y, cases x', cases y')
+            apply (clarsimp_all simp flip: perfectly_shared_monom_eqD)
+            apply (case_tac xa)
+            apply (clarsimp_all simp flip: perfectly_shared_monom_eqD simp: lexord_irreflexive)
+            by (meson lexord_irreflexive term_order_rel_trans var_order_rel_antisym)
           done
-          unfolding sort_poly_spec_def conc_fun_RES
-          apply auto
-          apply (subst Image_iff)
-          apply (rule_tac x= \<open>msort (\<lambda>xs ys.  rel2p (Id \<union> term_order_rel) (fst xs) (fst ys)) (xs')\<close> in bexI)
-          apply auto
+        done
+      unfolding sort_poly_spec_def conc_fun_RES
+      apply auto
+      apply (subst Image_iff)
+      apply (rule_tac x= \<open>msort (\<lambda>xs ys.  rel2p (Id \<union> term_order_rel) (fst xs) (fst ys)) (xs')\<close> in bexI)
+      apply (auto intro!: msort_list_rel simp flip: perfectly_shared_monom_eqD
+          simp: assms)
+      apply (auto simp: rel2p_def)
+      done
+qed
+
+sepref_register take drop
+lemma [sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry (return oo take), uncurry (RETURN oo take)) \<in> nat_assn\<^sup>k *\<^sub>a (list_assn R)\<^sup>k \<rightarrow>\<^sub>a list_assn R\<close>
+  apply sepref_to_hoare
+  using assms unfolding is_pure_conv CONSTRAINT_def
+  apply (sep_auto simp add: list_assn_pure_conv)
+  apply (sep_auto simp: pure_def list_rel_takeD)
+  done
+
+lemma [sepref_fr_rules]:
+  assumes \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry (return oo drop), uncurry (RETURN oo drop)) \<in> nat_assn\<^sup>k *\<^sub>a (list_assn R)\<^sup>k \<rightarrow>\<^sub>a list_assn R\<close>
+  apply sepref_to_hoare
+  using assms unfolding is_pure_conv CONSTRAINT_def
+  apply (sep_auto simp add: list_assn_pure_conv)
+  apply (sep_auto simp: pure_def list_rel_dropD)
+  done
+
+definition mergeR_vars :: \<open>(nat, string) shared_vars \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial nres\<close> where
+  \<open>mergeR_vars \<V> = mergeR
+   (\<lambda>xs ys. (\<forall>a\<in>set (fst xs). a \<in># dom_m (fst (snd \<V>))) \<and>  (\<forall>a\<in>set(fst ys). a \<in># dom_m (fst (snd \<V>))))
+     (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a \<noteq> GREATER)})\<close>
+lemma mergeR_alt_def:
+  \<open>(mergeR \<Phi> f xs ys) = REC\<^sub>T(\<lambda>mergeR xs.
+  case xs of
+    ([], ys) \<Rightarrow> RETURN ys
+  | (xs, []) \<Rightarrow> RETURN xs
+  | (x # xs, y # ys) \<Rightarrow> do {
+    ASSERT(\<Phi> x y);
+     b \<leftarrow> f x y;
+    if b then do {
+       zs \<leftarrow> mergeR (xs, y # ys);
+       RETURN (x # zs)
+    }
+    else do {
+     zs \<leftarrow> mergeR (x # xs, ys);
+     RETURN (y # zs)
+    }
+  })
+  (xs, ys)\<close>
+ apply (induction \<Phi> f xs ys rule: mergeR.induct)
+ subgoal
+   apply (subst RECT_unfold, refine_mono)
+   apply (simp add:)
+   apply (rule bind_cong[OF refl])+
+   apply auto
+   done
+ subgoal
+   by (subst RECT_unfold, refine_mono)
+    (simp split: list.splits)
+ subgoal
+   by (subst RECT_unfold, refine_mono) auto
+ done
+
+sepref_definition mergeR_vars_impl
+  is \<open>uncurry2 mergeR_vars\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>k \<rightarrow>\<^sub>a poly_s_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding mergeR_vars_def mergeR_alt_def
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  mergeR_vars_impl.refine
 
 
-          find_theorems msort list_rel
+definition msortR_vars :: \<open>(nat, string) shared_vars \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial nres\<close> where
+  \<open>msortR_vars \<V> = msortR
+   (\<lambda>xs ys. (\<forall>a\<in>set (fst xs). a \<in># dom_m (fst (snd \<V>))) \<and>  (\<forall>a\<in>set(fst ys). a \<in># dom_m (fst (snd \<V>))))
+  (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a \<noteq> GREATER)})\<close>
 
-thm perfect_shared_term_order_rel_spec
+sepref_register mergeR_vars msortR_vars
 
-     find_theorems term_order_rel "_ \<ge> _"
-term msort_impl
+sepref_definition msortR_vars_impl
+  is \<open>uncurry msortR_vars\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>k \<rightarrow>\<^sub>a poly_s_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding msortR_vars_def msortR_alt_def  mergeR_vars_def[symmetric]
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  msortR_vars_impl.refine
+
+lemma perfectly_shared_monom_unique_left:
+  \<open>(x, y) \<in> perfectly_shared_monom \<V> \<Longrightarrow> (x, y') \<in> perfectly_shared_monom \<V> \<Longrightarrow> y = y'\<close>
+  using perfectly_shared_monom_eqD by blast
+
+lemma perfectly_shared_monom_unique_right:
+  \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel  \<Longrightarrow>
+  (x, y) \<in> perfectly_shared_monom \<V> \<Longrightarrow> (x', y) \<in> perfectly_shared_monom \<V> \<Longrightarrow> x = x'\<close>
+  by (induction x arbitrary: x' y)
+   (auto simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
+    list_rel_split_left_iff perfectly_shared_vars_rel_def perfectly_shared_vars_def
+    list_rel_append1 list_rel_split_right_iff perfectly_shared_var_rel_def br_def
+    add_mset_eq_add_mset
+    dest!: multi_member_split[of _ \<open>dom_m _\<close>])
+
+lemma perfectly_shared_merge_coeffs_merge_coeffs:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close>
+  shows \<open>RETURN (merge_coeffs xs) \<le> \<Down> (perfectly_shared_polynom \<V>) (RETURN (merge_coeffs xs'))\<close>
+  using assms
+  apply (induction xs arbitrary: xs' rule: merge_coeffs.induct)
+  subgoal
+    by auto
+  subgoal
+    by (auto simp: list_rel_split_right_iff)
+  subgoal
+    by(auto simp: list_rel_split_right_iff dest: perfectly_shared_monom_unique_left
+      perfectly_shared_monom_unique_right)
+  done
+
+find_theorems "list_rel" "(_ # _, _)"
+
 thm normalize_poly_def
   find_theorems sort_poly_spec
   find_theorems
