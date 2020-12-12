@@ -100,6 +100,7 @@ definition linear_combi_l where
          } else do {
            ASSERT(fmlookup A i \<noteq> None);  
            let r = the (fmlookup A i);
+           ASSERT(vars_llist r \<subseteq> \<V>);
            q \<leftarrow> full_normalize_poly (q\<^sub>0);
            ASSERT(vars_llist q \<subseteq> \<V>);
            pq \<leftarrow> mult_poly_full q r;
@@ -313,7 +314,7 @@ proof -
     done
 qed
 
-lemma vars_llist_mult_poly_raw: \<open>vars_llist (mult_poly_raw p q) \<subseteq> vars_llist p \<union> vars_llist q\<close>
+lemma (in -)vars_llist_mult_poly_raw: \<open>vars_llist (mult_poly_raw p q) \<subseteq> vars_llist p \<union> vars_llist q\<close>
 proof -
   have [simp]: \<open>foldl (\<lambda>b x. map (mult_monomials x) qs @ b) b ps = foldl (\<lambda>b x. map (mult_monomials x) qs @ b) [] ps @ b\<close>
     if \<open>NO_MATCH [] b\<close> for qs ps b
@@ -754,7 +755,7 @@ proof -
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
       subgoal
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
-        apply auto
+        apply (use assms(6) in auto)
         apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
         apply (rule_tac P = \<open>(x, fst (hd (drop (length xs' - length (fst (snd s))) xs'))) \<in> raw_term_rel\<close> in TrueE)
         apply (auto simp: list_rel_imp_same_length)[2]

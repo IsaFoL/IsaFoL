@@ -1,6 +1,7 @@
 theory EPAC_Efficient_Checker
   imports EPAC_Checker EPAC_Perfectly_Shared
 begin
+
 type_synonym shared_poly = \<open>(nat list \<times> int) list\<close>
 
 definition (in -) add_poly_l' where
@@ -88,116 +89,6 @@ where
     import_poly_no_newS \<A> xs
   }\<close>
 
-
-definition (in -)linear_combi_l_prep where
-  \<open>linear_combi_l_prep i A \<V> xs = do {
-  WHILE\<^sub>T
-    (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
-    (\<lambda>(p, xs, _). do {
-      ASSERT(xs \<noteq> []);
-      let (q :: llist_polynomial, i) = hd xs;
-      if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> set_mset \<V>))
-      then do {
-        err \<leftarrow> check_linear_combi_l_dom_err q i;
-        RETURN (p, xs, error_msg i err)
-      } else do {
-        ASSERT(fmlookup A i \<noteq> None);  
-        let r = the (fmlookup A i);
-        (no_new, q) \<leftarrow> normalize_poly_shared \<V> (q);
-        q \<leftarrow> mult_poly_full q r;
-        pq \<leftarrow> add_poly_l (p, q);
-        RETURN (pq, tl xs, CSUCCESS)
-        }
-        })
-        ([], xs, CSUCCESS)
-        }\<close>
-
-
-lemma (in -) import_poly_no_new_spec:
-    \<open>import_poly_no_new \<V> xs \<le> \<Down>Id (SPEC(\<lambda>(b, xs'). (\<not>b \<longrightarrow> xs = xs') \<and> (\<not>b \<longleftrightarrow> vars_llist xs \<subseteq> set_mset \<V>)))\<close>
-  unfolding import_poly_no_new_def
-  apply (refine_vcg WHILET_rule[where I = \<open> \<lambda>(b, xs', ys'). (\<not>b \<longrightarrow> xs = ys' @ xs')  \<and>
-    (\<not>b \<longrightarrow> vars_llist ys' \<subseteq> set_mset \<V>) \<and>
-    (b \<longrightarrow> \<not>vars_llist xs \<subseteq> set_mset \<V>)\<close>  and R = \<open>measure (\<lambda>(b, xs, _). (if b then 0 else 1) + length xs)\<close>]
-    import_monom_no_new_spec[THEN order_trans])
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by (clarsimp simp add: neq_Nil_conv)
-  subgoal by auto
-  subgoal by auto
-  done
-
-lemma (in -) linear_combi_l_prep_linear_combi_l:
-  \<open>linear_combi_l_prep i A \<V> xs  \<le> \<Down>Id (linear_combi_l i A (set_mset \<V>) xs) \<close>
-proof -
-  have H1: \<open>(if p \<or> q then P else Q) = (if p then P else if q then P else Q)\<close> for p q P Q
-    by auto
-  have [intro!]: \<open>check_linear_combi_l_dom_err x1e x2e \<le> \<Down> Id (check_linear_combi_l_dom_err x1e x2e)\<close>
-    for x1e x2e
-    by auto
-  have linear_combi_l_alt_def:
-    \<open>linear_combi_l i A \<V> xs = do {
-      ASSERT(linear_combi_l_pre i A \<V> xs);
-      WHILE\<^sub>T
-        (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
-        (\<lambda>(p, xs, _). do {
-          ASSERT(xs \<noteq> []);
-          ASSERT(vars_llist p \<subseteq> \<V>);
-          let (q :: llist_polynomial, i) = hd xs;
-          if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
-          then do {
-            err \<leftarrow> check_linear_combi_l_dom_err q i;
-            RETURN (p, xs, error_msg i err)
-            }
-          else do {
-          ASSERT(fmlookup A i \<noteq> None);  
-          let r = the (fmlookup A i);
-          q \<leftarrow> full_normalize_poly q;
-          ASSERT (vars_llist q \<subseteq> \<V>);
-          let q = q;
-          pq \<leftarrow> mult_poly_full q r;
-          ASSERT (vars_llist pq \<subseteq> \<V>);
-          pq \<leftarrow> add_poly_l (p, pq);
-          RETURN (pq, tl xs, CSUCCESS)
-          }
-       })
-    ([], xs, CSUCCESS)
-    }\<close> for i A \<V> xs
-    unfolding Let_def linear_combi_l_def by auto
-  have H: \<open>P = Q \<Longrightarrow> P \<le>\<Down>Id Q\<close> for P Q
-    by auto
-  have [refine0]: \<open>\<Down> Id (SPEC (\<lambda>(b, xs'). (\<not> b \<longrightarrow> xa = xs') \<and> (\<not> b) = (vars_llist xa \<subseteq> set_mset \<V>)))
-    \<le> SPEC (\<lambda>c. (c, q) \<in> {((b, c), d). \<not>b \<and> c = d \<and> d = q})\<close>
-    if \<open>vars_llist xa \<subseteq> set_mset \<V>\<close> \<open>xa = q\<close>
-    for xa \<V> q
-    using that by auto
-  show ?thesis
-    unfolding linear_combi_l_prep_def linear_combi_l_alt_def normalize_poly_shared_def nres_monad3
-    apply (refine_rcg import_poly_no_new_spec[THEN order_trans])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule H)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule H)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    apply (rule H)
-    subgoal by auto
-    apply (rule H)
-    subgoal by auto
-    subgoal by auto
-    done 
-qed
-
-
 definition (in -) mult_monoms_prep :: \<open>(nat,string)vars \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list nres\<close> where
   \<open>mult_monoms_prep \<D> xs ys = REC\<^sub>T (\<lambda>f (xs, ys).
  do {
@@ -257,7 +148,6 @@ proof -
        done
     done
 qed
-
 definition mult_monoms_prop :: \<open>(nat,string)vars\<Rightarrow> llist_polynomial \<Rightarrow>  _ \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
   \<open>mult_monoms_prop = (\<lambda>\<V> qs (p, m) b. nfoldli qs (\<lambda>_. True) (\<lambda>(q, n) b. do {pq \<leftarrow> mult_monoms_prep \<V> p q; RETURN ((pq, m * n) # b)}) b)\<close>
 
@@ -323,23 +213,159 @@ qed
 definition (in -) mult_poly_full_prop :: \<open>_\<close> where
 \<open>mult_poly_full_prop \<V> p q = do {
   pq \<leftarrow> mult_poly_raw_prop \<V> p q;
+  ASSERT(vars_llist pq \<subseteq> vars_llist p \<union> vars_llist q);
   normalize_poly pq
-}\<close>
+  }\<close>
 
+lemma vars_llist_mset_eq: \<open>mset p = mset q \<Longrightarrow> vars_llist p = vars_llist q\<close>
+  by (auto simp: vars_llist_def dest!: mset_eq_setD)
 lemma mult_poly_full_prop_mult_poly_full:
   assumes \<open>vars_llist qs \<subseteq> set_mset \<V>\<close> \<open>vars_llist ps \<subseteq> set_mset \<V>\<close>
-  shows \<open>mult_poly_full_prop \<V> ps qs \<le> \<Down>Id (mult_poly_full ps qs)\<close>
+    \<open>(ps, ps') \<in> Id\<close> \<open>(qs, qs') \<in> Id\<close>
+  shows \<open>mult_poly_full_prop \<V> ps qs \<le> \<Down>Id (mult_poly_full ps' qs')\<close>
 proof -
   have [refine0]: \<open>sort_poly_spec p \<le> \<Down> Id (sort_poly_spec p')\<close>
     if \<open>mset p= mset p'\<close> for p p'
     using that
     unfolding sort_poly_spec_def
     by auto
+  have  H: \<open>x \<in> A \<Longrightarrow> x= x' \<Longrightarrow> x' \<in> A\<close> for x x' A
+    by auto
   show ?thesis
     using assms
     unfolding mult_poly_full_prop_def mult_poly_full_def normalize_poly_def
-    by (refine_vcg mult_poly_raw_prop_mult_poly_raw) auto
+    apply (refine_vcg mult_poly_raw_prop_mult_poly_raw)
+    apply (rule H[of _ \<open>{(xs, ys). mset xs = mset ys}\<close>], assumption)
+    subgoal by auto
+    subgoal by (force dest: vars_llist_mset_eq vars_llist_mult_poly_raw[THEN set_mp])
+    subgoal by auto
+    subgoal by auto
+    done
 qed
+
+definition (in -)linear_combi_l_prep where
+  \<open>linear_combi_l_prep i A \<V> xs = do {
+  WHILE\<^sub>T
+    (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
+    (\<lambda>(p, xs, _). do {
+      ASSERT(xs \<noteq> []);
+      let (q :: llist_polynomial, i) = hd xs;
+      if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> set_mset \<V>))
+      then do {
+        err \<leftarrow> check_linear_combi_l_dom_err q i;
+        RETURN (p, xs, error_msg i err)
+      } else do {
+        ASSERT(fmlookup A i \<noteq> None);  
+        let r = the (fmlookup A i);
+        ASSERT(vars_llist r \<subseteq>  set_mset \<V>);
+        (no_new, q) \<leftarrow> normalize_poly_shared \<V> (q);
+        ASSERT(vars_llist q \<subseteq>  set_mset \<V>);
+        q \<leftarrow> mult_poly_full_prop \<V> q r;
+        ASSERT(vars_llist q \<subseteq>  set_mset \<V>);
+        pq \<leftarrow> add_poly_l_prep \<V> (p, q);
+        RETURN (pq, tl xs, CSUCCESS)
+        }
+        })
+        ([], xs, CSUCCESS)
+        }\<close>
+
+
+lemma (in -) import_poly_no_new_spec:
+    \<open>import_poly_no_new \<V> xs \<le> \<Down>Id (SPEC(\<lambda>(b, xs'). (\<not>b \<longrightarrow> xs = xs') \<and> (\<not>b \<longleftrightarrow> vars_llist xs \<subseteq> set_mset \<V>)))\<close>
+  unfolding import_poly_no_new_def
+  apply (refine_vcg WHILET_rule[where I = \<open> \<lambda>(b, xs', ys'). (\<not>b \<longrightarrow> xs = ys' @ xs')  \<and>
+    (\<not>b \<longrightarrow> vars_llist ys' \<subseteq> set_mset \<V>) \<and>
+    (b \<longrightarrow> \<not>vars_llist xs \<subseteq> set_mset \<V>)\<close>  and R = \<open>measure (\<lambda>(b, xs, _). (if b then 0 else 1) + length xs)\<close>]
+    import_monom_no_new_spec[THEN order_trans])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (clarsimp simp add: neq_Nil_conv)
+  subgoal by auto
+  subgoal by auto
+  done
+
+lemma (in -) linear_combi_l_prep_linear_combi_l:
+  assumes \<open>(A,B)\<in>Id\<close> \<open>(i,j)\<in>Id\<close> \<open>(\<V>,\<V>')\<in>{(a,b). b = set_mset a} \<close> \<open>(xs,xs')\<in>Id\<close>
+  shows
+    \<open>linear_combi_l_prep i A \<V> xs  \<le> \<Down>Id (linear_combi_l j B \<V>' xs')\<close>
+proof -
+  have eq: \<open>A=B\<close> \<open>i=j\<close> \<open>\<V>' = set_mset \<V>\<close> \<open>xs=xs'\<close>
+    using assms by auto
+  have H1: \<open>(if p \<or> q then P else Q) = (if p then P else if q then P else Q)\<close> for p q P Q
+    by auto
+  have [intro!]: \<open>check_linear_combi_l_dom_err x1e x2e \<le> \<Down> Id (check_linear_combi_l_dom_err x1e x2e)\<close>
+    for x1e x2e
+    by auto
+  have linear_combi_l_alt_def:
+    \<open>linear_combi_l i A \<V> xs = do {
+      ASSERT(linear_combi_l_pre i A \<V> xs);
+      WHILE\<^sub>T
+        (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
+        (\<lambda>(p, xs, _). do {
+          ASSERT(xs \<noteq> []);
+          ASSERT(vars_llist p \<subseteq> \<V>);
+          let (q :: llist_polynomial, i) = hd xs;
+          if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> \<V>))
+          then do {
+            err \<leftarrow> check_linear_combi_l_dom_err q i;
+            RETURN (p, xs, error_msg i err)
+            }
+          else do {
+          ASSERT(fmlookup A i \<noteq> None);  
+          let r = the (fmlookup A i);
+          ASSERT (vars_llist r \<subseteq> \<V>);
+          q \<leftarrow> full_normalize_poly q;
+          ASSERT (vars_llist q \<subseteq> \<V>);
+          let q = q;
+          pq \<leftarrow> mult_poly_full q r;
+          ASSERT (vars_llist pq \<subseteq> \<V>);
+          pq \<leftarrow> add_poly_l (p, pq);
+          RETURN (pq, tl xs, CSUCCESS)
+          }
+       })
+    ([], xs, CSUCCESS)
+    }\<close> for i A \<V> xs
+    unfolding Let_def linear_combi_l_def by auto
+  have H: \<open>P = Q \<Longrightarrow> P \<le>\<Down>Id Q\<close> for P Q
+    by auto
+  have [refine0]: \<open>\<Down> Id (SPEC (\<lambda>(b, xs'). (\<not> b \<longrightarrow> xa = xs') \<and> (\<not> b) = (vars_llist xa \<subseteq> set_mset \<V>)))
+    \<le> SPEC (\<lambda>c. (c, q) \<in> {((b, c), d). \<not>b \<and> c = d \<and> d = q})\<close>
+    if \<open>vars_llist xa \<subseteq> set_mset \<V>\<close> \<open>xa = q\<close>
+    for xa \<V> q
+    using that by auto
+  show ?thesis
+    unfolding linear_combi_l_prep_def linear_combi_l_alt_def normalize_poly_shared_def nres_monad3 eq
+    apply (refine_rcg import_poly_no_new_spec[THEN order_trans] mult_poly_full_prop_mult_poly_full
+      add_poly_alt_def[THEN order_trans, unfolded add_poly_l'_def])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: vars_llist_def)
+    subgoal by (auto simp: vars_llist_def)
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
 
 definition (in -) linear_combi_l_prep2 where
   \<open>linear_combi_l_prep2 i A \<V> xs = do {
@@ -356,9 +382,11 @@ definition (in -) linear_combi_l_prep2 where
          } else do {
            ASSERT(fmlookup A i \<noteq> None);
            let r = the (fmlookup A i);
+           ASSERT(vars_llist r \<subseteq> set_mset \<V>);
            (_, q) \<leftarrow> normalize_poly_shared \<V> (q\<^sub>0);
            ASSERT(vars_llist q \<subseteq> set_mset \<V>);
            pq \<leftarrow> mult_poly_full_prop \<V> q r;
+           ASSERT(vars_llist pq \<subseteq> set_mset \<V>);
            pq \<leftarrow> add_poly_l_prep \<V> (p, pq);
            RETURN (pq, tl xs, CSUCCESS)
          }
@@ -392,6 +420,7 @@ proof -
           else do {
           ASSERT(fmlookup A i \<noteq> None);
           let r = the (fmlookup A i);
+          ASSERT (vars_llist r \<subseteq> \<V>);
           q \<leftarrow> full_normalize_poly q;
           ASSERT (vars_llist q \<subseteq> \<V>);
           let q = q;
@@ -426,16 +455,19 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by (auto simp: vars_llist_def)
     apply (rule H)
     subgoal by auto
     subgoal using \<V> by auto
     subgoal by auto
     subgoal using \<V> by auto
-    subgoal using \<V> unfolding linear_combi_l_pre_def by auto
+    apply (solves auto)[]
+    apply (solves auto)[]
     apply (rule H)
     subgoal by auto
     subgoal using \<V> by (auto dest!: split_list)
     subgoal using \<V> by (auto dest!: split_list)
+    subgoal by (auto simp: vars_llist_def)
     apply (rule H)
     subgoal by (auto simp: add_poly_l'_def)
     subgoal by auto

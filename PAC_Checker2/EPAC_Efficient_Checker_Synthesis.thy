@@ -740,13 +740,32 @@ lemma perfectly_shared_monom_unique_right:
     add_mset_eq_add_mset
     dest!: multi_member_split[of _ \<open>dom_m _\<close>])
 
+lemma perfectly_shared_polynom_unique_left:
+  \<open>(x, y) \<in> perfectly_shared_polynom \<V> \<Longrightarrow> (x, y') \<in> perfectly_shared_polynom \<V> \<Longrightarrow> y = y'\<close>
+  by (induction x arbitrary: y y')
+    (auto dest: perfectly_shared_monom_unique_left simp: list_rel_split_right_iff)
+lemma perfectly_shared_polynom_unique_right:
+  \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel  \<Longrightarrow>
+  (x, y) \<in> perfectly_shared_polynom \<V> \<Longrightarrow> (x', y) \<in> perfectly_shared_polynom \<V> \<Longrightarrow> x = x'\<close>
+  by (induction x arbitrary: x' y)
+   (auto dest: perfectly_shared_monom_unique_right simp: list_rel_split_left_iff
+    list_rel_split_right_iff)
+
+fun merge_coeffs_s :: \<open>sllist_polynomial \<Rightarrow> sllist_polynomial\<close> where
+  \<open>merge_coeffs_s [] = []\<close> |
+  \<open>merge_coeffs_s [(xs, n)] = [(xs, n)]\<close> |
+  \<open>merge_coeffs_s ((xs, n) # (ys, m) # p) =
+    (if xs = ys
+    then if n + m \<noteq> 0 then merge_coeffs_s ((xs, n + m) # p) else merge_coeffs_s p
+      else (xs, n) # merge_coeffs_s ((ys, m) # p))\<close>
+
 lemma perfectly_shared_merge_coeffs_merge_coeffs:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
     \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close>
-  shows \<open>RETURN (merge_coeffs xs) \<le> \<Down> (perfectly_shared_polynom \<V>) (RETURN (merge_coeffs xs'))\<close>
+  shows \<open>(merge_coeffs_s xs, merge_coeffs xs') \<in> (perfectly_shared_polynom \<V>)\<close>
   using assms
-  apply (induction xs arbitrary: xs' rule: merge_coeffs.induct)
+  apply (induction xs arbitrary: xs' rule: merge_coeffs_s.induct)
   subgoal
     by auto
   subgoal
@@ -756,9 +775,217 @@ lemma perfectly_shared_merge_coeffs_merge_coeffs:
       perfectly_shared_monom_unique_right)
   done
 
-find_theorems "list_rel" "(_ # _, _)"
+definition normalize_poly_s :: \<open>_\<close> where
+  \<open>normalize_poly_s \<V> p =  do {
+  p \<leftarrow> msortR_vars \<V> p;
+  RETURN (merge_coeffs_s p)
+  }\<close>
 
-thm normalize_poly_def
+lemma normalize_poly_s_normalize_poly_s:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>vars_llist xs' \<subseteq> set_mset \<D>\<V>\<close>
+  shows \<open>normalize_poly_s \<V> xs \<le> \<Down> (perfectly_shared_polynom \<V>) (normalize_poly xs')\<close>
+  unfolding normalize_poly_s_def normalize_poly_def
+  by (refine_rcg msortR_sort_spec[unfolded msortR_vars_def[symmetric]] assms
+    perfectly_shared_merge_coeffs_merge_coeffs)
+
+definition check_linear_combi_l_s_dom_err :: \<open>sllist_polynomial \<Rightarrow> nat \<Rightarrow> string nres\<close> where
+  \<open>check_linear_combi_l_s_dom_err p r = SPEC (\<lambda>_. True)\<close>
+
+definition mult_poly_full_s :: \<open>_\<close> where
+  \<open>mult_poly_full_s \<V> p q = do {
+    pq \<leftarrow> mult_poly_s \<V> p q;
+   normalize_poly_s \<V> pq
+  }\<close>
+
+lemma mult_poly_full_s_mult_poly_full_prop:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>(ys, ys') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>vars_llist xs' \<subseteq> set_mset \<D>\<V>\<close> and
+    \<open>vars_llist ys' \<subseteq> set_mset \<D>\<V>\<close>
+  shows \<open>mult_poly_full_s \<V> xs ys \<le> \<Down> (perfectly_shared_polynom \<V>) (mult_poly_full_prop \<D>\<V> xs' ys')\<close>
+  unfolding mult_poly_full_s_def mult_poly_full_prop_def
+  by (refine_rcg mult_poly_s_mult_poly_raw_prop assms normalize_poly_s_normalize_poly_s)
+   (use assms in auto)
+
+thm linear_combi_l_prep_def
+thm linear_combi_l_def
+thm check_linear_combi_l_def
+
+definition (in -)linear_combi_l_prep_s
+  :: \<open>nat \<Rightarrow> _ \<Rightarrow> (nat, string) shared_vars \<Rightarrow> string multiset \<Rightarrow> _ \<Rightarrow> (sllist_polynomial \<times> (llist_polynomial \<times> nat) list \<times> string code_status) nres\<close>
+where
+  \<open>linear_combi_l_prep_s i A \<V> \<V>' xs = do {
+  WHILE\<^sub>T
+    (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
+    (\<lambda>(p, xs, _). do {
+      ASSERT(xs \<noteq> []);
+      let (q :: llist_polynomial, i) = hd xs;
+      if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> set_mset \<V>'))
+      then do {
+        err \<leftarrow> check_linear_combi_l_s_dom_err p i;
+        RETURN (p, xs, error_msg i err)
+      } else do {
+        ASSERT(fmlookup A i \<noteq> None);
+        let r = the (fmlookup A i);
+        (no_new, q) \<leftarrow> normalize_poly_sharedS \<V> (q);
+        q \<leftarrow> mult_poly_full_s \<V> q r;
+        pq \<leftarrow> add_poly_l_s \<V> (p, q);
+        RETURN (pq, tl xs, CSUCCESS)
+        }
+        })
+        ([], xs, CSUCCESS)
+          }\<close>
+
+lemma normalize_poly_sharedS_normalize_poly_shared:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(xs, xs') \<in> Id\<close>
+  shows \<open>normalize_poly_sharedS \<V> xs
+    \<le> \<Down>(bool_rel \<times>\<^sub>r perfectly_shared_polynom \<V>)
+    (normalize_poly_shared \<D>\<V> xs')\<close>
+proof -
+  have [refine]: \<open>full_normalize_poly xs \<le> \<Down> Id (full_normalize_poly xs')\<close>
+    using assms by auto
+  show ?thesis
+    unfolding normalize_poly_sharedS_def normalize_poly_shared_def
+    by (refine_rcg assms import_poly_no_newS_import_poly_no_new)
+qed
+
+
+lemma linear_combi_l_prep_s_linear_combi_l_prep:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close>
+    \<open>(\<D>\<V>, \<D>\<V>') \<in> Id\<close>
+    \<open>(xs,xs') \<in> Id\<close>
+  shows \<open>linear_combi_l_prep_s i A \<V> \<D>\<V> xs
+    \<le> \<Down>(perfectly_shared_polynom \<V> \<times>\<^sub>r Id \<times>\<^sub>r Id)
+    (linear_combi_l_prep2 j B \<D>\<V>' xs')\<close>
+proof -
+  have [refine]: \<open>check_linear_combi_l_s_dom_err a b
+    \<le> \<Down> Id
+    (check_linear_combi_l_dom_err c d)\<close> for a b c d
+    unfolding check_linear_combi_l_dom_err_def check_linear_combi_l_s_dom_err_def
+    by auto
+  show ?thesis
+    unfolding linear_combi_l_prep_s_def linear_combi_l_prep2_def
+    apply (refine_rcg normalize_poly_sharedS_normalize_poly_shared
+      mult_poly_full_s_mult_poly_full_prop add_poly_l_s_add_poly_l)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using fmap_rel_nat_rel_dom_m[OF assms(2)] unfolding in_dom_m_lookup_iff by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition check_linear_combi_l_s_mult_err :: \<open>sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> string nres\<close> where
+  \<open>check_linear_combi_l_s_mult_err pq r = SPEC (\<lambda>_. True)\<close>
+
+definition weak_equality_l_s :: \<open>sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> bool nres\<close> where
+  \<open>weak_equality_l_s p q = RETURN (p = q)\<close>
+
+definition check_linear_combi_l_s where
+  \<open>check_linear_combi_l_s spec A \<V> \<V>' i xs r = do {
+  (mem_err, r) \<leftarrow> import_poly_no_newS \<V> r;
+  if mem_err \<or> i \<in># dom_m A \<or> xs = []
+  then do {
+    err \<leftarrow> check_linear_combi_l_pre_err i (i \<in># dom_m A) (xs = []) (mem_err);
+    RETURN (error_msg i err, r)
+  }
+  else do {
+    (p, _, err) \<leftarrow> linear_combi_l_prep_s i A \<V> \<V>' xs;
+    if (is_cfailed err)
+    then do {
+      RETURN (err, r)
+    }
+    else do {
+      b \<leftarrow> weak_equality_l_s p r;
+      b' \<leftarrow> weak_equality_l_s r spec;
+      if b then (if b' then RETURN (CFOUND, r) else RETURN (CSUCCESS, r)) else do {
+        c \<leftarrow> check_linear_combi_l_s_mult_err p r;
+        RETURN (error_msg i c, r)
+      }
+    }
+        }}\<close>
+lemma weak_equality_l_s_weak_equality_l:
+  fixes a :: sllist_polynomial and b :: llist_polynomial and \<V> :: \<open>(nat,string)shared_vars\<close>
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(a,b) \<in> perfectly_shared_polynom \<V>\<close>
+    \<open>(c,d) \<in> perfectly_shared_polynom \<V>\<close>
+  shows
+    \<open>weak_equality_l_s a c \<le>\<Down>bool_rel (weak_equality_l b d)\<close>
+  using assms perfectly_shared_polynom_unique_left[OF assms(2), of d]
+    perfectly_shared_polynom_unique_right[OF assms(1,2), of c]
+  unfolding weak_equality_l_s_def weak_equality_l_def
+  by auto
+
+
+lemma check_linear_combi_l_s_check_linear_combi_l:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
+    \<open>(\<D>\<V>, \<D>\<V>') \<in> Id\<close>
+    \<open>(xs,xs')\<in> Id\<close>
+    \<open>(r,r')\<in>Id\<close>
+    \<open>(i,j)\<in>nat_rel\<close>
+    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close>
+  shows \<open>check_linear_combi_l_s spec A \<V> \<D>\<V> i r xs
+    \<le> \<Down>(Id \<times>\<^sub>r perfectly_shared_polynom \<V>)
+    (check_linear_combi_l_prop spec' B \<D>\<V>' j r' xs')\<close>
+proof -
+  have [refine]: \<open>check_linear_combi_l_pre_err a b c d \<le> \<Down>Id (check_linear_combi_l_pre_err u x y z)\<close>
+    for a b c d u x y z
+    by  (auto simp: check_linear_combi_l_pre_err_def)
+  have [refine]: \<open>check_linear_combi_l_s_mult_err a b \<le> \<Down>Id (check_linear_combi_l_mult_err u x)\<close>
+    for a b u x
+    by  (auto simp: check_linear_combi_l_s_mult_err_def check_linear_combi_l_mult_err_def)
+
+  show ?thesis
+    unfolding check_linear_combi_l_s_def check_linear_combi_l_prop_def
+    apply (refine_rcg import_poly_no_newS_import_poly_no_new assms
+      linear_combi_l_prep_s_linear_combi_l_prep weak_equality_l_s_weak_equality_l)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    done
+qed
+
+      find_theorems linear_combi_l_prep2
+      thm linear_combi_l_prep_def linear_combi_l_prep2_def
+term check_linear_combi_l_prop
+thm linear_combi_l_prep_def
+find_theorems linear_combi_l_prep
+    term linear_combi_l_prep
+    find_theorems add_poly_l
+    term check_linear_combi_l
+thm full_normalize_poly_def
   find_theorems sort_poly_spec
   find_theorems
   thm sort_poly_spec_def
