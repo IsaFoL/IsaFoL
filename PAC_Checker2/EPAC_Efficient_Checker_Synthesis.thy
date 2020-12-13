@@ -5,6 +5,15 @@ theory EPAC_Efficient_Checker_Synthesis
 begin
 type_synonym sllist_polynomial = \<open>(nat list \<times> int) list\<close>
 
+definition vars_llist_in_s :: \<open>(nat, string) shared_vars \<Rightarrow> llist_polynomial \<Rightarrow> bool\<close> where
+  \<open>vars_llist_in_s = (\<lambda>(\<V>,\<D>) p. vars_llist p \<subseteq> set_mset \<V>)\<close>
+
+lemma vars_llist_in_s_vars_llist[simp]:
+  assumes \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+  shows \<open>vars_llist_in_s \<V> p \<longleftrightarrow> vars_llist p \<subseteq> set_mset \<D>\<V>\<close>
+  using assms unfolding perfectly_shared_vars_rel_def perfectly_shared_vars_def vars_llist_in_s_def
+  by auto
+
 definition (in -)perfect_shared_var_order_s :: \<open>(nat, string)shared_vars \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ordered nres\<close> where
   \<open>perfect_shared_var_order_s \<D> x y = do {
     eq \<leftarrow> perfectly_shared_strings_equal_l \<D> x y;
@@ -817,15 +826,15 @@ thm linear_combi_l_def
 thm check_linear_combi_l_def
 
 definition (in -)linear_combi_l_prep_s
-  :: \<open>nat \<Rightarrow> _ \<Rightarrow> (nat, string) shared_vars \<Rightarrow> string multiset \<Rightarrow> _ \<Rightarrow> (sllist_polynomial \<times> (llist_polynomial \<times> nat) list \<times> string code_status) nres\<close>
+  :: \<open>nat \<Rightarrow> _ \<Rightarrow> (nat, string) shared_vars \<Rightarrow> _ \<Rightarrow> (sllist_polynomial \<times> (llist_polynomial \<times> nat) list \<times> string code_status) nres\<close>
 where
-  \<open>linear_combi_l_prep_s i A \<V> \<V>' xs = do {
+  \<open>linear_combi_l_prep_s i A \<V> xs = do {
   WHILE\<^sub>T
     (\<lambda>(p, xs, err). xs \<noteq> [] \<and> \<not>is_cfailed err)
     (\<lambda>(p, xs, _). do {
       ASSERT(xs \<noteq> []);
       let (q :: llist_polynomial, i) = hd xs;
-      if (i \<notin># dom_m A \<or> \<not>(vars_llist q \<subseteq> set_mset \<V>'))
+      if (i \<notin># dom_m A \<or> \<not>(vars_llist_in_s \<V> q))
       then do {
         err \<leftarrow> check_linear_combi_l_s_dom_err p i;
         RETURN (p, xs, error_msg i err)
@@ -861,11 +870,10 @@ lemma linear_combi_l_prep_s_linear_combi_l_prep:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
     \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close>
-    \<open>(\<D>\<V>, \<D>\<V>') \<in> Id\<close>
     \<open>(xs,xs') \<in> Id\<close>
-  shows \<open>linear_combi_l_prep_s i A \<V> \<D>\<V> xs
+  shows \<open>linear_combi_l_prep_s i A \<V> xs
     \<le> \<Down>(perfectly_shared_polynom \<V> \<times>\<^sub>r Id \<times>\<^sub>r Id)
-    (linear_combi_l_prep2 j B \<D>\<V>' xs')\<close>
+    (linear_combi_l_prep2 j B \<D>\<V> xs')\<close>
 proof -
   have [refine]: \<open>check_linear_combi_l_s_dom_err a b
     \<le> \<Down> Id
@@ -901,7 +909,7 @@ definition weak_equality_l_s :: \<open>sllist_polynomial \<Rightarrow> sllist_po
   \<open>weak_equality_l_s p q = RETURN (p = q)\<close>
 
 definition check_linear_combi_l_s where
-  \<open>check_linear_combi_l_s spec A \<V> \<V>' i xs r = do {
+  \<open>check_linear_combi_l_s spec A \<V> i xs r = do {
   (mem_err, r) \<leftarrow> import_poly_no_newS \<V> r;
   if mem_err \<or> i \<in># dom_m A \<or> xs = []
   then do {
@@ -909,7 +917,7 @@ definition check_linear_combi_l_s where
     RETURN (error_msg i err, r)
   }
   else do {
-    (p, _, err) \<leftarrow> linear_combi_l_prep_s i A \<V> \<V>' xs;
+    (p, _, err) \<leftarrow> linear_combi_l_prep_s i A \<V> xs;
     if (is_cfailed err)
     then do {
       RETURN (err, r)
@@ -935,20 +943,17 @@ lemma weak_equality_l_s_weak_equality_l:
     perfectly_shared_polynom_unique_right[OF assms(1,2), of c]
   unfolding weak_equality_l_s_def weak_equality_l_def
   by auto
-
-
-lemma check_linear_combi_l_s_check_linear_combi_l:
+    lemma check_linear_combi_l_s_check_linear_combi_l:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
     \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
-    \<open>(\<D>\<V>, \<D>\<V>') \<in> Id\<close>
     \<open>(xs,xs')\<in> Id\<close>
     \<open>(r,r')\<in>Id\<close>
     \<open>(i,j)\<in>nat_rel\<close>
     \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close>
-  shows \<open>check_linear_combi_l_s spec A \<V> \<D>\<V> i r xs
+  shows \<open>check_linear_combi_l_s spec A \<V> i r xs
     \<le> \<Down>(Id \<times>\<^sub>r perfectly_shared_polynom \<V>)
-    (check_linear_combi_l_prop spec' B \<D>\<V>' j r' xs')\<close>
+    (check_linear_combi_l_prop spec' B \<D>\<V> j r' xs')\<close>
 proof -
   have [refine]: \<open>check_linear_combi_l_pre_err a b c d \<le> \<Down>Id (check_linear_combi_l_pre_err u x y z)\<close>
     for a b c d u x y z
@@ -972,15 +977,103 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
     subgoal using assms by auto
     done
 qed
 
-      find_theorems linear_combi_l_prep2
-      thm linear_combi_l_prep_def linear_combi_l_prep2_def
-term check_linear_combi_l_prop
-thm linear_combi_l_prep_def
+definition check_extension_l_s_new_var_multiple_err :: \<open>string \<Rightarrow> sllist_polynomial \<Rightarrow> string nres\<close> where
+  \<open>check_extension_l_s_new_var_multiple_err v p = SPEC (\<lambda>_. True)\<close>
+
+definition check_extension_l_s_side_cond_err
+  :: \<open>string \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> string nres\<close>
+where
+  \<open>check_extension_l_s_side_cond_err v p p' q = SPEC (\<lambda>_. True)\<close>
+
+definition (in -)check_extension_l2_s
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> (nat,string)shared_vars \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> sllist_polynomial \<times> (nat,string)shared_vars) nres\<close>
+where
+\<open>check_extension_l2_s spec A \<V> i v p = do {
+  (pre, nonew, mem, p, p', \<V>) \<leftarrow> do {
+      let pre = i \<notin># dom_m A \<and> v \<notin> set_mset (fst \<V>) \<and> ([v], -1) = hd p;
+      let p' = tl p;
+      let b = vars_llist_in_s \<V> p';
+      (mem, p, \<V>) \<leftarrow> import_polyS \<V> p;
+      RETURN (pre \<and> \<not>alloc_failed mem, b, mem, p, tl p, \<V>)
+   };
+  if \<not>pre
+  then do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c, [], \<V>)
+  } else do {
+      if \<not>nonew
+      then do {
+        c \<leftarrow> check_extension_l_s_new_var_multiple_err v p';
+        RETURN (error_msg i c, [], \<V>)
+      }
+      else do {
+         p2 \<leftarrow> mult_poly_full_s \<V> p' p';
+         let p'' = map (\<lambda>(a,b). (a, -b)) p';
+         q \<leftarrow> add_poly_l_s \<V> (p2, p'');
+         eq \<leftarrow> weak_equality_l_s q [];
+         if eq then do {
+           RETURN (CSUCCESS, p, \<V>)
+         } else do {
+          c \<leftarrow> check_extension_l_s_side_cond_err v p p'' q;
+          RETURN (error_msg i c, [], \<V>)
+        }
+      }
+    }
+           }\<close>
+
+lemma
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
+    \<open>(xs,xs')\<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+    \<open>(r,r')\<in>Id\<close>
+    \<open>(i,j)\<in>nat_rel\<close>
+    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>xs' = ([r], -1) # ys\<close>
+  shows \<open>check_extension_l2_s spec A \<V> i r xs
+    \<le> \<Down>(Id \<times>\<^sub>r perfectly_shared_polynom \<V> \<times>\<^sub>r {(a,b). (a,b) \<in> perfectly_shared_vars_rel \<and> perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom a})
+    (check_extension_l2_prop spec' B \<D>\<V> j r' xs')\<close>
+proof -
+  have \<open>   (x, x')
+    \<in> {((mem, xs\<^sub>0, \<A>), mem', ys\<^sub>0, \<A>').
+    mem = mem' \<and>
+    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not> alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> \<langle>perfectly_shared_monom \<A> \<times>\<^sub>r int_rel\<rangle>list_rel)} \<Longrightarrow>
+    x2 = (x1a, x2a) \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x2b = (x1c, x2c) \<Longrightarrow>
+    x = (x1b, x2b) \<Longrightarrow>
+    (((i \<notin># dom_m A \<and> r \<notin># fst \<V> \<and> ([r], - 1) = lead_coeff xs) \<and> \<not> alloc_failed x1b,
+      vars_llist_in_s \<V> (tl xs), x1b, x1c, tl x1c, x2c),
+     (j \<notin># dom_m B \<and> r' \<notin># \<D>\<V> \<and> ([r'], - 1) \<in> set xs') \<and> \<not> alloc_failed x1,
+     vars_llist (remove1 ([r'], - 1) xs') \<subseteq> set_mset \<D>\<V>, x1, x1a,
+     remove1 ([r'], - 1) xs', x2a)
+    \<in> bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r Id \<times>\<^sub>r {(a,b). \<not>alloc_failed (fst x) \<longrightarrow> (a,b) \<in>perfectly_shared_polynom (snd (snd x))} \<times>\<^sub>r
+    {(a,b). \<not>alloc_failed (fst x) \<longrightarrow> (a,b) \<in>perfectly_shared_polynom (snd (snd x))} \<times>\<^sub>r
+    {(a,b). (a,b) \<in> perfectly_shared_vars_rel \<and> perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom a}\<close>
+    for x x' x1 x2 x1a x2a x1b x2b x1c x2c
+    using assms
+    apply auto
+      defer
+    apply (auto simp add: perfectly_shared_vars_rel_def perfectly_shared_vars_def)[]
+    apply (auto simp add: perfectly_shared_vars_rel_def perfectly_shared_vars_def)[]
+      (*TODO strengthen import_polyS_import_poly*)
+      sorry
+
+  show ?thesis
+    unfolding check_extension_l2_s_def check_extension_l2_prop_def nres_monad3
+    apply (refine_rcg import_polyS_import_poly assms)
+    apply (rule H)
+    subgoal using assms apply auto
+
+    
+thm check_extension_l2_prop_def
+
+thm PAC_checker_l_step_prep_def
+
 find_theorems linear_combi_l_prep
     term linear_combi_l_prep
     find_theorems add_poly_l
