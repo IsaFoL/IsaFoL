@@ -462,7 +462,7 @@ definition import_poly
   :: \<open>('nat, 'string) vars \<Rightarrow> ('string list \<times> 'a) list \<Rightarrow>
         (memory_allocation \<times> ('string list \<times> 'a) list \<times> ('nat, 'string)vars) nres\<close>
   where
-  \<open>import_poly \<A> xs = do {
+  \<open>import_poly \<A> xs0 = do {
   (new, _, xs, \<A>) \<leftarrow> WHILE\<^sub>T (\<lambda>(new, xs, _). \<not>alloc_failed new \<and> xs \<noteq> [])
   (\<lambda>(_, xs, ys, \<A>). do {
     ASSERT(xs \<noteq> []);
@@ -474,7 +474,8 @@ definition import_poly
       RETURN (Allocated, tl xs, ys @ [(x, n)], \<A>)
     }
   })
-  (Allocated, xs, [], \<A>);
+      (Allocated, xs0, [], \<A>);
+  ASSERT(\<not>alloc_failed new \<longrightarrow> xs0 = xs);
   RETURN (new, xs, \<A>)
 }\<close>
 
@@ -495,6 +496,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: neq_Nil_conv)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     done
@@ -546,21 +548,27 @@ lemma import_monomS_import_monom:
   done
 
 abbreviation perfectly_shared_polynom
-  :: \<open>('nat,'string) shared_vars \<Rightarrow> (('nat list \<times> 'a) list \<times> ('string list \<times> 'a) list) set\<close>
+  :: \<open>('nat,'string) shared_vars \<Rightarrow> (('nat list \<times> int) list \<times> ('string list \<times> int) list) set\<close>
 where
-  \<open>perfectly_shared_polynom \<V> \<equiv> \<langle>perfectly_shared_monom \<V> \<times>\<^sub>r Id\<rangle>list_rel\<close>
+  \<open>perfectly_shared_polynom \<V> \<equiv> \<langle>perfectly_shared_monom \<V> \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+
+abbreviation import_poly_rel :: \<open>_\<close> where
+  \<open>import_poly_rel \<A>\<^sub>0 xs' \<equiv>
+  {((mem, xs\<^sub>0, \<A>), (mem', ys\<^sub>0, \<A>')). mem = mem' \<and>
+    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not>alloc_failed mem \<longrightarrow> ys\<^sub>0 = xs' \<and> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
+    (\<not>alloc_failed mem \<longrightarrow> perfectly_shared_polynom \<A>\<^sub>0 \<subseteq> perfectly_shared_polynom \<A>)}\<close>
 
 lemma import_polyS_import_poly:
-  assumes \<open>(\<A>, \<V>\<D>) \<in> perfectly_shared_vars_rel\<close> \<open>(xs, xs') \<in>  \<langle>\<langle>Id\<rangle>list_rel\<times>\<^sub>rId\<rangle>list_rel\<close>
-  shows \<open>import_polyS \<A> xs \<le> \<Down> {((mem, xs\<^sub>0, \<A>), (mem', ys\<^sub>0, \<A>')). mem = mem' \<and> 
-    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>)}
+  assumes \<open>(\<A>\<^sub>0, \<V>\<D>) \<in> perfectly_shared_vars_rel\<close> \<open>(xs, xs') \<in>  \<langle>\<langle>Id\<rangle>list_rel\<times>\<^sub>rId\<rangle>list_rel\<close>
+  shows \<open>import_polyS \<A>\<^sub>0 xs \<le> \<Down>(import_poly_rel \<A>\<^sub>0 xs)
     (import_poly \<V>\<D> xs')\<close>
   using assms
   unfolding import_poly_def import_polyS_def
   apply (refine_rcg WHILET_refine[where
     R = \<open>{((mem, zs, xs\<^sub>0, \<A>), (mem', zs', ys\<^sub>0, \<A>')). mem = mem' \<and> 
     (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and> (zs, zs') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r Id\<rangle>list_rel
-    \<and> (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>)}\<close>]
+    \<and> (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
+    (\<not>alloc_failed mem \<longrightarrow> perfectly_shared_polynom \<A>\<^sub>0 \<subseteq> perfectly_shared_polynom \<A>)}\<close>]
     import_monomS_import_monom)
   subgoal by auto
   subgoal by auto
@@ -568,13 +576,13 @@ lemma import_polyS_import_poly:
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal by (force simp: list_rel_append1)
+  subgoal by (auto simp: list_rel_append1)
   subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g xa x'a x1h x2h x1i x2i
     x1j x2j x1k x2k
     using memory_allocation.exhaust_disc[of x1h \<open>x1h = Allocated\<close>]
     by (auto intro!: list_rel_append_single intro: list_rel_mono)
   subgoal by auto
-    done
+  done
 
 
 

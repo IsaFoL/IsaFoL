@@ -556,9 +556,13 @@ where
         RETURN (error_msg i c, [], \<V>)
       }
       else do {
-         p2 \<leftarrow> mult_poly_full p' p';
+         ASSERT(vars_llist p' \<subseteq> set_mset \<V>);
+         p2 \<leftarrow>  mult_poly_full_prop \<V> p' p';
+         ASSERT(vars_llist p2 \<subseteq> set_mset \<V>);
          let p'' = map (\<lambda>(a,b). (a, -b)) p';
-         q \<leftarrow> add_poly_l (p2, p'');
+         ASSERT(vars_llist p'' \<subseteq> set_mset \<V>);
+         q \<leftarrow> add_poly_l_prep \<V> (p2, p'');
+         ASSERT(vars_llist q \<subseteq> set_mset \<V>);
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
            RETURN (CSUCCESS, p, \<V>)
@@ -590,13 +594,15 @@ proof -
     apply (refine_vcg import_poly_spec[THEN order_trans])
     apply (clarsimp simp: vars_llist_def)
     done
-
+find_theorems add_poly_l_prep
   have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
     by auto
   show ?thesis
     using assms
     unfolding check_extension_l2_prop_def check_extension_l2_def
-    apply (refine_vcg)
+    apply (refine_vcg mult_poly_full_prop_mult_poly_full add_poly_alt_def[unfolded add_poly_l'_def, THEN order_trans]
+      )
+      find_theorems add_poly_l_prep add_poly_l'
     subgoal by auto
     apply (rule H)
     subgoal by auto
@@ -605,9 +611,15 @@ proof -
     apply (rule H)
     subgoal by (auto simp: check_extension_l_new_var_multiple_err_def)
     subgoal by (simp add: error_msg_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by (auto dest: split_list_first simp: vars_llist_def)
+    subgoal by (auto simp: vars_llist_def)
     apply (rule H)
     subgoal by auto
-    apply (rule H)
     subgoal by auto
     apply (rule H)
     subgoal by auto

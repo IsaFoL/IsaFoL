@@ -157,9 +157,13 @@ where
         RETURN (error_msg i c)
       }
       else do {
+         ASSERT(vars_llist p' \<subseteq> \<V>);
          p2 \<leftarrow> mult_poly_full p' p';
+         ASSERT(vars_llist p2 \<subseteq> \<V>);
          let p' = map (\<lambda>(a,b). (a, -b)) p';
+         ASSERT(vars_llist p' \<subseteq> \<V>);
          q \<leftarrow> add_poly_l (p2, p');
+         ASSERT(vars_llist q \<subseteq> \<V>);
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
            RETURN (CSUCCESS)
@@ -380,6 +384,14 @@ proof -
       dest!: rtranclp_normalize_poly_p_poly_of_mset rtranclp_mult_poly_p_mult_ideal_final
       intro!: RES_refine\<close>)
 qed
+
+lemma mult_poly_full_mult_poly_spec:
+  assumes \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
+  shows \<open>mult_poly_full p q \<le> \<Down> {(xs,ys). (xs,ys)\<in>sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p \<union> vars_llist q} (mult_poly_spec p' q')\<close>
+  apply (rule mult_poly_full_spec2[OF assms, THEN order_trans])
+  apply (rule ref_two_step')
+  by (auto simp: mult_poly_spec_def dest: ideal.span_neg)
+
 
 lemma vars_llist_merge_coeff0: \<open>vars_llist (merge_coeffs0 paa) \<subseteq> vars_llist paa\<close>
   by (induction paa rule: merge_coeffs0.induct)
@@ -625,6 +637,18 @@ proof -
       dest!: rtranclp_add_poly_p_polynomial_of_mset_full
       intro!: RES_refine\<close>)
 qed
+
+lemma add_poly_full_spec3:
+  assumes
+    \<open>(p, p'') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>(q, q'') \<in> sorted_poly_rel O mset_poly_rel\<close>
+  shows
+    \<open>add_poly_l (p, q) \<le> \<Down> {(xs,ys). (xs,ys) \<in> sorted_poly_rel  O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p \<union> vars_llist q}
+    (add_poly_spec p'' q'')\<close>
+  apply (rule add_poly_full_spec2[OF assms, THEN order_trans])
+  apply (rule ref_two_step')
+  apply (auto simp: add_poly_spec_def dest: ideal.span_neg)
+  done
 
 lemma full_normalize_poly_full_spec2:
   assumes
@@ -1127,24 +1151,7 @@ lemma check_extension_l2_check_extension:
 proof -
   have \<open>x' = \<phi> x\<close>
     using assms(5) by (auto simp: var_rel_def br_def)
-  have [refine]:
-    \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
-    if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
-      \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
-    for p p' q q'
-    using that
-    by (auto intro!: mult_poly_full_mult_poly_p'[THEN order_trans] ref_two_step'
-         mult_poly_p'_mult_poly_spec
-      simp flip: conc_fun_chain)
-  have [refine]:
-    \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (add_poly_spec p' q')\<close>
-    if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
-      \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
-    for p p' q q'
-    using that
-    by (auto intro!: add_poly_l_add_poly_p'[THEN order_trans] ref_two_step'
-         add_poly_p'_add_poly_spec
-      simp flip: conc_fun_chain)
+
 
   have [simp]: \<open>(l, l') \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
        (map (\<lambda>(a, b). (a, - b)) l, map (\<lambda>(a, b). (a, - b)) l')
@@ -1179,7 +1186,10 @@ proof -
    have [simp]: \<open>([], 0) \<in> sorted_poly_rel O mset_poly_rel\<close>
      by (auto simp: sorted_poly_list_rel_wrt_def
       mset_poly_rel_def list_mset_rel_def br_def
-      intro!: relcompI[of _ \<open>{#}\<close>])
+       intro!: relcompI[of _ \<open>{#}\<close>])
+   have [simp]: \<open>vars_llist (map (\<lambda>(a, b). (a, - b)) xs) = vars_llist xs\<close> for xs
+     by (auto simp: vars_llist_def)
+
    show ?thesis
      unfolding check_extension_l2_def
        check_extension_l_dom_err_def
@@ -1190,7 +1200,7 @@ proof -
       defer
       apply (rule ref_two_step')
       apply (rule check_extension_alt_def)
-      apply (refine_vcg )
+      apply (refine_vcg add_poly_full_spec3 mult_poly_full_mult_poly_spec)
       subgoal using assms(1,3,4,5)
         by (auto simp: var_rel_set_rel_iff)
       subgoal using assms(1,3,4,5)
@@ -1205,8 +1215,14 @@ proof -
           dest!: sorted_poly_rel_vars_llist)
       subgoal by auto
       subgoal by auto
-      subgoal using assms by auto
+      subgoal by auto
+      apply assumption+
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       apply (rule uminus)
+      subgoal using assms by auto
+      subgoal by auto
       subgoal using assms by auto
       subgoal using assms by auto
       subgoal using assms by auto
