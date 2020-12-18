@@ -118,6 +118,15 @@ definition PAC_checker_step_inv where
   (\<forall>i\<in>#dom_m A. vars (the (fmlookup A i)) \<subseteq> \<V>) \<and>
   vars spec \<subseteq> \<V>\<close>
 
+definition check_extension_precalc
+  :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> (bool) nres\<close>
+ where
+  \<open>check_extension_precalc A \<V> i v p' =
+     SPEC(\<lambda>b. b \<longrightarrow> (i \<notin># dom_m A \<and>
+     (v \<notin> \<V> \<and>
+           (p')\<^sup>2 - (p') \<in> ideal polynomial_bool \<and>
+            vars (p') \<subseteq> \<V>)))\<close>
+
 definition PAC_checker_step
   ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat, nat) pac_step \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
@@ -144,15 +153,18 @@ where
    | Extension _ _ _ \<Rightarrow>
        do {
          ASSERT(PAC_checker_step_inv spec stat \<V> A);
-         r \<leftarrow> normalize_poly_spec (pac_res st - Var (new_var st));
-        (eq) \<leftarrow> check_extension A \<V> (new_id st) (new_var st) r;
+        r \<leftarrow> normalize_poly_spec (pac_res st);
+        (eq) \<leftarrow> check_extension_precalc A \<V> (new_id st) (new_var st) r;
         if eq
         then do {
+          r0 \<leftarrow> SPEC(\<lambda>r0. r0  =  (r - Var (new_var st)) \<and>
+              vars r0 = vars (r) \<union> {new_var st});
          RETURN (stat,
-          insert (new_var st) \<V>, fmupd (new_id st) (r) A)}
+          insert (new_var st) \<V>, fmupd (new_id st) (r0) A)}
         else RETURN (FAILED, (\<V>, A))
    }
- )\<close>
+          )\<close>
+
 
 lemma PAC_checker_step_PAC_checker_specification2:
   fixes a :: \<open>status\<close>
@@ -254,7 +266,19 @@ proof -
     unfolding PAC_checker_step_inv_def
     using assms
     by (smt UN_I in_dom_in_ran_m  rtranclp_PAC_Format_subset_ideal subset_iff vars_B)
-
+ have G[intro]: \<open> b\<^sup>2 - b \<in> ideal polynomial_bool\<close>
+    if \<open>a - b \<in> ideal polynomial_bool\<close> \<open>a\<^sup>2 - a \<in> ideal polynomial_bool\<close>
+    for a b
+  proof -
+    have \<open>(a-b) * (a+b-1) \<in> ideal polynomial_bool\<close>
+      using ideal_mult_right_in that(1) by blast
+    then have \<open>-(a-b) * (a+b-1) \<in> ideal polynomial_bool\<close>
+      using ideal.span_neg ideal_mult_right_in that(1) by blast
+    then have \<open>-(a-b) * (a+b-1) + (a\<^sup>2 - a) \<in>  ideal polynomial_bool\<close>
+      using ideal.span_add that(2) by blast
+    then show \<open>?thesis\<close>
+      by (auto simp: algebra_simps power2_eq_square)
+  qed
   have [iff]: \<open>a \<noteq> FAILED\<close> and
     [intro]: \<open>a \<noteq> SUCCESS \<Longrightarrow> a = FOUND\<close> and
     [simp]: \<open>merge_status a FOUND = FOUND\<close>
@@ -263,7 +287,7 @@ proof -
   show ?thesis
     unfolding PAC_checker_step_def PAC_checker_specification_step_spec_def
       normalize_poly_spec_alt_def 
-      check_extension_def polys_rel_full_def check_linear_comb_def
+      check_extension_precalc_def polys_rel_full_def check_linear_comb_def
     apply (cases st)
     apply clarsimp_all
     subgoal for x11 x12 x13
@@ -285,13 +309,14 @@ proof -
     subgoal for x31 x32 x34
       apply (refine_vcg lhs_step_If)
       subgoal by (rule pre)
-      subgoal for r x
+      subgoal for r0 x r
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
         apply (rule_tac x = \<open>(a,insert x32 \<V>, add_mset r B)\<close> in exI)
-        apply (auto simp: intro!: polys_rel_update_remove PAC_Format_add_and_remove(5-)
-           dest: rtranclp_PAC_Format_subset_ideal)
-        done
+        apply clarsimp_all
+          apply (intro conjI)
+        by (auto simp: intro!: polys_rel_update_remove PAC_Format_add_and_remove(5-)
+          dest: rtranclp_PAC_Format_subset_ideal)
       subgoal
         by (rule RETURN_SPEC_refine)
           (auto simp: Ex_status_iff)

@@ -139,17 +139,22 @@ definition check_linear_combi_l where
 
 paragraph \<open>Deletion checking\<close>
 
+definition check_extension_l_side_cond_err
+  :: \<open>string \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> string nres\<close>
+where
+  \<open>check_extension_l_side_cond_err v p' q = SPEC (\<lambda>_. True)\<close>
+
 definition (in -)check_extension_l2
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status) nres\<close>
 where
-\<open>check_extension_l2 spec A \<V> i v p = do {
-  b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> i \<notin># dom_m A \<and> v \<notin> \<V> \<and> ([v], -1) \<in> set p);
+\<open>check_extension_l2 spec A \<V> i v p' = do {
+  b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> i \<notin># dom_m A \<and> v \<notin> \<V>);
   if \<not>b
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
     RETURN (error_msg i c)
   } else do {
-      let p' = remove1 ([v], -1) p;
+      let p' = p';
       let b = vars_llist p' \<subseteq> \<V>;
       if \<not>b
       then do {
@@ -168,7 +173,7 @@ where
          if eq then do {
            RETURN (CSUCCESS)
          } else do {
-          c \<leftarrow> check_extension_l_side_cond_err v p p' q;
+          c \<leftarrow> check_extension_l_side_cond_err v p' q;
           RETURN (error_msg i c)
         }
       }
@@ -213,10 +218,11 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
    | Extension _ _ _ \<Rightarrow>
        do {
         ASSERT (PAC_checker_l_step_inv spec st' \<V> A);
-         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
+         r \<leftarrow> full_normalize_poly (pac_res st);
         (eq) \<leftarrow> check_extension_l2 spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
+        r' \<leftarrow> add_poly_l (r, [([new_var st], 1)]);
           RETURN (st',
             insert (new_var st) \<V>, fmupd (new_id st) r A)}
         else RETURN (eq, \<V>, A)
@@ -1139,6 +1145,65 @@ lemma check_del_l_check_del:
   by (refine_vcg lhs_step_If RETURN_SPEC_refine)
     (auto simp: fmap_rel_nat_rel_dom_m bind_RES_RETURN_eq)
 
+
+lemma check_extension_alt_def:
+  \<open>check_extension_precalc A \<V> i v p \<ge> do {
+    b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> i \<notin># dom_m A \<and> v \<notin> \<V>);
+    if \<not>b
+    then RETURN (False)
+    else do {
+         p' \<leftarrow> RETURN (p);
+         b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p' \<subseteq> \<V>);
+         if \<not>b
+         then RETURN (False)
+         else do {
+           pq \<leftarrow> mult_poly_spec p' p';
+           let p' = - p';
+           p \<leftarrow> add_poly_spec pq p';
+           eq \<leftarrow> weak_equality p 0;
+           if eq then RETURN(True)
+           else RETURN (False)
+       }
+     }
+   }\<close>
+proof -
+  have [intro]: \<open>ab \<notin> \<V> \<Longrightarrow>
+       vars ba \<subseteq> \<V> \<Longrightarrow>
+       MPoly_Type.coeff (ba + Var ab) (monomial (Suc 0) ab) = 1\<close> for ab ba
+    by (subst coeff_add[symmetric], subst not_in_vars_coeff0)
+      (auto simp flip: coeff_add monom.abs_eq
+        simp: not_in_vars_coeff0 MPoly_Type.coeff_def
+          Var.abs_eq Var\<^sub>0_def lookup_single_eq monom.rep_eq)
+  have [simp]: \<open>MPoly_Type.coeff p (monomial (Suc 0) ab) = -1\<close>
+     if \<open>vars (p + Var ab) \<subseteq> \<V>\<close>
+       \<open>ab \<notin> \<V>\<close>
+     for ab
+   proof -
+     define q where \<open>q \<equiv> p + Var ab\<close>
+     then have p: \<open>p = q - Var ab\<close>
+       by auto
+     show ?thesis
+       unfolding p
+       apply (subst coeff_minus[symmetric], subst not_in_vars_coeff0)
+       using that unfolding q_def[symmetric]
+       by (auto simp flip: coeff_minus simp: not_in_vars_coeff0
+           Var.abs_eq Var\<^sub>0_def simp flip: monom.abs_eq
+           simp: not_in_vars_coeff0 MPoly_Type.coeff_def
+           Var.abs_eq Var\<^sub>0_def lookup_single_eq monom.rep_eq)
+  qed
+  have [simp]: \<open>vars (p - Var ab) = vars (Var ab - p)\<close> for ab
+    using vars_uminus[of \<open>p - Var ab\<close>]
+    by simp
+  show ?thesis
+    unfolding check_extension_def
+    apply (auto 5 5 simp: check_extension_precalc_def weak_equality_def
+      mult_poly_spec_def field_simps
+      add_poly_spec_def power2_eq_square cong: if_cong
+      intro!: intro_spec_refine[where R=Id, simplified]
+      split: option.splits dest: ideal.span_add)
+   done
+qed
+
 lemma check_extension_l2_check_extension:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close> \<open>(x, x') \<in> var_rel\<close>
@@ -1147,7 +1212,7 @@ lemma check_extension_l2_check_extension:
       \<Down>{((st), (b)).
         (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
     (is_cfound st \<longrightarrow> spec = r) \<and>
-    (b \<longrightarrow> vars_llist r \<subseteq> insert x \<V>)} (check_extension B \<V>' i' x' r')\<close>
+    (b \<longrightarrow> vars_llist r \<subseteq> insert x \<V>)} (check_extension_precalc B \<V>' i' x' r')\<close>
 proof -
   have \<open>x' = \<phi> x\<close>
     using assms(5) by (auto simp: var_rel_def br_def)
@@ -1207,16 +1272,15 @@ proof -
         by (auto simp: var_rel_set_rel_iff)
       subgoal by auto
       subgoal by auto
-      apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel_minus)
-      subgoal using assms by auto
-      subgoal using assms by auto
+      apply (rule assms)
       subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>] assms
         by (force simp: set_rel_def var_rel_def br_def
           dest!: sorted_poly_rel_vars_llist)
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
       subgoal by auto
       subgoal by auto
-      subgoal by auto
-      apply assumption+
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -1326,10 +1390,12 @@ proof -
         unfolding PAC_checker_l_step_inv_def by (auto simp: fmap_polys_rel2_def Ast Bst
         dest!: multi_member_split)
       subgoal using AB by (auto intro!: fully_unsorted_poly_rel_diff[of _ \<open>-Var _ :: int mpoly\<close>, unfolded H3[symmetric]] simp: comp_def case_prod_beta)
+      subgoal using AB by (auto intro!: fully_unsorted_poly_rel_diff[of _ \<open>-Var _ :: int mpoly\<close>, unfolded H3[symmetric]] simp: comp_def case_prod_beta)
       subgoal using AB by auto
       subgoal using AB by auto
       subgoal by auto
       subgoal by auto
+      subgoal apply simp sorry
       subgoal
         by (auto simp: code_status_status_rel_def)
       subgoal using AB

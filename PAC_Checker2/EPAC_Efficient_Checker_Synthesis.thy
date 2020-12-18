@@ -1121,6 +1121,90 @@ proof -
     done
 qed
 
+definition PAC_checker_l_step_s
+  :: \<open>sllist_polynomial \<Rightarrow> string code_status \<times> (nat,string)shared_vars \<times> _ \<Rightarrow> (llist_polynomial, string, nat) pac_step \<Rightarrow> _\<close>
+where
+  \<open>PAC_checker_l_step_s = (\<lambda>spec (st', \<V>, A) st. do {
+    ASSERT (\<not>is_cfailed st');
+    case st of
+     CL _ _ _ \<Rightarrow>
+       do {
+        r \<leftarrow> full_normalize_poly (pac_res st);
+        (eq, r) \<leftarrow> check_linear_combi_l_s spec A \<V> (new_id st) (pac_srcs st) r;
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmupd (new_id st) r A)
+       else RETURN (eq, \<V>, A)
+     }
+    | Del _ \<Rightarrow>
+       do {
+        eq \<leftarrow> check_del_l spec A (pac_src1 st);
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmdrop (pac_src1 st) A)
+        else RETURN (eq, \<V>, A)
+     }
+   | Extension _ _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
+        (eq, r, \<V>) \<leftarrow> check_extension_l2_s spec A (\<V>) (new_id st) (new_var st) r;
+        if \<not>is_cfailed eq
+        then RETURN (st', \<V>, fmupd (new_id st) r A)
+        else RETURN (eq, \<V>, A)
+     }}
+          )\<close>
+lemma is_cfailed_merge_cstatus:
+  "is_cfailed (merge_cstatus c d) \<longleftrightarrow> is_cfailed c \<or> is_cfailed d"
+  by (cases c; cases d) auto
+          find_theorems "case_pac_step" If
+lemma check_extension_l2_s_check_extension_l2:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
+    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>(err, err') \<in> Id\<close> and
+    \<open>(st,st')\<in>Id\<close>
+  shows \<open>PAC_checker_l_step_s spec (err, \<V>, A) st
+    \<le> \<Down>{((err, \<V>', A'), (err', \<D>\<V>', B')).
+    (err, err') \<in> Id \<and>
+     \<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel)}
+    (PAC_checker_l_step_prep spec' (err', \<D>\<V>, B) st')\<close>
+proof -
+  find_theorems is_cfailed merge_cstatus
+  have HID: \<open>f = f' \<Longrightarrow> f \<le> \<Down>Id f'\<close> for f f'
+    by auto
+  show ?thesis
+    unfolding PAC_checker_l_step_s_def PAC_checker_l_step_prep_def pac_step.case_eq_if
+      prod.simps
+    apply (refine_rcg check_linear_combi_l_s_check_linear_combi_l
+      check_extension_l2_s_check_extension_l2)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    apply (rule HID)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by (auto simp: is_cfailed_merge_cstatus intro!: fmap_rel_fmupd_fmap_rel)
+    subgoal by auto
+    subgoal using assms by auto
+    apply (rule HID)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+
+
+find_theorems fmap_rel fmupd
+
+
 
 find_theorems list_rel map
  find_theorems weak_equality_l_s weak_equality_l
