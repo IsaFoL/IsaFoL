@@ -3,6 +3,7 @@ theory EPAC_Efficient_Checker_Synthesis
     EPAC_Perfectly_Shared_Vars
     PAC_Checker.PAC_Checker_Synthesis
 begin
+
 type_synonym sllist_polynomial = \<open>(nat list \<times> int) list\<close>
 
 definition vars_llist_in_s :: \<open>(nat, string) shared_vars \<Rightarrow> llist_polynomial \<Rightarrow> bool\<close> where

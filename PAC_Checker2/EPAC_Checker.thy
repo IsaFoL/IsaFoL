@@ -219,12 +219,13 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
        do {
         ASSERT (PAC_checker_l_step_inv spec st' \<V> A);
          r \<leftarrow> full_normalize_poly (pac_res st);
-        (eq) \<leftarrow> check_extension_l2 spec A \<V> (new_id st) (new_var st) r;
+        eq \<leftarrow> check_extension_l2 spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
-        r' \<leftarrow> add_poly_l (r, [([new_var st], 1)]);
+          ASSERT(new_var st \<notin> vars_llist r);
+          r' \<leftarrow> add_poly_l ([([new_var st], -1)], r);
           RETURN (st',
-            insert (new_var st) \<V>, fmupd (new_id st) r A)}
+            insert (new_var st) \<V>, fmupd (new_id st) r' A)}
         else RETURN (eq, \<V>, A)
    }}
  )\<close>
@@ -680,7 +681,172 @@ proof -
       dest!: rtranclp_add_poly_p_polynomial_of_mset_full
       intro!: RES_refine\<close>)
 qed
+lemma (in -) add_poly_l_simps_empty[simp]: \<open>add_poly_l ([], a) = RETURN a\<close>
+  by (subst add_poly_l_simps, cases a) auto
 
+definition term_rel :: \<open>_\<close> where
+  \<open>term_rel = sorted_poly_rel O mset_poly_rel\<close>
+definition raw_term_rel where
+  \<open>raw_term_rel = fully_unsorted_poly_rel O mset_poly_rel\<close>
+  term sorted_wrt
+term insort
+fun (in -)insort_wrt :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> ('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list\<close> where
+  \<open>insort_wrt _ _ a [] = [a]\<close> |
+  \<open>insort_wrt f P a (x # xs) =
+     (if P (f a) (f x) then a # x # xs else x # insort_wrt f P a xs)\<close>
+
+lemma (in -)set_insort_wrt [simp]: \<open>set (insort_wrt P f a xs) = insert a (set xs)\<close>
+  by (induction P f a xs rule: insort_wrt.induct) auto
+
+
+lemma (in -)sorted_insort_wrt:
+  \<open>transp P \<Longrightarrow> total (p2rel P) \<Longrightarrow> sorted_wrt (\<lambda>a b. P (f a) (f b)) xs \<Longrightarrow> reflp_on P (f ` set (a # xs)) \<Longrightarrow>
+  sorted_wrt (\<lambda>a b. P (f a) (f b)) (insort_wrt f P a xs)\<close>
+  apply (induction f P a xs rule: insort_wrt.induct)
+  subgoal by auto
+  subgoal for f P a x xs
+    apply (cases \<open>x=a\<close>)
+    apply (auto simp: Relation.total_on_def p2rel_def reflp_on_def dest: transpD sympD reflpD elim: reflpE)+
+    apply (force simp: Relation.total_on_def p2rel_def reflp_on_def dest: transpD sympD reflpD elim: reflpE)+
+    done
+  done
+
+lemma (in -)sorted_insort_wrt3: (*(* reflp_on P (f ` set (a # xs)) \<Longrightarrow>  *)*)
+  \<open>transp P \<Longrightarrow> total (p2rel P) \<Longrightarrow> sorted_wrt (\<lambda>a b. P (f a) (f b)) xs \<Longrightarrow> f a\<notin>f ` set xs \<Longrightarrow>
+  sorted_wrt (\<lambda>a b. P (f a) (f b)) (insort_wrt f P a xs)\<close>
+  apply (induction f P a xs rule: insort_wrt.induct)
+  subgoal by auto
+  subgoal for f P a x xs
+    apply (cases \<open>x=a\<close>)
+    apply (auto simp: Relation.total_on_def p2rel_def reflp_on_def dest: transpD sympD reflpD elim: reflpE)
+    done
+  done
+lemma (in -)sorted_insort_wrt4:
+  \<open>transp P \<Longrightarrow> total (p2rel P) \<Longrightarrow> f a\<notin>f ` set xs  \<Longrightarrow> sorted_wrt (\<lambda>a b. P (f a) (f b)) xs \<Longrightarrow> f'=(\<lambda>a b. P (f a) (f b)) \<Longrightarrow>
+  sorted_wrt f' (insort_wrt f P a xs)\<close>
+  using sorted_insort_wrt3[of P f xs a] by auto
+
+text \<open>When \<^term>\<open>a\<close> is empty, constants are added up.\<close>
+lemma add_poly_p_insort:
+  \<open>fst a \<noteq> [] \<Longrightarrow> vars_llist [a] \<inter> vars_llist b = {} \<Longrightarrow> add_poly_l ([a],b) = RETURN (insort_wrt fst term_order a b)\<close>
+  apply (induction b)
+  subgoal
+    by (subst add_poly_l_simps) auto
+  subgoal for y ys
+    apply (cases a, cases y)
+    apply (subst add_poly_l_simps)
+    apply (auto simp: rel2p_def Int_Un_distrib)
+    done
+  done
+
+lemma (in -) map_insort_wrt: \<open>map f (insort_wrt f P x xs) = insort_wrt id P (f x) (map f xs)\<close>
+  by (induction xs)
+   auto
+
+lemma (in-) distinct_insort_wrt[simp]: \<open>distinct (insort_wrt f P x xs) \<longleftrightarrow> distinct (x # xs)\<close>
+  by (induction xs) auto
+lemma (in -) mset_insort_wrt[simp]: \<open>mset (insort_wrt f P x xs) = add_mset x (mset xs)\<close>
+  by (induction xs)
+    auto
+lemma (in -) transp_term_order_rel: \<open>transp (\<lambda>x y. (fst x, fst y) \<in> term_order_rel)\<close>
+  apply (auto simp: transp_def)
+  by (smt lexord_partial_trans lexord_trans trans_less_than_char var_order_rel_def)
+
+lemma (in -) transp_term_order: \<open>transp term_order\<close>
+  using transp_term_order_rel
+  by (auto simp: transp_def rel2p_def)
+
+lemma total_term_order_rel: \<open>total (term_order_rel)\<close>
+  apply standard
+  using total_on_lexord_less_than_char_linear[unfolded var_order_rel_def[symmetric]] by (auto simp: p2rel_def intro!: )
+
+lemma monomom_rel_mapI: \<open>sorted_wrt (\<lambda>x y. (fst x, fst y) \<in> term_order_rel) r \<Longrightarrow>
+  distinct (map fst r) \<Longrightarrow>
+  (\<forall>x\<in>set r. distinct (fst x) \<and> sorted_wrt var_order (fst x)) \<Longrightarrow>
+  (r, map (\<lambda>(a, y). (mset a, y)) r) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+  apply (induction r)
+  subgoal
+    by auto
+  subgoal for x xs
+    apply (cases x)
+    apply (auto simp: term_poly_list_rel_def rel2p_def)
+    done
+  done
+
+lemma add_poly_l_single_new_var:
+  assumes \<open>(r, ra) \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>v \<notin> vars_llist r\<close> and
+   v: \<open>(v, v') \<in> var_rel\<close>
+  shows
+    \<open>add_poly_l ([([v], -1)], r)
+    \<le> \<Down> {(a,b). (a,b)\<in>sorted_poly_rel O mset_poly_rel \<and> vars_llist a \<subseteq> insert v (vars_llist r)}
+    (SPEC
+      (\<lambda>r0. r0 = ra - Var v' \<and>
+    vars r0 = vars ra \<union> {v'}))\<close>
+proof -
+  have [simp]: \<open>([], ra) \<in> term_rel \<Longrightarrow> ([([v], - 1)], ra - Var v') \<in> term_rel\<close> for ra
+    using v
+    apply (auto intro!: RETURN_RES_refine relcompI[of _ \<open>mset [(mset [v], -1)]\<close>]
+      simp: mset_poly_rel_def var_rel_def br_def Const_1_eq_1 term_rel_def)
+    apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
+      term_poly_list_rel_def
+      intro!: relcompI[of _ \<open>[(mset [v], -1)]\<close>])
+    done
+  have [iff]: \<open>v' \<notin> vars ra\<close>
+  proof (rule ccontr)
+    assume H: \<open>\<not>?thesis\<close>
+    then have \<open>\<phi> v \<in> \<phi> ` vars_llist r\<close>
+      using assms sorted_poly_rel_vars_llist[OF assms(1)]
+      by (auto simp: var_rel_def br_def)
+    then have \<open>v \<in> vars_llist r\<close>
+      using  \<phi>_inj by (auto simp: image_iff inj_def)
+    then show \<open>False\<close>
+      using assms(2) by fast
+  qed
+  have [simp]: \<open>([], ra) \<in> term_rel \<Longrightarrow> vars (ra - Var v') = vars (ra) \<union> {v'}\<close> for ra
+    by (auto simp: term_rel_def mset_poly_rel_def)
+  have [simp]: \<open>v' \<notin> vars ra \<Longrightarrow> vars (ra - Var v') = vars ra \<union> {v'}\<close>
+    by (auto simp add: vars_subst_in_left_only_diff_iff)
+  have [iff]: \<open>([v], b) \<notin> set r \<close> for b
+    using assms
+    by (auto simp: vars_llist_def)
+  have
+    \<open>add_poly_l ([([v], -1)], r)
+    \<le> \<Down> (sorted_poly_rel O mset_poly_rel)
+    (SPEC
+      (\<lambda>r0. r0 = ra - Var v' \<and>
+    vars r0 = vars ra \<union> {v'}))\<close>
+    using v sorted_poly_rel_vars_llist[OF assms(1)]
+    apply -
+    apply (subst add_poly_p_insort)
+    apply (use assms in auto)
+    apply (rule RETURN_RES_refine)
+    apply auto
+    apply (rule_tac b=\<open>add_mset ({#v#}, -1) (y)\<close> in relcompI)
+    apply (auto simp: rel2p_def mset_poly_rel_def Const_1_eq_1 var_rel_def br_def)
+    apply (auto simp: sorted_poly_list_rel_wrt_def sorted_wrt_map)
+    apply (rule_tac b = \<open>map (\<lambda>(a,b). (mset a, b)) ((insort_wrt fst term_order ([v], - 1) r))\<close> in relcompI)
+    apply (auto simp: list_mset_rel_def br_def map_insort_wrt)
+      prefer 2
+    apply (auto dest!: term_poly_list_rel_list_relD)[]
+      prefer 2
+    apply (auto intro!: sorted_insort_wrt4 monomom_rel_mapI simp: rel2p_def transp_term_order total_term_order_rel
+      transp_term_order_rel map_insort_wrt)
+    apply (auto dest!: split_list simp: list_rel_append1 list_rel_split_right_iff
+      term_poly_list_rel_def)
+    done
+  then show ?thesis
+    using add_poly_l_vars[of \<open>[([v], - 1)]\<close> r]
+    unfolding conc_fun_RES
+    apply (subst (asm) RES_SPEC_eq)
+    apply (rule order_trans)
+    apply (rule SPEC_rule_conjI)
+    apply assumption
+    apply auto
+    done
+qed
+
+  
 lemma empty_sorted_poly_rel[simp,intro]: \<open> ([], 0) \<in> sorted_poly_rel O mset_poly_rel\<close>
   by (auto intro!: relcompI[of \<open>[]\<close>] simp: mset_poly_rel_def)
 
@@ -697,10 +863,6 @@ lemma single_valued_term: \<open>single_valued (sorted_poly_rel O mset_poly_rel)
    (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     single_valued_def )
 
-definition term_rel :: \<open>_\<close> where
-  \<open>term_rel = sorted_poly_rel O mset_poly_rel\<close>
-definition raw_term_rel where
-  \<open>raw_term_rel = fully_unsorted_poly_rel O mset_poly_rel\<close>
 
 lemma single_valued_poly:
   \<open>(ysa, cs) \<in> \<langle>sorted_poly_rel O mset_poly_rel \<times>\<^sub>r nat_rel\<rangle>list_rel \<Longrightarrow>
@@ -1212,7 +1374,7 @@ lemma check_extension_l2_check_extension:
       \<Down>{((st), (b)).
         (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
     (is_cfound st \<longrightarrow> spec = r) \<and>
-    (b \<longrightarrow> vars_llist r \<subseteq> insert x \<V>)} (check_extension_precalc B \<V>' i' x' r')\<close>
+    (b \<longrightarrow> vars_llist r \<subseteq> \<V> \<and> x \<notin> \<V>)} (check_extension_precalc B \<V>' i' x' r')\<close>
 proof -
   have \<open>x' = \<phi> x\<close>
     using assms(5) by (auto simp: var_rel_def br_def)
@@ -1293,7 +1455,7 @@ proof -
       subgoal using assms by (auto simp: in_set_conv_decomp_first[of _ r] remove1_append)
       subgoal using assms by auto
       done
-  qed
+qed
 
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
@@ -1383,7 +1545,7 @@ proof -
         by (auto intro!: fmap_rel_fmupd_fmap_rel fmap_rel_fmdrop_fmap_rel AB simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def subset_iff)
       done
     subgoal
-      apply (refine_rcg full_normalize_poly_diff_ideal
+      apply (refine_rcg full_normalize_poly_diff_ideal add_poly_l_single_new_var
         check_extension_l2_check_extension)
       subgoal using fail unfolding Ast by auto
       subgoal using assms(1) fail \<V>'
@@ -1395,10 +1557,9 @@ proof -
       subgoal using AB by auto
       subgoal by auto
       subgoal by auto
-      subgoal apply simp sorry
-      subgoal
-        by (auto simp: code_status_status_rel_def)
-      subgoal using AB
+      subgoal by auto
+      subgoal by simp
+      subgoal using AB \<V>
         by (auto simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def
           intro!: fmap_rel_fmupd_fmap_rel insert_var_rel_set_rel dest!: in_diffD)
       subgoal
