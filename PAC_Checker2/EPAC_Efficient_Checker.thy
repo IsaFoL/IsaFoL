@@ -535,25 +535,25 @@ proof -
 qed
 
 definition (in -)check_extension_l2_prop
-  :: \<open>_ \<Rightarrow> _ \<Rightarrow> string multiset \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> llist_polynomial \<times> string multiset) nres\<close>
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> string multiset \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> llist_polynomial \<times> string multiset \<times> string) nres\<close>
 where
 \<open>check_extension_l2_prop spec A \<V> i v p = do {
-  (pre, nonew, mem, p, p', \<V>) \<leftarrow> do {
-      let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V> \<and> ([v], -1) \<in> set p;
-      let p' = remove1 ([v], -1) p;
-      let b = vars_llist p' \<subseteq> set_mset \<V>;
+  (pre, nonew, mem, mem', p', \<V>, v) \<leftarrow> do {
+      let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V>;
+      let b = vars_llist p \<subseteq> set_mset \<V>;
       (mem, p, \<V>) \<leftarrow> import_poly \<V> p;
-      RETURN (pre \<and> \<not>alloc_failed mem, b, mem, p, p', \<V>)
+      (mem', \<V>, v) \<leftarrow> if b \<and> pre \<and> \<not> alloc_failed mem then import_variable v \<V> else RETURN (mem, \<V>, v);
+      RETURN (pre \<and> \<not>alloc_failed mem \<and> \<not> alloc_failed mem', b, mem, mem', p, \<V>, v)
    };
   if \<not>pre
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
-    RETURN (error_msg i c, [], \<V>)
+    RETURN (error_msg i c, [], \<V>, v)
   } else do {
       if \<not>nonew
       then do {
         c \<leftarrow> check_extension_l_new_var_multiple_err v p';
-        RETURN (error_msg i c, [], \<V>)
+        RETURN (error_msg i c, [], \<V>, v)
       }
       else do {
          ASSERT(vars_llist p' \<subseteq> set_mset \<V>);
@@ -565,10 +565,10 @@ where
          ASSERT(vars_llist q \<subseteq> set_mset \<V>);
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
-           RETURN (CSUCCESS, p, \<V>)
+           RETURN (CSUCCESS, p, \<V>, v)
          } else do {
-          c \<leftarrow> check_extension_l_side_cond_err v p p'' q;
-          RETURN (error_msg i c, [], \<V>)
+          c \<leftarrow> check_extension_l_side_cond_err v p q;
+          RETURN (error_msg i c, [], \<V>, v)
         }
       }
     }
@@ -576,25 +576,32 @@ where
 
 lemma check_extension_l2_prop_check_extension_l2:
   assumes \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(spec, spec') \<in> Id\<close>  \<open>(A, A') \<in> Id\<close> \<open>(i,i') \<in> nat_rel\<close> \<open>(v, v') \<in> Id\<close> \<open>(p, p') \<in> Id\<close>
-  shows \<open>check_extension_l2_prop spec A \<V> i v p \<le>\<Down>{((err, q, \<A>), b). (b = err) \<and> (\<not>is_cfailed err \<longrightarrow> q=p \<and> set_mset \<A> = insert v \<V>')}
+  shows \<open>check_extension_l2_prop spec A \<V> i v p \<le>\<Down>{((err, q, \<A>, va), b). (b = err) \<and> (\<not>is_cfailed err \<longrightarrow> q=p \<and> v=va \<and> set_mset \<A> = insert v \<V>')}
     (check_extension_l2 spec' A' \<V>' i' v' p')\<close>
 proof -
 
-  have [refine]: \<open>do {
+  have G[refine]: \<open>do {
    (mem, pa, \<V>') \<leftarrow> import_poly \<V> p;
+   (mem', \<V>', va) \<leftarrow> if vars_llist p \<subseteq> set_mset \<V> \<and> (i \<notin># dom_m A \<and> v \<notin># \<V>) \<and> \<not> alloc_failed mem
+     then import_variable v \<V>' else RETURN (mem, \<V>', v);
    RETURN
-    ((i \<notin># dom_m A \<and> v \<notin># \<V> \<and> ([v], - 1) \<in> set p) \<and> \<not>alloc_failed mem,
-    vars_llist (remove1 ([v], - 1) p) \<subseteq> set_mset \<V>, mem, pa, remove1 ([v], - 1) p, \<V>')
-    } \<le> \<Down> {((pre, nonew, mem, p', pa, \<A>), b). (b=pre) \<and> (nonew \<longleftrightarrow> vars_llist (remove1 ([v], - 1) p) \<subseteq> set_mset \<V>) \<and>
-       pa = (remove1 ([v], - 1) p) \<and>  (b \<longrightarrow> \<not>alloc_failed mem) \<and>
-       (\<not>alloc_failed mem \<longrightarrow> p'=p \<and> set_mset \<A> = set_mset \<V> \<union> vars_llist p)}
-    (SPEC (\<lambda>b. b \<longrightarrow> i' \<notin># dom_m A' \<and> v' \<notin> \<V>' \<and> ([v'], - 1) \<in> set p'))\<close>
-    using assms unfolding conc_fun_RES
-    apply (subst RES_SPEC_eq)
+    ((i \<notin># dom_m A \<and> v \<notin># \<V>) \<and> \<not> alloc_failed mem \<and> \<not> alloc_failed mem',
+     vars_llist p \<subseteq> set_mset \<V>, mem, mem', pa, \<V>', va)
+    } \<le> \<Down> {((pre, nonew, mem, mem', p', \<A>, va), b). (b=pre)\<and>  (b \<longrightarrow> \<not>alloc_failed mem \<and> \<not>alloc_failed mem') \<and>
+    (b \<and> nonew \<longrightarrow> (p'=p \<and> set_mset \<A> = set_mset \<V> \<union> vars_llist p \<union> {v} \<and> va = v))  \<and>
+       ((nonew \<longleftrightarrow> vars_llist p \<subseteq> set_mset \<V>))}
+    (SPEC (\<lambda>b. b \<longrightarrow> i' \<notin># dom_m A' \<and> v' \<notin> \<V>'))\<close>
+    using assms unfolding conc_fun_RES import_variable_def nres_monad3
+    apply (subst (2) RES_SPEC_eq)
     apply (refine_vcg import_poly_spec[THEN order_trans])
-    apply (clarsimp simp: vars_llist_def)
+    apply (clarsimp simp: )
+    apply (rule conjI impI)
+    apply (refine_vcg import_poly_spec[THEN order_trans])
+    apply (auto simp: vars_llist_def)[]
+    apply (auto simp: vars_llist_def)[]
+    apply (auto simp: vars_llist_def)[]
     done
-find_theorems add_poly_l_prep
+
   have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
     by auto
   show ?thesis
@@ -602,7 +609,6 @@ find_theorems add_poly_l_prep
     unfolding check_extension_l2_prop_def check_extension_l2_def
     apply (refine_vcg mult_poly_full_prop_mult_poly_full add_poly_alt_def[unfolded add_poly_l'_def, THEN order_trans]
       )
-      find_theorems add_poly_l_prep add_poly_l'
     subgoal by auto
     apply (rule H)
     subgoal by auto
@@ -626,7 +632,7 @@ find_theorems add_poly_l_prep
     subgoal by auto
     subgoal by (auto dest!: split_list_first simp: remove1_append)
     apply (rule H)
-    subgoal by (auto simp: check_extension_l_new_var_multiple_err_def)
+    subgoal by (auto simp: check_extension_l_new_var_multiple_err_def check_extension_l_side_cond_err_def)
     subgoal by (auto simp: error_msg_def)
     done
 qed
@@ -656,10 +662,13 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
      }
    | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
-        (eq, r, \<V>) \<leftarrow> check_extension_l2_prop spec A (\<V>) (new_id st) (new_var st) r;
+         r \<leftarrow> full_normalize_poly (pac_res st);
+        (eq, r, \<V>, v) \<leftarrow> check_extension_l2_prop spec A (\<V>) (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
-        then RETURN (st', \<V>, fmupd (new_id st) r A)
+      then do {
+        r \<leftarrow> add_poly_l ([([v], -1)], r);
+        RETURN (st', \<V>, fmupd (new_id st) r A)
+        }
         else RETURN (eq, \<V>, A)
      }}
           )\<close>
@@ -702,6 +711,8 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
+      apply (rule H)
       subgoal by auto
       subgoal by auto
       subgoal by auto

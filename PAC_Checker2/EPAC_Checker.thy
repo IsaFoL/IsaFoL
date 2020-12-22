@@ -1930,9 +1930,6 @@ lemma full_checker_l_full_checker':
   apply (intro frefI nres_relI)
   using full_checker_l_full_checker unfolding fmap_polys_rel2_def by force
 
-
-
 end
-
 
 end
