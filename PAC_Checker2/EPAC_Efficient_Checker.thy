@@ -538,7 +538,7 @@ definition (in -)check_extension_l2_prop
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> string multiset \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> llist_polynomial \<times> string multiset \<times> string) nres\<close>
 where
 \<open>check_extension_l2_prop spec A \<V> i v p = do {
-  (pre, nonew, mem, mem', p', \<V>, v) \<leftarrow> do {
+  (pre, nonew, mem, mem', p, \<V>, v) \<leftarrow> do {
       let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V>;
       let b = vars_llist p \<subseteq> set_mset \<V>;
       (mem, p, \<V>) \<leftarrow> import_poly \<V> p;
@@ -552,14 +552,14 @@ where
   } else do {
       if \<not>nonew
       then do {
-        c \<leftarrow> check_extension_l_new_var_multiple_err v p';
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p;
         RETURN (error_msg i c, [], \<V>, v)
       }
       else do {
-         ASSERT(vars_llist p' \<subseteq> set_mset \<V>);
-         p2 \<leftarrow>  mult_poly_full_prop \<V> p' p';
+         ASSERT(vars_llist p \<subseteq> set_mset \<V>);
+         p2 \<leftarrow>  mult_poly_full_prop \<V> p p;
          ASSERT(vars_llist p2 \<subseteq> set_mset \<V>);
-         let p'' = map (\<lambda>(a,b). (a, -b)) p';
+         let p'' = map (\<lambda>(a,b). (a, -b)) p;
          ASSERT(vars_llist p'' \<subseteq> set_mset \<V>);
          q \<leftarrow> add_poly_l_prep \<V> (p2, p'');
          ASSERT(vars_llist q \<subseteq> set_mset \<V>);
@@ -666,7 +666,7 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
         (eq, r, \<V>, v) \<leftarrow> check_extension_l2_prop spec A (\<V>) (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
       then do {
-        r \<leftarrow> add_poly_l ([([v], -1)], r);
+        r \<leftarrow> add_poly_l_prep \<V> ([([v], -1)], r);
         RETURN (st', \<V>, fmupd (new_id st) r A)
         }
         else RETURN (eq, \<V>, A)
@@ -703,7 +703,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal
-      apply (refine_rcg check_extension_l2_prop_check_extension_l2)
+      apply (refine_rcg check_extension_l2_prop_check_extension_l2 add_poly_alt_def[unfolded add_poly_l'_def, THEN order_trans])
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -712,6 +712,8 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by auto
+      subgoal by (auto simp add: vars_llist_def)
       apply (rule H)
       subgoal by auto
       subgoal by auto
@@ -761,7 +763,7 @@ definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarro
      RETURN (err, \<V>, A)
   }})\<close>
 
-lemma
+lemma remap_polys_l2_with_err_remap_polys_l_with_err_:
   assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close>
   shows \<open>remap_polys_l2_with_err spec \<V> A \<le> \<Down>{((st, \<V>, A), st', \<V>', A').
    (st, st') \<in> Id \<and>

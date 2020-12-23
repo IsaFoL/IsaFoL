@@ -222,7 +222,7 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
         eq \<leftarrow> check_extension_l2 spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
-          ASSERT(new_var st \<notin> vars_llist r);
+          ASSERT(new_var st \<notin> vars_llist r \<and> vars_llist r \<subseteq> \<V>);
           r' \<leftarrow> add_poly_l ([([new_var st], -1)], r);
           RETURN (st',
             insert (new_var st) \<V>, fmupd (new_id st) r' A)}
@@ -1558,6 +1558,8 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
+      subgoal by simp
+      subgoal by simp
       subgoal by simp
       subgoal using AB \<V>
         by (auto simp: fmap_polys_rel2_def PAC_checker_l_step_inv_def

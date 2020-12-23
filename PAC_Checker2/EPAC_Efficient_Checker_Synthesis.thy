@@ -991,134 +991,209 @@ where
   \<open>check_extension_l_s_side_cond_err v p p' q = SPEC (\<lambda>_. True)\<close>
 
 definition (in -)check_extension_l2_s
-  :: \<open>_ \<Rightarrow> _ \<Rightarrow> (nat,string)shared_vars \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow> (string code_status \<times> sllist_polynomial \<times> (nat,string)shared_vars) nres\<close>
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> (nat,string)shared_vars \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow>
+     (string code_status \<times> sllist_polynomial \<times> (nat,string)shared_vars \<times> nat) nres\<close>
 where
 \<open>check_extension_l2_s spec A \<V> i v p = do {
-  let pre = i \<notin># dom_m A \<and> v \<notin> set_mset (fst \<V>) \<and> ([v], -1) = hd p;
-  let p' = tl p;
-  let nonew = vars_llist_in_s \<V> p';
+  let pre = i \<notin># dom_m A \<and> v \<notin> set_mset (fst \<V>);
+  let nonew = vars_llist_in_s \<V> p;
   (mem, p, \<V>) \<leftarrow> import_polyS \<V> p;
   let pre = (pre \<and> \<not>alloc_failed mem);
-  let p' = tl p;
   if \<not>pre
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
-    RETURN (error_msg i c, [], \<V>)
+    RETURN (error_msg i c, [], \<V>, 0)
   } else do {
       if \<not>nonew
       then do {
-        c \<leftarrow> check_extension_l_s_new_var_multiple_err v p';
-        RETURN (error_msg i c, [], \<V>)
+        c \<leftarrow> check_extension_l_s_new_var_multiple_err v p;
+        RETURN (error_msg i c, [], \<V>, 0)
       }
       else do {
-         p2 \<leftarrow> mult_poly_full_s \<V> p' p';
-         let p'' = map (\<lambda>(a,b). (a, -b)) p';
+        (mem', \<V>, v') \<leftarrow> import_variableS v \<V>;
+        if alloc_failed mem'
+        then do {
+          c \<leftarrow> check_extension_l_dom_err i;
+          RETURN (error_msg i c, [], \<V>, 0)
+        } else
+        do {
+         p2 \<leftarrow> mult_poly_full_s \<V> p p;
+         let p'' = map (\<lambda>(a,b). (a, -b)) p;
          q \<leftarrow> add_poly_l_s \<V> (p2, p'');
          eq \<leftarrow> weak_equality_l_s q [];
          if eq then do {
-           RETURN (CSUCCESS, p, \<V>)
+           RETURN (CSUCCESS, p, \<V>, v')
          } else do {
           c \<leftarrow> check_extension_l_s_side_cond_err v p p'' q;
-          RETURN (error_msg i c, [], \<V>)
+          RETURN (error_msg i c, [], \<V>, v')
         }
       }
-    }
-           }\<close>
+     }
+  }
+ }\<close>
 lemma list_rel_tlD: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow> (tl a, tl b) \<in> \<langle>R\<rangle>list_rel\<close>
   by (metis list.sel(2) list.sel(3) list_rel_simp(1) list_rel_simp(2) list_rel_simp(4) neq_NilE)
 
 lemma check_extension_l2_prop_alt_def:
   \<open>check_extension_l2_prop spec A \<V> i v p = do {
-  let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V> \<and> ([v], -1) \<in> set p;
-  let p' = remove1 ([v], -1) p;
-  let nonew = vars_llist p' \<subseteq> set_mset \<V>;
+  let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V>;
+  let nonew = vars_llist p \<subseteq> set_mset \<V>;
   (mem, p, \<V>) \<leftarrow> import_poly \<V> p;
-  let pre = (pre \<and> \<not>alloc_failed mem);
-  let p' = p';
+  (mem', \<V>, va) \<leftarrow> if pre \<and> nonew \<and> \<not> alloc_failed mem then import_variable v \<V> else RETURN (mem, \<V>, v);
+  let pre = ((pre \<and> \<not>alloc_failed mem) \<and> \<not>alloc_failed mem');
 
   if \<not>pre
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
-    RETURN (error_msg i c, [], \<V>)
+    RETURN (error_msg i c, [], \<V>, va)
   } else do {
       if \<not>nonew
       then do {
-        c \<leftarrow> check_extension_l_new_var_multiple_err v p';
-        RETURN (error_msg i c, [], \<V>)
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p;
+        RETURN (error_msg i c, [], \<V>, va)
       }
       else do {
-         ASSERT(vars_llist p' \<subseteq> set_mset \<V>);
-         p2 \<leftarrow>  mult_poly_full_prop \<V> p' p';
+         ASSERT(vars_llist p \<subseteq> set_mset \<V>);
+         p2 \<leftarrow>  mult_poly_full_prop \<V> p p;
          ASSERT(vars_llist p2 \<subseteq> set_mset \<V>);
-         let p'' = map (\<lambda>(a,b). (a, -b)) p';
+         let p'' = map (\<lambda>(a,b). (a, -b)) p;
          ASSERT(vars_llist p'' \<subseteq> set_mset \<V>);
          q \<leftarrow> add_poly_l_prep \<V> (p2, p'');
          ASSERT(vars_llist q \<subseteq> set_mset \<V>);
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
-           RETURN (CSUCCESS, p, \<V>)
+           RETURN (CSUCCESS, p, \<V>, va)
          } else do {
-          c \<leftarrow> check_extension_l_side_cond_err v p p'' q;
-          RETURN (error_msg i c, [], \<V>)
+          c \<leftarrow> check_extension_l_side_cond_err v p q;
+          RETURN (error_msg i c, [], \<V>, va)
         }
       }
     }
- }\<close>
-    unfolding check_extension_l2_prop_def Let_def by (auto intro!: bind_cong[OF refl])
+  }\<close>
+  unfolding check_extension_l2_prop_def Let_def check_extension_l_side_cond_err_def
+  by (auto intro!: bind_cong[OF refl])
+
+lemma check_extension_l2_prop_alt_def2:
+  \<open>check_extension_l2_prop spec A \<V> i v p = do {
+  let pre = i \<notin># dom_m A \<and> v \<notin> set_mset \<V>;
+  let nonew = vars_llist p \<subseteq> set_mset \<V>;
+  (mem, p, \<V>) \<leftarrow> import_poly \<V> p;
+  let pre = (pre \<and> \<not>alloc_failed mem);
+  if \<not>pre
+  then do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c, [], \<V>, v)
+   } else do {
+      if \<not>nonew
+      then do {
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p;
+        RETURN (error_msg i c, [], \<V>, v)
+      }
+      else do {
+      (mem', \<V>, va) \<leftarrow> import_variable v \<V>;
+      if (alloc_failed mem')
+      then do {
+       c \<leftarrow> check_extension_l_dom_err i;
+       RETURN (error_msg i c, [], \<V>, va)
+      }
+      else do {
+         ASSERT(vars_llist p \<subseteq> set_mset \<V>);
+         p2 \<leftarrow>  mult_poly_full_prop \<V> p p;
+         ASSERT(vars_llist p2 \<subseteq> set_mset \<V>);
+         let p'' = map (\<lambda>(a,b). (a, -b)) p;
+         ASSERT(vars_llist p'' \<subseteq> set_mset \<V>);
+         q \<leftarrow> add_poly_l_prep \<V> (p2, p'');
+         ASSERT(vars_llist q \<subseteq> set_mset \<V>);
+         eq \<leftarrow> weak_equality_l q [];
+         if eq then do {
+           RETURN (CSUCCESS, p, \<V>, va)
+         } else do {
+          c \<leftarrow> check_extension_l_side_cond_err v p q;
+          RETURN (error_msg i c, [], \<V>, va)
+        }
+      }
+     }
+    }
+  }\<close>
+  unfolding check_extension_l2_prop_alt_def
+  unfolding Let_def check_extension_l_side_cond_err_def de_Morgan_conj
+    not_not
+  by (subst if_conn(2))
+    (auto intro!: bind_cong[OF refl])
 
 lemma list_rel_mapI: \<open>(xs,ys) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow> (\<And>x y. x \<in> set xs \<Longrightarrow> y \<in> set ys \<Longrightarrow> (x,y)\<in>R \<Longrightarrow> (f x, g y) \<in> S) \<Longrightarrow> (map f xs, map g ys) \<in> \<langle>S\<rangle>list_rel\<close>
   by (induction xs arbitrary: ys)
-     (auto simp: list_rel_split_right_iff)
+    (auto simp: list_rel_split_right_iff)
+
+lemma perfectly_shared_var_rel_perfectly_shared_monom_mono:
+  \<open>(\<forall>xs. xs \<in> perfectly_shared_var_rel \<A> \<longrightarrow> xs \<in> perfectly_shared_var_rel \<A>') \<longleftrightarrow>
+  (\<forall>xs. xs \<in> perfectly_shared_monom \<A> \<longrightarrow> xs \<in> perfectly_shared_monom \<A>')\<close>
+  by (metis list_rel_mono old.prod.exhaust list_rel_simp(2) list_rel_simp(4))
+
+lemma perfectly_shared_var_rel_perfectly_shared_polynom_mono:
+  \<open>(\<forall>xs. xs \<in> perfectly_shared_var_rel \<A> \<longrightarrow> xs \<in> perfectly_shared_var_rel \<A>') \<longleftrightarrow>
+  (\<forall>xs. xs \<in> perfectly_shared_polynom \<A> \<longrightarrow> xs \<in> perfectly_shared_polynom \<A>')\<close>
+  unfolding perfectly_shared_var_rel_perfectly_shared_monom_mono
+  apply (auto intro: list_rel_mono)
+    apply (drule_tac x =  \<open>[(a,1)]\<close> in spec)
+    apply (drule_tac x =  \<open>[(b,1)]\<close> in spec)
+    apply auto
+    done
+
+
 lemma check_extension_l2_s_check_extension_l2:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
     \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
-    \<open>(xs,xs')\<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
     \<open>(r,r')\<in>Id\<close>
     \<open>(i,j)\<in>nat_rel\<close>
-    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close> and
-    \<open>xs' = ([r], -1) # ys\<close>
-  shows \<open>check_extension_l2_s spec A \<V> i r xs
-    \<le> \<Down>{((err, p, A), (err', p', A')).
+    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close>
+    \<open>(v,v')\<in>Id\<close>
+  shows \<open>check_extension_l2_s spec A \<V> i v r
+    \<le> \<Down>{((err, p, A, v), (err', p', A', v')).
     (err, err') \<in> Id \<and>
-    (p, p') \<in> perfectly_shared_polynom A \<and>
-    (\<not>is_cfailed err \<longrightarrow> (A, A') \<in> {(a,b). (a,b) \<in> perfectly_shared_vars_rel \<and> perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom a})}
-    (check_extension_l2_prop spec' B \<D>\<V> j r' xs')\<close>
+    (\<not>is_cfailed err \<longrightarrow>
+    (p, p') \<in> perfectly_shared_polynom A \<and> (v, v') \<in> perfectly_shared_var_rel A \<and>
+      (A, A') \<in> {(a,b). (a,b) \<in> perfectly_shared_vars_rel \<and> perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom a})}
+    (check_extension_l2_prop spec' B \<D>\<V> j v' r')\<close>
 proof -
   have [refine]: \<open>check_extension_l_s_new_var_multiple_err a b \<le>\<Down>Id (check_extension_l_new_var_multiple_err a' b')\<close> for a a' b b'
     by (auto simp: check_extension_l_s_new_var_multiple_err_def check_extension_l_new_var_multiple_err_def)
 
   have [refine]: \<open>check_extension_l_dom_err i \<le> \<Down> (Id) (check_extension_l_dom_err j)\<close>
     by (auto simp: check_extension_l_dom_err_def)
-  have [refine]: \<open>check_extension_l_s_side_cond_err a b c d \<le> \<Down>Id (check_extension_l_side_cond_err a' b' c' d')\<close> for a b c d a' b' c' d'
+  have [refine]: \<open>check_extension_l_s_side_cond_err a b c d \<le> \<Down>Id (check_extension_l_side_cond_err a' b' c')\<close> for a b c d a' b' c' d'
     by (auto simp: check_extension_l_s_side_cond_err_def check_extension_l_side_cond_err_def)
   have G: \<open>(a, b) \<in> import_poly_rel \<V> x \<Longrightarrow> \<not>alloc_failed (fst a) \<Longrightarrow>
     (snd (snd a), snd (snd b)) \<in> perfectly_shared_vars_rel\<close> for a b x
     by auto
   show ?thesis
-    unfolding check_extension_l2_s_def check_extension_l2_prop_alt_def nres_monad3
-    apply (refine_rcg import_polyS_import_poly assms mult_poly_full_s_mult_poly_full_prop)
+    unfolding check_extension_l2_s_def check_extension_l2_prop_alt_def2 nres_monad3
+    apply (refine_rcg import_polyS_import_poly assms mult_poly_full_s_mult_poly_full_prop
+      import_variableS_import_variable[unfolded perfectly_shared_var_rel_perfectly_shared_polynom_mono])
+    subgoal using assms by auto
     subgoal using assms by (auto simp add: perfectly_shared_vars_rel_def perfectly_shared_vars_def)
-    subgoal using assms by (simp)
-    subgoal using assms by (cases xs, auto)
+    subgoal using assms by (auto)
+    subgoal using assms by (auto)
+    subgoal using assms by (auto)
     subgoal using assms by auto
     subgoal by auto
-    subgoal using assms by (cases xs; auto dest: list_rel_tlD)
-    subgoal using assms by (cases xs; auto dest: list_rel_tlD)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
       apply (rule add_poly_l_s_add_poly_l)
     subgoal by auto
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c p2 p2a
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e x1f x2f x1g x2g p2 p2a
       using assms
-      by (cases xs; auto intro!: list_rel_mapI[of _ _ \<open>perfectly_shared_monom x2c \<times>\<^sub>r int_rel\<close>]
-        dest: list_rel_tlD)
+      by ( auto intro!: list_rel_mapI[of _ _ \<open>perfectly_shared_monom x1g \<times>\<^sub>r int_rel\<close>])
     apply (rule weak_equality_l_s_weak_equality_l)
-    apply (rule G, assumption)
-    subgoal by auto
-    subgoal by auto
+    defer apply assumption
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal using assms by auto
+    apply (solves auto) (*one goal with unifucation*)
     done
 qed
 
@@ -1147,18 +1222,24 @@ where
      }
    | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
-        (eq, r, \<V>) \<leftarrow> check_extension_l2_s spec A (\<V>) (new_id st) (new_var st) r;
+         r \<leftarrow> full_normalize_poly (pac_res st);
+        (eq, r, \<V>, v) \<leftarrow> check_extension_l2_s spec A (\<V>) (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
-        then RETURN (st', \<V>, fmupd (new_id st) r A)
+        then do {
+           r \<leftarrow> add_poly_l_s \<V> ([([v], -1)], r);
+          RETURN (st', \<V>, fmupd (new_id st) r A)
+        }
         else RETURN (eq, \<V>, A)
      }}
           )\<close>
 lemma is_cfailed_merge_cstatus:
   "is_cfailed (merge_cstatus c d) \<longleftrightarrow> is_cfailed c \<or> is_cfailed d"
   by (cases c; cases d) auto
-          find_theorems "case_pac_step" If
-lemma check_extension_l2_s_check_extension_l2:
+lemma (in -) fmap_rel_mono2:
+  \<open>x \<in> \<langle>A,B\<rangle>fmap_rel \<Longrightarrow>  B \<subseteq>B' \<Longrightarrow> x \<in> \<langle>A,B'\<rangle>fmap_rel\<close>
+  by (auto simp: fmap_rel_alt_def)
+
+lemma PAC_checker_l_step_s_PAC_checker_l_step_s:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
     \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
@@ -1171,14 +1252,18 @@ lemma check_extension_l2_s_check_extension_l2:
      \<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel)}
     (PAC_checker_l_step_prep spec' (err', \<D>\<V>, B) st')\<close>
 proof -
-  find_theorems is_cfailed merge_cstatus
+  have [refine]: \<open>check_del_l spec A (EPAC_Checker_Specification.pac_step.pac_src1 st)
+    \<le> \<Down> Id
+    (check_del_l spec' B
+    (EPAC_Checker_Specification.pac_step.pac_src1 st'))\<close>
+    by (auto simp: check_del_l_def)
   have HID: \<open>f = f' \<Longrightarrow> f \<le> \<Down>Id f'\<close> for f f'
     by auto
   show ?thesis
     unfolding PAC_checker_l_step_s_def PAC_checker_l_step_prep_def pac_step.case_eq_if
       prod.simps
     apply (refine_rcg check_linear_combi_l_s_check_linear_combi_l
-      check_extension_l2_s_check_extension_l2)
+      check_extension_l2_s_check_extension_l2 add_poly_l_s_add_poly_l)
     subgoal using assms by auto
     subgoal using assms by auto
     apply (rule HID)
@@ -1201,26 +1286,14 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-
-
-find_theorems fmap_rel fmupd
-
-
-
-find_theorems list_rel map
- find_theorems weak_equality_l_s weak_equality_l
-
-    
-thm check_extension_l2_prop_def
-
-thm PAC_checker_l_step_prep_def
-
-find_theorems linear_combi_l_prep
-    term linear_combi_l_prep
-    find_theorems add_poly_l
-    term check_linear_combi_l
-thm full_normalize_poly_def
-  find_theorems sort_poly_spec
-  find_theorems
-  thm sort_poly_spec_def
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by (auto intro!: fmap_rel_fmupd_fmap_rel  intro: fmap_rel_mono2)
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by (auto intro!: fmap_rel_fmdrop_fmap_rel)
+    subgoal by auto
+    done
+qed
 end
