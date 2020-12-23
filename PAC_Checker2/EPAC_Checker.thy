@@ -1263,11 +1263,11 @@ definition full_checker_l2
 where
   \<open>full_checker_l2 spec A st = do {
     spec' \<leftarrow> full_normalize_poly spec;
-    (b, \<V>, A) \<leftarrow> remap_polys_l_with_err spec' {} A;
+    err \<leftarrow> SPEC(\<lambda>xs. xs \<noteq> CFOUND);
+    (b, \<V>, A) \<leftarrow> remap_polys_l_with_err spec' (vars_llist spec) A;
     if is_cfailed b
     then RETURN (b, \<V>, A)
     else do {
-      let \<V> = \<V> \<union> vars_llist spec;
       PAC_checker_l spec' (\<V>, A) b st
     }
   }\<close>

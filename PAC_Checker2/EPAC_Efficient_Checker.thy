@@ -738,8 +738,9 @@ qed
 definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
    (string code_status \<times> (nat, string) vars \<times> (nat, llist_polynomial) fmap) nres\<close> where
   \<open>remap_polys_l2_with_err spec = (\<lambda>(\<V>:: (nat, string) vars) A. do{
-   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
+  dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (mem, spec, \<V>) \<leftarrow> import_poly \<V> spec;
+   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<longrightarrow> \<not>b);
    if failed
    then do {
       c \<leftarrow> remap_polys_l_dom_err;
@@ -763,7 +764,7 @@ definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarro
      RETURN (err, \<V>, A)
   }})\<close>
 
-lemma remap_polys_l2_with_err_remap_polys_l_with_err_:
+lemma remap_polys_l2_with_err_polys_l_with_err:
   assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close>
   shows \<open>remap_polys_l2_with_err spec \<V> A \<le> \<Down>{((st, \<V>, A), st', \<V>', A').
    (st, st') \<in> Id \<and>

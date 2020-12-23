@@ -1296,4 +1296,74 @@ proof -
     subgoal by auto
     done
 qed
+
+
+  term
+    \<open>do{
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
+   }
+   else do {
+     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C doam (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
+       (\<lambda>i (err, \<V>,  A').
+          if i \<in># dom_m A
+          then  do {
+           (err', p, \<V>) \<leftarrow> import_polyS \<V> (the (fmlookup A i));
+            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
+            else do {
+              p \<leftarrow> normalize_poly_s \<V> p;
+              eq  \<leftarrow> weak_equality_l_s p spec;
+              let \<V> = \<V>;
+              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
+            }
+          } else RETURN (err, \<V>, A'))
+       (CSUCCESS, \<V>, fmempty);
+     RETURN (err, \<V>, A)
+                }}\<close>
+
+definition fully_normalize_and_import where
+  \<open>fully_normalize_and_import \<V> p = do {
+    p \<leftarrow> sort_all_coeffs p;
+   (err, p, \<V>) \<leftarrow> import_polyS \<V> p;
+   if alloc_failed err
+   then RETURN (err, p, \<V>)
+   else do {
+     p \<leftarrow> normalize_poly_s \<V> p;
+     RETURN (err, p, \<V>)
+  }}\<close>
+
+definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow> (nat, string) shared_vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
+   (string code_status \<times> (nat, string) shared_vars \<times> (nat, sllist_polynomial) fmap \<times> sllist_polynomial) nres\<close> where
+  \<open>remap_polys_s_with_err spec = (\<lambda>(\<V>:: (nat, string) shared_vars) A. do{
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (mem, spec, \<V>) \<leftarrow> fully_normalize_and_import \<V> spec;
+   failed \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> \<not>alloc_failed mem);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      RETURN (error_msg (0 :: nat) c, \<V>, fmempty, [])
+   }
+   else do {
+     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
+       (\<lambda>i (err, \<V>,  A').
+          if i \<in># dom_m A
+        then  do {
+            p \<leftarrow> sort_all_coeffs (the (fmlookup A i));
+           (err', p, \<V>) \<leftarrow> import_polyS \<V> p;
+            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
+            else do {
+              p \<leftarrow> normalize_poly_s \<V> p;
+              eq  \<leftarrow> weak_equality_l_s p spec;
+              let \<V> = \<V>;
+              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
+            }
+          } else RETURN (err, \<V>, A'))
+       (CSUCCESS, \<V>, fmempty);
+     RETURN (err, \<V>, A, spec)
+                }})\<close>
+
 end
