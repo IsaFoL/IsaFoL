@@ -2,6 +2,7 @@ theory WB_List_More
   imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
+    "HOL-Library.FuncSet"
 begin
 text \<open>This theory contains various lemmas that have been used in the formalisation. Some of them
 could probably be moved to the Isabelle distribution or
@@ -2111,5 +2112,145 @@ lemma length_list_ge2: \<open>length S \<ge> 2 \<longleftrightarrow> (\<exists>a
   apply (rename_tac a S')
   apply (case_tac S')
   by simp_all
+
+
+subsection \<open>Multiset version of Pow\<close>
+text \<open>
+  This development was never useful in my own formalisation, but some people saw an interest
+  in this or in things related to this (even if they discarded it eventually). Therefore, I finally
+  decided to save the definition from my mailbox.
+
+  If anyone ever uses that and adds the concept to the AFP, please tell me such that I can delete
+  it.
+\<close>
+
+
+definition Pow_mset where
+\<open>Pow_mset A = fold_mset (\<lambda>a A. (A + (add_mset a) `# A)) {#{#}#} A\<close>
+
+interpretation pow_mset_commute: comp_fun_commute \<open>(\<lambda>a A. (A + (add_mset a) `# A))\<close>
+  by (auto simp: comp_fun_commute_def add_mset_commute intro!: ext)
+
+lemma Pow_mset_alt_def:
+  "Pow_mset (mset A) = mset `# mset (subseqs A)"
+  apply (induction A)
+  subgoal by (auto simp: Pow_mset_def)
+  subgoal
+    by (auto simp: Let_def Pow_mset_def)
+  done
+
+
+lemma Pow_mset_empty[simp]:
+  \<open>Pow_mset {#} = {#{#}#}\<close>
+  by (auto simp: Pow_mset_def)
+
+lemma Pow_mset_add_mset[simp]:
+  \<open>Pow_mset (add_mset a A) = Pow_mset A + (add_mset a) `# Pow_mset A\<close>
+  by (auto simp: Let_def Pow_mset_def)
+
+lemma in_Pow_mset_iff:
+  \<open>A \<in># Pow_mset B \<longleftrightarrow> A \<subseteq># B\<close>
+proof
+  assume \<open>A \<subseteq># B\<close>
+  then show \<open>A \<in># Pow_mset B\<close>
+    apply (induction B arbitrary: A)
+    subgoal by auto
+    subgoal premises p for b B A
+      using p(1)[of A] p(1)[of \<open>A - {#b#}\<close>] p(2)
+      apply (cases \<open>b \<in># A\<close>)
+      by (auto dest: subset_add_mset_notin_subset_mset
+          dest!: multi_member_split)
+    done
+next
+  assume \<open>A \<in># Pow_mset B\<close>
+  then show \<open>A \<subseteq># B\<close>
+    apply (induction B arbitrary: A)
+    subgoal by auto
+    subgoal premises p for b B A
+      using p by (auto simp: subset_mset_trans_add_mset)
+    done
+qed
+
+lemma size_Pow_mset[simp]: \<open>size (Pow_mset A) = 2^(size A)\<close>
+  by (induction A) auto
+
+lemma set_Pow_mset:
+  \<open>set_mset (Pow_mset A) = {B. B \<subseteq># A}\<close>
+  by (auto simp: in_Pow_mset_iff)
+
+text \<open>Proof by Manuel Eberl on Zulip
+  \<^url>\<open>https://isabelle.zulipchat.com/#narrow/stream/238552-Beginner-Questions/topic/Cardinality.20of.20powerset.20of.20a.20multiset/near/220827959\<close>.
+\<close>
+lemma bij_betw_submultisets:
+  "card {B. B \<subseteq># A} = (\<Prod>x\<in>set_mset A. count A x + 1)"
+proof -
+  define f :: "'a multiset \<Rightarrow> 'a \<Rightarrow> nat"
+    where "f = (\<lambda>B x. if x \<in># A then count B x else undefined)"
+  define g :: "('a \<Rightarrow> nat) \<Rightarrow> 'a multiset"
+    where "g = (\<lambda>h. Abs_multiset (\<lambda>x. if x \<in># A then h x else 0))"
+
+  have count_g: "count (g h) x = (if x \<in># A then h x else 0)"
+    if "h \<in> (\<Pi>\<^sub>E x\<in>set_mset A. {0..count A x})" for h x
+  proof -
+    have "finite {x. (if x \<in># A then h x else 0) > 0}"
+      by (rule finite_subset[of _ "set_mset A"]) (use that in auto)
+    thus ?thesis by (simp add: multiset_def g_def)
+  qed
+
+  have f: "f B \<in> (\<Pi>\<^sub>E x\<in>set_mset A. {0..count A x})" if "B \<subseteq># A" for B
+      using that by (auto simp: f_def subseteq_mset_def)
+
+  have "bij_betw f {B. B \<subseteq># A} (\<Pi>\<^sub>E x\<in>set_mset A. {0..count A x})"
+  proof (rule bij_betwI[where g = g], goal_cases)
+    case 1
+    thus ?case using f by auto
+  next
+    case 2
+    show ?case
+      by (auto simp: Pi_def PiE_def count_g subseteq_mset_def)
+  next
+    case (3 B)
+    have "count (g (f B)) x = count B x" for x
+    proof -
+      have "count (g (f B)) x = (if x \<in># A then f B x else 0)"
+        using f 3 by (simp add: count_g)
+      also have "\<dots> = count B x"
+        using 3 by (auto simp: f_def)
+      finally show ?thesis .
+    qed
+    thus ?case
+      by (auto simp: multiset_eq_iff)
+  next
+    case 4
+    thus ?case
+      by (auto simp: fun_eq_iff f_def count_g)
+  qed
+  hence "card {B. B \<subseteq># A} = card (\<Pi>\<^sub>E x\<in>set_mset A. {0..count A x})"
+    using bij_betw_same_card by blast
+  thus ?thesis
+    by (simp add: card_PiE set_Pow_mset)
+qed
+
+lemma empty_in_Pow_mset[iff]: \<open>{#} \<in># Pow_mset B\<close>
+  by (induction B) auto
+
+lemma full_in_Pow_mset[iff]: \<open>B \<in># Pow_mset B\<close>
+  by (induction B) auto
+
+lemma Pow_mset_nempty[iff]: \<open>Pow_mset B \<noteq> {#}\<close>
+  using full_in_Pow_mset[of B] by force
+
+lemma Pow_mset_single_empty[iff]: \<open>Pow_mset B = {#{#}#} \<longleftrightarrow> B = {#}\<close>
+  using full_in_Pow_mset[of B] by fastforce
+
+lemma Pow_mset_mono: \<open>A \<subseteq># B \<Longrightarrow> Pow_mset A \<subseteq># Pow_mset B\<close>
+  apply (induction A arbitrary: B)
+  subgoal by auto
+  subgoal premises p for x A B
+    using p(1)[of \<open>remove1_mset x B\<close>] p(2)
+    by (cases \<open>x\<in>#B\<close>)
+     (auto dest!: multi_member_split
+      simp add: image_mset_subseteq_mono subset_mset.add_mono)
+  done
 
 end
