@@ -500,7 +500,9 @@ definition check_linear_combi_l_prop where
 
 lemma check_linear_combi_l_prop_check_linear_combi_l:
   assumes \<open>(\<V>,\<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A, A') \<in> Id\<close> \<open>(i,i')\<in>nat_rel\<close> \<open>(xs,xs')\<in>Id\<close>\<open>(r,r')\<in>Id\<close>
-  shows \<open>check_linear_combi_l_prop spec A \<V> i xs r \<le> \<Down>{((b,r'), b'). b=b' \<and> (\<not>is_cfailed b \<longrightarrow> r=r')} (check_linear_combi_l spec A' \<V>' i' xs' r')\<close>
+       \<open>(spec,spec')\<in>Id\<close>
+  shows \<open>check_linear_combi_l_prop spec A \<V> i xs r \<le>
+    \<Down>{((b,r'), b'). b=b' \<and> (\<not>is_cfailed b \<longrightarrow> r=r')} (check_linear_combi_l spec' A' \<V>' i' xs' r')\<close>
 proof -
   have [refine]: \<open>import_poly_no_new \<V> r \<le> \<Down> {((mem, r'), b). (b=mem) \<and> (\<not>b \<longrightarrow> r'=r \<and> vars_llist r \<subseteq> set_mset \<V>)} (RES UNIV)\<close>
     apply (rule order_trans)
@@ -675,9 +677,11 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
 
 lemma PAC_checker_l_step_prep_PAC_checker_l_step:
   assumes \<open>(state, state') \<in> {((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}\<close>
+    \<open>(spec,spec')\<in>Id\<close>
+    \<open>(step,step')\<in>Id\<close>
   shows \<open>PAC_checker_l_step_prep spec state step \<le>
     \<Down>{((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}
-    (PAC_checker_l_step spec state' step)\<close>
+    (PAC_checker_l_step spec' state' step')\<close>
 proof -
   have H: \<open>f=g \<Longrightarrow> f \<le> \<Down>Id g\<close> for f g
     by auto
@@ -690,6 +694,9 @@ proof -
     subgoal
       apply (refine_rcg check_linear_combi_l_prop_check_linear_combi_l)
       subgoal using assms by auto
+      subgoal by auto
+      apply (rule H)
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -705,6 +712,8 @@ proof -
     subgoal
       apply (refine_rcg check_extension_l2_prop_check_extension_l2 add_poly_alt_def[unfolded add_poly_l'_def, THEN order_trans])
       subgoal by auto
+      subgoal by auto
+      apply (rule H)
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -866,5 +875,82 @@ proof -
     done
 qed
 
+definition PAC_checker_l2 where
+  \<open>PAC_checker_l2 spec A b st = do {
+  (S, _) \<leftarrow> WHILE\<^sub>T
+  (\<lambda>((b, A), n). \<not>is_cfailed b \<and> n \<noteq> [])
+  (\<lambda>((bA), n). do {
+  ASSERT(n \<noteq> []);
+  S \<leftarrow> PAC_checker_l_step_prep spec bA (hd n);
+  RETURN (S, tl n)
+  })
+  ((b, A), st);
+  RETURN S
+  }\<close>
+
+lemma PAC_checker_l2_PAC_checker_l:
+  assumes \<open>(A, A') \<in> {(x, y). y = set_mset x} \<times>\<^sub>r Id\<close> \<open>(spec, spec')\<in>Id\<close> \<open>(st, st')\<in>Id\<close> \<open>(b,b')\<in>Id\<close>
+  shows \<open>PAC_checker_l2 spec A b st \<le> \<Down>{((b, A, st), (b', A', st')).
+      (\<not>is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st')\<in>Id) \<and> (b,b')\<in>Id} (PAC_checker_l spec' A' b' st')\<close>
+proof -
+  show ?thesis
+    unfolding PAC_checker_l2_def PAC_checker_l_def
+    apply (refine_rcg
+      PAC_checker_l_step_prep_PAC_checker_l_step
+      WHILET_refine[where R = \<open>{(((b, A), st:: (llist_polynomial, string, nat) pac_step list), (b', A'), st').
+      (\<not>is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<times>\<^sub>r Id) \<and> (b,b')\<in>Id \<and> (st,st')\<in>Id}\<close>])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition full_checker_l_prep
+  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
+    (string code_status \<times> _) nres\<close>
+where
+  \<open>full_checker_l_prep spec A st = do {
+    spec' \<leftarrow> full_normalize_poly spec;
+    (b, \<V>, A) \<leftarrow> remap_polys_l2_with_err spec' spec {#} A;
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      let \<V> = \<V>;
+      PAC_checker_l2 spec' (\<V>, A) b st
+     }
+        }\<close>
+
+lemma full_checker_l_prep_full_checker_l2:
+  assumes \<open>(spec, spec')\<in>Id\<close> \<open>(st, st')\<in>Id\<close> \<open>(A,A')\<in>Id\<close>
+  shows \<open>full_checker_l_prep spec A st \<le>\<Down>{((b, A, st), (b', A', st')).
+    (\<not>is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st')\<in>Id) \<and> (b,b')\<in>Id}
+    (full_checker_l2 spec' A' st')\<close>
+proof -
+  have id: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
+    by auto
+  show ?thesis
+    unfolding full_checker_l_prep_def full_checker_l2_def
+    apply (refine_rcg remap_polys_l2_with_err_polys_l_with_err
+      PAC_checker_l2_PAC_checker_l)
+    apply (rule id)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    done
+qed
 
 end

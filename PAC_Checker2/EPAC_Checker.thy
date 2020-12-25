@@ -1259,7 +1259,6 @@ definition full_checker_l2
 where
   \<open>full_checker_l2 spec A st = do {
     spec' \<leftarrow> full_normalize_poly spec;
-    err \<leftarrow> SPEC(\<lambda>xs. xs \<noteq> CFOUND);
     (b, \<V>, A) \<leftarrow> remap_polys_l_with_err spec' spec {} A;
     if is_cfailed b
     then RETURN (b, \<V>, A)
@@ -1770,6 +1769,16 @@ lemma (in -)RES_RES_RETURN_RES3: \<open>RES A \<bind> (\<lambda>(a,b,c). RES (f 
 definition vars_rel2 :: \<open>_\<close> where
   \<open>vars_rel2 err = {(A,B). \<not>is_cfailed err \<longrightarrow> (A,B)\<in> \<langle>var_rel\<rangle>set_rel} \<close>
 
+lemma full_normalize_poly_normalize_poly_spec_vars2: \<open>(p3, p1) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+  full_normalize_poly p3
+  \<le> \<Down> ({(xs, ys). (xs, ys) \<in> sorted_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p3} O
+  mset_poly_rel)
+  (normalize_poly_spec p1)
+  \<close>
+  using full_normalize_poly_normalize_poly_p2[unfolded normalize_poly_spec_alt_def[symmetric],
+THEN ref_two_step[OF _ normalize_poly_p_normalize_poly_spec], unfolded conc_fun_chain]
+  by auto
+
 lemma full_checker_l_full_checker:
  assumes
     \<open>(A, B) \<in> unsorted_fmap_polys_rel\<close> and
@@ -1931,7 +1940,7 @@ proof -
      apply (rule conc_fun_R_mono)
      apply (auto simp: vars_rel2_def)
      done
-   have still_in: \<open>(spec'a, spec) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+   have still_in: \<open>(spec'a, spec) \<in> {(xs, ys). (xs, ys) \<in> sorted_poly_rel \<and> vars_llist xs \<subseteq> spec0} O mset_poly_rel \<Longrightarrow>
      (x, x')
      \<in> {((err, \<V>, A), err', \<V>', A').
      ((err, \<V>, A), err', \<V>', A')
@@ -1945,18 +1954,20 @@ proof -
      \<not> is_failed x1 \<Longrightarrow>
      RETURN x1c
      \<le> \<Down> (\<langle>var_rel\<rangle>set_rel) (SPEC ((\<subseteq>) (x1a \<union> vars spec')))\<close>
-     for spec'a spec x x' x1 x2 x1a x2a x1b x2b x1c x2c
+     for spec'a spec x x' x1 x2 x1a x2a x1b x2b x1c x2c spec0
      by (auto intro!: RETURN_RES_refine exI[of _ x1a])
 
   show ?thesis
     unfolding full_checker_def full_checker_l_def
-    apply (refine_rcg remap_polys_l_remap_polys
-       full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]] assms)
+    apply (refine_rcg remap_polys_l_remap_polys full_normalize_poly_normalize_poly_spec_vars2
+      assms)
+    subgoal by auto
     subgoal by auto
     subgoal unfolding remap_polys_l_with_err_pre_def by auto
     subgoal by (auto simp: is_cfailed_def is_failed_def)
     subgoal by (auto simp: vars_rel2_def)
     apply (rule still_in; assumption)
+    subgoal by auto
     subgoal by auto
     subgoal by (auto simp: fmap_polys_rel2_def vars_rel2_def)
     done
