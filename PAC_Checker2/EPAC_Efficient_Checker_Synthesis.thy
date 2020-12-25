@@ -1365,5 +1365,5 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
        (CSUCCESS, \<V>, fmempty);
      RETURN (err, \<V>, A, spec)
                 }})\<close>
-
+term remap_polys_l2_with_err
 end
