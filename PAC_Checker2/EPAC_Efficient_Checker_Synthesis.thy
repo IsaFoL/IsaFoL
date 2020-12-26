@@ -1336,12 +1336,24 @@ definition fully_normalize_and_import where
      RETURN (err, p, \<V>)
   }}\<close>
 
-definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow> (nat, string) shared_vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
+fun vars_llist_l where
+  \<open>vars_llist_l [] = []\<close> |
+  \<open>vars_llist_l (x#xs) = fst x @ vars_llist_l xs\<close>
+
+lemma set_vars_llist_l[simp]: \<open>set(vars_llist_l xs) = vars_llist xs\<close>
+  by (induction xs)
+    (auto)
+
+lemma vars_llist_l_append[simp]: \<open>vars_llist_l (a @ b) = vars_llist_l a @ vars_llist_l b\<close>
+  by (induction a) auto
+
+definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) shared_vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
    (string code_status \<times> (nat, string) shared_vars \<times> (nat, sllist_polynomial) fmap \<times> sllist_polynomial) nres\<close> where
-  \<open>remap_polys_s_with_err spec = (\<lambda>(\<V>:: (nat, string) shared_vars) A. do{
+  \<open>remap_polys_s_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) shared_vars) A. do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   (mem, spec, \<V>) \<leftarrow> fully_normalize_and_import \<V> spec;
-   failed \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> \<not>alloc_failed mem);
+   (mem, \<V>) \<leftarrow> import_variablesS (vars_llist_l spec0) \<V>;
+   (mem', spec, \<V>) \<leftarrow> fully_normalize_and_import \<V> spec;
+   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
    if failed
    then do {
       c \<leftarrow> remap_polys_l_dom_err;

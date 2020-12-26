@@ -157,6 +157,92 @@ lemma is_new_variable_spec:
   by (auto simp: perfectly_shared_vars_rel_def
     perfectly_shared_vars_simps split: prod.splits)
 
+definition import_variables
+  :: \<open>'string list \<Rightarrow> ('nat, 'string) vars \<Rightarrow> (memory_allocation \<times> ('nat, 'string) vars) nres\<close>
+where
+  \<open>import_variables vs \<V> = do {
+  (mem, \<V>, _, _) \<leftarrow> WHILE\<^sub>T(\<lambda>(mem, \<V>, vs, _). \<not>alloc_failed mem \<and> vs \<noteq> [])
+  (\<lambda>(_, \<V>, vs, vs'). do {
+    ASSERT(vs \<noteq> []);
+    let v = hd vs;
+    a \<leftarrow> is_new_variable v \<V>;
+    if \<not>a then RETURN (Allocated ,\<V>, tl vs, vs' @ [v])
+    else do {
+      (mem, \<V>, _) \<leftarrow> import_variable v \<V>;
+      RETURN(mem, \<V>, tl vs, vs' @ [v])
+    }
+    })
+      (Allocated, \<V>, vs, []);
+    RETURN (mem, \<V>)
+      }\<close>
+
+definition import_variablesS
+  :: \<open>'string list \<Rightarrow> ('nat, 'string) shared_vars \<Rightarrow> (memory_allocation \<times> ('nat, 'string) shared_vars) nres\<close>
+where
+  \<open>import_variablesS vs \<V> = do {
+  (mem, \<V>, _) \<leftarrow> WHILE\<^sub>T(\<lambda>(mem, \<V>, vs). \<not>alloc_failed mem \<and> vs \<noteq> [])
+  (\<lambda>(_, \<V>, vs). do {
+    ASSERT(vs \<noteq> []);
+    let v = hd vs;
+    a \<leftarrow> is_new_variableS v \<V>;
+    if \<not>a then RETURN (Allocated ,\<V>, tl vs)
+    else do {
+      (mem, \<V>, _) \<leftarrow> import_variableS v \<V>;
+      RETURN(mem, \<V>, tl vs)
+    }
+    })
+      (Allocated, \<V>, vs);
+    RETURN (mem, \<V>)
+  }\<close>
+
+lemma import_variables_spec:
+  \<open>import_variables vs \<V> \<le> \<Down>Id (SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> set vs))\<close>
+proof -
+  define I where
+    \<open>I \<equiv> (\<lambda>(mem, \<V>', vs', vs'').
+      (\<not>alloc_failed mem \<longrightarrow>  (vs = vs'' @ vs') \<and> set_mset \<V>' = set_mset \<V> \<union> set vs''))\<close>
+  show ?thesis
+  unfolding import_variables_def is_new_variable_def
+  apply (refine_vcg WHILET_rule[where I = \<open>I\<close> and
+    R = \<open>measure (\<lambda>(mem, \<V>', vs', _). (if \<not>alloc_failed mem then 1 else 0) + length vs')\<close>]
+    is_new_variable_spec)
+  subgoal by auto
+  subgoal unfolding I_def by auto
+  subgoal by auto
+  subgoal for s a b aa ba ab bb
+    unfolding I_def by auto
+  subgoal for s a b aa ba ab bb
+    by auto
+  subgoal
+    by (clarsimp simp: neq_Nil_conv import_variable_def I_def)
+  subgoal
+    by (auto simp: I_def)
+  done
+qed
+
+lemma import_variablesS_import_variables:
+  assumes \<open>(\<V>, \<V>') \<in> perfectly_shared_vars_rel\<close> and
+    \<open>(vs, vs') \<in> Id\<close>
+  shows \<open>import_variablesS vs \<V> \<le> \<Down>(Id \<times>\<^sub>r perfectly_shared_vars_rel) (import_variables vs' \<V>')\<close>
+proof -
+  show ?thesis
+    unfolding import_variablesS_def import_variables_def
+    apply (refine_rcg WHILET_refine[where R = \<open>{((mem, \<V>, vs), (mem', \<V>', vs', _)).
+      (mem, mem') \<in> Id \<and> (\<V>, \<V>') \<in> perfectly_shared_vars_rel \<and> (vs, vs') \<in> Id}\<close>]
+      is_new_variable_spec import_variableS_import_variable)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 definition get_var_name :: \<open>('nat, 'string) vars \<Rightarrow> 'string \<Rightarrow>  'string nres\<close> where
   \<open>get_var_name \<V> x = do {

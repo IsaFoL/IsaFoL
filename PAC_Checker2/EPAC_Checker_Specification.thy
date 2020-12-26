@@ -417,7 +417,7 @@ definition full_checker
      if is_failed st then
      RETURN (st, \<V>, A)
      else do {
-       \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars spec \<subseteq> \<V>');
+       \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars spec0 \<subseteq> \<V>');
        PAC_checker spec (\<V>, A) st pac
     }
 }\<close>
