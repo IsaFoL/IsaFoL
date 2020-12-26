@@ -244,6 +244,8 @@ proof -
     done
 qed
 
+      
+thm WHILET_refine
 definition get_var_name :: \<open>('nat, 'string) vars \<Rightarrow> 'string \<Rightarrow>  'string nres\<close> where
   \<open>get_var_name \<V> x = do {
     ASSERT(x \<in># \<V>);
@@ -641,7 +643,7 @@ where
 abbreviation import_poly_rel :: \<open>_\<close> where
   \<open>import_poly_rel \<A>\<^sub>0 xs' \<equiv>
   {((mem, xs\<^sub>0, \<A>), (mem', ys\<^sub>0, \<A>')). mem = mem' \<and>
-    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>  (\<not>alloc_failed mem \<longrightarrow> ys\<^sub>0 = xs' \<and> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
+    (\<not>alloc_failed mem \<longrightarrow> (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and>   ys\<^sub>0 = xs' \<and> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
     (\<not>alloc_failed mem \<longrightarrow> perfectly_shared_polynom \<A>\<^sub>0 \<subseteq> perfectly_shared_polynom \<A>)}\<close>
 
 lemma import_polyS_import_poly:

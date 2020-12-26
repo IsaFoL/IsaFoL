@@ -747,14 +747,15 @@ qed
 definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
    (string code_status \<times> (nat, string) vars \<times> (nat, llist_polynomial) fmap) nres\<close> where
   \<open>remap_polys_l2_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   \<V> \<leftarrow> SPEC(\<lambda>\<V>'. set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
-   (mem, spec, \<V>) \<leftarrow> import_poly \<V> spec;
-   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<longrightarrow> b);
+   (mem, \<V>) \<leftarrow> SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_poly \<V> spec else SPEC(\<lambda>_. True);
+   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
    if failed
    then do {
       c \<leftarrow> remap_polys_l_dom_err;
-      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
+      SPEC (\<lambda>(mem, _, _). mem = error_msg (0::nat) c)
    }
    else do {
      (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
@@ -779,12 +780,12 @@ lemma remap_polys_l_with_err_alt_def:
   ASSERT (remap_polys_l_with_err_pre spec spec0 \<V> A);
   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist spec0);
-   let spec = spec;
+   spec \<leftarrow> RETURN spec;
    failed \<leftarrow> SPEC(\<lambda>_::bool. True);
    if failed
    then do {
-      c \<leftarrow> remap_polys_l_dom_err;
-      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
+     c \<leftarrow> remap_polys_l_dom_err;
+     SPEC (\<lambda>(mem, _, _). mem = error_msg (0::nat) c)
    }
    else do {
      (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
@@ -803,7 +804,7 @@ lemma remap_polys_l_with_err_alt_def:
        (CSUCCESS, \<V>, fmempty);
      RETURN (err, \<V>, A)
   }})\<close>
-  unfolding remap_polys_l_with_err_def by (auto intro!: ext bind_cong[OF refl])
+   unfolding remap_polys_l_with_err_def by (auto intro!: ext bind_cong[OF refl])
 
 lemma remap_polys_l2_with_err_polys_l_with_err:
   assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close> \<open>(spec0, spec0')\<in>Id\<close>
@@ -833,17 +834,18 @@ proof -
     by auto
   have id2: \<open>(f,g)\<in>{(x, y). y = set_mset x} \<Longrightarrow> (f,g)\<in>{(x, y). y = set_mset x}\<close> for f g
     by auto
-  have [refine]: \<open> SPEC (\<lambda>\<V>'. set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0)
-    \<le> SPEC (\<lambda>c. (c, \<V>' \<union> vars_llist spec0') \<in> {(x, y). y = set_mset x})\<close>
+  have [refine]: \<open> SPEC (\<lambda>(mem, \<V>'). \<not> alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0)
+    \<le> SPEC (\<lambda>c. (c, \<V>' \<union> vars_llist spec0') \<in> {((mem, x), y). \<not> alloc_failed mem \<longrightarrow> y = set_mset x})\<close>
     using assms by auto
-  have [refine]: \<open>(\<V>'', \<V>''') \<in> {(x, y). y = set_mset x} \<Longrightarrow>
-    import_poly \<V>'' spec \<le> SPEC (\<lambda>c. (c, spec') \<in>
-    {((new, ys, \<A>'), spec'). spec' = spec \<and>
-     \<not> alloc_failed new \<longrightarrow>
-     ys = spec \<and> set_mset \<A>' = set_mset \<V>'' \<union> \<Union> (set ` mononoms spec)})\<close>
-    for \<V>'' \<V>'''
-    by (rule import_poly_spec[THEN order_trans])
-     auto
+  have [refine]: \<open>(x, \<V>''') \<in> {((mem, x), y). \<not> alloc_failed mem \<longrightarrow> y = set_mset x} \<Longrightarrow>
+    x = (x1, \<V>'') \<Longrightarrow>
+    (if \<not> alloc_failed x1 then import_poly \<V>'' spec else SPEC(\<lambda>_. True)) \<le> SPEC (\<lambda>c. (c, spec') \<in>
+    {((new, ys, \<A>'), spec').
+     (\<not> alloc_failed new \<and> \<not> alloc_failed x1 \<longrightarrow>
+     ys = spec \<and>  spec' = spec \<and> set_mset \<A>' = set_mset \<V>'' \<union> \<Union> (set ` mononoms spec))})\<close>
+    for \<V>'' \<V>''' x x1
+    using assms
+    by (auto split: if_splits intro!: import_poly_spec[THEN order_trans])
   have [simp]: \<open>(\<Union>a\<in>set spec'. set (fst a)) \<subseteq> (\<Union>a\<in>set spec0'. set (fst a)) \<Longrightarrow>
     set_mset \<V> \<union> (\<Union>x\<in>set spec0'. set (fst x)) \<union> (\<Union>x\<in>set spec'. set (fst x)) =
     set_mset \<V> \<union> (\<Union>x\<in>set spec0'. set (fst x))\<close>
@@ -851,18 +853,20 @@ proof -
   show ?thesis
     unfolding remap_polys_l2_with_err_def remap_polys_l_with_err_alt_def
     apply (refine_rcg)
+    subgoal using assms unfolding remap_polys_l_with_err_pre_def by auto
     subgoal using assms by auto
     apply assumption
     subgoal by auto
     subgoal using assms by auto
     subgoal by (auto simp: error_msg_def)
 
-    subgoal by auto
+    subgoal by (auto intro!: RES_refine)
+    subgoal using assms by (simp add: )
     subgoal using assms by (simp add: remap_polys_l_with_err_pre_def vars_llist_def)
-    subgoal by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal by auto
+    subgoal using assms by auto
     apply (rule id)
     subgoal using assms by auto
     apply (rule id)

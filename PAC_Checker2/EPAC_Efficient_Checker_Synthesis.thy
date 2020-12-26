@@ -1298,32 +1298,6 @@ proof -
 qed
 
 
-  term
-    \<open>do{
-   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
-   if failed
-   then do {
-      c \<leftarrow> remap_polys_l_dom_err;
-      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
-   }
-   else do {
-     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C doam (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
-       (\<lambda>i (err, \<V>,  A').
-          if i \<in># dom_m A
-          then  do {
-           (err', p, \<V>) \<leftarrow> import_polyS \<V> (the (fmlookup A i));
-            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
-            else do {
-              p \<leftarrow> normalize_poly_s \<V> p;
-              eq  \<leftarrow> weak_equality_l_s p spec;
-              let \<V> = \<V>;
-              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
-            }
-          } else RETURN (err, \<V>, A'))
-       (CSUCCESS, \<V>, fmempty);
-     RETURN (err, \<V>, A)
-                }}\<close>
 
 definition fully_normalize_and_import where
   \<open>fully_normalize_and_import \<V> p = do {
@@ -1352,7 +1326,7 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
   \<open>remap_polys_s_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) shared_vars) A. do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    (mem, \<V>) \<leftarrow> import_variablesS (vars_llist_l spec0) \<V>;
-   (mem', spec, \<V>) \<leftarrow> fully_normalize_and_import \<V> spec;
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_polyS \<V> spec else RETURN (mem, [], \<V>);
    failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
    if failed
    then do {
@@ -1365,7 +1339,7 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
           if i \<in># dom_m A
         then  do {
             p \<leftarrow> sort_all_coeffs (the (fmlookup A i));
-           (err', p, \<V>) \<leftarrow> import_polyS \<V> p;
+           (err', p, \<V>) \<leftarrow> import_polyS \<V> (the (fmlookup A i));
             if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
             else do {
               p \<leftarrow> normalize_poly_s \<V> p;
@@ -1376,6 +1350,58 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
           } else RETURN (err, \<V>, A'))
        (CSUCCESS, \<V>, fmempty);
      RETURN (err, \<V>, A, spec)
-                }})\<close>
+   }})\<close>
+
+lemma
+  fixes \<V> :: \<open>(nat, string) shared_vars\<close>
+  assumes
+    \<V>: \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close> and
+    \<open>(A,B) \<in> \<langle>nat_rel, Id\<rangle>fmap_rel\<close> and
+    \<open>(spec, spec') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+    spec0: \<open>(spec0, spec0') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+  shows
+    \<open>remap_polys_s_with_err spec spec0 \<V> A \<le>
+    \<Down>{((err, \<V>, A, spec''), (err', \<V>', A')).
+    (err, err') \<in> Id \<and>
+   ( \<not>is_cfailed err \<longrightarrow> (spec'', spec) \<in> perfectly_shared_polynom \<V> \<and>
+     ((err, \<V>, A), (err', \<V>', A')) \<in> Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r\<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel)}
+  (remap_polys_l2_with_err spec' spec0' \<D>\<V> B)\<close>
+proof -
+  have vars_spec: \<open>(vars_llist_l spec0, vars_llist_l spec0) \<in> Id\<close>
+    by auto
+  have [refine]: \<open>import_variablesS (vars_llist_l spec0) \<V>
+    \<le> \<Down> {((mem, \<V>), (mem', \<V>')). mem=mem' \<and> (\<not>alloc_failed mem \<longrightarrow>  (\<V>, \<V>') \<in> perfectly_shared_vars_rel)}
+      (SPEC (\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow>  set_mset \<V>' = set_mset \<D>\<V> \<union> vars_llist spec0'))\<close>
+    apply (rule import_variablesS_import_variables[OF \<V> vars_spec, THEN order_trans])
+    apply (rule ref_two_step'[THEN order_trans])
+    apply (rule import_variables_spec)
+    apply (use spec0 in \<open>auto simp: conc_fun_RES
+      dest!: spec[of _  \<open>\<D>\<V> + mset (vars_llist_l spec0)\<close>]\<close>)
+    apply blast
+    done
+  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
+    by (auto simp: inj_on_def)
+  have [refine]: \<open>(x2e, x2c) \<in> perfectly_shared_vars_rel \<Longrightarrow> ((CSUCCESS, x2e, fmempty), CSUCCESS, x2c, fmempty)
+    \<in>  Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r\<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close>
+    for x2e x2c
+    by auto
+
+  show ?thesis
+    unfolding remap_polys_s_with_err_def remap_polys_l2_with_err_def
+    apply (refine_rcg import_polyS_import_poly 1)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by (auto intro!: RETURN_RES_refine)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (clarsimp intro!: RETURN_RES_refine)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+      
+      find_theorems "If _ _ _ \<le> _"
 term remap_polys_l2_with_err
 end
