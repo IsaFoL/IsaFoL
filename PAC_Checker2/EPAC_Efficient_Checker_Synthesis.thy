@@ -582,14 +582,16 @@ lemma perfectly_shared_monom_eqD: \<open>(a, ab) \<in> perfectly_shared_monom \<
    (auto simp: append_eq_append_conv2 append_eq_Cons_conv Cons_eq_append_conv
       list_rel_append1 list_rel_split_right_iff perfectly_shared_var_rel_def br_def)
 
+definition sort_poly_spec_s where
+  \<open>sort_poly_spec_s \<V> xs = msortR (\<lambda>xs ys. (\<forall>a\<in>set (fst xs). a \<in># dom_m (fst (snd \<V>))) \<and>  (\<forall>a\<in>set(fst ys). a \<in># dom_m (fst (snd \<V>))))
+     (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a \<noteq> GREATER)}) xs\<close>
 
 lemma msortR_sort_spec:
   assumes \<open>(\<V>, \<V>\<D>) \<in> perfectly_shared_vars_rel\<close> and
     \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
     \<open>vars_llist xs' \<subseteq> set_mset \<V>\<D>\<close>
  shows
-  \<open>msortR (\<lambda>xs ys. (\<forall>a\<in>set (fst xs). a \<in># dom_m (fst (snd \<V>))) \<and>  (\<forall>a\<in>set(fst ys). a \<in># dom_m (fst (snd \<V>))))
-     (\<lambda>xs ys. do {a \<leftarrow> perfect_shared_term_order_rel_s \<V> (fst xs) (fst ys); RETURN (a \<noteq> GREATER)}) xs
+  \<open>sort_poly_spec_s \<V> xs
   \<le>\<Down>(perfectly_shared_polynom \<V>)
   (sort_poly_spec xs')
    \<close>
@@ -605,6 +607,7 @@ proof -
     by (metis converse_Id converse_iff inv_list_rel_eq inv_prod_rel_eq)
 
   show ?thesis
+    unfolding sort_poly_spec_s_def
     apply (rule order_trans[OF msortR_msort[where
       f'=\<open> \<lambda>xs ys. (map (the o fmlookup (fst (snd \<V>))) (fst xs), map (the o fmlookup (fst (snd \<V>))) (fst ys)) \<in> Id \<union> term_order_rel\<close>]])
     subgoal for x y
@@ -1352,7 +1355,7 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
      RETURN (err, \<V>, A, spec)
                 }})\<close>
 
-definition msort_coeff_s :: \<open>_\<close> where
+definition msort_coeff_s :: \<open>(nat,string)shared_vars \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>msort_coeff_s \<V> xs = msortR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
   (\<lambda>a b. do {
     x \<leftarrow> get_var_nameS \<V> a;
@@ -1420,6 +1423,65 @@ proof -
     done
 qed
 
+  find_theorems sort_coeff
+  term sort_all_coeffs
+
+definition sort_all_coeffs_s :: \<open>(nat,string)shared_vars \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial nres\<close> where
+\<open>sort_all_coeffs_s \<V> xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> msort_coeff_s \<V> a; RETURN ((a, n) # b)}) []\<close>
+
+ fun merge_coeffs0_s :: \<open>sllist_polynomial \<Rightarrow> sllist_polynomial\<close> where
+  \<open>merge_coeffs0_s[] = []\<close> |
+  \<open>merge_coeffs0_s [(xs, n)] = (if n = 0 then [] else [(xs, n)])\<close> |
+  \<open>merge_coeffs0_s ((xs, n) # (ys, m) # p) =
+    (if xs = ys
+    then if n + m \<noteq> 0 then merge_coeffs0_s ((xs, n + m) # p) else merge_coeffs0_s p
+    else if n = 0 then merge_coeffs0_s ((ys, m) # p)
+      else(xs, n) # merge_coeffs0_s ((ys, m) # p))\<close>
+
+lemma merge_coeffs0_s_merge_coeffs0:
+  fixes xs :: \<open>sllist_polynomial\<close> and
+    \<V> :: \<open>(nat,string)shared_vars\<close>
+  assumes
+    \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<V>: \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+  shows \<open>RETURN (merge_coeffs0_s xs) \<le> SPEC(\<lambda>c. (c, merge_coeffs0 xs') \<in> perfectly_shared_polynom \<V>)\<close>
+  using assms
+  apply (induction xs' arbitrary: xs rule: merge_coeffs0.induct)
+  subgoal by auto
+  subgoal by (auto simp: list_rel_split_left_iff)
+  subgoal premises p for xs n ys m p xsa
+    using p(1)[of \<open>(_, _ + _) # tl (tl xsa)\<close>] p(2)[of \<open>tl (tl xsa)\<close>] p(3)[of \<open>tl xsa\<close>] p(4)[of \<open>tl xsa\<close>] p(5-)
+    using perfectly_shared_monom_unique_right[OF \<V>, of _ xs]
+      perfectly_shared_monom_unique_left[of \<open>fst (hd xsa)\<close> _ \<V>]
+    apply (auto 4 1 simp: list_rel_split_left_iff
+      dest: )
+    apply smt
+    done
+ done
+
+definition full_normalize_poly_s where
+  \<open>full_normalize_poly_s \<V> p = do {
+     p \<leftarrow> sort_all_coeffs_s \<V> p;
+     p \<leftarrow> sort_poly_spec_s \<V> p;
+    RETURN (merge_coeffs0_s p)
+  }\<close>
+
+lemma merge_coeffs0_s_merge_coeffs0:
+  fixes xs :: \<open>sllist_polynomial\<close> and
+    \<V> :: \<open>(nat,string)shared_vars\<close>
+  assumes
+    \<open>(xs, xs') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<V>: \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+  shows \<open>full_normalize_poly_s \<V> xs \<le> \<Down>(perfectly_shared_polynom \<V>) (full_normalize_poly xs')\<close>
+
+term " do {
+     p \<leftarrow> msort_coeff_s \<V> p;
+     p \<leftarrow> sort_poly_spec_s \<V>' p';
+    RETURN (p)
+  }"
+find_theorems sort_poly_spec
+term perfect_shared_term_order_rel_s
+term merge_coeffs0
 lemma remap_polys_l2_with_err_alt_def:
   \<open>remap_polys_l2_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
    ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
