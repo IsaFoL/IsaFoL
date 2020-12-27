@@ -858,4 +858,17 @@ lemma get_var_nameS_spec:
     intro!: ASSERT_leI)
   done
 
+
+lemma get_var_nameS_spec2:
+  fixes \<D>\<V> :: \<open>('nat, 'string) vars\<close> and
+    \<A> :: \<open>('nat, 'string) shared_vars\<close> and
+    x' :: 'string
+  assumes \<open>(\<A>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close> and
+    \<open>(x,x') \<in> perfectly_shared_var_rel \<A>\<close>
+    \<open>x' \<in># \<D>\<V>\<close>
+  shows \<open>get_var_nameS \<A> x \<le> \<Down>(Id) (RETURN x')\<close>
+  apply (rule get_var_nameS_spec[THEN order_trans, OF assms(1,2)])
+  apply (use assms(3) in \<open>auto simp: get_var_name_def\<close>)
+  done
+
 end

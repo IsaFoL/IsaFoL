@@ -1350,8 +1350,116 @@ definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow
           } else RETURN (err, \<V>, A'))
        (CSUCCESS, \<V>, fmempty);
      RETURN (err, \<V>, A, spec)
-   }})\<close>
+                }})\<close>
 
+definition msort_coeff_s :: \<open>_\<close> where
+  \<open>msort_coeff_s \<V> xs = msortR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
+  (\<lambda>a b. do {
+    x \<leftarrow> get_var_nameS \<V> a;
+  y \<leftarrow> get_var_nameS \<V> b;
+    RETURN(a = b \<or> var_order x y)
+  }) xs\<close>
+
+
+lemma perfectly_shared_var_rel_unique_left:
+  \<open>(x, y) \<in> perfectly_shared_var_rel \<V> \<Longrightarrow> (x, y') \<in> perfectly_shared_var_rel \<V> \<Longrightarrow> y = y'\<close>
+  using perfectly_shared_monom_unique_left[of \<open>[x]\<close>  \<open>[y]\<close> \<V> \<open>[y']\<close>] by auto
+
+lemma perfectly_shared_var_rel_unique_right:
+  \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel \<Longrightarrow> (x, y) \<in> perfectly_shared_var_rel \<V> \<Longrightarrow> (x', y) \<in> perfectly_shared_var_rel \<V> \<Longrightarrow> x = x'\<close>
+  using perfectly_shared_monom_unique_right[of \<V> \<D>\<V> \<open>[x]\<close>  \<open>[y]\<close>  \<open>[x']\<close>]
+  by auto
+
+lemma msort_coeff_s_sort_coeff:
+  fixes xs' :: \<open>string list\<close> and
+    \<V> :: \<open>(nat,string)shared_vars\<close>
+  assumes
+    \<open>(xs, xs') \<in> perfectly_shared_monom \<V>\<close> and
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close> and
+    \<open>set xs' \<subseteq> set_mset \<D>\<V>\<close>
+  shows \<open>msort_coeff_s \<V> xs \<le> \<Down>(perfectly_shared_monom \<V>) (sort_coeff xs')\<close>
+proof -
+  have H: \<open>x \<in> set xs \<Longrightarrow> \<exists>x' \<in> set xs'. (x,x') \<in> perfectly_shared_var_rel \<V> \<and> x' \<in># \<D>\<V>\<close> for x
+    using assms(1,3) by (auto dest: in_set_rel_inD)
+  define f where
+    \<open>f x y \<longleftrightarrow> x = y \<or> var_order (fst (snd \<V>) \<propto> x) (fst (snd \<V>) \<propto> y)\<close> for x y
+  have [simp]: \<open>x \<in> set xs \<Longrightarrow> x' \<in> set xs' \<Longrightarrow> (x, x') \<in> perfectly_shared_var_rel \<V> \<Longrightarrow>
+    fst (snd \<V>) \<propto> x = x'\<close> for x x'
+    using assms(2)
+    by (auto simp: perfectly_shared_vars_rel_def perfectly_shared_var_rel_def br_def)
+  have [intro]: \<open>transp (\<lambda>x y. x = y \<or> (x, y) \<in> var_order_rel)\<close>
+    by (smt transE trans_var_order_rel transp_def)
+  have [intro]: \<open>sorted_wrt (rel2p (Id \<union> var_order_rel))  (msort (\<lambda>a b. a = b \<or> var_order a b) xs')\<close>
+    using var_roder_rel_total by (auto intro!: sorted_msort simp: rel2p_def[abs_def])
+  show ?thesis
+    unfolding msort_coeff_s_def
+    apply (rule msortR_msort[of _ _ _ f, THEN order_trans])
+    subgoal by auto
+    subgoal for x y
+      unfolding f_def
+      apply (frule H[of x])
+      apply (frule H[of y])
+      apply (elim bexE)
+      apply (refine_vcg get_var_nameS_spec2[THEN order_trans] assms)
+      apply (solves auto)
+      apply (solves auto)
+      apply (subst Down_id_eq)
+      apply (refine_vcg get_var_nameS_spec2[THEN order_trans] assms)
+      apply (solves auto)
+      apply (solves auto)
+      apply (auto simp: perfectly_shared_var_rel_def br_def)
+      done
+    subgoal
+      apply (subst Down_id_eq)
+      apply (auto simp: sort_coeff_def intro!: RETURN_RES_refine)
+      apply (rule_tac x = \<open>msort (\<lambda>a b. a = b \<or> var_order a b) xs'\<close> in exI)
+      apply (force intro!: msort_list_rel assms simp: f_def
+        dest: perfectly_shared_var_rel_unique_left
+        perfectly_shared_var_rel_unique_right[OF assms(2)])
+      done
+    done
+qed
+
+lemma remap_polys_l2_with_err_alt_def:
+  \<open>remap_polys_l2_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (mem, \<V>) \<leftarrow> SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_poly \<V> spec else SPEC(\<lambda>_. True);
+   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      SPEC (\<lambda>(mem, _, _). mem = error_msg (0::nat) c)
+   }
+   else do {
+     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
+       (\<lambda>i (err, \<V>,  A').
+          if i \<in># dom_m A
+        then  do {
+           let p = the (fmlookup A i);
+           (err', p, \<V>) \<leftarrow> import_poly \<V> p;
+            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
+            else do {
+              p \<leftarrow> full_normalize_poly p;
+              eq  \<leftarrow> weak_equality_l p spec;
+              let \<V> = \<V>;
+              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
+            }
+          } else RETURN (err, \<V>, A'))
+       (CSUCCESS, \<V>, fmempty);
+     RETURN (err, \<V>, A)
+  }})\<close>
+  unfolding remap_polys_l2_with_err_def Let_def
+  by (rule refl)
+    term full_normalize_poly
+thm full_normalize_poly_def
+thm sort_all_coeffs_def
+thm sort_coeff_def sort_poly_spec_def
+  term var_order_rel
+  find_theorems sort_coeff
+thm msortR_sort_spec
+term " full_quicksort_vars [''a'', ''e'', ''b'']"
 lemma
   fixes \<V> :: \<open>(nat, string) shared_vars\<close>
   assumes
@@ -1387,7 +1495,7 @@ proof -
     by auto
 
   show ?thesis
-    unfolding remap_polys_s_with_err_def remap_polys_l2_with_err_def
+    unfolding remap_polys_s_with_err_def remap_polys_l2_with_err_alt_def
     apply (refine_rcg import_polyS_import_poly 1)
     subgoal using assms by auto
     subgoal by auto
@@ -1401,7 +1509,10 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using assms by auto
-      
+
+      oops
+
+      find_theorems sort_all_coeffs
       find_theorems "If _ _ _ \<le> _"
 term remap_polys_l2_with_err
 end
