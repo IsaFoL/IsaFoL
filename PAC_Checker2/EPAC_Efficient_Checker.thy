@@ -765,6 +765,7 @@ definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarro
            (err', p, \<V>) \<leftarrow> import_poly \<V> (the (fmlookup A i));
             if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
             else do {
+              ASSERT(vars_llist p \<subseteq> set_mset \<V>);
               p \<leftarrow> full_normalize_poly p;
               eq  \<leftarrow> weak_equality_l p spec;
               let \<V> = \<V>;
@@ -867,6 +868,7 @@ proof -
     subgoal using assms by auto
     subgoal by auto
     subgoal using assms by auto
+    subgoal by (auto simp: vars_llist_def)
     apply (rule id)
     subgoal using assms by auto
     apply (rule id)

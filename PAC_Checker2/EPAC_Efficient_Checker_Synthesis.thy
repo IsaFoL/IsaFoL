@@ -1594,7 +1594,8 @@ lemma remap_polys_l2_with_err_alt_def:
            (err', p, \<V>) \<leftarrow> import_poly \<V> (the (fmlookup A i));
             if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
             else do {
-              p \<leftarrow> full_normalize_poly' \<V> p;
+               ASSERT (vars_llist p \<subseteq> set_mset \<V>);
+               p \<leftarrow> full_normalize_poly' \<V> p;
               eq  \<leftarrow> weak_equality_l' \<V> p spec;
               RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
             }
@@ -1638,7 +1639,7 @@ proof -
   have [refine]: \<open>(x2e, x2c) \<in> perfectly_shared_vars_rel \<Longrightarrow>
     ((CSUCCESS, x2e, fmempty), CSUCCESS, x2c, fmempty)
     \<in>  {((mem,\<A>, A), (mem',\<A>', A')). (mem,mem') \<in> Id \<and>
-    (\<not>is_cfailed mem \<longrightarrow> ((mem,\<A>, A), (mem',\<A>', A'))\<in> Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r\<langle>nat_rel, perfectly_shared_polynom \<A>\<rangle>fmap_rel \<and>
+    (\<not>is_cfailed mem \<longrightarrow> ((\<A>, A), (\<A>', A'))\<in> perfectly_shared_vars_rel \<times>\<^sub>r\<langle>nat_rel, perfectly_shared_polynom \<A>\<rangle>fmap_rel \<and>
       perfectly_shared_polynom x2e \<subseteq> perfectly_shared_polynom \<A>)}\<close>
     for x2e x2c
     by auto
@@ -1666,22 +1667,59 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal by auto
-    subgoal apply simp
-      sorry
-    subgoal by auto
+    subgoal by simp
     subgoal by auto
     subgoal
-      apply auto
-      sorry
+      by (auto intro!: fmap_rel_fmupd_fmap_rel
+        intro: fmap_rel_mono2)
     subgoal by auto
-    subgoal apply simp
-      by auto
+    subgoal
+      by (auto intro!: fmap_rel_fmupd_fmap_rel
+        intro: fmap_rel_mono2)
+    done
+qed
 
+definition PAC_checker_l_s where
+  \<open>PAC_checker_l_s spec A b st = do {
+  (S, _) \<leftarrow> WHILE\<^sub>T
+  (\<lambda>((b, A), n). \<not>is_cfailed b \<and> n \<noteq> [])
+  (\<lambda>((bA), n). do {
+  ASSERT(n \<noteq> []);
+  S \<leftarrow> PAC_checker_l_step_s spec bA (hd n);
+  RETURN (S, tl n)
+  })
+  ((b, A), st);
+  RETURN S
+  }\<close>
 
+(*
+lemma PAC_checker_l_s_PAC_checker_l_prep_s:
+  assumes
+    \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
+    \<open>(A,B) \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel\<close> and
+    \<open>(spec, spec') \<in> perfectly_shared_polynom \<V>\<close> and
+    \<open>(err, err') \<in> Id\<close> and
+    \<open>(st,st')\<in>Id\<close>
+  shows \<open>PAC_checker_l_s spec (\<V>, A)  err st
+    \<le> \<Down>{((err, \<V>', A'), (err', \<D>\<V>', B')).
+    (err, err') \<in> Id \<and>
+     \<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel)}
+    (PAC_checker_l spec' (\<D>\<V>, B) err' st')\<close>
+proof -
+  thm PAC_checker_l_step_s_PAC_checker_l_step_s
+ *)
+definition full_checker_l_s
+  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
+    (string code_status \<times> _) nres\<close>
+where
+  \<open>full_checker_l_s spec A st = do {
+    spec' \<leftarrow> full_normalize_poly spec;
+    (b, \<V>, A, spec') \<leftarrow> remap_polys_s_with_err spec' spec ({#}, fmempty, fmempty) A;
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      PAC_checker_l_s spec' (\<V>, A) b st
+     }
+  }\<close>
 
-      oops
-
-      find_theorems sort_all_coeffs
-      find_theorems "If _ _ _ \<le> _"
-term remap_polys_l2_with_err
 end
