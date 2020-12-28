@@ -220,15 +220,18 @@ proof -
   done
 qed
 
+
 lemma import_variablesS_import_variables:
   assumes \<open>(\<V>, \<V>') \<in> perfectly_shared_vars_rel\<close> and
     \<open>(vs, vs') \<in> Id\<close>
-  shows \<open>import_variablesS vs \<V> \<le> \<Down>(Id \<times>\<^sub>r perfectly_shared_vars_rel) (import_variables vs' \<V>')\<close>
+  shows \<open>import_variablesS vs \<V> \<le> \<Down>{(a,b). (a,b)\<in>Id \<times>\<^sub>r perfectly_shared_vars_rel \<and>
+     (\<not>alloc_failed (fst a) \<longrightarrow> perfectly_shared_var_rel \<V> \<subseteq> perfectly_shared_var_rel (snd a))} (import_variables vs' \<V>')\<close>
 proof -
   show ?thesis
     unfolding import_variablesS_def import_variables_def
-    apply (refine_rcg WHILET_refine[where R = \<open>{((mem, \<V>, vs), (mem', \<V>', vs', _)).
-      (mem, mem') \<in> Id \<and> (\<V>, \<V>') \<in> perfectly_shared_vars_rel \<and> (vs, vs') \<in> Id}\<close>]
+    apply (refine_rcg WHILET_refine[where R = \<open>{((mem, \<V>\<V>, vs), (mem', \<V>', vs', _)).
+      (mem, mem') \<in> Id \<and> (\<V>\<V>, \<V>') \<in> perfectly_shared_vars_rel \<and> (vs, vs') \<in> Id \<and>
+     (\<not>alloc_failed mem \<longrightarrow> perfectly_shared_var_rel \<V> \<subseteq> perfectly_shared_var_rel \<V>\<V>)}\<close>]
       is_new_variable_spec import_variableS_import_variable)
     subgoal using assms by auto
     subgoal by auto
@@ -244,8 +247,6 @@ proof -
     done
 qed
 
-      
-thm WHILET_refine
 definition get_var_name :: \<open>('nat, 'string) vars \<Rightarrow> 'string \<Rightarrow>  'string nres\<close> where
   \<open>get_var_name \<V> x = do {
     ASSERT(x \<in># \<V>);
