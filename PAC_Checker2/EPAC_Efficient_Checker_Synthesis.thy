@@ -392,7 +392,6 @@ qed
 
 definition msort_coeff_s :: \<open>(nat,string)shared_vars \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>msort_coeff_s \<V> xs = msortR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
-
   (\<lambda>a b. do {
     x \<leftarrow> get_var_nameS \<V> a;
   y \<leftarrow> get_var_nameS \<V> b;
@@ -733,6 +732,9 @@ lemma op_eq_ordered_assn[sepref_fr_rules]:
     ordered_assn\<^sup>k *\<^sub>a ordered_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
+
+abbreviation monom_s_rel where
+  \<open>monom_s_rel \<equiv> \<langle>uint64_nat_rel\<rangle>list_rel\<close>
 
 abbreviation monom_s_assn where
   \<open>monom_s_assn \<equiv> list_assn uint64_nat_assn\<close>
@@ -1721,5 +1723,119 @@ where
       PAC_checker_l_s spec' (\<V>, A) b st
      }
   }\<close>
+
+      term  msort_coeff_s
+
+definition merge_coeff_s :: \<open>(nat,string)shared_vars \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>merge_coeff_s \<V> xs = mergeR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
+  (\<lambda>a b. do {
+    x \<leftarrow> get_var_nameS \<V> a;
+  y \<leftarrow> get_var_nameS \<V> b;
+    RETURN(a = b \<or> var_order x y)
+  })\<close>
+
+term get_var_nameS
+sepref_definition merge_coeff_s_impl
+  is \<open>uncurry3 merge_coeff_s\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a (monom_s_assn)\<^sup>k *\<^sub>a (monom_s_assn)\<^sup>k *\<^sub>a (monom_s_assn)\<^sup>k \<rightarrow>\<^sub>a monom_s_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding merge_coeff_s_def mergeR_alt_def var_order'_def[symmetric]
+  by sepref
+
+sepref_register merge_coeff_s msort_coeff_s sort_all_coeffs_s
+lemmas [sepref_fr_rules] = merge_coeff_s_impl.refine
+
+lemma msort_coeff_s_alt_def:
+  \<open>msort_coeff_s \<V> xs = do {
+    let zs = COPY xs;
+    REC\<^sub>T
+     (\<lambda>msortR' xsa. if length xsa \<le> 1 then RETURN (ASSN_ANNOT monom_s_assn xsa) else do {
+      let xs1 = ASSN_ANNOT monom_s_assn (take (length xsa div 2) xsa);
+      let xs2 = ASSN_ANNOT monom_s_assn (drop (length xsa div 2) xsa);
+      as \<leftarrow> msortR' xs1;
+      let as = ASSN_ANNOT monom_s_assn as;
+      bs \<leftarrow> msortR' xs2;
+      let bs = ASSN_ANNOT monom_s_assn bs;
+      merge_coeff_s \<V> zs as bs
+    })
+        xs}\<close>
+  unfolding msort_coeff_s_def merge_coeff_s_def[symmetric]
+  msortR_alt_def ASSN_ANNOT_def Let_def COPY_def
+  by auto
+
+sepref_definition msort_coeff_s_impl
+  is \<open>uncurry msort_coeff_s\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a (monom_s_assn)\<^sup>k \<rightarrow>\<^sub>a monom_s_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding msort_coeff_s_alt_def
+  unfolding var_order'_def[symmetric]
+  by sepref
+
+lemmas [sepref_fr_rules] = msort_coeff_s_impl.refine
+
+sepref_definition sort_all_coeffs_s'_impl
+  is \<open>uncurry sort_all_coeffs_s\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>d \<rightarrow>\<^sub>a poly_s_assn\<close>
+  unfolding sort_all_coeffs_s_def HOL_list.fold_custom_empty
+  by sepref
+
+lemmas [sepref_fr_rules] = sort_all_coeffs_s'_impl.refine
+
+(*let's pray that the most stupid compiler on earch, MLton, recognizes that the copy is useless*)
+lemma merge_coeffs0_s_alt_def:
+  \<open>(RETURN o merge_coeffs0_s) p =
+   REC\<^sub>T(\<lambda>f p.
+     (case p of
+       [] \<Rightarrow> RETURN []
+     | [p] => if snd (COPY p)= 0 then RETURN [] else RETURN [p]
+     | (a # b # p) \<Rightarrow>
+  (let (xs, n) = COPY a; (ys, m) = COPY b in
+  if xs = ys
+       then if n + m \<noteq> 0 then f ((xs, n + m) # (COPY p)) else f p
+       else if n = 0 then
+          do {p \<leftarrow> f (b # (COPY p));
+            RETURN p}
+       else do {p \<leftarrow> f (b # (COPY p));
+            RETURN (a # p)})))
+         p\<close>
+  unfolding COPY_def Let_def
+  apply (subst eq_commute)
+  apply (induction p rule: merge_coeffs0_s.induct)
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) (auto simp: let_to_bind_conv)
+  done
+
+lemma [sepref_import_param]: \<open>(((=)), ((=))) \<in> \<langle>uint64_nat_rel\<rangle> list_rel \<rightarrow> \<langle>uint64_nat_rel\<rangle> list_rel \<rightarrow> bool_rel\<close>
+proof -
+  have \<open>IS_LEFT_UNIQUE (\<langle>uint64_nat_rel\<rangle> list_rel)\<close>
+    by (intro safe_constraint_rules)
+  moreover have \<open>IS_RIGHT_UNIQUE (\<langle>uint64_nat_rel\<rangle> list_rel)\<close>
+    by (intro safe_constraint_rules)
+  ultimately show ?thesis
+    by (sep_auto simp: IS_LEFT_UNIQUE_def single_valued_def
+      simp flip: inv_list_rel_eq)
+qed
+
+lemma is_pure_monom_s_assn: \<open>is_pure monom_s_assn\<close>
+  \<open>is_pure (monom_s_assn \<times>\<^sub>a int_assn)\<close>
+  by (auto simp add: list_assn_pure_conv)
+
+sepref_definition merge_coeffs0_s_impl
+  is \<open>RETURN o merge_coeffs0_s\<close>
+  :: \<open>poly_s_assn\<^sup>k \<rightarrow>\<^sub>a poly_s_assn\<close>
+  unfolding merge_coeffs0_s_alt_def HOL_list.fold_custom_empty
+  by sepref
+
+lemmas [sepref_fr_rules] = merge_coeffs0_s_impl.refine
+
+
+sepref_definition full_normalize_poly'_impl
+  is \<open>uncurry full_normalize_poly_s\<close>
+  :: \<open>shared_vars_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>d \<rightarrow>\<^sub>a poly_s_assn\<close>
+  unfolding full_normalize_poly_s_def
+  by sepref
+
+code_printing constant arl_get_u' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
 
 end
