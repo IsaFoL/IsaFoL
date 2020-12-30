@@ -342,7 +342,31 @@ lemma [sepref_fr_rules]:
   \<open>(uncurry import_variable_c_impl, uncurry import_variableS)
   \<in> string_assn\<^sup>k *\<^sub>a  shared_vars_assn\<^sup>d \<rightarrow>\<^sub>a memory_allocation_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a uint64_nat_assn\<close>
   using import_variable_c_impl.refine[FCOMP import_variable_c_import_variableS', of Id]
-
  by auto
 
+definition empty_shared_vars :: \<open>(nat, string) shared_vars\<close> where
+  \<open>empty_shared_vars =  ({#}, fmempty, fmempty)\<close>
+
+
+definition empty_shared_vars_int :: \<open>(string, nat) shared_vars_c\<close> where
+  \<open>empty_shared_vars_int =  ([], fmempty)\<close>
+
+sepref_definition empty_shared_vars_int_impl
+  is \<open>uncurry0 (RETURN empty_shared_vars_int)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a perfect_shared_vars_assn\<close>
+  unfolding empty_shared_vars_int_def
+    arl.fold_custom_empty
+  by sepref
+
+lemma empty_shared_vars_int_empty_shared_vars:
+  \<open>(uncurry0 (RETURN empty_shared_vars_int), uncurry0 (RETURN empty_shared_vars)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>perfect_shared_vars_rel_c R\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI simp: perfect_shared_vars_rel_c_def empty_shared_vars_int_def
+    empty_shared_vars_def)
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 empty_shared_vars_int_impl, uncurry0 (RETURN empty_shared_vars))
+  \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a shared_vars_assn\<close>
+  using empty_shared_vars_int_impl.refine[FCOMP empty_shared_vars_int_empty_shared_vars, of Id]
+  by auto
+sepref_register empty_shared_vars
 end

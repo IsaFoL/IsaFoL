@@ -107,9 +107,8 @@ fun inside_loop [polys, pac, spec] =
       val timer = Timer.startCPUTimer ();
       val _ = println "c Now checking";
       val spec = PAC_Checker.fully_normalize_poly_impl spec0 ();
-      val vars = PAC_Checker.empty_vars_impl ();
-      val (b, (vars, polys)) = PAC_Checker.remap_polys_l_impl spec vars problem ();
-      val vars = PAC_Checker.union_vars_poly_impl spec0 vars ()
+      val vars = PAC_Checker.empty_shared_vars_int_impl  ();
+      val (b, (vars, (polys, spec))) = PAC_Checker.remap_polys_l2_with_err_s_impl spec spec0 problem vars ();
       val state = ref (b, (vars, polys))
       val istream = TextIO.openIn pac
       val _ =
@@ -119,7 +118,7 @@ fun inside_loop [polys, pac, spec] =
                   val st = PAC_Parser.parse_step istream;
                   val (b, (vars, a)) = !state;
                 in
-                  state := PAC_Checker.check_step_impl spec b vars a st ()
+                  state := PAC_Checker.pAC_checker_l_step_s_impl spec (b, (vars, a)) st ()
                 end;
       val (b, _) = !state;
       val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
@@ -147,7 +146,7 @@ fun checker [polys, pac, spec] = let
   val end_of_init = Timer.checkCPUTimes init_timer;
   val timer = Timer.startCPUTimer ();
   val _ = println "c Now checking";
-  val (b, _) = PAC_Checker.full_checker_l_impl spec problem pac ();
+  val (b, _) = PAC_Checker.full_checker_l_s2_impl spec problem pac ();
   val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
           else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
           else (println "s PAC FAILED"; println (PAC_Checker.implode (PAC_Checker.the_error b)))

@@ -3,6 +3,7 @@ theory EPAC_Efficient_Checker_Synthesis
     EPAC_Perfectly_Shared_Vars
     PAC_Checker.PAC_Checker_Synthesis
     EPAC_Steps_Refine
+    PAC_Checker.PAC_Checker_Synthesis
 begin
 
 lemma in_set_rel_inD: \<open>(x,y) \<in>\<langle>R\<rangle>list_rel \<Longrightarrow> a \<in> set x \<Longrightarrow> \<exists>b \<in> set y. (a,b)\<in> R\<close>
@@ -2233,4 +2234,247 @@ sepref_definition PAC_checker_l_step_s_impl
     HOL_list.fold_custom_empty
   by sepref
 
+lemmas [sepref_fr_rules] = PAC_checker_l_step_s_impl.refine
+
+fun vars_llist_s2 :: \<open>_ \<Rightarrow> _ list\<close> where
+  \<open>vars_llist_s2 [] = []\<close> |
+  \<open>vars_llist_s2 ((a,_) # xs) = a @ vars_llist_s2 xs\<close>
+
+lemma [sepref_import_param]:
+  \<open>(vars_llist_s2, vars_llist_s2) \<in> \<langle>\<langle>string_rel\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<rightarrow> \<langle>string_rel\<rangle>list_rel\<close>
+  apply (intro fun_relI)
+  subgoal for a b
+    apply (induction a arbitrary: b)
+    subgoal by auto
+    subgoal for a as b
+      by (cases a, cases b)
+       (force simp: list_rel_append1)+
+    done
+  done
+sepref_register PAC_checker_l_step_s
+lemma step_rewrite_pure:
+  fixes K :: \<open>('olbl \<times> 'lbl) set\<close>
+  shows
+    \<open>pure (p2rel (\<langle>K, V, R\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V) (pure R)\<close>
+  apply (intro ext)
+  apply (case_tac x; case_tac xa)
+  apply simp_all
+  apply (simp_all add: relAPP_def p2rel_def pure_def)
+  unfolding pure_def[symmetric] list_assn_pure_conv
+  apply (auto simp: pure_def relAPP_def)
+  done
+
+lemma safe_epac_step_rel_assn[safe_constraint_rules]:
+  \<open>CONSTRAINT is_pure K \<Longrightarrow> CONSTRAINT is_pure V \<Longrightarrow> CONSTRAINT is_pure R \<Longrightarrow>
+  CONSTRAINT is_pure (EPAC_Checker.pac_step_rel_assn K V R)\<close>
+  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
+
+sepref_definition PAC_checker_l_s_impl
+  is \<open>uncurry3 PAC_checker_l_s\<close>
+  :: \<open>poly_s_assn\<^sup>k *\<^sub>a (shared_vars_assn \<times>\<^sub>a polys_s_assn)\<^sup>d *\<^sub>a(status_assn raw_string_assn)\<^sup>d *\<^sub>a
+  (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>d \<rightarrow>\<^sub>a
+  status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn
+  \<close>
+  supply [[goals_limit = 1]]
+  supply [intro] = is_Mult_lastI
+  unfolding PAC_checker_l_s_def Let_def
+    pac_step.case_eq_if
+    neq_Nil_conv
+    conv_to_is_Nil is_Nil_def
+  by sepref
+
+lemmas [sepref_fr_rules] = PAC_checker_l_s_impl.refine
+
+definition memory_out_msg :: \<open>string\<close> where
+  \<open>memory_out_msg = ''memory out''\<close>
+
+lemma [sepref_fr_rules]: \<open>(uncurry0 (return memory_out_msg), uncurry0 (RETURN memory_out_msg)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  unfolding memory_out_msg_def
+  by sepref_to_hoare sep_auto
+
+definition (in -) remap_polys_l2_with_err_s :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (nat, string) shared_vars \<Rightarrow>
+   (string code_status \<times> (nat, string) shared_vars \<times> (nat, sllist_polynomial) fmap \<times> sllist_polynomial) nres\<close> where
+  \<open>remap_polys_l2_with_err_s spec spec0 A (\<V> :: (nat, string) shared_vars) =  do{
+   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
+    n \<leftarrow> upper_bound_on_dom A;
+   (mem, \<V>) \<leftarrow> import_variablesS (vars_llist_s2 spec0) \<V>;
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_polyS \<V> spec else RETURN (mem, [], \<V>);
+   failed \<leftarrow> RETURN (alloc_failed mem \<or> alloc_failed mem' \<or> n \<ge> 2^64);
+   if failed
+   then do {
+     c \<leftarrow> remap_polys_l_dom_err;
+     RETURN (error_msg (0::nat) c, \<V>, fmempty, [])
+   }
+   else do {
+     (err, A, \<V>) \<leftarrow>  nfoldli ([0..<n]) (\<lambda>(err, A', \<V>). \<not>is_cfailed err)
+       (\<lambda>i (err, A'  :: (nat, sllist_polynomial) fmap, \<V> :: (nat,string) shared_vars).
+          if i \<in># dom_m A
+          then  do {
+           (err', p, \<V>  :: (nat,string) shared_vars) \<leftarrow> import_polyS (\<V> :: (nat,string) shared_vars) (the (fmlookup A i));
+            if alloc_failed err' then RETURN((CFAILED ''memory out'',  A', \<V>  :: (nat,string) shared_vars))
+            else do {
+              p \<leftarrow> full_normalize_poly_s \<V> p;
+              eq  \<leftarrow> weak_equality_l_s p spec;
+              RETURN((if eq then CFOUND else CSUCCESS),  fmupd i p A', \<V>  :: (nat,string) shared_vars)
+            }
+          } else RETURN (err, A', \<V>  :: (nat,string) shared_vars))
+       (CSUCCESS, fmempty :: (nat, sllist_polynomial) fmap,  \<V> :: (nat,string) shared_vars);
+     RETURN (err, \<V>, A, spec)
+  }}\<close>
+
+lemma set_vars_llist_s2 [simp]: \<open>set (vars_llist_s2 b) = vars_llist b\<close>
+  by (induction b)
+    (auto simp: vars_llist_def)
+
+(* lemma remap_polys_l2_with_err_s_remap_polys_l2_with_err:
+ *   \<open>(uncurry3 remap_polys_l2_with_err_s, uncurry3 remap_polys_l2_with_err)
+ *   \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+ * proof -
+ *   have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
+ *     \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
+ *     unfolding upper_bound_on_dom_def
+ *     apply (rule RES_refine)
+ *     apply (auto simp: upper_bound_on_dom_def)
+ *     done
+ *   have 1: \<open>inj_on id dom\<close> for dom
+ *     by auto
+ *   have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
+ *     by auto
+ *
+ *   have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
+ *        ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
+ *     by (auto simp: list_set_rel_def br_def)
+ *
+ *   have 4: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
+ *     by auto
+ *   show ?thesis
+ *     supply [[goals_limit=1]]
+ *     apply (intro frefI nres_relI)
+ *     apply clarify
+ *     unfolding remap_polys_l2_with_err_s_def remap_polys_l2_with_err_def uncurry_def prod.simps
+ *     apply (refine_rcg import_variables_spec[THEN order_trans] 3
+ *        LFOc_refine[where R= \<open>Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>])
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     apply (rule 4)
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     apply (rule 4)
+ *     subgoal by auto
+ *     apply (rule 4)
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+ *     subgoal by auto
+    *     done
+qed *)
+
+sepref_register upper_bound_on_dom import_variablesS vars_llist_s2 memory_out_msg
+
+sepref_definition import_variablesS_impl
+  is \<open>uncurry import_variablesS\<close>
+  :: \<open>(list_assn string_assn)\<^sup>k *\<^sub>a shared_vars_assn\<^sup>d \<rightarrow>\<^sub>a memory_allocation_assn \<times>\<^sub>a shared_vars_assn\<close>
+  unfolding import_variablesS_def
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  import_variablesS_impl.refine full_normalize_poly'_impl.refine
+lemma [sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure R \<Longrightarrow> ((return o CFAILED), RETURN o CFAILED) \<in> R\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
+  apply sepref_to_hoare
+  apply sep_auto
+  by (smt ent_refl_true is_pure_conv merge_pure_star pure_def)
+
+sepref_definition remap_polys_l2_with_err_s_impl
+  is \<open>uncurry3 remap_polys_l2_with_err_s\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>k *\<^sub>a shared_vars_assn\<^sup>d \<rightarrow>\<^sub>a
+  status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn \<times>\<^sub>a poly_s_assn\<close>
+  supply [[goals_limit=1]]
+  supply [split] = option.splits
+  unfolding remap_polys_l2_with_err_s_def pow_2_64
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+    memory_out_msg_def[symmetric]
+    op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
+  unfolding
+    HOL_list.fold_custom_empty
+  apply (subst while_upt_while_direct)
+  apply simp
+  apply (rewrite in \<open>(_, \<hole>, _)\<close> annotate_assn[where A=\<open>polys_s_assn\<close>])
+  apply (rewrite at \<open>fmupd \<hole>\<close> uint64_of_nat_conv_def[symmetric])
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  remap_polys_l2_with_err_s_impl.refine
+
+definition full_checker_l_s2
+  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
+    (string code_status \<times> _) nres\<close>
+where
+  \<open>full_checker_l_s2 spec A st = do {
+    spec' \<leftarrow> full_normalize_poly spec;
+    (b, \<V>, A, spec') \<leftarrow> remap_polys_l2_with_err_s spec' spec A ({#}, fmempty, fmempty);
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      PAC_checker_l_s spec' (\<V>, A) b st
+     }
+      }\<close>
+
+sepref_register remap_polys_l2_with_err_s full_checker_l_s2 PAC_checker_l_s
+term PAC_checker_l_s
+thm PAC_checker_l_s_impl.refine
+sepref_definition full_checker_l_s2_impl
+  is \<open>uncurry2 full_checker_l_s2\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>k *\<^sub>a (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
+  status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn\<close>
+  unfolding full_checker_l_s2_def
+     empty_shared_vars_def[symmetric]
+  by sepref
+
+code_printing constant arl_get_u' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word64.toInt (Uint64.toLarge ((_)))))"
+  thm PAC_checker_l_s_impl_def
+export_code(*  PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
+   * int_of_integer Del CL nat_of_integer String.implode remap_polys_l2_with_err_s_impl
+   * union_vars_poly_impl empty_vars_impl PAC_checker_l_step_s_impl
+   * full_checker_l_s2_impl check_step_impl CSUCCESS
+    * Extension hashcode_literal' version *)
+    full_checker_l_s2_impl int_of_integer Del CL nat_of_integer String.implode remap_polys_l2_with_err_s_impl
+    PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
+    fully_normalize_poly_impl empty_shared_vars_int_impl
+    PAC_checker_l_s_impl PAC_checker_l_step_s_impl version
+  in SML_imp module_name PAC_Checker
+  file_prefix "checker"
+
+
+compile_generated_files _
+  external_files
+    \<open>code/parser.sml\<close>
+    \<open>code/pasteque.sml\<close>
+    \<open>code/pasteque.mlb\<close>
+  where \<open>fn dir =>
+  let
+
+    val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+    val _ = exec \<open>Copy files\<close>
+      ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
+      val _ =
+        exec \<open>Compilation\<close>
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
+            "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
+            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
+    in () end\<close>
+
 end
+
