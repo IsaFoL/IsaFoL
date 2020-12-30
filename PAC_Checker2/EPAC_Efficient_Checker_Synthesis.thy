@@ -2,6 +2,7 @@ theory EPAC_Efficient_Checker_Synthesis
   imports EPAC_Efficient_Checker
     EPAC_Perfectly_Shared_Vars
     PAC_Checker.PAC_Checker_Synthesis
+    EPAC_Steps_Refine
 begin
 
 lemma in_set_rel_inD: \<open>(x,y) \<in>\<langle>R\<rangle>list_rel \<Longrightarrow> a \<in> set x \<Longrightarrow> \<exists>b \<in> set y. (a,b)\<in> R\<close>
@@ -2062,8 +2063,8 @@ sepref_definition check_linear_combi_l_s_impl
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
   by sepref
-term check_extension_l2_s
-    sepref_register fmlookup'
+
+sepref_register fmlookup'
 lemma check_extension_l2_s_alt_def:
   \<open>check_extension_l2_s spec A \<V> i v p = do {
   n \<leftarrow> is_new_variableS v \<V>;
@@ -2109,14 +2110,86 @@ lemma check_extension_l2_s_alt_def:
      in_dom_m_lookup_iff
    by (auto intro!: bind_cong[OF refl])
 
-definition uminus_poly :: \<open>sllist_polynomial \<Rightarrow> sllist_polynomial\<close> where
+definition uminus_poly :: \<open>_ \<Rightarrow> _\<close> where
   \<open>uminus_poly p' = map (\<lambda>(a, b). (a, - b)) p'\<close>
-  term import_polyS
 
-sepref_register is_None
+lemma [sepref_import_param]: \<open>(uminus_poly, uminus_poly) \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<rightarrow> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+proof -
+  have \<open>(a, a') \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+    (EPAC_Efficient_Checker_Synthesis.uminus_poly a,
+     EPAC_Efficient_Checker_Synthesis.uminus_poly a')
+    \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> for a a'
+    apply (induction a arbitrary: a')
+    subgoal by (auto simp: uminus_poly_def)
+    subgoal for a as a'
+      by (cases a'; cases a)
+        (auto simp: uminus_poly_def)
+    done
+  then show ?thesis
+    by (auto intro!: frefI)
+qed
+
+sepref_register import_monomS import_polyS
+
+sepref_definition import_monomS_impl
+  is \<open>uncurry import_monomS\<close>
+  :: \<open>shared_vars_assn\<^sup>d *\<^sub>a monom_assn\<^sup>k \<rightarrow>\<^sub>a memory_allocation_assn \<times>\<^sub>a monom_s_assn \<times>\<^sub>a shared_vars_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding import_monomS_def
+    HOL_list.fold_custom_empty
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  import_monomS_impl.refine
+
+sepref_definition import_polyS_impl
+  is \<open>uncurry import_polyS\<close>
+  :: \<open>shared_vars_assn\<^sup>d *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a memory_allocation_assn \<times>\<^sub>a poly_s_assn \<times>\<^sub>a shared_vars_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding import_polyS_def
+    HOL_list.fold_custom_empty
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  import_polyS_impl.refine
+
+definition check_extension_l_s_new_var_multiple_err_impl :: \<open>String.literal \<Rightarrow> _ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_s_new_var_multiple_err_impl x p =
+  ''Variable already defined '' @ show x @
+  '' but '' @ show (map (\<lambda>(a,b). (map nat_of_uint64 a, b)) p)\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry (return oo (check_extension_l_s_new_var_multiple_err_impl)),
+    uncurry (check_extension_l_s_new_var_multiple_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_s_new_var_multiple_err_impl_def check_extension_l_s_new_var_multiple_err_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+definition check_extension_l_s_side_cond_err_impl :: \<open>String.literal \<Rightarrow> _ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_s_side_cond_err_impl x p p' q' =
+  ''p^2- p != 0 '' @ show x @
+  '' but '' @ show (map (\<lambda>(a,b). (map nat_of_uint64 a, b)) p) @
+  '' and '' @ show (map (\<lambda>(a,b). (map nat_of_uint64 a, b)) p') @
+   '' and ''  @ show (map (\<lambda>(a,b). (map nat_of_uint64 a, b)) q')\<close>
+
+abbreviation comp4 (infixl "oooo" 55) where "f oooo g \<equiv> \<lambda>x. f ooo (g x)"
+abbreviation comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv> \<lambda>x. f oooo (g x)"
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry3 (return oooo (check_extension_l_s_side_cond_err_impl)),
+    uncurry3 (check_extension_l_s_side_cond_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_s_assn\<^sup>k*\<^sub>a poly_s_assn\<^sup>k*\<^sub>a poly_s_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_s_side_cond_err_impl_def check_extension_l_s_side_cond_err_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+sepref_register mult_poly_full_s weak_equality_l_s check_extension_l_s_side_cond_err check_extension_l2_s
+     check_linear_combi_l_s is_cfailed check_del_l
+
 sepref_definition check_extension_l_impl
   is \<open>uncurry5 check_extension_l2_s\<close>
-    :: \<open>poly_s_assn\<^sup>k *\<^sub>a polys_s_assn\<^sup>k *\<^sub>a shared_vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+    :: \<open>poly_s_assn\<^sup>k *\<^sub>a polys_s_assn\<^sup>k *\<^sub>a shared_vars_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
     string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a poly_s_assn \<times>\<^sub>a shared_vars_assn  \<times>\<^sub>a uint64_nat_assn
   \<close>
   supply [[goals_limit=1]]
@@ -2125,23 +2198,39 @@ sepref_definition check_extension_l_impl
     fmlookup'_def[symmetric]
     not_not is_None_def
     uminus_poly_def[symmetric]
-   apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-    apply sepref_dbg_side_unfold
-oops
+    HOL_list.fold_custom_empty
+    zero_uint64_nat_def[symmetric]
+  by sepref
+
+
+lemma [sepref_fr_rules]:
+  \<open>(return o is_cfailed, RETURN o is_cfailed) \<in> (status_assn raw_string_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply sepref_to_hoare
+  apply (sep_auto)
+  apply (case_tac x; case_tac xi; sep_auto)+
+  done
+
+sepref_definition check_del_l_impl
+  is \<open>uncurry2 check_del_l\<close>
+  :: \<open>poly_s_assn\<^sup>k *\<^sub>apolys_s_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  unfolding check_del_l_def
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  check_extension_l_impl.refine
+  check_linear_combi_l_s_impl.refine
+  check_del_l_impl.refine
 
 sepref_definition PAC_checker_l_step_s_impl
   is \<open>uncurry2 PAC_checker_l_step_s\<close>
   :: \<open>poly_s_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn)\<^sup>d *\<^sub>a
          (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn)\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn
   \<close>
-  unfolding PAC_checker_l_step_s_def
-  sorry
+  supply [[goals_limit = 1]]
+  supply [intro] = is_Mult_lastI
+  unfolding PAC_checker_l_step_s_def Let_def
+    pac_step.case_eq_if
+    HOL_list.fold_custom_empty
+  by sepref
 
-  term fully_epac_assn
-    thm PAC_checker_l_step_s_def
-find_theorems fmlookup iam_fmap_assn
-  term check_linear_combi_l_s
-term PAC_checker_l_step_s
 end
