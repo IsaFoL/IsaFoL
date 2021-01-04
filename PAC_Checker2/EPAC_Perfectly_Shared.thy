@@ -298,11 +298,11 @@ where
       then RETURN (True, tl xs, ys)
       else do {
         x \<leftarrow> get_var_posS \<A> x;
-        RETURN (False, tl xs, ys @ [x])
+        RETURN (False, tl xs, x # ys)
        }
     })
     (False, xs, []);
-  RETURN (new, xs)
+  RETURN (new, rev xs)
  }\<close>
 
 definition import_monom_no_new
@@ -358,7 +358,7 @@ lemma import_monom_no_newS_import_monom_no_new:
     (import_monom_no_new \<V>\<D> xs')\<close>
   using assms
   unfolding import_monom_no_new_def import_monom_no_newS_def
-  apply (refine_rcg WHILET_refine[where R = \<open>bool_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r perfectly_shared_monom \<A>\<close>]
+  apply (refine_rcg WHILET_refine[where R = \<open>bool_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r {(as, bs). (rev as, bs) \<in> perfectly_shared_monom \<A>}\<close>]
     is_new_variable_spec get_var_posS_spec)
   subgoal by auto
   subgoal
@@ -385,11 +385,11 @@ where
       if b
       then RETURN (True, tl xs, ys)
       else do {
-        RETURN (False, tl xs, ys @ [(x, n)])
+        RETURN (False, tl xs, (x, n) # ys)
        }
     })
     (False, xs, []);
-  RETURN (new, xs)
+  RETURN (new, rev xs)
  }\<close>
 
 definition import_poly_no_new
@@ -419,7 +419,7 @@ lemma import_poly_no_newS_import_poly_no_new:
   using assms
   unfolding import_poly_no_new_def import_poly_no_newS_def
   apply (refine_rcg WHILET_refine[where
-    R = \<open>bool_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r \<langle>perfectly_shared_monom \<A> \<times>\<^sub>r Id\<rangle>list_rel\<close>]
+    R = \<open>bool_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r {(as, bs). (rev as, bs) \<in> \<langle>perfectly_shared_monom \<A> \<times>\<^sub>r Id\<rangle>list_rel}\<close>]
     import_monom_no_newS_import_monom_no_new)
   subgoal by auto
   subgoal by auto
@@ -465,15 +465,15 @@ where
         (mem, \<A>, x) \<leftarrow> import_variableS x \<A>;
         if alloc_failed mem
         then RETURN (mem, xs, ys, \<A>)
-        else RETURN (mem, tl xs, ys @ [x], \<A>)
+        else RETURN (mem, tl xs, x # ys, \<A>)
       }
       else do {
         x \<leftarrow> get_var_posS \<A> x;
-        RETURN (Allocated, tl xs, ys @ [x], \<A>)
+        RETURN (Allocated, tl xs, x # ys, \<A>)
        }
     })
     (Allocated, xs, [], \<A>);
-  RETURN (new, xs, \<A>)
+  RETURN (new, rev xs, \<A>)
  }\<close>
 
 definition import_monom
@@ -540,11 +540,11 @@ definition import_polyS
       if alloc_failed mem
       then RETURN (mem, xs, ys, \<A>)
       else do {
-       RETURN (mem, tl xs, ys @ [(x, n)], \<A>)
+       RETURN (mem, tl xs, (x, n) # ys, \<A>)
       }
     }) 
     (Allocated, xs, [], \<A>);
-   RETURN (mem, xs, \<A>)
+   RETURN (mem, rev xs, \<A>)
  }\<close>
 
 definition import_poly
@@ -611,7 +611,7 @@ lemma import_monomS_import_monom:
   apply (refine_rcg WHILET_refine[where
     R = \<open>{((mem::memory_allocation, xs\<^sub>0::'string list, zs\<^sub>0::'nat list,  \<A> :: ('nat, 'string)shared_vars),
     (mem', ys\<^sub>0::'string list, zs\<^sub>0'::'string list, \<A>' :: ('nat, 'string)vars)). mem = mem' \<and>
-    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and> (\<not>alloc_failed mem \<longrightarrow> (zs\<^sub>0, zs\<^sub>0') \<in> perfectly_shared_monom \<A>) \<and>
+    (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and> (\<not>alloc_failed mem \<longrightarrow> (rev zs\<^sub>0, zs\<^sub>0') \<in> perfectly_shared_monom \<A>) \<and>
     (xs\<^sub>0, ys\<^sub>0) \<in> \<langle>Id\<rangle>list_rel \<and>
     (\<not>alloc_failed mem \<longrightarrow> (\<forall>xs. xs \<in> perfectly_shared_monom \<A>\<^sub>0 \<longrightarrow> xs \<in> perfectly_shared_monom \<A>))}\<close>]
     import_variableS_import_variable
@@ -656,7 +656,7 @@ lemma import_polyS_import_poly:
   apply (refine_rcg WHILET_refine[where
     R = \<open>{((mem, zs, xs\<^sub>0, \<A>), (mem', zs', ys\<^sub>0, \<A>')). mem = mem' \<and> 
     (\<A>, \<A>') \<in> perfectly_shared_vars_rel \<and> (zs, zs') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r Id\<rangle>list_rel
-    \<and> (\<not>alloc_failed mem \<longrightarrow> (xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
+    \<and> (\<not>alloc_failed mem \<longrightarrow> (rev xs\<^sub>0, ys\<^sub>0) \<in> perfectly_shared_polynom \<A>) \<and>
     (\<not>alloc_failed mem \<longrightarrow> perfectly_shared_polynom \<A>\<^sub>0 \<subseteq> perfectly_shared_polynom \<A>)}\<close>]
     import_monomS_import_monom)
   subgoal by auto

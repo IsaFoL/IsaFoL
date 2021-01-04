@@ -695,6 +695,11 @@ fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nat;
 
+fun fold f (x :: xs) s = fold f xs (f x s)
+  | fold f [] s = s;
+
+fun rev xs = fold (fn a => fn b => a :: b) xs [];
+
 fun len A_ a =
   (fn () => let
               val i = (fn () => IntInf.fromInt (Array.length a)) ();
@@ -937,6 +942,8 @@ fun array_grow A_ a s x =
         ()
     end);
 
+fun op_list_rev x = rev x;
+
 fun error_msg A_ i msg =
   CFAILED
     ([Chara (true, true, false, false, true, true, true, false),
@@ -1049,8 +1056,6 @@ fun msort2 f (v :: vb :: va :: vd) =
   | msort2 f [x, y] = (if f x y then [x, y] else [y, x])
   | msort2 f [x] = [x]
   | msort2 f [] = [];
-
-fun op_list_concat x = (fn a => x @ a);
 
 fun op_list_length x = size_list x;
 
@@ -1221,7 +1226,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "bd070b60";
+val version : string = "bd5173ed";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
@@ -1818,22 +1823,21 @@ fun import_monomS_impl x =
                                (if alloc_failed a1c
                                  then (a1c, (a1a, (a1b, a1d)))
                                  else (a1c,
-(op_list_tl a1a, (op_list_concat a1b (op_list_prepend a2d []), a1d))))))
+(op_list_tl a1a, (op_list_prepend a2d a1b, a1d))))))
                     else (fn f_ => fn () => f_ ((get_var_pos_c_impl a2b x_a) ())
                            ())
                            (fn x_d =>
                              (fn () =>
                                (Allocated,
                                  (op_list_tl a1a,
-                                   (op_list_concat a1b (op_list_prepend x_d []),
-                                     a2b)))))))
+                                   (op_list_prepend x_d a1b, a2b)))))))
             end)
           (Allocated, (bi, ([], ai))) ();
     in
       let
         val (a1, (_, (a1b, a2b))) = a;
       in
-        (fn () => (a1, (a1b, a2b)))
+        (fn () => (a1, (op_list_rev a1b, a2b)))
       end
         ()
     end)
@@ -1855,16 +1859,14 @@ fun import_polyS_impl x =
                   (fn () =>
                     (if alloc_failed a1d then (a1d, (a1a, (a1b, a2e)))
                       else (a1d, (op_list_tl a1a,
-                                   (op_list_concat a1b
-                                      (op_list_prepend (a1e, a2c) []),
-                                     a2e))))))
+                                   (op_list_prepend (a1e, a2c) a1b, a2e))))))
             end)
           (Allocated, (bi, ([], ai))) ();
     in
       let
         val (a1, (_, (a1b, a2b))) = a;
       in
-        (fn () => (a1, (a1b, a2b)))
+        (fn () => (a1, (op_list_rev a1b, a2b)))
       end
         ()
     end)
@@ -2112,16 +2114,14 @@ fun import_monom_no_newS_impl x =
                            (fn x_d =>
                              (fn () =>
                                (false,
-                                 (op_list_tl a1a,
-                                   op_list_concat a2a
-                                     (op_list_prepend x_d [])))))))
+                                 (op_list_tl a1a, op_list_prepend x_d a2a))))))
             end)
           (false, (bi, [])) ();
     in
       let
-        val (a1, (_, b)) = a;
+        val (a1, (_, a2a)) = a;
       in
-        (fn () => (a1, b))
+        (fn () => (a1, op_list_rev a2a))
       end
         ()
     end)
@@ -2143,15 +2143,14 @@ fun import_poly_no_newS_impl x =
                     (if a1c then (true, (op_list_tl a1a, a2a))
                       else (false,
                              (op_list_tl a1a,
-                               op_list_concat a2a
-                                 (op_list_prepend (a2c, a2b) []))))))
+                               op_list_prepend (a2c, a2b) a2a)))))
             end)
           (false, (bi, [])) ();
     in
       let
-        val (a1, (_, b)) = a;
+        val (a1, (_, a2a)) = a;
       in
-        (fn () => (a1, b))
+        (fn () => (a1, op_list_rev a2a))
       end
         ()
     end)
