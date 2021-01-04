@@ -2435,6 +2435,7 @@ where
 sepref_register remap_polys_l2_with_err_s full_checker_l_s2 PAC_checker_l_s
 term PAC_checker_l_s
 thm PAC_checker_l_s_impl.refine
+
 sepref_definition full_checker_l_s2_impl
   is \<open>uncurry2 full_checker_l_s2\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>k *\<^sub>a (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
@@ -2442,6 +2443,18 @@ sepref_definition full_checker_l_s2_impl
   unfolding full_checker_l_s2_def
      empty_shared_vars_def[symmetric]
   by sepref
+local_setup \<open>
+  let
+    val version =
+      trim_line (#1 (Isabelle_System.bash_output ("cd $ISAFOL/ && git rev-parse --short HEAD || echo unknown")))
+  in
+    Local_Theory.define
+      ((\<^binding>\<open>version\<close>, NoSyn),
+        ((\<^binding>\<open>version_def\<close>, []), HOLogic.mk_literal version)) #> #2
+  end
+\<close>
+
+declare version_def [code]
 
 code_printing constant arl_get_u' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word64.toInt (Uint64.toLarge ((_)))))"
   thm PAC_checker_l_s_impl_def
