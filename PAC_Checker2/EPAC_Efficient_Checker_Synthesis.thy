@@ -1410,7 +1410,8 @@ lemma PAC_checker_l_step_s_PAC_checker_l_step_s:
   shows \<open>PAC_checker_l_step_s spec (err, \<V>, A) st
     \<le> \<Down>{((err, \<V>', A'), (err', \<D>\<V>', B')).
     (err, err') \<in> Id \<and>
-     \<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel)}
+     (\<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel \<and>
+    perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom \<V>'))}
     (PAC_checker_l_step_prep spec' (err', \<D>\<V>, B) st')\<close>
 proof -
   have [refine]: \<open>check_del_l spec A (EPAC_Checker_Specification.pac_step.pac_src1 st)
@@ -1458,7 +1459,21 @@ proof -
     done
 qed
 
-
+lemma PAC_checker_l_step_s_PAC_checker_l_step_s2:
+  assumes
+    \<open>(st,st')\<in>Id\<close>
+    \<open>(spec, spec') \<in> perfectly_shared_polynom (fst (snd err\<V>A))\<close> and
+    \<open>((err\<V>A), (err'\<D>\<V>B)) \<in> Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r  \<langle>nat_rel, perfectly_shared_polynom (fst (snd err\<V>A))\<rangle>fmap_rel\<close>
+  shows \<open>PAC_checker_l_step_s spec (err\<V>A) st
+    \<le> \<Down>{((err, \<V>', A'), (err', \<D>\<V>', B')).
+    (err, err') \<in> Id \<and>
+     (\<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel \<and>
+    perfectly_shared_polynom (fst (snd err\<V>A)) \<subseteq> perfectly_shared_polynom \<V>'))}
+    (PAC_checker_l_step_prep spec' (err'\<D>\<V>B) st')\<close>
+  using PAC_checker_l_step_s_PAC_checker_l_step_s[of \<open>fst (snd err\<V>A)\<close> \<open>fst (snd err'\<D>\<V>B)\<close>
+    \<open>snd (snd err\<V>A)\<close> \<open>snd (snd err'\<D>\<V>B)\<close> spec spec' \<open>fst (err\<V>A)\<close> \<open>fst (err'\<D>\<V>B)\<close> st st' ] assms
+  by (cases err\<V>A; cases err'\<D>\<V>B)
+   auto
 
 definition fully_normalize_and_import where
   \<open>fully_normalize_and_import \<V> p = do {
@@ -1584,8 +1599,8 @@ proof -
     done
 qed
 
-lemma remap_polys_l2_with_err_alt_def:
-  \<open>remap_polys_l2_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+lemma remap_polys_l2_with_err_prep_alt_def:
+  \<open>remap_polys_l2_with_err_prep spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
    ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    (mem, \<V>) \<leftarrow> SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
@@ -1594,29 +1609,31 @@ lemma remap_polys_l2_with_err_alt_def:
    if failed
    then do {
       c \<leftarrow> remap_polys_l_dom_err;
-      SPEC (\<lambda>(mem, _, _). mem = error_msg (0::nat) c)
+      SPEC (\<lambda>(mem, _, _, _). mem = error_msg (0::nat) c)
    }
    else do {
      (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
        (\<lambda>i (err, \<V>,  A').
           if i \<in># dom_m A
-        then  do {
+          then  do {
            (err', p, \<V>) \<leftarrow> import_poly \<V> (the (fmlookup A i));
             if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
             else do {
-               ASSERT (vars_llist p \<subseteq> set_mset \<V>);
-               p \<leftarrow> full_normalize_poly' \<V> p;
+              ASSERT(vars_llist p \<subseteq> set_mset \<V>);
+              p \<leftarrow> full_normalize_poly' \<V> p;
               eq  \<leftarrow> weak_equality_l' \<V> p spec;
+              let \<V> = \<V>;
               RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
             }
           } else RETURN (err, \<V>, A'))
        (CSUCCESS, \<V>, fmempty);
-     RETURN (err, \<V>, A)
+     RETURN (err, \<V>, A, spec)
   }})\<close>
-  unfolding remap_polys_l2_with_err_def Let_def full_normalize_poly'_def weak_equality_l'_def
-  by (rule refl)
+  unfolding full_normalize_poly'_def weak_equality_l'_def
+  by(auto simp: remap_polys_l2_with_err_prep_def 
+       intro!: ext bind_cong[OF refl])
 
-lemma
+lemma remap_polys_s_with_err_remap_polys_l2_with_err_prep:
   fixes \<V> :: \<open>(nat, string) shared_vars\<close>
   assumes
     \<V>: \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close> and
@@ -1625,11 +1642,11 @@ lemma
     spec0: \<open>(spec0, spec0') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
   shows
     \<open>remap_polys_s_with_err spec spec0 \<V> A \<le>
-    \<Down>{((err, \<V>, A, spec''), (err', \<V>', A')).
+    \<Down>{((err, \<V>, A, fspec), (err', \<V>', A', fspec')).
     (err, err') \<in> Id \<and>
-   ( \<not>is_cfailed err \<longrightarrow> (spec'', spec) \<in> perfectly_shared_polynom \<V> \<and>
+   ( \<not>is_cfailed err \<longrightarrow> (fspec, fspec') \<in> perfectly_shared_polynom \<V> \<and>
      ((err, \<V>, A), (err', \<V>', A')) \<in> Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r\<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel)}
-  (remap_polys_l2_with_err spec' spec0' \<D>\<V> B)\<close>
+  (remap_polys_l2_with_err_prep spec' spec0' \<D>\<V> B)\<close>
 proof -
   have vars_spec: \<open>(vars_llist_l spec0, vars_llist_l spec0) \<in> Id\<close>
     by auto
@@ -1656,7 +1673,7 @@ proof -
   have [simp]: \<open>A \<propto> xb = B \<propto> xb\<close> for xb
     using AB unfolding fmap_rel_alt_def apply auto by (metis in_dom_m_lookup_iff)
   show ?thesis
-    unfolding remap_polys_s_with_err_def remap_polys_l2_with_err_alt_def Let_def
+    unfolding remap_polys_s_with_err_def remap_polys_l2_with_err_prep_alt_def Let_def
     apply (refine_rcg import_polyS_import_poly 1 full_normalize_poly_s_full_normalize_poly
       weak_equality_l_s_weak_equality_l)
     subgoal using assms by auto
@@ -1702,7 +1719,7 @@ definition PAC_checker_l_s where
   RETURN S
   }\<close>
 
-(*
+
 lemma PAC_checker_l_s_PAC_checker_l_prep_s:
   assumes
     \<open>(\<V>, \<D>\<V>) \<in> perfectly_shared_vars_rel\<close>
@@ -1713,11 +1730,28 @@ lemma PAC_checker_l_s_PAC_checker_l_prep_s:
   shows \<open>PAC_checker_l_s spec (\<V>, A)  err st
     \<le> \<Down>{((err, \<V>', A'), (err', \<D>\<V>', B')).
     (err, err') \<in> Id \<and>
-     \<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel)}
-    (PAC_checker_l spec' (\<D>\<V>, B) err' st')\<close>
+    (\<not>is_cfailed err \<longrightarrow> ((\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>(A',B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel))}
+    (PAC_checker_l2 spec' (\<D>\<V>, B) err' st')\<close>
 proof -
-  thm PAC_checker_l_step_s_PAC_checker_l_step_s
- *)
+  show ?thesis
+    unfolding PAC_checker_l_s_def PAC_checker_l2_def
+    apply (refine_rcg PAC_checker_l_step_s_PAC_checker_l_step_s2
+      WHILET_refine[where R = \<open>{((err, \<V>', A'), err', \<D>\<V>', B').
+  (err, err') \<in> Id \<and> (\<not> is_cfailed err \<longrightarrow>
+  (\<V>', \<D>\<V>') \<in> perfectly_shared_vars_rel \<and>
+      (A', B') \<in> \<langle>nat_rel, perfectly_shared_polynom \<V>'\<rangle>fmap_rel \<and>
+    perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom \<V>')}\<times>\<^sub>rId\<close>])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by force
+    subgoal by auto
+    done
+qed
+
 definition full_checker_l_s
   :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
     (string code_status \<times> _) nres\<close>
@@ -1731,6 +1765,54 @@ where
       PAC_checker_l_s spec' (\<V>, A) b st
      }
   }\<close>
+lemma full_checker_l_s_full_checker_l_prep:
+  assumes
+    \<open>(A,B) \<in> \<langle>nat_rel, Id\<rangle>fmap_rel\<close> and
+    \<open>(spec, spec') \<in> \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+    \<open>(st,st')\<in>Id\<close>
+  shows \<open>full_checker_l_s spec A st
+    \<le> \<Down>{((err, _), (err', _)). (err, err') \<in> Id}
+    (full_checker_l_prep spec' B st')\<close>
+proof -
+  have [refine]: \<open>full_normalize_poly spec \<le> \<Down> (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel) (full_normalize_poly spec')\<close>
+    using assms by auto
+  have [refine]: \<open>(({#}, fmempty, fmempty), {#}) \<in> perfectly_shared_vars_rel\<close>
+     by (auto simp: perfectly_shared_vars_rel_def perfectly_shared_vars_def)
+   have H: \<open>(x1d, x1a) \<in> perfectly_shared_vars_rel\<close>
+     \<open>(x1e, x1b) \<in> \<langle>nat_rel, perfectly_shared_polynom x1d\<rangle>fmap_rel\<close>
+     \<open>(x2e, x2b) \<in> perfectly_shared_polynom x1d\<close>
+     \<open>(x1c, x1) \<in> Id\<close>
+     if \<open>(x, x')
+       \<in> {((err, \<V>, A, fspec), err', \<V>', A', fspec').
+       (err, err') \<in> Id \<and>
+       (\<not> is_cfailed err \<longrightarrow>
+       (fspec, fspec') \<in> perfectly_shared_polynom \<V> \<and>
+       ((err, \<V>, A), err', \<V>', A')
+       \<in> Id \<times>\<^sub>r perfectly_shared_vars_rel \<times>\<^sub>r \<langle>nat_rel, perfectly_shared_polynom \<V>\<rangle>fmap_rel)}\<close>
+       \<open>x2a = (x1b, x2b)\<close>
+       \<open>x2 = (x1a, x2a)\<close>
+       \<open>x' = (x1, x2)\<close>
+       \<open>x2d = (x1e, x2e)\<close>
+       \<open>x2c = (x1d, x2d)\<close>
+       \<open>x = (x1c, x2c)\<close>
+       \<open>\<not> is_cfailed x1c\<close>
+     for spec' spec'a x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+     using that by auto
+  term PAC_checker_l2
+  thm PAC_checker_l_s_PAC_checker_l_prep_s
+  show ?thesis
+    unfolding full_checker_l_s_def full_checker_l_prep_def
+    apply (refine_rcg PAC_checker_l_s_PAC_checker_l_prep_s[THEN order_trans]
+      remap_polys_s_with_err_remap_polys_l2_with_err_prep assms)
+    subgoal by (auto simp: perfectly_shared_vars_rel_def perfectly_shared_vars_def)
+    subgoal using assms by auto
+    apply (rule H(1); assumption)
+    apply (rule H(2); assumption)
+    apply (rule H(3); assumption)
+    apply (rule H(4); assumption)
+    subgoal by (auto intro!: conc_fun_R_mono)
+    done
+qed
 
 definition merge_coeff_s :: \<open>(nat,string)shared_vars \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>merge_coeff_s \<V> xs = mergeR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
@@ -2326,60 +2408,6 @@ lemma set_vars_llist_s2 [simp]: \<open>set (vars_llist_s2 b) = vars_llist b\<clo
   by (induction b)
     (auto simp: vars_llist_def)
 
-(* lemma remap_polys_l2_with_err_s_remap_polys_l2_with_err:
- *   \<open>(uncurry3 remap_polys_l2_with_err_s, uncurry3 remap_polys_l2_with_err)
- *   \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
- * proof -
- *   have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
- *     \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
- *     unfolding upper_bound_on_dom_def
- *     apply (rule RES_refine)
- *     apply (auto simp: upper_bound_on_dom_def)
- *     done
- *   have 1: \<open>inj_on id dom\<close> for dom
- *     by auto
- *   have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
- *     by auto
- *
- *   have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
- *        ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
- *     by (auto simp: list_set_rel_def br_def)
- *
- *   have 4: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
- *     by auto
- *   show ?thesis
- *     supply [[goals_limit=1]]
- *     apply (intro frefI nres_relI)
- *     apply clarify
- *     unfolding remap_polys_l2_with_err_s_def remap_polys_l2_with_err_def uncurry_def prod.simps
- *     apply (refine_rcg import_variables_spec[THEN order_trans] 3
- *        LFOc_refine[where R= \<open>Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>])
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     apply (rule 4)
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     apply (rule 4)
- *     subgoal by auto
- *     apply (rule 4)
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
- *     subgoal by auto
-    *     done
-qed *)
-
 sepref_register upper_bound_on_dom import_variablesS vars_llist_s2 memory_out_msg
 
 sepref_definition import_variablesS_impl
@@ -2597,4 +2625,3 @@ compile_generated_files _
     in () end\<close>
 
 end
-

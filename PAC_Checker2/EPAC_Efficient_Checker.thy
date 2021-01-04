@@ -744,14 +744,16 @@ proof -
     done
 qed
 
-definition (in -) remap_polys_l2_with_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
+definition (in -) remap_polys_l2_with_err
+  :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
    (string code_status \<times> (nat, string) vars \<times> (nat, llist_polynomial) fmap) nres\<close> where
-  \<open>remap_polys_l2_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
-   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
+  \<open>remap_polys_l2_with_err spec' spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+   ASSERT(vars_llist spec' \<subseteq> vars_llist spec0);
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    (mem, \<V>) \<leftarrow> SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
-   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_poly \<V> spec else SPEC(\<lambda>_. True);
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_poly \<V> spec' else SPEC(\<lambda>_. True);
    failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
+   ASSERT(\<not>failed \<longrightarrow> spec = spec');
    if failed
    then do {
       c \<leftarrow> remap_polys_l_dom_err;
@@ -807,7 +809,7 @@ lemma remap_polys_l_with_err_alt_def:
   }})\<close>
    unfolding remap_polys_l_with_err_def by (auto intro!: ext bind_cong[OF refl])
 
-lemma remap_polys_l2_with_err_polys_l_with_err:
+lemma remap_polys_l2_with_err_polys_l2_with_err:
   assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close> \<open>(spec0, spec0')\<in>Id\<close>
   shows \<open>remap_polys_l2_with_err spec spec0 \<V> A \<le> \<Down>{((st, \<V>, A), st', \<V>', A').
    (st, st') \<in> Id \<and>
@@ -861,6 +863,7 @@ proof -
     subgoal using assms by auto
     subgoal by (auto simp: error_msg_def)
 
+    subgoal using assms by (simp add: )
     subgoal by (auto intro!: RES_refine)
     subgoal using assms by (simp add: )
     subgoal using assms by (simp add: remap_polys_l_with_err_pre_def vars_llist_def)
@@ -916,6 +919,92 @@ proof -
     done
 qed
 
+definition (in -) remap_polys_l2_with_err_prep :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
+   (string code_status \<times> (nat, string) vars \<times> (nat, llist_polynomial) fmap \<times> llist_polynomial) nres\<close> where
+  \<open>remap_polys_l2_with_err_prep spec spec0 = (\<lambda>(\<V>:: (nat, string) vars) A. do{
+   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (mem, \<V>) \<leftarrow> SPEC(\<lambda>(mem, \<V>'). \<not>alloc_failed mem \<longrightarrow> set_mset \<V>' = set_mset \<V> \<union> vars_llist spec0);
+   (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_poly \<V> spec else SPEC(\<lambda>_. True);
+   failed \<leftarrow> SPEC(\<lambda>b::bool. alloc_failed mem \<or> alloc_failed mem' \<longrightarrow> b);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      SPEC (\<lambda>(mem, _, _, _). mem = error_msg (0::nat) c)
+   }
+   else do {
+     (err, \<V>, A) \<leftarrow> FOREACH\<^sub>C dom (\<lambda>(err, \<V>,  A'). \<not>is_cfailed err)
+       (\<lambda>i (err, \<V>,  A').
+          if i \<in># dom_m A
+          then  do {
+           (err', p, \<V>) \<leftarrow> import_poly \<V> (the (fmlookup A i));
+            if alloc_failed err' then RETURN((CFAILED ''memory out'', \<V>, A'))
+            else do {
+              ASSERT(vars_llist p \<subseteq> set_mset \<V>);
+              p \<leftarrow> full_normalize_poly p;
+              eq  \<leftarrow> weak_equality_l p spec;
+              let \<V> = \<V>;
+              RETURN((if eq then CFOUND else CSUCCESS), \<V>, fmupd i p A')
+            }
+          } else RETURN (err, \<V>, A'))
+       (CSUCCESS, \<V>, fmempty);
+     RETURN (err, \<V>, A, spec)
+  }})\<close>
+
+lemma remap_polys_l2_with_err_prep_remap_polys_l2_with_err:
+  assumes \<open>(p, p') \<in> Id\<close>  \<open>(q, q') \<in> Id\<close> \<open>(A,A') \<in> \<langle>Id, Id\<rangle>fmap_rel\<close> and \<open>(V,V') \<in> Id\<close>
+  shows \<open>remap_polys_l2_with_err_prep p q V A \<le> \<Down>{((b, A, st, spec'), (b', A', st')).
+    ((b, A, st), (b', A', st')) \<in> Id \<and>
+    (\<not>is_cfailed b \<longrightarrow> spec' = p')} (remap_polys_l2_with_err p' q' V' A')\<close>
+proof -
+  have [simp]: \<open>\<langle>Id, Id\<rangle>fmap_rel = Id\<close>
+    apply (auto simp: fmap_rel_def fmlookup_dom_iff intro!: fmap_ext dest: fmdom_notD)
+    by (metis fmdom_notD fmlookup_dom_iff option.sel)
+
+  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
+    by auto
+  have [refine]:
+    \<open>(x2e, x2c)\<in>Id \<Longrightarrow> ((CSUCCESS, x2e, fmempty), CSUCCESS, x2c, fmempty) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id, Id\<rangle>fmap_rel\<close> for x2e x2c
+    by auto
+  have [refine]: \<open>import_poly x y \<le> \<Down> Id (import_poly x' y')\<close>
+    if \<open>(x,x') \<in> Id\<close>\<open>(y,y') \<in> Id\<close> for x x' y y'
+    using that by auto
+  have [refine]: \<open>full_normalize_poly x \<le> \<Down> Id (full_normalize_poly x')\<close>
+    if \<open>(x,x')\<in>Id\<close> for x x'
+    using that by auto
+  have [refine]: \<open>weak_equality_l x y \<le> \<Down> bool_rel (weak_equality_l x' y')\<close>
+    if \<open>(x,x')\<in>Id\<close> \<open>(y,y')\<in>Id\<close> for x x' y y'
+    using that by auto
+
+  show ?thesis
+    unfolding remap_polys_l2_with_err_prep_def remap_polys_l2_with_err_def
+    apply (refine_vcg 1)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by (auto intro!: RES_refine simp: error_msg_def)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    done
+qed
 
 definition full_checker_l_prep
   :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
@@ -923,14 +1012,43 @@ definition full_checker_l_prep
 where
   \<open>full_checker_l_prep spec A st = do {
     spec' \<leftarrow> full_normalize_poly spec;
-    (b, \<V>, A) \<leftarrow> remap_polys_l2_with_err spec' spec {#} A;
+    (b, \<V>, A, spec) \<leftarrow> remap_polys_l2_with_err_prep spec' spec {#} A;
     if is_cfailed b
     then RETURN (b, \<V>, A)
     else do {
       let \<V> = \<V>;
-      PAC_checker_l2 spec' (\<V>, A) b st
+      PAC_checker_l2 spec (\<V>, A) b st
      }
         }\<close>
+
+lemma remap_polys_l2_with_err_polys_l_with_err:
+  assumes \<open>(\<V>, \<V>') \<in> {(x, y). y = set_mset x}\<close> \<open>(A,A') \<in> Id\<close> \<open>(spec, spec')\<in>Id\<close> \<open>(spec0, spec0')\<in>Id\<close>
+  shows \<open>remap_polys_l2_with_err_prep spec spec0 \<V> A \<le> \<Down>{((st, \<V>, A, spec''), st', \<V>', A').
+   (st, st') \<in> Id \<and>
+   (A, A') \<in> Id \<and>
+    (\<not> is_cfailed st \<longrightarrow> (\<V>, \<V>') \<in> {(x, y). y = set_mset x} \<and> spec'' = spec)}
+    (remap_polys_l_with_err spec' spec0' \<V>' A')\<close>
+proof -
+  have [simp]: \<open>\<langle>Id, Id\<rangle>fmap_rel = Id\<close>
+    apply (auto simp: fmap_rel_def fmlookup_dom_iff intro!: fmap_ext dest: fmdom_notD)
+    by (metis fmdom_notD fmlookup_dom_iff option.sel)
+
+  have A: \<open>(A, A') \<in> \<langle>nat_rel, Id\<rangle>fmap_rel\<close> \<open>(\<V>, \<V>) \<in> Id\<close> \<open>(A',A') \<in> Id\<close>
+    \<open>(spec',spec')\<in> Id\<close> \<open>(spec0', spec0') \<in> Id\<close>
+    using assms(2) by auto
+  show ?thesis
+    apply (rule remap_polys_l2_with_err_prep_remap_polys_l2_with_err[THEN order_trans])
+    apply (rule assms A)+
+    apply (rule order_trans)
+    apply (rule ref_two_step')
+    apply (rule remap_polys_l2_with_err_polys_l2_with_err)
+    apply (rule assms A)+
+    apply (subst conc_fun_chain)
+    apply (rule conc_fun_R_mono)
+    apply (use assms in auto)
+    done
+qed
+
 
 lemma full_checker_l_prep_full_checker_l2:
   assumes \<open>(spec, spec')\<in>Id\<close> \<open>(st, st')\<in>Id\<close> \<open>(A,A')\<in>Id\<close>
@@ -943,17 +1061,17 @@ proof -
   show ?thesis
     unfolding full_checker_l_prep_def full_checker_l2_def
     apply (refine_rcg remap_polys_l2_with_err_polys_l_with_err
-      PAC_checker_l2_PAC_checker_l)
+      PAC_checker_l2_PAC_checker_l remap_polys_l2_with_err_polys_l_with_err)
     apply (rule id)
     subgoal using assms by auto
     subgoal by auto
-    subgoal using assms by auto
+    apply (rule assms)
+    subgoal by auto
+    apply (rule assms)
     subgoal by auto
     subgoal using assms by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal by auto
     done
