@@ -38,8 +38,11 @@ structure Uint64 : sig
   val one : uint64;
   val fromInt : IntInf.int -> uint64;
   val toInt : uint64 -> IntInf.int;
+  val toFixedInt : uint64 -> Int.int;
   val toLarge : uint64 -> LargeWord.word;
   val fromLarge : LargeWord.word -> uint64
+  val fromFixedInt : Int.int -> uint64
+  val toWord32: uint64 -> Word32.word
   val plus : uint64 -> uint64 -> uint64;
   val minus : uint64 -> uint64 -> uint64;
   val times : uint64 -> uint64 -> uint64;
@@ -59,77 +62,69 @@ structure Uint64 : sig
   val test_bit : uint64 -> IntInf.int -> bool;
 end = struct
 
-type uint64 = IntInf.int;
+type uint64 = Word64.word;
 
-val mask = 0xFFFFFFFFFFFFFFFF : IntInf.int;
+val zero = (0wx0 : uint64);
 
-val zero = 0 : IntInf.int;
+val one = (0wx1 : uint64);
 
-val one = 1 : IntInf.int;
+fun fromInt x = Word64.fromLargeInt (IntInf.toLarge x);
 
-fun fromInt x = IntInf.andb(x, mask);
+fun toInt x = IntInf.fromLarge (Word64.toLargeInt x);
 
-fun toInt x = x
+fun toFixedInt x = Word64.toInt x;
 
-fun toLarge x = LargeWord.fromLargeInt (IntInf.toLarge x);
+fun fromLarge x = Word64.fromLarge x;
 
-fun fromLarge x = IntInf.fromLarge (LargeWord.toLargeInt x);
+fun fromFixedInt x = Word64.fromInt x;
 
-fun plus x y = IntInf.andb(IntInf.+(x, y), mask);
+fun toLarge x = Word64.toLarge x;
 
-fun minus x y = IntInf.andb(IntInf.-(x, y), mask);
+fun toWord32 x = Word32.fromLarge x
 
-fun negate x = IntInf.andb(IntInf.~(x), mask);
+fun plus x y = Word64.+(x, y);
 
-fun times x y = IntInf.andb(IntInf.*(x, y), mask);
+fun minus x y = Word64.-(x, y);
 
-fun divide x y = IntInf.div(x, y);
+fun negate x = Word64.~(x);
 
-fun modulus x y = IntInf.mod(x, y);
+fun times x y = Word64.*(x, y);
 
-fun less_eq x y = IntInf.<=(x, y);
+fun divide x y = Word64.div(x, y);
 
-fun less x y = IntInf.<(x, y);
+fun modulus x y = Word64.mod(x, y);
 
-fun notb x = IntInf.andb(IntInf.notb(x), mask);
+fun less_eq x y = Word64.<=(x, y);
 
-fun orb x y = IntInf.orb(x, y);
-
-fun andb x y = IntInf.andb(x, y);
-
-fun xorb x y = IntInf.xorb(x, y);
-
-val maxWord = IntInf.pow (2, Word.wordSize);
-
-fun shiftl x n = 
-  if n < maxWord then IntInf.andb(IntInf.<< (x, Word.fromLargeInt (IntInf.toLarge n)), mask)
-  else 0;
-
-fun shiftr x n =
-  if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
-  else 0;
-
-val msb_mask = 0x8000000000000000 : IntInf.int;
-
-fun shiftr_signed x i =
-  if IntInf.andb(x, msb_mask) = 0 then shiftr x i
-  else if i >= 64 then 0xFFFFFFFFFFFFFFFF
-  else let
-    val x' = shiftr x i
-    val m' = IntInf.andb(IntInf.<<(mask, Word.max(0w64 - Word.fromLargeInt (IntInf.toLarge i), 0w0)), mask)
-  in IntInf.orb(x', m') end;
-
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else false;
+fun less x y = Word64.<(x, y);
 
 fun set_bit x n b =
-  if n < 64 then
-    if b then IntInf.orb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n)))
-    else IntInf.andb (x, IntInf.notb (IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))))
-  else x;
+  let val mask = Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
+  in if b then Word64.orb (x, mask)
+     else Word64.andb (x, Word64.notb mask)
+  end
 
-end
+fun shiftl x n =
+  Word64.<< (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr x n =
+  Word64.>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun shiftr_signed x n =
+  Word64.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
+
+fun test_bit x n =
+  Word64.andb (x, Word64.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))) <> Word64.fromInt 0
+
+val notb = Word64.notb
+
+fun andb x y = Word64.andb(x, y);
+
+fun orb x y = Word64.orb(x, y);
+
+fun xorb x y = Word64.xorb(x, y);
+
+end (*struct Uint64*)
 
 
 
@@ -512,49 +507,12 @@ val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
 
-type 'a one = {one : 'a};
-val one = #one : 'a one -> 'a;
-
-val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
-
-type 'a times = {times : 'a -> 'a -> 'a};
-val times = #times : 'a times -> 'a -> 'a -> 'a;
-
-type 'a power = {one_power : 'a one, times_power : 'a times};
-val one_power = #one_power : 'a power -> 'a one;
-val times_power = #times_power : 'a power -> 'a times;
-
-val times_uint64 = {times = Uint64.times} : Uint64.uint64 times;
-
-val power_uint64 = {one_power = one_uint64, times_power = times_uint64} :
-  Uint64.uint64 power;
-
 fun def_hashmap_size_uint64 x = (fn _ => nat_of_integer (16 : IntInf.int)) x;
 
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
-
-fun power A_ a n =
-  (if equal_nat n zero_nata then one (one_power A_)
-    else times (times_power A_) a (power A_ a (minus_nat n one_nat)));
-
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
-
-fun uint32_of_int i = Word32.fromLargeInt (IntInf.toLarge (integer_of_int i));
-
-fun uint32_of_nat x = (uint32_of_int o int_of_nat) x;
+fun uint32_of_uint64 x = Uint64.toWord32 (x);
 
 fun hashcode_uint64 n =
-  uint32_of_nat
-    (nat_of_uint64
-      (Uint64.andb n
-        (Uint64.minus
-          (power power_uint64 (Uint64.fromInt (2 : IntInf.int))
-            (nat_of_integer (32 : IntInf.int)))
-          Uint64.one)));
+  uint32_of_uint64 (Uint64.andb n (Uint64.fromInt (4294967295 : IntInf.int)));
 
 type 'a hashable =
   {hashcode : 'a -> Word32.word, def_hashmap_size : 'a itself -> nat};
@@ -577,6 +535,9 @@ val typerep_literal = {typerep = typerep_literala} : string typerep;
 val heap_literal =
   {countable_heap = countable_literal, typerep_heap = typerep_literal} :
   string heap;
+
+type 'a one = {one : 'a};
+val one = #one : 'a one -> 'a;
 
 type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
 val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
@@ -720,6 +681,10 @@ fun upd A_ i x a =
     in
       a
     end);
+
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun drop n [] = []
   | drop n (x :: xs) =
@@ -924,7 +889,11 @@ fun op_list_hd x = hd x;
 
 fun op_list_tl x = tl x;
 
+fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
+
 fun uint64_of_int i = Uint64.fromInt (integer_of_int i);
+
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint64_of_nat x = (uint64_of_int o int_of_nat) x;
 
@@ -1226,7 +1195,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "bd5173ed";
+val version : string = "013408eb";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
