@@ -1250,23 +1250,6 @@ definition PAC_checker_l where
   RETURN S
   }\<close>
 
-
-
-
-definition full_checker_l2
-  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
-    (string code_status \<times> _) nres\<close>
-where
-  \<open>full_checker_l2 spec A st = do {
-    spec' \<leftarrow> full_normalize_poly spec;
-    (b, \<V>, A) \<leftarrow> remap_polys_l_with_err spec' spec {} A;
-    if is_cfailed b
-    then RETURN (b, \<V>, A)
-    else do {
-      PAC_checker_l spec' (\<V>, A) b st
-    }
-  }\<close>
-
 lemma (in -) keys_mult_monomial2:
   \<open>keys (monomial (n::int) (k::'a \<Rightarrow>\<^sub>0 nat) * a) = (if n = 0 then {} else ((+) k) ` keys (a))\<close>
 proof -
@@ -1749,7 +1732,7 @@ proof -
 qed
 
 
-definition full_checker_l
+definition (in -) full_checker_l
   :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
     (string code_status \<times> _) nres\<close>
 where

@@ -1500,6 +1500,7 @@ lemma vars_llist_l_append[simp]: \<open>vars_llist_l (a @ b) = vars_llist_l a @ 
 definition (in -) remap_polys_s_with_err :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> (nat, string) shared_vars \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow>
    (string code_status \<times> (nat, string) shared_vars \<times> (nat, sllist_polynomial) fmap \<times> sllist_polynomial) nres\<close> where
   \<open>remap_polys_s_with_err spec spec0 = (\<lambda>(\<V>:: (nat, string) shared_vars) A. do{
+   ASSERT(vars_llist spec \<subseteq> vars_llist spec0);
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    (mem, \<V>) \<leftarrow> import_variablesS (vars_llist_l spec0) \<V>;
    (mem', spec, \<V>) \<leftarrow> if \<not>alloc_failed mem then import_polyS \<V> spec else RETURN (mem, [], \<V>);
@@ -1677,6 +1678,7 @@ proof -
     apply (refine_rcg import_polyS_import_poly 1 full_normalize_poly_s_full_normalize_poly
       weak_equality_l_s_weak_equality_l)
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal by auto
     subgoal by auto
     subgoal using assms by auto
@@ -1813,6 +1815,12 @@ proof -
     subgoal by (auto intro!: conc_fun_R_mono)
     done
 qed
+
+lemma full_checker_l_s_full_checker_l_prep':
+  \<open>(uncurry2 full_checker_l_s, uncurry2 full_checker_l_prep)\<in>
+  (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel, Id\<rangle>fmap_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f
+  \<langle>{((err, _), (err', _)). (err, err') \<in> Id}\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI full_checker_l_s_full_checker_l_prep[THEN order_trans])
 
 definition merge_coeff_s :: \<open>(nat,string)shared_vars \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>merge_coeff_s \<V> xs = mergeR (\<lambda>a b. a \<in> set xs \<and> b \<in> set xs)
@@ -2624,4 +2632,267 @@ compile_generated_files _
             "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
     in () end\<close>
 
+
+section \<open>Correctness theorem\<close>
+
+context poly_embed
+begin
+
+definition fully_epac_assn where
+  \<open>fully_epac_assn = (list_assn
+        (hr_comp (pac_step_rel_assn uint64_nat_assn poly_assn string_assn)
+          (p2rel
+            (\<langle>nat_rel, 
+             fully_unsorted_poly_rel O
+             mset_poly_rel, var_rel\<rangle>pac_step_rel_raw))))\<close>
+
+
+text \<open>
+
+Below is the full correctness theorems. It basically states that:
+
+  \<^enum> assuming that the input polynomials have no duplicate variables
+
+
+Then:
+
+\<^enum> if the checker returns \<^term>\<open>CFOUND\<close>, the spec is in the ideal
+  and the PAC file is correct
+
+\<^enum> if the checker returns \<^term>\<open>CSUCCESS\<close>, the PAC file is correct (but
+there is no information on the spec, aka checking failed)
+
+\<^enum> if the checker return \<^term>\<open>CFAILED err\<close>, then checking failed (and
+\<^term>\<open>err\<close> \<^emph>\<open>might\<close> give you an indication of the error, but the correctness
+theorem does not say anything about that).
+
+
+The input parameters are:
+
+\<^enum> the specification polynomial represented as a list
+
+\<^enum> the input polynomials as hash map (as an array of option polynomial)
+
+\<^enum> a represention of the PAC proofs.
+
+  \<close>
+
+lemma remap_polys_l2_with_err_s_remap_polys_s_with_err:
+  assumes \<open>((spec, a, b, c), (spec', a', c', b')) \<in> Id\<close>
+  shows \<open>remap_polys_l2_with_err_s spec a b c
+    \<le> \<Down> Id
+  (remap_polys_s_with_err spec' a' b' c')\<close>
+proof -
+  have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
+    \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
+    unfolding upper_bound_on_dom_def
+    apply (rule RES_refine)
+    apply (auto simp: upper_bound_on_dom_def)
+    done
+  have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
+    ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
+    by (auto simp: list_set_rel_def br_def)
+  have 4: \<open>(p,q) \<in> Id \<Longrightarrow>
+    weak_equality_l p spec \<le> \<Down>Id (weak_equality_l q spec)\<close> for p q spec
+    by auto
+
+  have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
+    by auto
+
+  have id: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
+    by auto
+  have [simp]: \<open>vars_llist_s2 x = vars_llist_l x\<close> for x
+    by (induction x rule: vars_llist_s2.induct) auto
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding remap_polys_l2_with_err_s_def remap_polys_s_with_err_def
+    apply (refine_rcg
+      LFOc_refine[where R= \<open>{((a,b,c), (a',b',c')). ((a,b,c), (a',c',b'))\<in>Id}\<close>])
+    subgoal using assms by auto
+    subgoal using assms by auto
+    apply (rule id)
+    subgoal using assms by auto
+    subgoal using assms by auto
+    apply (rule id)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule 3)
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    apply (rule id)
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule id)
+    subgoal by auto
+    apply (rule id)
+    subgoal unfolding weak_equality_l_s'_def by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma full_checker_l_s2_full_checker_l_s:
+  \<open>(uncurry2 full_checker_l_s2, uncurry2 full_checker_l_s) \<in> (Id \<times>\<^sub>r Id) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have id: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
+    by auto
+  show ?thesis
+    apply (intro frefI nres_relI)
+    unfolding uncurry_def
+    apply clarify
+    unfolding full_checker_l_s2_def
+      full_checker_l_s_def
+    apply (refine_rcg remap_polys_l2_with_err_s_remap_polys_s_with_err)
+    apply (rule id)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule id)
+    subgoal by auto
+    done
+qed
+
+lemma full_poly_input_assn_alt_def:
+  \<open>full_poly_input_assn = (hr_comp
+  (hr_comp (hr_comp polys_assn_input (\<langle>nat_rel, Id\<rangle>fmap_rel))
+  (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+  polys_rel)\<close>
+proof -
+  have [simp]: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
+    apply (auto simp: fmap_rel_def)
+    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+  show ?thesis
+    unfolding full_poly_input_assn_def
+    by auto
+qed
+
+lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
+  \<open>(uncurry2 full_checker_l_s2_impl,
+ uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
+\<in> full_poly_assn\<^sup>k *\<^sub>a full_poly_input_assn\<^sup>k *\<^sub>a
+  fully_epac_assn\<^sup>k \<rightarrow>\<^sub>a hr_comp (status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn)
+            {((err, _), err', _). (err, err') \<in> code_status_status_rel}\<close>
+proof -
+  have 1: \<open>(uncurry2 full_checker_l_s2, uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
+    \<in> (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O fully_unsorted_poly_rel O mset_poly_rel \<times>\<^sub>r
+    (\<langle>nat_rel, Id\<rangle>fmap_rel O \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel) O
+    polys_rel) \<times>\<^sub>r
+    \<langle>p2rel
+    (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel,
+    var_rel\<rangle>EPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>(({((err, _), err', _).
+    (err, err') \<in> Id} O
+    {((b, A, st), b', A', st').
+    (\<not> is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st') \<in> Id) \<and>
+    (b, b') \<in> Id}) O
+    {((err, \<V>, A), err', \<V>', A').
+    ((err, \<V>, A), err', \<V>', A')
+    \<in> code_status_status_rel \<times>\<^sub>r
+    vars_rel2 err \<times>\<^sub>r
+    {(xs, ys).
+    \<not> is_cfailed err \<longrightarrow>
+    (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
+    (\<forall>i\<in>#dom_m xs. vars_llist (xs \<propto> i) \<subseteq> \<V>)}}) O
+    {((st, G), st', G').
+    (st, st') \<in> status_rel \<and> (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<rangle>nres_rel\<close>
+    using full_checker_l_s2_full_checker_l_s[
+      FCOMP full_checker_l_s_full_checker_l_prep',
+      FCOMP full_checker_l_prep_full_checker_l2',
+      FCOMP full_checker_l_full_checker',
+      FCOMP full_checker_spec',
+      unfolded full_poly_assn_def[symmetric]
+      full_poly_input_assn_def[symmetric]
+      fully_epac_assn_def[symmetric]
+      code_status_assn_def[symmetric]
+      full_vars_assn_def[symmetric]
+      polys_rel_full_polys_rel
+      hr_comp_prod_conv
+      full_polys_assn_def[symmetric]
+      full_poly_input_assn_alt_def[symmetric]] by auto
+  have 2: \<open>A \<subseteq> B \<Longrightarrow> \<langle>A\<rangle>nres_rel \<subseteq> \<langle>B\<rangle>nres_rel\<close> for A B
+    by (auto simp: nres_rel_def conc_fun_R_mono conc_trans_additional(6))
+
+  have 3: \<open>(uncurry2 full_checker_l_s2, uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
+    \<in> (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O fully_unsorted_poly_rel O mset_poly_rel \<times>\<^sub>r
+    (\<langle>nat_rel, Id\<rangle>fmap_rel O \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel) O
+    polys_rel) \<times>\<^sub>r
+    \<langle>p2rel
+    (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel,
+    var_rel\<rangle>EPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f
+    \<langle>{((err, _), err', _). (err, err') \<in> code_status_status_rel}\<rangle>nres_rel\<close>
+    apply (rule set_mp[OF _ 1])
+    unfolding fref_param1[symmetric]
+    apply (rule fun_rel_mono)
+    apply auto[]
+    apply (rule 2)
+    apply auto
+    done
+
+  have 4: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
+    apply (auto simp: fmap_rel_def)
+    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+  have H: \<open>full_poly_assn = (hr_comp poly_assn
+    (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O fully_unsorted_poly_rel O mset_poly_rel))\<close>
+    \<open>full_poly_input_assn = hr_comp polys_assn_input
+   ((Id O \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel) O polys_rel)\<close>
+    unfolding full_poly_assn_def fully_epac_assn_def full_poly_input_assn_def
+      hr_comp_assoc O_assoc
+    by auto
+  show ?thesis
+    using full_checker_l_s2_impl.refine[FCOMP 3]
+    unfolding full_poly_assn_def[symmetric]
+      full_poly_input_assn_def[symmetric]
+      fully_epac_assn_def[symmetric]
+      code_status_assn_def[symmetric]
+      full_vars_assn_def[symmetric]
+      polys_rel_full_polys_rel
+      hr_comp_prod_conv
+      full_polys_assn_def[symmetric]
+      full_poly_input_assn_alt_def[symmetric]
+      4 H[symmetric]
+    by auto
+qed
+
+text \<open>
+
+It would be more efficient to move the parsing to Isabelle, as this
+would be more memory efficient (and also reduce the TCB). But now
+comes the fun part: It cannot work. A stream (of a file) is consumed
+by side effects. Assume that this would work. The code could look like:
+
+\<^term>\<open>
+  let next_token = read_file file
+  in f (next_token)
+\<close>
+
+This code is equal to (in the HOL sense of equality):
+\<^term>\<open>
+  let _ = read_file file;
+      next_token = read_file file
+  in f (next_token)
+\<close>
+
+However, as an hypothetical \<^term>\<open>read_file\<close> changes the underlying stream, we would get the next
+token. Remark that this is already a weird point of ML compilers. Anyway, I see currently two
+solutions to this problem:
+
+\<^enum> The meta-argument: use it only in the Refinement Framework in a setup where copies are
+disallowed. Basically, this works because we can express the non-duplication constraints on the type
+level. However, we cannot forbid people from expressing things directly at the HOL level.
+
+\<^enum> On the target language side, model the stream as the stream and the position. Reading takes two
+arguments. First, the position to read. Second, the stream (and the current position) to read. If
+the position to read does not match the current position, return an error. This would fit the
+correctness theorem of the code generation (roughly ``if it terminates without exception, the answer
+is the same''), but it is still unsatisfactory.
+\<close>
+
+end
 end

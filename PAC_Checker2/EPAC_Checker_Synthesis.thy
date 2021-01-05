@@ -6,6 +6,7 @@
 theory EPAC_Checker_Synthesis
   imports EPAC_Checker EPAC_Version
     EPAC_Checker_Init
+    EPAC_Steps_Refine
     PAC_Checker.More_Loops
     PAC_Checker.WB_Sort PAC_Checker.PAC_Checker_Relation
     PAC_Checker.PAC_Checker_Synthesis
@@ -75,6 +76,14 @@ sepref_definition linear_combi_l_impl
   apply (rewrite in \<open>(op_HOL_list_empty, _)\<close> annotate_assn[where A=\<open>poly_assn\<close>])
   by sepref
 
+definition has_failed :: \<open>bool nres\<close> where
+  \<open>has_failed = RES UNIV\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return False), uncurry0 has_failed)\<in>unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: has_failed_def)
+
 declare linear_combi_l_impl.refine[sepref_fr_rules]
   sepref_register check_linear_combi_l_pre_err
 sepref_definition check_linear_combi_l_impl
@@ -88,21 +97,10 @@ sepref_definition check_linear_combi_l_impl
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
     vars_llist_alt_def is_Nil_def
+    has_failed_def[symmetric]
    by sepref
 
 declare check_linear_combi_l_impl.refine[sepref_fr_rules]
-
-
-
-(* lemma pac_step_rel_assn_alt_def2:
- *   \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn id_assn) b bi =
- *        hn_val
- *         (p2rel
- *           (\<langle>nat_rel, poly_rel, Id :: (string \<times> _) set\<rangle>pac_step_rel_raw)) b bi\<close>
- *   unfolding poly_assn_list hn_ctxt_def
- *   by (induction nat_assn poly_assn \<open>id_assn :: string \<Rightarrow> _\<close> b bi rule: pac_step_rel_assn.induct)
- *    (auto simp: p2rel_def hn_val_unfold pac_step_rel_raw.simps relAPP_def
- *     pure_app_eq) *)
 
 sepref_register is_cfailed is_Del
 
@@ -117,9 +115,90 @@ sepref_decl_intf ('k) acode_status is "('k) code_status"
 sepref_decl_intf ('k, 'b, 'lbl) apac_step is "('k, 'b, 'lbl) pac_step"
 
 sepref_register merge_cstatus full_normalize_poly new_var is_Add
+find_theorems is_CL RETURN
+
+sepref_register check_linear_combi_l check_extension_l2
+    term check_extension_l2
+
+definition check_extension_l2_cond :: \<open>nat \<Rightarrow> _\<close> where
+  \<open>check_extension_l2_cond i A \<V> v = SPEC (\<lambda>b. b \<longrightarrow> fmlookup' i A = None \<and> v \<notin> \<V>)\<close>
+
+definition check_extension_l2_cond2 :: \<open>nat \<Rightarrow> _\<close> where
+  \<open>check_extension_l2_cond2 i A \<V> v = RETURN (fmlookup' i A = None \<and> v \<notin> \<V>)\<close>
 
 
-sepref_register check_linear_combi_l
+sepref_definition check_extension_l2_cond2_impl
+  is \<open>uncurry3 check_extension_l2_cond2\<close>
+    :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a string_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding check_extension_l2_cond2_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+    not_not is_None_def
+  by sepref
+
+lemma check_extension_l2_cond2_check_extension_l2_cond:
+  \<open>(uncurry3 check_extension_l2_cond2, uncurry3 check_extension_l2_cond) \<in>
+  (((nat_rel \<times>\<^sub>r Id) \<times>\<^sub>r Id) \<times>\<^sub>r Id) \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (auto intro!: RES_refine nres_relI frefI
+    simp: check_extension_l2_cond_def check_extension_l2_cond2_def)
+
+lemmas [sepref_fr_rules] =
+  check_extension_l2_cond2_impl.refine[FCOMP check_extension_l2_cond2_check_extension_l2_cond]
+
+
+definition check_extension_l_side_cond_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_side_cond_err_impl v r s =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    ''side condition p*p - p = '' @ show s @ '' and should be 0''\<close>
+term check_extension_l_side_cond_err
+lemma [sepref_fr_rules]:
+  \<open>(uncurry2 (return ooo (check_extension_l_side_cond_err_impl)),
+    uncurry2 (check_extension_l_side_cond_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_side_cond_err_impl_def check_extension_l_side_cond_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+definition check_extension_l_new_var_multiple_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_new_var_multiple_err_impl v p =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    '' but it either appears at least once in the polynomial or another new variable is created '' @
+    show p @ '' but should not.''\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>((uncurry (return oo (check_extension_l_new_var_multiple_err_impl))),
+    uncurry (check_extension_l_new_var_multiple_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_new_var_multiple_err_impl_def
+     check_extension_l_new_var_multiple_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+sepref_definition check_extension_l_impl
+  is \<open>uncurry5 check_extension_l2\<close>
+    :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+    string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding check_extension_l2_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+    not_not is_None_def
+    uminus_poly_def[symmetric]
+    HOL_list.fold_custom_empty
+    check_extension_l2_cond_def[symmetric]
+    vars_llist_alt_def
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  check_extension_l_impl.refine
+
+lemma is_Mult_lastI:
+  \<open>\<not> is_CL b \<Longrightarrow> \<not>is_Extension b \<Longrightarrow> is_Del b\<close>
+  by (cases b) auto
+
 sepref_definition check_step_impl
   is \<open>uncurry4 PAC_checker_l_step'\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (uint64_nat_assn) poly_assn (string_assn :: string \<Rightarrow> _))\<^sup>d \<rightarrow>\<^sub>a
@@ -157,7 +236,6 @@ lemma step_rewrite_pure:
   unfolding pure_def[symmetric] list_assn_pure_conv
   apply (auto simp: pure_def relAPP_def)
   done
-find_theorems list_rel list_assn
 
 lemma safe_epac_step_rel_assn[safe_constraint_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow> CONSTRAINT is_pure V \<Longrightarrow> CONSTRAINT is_pure R \<Longrightarrow>
@@ -201,16 +279,31 @@ lemma pow_2_64: \<open>(2::nat) ^ 64 = 18446744073709551616\<close>
 
 sepref_register upper_bound_on_dom op_fmap_empty
 
-sepref_register remap_polys_l
+definition full_checker_l2
+  :: \<open>llist_polynomial \<Rightarrow> (nat, llist_polynomial) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
+    (string code_status \<times> _) nres\<close>
+where
+  \<open>full_checker_l2 spec A st = do {
+    spec' \<leftarrow> full_normalize_poly spec;
+    (b, \<V>, A) \<leftarrow> remap_polys_l spec {} A;
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      PAC_checker_l spec' (\<V>, A) b st
+    }
+  }\<close>
 
+sepref_register remap_polys_l
+find_theorems full_checker_l2
 sepref_definition full_checker_l_impl
-  is \<open>uncurry2 full_checker_l\<close>
+  is \<open>uncurry2 full_checker_l2\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding full_checker_l_def hs.fold_custom_empty
     union_vars_poly_alt_def[symmetric]
     PAC_checker_l_alt_def
+    full_checker_l2_def
   by sepref
 
 sepref_definition PAC_empty_impl
@@ -274,117 +367,35 @@ lemma [code]: \<open>hashcode s = hashcode_literal' s\<close>
 
 text \<open>We compile Pastèque in \<^file>\<open>EPAC_Checker_MLton.thy\<close>.\<close>
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-  int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
+  int_of_integer Del nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
   Extension hashcode_literal' version
   in SML_imp module_name PAC_Checker
+  file_prefix checker
 
 
-section \<open>Correctness theorem\<close>
+compile_generated_files _
+  external_files
+    \<open>code/no_sharing/parser.sml\<close>
+    \<open>code/no_sharing/pasteque.sml\<close>
+    \<open>code/no_sharing/pasteque.mlb\<close>
+  where \<open>fn dir =>
+  let
 
-context poly_embed
-begin
+    val exec = Generated_Files.execute (Path.append (Path.append dir (Path.basic "code")) (Path.basic "no_sharing"));
+    val _ = exec \<open>Copy files\<close> "ls" |> @{print}
+    val _ = exec \<open>Copy files\<close> "ls .." |> @{print}
+    val _ = exec \<open>Copy files\<close> "pwd" |> @{print}
+    val _ = exec \<open>Copy files\<close> ("cp ../checker.ML .");
+    val _ = exec \<open>Copy files\<close>
+      ("cp ../checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/no_sharing/checker.ML"));
+      val _ =
+        exec \<open>Compilation\<close>
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
+            "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
+            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
+    in () end\<close> 
 
-definition fully_epac_assn where
-  \<open>fully_epac_assn = (list_assn
-        (hr_comp (pac_step_rel_assn uint64_nat_assn poly_assn string_assn)
-          (p2rel
-            (\<langle>nat_rel,
-             fully_unsorted_poly_rel O
-             mset_poly_rel, var_rel\<rangle>pac_step_rel_raw))))\<close>
-
-
-text \<open>
-
-Below is the full correctness theorems. It basically states that:
-
-  \<^enum> assuming that the input polynomials have no duplicate variables
-
-
-Then:
-
-\<^enum> if the checker returns \<^term>\<open>CFOUND\<close>, the spec is in the ideal
-  and the PAC file is correct
-
-\<^enum> if the checker returns \<^term>\<open>CSUCCESS\<close>, the PAC file is correct (but
-there is no information on the spec, aka checking failed)
-
-\<^enum> if the checker return \<^term>\<open>CFAILED err\<close>, then checking failed (and
-\<^term>\<open>err\<close> \<^emph>\<open>might\<close> give you an indication of the error, but the correctness
-theorem does not say anything about that).
-
-
-The input parameters are:
-
-\<^enum> the specification polynomial represented as a list
-
-\<^enum> the input polynomials as hash map (as an array of option polynomial)
-
-\<^enum> a represention of the PAC proofs.
-
-\<close>
-
-lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
-  \<open>(uncurry2 full_checker_l_impl,
-     uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
-    \<in> (full_poly_assn)\<^sup>k *\<^sub>a (full_poly_input_assn)\<^sup>d *\<^sub>a (fully_epac_assn)\<^sup>k \<rightarrow>\<^sub>a hr_comp
-              (hr_comp  (status_assn raw_string_assn \<times>\<^sub>a hs.assn string_assn \<times>\<^sub>a polys_assn)
-             {((err, \<V>, A), err', \<V>', A').
-              ((err, \<V>, A), err', \<V>', A')
-              \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r
-               {(xs, ys).
-              (xs, ys) \<in> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<and>
-              (\<not> is_cfailed err \<longrightarrow> (\<forall>i\<in>#dom_m xs. vars_llist (the (fmlookup xs i)) \<subseteq> \<V>))}})
-        {((st, G), st', G').  (st, st') \<in> status_rel \<and>  (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
-  using
-    full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
-      FCOMP full_checker_spec',
-      unfolded full_poly_assn_def[symmetric]
-        full_poly_input_assn_def[symmetric]
-        fully_epac_assn_def[symmetric]
-        code_status_assn_def[symmetric]
-        full_vars_assn_def[symmetric]
-        polys_rel_full_polys_rel
-        hr_comp_prod_conv
-        full_polys_assn_def[symmetric]]
-      hr_comp_Id2
-   by auto
-
-text \<open>
-
-It would be more efficient to move the parsing to Isabelle, as this
-would be more memory efficient (and also reduce the TCB). But now
-comes the fun part: It cannot work. A stream (of a file) is consumed
-by side effects. Assume that this would work. The code could look like:
-
-\<^term>\<open>
-  let next_token = read_file file
-  in f (next_token)
-\<close>
-
-This code is equal to (in the HOL sense of equality):
-\<^term>\<open>
-  let _ = read_file file;
-      next_token = read_file file
-  in f (next_token)
-\<close>
-
-However, as an hypothetical \<^term>\<open>read_file\<close> changes the underlying stream, we would get the next
-token. Remark that this is already a weird point of ML compilers. Anyway, I see currently two
-solutions to this problem:
-
-\<^enum> The meta-argument: use it only in the Refinement Framework in a setup where copies are
-disallowed. Basically, this works because we can express the non-duplication constraints on the type
-level. However, we cannot forbid people from expressing things directly at the HOL level.
-
-\<^enum> On the target language side, model the stream as the stream and the position. Reading takes two
-arguments. First, the position to read. Second, the stream (and the current position) to read. If
-the position to read does not match the current position, return an error. This would fit the
-correctness theorem of the code generation (roughly ``if it terminates without exception, the answer
-is the same''), but it is still unsatisfactory.
-\<close>
-
-end
 
 end

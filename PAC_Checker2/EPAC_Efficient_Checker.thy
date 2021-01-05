@@ -1,6 +1,8 @@
 theory EPAC_Efficient_Checker
   imports EPAC_Checker EPAC_Perfectly_Shared
 begin
+hide_const (open) PAC_Checker.full_checker_l
+hide_fact (open) PAC_Checker.full_checker_l_def
 
 type_synonym shared_poly = \<open>(nat list \<times> int) list\<close>
 
@@ -1050,16 +1052,16 @@ proof -
 qed
 
 
-lemma full_checker_l_prep_full_checker_l2:
+lemma full_checker_l_prep_full_checker_l:
   assumes \<open>(spec, spec')\<in>Id\<close> \<open>(st, st')\<in>Id\<close> \<open>(A,A')\<in>Id\<close>
   shows \<open>full_checker_l_prep spec A st \<le>\<Down>{((b, A, st), (b', A', st')).
     (\<not>is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st')\<in>Id) \<and> (b,b')\<in>Id}
-    (full_checker_l2 spec' A' st')\<close>
+    (full_checker_l spec' A' st')\<close>
 proof -
   have id: \<open>f=g \<Longrightarrow> f \<le>\<Down>Id g\<close> for f g
     by auto
   show ?thesis
-    unfolding full_checker_l_prep_def full_checker_l2_def
+    unfolding full_checker_l_prep_def full_checker_l_def
     apply (refine_rcg remap_polys_l2_with_err_polys_l_with_err
       PAC_checker_l2_PAC_checker_l remap_polys_l2_with_err_polys_l_with_err)
     apply (rule id)
@@ -1077,4 +1079,11 @@ proof -
     done
 qed
 
+
+lemma full_checker_l_prep_full_checker_l2':
+  shows \<open>(uncurry2 full_checker_l_prep, uncurry2 full_checker_l) \<in> (Id \<times>\<^sub>r Id) \<times>\<^sub>r Id \<rightarrow>\<^sub>f
+    \<langle>{((b, A, st), (b', A', st')). (\<not>is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st')\<in>Id) \<and> (b,b')\<in>Id}\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI full_checker_l_prep_full_checker_l[THEN order_trans])
+
 end
+
