@@ -103,7 +103,6 @@ definition linear_combi_l where
            ASSERT(vars_llist r \<subseteq> \<V>);
            if q\<^sub>0 = [([], 1)]
            then do {
-             ASSERT(vars_llist r \<subseteq> \<V>);
              pq \<leftarrow> add_poly_l (p, r);
              RETURN (pq, tl xs, CSUCCESS)
            }

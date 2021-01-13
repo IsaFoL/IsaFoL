@@ -432,7 +432,7 @@ lemma import_poly_no_newS_import_poly_no_new:
 
 lemma import_poly_no_new_spec:
   shows \<open>import_poly_no_new \<A> xs \<le> \<Down> Id
-    (SPEC(\<lambda>(new, ys). \<not>new \<longrightarrow> (ys = xs \<and> vars_llist xs \<subseteq> set_mset \<A>)))\<close>
+    (SPEC(\<lambda>(new, ys). \<not>new \<longrightarrow> ys = xs \<and> vars_llist xs \<subseteq> set_mset \<A>))\<close>
 proof -
   define I where
     [simp]: \<open>I = (\<lambda>(new, ys, zs). \<not>new \<longrightarrow> (xs = zs @ ys \<and> vars_llist zs \<subseteq> set_mset \<A>))\<close>

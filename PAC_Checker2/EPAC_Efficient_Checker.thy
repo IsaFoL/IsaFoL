@@ -346,12 +346,6 @@ proof -
     if \<open>vars_llist xa \<subseteq> set_mset \<V>\<close> \<open>xa = q\<close>
     for xa \<V> q
     using that by auto
-  have  [refine0]: \<open>\<Down> Id (SPEC (\<lambda>(b, xs'). (\<not> b \<longrightarrow> xs' = xa \<and> vars_llist xa \<subseteq> set_mset \<V>)))
-    \<le> SPEC (\<lambda>c. (c, q) \<in> {((b, c), d). \<not>b \<longrightarrow> c = d \<and> d = q})\<close>
-    if \<open>vars_llist xa \<subseteq> set_mset \<V>\<close> \<open>xa = q\<close>
-    for xa \<V> q
-    using that apply auto
-    sorry
   show ?thesis
     using assms
     unfolding linear_combi_l_prep2_def linear_combi_l_alt_def normalize_poly_shared_def nres_monad3
