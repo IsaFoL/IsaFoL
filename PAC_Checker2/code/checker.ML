@@ -135,9 +135,12 @@ end (*struct Uint64*)
         src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
         dst = dst})
 
-    fun array_nth_oo v a i () = Array.sub(a,IntInf.toInt i) handle Subscript => v | Overflow => v
+    fun array_nth_oo v a i () = if IntInf.toInt i >= Array.length a then v 
+       else Array.sub(a,IntInf.toInt i) handle Overflow => v
     fun array_upd_oo f i x a () = 
-      (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
+      if IntInf.toInt i >= Array.length a then f ()
+      else
+        (Array.update(a,IntInf.toInt i,x); a) handle Overflow => f ()
 
 
 
@@ -591,21 +594,32 @@ val ord_literal =
 
 fun def_hashmap_size_literal uu = nat_of_integer (10 : IntInf.int);
 
-fun foldl f a [] = a
-  | foldl f a (x :: xs) = foldl f (f a x) xs;
+fun int_of_nat n = Int_of_integer (integer_of_nat n);
+
+fun string_nth s x =
+  (String.sub (s, IntInf.toInt ((integer_of_int (int_of_nat x)))));
+
+fun hashcode_char c = (Word32.fromInt  o (Char.ord)) c;
+
+fun string_size x = nat_of_integer ((IntInf.fromInt ((String.size (x)))));
+
+fun size_literal x = string_size x;
+
+fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+fun hashcode_eff s h i =
+  (if less_eq_nat (size_literal s) i then h
+    else hashcode_eff s
+           (Word32.+ (Word32.* (h, Word32.fromLargeInt (IntInf.toLarge (33 : IntInf.int))), hashcode_char
+              (string_nth s i)))
+           (plus_nat i one_nat));
 
 fun hashcode_literal s =
-  foldl (fn h => fn x =>
-          Word32.+ (Word32.* (h, Word32.fromLargeInt (IntInf.toLarge (33 : IntInf.int))), (Word32.fromInt 
-            o (Char.ord))
-            x))
-    (Word32.fromLargeInt (IntInf.toLarge (5381 : IntInf.int)))
-    (String.explode s);
-
-fun hashcode_literala s = hashcode_literal s;
+  hashcode_eff s (Word32.fromLargeInt (IntInf.toLarge (5381 : IntInf.int)))
+    zero_nata;
 
 val hashable_literal =
-  {hashcode = hashcode_literala, def_hashmap_size = def_hashmap_size_literal} :
+  {hashcode = hashcode_literal, def_hashmap_size = def_hashmap_size_literal} :
   string hashable;
 
 fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
@@ -651,8 +665,6 @@ datatype ('a, 'b, 'c) pac_step = CL of ('a * 'c) list * 'c * 'a |
   Extension of 'c * 'b * 'a | Del of 'c;
 
 datatype memory_allocation = Allocated | Mem_Out;
-
-fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nat;
 
@@ -892,8 +904,6 @@ fun op_list_tl x = tl x;
 fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun uint64_of_int i = Uint64.fromInt (integer_of_int i);
-
-fun int_of_nat n = Int_of_integer (integer_of_nat n);
 
 fun uint64_of_nat x = (uint64_of_int o int_of_nat) x;
 
@@ -1195,7 +1205,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "60b2fc2c";
+val version : string = "fb2be460";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false

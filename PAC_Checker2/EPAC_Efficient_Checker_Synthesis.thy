@@ -2605,12 +2605,128 @@ code_printing constant arl_get_u' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.su
 definition uint32_of_uint64' where
   [symmetric, code]: "uint32_of_uint64' = uint32_of_uint64"
 code_printing constant uint32_of_uint64' \<rightharpoonup> (SML) "Uint64.toWord32 ((_))"
+thm hashcode_literal_def[unfolded hashcode_list_def]
 
-export_code(*  PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-   * int_of_integer Del CL nat_of_integer String.implode remap_polys_l2_with_err_s_impl
-   * union_vars_poly_impl empty_vars_impl PAC_checker_l_step_s_impl
-   * full_checker_l_s2_impl check_step_impl CSUCCESS
-    * Extension hashcode_literal' version *)
+definition string_nth where
+  \<open>string_nth s x = literal.explode s ! x\<close>
+
+definition string_nth' where
+  \<open>string_nth' s x = literal.explode s ! nat x\<close>
+
+lemma [code]: \<open>string_nth s x = string_nth' s (int x)\<close>
+  unfolding string_nth_def string_nth'_def
+  by auto
+
+definition string_size :: \<open>String.literal\<Rightarrow>nat\<close> where
+  \<open>string_size s = size s\<close>
+
+definition string_size' where
+  [symmetric,code]: \<open>string_size' = string_size\<close>
+
+lemma [code]: \<open>size = string_size\<close>
+  unfolding string_size_def ..
+
+code_printing constant string_nth' \<rightharpoonup> (SML) "(String.sub/ ((_),/ IntInf.toInt ((integer'_of'_int ((_))))))"
+code_printing constant string_size' \<rightharpoonup> (SML) "nat'_of'_integer ((IntInf.fromInt ((String.size ((_))))))"
+
+function hashcode_eff where 
+  [simp del]: \<open>hashcode_eff s h i = (if i \<ge> size s then h else hashcode_eff s (h * 33 + hashcode (s ! i)) (i+1))\<close>
+  by auto
+termination
+  by (relation \<open>measure (\<lambda>(s,h,i). size s -i)\<close>)
+    auto
+
+definition hashcode_eff' where
+  \<open>hashcode_eff' s h i = hashcode_eff (String.explode s) h i\<close>
+
+lemma hashcode_eff'_code[code]:
+   \<open>hashcode_eff' s h i = (if i \<ge> size s then h else hashcode_eff' s (h * 33 + hashcode (string_nth s i)) (i+1))\<close>
+  unfolding hashcode_eff'_def string_nth_def  hashcode_eff.simps[symmetric] size_literal.rep_eq
+  ..
+
+lemma [simp]: \<open>length s \<le> i \<Longrightarrow> hashcode_eff s h i = h\<close>
+  by (subst hashcode_eff.simps)
+   auto
+lemma [simp]: \<open>hashcode_eff (a # s) h (Suc i) = hashcode_eff (s) h (i)\<close>
+  apply (induction "s" h "i" rule: hashcode_eff.induct)
+  subgoal
+    apply (subst (2) hashcode_eff.simps)
+    apply (subst (1) hashcode_eff.simps)
+    apply auto
+    done
+  done
+
+
+lemma hashcode_eff_def[unfolded hashcode_eff'_def[symmetric], code]:
+  \<open>hashcode s = hashcode_eff (String.explode s)5381 0\<close> for s::String.literal
+proof -
+  have H: \<open>length (literal.explode s) = size s\<close>
+    by (simp add: size_literal.rep_eq)
+  have [simp]: \<open>foldl (\<lambda>h xa. h * 33 + hashcode ((xs @ [x]) ! xa)) 5381 [0..<length xs] =
+    foldl (\<lambda>h x. h * 33 + hashcode (xs ! x)) 5381 [0..<length xs]\<close> for xs x
+    by (rule foldl_cong) auto
+  have \<open>foldl (\<lambda>h x. h * 33 + hashcode x) 5381 (s) =
+    foldl (\<lambda>h x. h * 33 + hashcode (s ! x)) 5381
+     [0..<length (s)]\<close> for s
+    by (induction s rule: rev_induct) auto
+  then have 0: \<open>hashcode s = foldl (\<lambda>h x. h * 33 + hashcode (string_nth s x)) 5381 [0..<size s]\<close>
+    unfolding string_nth_def
+    unfolding hashcode_literal_def[unfolded hashcode_list_def] size_literal.rep_eq
+    by blast
+
+  have upt: \<open>\<not> Suc (length s) \<le> i \<Longrightarrow> [i..<Suc (length s)] = i # [Suc i..<Suc (length s)]\<close> for i s
+    by (meson leI upt_rec)
+
+  have [simp]: \<open>foldl (\<lambda>h x. h * 33 + hashcode ((a # s) ! x)) h [Suc i..<Suc (length s)] =
+    foldl (\<lambda>h x. h * 33 + hashcode (s ! x)) h [i..<(length s)]\<close> for a s i h
+  proof -
+    have \<open>foldl (\<lambda>h x. h * 33 + hashcode ((a # s) ! x)) h [Suc i..<Suc (length s)] = 
+      foldl (\<lambda>h x. h * 33 + hashcode ((a # s) ! x)) h (map Suc [i..<(length s)])\<close>
+      using map_Suc_upt by presburger
+    also have \<open>\<dots> = foldl (\<lambda>aa x. aa * 33 + hashcode (s ! x)) h [i..<length s]\<close>
+      unfolding foldl_map by (rule foldl_cong) auto
+    finally show ?thesis .
+  qed
+   
+  have H': \<open>foldl (\<lambda>h x. h * 33 + hashcode (s ! x)) h [i..<length s] =
+    hashcode_eff s h i\<close> for i h s
+    unfolding string_nth_def H[symmetric]
+    supply [simp del] = upt.simps
+    apply (induction \<open>s\<close> arbitrary: h)
+    subgoal
+      by (subst hashcode_eff.simps)
+       auto
+    subgoal
+      by (subst hashcode_eff.simps)
+       (auto simp: upt)
+    done
+  show ?thesis
+    unfolding 0 H[symmetric] string_nth_def H'
+    ..
+qed
+
+export_code "hashcode :: String.literal \<Rightarrow> _" 
+  in SML_imp module_name PAC_Checker
+(*make array_blit compatible with unsafe*)
+code_printing code_module "array_blit" \<rightharpoonup> (SML)
+    \<open>
+   fun array_blit src si dst di len = (
+      src=dst andalso raise Fail ("array_blit: Same arrays");
+      ArraySlice.copy {
+        di = IntInf.toInt di,
+        src = ArraySlice.slice (src,IntInf.toInt si,SOME (IntInf.toInt len)),
+        dst = dst})
+
+    fun array_nth_oo v a i () = if IntInf.toInt i >= Array.length a then v 
+       else Array.sub(a,IntInf.toInt i) handle Overflow => v
+    fun array_upd_oo f i x a () = 
+      if IntInf.toInt i >= Array.length a then f ()
+      else
+        (Array.update(a,IntInf.toInt i,x); a) handle Overflow => f ()
+
+\<close>
+
+export_code
     full_checker_l_s2_impl int_of_integer Del CL nat_of_integer String.implode remap_polys_l2_with_err_s_impl
     PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
     fully_normalize_poly_impl empty_shared_vars_int_impl

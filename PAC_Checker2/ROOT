@@ -17,6 +17,7 @@ session PAC_Checker2 (AFP) = "Sepref_IICF" +
     EPAC_Checker_Init
     EPAC_Version
     EPAC_Checker_Synthesis
+    EPAC_Efficient_Checker_Synthesis
   theories [condition=ISABELLE_MLTON]
     EPAC_Checker_MLton
   document_files
