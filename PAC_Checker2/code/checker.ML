@@ -1195,7 +1195,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "013408eb";
+val version : string = "60b2fc2c";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
@@ -2239,17 +2239,29 @@ fun linear_combi_l_prep_s_impl x =
                           a2b bib)
                        ()) ())
                        (fn xb =>
-                         (fn f_ => fn () => f_
-                           ((normalize_poly_sharedS_impl bia a1b) ()) ())
-                           (fn (_, a2c) =>
-                             (fn f_ => fn () => f_
-                               ((mult_poly_full_s_impl bia a2c (the xb)) ()) ())
-                               (fn x_g =>
-                                 (fn f_ => fn () => f_
-                                   ((add_poly_l_prep_impl bia (a1, x_g)) ()) ())
-                                   (fn x_h =>
-                                     (fn () =>
-                                       (x_h, (op_list_tl a1a, CSUCCESS))))))))
+                         let
+                           val x_d = the xb;
+                         in
+                           (if equal_lista
+                                 (equal_prod (equal_list equal_literal)
+                                   equal_int)
+                                 a1b (op_list_prepend ([], one_int) [])
+                             then (fn f_ => fn () => f_
+                                    ((add_poly_l_prep_impl bia (a1, x_d)) ())
+                                    ())
+                                    (fn x_g =>
+                                      (fn () =>
+(x_g, (op_list_tl a1a, CSUCCESS))))
+                             else (fn f_ => fn () => f_
+                                    ((normalize_poly_sharedS_impl bia a1b) ())
+                                    ())
+                                    (fn (_, a2c) =>
+                                      (fn f_ => fn () => f_
+((mult_poly_full_s_impl bia a2c x_d) ()) ())
+(fn x_h =>
+  (fn f_ => fn () => f_ ((add_poly_l_prep_impl bia (a1, x_h)) ()) ())
+    (fn x_i => (fn () => (x_i, (op_list_tl a1a, CSUCCESS)))))))
+                         end))
                 ()
             end)
         end)

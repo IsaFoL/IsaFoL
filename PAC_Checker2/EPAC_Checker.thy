@@ -101,12 +101,20 @@ definition linear_combi_l where
            ASSERT(fmlookup A i \<noteq> None);  
            let r = the (fmlookup A i);
            ASSERT(vars_llist r \<subseteq> \<V>);
-           q \<leftarrow> full_normalize_poly (q\<^sub>0);
-           ASSERT(vars_llist q \<subseteq> \<V>);
-           pq \<leftarrow> mult_poly_full q r;
-           ASSERT(vars_llist pq \<subseteq> \<V>);
-           pq \<leftarrow> add_poly_l (p, pq);
-           RETURN (pq, tl xs, CSUCCESS)
+           if q\<^sub>0 = [([], 1)]
+           then do {
+             ASSERT(vars_llist r \<subseteq> \<V>);
+             pq \<leftarrow> add_poly_l (p, r);
+             RETURN (pq, tl xs, CSUCCESS)
+           }
+           else do {
+             q \<leftarrow> full_normalize_poly (q\<^sub>0);
+             ASSERT(vars_llist q \<subseteq> \<V>);
+             pq \<leftarrow> mult_poly_full q r;
+             ASSERT(vars_llist pq \<subseteq> \<V>);
+             pq \<leftarrow> add_poly_l (p, pq);
+             RETURN (pq, tl xs, CSUCCESS)
+          }
          }
       })
      ([], xs, CSUCCESS)
@@ -664,7 +672,7 @@ lemma full_normalize_poly_full_spec2:
     \<open>full_normalize_poly p \<le> \<Down>{(xs, ys). (xs, ys) \<in> sorted_poly_rel O mset_poly_rel \<and> vars_llist xs \<subseteq> vars_llist p}
     (SPEC (\<lambda>s.  s - (p'')\<in> ideal polynomial_bool \<and> vars s \<subseteq> vars p''))\<close>
 proof -
-  obtain p' q' where
+  obtain p' where
     pq: \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
     \<open>(p', p'') \<in> mset_poly_rel\<close>
     using assms by auto
@@ -916,7 +924,16 @@ proof -
     show ?thesis
       using 6 by (auto simp: algebra_simps)
   qed
-
+  have Hf2': \<open>(\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) + the (fmlookup B bb) - xf \<in> More_Modules.ideal polynomial_bool\<close>
+    if 1: \<open>(\<Sum>(p, n)\<leftarrow>cs. the (fmlookup B n) * p) - r \<in> More_Modules.ideal polynomial_bool\<close> and
+      2: \<open>xd - the (fmlookup B bb) \<in> More_Modules.ideal polynomial_bool\<close> and
+      4: \<open>xf - (r + xd)  \<in> More_Modules.ideal polynomial_bool\<close>
+    for a ba bb r ys cs ysa ad ysc x y xa xb xc xd xe xf
+    using Hf2[of cs r xd 1 bb 1 xf] that by (auto simp: ideal.span_zero)
+ 
+  have [dest!]: \<open>([([], 1)], ad) \<in> raw_term_rel \<Longrightarrow> ad = 1\<close> for ad
+    by (auto simp: raw_term_rel_def fully_unsorted_poly_list_rel_def list_mset_rel_def Const_1_eq_1
+        br_def list_rel_split_right_iff unsorted_term_poly_list_rel_def mset_poly_rel_def)
 
   have H[simp]: \<open>length ys < length xs \<Longrightarrow>
     i < length xs' - length ys \<longleftrightarrow> (i < length xs' - Suc (length ys) \<or> i = length xs' - length ys - 1)\<close> for ys i
@@ -946,7 +963,26 @@ proof -
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
       subgoal
         by (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
-        apply (use assms(6) in auto)
+          apply ((use assms(6) in \<open>solves auto\<close>)+)[2]
+      subgoal for a b aa ba ab bb
+          apply (cases aa; cases b)
+           apply (simp only: prod.simps; clarify)
+          apply (simp only: prod.simps; clarify)
+          subgoal for ac bc list aaa baa r ys
+            using param_nth[of \<open>length ys\<close> xs' \<open>length ys\<close> xs \<open>raw_term_rel \<times>\<^sub>r nat_rel\<close>]
+            apply (cases \<open>xs' ! length ys\<close>)
+            apply (auto intro!: add_poly_full_spec2[THEN order_trans, unfolded term_rel_def[symmetric]
+                  raw_term_rel_def[symmetric]] simp: conc_fun_RES)
+            apply (rule_tac x=ysa in exI)
+            apply auto
+               apply (auto simp: f_def take_Suc_conv_app_nth list_rel_imp_same_length[symmetric] single_valued_poly)
+            apply (auto dest!: sorted_poly_rel_vars_llist[unfolded term_rel_def[symmetric]] 
+                fully_unsorted_poly_rel_vars_subset_vars_llist[unfolded raw_term_rel_def[symmetric]]
+                simp: \<V> ideal.span_zero list_rel_append1 list_rel_split_right_iff
+                list_rel_imp_same_length
+                intro!: Hf2')
+            done
+        done
         apply (clarsimp simp: list_rel_split_right_iff list_rel_append1 neq_Nil_conv list_rel_imp_same_length)
         apply (rule_tac P = \<open>(x, fst (hd (drop (length xs' - length (fst (snd s))) xs'))) \<in> raw_term_rel\<close> in TrueE)
         apply (auto simp: list_rel_imp_same_length)[2]
@@ -1020,7 +1056,7 @@ proof -
     apply (auto simp: conc_fun_RES bind_RES_RETURN_eq)
     done
 qed
-thm remap_polys_l_remap_polys
+
 
 definition remap_polys_with_err :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
   \<open>remap_polys_with_err spec spec0 = (\<lambda>\<V> A. do{
@@ -1373,11 +1409,11 @@ proof -
      subgoal for y
        apply (induction x2c y  rule: list_rel_induct)
        apply (auto simp: list_mset_rel_def br_def)
-       apply (rule_tac b = \<open>(aa, - ba) # map (\<lambda>(a, b). (a, - b)) l'\<close> in relcompI)
+       apply (rename_tac a b aa l l', rule_tac b = \<open>(aa, - b) # map (\<lambda>(a, b). (a, - b)) l'\<close> in relcompI)
        by auto
      done
   have [simp]: \<open>(\<lambda>x. fst (case x of (a, b) \<Rightarrow> (a, - b))) = fst\<close>
-    by (auto intro: ext)
+    by auto
 
   have uminus: \<open>(x2c, x2a) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
        (map (\<lambda>(a, b). (a, - b)) x2c,

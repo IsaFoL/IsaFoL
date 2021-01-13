@@ -966,11 +966,6 @@ lemma mult_poly_full_s_mult_poly_full_prop:
   unfolding mult_poly_full_s_def mult_poly_full_prop_def
   by (refine_rcg mult_poly_s_mult_poly_raw_prop assms normalize_poly_s_normalize_poly_s)
    (use assms in auto)
-
-thm linear_combi_l_prep_def
-thm linear_combi_l_def
-thm check_linear_combi_l_def
-
 definition (in -)linear_combi_l_prep_s
   :: \<open>nat \<Rightarrow> _ \<Rightarrow> (nat, string) shared_vars \<Rightarrow> _ \<Rightarrow> (sllist_polynomial \<times> (llist_polynomial \<times> nat) list \<times> string code_status) nres\<close>
 where
@@ -987,10 +982,16 @@ where
       } else do {
         ASSERT(fmlookup A i \<noteq> None);
         let r = the (fmlookup A i);
-        (no_new, q) \<leftarrow> normalize_poly_sharedS \<V> (q);
-        q \<leftarrow> mult_poly_full_s \<V> q r;
-        pq \<leftarrow> add_poly_l_s \<V> (p, q);
-        RETURN (pq, tl xs, CSUCCESS)
+        if q = [([], 1)]
+        then do {
+          pq \<leftarrow> add_poly_l_s \<V> (p, r);
+          RETURN (pq, tl xs, CSUCCESS)}
+        else do {
+          (no_new, q) \<leftarrow> normalize_poly_sharedS \<V> (q);
+          q \<leftarrow> mult_poly_full_s \<V> q r;
+          pq \<leftarrow> add_poly_l_s \<V> (p, q);
+          RETURN (pq, tl xs, CSUCCESS)
+        }
         }
         })
         ([], xs, CSUCCESS)
@@ -1036,6 +1037,10 @@ proof -
     subgoal using assms by auto
     subgoal by auto
     subgoal using fmap_rel_nat_rel_dom_m[OF assms(2)] unfolding in_dom_m_lookup_iff by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
     subgoal using assms by auto
     subgoal by auto
     subgoal using assms by auto
@@ -2625,11 +2630,11 @@ compile_generated_files _
     val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
     val _ = exec \<open>Copy files\<close>
       ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
-      val _ =
+(*       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
             "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
-            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
+            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb"); *)
     in () end\<close>
 
 

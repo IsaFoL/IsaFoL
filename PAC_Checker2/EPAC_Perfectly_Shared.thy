@@ -76,7 +76,6 @@ proof -
       using perfect[of i j] that
       using indom_mI[of V i] map[of i] indom_mI[of V j] map[of j] indom_mI[of V' v]
       apply (auto simp: eq_commute[of \<open>Some _\<close> \<open>fmlookup V _\<close>])
-      apply auto
       done
   qed
 qed
@@ -433,7 +432,7 @@ lemma import_poly_no_newS_import_poly_no_new:
 
 lemma import_poly_no_new_spec:
   shows \<open>import_poly_no_new \<A> xs \<le> \<Down> Id
-    (SPEC(\<lambda>(new, ys). \<not>new \<longrightarrow> ys = xs \<and> vars_llist xs \<subseteq> set_mset \<A>))\<close>
+    (SPEC(\<lambda>(new, ys). \<not>new \<longrightarrow> (ys = xs \<and> vars_llist xs \<subseteq> set_mset \<A>)))\<close>
 proof -
   define I where
     [simp]: \<open>I = (\<lambda>(new, ys, zs). \<not>new \<longrightarrow> (xs = zs @ ys \<and> vars_llist zs \<subseteq> set_mset \<A>))\<close>

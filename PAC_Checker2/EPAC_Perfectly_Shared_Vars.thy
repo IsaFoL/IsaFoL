@@ -280,9 +280,7 @@ lemma nat_of_uint64_uint64_of_nat: \<open>b \<le> uint64_max \<Longrightarrow> n
   unfolding uint64_of_nat_def uint64_max_def
   apply simp
   apply transfer
-  apply (auto simp: unat_def)
-  apply transfer
-  by (auto simp: less_upper_bintrunc_id)
+  by (auto simp: take_bit_nat_eq_self)
 
 lemma length_arl_u_hnr[sepref_fr_rules]:
   \<open>(length_arl_u_code, RETURN o length_uint64_nat) \<in>

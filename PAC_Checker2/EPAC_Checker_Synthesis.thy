@@ -390,11 +390,11 @@ compile_generated_files _
     val _ = exec \<open>Copy files\<close> ("cp ../checker.ML .");
     val _ = exec \<open>Copy files\<close>
       ("cp ../checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/no_sharing/checker.ML"));
-      val _ =
+(*       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
             "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
-            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
+            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb"); *)
     in () end\<close> 
 
 
