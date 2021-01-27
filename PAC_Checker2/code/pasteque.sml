@@ -115,8 +115,8 @@ fun inside_loop [polys, pac, spec] =
           while (TextIO.lookahead(istream) <> NONE andalso PAC_Checker.is_cfailed (first (!state)) = false)
                 do
                 let
-                  val st = PAC_Parser.parse_step istream;
-                  val (b, (vars, a)) = !state;
+                    val st = PAC_Parser.parse_step istream;
+                    val (b, (vars, a)) = !state;
                 in
                   state := PAC_Checker.pAC_checker_l_step_s_impl spec (b, (vars, a)) st ()
                 end;
