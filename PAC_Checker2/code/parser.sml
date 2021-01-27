@@ -173,9 +173,11 @@ exception Parser_Error of string
         val _ = print2 "parse_var\n"
         val i = ref 0;
         fun parse_aux () =
-            let val c = TextIO.lookahead istream
+            let
+                val _ = skip_spaces istream;
+                val c = TextIO.lookahead istream;
             in
-              if (is_space (valOf c) orelse is_separator (valOf c))
+              if (is_separator (valOf c))
               then (print2 ("var sep = '" ^ String.implode [(valOf c)] ^ "'"))
               else
                 case TextIO.input1(istream) of
@@ -200,6 +202,7 @@ exception Parser_Error of string
       let
         val _ = print2 "parse_vars_only_monom\n"
         val vars = ref [];
+        val _ = skip_spaces istream;
         fun parse_aux () =
             let
                 val c = TextIO.lookahead istream;
@@ -208,11 +211,11 @@ exception Parser_Error of string
                  orelse c = SOME #"-" orelse c = SOME #"+"
                  orelse c = SOME #")"
               then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf c] ^ "\n"))
-              else if TextIO.lookahead(istream) = SOME #"*"
+              else if c = SOME #"*"
               then
-                (ignore (TextIO.input1(istream));
-                 vars := parse_var istream :: (!vars);
-                 parse_aux ())
+                  (ignore (TextIO.input1(istream));
+                   vars := parse_var istream :: (!vars);
+                   parse_aux ())
               else
                 (vars := parse_var istream :: (!vars);
                  parse_aux ())
@@ -234,6 +237,7 @@ exception Parser_Error of string
         (
           next_token := TextIO.lookahead(istream);
           print2 ("parse_full_monom/next token 1 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
+          skip_spaces istream;
           (case !next_token of
                SOME #"-" => (ignore (TextIO.input1 istream); num := ~1)
              | SOME #"+" => ignore (TextIO.input1 istream)
@@ -285,10 +289,6 @@ exception Parser_Error of string
             SOME #"d" => (print2 "rule d:\n"; "d")
           | SOME #"%" =>
             (ignore (TextIO.input1 istream); print2 "rule %:\n"; "%:")
-          | SOME #"+" =>
-            (ignore (TextIO.input1 istream); print2 "rule +:\n"; "+:")
-          | SOME #"*" =>
-            (ignore (TextIO.input1 istream); print2 "rule *:\n";"*:")
           | SOME #"=" =>
             (print2 "rule =\n"; "=")
           | SOME c => raise Parser_Error ("unrecognised rule '" ^ String.implode [c] ^ "'")
@@ -348,7 +348,7 @@ exception Parser_Error of string
         val lbl = parse_nat istream;
         val _ = print2 ("\n\nlabel = " ^ IntInf.toString (Uint64.toInt lbl));
         val rule = parse_rule istream;
-        val _ = print2 ("rule = " ^ rule);
+        val _ = print2 ("\nrule = " ^ rule);
       in
           if  rule = "%:"
           then
