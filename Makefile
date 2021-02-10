@@ -79,6 +79,7 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 doc:
 	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE2020_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2021_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2020" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2020_version)"
 
