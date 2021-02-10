@@ -5,6 +5,7 @@ ISABELLE2017=/home/zmaths/Documents/isabelle/Isabelle2017
 ISABELLE2018=/home/zmaths/Documents/isabelle/Isabelle2018
 ISABELLE2019=/home/zmaths/Documents/isabelle/Isabelle2019
 ISABELLE2020=/home/zmaths/Documents/isabelle/Isabelle2020
+ISABELLE2021=/home/zmaths/Documents/isabelle/isabelle
 ISABELLE=/home/zmaths/Documents/isabelle/isabelle
 
 # the concrete path to the isabelle executable
@@ -12,12 +13,14 @@ RUN_ISABELLE2017="$(ISABELLE2017)/bin/isabelle"
 RUN_ISABELLE2018="$(ISABELLE2018)/bin/isabelle"
 RUN_ISABELLE2019="$(ISABELLE2019)/bin/isabelle"
 RUN_ISABELLE2020="$(ISABELLE2020)/bin/isabelle"
+RUN_ISABELLE2021="$(ISABELLE2021)/bin/isabelle"
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 
 # destination of the documentation
 ISABELLE2018_HOME=/home/zmaths/.isabelle/Isabelle2018/browser_info
 ISABELLE2019_HOME=/home/zmaths/.isabelle/Isabelle2019/browser_info
 ISABELLE2020_HOME=/home/zmaths/.isabelle/Isabelle2020/browser_info
+ISABELLE2021_HOME=/home/zmaths/.isabelle/Isabelle2021-RC4/browser_info
 ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
 
 # some more paths to extract the version
@@ -51,7 +54,7 @@ Weidenbach_Book:
 	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 PAC:
-	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
+	$(RUN_ISABELLE2021) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
 
 Functional_Ordered_Resolution_Prover:
 	$(RUN_ISABELLE2019) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
