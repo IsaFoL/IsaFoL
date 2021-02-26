@@ -6,6 +6,18 @@ target triple = "x86_64-pc-linux-gnu"
 
 declare void @isabelle_llvm_free(i8*)
 declare i8* @isabelle_llvm_calloc(i64, i64)
+declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
+declare void @IsaSAT_LLVM_print_propa_impl(i64)
+declare void @IsaSAT_LLVM_print_confl_impl(i64)
+declare void @IsaSAT_LLVM_print_dec_impl(i64)
+declare void @IsaSAT_LLVM_print_res_impl(i64)
+declare void @IsaSAT_LLVM_print_lres_impl(i64)
+declare void @IsaSAT_LLVM_print_uset_impl(i64)
+declare void @IsaSAT_LLVM_print_gc_impl(i64)
 
 
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i32* }, { i32, i32 } } %x) {
@@ -906,11 +918,6 @@ define i32* @llvm_version() {
     ret i32* %xi
 }
 
-define void @IsaSAT_LLVM_print_gc_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i64* @LLVM_DS_NArray_array_grow(i64 %newsz, i64 %oldsz, i64* %src) {
 
@@ -958,17 +965,7 @@ define i32* @LLVM_DS_NArray_array_grow1(i64 %newsz, i64 %oldsz, i32* %src) {
     ret i32* %dst
 }
 
-define void @IsaSAT_LLVM_print_dec_impl(i64 %x) {
 
-  start:
-    ret void
-}
-
-define void @IsaSAT_LLVM_print_res_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i1 @LBD_LLVM_level_in_lbd_code(i32 %x, { { i64, i32* }, { i32, i32 } } %x1) {
 
@@ -1158,17 +1155,7 @@ define i64 @Sorting_Log2_word_clz_impl(i64 %x) {
     ret i64 %x3
 }
 
-define void @IsaSAT_LLVM_print_lres_impl(i64 %x) {
 
-  start:
-    ret void
-}
-
-define void @IsaSAT_LLVM_print_uset_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i64 @Sorting_Log2_word_clz_impl1(i64 %x) {
 
@@ -1280,17 +1267,7 @@ define { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64,
     ret { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } } } } %x2
 }
 
-define void @IsaSAT_LLVM_print_confl_impl(i64 %x) {
 
-  start:
-    ret void
-}
-
-define void @IsaSAT_LLVM_print_propa_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_loop_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -1369,11 +1346,6 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
     ret i32 %x1
 }
 
-define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_cheap_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -2364,11 +2336,6 @@ define { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } @
     ret { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } %a1o
 }
 
-define void @IsaSAT_Show_LLVM_print_char_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i2 @IsaSAT_Arena_LLVM_arena_used_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
@@ -2713,11 +2680,6 @@ define i1 @IsaSAT_Other_LLVM_isasat_fast_impl({ { { i64, { i64, i32* } }, { { i6
     ret i1 %x6
 }
 
-define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i64 @IsaSAT_Stats_LLVM_QUIET_PHASE_impl() {
 
@@ -4222,11 +4184,6 @@ define i64 @IsaSAT_Setup3_LLVM_wasted_bytes_st_impl({ { { i64, { i64, i32* } }, 
     ret i64 %a1o
 }
 
-define void @IsaSAT_Show_LLVM_print_open_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
@@ -4984,11 +4941,6 @@ define i64 @IsaSAT_Setup3_LLVM_get_restart_phase_imp({ { { i64, { i64, i32* } },
     ret i64 %x12
 }
 
-define void @IsaSAT_Show_LLVM_print_close_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i64 @IsaSAT_Stats_LLVM_ema_extract_value_impl({ i64, { i64, { i64, { i64, i64 } } } } %x) {
 
