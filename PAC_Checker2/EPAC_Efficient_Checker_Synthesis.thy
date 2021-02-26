@@ -1148,7 +1148,7 @@ definition check_extension_l_s_side_cond_err
   :: \<open>string \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> sllist_polynomial \<Rightarrow> string nres\<close>
 where
   \<open>check_extension_l_s_side_cond_err v p p' q = SPEC (\<lambda>_. True)\<close>
-term is_new_variable
+
 definition (in -)check_extension_l2_s
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> (nat,string)shared_vars \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynomial \<Rightarrow>
      (string code_status \<times> sllist_polynomial \<times> (nat,string)shared_vars \<times> nat) nres\<close>
@@ -1993,7 +1993,7 @@ definition check_linear_combi_l_pre_err_impl  where
   \<open>check_linear_combi_l_pre_err_impl i pd p mem =
     (if pd then ''The polynomial with id '' @ show (nat_of_uint64 i) @ '' was not found'' else '''') @
     (if p then ''The co-factor from '' @ show (nat_of_uint64 i) @ '' was empty'' else '''')@
-    (if mem then ''Memory out'' else '''')\<close>
+    (if mem then ''Memory out or new variable'' else '''')\<close>
 
 definition check_mult_l_mult_err_impl where
   \<open>check_mult_l_mult_err_impl p q pq r =

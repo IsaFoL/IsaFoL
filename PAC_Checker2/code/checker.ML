@@ -1205,7 +1205,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "aabe612a";
+val version : string = "8f639b73";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
@@ -2041,7 +2041,23 @@ fun check_linear_combi_l_pre_err_impl i pd p mem =
                Chara (false, false, false, false, false, true, false, false),
                Chara (true, true, true, true, false, true, true, false),
                Chara (true, false, true, false, true, true, true, false),
-               Chara (false, false, true, false, true, true, true, false)]
+               Chara (false, false, true, false, true, true, true, false),
+               Chara (false, false, false, false, false, true, false, false),
+               Chara (true, true, true, true, false, true, true, false),
+               Chara (false, true, false, false, true, true, true, false),
+               Chara (false, false, false, false, false, true, false, false),
+               Chara (false, true, true, true, false, true, true, false),
+               Chara (true, false, true, false, false, true, true, false),
+               Chara (true, true, true, false, true, true, true, false),
+               Chara (false, false, false, false, false, true, false, false),
+               Chara (false, true, true, false, true, true, true, false),
+               Chara (true, false, false, false, false, true, true, false),
+               Chara (false, true, false, false, true, true, true, false),
+               Chara (true, false, false, true, false, true, true, false),
+               Chara (true, false, false, false, false, true, true, false),
+               Chara (false, true, false, false, false, true, true, false),
+               Chara (false, false, true, true, false, true, true, false),
+               Chara (true, false, true, false, false, true, true, false)]
         else []);
 
 fun check_linear_combi_l_s_dom_err_impl x p =
