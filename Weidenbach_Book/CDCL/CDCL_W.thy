@@ -1673,7 +1673,7 @@ next
     assume a2: "
       (\<Union>x\<in>set_mset (learned_clss S). atms_of x) \<subseteq> (\<Union>x\<in>set_mset (init_clss S). atms_of x)"
     assume "xa \<in># D"
-    then have "atm_of xa \<in> UNION (set_mset (init_clss S)) atms_of"
+    then have "atm_of xa \<in> \<Union> (atms_of`(set_mset (init_clss S)))"
       using a2 a1 by (metis (no_types) Un_iff atm_of_lit_in_atms_of atms_of_def subset_Un_eq)
     then have "\<exists>m\<in>set_mset (init_clss S). atm_of xa \<in> atms_of m"
       by blast
@@ -4292,7 +4292,7 @@ lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply (intro conjI)
     apply (rule cdcl\<^sub>W_stgy_ex_lit_of_max_level[of S])
     using assms unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def apply auto[7]
-  using cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_stgy_no_smaller_confl inv_s by blast
+  using cdcl\<^sub>W_stgy_no_smaller_confl inv_s unfolding cdcl\<^sub>W_stgy_invariant_def by blast
 
 lemma rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant:
   assumes

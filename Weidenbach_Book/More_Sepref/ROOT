@@ -8,6 +8,7 @@ session "More_Sepref" (Weidenbach_Book) = "Isabelle_LLVM"  +
     More_Refinement_Libs
     Weidenbach_Book_Base
     Isabelle_LLVM
+    Word_Lib
   theories [quick_and_dirty = false, document = false]
     WB_More_Refinement
     WB_More_Refinement_List

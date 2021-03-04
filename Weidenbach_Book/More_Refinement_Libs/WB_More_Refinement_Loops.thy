@@ -353,7 +353,7 @@ lemma mem_set_trans:
   by auto
 
 lemma fun_rel_syn_invert:
-  \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
+  \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> (fun_rel_syn a b) \<subseteq> (a' \<rightarrow> b')\<close>
   by (auto simp: refine_rel_defs)
 
 lemma nres_rel_mono:

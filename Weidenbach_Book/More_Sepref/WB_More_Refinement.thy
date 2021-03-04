@@ -4,16 +4,14 @@ theory WB_More_Refinement
     "HOL-Eisbach.Eisbach"
     "HOL-Library.Rewrite"
     "Isabelle_LLVM.Refine_Monadic_Thin"
-    (*"Automatic_Refinement.Relators"
-    "Refine_Monadic.Refine_While"
-    "Refine_Monadic.Refine_Foreach"
-    *)
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
     Isabelle_LLVM.Sepref_Misc
     More_Refinement_Libs.WB_More_Refinement_Loops
     WB_More_Refinement_List
       \<comment> \<open>TODO: replace by a Isabelle\_LLVM.More\_Notations to fix \<^text>\<open>WB_More_IICF_SML.thy\<close>\<close>
 begin
+
+no_notation funcset (infixr "\<rightarrow>" 60)
 
 chapter \<open>More Theorems on Refinement\<close>
 
@@ -116,7 +114,7 @@ method match_spec =
 
 method match_fun_rel =
   ((match conclusion in
-       \<open>_ \<rightarrow> _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_mono\<close>
+       \<open>fun_rel_syn _  _ \<subseteq> _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fun_rel_mono\<close>
      \<bar> \<open>_ \<rightarrow>\<^sub>f _ \<subseteq> _ \<rightarrow>\<^sub>f _\<close> \<Rightarrow> \<open>rule fref_syn_invert\<close>
      \<bar> \<open>\<langle>_\<rangle>nres_rel \<subseteq> \<langle>_\<rangle>nres_rel\<close> \<Rightarrow> \<open>rule nres_rel_mono\<close>
      \<bar> \<open>[_]\<^sub>f _ \<rightarrow> _ \<subseteq> [_]\<^sub>f _ \<rightarrow> _\<close> \<Rightarrow> \<open>rule fref_mono\<close>
@@ -339,7 +337,6 @@ definition virtual_copy where
 
 definition virtual_copy_rel where
   \<open>virtual_copy_rel = {(c, b). c = ()}\<close>
-
 
 lemma refine_add_inv:
   fixes f :: \<open>'a \<Rightarrow> 'a nres\<close> and f' :: \<open>'b \<Rightarrow> 'b nres\<close> and h :: \<open>'b \<Rightarrow> 'a\<close>

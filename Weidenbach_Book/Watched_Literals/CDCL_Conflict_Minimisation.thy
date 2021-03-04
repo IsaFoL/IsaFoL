@@ -383,14 +383,22 @@ definition conflict_min_analysis_inv
   :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v conflict_min_cach \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> bool\<close>
 where
   \<open>conflict_min_analysis_inv M cach NU D \<longleftrightarrow>
+    (\<forall>L. L \<in> lits_of_l M \<longrightarrow> cach (atm_of L) = SEEN_REMOVABLE \<longrightarrow>
+      set_mset NU \<Turnstile>p add_mset L (filter_to_poslev M L D))\<close>
+
+lemma conflict_min_analysis_inv_alt_def:
+  \<open>conflict_min_analysis_inv M cach NU D \<longleftrightarrow>
     (\<forall>L. -L \<in> lits_of_l M \<longrightarrow> cach (atm_of L) = SEEN_REMOVABLE \<longrightarrow>
       set_mset NU \<Turnstile>p add_mset (-L) (filter_to_poslev M L D))\<close>
+  unfolding conflict_min_analysis_inv_def filter_to_poslev_def index_in_trail_def
+  apply (auto dest: spec[of \<open>- _\<close>] intro: filter_mset_cong2 simp: atm_of_eq_atm_of)
+  by (metis (no_types, lifting) atm_of_eq_atm_of atm_of_uminus filter_mset_cong2)
 
 lemma conflict_min_analysis_inv_update_removable:
   \<open>no_dup M \<Longrightarrow> -L \<in> lits_of_l M \<Longrightarrow>
       conflict_min_analysis_inv M (cach(atm_of L := SEEN_REMOVABLE)) NU D \<longleftrightarrow>
       conflict_min_analysis_inv M cach NU D \<and> set_mset NU \<Turnstile>p add_mset (-L) (filter_to_poslev M L D)\<close>
-  by (auto simp: conflict_min_analysis_inv_def atm_of_eq_atm_of dest: no_dup_consistentD)
+  by (auto simp: conflict_min_analysis_inv_alt_def atm_of_eq_atm_of dest: no_dup_consistentD)
 
 
 lemma conflict_min_analysis_inv_update_failed:
@@ -1247,12 +1255,12 @@ lemma filter_to_poslev_conflict_min_analysis_inv:
     NU_uLD: \<open>N+U \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)\<close> and
     inv: \<open>conflict_min_analysis_inv M cach (N + U) D\<close>
   shows \<open>conflict_min_analysis_inv M cach (N + U) (remove1_mset L D)\<close>
-  unfolding conflict_min_analysis_inv_def
+  unfolding conflict_min_analysis_inv_alt_def
 proof (intro allI impI)
   fix K
   assume \<open>-K \<in> lits_of_l M\<close> and \<open>cach (atm_of K) = SEEN_REMOVABLE\<close>
   then have K: \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K D)\<close>
-    using inv unfolding conflict_min_analysis_inv_def by blast
+    using inv unfolding conflict_min_analysis_inv_alt_def by blast
   obtain D' where D: \<open>D = add_mset L D'\<close>
     using multi_member_split[OF L_D] by blast
   have \<open>N + U \<Turnstile>pm add_mset (- K) (filter_to_poslev M K D')\<close>

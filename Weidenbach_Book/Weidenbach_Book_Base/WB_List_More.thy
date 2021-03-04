@@ -306,7 +306,7 @@ lemma in_set_drop_conv_nth:
     by (auto intro: in_set_dropI)
   done
 
-text \<open>Taken from \<^file>\<open>~~/src/HOL/Word/Word.thy\<close>\<close>
+text \<open>Taken from the Word library.\<close>
 lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrightarrow> xs = t @ d\<close>
   by (auto intro: append_take_drop_id [symmetric])
 
@@ -1673,7 +1673,7 @@ lemma image_filter_replicate_mset:
   by (induction m) auto
 
 lemma size_Union_mset_image_mset:
-  \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
+  \<open>size (\<Sum>\<^sub># (A :: 'a multiset multiset)) = (\<Sum>i \<in># A. size i)\<close>
   by (induction A) auto
 
 lemma image_mset_minus_inj_on:

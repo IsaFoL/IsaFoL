@@ -5,5 +5,7 @@ session "More_Refinement_Libs" (Weidenbach_Book) = "Refine_Monadic"  +
     "HOL-Library"
     Sepref_IICF
     "HOL-Eisbach"
+    Nested_Multisets_Ordinals
+    Weidenbach_Book_Base
   theories [quick_and_dirty = false, document = false]
     WB_More_Refinement_Loops

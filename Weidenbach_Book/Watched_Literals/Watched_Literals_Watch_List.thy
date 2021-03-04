@@ -2,6 +2,8 @@ theory Watched_Literals_Watch_List
   imports Watched_Literals_List Watched_Literals_All_Literals
 begin
 
+no_notation funcset (infixr "\<rightarrow>" 60)
+
 chapter \<open>Third Refinement: Remembering watched\<close>
 
 section \<open>Types\<close>
