@@ -13,7 +13,7 @@ section \<open>Refinement\<close>
 subsection \<open>Set of all literals of the problem\<close>
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
-\<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
+\<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Sum><^sub># Ls)) + Neg `# (atm_of `# (\<Sum><^sub># Ls))\<close>
 
 lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
   by (auto simp: all_lits_of_mm_def)

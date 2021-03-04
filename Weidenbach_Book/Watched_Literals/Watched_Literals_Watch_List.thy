@@ -159,7 +159,7 @@ section \<open>Watch List Invariants\<close>
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
   positively and negatively in the clauses. If we could ensure that there are no pure literals, the
-  definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Union># Ls\<close>.
+  definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Sum><^sub># Ls\<close>.
 
   In this definition \<^term>\<open>K\<close> is the blocking literal.
 \<close>

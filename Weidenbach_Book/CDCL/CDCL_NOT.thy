@@ -107,12 +107,13 @@ lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_length_le:
   assumes \<open>length F > length (trail S)\<close>
   shows \<open>trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T F S) = []\<close>
   using assms by (induction F S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
-  (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
+    (subst reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps, simp add: less_imp_diff_less )
 
 lemma trail_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_Nil[simp]:
   \<open>trail (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = []\<close>
-  by (induction \<open>[]\<close> S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
-  (simp add: less_imp_diff_less reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps)
+  by (induction "[]" S rule: reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.induct)
+    (subst reduce_trail_to\<^sub>N\<^sub>O\<^sub>T.simps, simp add: less_imp_diff_less )
+
 
 lemma clauses_reduce_trail_to\<^sub>N\<^sub>O\<^sub>T_Nil:
   \<open>clauses\<^sub>N\<^sub>O\<^sub>T (reduce_trail_to\<^sub>N\<^sub>O\<^sub>T [] S) = clauses\<^sub>N\<^sub>O\<^sub>T S\<close>

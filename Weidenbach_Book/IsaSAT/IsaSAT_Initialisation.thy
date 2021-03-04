@@ -1512,7 +1512,7 @@ lemma (in -) all_lits_of_atms_m_nil[simp]: \<open>all_lits_of_atms_m {#} = {#}\<
   unfolding all_lits_of_atms_m_def by auto
 
 definition (in -) all_lits_of_atms_mm :: \<open>'a multiset multiset \<Rightarrow> 'a clause\<close> where
- \<open>all_lits_of_atms_mm N = poss (\<Union># N) + negs (\<Union># N)\<close>
+ \<open>all_lits_of_atms_mm N = poss (\<Sum><^sub># N) + negs (\<Sum><^sub># N)\<close>
 
 lemma all_lits_of_atms_m_all_lits_of_m:
   \<open>all_lits_of_atms_m N = all_lits_of_m (poss N)\<close>
