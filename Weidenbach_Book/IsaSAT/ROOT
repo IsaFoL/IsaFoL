@@ -8,6 +8,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Watched_Literals
     Show
     Isabelle_LLVM
+    Word_Lib
   theories
     IsaSAT_Arena
     IsaSAT_Arena_LLVM

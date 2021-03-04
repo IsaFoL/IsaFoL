@@ -4755,7 +4755,7 @@ proof -
   have
     [simp]: \<open>clause C \<noteq> {#}\<close> (is ?G1) and
     [simp]: \<open>remove1_mset L (clause C) \<noteq> {#}\<close> (is ?G2) if \<open>C \<in># N\<close> for C L
-    by (rule size_ne_size_imp_ne[of _ \<open>{#}\<close>]; use size_C[OF that] in
+    by (rule size_neq_size_imp_neq[of _ \<open>{#}\<close>]; use size_C[OF that] in
         \<open>auto simp: remove1_mset_empty_iff union_is_single\<close>)+
 
   have \<open>distinct_mset (clause C)\<close> if \<open>C \<in># N\<close> for C

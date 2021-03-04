@@ -220,7 +220,7 @@ proof -
   have [simp]: \<open>nat_of_uint32 1 = 1\<close>
     by transfer auto
   have [simp]: \<open>0 XOR Suc 0 = Suc 0\<close>
-    unfolding bitXOR_nat_def
+    unfolding xor_nat_def
     by auto
   have [simp]: \<open>bin_last (2 + n) = bin_last n\<close> for n
     by (auto simp: bin_last_def)
@@ -233,7 +233,7 @@ proof -
     by (auto simp: bin_eq_iff)
 
   have [simp]: \<open>Suc (Suc n) XOR Suc 0 = Suc (Suc (n XOR Suc 0))\<close> for n :: nat
-    unfolding bitXOR_nat_def
+    unfolding xor_nat_def
     by (auto simp: nat_add_distrib)
 
   have [simp]: \<open>2 * q XOR Suc 0 = Suc (2 * q)\<close> for q :: nat

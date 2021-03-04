@@ -1242,7 +1242,7 @@ definition update_blit_wl_heur_pre where
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], db, None, dd, de, df, dg, dh, di, {#}, dk))
-         (dk(K := (dk K)[cx := (cv, cz, cw)])) db \<subseteq>
+      (dk(K := (dk K)[ac := (aa, ae, ab)])) db \<subseteq>
         vdom_m (all_atms_st ([], db, None, dd, de, df, dg, dh, di, {#}, dk))
          (dk) db\<close>)
     apply fast
@@ -1253,7 +1253,7 @@ definition update_blit_wl_heur_pre where
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], dd, None, df, dg, dh, di, dk, y, {#}, x))
-          (x(K := (x K)[cy := (cw, da, cx)])) dd \<subseteq>
+      (x(K := (x K)[ac := (aa, ae, ab)])) dd \<subseteq>
         vdom_m (all_atms_st ([], dd, None, df, dg, dh, di, dk, y, {#}, x)) x dd\<close>)
     apply fast
     apply (rule vdom_m_update_subset')

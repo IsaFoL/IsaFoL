@@ -1,6 +1,7 @@
 theory Watched_Literals_Watch_List_Restart
   imports Watched_Literals_List_Reduce Watched_Literals_Watch_List
 begin
+no_notation funcset (infixr "\<rightarrow>" 60)
 
 lemma cdcl_twl_restart_get_all_init_clss:
   assumes \<open>cdcl_twl_restart S T\<close>

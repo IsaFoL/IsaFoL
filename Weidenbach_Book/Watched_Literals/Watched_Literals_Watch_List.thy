@@ -1533,7 +1533,7 @@ proof -
          {#C \<in># Ab. N \<propto> x1 ! xa \<in> set (watched_l (N \<propto> C))#} \<close>
       using Hneq2[of \<open>N \<propto> x1 ! xa\<close>] L_neq unfolding W_W' W_W2 \<L>
       by (auto simp: clause_to_update_def split: if_splits)
-    then have \<open>La \<in># ?\<L> \<Longrightarrow>
+    from this[symmetric] have \<open>La \<in># ?\<L> \<Longrightarrow>
           La \<noteq> L \<Longrightarrow>
 	  distinct_watched (W' La) \<and>
           (x1 \<in># dom_m N \<longrightarrow>
@@ -1551,11 +1551,14 @@ proof -
             {#i \<in># fst `# mset (W La). i \<in># dom_m N#} =
             clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, {#}, {#})))\<close> for La
       using Hneq2[of La] j_w w_le L' dom distinct_mset_dom[of N] L_notin_swap N_xa_in_swap L_neq
-      by (auto simp: take_Suc_conv_app_nth W'_def list_update_append clause_to_update_def
+      apply (auto simp: take_Suc_conv_app_nth W'_def list_update_append clause_to_update_def
         add_mset_eq_add_mset set_N_x1 set_N_swap_x1 assms(11) N_i all_lits_def ac_simps
+        eq_commute[of x1]
+        eq_commute[of \<open>{#y \<in># _. y \<noteq> _ \<longrightarrow> N \<propto> x1 ! xa \<in> set (watched_l (N \<propto> y))#}\<close>]
         dest!: multi_member_split La_in_notin_swap
         split: if_splits
         intro: image_mset_cong2 intro: filter_mset_cong2)
+       by (smt (verit, ccfv_SIG) filter_mset_cong2) 
   }
   ultimately show ?thesis
     using L j_w dom i_xa
@@ -3188,10 +3191,9 @@ proof -
              propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
            intro!: ASSERT_refine_right)
       subgoal by (cases X2; cases S; cases S')
-         (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def
-             propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
-           intro!: ASSERT_refine_right
-           simp flip: Cons_nth_drop_Suc)
+         (clarsimp simp add:  op_clauses_swap_def keep_watch_def
+          propagate_lit_l_def mop_clauses_swap_def  state_wl_l_def
+          intro!: ASSERT_refine_right)
       done
     ultimately show ?thesis
       apply (rule nres_add_unrelated[OF nres_add_unrelated3, THEN order_trans])

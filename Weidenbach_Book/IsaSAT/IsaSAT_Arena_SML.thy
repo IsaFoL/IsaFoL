@@ -783,12 +783,12 @@ proof -
       auto
   then have [simp]: \<open>(a OR 4) AND 3 = a AND 3\<close> for a :: nat
     supply [[show_types]]
-    unfolding bitAND_nat_def bitOR_nat_def
+    unfolding and_nat_def or_nat_def
     by auto
 
   have [simp]: \<open>(a OR 4) AND 4 = 4\<close> for a :: nat
     supply [[show_types]]
-    unfolding bitAND_nat_def bitOR_nat_def
+    unfolding and_nat_def or_nat_def
     by auto
   have nat_of_uint32_4: \<open>4 = nat_of_uint32 4\<close>
     by auto
@@ -868,12 +868,12 @@ proof -
       auto
   then have [simp]: \<open>(a OR 4) AND 3 = a AND 3\<close> for a :: nat
     supply [[show_types]]
-    unfolding bitAND_nat_def bitOR_nat_def
+    unfolding and_nat_def or_nat_def
     by auto
 
   have [simp]: \<open>(a OR 4) AND 4 = 4\<close> for a :: nat
     supply [[show_types]]
-    unfolding bitAND_nat_def bitOR_nat_def
+    unfolding and_nat_def or_nat_def
     by auto
   have nat_of_uint32_4: \<open>3 = nat_of_uint32 3\<close>
     by auto

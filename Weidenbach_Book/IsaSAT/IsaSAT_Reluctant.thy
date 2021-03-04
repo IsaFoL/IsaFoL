@@ -1,5 +1,6 @@
 theory IsaSAT_Reluctant
-    imports More_Sepref.WB_More_Refinement "HOL-Word.More_Word"
+  imports More_Sepref.WB_More_Refinement
+    Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
 
 text \<open>

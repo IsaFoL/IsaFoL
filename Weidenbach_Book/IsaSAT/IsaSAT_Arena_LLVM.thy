@@ -93,12 +93,12 @@ lemma xarena_used_refine1: \<open>(\<lambda>eli. (eli AND 0b1100) >> 2, xarena_u
 lemma  is_down'_32_2[simp]: \<open>is_down' UCAST(32 \<rightarrow> 2)\<close>
   by (auto simp: is_down')
 
-lemma bitAND_mod: \<open>bitAND L (2^n - 1) = L mod (2^n)\<close> for L :: nat
+lemma bitAND_mod: \<open>L AND (2^n - 1) = L mod (2^n)\<close> for L :: nat
   apply transfer
   apply (subst int_int_eq[symmetric])
-  apply (subst bitAND_nat_def)
+  apply (subst and_nat_def)
    using AND_mod[of \<open>int _\<close>]
-  apply (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
+  apply (auto simp: zmod_int bitval_bin_last[symmetric])
   done
 
 lemma nat_ex_numeral: \<open>\<exists>m. n=0 \<or> n = numeral m\<close> for n :: nat
@@ -147,7 +147,7 @@ lemma bang_eq_int:
 lemma bang_eq_nat:
   fixes x :: "nat"
   shows "(x = y) = (\<forall>n. x !! n = y !! n)"
-  using bang_eq_int int_int_eq unfolding test_bit_nat_def by auto
+  using bang_eq_int int_int_eq by auto
 
 lemma sum_bitAND_shift_pow2:
   \<open>(a + (b << (n + m))) AND (2^n - 1) = a AND (2^n - 1)\<close> for a b n :: nat
@@ -156,7 +156,7 @@ lemma sum_bitAND_shift_pow2:
   by (metis mod_mult_self2 power_add semiring_normalization_rules(19))
 
 lemma and_bang_nat: \<open>(x AND y) !! n = (x !! n \<and> y !! n)\<close> for x y n :: nat
-  unfolding bitAND_nat_def test_bit_nat_def
+  unfolding and_nat_def
   by (auto simp: bin_nth_ops)
 
 lemma AND_12_AND_15_AND_12: \<open>a AND 12 = (a AND 15) AND 12\<close> for a :: nat

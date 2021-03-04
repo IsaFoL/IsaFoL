@@ -1,5 +1,5 @@
 theory IsaSAT_Literals
-  imports More_Sepref.WB_More_Refinement "HOL-Word.More_Word"
+  imports More_Sepref.WB_More_Refinement "Word_Lib.Many_More"
      Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
@@ -120,7 +120,7 @@ proof -
   also have \<open>\<dots> = uint64_max\<close>
     unfolding unat_bintrunc_neg
     apply (simp add: uint64_max_def)
-    apply (subst numeral_eq_Suc; subst bintrunc.Suc; simp)+
+    apply (subst numeral_eq_Suc; subst bintrunc_Suc_numeral; simp)+
     done
   finally show ?thesis .
 qed
@@ -494,7 +494,7 @@ definition decided where
   \<open>decided L = (L, None)\<close>
 
 definition uminus_lit_imp :: \<open>nat \<Rightarrow> nat\<close> where
-  \<open>uminus_lit_imp L = bitXOR L 1\<close>
+  \<open>uminus_lit_imp L = L XOR 1\<close>
 
 lemma uminus_lit_imp_uminus:
   \<open>(RETURN o uminus_lit_imp, RETURN o uminus) \<in>
@@ -633,6 +633,4 @@ definition SET_TRUE :: \<open>tri_bool\<close> where
 
 definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
   \<open>tri_bool_eq = (=)\<close>
-
-
 end
