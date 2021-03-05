@@ -147,7 +147,8 @@ lemma bang_eq_int:
 lemma bang_eq_nat:
   fixes x :: "nat"
   shows "(x = y) = (\<forall>n. x !! n = y !! n)"
-  using bang_eq_int int_int_eq by auto
+  unfolding int_int_eq[symmetric] bang_eq_int
+by (simp add: bit_of_nat_iff_bit test_bit_eq_bit)
 
 lemma sum_bitAND_shift_pow2:
   \<open>(a + (b << (n + m))) AND (2^n - 1) = a AND (2^n - 1)\<close> for a b n :: nat
@@ -157,14 +158,13 @@ lemma sum_bitAND_shift_pow2:
 
 lemma and_bang_nat: \<open>(x AND y) !! n = (x !! n \<and> y !! n)\<close> for x y n :: nat
   unfolding and_nat_def
-  by (auto simp: bin_nth_ops)
+  by (metis and_nat_def bit_and_iff test_bit_eq_bit)
 
 lemma AND_12_AND_15_AND_12: \<open>a AND 12 = (a AND 15) AND 12\<close> for a :: nat
 proof -
   have [simp]: \<open>(12::nat) !! n \<Longrightarrow> (15::nat) !! n\<close> for n :: nat
-    by (induction n)
-     (auto simp: test_bit_nat_def bin_nth_numeral_unfold)
-
+    by (auto simp: nat_set_bit_test_bit bin_nth_numeral_unfold
+      nat_bin_nth_bl' nth_Cons split: nat.splits)
   show ?thesis
     by (subst bang_eq_nat, (subst and_bang_nat)+)
      (auto simp: and_bang_nat)
@@ -337,7 +337,10 @@ lemma nat_shiftl_numeral' [simp]:
   by (auto simp: nat_shiftr_div)
 
 lemma shiftr_nat_alt_def: \<open>(a :: nat) >> b = nat (int a >> b)\<close>
-  by (simp add: shiftr_int_def shiftr_nat_def)
+  apply (induction b)
+    apply (auto simp: nat_shiftr)
+  by (smt (z3) div_div_p2_eq_div_p2s(2) int_nat_eq nat_2 nat_int.Rep_inverse' nat_shifl_div numeral_2_eq_2 semiring_1_class.of_nat_power shiftr_int_def zdiv_int)
+
 
 lemma nat_shiftr_numeral [simp]:
   "(1 :: nat) >> numeral w' = 0"

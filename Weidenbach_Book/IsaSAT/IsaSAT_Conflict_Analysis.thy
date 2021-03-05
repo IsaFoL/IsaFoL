@@ -1033,7 +1033,6 @@ lemma skip_and_resolve_loop_wl_DI:
   apply (clarsimp simp: twl_st_heur_def state_wl_l_def twl_st_l_def twl_st_heur_conflict_ana_def
     trail_pol_alt_def last_trail_pol_pre_def last_rev hd_map literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def simp flip: rev_map
     dest: multi_member_split)
-  apply (case_tac x)
   apply (clarsimp_all dest!: multi_member_split simp: ann_lits_split_reasons_def)
   done
 
@@ -1044,9 +1043,8 @@ lemma
   done
 
 
-lemma get_learned_count_learned_clss_countD:
-  \<open>get_learned_count a2' = get_learned_count x \<Longrightarrow> learned_clss_count a2' = learned_clss_count x\<close>
-  by (cases a2'; cases x; auto simp: learned_clss_count_def)
+lemmas get_learned_count_learned_clss_countD =
+  get_learned_count_learned_clss_countD2
 
 lemma isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv:
   \<open>isasat_fast x \<Longrightarrow> skip_and_resolve_loop_wl_D_heur_inv x (False, a2') \<Longrightarrow> isasat_fast a2'\<close>

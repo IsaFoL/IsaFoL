@@ -158,7 +158,7 @@ lemma reluctant_tick_alt_def:
   RETURN (Reluctant limited True u v period wait limit)))\<close>
   by (auto intro!: ext simp: reluctant_tick_def Let_def)
 
-sepref_register \<open>(AND) :: 'a :: len0 word \<Rightarrow> _ \<Rightarrow> _\<close>
+sepref_register \<open>(AND) :: 'a :: len word \<Rightarrow> _ \<Rightarrow> _\<close>
 sepref_def reluctant_tick_impl
   is \<open>RETURN o reluctant_tick\<close>
   :: \<open>reluctant_assn\<^sup>k \<rightarrow>\<^sub>a reluctant_assn\<close>
