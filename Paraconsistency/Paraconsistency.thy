@@ -1607,8 +1607,8 @@ lemma inj_from_to_if_card:
   assumes "finite X"
   shows "\<exists>f. inj_from_to f X Y"
   unfolding inj_from_to_def
-  using assms card_infinite gr_implies_not0 inj_on_iff_card_le le_eq_less_or_eq card_empty
-    empty_subsetI finite_imageI finite_subset subset_antisym by metis
+  by (smt (verit, best) assms(1) assms(2) card_le_inj dual_order.trans obtain_subset_with_card_n
+      order_refl)
 
 subsection \<open>Extension of theory before Appendix\<close>
 
@@ -2222,7 +2222,7 @@ lemma finite_card_lt_valid_in_not_valid_in:
   shows "valid_in U \<noteq> valid_in W"
 proof -
   have finite_W: "finite W"
-    using assms(2) card_infinite by fastforce
+    using assms(2) card.infinite by fastforce
   have "valid_in U (pigeonhole_fm (card W))"
     using valid_in_pigeonhole_fm_n_gt_card assms by simp
   moreover
@@ -2270,7 +2270,7 @@ proof -
     fix U W :: "nat set"
     assume a: "card U < card W"
     then have "finite W"
-      using card_infinite gr_implies_not0 by blast
+      using card.infinite gr_implies_not0 by blast
     then have valid_in_W_pigeonhole_fm: "valid_in W (pigeonhole_fm (Suc (card W)))"
       using valid_in_pigeonhole_fm_n_gt_card[of W] by simp
     have "valid_in U \<noteq> valid_in W"

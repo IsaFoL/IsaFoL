@@ -1331,8 +1331,10 @@ next
                     case (Pair _ p) then show ?thesis
                     proof (cases p)
                       case (Pre b i v) then show ?thesis
-                        using IH' assms * ** Cons notAxiom *** Pair
-                        by (fastforce simp: list_sequent_def dest!: pre)
+                        using assms * ** Cons notAxiom *** Pair
+                          IH'[rule_format, of \<open>Suc n\<close> \<open>list @ [(0, Pre b i v)]\<close>]
+                        by (auto simp: list_sequent_def dest!: pre)
+
                     next
                       case (Con q r)
                       then have 1: \<open>(Suc n,list @ [(0,q)]) \<in> calculation s\<close>
@@ -1849,7 +1851,7 @@ next
   qed
 qed
 
-lemma calculation_f: \<open>calculation s = UNION UNIV (\<lambda>x. set (map (\<lambda>y. (x,y)) (loop [s] x)))\<close>
+lemma calculation_f: \<open>calculation s = (\<Union>x\<in>UNIV. set (map (\<lambda>y. (x,y)) (loop [s] x)))\<close>
   using loop
   by fastforce
 

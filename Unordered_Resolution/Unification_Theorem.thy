@@ -1,4 +1,4 @@
-section {* The Unification Theorem *}
+section \<open>The Unification Theorem\<close>
 
 theory Unification_Theorem imports
   "First_Order_Terms.Unification" "Resolution_FOL.Resolution"

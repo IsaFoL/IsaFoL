@@ -1,4 +1,4 @@
-section {* Completeness Revisited *}
+section \<open>Completeness Revisited\<close>
 
 theory Completeness_Instance imports Unification_Theorem "Resolution_FOL.Completeness" begin
 
@@ -14,7 +14,7 @@ lemma lift:
   assumes appl: "applicable C' D' L' M' \<sigma>"
   shows "\<exists>L M \<tau>. applicable C D L M \<tau> \<and>
                    instance_of\<^sub>l\<^sub>s (resolution C' D' L' M' \<sigma>) (resolution C D L M \<tau>)"
-using assms lifting by -
+using assms lifting by fast
 
 thm completeness
 
