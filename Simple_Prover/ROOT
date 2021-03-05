@@ -1,0 +1,7 @@
+chapter Simple_Prover
+
+session "Simple_Prover" = "HOL" +
+  options [document = false]
+  theories
+    Simple_Prover
+ 

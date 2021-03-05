@@ -1,0 +1,9 @@
+chapter Sequent_Calculus
+
+session "Sequent_Calculus" = "HOL" +
+  options [document = false]
+  theories
+    Micro_Prover
+    Prover
+    SeCaV
+ 

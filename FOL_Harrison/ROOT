@@ -1,0 +1,7 @@
+chapter FOL_Harrison
+
+session "FOL_Harrison" = "HOL" +
+  options [document = false]
+  theories
+    FOL_Harrison_Lifting_OK
+    FOL_Harrison_Lifting_Truths

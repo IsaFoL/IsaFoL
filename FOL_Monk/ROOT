@@ -1,0 +1,6 @@
+chapter FOL_Monk
+
+session "FOL_Monk" = "HOL" +
+  options [document = false]
+  theories
+    FOL_Monk

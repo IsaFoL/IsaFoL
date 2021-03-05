@@ -20,7 +20,7 @@ RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 ISABELLE2018_HOME=/home/zmaths/.isabelle/Isabelle2018/browser_info
 ISABELLE2019_HOME=/home/zmaths/.isabelle/Isabelle2019/browser_info
 ISABELLE2020_HOME=/home/zmaths/.isabelle/Isabelle2020/browser_info
-ISABELLE2021_HOME=/home/zmaths/.isabelle/Isabelle2021-RC4/browser_info
+ISABELLE2021_HOME=/home/zmaths/.isabelle/Isabelle2021/browser_info
 ISABELLE_HOME=/home/zmaths/.isabelle/browser_info
 
 # some more paths to extract the version
@@ -47,11 +47,11 @@ test_vars:
 	echo "IsaFoL: $(ISAFOL_version)"
 
 HOL:
-	$(RUN_ISABELLE2020) build -b HOL
+	$(RUN_ISABELLE2021) build -b HOL
 
 Weidenbach_Book:
-	$(RUN_ISABELLE2020) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+	$(RUN_ISABELLE2021) build -d '$$AFP' -b Sepref_IICF
+	$(RUN_ISABELLE2021) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 PAC:
 	$(RUN_ISABELLE2021) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
@@ -63,11 +63,7 @@ GRAT: HOL
 	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
 
 FOL_Berghofer: HOL
-	$(RUN_ISABELLE2018) build -v -b -D FOL_Berghofer
-
-Saturation_Framework:
-	$(RUN_ISABELLE2020) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Saturation_Framework
-
+	$(RUN_ISABELLE2021) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D FOL_Harrison -D Sequent_Calculus -D Simple_Prover
 
 all: Weidenbach_Book Ordered_Resolution_Prover GRAT FOL_Berghofer Saturation_Framework
 

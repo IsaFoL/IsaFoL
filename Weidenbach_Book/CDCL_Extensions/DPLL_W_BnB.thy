@@ -592,7 +592,6 @@ proof (rule ccontr)
       apply clarify
       apply (frule backtrack_split_some_is_decided_then_snd_has_hd'[of _ \<open>trail S\<close>], assumption)
      apply (auto simp: dpll\<^sub>W_bnb.simps count_decided_0_iff)
-     apply (metis backtrack_split_snd_hd_decided list.sel(1) list.simps(3) snd_conv)+
      done
    qed
 

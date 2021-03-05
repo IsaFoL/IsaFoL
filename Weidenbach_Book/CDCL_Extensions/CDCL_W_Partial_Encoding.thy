@@ -94,7 +94,7 @@ definition additional_constraint :: \<open>'v \<Rightarrow> 'v clauses\<close> w
      {#{#Neg (A\<^sup>\<mapsto>\<^sup>1), Neg (A\<^sup>\<mapsto>\<^sup>0)#}#}\<close>
 
 definition additional_constraints :: \<open>'v clauses\<close> where
-  \<open>additional_constraints = \<Union>#(additional_constraint `# (mset_set \<Delta>\<Sigma>))\<close>
+  \<open>additional_constraints = \<Sum>\<^sub>#(additional_constraint `# (mset_set \<Delta>\<Sigma>))\<close>
 
 definition penc :: \<open>'v clauses \<Rightarrow> 'v clauses\<close> where
   \<open>penc N = encode_clauses N + additional_constraints\<close>
