@@ -41,6 +41,9 @@ AFP2019_version= $(shell (cd $(AFP2019) && hg id --id))
 AFP2020=$(ISABELLE2020)/../afp-2020
 AFP2020_version=$(shell (cd $(AFP2020) && hg id --id))
 
+AFP2021=$(ISABELLE2021)/../afp-2021
+AFP2021_version=$(shell (cd $(AFP2021) && hg id --id))
+
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
 	echo "AFP: $(AFP_version)"
@@ -74,10 +77,9 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 # move the html documentation to the locale directory
 doc:
 	mkdir -p $(DESTINATION)/current
-	cp -R $(ISABELLE2020_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE2021_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
-	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2020" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2020_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2021" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2021_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
