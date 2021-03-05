@@ -66,7 +66,7 @@ GRAT: HOL
 	$(RUN_ISABELLE2017) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk
 
 FOL_Berghofer: HOL
-	$(RUN_ISABELLE2021) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D FOL_Harrison -D Sequent_Calculus -D Simple_Prover
+	$(RUN_ISABELLE2021) build -j 4 -v -b -D FOL_Berghofer -D FOL_Monk -D Sequent_Calculus -D Simple_Prover
 
 all: Weidenbach_Book Ordered_Resolution_Prover GRAT FOL_Berghofer Saturation_Framework
 
