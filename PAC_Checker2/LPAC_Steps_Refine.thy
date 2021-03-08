@@ -1,5 +1,5 @@
-theory EPAC_Steps_Refine
-  imports EPAC_Checker
+theory LPAC_Steps_Refine
+  imports LPAC_Checker
 begin
 
 

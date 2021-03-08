@@ -3,8 +3,8 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Checker_MLton
-  imports EPAC_Checker_Synthesis
+theory LPAC_Checker_MLton
+  imports LPAC_Checker_Synthesis
 begin
 
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
@@ -27,7 +27,7 @@ compile_generated_files _
     val exec = Generated_Files.execute (Path.append dir (Path.append (Path.basic "code") (Path.basic "no_sharing")));
 
     val _ = exec \<open>Copy files\<close>
-    ("cp ../checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code_nosharing/checker.ML"));
+    ("cp ../checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/no_sharing/checker.ML"));
     val _ = exec \<open>Copy files\<close> ("cp ../checker.ML .");
     val _ =
         exec \<open>Compilation\<close>

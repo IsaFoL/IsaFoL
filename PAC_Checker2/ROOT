@@ -1,4 +1,4 @@
-chapter AFP
+chapter PAC_Checker
 
 session PAC_Checker2 (AFP) = "Sepref_IICF" +
   description \<open>PAC proof checker\<close>
@@ -11,21 +11,19 @@ session PAC_Checker2 (AFP) = "Sepref_IICF" +
     Nested_Multisets_Ordinals
     PAC_Checker
   theories
-    EPAC_Specification
-    EPAC_Checker_Specification
-    EPAC_Checker
-    EPAC_Checker_Init
-    EPAC_Version
-    EPAC_Checker_Synthesis
-    EPAC_Efficient_Checker_Synthesis
+    LPAC_Specification
+    LPAC_Checker_Specification
+    LPAC_Checker
+    LPAC_Checker_Init
+    LPAC_Version
+    LPAC_Checker_Synthesis
+    LPAC_Efficient_Checker_Synthesis
   theories [condition=ISABELLE_MLTON]
-    EPAC_Checker_MLton
-    EPAC_Efficient_Checker_MLton
+    LPAC_Checker_MLton
+    LPAC_Efficient_Checker_MLton
   document_files
     "root.tex"
     "root.bib"
   export_files (in "code") [1]
-    "EPAC_Checker.EPAC_Efficient_Checker_MLton:**"
-  export_files (in "code_nosharing") [1]
-    "EPAC_Checker.EPAC_Checker_MLton:**"
+    "LPAC_Checker.LPAC_Efficient_Checker_MLton:**"
 

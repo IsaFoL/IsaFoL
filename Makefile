@@ -5,7 +5,7 @@ ISABELLE2017=/home/zmaths/Documents/isabelle/Isabelle2017
 ISABELLE2018=/home/zmaths/Documents/isabelle/Isabelle2018
 ISABELLE2019=/home/zmaths/Documents/isabelle/Isabelle2019
 ISABELLE2020=/home/zmaths/Documents/isabelle/Isabelle2020
-ISABELLE2021=/home/zmaths/Documents/isabelle/isabelle
+ISABELLE2021=/home/zmaths/Documents/isabelle/Isabelle2021
 ISABELLE=/home/zmaths/Documents/isabelle/isabelle
 
 # the concrete path to the isabelle executable
@@ -78,6 +78,7 @@ current: Ordered_Resolution_Prover Functional_Ordered_Resolution_Prover
 doc:
 	mkdir -p $(DESTINATION)/current
 	cp -R $(ISABELLE2021_HOME)/Weidenbach_Book $(DESTINATION)/current || :
+	cp -R $(ISABELLE2021_HOME)/PAC_Checker $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
 	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2021" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2021_version)"
 

@@ -1,8 +1,8 @@
-theory EPAC_Efficient_Checker_Synthesis
-  imports EPAC_Efficient_Checker
-    EPAC_Perfectly_Shared_Vars
+theory LPAC_Efficient_Checker_Synthesis
+  imports LPAC_Efficient_Checker
+    LPAC_Perfectly_Shared_Vars
     PAC_Checker.PAC_Checker_Synthesis
-    EPAC_Steps_Refine
+    LPAC_Steps_Refine
     PAC_Checker.PAC_Checker_Synthesis
 begin
 
@@ -1419,10 +1419,10 @@ lemma PAC_checker_l_step_s_PAC_checker_l_step_s:
     perfectly_shared_polynom \<V> \<subseteq> perfectly_shared_polynom \<V>'))}
     (PAC_checker_l_step_prep spec' (err', \<D>\<V>, B) st')\<close>
 proof -
-  have [refine]: \<open>check_del_l spec A (EPAC_Checker_Specification.pac_step.pac_src1 st)
+  have [refine]: \<open>check_del_l spec A (LPAC_Checker_Specification.pac_step.pac_src1 st)
     \<le> \<Down> Id
     (check_del_l spec' B
-    (EPAC_Checker_Specification.pac_step.pac_src1 st'))\<close>
+    (LPAC_Checker_Specification.pac_step.pac_src1 st'))\<close>
     by (auto simp: check_del_l_def)
   have HID: \<open>f = f' \<Longrightarrow> f \<le> \<Down>Id f'\<close> for f f'
     by auto
@@ -2212,8 +2212,8 @@ definition uminus_poly :: \<open>_ \<Rightarrow> _\<close> where
 lemma [sepref_import_param]: \<open>(uminus_poly, uminus_poly) \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<rightarrow> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
 proof -
   have \<open>(a, a') \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
-    (EPAC_Efficient_Checker_Synthesis.uminus_poly a,
-     EPAC_Efficient_Checker_Synthesis.uminus_poly a')
+    (LPAC_Efficient_Checker_Synthesis.uminus_poly a,
+     LPAC_Efficient_Checker_Synthesis.uminus_poly a')
     \<in> \<langle>monom_s_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> for a a'
     apply (induction a arbitrary: a')
     subgoal by (auto simp: uminus_poly_def)
@@ -2361,7 +2361,7 @@ lemma step_rewrite_pure:
 
 lemma safe_epac_step_rel_assn[safe_constraint_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow> CONSTRAINT is_pure V \<Longrightarrow> CONSTRAINT is_pure R \<Longrightarrow>
-  CONSTRAINT is_pure (EPAC_Checker.pac_step_rel_assn K V R)\<close>
+  CONSTRAINT is_pure (LPAC_Checker.pac_step_rel_assn K V R)\<close>
   by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
 
 sepref_definition PAC_checker_l_s_impl
@@ -2908,7 +2908,7 @@ proof -
     polys_rel) \<times>\<^sub>r
     \<langle>p2rel
     (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel,
-    var_rel\<rangle>EPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>(({((err, _), err', _).
+    var_rel\<rangle>LPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>(({((err, _), err', _).
     (err, err') \<in> Id} O
     {((b, A, st), b', A', st').
     (\<not> is_cfailed b \<longrightarrow> (A, A') \<in> {(x, y). y = set_mset x} \<and> (st, st') \<in> Id) \<and>
@@ -2946,7 +2946,7 @@ proof -
     polys_rel) \<times>\<^sub>r
     \<langle>p2rel
     (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel,
-    var_rel\<rangle>EPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f
+    var_rel\<rangle>LPAC_Checker.pac_step_rel_raw)\<rangle>list_rel \<rightarrow>\<^sub>f
     \<langle>{((err, _), err', _). (err, err') \<in> code_status_status_rel}\<rangle>nres_rel\<close>
     apply (rule set_mp[OF _ 1])
     unfolding fref_param1[symmetric]

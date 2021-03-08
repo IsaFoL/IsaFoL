@@ -3,9 +3,9 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Checker
+theory LPAC_Checker
   imports
-    EPAC_Checker_Specification
+    LPAC_Checker_Specification
     PAC_Checker.PAC_Map_Rel
     PAC_Checker.PAC_Polynomials_Operations
     PAC_Checker.PAC_Checker

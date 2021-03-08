@@ -3,10 +3,10 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Checker_Synthesis
-  imports EPAC_Checker EPAC_Version
-    EPAC_Checker_Init
-    EPAC_Steps_Refine
+theory LPAC_Checker_Synthesis
+  imports LPAC_Checker LPAC_Version
+    LPAC_Checker_Init
+    LPAC_Steps_Refine
     PAC_Checker.More_Loops
     PAC_Checker.WB_Sort PAC_Checker.PAC_Checker_Relation
     PAC_Checker.PAC_Checker_Synthesis
@@ -239,7 +239,7 @@ lemma step_rewrite_pure:
 
 lemma safe_epac_step_rel_assn[safe_constraint_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow> CONSTRAINT is_pure V \<Longrightarrow> CONSTRAINT is_pure R \<Longrightarrow>
-  CONSTRAINT is_pure (EPAC_Checker.pac_step_rel_assn K V R)\<close>
+  CONSTRAINT is_pure (LPAC_Checker.pac_step_rel_assn K V R)\<close>
   by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
 
 sepref_definition PAC_checker_l_impl
@@ -365,7 +365,7 @@ lemma [code]: \<open>hashcode s = hashcode_literal' s\<close>
      String.asciis_of_literal_def hashcode_literal_def hashcode_literal'_def)
   done
 
-text \<open>We compile Pastèque in \<^file>\<open>EPAC_Checker_MLton.thy\<close>.\<close>
+text \<open>We compile Pastèque in \<^file>\<open>LPAC_Checker_MLton.thy\<close>.\<close>
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl

@@ -3,7 +3,7 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Specification
+theory LPAC_Specification
 imports PAC_Checker.PAC_More_Poly
   PAC_Checker.PAC_Specification
 begin

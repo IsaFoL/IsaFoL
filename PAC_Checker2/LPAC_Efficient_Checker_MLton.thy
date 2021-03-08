@@ -1,5 +1,5 @@
-theory EPAC_Efficient_Checker_MLton
-  imports EPAC_Efficient_Checker_Synthesis
+theory LPAC_Efficient_Checker_MLton
+  imports LPAC_Efficient_Checker_Synthesis
 begin
 
 export_code

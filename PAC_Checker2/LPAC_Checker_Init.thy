@@ -3,8 +3,8 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Checker_Init
-  imports EPAC_Checker PAC_Checker.WB_Sort PAC_Checker.PAC_Checker_Relation
+theory LPAC_Checker_Init
+  imports LPAC_Checker PAC_Checker.WB_Sort PAC_Checker.PAC_Checker_Relation
 begin
 
 section \<open>Initial Normalisation of Polynomials\<close>

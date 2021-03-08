@@ -1,5 +1,5 @@
-theory EPAC_Efficient_Checker
-  imports EPAC_Checker EPAC_Perfectly_Shared
+theory LPAC_Efficient_Checker
+  imports LPAC_Checker LPAC_Perfectly_Shared
 begin
 hide_const (open) PAC_Checker.full_checker_l
 hide_fact (open) PAC_Checker.full_checker_l_def

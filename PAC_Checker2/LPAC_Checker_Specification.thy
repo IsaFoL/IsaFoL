@@ -3,8 +3,8 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Checker_Specification
-  imports EPAC_Specification
+theory LPAC_Checker_Specification
+  imports LPAC_Specification
     Refine_Imperative_HOL.IICF
     PAC_Checker.Finite_Map_Multiset
     PAC_Checker.PAC_Checker_Specification

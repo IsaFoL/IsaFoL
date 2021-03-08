@@ -3,7 +3,7 @@
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU
 *)
-theory EPAC_Version
+theory LPAC_Version
   imports Main
 begin
 
