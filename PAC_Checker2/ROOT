@@ -20,9 +20,12 @@ session PAC_Checker2 (AFP) = "Sepref_IICF" +
     EPAC_Efficient_Checker_Synthesis
   theories [condition=ISABELLE_MLTON]
     EPAC_Checker_MLton
+    EPAC_Efficient_Checker_MLton
   document_files
     "root.tex"
     "root.bib"
   export_files (in "code") [1]
+    "EPAC_Checker.EPAC_Efficient_Checker_MLton:**"
+  export_files (in "code_nosharing") [1]
     "EPAC_Checker.EPAC_Checker_MLton:**"
 

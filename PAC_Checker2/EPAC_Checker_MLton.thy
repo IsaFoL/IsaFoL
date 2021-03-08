@@ -16,22 +16,25 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   file_prefix "checker"
 
 text \<open>Here is how to compile it:\<close>
+
 compile_generated_files _
   external_files
-    \<open>code/parser.sml\<close>
-    \<open>code/pasteque.sml\<close>
-    \<open>code/pasteque.mlb\<close>
+    \<open>code/no_sharing/parser.sml\<close>
+    \<open>code/no_sharing/pasteque.sml\<close>
+    \<open>code/no_sharing/pasteque.mlb\<close>
   where \<open>fn dir =>
   let
+    val exec = Generated_Files.execute (Path.append dir (Path.append (Path.basic "code") (Path.basic "no_sharing")));
 
-    val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
     val _ = exec \<open>Copy files\<close>
-      ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
-      val _ =
+    ("cp ../checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code_nosharing/checker.ML"));
+    val _ = exec \<open>Copy files\<close> ("cp ../checker.ML .");
+    val _ =
         exec \<open>Compilation\<close>
-          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
+    (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
             "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
             "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
     in () end\<close>
 
+text \<open>The second copy is required because the code is generate in the wrong directory.\<close>
 end

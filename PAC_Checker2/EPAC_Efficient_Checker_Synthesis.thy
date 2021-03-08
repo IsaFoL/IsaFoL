@@ -2746,11 +2746,11 @@ compile_generated_files _
     val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
     val _ = exec \<open>Copy files\<close>
       ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
-(*       val _ =
+    val _ =
         exec \<open>Compilation\<close>
-          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
+          (File.bash_path \<^path>\<open>/usr/bin/mlton\<close> ^ " " ^
             "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
-            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb"); *)
+            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
     in () end\<close>
 
 
