@@ -2748,7 +2748,7 @@ compile_generated_files _
       ("cp checker.ML " ^ ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/PAC_Checker2/code/checker.ML"));
     val _ =
         exec \<open>Compilation\<close>
-          (File.bash_path \<^path>\<open>/usr/bin/mlton\<close> ^ " " ^
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
             "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
             "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
     in () end\<close>
