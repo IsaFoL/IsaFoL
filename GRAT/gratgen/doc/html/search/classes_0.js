@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['clausedb',['ClauseDB',['../classClauseDB.html',1,'']]]
+  ['clausedb_161',['ClauseDB',['../classClauseDB.html',1,'']]]
 ];

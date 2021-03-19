@@ -2427,6 +2427,8 @@ pos_t Verifier::fwd_pass_aux() {
         case acres_t::UNIT: item.set_trpos(trpos); break;
         case acres_t::CONFLICT: {
           // Trivial conflict in clauses
+//           clog<<"c Trivial conflict in initial clauses"<<endl;
+          mark_clause(cl);
           glb.truncate_items(glb.get_fst_prf_item());  // Strip proof, not required
           return db->c2p(cl);
           // return pos_t::null;
@@ -2440,6 +2442,7 @@ pos_t Verifier::fwd_pass_aux() {
   lit_t *conflict = propagate_units();
   if (conflict) {
     // Conflict after unit-propagation on initial clauses
+//     clog<<"c Conflict after unit propagation on initial clauses"<<endl;
     mark_clause(conflict);
     glb.truncate_items(glb.get_fst_prf_item());  // Strip proof, not required
     return db->c2p(conflict);
