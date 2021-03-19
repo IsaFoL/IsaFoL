@@ -37,7 +37,7 @@ cd gratchk/code
 cd $BASEDIR
 
 cd gratchk
-isabelle build -d '$AFP' -D .
+isabelle build -D .
 ./mkpkg.sh
 cd $BASEDIR
 

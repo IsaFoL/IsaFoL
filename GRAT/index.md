@@ -160,6 +160,14 @@ While this list may seem huge, it is worth to list some items that are missing a
   * [Version 1.3](archive/v1.3/index.html)
     * Support for binary DRAT format
     * Bugfixes in gratgen
+  * [Version 1.3.1](archive/v1.3.1/index.html)
+    * Bugfixes in gratgen
+  * [Version 1.3.2](archive/v1.3.2/index.html)
+    * Bugfixes in gratgen
 
-### Version 1.3.1 (Current) ###
-  * Bugfixes in gratgen
+### Version 1.3.3 (Current) ###
+  * Bugfixes in gratgen.
+    * Details: while reading the formula, gratgen will assign unit clauses immediately.
+      This can lead to a conflict clause being detected before the initial unit propagation.
+      In this case, gratgen forgot to mark the relevant clauses as unit, thus not including them into the generated proof.
+      Now fixed.

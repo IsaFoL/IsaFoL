@@ -1,2 +1,3 @@
 <map id="Global_Data" name="Global_Data">
+<area shape="rect" id="node1" title="Global data, which is constant after forward pass." alt="" coords="5,5,108,32"/>
 </map>

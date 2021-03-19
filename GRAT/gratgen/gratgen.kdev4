@@ -1,4 +1,4 @@
 [Project]
-Name=gratgen
+CreatedFrom=CMakeLists.txt
 Manager=KDevCMakeManager
-VersionControl=
+Name=gratgen
