@@ -754,7 +754,7 @@ inductive cdcl_twl_unitres :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightar
     \<open>struct_wf_twl_cls E\<close>
     \<open>clause E = C\<close>
     \<open>Multiset.Ball (clause E) (undefined_lit M)\<close>
-    \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS\<close> |
+    \<open>atms_of C \<subseteq> atms_of_ms (clause ` set_mset N) \<union> atms_of_mm NE \<union> atms_of_mm NS \<union> atms_of_mm N0\<close> |
 \<open>cdcl_twl_unitres (M, N, U + {#D#}, None, NE, UE, NS, US, N0, U0, {#}, Q)
     (Propagated K C # M, N, U, None, NE, add_mset C UE, NS, add_mset (clause D) US, N0, U0, {#}, add_mset (-K) Q)\<close>
   if \<open>count_decided M = 0\<close> and
@@ -1072,5 +1072,28 @@ lemma cdcl_subresolutions_entailed_by_init:
     by (force simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
       insert_commute ac_simps)
   done
+
+inductive cdcl_twl_promote_false :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_promote_false (M, add_mset C N, U, D, NE, UE, NS, US, N0, U0, WS, Q)
+  (M, N, U, Some {#}, NE, UE, NS, US, add_mset {#} N0, U0, WS, Q)\<close>
+  if \<open>clause C = {#}\<close> \<open>count_decided M = 0\<close>|
+\<open>cdcl_twl_promote_false (M, N, add_mset C U, D, NE, UE, NS, US, N0, U0, WS, Q)
+    (M, N, U, Some {#}, NE, UE, NS, US, N0, add_mset {#} U0, WS, Q)\<close>
+  if \<open>clause C = {#}\<close> \<open>count_decided M = 0\<close>
+
+lemma cdcl_twl_promote_false_cdcl_promote_false:
+  \<open>cdcl_twl_promote_false S T \<Longrightarrow> cdcl_promote_false (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (auto simp: cdcl_twl_promote_false.simps cdcl_promote_false.simps)
+
+lemma cdcl_twl_promote_false_twl_stgy_invs:
+  assumes \<open>cdcl_twl_promote_false S T\<close>
+    \<open>twl_struct_invs S\<close>
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_promote_false.induct)
+   (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 
 end
