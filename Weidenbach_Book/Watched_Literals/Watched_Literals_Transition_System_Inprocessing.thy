@@ -151,6 +151,7 @@ twl_subresolution_IL_unit:
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>
 
+ 
 lemma past_invs_count_decided0: \<open>count_decided (get_trail S) = 0 \<Longrightarrow> past_invs S\<close>
   by (cases S) (auto simp: past_invs.simps)
 
@@ -771,7 +772,7 @@ inductive cdcl_twl_unitres :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightar
 \<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
     (M, N, U, Some {#}, NE, UE, add_mset (clause D) NS, US, add_mset {#} N0, U0, {#}, {#})\<close>
   if \<open>count_decided M = 0\<close> and
-    \<open>(clauses N + NE + NS + N0) \<Turnstile>psm mset_set (CNot (clause D))\<close>
+    \<open>(clauses (add_mset D N) + NE + NS + N0) \<Turnstile>psm mset_set (CNot (clause D))\<close>
 
 lemma cdcl_twl_unitres_cdcl_unitres:
   \<open>cdcl_twl_unitres S T \<Longrightarrow> cdcl_unitres (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>

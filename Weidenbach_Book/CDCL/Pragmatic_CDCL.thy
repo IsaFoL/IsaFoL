@@ -1450,7 +1450,7 @@ cdcl_unitresR_empty:
 cdcl_unitresI_empty:
   \<open>cdcl_unitres (M, N + {#C'#}, U, None, NE, UE, NS, US, N0, U0)
     (M, N, U, Some {#}, NE, UE, add_mset (C') NS, US, add_mset {#} N0, U0)\<close>
-  if \<open>count_decided M = 0\<close> and \<open>(N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
+  if \<open>count_decided M = 0\<close> and \<open>(add_mset C' N + NE + NS + N0) \<Turnstile>psm mset_set (CNot C')\<close>
 
 lemma true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise':
   \<open>N \<Turnstile>ps CNot C' \<Longrightarrow> N \<Turnstile>p C + C' \<Longrightarrow> C'' \<subseteq># C' \<Longrightarrow> N \<Turnstile>p (C + (C' - C''))\<close>
@@ -1514,7 +1514,7 @@ lemma cdcl_unitres_learn_subsumeE:
         cdcl_promote_false.simps
         dest!: true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or_generalise
         intro!: r_into_rtranclp)
-    subgoal for M N NE NS N0 C' U UE US U0
+    subgoal for M C' N NE NS N0 U UE US U0
       using true_clss_clss_contradiction_true_clss_cls_false[of C'
         \<open>insert C' (set_mset N \<union> set_mset NE \<union> set_mset NS \<union> set_mset N0)\<close>] apply -
       by (rule that[of \<open>(M, N + {#C', {#}#}, U, None, NE, UE, NS, US, N0, U0)\<close>
@@ -2171,14 +2171,13 @@ lemma rtranclp_pcdcl_entailed_by_init:
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
   using assms
-  apply (induction rule: rtranclp_induct)
-  using pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs by blast+
+  by (induction rule: rtranclp_induct)
+   (use pcdcl_entailed_by_init rtranclp_pcdcl_all_struct_invs in blast)+
 
 text \<open>
   TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.
   \<close>
-definition full2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "full2 transf transf2 = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf2 S')"
-
+definition full2 :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool\<close> where
+  \<open>full2 transf transf2 = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf2 S')\<close>
 
 end
