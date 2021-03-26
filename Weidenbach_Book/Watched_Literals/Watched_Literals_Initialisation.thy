@@ -792,7 +792,7 @@ lemma twl_st_l_init_defined_lit[twl_st_l_init]:
    \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow>
         defined_lit (get_trail_init T) = defined_lit (get_trail_l_init S)\<close>
   by (auto simp: twl_st_l_init_def)
-
+    
 lemma [twl_st_l_init]:
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_learned_clauses_init T = {#} \<longleftrightarrow> learned_clss_l (get_clauses_l_init S) = {#}\<close>
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_unit_learned_clauses_init T = {#} \<longleftrightarrow> get_learned_unit_clauses_l_init S = {#}
