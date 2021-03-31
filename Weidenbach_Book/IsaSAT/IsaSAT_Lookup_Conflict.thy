@@ -5,24 +5,14 @@ theory IsaSAT_Lookup_Conflict
     LBD
     IsaSAT_Clauses
     IsaSAT_Watch_List
-    IsaSAT_Trail
+    IsaSAT_Mark
 begin
 
-chapter \<open>Clauses Encoded as Positions\<close>
 
-text \<open>We use represent the conflict in two data structures close to the one used by the most SAT
-solvers: We keep an array that represent the clause (for efficient iteration on the clause) and a
-``hash-table'' to efficiently test if a literal belongs to the clause.
+text \<open>
 
-The first data structure is simply an array to represent the clause. This theory is only about
-the second data structure. We refine it from the clause (seen as a multiset) in two steps:
-  \<^enum> First, we represent the clause as a ``hash-table'', where the \<^term>\<open>i\<close>-th position indicates
-    \<^term>\<open>Some True\<close> (respectively \<^term>\<open>Some False\<close>, \<^term>\<open>None\<close>) if \<^term>\<open>Pos i\<close> is present in the
-    clause (respectively \<^term>\<open>Neg i\<close>, not at all). This allows to represent every not-tautological
-    clause whose literals fits in the underlying array.
-  \<^enum> Then we refine it to an array of booleans indicating if the atom is present or not. This
-    information is redundant because we already know that a literal can only appear negated
-    compared to the trail.
+We refine it to an array of booleans indicating if the atom is present or not. This information is
+redundant because we already know that a literal can only appear negated compared to the trail.
 
 The first step makes it easier to reason about the clause (since we have the full clause), while the
 second step should generate (slightly) more efficient code.
@@ -35,191 +25,8 @@ As far as we know, versat stops at the first refinement (stating that there is n
 overhead, which is probably true, but the second refinement is not much additional work anyhow and
 we don't have to rely on the ability of the compiler to not represent the option type on booleans
 as a pointer, which it might be able to or not).
+
 \<close>
-
-text \<open>This is the first level of the refinement. We tried a few different definitions (including a
-direct one, i.e., mapping a position to the inclusion in the set) but the inductive version turned out
-to the easiest one to use.
-\<close>
-inductive mset_as_position :: \<open>bool option list \<Rightarrow> nat literal multiset \<Rightarrow> bool\<close> where
-empty:
-  \<open>mset_as_position (replicate n None) {#}\<close> |
-add:
-  \<open>mset_as_position xs' (add_mset L P)\<close>
-  if \<open>mset_as_position xs P\<close> and \<open>atm_of L < length xs\<close> and \<open>L \<notin># P\<close> and \<open>-L \<notin># P\<close> and
-     \<open>xs' = xs[atm_of L := Some (is_pos L)]\<close>
-
-lemma mset_as_position_distinct_mset:
-  \<open>mset_as_position xs P \<Longrightarrow> distinct_mset P\<close>
-  by (induction rule: mset_as_position.induct) auto
-
-lemma mset_as_position_atm_le_length:
-  \<open>mset_as_position xs P \<Longrightarrow> L \<in># P \<Longrightarrow> atm_of L < length xs\<close>
-  by (induction rule: mset_as_position.induct) (auto simp: nth_list_update' atm_of_eq_atm_of)
-
-lemma mset_as_position_nth:
-  \<open>mset_as_position xs P \<Longrightarrow> L \<in># P \<Longrightarrow> xs ! (atm_of L) = Some (is_pos L)\<close>
-  by (induction rule: mset_as_position.induct)
-    (auto simp: nth_list_update' atm_of_eq_atm_of dest: mset_as_position_atm_le_length)
-
-lemma mset_as_position_in_iff_nth:
-  \<open>mset_as_position xs P \<Longrightarrow> atm_of L < length xs \<Longrightarrow> L \<in># P \<longleftrightarrow> xs ! (atm_of L) = Some (is_pos L)\<close>
-  by (induction rule: mset_as_position.induct)
-    (auto simp: nth_list_update' atm_of_eq_atm_of is_pos_neg_not_is_pos
-      dest: mset_as_position_atm_le_length)
-
-lemma mset_as_position_tautology: \<open>mset_as_position xs C \<Longrightarrow> \<not>tautology C\<close>
-  by (induction rule: mset_as_position.induct) (auto simp: tautology_add_mset)
-
-lemma mset_as_position_right_unique:
-  assumes
-    map: \<open>mset_as_position xs D\<close> and
-    map': \<open>mset_as_position xs D'\<close>
-  shows \<open>D = D'\<close>
-proof (rule distinct_set_mset_eq)
-  show \<open>distinct_mset D\<close>
-    using mset_as_position_distinct_mset[OF map] .
-  show \<open>distinct_mset D'\<close>
-    using mset_as_position_distinct_mset[OF map'] .
-  show \<open>set_mset D = set_mset D'\<close>
-    using mset_as_position_in_iff_nth[OF map] mset_as_position_in_iff_nth[OF map']
-      mset_as_position_atm_le_length[OF map] mset_as_position_atm_le_length[OF map']
-    by blast
-qed
-
-lemma mset_as_position_mset_union:
-  fixes P xs
-  defines \<open>xs' \<equiv> fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs\<close>
-  assumes
-    mset: \<open>mset_as_position xs P'\<close> and
-    atm_P_xs: \<open>\<forall>L \<in> set P. atm_of L < length xs\<close> and
-    uL_P: \<open>\<forall>L \<in> set P. -L \<notin># P'\<close> and
-    dist: \<open>distinct P\<close> and
-    tauto: \<open>\<not>tautology (mset P)\<close>
-  shows \<open>mset_as_position xs' (mset P \<union># P')\<close>
-  using atm_P_xs uL_P dist tauto unfolding xs'_def
-proof (induction P)
-  case Nil
-  show ?case using mset by auto
-next
-  case (Cons L P) note IH = this(1) and atm_P_xs = this(2) and uL_P = this(3) and dist = this(4)
-    and tauto = this(5)
-  then have mset:
-    \<open>mset_as_position (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) (mset P \<union># P')\<close>
-    by (auto simp: tautology_add_mset)
-  show ?case
-  proof (cases \<open>L \<in># P'\<close>)
-    case True
-    then show ?thesis
-      using mset dist
-      by (metis (no_types, lifting) add_mset_union assms(2) distinct.simps(2) fold_simps(2)
-        insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset
-        sup_union_right1)
-  next
-    case False
-    have [simp]: \<open>length (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) = length xs\<close>
-      by (induction P arbitrary: xs) auto
-    moreover have \<open>- L \<notin> set P\<close>
-      using tauto by (metis list.set_intros(1) list.set_intros(2) set_mset_mset tautology_minus)
-    moreover have
-      \<open>fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P (xs[atm_of L := Some (is_pos L)]) =
-       (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) [atm_of L := Some (is_pos L)]\<close>
-      using uL_P dist tauto
-      apply (induction P arbitrary: xs)
-      subgoal by auto
-      subgoal for L' P
-        by (cases \<open>atm_of L = atm_of L'\<close>)
-          (auto simp: tautology_add_mset list_update_swap atm_of_eq_atm_of)
-      done
-    ultimately show ?thesis
-      using mset atm_P_xs dist uL_P False by (auto intro!: mset_as_position.add)
-  qed
-qed
-
-lemma mset_as_position_empty_iff: \<open>mset_as_position xs {#} \<longleftrightarrow> (\<exists>n. xs = replicate n None)\<close>
-  apply (rule iffI)
-  subgoal
-    by (cases rule: mset_as_position.cases, assumption) auto
-  subgoal
-    by (auto intro: mset_as_position.intros)
-  done
-
-type_synonym (in -) lookup_clause_rel = \<open>nat \<times> bool option list\<close>
-
-definition lookup_clause_rel :: \<open>nat multiset \<Rightarrow> (lookup_clause_rel \<times> nat literal multiset) set\<close> where
-\<open>lookup_clause_rel \<A> = {((n, xs), C). n = size C \<and> mset_as_position xs C \<and>
-   (\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs)}\<close>
-
-lemma lookup_clause_rel_empty_iff: \<open>((n, xs), C) \<in> lookup_clause_rel \<A> \<Longrightarrow> n = 0 \<longleftrightarrow> C = {#}\<close>
-  by (auto simp: lookup_clause_rel_def)
-
-lemma conflict_atm_le_length: \<open>((n, xs), C) \<in> lookup_clause_rel \<A> \<Longrightarrow> L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
-   L < length xs\<close>
-  by (auto simp: lookup_clause_rel_def)
-
-
-lemma conflict_le_length:
-  assumes
-    c_rel: \<open>((n, xs), C) \<in> lookup_clause_rel \<A>\<close> and
-    L_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-  shows \<open>atm_of L < length xs\<close>
-proof -
-  have
-    size: \<open>n = size C\<close> and
-    mset_pos: \<open>mset_as_position xs C\<close> and
-    atms_le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs\<close>
-    using c_rel unfolding lookup_clause_rel_def by blast+
-  have \<open>atm_of L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
-    using L_\<L>\<^sub>a\<^sub>l\<^sub>l by (simp add: atms_of_def)
-  then show ?thesis
-    using atms_le by blast
-qed
-
-lemma lookup_clause_rel_atm_in_iff:
-  \<open>((n, xs), C) \<in> lookup_clause_rel \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> L \<in># C \<longleftrightarrow> xs!(atm_of L) = Some (is_pos L)\<close>
-  by (rule mset_as_position_in_iff_nth)
-     (auto simp: lookup_clause_rel_def atms_of_def)
-
-lemma
-  assumes
-    c: \<open>((n,xs), C) \<in> lookup_clause_rel \<A>\<close> and
-    bounded: \<open>isasat_input_bounded \<A>\<close>
-  shows
-    lookup_clause_rel_not_tautolgy: \<open>\<not>tautology C\<close> and
-    lookup_clause_rel_distinct_mset: \<open>distinct_mset C\<close> and
-    lookup_clause_rel_size: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + uint32_max div 2\<close>
-proof -
-  have mset: \<open>mset_as_position xs C\<close> and \<open>n = size C\<close> and \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs\<close>
-    using c unfolding lookup_clause_rel_def by fast+
-  show \<open>\<not>tautology C\<close>
-    using mset
-    apply (induction rule: mset_as_position.induct)
-    subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def)
-    subgoal by (auto simp: tautology_add_mset)
-    done
-  show \<open>distinct_mset C\<close>
-    using mset mset_as_position_distinct_mset by blast
-  then show \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C \<Longrightarrow> size C \<le> 1 + uint32_max div 2\<close>
-    using simple_clss_size_upper_div2[of \<A> \<open>C\<close>] \<open>\<not>tautology C\<close> bounded by auto
-qed
-
-
-definition option_bool_rel :: \<open>(bool \<times> 'a option) set\<close> where
-  \<open>option_bool_rel = {(b, x). b \<longleftrightarrow> \<not>(is_None x)}\<close>
-
-
-definition NOTIN :: \<open>bool option\<close> where
-  [simp]: \<open>NOTIN = None\<close>
-
-definition ISIN :: \<open>bool \<Rightarrow> bool option\<close> where
-  [simp]: \<open>ISIN b = Some b\<close>
-
-definition is_NOTIN :: \<open>bool option \<Rightarrow> bool\<close> where
-  [simp]: \<open>is_NOTIN x \<longleftrightarrow> x = NOTIN\<close>
-
-lemma is_NOTIN_alt_def:
-  \<open>is_NOTIN x \<longleftrightarrow> is_None x\<close>
-  by (auto split: option.splits)
 
 definition option_lookup_clause_rel where
 \<open>option_lookup_clause_rel \<A> = {((b,(n,xs)), C). b = (C = None) \<and>
@@ -254,153 +61,6 @@ lemma lookup_clause_assn_is_empty_is_empty:
    (auto simp: option_lookup_clause_rel_def lookup_clause_assn_is_empty_def lookup_clause_rel_def
      Multiset.is_empty_def split: option.splits)
 
-
-definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_lookup_conflict = (\<lambda>(_, n, _). n)\<close>
-
-definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
-  \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
-
-lemma (in -) mset_as_position_length_not_None:
-   \<open>mset_as_position x2 C \<Longrightarrow> size C = length (filter ((\<noteq>) None) x2)\<close>
-proof (induction rule: mset_as_position.induct)
-  case (empty n)
-  then show ?case by auto
-next
-  case (add xs P L xs') note m_as_p = this(1) and atm_L = this(2)
-  have xs_L: \<open>xs ! (atm_of L) = None\<close>
-  proof -
-    obtain bb :: \<open>bool option \<Rightarrow> bool\<close> where
-      f1: \<open>\<forall>z. z = None \<or> z = Some (bb z)\<close>
-      by (metis option.exhaust)
-    have f2: \<open>xs ! atm_of L \<noteq> Some (is_pos L)\<close>
-      using add.hyps(1) add.hyps(2) add.hyps(3) mset_as_position_in_iff_nth by blast
-    have f3: \<open>\<forall>z b. ((Some b = z \<or> z = None) \<or> bb z) \<or> b\<close>
-      using f1 by blast
-    have f4: \<open>\<forall>zs. (zs ! atm_of L \<noteq> Some (is_pos (- L)) \<or> \<not> atm_of L < length zs)
-           \<or> \<not> mset_as_position zs P\<close>
-      by (metis add.hyps(4) atm_of_uminus mset_as_position_in_iff_nth)
-    have \<open>\<forall>z b. ((Some b = z \<or> z = None) \<or> \<not> bb z) \<or> \<not> b\<close>
-      using f1 by blast
-    then show ?thesis
-      using f4 f3 f2 by (metis add.hyps(1) add.hyps(2) is_pos_neg_not_is_pos)
-  qed
-  obtain xs1 xs2 where
-    xs_xs12: \<open>xs = xs1 @ None # xs2\<close> and
-    xs1: \<open>length xs1 = atm_of L\<close>
-    using atm_L upd_conv_take_nth_drop[of \<open>atm_of L\<close> xs \<open>None\<close>] apply -
-    apply (subst(asm)(2) xs_L[symmetric])
-    by (force simp del: append_take_drop_id)+
-  then show ?case
-    using add by (auto simp: list_update_append)
-qed
-
-
-definition (in -) is_in_lookup_conflict where
-  \<open>is_in_lookup_conflict = (\<lambda>(n, xs) L. \<not>is_None (xs ! atm_of L))\<close>
-
-lemma mset_as_position_remove:
-  \<open>mset_as_position xs D \<Longrightarrow> L < length xs \<Longrightarrow>
-   mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
-proof (induction rule: mset_as_position.induct)
-  case (empty n)
-  then have [simp]: \<open>(replicate n None)[L := None] = replicate n None\<close>
-    using list_update_id[of \<open>replicate n None\<close> L] by auto
-  show ?case by (auto intro: mset_as_position.intros)
-next
-  case (add xs P K xs')
-  show ?case
-  proof (cases \<open>L = atm_of K\<close>)
-    case True
-    then show ?thesis
-      using add by (cases K) auto
-  next
-    case False
-    have map: \<open>mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) P))\<close>
-      using add by auto
-    have \<open>K \<notin># P - {#Pos L, Neg L#}\<close> \<open>-K \<notin># P - {#Pos L, Neg L#}\<close>
-      by (auto simp: add.hyps dest!: in_diffD)
-    then show ?thesis
-      using mset_as_position.add[OF map, of \<open>K\<close> \<open>xs[L := None, atm_of K := Some (is_pos K)]\<close>]
-        add False list_update_swap[of \<open>atm_of K\<close> L xs] apply simp
-      apply (subst diff_add_mset_swap)
-      by auto
-  qed
-qed
-
-lemma mset_as_position_remove2:
-  \<open>mset_as_position xs D \<Longrightarrow> atm_of L < length xs \<Longrightarrow>
-   mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
-  using mset_as_position_remove[of xs D \<open>atm_of (-L)\<close>]
-  by (smt add_mset_commute add_mset_diff_bothsides atm_of_uminus insert_DiffM
-   literal.exhaust_sel minus_notin_trivial2 remove_1_mset_id_iff_notin uminus_not_id')
-
-definition (in -) delete_from_lookup_conflict
-   :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel nres\<close> where
-  \<open>delete_from_lookup_conflict = (\<lambda>L (n, xs). do {
-     ASSERT(n\<ge>1);
-     ASSERT(atm_of L < length xs);
-     RETURN (n - 1, xs[atm_of L := None])
-   })\<close>
-
-lemma delete_from_lookup_conflict_op_mset_delete:
-  \<open>(uncurry delete_from_lookup_conflict, uncurry (RETURN oo remove1_mset)) \<in>
-      [\<lambda>(L, D). -L \<notin># D \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> L \<in># D]\<^sub>f Id \<times>\<^sub>f lookup_clause_rel \<A> \<rightarrow>
-      \<langle>lookup_clause_rel \<A>\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  subgoal for x y
-    using mset_as_position_remove[of \<open>snd (snd x)\<close> \<open>snd y\<close> \<open>atm_of (fst y)\<close>]
-    apply (cases x; cases y; cases \<open>fst y\<close>)
-    by (auto simp: delete_from_lookup_conflict_def lookup_clause_rel_def
-        dest!: multi_member_split
-        intro!: ASSERT_refine_left)
-  done
-
-definition delete_from_lookup_conflict_pre where
-  \<open>delete_from_lookup_conflict_pre \<A> = (\<lambda>(a, b). - a \<notin># b \<and> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> a \<in># b)\<close>
-
-definition set_conflict_m
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
-   out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
-where
-\<open>set_conflict_m M N i _ _ _  =
-    SPEC (\<lambda>(C, n, outl). C = Some (mset (N\<propto>i)) \<and> n = card_max_lvl M (mset (N\<propto>i)) \<and>
-     out_learned M C outl)\<close>
-
-definition merge_conflict_m
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
-  out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
-where
-\<open>merge_conflict_m M N i D _ _ =
-    SPEC (\<lambda>(C, n, outl). C = Some (mset (tl (N\<propto>i)) \<union># the D) \<and>
-       n = card_max_lvl M (mset (tl (N\<propto>i)) \<union># the D) \<and>
-       out_learned M C outl)\<close>
-
-definition merge_conflict_m_g
-  :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow>
-  (nat clause option \<times> nat \<times> out_learned) nres\<close>
-where
-\<open>merge_conflict_m_g init M Ni D =
-    SPEC (\<lambda>(C, n, outl). C = Some (mset (drop init (Ni)) \<union># the D) \<and>
-       n = card_max_lvl M (mset (drop init (Ni)) \<union># the D) \<and>
-       out_learned M C outl)\<close>
-
-definition add_to_lookup_conflict :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel\<close> where
-  \<open>add_to_lookup_conflict = (\<lambda>L (n, xs). (if xs ! atm_of L = NOTIN then n + 1 else n,
-      xs[atm_of L := ISIN (is_pos L)]))\<close>
-
-
-definition lookup_conflict_merge'_step
-  :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow>
-      nat clause \<Rightarrow> out_learned \<Rightarrow> bool\<close>
-where
-  \<open>lookup_conflict_merge'_step \<A> init M i clvls zs D C outl = (
-      let D' = mset (take (i - init) (drop init D));
-          E = remdups_mset (D' + C) in
-      ((False, zs), Some E) \<in> option_lookup_clause_rel \<A> \<and>
-      out_learned M (Some E) outl \<and>
-      literals_are_in_\<L>\<^sub>i\<^sub>n \<A> E \<and> clvls = card_max_lvl M E)\<close>
-
 lemma option_lookup_clause_rel_update_None:
   assumes  \<open>((False, (n, xs)), Some D) \<in> option_lookup_clause_rel \<A>\<close> and L_xs : \<open>L < length xs\<close>
   shows \<open>((False, (if xs!L = None then n else n - 1, xs[L := None])),
@@ -433,44 +93,58 @@ proof -
 qed
 
 
-lemma add_to_lookup_conflict_lookup_clause_rel:
-  assumes
-    confl: \<open>((n, xs), C) \<in> lookup_clause_rel \<A>\<close> and
-    uL_C: \<open>-L \<notin># C\<close> and
-    L_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-  shows \<open>(add_to_lookup_conflict L (n, xs), {#L#} \<union># C) \<in> lookup_clause_rel \<A>\<close>
-proof -
-  have
-    n: \<open>n = size C\<close> and
-    mset: \<open>mset_as_position xs C\<close> and
-    atm: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs\<close>
-    using confl unfolding lookup_clause_rel_def by blast+
-  have \<open>distinct_mset C\<close>
-    using mset by (blast dest: mset_as_position_distinct_mset)
-  have atm_L_xs: \<open>atm_of L < length xs\<close>
-    using atm L_\<L>\<^sub>a\<^sub>l\<^sub>l by (auto simp: atms_of_def)
-  then show ?thesis
-  proof (cases \<open>L \<in># C\<close>)
-    case True
-    with mset have xs: \<open>xs ! atm_of L = Some (is_pos L)\<close> \<open>xs ! atm_of L \<noteq> None\<close>
-      by (auto dest: mset_as_position_nth)
-    moreover have \<open>{#L#} \<union># C = C\<close>
-      using True by (simp add: subset_mset.sup.absorb2)
-    ultimately show ?thesis
-      using n mset atm True
-      by (auto simp: lookup_clause_rel_def add_to_lookup_conflict_def xs[symmetric])
-  next
-    case False
-    with mset have \<open>xs ! atm_of L = None\<close>
-      using mset_as_position_in_iff_nth[of xs C L]
-       mset_as_position_in_iff_nth[of xs C \<open>-L\<close>]  atm_L_xs uL_C
-      by (cases L; cases \<open>xs ! atm_of L\<close>) auto
-    then show ?thesis
-      using n mset atm False atm_L_xs uL_C
-      by (auto simp: lookup_clause_rel_def add_to_lookup_conflict_def
-          intro!: mset_as_position.intros)
-  qed
-qed
+definition size_lookup_conflict :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_lookup_conflict = (\<lambda>(_, n, _). n)\<close>
+
+definition size_conflict_wl_heur :: \<open>_ \<Rightarrow> nat\<close> where
+  \<open>size_conflict_wl_heur = (\<lambda>(M, N, U, D, _, _, _, _). size_lookup_conflict D)\<close>
+
+
+definition (in -) is_in_conflict :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> bool\<close> where
+  [simp]: \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
+
+definition (in -) is_in_lookup_option_conflict
+  :: \<open>nat literal \<Rightarrow> (bool \<times> nat \<times> bool option list) \<Rightarrow> bool\<close>
+where
+  \<open>is_in_lookup_option_conflict = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>
+
+lemma is_in_lookup_option_conflict_is_in_conflict:
+  \<open>(uncurry (RETURN oo is_in_lookup_option_conflict),
+     uncurry (RETURN oo is_in_conflict)) \<in>
+     [\<lambda>(L, C). C \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>r option_lookup_clause_rel \<A>  \<rightarrow>
+     \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  subgoal for Lxs LC
+    using lookup_clause_rel_atm_in_iff[of _ \<open>snd (snd (snd Lxs))\<close>]
+    apply (cases Lxs)
+    by (auto simp: is_in_lookup_option_conflict_def option_lookup_clause_rel_def)
+  done
+
+definition set_conflict_m
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
+   out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
+where
+\<open>set_conflict_m M N i _ _ _  =
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (N\<propto>i)) \<and> n = card_max_lvl M (mset (N\<propto>i)) \<and>
+     out_learned M C outl)\<close>
+
+definition merge_conflict_m
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
+  out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
+where
+\<open>merge_conflict_m M N i D _ _ =
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (tl (N\<propto>i)) \<union># the D) \<and>
+       n = card_max_lvl M (mset (tl (N\<propto>i)) \<union># the D) \<and>
+       out_learned M C outl)\<close>
+
+definition merge_conflict_m_g
+  :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow>
+  (nat clause option \<times> nat \<times> out_learned) nres\<close>
+where
+\<open>merge_conflict_m_g init M Ni D =
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (drop init (Ni)) \<union># the D) \<and>
+       n = card_max_lvl M (mset (drop init (Ni)) \<union># the D) \<and>
+       out_learned M C outl)\<close>
 
 
 definition outlearned_add
@@ -507,6 +181,17 @@ where
      RETURN ((False, zs), clvls, outl)
    })\<close>
 
+definition lookup_conflict_merge'_step
+  :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow>
+  nat clause \<Rightarrow> out_learned \<Rightarrow> bool\<close>
+  where
+  \<open>lookup_conflict_merge'_step \<A> init M i clvls zs D C outl = (
+  let D' = mset (take (i - init) (drop init D));
+    E = remdups_mset (D' + C) in
+    ((False, zs), Some E) \<in> option_lookup_clause_rel \<A> \<and>
+    out_learned M (Some E) outl \<and>
+    literals_are_in_\<L>\<^sub>i\<^sub>n \<A> E \<and> clvls = card_max_lvl M E)\<close>
+ 
 definition resolve_lookup_conflict_aa
   :: \<open>(nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
      out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close>
@@ -781,7 +466,7 @@ proof -
 
     have ab_upper: \<open>Suc (Suc ab) \<le> uint32_max\<close>
       using simple_clss_size_upper_div2[OF bounded, of \<open>remdups_mset (?C' a)\<close>]
-      lookup_clause_rel_not_tautolgy[OF cr bounded] a_le_D lits mset_as_position_distinct_mset[OF map]
+      lookup_clause_rel_not_tautolgy[OF cr] a_le_D lits mset_as_position_distinct_mset[OF map]
       unfolding ab literals_are_in_\<L>\<^sub>i\<^sub>n_remdups uint32_max_def by auto
     show ?I
       using le_D_le_upper a_le_D ab_upper a_init
@@ -1167,111 +852,6 @@ proof -
       apply (rule H2; auto; auto; fail)
       by (auto intro!: H1 simp: merge_conflict_m_pre_def)
     done
-qed
-
-definition (in -) is_in_conflict :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> bool\<close> where
-  [simp]: \<open>is_in_conflict L C \<longleftrightarrow> L \<in># the C\<close>
-
-definition (in -) is_in_lookup_option_conflict
-  :: \<open>nat literal \<Rightarrow> (bool \<times> nat \<times> bool option list) \<Rightarrow> bool\<close>
-where
-  \<open>is_in_lookup_option_conflict = (\<lambda>L (_, _, xs). xs ! atm_of L = Some (is_pos L))\<close>
-
-lemma is_in_lookup_option_conflict_is_in_conflict:
-  \<open>(uncurry (RETURN oo is_in_lookup_option_conflict),
-     uncurry (RETURN oo is_in_conflict)) \<in>
-     [\<lambda>(L, C). C \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>r option_lookup_clause_rel \<A>  \<rightarrow>
-     \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro nres_relI frefI)
-  subgoal for Lxs LC
-    using lookup_clause_rel_atm_in_iff[of _ \<open>snd (snd (snd Lxs))\<close>]
-    apply (cases Lxs)
-    by (auto simp: is_in_lookup_option_conflict_def option_lookup_clause_rel_def)
-  done
-
-definition conflict_from_lookup where
-  \<open>conflict_from_lookup = (\<lambda>(n, xs). SPEC(\<lambda>D. mset_as_position xs D \<and> n = size D))\<close>
-
-lemma Ex_mset_as_position:
-  \<open>Ex (mset_as_position xs)\<close>
-proof (induction \<open>size {#x \<in># mset xs. x \<noteq> None#}\<close> arbitrary: xs)
-  case 0
-  then have xs: \<open>xs = replicate (length xs) None\<close>
-    by (auto simp: filter_mset_empty_conv dest: replicate_length_same)
-  show ?case
-    by (subst xs) (auto simp: mset_as_position.empty intro!: exI[of _ \<open>{#}\<close>])
-next
-  case (Suc x) note IH = this(1) and xs = this(2)
-  obtain i where
-     [simp]: \<open>i < length xs\<close> and
-    xs_i: \<open>xs ! i \<noteq> None\<close>
-    using xs[symmetric]
-    by (auto dest!: size_eq_Suc_imp_elem simp: in_set_conv_nth)
-  let ?xs = \<open>xs [i := None]\<close>
-  have \<open>x = size {#x \<in># mset ?xs. x \<noteq> None#}\<close>
-    using xs[symmetric] xs_i by (auto simp: mset_update size_remove1_mset_If)
-  from IH[OF this] obtain D where
-     map: \<open>mset_as_position ?xs D\<close>
-    by blast
-  have [simp]: \<open>Pos i \<notin># D\<close> \<open>Neg i \<notin># D\<close>
-    using xs_i mset_as_position_nth[OF map, of \<open>Pos i\<close>]
-      mset_as_position_nth[OF map, of \<open>Neg i\<close>]
-    by auto
-  have [simp]: \<open>xs ! i = a \<Longrightarrow> xs[i := a] = xs\<close> for a
-    by auto
-
-  have \<open>mset_as_position xs (add_mset (if the (xs ! i) then Pos i else Neg i) D)\<close>
-    using mset_as_position.add[OF map, of \<open>if the (xs ! i) then Pos i else Neg i\<close> xs]
-      xs_i[symmetric]
-    by (cases \<open>xs ! i\<close>) auto
-  then show ?case by blast
-qed
-
-lemma id_conflict_from_lookup:
-  \<open>(RETURN o id, conflict_from_lookup) \<in> [\<lambda>(n, xs). \<exists>D. ((n, xs), D) \<in> lookup_clause_rel \<A>]\<^sub>f Id \<rightarrow>
-    \<langle>lookup_clause_rel \<A>\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: lookup_clause_rel_def conflict_from_lookup_def RETURN_RES_refine_iff)
-
-
-lemma lookup_clause_rel_exists_le_uint32_max:
-  assumes ocr: \<open>((n, xs), D) \<in> lookup_clause_rel \<A>\<close> and \<open>n > 0\<close> and
-    le_i: \<open>\<forall>k<i. xs ! k = None\<close> and lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
-    bounded: \<open>isasat_input_bounded \<A>\<close>
-  shows
-    \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> j < uint32_max \<and> xs ! j \<noteq> None\<close>
-proof -
-  have
-    n_D: \<open>n = size D\<close> and
-    map: \<open>mset_as_position xs D\<close> and
-    le_xs: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length xs\<close>
-    using ocr unfolding lookup_clause_rel_def by auto
-  have map_empty: \<open>mset_as_position xs {#} \<longleftrightarrow> (xs = [] \<or> set xs = {None})\<close>
-    by (subst mset_as_position.simps) (auto simp add: list_eq_replicate_iff)
-  have ex_not_none: \<open>\<exists>j. j \<ge> i \<and> j < length xs \<and> xs ! j \<noteq> None\<close>
-  proof (rule ccontr)
-    assume \<open>\<not> ?thesis\<close>
-    then have \<open>xs = [] \<or> set xs = {None}\<close>
-      using le_i by (fastforce simp: in_set_conv_nth)
-    then have \<open>mset_as_position xs {#}\<close>
-      using map_empty by auto
-    then show False
-      using mset_as_position_right_unique[OF map] \<open>n > 0\<close> n_D by (cases D) auto
-  qed
-  then obtain j where
-     j: \<open>j \<ge> i\<close>\<open>j < length xs\<close>\<open>xs ! j \<noteq> None\<close>
-    by blast
-  let ?L = \<open>if the (xs ! j) then Pos j else Neg j\<close>
-  have \<open>?L \<in># D\<close>
-    using j mset_as_position_in_iff_nth[OF map, of ?L] by auto
-  then have \<open>nat_of_lit ?L \<le> uint32_max\<close>
-    using lits bounded
-    by (auto 5 5 dest!: multi_member_split[of _ D]
-        simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset split: if_splits)
-  then have \<open>j < uint32_max\<close>
-    by (auto simp: uint32_max_def split: if_splits)
-  then show ?thesis
-    using j by blast
 qed
 
 

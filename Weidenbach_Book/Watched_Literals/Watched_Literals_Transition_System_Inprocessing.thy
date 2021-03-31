@@ -34,7 +34,7 @@ lemma cdcl_twl_subsumed_cdcl_subsumed:
 lemma cdcl_twl_subsumed_II_simp:
   \<open>cdcl_twl_subsumed S S'\<close>
   if \<open>S = (M, N, U, D, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
-     \<open>S' = (M, remove1_mset C' N, U, D, NE, UE, add_mset (clause C') NS, US, N0, U0, {#}, Q)\<close>
+     \<open>S' = (M, remove1_mset C' N, U, D, NE, UE, add_mset (clause C') NS, US, N0, U0, {#}, Q)\<close>e
     \<open>clause C \<subseteq># clause C'\<close>
     \<open>C \<in># N\<close>
     \<open>C' \<in># remove1_mset C N\<close>

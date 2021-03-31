@@ -51,6 +51,11 @@ fun set_conflict_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<
        ((M, N, Some {#L#}, add_mset {#L#} NE, UE, NS, US, N0, U0, {#}), OC)\<close>
 
 
+fun add_to_tautology_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
+  add_to_tautology_init_wl[simp del]:
+  \<open>add_to_tautology_init_wl C ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC) =
+  ((M, N, D, NE, UE, add_mset (mset C) NS, US, N0, U0, Q), OC)\<close>
+
 fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
   add_to_clauses_init_wl_def[simp del]:
    \<open>add_to_clauses_init_wl C ((M, N, D, NE, UE, NS, US, Q), OC) = do {
@@ -63,19 +68,23 @@ fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
 definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
   \<open>init_dt_step_wl C S =
   (case get_conflict_init_wl S of
-    None \<Rightarrow>
-    if length C = 0
-    then RETURN (add_empty_conflict_init_wl S)
-    else if length C = 1
-    then
-      let L = hd C in
-      if undefined_lit (get_trail_init_wl S) L
-      then propagate_unit_init_wl L S
-      else if L \<in> lits_of_l (get_trail_init_wl S)
-      then RETURN (already_propagated_unit_init_wl (mset C) S)
-      else RETURN (set_conflict_init_wl L S)
-    else
-        add_to_clauses_init_wl C S
+    None \<Rightarrow> do {
+      C \<leftarrow> remdups_clause C;
+      if length C = 0
+      then RETURN (add_empty_conflict_init_wl S)
+      else if length C = 1
+      then
+        let L = hd C in
+        if undefined_lit (get_trail_init_wl S) L
+        then propagate_unit_init_wl L S
+        else if L \<in> lits_of_l (get_trail_init_wl S)
+        then RETURN (already_propagated_unit_init_wl (mset C) S)
+        else RETURN (set_conflict_init_wl L S)
+      else if tautology (mset C)
+      then RETURN (add_to_tautology_init_wl C S)
+      else
+          add_to_clauses_init_wl C S
+    }
   | Some D \<Rightarrow>
       RETURN (add_to_other_init C S))\<close>
 
@@ -113,24 +122,29 @@ lemma [twl_st_wl_init]:
   using assms
   by (solves \<open>cases S; cases S'; auto simp: state_wl_l_init_def state_wl_l_def
       state_wl_l_init'_def\<close>)+
-(*
-lemma [twl_st_wl_init]:
-  \<open>get_trail_wl (fst T) = get_trail_init_wl T\<close>
-  \<open>get_conflict_wl (fst T) = get_conflict_init_wl T\<close>
-  by (cases T; auto simp: correct_watching.simps correct_watching_init.simps; fail)+
- *)
+
 lemma in_clause_to_update_in_dom_mD:
   \<open>bb \<in># clause_to_update L (a, aa, ab, ac, ad, NS, US, N0, U0, {#}, {#}) \<Longrightarrow> bb \<in># dom_m aa\<close>
   unfolding clause_to_update_def
   by force
 
 lemma init_dt_step_wl_init_dt_step:
-  assumes S_S': \<open>(S, S') \<in> state_wl_l_init\<close> and
-    dist: \<open>distinct C\<close>
+  assumes S_S': \<open>(S, S') \<in> state_wl_l_init\<close>
   shows \<open>init_dt_step_wl C S \<le> \<Down> state_wl_l_init
           (init_dt_step C S')\<close>
    (is \<open>_ \<le> \<Down> ?A _\<close>)
 proof -
+
+  define remdups_clause' :: \<open>'a clause_l \<Rightarrow> 'a clause_l nres\<close> where
+    \<open>remdups_clause' C = remdups_clause C\<close> for C :: \<open>'a clause_l\<close>
+    
+  have remdups_clause: \<open>remdups_clause' C \<le>\<Down>  {(D,E). D = E \<and> distinct D} (remdups_clause C)\<close>
+    (is \<open>_ \<le> \<Down> ?C _\<close>)
+    unfolding remdups_clause_def remdups_clause'_def
+    by (auto intro!: RES_refine intro!: distinct_mset_mset_distinct[THEN iffD1]
+      simp del: distinct_mset_remdups_mset distinct_mset_mset_distinct)
+      fastforce
+
   have confl: \<open>(get_conflict_init_wl S, get_conflict_l_init S') \<in> \<langle>Id\<rangle>option_rel\<close>
     using S_S' by (auto simp: twl_st_wl_init)
   have false: \<open>(add_empty_conflict_init_wl S, add_empty_conflict_init_l S') \<in> ?A\<close>
@@ -140,32 +154,35 @@ proof -
          all_blits_are_in_problem_init.simps state_wl_l_init'_def
         state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def)
     done
-  have [refine]: \<open>ab = ac \<Longrightarrow> cons_trail_propagate_l (hd C) 0 ab
+  have [refine]: \<open>ab = ac \<Longrightarrow> C=C' \<Longrightarrow> cons_trail_propagate_l (hd C) 0 ab
        \<le> \<Down> Id
-          (cons_trail_propagate_l (hd C) 0 ac)\<close>
-   for C ab ac
+          (cons_trail_propagate_l (hd C') 0 ac)\<close>
+   for C C' ab ac
    by auto
   have propa_unit:
-    \<open>propagate_unit_init_wl (hd C) S \<le> \<Down> ?A (propagate_unit_init_l (hd C) S')\<close>
+    \<open>propagate_unit_init_wl (hd C) S \<le> \<Down> ?A (propagate_unit_init_l (hd C') S')\<close>
+    if \<open>(C, C') \<in> ?C\<close> for C C'
     using S_S' apply (cases S; cases S'; cases \<open>fst S\<close>; cases \<open>fst S'\<close>; hypsubst)
     unfolding propagate_unit_init_wl_def propagate_unit_init_l_def fst_conv
     apply hypsubst
     unfolding propagate_unit_init_wl_def propagate_unit_init_l_def
     apply refine_rcg
+    using that
     apply (auto simp: propagate_unit_init_l_def propagate_unit_init_wl_def  state_wl_l_init'_def
         state_wl_l_init_def state_wl_l_def clause_to_update_def cons_trail_propagate_l_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset all_lits_of_mm_union)
     done
 
   have already_propa:
-    \<open>(already_propagated_unit_init_wl (mset C) S, already_propagated_unit_init_l (mset C) S') \<in> ?A\<close>
-    using S_S'
+    \<open>(already_propagated_unit_init_wl (mset C) S, already_propagated_unit_init_l (mset C') S') \<in> ?A\<close> 
+    if \<open>(C, C') \<in> ?C\<close> for C C'
+    using S_S' that
     by (cases S; cases S')
        (auto simp: already_propagated_unit_init_wl_def already_propagated_unit_init_l_def
         state_wl_l_init_def state_wl_l_def clause_to_update_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset  state_wl_l_init'_def)
-  have set_conflict: \<open>(set_conflict_init_wl (hd C) S, set_conflict_init_l C S') \<in> ?A\<close>
-    if \<open>C = [hd C]\<close>
+  have set_conflict: \<open>(set_conflict_init_wl (hd C) S, set_conflict_init_l C' S') \<in> ?A\<close>
+    if \<open>C' = [hd C]\<close> for C C'
     using S_S' that
     by (cases S; cases S')
        (auto simp: set_conflict_init_wl_def set_conflict_init_l_def
@@ -173,17 +190,18 @@ proof -
         all_lits_of_mm_add_mset all_lits_of_m_add_mset)
   have add_to_clauses_init_wl: \<open>add_to_clauses_init_wl C S
           \<le> \<Down> state_wl_l_init
-               (add_to_clauses_init_l C S')\<close>
-    if C: \<open>length C \<ge> 2\<close> and conf: \<open>get_conflict_l_init S' = None\<close>
+               (add_to_clauses_init_l C' S')\<close>
+    if C: \<open>length C \<ge> 2\<close> and conf: \<open>get_conflict_l_init S' = None\<close> and
+      CC': \<open>(C,C') \<in> ?C\<close> for C C'
   proof -
     have [iff]: \<open>C ! Suc 0 \<notin> set (watched_l C) \<longleftrightarrow> False\<close>
       \<open>C ! 0 \<notin> set (watched_l C) \<longleftrightarrow> False\<close> and
       [dest!]: \<open>\<And>L. L \<noteq> C ! 0 \<Longrightarrow> L \<noteq> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l C) \<Longrightarrow> False\<close>
       using C by (cases C; cases \<open>tl C\<close>; auto)+
     have [dest!]: \<open>C ! 0 = C ! Suc 0 \<Longrightarrow> False\<close>
-      using C dist by (cases C; cases \<open>tl C\<close>; auto)+
+      using C CC' by (cases C; cases \<open>tl C\<close>; auto)+
     show ?thesis
-      using S_S' conf C
+      using S_S' conf C CC'
       by (cases S; cases S')
         (auto 5 5 simp: add_to_clauses_init_wl_def add_to_clauses_init_l_def get_fresh_index_def
           state_wl_l_init_def state_wl_l_def clause_to_update_def
@@ -191,33 +209,42 @@ proof -
           RES_RETURN_RES Let_def
           intro!: RES_refine filter_mset_cong2)
   qed
-  have add_to_other_init:
-    \<open>(add_to_other_init C S, add_to_other_init C S') \<in> ?A\<close>
+  have add_to_other_init':
+    \<open>(add_to_other_init C S, add_to_other_init C S') \<in> ?A\<close> for C
     using S_S'
     by (cases S; cases S')
        (auto simp: state_wl_l_init_def state_wl_l_def clause_to_update_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset  state_wl_l_init'_def)
+  have add_to_tautology_init_wl:
+    \<open>(add_to_tautology_init_wl (C) S, add_to_tautology_init_l C' S') \<in> ?A\<close>
+    if \<open>(C, C') \<in> ?C\<close>
+    for C C'
+    using S_S' that
+    by (cases S; cases S')
+     (auto simp: add_to_tautology_init_wl.simps add_to_tautology_init_l_def
+      state_wl_l_init_def state_wl_l_init'_def)
+
   show ?thesis
     unfolding init_dt_step_wl_def init_dt_step_def
-    apply (refine_vcg confl false propa_unit already_propa set_conflict
-        add_to_clauses_init_wl add_to_other_init)
+    apply (subst remdups_clause'_def[symmetric])
+    apply (refine_rcg confl false propa_unit already_propa set_conflict remdups_clause
+      add_to_clauses_init_wl add_to_other_init' add_to_tautology_init_wl)
     subgoal by simp
     subgoal by simp
     subgoal using S_S' by (simp add: twl_st_wl_init)
     subgoal using S_S' by (simp add: twl_st_wl_init)
-    subgoal using S_S' by (cases C) simp_all
+    subgoal for C Ca using S_S' by (cases \<open>Ca\<close>) simp_all
+    subgoal by auto
     subgoal by linarith
     done
 qed
 
 lemma init_dt_wl_init_dt:
-  assumes S_S': \<open>(S, S') \<in> state_wl_l_init\<close> and
-    dist: \<open>\<forall>C\<in>set C. distinct C\<close>
+  assumes S_S': \<open>(S, S') \<in> state_wl_l_init\<close>
   shows \<open>init_dt_wl C S \<le> \<Down> state_wl_l_init
           (init_dt C S')\<close>
 proof -
-  have C: \<open>(C, C) \<in>  \<langle>{(C, C'). (C, C') \<in> Id \<and> distinct C}\<rangle>list_rel\<close>
-    using dist
+  have C: \<open>(C, C) \<in>  \<langle>Id\<rangle>list_rel\<close>
     by (auto simp: list_rel_def list.rel_refl_strong)
   show ?thesis
     unfolding init_dt_wl_def init_dt_def
@@ -246,11 +273,9 @@ proof -
      SS': \<open>(S, S') \<in> state_wl_l_init\<close> and
      pre: \<open>init_dt_pre CS S'\<close>
     using assms unfolding init_dt_wl_pre_def by blast
-  have dist: \<open>\<forall>C\<in>set CS. distinct C\<close>
-    using pre unfolding init_dt_pre_def by blast
   show ?thesis
     apply (rule order.trans)
-     apply (rule init_dt_wl_init_dt[OF SS' dist])
+     apply (rule init_dt_wl_init_dt[OF SS'])
     apply (rule order.trans)
      apply (rule ref_two_step')
      apply (rule init_dt_full[OF pre])
@@ -506,7 +531,7 @@ proof -
     \<open>\<forall>s\<in>set (get_trail_l_init xa). \<not> is_decided s\<close> and
     \<open>get_conflict_l_init xa = None \<longrightarrow>
      literals_to_update_l_init xa = uminus `# lit_of `# mset (get_trail_l_init xa)\<close> and
-    \<open>mset `# mset CS + mset `# ran_mf (get_clauses_l_init x) + other_clauses_l_init x +
+    \<open>remdups_mset `# mset `# mset CS + mset `# ran_mf (get_clauses_l_init x) + other_clauses_l_init x +
      get_unit_clauses_l_init x + get_subsumed_init_clauses_l_init x + get_init_clauses0_l_init x =
      mset `# ran_mf (get_clauses_l_init xa) + other_clauses_l_init xa +
      get_unit_clauses_l_init xa + get_subsumed_init_clauses_l_init xa + get_init_clauses0_l_init xa\<close> and
