@@ -560,9 +560,11 @@ lemma lit_is_in_lookup_spec:
     dest: mset_as_position_nth)
 
 definition pre_simplify_clause_lookup
-  :: \<open>nat clause_l \<Rightarrow> lookup_clause_rel \<Rightarrow>(bool \<times> nat clause_l \<times> lookup_clause_rel) nres\<close>
-  where
-  \<open>pre_simplify_clause_lookup C lup = do {
+  :: \<open>nat clause_l \<Rightarrow>  nat clause_l \<Rightarrow> lookup_clause_rel \<Rightarrow>
+    (bool \<times> nat clause_l \<times> lookup_clause_rel) nres\<close>
+where
+  \<open>pre_simplify_clause_lookup C D lup = do {
+  ASSERT(D = []);
   (_, tauto, lup, D) \<leftarrow>
   WHILE\<^sub>T\<^bsup> \<lambda>_. True\<^esup>
     (\<lambda>(i, tauto, D, D'). i < length C \<and> \<not>tauto)
@@ -581,18 +583,20 @@ definition pre_simplify_clause_lookup
         else RETURN (i+1,tauto, add_to_lookup_conflict L D, D' @ [L])
       }
     })
-    (0, False, lup, []);
+    (0, False, lup, D);
   lup \<leftarrow> unmark_clause D lup;
   RETURN (tauto, D, lup)
 }\<close>
 
 lemma pre_simplify_clause_lookup_pre_simplify_clause:
-  assumes \<open>(lup, {#}) \<in> lookup_clause_rel \<A>\<close> \<open>atm_of ` set C \<subseteq> set_mset \<A>\<close> \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>pre_simplify_clause_lookup C lup \<le>
+  assumes \<open>(lup, {#}) \<in> lookup_clause_rel \<A>\<close> \<open>atm_of ` set C \<subseteq> set_mset \<A>\<close>
+      \<open>isasat_input_bounded \<A>\<close> and
+    [simp]: \<open>E = []\<close>
+  shows \<open>pre_simplify_clause_lookup C E lup \<le>
     \<Down>{((tauto, D, lup), (tauto', D')). tauto=tauto' \<and> D=D' \<and> (lup, {#}) \<in> lookup_clause_rel \<A>}
       (pre_simplify_clause C)\<close>
 proof -
-  have [refine0]: \<open>((0, False, lup, []), 0, False, {#}, []) \<in>
+  have [refine0]: \<open>((0, False, lup, E), 0, False, {#}, []) \<in>
      nat_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r lookup_clause_rel \<A> \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
     using assms by auto
   have [simp]: \<open>x < length C \<Longrightarrow> atm_of (- C ! x) \<in># \<A>\<close>
