@@ -17,7 +17,8 @@ abbreviation mark_assn :: \<open>mark \<Rightarrow> 3 word \<Rightarrow> assn\<c
 definition marked_struct_rel :: \<open>(_ \<times> lookup_clause_rel) set\<close> where
   \<open>marked_struct_rel = Id \<times>\<^sub>r \<langle>mark_rel_aux\<rangle>list_rel\<close>
 
-definition marked_struct_assn :: \<open>lookup_clause_rel \<Rightarrow> _ \<Rightarrow> assn\<close> where
+type_synonym mark_assn = \<open>32 word \<times> 3 word ptr\<close>
+definition marked_struct_assn :: \<open>lookup_clause_rel \<Rightarrow> mark_assn \<Rightarrow> assn\<close> where
   \<open>marked_struct_assn = uint32_nat_assn \<times>\<^sub>a array_assn (pure mark_rel)\<close>
 
 definition Mark :: \<open>bool \<Rightarrow> bool option\<close> where [simp]: \<open>Mark = Some\<close>
@@ -99,10 +100,9 @@ sepref_def add_to_lookup_conflict
   by sepref
 
 sepref_def pre_simplify_clause_lookup_impl
-  is \<open>uncurry pre_simplify_clause_lookup\<close>
-  :: \<open>clause_ll_assn\<^sup>k *\<^sub>a marked_struct_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a marked_struct_assn\<close>
+  is \<open>uncurry2 pre_simplify_clause_lookup\<close>
+  :: \<open>clause_ll_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a marked_struct_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a marked_struct_assn\<close>
   unfolding pre_simplify_clause_lookup_def
-  apply (rewrite at \<open>(_, _, _, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   supply [[goals_limit=1]]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref

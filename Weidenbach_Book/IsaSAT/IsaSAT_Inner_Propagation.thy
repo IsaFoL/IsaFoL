@@ -3,7 +3,6 @@ theory IsaSAT_Inner_Propagation
      IsaSAT_Clauses
 begin
 
-
 chapter \<open>Propagation: Inner Loop\<close>
 
 declare all_atms_def[symmetric,simp]

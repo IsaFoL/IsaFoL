@@ -1898,7 +1898,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     if b
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
-        (T::twl_st_wl_heur_init, _) \<leftarrow>  init_dt_wl_heur True CS (S, []);
+        (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur True CS (S, []);
 	T \<leftarrow> rewatch_heur_st T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T

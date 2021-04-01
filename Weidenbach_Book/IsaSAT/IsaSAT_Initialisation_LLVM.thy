@@ -1,7 +1,7 @@
 theory IsaSAT_Initialisation_LLVM
   imports  IsaSAT_VMTF_LLVM Watched_Literals.Watched_Literals_Watch_List_Initialisation
   Watched_Literals.Watched_Literals_Watch_List_Initialisation
-    IsaSAT_Initialisation IsaSAT_Setup_LLVM
+    IsaSAT_Initialisation IsaSAT_Setup_LLVM IsaSAT_Mark_LLVM
 begin
 
 
@@ -45,13 +45,13 @@ type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times> 
-    (64 word \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
+  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn\<close>
 
 definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
        64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
   32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times>
-  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
+  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
@@ -63,7 +63,8 @@ where
   cach_refinement_l_assn \<times>\<^sub>a
   lbd_assn \<times>\<^sub>a
   vdom_fast_assn \<times>\<^sub>a
-  bool1_assn \<times>\<^sub>a lcount_assn\<close>
+  bool1_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a
+  marked_struct_assn\<close>
 
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
@@ -181,9 +182,6 @@ lemma add_init_clss_codebI:
 abbreviation clauses_ll_assn where
   \<open>clauses_ll_assn \<equiv> aal_assn' TYPE(64) TYPE(64) unat_lit_assn\<close>
 
-definition fm_add_new_fast' where
-  \<open>fm_add_new_fast' b C i = fm_add_new_fast b (C!i)\<close>
-
 lemma op_list_list_llen_alt_def: \<open>op_list_list_llen xss i = length (xss ! i)\<close>
   unfolding op_list_list_llen_def
   by auto
@@ -192,28 +190,28 @@ lemma op_list_list_idx_alt_def: \<open>op_list_list_idx xs i j = xs ! i ! j\<clo
   unfolding op_list_list_idx_def ..
 
 sepref_def append_and_length_fast_code
-  is \<open>uncurry3 fm_add_new_fast'\<close>
-  :: \<open>[\<lambda>(((b, C), i), N). i < length C \<and> append_and_length_fast_code_pre ((b, C!i), N)]\<^sub>a
-     bool1_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
+  is \<open>uncurry2 fm_add_new_fast\<close>
+  :: \<open>[\<lambda>((b, C), N). append_and_length_fast_code_pre ((b, C), N)]\<^sub>a
+     bool1_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
        arena_fast_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   supply [simp] = fm_add_new_bounds1[simplified] shorten_lbd_le
   supply [split] = if_splits
   unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
-    fm_add_new_fast'_def op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     is_short_clause_def header_size_def
   apply (rewrite at \<open>APos \<hole>\<close> unat_const_fold[where 'a=32])+
-  apply (rewrite at \<open>op_list_list_llen _ _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
+  apply (rewrite at \<open>length _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
   apply (rewrite at \<open>AStatus _ \<hole>\<close> unat_const_fold[where 'a=2])+
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register fm_add_new_fast'
+sepref_register fm_add_new_fast
 
 sepref_def add_init_cls_code_b
-  is \<open>uncurry2 add_init_cls_heur_b'\<close>
-  :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a
-     (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
+  is \<open>uncurry add_init_cls_heur_b\<close>
+  :: \<open>[\<lambda>(C, S). True]\<^sub>a
+     (clause_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]add_init_clss_codebI[intro]
     add_init_cls_code_bI[intro]  add_init_cls_code_bI2[intro]
   unfolding add_init_cls_heur_def add_init_cls_heur_b_def
@@ -224,7 +222,6 @@ sepref_def add_init_cls_code_b
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric]
     append_ll_def[symmetric] fm_add_new_fast_def[symmetric]
-  fm_add_new_fast'_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -308,29 +305,84 @@ sepref_register polarity_st_heur_init propagate_unit_cls_heur
 lemma is_Nil_length: \<open>is_Nil xs \<longleftrightarrow> length xs = 0\<close>
   by (cases xs) auto
 
+definition pre_simplify_clause_lookup' where
+  \<open>pre_simplify_clause_lookup' i xs = pre_simplify_clause_lookup (xs ! i)\<close>
+
+lemma pre_simplify_clause_lookup'I:
+  \<open>a < length bb \<Longrightarrow>
+  a1' < length (bb ! a) \<Longrightarrow>
+  rdomp (aal_assn' TYPE(64) TYPE(64) unat_lit_assn) bb \<Longrightarrow>
+  Suc a1' < max_snat 64\<close>
+  for aa aaa ad ag::\<open>64 word\<close> and ac :: \<open>32 word\<close> and ae af :: \<open>1 word\<close>
+  by (auto dest!: aal_assn_boundsD' bspec[of _ _ \<open>bb ! a\<close>])
+
+sepref_def pre_simplify_clause_lookup_impl
+  is \<open>uncurry3 pre_simplify_clause_lookup'\<close>
+  :: \<open>[\<lambda>(((i,xs),_),_). i < length xs]\<^sub>a
+     sint64_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a marked_struct_assn\<^sup>d \<rightarrow>
+    bool1_assn \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a marked_struct_assn\<close>
+  supply [intro] = pre_simplify_clause_lookup'I
+  unfolding pre_simplify_clause_lookup_def pre_simplify_clause_lookup'_def
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+  by (annot_snat_const \<open>TYPE(64)\<close>)
+     sepref
+
+definition pre_simplify_clause_lookup_st' where
+  \<open>pre_simplify_clause_lookup_st' i xs = pre_simplify_clause_lookup_st (xs ! i)\<close>
+
+sepref_register pre_simplify_clause_lookup' pre_simplify_clause_lookup_st'
+
+sepref_def pre_simplify_clause_lookup_st_impl
+  is \<open>uncurry3 pre_simplify_clause_lookup_st'\<close>
+  :: \<open>[\<lambda>(((i,xs),_),_). i < length xs]\<^sub>a
+    sint64_nat_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a  isasat_init_assn\<^sup>d \<rightarrow>
+   bool1_assn \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a isasat_init_assn\<close>
+  unfolding pre_simplify_clause_lookup_st'_def isasat_init_assn_def
+    fold_tuple_optimizations pre_simplify_clause_lookup_st_def
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+    pre_simplify_clause_lookup'_def[symmetric]
+  by sepref
+
 definition init_dt_step_wl_heur_b'
-   :: \<open>nat clause_l list \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+   :: \<open>nat clause_l list \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur_init \<times> _ \<Rightarrow> (twl_st_wl_heur_init \<times> _) nres\<close> where
 \<open>init_dt_step_wl_heur_b' C i = init_dt_step_wl_heur_b (C!i)\<close>
 
+definition add_tautology_to_clauses' where
+  \<open>add_tautology_to_clauses' = (\<lambda>S.
+  RETURN S)\<close>
+
+lemma add_tautology_to_clauses_alt_def:
+  \<open>add_tautology_to_clauses C S = add_tautology_to_clauses' S\<close>
+  by (cases S) (auto simp: add_tautology_to_clauses'_def add_tautology_to_clauses_def)
+
+sepref_def add_tautology_to_clauses'_impl
+  is add_tautology_to_clauses'
+  :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  unfolding add_tautology_to_clauses'_def
+  by sepref
 
 sepref_def init_dt_step_wl_code_b
   is \<open>uncurry2 (init_dt_step_wl_heur_b')\<close>
-  :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
-       isasat_init_assn\<close>
+  :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a
+    (clauses_ll_assn)\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (isasat_init_assn \<times>\<^sub>a clause_ll_assn)\<^sup>d \<rightarrow>
+       isasat_init_assn \<times>\<^sub>a clause_ll_assn\<close>
   supply [[goals_limit=1]]
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
   tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_heur_def PR_CONST_def
     init_dt_step_wl_heur_b_def
-    init_dt_step_wl_heur_b'_def list_length_1_def is_Nil_length
+    list_length_1_def is_Nil_length init_dt_step_wl_heur_b'_def
     op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     already_propagated_unit_cls_heur'_alt
-    add_init_cls_heur_b'_def[symmetric] add_clause_to_others_heur'_def[symmetric]
+    add_clause_to_others_heur'_def[symmetric]
     add_clause_to_others_heur'_alt
     already_propagated_unit_cls_heur_b_def[symmetric]
     propagate_unit_cls_heur_b_def[symmetric]
     conflict_propagated_unit_cls_heur_b_def[symmetric]
+    pre_simplify_clause_lookup_st'_def[symmetric]
+    add_tautology_to_clauses_alt_def
+    add_init_cls_heur_b_def[symmetric]
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
   unfolding is_Nil_length get_conflict_wl_is_None_init
@@ -340,9 +392,6 @@ sepref_def init_dt_step_wl_code_b
     tri_bool_eq_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
-declare
-  init_dt_step_wl_code_b.refine[sepref_fr_rules]
 
 
 sepref_register init_dt_wl_heur_unb
@@ -364,7 +413,6 @@ sepref_def init_next_size_impl
   by sepref
 
 
-find_in_thms op_list_grow_init in sepref_fr_rules
 sepref_def nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_atms_ext_rel_assn\<^sup>d \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
@@ -503,11 +551,9 @@ sepref_def init_dt_wl_heur_code_b
   apply (subst nfoldli_by_idx[abs_def])
   unfolding nfoldli_upt_by_while op_list_list_len_def[symmetric] Let_def
     init_dt_step_wl_heur_b'_def[symmetric]
+   apply (rewrite at \<open>(_, _, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
-declare
-  init_dt_wl_heur_code_b.refine[sepref_fr_rules]
 
 
 definition extract_lits_sorted' where
@@ -614,12 +660,33 @@ lemma [sepref_gen_algo_rules]: \<open>GEN_ALGO (Pos 0) (is_init unat_lit_assn)\<
   by (auto simp: unat_lit_rel_def is_init_def unat_rel_def unat.rel_def
     br_def nat_lit_rel_def GEN_ALGO_def)
 
+schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE marked_struct_assn ?fr\<close>
+  unfolding marked_struct_assn_def
+  by synthesize_free
+
+lemma finalise_init_code_alt_def:
+  \<open>finalise_init_code opts =
+  (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
+  lbd, vdom, _, lcount, mark). do {
+  ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
+  let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, ema_fast_init);
+  let fema = ema_init (opts_fema opts);
+  let sema = ema_init (opts_sema opts);
+  let ccount = restart_info_init;
+  mop_free mark;
+  RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
+    clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
+    (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
+    reluctant_init), vdom, [], lcount, opts, [])
+    })\<close>
+    unfolding finalise_init_code_def mop_free_def by auto
+
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]
-  unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
+  unfolding finalise_init_code_alt_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
      heuristic_assn_def phase_heur_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
@@ -641,6 +708,7 @@ sepref_register initialise_VMTF
 abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>snat64_assn \<equiv> snat_assn\<close>
 abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
 abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>
+
 abbreviation unat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>unat32_assn \<equiv> unat_assn\<close>
 
 sepref_def init_trail_D_fast_code
@@ -664,14 +732,27 @@ sepref_def init_trail_D_fast_code
   by sepref
 
 declare init_trail_D_fast_code.refine[sepref_fr_rules]
+definition empty_mark_struct :: \<open>nat \<Rightarrow> nat \<times> bool option list\<close> where
+  \<open>empty_mark_struct (n::nat) = (0::nat, replicate n NoMark)\<close>
+
+sepref_def empty_mark_struct_impl
+  is \<open>RETURN o empty_mark_struct\<close>
+  :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a marked_struct_assn\<close>
+  unfolding empty_mark_struct_def marked_struct_assn_def
+  apply (rewrite at \<open>(\<hole>, replicate _ NoMark)\<close> unat_const_fold[where 'a=32])
+  unfolding array_fold_custom_replicate
+  by sepref
+ 
+sepref_register empty_mark_struct
 
 sepref_def init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply[[goals_limit=1]]
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
-    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
-    lcount_assn_def
+    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def
+    lookup_clause_rel_assn_def lcount_assn_def NoMark_def[symmetric]
+    empty_mark_struct_def[symmetric]
   apply (rewrite at \<open>let _ = 1 + \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>let _ = (\<hole>,_) in _\<close> annotate_assn[where A= \<open>array_assn minimize_status_assn\<close>])
@@ -717,7 +798,7 @@ begin
   export_llvm init_state_wl_D'_code
     rewatch_heur_st_fast_code
     init_dt_wl_heur_code_b
-
+    init_state_wl_D'_code
 end
 
 end

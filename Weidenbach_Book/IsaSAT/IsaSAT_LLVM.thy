@@ -150,7 +150,7 @@ sepref_def isasat_fast_bound_impl
   by sepref
 
 lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount). do{
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount, _). do{
      ASSERT(18446744073709551615 \<in> unats LENGTH(64));
      c \<leftarrow> RETURN 18446744073709551615;
      if \<not>(length N \<le> isasat_fast_bound \<and> clss_size_lcount lcount < c - clss_size_lcountUE lcount) then RETURN False
@@ -258,7 +258,7 @@ lemma isasat_information_banner_alt_def:
 
 schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost_assn ?fr\<close>
   unfolding ghost_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+  by synthesize_free
 
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
