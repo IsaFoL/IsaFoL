@@ -1,5 +1,7 @@
 theory IsaSAT_Initialisation
-  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF WB_More_Word
+  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation
+    IsaSAT_Setup IsaSAT_VMTF WB_More_Word
+    IsaSAT_Mark
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
 
@@ -106,12 +108,12 @@ lemma isa_vmtf_init_cong:
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
     (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> bool \<times> clss_size\<close>
+    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> bool \<times> clss_size \<times> lookup_clause_rel\<close>
 
 type_synonym (in -) twl_st_wl_heur_init_full =
   \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
     (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> bool \<times> clss_size\<close>
+    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> bool \<times> clss_size \<times> lookup_clause_rel\<close>
 
 
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
@@ -130,7 +132,8 @@ definition twl_st_heur_parsing_no_WL
   :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
 where
 \<open>twl_st_heur_parsing_no_WL \<A> unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount), ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark),
+    ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
      (valid_arena N' N (set vdom) \<and>
@@ -149,7 +152,8 @@ where
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
     isasat_input_bounded \<A> \<and>
     distinct vdom \<and>
-     lcount = clss_size N NE UE NS US N0 U0
+     lcount = clss_size N NE UE NS US N0 U0 \<and>
+     (mark, {#}) \<in> lookup_clause_rel \<A>
   }\<close>
 
 
@@ -157,7 +161,7 @@ definition twl_st_heur_parsing
   :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init \<times> (nat twl_st_wl \<times> nat clauses)) set\<close>
 where
 \<open>twl_st_heur_parsing \<A>  unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount), ((M, N, D, NE, UE, NS, US, N0, U0,Q, W), OC)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark), ((M, N, D, NE, UE, NS, US, N0, U0,Q, W), OC)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
     ((M', M) \<in> trail_pol \<A> \<and>
@@ -177,13 +181,14 @@ where
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  \<A>) \<and>
     isasat_input_bounded \<A> \<and>
     distinct vdom \<and>
-    lcount = clss_size N NE UE NS US N0 U0))
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    (mark, {#}) \<in> lookup_clause_rel \<A>))
   }\<close>
 
 
 definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (_ \<times> nat twl_st_wl_init') set\<close> where
 \<open>twl_st_heur_parsing_no_WL_wl \<A>  unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount), (M, N, D, NE, UE, NS, US, N0, U0,Q)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark), (M, N, D, NE, UE, NS, US, N0, U0,Q)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
       (valid_arena N' N (set vdom) \<and> set_mset (dom_m N) \<subseteq> set vdom)) \<and>
@@ -200,12 +205,14 @@ definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> boo
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
     isasat_input_bounded \<A> \<and>
     distinct vdom \<and>
-    lcount = clss_size N NE UE NS US N0 U0
+    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    (mark, {#}) \<in> lookup_clause_rel \<A>
   }\<close>
 
 definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init_full \<times> nat twl_st_wl_init) set\<close> where
 \<open>twl_st_heur_parsing_no_WL_wl_no_watched \<A> unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount), ((M, N, D, NE, UE, NS, US, N0, U0,Q), OC)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark),
+    ((M, N, D, NE, UE, NS, US, N0, U0,Q), OC)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
       (valid_arena N' N (set vdom) \<and> set_mset (dom_m N) \<subseteq> set vdom)) \<and> (M', M) \<in> trail_pol \<A> \<and>
@@ -221,12 +228,14 @@ definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Righ
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
     isasat_input_bounded \<A> \<and>
     distinct vdom \<and>
-    lcount = clss_size N NE UE NS US N0 U0
+  lcount = clss_size N NE UE NS US N0 U0 \<and>
+  (mark, {#}) \<in> lookup_clause_rel \<A>
   }\<close>
 
 definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_heur_init_full \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_post_parsing_wl unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount), (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark),
+    (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
      ((M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
@@ -245,7 +254,8 @@ definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_h
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US + N0 + U0))) \<and>
     isasat_input_bounded (all_atms N (NE + UE + NS + US + N0 + U0)) \<and>
     distinct vdom \<and>
-    lcount = clss_size N NE UE NS US N0 U0
+  lcount = clss_size N NE UE NS US N0 U0 \<and>
+  (mark, {#}) \<in> lookup_clause_rel (all_atms N (NE + UE + NS + US + N0 + U0))
   }\<close>
 
 
@@ -455,7 +465,7 @@ fun (in -) is_failed_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\
   \<open>is_failed_heur_init (_, _, _, _, _, _, _, _, _, _, _, failed, _) = failed\<close>
 
 fun (in -) get_learned_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> clss_size\<close> where
-  \<open>get_learned_count_init (_, _, _, _, _, _, _, _, _, _, _, failed, lcount) = lcount\<close>
+  \<open>get_learned_count_init (_, _, _, _, _, _, _, _, _, _, _, failed, lcount, _) = lcount\<close>
 
 definition propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
@@ -624,7 +634,7 @@ qed
 
 definition add_init_cls_heur
   :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
-  \<open>add_init_cls_heur unbdd = (\<lambda>C (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
+  \<open>add_init_cls_heur unbdd = (\<lambda>C (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark). do {
      let C = C;
      ASSERT(length C \<le> uint32_max + 2);
      ASSERT(length C \<ge> 2);
@@ -632,8 +642,8 @@ definition add_init_cls_heur
      then do {
        ASSERT(length vdom \<le> length N);
        (N, i) \<leftarrow> fm_add_new True C N;
-       RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom @ [i], failed, lcount)
-     } else RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)})\<close>
+       RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom @ [i], failed, lcount, mark)
+     } else RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount, mark)})\<close>
 
 definition add_init_cls_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>add_init_cls_heur_unb = add_init_cls_heur True\<close>
@@ -657,7 +667,7 @@ context
     S :: \<open>nat twl_st_wl_init'\<close> and x1a and N :: \<open>nat clauses_l\<close> and
     D :: \<open>nat cconflict\<close> and x2b and NE UE NS US N0 U0 :: \<open>nat clauses\<close> and
     M :: \<open>(nat,nat) ann_lits\<close> and
-    a b c d e f m p q r s t u v w x y ua ub and
+    a b c d e f m p q r s t u v w x y ua ub z and
     Q and
     x2e :: \<open>nat lit_queue_wl\<close> and OC :: \<open>nat clauses\<close> and
     T :: twl_st_wl_heur_init and
@@ -672,7 +682,8 @@ context
     vdom :: vdom and
     failed :: bool and
     lcount :: clss_size and
-    \<phi> :: phase_saver
+    \<phi> :: phase_saver and
+    mark :: \<open>lookup_clause_rel\<close>
   assumes
     pre: \<open>case CSOC of
      (C, S) \<Rightarrow> 2 \<le> length C \<and> literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> distinct C\<close> and
@@ -701,7 +712,8 @@ context
       \<open>v = (cach, w)\<close>
       \<open>w = (lbd, x)\<close>
       \<open>x = (vdom, y)\<close>
-      \<open>y = (failed, lcount)\<close>
+    \<open>y = (failed, z)\<close>
+    \<open>z = (lcount, mark)\<close>
 begin
 
 lemma add_init_pre1: \<open>length C' \<le> uint32_max + 2\<close>
@@ -764,7 +776,7 @@ lemma add_init_cls_final_rel:
                 0 < ia \<and> ia \<notin># dom_m N \<and> N' = fmupd ia (C, True) N)\<close>
     \<open>nN'j' = (nN', k')\<close> and
     \<open>nNj = (nN, k)\<close>
-  shows \<open>((M', nN', D', j', W', vm, \<phi>, clvls, cach, lbd, vdom @ [k'], failed, lcount),
+  shows \<open>((M', nN', D', j', W', vm, \<phi>, clvls, cach, lbd, vdom @ [k'], failed, lcount, mark),
           (M, nN, D, NE, UE, NS, US, N0, U0, Q), OC)
          \<in> twl_st_heur_parsing_no_WL \<A> unbdd\<close>
 proof -
@@ -858,7 +870,6 @@ proof -
       apply simp
        unfolding RETURN_def apply (rule RES_refine)
       by (auto simp: twl_st_heur_parsing_no_WL_def RETURN_def clss_size_new_irred_iff intro!: RES_refine)
-
     done
 qed
 
@@ -934,6 +945,22 @@ lemma add_clause_to_others_heur_add_clause_to_others:
     (auto simp: add_clause_to_others_heur_def add_to_other_init.simps
       twl_st_heur_parsing_no_WL_def)
 
+definition (in -) add_tautology_to_clauses
+  :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+  \<open>add_tautology_to_clauses = (\<lambda> _ (M, N, D, Q, NS, US, N0, U0, WS).
+  RETURN (M, N, D, Q, NS, US, N0, U0, WS))\<close>
+
+lemma add_tautology_to_clauses_add_tautology_init_wl:
+  \<open>(uncurry add_tautology_to_clauses, uncurry (RETURN oo add_to_tautology_init_wl)) \<in>
+  [\<lambda>(C, _). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) ]\<^sub>f
+    \<langle>Id\<rangle>list_rel \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow>
+    \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: add_to_other_init.simps all_lits_of_m_remdups_mset
+    add_to_tautology_init_wl.simps add_tautology_to_clauses_def
+    twl_st_heur_parsing_no_WL_def all_lits_of_mm_add_mset
+    literals_are_in_\<L>\<^sub>i\<^sub>n_def)
+
 
 definition (in -)list_length_1 where
   [simp]: \<open>list_length_1 C \<longleftrightarrow> length C = 1\<close>
@@ -945,14 +972,24 @@ definition (in -)list_length_1_code where
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, _). b)\<close>
 
+definition pre_simplify_clause_lookup_st
+  :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (bool \<times> _ \<times> twl_st_wl_heur_init) nres\<close>
+  where
+  \<open>pre_simplify_clause_lookup_st = (\<lambda>C (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark). do {
+  (tauto, C, mark) \<leftarrow> pre_simplify_clause_lookup C mark; 
+  RETURN (tauto, C, (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount, mark))
+  })\<close>
 
 definition init_dt_step_wl_heur
   :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close>
 where
-  \<open>init_dt_step_wl_heur unbdd C S = do {
+  \<open>init_dt_step_wl_heur unbdd C\<^sub>0 S = do {
      if get_conflict_wl_is_None_heur_init S
      then do {
-        if is_Nil C
+       (tauto, C, S) \<leftarrow> pre_simplify_clause_lookup_st C\<^sub>0 S;
+        if tauto
+        then add_tautology_to_clauses C\<^sub>0 S
+        else if is_Nil C
         then set_empty_clause_as_conflict_heur S
         else if list_length_1 C
         then do {
@@ -972,8 +1009,41 @@ where
           add_init_cls_heur unbdd C S
        }
      }
-     else add_clause_to_others_heur C S
+     else add_clause_to_others_heur C\<^sub>0 S
   }\<close>
+
+lemma init_dt_step_wl_heur_alt_def:
+\<open>init_dt_step_wl_heur unbdd C\<^sub>0 S = do {
+  if get_conflict_wl_is_None_heur_init S
+  then do {
+     (tauto, C, S) \<leftarrow> pre_simplify_clause_lookup_st C\<^sub>0 S;
+     if tauto
+     then add_tautology_to_clauses C\<^sub>0 S
+     else do {
+       C \<leftarrow> RETURN C;
+       if is_Nil C
+     then set_empty_clause_as_conflict_heur S
+       else if list_length_1 C
+     then do {
+       ASSERT (C \<noteq> []);
+       let L = C ! 0;
+       ASSERT(polarity_pol_pre (get_trail_wl_heur_init S) L);
+       let val_L = polarity_pol (get_trail_wl_heur_init S) L;
+       if val_L = None
+       then propagate_unit_cls_heur unbdd L S
+       else
+         if val_L = Some True
+         then already_propagated_unit_cls_heur unbdd C S
+         else conflict_propagated_unit_cls_heur unbdd L S
+       }
+    else do {
+      ASSERT(length C \<ge> 2);
+      add_init_cls_heur unbdd C S
+      }
+    } }
+  else add_clause_to_others_heur C\<^sub>0 S
+  }\<close>
+  unfolding nres_monad1 init_dt_step_wl_heur_def by auto
 
 named_theorems twl_st_heur_parsing_no_WL
 lemma [twl_st_heur_parsing_no_WL]:
@@ -1002,76 +1072,177 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init:
 definition (in -) get_conflict_wl_is_None_init' where
   \<open>get_conflict_wl_is_None_init' = get_conflict_wl_is_None\<close>
 
+definition pre_simplify_clause_lookup_st_rel where
+  \<open>pre_simplify_clause_lookup_st_rel \<A> unbdd C T =  {((tauto, C', S'), tauto').
+  tauto' = tauto \<and>
+  (tauto \<longleftrightarrow> tautology (mset C)) \<and>
+  (\<not>tauto \<longrightarrow> remdups_mset (mset C) = mset C') \<and>
+  (S', T) \<in> twl_st_heur_parsing_no_WL \<A> unbdd}\<close>
+
+lemma pre_simplify_clause_lookup_st_rel_alt_def:
+  \<open>pre_simplify_clause_lookup_st_rel \<A> unbdd C T =  {((tauto, C', S'), tauto').
+  tauto' = tauto \<and>
+  (tauto \<longleftrightarrow> tautology (mset C)) \<and>
+  (\<not>tauto \<longrightarrow> remdups_mset (mset C) = mset C' \<and> distinct C') \<and>
+  (S', T) \<in> twl_st_heur_parsing_no_WL \<A> unbdd}\<close>
+  by (auto simp: pre_simplify_clause_lookup_st_rel_def eq_commute[of _ \<open>mset _\<close>]
+    simp del: distinct_mset_mset_distinct
+    simp flip: distinct_mset_mset_distinct)
+
+lemma pre_simplify_clause_lookup_st_remdups_clause:
+  assumes \<open>(C, C') \<in> Id\<close> \<open>(S, T) \<in> twl_st_heur_parsing_no_WL \<A> unbdd\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C)\<close> \<open>isasat_input_bounded \<A>\<close>
+  shows
+    \<open>pre_simplify_clause_lookup_st C S \<le> \<Down> (pre_simplify_clause_lookup_st_rel \<A> unbdd C T)
+      (RETURN (tautology (mset C')))\<close>
+proof -
+  have \<open>mset (remdups C') = remdups_mset (mset C')\<close>
+    by auto
+  then have [iff]: \<open>(\<forall>x. mset x \<noteq> remdups_mset (mset C')) \<longleftrightarrow> False\<close>
+    by blast
+  show ?thesis
+    using assms
+    unfolding pre_simplify_clause_lookup_st_def remdups_clause_def conc_fun_RES
+      RETURN_def
+      apply (cases S)
+    apply clarify
+    apply (subst bind_rule_complete_RES)
+    apply (refine_vcg bind_rule_complete_RES
+      pre_simplify_clause_lookup_pre_simplify_clause[of _ \<A>, THEN order_trans])
+    subgoal by (auto simp: twl_st_heur_parsing_no_WL_def)
+    subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+    subgoal
+      by (rule order_trans, rule ref_two_step', rule pre_simplify_clause_spec)
+       (auto simp: pre_simplify_clause_spec_def conc_fun_RES
+        twl_st_heur_parsing_no_WL_def pre_simplify_clause_lookup_st_rel_def)
+    done
+qed
+lemma init_dt_step_wl_alt_def:
+  \<open>init_dt_step_wl C S =
+  (case get_conflict_init_wl S of
+  None \<Rightarrow>
+  let B = tautology (mset C) in
+  if B
+then RETURN (add_to_tautology_init_wl C S)
+  else
+  do {
+  C \<leftarrow> remdups_clause C;
+  if length C = 0
+then RETURN (add_empty_conflict_init_wl S)
+  else if length C = 1
+then
+let L = hd C in
+  if undefined_lit (get_trail_init_wl S) L
+then propagate_unit_init_wl L S
+  else if L \<in> lits_of_l (get_trail_init_wl S)
+then RETURN (already_propagated_unit_init_wl (mset C) S)
+  else RETURN (set_conflict_init_wl L S)
+  else add_to_clauses_init_wl C S
+  }
+  | Some D \<Rightarrow>
+  RETURN (add_to_other_init C S))\<close>
+  unfolding init_dt_step_wl_def Let_def by auto
+
 lemma init_dt_step_wl_heur_init_dt_step_wl:
   \<open>(uncurry (init_dt_step_wl_heur unbdd), uncurry init_dt_step_wl) \<in>
-   [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> distinct C]\<^sub>f
+  [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> distinct C]\<^sub>f
       Id \<times>\<^sub>f twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
-  supply [[goals_limit=1]]
-  unfolding init_dt_step_wl_heur_def init_dt_step_wl_def uncurry_def
-    option.case_eq_if get_conflict_wl_is_None_init_alt_def[symmetric]
-  supply RETURN_as_SPEC_refine[refine2 del]
-  apply (intro frefI nres_relI)
-  apply (refine_vcg
-      set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict[THEN fref_to_Down,
-        unfolded comp_def]
-      propagate_unit_cls_heur_propagate_unit_cls[THEN fref_to_Down_curry, unfolded comp_def]
-      already_propagated_unit_cls_heur_already_propagated_unit_cls[THEN fref_to_Down_curry,
-        unfolded comp_def]
-      conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls[THEN fref_to_Down_curry,
-        unfolded comp_def]
-      add_init_cls_heur_add_init_cls[THEN fref_to_Down_curry,
-        unfolded comp_def]
-      add_clause_to_others_heur_add_clause_to_others[THEN fref_to_Down_curry,
-        unfolded comp_def])
-  subgoal by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init[THEN fref_to_Down_unRET_Id])
-  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def is_Nil_def split: list.splits)
-  subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
-  subgoal by auto
-  subgoal by simp
-  subgoal by simp
-  subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-    twl_st_heur_parsing_no_WL_def intro!: polarity_pol_pre split: list.splits)
-  subgoal for C'S CT C T C' S
-    by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
-       THEN fref_to_Down_unRET_uncurry_Id,
-       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>])
-      (auto simp: polarity_def twl_st_heur_parsing_no_WL_def
-       polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
-       literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      split: list.splits)
-  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def)
-  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def   literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      split: list.splits)
-  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def hd_conv_nth)
-  subgoal for C'S CT C T C' S
-    by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
-       THEN fref_to_Down_unRET_uncurry_Id,
-       of \<open>get_trail_init_wl T\<close> \<open>hd C\<close>])
-      (auto simp: polarity_def twl_st_heur_parsing_no_WL_def
-       polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
-       literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      split: list.splits)
-  subgoal by simp
-  subgoal by (auto simp: list_mset_rel_def br_def)
-  subgoal by (simp add:  literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      split: list.splits)
-  subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
-  subgoal by (simp add: hd_conv_nth)
-  subgoal
-    by (auto simp: twl_st_heur_parsing_no_WL_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
+proof -
+  have remdups: \<open>
+    (x', tautology (mset x1))
+    \<in> pre_simplify_clause_lookup_st_rel \<A> unbdd x1a T \<Longrightarrow>
+    x2b = (x1c, x2c) \<Longrightarrow>
+    x' = (x1b, x2b) \<Longrightarrow>
+    \<not> x1b \<Longrightarrow>
+    \<not> tautology (mset x1) \<Longrightarrow> (x1a, x1) \<in> Id \<Longrightarrow>
+    RETURN x1c \<le> \<Down> {(a,b). a = b \<and> set b \<subseteq> set x1 \<and> x1c = b} (remdups_clause x1)\<close>
+    for x1 x1a x1c x2 x2b x2c x' x1b T
+    apply (auto simp: remdups_clause_def pre_simplify_clause_lookup_st_rel_def
+      intro!: RETURN_RES_refine)
+    by (metis set_mset_mset set_mset_remdups_mset)
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding init_dt_step_wl_heur_alt_def init_dt_step_wl_alt_def uncurry_def
+      option.case_eq_if get_conflict_wl_is_None_init_alt_def[symmetric]
+    supply RETURN_as_SPEC_refine[refine2 del]
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+        set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict[THEN fref_to_Down,
+          unfolded comp_def]
+        propagate_unit_cls_heur_propagate_unit_cls[THEN fref_to_Down_curry, unfolded comp_def]
+        already_propagated_unit_cls_heur_already_propagated_unit_cls[THEN fref_to_Down_curry,
+          unfolded comp_def]
+        conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls[THEN fref_to_Down_curry,
+          unfolded comp_def]
+        add_init_cls_heur_add_init_cls[THEN fref_to_Down_curry,
+          unfolded comp_def]
+        add_clause_to_others_heur_add_clause_to_others[THEN fref_to_Down_curry,
+          unfolded comp_def]
+        pre_simplify_clause_lookup_st_remdups_clause[where \<A> = \<A> and unbdd = unbdd]
+        add_tautology_to_clauses_add_tautology_init_wl[THEN fref_to_Down_curry,
+          unfolded comp_def]
+       remdups)
+    subgoal by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None_init[THEN fref_to_Down_unRET_Id])
+    subgoal by (auto simp: twl_st_heur_parsing_no_WL_def is_Nil_def split: list.splits)
+    apply auto[]
+    subgoal by simp
+    subgoal by (clarsimp simp add: twl_st_heur_parsing_no_WL_def)
+    subgoal by (simp only: prod.case in_pair_collect_simp pre_simplify_clause_lookup_st_rel_def)
+    subgoal by simp
+    subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def)
+      apply assumption
+      apply assumption
+      apply assumption
+      apply assumption
+    subgoal by auto
+    subgoal by (auto split: list.splits)
+    subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
+    subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal for C'S CT C T C' S tC''S'' tauto _ C'' S'' D E
+      by (rule polarity_pol_pre[of \<open>get_trail_wl_heur_init S''\<close> \<open>get_trail_init_wl T\<close> \<A> \<open>D!0\<close>])
+       (auto simp: pre_simplify_clause_lookup_st_rel_def twl_st_heur_parsing_no_WL
+          literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset dest!: split_list
         split: list.splits)
-  subgoal by simp
-  subgoal
-    by (auto simp: twl_st_heur_parsing_no_WL_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-      split: list.splits)
-  subgoal for x y x1 x2 C x2a
-    by (cases C; cases \<open>tl C\<close>)
-      (auto simp: twl_st_heur_parsing_no_WL_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
-        split: list.splits)
-  subgoal by simp
-  subgoal by simp
-  subgoal by simp
-  done
+    subgoal for C'S CT C T C' S tC''S'' tauto _ C'' S'' D E
+      by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
+         THEN fref_to_Down_unRET_uncurry_Id, of \<open>get_trail_init_wl T\<close> \<open>hd E\<close>])
+       (auto simp: pre_simplify_clause_lookup_st_rel_def twl_st_heur_parsing_no_WL
+          polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
+          polarity_def
+          literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset dest: split_list split: list.splits)
+    subgoal by auto
+    subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def twl_st_heur_parsing_no_WL
+      polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
+      polarity_def
+      literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset dest: split_list split: list.splits)
+    subgoal by (auto split: list.splits simp: pre_simplify_clause_lookup_st_rel_def)
+    subgoal for C'S CT C T C' S tC''S'' tauto _ C'' S'' D E
+      by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
+         THEN fref_to_Down_unRET_uncurry_Id, of \<open>get_trail_init_wl T\<close> \<open>hd E\<close>])
+      (auto simp: pre_simplify_clause_lookup_st_rel_def twl_st_heur_parsing_no_WL
+         polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
+         polarity_def
+         literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset dest: split_list split: list.splits)
+     subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def)
+     subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_def list_mset_rel_def br_def)
+     subgoal by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def
+       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+       split: list.splits)
+     subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
+     subgoal by (simp add: hd_conv_nth pre_simplify_clause_lookup_st_rel_def)
+     subgoal
+       by (auto split: list.splits)
+     subgoal
+       by (auto split: list.splits)
+     subgoal by (fastforce simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def)
+     subgoal by (auto simp: pre_simplify_clause_lookup_st_rel_alt_def)
+     subgoal by (simp add: pre_simplify_clause_lookup_st_rel_def)
+     subgoal by fast
+     subgoal by (simp add: pre_simplify_clause_lookup_st_rel_def)
+     done
+qed
 
 lemma (in -) get_conflict_wl_is_None_heur_init_alt_def:
   \<open>RETURN o get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, W, _). RETURN b)\<close>
@@ -1536,6 +1707,7 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
   \<open>init_state_wl_heur \<A> = do {
     M \<leftarrow> SPEC(\<lambda>M. (M, []) \<in>  trail_pol \<A>);
     D \<leftarrow> SPEC(\<lambda>D. (D, None) \<in> option_lookup_clause_rel \<A>);
+    mark \<leftarrow> SPEC(\<lambda>D. (D, {#}) \<in> lookup_clause_rel \<A>);
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>));
     vm \<leftarrow> RES (isa_vmtf_init \<A> []);
     \<phi> \<leftarrow> SPEC (phase_saving \<A>);
@@ -1543,7 +1715,7 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     let lbd = empty_lbd;
     let vdom = [];
     let lcount = (0,0,0,0);
-    RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close>
+    RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount, mark)}\<close>
 
 definition init_state_wl_heur_fast where
   \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
@@ -1898,7 +2070,7 @@ text \<open>The value 160 is random (but larger than the default 16 for array li
 definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>finalise_init_code opts =
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
-       lbd, vdom, _, lcount). do {
+       lbd, vdom, _, lcount, mark). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, ema_fast_init);
      let fema = ema_init (opts_fema opts);
@@ -1987,6 +2159,7 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (trai
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
      let N = [];
      let D = (True, 0, replicate n NOTIN);
+     let mark = (0, replicate n None);
      let WS = replicate m [];
      vm \<leftarrow> initialise_VMTF \<A>\<^sub>i\<^sub>n n;
      let \<phi> = replicate n False;
@@ -1994,7 +2167,7 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (trai
      let lbd = empty_lbd;
      let vdom = [];
      let lcount = (0, 0, 0, 0);
-     RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)
+     RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, False, lcount, mark)
   })\<close>
 
 lemma init_trail_D_ref:
@@ -2073,6 +2246,7 @@ proof -
     M \<leftarrow> SPEC (\<lambda>M. (M, []) \<in> trail_pol \<A>\<^sub>i\<^sub>n);
     N \<leftarrow> RETURN [];
     D \<leftarrow> SPEC (\<lambda>D. (D, None) \<in> option_lookup_clause_rel \<A>\<^sub>i\<^sub>n);
+    mark \<leftarrow> SPEC (\<lambda>D. (D, {#}) \<in> lookup_clause_rel \<A>\<^sub>i\<^sub>n);
     W \<leftarrow> SPEC (\<lambda>W. (W, empty_watched \<A>\<^sub>i\<^sub>n ) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>\<^sub>i\<^sub>n));
     vm \<leftarrow> RES (isa_vmtf_init \<A>\<^sub>i\<^sub>n []);
     \<phi> \<leftarrow> SPEC (phase_saving \<A>\<^sub>i\<^sub>n);
@@ -2080,7 +2254,7 @@ proof -
     let lbd = empty_lbd;
     let vdom = [];
     let lcount = (0, 0, 0, 0);
-    RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close> for \<A>\<^sub>i\<^sub>n
+    RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount, mark)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding init_state_wl_heur_def Let_def by auto
 
   have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow>
@@ -2192,6 +2366,23 @@ proof -
       lookup_clause_rel_def simp del: replicate_Suc
       intro: mset_as_position.intros)
   qed
+  have mark: \<open>RETURN (0, replicate (Suc (b)) None)
+    \<le> SPEC (\<lambda>D. (D, {#}) \<in> lookup_clause_rel \<A>\<^sub>i\<^sub>n)\<close>
+    if
+      \<open>y = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n  \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n\<close> and
+      \<open>((a, b), \<A>\<^sub>i\<^sub>n) \<in> lits_with_max_rel O \<langle>Id\<rangle>mset_rel\<close> and
+      \<open>x = (a, b)\<close>
+    for a b x y
+  proof -
+    have \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<Longrightarrow>
+      L < Suc (b)\<close> for L
+      using that in_N0 by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        lits_with_max_rel_def)
+    then show ?thesis
+      by (auto simp: option_lookup_clause_rel_def
+        lookup_clause_rel_def simp del: replicate_Suc
+        intro: mset_as_position.intros)
+  qed
   have [simp]:
      \<open>NO_MATCH 0 a1 \<Longrightarrow> max 0 (Max (insert a1 (set a2))) = max a1 (Max (insert 0 (set a2)))\<close>
     for a1 :: nat and a2
@@ -2219,6 +2410,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (rule conflict)
+    subgoal by (rule mark)
     subgoal by (rule RETURN_rule) (rule H; simp only:)
          apply assumption
     subgoal by fast
@@ -2296,7 +2488,7 @@ lemma init_dt_wl'_spec: \<open>init_dt_wl_pre CS S \<Longrightarrow> init_dt_wl'
    (auto intro!: RETURN_RES_refine)
 
 lemma init_dt_wl'_init_dt:
-  \<open>init_dt_wl_pre CS S \<Longrightarrow> (S, S') \<in> state_wl_l_init \<Longrightarrow> \<forall>C\<in>set CS. distinct C \<Longrightarrow>
+  \<open>init_dt_wl_pre CS S \<Longrightarrow> (S, S') \<in> state_wl_l_init \<Longrightarrow>
   init_dt_wl' CS S \<le> \<Down>
    ({(S :: 'v twl_st_wl_init_full, S' :: 'v twl_st_wl_init).
       remove_watched S =  S'} O state_wl_l_init) (init_dt CS S')\<close>

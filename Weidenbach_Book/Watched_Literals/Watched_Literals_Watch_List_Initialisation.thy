@@ -54,7 +54,7 @@ fun set_conflict_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<
 fun add_to_tautology_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
   add_to_tautology_init_wl[simp del]:
   \<open>add_to_tautology_init_wl C ((M, N, D, NE, UE, NS, US, N0, U0, Q), OC) =
-  ((M, N, D, NE, UE, add_mset (mset C) NS, US, N0, U0, Q), OC)\<close>
+  ((M, N, D, NE, UE, add_mset (remdups_mset (mset C)) NS, US, N0, U0, Q), OC)\<close>
 
 fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
   add_to_clauses_init_wl_def[simp del]:
@@ -68,7 +68,11 @@ fun add_to_clauses_init_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
 definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init nres\<close> where
   \<open>init_dt_step_wl C S =
   (case get_conflict_init_wl S of
-    None \<Rightarrow> do {
+    None \<Rightarrow>
+    if tautology (mset C)
+    then RETURN (add_to_tautology_init_wl C S)
+    else
+    do {
       C \<leftarrow> remdups_clause C;
       if length C = 0
       then RETURN (add_empty_conflict_init_wl S)
@@ -80,10 +84,7 @@ definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
         else if L \<in> lits_of_l (get_trail_init_wl S)
         then RETURN (already_propagated_unit_init_wl (mset C) S)
         else RETURN (set_conflict_init_wl L S)
-      else if tautology (mset C)
-      then RETURN (add_to_tautology_init_wl C S)
-      else
-          add_to_clauses_init_wl C S
+      else add_to_clauses_init_wl C S
     }
   | Some D \<Rightarrow>
       RETURN (add_to_other_init C S))\<close>
@@ -217,7 +218,7 @@ proof -
         all_lits_of_mm_add_mset all_lits_of_m_add_mset  state_wl_l_init'_def)
   have add_to_tautology_init_wl:
     \<open>(add_to_tautology_init_wl (C) S, add_to_tautology_init_l C' S') \<in> ?A\<close>
-    if \<open>(C, C') \<in> ?C\<close>
+    if \<open>(C, C') \<in> Id\<close>
     for C C'
     using S_S' that
     by (cases S; cases S')
@@ -233,8 +234,9 @@ proof -
     subgoal by simp
     subgoal using S_S' by (simp add: twl_st_wl_init)
     subgoal using S_S' by (simp add: twl_st_wl_init)
-    subgoal for C Ca using S_S' by (cases \<open>Ca\<close>) simp_all
-    subgoal by auto
+    subgoal using S_S' by (simp add: twl_st_wl_init)
+    subgoal using S_S' by (simp add: twl_st_wl_init)
+    subgoal for C Ca by (cases Ca) auto
     subgoal by linarith
     done
 qed

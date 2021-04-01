@@ -309,13 +309,13 @@ fun add_to_clauses_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \
 fun add_to_tautology_init :: \<open>'v clause \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init\<close> where
   add_to_tautology_init_def[simp del]:
   \<open>add_to_tautology_init C ((M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-  ((M, N, U, D, NE, UE, add_mset C NS, US, N0, U0, WS, Q), OC)\<close>
+  ((M, N, U, D, NE, UE, add_mset (remdups_mset C) NS, US, N0, U0, WS, Q), OC)\<close>
 
 
 fun add_to_tautology_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   add_to_tautology_init_l_def[simp del]:
   \<open>add_to_tautology_init_l C ((M, N, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-  ((M, N, D, NE, UE, add_mset (mset C) NS, US, N0, U0, WS, Q), OC)\<close>
+  ((M, N, D, NE, UE, add_mset (remdups_mset (mset C)) NS, US, N0, U0, WS, Q), OC)\<close>
 
 fun add_to_other_init where
   \<open>add_to_other_init C (S, OC) = (S, add_mset (remdups_mset (mset C)) OC)\<close>
@@ -329,9 +329,12 @@ definition remdups_clause where
 definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt_step C S =
   (case get_conflict_l_init S of
-    None \<Rightarrow> do {
-      C \<leftarrow> remdups_clause C;
-      if length C = 0
+    None \<Rightarrow> 
+      if tautology (mset C)
+      then RETURN (add_to_tautology_init_l C S)
+      else do {
+        C \<leftarrow> remdups_clause C;
+        if length C = 0
       then RETURN (add_empty_conflict_init_l S)
       else if length C = 1
       then
@@ -341,9 +344,7 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
         else if L \<in> lits_of_l (get_trail_l_init S)
         then RETURN (already_propagated_unit_init_l (mset C) S)
         else RETURN (set_conflict_init_l C S)
-      else if tautology (mset C)
-      then RETURN (add_to_tautology_init_l C S)
-      else
+      else 
           add_to_clauses_init_l C S
     }
   | Some D \<Rightarrow>
@@ -474,7 +475,6 @@ lemma twl_st_inv_add_subsumed[simp]:
  
 lemma twl_struct_invs_init_add_to_tautology_init:
   assumes
-    dist: \<open>distinct_mset a\<close> and
     tauto: \<open>tautology a\<close> and
     lev: \<open>count_decided (get_trail (fst T)) = 0\<close> and
     invs: \<open>twl_struct_invs_init T\<close>
@@ -482,6 +482,7 @@ lemma twl_struct_invs_init_add_to_tautology_init:
     \<open>twl_struct_invs_init (add_to_tautology_init a T)\<close>
       (is ?twl_struct_invs_init)
 proof -
+  let ?a = \<open>remdups_mset a\<close>
   obtain M N U D NE UE Q OC WS NS US N0 U0 where
     T: \<open>T = ((M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q), OC)\<close>
     by (cases T) auto
@@ -489,21 +490,20 @@ proof -
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + N0 + OC, clauses U + UE + US + U0, D)\<close>
     using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by (auto simp: ac_simps)
   then have
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset a (clauses N + NE + NS + N0 + OC),
+   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset ?a (clauses N + NE + NS + N0 + OC),
       clauses U + UE + US + U0, D)\<close>
-    using dist
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
-  then have \<open>pcdcl_all_struct_invs (M, (clauses N + OC), clauses U, D, NE, UE, add_mset a NS, US, N0, U0)\<close>
+  then have \<open>pcdcl_all_struct_invs (M, (clauses N + OC), clauses U, D, NE, UE, add_mset ?a NS, US, N0, U0)\<close>
     using invs tauto unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def
     by (auto simp: ac_simps entailed_clss_inv_def psubsumed_invs_def clauses0_inv_def)
 
   moreover have
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset a (clauses N + NE + NS + N0 + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset ?a (clauses N + NE + NS + N0 + OC),
         clauses U + UE + US + U0, D)\<close>
     using lev smaller
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
@@ -862,7 +862,7 @@ lemma [twl_st_l_init]:
   \<open>get_subsumed_learned_clauses_l_init (add_to_tautology_init_l C S) =
        get_subsumed_learned_clauses_l_init S\<close>
   \<open>get_subsumed_init_clauses_l_init (add_to_tautology_init_l C S) =
-     add_mset (mset C) (get_subsumed_init_clauses_l_init S)\<close>
+     add_mset (remdups_mset (mset C)) (get_subsumed_init_clauses_l_init S)\<close>
   \<open>get_learned_clauses0_l_init (add_to_tautology_init_l C S) =  get_learned_clauses0_l_init S\<close>
   \<open>get_init_clauses0_l_init (add_to_tautology_init_l C S) =  get_init_clauses0_l_init S\<close>
   by (solves \<open>cases S; auto simp: add_to_tautology_init_l_def\<close>)+
@@ -984,14 +984,11 @@ lemma init_dt_pre_add_to_tautology_init_l:
   assumes
     pre: \<open>init_dt_pre CS S\<close> and
     tautology: \<open>tautology (mset C)\<close> and
-    lev: \<open>count_decided (get_trail_l_init S) = 0\<close> and
-    C': \<open>mset (remdups C') = mset C\<close>
+    lev: \<open>count_decided (get_trail_l_init S) = 0\<close>
   shows
     \<open>init_dt_pre CS (add_to_tautology_init_l C S)\<close> (is ?pre) and
-    \<open>init_dt_spec [C'] S (add_to_tautology_init_l C S)\<close>  (is ?spec)
+    \<open>init_dt_spec [C] S (add_to_tautology_init_l C S)\<close>  (is ?spec)
 proof -
-  have dist_C: \<open>distinct C\<close>
-    using C' same_mset_distinct_iff by blast
   obtain T where
     SOC_T: \<open>(S, T) \<in> twl_st_l_init\<close> and
     inv: \<open>twl_struct_invs_init T\<close> and
@@ -1028,7 +1025,7 @@ proof -
   note clauses_to_update_inv.simps[simp del] valid_enqueued_alt_simps[simp del]
   have [simp]: \<open>twl_struct_invs_init (add_to_tautology_init (mset C) T)\<close>
     apply (rule twl_struct_invs_init_add_to_tautology_init)
-    using inv tautology dist_C lev SOC_T dec'
+    using inv tautology lev SOC_T dec'
     by (auto simp: twl_st_init twl_st_l_init count_decided_0_iff intro: bexI[of _ \<open>hd C\<close>])
   show ?pre
     unfolding init_dt_pre_def
@@ -1037,7 +1034,7 @@ proof -
   show ?spec
     unfolding init_dt_spec_def
     apply (rule exI[of _ \<open>add_to_tautology_init (mset C) T\<close>])
-    using WS dec in_literals_to_update OC'_empty tautology C'
+    using WS dec in_literals_to_update OC'_empty tautology
     by (auto simp: twl_st_init twl_st_l_init; fail)+
 qed
 
