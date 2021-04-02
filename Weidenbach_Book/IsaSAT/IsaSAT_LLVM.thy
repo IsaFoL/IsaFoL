@@ -100,13 +100,6 @@ sepref_def extract_state_stat
     al_fold_custom_empty[where 'l=64]
   by sepref
 
-lemma convert_state_hnr:
-  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
-   \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
-     isasat_init_assn\<close>
-  unfolding convert_state_def
-  by sepref_to_hoare vcg
-
 sepref_def IsaSAT_use_fast_mode_impl
   is \<open>uncurry0 (RETURN IsaSAT_use_fast_mode)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
@@ -134,13 +127,6 @@ sepref_register init_dt_wl_heur_full
 
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
   init_dt_wl_heur
-
-definition isasat_fast_bound :: \<open>nat\<close> where
-\<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1)\<close>
-
-lemma isasat_fast_bound_alt_def: \<open>isasat_fast_bound = 9223372034707292156\<close>
-  unfolding isasat_fast_bound_def sint64_max_def uint32_max_def
-  by simp
 
 sepref_def isasat_fast_bound_impl
   is \<open>uncurry0 (RETURN isasat_fast_bound)\<close>
@@ -189,8 +175,6 @@ sepref_def isasat_fast_init_code
   apply (rewrite at \<open>RETURN \<hole>\<close> unat_const_fold[where 'a=64])
   by sepref
 
-declare convert_state_hnr[sepref_fr_rules]
-
 sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
 
@@ -198,14 +182,9 @@ declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fre
   unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_def[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
 
-thm init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
-  unfolded lits_with_max_assn_alt_def[symmetric] ]
-
 lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 \<in> [\<lambda>x. distinct_mset x \<and>
-       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x.
-           nat_of_lit L
-           \<le> uint32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
+       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> uint32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
   using init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
   unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat
     init_state_wl_heur_fast_def
@@ -259,6 +238,14 @@ lemma isasat_information_banner_alt_def:
 schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost_assn ?fr\<close>
   unfolding ghost_assn_def
   by synthesize_free
+ 
+lemma convert_state_hnr:
+  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
+   \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
+     isasat_init_assn\<close>
+  unfolding convert_state_def
+  by sepref_to_hoare vcg
+declare convert_state_hnr[sepref_fr_rules]
 
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
@@ -388,11 +375,11 @@ sepref_def IsaSAT_code_wrapped
   by sepref
 
 text \<open>The setup to transmit the version is a bit complicated, because
-  it LLVM does not support direct export of string
+  Isabelle does not support direct export of string
   literals. Therefore, we actually convert the version to an array
   chars (more precisely, of machine words -- ended with 0) that can be read
   and printed by the C layer. Note the conversion must be automatic, because
-  the version depends on the underlying git repository.
+  the version depends on the underlying git repository, hence the call to auto.
 \<close>
 function array_of_version where
   \<open>array_of_version i str arr =

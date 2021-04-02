@@ -358,6 +358,18 @@ proof (induction rule: cdcl_twl_restart_l.induct)
   next
     show \<open>distinct_mset (clauses_to_update_l ?T)\<close>
       by auto
+  next
+    fix C
+    assume \<open>C \<in># ran_mf (get_clauses_l ?T)\<close>
+    then have \<open>C \<in># ran_mf (get_clauses_l ?S)\<close>
+      by (smt (z3) all_clss_lf_ran_m get_clauses_l.simps learned local.init
+        mset_subset_eq_exists_conv union_iff)
+    moreover have \<open>\<forall>C\<in>#ran_m N. \<not> tautology (mset (fst C))\<close>
+      using list_invs unfolding twl_list_invs_def
+      by simp
+    ultimately show \<open>\<not>tautology (mset C)\<close>
+      by auto
+  next
   qed
 qed
 

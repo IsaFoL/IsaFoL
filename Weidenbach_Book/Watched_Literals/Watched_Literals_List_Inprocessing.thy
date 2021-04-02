@@ -200,9 +200,15 @@ qed
 
 lemma cdcl_twl_subsumed_l_list_invs:
   \<open>cdcl_twl_subsumed_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
-  by (induction rule: cdcl_twl_subsumed_l.induct)
-   (auto simp: twl_list_invs_def cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
-    dest: in_diffD)
+  apply (induction rule: cdcl_twl_subsumed_l.induct)
+ apply (auto simp: twl_list_invs_def cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
+   ran_m_mapsto_upd distinct_mset_remove1_All distinct_mset_dom
+   ran_m_lf_fmdrop
+   dest: in_diffD)
+ apply (subst (asm) ran_m_mapsto_upd)
+ apply (auto dest!: in_diffD simp: distinct_mset_remove1_All distinct_mset_dom
+   ran_m_lf_fmdrop)
+ done
 
 inductive cdcl_twl_subresolution_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 twl_subresolution_II_nonunit:
@@ -985,6 +991,7 @@ next
   qed
 qed
 
+(*TODO Move*)
 lemma true_clss_clss_def_iff_negation_in_model:
   \<open>A \<Turnstile>ps CNot C' \<longleftrightarrow> (\<forall>L \<in># C'. A \<Turnstile>ps {{#-L#}})\<close>
   apply (rule iffI)
@@ -1168,9 +1175,6 @@ proof -
   ultimately show ?thesis
     by (auto dest!: multi_member_split simp: mset_take_mset_drop_mset')
 qed
-
-lemma \<open>distinct xs \<Longrightarrow> mset ys \<subseteq># mset xs \<Longrightarrow> distinct ys\<close>
-  using distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct] distinct_mset_mset_distinct by blast
 
 lemma list_length_2_isabelle_come_on:
   \<open>length C \<noteq> Suc 0 \<Longrightarrow> C \<noteq> [] \<Longrightarrow> length C \<ge> 2\<close>

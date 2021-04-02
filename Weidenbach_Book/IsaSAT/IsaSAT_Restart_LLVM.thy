@@ -88,7 +88,7 @@ sepref_def restart_prog_wl_D_heur_fast_code
   by sepref
 
 definition isasat_fast_bound where
-  \<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + 3 + 1)\<close>
+  \<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1)\<close>
 
 lemma isasat_fast_bound_alt_def:
   \<open>isasat_fast_bound = 9223372034707292156\<close>
@@ -166,7 +166,6 @@ begin
     cdcl_twl_restart_wl_heur_fast_code
     cdcl_twl_full_restart_wl_prog_heur_fast_code
     cdcl_twl_local_restart_wl_D_heur_fast_code
-  (* cdcl_twl_stgy_restart_prog_wl_heur_fast_code *)
    get_conflict_wl_is_None_fast_code
 end
 

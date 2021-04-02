@@ -73,6 +73,11 @@ fun add_to_clauses_init :: \<open>'v clause_l \<Rightarrow> 'v twl_st_init \<Rig
    \<open>add_to_clauses_init C ((M, N, U, D, NE, UE, NS, US, WS, Q), OC) =
         ((M, add_mset (twl_clause_of C) N, U, D, NE, UE, NS, US, WS, Q), OC)\<close>
 
+fun add_to_tautology_init :: \<open>'v clause \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init\<close> where
+add_to_tautology_init_def[simp del]:
+  \<open>add_to_tautology_init C ((M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
+    ((M, N, U, D, NE, UE, add_mset (remdups_mset C) NS, US, N0, U0, WS, Q), OC)\<close>
+
 type_synonym 'v twl_st_l_init = \<open>'v twl_st_l \<times> 'v clauses\<close>
 
 fun get_trail_l_init :: \<open>'v twl_st_l_init \<Rightarrow> ('v, nat) ann_lit list\<close> where
@@ -305,13 +310,6 @@ fun add_to_clauses_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \
         RETURN ((M, fmupd i (C, True) N, None, NE, UE, NS, US, WS, Q), OC)
     }\<close>
 
-  (*TODO Move*)
-fun add_to_tautology_init :: \<open>'v clause \<Rightarrow> 'v twl_st_init \<Rightarrow> 'v twl_st_init\<close> where
-  add_to_tautology_init_def[simp del]:
-  \<open>add_to_tautology_init C ((M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-  ((M, N, U, D, NE, UE, add_mset (remdups_mset C) NS, US, N0, U0, WS, Q), OC)\<close>
-
-
 fun add_to_tautology_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   add_to_tautology_init_l_def[simp del]:
   \<open>add_to_tautology_init_l C ((M, N, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
@@ -363,7 +361,8 @@ definition init_dt_pre :: \<open>'v clause_l list \<Rightarrow> _\<close> where
           literals_to_update_l_init SOC = uminus `# lit_of `# mset (get_trail_l_init SOC)) \<and>
       twl_list_invs (fst SOC) \<and>
       twl_stgy_invs (fst T) \<and>
-      (other_clauses_l_init SOC \<noteq> {#} \<longrightarrow> get_conflict_l_init SOC \<noteq> None))\<close>
+     (other_clauses_l_init SOC \<noteq> {#} \<longrightarrow> get_conflict_l_init SOC \<noteq> None) \<and>
+     (\<forall>C\<in>#ran_mf (get_clauses_l_init SOC). \<not>tautology (mset C)))\<close>
 
 lemma init_dt_pre_ConsD: \<open>init_dt_pre (a # CS) SOC \<Longrightarrow> init_dt_pre CS SOC\<close>
   unfolding init_dt_pre_def
@@ -940,7 +939,8 @@ proof -
      literals_to_update_l_init S = uminus `# lit_of `# mset (get_trail_l_init S)\<close> and
     add_inv: \<open>twl_list_invs (fst S)\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close> and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init S). \<not> tautology (mset C)\<close>
     using pre unfolding init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -971,7 +971,7 @@ proof -
   show ?pre
     unfolding init_dt_pre_def
     apply (rule exI[of _ \<open>add_to_unit_init_clauses (mset C) T\<close>])
-    using WS dec in_literals_to_update OC'_empty by (auto simp: twl_st_init twl_st_l_init)
+    using WS dec in_literals_to_update OC'_empty tauto by (auto simp: twl_st_init twl_st_l_init)
   show ?spec
     unfolding init_dt_spec_def
     apply (rule exI[of _ \<open>add_to_unit_init_clauses (mset C) T\<close>])
@@ -998,7 +998,8 @@ proof -
      literals_to_update_l_init S = uminus `# lit_of `# mset (get_trail_l_init S)\<close> and
     add_inv: \<open>twl_list_invs (fst S)\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init S). \<not> tautology (mset C)\<close>
     using pre unfolding init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -1030,7 +1031,7 @@ proof -
   show ?pre
     unfolding init_dt_pre_def
     apply (rule exI[of _ \<open>add_to_tautology_init (mset C) T\<close>])
-    using WS dec in_literals_to_update OC'_empty by (auto simp: twl_st_init twl_st_l_init)
+    using WS dec in_literals_to_update OC'_empty tauto by (auto simp: twl_st_init twl_st_l_init)
   show ?spec
     unfolding init_dt_spec_def
     apply (rule exI[of _ \<open>add_to_tautology_init (mset C) T\<close>])
@@ -1168,7 +1169,8 @@ proof -
      literals_to_update_l_init S = uminus `# lit_of `# mset (get_trail_l_init S)\<close> and
     add_inv: \<open>twl_list_invs (fst S)\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close> and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init S). \<not> tautology (mset C)\<close>
     using pre C' unfolding init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -1218,7 +1220,7 @@ proof -
   show ?pre
     unfolding init_dt_pre_def
     apply (rule exI[of _ \<open>set_conflict_init C T\<close>])
-    using WS dec in_literals_to_update OC'_empty by (auto simp: twl_st_init twl_st_l_init)
+    using WS dec in_literals_to_update OC'_empty tauto by (auto simp: twl_st_init twl_st_l_init)
   show ?spec
     unfolding init_dt_spec_def
     apply (rule exI[of _ \<open>set_conflict_init C T\<close>])
@@ -1317,7 +1319,8 @@ proof -
      literals_to_update_l_init S = uminus `# lit_of `# mset (get_trail_l_init S)\<close> and
     add_inv: \<open>twl_list_invs (fst S)\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close> and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init S). \<not> tautology (mset C)\<close>
     using pre unfolding init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -1349,7 +1352,7 @@ proof -
   show ?pre
     unfolding init_dt_pre_def
     apply (rule exI[of _ \<open>add_empty_conflict_init T\<close>])
-    using WS dec in_literals_to_update OC'_empty by (auto simp: twl_st_init twl_st_l_init)
+    using WS dec in_literals_to_update OC'_empty tauto by (auto simp: twl_st_init twl_st_l_init)
   show ?spec
     unfolding init_dt_spec_def
     apply (rule exI[of _ \<open>add_empty_conflict_init T\<close>])
@@ -1364,10 +1367,6 @@ lemma [twl_st_l_init]:
   \<open>other_clauses_l_init (T, OC) = OC\<close>
   \<open>clauses_to_update_l_init (T, OC) = clauses_to_update_l T\<close>
   by (cases T; auto; fail)+
-
-(*TODO Move*)
-lemma remdups_mset_idem: \<open>remdups_mset (remdups_mset a) = remdups_mset a\<close>
-  using distinct_mset_remdups_mset distinct_mset_remdups_mset_id by blast
 
 lemma twl_struct_invs_init_add_to_clauses_init:
   assumes
@@ -1443,11 +1442,14 @@ lemma init_dt_pre_add_to_clauses_init_l:
     a: \<open>length a \<noteq> Suc 0\<close> \<open>a \<noteq> []\<close> and
     pre: \<open>init_dt_pre (a' # CS) S\<close> and
     \<open>\<forall>s\<in>set (get_trail_l_init S). \<not> is_decided s\<close> and
-    C': \<open>mset (remdups a') = mset a\<close>
+    C': \<open>mset (remdups a') = mset a\<close> and
+    not_tauto: \<open>\<not>tautology (mset a')\<close>
   shows
     \<open>add_to_clauses_init_l a S \<le> SPEC (init_dt_pre CS)\<close> (is ?pre) and
     \<open>add_to_clauses_init_l a S \<le> SPEC (init_dt_spec [a'] S)\<close> (is ?spec)
 proof -
+  have not_tauto': \<open>\<not>tautology (mset a)\<close>
+    by (metis C' consistent_interp_tautology not_tauto set_remdups)
   obtain T where
     SOC_T: \<open>(S, T) \<in> twl_st_l_init\<close> and
     inv: \<open>twl_struct_invs_init T\<close> and
@@ -1457,7 +1459,8 @@ proof -
      literals_to_update_l_init S = uminus `# lit_of `# mset (get_trail_l_init S)\<close> and
     add_inv: \<open>twl_list_invs (fst S)\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init S \<noteq> {#} \<longrightarrow> get_conflict_l_init S \<noteq> None\<close> and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init S). \<not> tautology (mset C)\<close>
     using pre unfolding init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -1508,7 +1511,7 @@ proof -
           \<open>auto simp: S count_decided_0_iff twl_st_l_init twl_st_init le_2 inv\<close>)
       done
     moreover have \<open>twl_list_invs (M, fmupd i (a, True) N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
-      using add_inv i_dom i_0 by (auto simp: S twl_list_invs_def)
+      using add_inv i_dom i_0 not_tauto' by (auto simp: S twl_list_invs_def ran_m_mapsto_upd_notin)
     moreover have \<open>twl_stgy_invs (fst (add_to_clauses_init a T))\<close>
       by (rule twl_stgy_invs_backtrack_lvl_0)
         (use dec' SOC_T in \<open>auto simp: S count_decided_0_iff twl_st_l_init twl_st_init
@@ -1517,7 +1520,8 @@ proof -
       unfolding init_dt_pre_def init_dt_spec_def apply -
       subgoal
         apply (rule exI[of _ \<open>add_to_clauses_init a T\<close>])
-        using dec OC'_empty in_literals_to_update by (auto simp: S)
+        using dec OC'_empty in_literals_to_update tauto not_tauto' by (auto simp: S
+          ran_m_mapsto_upd_notin i_dom)
       subgoal
         apply (rule exI[of _ \<open>add_to_clauses_init a T\<close>])
         using dec OC'_empty in_literals_to_update i_dom i_0 a C'
@@ -1528,9 +1532,7 @@ proof -
   then show ?pre ?spec
     by (auto simp: S add_to_clauses_init_l_def get_fresh_index_def RES_RETURN_RES)
 qed
-(*TODO Move*)
-lemma tautology_length_ge2: \<open>tautology C \<Longrightarrow> size C \<ge> 2\<close>
-  by (auto simp: tautology_decomp add_mset_eq_add_mset dest!: multi_member_split)
+
 lemma init_dt_pre_init_dt_step:
   assumes pre: \<open>init_dt_pre (a # CS) SOC\<close>
   shows \<open>init_dt_step a SOC \<le> SPEC (\<lambda>SOC'. init_dt_pre CS SOC' \<and> init_dt_spec [a] SOC SOC')\<close>
@@ -1546,7 +1548,8 @@ proof -
      literals_to_update_l_init (S, OC) = uminus `# lit_of `# mset (get_trail_l_init (S, OC))\<close> and
     add_inv: \<open>twl_list_invs (fst (S, OC))\<close> and
     stgy_inv: \<open>twl_stgy_invs (fst T)\<close> and
-    OC'_empty: \<open>other_clauses_l_init (S, OC) \<noteq> {#} \<longrightarrow> get_conflict_l_init (S, OC) \<noteq> None\<close>
+    OC'_empty: \<open>other_clauses_l_init (S, OC) \<noteq> {#} \<longrightarrow> get_conflict_l_init (S, OC) \<noteq> None\<close> and
+    tauto: \<open>\<forall>C\<in>#ran_mf (get_clauses_l_init (S, OC)). \<not> tautology (mset C)\<close>
     using pre unfolding SOC init_dt_pre_def
     apply -
     apply normalize_goal+
@@ -1588,7 +1591,7 @@ proof -
     have \<open>init_dt_pre CS ((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC)\<close>
       unfolding init_dt_pre_def
       apply (rule exI[of _ \<open>add_to_other_init (a) T\<close>])
-      using inv WS dec' dec in_literals_to_update add_inv stgy_inv SOC_T
+      using inv WS dec' dec in_literals_to_update add_inv stgy_inv SOC_T tauto
       by (auto simp: S' count_decided_0_iff twl_st_init
           intro!: twl_struct_invs_init_add_to_other_init)
     moreover have \<open>init_dt_spec [a] ((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), OC)

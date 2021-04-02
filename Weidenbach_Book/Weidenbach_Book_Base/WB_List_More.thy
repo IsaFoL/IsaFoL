@@ -908,6 +908,12 @@ proof -
     using dist unfolding M1 M2 by auto
 qed
 
+lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<close>
+  using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
+
+lemma remdups_mset_idem: \<open>remdups_mset (remdups_mset a) = remdups_mset a\<close>
+  using distinct_mset_remdups_mset distinct_mset_remdups_mset_id by blast
+
 
 subsection \<open>Set of Distinct Multisets\<close>
 
@@ -931,9 +937,6 @@ lemma distinct_mset_set_union[iff]:
 lemma in_distinct_mset_set_distinct_mset:
   \<open>a \<in> \<Sigma> \<Longrightarrow> distinct_mset_set \<Sigma> \<Longrightarrow> distinct_mset a\<close>
   unfolding distinct_mset_set_def by auto
-
-lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<close>
-  using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
 
 lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
   unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)

@@ -828,6 +828,9 @@ lemma not_tautology_minusD:
   \<open>tautology (A - B) \<Longrightarrow> tautology A\<close>
   by (auto simp: tautology_decomp dest: in_diffD)
 
+lemma tautology_length_ge2: \<open>tautology C \<Longrightarrow> size C \<ge> 2\<close>
+  by (auto simp: tautology_decomp add_mset_eq_add_mset dest!: multi_member_split)
+
 
 
 subsubsection \<open>Entailment for clauses and propositions\<close>

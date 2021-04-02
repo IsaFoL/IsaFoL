@@ -800,7 +800,8 @@ definition twl_list_invs where
     (\<forall>L C. Propagated L C \<in> set (get_trail_l S) \<longrightarrow> (C > 0 \<longrightarrow> C \<in># dom_m (get_clauses_l S) \<and>
       (C > 0 \<longrightarrow> L \<in> set (watched_l (get_clauses_l S \<propto> C)) \<and>
           (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0)))) \<and>
-    distinct_mset (clauses_to_update_l S)\<close>
+    distinct_mset (clauses_to_update_l S) \<and>
+   (\<forall>C\<in>#ran_mf (get_clauses_l S). \<not>tautology (mset C))\<close>
 
 definition polarity where
   \<open>polarity M L =
@@ -1404,12 +1405,13 @@ proof -
 	apply (metis in_multiset_nempty member_add_mset no_dup_consistentD  set_mset_mset)
 	by (metis (mono_tags) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
     qed
+
     have \<open>twl_list_invs
      (Propagated (N \<propto> C ! (Suc 0 - i)) C # M, N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)),
       D, NE, UE, NS, US, N0, U0, remove1_mset C WS, add_mset (- N \<propto> C ! (Suc 0 - i)) Q)\<close>
       using add_inv C_N_U two_le_length_C mset_un_watched_swap C'_0i
       unfolding twl_list_invs_def
-      by (auto dest: in_diffD simp: set_conflicting_def
+      by (auto dest: in_diffD simp: set_conflicting_def ran_m_clause_upd
       set_conflict_l_def mset_take_mset_drop_mset' S nth_swap_isabelle
       dest!: mset_eq_setD)
     moreover have
@@ -1736,9 +1738,9 @@ proof -
        RETURN_RES_refine_iff S op_clauses_at_def)
 
     have \<open>twl_list_invs (M, N(C \<hookrightarrow> swap (N \<propto> C) i K'), D, NE, UE, NS, US, N0, U0, WS', Q)\<close>
-      using add_inv C_N_U two_le_length_C
+      using add_inv C_N_U two_le_length_C i_le_length_C K'_le
       unfolding twl_list_invs_def
-      by (auto dest: in_diffD simp: set_conflicting_def
+      by (auto dest: in_diffD simp: set_conflicting_def ran_m_clause_upd
       set_conflict_l_def mset_take_mset_drop_mset' S WS'_def'
       dest!: mset_eq_setD)
     moreover have \<open>(M, x) \<in> convert_lits_l N (NE + UE) \<Longrightarrow>
@@ -2888,6 +2890,32 @@ proof -
     using that
     by (metis add_mset_add_single diff_diff_add_mset in_multiset_in_set mset_add
         remove1_mset_add_mset_If)
+  have propagate_bt_l_preD:
+    \<open> \<not>tautology (add_mset (- L) (add_mset L' (the (get_conflict_l S) - {#- L, L'#})))\<close>
+    if pre: \<open>propagate_bt_l_pre L L' S\<close> for L L' S
+  proof -
+    obtain M N U D NE UE NS US WS Q M' D' T where
+      T: \<open>T = (M, N, U, Some D, NE, UE,NS, US,  WS, Q)\<close> and
+      struct: \<open>twl_struct_invs (M' @ M, N, U, Some D', NE, UE, NS, US, WS, Q)\<close> and
+      ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+      DD': \<open>D \<subseteq># D'\<close> and
+      LL': \<open>- L \<in># D \<and> L' \<in># remove1_mset (- L) D\<close>
+      using pre that
+      unfolding propagate_bt_l_pre_def propagate_bt_pre_def
+      by auto
+    have \<open>M' @ M \<Turnstile>as CNot D'\<close> and \<open>no_dup (M' @ M)\<close>
+      using struct unfolding 
+        pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        by simp_all
+    then have \<open>\<not>tautology D'\<close>
+      using consistent_CNot_not_tautology[of \<open>lits_of_l (M'@M)\<close> D']
+      by (auto simp: true_annots_true_cls dest: distinct_consistent_interp)
+     then show \<open>?thesis\<close>
+       using ST DD' LL' by (simp only: twl_st_l[symmetric], auto  dest!: multi_member_split
+         simp add: T not_tautology_mono)
+   qed
   have propagate_bt_l: \<open>(Sb, Sc) \<in> ?J' \<Longrightarrow>
        (L', L'a) \<in> Id \<Longrightarrow>
        (L, La) \<in> Id \<Longrightarrow>
@@ -2907,8 +2935,9 @@ proof -
     subgoal by (auto simp: propagate_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal (*TODO Proof*)
+      apply (frule propagate_bt_l_preD)
       by (clarsimp simp add: twl_list_invs_def propagate_bt_def twl_st_l_def
-             propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin
+             propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin ran_m_mapsto_upd_notin
              learned_clss_l_mapsto_upd_notin)
        (auto 4 3 simp: twl_list_invs_def propagate_bt_def twl_st_l_def
              propagate_bt_pre_def init_clss_l_mapsto_upd_irrel_notin

@@ -1019,6 +1019,19 @@ lemma is_decided_hd_trail_wl_heur_alt_def:
   \<open>is_decided_hd_trail_wl_heur = (\<lambda>(M, _). is_None (snd (last_trail_pol M)))\<close>
   by (auto intro!: ext simp: is_decided_hd_trail_wl_heur_def)
 
+lemma twl_st_heur_conflict_ana_trail_empty: \<open>(T, x) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
+  fst (get_trail_wl_heur T) = [] \<longleftrightarrow> get_trail_wl x = []\<close>
+  by 
+   (clarsimp simp: twl_st_heur_def state_wl_l_def twl_st_l_def twl_st_heur_conflict_ana_def
+    trail_pol_alt_def last_trail_pol_pre_def last_rev hd_map literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def simp flip: rev_map
+    dest: multi_member_split)
+lemma twl_st_heur_conflict_ana_last_trail_pol_pre:
+  \<open>(T, x) \<in> twl_st_heur_conflict_ana \<Longrightarrow> fst (get_trail_wl_heur T) \<noteq> [] \<Longrightarrow> last_trail_pol_pre (get_trail_wl_heur T)\<close>
+  by (clarsimp simp: twl_st_heur_def state_wl_l_def twl_st_l_def twl_st_heur_conflict_ana_def
+    trail_pol_alt_def last_trail_pol_pre_def last_rev hd_map literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def simp flip: rev_map
+    dest: multi_member_split)
+   (clarsimp_all dest!: multi_member_split simp: ann_lits_split_reasons_def)
+
 
 lemma skip_and_resolve_loop_wl_DI:
   assumes
@@ -1030,18 +1043,7 @@ lemma skip_and_resolve_loop_wl_DI:
   apply (subst (asm) case_prod_beta)+
   unfolding prod.case
   apply normalize_goal+
-  apply (clarsimp simp: twl_st_heur_def state_wl_l_def twl_st_l_def twl_st_heur_conflict_ana_def
-    trail_pol_alt_def last_trail_pol_pre_def last_rev hd_map literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def simp flip: rev_map
-    dest: multi_member_split)
-  apply (clarsimp_all dest!: multi_member_split simp: ann_lits_split_reasons_def)
-  done
-
-lemma
-  \<open>cdcl_twl_o S T \<Longrightarrow> size (get_all_learned_clss T) \<le> 1 + size (get_all_learned_clss S)\<close>
-  apply (induction rule: cdcl_twl_o.induct)
-  apply auto
-  done
-
+  by (simp add: twl_st_heur_conflict_ana_trail_empty twl_st_heur_conflict_ana_last_trail_pol_pre)
 
 lemmas get_learned_count_learned_clss_countD =
   get_learned_count_learned_clss_countD2
