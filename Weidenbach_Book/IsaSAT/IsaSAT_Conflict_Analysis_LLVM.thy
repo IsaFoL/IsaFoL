@@ -103,6 +103,7 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(curry lookup_conflict_remove1_pre L nxs \<and> clvls \<ge> 1);
       let nxs = lookup_conflict_remove1 L nxs;
       ASSERT(arena_act_pre N C);
+      vm \<leftarrow> isa_vmtf_mark_to_rescore_clause N C vm;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (None_lookup_conflict b nxs), Q, W, isa_vmtf_unset L' vm,

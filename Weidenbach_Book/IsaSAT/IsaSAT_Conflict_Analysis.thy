@@ -111,9 +111,12 @@ lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> mop_tl_state_wl_pre y \<Longrightarrow> tl_state_wl_heur_pre x\<close>
   using tl_trailt_tr_pre[of \<open>get_trail_wl y\<close> \<open>get_trail_wl_heur x\<close> \<open>all_atms_st y\<close>]
   unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
-    mop_tl_state_pre_def tl_state_wl_heur_pre_def
-  apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+    mop_tl_state_pre_def tl_state_wl_heur_pre_def apply -
+  apply (clarsimp simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
       rev_map[symmetric] last_rev hd_map simp flip: all_lits_st_alt_def
+    intro!: vmtf_unset_pre'[where M = \<open>get_trail_wl y\<close>])
+  apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+    rev_map[symmetric] last_rev hd_map simp flip: all_lits_st_alt_def
     intro!: vmtf_unset_pre'[where M = \<open>get_trail_wl y\<close>])
   apply (auto simp: neq_Nil_conv literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons phase_saving_def isa_vmtf_def
       vmtf_def
@@ -204,6 +207,7 @@ where
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
+      vm \<leftarrow> isa_vmtf_mark_to_rescore_clause N C vm;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -490,6 +494,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
     all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
 
+(*TODO Move*)
 lemma mset_as_position_remove3:
   \<open>mset_as_position xs (D - {#L#}) \<Longrightarrow> atm_of L < length xs \<Longrightarrow> distinct_mset D \<Longrightarrow>
    mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
@@ -507,6 +512,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_ran_m[simp]:
   by (cases y; auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_def all_lits_of_mm_union
     simp flip: all_lits_st_alt_def)
 
+
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 mop_update_confl_tl_wl) \<in>
   [\<lambda>_. True]\<^sub>f
@@ -519,6 +525,7 @@ proof -
       D \<leftarrow> RETURN (resolve_cls_wl' (M, N, D, NE, UE, WS, Q) C L);
       N \<leftarrow> RETURN N;
       N \<leftarrow> RETURN N;
+      _ \<leftarrow> RETURN ();
       RETURN (False, (tl M, N, Some D, NE, UE, WS, Q))
     })\<close>
     by (auto simp: mop_update_confl_tl_wl_def update_confl_tl_wl_def calculate_LBD_st_def
@@ -540,6 +547,7 @@ proof -
       ASSERT(arena_is_valid_clause_idx N C);
       ((b, (n, xs)), clvls, outl) \<leftarrow> rr L M N C b n xs clvls outl;
       ASSERT(arena_act_pre N C);
+      vm \<leftarrow> isa_vmtf_mark_to_rescore_clause N C vm;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -752,8 +760,81 @@ note [[goals_limit=1]]
          intro!: ASSERT_leI)
       done
     done
+  have all_in_dom: \<open>\<forall>C\<in>set [x2..<x2 + arena_length x1t x2].
+    arena_lit x1t C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la))\<close> if
+    \<open>valid_arena x1t N vdom\<close>
+    \<open>x2 \<in># dom_m N\<close>
+    for x2 x1t C x1a N x1c x2d x1e x1f ha ia ja ka la x1d vdom
+    apply (subst arena_lifting(4)[OF that, symmetric])
+    apply (intro ballI)
+    subgoal for C
+      using arena_lifting(5)[OF that, of \<open>C - x2\<close>, symmetric] that(2)
+      by (auto intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l in_clause_in_all_lits_of_m
+        simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_atms_st_def all_atms_def all_lits_def
+        all_lits_of_mm_add_mset \<L>\<^sub>a\<^sub>l\<^sub>l_union ran_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
+        dest!: multi_member_split[of _ \<open>dom_m _\<close>])
+   done
 
- show ?thesis
+ have isa_vmtf_mark_to_rescore_clause: \<open>
+    (((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s), (x1, x2), x1a, x1b, x1c, x1d,
+     x1e, x1f, ha, ia, ja, ka, la)
+    \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
+    CLS = ((x1, x2), x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) \<Longrightarrow>
+    CLS' = ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s) \<Longrightarrow>
+    update_confl_tl_wl_pre x1 x2 (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) \<Longrightarrow>
+    ((x1t, x2t), N)
+    \<in> {((arena', lbd), N').
+    valid_arena arena' N'
+     (set (get_vdom (snd ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s)))) \<and>
+    x1b = N' \<and> length x1i = length arena'} \<Longrightarrow>
+    1 \<le> x1p \<Longrightarrow>
+    arena_is_valid_clause_idx x1t x2g \<Longrightarrow>
+    (((x1v, x1w, x2v), x1x, x2x), D)
+    \<in> {a. case a of
+       (a, b) \<Rightarrow>
+      (case a of
+       (C, a) \<Rightarrow>
+         case a of
+         (clvls, outl) \<Rightarrow>
+        \<lambda>D. (C, Some D) \<in> option_lookup_clause_rel (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)) \<and>
+            clvls = card_max_lvl x1a (remove1_mset x1 (mset (N \<propto> x2)) \<union># the x1c) \<and>
+            out_learned x1a (Some (remove1_mset x1 (mset (N \<propto> x2)) \<union># the x1c)) outl \<and>
+            size (remove1_mset x1 (mset (N \<propto> x2)) \<union># the x1c) = size (mset (N \<propto> x2) \<union># the x1c - {#x1, - x1#}) + Suc 0 \<and>
+            D = resolve_cls_wl' (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) x2 x1)
+       b} \<Longrightarrow>
+    arena_act_pre x1t x2g \<Longrightarrow>
+    isa_vmtf_mark_to_rescore_clause x1t x2g x1o
+           \<le> \<Down> {(vm, N'). N = N' \<and> vm \<in> isa_vmtf (all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)) x1a}
+    (RETURN N)\<close>
+   for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
+     x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS'
+  unfolding twl_st_heur_conflict_ana_def isa_vmtf_def apply (clarsimp simp only: prod_rel_iff)
+  subgoal for a aa ab ac b ba
+      find_theorems "(_, _) \<in> _ \<times>\<^sub>f _"
+    apply (rule isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[
+        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)\<close>,
+        THEN fref_to_Down_curry2,
+          of _ _ _ x1t x2 \<open>((a, aa, ab, ac, b), ba)\<close>,
+        THEN order_trans])
+    subgoal by (simp add: twl_st_heur_conflict_ana_def)
+    subgoal by (auto simp add: twl_st_heur_conflict_ana_def isa_vmtf_def)
+    subgoal
+      apply (rule ref_two_step'[THEN order_trans, OF vmtf_mark_to_rescore_clause_spec, of _ _ x1a _
+          N \<open>set n\<close>])
+      subgoal by (auto simp: )
+      subgoal by (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
+        twl_st_l_def state_wl_l_def)
+      subgoal by (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
+        twl_st_l_def state_wl_l_def)
+      subgoal
+        by (rule all_in_dom)
+          (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
+            twl_st_l_def state_wl_l_def)
+     subgoal by (auto simp: RETURN_def conc_fun_RES)
+     done
+   done
+   done
+  show ?thesis
     supply [[goals_limit = 1]]
     supply RETURN_as_SPEC_refine[refine2 del]
        update_confl_tl_wl_pre_update_confl_tl_wl_pre'[dest!]
@@ -785,6 +866,7 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
       apply (rule rr; assumption)
       subgoal by (simp add: arena_act_pre_def)
+      apply (rule isa_vmtf_mark_to_rescore_clause; assumption)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
         simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
         simp flip: all_lits_st_alt_def

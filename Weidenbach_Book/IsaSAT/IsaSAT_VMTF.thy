@@ -556,7 +556,7 @@ lemma vmtf_unset_pre':
   shows \<open>vmtf_unset_pre L vm\<close>
   using assms by (cases vm) (auto dest: vmtf_unset_pre)
 
-
+(*
 definition isa_vmtf_mark_to_rescore_and_unset :: \<open>nat \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> isa_vmtf_remove_int\<close>
 where
   \<open>isa_vmtf_mark_to_rescore_and_unset L M = isa_vmtf_mark_to_rescore L (isa_vmtf_unset L M)\<close>
@@ -565,7 +565,7 @@ definition isa_vmtf_mark_to_rescore_and_unset_pre where
   \<open>isa_vmtf_mark_to_rescore_and_unset_pre = (\<lambda>(L, ((ns, m, fst_As, lst_As, next_search), tor)).
       vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), tor) \<and>
       atms_hash_insert_pre L tor)\<close>
-
+*)
 
 lemma size_conflict_int_size_conflict:
   \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<A> \<rightarrow>
@@ -658,6 +658,7 @@ lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
   subgoal by auto
   subgoal by auto
   done
+
 
 section \<open>Bumping\<close>
 

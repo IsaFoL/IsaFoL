@@ -479,7 +479,7 @@ lemma isa_vmtf_mark_to_rescore_and_unsetI:  \<open>
      atms_hash_insert_pre ak (ad, ba) \<Longrightarrow>
        isa_vmtf_mark_to_rescore_pre ak ((a, aa, ab, ac, Some ak'), ad, ba)\<close>
   by (auto simp: isa_vmtf_mark_to_rescore_pre_def)
-
+(*
 sepref_def vmtf_mark_to_rescore_and_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore_and_unset)\<close>
   :: \<open>[isa_vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
@@ -490,7 +490,7 @@ sepref_def vmtf_mark_to_rescore_and_unset_code
   unfolding isa_vmtf_mark_to_rescore_and_unset_def isa_vmtf_mark_to_rescore_and_unset_pre_def
     save_phase_def isa_vmtf_mark_to_rescore_and_unset_pre_def
   by sepref
-
+*)
 
 sepref_def find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
@@ -572,7 +572,6 @@ export_llvm
   isa_vmtf_flush_fast_code
   isa_vmtf_mark_to_rescore_code
   isa_vmtf_unset_code
-  vmtf_mark_to_rescore_and_unset_code
   find_decomp_wl_imp_fast_code
   vmtf_rescore_fast_code
   vmtf_mark_to_rescore_clause_fast_code
