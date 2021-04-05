@@ -661,7 +661,7 @@ definition extract_shorter_conflict_list_heur_st
      ASSERT(lookup_conflict_remove1_pre (-K, D));
      let D = lookup_conflict_remove1 (-K) D;
      let outl = outl[0 := -K];
-     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons M N outl vm;
+     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons M N outl K vm;
      (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      ASSERT(empty_cach_ref_pre cach);
      let cach = empty_cach_ref cach;
@@ -1409,7 +1409,7 @@ proof -
           dest: multi_member_split)
 
     have vmtf_mark_to_rescore_also_reasons:
-      \<open>isa_vmtf_mark_to_rescore_also_reasons M' arena (outl[0 := - lit_of (hd M)]) vm
+      \<open>isa_vmtf_mark_to_rescore_also_reasons M' arena (outl[0 := - lit_of (hd M)]) K vm
           \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c \<in> isa_vmtf (all_atms_st S) M})\<close>
       if
         \<open>M \<noteq> []\<close> and
@@ -1417,6 +1417,7 @@ proof -
         \<open>- lit_of (hd M) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close> and
         \<open>0 < length outl\<close> and
         \<open>lookup_conflict_remove1_pre (- lit_of (hd M), D')\<close>
+      for K
     proof -
 
       have outl_Lall: \<open>\<forall>L\<in>set (outl[0 := - lit_of (hd M)]). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
@@ -1451,8 +1452,8 @@ proof -
         apply (cases vm)
         apply (rule order.trans,
             rule isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons[of \<open>all_atms_st S\<close>,
-              THEN fref_to_Down_curry3,
-              of _ _ _ vm M arena \<open>outl[0 := - lit_of (hd M)]\<close> vm0])
+              THEN fref_to_Down_curry4,
+              of _ _ _ K vm M arena \<open>outl[0 := - lit_of (hd M)]\<close> K vm0])
         subgoal using bounded S by (auto simp: all_atms_def)
         subgoal using vm arena M'_M vm_vm0 by (auto simp: isa_vmtf_def)[]
         apply (rule order.trans, rule ref_two_step')

@@ -882,8 +882,8 @@ lemma vmtf_mark_to_rescore_clause_spec:
   done
 
 definition vmtf_mark_to_rescore_also_reasons
-  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl vm = do {
+  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm = do {
     ASSERT(length outl \<le> uint32_max);
     nfoldli
       ([0..<length outl])
@@ -891,38 +891,47 @@ definition vmtf_mark_to_rescore_also_reasons
       (\<lambda>i vm. do {
         ASSERT(i < length outl); ASSERT(length outl \<le> uint32_max);
         ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
-        C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
-        case C of
-          None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
-        | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm
+        if(outl!i = L)
+        then
+           RETURN vm
+        else do {
+          C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
+          case C of
+            None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
+          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
       })
       vm
   }\<close>
 
 definition isa_vmtf_mark_to_rescore_also_reasons
-  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> _ \<Rightarrow>_\<close> where
-\<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl vm = do {
+  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl L vm = do {
     ASSERT(length outl \<le> uint32_max);
     nfoldli
       ([0..<length outl])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
         ASSERT(i < length outl); ASSERT(length outl\<le> uint32_max);
-        C \<leftarrow> get_the_propagation_reason_pol M (-(outl ! i));
-        case C of
-          None \<Rightarrow> do {
-            ASSERT (isa_vmtf_mark_to_rescore_pre (atm_of (outl ! i)) vm);
-            RETURN (isa_vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
-	  }
-        | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_vmtf_mark_to_rescore_clause arena C vm
-      })
+        if(outl!i = L)
+        then
+          RETURN vm
+        else do {
+              C \<leftarrow> get_the_propagation_reason_pol M (-(outl ! i));
+              case C of
+                None \<Rightarrow> do {
+                  ASSERT (isa_vmtf_mark_to_rescore_pre (atm_of (outl ! i)) vm);
+                  RETURN (isa_vmtf_mark_to_rescore (atm_of (outl ! i)) vm)
+                }
+              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_vmtf_mark_to_rescore_clause arena C vm
+            }
+          })
       vm
   }\<close>
 
 lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
-  \<open>(uncurry3 isa_vmtf_mark_to_rescore_also_reasons, uncurry3 (vmtf_mark_to_rescore_also_reasons \<A>)) \<in>
+  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons, uncurry4 (vmtf_mark_to_rescore_also_reasons \<A>)) \<in>
     [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-    trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
+  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
   unfolding isa_vmtf_mark_to_rescore_also_reasons_def vmtf_mark_to_rescore_also_reasons_def
     uncurry_def
   apply (intro frefI nres_relI)
@@ -936,9 +945,10 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal by auto
   apply assumption
-  subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
-    by (cases s)
+  subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
+    by (cases xb)
      (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
         intro!: atms_hash_insert_pre[of _ \<A>])
   subgoal
@@ -957,7 +967,7 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
    (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
    (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
        (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
-    vmtf_mark_to_rescore_also_reasons \<A> M arena outl vm \<le> RES (vmtf \<A> M)\<close>
+    vmtf_mark_to_rescore_also_reasons \<A> M arena outl L vm \<le> RES (vmtf \<A> M)\<close>
   unfolding vmtf_mark_to_rescore_also_reasons_def
   apply (subst RES_SPEC_conv)
   apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf \<A> M\<close>])
