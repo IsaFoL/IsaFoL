@@ -989,6 +989,126 @@ lemma vmtf_mark_to_rescore_also_reasons_spec:
     done
   done
 
+definition vmtf_mark_to_rescore_also_reasons_cl
+  :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([0..<arena_length arena C])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+        K \<leftarrow> mop_arena_lit2 arena C i;
+        ASSERT(-K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
+        if(K = L)
+        then
+           RETURN vm
+        else do {
+          C \<leftarrow> get_the_propagation_reason M (-K);
+          case C of
+            None \<Rightarrow> RETURN (vmtf_mark_to_rescore (atm_of K) vm)
+          | Some C \<Rightarrow> if C = 0 then RETURN vm else vmtf_mark_to_rescore_clause \<A> arena C vm}
+      })
+      vm
+  }\<close>
+
+definition isa_vmtf_mark_to_rescore_also_reasons_cl
+  :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>_\<close> where
+\<open>isa_vmtf_mark_to_rescore_also_reasons_cl M arena C L vm = do {
+    ASSERT(arena_is_valid_clause_idx arena C);
+    nfoldli
+      ([0..<arena_length arena C])
+      (\<lambda>_. True)
+      (\<lambda>i vm. do {
+         K \<leftarrow> mop_arena_lit2 arena C i;
+        if(K = L)
+        then
+          RETURN vm
+        else do {
+              C \<leftarrow> get_the_propagation_reason_pol M (-K);
+              case C of
+                None \<Rightarrow> do {
+                  ASSERT (isa_vmtf_mark_to_rescore_pre (atm_of K) vm);
+                  RETURN (isa_vmtf_mark_to_rescore (atm_of K) vm)
+                }
+              | Some C \<Rightarrow> if C = 0 then RETURN vm else isa_vmtf_mark_to_rescore_clause arena C vm
+            }
+          })
+      vm
+  }\<close>
+
+lemma isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl:
+  \<open>(uncurry4 isa_vmtf_mark_to_rescore_also_reasons_cl, uncurry4 (vmtf_mark_to_rescore_also_reasons_cl \<A>)) \<in>
+    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+  trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>f = g \<Longrightarrow> (f,g) \<in> Id\<close> for f g
+    by auto
+  show ?thesis
+    unfolding isa_vmtf_mark_to_rescore_also_reasons_cl_def vmtf_mark_to_rescore_also_reasons_cl_def
+      uncurry_def mop_arena_lit2_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id]
+      get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
+       isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal for x y x1 x1a _ _ _ x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xi xa si s xb x'
+      by (cases xb)
+       (auto simp: isa_vmtf_mark_to_rescore_pre_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+          intro!: atms_hash_insert_pre[of _ \<A>])
+    subgoal
+      by (rule isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
+        (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+(*TODO*)
+lemma arena_lifting_list:
+  \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+  N \<propto> C = map (\<lambda>i. arena_lit arena (C+i)) [0..<arena_length arena C]\<close>
+  by (subst list_eq_iff_nth_eq)
+   (auto simp: arena_lifting)
+
+lemma vmtf_mark_to_rescore_also_reasons_cl_spec:
+  \<open>vm \<in> vmtf \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+    (\<forall>L \<in> set (N \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
+   (\<forall>L \<in> set (N \<propto> C). \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
+       (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>
+    vmtf_mark_to_rescore_also_reasons_cl \<A> M arena C L vm \<le> RES (vmtf \<A> M)\<close>
+  unfolding vmtf_mark_to_rescore_also_reasons_cl_def mop_arena_lit2_def
+  apply (subst RES_SPEC_conv)
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ vm. vm \<in> vmtf \<A> M\<close>])
+  subgoal by (auto simp: arena_is_valid_clause_idx_def)
+  subgoal for x l1 l2 \<sigma> by (auto simp: arena_lit_pre_def arena_lifting
+    arena_is_valid_clause_idx_and_access_def intro!: exI[of _ C] exI[of _ N]
+    dest: in_list_in_setD)
+  subgoal by (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
+  subgoal for x l1 l2 \<sigma>
+    unfolding get_the_propagation_reason_def
+    apply (rule SPEC_rule)
+    apply (rename_tac reason, case_tac reason; simp only: option.simps RES_SPEC_conv[symmetric])
+    subgoal
+      by (auto intro!: vmtf_mark_to_rescore'
+        simp: arena_lifting_list in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric])
+    apply (rename_tac D, case_tac \<open>D = 0\<close>; simp)
+    subgoal
+      by (rule vmtf_mark_to_rescore_clause_spec, assumption, assumption)
+        (auto simp: arena_lifting arena_lifting_list image_image uminus_\<A>\<^sub>i\<^sub>n_iff)
+    done
+  done
+
+
 
 section \<open>Backtrack level for Restarts\<close>
 

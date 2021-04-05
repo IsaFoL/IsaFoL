@@ -1,6 +1,5 @@
 theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF
- (* IsaSAT_Setup_LLVM *)
    IsaSAT_VMTF_Setup_LLVM
    Isabelle_LLVM.Sorting_Introsort
    IsaSAT_Sorting_LLVM
@@ -553,6 +552,27 @@ sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   unfolding  nres_monad3 case_option_split
   by sepref
 
+lemma isa_vmtf_mark_to_rescore_also_reasons_clD:
+  \<open>arena_is_valid_clause_idx arena C \<Longrightarrow> C + arena_length arena C \<le> length arena\<close>
+  apply (auto simp: arena_is_valid_clause_idx_def arena_lifting)
+  using arena_lifting(10) arena_lifting(4) by auto
+
+sepref_register  isa_vmtf_mark_to_rescore_also_reasons_cl
+sepref_def isa_vmtf_mark_to_rescore_also_reasons_cl_impl
+  is \<open>uncurry4 (isa_vmtf_mark_to_rescore_also_reasons_cl)\<close>
+  :: \<open>[\<lambda>((((_, N), _), _), _). length N \<le> sint64_max]\<^sub>a
+  trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>
+  vmtf_remove_assn\<close>
+  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
+  supply [[goals_limit=1]]
+  supply [dest] = isa_vmtf_mark_to_rescore_also_reasons_clD
+  unfolding isa_vmtf_mark_to_rescore_also_reasons_cl_def PR_CONST_def
+  unfolding while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  unfolding nres_monad3 case_option_split
+  by sepref
 
 schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_assn ?fr\<close>
   unfolding vmtf_remove_assn_def
@@ -576,7 +596,7 @@ export_llvm
   vmtf_rescore_fast_code
   vmtf_mark_to_rescore_clause_fast_code
   vmtf_mark_to_rescore_also_reasons_fast_code
-
+  isa_vmtf_mark_to_rescore_also_reasons_cl_impl
 end
 
 end

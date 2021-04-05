@@ -661,7 +661,7 @@ definition extract_shorter_conflict_list_heur_st
      ASSERT(lookup_conflict_remove1_pre (-K, D));
      let D = lookup_conflict_remove1 (-K) D;
      let outl = outl[0 := -K];
-     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons M N outl K vm;
+     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons M N outl (-K) vm;
      (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      ASSERT(empty_cach_ref_pre cach);
      let cach = empty_cach_ref cach;
