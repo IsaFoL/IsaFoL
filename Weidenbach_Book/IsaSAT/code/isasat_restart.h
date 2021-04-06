@@ -75,5 +75,7 @@ uint32_t count_decided_st_heur_pol_fast(TRAIL);
 PROFILE_CST IsaSAT_Profile_REDUCE();
 PROFILE_CST IsaSAT_Profile_ANALYZE();
 PROFILE_CST IsaSAT_Profile_PROPAGATE();
+PROFILE_CST IsaSAT_Profile_MINIMIZATION();
+PROFILE_CST IsaSAT_Profile_INITIALISATION();
 
 #endif

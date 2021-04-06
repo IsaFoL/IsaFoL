@@ -361,7 +361,8 @@ struct PROFILE {
     long double total;
 };
 
-struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof;
+struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof,
+  init_prof, minimization_prof;
 
 void init_profiles () {
   propagate_prof.total = 0;
@@ -370,6 +371,8 @@ void init_profiles () {
   reduce_prof.total = 0;
   total_prof.total = 0;
   parsing_prof.total = 0;
+  init_prof.total = 0;
+  minimization_prof.total = 0;
 }
 
 void start_profile(struct PROFILE *p) {
@@ -394,6 +397,12 @@ void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
   }
   else if (t == IsaSAT_Profile_GC ()) {
     start_profile(&gc_prof);
+  }
+  else if (t == IsaSAT_Profile_MINIMIZATION ()) {
+    start_profile(&minimization_prof);
+  }
+  else if (t == IsaSAT_Profile_INITIALISATION ()) {
+    start_profile(&init_prof);
   } else {
     printf("c unrecognised profile, ignoring\n");
   }
@@ -423,6 +432,12 @@ void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
   }
   else if (t == IsaSAT_Profile_GC ()) {
     stop_profile(&gc_prof);
+  }
+  else if (t == IsaSAT_Profile_MINIMIZATION ()) {
+    stop_profile(&minimization_prof);
+  }
+  else if (t == IsaSAT_Profile_INITIALISATION ()) {
+    stop_profile(&init_prof);
   } else {
     printf("c unrecognised profile, ignoring\n");
   }
@@ -531,12 +546,17 @@ READ_FILE:
   // free_clauses(&clauses);
 
 
+  const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
+    init_prof.total;
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
   printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
+  printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, analyze_prof.total / 1000000.);
   printf("c reduce              : %.2Lf%% (%.2Lf s)\n", 100. * reduce_prof.total / total_prof.total, reduce_prof.total / 1000000.);
   printf("c GC                  : %.2Lf%% (%.2Lf s)\n", 100. * gc_prof.total / total_prof.total, gc_prof.total / 1000000.);
+  printf("c initialisation      : %.2Lf%% (%.2Lf s)\n", 100. * init_prof.total / total_prof.total, gc_prof.total / 1000000.);
   printf("c ==================================================================\n");
   printf("c total verified      : %Lf s\n", total_prof.total / 1000000);
+  printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
 
   return 0;
