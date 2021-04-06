@@ -550,7 +550,7 @@ READ_FILE:
     init_prof.total;
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
   printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
-  printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, analyze_prof.total / 1000000.);
+  printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, minimization_prof.total / 1000000.);
   printf("c reduce              : %.2Lf%% (%.2Lf s)\n", 100. * reduce_prof.total / total_prof.total, reduce_prof.total / 1000000.);
   printf("c GC                  : %.2Lf%% (%.2Lf s)\n", 100. * gc_prof.total / total_prof.total, gc_prof.total / 1000000.);
   printf("c initialisation      : %.2Lf%% (%.2Lf s)\n", 100. * init_prof.total / total_prof.total, gc_prof.total / 1000000.);
