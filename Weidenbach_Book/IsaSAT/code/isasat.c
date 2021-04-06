@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "isasat_restart.h"
 
@@ -351,7 +352,84 @@ void print_version() {
 void print_uint32(uint32_t u) {
   //  printf("LBD: %d -", u);
 }
+
+
+
+struct PROFILE {
+    long double start;
+    int active;
+    long double total;
+};
+
+struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof;
+
+void init_profiles () {
+  propagate_prof.total = 0;
+  analyze_prof.total = 0;
+  gc_prof.total = 0;
+  reduce_prof.total = 0;
+  total_prof.total = 0;
+  parsing_prof.total = 0;
+}
+
+void start_profile(struct PROFILE *p) {
+  if(p->active) {
+    printf("c incorrect use of profiling: missing stop... recovering by ignoring last interval\n");
+  }
+  p->active = 1;
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  p->start =  time.tv_sec * 1000000 + time.tv_usec;
+}
+
+void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
+  if(t == IsaSAT_Profile_PROPAGATE ()) {
+    start_profile(&propagate_prof);
+  }
+  else if (t == IsaSAT_Profile_ANALYZE ()) {
+    start_profile(&analyze_prof);
+  }
+  else if (t == IsaSAT_Profile_REDUCE ()) {
+    start_profile(&reduce_prof);
+  }
+  else if (t == IsaSAT_Profile_GC ()) {
+    start_profile(&gc_prof);
+  } else {
+    printf("c unrecognised profile, ignoring\n");
+  }
+}
+
+void stop_profile(struct PROFILE *p) {
+  if(!p->active) {
+    printf("c incorrect use of profiling: missing start... recovering by ignoring last interval\n");
+    return;
+  }
+  p->active = 0;
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  // printf("profile start at %Lf and stopped at %ld, running for %Lf\n", p->start,  time.tv_sec * 1000000 +time.tv_usec,  time.tv_sec * 1000000 + time.tv_usec - p->start);
+  p->total += time.tv_sec * 1000000 + (time.tv_usec - p->start);
+}
+
+void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
+  if(t == IsaSAT_Profile_PROPAGATE ()) {
+    stop_profile(&propagate_prof);
+  }
+  else if (t == IsaSAT_Profile_ANALYZE ()) {
+    stop_profile(&analyze_prof);
+  }
+  else if (t == IsaSAT_Profile_REDUCE ()) {
+    stop_profile(&reduce_prof);
+  }
+  else if (t == IsaSAT_Profile_GC ()) {
+    stop_profile(&gc_prof);
+  } else {
+    printf("c unrecognised profile, ignoring\n");
+  }
+}
+
 int main(int argc, char *argv[]) {
+  start_profile(&parsing_prof);
   if(argc < 2) {
     printf("expected one argument, the DIMACS file to solve");
     return 0;
@@ -430,12 +508,17 @@ READ_FILE:
   CLAUSES clauses = parse();
 
   fclose(inputfile);
+  stop_profile(&parsing_prof);
 
   //print_clauses(&clauses);
+  init_profiles();
+  start_profile(&total_prof);
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
   int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema, sema, clauses);
+  stop_profile(&total_prof);
+
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);
@@ -446,5 +529,15 @@ READ_FILE:
   else
     printf("s SATISFIABLE\n");
   // free_clauses(&clauses);
+
+
+  printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
+  printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
+  printf("c reduce              : %.2Lf%% (%.2Lf s)\n", 100. * reduce_prof.total / total_prof.total, reduce_prof.total / 1000000.);
+  printf("c GC                  : %.2Lf%% (%.2Lf s)\n", 100. * gc_prof.total / total_prof.total, gc_prof.total / 1000000.);
+  printf("c ==================================================================\n");
+  printf("c total verified      : %Lf s\n", total_prof.total / 1000000);
+  printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
+
   return 0;
 }

@@ -23,6 +23,9 @@ remove-print:
 	echo "fix printing functions"
 	sed -i -e '/define void @IsaSAT_Show_LLVM_print/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_LLVM_print/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_Profile_LLVM_start_profile/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_Profile_LLVM_stop_profile/,/}/d' isasat_restart.ll
+
 	sed -i -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
 declare void @IsaSAT_Show_LLVM_print_c_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_char_impl(i64)\
@@ -35,7 +38,9 @@ declare void @IsaSAT_LLVM_print_dec_impl(i64)\
 declare void @IsaSAT_LLVM_print_res_impl(i64)\
 declare void @IsaSAT_LLVM_print_lres_impl(i64)\
 declare void @IsaSAT_LLVM_print_uset_impl(i64)\
-declare void @IsaSAT_LLVM_print_gc_impl(i64)/g' \
+declare void @IsaSAT_LLVM_print_gc_impl(i64)\
+declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
+declare void @IsaSAT_Profile_LLVM_stop_profile(i8)/g' \
 	    isasat_restart.ll
 
 llvm:
