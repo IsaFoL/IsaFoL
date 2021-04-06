@@ -89,7 +89,6 @@ clean:
 # We need the '|| true' since Isabelle can return a non-zero status for cleaning
 # (because we do not rebuild the sesssions probably)
 	$(RUN_ISABELLE2021) build -d '$$AFP' -d '$$ISABELLE_LLVM' -c -n -D Weidenbach_Book || true
-	$(RUN_ISABELLE2021) build -c -n -D FOL_Berghofer || true
 	rm -rf $(DESTINATION)/current
 
 
