@@ -423,8 +423,13 @@ begin
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
     IsaSAT_code_wrapped is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
         int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, CLAUSES)\<close>
+    IsaSAT_Profile_PROPAGATE is \<open>PROFILE_CST IsaSAT_Profile_PROPAGATE\<close>
+    IsaSAT_Profile_REDUCE is \<open>PROFILE_CST IsaSAT_Profile_REDUCE\<close>
+    IsaSAT_Profile_GC is \<open>PROFILE_CST IsaSAT_Profile_GC\<close>
+    IsaSAT_Profile_ANALYZE is \<open>PROFILE_CST IsaSAT_Profile_ANALYZE\<close>
   defines \<open>
      typedef int8_t CBOOL;
+     typedef int8_t PROFILE_CST;
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
 

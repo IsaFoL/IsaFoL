@@ -3,6 +3,7 @@ theory IsaSAT_Setup_LLVM
     IsaSAT_Setup1_LLVM
     IsaSAT_Setup2_LLVM
     IsaSAT_Setup3_LLVM
+    IsaSAT_Profile_LLVM
 begin
 
 

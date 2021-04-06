@@ -1921,8 +1921,9 @@ where
 
 definition unit_propagation_outer_loop_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 =
-    WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
+  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 = do {
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_propagate);
+    S \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
       (\<lambda>S. literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
       (\<lambda>S. do {
         ASSERT(literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S));
@@ -1930,7 +1931,10 @@ definition unit_propagation_outer_loop_wl_D_heur
         ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
         unit_propagation_inner_loop_wl_D_heur L S'
       })
-      S\<^sub>0\<close>
+    S\<^sub>0;
+  _ \<leftarrow> RETURN (IsaSAT_Profile.stop_propagate);
+  RETURN S}
+  \<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
   \<open>literals_to_update_wl y \<noteq> {#} \<Longrightarrow>
@@ -2026,10 +2030,23 @@ proof -
     by auto
 qed
 
+lemma unit_propagation_outer_loop_wl_D_heur_alt_def:
+  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 =
+  WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
+  (\<lambda>S. literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
+  (\<lambda>S. do {
+  ASSERT(literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S));
+  (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl_heur S;
+  ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
+  unit_propagation_inner_loop_wl_D_heur L S'
+  })
+  S\<^sub>0 \<close>
+  unfolding unit_propagation_outer_loop_wl_D_heur_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
+  by auto
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
     twl_st_heur'' \<D> r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel\<close>
-  unfolding unit_propagation_outer_loop_wl_D_heur_def
+  unfolding unit_propagation_outer_loop_wl_D_heur_alt_def
     unit_propagation_outer_loop_wl_def all_lits_alt_def2[symmetric]
   apply (intro frefI nres_relI)
   apply (refine_vcg

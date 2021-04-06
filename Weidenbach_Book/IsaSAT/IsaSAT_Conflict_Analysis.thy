@@ -969,6 +969,37 @@ definition skip_and_resolve_loop_wl_D_heur
 where
   \<open>skip_and_resolve_loop_wl_D_heur S\<^sub>0 =
     do {
+      _ \<leftarrow> RETURN (IsaSAT_Profile.start_analyze);
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided_hd_trail_wl_heur S)
+        (\<lambda>(brk, S).
+          do {
+            ASSERT(\<not>brk \<and> \<not>is_decided_hd_trail_wl_heur S);
+            (L, C) \<leftarrow> lit_and_ann_of_propagated_st_heur S;
+            b \<leftarrow> atm_is_in_conflict_st_heur (-L) S;
+            if b then
+	      tl_state_wl_heur S
+            else do {
+              b \<leftarrow> maximum_level_removed_eq_count_dec_heur L S;
+              if b
+              then do {
+                update_confl_tl_wl_heur L C S
+              }
+              else
+                RETURN (True, S)
+            }
+          }
+        )
+        (False, S\<^sub>0);
+      _ \<leftarrow> RETURN (IsaSAT_Profile.stop_analyze);
+      RETURN S
+    }
+  \<close>
+
+lemma skip_and_resolve_loop_wl_D_heur_alt_def:
+  \<open>skip_and_resolve_loop_wl_D_heur S\<^sub>0 =
+    do {
       (_, S) \<leftarrow>
         WHILE\<^sub>T\<^bsup>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0\<^esup>
         (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided_hd_trail_wl_heur S)
@@ -994,7 +1025,8 @@ where
       RETURN S
     }
   \<close>
-
+  unfolding IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1
+    skip_and_resolve_loop_wl_D_heur_def ..
 
 
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
@@ -1051,7 +1083,8 @@ lemma skip_and_resolve_loop_wl_alt_def:
         (False, S\<^sub>0);
       RETURN S
     }\<close>
-  unfolding skip_and_resolve_loop_wl_def calculate_LBD_st_def
+  unfolding skip_and_resolve_loop_wl_def calculate_LBD_st_def IsaSAT_Profile.start_def
+    IsaSAT_Profile.stop_def
   by (auto cong: if_cong)
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
@@ -1072,7 +1105,7 @@ proof -
    by auto
   show ?thesis
     supply [[goals_limit=1]]
-    unfolding skip_and_resolve_loop_wl_D_heur_def skip_and_resolve_loop_wl_alt_def
+    unfolding skip_and_resolve_loop_wl_D_heur_alt_def skip_and_resolve_loop_wl_alt_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
         update_confl_tl_wl_heur_update_confl_tl_wl[THEN fref_to_Down_curry2, unfolded comp_def]

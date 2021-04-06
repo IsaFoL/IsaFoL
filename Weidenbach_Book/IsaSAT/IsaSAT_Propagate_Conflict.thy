@@ -43,7 +43,8 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
       })
       b
   }\<close>
-  unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def ..
+  unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def
+    IsaSAT_Profile.start_def IsaSAT_Profile.stop_def  ..
 
 
 section \<open>Unit propagation, Outer Loop\<close>

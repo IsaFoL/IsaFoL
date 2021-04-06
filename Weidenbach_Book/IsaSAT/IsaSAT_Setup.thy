@@ -8,6 +8,7 @@ theory IsaSAT_Setup
     IsaSAT_Rephase
     IsaSAT_EMA
     IsaSAT_Stats
+    IsaSAT_Profile
 begin
 
 chapter \<open>Complete state\<close>

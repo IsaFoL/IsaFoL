@@ -1954,10 +1954,20 @@ qed
 definition cdcl_twl_full_restart_wl_prog_heur where
 \<open>cdcl_twl_full_restart_wl_prog_heur S = do {
   _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
+  _ \<leftarrow> RETURN (IsaSAT_Profile.start_reduce);
   T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
+  _ \<leftarrow> RETURN (IsaSAT_Profile.stop_reduce);
   RETURN T
 }\<close>
 
+lemma cdcl_twl_full_restart_wl_prog_heur_alt_def:
+  \<open>cdcl_twl_full_restart_wl_prog_heur S = do {
+  _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
+  T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
+  RETURN T
+  }\<close>
+  unfolding cdcl_twl_full_restart_wl_prog_heur_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
+  by auto
 
 lemma twl_st_heur_restartD2:
   \<open>x \<in> twl_st_heur_restart \<Longrightarrow> x \<in> twl_st_heur_restart_ana' (length (get_clauses_wl_heur (fst x)))
@@ -1967,7 +1977,7 @@ lemma twl_st_heur_restartD2:
 lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
   \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog) \<in>
      twl_st_heur''''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur''''u r u\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def cdcl_twl_full_restart_wl_prog_def
+  unfolding cdcl_twl_full_restart_wl_prog_heur_alt_def cdcl_twl_full_restart_wl_prog_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
     mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D[THEN fref_to_Down])
@@ -4926,6 +4936,7 @@ lemma isasat_GC_clauses_wl_D:
 
 definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S0 = do {
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_GC);
     S \<leftarrow> do {
       if count_decided_st_heur S0 > 0
       then do {
@@ -4942,8 +4953,32 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count U \<le> learned_clss_count S0);
     V \<leftarrow> isasat_GC_clauses_wl_D U;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
     RETURN V
   }\<close>
+
+lemma cdcl_twl_full_restart_wl_D_GC_heur_prog_alt_def:
+  \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog S0 = do {
+    S \<leftarrow> do {
+    if count_decided_st_heur S0 > 0
+    then do {
+    S \<leftarrow> find_decomp_wl_st_int 0 S0;
+    empty_Q (empty_US_heur S)
+    } else RETURN (empty_US_heur S0)
+    };
+    ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count S \<le> learned_clss_count S0);
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    U \<leftarrow> mark_to_delete_clauses_wl_D_heur T;
+    ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count U \<le> learned_clss_count S0);
+    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    RETURN V
+  }\<close>
+  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def IsaSAT_Profile.start_def
+    IsaSAT_Profile.stop_def by auto
 
 lemma
     cdcl_twl_full_restart_wl_GC_prog_pre_heur:
@@ -5039,7 +5074,7 @@ proof -
     (U, Ua) \<in> twl_st_heur_restart'''u r u\<close> for U Ua r u
     by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
   show ?thesis
-    unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
+    unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_alt_def
       cdcl_twl_full_restart_wl_GC_prog_def
     apply (intro frefI nres_relI)
     apply (refine_rcg cdcl_twl_local_restart_wl_spec0
