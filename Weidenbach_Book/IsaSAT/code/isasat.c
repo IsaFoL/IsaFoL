@@ -529,8 +529,8 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 
-  printf("c propagations                       redundant                   lrestarts                       GC        \n"
-	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
+  printf("c propagations                       redundant                   lrestarts                       GC                        not-mem-reasons\n"
+	 "c                     conflicts                     reductions                 level-0                         LBDs                      subsumed\n");
   int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema, sema, clauses);
   stop_profile(&total_prof);
 
