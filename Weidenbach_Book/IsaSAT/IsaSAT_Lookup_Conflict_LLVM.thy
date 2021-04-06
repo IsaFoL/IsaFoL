@@ -4,6 +4,7 @@ imports
     IsaSAT_Trail_LLVM
     IsaSAT_Clauses_LLVM
     LBD_LLVM
+    IsaSAT_Profile_LLVM
 begin
 
 sepref_register set_lookup_conflict_aa

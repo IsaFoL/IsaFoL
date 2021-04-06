@@ -15,7 +15,9 @@ begin
   qualified definition PROPAGATE :: \<open>8 word\<close> where \<open>PROPAGATE = 0\<close>
   qualified definition ANALYZE :: \<open>8 word\<close> where \<open>ANALYZE = 1\<close>
   qualified definition GC :: \<open>8 word\<close> where \<open>GC = 2\<close>
-  qualified definition REDUCE :: \<open>8 word\<close> where \<open>REDUCE = 8\<close>
+  qualified definition REDUCE :: \<open>8 word\<close> where \<open>REDUCE = 3\<close>
+  qualified definition INITIALISATION :: \<open>8 word\<close> where \<open>INITIALISATION = 4\<close>
+  qualified definition MINIMIZATION :: \<open>8 word\<close> where \<open>MINIMIZATION = 5\<close>
 
 qualified abbreviation start_propagate :: \<open>unit\<close> where
   \<open>start_propagate \<equiv> IsaSAT_Profile.start IsaSAT_Profile.PROPAGATE\<close>
@@ -34,6 +36,16 @@ qualified abbreviation start_reduce :: \<open>unit\<close> where
   \<open>start_reduce \<equiv> IsaSAT_Profile.start IsaSAT_Profile.REDUCE\<close>
 qualified abbreviation stop_reduce :: \<open>unit\<close> where
   \<open>stop_reduce \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.REDUCE\<close>
+
+qualified abbreviation start_initialisation :: \<open>unit\<close> where
+  \<open>start_initialisation \<equiv> IsaSAT_Profile.start IsaSAT_Profile.INITIALISATION\<close>
+qualified abbreviation stop_initialisation :: \<open>unit\<close> where
+  \<open>stop_initialisation \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.INITIALISATION\<close>
+
+qualified abbreviation start_minimization :: \<open>unit\<close> where
+  \<open>start_minimization \<equiv> IsaSAT_Profile.start IsaSAT_Profile.MINIMIZATION\<close>
+qualified abbreviation stop_minimization :: \<open>unit\<close> where
+  \<open>stop_minimization \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.MINIMIZATION\<close>
 
 end
 

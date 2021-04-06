@@ -2092,7 +2092,9 @@ lemma IsaSAT_heur_alt_def:
         }
       }
     }\<close>
-  by (auto simp: init_state_wl_heur_fast_def IsaSAT_heur_def isasat_init_fast_slow_alt_def convert_state_def isasat_information_banner_def cong: if_cong)
+  by (auto simp: init_state_wl_heur_fast_def IsaSAT_heur_def isasat_init_fast_slow_alt_def
+    convert_state_def isasat_information_banner_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
+    cong: if_cong)
 
 abbreviation rewatch_heur_st_rewatch_st_rel where
   \<open>rewatch_heur_st_rewatch_st_rel CS U V \<equiv>
@@ -3867,6 +3869,7 @@ qed
 
 definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> stats)) nres\<close> where
   \<open>IsaSAT_bounded_heur opts CS = do{
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
@@ -3877,12 +3880,14 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
     S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
     if isasat_fast_init T \<and> \<not>is_failed_heur_init T
     then do {
       if \<not>get_conflict_wl_is_None_heur_init T
       then RETURN (False, empty_init_code)
       else if CS = [] then do {stat \<leftarrow> empty_conflict_code; RETURN (False, stat)}
       else do {
+        _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
         ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
         ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
         _ \<leftarrow> isasat_information_banner T;
@@ -3892,6 +3897,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         T \<leftarrow> rewatch_heur_st_fast T;
         ASSERT(isasat_fast_init T);
         T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
+        _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
         ASSERT(isasat_fast T);
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
         RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -3944,7 +3950,7 @@ lemma IsaSAT_bounded_heur_alt_def:
    }\<close>
   unfolding Let_def IsaSAT_bounded_heur_def init_state_wl_heur_fast_def
     bind_to_let_conv isasat_information_banner_def virtual_copy_def
-    id_apply
+    id_apply IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1
   unfolding
     convert_state_def de_Morgan_disj not_not if_not_swap
   by (intro bind_cong[OF refl] if_cong[OF refl] refl)

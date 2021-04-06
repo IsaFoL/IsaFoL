@@ -6,6 +6,7 @@ theory IsaSAT_Lookup_Conflict
     IsaSAT_Clauses
     IsaSAT_Watch_List
     IsaSAT_Mark
+    IsaSAT_Profile
 begin
 
 
@@ -3356,6 +3357,7 @@ definition isa_minimize_and_extract_highest_lookup_conflict
      out_learned \<Rightarrow> (lookup_clause_rel \<times> conflict_min_cach_l \<times> out_learned) nres\<close>
 where
   \<open>isa_minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
+  _ \<leftarrow> RETURN (IsaSAT_Profile.start_minimization);
     (D, _, s, outl) \<leftarrow>
        WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> uint32_max\<^esup>
          (\<lambda>(nxs, i, s, outl). i < length outl)
@@ -3371,9 +3373,32 @@ where
             }
          })
          (nxs, 1, s, outl);
+     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_minimization);
      RETURN (D, s, outl)
   })\<close>
 
+lemma isa_minimize_and_extract_highest_lookup_conflict_alt_def:
+  \<open>isa_minimize_and_extract_highest_lookup_conflict  = (\<lambda>M NU nxs s lbd outl. do {
+  (D, _, s, outl) \<leftarrow>
+  WHILE\<^sub>T\<^bsup>\<lambda>(nxs, i, s, outl). length outl \<le> uint32_max\<^esup>
+  (\<lambda>(nxs, i, s, outl). i < length outl)
+  (\<lambda>(nxs, x, s, outl). do {
+  ASSERT(x < length outl);
+ let L = outl ! x;
+  (s', _, red) \<leftarrow> isa_literal_redundant_wl_lookup M NU nxs s L lbd;
+  if \<not>red
+ then RETURN (nxs, x+1, s', outl)
+  else do {
+  ASSERT(lookup_conflict_remove1_pre (L, nxs));
+  RETURN (lookup_conflict_remove1 L nxs, x, s',  delete_index_and_swap outl x)
+  }
+  })
+  (nxs, 1, s, outl);
+  RETURN (D, s, outl)
+  })\<close>
+  unfolding isa_minimize_and_extract_highest_lookup_conflict_def
+    IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1
+  ..
 
 lemma isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict:
   assumes \<open>isasat_input_bounded \<A>\<close>
@@ -3410,7 +3435,7 @@ proof -
   qed
 
   show ?thesis
-    unfolding isa_minimize_and_extract_highest_lookup_conflict_def uncurry_def
+    unfolding isa_minimize_and_extract_highest_lookup_conflict_alt_def uncurry_def
       minimize_and_extract_highest_lookup_conflict_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
