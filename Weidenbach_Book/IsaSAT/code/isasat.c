@@ -553,7 +553,7 @@ READ_FILE:
   printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, minimization_prof.total / 1000000.);
   printf("c reduce              : %.2Lf%% (%.2Lf s)\n", 100. * reduce_prof.total / total_prof.total, reduce_prof.total / 1000000.);
   printf("c GC                  : %.2Lf%% (%.2Lf s)\n", 100. * gc_prof.total / total_prof.total, gc_prof.total / 1000000.);
-  printf("c initialisation      : %.2Lf%% (%.2Lf s)\n", 100. * init_prof.total / total_prof.total, gc_prof.total / 1000000.);
+  printf("c initialisation      : %.2Lf%% (%.2Lf s)\n", 100. * init_prof.total / total_prof.total, init_prof.total / 1000000.);
   printf("c ==================================================================\n");
   printf("c total verified      : %Lf s\n", total_prof.total / 1000000);
   printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
