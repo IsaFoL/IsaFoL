@@ -727,6 +727,19 @@ lemma cdcl_twl_unitres_true_twl_struct_invs:
   using cdcl_twl_unitres_true_invs[of S T]
   by (auto simp: twl_struct_invs_def)
 
+lemma cdcl_twl_unitres_true_twl_stgy_invs:
+  assumes \<open>cdcl_twl_unitres_true S T\<close>
+    \<open>twl_struct_invs S\<close>
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_unitres_true.induct)
+    (auto simp: twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    Propagated_eq_DecidedD)
+
 
 inductive cdcl_twl_unitres :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 \<open>cdcl_twl_unitres (M, N + {#D#}, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
@@ -897,6 +910,7 @@ lemma cdcl_twl_unitres_twl_stgy_invs:
     cdcl\<^sub>W_restart_mset.no_smaller_confl_def
     Propagated_eq_DecidedD)
 
+
 lemma twl_exception_inv_add_subsumed:
   \<open>twl_exception_inv (M1, N, U, D, NE, UE, add_mset (C') NS, US, N0, U0, WS, Q) =
   twl_exception_inv (M1, N, U, D, NE, UE, NS, US, N0, U0, WS, Q)\<close>
@@ -932,6 +946,19 @@ lemma cdcl_subsumed_RI_all_struct_invs:
       cdcl_learn_clause_psubsumed_invs cdcl_subsumed_all_struct_inv cdcl_subsumed_entailed_clss_inv
       cdcl_subsumed_psubsumed_invs pcdcl_all_struct_invs_def
     intro: pcdcl.intros(2) pcdcl.intros(4) pcdcl_clauses0_inv)
+ 
+lemma cdcl_unitres_pcdcl_all_struct_invs:
+  \<open>cdcl_unitres S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  pcdcl_all_struct_invs (S) \<Longrightarrow>
+  pcdcl_all_struct_invs (T)\<close>
+  using cdcl_unitres_learn_subsume rtranclp_pcdcl_all_struct_invs by blast
+
+lemma cdcl_twl_unitres_pcdcl_all_struct_invs:
+  \<open>cdcl_twl_unitres S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
+  pcdcl_all_struct_invs (pstate\<^sub>W_of S) \<Longrightarrow>
+  pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+  by (drule cdcl_twl_unitres_cdcl_unitres)
+    (simp add: cdcl_unitres_pcdcl_all_struct_invs)
 
 lemma cdcl_twl_subsumed_struct_invs:
   assumes \<open>cdcl_twl_subsumed S T\<close> and \<open>twl_struct_invs S\<close>
@@ -1096,5 +1123,39 @@ lemma cdcl_twl_promote_false_twl_stgy_invs:
    (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
     cdcl\<^sub>W_restart_mset.no_smaller_confl_def clauses_def
     cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
+
+lemma cdcl_subsumed_RI_stgy_invs:
+  \<open>cdcl_subsumed_RI (pstate\<^sub>W_of S) (pstate\<^sub>W_of T) \<Longrightarrow> twl_stgy_invs S \<Longrightarrow>
+  twl_stgy_invs T\<close>
+  apply (cases rule: cdcl_subsumed_RI.cases, assumption)
+  apply (cases S; cases T; auto simp: twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    clauses_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    all_conj_distrib)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis member_add_mset set_image_mset)
+  apply (metis image_mset_add_mset member_add_mset multi_member_split set_image_mset)
+  done
+
+lemma cdcl_twl_subsumed_stgy_invs:
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow>
+          twl_struct_invs S \<Longrightarrow>
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<Longrightarrow>
+          twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  apply (drule cdcl_twl_subsumed_cdcl_subsumed)
+  apply (elim disjE)
+  apply (simp add: state_of_cdcl_subsumed twl_stgy_invs_def)
+  apply (simp add: cdcl_subsumed_RI_stgy_invs)
+  done
+ 
+lemma cdcl_twl_subsumed_twl_stgy_invs:
+  assumes \<open>cdcl_twl_subsumed S T\<close>
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms
+  by (metis (no_types, lifting) assms cdcl_subsumed_RI_stgy_invs
+    cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed twl_stgy_invs_def)
 
 end

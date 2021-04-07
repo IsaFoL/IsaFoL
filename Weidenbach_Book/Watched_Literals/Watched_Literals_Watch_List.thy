@@ -5461,4 +5461,57 @@ proof -
     done
 qed
 
+subsection \<open>Shared for restarts and inprocessing\<close>
+
+definition clauses_pointed_to :: \<open>'v literal set \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> nat set\<close>
+  where
+  \<open>clauses_pointed_to \<A> W \<equiv> \<Union>(((`) fst) ` set ` W ` \<A>)\<close>
+
+lemma clauses_pointed_to_insert[simp]:
+  \<open>clauses_pointed_to (insert A \<A>) W =
+  fst ` set (W A) \<union>
+  clauses_pointed_to \<A> W\<close> and
+  clauses_pointed_to_empty[simp]:
+  \<open>clauses_pointed_to {} W = {}\<close>
+  by (auto simp: clauses_pointed_to_def)
+
+lemma clauses_pointed_to_remove1_if:
+  \<open>\<forall>L\<in>set (W L). fst L \<notin># dom_m aa \<Longrightarrow> xa \<in># dom_m aa \<Longrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (remove1_mset L \<A>))
+      (\<lambda>a. if a = L then [] else W a) \<longleftrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (remove1_mset L \<A>)) W\<close>
+  by (cases \<open>L \<in># \<A>\<close>)
+    (fastforce simp: clauses_pointed_to_def
+    dest!: multi_member_split)+
+
+lemma clauses_pointed_to_remove1_if2:
+  \<open>\<forall>L\<in>set (W L). fst L \<notin># dom_m aa \<Longrightarrow> xa \<in># dom_m aa \<Longrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (\<A> - {#L, L'#}))
+      (\<lambda>a. if a = L then [] else W a) \<longleftrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (\<A> - {#L, L'#})) W\<close>
+  \<open>\<forall>L\<in>set (W L). fst L \<notin># dom_m aa \<Longrightarrow> xa \<in># dom_m aa \<Longrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (\<A> - {#L', L#}))
+      (\<lambda>a. if a = L then [] else W a) \<longleftrightarrow>
+    xa \<in> clauses_pointed_to (set_mset (\<A> - {#L', L#})) W\<close>
+  by (cases \<open>L \<in># \<A>\<close>; fastforce simp: clauses_pointed_to_def
+    dest!: multi_member_split)+
+
+lemma clauses_pointed_to_remove1_if2_eq:
+  \<open>\<forall>L\<in>set (W L). fst L \<notin># dom_m aa \<Longrightarrow>
+    set_mset (dom_m aa) \<subseteq> clauses_pointed_to (set_mset (\<A> - {#L, L'#}))
+      (\<lambda>a. if a = L then [] else W a) \<longleftrightarrow>
+    set_mset (dom_m aa) \<subseteq> clauses_pointed_to (set_mset (\<A> - {#L, L'#})) W\<close>
+  \<open>\<forall>L\<in>set (W L). fst L \<notin># dom_m aa \<Longrightarrow>
+     set_mset (dom_m aa) \<subseteq> clauses_pointed_to (set_mset (\<A> - {#L', L#}))
+      (\<lambda>a. if a = L then [] else W a) \<longleftrightarrow>
+     set_mset (dom_m aa) \<subseteq> clauses_pointed_to (set_mset (\<A> - {#L', L#})) W\<close>
+  by (auto simp: clauses_pointed_to_remove1_if2)
+
+lemma negs_remove_Neg: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + poss \<A> - {#Neg A, Pos A#} =
+   negs \<A> + poss \<A>\<close>
+  by (induction \<A>) auto
+lemma poss_remove_Pos: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + poss \<A> - {#Pos A, Neg A#} =
+   negs \<A> + poss \<A>\<close>
+  by (induction \<A>)  auto
+
 end

@@ -219,7 +219,7 @@ twl_subresolution_II_nonunit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> 
     \<open>mset E = remdups_mset D'\<close> \<open>length E \<ge> 2\<close> \<open>distinct E\<close> \<open>\<forall>L \<in># mset E. undefined_lit M L\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>irred N C'\<close> |
 twl_subresolution_II_unit:
@@ -230,7 +230,7 @@ twl_subresolution_II_unit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>remdups_mset D' = {#K#}\<close>
     \<open>undefined_lit M K\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>irred N C'\<close> |
@@ -253,7 +253,7 @@ twl_subresolution_LL_unit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>remdups_mset D' = {#K#}\<close>
     \<open>undefined_lit M K\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>\<not>irred N C'\<close> |
@@ -265,7 +265,7 @@ twl_subresolution_LI_nonunit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>mset E = remdups_mset D'\<close> \<open>length E \<ge> 2\<close> \<open>distinct E\<close> \<open>\<forall>L \<in># mset E. undefined_lit M L\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>\<not>irred N C'\<close> |
 twl_subresolution_LI_unit:
@@ -276,7 +276,7 @@ twl_subresolution_LI_unit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>remdups_mset D' = {#K#}\<close>
     \<open>undefined_lit M K\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>irred N C\<close> \<open>\<not>irred N C'\<close> |
@@ -288,7 +288,7 @@ twl_subresolution_IL_nonunit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>mset E = remdups_mset D'\<close> \<open>length E \<ge> 2\<close> \<open>distinct E\<close> \<open>\<forall>L \<in># mset E. undefined_lit M L\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>irred N C'\<close> |
 twl_subresolution_IL_unit:
@@ -299,7 +299,7 @@ twl_subresolution_IL_unit:
     \<open>C' \<in># dom_m N\<close>
     \<open>mset (N \<propto> C) = add_mset L D\<close>
     \<open>mset (N \<propto> C') = add_mset (-L) D'\<close>
-    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
+    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
     \<open>remdups_mset D' = {#K#}\<close>
     \<open>undefined_lit M K\<close>
     \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close> \<open>\<not>irred N C\<close> \<open>irred N C'\<close>
@@ -439,14 +439,26 @@ lemma twl_subresolution_IL_unit_simps:
 
 lemma cdcl_twl_subresolution_l_cdcl_twl_subresolution:
   assumes \<open>cdcl_twl_subresolution_l S T\<close> and
-    SS': \<open>(S, S') \<in> twl_st_l None\<close>
+    SS': \<open>(S, S') \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close>
   shows \<open>\<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_subresolution S' T'\<close>
 proof -
-  show ?thesis
-    using assms
-      supply [simp] = convert_lits_l_update_sel2
+  have tauto: \<open>\<forall>C\<in>#dom_m (get_clauses_l S). \<not>tautology (mset (get_clauses_l S \<propto> C))\<close>
+    using list_invs unfolding twl_list_invs_def
+    by (auto simp: dest!: multi_member_split)
+  have H1: \<open>C \<in># dom_m N \<Longrightarrow>
+    C' \<in># dom_m N \<Longrightarrow>
+    mset (N \<propto> C) = add_mset L D \<Longrightarrow>
+    mset (N \<propto> C') = add_mset (- L) D' \<Longrightarrow>
+    D \<subseteq># D' \<Longrightarrow>
+    \<forall>C\<in>#dom_m N. \<not> tautology (mset (N \<propto> C)) \<Longrightarrow> tautology (D + D') \<Longrightarrow> False\<close> for C C' L D N D'
+   by (metis mset_subset_eqD tautology_add_mset tautology_minus tautology_union)
+  from assms tauto show ?thesis
+    apply -
+    supply [simp] = convert_lits_l_update_sel2
     apply (induction rule: cdcl_twl_subresolution_l.induct)
     subgoal for C N C' L D D' M E NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = x in exI)
       apply auto
@@ -459,6 +471,7 @@ proof -
         )
       done
     subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset)
@@ -490,8 +503,9 @@ proof -
           learned_clss_l_fmupd_if learned_clss_l_mapsto_upd
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev; fail
           )+
-        done
-      subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+      done
+    subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
@@ -511,7 +525,8 @@ proof -
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
           )
         done
-      subgoal for C N C' L D D' M E NE UE NS US N0 U0 Q
+    subgoal for C N C' L D D' M E NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>get_trail S'\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
@@ -531,7 +546,8 @@ proof -
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev; fail
           )+
         done
-      subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+    subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
@@ -551,7 +567,8 @@ proof -
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev
           )
         done
-      subgoal for C N C' L D D' M E NE UE NS US N0 U0 Q
+    subgoal for C N C' L D D' M E NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>get_trail S'\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
@@ -573,7 +590,8 @@ proof -
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev; fail
         )+
         done
-      subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+    subgoal for C N C' L D D' M K NE UE NS US N0 U0 Q
+      using H1[of C N C' L D D']
       apply (auto simp: twl_st_l_def)
       apply (rule_tac x = \<open>Propagated K {#K#} # x\<close> in exI)
       apply (auto simp: convert_lit.simps convert_lits_l_drop convert_lits_l_add_mset
@@ -672,9 +690,11 @@ lemma cdcl_twl_unitres_true_l_cdcl_twl_unitres_true:
 
 lemma cdcl_twl_subresolution_l_list_invs:
   \<open>cdcl_twl_subresolution_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
+  using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
   by (induction rule: cdcl_twl_subresolution_l.induct)
    (auto simp: twl_list_invs_def cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
-    dest: in_diffD)
+     ran_m_mapsto_upd ran_m_def add_mset_eq_add_mset tautology_add_mset
+    dest: in_diffD dest!: multi_member_split)
 
 lemma cdcl_twl_unitres_True_l_list_invs:
   \<open>cdcl_twl_unitres_true_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
@@ -942,22 +962,28 @@ definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_s
 )\<close>
 
 definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>simplify_clause_with_unit_st = (\<lambda>C (M, N, D, NE, UE, NS, US, N0, U0, WS, Q). do {
-    ASSERT (C \<in># dom_m N \<and> count_decided M = 0 \<and> D = None \<and> WS = {#} \<and> C \<notin> set (get_all_mark_of_propagated M));
-    let E = mset (N \<propto> C);
-    let irr = irred N C;
-    (b, N) \<leftarrow> simplify_clause_with_unit C M N;
-    if b then
-      RETURN (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, WS, Q)
-    else if size (N \<propto> C) = 1
-    then do {
-      let L = ((N \<propto> C) ! 0);
-      RETURN (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, WS, add_mset (-L) Q)}
-    else if size (N \<propto> C) = 0
-      then RETURN (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, WS, {#})
-    else
-        RETURN (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, WS, Q)
-  })\<close>
+  \<open>simplify_clause_with_unit_st = (\<lambda>C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q). do {
+    ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None \<and> WS = {#});
+    if C \<in> set (get_all_mark_of_propagated M)
+    then RETURN (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q)
+    else do {
+      let E = mset (N\<^sub>0 \<propto> C);
+      let irr = irred N\<^sub>0 C;
+      (b, N) \<leftarrow> simplify_clause_with_unit C M N\<^sub>0;
+      ASSERT(fmdrop C N = fmdrop C N\<^sub>0 \<and> irred N C = irred N\<^sub>0 C \<and> mset (N \<propto> C) \<subseteq># mset (N\<^sub>0 \<propto> C) \<and>
+        C \<in># dom_m N);
+      if b then
+        RETURN (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, WS, Q)
+      else if size (N \<propto> C) = 1
+      then do {
+        let L = ((N \<propto> C) ! 0);
+        RETURN (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, WS, add_mset (-L) Q)}
+      else if size (N \<propto> C) = 0
+        then RETURN (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, WS, {#})
+      else
+          RETURN (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, WS, Q)
+    }
+     })\<close>
 
 lemma true_clss_clss_def_more_atms:
   "N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> N' \<union> N'') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
@@ -1183,55 +1209,80 @@ lemma list_length_2_isabelle_come_on:
 lemma simplify_clause_with_unit_st_spec:
   assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
     \<open>get_conflict_l S = None\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
-    \<open>no_dup (get_trail_l S)\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> and
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
-    st_invs: \<open>twl_struct_invs T\<close>
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> and
-    tauto: \<open>\<not>tautology (mset ((get_clauses_l S) \<propto> C))\<close>
-  shows \<open>simplify_clause_with_unit_st C S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_unitres_l S T \<or> cdcl_twl_unitres_true_l S T))\<close>
-  unfolding simplify_clause_with_unit_st_def simplify_clause_with_unit_def
-  apply refine_vcg
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
-    using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
-    by (auto simp: cdcl_twl_unitres_true_l.simps
-      intro!: exI[of _ C])
-  subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
-    using ST st_invs apply -
-    apply (rule disjI1)
-    apply (subgoal_tac \<open>fmdrop C bj = fmdrop C aa\<close>)
-    apply auto
-    apply (auto simp: length_list_Suc_0 cdcl_twl_unitres_l_intros2' cdcl_twl_unitres_l_intros4'
-      intro:  cdcl_twl_unitres_l_intros2'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
-      and T = T]
-      cdcl_twl_unitres_l_intros4'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
-      and T = T])[2]
-    done
-  subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
-    using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs
-      cdcl_twl_unitres_false_entailed[of C \<open>get_clauses_l S\<close> \<open>get_trail_l S\<close>
-       \<open>get_unit_init_clauses_l S\<close> \<open>get_unit_learned_clss_l S\<close>
-      \<open>get_subsumed_init_clauses_l S\<close> \<open>get_subsumed_learned_clauses_l S\<close>
-      \<open>get_init_clauses0_l S\<close> \<open>get_learned_clauses0_l S\<close>
-      \<open>literals_to_update_l S\<close> T
-      \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>]
-      twl_st_l_struct_invs_distinct[of S T None C]
-    apply (auto simp: cdcl_twl_unitres_true_l.simps cdcl_twl_unitres_l.simps
-      dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
-      intro!: exI[of _ C])
-    done
-  subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+    st_invs: \<open>twl_struct_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
+  shows \<open>simplify_clause_with_unit_st C S \<le> \<Down>Id (SPEC(\<lambda>T.
+      (S = T \<or> cdcl_twl_unitres_l S T \<or> cdcl_twl_unitres_true_l S T) \<and>
+      (dom_m (get_clauses_l T) = dom_m (get_clauses_l S) \<or>
+          dom_m (get_clauses_l T) = remove1_mset C (dom_m (get_clauses_l S)))))\<close>
+proof -
+  have [dest]: \<open>fmdrop C aa = fmdrop C bj \<Longrightarrow>
+    remove1_mset C (dom_m bj) = remove1_mset C (dom_m aa)\<close> for C ab bj aa
+    by (metis dom_m_fmdrop) 
+  have n_d:\<open>no_dup (get_trail_l S)\<close>
+    using ST st_invs unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by simp
+  have tauto: \<open>\<not>tautology (mset ((get_clauses_l S) \<propto> C))\<close>
+    using list_invs assms(1)
+    by (auto simp: twl_list_invs_def)
+  then show ?thesis
     using assms
-    by (auto  simp: list_length_2_isabelle_come_on
-      intro!: cdcl_twl_unitres_l_intros3' cdcl_twl_unitres_l_intros1'
-      dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
-      intro!: exI[of _ C] fmdrop_eq_update_eq2)
-  done
+    unfolding simplify_clause_with_unit_st_def simplify_clause_with_unit_def
+    apply refine_vcg
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
+      using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
+      by (auto simp: cdcl_twl_unitres_true_l.simps
+        intro!: exI[of _ C])
+    subgoal using assms by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+      using ST st_invs apply -
+      apply (rule disjI2, rule disjI1)
+      apply (auto simp: length_list_Suc_0 cdcl_twl_unitres_l_intros2' cdcl_twl_unitres_l_intros4'
+        intro:  cdcl_twl_unitres_l_intros2'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
+        and T = T]
+        cdcl_twl_unitres_l_intros4'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
+        and T = T])
+      done
+    subgoal using assms by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+      using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs
+        cdcl_twl_unitres_false_entailed[of C \<open>get_clauses_l S\<close> \<open>get_trail_l S\<close>
+         \<open>get_unit_init_clauses_l S\<close> \<open>get_unit_learned_clss_l S\<close>
+        \<open>get_subsumed_init_clauses_l S\<close> \<open>get_subsumed_learned_clauses_l S\<close>
+        \<open>get_init_clauses0_l S\<close> \<open>get_learned_clauses0_l S\<close>
+        \<open>literals_to_update_l S\<close> T
+        \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>]
+        twl_st_l_struct_invs_distinct[of S T None C]
+      apply (auto simp: cdcl_twl_unitres_true_l.simps cdcl_twl_unitres_l.simps
+        dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
+        intro!: exI[of _ C])
+      done
+    subgoal using assms by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+      using assms
+      by (auto  simp: list_length_2_isabelle_come_on
+        intro!: cdcl_twl_unitres_l_intros3' cdcl_twl_unitres_l_intros1'
+        dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
+        intro!: exI[of _ C] fmdrop_eq_update_eq2)
+    subgoal using assms by auto
+       (metis dom_m_fmdrop insert_DiffM)+
+    done
+qed
+
 
 definition forward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_pre = (\<lambda>C (M, N, D, NE, UE, NS, US, WS, Q). C \<in># dom_m N \<and>
@@ -1275,7 +1326,7 @@ definition subsume_or_strengthen :: \<open>nat \<Rightarrow> 'v subsumption \<Ri
    | STRENGTHEN L C' \<Rightarrow> strengthen_clause C C' L (N, NE, UE, NS, US))
   })\<close>
 
-inductive cdcl_twl_inprocessing_l where
+inductive cdcl_twl_inprocessing_l for S T where
   \<open>cdcl_twl_unitres_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
   \<open>cdcl_twl_unitres_true_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
   \<open>cdcl_twl_subsumed_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>|
@@ -1317,5 +1368,234 @@ definition forward_subsumption_one :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rig
   RETURN (M, N, D, NE, UE, NS, US, WS, Q)
   }
 )\<close>
+  find_theorems simplify_clause_with_unit_st
+thm simplify_clause_with_unit_st_spec
+definition simplify_clauses_with_unit_st_pre where
+  \<open>simplify_clauses_with_unit_st_pre S \<longleftrightarrow> (\<exists>T.
+  (S, T) \<in> twl_st_l None \<and>
+  twl_struct_invs T \<and>
+  twl_stgy_invs T \<and>
+  twl_list_invs S \<and>
+  clauses_to_update_l S = {#} \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
+  count_decided (get_trail_l S) = 0)\<close>
 
+definition simplify_clauses_with_unit_st_inv where
+  \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it S \<longleftrightarrow> (
+    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 S \<and>
+     it \<subseteq> set_mset (dom_m (get_clauses_l S)))\<close>
+
+lemma cdcl_twl_inprocessing_l_twl_st_l0:
+  assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
+    \<open>(S, T) \<in> twl_st_l None\<close> and
+    \<open>twl_struct_invs T\<close> and
+    \<open>twl_list_invs S\<close>
+ obtains V where
+   \<open>(U, V) \<in> twl_st_l None\<close> and
+   \<open>cdcl_twl_unitres T V \<or> cdcl_twl_unitres_true T V \<or> cdcl_twl_subsumed T V \<or>
+   cdcl_twl_subresolution T V\<close>
+  using assms
+  apply (induction rule: cdcl_twl_inprocessing_l.induct)
+  using cdcl_twl_unitres_l_cdcl_twl_unitres apply blast
+  using cdcl_twl_unitres_true_l_cdcl_twl_unitres_true apply blast
+  using cdcl_twl_subsumed_l_cdcl_twl_subsumed apply blast
+  using cdcl_twl_subresolution_l_cdcl_twl_subresolution by blast
+
+lemma cdcl_twl_unitres_l_list_invs:
+  \<open>cdcl_twl_unitres_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
+  by (induction rule: cdcl_twl_unitres_l.induct)
+   (auto simp: twl_list_invs_def cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
+    ran_m_mapsto_upd
+    dest: in_diffD)
+
+lemma cdcl_twl_inprocessing_l_twl_list_invs:
+  assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
+    \<open>twl_list_invs S\<close>
+  shows
+    \<open>twl_list_invs U\<close>
+  using assms by (induction rule: cdcl_twl_inprocessing_l.induct)
+   (auto simp: cdcl_twl_unitres_True_l_list_invs
+    cdcl_twl_unitres_l_list_invs cdcl_twl_subsumed_l_list_invs
+    cdcl_twl_subresolution_l_list_invs)
+
+lemma rtranclp_cdcl_twl_inprocessing_l_twl_list_invs:
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close> and
+    \<open>twl_list_invs S\<close>
+  shows
+    \<open>twl_list_invs U\<close>
+  using assms by (induction rule: rtranclp_induct)
+    (auto simp: cdcl_twl_inprocessing_l_twl_list_invs)
+ 
+lemma cdcl_twl_inprocessing_l_twl_st_l:
+  assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
+    \<open>(S, T) \<in> twl_st_l None\<close> and
+    \<open>twl_struct_invs T\<close> and
+    \<open>twl_list_invs S\<close> and
+    \<open>twl_stgy_invs T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
+  obtains V where
+    \<open>(U, V) \<in> twl_st_l None\<close> and
+    \<open>cdcl_twl_unitres T V \<or> cdcl_twl_unitres_true T V \<or> cdcl_twl_subsumed T V \<or>
+    cdcl_twl_subresolution T V\<close> and
+    \<open>twl_struct_invs V\<close> and
+    \<open>twl_stgy_invs V\<close> and
+    \<open>twl_list_invs U\<close>and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
+  apply (rule cdcl_twl_inprocessing_l_twl_st_l0[OF assms(1-4)])
+  subgoal premises p for V
+    using p(2-) cdcl_twl_inprocessing_l_twl_list_invs[OF assms(1)] apply -
+    apply (rule that[of V])
+    apply (auto intro: cdcl_twl_unitres_true_twl_struct_invs
+      cdcl_twl_unitres_struct_invs assms cdcl_twl_subsumed_struct_invs
+      cdcl_twl_subresolution_twl_struct_invs cdcl_twl_unitres_twl_stgy_invs
+      cdcl_twl_subresolution_twl_stgy_invs cdcl_twl_unitres_true_twl_stgy_invs
+      cdcl_twl_subsumed_twl_stgy_invs)
+    apply (metis assms(3) assms(6) cdcl_twl_subsumption_inp.intros cdcl_twl_subsumption_inp_invs(3) state\<^sub>W_of_def)+
+    done
+  done
+
+lemma rtranclp_cdcl_twl_inprocessing_l_twl_st_l:
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close> and
+    \<open>(S, T) \<in> twl_st_l None\<close> and
+    \<open>twl_struct_invs T\<close> and
+    \<open>twl_list_invs S\<close> and
+    \<open>twl_stgy_invs T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
+  obtains V where
+    \<open>(U, V) \<in> twl_st_l None\<close> and
+    \<open>twl_struct_invs V\<close> and
+    \<open>twl_stgy_invs V\<close> and
+    \<open>twl_list_invs U\<close> and
+    \<open>twl_stgy_invs V\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by blast
+  subgoal premises p for X Y
+    apply (rule p(3)[OF _ p(5-)])
+    apply (rule cdcl_twl_inprocessing_l_twl_st_l[of X Y, OF p(2)]; assumption?)
+    apply (rule p(4))
+    apply assumption+
+    done
+  done
+
+lemma simplify_clauses_with_unit_st_inv_simplify_clauses_with_unit_st_preD:
+  assumes
+    inv: \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it T\<close> and
+    pre: \<open>simplify_clauses_with_unit_st_pre S\<^sub>0\<close>
+  shows \<open>simplify_clauses_with_unit_st_pre T\<close>
+proof -
+  have st: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 T\<close>
+    using inv unfolding simplify_clauses_with_unit_st_inv_def
+    by blast
+  obtain S where
+    S\<^sub>0S: \<open>(S\<^sub>0, S) \<in> twl_st_l None\<close> and
+    struct_S: \<open>twl_struct_invs S\<close> and
+    stgy_S: \<open>twl_stgy_invs S\<close> and
+    list_S: \<open>twl_list_invs S\<^sub>0\<close> and
+    clss_upd_S: \<open>clauses_to_update_l S\<^sub>0 = {#}\<close> and
+    ent_S: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close> and
+    lvl_S: \<open>count_decided (get_trail_l S\<^sub>0) = 0\<close>
+    using pre unfolding simplify_clauses_with_unit_st_pre_def
+    by blast
+
+  obtain U where
+    TU: \<open>(T, U) \<in> twl_st_l None\<close> and
+    struct_T: \<open>twl_struct_invs U\<close> and
+    list_T: \<open>twl_list_invs T\<close> and
+    stgy_T: \<open>twl_stgy_invs U\<close> and
+    ent_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of U)\<close>
+    using rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF st S\<^sub>0S struct_S list_S stgy_S ent_S]
+    by blast
+  have
+    clss_upd_T: \<open>clauses_to_update_l T = {#}\<close> and
+    lvl_S: \<open>count_decided (get_trail_l T) = 0\<close>
+    subgoal
+      using st apply (subst (asm) rtranclp_unfold)
+       apply (elim disjE)
+      subgoal using clss_upd_S by auto
+      subgoal
+        by (subst (asm) tranclp_unfold_end)
+         (auto simp: cdcl_twl_inprocessing_l.simps
+          cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
+          cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
+      done
+    subgoal
+      using st apply (induction rule: rtranclp_induct)
+      subgoal using lvl_S by auto
+      subgoal
+        by (auto simp: cdcl_twl_inprocessing_l.simps
+          cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
+          cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
+      done
+    done
+  show ?thesis
+    unfolding simplify_clauses_with_unit_st_pre_def
+    by (rule exI[of _ U])
+     (use TU struct_T list_T stgy_T ent_T clss_upd_T lvl_S in auto)
+qed
+
+definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close>  where
+  \<open>simplify_clauses_with_unit_st S =
+  do {
+  ASSERT(simplify_clauses_with_unit_st_pre S);
+  xs \<leftarrow> SPEC(\<lambda>xs. xs \<subseteq>set_mset (dom_m (get_clauses_l S)));
+  FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_inv S it T)
+  (xs)
+  (\<lambda>S. get_conflict_l S = None)
+  (\<lambda>i S. simplify_clause_with_unit_st i S)
+  S
+  }\<close>
+
+lemma simplify_clauses_with_unit_st_spec:
+  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
+    \<open>get_conflict_l S = None\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
+    \<open>no_dup (get_trail_l S)\<close> and
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    st_invs: \<open>twl_struct_invs T\<close> and
+    stgy_invs: \<open>twl_stgy_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
+  shows \<open>simplify_clauses_with_unit_st S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
+    simplify_clauses_with_unit_st_inv S {} T))\<close>
+proof -
+  show ?thesis
+    unfolding simplify_clauses_with_unit_st_def
+    apply (refine_vcg)
+    subgoal using assms apply -
+      unfolding simplify_clauses_with_unit_st_pre_def
+      by (rule exI[of _ T]) auto
+    subgoal
+      by (meson finite_set_mset rev_finite_subset)
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+        simplify_clauses_with_unit_st_pre_def
+      by blast
+    subgoal  for x xa it \<sigma>
+      apply  (frule simplify_clauses_with_unit_st_inv_simplify_clauses_with_unit_st_preD,
+        assumption)
+       apply (unfold simplify_clauses_with_unit_st_pre_def)
+       apply normalize_goal+
+      apply (rule simplify_clause_with_unit_st_spec[THEN order_trans])
+      subgoal
+        unfolding simplify_clauses_with_unit_st_inv_def
+        by normalize_goal+ auto
+      apply assumption+
+      subgoal
+        by (auto simp: simplify_clauses_with_unit_st_inv_def distinct_mset_dom
+          rtranclp.rtrancl_into_rtrancl[of _ S] distinct_mset_remove1_All
+          dest!: cdcl_twl_inprocessing_l.intros)
+      done
+    subgoal for x \<sigma>
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by auto
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by auto
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by auto
+    done
+qed
 end

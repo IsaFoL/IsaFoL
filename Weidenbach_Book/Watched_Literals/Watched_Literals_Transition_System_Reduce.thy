@@ -17,31 +17,6 @@ lemma cdcl_twl_restart_entailed_init:
    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
     subset_mset.le_iff_add Un_left_commute image_Un sup_commute)
 
-lemma cdcl_subsumed_RI_stgy_invs:
-  \<open>cdcl_subsumed_RI (pstate\<^sub>W_of S) (pstate\<^sub>W_of T) \<Longrightarrow> twl_stgy_invs S \<Longrightarrow>
-  twl_stgy_invs T\<close>
-  apply (cases rule: cdcl_subsumed_RI.cases, assumption)
-  apply (cases S; cases T; auto simp: twl_stgy_invs_def
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.no_smaller_confl_def
-    clauses_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
-    all_conj_distrib)
-  apply (metis member_add_mset set_image_mset)
-  apply (metis member_add_mset set_image_mset)
-  apply (metis member_add_mset set_image_mset)
-  apply (metis image_mset_add_mset member_add_mset multi_member_split set_image_mset)
-  done
-
-lemma cdcl_twl_subsumed_stgy_invs:
-  \<open>cdcl_twl_subsumed S T \<Longrightarrow>
-          twl_struct_invs S \<Longrightarrow>
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<Longrightarrow>
-          twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
-  apply (drule cdcl_twl_subsumed_cdcl_subsumed)
-  apply (elim disjE)
-  apply (simp add: state_of_cdcl_subsumed twl_stgy_invs_def)
-  apply (simp add: cdcl_subsumed_RI_stgy_invs)
-  done
 
 lemma cdcl_twl_subsumption_inp_invs:
   assumes \<open>cdcl_twl_subsumption_inp S T\<close>
