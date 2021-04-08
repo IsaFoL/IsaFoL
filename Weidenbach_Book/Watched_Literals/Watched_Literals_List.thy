@@ -3290,7 +3290,8 @@ qed
 definition cdcl_twl_stgy_prog_l_pre where
   \<open>cdcl_twl_stgy_prog_l_pre S S' \<longleftrightarrow>
     ((S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
-      clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> twl_list_invs S)\<close>
+      clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> twl_list_invs S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'))\<close>
 
 lemma cdcl_twl_stgy_prog_l_spec_final:
   assumes

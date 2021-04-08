@@ -1577,12 +1577,14 @@ abbreviation cdcl_twl_o_prog_spec where
        (brk \<longrightarrow> get_conflict T \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
        twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
        (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-       (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T)\<close>
+       (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T) \<and>
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
 
 lemma cdcl_twl_o_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>literals_to_update S = {#}\<close> and
-    ns_cp: \<open>no_step cdcl_twl_cp S\<close>
+    ns_cp: \<open>no_step cdcl_twl_cp S\<close> and
+    ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_o_prog S \<le> SPEC(cdcl_twl_o_prog_spec S)\<close>
     (is \<open>_ \<le> ?S\<close>)
@@ -1614,6 +1616,7 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal for T using assms empty_conflict_lvl0[of T]
       rtranclp_skip_and_resolve_same_decision_level[of S T] by auto
     subgoal using assms by auto
@@ -1624,7 +1627,9 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal for uip by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     done
 qed
 
@@ -1784,7 +1789,8 @@ qed
 
 lemma cdcl_twl_stgy_prog_spec: (* \htmllink{cdcl_twl_stgy_prog_spec} *)
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_prog S \<le> conclusive_TWL_norestart_run S\<close>
   unfolding cdcl_twl_stgy_prog_def full_def conclusive_TWL_norestart_run_def
@@ -1801,14 +1807,25 @@ lemma cdcl_twl_stgy_prog_spec: (* \htmllink{cdcl_twl_stgy_prog_spec} *)
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
+  subgoal using assms by simp
 
 \<comment> \<open>loop invariants:\<close>
   subgoal by simp
   subgoal by simp
   subgoal by simp
-  subgoal by simp
   subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
   subgoal by simp
+  subgoal for brk b x
+    apply (subgoal_tac \<open>pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of x)\<close>)
+    subgoal
+      using assms
+        rtranclp_pcdcl_entailed_by_init[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of x\<close>]
+      by (auto simp: twl_struct_invs_def)
+    subgoal (*TODO Proof*)
+      apply (auto simp: twl_struct_invs_def)
+      apply (meson assms(1) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_trans)+
+      done
+    done
   subgoal by simp
   subgoal by simp
   subgoal by (rule cdcl_twl_o_final_twl_state)
@@ -1868,7 +1885,8 @@ qed
 
 lemma cdcl_twl_stgy_prog_break_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> and
+    ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_prog_break S \<le> conclusive_TWL_norestart_run S\<close>
   unfolding cdcl_twl_stgy_prog_break_def full_def conclusive_TWL_norestart_run_def
@@ -1886,14 +1904,26 @@ lemma cdcl_twl_stgy_prog_break_spec:
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
+  subgoal using assms by simp
 
   \<comment> \<open>loop invariants:\<close>
   subgoal by simp
   subgoal by simp
   subgoal by simp
-  subgoal by simp
   subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
-  subgoal by simp
+  subgoal by simp+
+  subgoal for brk b x xa
+    apply (subgoal_tac \<open>pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of xa)\<close>)
+    subgoal
+      using assms
+        rtranclp_pcdcl_entailed_by_init[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of xa\<close>]
+      by (auto simp: twl_struct_invs_def)
+    subgoal (*TODO Proof*)
+      apply (auto simp: twl_struct_invs_def)
+      apply (meson assms(1) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_trans)+
+      done
+    done
+
   subgoal by simp
   subgoal by simp
   subgoal for x a aa ba xa x1a
@@ -1915,6 +1945,17 @@ lemma cdcl_twl_stgy_prog_break_spec:
   subgoal by simp
   subgoal by simp
   subgoal by simp
+  subgoal for brk b x
+    apply (subgoal_tac \<open>pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of x)\<close>)
+    subgoal
+      using assms
+        rtranclp_pcdcl_entailed_by_init[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of x\<close>]
+      by (auto simp: twl_struct_invs_def)
+    subgoal (*TODO Proof*)
+      apply (auto simp: twl_struct_invs_def)
+      apply (meson assms(1) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_trans)+
+      done
+    done
   subgoal using assms by auto
   done
 
@@ -1937,7 +1978,8 @@ definition cdcl_twl_stgy_prog_early :: \<open>'v twl_st \<Rightarrow> (bool \<ti
 
 lemma cdcl_twl_stgy_prog_early_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+    \<open>get_conflict S = None\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
   shows
     \<open>cdcl_twl_stgy_prog_early S \<le> partial_conclusive_TWL_norestart_run S\<close>
   unfolding cdcl_twl_stgy_prog_early_def full_def partial_conclusive_TWL_norestart_run_def
@@ -1955,14 +1997,25 @@ lemma cdcl_twl_stgy_prog_early_spec:
   subgoal using assms by simp
   subgoal using assms by simp
   subgoal using assms by simp
+  subgoal using assms by simp
 
   \<comment> \<open>loop invariants:\<close>
   subgoal by simp
   subgoal by simp
   subgoal by simp
-  subgoal by simp
   subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
   subgoal by simp
+  subgoal for brk b x xa
+    apply (subgoal_tac \<open>pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) (pstate\<^sub>W_of xa)\<close>)
+    subgoal
+      using assms
+        rtranclp_pcdcl_entailed_by_init[of \<open>pstate\<^sub>W_of S\<close> \<open>pstate\<^sub>W_of xa\<close>]
+      by (auto simp: twl_struct_invs_def)
+    subgoal (*TODO Proof*)
+      apply (auto simp: twl_struct_invs_def)
+      apply (meson assms(1) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_trans)+
+      done
+    done
   subgoal by simp
   subgoal by simp
   subgoal for x a aa ba xa x1a

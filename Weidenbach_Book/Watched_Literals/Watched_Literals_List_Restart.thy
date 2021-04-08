@@ -2582,7 +2582,7 @@ lemma valid_trail_reduction_count_dec_ge:
   by (auto simp: dest!: get_all_ann_decomposition_exists_prepend
     dest: trail_renumber_count_dec)
 
-lemma rtranclp_cdcl_twl_restart_l_count_dec:
+lemma (in -)cdcl_twl_restart_l_count_dec:
   \<open>cdcl_twl_restart_l S b \<Longrightarrow>
     count_decided (get_trail_l S) \<ge> count_decided (get_trail_l b)\<close>
   by (induction rule: cdcl_twl_restart_l.induct)
@@ -2664,7 +2664,7 @@ proof -
     apply assumption
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
       apply (auto simp: rtranclp_remove_one_annot_true_clause_count_dec
-        dest: rtranclp_cdcl_twl_restart_l_count_dec)
+        dest: cdcl_twl_restart_l_count_dec)
       done
     subgoal
       using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
@@ -3744,24 +3744,8 @@ definition cdcl_twl_full_restart_l_GC_prog_pre
 where
   \<open>cdcl_twl_full_restart_l_GC_prog_pre S \<longleftrightarrow>
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
-      get_conflict T = None)\<close>
-
-definition cdcl_twl_full_restart_l_GC_prog where
-\<open>cdcl_twl_full_restart_l_GC_prog S = do {
-   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
-    S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
-    T \<leftarrow> remove_one_annot_true_clause_imp S';
-    ASSERT(mark_to_delete_clauses_l_pre T);
-    U \<leftarrow> mark_to_delete_clauses_l T;
-    V \<leftarrow> cdcl_GC_clauses U;
-    ASSERT(cdcl_twl_restart_l S V);
-    RETURN V
-  }\<close>
-
-lemma cdcl_twl_restart_l_count_dec_ge:
-  \<open>cdcl_twl_restart_l S T \<Longrightarrow> count_decided (get_trail_l S) \<ge> count_decided (get_trail_l T)\<close>
-  by (induction rule: cdcl_twl_restart_l.induct)
-    (auto dest!: valid_trail_reduction_count_dec_ge)
+      get_conflict T = None \<and>
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)))\<close>
 
 lemma valid_trail_reduction_lit_of_nth:
   \<open>valid_trail_reduction M M' \<Longrightarrow> length M = length M' \<Longrightarrow> i < length M \<Longrightarrow>

@@ -1374,7 +1374,6 @@ definition simplify_clauses_with_unit_st_pre where
   \<open>simplify_clauses_with_unit_st_pre S \<longleftrightarrow> (\<exists>T.
   (S, T) \<in> twl_st_l None \<and>
   twl_struct_invs T \<and>
-  twl_stgy_invs T \<and>
   twl_list_invs S \<and>
   clauses_to_update_l S = {#} \<and>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
@@ -1431,14 +1430,12 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
     \<open>(S, T) \<in> twl_st_l None\<close> and
     \<open>twl_struct_invs T\<close> and
     \<open>twl_list_invs S\<close> and
-    \<open>twl_stgy_invs T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
   obtains V where
     \<open>(U, V) \<in> twl_st_l None\<close> and
     \<open>cdcl_twl_unitres T V \<or> cdcl_twl_unitres_true T V \<or> cdcl_twl_subsumed T V \<or>
     cdcl_twl_subresolution T V\<close> and
     \<open>twl_struct_invs V\<close> and
-    \<open>twl_stgy_invs V\<close> and
     \<open>twl_list_invs U\<close>and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
   apply (rule cdcl_twl_inprocessing_l_twl_st_l0[OF assms(1-4)])
@@ -1450,7 +1447,7 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
       cdcl_twl_subresolution_twl_struct_invs cdcl_twl_unitres_twl_stgy_invs
       cdcl_twl_subresolution_twl_stgy_invs cdcl_twl_unitres_true_twl_stgy_invs
       cdcl_twl_subsumed_twl_stgy_invs)
-    apply (metis assms(3) assms(6) cdcl_twl_subsumption_inp.intros cdcl_twl_subsumption_inp_invs(3) state\<^sub>W_of_def)+
+    apply (metis assms(3) assms(5) cdcl_twl_subsumption_inp.intros cdcl_twl_subsumption_inp_invs(3) state\<^sub>W_of_def)+
     done
   done
 
@@ -1459,14 +1456,11 @@ lemma rtranclp_cdcl_twl_inprocessing_l_twl_st_l:
     \<open>(S, T) \<in> twl_st_l None\<close> and
     \<open>twl_struct_invs T\<close> and
     \<open>twl_list_invs S\<close> and
-    \<open>twl_stgy_invs T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
   obtains V where
     \<open>(U, V) \<in> twl_st_l None\<close> and
     \<open>twl_struct_invs V\<close> and
-    \<open>twl_stgy_invs V\<close> and
     \<open>twl_list_invs U\<close> and
-    \<open>twl_stgy_invs V\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
   using assms
   apply (induction rule: rtranclp_induct)
@@ -1491,7 +1485,6 @@ proof -
   obtain S where
     S\<^sub>0S: \<open>(S\<^sub>0, S) \<in> twl_st_l None\<close> and
     struct_S: \<open>twl_struct_invs S\<close> and
-    stgy_S: \<open>twl_stgy_invs S\<close> and
     list_S: \<open>twl_list_invs S\<^sub>0\<close> and
     clss_upd_S: \<open>clauses_to_update_l S\<^sub>0 = {#}\<close> and
     ent_S: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close> and
@@ -1503,9 +1496,8 @@ proof -
     TU: \<open>(T, U) \<in> twl_st_l None\<close> and
     struct_T: \<open>twl_struct_invs U\<close> and
     list_T: \<open>twl_list_invs T\<close> and
-    stgy_T: \<open>twl_stgy_invs U\<close> and
     ent_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of U)\<close>
-    using rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF st S\<^sub>0S struct_S list_S stgy_S ent_S]
+    using rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF st S\<^sub>0S struct_S list_S ent_S]
     by blast
   have
     clss_upd_T: \<open>clauses_to_update_l T = {#}\<close> and
@@ -1532,7 +1524,7 @@ proof -
   show ?thesis
     unfolding simplify_clauses_with_unit_st_pre_def
     by (rule exI[of _ U])
-     (use TU struct_T list_T stgy_T ent_T clss_upd_T lvl_S in auto)
+     (use TU struct_T list_T ent_T clss_upd_T lvl_S in auto)
 qed
 
 definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close>  where
@@ -1550,11 +1542,9 @@ definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v 
 lemma simplify_clauses_with_unit_st_spec:
   assumes \<open>count_decided (get_trail_l S) = 0\<close>
     \<open>get_conflict_l S = None\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
-    \<open>no_dup (get_trail_l S)\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> and
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
-    stgy_invs: \<open>twl_stgy_invs T\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
   shows \<open>simplify_clauses_with_unit_st S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
@@ -1608,13 +1598,11 @@ definition simplify_clauses_with_units_st where
 
 
 lemma simplify_clauses_with_units_st_spec:
-  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
+  assumes \<open>count_decided (get_trail_l S) = 0\<close>
     \<open>get_conflict_l S = None\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
-    \<open>no_dup (get_trail_l S)\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> and
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
-    stgy_invs: \<open>twl_stgy_invs T\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
   shows \<open>simplify_clauses_with_units_st S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>

@@ -32,7 +32,8 @@ definition (in -) restart_prog_pre_int :: \<open>'v twl_st \<Rightarrow> 'v twl_
   \<open>restart_prog_pre_int last_GC last_Restart S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
     (\<not>brk \<longrightarrow> get_conflict S = None) \<and>
     size (get_all_learned_clss S) \<ge> size (get_all_learned_clss last_Restart) \<and>
-    size (get_all_learned_clss S) \<ge> size (get_all_learned_clss last_GC)\<close>
+    size (get_all_learned_clss S) \<ge> size (get_all_learned_clss last_GC) \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
 
 definition restart_prog_int
   :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> 'v twl_st \<times> 'v twl_st \<times> nat \<times> nat) nres\<close>
@@ -311,9 +312,12 @@ proof -
     stgy_invs_W: \<open>twl_stgy_invs W\<close> and
     clss_to_upd_W: \<open>clauses_to_update W = {#}\<close> and
     lits_to_upd_W: \<open>\<not> brkW \<longrightarrow> literals_to_update W \<noteq> {#}\<close> and
-    confl_W: \<open>\<not> brkW \<longrightarrow> get_conflict W = None\<close>
+    confl_W: \<open>\<not> brkW \<longrightarrow> get_conflict W = None\<close> and
+    ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
     using other_inv unfolding final_twl_state_def by fast+
-
+  have ent_W: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of W)\<close>
+    using assms(5) rtranclp_cdcl_twl_o_stgyD[OF cdcl_o] ent
+      rtranclp_cdcl_twl_stgy_entailed_by_init by blast
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close>
     by (meson cdcl_o assms(5) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
       rtranclp_trans)
@@ -325,7 +329,7 @@ proof -
       rtranclp_cdcl_twl_cp_get_all_learned_clss rtranclp_cdcl_twl_o_get_all_learned_clss
       rtranclp_pcdcl_stgy_only_restart_pget_all_learned_clss_mono)
   then have restart_W: \<open>restart_prog_pre_int S T W brkW\<close>
-    using struct_invs_W stgy_invs_W confl_W unfolding restart_prog_pre_int_def by auto
+    using struct_invs_W stgy_invs_W confl_W ent_W unfolding restart_prog_pre_int_def by auto
 
   have UW: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, T, U, m, n, True) (S, T, W, m, n, True)\<close>
     apply (rule cdcl_twl_stgy_restart_rtranclpI)
@@ -487,6 +491,16 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_int_spec:
       twl_restart_inv_def no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp
       dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
   subgoal by fast
+  subgoal for x a aa ab ac ad ae be xa
+    using assms
+    using
+      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of \<open>(S, T, U, m, n, True)\<close>
+      \<open>(ab, ac, ad, ae, be, True)\<close>]
+    by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def
+       twl_restart_inv_def
+      intro: rtranclp_cdcl_twl_stgy_entailed_by_init
+      dest!: rtranclp_cdcl_twl_cp_stgyD
+      simp flip:  state\<^sub>W_of_def)
   subgoal
     by (rule restart_prog_bounded_spec)
   subgoal for x brk T U m n ebrk V
@@ -572,7 +586,8 @@ definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> nat \<Right
   \<open>restart_prog_pre S last_GC last_Restart  brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
     (\<not>brk \<longrightarrow> get_conflict S = None) \<and>
     size (get_all_learned_clss S) \<ge> last_Restart \<and>
-    size (get_all_learned_clss S) \<ge> last_GC\<close>
+    size (get_all_learned_clss S) \<ge> last_GC \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
 
 definition restart_prog
   :: \<open>'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat \<times> nat \<times> nat) nres\<close>
@@ -1012,6 +1027,16 @@ proof -
         twl_restart_inv_def no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp
         dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
     subgoal by fast
+    subgoal for x a aa ab ac ad ae be xa
+      using assms
+      using
+        rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of \<open>(S, S, S, 0, 0, True)\<close>
+        \<open>(ab, ac, ad, ae, be, True)\<close>]
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def
+         twl_restart_inv_def
+        intro: rtranclp_cdcl_twl_stgy_entailed_by_init
+        dest!: rtranclp_cdcl_twl_cp_stgyD
+        simp flip:  state\<^sub>W_of_def)
     subgoal
       by (rule restart_prog_bounded_spec)
     subgoal

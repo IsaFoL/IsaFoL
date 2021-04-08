@@ -5,12 +5,25 @@ begin
 
 definition cdcl_twl_full_restart_l_prog where
   \<open>cdcl_twl_full_restart_l_prog S = do {
-  \<comment>\<open>S \<leftarrow> simplify_clauses_with_unit_st S;\<close>
   ASSERT(mark_to_delete_clauses_l_pre S);
   T \<leftarrow> mark_to_delete_clauses_l S;
   ASSERT (mark_to_delete_clauses_l_post S T);
   RETURN T
   }\<close>
+
+definition cdcl_twl_full_restart_l_GC_prog where
+  \<open>cdcl_twl_full_restart_l_GC_prog S = do {
+    ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
+    S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
+    T \<leftarrow> remove_one_annot_true_clause_imp S';
+    ASSERT(mark_to_delete_clauses_l_pre T);
+    U \<leftarrow> mark_to_delete_clauses_l T;
+    V \<leftarrow> cdcl_GC_clauses U;
+    ASSERT(cdcl_twl_restart_l S V);
+    RETURN V
+  }\<close>
+  (*
+  S' \<leftarrow> simplify_clauses_with_units_st S';*)
 
 context twl_restart_ops
 begin
@@ -278,7 +291,6 @@ lemma cdcl_twl_stgy_restart_abs_l_cdcl_twl_stgy_restart_abs_l:
 
 end
 
-
 lemma cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l:
   assumes
     ST: \<open>(S, S') \<in> twl_st_l None\<close> and
@@ -403,7 +415,7 @@ proof -
          subst Down_id_eq)
        (use remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF TV list_invs struct confl upd]
           cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[OF _ _ n_d, of T] that
-          ST in \<open>auto dest!: rtranclp_cdcl_twl_restart_l_count_dec\<close>)
+          ST in \<open>auto dest!: cdcl_twl_restart_l_count_dec\<close>)
   qed
   have 3: \<open>cdcl_GC_clauses V \<le> SPEC (?f3 V')\<close>
     if
@@ -423,7 +435,7 @@ proof -
       le_UV: \<open>length (get_trail_l U) = length (get_trail_l V)\<close> and
       mark0: \<open>\<forall>L\<in>set (get_trail_l V'). mark_of L = 0\<close> and
       count_dec: \<open>count_decided (get_trail_l V') = 0\<close>
-      using that by (auto dest!: rtranclp_cdcl_twl_restart_l_count_dec)
+      using that by (auto dest!: cdcl_twl_restart_l_count_dec)
     then have \<open>?f S V\<close>
       using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
       by blast
@@ -433,9 +445,8 @@ proof -
         \<open>auto simp: count_decided_0_iff is_decided_no_proped_iff\<close>)
     then have count_dec: \<open>count_decided (get_trail_l V') = 0\<close> and
       mark: \<open>\<And>L. L \<in> set (get_trail_l V') \<Longrightarrow> mark_of L = 0\<close>
-      using cdcl_twl_restart_l_count_dec_ge[of U V] that \<open>?f U V \<or> U = V\<close>
-      by (auto dest!: rtranclp_cdcl_twl_restart_l_count_dec
-        rtranclp_cdcl_twl_restart_l_count_dec)
+      using cdcl_twl_restart_l_count_dec[of U V] that \<open>?f U V \<or> U = V\<close>
+      by (auto dest!: cdcl_twl_restart_l_count_dec)
     obtain W where
       UV: \<open>(V, W) \<in> twl_st_l None\<close> and
       list_invs: \<open>twl_list_invs V\<close> and
@@ -480,7 +491,7 @@ proof -
     apply (rule alt_def)
     apply refine_rcg
     subgoal
-      using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def
+      using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def restart_prog_pre_def
       by fastforce
     subgoal
       by (rule cdcl_twl_local_restart_l_spec0_cdcl_twl_restart_l[THEN order_trans, OF abs_pre])
@@ -569,7 +580,8 @@ proof -
       upd: \<open>clauses_to_update_l S = {#}\<close> and
       stgy_invs: \<open>twl_stgy_invs T\<close> and
       confl: \<open>get_conflict_l S = None\<close> and
-      inv2: \<open>restart_prog_pre T last_GC last_Restart brk\<close>
+      inv2: \<open>restart_prog_pre T last_GC last_Restart brk\<close> and
+      ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
       using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
       apply - apply normalize_goal+
       by (auto simp: twl_st)
