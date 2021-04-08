@@ -1548,7 +1548,7 @@ definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v 
   }\<close>
 
 lemma simplify_clauses_with_unit_st_spec:
-  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
+  assumes \<open>count_decided (get_trail_l S) = 0\<close>
     \<open>get_conflict_l S = None\<close> and
     \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
     \<open>no_dup (get_trail_l S)\<close> and
@@ -1573,7 +1573,7 @@ proof -
         simplify_clauses_with_unit_st_pre_def
       by blast
     subgoal  for x xa it \<sigma>
-      apply  (frule simplify_clauses_with_unit_st_inv_simplify_clauses_with_unit_st_preD,
+      apply (frule simplify_clauses_with_unit_st_inv_simplify_clauses_with_unit_st_preD,
         assumption)
        apply (unfold simplify_clauses_with_unit_st_pre_def)
        apply normalize_goal+
@@ -1598,4 +1598,33 @@ proof -
       by auto
     done
 qed
+
+definition simplify_clauses_with_units_st where
+  \<open>simplify_clauses_with_units_st S = do {
+    new_units \<leftarrow> SPEC (\<lambda>_. True);
+    if new_units
+    then simplify_clauses_with_unit_st S
+    else RETURN S}\<close>
+
+
+lemma simplify_clauses_with_units_st_spec:
+  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
+    \<open>get_conflict_l S = None\<close> and
+    \<open>clauses_to_update_l S = {#}\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
+    \<open>no_dup (get_trail_l S)\<close> and
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    st_invs: \<open>twl_struct_invs T\<close> and
+    stgy_invs: \<open>twl_stgy_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
+  shows \<open>simplify_clauses_with_units_st S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
+    simplify_clauses_with_unit_st_inv S {} T))\<close>
+  using assms unfolding simplify_clauses_with_units_st_def
+  apply (refine_vcg simplify_clauses_with_unit_st_spec[THEN order_trans])
+  apply assumption+
+  subgoal by auto
+  subgoal by auto
+  subgoal unfolding simplify_clauses_with_unit_st_inv_def by auto
+  done
+ 
 end

@@ -1,8 +1,10 @@
 theory Watched_Literals_Watch_List_Reduce
-  imports Watched_Literals_List_Reduce Watched_Literals_Watch_List
+  imports Watched_Literals_List_Restart Watched_Literals_List_Reduce Watched_Literals_Watch_List
+    Watched_Literals_Watch_List_Inprocessing
 begin
 no_notation funcset (infixr "\<rightarrow>" 60)
 
+(*TODO Move*)
 lemma cdcl_twl_restart_get_all_init_clss:
   assumes \<open>cdcl_twl_restart S T\<close>
   shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
@@ -12,7 +14,7 @@ lemma rtranclp_cdcl_twl_restart_get_all_init_clss:
   assumes \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close>
   shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
   using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_restart_get_all_init_clss)
-
+(*END Move*)
 
 text \<open>As we have a specialised version of \<^term>\<open>correct_watching\<close>, we defined a special version for
 the inclusion of the domain:\<close>
@@ -1104,7 +1106,6 @@ definition mark_to_delete_clauses_wl_post where
 
 definition cdcl_twl_full_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>cdcl_twl_full_restart_wl_prog S = do {
-    \<comment> \<open> \<^term>\<open>remove_one_annot_true_clause_imp_wl S\<close>\<close>
     ASSERT(mark_to_delete_clauses_wl_pre S);
     T \<leftarrow> mark_to_delete_clauses_wl S;
     ASSERT(mark_to_delete_clauses_wl_post S T);
@@ -1843,37 +1844,6 @@ where
       (False, S\<^sub>0::'v twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0), size (get_all_learned_clss_wl S\<^sub>0), 0);
     RETURN T
   }\<close>
-
-
-lemma cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l:
-  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
-  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
-proof -
-  have [refine0]:
-    \<open>(x, y) \<in> ?R \<Longrightarrow> ((False, x, 0), False, y, 0) \<in> bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel\<close> for x y
-    by auto
-  show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
-    apply (intro frefI nres_relI)
-    apply (refine_rcg WHILEIT_refine[where
-      R=\<open>bool_rel \<times>\<^sub>r {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
-      unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
-      cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
-      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
-    subgoal by auto
-    subgoal for S T U V
-      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def case_prod_beta
-      by (fastforce simp: prod_rel_fst_snd_iff)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: correct_watching_correct_watching)
-    subgoal by auto
-    done
-qed
-
 
 end
 

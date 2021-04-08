@@ -1,9 +1,96 @@
 theory Watched_Literals_List_Reduce
 imports Watched_Literals_List_Restart
+  Watched_Literals_List_Inprocessing
 begin
+
+definition cdcl_twl_full_restart_l_prog where
+  \<open>cdcl_twl_full_restart_l_prog S = do {
+  \<comment>\<open>S \<leftarrow> simplify_clauses_with_unit_st S;\<close>
+  ASSERT(mark_to_delete_clauses_l_pre S);
+  T \<leftarrow> mark_to_delete_clauses_l S;
+  ASSERT (mark_to_delete_clauses_l_post S T);
+  RETURN T
+  }\<close>
 
 context twl_restart_ops
 begin
+
+lemma cdcl_twl_full_restart_l_prog_spec:
+  assumes
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    confl: \<open>get_conflict_l S = None\<close> and
+    upd: \<open>clauses_to_update_l S = {#}\<close>
+  shows \<open>cdcl_twl_full_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>+\<^sup>+ S))\<close>
+proof -
+  have mark_to_delete_clauses_l:
+    \<open>mark_to_delete_clauses_l x \<le> SPEC (\<lambda>T. ASSERT (mark_to_delete_clauses_l_post U T) \<bind>
+             (\<lambda>_. RETURN T)
+             \<le> SPEC (remove_one_annot_true_clause\<^sup>+\<^sup>+ U))\<close>
+    if
+      Ux: \<open>(x, U) \<in> Id\<close> and
+      U: \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
+      for x U
+  proof -
+    from U have SU: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S U\<close> by simp
+    have x: \<open>x = U\<close>
+      using Ux by auto
+    obtain V where
+      SU': \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U\<close> and
+      UV: \<open>(U, V) \<in> twl_st_l None\<close> and
+      TV: \<open>cdcl_twl_restart\<^sup>*\<^sup>* T V\<close> and
+      struct_invs_V: \<open>twl_struct_invs V\<close>
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF SU list_invs
+        confl upd ST struct_invs]
+      by auto
+    have
+      confl_U: \<open>get_conflict_l U = None\<close> and
+      upd_U: \<open>clauses_to_update_l U = {#}\<close>
+      using rtranclp_remove_one_annot_true_clause_get_conflict_l[OF SU]
+         rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF SU] confl upd
+      by auto
+    have list_U: \<open>twl_list_invs U\<close>
+      using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
+     have [simp]:
+      \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
+      unfolding mark_to_delete_clauses_l_post_def
+      using UV struct_invs_V list_U confl_U upd_U
+      by (blast dest: tranclp_into_rtranclp)
+    show ?thesis
+      unfolding x
+      by (rule mark_to_delete_clauses_l_spec[OF UV list_U struct_invs_V confl_U upd_U,
+         THEN order_trans])
+       (auto intro: RES_refine)
+  qed
+  have 1: \<open>SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S) = do {
+       T \<leftarrow> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S);
+       SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* T)
+    }\<close>
+  by (auto simp: RES_RES_RETURN_RES)
+  have H: \<open>mark_to_delete_clauses_l_pre T\<close>
+    if
+      \<open>(T, U) \<in> Id\<close> and
+      \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
+    for T U
+  proof -
+    show ?thesis
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[of S U,
+          OF _ list_invs confl upd ST struct_invs] that list_invs
+      unfolding mark_to_delete_clauses_l_pre_def
+      by (force intro: rtranclp_cdcl_twl_restart_l_list_invs)
+  qed
+  show ?thesis
+    unfolding cdcl_twl_full_restart_l_prog_def
+    apply (refine_vcg mark_to_delete_clauses_l)
+    subgoal
+      using assms
+      unfolding mark_to_delete_clauses_l_pre_def
+      by blast
+    subgoal by auto
+    subgoal by (auto simp: assert_bind_spec_conv)
+    done
+qed
 
 definition GC_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_l S m n = do {
@@ -1023,6 +1110,7 @@ lemma (in twl_restart) cdcl_twl_stgy_restart_prog_bounded_l_cdcl_twl_stgy_restar
     simplified])
   apply simp
   done
+
 
 end
 
