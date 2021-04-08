@@ -380,7 +380,6 @@ lemma rtranclp_cdcl_twl_stgy_restart_twl_struct_invs:
     by simp
   done
 
-
 lemma rtranclp_cdcl_twl_stgy_restart_pcdcl:
   \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (R, S :: 'v twl_st, T, m, n, g) (R', S', T', m', n', h) \<Longrightarrow>
   twl_struct_invs R \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_struct_invs T \<Longrightarrow>

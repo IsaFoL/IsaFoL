@@ -1381,7 +1381,7 @@ lemma all_lits_of_mm_mono2:
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_init_all:
   \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1a) \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1a)\<close>
-  using Watched_Literals_Watch_List_Restart.all_init_lits_of_wl_all_lits_st \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms
+  using Watched_Literals_Watch_List_Reduce.all_init_lits_of_wl_all_lits_st \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms
     \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) by blast
 
 lemma get_vdom_mark_garbage[simp]:

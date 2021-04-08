@@ -1405,10 +1405,7 @@ definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
 end
 
 
-context twl_restart_ops
-begin
-
-definition cdcl_GC_clauses_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+definition (in -) cdcl_GC_clauses_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
 \<open>cdcl_GC_clauses_pre_wl S \<longleftrightarrow> (
   \<exists>T. (S, T) \<in> state_wl_l None \<and>
     correct_watching'' S \<and>
@@ -1725,6 +1722,8 @@ where
        RETURN (S, last_GC, last_Restart, n)
    }\<close>
 
+context twl_restart_ops
+begin
 lemma restart_prog_wl_alt_def:
  \<open>restart_prog_wl S last_GC last_Restart n brk = do {
      ASSERT(restart_abs_wl_pre S last_GC last_Restart brk);

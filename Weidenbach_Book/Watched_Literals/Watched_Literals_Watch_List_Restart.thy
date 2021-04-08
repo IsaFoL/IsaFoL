@@ -40,34 +40,6 @@ where
 context twl_restart_ops
 begin
 
-lemma (in twl_restart) cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l:
-  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
-  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
-proof -
-  have [refine0]:
-    \<open>(x, y) \<in> ?R \<Longrightarrow> ((False, x, 0), False, y, 0) \<in> bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel\<close> for x y
-    by auto
-  show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
-    apply (intro frefI nres_relI)
-    apply (refine_rcg WHILEIT_refine[where
-      R=\<open>bool_rel \<times>\<^sub>r {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
-      unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
-      cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
-      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
-    subgoal by auto
-    subgoal for S T U V
-      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def case_prod_beta
-      by (fastforce simp: prod_rel_fst_snd_iff)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: correct_watching_correct_watching)
-    subgoal by auto
-    done
-qed
 
 definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_wl
   :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close>
@@ -318,7 +290,7 @@ proof -
 qed
 
 
-definition cdcl_GC_clauses_prog_wl_inv
+definition (in -)cdcl_GC_clauses_prog_wl_inv
   :: \<open>'v multiset \<Rightarrow> 'v clauses_l \<Rightarrow>
     'v multiset \<times> ('v clauses_l \<times> 'v clauses_l \<times> ('v literal \<Rightarrow> 'v watched)) \<Rightarrow> bool\<close>
 where
@@ -433,6 +405,88 @@ proof -
     apply (fastforce dest: rtranclp_GC_remap_all_init_lits)
     done
 qed
+
+lemma cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l:
+  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l)
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
+proof -
+  have [refine0]:
+    \<open>(x, y) \<in> ?R \<Longrightarrow> ((False, x, 0), False, y, 0) \<in> bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel\<close> for x y
+    by auto
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg WHILEIT_refine[where
+      R=\<open>bool_rel \<times>\<^sub>r {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+      unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+      cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
+      cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
+   subgoal by auto
+    subgoal for S T U V
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def case_prod_beta
+      by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+   subgoal by (auto simp: correct_watching_correct_watching)
+    subgoal by auto
+    done
+qed
+lemma cdcl_twl_stgy_restart_prog_early_wl_cdcl_twl_stgy_restart_prog_early_l:
+    \<open>(cdcl_twl_stgy_restart_prog_early_wl, cdcl_twl_stgy_restart_prog_early_l)
+  \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+  \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
+proof -
+   show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_early_wl_def cdcl_twl_stgy_restart_prog_early_l_def
+     apply (intro frefI nres_relI)
+    apply (refine_rcg WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+        WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r ?R \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+       unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
+       cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
+       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
+     subgoal by auto
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
+       by (fastforce simp: prod_rel_fst_snd_iff)
+     subgoal by auto
+    subgoal by (auto simp: correct_watching_correct_watching)
+    subgoal by auto
+     subgoal by auto
+     subgoal by auto
+     subgoal by (auto simp: correct_watching_correct_watching)
+    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
+      by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+     subgoal by auto
+     done
+qed
+
+
+theorem cdcl_twl_stgy_restart_prog_wl_spec:
+  \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+  using cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l[where 'a='v]
+  unfolding fref_param1 apply -
+  apply (match_spec; match_fun_rel+; (fast intro: nres_rel_mono)?)
+  by (metis (no_types, lifting) in_pair_collect_simp nres_rel_mono subrelI)
+
+theorem cdcl_twl_stgy_restart_prog_early_wl_spec:
+  \<open>(cdcl_twl_stgy_restart_prog_early_wl, cdcl_twl_stgy_restart_prog_early_l) \<in> {(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
+   (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
+  using cdcl_twl_stgy_restart_prog_early_wl_cdcl_twl_stgy_restart_prog_early_l[where 'a='v]
+  unfolding fref_param1 apply -
+  by (match_spec; match_fun_rel+; (fast intro: nres_rel_mono)?; match_fun_rel?)
+    auto
+
 
 end
 
