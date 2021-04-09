@@ -1,3 +1,5 @@
+chapter Weidenbach_Book
+
 session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session contains all theories related to the two-watched literals. It links
     the abstract CDCL calculus to a more concrete version with watched literals.\<close>
