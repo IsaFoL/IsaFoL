@@ -1,5 +1,5 @@
 theory Watched_Literals_Algorithm_Reduce
-imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
+imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Simp
   Watched_Literals_Transition_System_Reduce
   Weidenbach_Book_Base.Explorer
 begin

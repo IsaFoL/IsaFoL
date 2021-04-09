@@ -1368,8 +1368,7 @@ definition forward_subsumption_one :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rig
   RETURN (M, N, D, NE, UE, NS, US, WS, Q)
   }
 )\<close>
-  find_theorems simplify_clause_with_unit_st
-thm simplify_clause_with_unit_st_spec
+
 definition simplify_clauses_with_unit_st_pre where
   \<open>simplify_clauses_with_unit_st_pre S \<longleftrightarrow> (\<exists>T.
   (S, T) \<in> twl_st_l None \<and>

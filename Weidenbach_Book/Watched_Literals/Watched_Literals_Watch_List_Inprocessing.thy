@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Inprocessing
-  imports Watched_Literals_Watch_List Watched_Literals_List_Inprocessing
+  imports Watched_Literals_Watch_List Watched_Literals_List_Simp
 begin
 
 definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
