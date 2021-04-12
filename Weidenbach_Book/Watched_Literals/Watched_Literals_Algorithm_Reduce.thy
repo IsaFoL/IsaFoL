@@ -53,7 +53,7 @@ where
          RETURN (T, T, T, m, Suc n)
       }
       else do {
-         T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+         T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
          U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
          V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
             (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
@@ -361,7 +361,7 @@ proof -
     if 
       \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
-      WX: \<open>cdcl_twl_subsumption_inp\<^sup>*\<^sup>* W W'\<close>
+      WX: \<open>cdcl_twl_inp\<^sup>*\<^sup>* W W'\<close>
         \<open>count_decided (get_trail W') = 0\<close>
         \<open>cdcl_twl_restart W' X\<close> and
       \<open>ebrk' \<in> UNIV\<close> and
@@ -607,7 +607,7 @@ where
            V \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart S U);
            RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
        } else do {
-           T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_subsumption_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
+           T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
            U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
            V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
            RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
