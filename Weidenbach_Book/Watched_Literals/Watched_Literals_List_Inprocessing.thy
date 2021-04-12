@@ -1446,7 +1446,7 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
       cdcl_twl_subresolution_twl_struct_invs cdcl_twl_unitres_twl_stgy_invs
       cdcl_twl_subresolution_twl_stgy_invs cdcl_twl_unitres_true_twl_stgy_invs
       cdcl_twl_subsumed_twl_stgy_invs)
-    apply (metis assms(3) assms(5) cdcl_twl_subsumption_inp.intros cdcl_twl_subsumption_inp_invs(3) state\<^sub>W_of_def)+
+    apply (metis assms(3) assms(5) cdcl_twl_inp.intros cdcl_twl_inp_invs(3) state\<^sub>W_of_def)+
     done
   done
 

@@ -9,9 +9,9 @@ no_notation funcset (infixr "\<rightarrow>" 60)
 definition cdcl_twl_full_restart_wl_GC_prog where
   \<open>cdcl_twl_full_restart_wl_GC_prog S = do {
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
-  S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
+  \<comment> \<open>\<^text>\<open>S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;\<close>\<close>
   \<comment> \<open>\<^text>\<open>S' \<leftarrow> simplify_clauses_with_unit_st_wl S';\<close>\<close>
-  T \<leftarrow> remove_one_annot_true_clause_imp_wl S';
+  T \<leftarrow> remove_one_annot_true_clause_imp_wl S;
   ASSERT(mark_to_delete_clauses_wl_pre T);
   U \<leftarrow> mark_to_delete_clauses_wl2 T;
   V \<leftarrow> cdcl_GC_clauses_wl U;

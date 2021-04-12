@@ -3744,7 +3744,7 @@ definition cdcl_twl_full_restart_l_GC_prog_pre
 where
   \<open>cdcl_twl_full_restart_l_GC_prog_pre S \<longleftrightarrow>
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
-      get_conflict T = None \<and>
+      get_conflict T = None \<and> count_decided (get_trail_l S) = 0 \<and>
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)))\<close>
 
 lemma valid_trail_reduction_lit_of_nth:
