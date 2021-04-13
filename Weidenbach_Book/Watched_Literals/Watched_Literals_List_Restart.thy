@@ -8,6 +8,17 @@ text \<open>
   is closer to what we want to implement. Then we refine it to code.
 \<close>
 
+(*TODO Move*)
+lemma
+  assumes \<open>no_dup M\<close>
+  shows
+    no_dup_same_annotD:
+    \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
+    no_dup_no_propa_and_dec:
+    \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
+  using assms
+  by (auto dest!: split_list elim: list_match_lel_lel)
+
 text \<open>
   This invariant abstract over the restart operation on the trail. There can be a backtracking on
   the trail and there can be a renumbering of the indexes.
@@ -306,6 +317,14 @@ restart_trail:
     \<open>0 \<notin># dom_m N'\<close> and
     \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
     \<open>US' = {#}\<close>
+
+
+lemma cdcl_twl_restart_l_refl:
+  \<open>get_conflict_l S = None \<Longrightarrow> get_subsumed_learned_clauses_l S = {#} \<Longrightarrow>
+  clauses_to_update_l S = {#} \<Longrightarrow> twl_list_invs S \<Longrightarrow> no_dup (get_trail_l S) \<Longrightarrow>
+  cdcl_twl_restart_l S S\<close>
+  by (cases S)
+    (auto simp: cdcl_twl_restart_l.simps twl_list_invs_def dest: no_dup_same_annotD)
 
 lemma cdcl_twl_restart_l_list_invs:
   assumes
@@ -1026,17 +1045,6 @@ proof -
     using split_list[OF LC] split_list[OF LC']
     by (force elim!: list_match_lel_lel)
 qed
-
-
-lemma
-  assumes \<open>no_dup M\<close>
-  shows
-    no_dup_same_annotD:
-        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
-     no_dup_no_propa_and_dec:
-       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
-  using assms
-  by (auto dest!: split_list elim: list_match_lel_lel)
 
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l:
   assumes
@@ -3744,7 +3752,7 @@ definition cdcl_twl_full_restart_l_GC_prog_pre
 where
   \<open>cdcl_twl_full_restart_l_GC_prog_pre S \<longleftrightarrow>
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
-      get_conflict T = None \<and> count_decided (get_trail_l S) = 0 \<and>
+    get_conflict T = None \<and> clauses_to_update T = {#} \<and>
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)))\<close>
 
 lemma valid_trail_reduction_lit_of_nth:

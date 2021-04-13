@@ -54,10 +54,13 @@ where
       }
       else do {
          T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-         U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-         V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
-            (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
-         RETURN (V, V, V, m, Suc n)
+         if get_conflict T = None then do {
+           U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+           V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
+              (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
+           RETURN (V, V, V, m, Suc n)
+         } else
+           RETURN (T, T, T, m, Suc n)
       }
     }
     else
@@ -387,12 +390,15 @@ proof -
       using STU_inv UW WX' init
       by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
   qed
-  have continue: \<open>?I (ebrk', brkW \<or> get_conflict W \<noteq> None, S, T, W, m, n)\<close> (is ?A) and
-    continue_term: \<open>((ebrk', brkW \<or> get_conflict W \<noteq> None, S, T, W, m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B) for ebrk'
+  have continue: \<open>?I (ebrk', brkW' \<or> \<not>unsat, S, T, W, m, n)\<close> (is ?A) and
+    continue_term: \<open>((ebrk', brkW' \<or> \<not>unsat, S, T, W, m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
+    if \<open>unsat \<longleftrightarrow> get_conflict W = None\<close> \<open>brkW' \<longleftrightarrow> brkW\<close>
+    for ebrk' unsat brkW'
   proof -
     show ?A
       using brk'_no_step confl_W clss_to_upd_W UW twl_res
         cdcl_twl_stgy_restart.intros(4)[of W S T m n]
+      unfolding that
       apply (cases \<open>get_conflict W = None\<close>; cases brkW)
       apply (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
       apply (metis (no_types, lifting) final_twl_state_def pcdcl_twl_final_state_def rtranclp.simps rtranclp_trans)+
@@ -407,7 +413,7 @@ proof -
     show ?B
       using STU_inv brk'_no_step init
       apply (cases \<open>get_conflict W = None\<close>; cases brkW)
-      by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U)
+      by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U that)
   qed
   have noinp_continue: \<open>?I (xd, False \<or> get_conflict ab \<noteq> None, ab, ab, ab, m, Suc n)\<close> (is ?A) and
     noinp_term: \<open>((xd, False \<or> get_conflict ab \<noteq> None, ab, ab, ab, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close>
@@ -436,7 +442,59 @@ proof -
       using UW twl_res WX' \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close> by (auto
         dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
   qed
+  have inp_continues: \<open>?I (ebrk2, False \<or> \<not> False, S, T, X, m, n)\<close>(is ?A) and
+    inp_term: \<open>((ebrk2, False \<or> \<not> False, S, T, W, m, n), ebrk, brk, S, T, X, m, n) \<in> ?term\<close>
+    (is ?B)
+    if 
+      \<open>restart_prog_pre_int S T W False\<close> and
+      \<open>size (get_all_learned_clss S) \<le> size (get_all_learned_clss W)\<close> and
+      less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
+      \<open>size (get_all_learned_clss T) \<le> size (get_all_learned_clss W)\<close> and
+      \<open>brk \<longrightarrow> size (get_all_learned_clss T) < size (get_all_learned_clss W)\<close> and
+      \<open>\<not> (brk \<and> \<not> False)\<close> and
+      \<open>\<not> \<not> brk2\<close> and
+      \<open>get_conflict X \<noteq> None\<close> and
+      \<open>ebrk2 \<in> UNIV\<close> and
+      ebrk and
+      \<open>\<not> brkW\<close> and
+      WX: \<open>cdcl_twl_inp\<^sup>*\<^sup>* W X\<close> and
+      \<open>count_decided (get_trail X) = 0\<close>
+    for ebrk brk brk2 X ebrk2
+  proof -
+thm cdcl_twl_stgy_restart.intros
+    have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (X, X, X, m, Suc n, True)\<close>
+      apply (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W])
+       apply (use less WX in auto)
+         sorry
+    have \<open>pcdcl_twl_final_state X\<close>
+      using pcdcl_twl_final_state_def that(14) that(9) by blast
+    moreover have \<open>final_twl_state X\<close>
+      using that(14) that(9) unfolding final_twl_state_def by blast
+    ultimately show ?A
+      using brk'_no_step confl_W clss_to_upd_W UW twl_res
+        cdcl_twl_stgy_restart.intros(4)[of W S T m n]
+        cdcl_twl_stgy_restart.intros(4)[of X S T m n]
+        thm cdcl_twl_stgy_restart.intros
+      using that
+      apply (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
+      using that(12) apply force
+        sledgehammer
+    
+      done
+    have \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ V W\<close> if \<open>\<not>brkW\<close>
+      using  \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> lits_to_upd_W that assms(7) unfolding rtranclp_unfold
+      by auto
+    then have [simp]: \<open>cdcl_twl_stgy_restart\<^sup>+\<^sup>+ (S, T, U, m, n, True) (S, T, W, m, n, True)\<close> if \<open>\<not>brkW\<close>
+      by (meson assms(6) cdcl_twl_stgy_restart_tranclpI
+        rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp that)
 
+    show ?B
+      using STU_inv brk'_no_step init
+      apply (cases \<open>get_conflict W = None\<close>; cases brkW)
+      by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U that)
+    show ?A
+      sorry
+  qed
   show ?thesis
     unfolding restart_prog_int_def restart_required_def GC_required_def inprocessing_required_def
     apply (refine_vcg lhs_step_If; remove_dummy_vars)
@@ -449,8 +507,12 @@ proof -
     subgoal by (rule noinp_term)
     subgoal by (rule GC)
     subgoal by (rule GC_term)
-    subgoal by (rule continue)
-    subgoal by (rule continue_term)
+    subgoal for ebrk brk brk2 X ebrk2
+      explore_have
+      supply [[unify_trace_failure]] apply (rule continue)  sorry
+    subgoal apply (rule continue_term) sorry
+    subgoal by (rule continue) auto
+    subgoal by (rule continue_term) auto
     done
 qed
 
@@ -608,9 +670,13 @@ where
            RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
        } else do {
            T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-           U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-           V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
-           RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
+           if get_conflict T = None
+           then do {
+             U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
+             V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
+             RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
+           } else 
+             RETURN (T, (size (get_all_learned_clss T)), (size (get_all_learned_clss T)), Suc n)
         }
      }
      else
