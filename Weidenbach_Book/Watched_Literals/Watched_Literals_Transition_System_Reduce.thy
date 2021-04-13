@@ -169,7 +169,13 @@ restart_noGC:
 restart_full:
  \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (R, S, T, m, n, False)\<close>
  if
-   \<open>pcdcl_twl_final_state T\<close>
+   \<open>pcdcl_twl_final_state T\<close> |
+inprocess_full: (*TODO does that make sense?*)
+   \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (U, U, U, m, Suc n, True)\<close>
+ if
+   \<open>cdcl_twl_inp\<^sup>*\<^sup>* T U\<close> and
+   \<open>pcdcl_twl_final_state U\<close>
+
 
 lemma cdcl_twl_stgy_restart_induct[consumes 1, case_names restart_step restart_noGC full]:
   assumes
