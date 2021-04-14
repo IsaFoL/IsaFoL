@@ -479,7 +479,16 @@ abbreviation (in -)restart_continue :: \<open>'v prag_st_restart \<Rightarrow> b
 
 text \<open>As inprocessing, we allow a slightly different set of rules, including restart. Remember that
 the termination below takes the inprocessing as a granted (terminated) process. And without 
-restriction, the inprocessing does not restart (due to the restarts).\<close>
+restrictions, the inprocessing does not terminate (it can restart).
+
+On limitation of the following system is that \<^term>\<open>pcdcl_inprocessing\<close> is not allowed to derive the
+empty clause. We tried to lift this limitation, but finally decided against it. The main problem is
+that the regularity and the termination gets lost due to that rule.
+
+The right place to handle the special case is later when reaching the final state in our or wherever
+the predicate is used.
+
+\<close>
 
 inductive (in -)pcdcl_inprocessing :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close>
 where
