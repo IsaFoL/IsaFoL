@@ -1213,9 +1213,11 @@ lemma simplify_clause_with_unit_st_spec:
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> 
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close>
   shows \<open>simplify_clause_with_unit_st C S \<le> \<Down>Id (SPEC(\<lambda>T.
       (S = T \<or> cdcl_twl_unitres_l S T \<or> cdcl_twl_unitres_true_l S T) \<and>
+    (set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq>
+       set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}) \<and>
       (dom_m (get_clauses_l T) = dom_m (get_clauses_l S) \<or>
           dom_m (get_clauses_l T) = remove1_mset C (dom_m (get_clauses_l S)))))\<close>
 proof -
@@ -1243,10 +1245,12 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x ah bh
       using count_decided_ge_get_level[of \<open>get_trail_l S\<close>]
       by (auto simp: cdcl_twl_unitres_true_l.simps
         intro!: exI[of _ C])
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
       using ST st_invs apply -
@@ -1257,6 +1261,7 @@ proof -
         cdcl_twl_unitres_l_intros4'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
         and T = T])
       done
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
       using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs
@@ -1272,12 +1277,14 @@ proof -
         intro!: exI[of _ C])
       done
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
       using assms
       by (auto  simp: list_length_2_isabelle_come_on
         intro!: cdcl_twl_unitres_l_intros3' cdcl_twl_unitres_l_intros1'
         dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
         intro!: exI[of _ C] fmdrop_eq_update_eq2)
+    subgoal using assms by auto
     subgoal using assms by auto
        (metis dom_m_fmdrop insert_DiffM)+
     done
@@ -1381,7 +1388,9 @@ definition simplify_clauses_with_unit_st_pre where
 definition simplify_clauses_with_unit_st_inv where
   \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it S \<longleftrightarrow> (
     cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 S \<and>
-     it \<subseteq> set_mset (dom_m (get_clauses_l S)))\<close>
+     it \<subseteq> set_mset (dom_m (get_clauses_l S)) \<and>
+  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq>
+    set (get_all_mark_of_propagated (get_trail_l S\<^sub>0)) \<union> {0})\<close>
 
 lemma cdcl_twl_inprocessing_l_twl_st_l0:
   assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
@@ -1572,7 +1581,7 @@ proof -
         by normalize_goal+ auto
       apply assumption+
       subgoal
-        by (auto simp: simplify_clauses_with_unit_st_inv_def distinct_mset_dom
+        by (auto 5 3 simp: simplify_clauses_with_unit_st_inv_def distinct_mset_dom
           rtranclp.rtrancl_into_rtrancl[of _ S] distinct_mset_remove1_All
           dest!: cdcl_twl_inprocessing_l.intros)
       done
