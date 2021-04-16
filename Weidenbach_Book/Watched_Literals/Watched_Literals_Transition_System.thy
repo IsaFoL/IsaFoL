@@ -23,6 +23,12 @@ text \<open>
      implemented (in that case, because there was no solution for clauses containing a false
      literal).
 
+  On a slightly less important note, but related, we support tautologies in our calculus, but this
+  turned to be rather annoying in the generated code, because the length of clause does not fit in
+  32-bit native unsigned integers anymore (at least not with our encoding). We use 64-bit integer
+  instead, but this lead to other work arounds (like position saving that actually save the position
+  minus 2 to avoid overflow problems).
+
   To overcome the issue, we decided to inherite not from CDCL, but from a different calculus devised
   exactly to express a more realistic calculus for SAT solvers.
 \<close>
