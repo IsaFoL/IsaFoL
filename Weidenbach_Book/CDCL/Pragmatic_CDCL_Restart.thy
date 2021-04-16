@@ -506,8 +506,8 @@ restart_step:
   \<open>pcdcl_stgy_restart (R, S, T, m, n, True)  (W, W, W, m, Suc n, True)\<close>
   if
     \<open>size (pget_all_learned_clss T) - size (pget_all_learned_clss R) > f n\<close> and
-    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* T U\<close>
-    \<open>pcdcl_restart U V\<close> and
+    \<open>pcdcl_inprocessing\<^sup>*\<^sup>* T V\<close>
+    (*\<open>pcdcl_restart U V\<close> and*)
     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of V)\<close> and
     \<open>pcdcl_stgy\<^sup>*\<^sup>* V W\<close> |
 restart_noGC_step:
@@ -1215,8 +1215,7 @@ lemma pcdcl_stgy_restart_pcdcl_stgy_restart_inv:
       rtranclp_pcdcl_stgy_only_restart_all_struct_invs rtranclp_pcdcl_tcore_stgy_no_smaller_propa
       rtranclp_pcdcl_stgy_only_restart_no_smaller_propa pcdcl_restart_no_smaller_propa'
       rtranclp_pcdcl_stgy_no_smaller_propa)
-  subgoal for T R n U V W S m
-    using pcdcl_stgy_only_restart.intros[of S T U] apply -
+  subgoal for T R n U W S m
     apply (subst (asm) pcdcl_stgy_restart_inv_alt_def)
     unfolding pcdcl_stgy_restart_inv_def prod.case
     apply normalize_goal+

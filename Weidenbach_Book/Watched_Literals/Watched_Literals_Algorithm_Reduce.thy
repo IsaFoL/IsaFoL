@@ -54,13 +54,7 @@ where
       }
       else do {
          T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-         if get_conflict T = None then do {
-           U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-           V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and>
-              (get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0));
-           RETURN (V, V, V, m, Suc n)
-         } else
-           RETURN (T, T, T, m, Suc n)
+         RETURN (T, T, T, m, Suc n)
       }
     }
     else
@@ -245,6 +239,12 @@ lemma rtranclp_pcdcl_stgy_only_restart_pget_all_learned_clss_mono:
   by (induction rule:rtranclp_induct)
    (auto  dest: pcdcl_stgy_only_restart_pget_all_learned_clss_mono)
 
+lemma cdcl_twl_inp_clauses_to_update:
+  \<open>cdcl_twl_inp\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update S = {#} \<Longrightarrow> clauses_to_update T = {#}\<close>
+  by (cases rule: rtranclp.cases, assumption)
+   (auto simp: cdcl_twl_inp.simps cdcl_twl_subsumed.simps cdcl_twl_subresolution.simps
+    cdcl_twl_restart.simps cdcl_twl_unitres.simps cdcl_twl_unitres_true.simps)
+
 lemma restart_prog_bounded_spec:
   assumes
     \<open>iebrk \<in> UNIV\<close> and
@@ -364,19 +364,20 @@ proof -
     if 
       \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
-      WX: \<open>cdcl_twl_inp\<^sup>*\<^sup>* W W'\<close>
-        \<open>count_decided (get_trail W') = 0\<close>
-        \<open>cdcl_twl_restart W' X\<close> and
+      WX: \<open>cdcl_twl_inp\<^sup>*\<^sup>* W Y\<close>
+        \<open>count_decided (get_trail Y) = 0\<close> and
       \<open>ebrk' \<in> UNIV\<close> and
-      \<open>\<not> brkW\<close> and
-      XY: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* X Y\<close>
-        \<open>clauses_to_update Y = {#}\<close>
-        \<open>get_conflict Y \<noteq> None \<longrightarrow> count_decided (get_trail Y) = 0\<close>
+      \<open>\<not> brkW\<close>
     for x X Y ebrk' W'
   proof -
+    have struct_X: \<open>twl_struct_invs Y\<close>
+      using rtranclp_cdcl_twl_inp_invs(1)[OF WX(1) struct_invs_W ent_W] .
+
+    have clss: \<open>clauses_to_update Y = {#}\<close>
+      using cdcl_twl_inp_clauses_to_update[OF WX(1) clss_to_upd_W] .
     have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (Y, Y, Y, m, Suc n, True)\<close>
-      by (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W'])
-       (use less WX XY in auto)
+      by (rule cdcl_twl_stgy_restart.intros(2))
+        (use less WX clss in \<open>auto dest!: cdcl_twl_inp.intros\<close>)
     have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow> final_twl_state Y\<close>
       by (auto simp: final_twl_state_def)
     moreover have \<open>count_decided (get_trail Y) = 0 \<Longrightarrow> get_conflict Y \<noteq> None \<Longrightarrow>
@@ -384,7 +385,7 @@ proof -
       by (rule cdcl_twl_stgy_restart.intros)
         (auto simp: pcdcl_twl_final_state_def)
     ultimately show ?A
-      using UW WX twl_res WX' XY
+      using UW WX twl_res WX' clss
       by (cases \<open>get_conflict Y = None\<close>) (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def)
     show ?B
       using STU_inv UW WX' init
@@ -435,66 +436,15 @@ proof -
       using that(1) WX
       by (auto simp: restart_prog_pre_int_def cdcl_twl_restart.simps)
     have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (ab, ab, ab, m, Suc n, True)\<close>
-      by (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W]) (use less WX in auto)
+      by (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ ab])
+        (use less WX in \<open>auto dest!: cdcl_twl_inp.intros\<close>)
     then show ?A
       using UW twl_res by (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
     show ?B
       using UW twl_res WX' \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close> by (auto
         dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
   qed
-  have inp_continues: \<open>?I (ebrk2, False \<or> \<not> False, S, T, X, m, n)\<close>(is ?A) and
-    inp_term: \<open>((ebrk2, False \<or> \<not> False, S, T, W, m, n), ebrk, brk, S, T, X, m, n) \<in> ?term\<close>
-    (is ?B)
-    if 
-      \<open>restart_prog_pre_int S T W False\<close> and
-      \<open>size (get_all_learned_clss S) \<le> size (get_all_learned_clss W)\<close> and
-      less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
-      \<open>size (get_all_learned_clss T) \<le> size (get_all_learned_clss W)\<close> and
-      \<open>brk \<longrightarrow> size (get_all_learned_clss T) < size (get_all_learned_clss W)\<close> and
-      \<open>\<not> (brk \<and> \<not> False)\<close> and
-      \<open>\<not> \<not> brk2\<close> and
-      \<open>get_conflict X \<noteq> None\<close> and
-      \<open>ebrk2 \<in> UNIV\<close> and
-      ebrk and
-      \<open>\<not> brkW\<close> and
-      WX: \<open>cdcl_twl_inp\<^sup>*\<^sup>* W X\<close> and
-      \<open>count_decided (get_trail X) = 0\<close>
-    for ebrk brk brk2 X ebrk2
-  proof -
-thm cdcl_twl_stgy_restart.intros
-    have WX': \<open>cdcl_twl_stgy_restart (S, T, W, m, n, True) (X, X, X, m, Suc n, True)\<close>
-      apply (rule cdcl_twl_stgy_restart.intros(2)[of _ _ _ W])
-       apply (use less WX in auto)
-         sorry
-    have \<open>pcdcl_twl_final_state X\<close>
-      using pcdcl_twl_final_state_def that(14) that(9) by blast
-    moreover have \<open>final_twl_state X\<close>
-      using that(14) that(9) unfolding final_twl_state_def by blast
-    ultimately show ?A
-      using brk'_no_step confl_W clss_to_upd_W UW twl_res
-        cdcl_twl_stgy_restart.intros(4)[of W S T m n]
-        cdcl_twl_stgy_restart.intros(4)[of X S T m n]
-        thm cdcl_twl_stgy_restart.intros
-      using that
-      apply (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
-      using that(12) apply force
-        sledgehammer
-    
-      done
-    have \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ V W\<close> if \<open>\<not>brkW\<close>
-      using  \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> lits_to_upd_W that assms(7) unfolding rtranclp_unfold
-      by auto
-    then have [simp]: \<open>cdcl_twl_stgy_restart\<^sup>+\<^sup>+ (S, T, U, m, n, True) (S, T, W, m, n, True)\<close> if \<open>\<not>brkW\<close>
-      by (meson assms(6) cdcl_twl_stgy_restart_tranclpI
-        rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp that)
 
-    show ?B
-      using STU_inv brk'_no_step init
-      apply (cases \<open>get_conflict W = None\<close>; cases brkW)
-      by (auto simp: twl_restart_inv_def struct_invs_S struct_invs_T struct_invs_U that)
-    show ?A
-      sorry
-  qed
   show ?thesis
     unfolding restart_prog_int_def restart_required_def GC_required_def inprocessing_required_def
     apply (refine_vcg lhs_step_If; remove_dummy_vars)
@@ -507,10 +457,6 @@ thm cdcl_twl_stgy_restart.intros
     subgoal by (rule noinp_term)
     subgoal by (rule GC)
     subgoal by (rule GC_term)
-    subgoal for ebrk brk brk2 X ebrk2
-      explore_have
-      supply [[unify_trace_failure]] apply (rule continue)  sorry
-    subgoal apply (rule continue_term) sorry
     subgoal by (rule continue) auto
     subgoal by (rule continue_term) auto
     done
@@ -670,13 +616,7 @@ where
            RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
        } else do {
            T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail T) = 0);
-           if get_conflict T = None
-           then do {
-             U \<leftarrow> SPEC(\<lambda>U. cdcl_twl_restart T U);
-             V \<leftarrow> SPEC(\<lambda>V. cdcl_twl_stgy\<^sup>*\<^sup>* U V \<and> clauses_to_update V = {#} \<and> get_conflict V = None);
-             RETURN (V, (size (get_all_learned_clss V)), (size (get_all_learned_clss V)), Suc n)
-           } else 
-             RETURN (T, (size (get_all_learned_clss T)), (size (get_all_learned_clss T)), Suc n)
+           RETURN (T, (size (get_all_learned_clss T)), (size (get_all_learned_clss T)), Suc n)
         }
      }
      else
@@ -719,10 +659,6 @@ proof -
     subgoal
       by auto
     apply (rule this_is_the_identity)
-    subgoal
-      by auto
-    subgoal
-      by auto
     subgoal
       by auto
     subgoal
