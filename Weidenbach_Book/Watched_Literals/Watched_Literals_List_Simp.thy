@@ -257,13 +257,7 @@ where
          RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        } else do {
          T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0);
-         if get_conflict_l T = None
-         then do {
-           T \<leftarrow> SPEC(cdcl_twl_restart_l T);
-           T \<leftarrow> RETURN T;
-           RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
-         } else
-           RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+         RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        }
      }
      else
@@ -422,15 +416,9 @@ proof -
     subgoal unfolding restart_prog_pre_def by auto
     subgoal by (auto simp: get_learned_clss_l_def)
       apply (rule inprocess_refine; assumption)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: get_learned_clss_l_def
+        rtranclp_cdcl_twl_restart_l_inp_clauses_to_update_l)
     subgoal by (auto simp: get_learned_clss_l_def)
-    subgoal by auto
     done
 qed
 
@@ -1190,7 +1178,6 @@ lemma restart_prog_l_alt_def:
        }
        else do {
          T \<leftarrow> cdcl_twl_full_restart_inprocess_l S;
-         T \<leftarrow> RETURN T;
          RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        }
      }
@@ -1273,10 +1260,9 @@ proof -
        RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
        }
        else do {
-       T \<leftarrow> SPEC (\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0);
-       T \<leftarrow> SPEC(cdcl_twl_restart_l T);
-       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
-       }
+         T \<leftarrow> SPEC (\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0);
+         RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+      }
      }
      else
        RETURN (S, last_GC, last_Restart, n)
@@ -1307,38 +1293,36 @@ proof -
          OF ST list_invs struct_invs confl upd stgy_invs inv2])
          auto
     qed
+    have cdcl_twl_full_restart_inprocess_l:
+      \<open>cdcl_twl_full_restart_inprocess_l S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0)\<close>
+      if 
+        inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
+        brk: \<open>b \<and> \<not> brk\<close>
+      for b ba b2 b2a inp inp' S last_GC last_Restart brk
+    proof  -
+      obtain S' where
+        SS': \<open>(S, S') \<in> twl_st_l None\<close> and
+        struct_invs: \<open>twl_struct_invs S'\<close> and
+        list_invs: \<open>twl_list_invs S\<close> and
+        upd: \<open>clauses_to_update_l S = {#}\<close> and
+        stgy_invs: \<open>twl_stgy_invs S'\<close> and
+        confl: \<open>get_conflict_l S = None\<close> and
+        inv2: \<open>restart_prog_pre S' last_GC last_Restart brk\<close> and
+        ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S')\<close>
+        using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
+        apply - apply normalize_goal+
+        by (auto simp: twl_st)
 
+      show ?thesis
+        by (rule cdcl_twl_full_restart_inprocess_l_cdcl_twl_restart_l[unfolded Down_id_eq, OF SS'
+          list_invs
+          struct_invs confl upd stgy_invs inv2])
+   qed
    have [simp]: \<open>cdcl_twl_restart_only_l S Ta \<Longrightarrow>clauses_to_update_l Ta = {#}\<close> for S Ta
      by (auto simp: cdcl_twl_restart_only_l.simps)
    have [simp]: \<open>cdcl_twl_restart_l S Ta \<Longrightarrow>clauses_to_update_l Ta = {#}\<close> for S Ta
      by (auto simp: cdcl_twl_restart_l.simps)
-   have \<open>(get_conflict_l T \<noteq> None) \<or> cdcl_twl_restart_l T' T\<close>
-     if 
-       \<open>restart_abs_l_pre S p m brk\<close> and
-       \<open>restart_abs_l_pre S p m brk\<close> and
-       \<open>(b, ba) \<in> bool_rel\<close> and
-       \<open>(b2, b2a) \<in> bool_rel\<close> and
-       \<open>\<not> (b2 \<and> \<not> brk)\<close> and
-       \<open>\<not> (b2a \<and> \<not> brk)\<close> and
-       \<open>b \<and> \<not> brk\<close> and
-       \<open>ba \<and> \<not> brk\<close> and
-       \<open>(inp, inp') \<in> bool_rel\<close> and
-       \<open>\<not> \<not> inp\<close> and
-       \<open>\<not> \<not> inp'\<close> and
-       TT': \<open>(T, T') \<in> Id\<close> and
-       T': \<open>T' \<in> {T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0}\<close>
-     for b ba b2 b2a inp inp' T T' S p m brk
-   proof -
-     have eq: \<open>T = T'\<close>
-       using TT' by auto
-         find_theorems "?a \<or> _" "\<not>?a"
-     show ?thesis
-       unfolding eq
-       apply (subst imp_conv_disj[symmetric], rule impI)
-       apply (rule cdcl_twl_restart_l_refl)
-         using T' apply auto
-       sorry
-   qed
+
    have \<open>restart_prog_l S p m n brk \<le> \<Down> (?R \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel)
        (restart_abs_l S p m n brk)\<close> for S n brk p m
     unfolding restart_prog_l_alt_def restart_abs_l_alt_def restart_required_l_def cdcl_twl_restart_l_prog_def
@@ -1355,12 +1339,12 @@ proof -
     subgoal by (rule cdcl_twl_full_restart_l_GC_prog) auto
     subgoal by (auto simp: cdcl_twl_restart_l_list_invs
       simp: restart_abs_l_pre_def)
-    subgoal by (rule cdcl_twl_full_restart_inprocess_l, assumption, auto)
-    subgoal for b ba b2 b2a inp inp' T T'
-      explore_have
-      sorry
-    subgoal by (auto simp: cdcl_twl_restart_l_list_invs
-      simp: restart_abs_l_pre_def)
+    subgoal for b ba b2 b2a inp inp'
+      by (rule cdcl_twl_full_restart_inprocess_l)
+    subgoal by (auto simp: restart_abs_l_pre_def
+      dest: rtranclp_cdcl_twl_restart_l_inp_twl_list_invs
+      rtranclp_cdcl_twl_restart_l_inp_clauses_to_update_l)
+    subgoal by (auto simp: restart_abs_l_pre_def)
     done
   then show ?thesis
     apply -
@@ -1424,25 +1408,54 @@ proof -
       by (rule cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST list_invs
         struct_invs confl upd stgy_invs inv2])
   qed
+  have cdcl_twl_full_restart_inprocess_l:
+    \<open>cdcl_twl_full_restart_inprocess_l S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and>
+       count_decided (get_trail_l T) = 0)\<close>
+    if
+      inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
+      brk: \<open>ba \<and> b2a \<and> \<not> brk\<close>
+    for ba b2a brk S last_GC last_Restart
+  proof -
+    obtain T where
+      ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs T\<close> and
+      list_invs: \<open>twl_list_invs S\<close> and
+      upd: \<open>clauses_to_update_l S = {#}\<close> and
+      stgy_invs: \<open>twl_stgy_invs T\<close> and
+      confl: \<open>get_conflict_l S = None\<close> and
+      inv2: \<open>restart_prog_pre T last_GC last_Restart brk\<close>
+      using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
+      apply - apply normalize_goal+
+      by (auto simp: twl_st)
+    show ?thesis
+      by (rule cdcl_twl_full_restart_inprocess_l_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST
+        list_invs struct_invs confl upd stgy_invs inv2])
+  qed
 
   have restart_abs_l_alt_def:
-  \<open>restart_abs_l S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
-     b \<leftarrow> GC_required_l S last_GC n;
-     b2 \<leftarrow> restart_required_l S last_Restart n;
-     if b2 \<and>  \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only_l S T);
-       RETURN (T, last_GC, size (get_all_learned_clss_l T), n)
-     }
-     else
-     if b \<and> \<not>brk then do {
-       _ \<leftarrow> SPEC(\<lambda>b :: bool. True);
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
-     }
-     else
-       RETURN (S, last_GC, last_Restart, n)
-       }\<close> for  S last_GC last_Restart n brk
+    \<open>restart_abs_l S last_GC last_Restart n brk = do {
+    ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
+    b \<leftarrow> GC_required_l S last_GC n;
+    b2 \<leftarrow> restart_required_l S last_Restart n;
+    if b2 \<and>  \<not>brk then do {
+      T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only_l S T);
+      RETURN (T, last_GC, size (get_all_learned_clss_l T), n)
+      }
+      else
+    if b \<and> \<not>brk then do {
+      b \<leftarrow> inprocessing_required_l S;
+    if \<not>b then do {
+      _ \<leftarrow> SPEC(\<lambda>b :: bool. True);
+      T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+      RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+      } else do {
+      T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S T \<and> count_decided (get_trail_l T) = 0);
+      RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+      }
+      }
+      else
+      RETURN (S, last_GC, last_Restart, n)
+      }\<close> for  S last_GC last_Restart n brk
      unfolding restart_abs_l_def
      by (auto cong: if_cong)
 
@@ -1461,8 +1474,12 @@ proof -
     subgoal by (auto intro: cdcl_twl_restart_only_l_list_invs
       simp: restart_abs_l_pre_def)
     subgoal by auto
+    subgoal by auto
     subgoal by (rule cdcl_twl_full_restart_l_prog) auto
     subgoal by (rule cdcl_twl_full_restart_l_GC_prog) auto
+    subgoal by (auto simp: cdcl_twl_restart_l_list_invs
+      simp: restart_abs_l_pre_def)
+    subgoal by (rule cdcl_twl_full_restart_inprocess_l) auto
     subgoal by (auto simp: cdcl_twl_restart_l_list_invs
       simp: restart_abs_l_pre_def)
     subgoal by (auto simp: cdcl_twl_restart_l_list_invs
