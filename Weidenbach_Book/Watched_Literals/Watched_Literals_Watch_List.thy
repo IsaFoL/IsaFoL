@@ -374,9 +374,13 @@ definition clause_to_update_wl:: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<
       (\<lambda>C::nat. L \<in> set (watched_l (get_clauses_wl S \<propto> C)))
       (dom_m (get_clauses_wl S))\<close>
 
+(*TODO kill, see alt def below*)
 fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v watched\<close> where
   \<open>watched_by (M, N, D, NE, UE, NS, US, N0, U0, Q, W) L = W L\<close>
 
+lemma watched_by_alt_def: \<open>watched_by S L = get_watched_wl S L\<close>
+  by (cases S) auto
+(*END*)
 definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
   \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
 

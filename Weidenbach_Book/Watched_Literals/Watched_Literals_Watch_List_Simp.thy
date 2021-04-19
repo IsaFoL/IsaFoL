@@ -10,15 +10,13 @@ definition cdcl_twl_full_restart_wl_GC_prog where
   \<open>cdcl_twl_full_restart_wl_GC_prog S = do {
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
-  \<comment> \<open>\<^text>\<open>S' \<leftarrow> simplify_clauses_with_unit_st_wl S';\<close>\<close>
   T \<leftarrow> remove_one_annot_true_clause_imp_wl S';
-  ASSERT(mark_to_delete_clauses_wl_pre T);
-  U \<leftarrow> mark_to_delete_clauses_wl2 T;
+  ASSERT(mark_to_delete_clauses_GC_wl_pre T);
+  U \<leftarrow> mark_to_delete_clauses_GC_wl T;
   V \<leftarrow> cdcl_GC_clauses_wl U;
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_post S V);
   RETURN V
   }\<close>
-
 
 lemma cdcl_twl_full_restart_wl_GC_prog:
   \<open>(cdcl_twl_full_restart_wl_GC_prog, cdcl_twl_full_restart_l_GC_prog) \<in> {(S::'v twl_st_wl, S').
@@ -34,61 +32,75 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
     cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0)
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'')
-  subgoal unfolding mark_to_delete_clauses_wl_pre_def by fast
+  subgoal unfolding mark_to_delete_clauses_GC_wl_pre_def by fast
+  subgoal
+    by (auto dest: correct_watching''_clauses_pointed_to2)
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
+      cdcl_twl_restart_l_inp.intros(1)
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
-    by fast
-  subgoal for x y S' S'a T Ta U Ua V Va
-    by (rule cdcl_twl_full_restart_wl_GC_prog_post_correct_watching)
+    by blast
+  subgoal for x y S S' T Ta U Ua V Va
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
+    by (auto dest!: cdcl_twl_restart_l_inp.intros(1))
   done
+
 
 definition cdcl_twl_full_restart_inprocess_wl_prog where
   \<open>cdcl_twl_full_restart_inprocess_wl_prog S = do {
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
-  S' \<leftarrow> simplify_clauses_with_unit_st_wl S';
-  if get_conflict_wl S' \<noteq> None
-  then RETURN S'
+  S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
+  T \<leftarrow> simplify_clauses_with_unit_st_wl S';
+  if get_conflict_wl T \<noteq> None then RETURN T
   else do {
-    T \<leftarrow> remove_one_annot_true_clause_imp_wl S';
-    ASSERT(mark_to_delete_clauses_wl_pre T);
-    U \<leftarrow> mark_to_delete_clauses_wl2 T;
+    ASSERT(mark_to_delete_clauses_GC_wl_pre T);
+    U \<leftarrow> mark_to_delete_clauses_GC_wl T;
     V \<leftarrow> cdcl_GC_clauses_wl U;
     ASSERT(cdcl_twl_full_restart_wl_GC_prog_post S V);
     RETURN V
   }
   }\<close>
 
-    find_theorems simplify_clauses_with_unit_st_wl simplify_clauses_with_unit_st
-lemma cdcl_twl_full_restart_wl_GC_prog:
+lemma cdcl_twl_full_restart_inprocess_wl_prog:
   \<open>(cdcl_twl_full_restart_inprocess_wl_prog, cdcl_twl_full_restart_inprocess_l) \<in>
     {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
      \<langle>{(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> (get_conflict_wl S = None \<longrightarrow> correct_watching S \<and>
+       blits_in_\<L>\<^sub>i\<^sub>n S)}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_inprocess_wl_prog_def cdcl_twl_full_restart_inprocess_l_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
     remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down]
+    cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0
+    simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st
     mark_to_delete_clauses_wl_mark_to_delete_clauses_l2[THEN fref_to_Down]
     cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down]
-    cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0
-    simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st)
+    )
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'')
-    oops
-  subgoal unfolding mark_to_delete_clauses_wl_pre_def by fast
-  subgoal for x y S S' T Ta U Ua V Va
-    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal
+    unfolding mark_to_delete_clauses_GC_wl_pre_def
+    by fast
+  subgoal for x y S S' T Ta U Ua
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
     by fast
-  subgoal for x y S' S'a T Ta U Ua V Va
-    by (rule cdcl_twl_full_restart_wl_GC_prog_post_correct_watching)
+  subgoal for x y S S' T Ta U Ua V Va W Wa
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Wa W]
+    unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
+    by fast
+  subgoal for x y S' S'a T Ta U Ua V Va W Wa
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Wa W]
+    unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
+    by fast
   done
-  
-  term cdcl_twl_full_restart_inprocess_l
-    term cdcl_twl_full_restart_l_GC_prog_pre
+
 
 context twl_restart_ops
 begin

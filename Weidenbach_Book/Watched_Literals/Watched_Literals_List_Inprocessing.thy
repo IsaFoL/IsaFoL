@@ -22,7 +22,7 @@ subsumed_RI:
     \<open>cdcl_twl_subsumed_l (M, N, D, NE, UE, NS, US, N0, U0, {#}, Q)
     (M, fmupd C (N \<propto> C, True) (fmdrop C' N), D, NE, UE, add_mset (mset (N \<propto> C')) NS, US, N0, U0, {#}, Q)\<close>
   if \<open>mset (N \<propto> C) \<subseteq># mset (N \<propto> C')\<close> \<open>C \<in># dom_m N\<close> \<open>C' \<in># dom_m N\<close>
-nn    \<open>\<not>irred N C\<close> \<open>irred N C'\<close> \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close>
+    \<open>\<not>irred N C\<close> \<open>irred N C'\<close> \<open>C' \<notin> set (get_all_mark_of_propagated M)\<close>
     \<open>\<not>tautology (mset (N \<propto> C))\<close>
     \<open>distinct_mset (mset (N \<propto> C))\<close>
 
@@ -1535,16 +1535,104 @@ proof -
      (use TU struct_T list_T ent_T clss_upd_T lvl_S in auto)
 qed
 
+definition all_learned_lits_of_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause\<close> where
+  \<open>all_learned_lits_of_l S' \<equiv> all_lits_of_mm (mset `# learned_clss_lf (get_clauses_l S') + get_unit_learned_clss_l S' +
+  get_subsumed_learned_clauses_l S' + get_learned_clauses0_l S')\<close>
+definition all_init_lits_of_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause\<close> where
+  \<open>all_init_lits_of_l S' \<equiv> all_lits_of_mm (mset `# get_init_clss_l S' + get_unit_init_clauses_l S' +
+  get_subsumed_init_clauses_l S' + get_init_clauses0_l S')\<close>
+
+lemma cdcl_twl_inprocessing_l_all_init_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l S T\<close>
+  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
+proof -
+  have [simp]: \<open>D \<notin># A \<Longrightarrow> {#the (if D = x then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close>
+    \<open>D \<notin># A \<Longrightarrow> {#the (if x = D then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close> for D E N A b
+    by (auto intro!: image_mset_cong)
+  have dups_uniq[dest]: \<open>remdups_mset D' = {#K#} \<Longrightarrow> set_mset (all_lits_of_m D') = {-K,K}\<close> for D' K
+    by (metis all_lits_of_m_add_mset all_lits_of_m_empty all_lits_of_m_remdups_mset
+      insert_commute set_mset_add_mset_insert set_mset_empty)
+  show ?thesis
+    using assms
+    using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
+    supply [[goals_limit=1]]
+    by (induction rule: cdcl_twl_inprocessing_l.induct)
+     (auto 4 3 simp: cdcl_twl_unitres_l.simps 
+      cdcl_twl_unitres_true_l.simps
+      cdcl_twl_subsumed_l.simps
+      cdcl_twl_subresolution_l.simps
+      all_init_lits_of_l_def
+      add_mset_eq_add_mset removeAll_notin
+      get_init_clss_l_def init_clss_l_mapsto_upd_notin
+      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
+      all_lits_of_m_add_mset distinct_mset_remove1_All
+      init_clss_l_fmupd_if all_lits_of_mm_add_mset
+      all_lits_of_m_remdups_mset
+      dest!: multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
+      dest: all_lits_of_m_mono)
+qed
+
+lemma rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_all_init_lits_of_l)
+
+lemma cdcl_twl_inprocessing_l_all_learned_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l S T\<close>
+  shows \<open>set_mset (all_learned_lits_of_l T) \<subseteq> set_mset (all_learned_lits_of_l S)\<close>
+proof -
+  have [simp]: \<open>D \<notin># A \<Longrightarrow> {#the (if D = x then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close>
+    \<open>D \<notin># A \<Longrightarrow> {#the (if x = D then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close> for D E N A b
+    by (auto intro!: image_mset_cong)
+  have dups_uniq[dest]: \<open>remdups_mset D' = {#K#} \<Longrightarrow> set_mset (all_lits_of_m D') = {-K,K}\<close> for D' K
+    by (metis all_lits_of_m_add_mset all_lits_of_m_empty all_lits_of_m_remdups_mset
+      insert_commute set_mset_add_mset_insert set_mset_empty)
+  show ?thesis
+    using assms
+    using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
+    supply [[goals_limit=1]]
+    by (induction rule: cdcl_twl_inprocessing_l.induct)
+     (auto 4 3 simp: cdcl_twl_unitres_l.simps 
+      cdcl_twl_unitres_true_l.simps
+      cdcl_twl_subsumed_l.simps
+      cdcl_twl_subresolution_l.simps
+      all_learned_lits_of_l_def
+      add_mset_eq_add_mset removeAll_notin
+      get_init_clss_l_def init_clss_l_mapsto_upd_notin
+      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
+      all_lits_of_m_add_mset distinct_mset_remove1_All
+      init_clss_l_fmupd_if all_lits_of_mm_add_mset
+      all_lits_of_m_remdups_mset
+      dest!: multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
+      dest: all_lits_of_m_mono)
+qed
+
+lemma rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+  shows \<open>set_mset (all_learned_lits_of_l T) \<subseteq> set_mset (all_learned_lits_of_l S)\<close>
+  using assms
+  by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+
+text \<open>Hard-coding the invariants was a lot faster than the alternative way, namely proving that
+  the loop invariants still holds at the end of the loop. No this makes not sense, I know.\<close>
 definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close>  where
   \<open>simplify_clauses_with_unit_st S =
   do {
   ASSERT(simplify_clauses_with_unit_st_pre S);
   xs \<leftarrow> SPEC(\<lambda>xs. xs \<subseteq>set_mset (dom_m (get_clauses_l S)));
-  FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_inv S it T)
+  T \<leftarrow> FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_inv S it T)
   (xs)
   (\<lambda>S. get_conflict_l S = None)
   (\<lambda>i S. simplify_clause_with_unit_st i S)
-  S
+  S;
+  ASSERT(set_mset (all_learned_lits_of_l T) \<subseteq> set_mset (all_learned_lits_of_l S));
+  ASSERT(set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S));
+  RETURN T
   }\<close>
 
 lemma simplify_clauses_with_unit_st_spec:
@@ -1587,7 +1675,19 @@ proof -
       done
     subgoal for x \<sigma>
       unfolding simplify_clauses_with_unit_st_inv_def
+      by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
       by auto
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
+      by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
     subgoal
       unfolding simplify_clauses_with_unit_st_inv_def
       by auto
