@@ -984,7 +984,8 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
 datatype restart_type =
   NO_RESTART |
   GC |
-  RESTART
+  RESTART |
+  INPROCESS
 
 context twl_restart_ops
 begin
@@ -995,6 +996,7 @@ definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Ri
   ASSERT(size (get_all_learned_clss_wl S) \<ge> last_Restart);
   SPEC (\<lambda>b.
   (b = GC \<longrightarrow> f n < size (get_all_learned_clss_wl S) - last_GC) \<and>
+  (b = INPROCESS \<longrightarrow> f n < size (get_all_learned_clss_wl S) - last_GC) \<and>
   (b = RESTART \<longrightarrow> last_Restart < size (get_all_learned_clss_wl S)))}\<close>
 
 definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
@@ -1004,7 +1006,7 @@ definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
        (S\<^sub>0, S\<^sub>0') \<in> state_wl_l None \<and>
        (T, T') \<in> state_wl_l None \<and>
        cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0' (brk, T', last_GC, last_Restart, n) \<and>
-       correct_watching T))\<close>
+       \<not>brk \<longrightarrow> correct_watching T))\<close>
 end
 
 
@@ -1280,27 +1282,329 @@ proof -
     unfolding no_lost_clause_in_WL_def
     by (auto simp del: all_init_atms_def[symmetric]) 
 qed
-term no_lost_clause_in_WL
 
-(*
-lemma replace_annot_wl_replace_annot_l_inp:
-  \<open>(uncurry2 replace_annot_wl, uncurry2 replace_annot_l) \<in>
-  Id \<times>\<^sub>f nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and>
-  literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
-  \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
-  literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
-  unfolding replace_annot_wl_def replace_annot_l_def uncurry_def
-  apply (intro frefI nres_relI)
-  apply clarify
-  apply refine_rcg
-  subgoal for a b aa ab ac ad ae af ba ag bb ah ai aj ak al am bc
-    by (force intro!: replace_annot_l_pre_replace_annot_wl_pre)
-  subgoal
-    by (rule RES_refine)
-      (force simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
-      all_lits_of_mm_union
-      correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
+definition cdcl_GC_clauses_prog_copy_wl_entry
+  :: \<open>'v clauses_l \<Rightarrow> 'v watched \<Rightarrow> 'v literal \<Rightarrow>
+  'v clauses_l \<Rightarrow> ('v clauses_l \<times> 'v clauses_l) nres\<close>
+  where
+  \<open>cdcl_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A N'. do {
+    let le = length W;
+    (i, N, N') \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N'). i < le)
+      (\<lambda>(i, N, N'). do {
+        ASSERT(i < length W);
+        let C = fst (W ! i);
+        if C \<in># dom_m N then do {
+           D \<leftarrow> SPEC(\<lambda>D. D \<notin># dom_m N' \<and> D \<noteq> 0);
+           RETURN (i+1, fmdrop C N, fmupd D (N \<propto> C, irred N C) N')
+        } else RETURN (i+1, N, N')
+       }) (0, N, N');
+    RETURN (N, N')
+   })\<close>
+ 
+lemma cdcl_GC_clauses_prog_copy_wl_entry:
+  fixes A :: \<open>'v literal\<close> and WS :: \<open>'v literal \<Rightarrow> 'v watched\<close>
+  defines [simp]: \<open>W \<equiv> WS A\<close>
+  assumes \<open>ran m0 \<subseteq> set_mset (dom_m N0') \<and>
+	  (\<forall>L\<in>dom m0. L \<notin># (dom_m N0)) \<and>
+	  set_mset (dom_m N0) \<subseteq> clauses_pointed_to (set_mset \<A>) WS \<and>
+          0 \<notin># dom_m N0'\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_copy_wl_entry N0 W A N0' \<le>
+      SPEC(\<lambda>(N, N'). (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, m0, N0') (N, m, N') \<and>
+	  ran m \<subseteq> set_mset (dom_m N') \<and>
+	  (\<forall>L\<in>dom m. L \<notin># (dom_m N)) \<and>
+	  set_mset (dom_m N) \<subseteq> clauses_pointed_to (set_mset (remove1_mset A \<A>)) WS) \<and>
+	  (\<forall>L \<in> set W. fst L \<notin># dom_m N) \<and>
+          0 \<notin># dom_m N')\<close>
+proof -
+  have [simp]:
+    \<open>x \<in># remove1_mset a (dom_m aaa) \<longleftrightarrow> x \<noteq> a \<and> x \<in># dom_m aaa\<close> for x a aaa
+    using distinct_mset_dom[of aaa]
+    by (cases \<open>a \<in># dom_m aaa\<close>)
+      (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+
+  show ?thesis
+    unfolding cdcl_GC_clauses_prog_copy_wl_entry_def
+    apply (refine_vcg
+      WHILET_rule[where I = \<open>\<lambda>(i, N, N'). \<exists>m. GC_remap\<^sup>*\<^sup>* (N0, m0, N0') (N, m, N') \<and>
+	  ran m \<subseteq> set_mset (dom_m N') \<and>
+	  (\<forall>L\<in>dom m. L \<notin># (dom_m N)) \<and>
+	  set_mset (dom_m N) \<subseteq> clauses_pointed_to (set_mset (remove1_mset A \<A>)) WS \<union>
+	    (fst) ` set (drop i W) \<and>
+	  (\<forall>L \<in> set (take i W). fst L \<notin># dom_m N) \<and>
+          0 \<notin># dom_m N'\<close> and
+	R = \<open>measure (\<lambda>(i, N, N'). length W -i)\<close>])
+    subgoal by auto
+    subgoal
+      using assms
+      by (cases \<open>A \<in># \<A>\<close>) (auto dest!: multi_member_split)
+    subgoal by auto
+    subgoal for s aa ba aaa baa x x1 x2 x1a x2a
+      apply clarify
+      apply (subgoal_tac \<open>(\<exists>m'. GC_remap (aaa, m, baa) (fmdrop (fst (W ! aa)) aaa, m',
+		fmupd x (the (fmlookup aaa (fst (W ! aa)))) baa) \<and>
+	  ran m' \<subseteq> set_mset (dom_m (fmupd x (the (fmlookup aaa (fst (W ! aa)))) baa)) \<and>
+    (\<forall>L\<in>dom m'. L \<notin># (dom_m (fmdrop (fst (W ! aa)) aaa)))) \<and>
+	  set_mset (dom_m (fmdrop (fst (W ! aa)) aaa)) \<subseteq>
+	    clauses_pointed_to (set_mset (remove1_mset A \<A>)) WS \<union>
+	     fst ` set (drop (Suc aa) W) \<and>
+	  (\<forall>L \<in> set (take (Suc aa) W). fst L \<notin># dom_m (fmdrop (fst (W ! aa)) aaa))\<close>)
+      apply (auto intro: rtranclp.rtrancl_into_rtrancl)[]
+      apply (auto simp: GC_remap.simps Cons_nth_drop_Suc[symmetric]
+          take_Suc_conv_app_nth
+        dest: multi_member_split)
+      apply (rule_tac x= \<open>m(fst (W ! aa) \<mapsto> x)\<close> in exI)
+      apply (intro conjI)
+      apply (rule_tac x=x in exI)
+        apply (rule_tac x= \<open>fst (W ! aa)\<close> in exI)
+        apply (force dest: rtranclp_GC_remap_ran_m_no_lost)
+       apply auto
+      by (smt basic_trans_rules(31) fun_upd_apply mem_Collect_eq option.simps(1) ran_def)
+    subgoal by auto
+    subgoal by (auto 5 5 simp: GC_remap.simps Cons_nth_drop_Suc[symmetric]
+          take_Suc_conv_app_nth
+        dest: multi_member_split)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition cdcl_GC_clauses_prog_single_wl
+  :: \<open>'v clauses_l \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v \<Rightarrow>
+         'v clauses_l \<Rightarrow> ('v clauses_l \<times> 'v clauses_l \<times> ('v literal \<Rightarrow> 'v watched)) nres\<close>
+where
+\<open>cdcl_GC_clauses_prog_single_wl = (\<lambda>N WS A N'. do {
+    L \<leftarrow> RES {Pos A, Neg A};
+    (N, N') \<leftarrow> cdcl_GC_clauses_prog_copy_wl_entry N (WS L) L N';
+    let WS = WS(L := []);
+    (N, N') \<leftarrow> cdcl_GC_clauses_prog_copy_wl_entry N (WS (-L)) (-L) N';
+    let WS = WS(-L := []);
+    RETURN (N, N', WS)
+  })\<close>
+
+lemma cdcl_GC_clauses_prog_single_wl_removed:
+  \<open>\<forall>L\<in>set (W (Pos A)). fst L \<notin># dom_m aaa \<Longrightarrow>
+       \<forall>L\<in>set (W (Neg A)). fst L \<notin># dom_m a \<Longrightarrow>
+       GC_remap\<^sup>*\<^sup>* (aaa, ma, baa) (a, mb, b) \<Longrightarrow>
+       set_mset (dom_m a) \<subseteq> clauses_pointed_to (set_mset (negs \<A> + poss \<A> - {#Neg A, Pos A#})) W \<Longrightarrow>
+       xa \<in># dom_m a \<Longrightarrow>
+       xa \<in> clauses_pointed_to (Neg ` set_mset (remove1_mset A \<A>) \<union> Pos ` set_mset (remove1_mset A \<A>))
+              (W(Pos A := [], Neg A := []))\<close>
+  \<open>\<forall>L\<in>set (W (Neg A)). fst L \<notin># dom_m aaa \<Longrightarrow>
+       \<forall>L\<in>set (W (Pos A)). fst L \<notin># dom_m a \<Longrightarrow>
+       GC_remap\<^sup>*\<^sup>* (aaa, ma, baa) (a, mb, b) \<Longrightarrow>
+       set_mset (dom_m a) \<subseteq> clauses_pointed_to (set_mset (negs \<A> + poss \<A> - {#Pos A, Neg A#})) W \<Longrightarrow>
+       xa \<in># dom_m a \<Longrightarrow>
+       xa \<in> clauses_pointed_to
+              (Neg ` set_mset (remove1_mset A \<A>) \<union> Pos ` set_mset (remove1_mset A \<A>))
+              (W(Neg A := [], Pos A := []))\<close>
+  supply poss_remove_Pos[simp] negs_remove_Neg[simp]
+  by (case_tac [!] \<open>A \<in># \<A>\<close>)
+    (fastforce simp: clauses_pointed_to_def
+      dest!: multi_member_split
+      dest: rtranclp_GC_remap_ran_m_no_lost)+
+
+lemma cdcl_GC_clauses_prog_single_wl:
+  fixes A :: \<open>'v\<close> and WS :: \<open>'v literal \<Rightarrow> 'v watched\<close> and
+    N0 :: \<open>'v clauses_l\<close>
+  assumes \<open>ran m \<subseteq> set_mset (dom_m N0') \<and>
+	  (\<forall>L\<in>dom m. L \<notin># (dom_m N0)) \<and>
+	  set_mset (dom_m N0) \<subseteq>
+	    clauses_pointed_to (set_mset (negs \<A> + poss \<A>)) W \<and>
+          0 \<notin># dom_m N0'\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_single_wl N0 W A N0' \<le>
+      SPEC(\<lambda>(N, N', WS'). \<exists>m'. GC_remap\<^sup>*\<^sup>* (N0, m, N0') (N, m', N') \<and>
+	  ran m' \<subseteq> set_mset (dom_m N') \<and>
+	  (\<forall>L\<in>dom m'. L \<notin># dom_m N) \<and>
+	  WS' (Pos A) = [] \<and> WS' (Neg A) = [] \<and>
+	  (\<forall>L. L \<noteq> Pos A \<longrightarrow> L \<noteq> Neg A \<longrightarrow> W L = WS' L) \<and>
+	  set_mset (dom_m N) \<subseteq>
+	    clauses_pointed_to
+	      (set_mset (negs (remove1_mset A \<A>) + poss (remove1_mset A \<A>))) WS' \<and>
+          0 \<notin># dom_m N'
+	  )\<close>
+proof -
+  have [simp]: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + poss \<A> - {#Neg A, Pos A#} =
+   negs \<A> + poss \<A>\<close>
+    by (induction \<A>) auto
+  have [simp]: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + poss \<A> - {#Pos A, Neg A#} =
+   negs \<A> + poss \<A>\<close>
+    by (induction \<A>)  auto
+  show ?thesis
+    unfolding cdcl_GC_clauses_prog_single_wl_def
+    apply (refine_vcg)
+    subgoal for x (*TODO proof*)
+      apply (rule order_trans, rule cdcl_GC_clauses_prog_copy_wl_entry[of _ _ _
+            \<open>negs \<A> + poss \<A>\<close>])
+       apply(solves \<open>use assms in auto\<close>)
+      apply (rule RES_rule)
+      apply (refine_vcg)
+      apply clarify
+      subgoal for aa ba aaa baa ma
+        apply (rule order_trans,
+            rule cdcl_GC_clauses_prog_copy_wl_entry[of ma _ _
+              \<open>remove1_mset x (negs \<A> + poss \<A>)\<close>])
+         apply (solves \<open>auto simp: clauses_pointed_to_remove1_if\<close>)[]
+        unfolding Let_def
+        apply (rule RES_rule)
+        apply clarsimp
+        apply (simp add: eq_commute[of \<open>Neg _\<close>]
+            uminus_lit_swap clauses_pointed_to_remove1_if)
+        apply auto
+         apply (rule_tac x=mb in exI)
+         apply (auto dest!:
+            simp: clauses_pointed_to_remove1_if
+            clauses_pointed_to_remove1_if2
+            clauses_pointed_to_remove1_if2_eq)
+         apply (subst (asm) clauses_pointed_to_remove1_if2_eq)
+          apply (force dest: rtranclp_GC_remap_ran_m_no_lost)
+         apply (auto intro!: cdcl_GC_clauses_prog_single_wl_removed)[]
+         apply (rule_tac x=mb in exI)
+         apply (auto dest: multi_member_split[of A]
+            simp: clauses_pointed_to_remove1_if
+            clauses_pointed_to_remove1_if2
+            clauses_pointed_to_remove1_if2_eq)
+         apply (subst (asm) clauses_pointed_to_remove1_if2_eq)
+          apply (force dest: rtranclp_GC_remap_ran_m_no_lost)
+        apply (auto intro!: cdcl_GC_clauses_prog_single_wl_removed)[]
+        done
+    done
+    done
+qed
+
+
+definition (in -)cdcl_GC_clauses_prog_wl_inv
+  :: \<open>'v multiset \<Rightarrow> 'v clauses_l \<Rightarrow>
+    'v multiset \<times> ('v clauses_l \<times> 'v clauses_l \<times> ('v literal \<Rightarrow> 'v watched)) \<Rightarrow> bool\<close>
+where
+\<open>cdcl_GC_clauses_prog_wl_inv \<A> N0 = (\<lambda>(\<B>, (N, N', WS)). \<B> \<subseteq># \<A> \<and>
+  (\<forall>A \<in> set_mset \<A> - set_mset \<B>. (WS (Pos A) = []) \<and> WS (Neg A) = []) \<and>
+  0 \<notin># dom_m N' \<and>
+  (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (N, m, N')\<and>
+      ran m \<subseteq> set_mset (dom_m N') \<and>
+      (\<forall>L\<in>dom m. L \<notin># dom_m N) \<and>
+      set_mset (dom_m N) \<subseteq> clauses_pointed_to (Neg ` set_mset \<B> \<union> Pos ` set_mset \<B>) WS))\<close>
+
+definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS). do {
+    ASSERT(cdcl_GC_clauses_pre_wl (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS));
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_init_atms_st (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)));
+    (_, (N, N', WS)) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>0\<^esup>
+      (\<lambda>(\<B>, _). \<B> \<noteq> {#})
+      (\<lambda>(\<B>, (N, N', WS)). do {
+        ASSERT(\<B> \<noteq> {#});
+        A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
+        (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_single_wl N WS A N';
+        RETURN (remove1_mset A \<B>, (N, N', WS))
+      })
+      (\<A>, (N\<^sub>0, fmempty, WS));
+    RETURN (M, N', D, NE, UE, NS, US, N0, U0, Q, WS)
+  })\<close>
+
+lemma no_lost_clause_in_WL_alt_def:
+  \<open>no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<longleftrightarrow>
+  set_mset (dom_m N\<^sub>0) \<subseteq> clauses_pointed_to
+  (Neg ` set_mset (all_init_atms N\<^sub>0 (NE+NS+N0)) \<union> Pos ` set_mset (all_init_atms N\<^sub>0 (NE+NS+N0))) WS\<close>
+proof -
+  have [simp]: \<open>set_mset (all_init_lits_of_wl ([], N\<^sub>0, D, NE, UE, NS, {#}, N0, U0, Q, WS)) =
+    (Neg ` set_mset (all_init_atms N\<^sub>0 (NE + NS + N0)) \<union> Pos ` set_mset (all_init_atms N\<^sub>0 (NE + NS + N0)))\<close>
+    unfolding all_init_lits_of_wl_def all_init_atms_def  image_image
+      all_lits_of_mm_def all_init_lits_def set_image_mset image_mset_union
+      sum_mset.union image_Un
+    by (auto simp add: image_image image_Un)
+  show ?thesis
+    unfolding no_lost_clause_in_WL_def
+    by auto
+qed
+
+lemma cdcl_GC_clauses_prog_wl:
+  assumes \<open>((M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
+    no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_wl (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<le>
+      (SPEC(\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
+         (M', D', NE', UE', NS', US', N0', U0', Q') = (M, D, NE, UE, NS, US, N0, U0, Q) \<and>
+         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N\<^sub>0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
+         0 \<notin># dom_m N' \<and> (\<forall>L \<in># all_init_lits N\<^sub>0 (NE+NS+N0). WS' L = [])))\<close>
+proof -
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding cdcl_GC_clauses_prog_wl_def
+    apply (refine_vcg
+      WHILEIT_rule[where R = \<open>measure (\<lambda>(\<A>::'v multiset, (_::'v clauses_l, _ ::'v clauses_l,
+          _:: 'v literal \<Rightarrow> 'v watched)). size \<A>)\<close>])
+    subgoal
+      using assms
+      unfolding cdcl_GC_clauses_pre_wl_def 
+      by blast
+    subgoal by auto
+    subgoal using assms unfolding cdcl_GC_clauses_prog_wl_inv_def no_lost_clause_in_WL_alt_def
+      by (auto simp: all_init_atms_st_def)
+    subgoal by auto
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x s aj bj ak bk al bl xa
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      apply clarify
+      apply (rule order_trans,
+         rule_tac m=m and \<A>=aj in cdcl_GC_clauses_prog_single_wl)
+      subgoal by (auto simp: all_init_atms_st_def)
+      subgoal
+        apply (rule RES_rule)
+        apply clarify
+        apply (rule RETURN_rule)
+        apply clarify
+        apply (intro conjI)
+             apply (solves auto)
+            apply (solves \<open>auto dest!: multi_member_split\<close>)
+           apply (solves auto)
+          apply (rule_tac x=m' in exI)
+          apply (solves \<open>auto\<close>)[]
+         apply (simp_all add: size_Diff1_less)[]
+        done
+      done
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by (intro ballI, rename_tac L, case_tac L)
+        (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_init_atms_def all_init_atms_st_def
+          simp del: all_init_atms_def[symmetric]
+          dest!: multi_member_split)
   done
-*)
+qed
+
+
+lemma cdcl_GC_clauses_prog_wl2:
+  assumes \<open>((M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
+    no_lost_clause_in_WL  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
+  \<open>N\<^sub>0 = N\<^sub>0'\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_wl (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<le> \<Down> Id
+      (SPEC(\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
+         (M', D', NE', UE', NS', US', N0', U0', Q') = (M, D, NE, UE, NS, US, N0, U0, Q) \<and>
+         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N\<^sub>0', (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
+         0 \<notin># dom_m N' \<and> (\<forall>L \<in># all_init_lits N\<^sub>0 (NE+NS+N0). WS' L = [])))\<close>
+proof -
+  show ?thesis
+    unfolding \<open>N\<^sub>0 = N\<^sub>0'\<close>[symmetric]
+    apply (rule order_trans[OF cdcl_GC_clauses_prog_wl[OF assms(1)]])
+    apply (rule RES_refine)
+    apply (fastforce dest: rtranclp_GC_remap_all_init_lits)
+    done
+qed
 
 end
