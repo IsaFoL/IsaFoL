@@ -8,6 +8,11 @@
 
 Remark that a similar version (with fewer variants) is now in Isabelle in the theory
 "HOL-ex.Sketch_and_Explore".
+
+CHANGES:
+  - `setup Explorer_Lib.switch_to_<quote_type>` was replaced by 
+    `declare [[explorer_delim = "<quote_type>"]]` (suggestion by Lukas Stevens)
+
 *)
 
 theory Explorer
@@ -36,45 +41,22 @@ ML \<open>
 signature EXPLORER_LIB =
 sig
   datatype explorer_quote = QUOTES | GUILLEMOTS
-  val set_default_raw_param: theory -> theory
-  val default_raw_params: theory -> string * explorer_quote
-  val switch_to_cartouches: theory -> theory
-  val switch_to_quotes: theory -> theory
+  val type_of_quotes: theory -> explorer_quote
 end
 
 structure Explorer_Lib : EXPLORER_LIB =
 struct
-  datatype explorer_quote = QUOTES | GUILLEMOTS
-  type raw_param = string * explorer_quote
-  val default_params = ("explorer_quotes", QUOTES)
 
-structure Data = Theory_Data
-(
-  type T = raw_param list
-  val empty = single default_params
-  val extend = I
-  fun merge data : T = AList.merge (op =) (K true) data
-)
+datatype explorer_quote = QUOTES | GUILLEMOTS
 
-fun set_default_raw_param thy =
-    thy |> Data.map (AList.update (op =) default_params)
+val explorer_string = Attrib.setup_config_string \<^binding>\<open>explorer_delim\<close> (K "cartouches")
 
-fun switch_to_quotes thy =
-   thy |> Data.map (AList.update (op =) ("explorer_quotes", QUOTES))
-
-fun switch_to_cartouches thy =
-   thy |> Data.map (AList.update (op =) ("explorer_quotes", GUILLEMOTS))
-
-fun default_raw_params thy =
-  Data.get thy |> hd
+fun type_of_quotes thy =
+  (case Config.get_global thy explorer_string of
+    "cartouches" => GUILLEMOTS
+  | "quotes" => QUOTES)
 
 end
-\<close>
-
-setup Explorer_Lib.set_default_raw_param
-
-ML \<open>
-  Explorer_Lib.default_raw_params @{theory}
 \<close>
 
 ML \<open>
@@ -377,7 +359,7 @@ fun maybe_quote_with keywords quote y =
 fun explore aim st =
   let
     val thy = Toplevel.theory_of st
-    val quote_type = Explorer_Lib.default_raw_params thy |> snd
+    val quote_type = Explorer_Lib.type_of_quotes thy
     val ctxt = Toplevel.presentation_context st
     val enclosure =
       (case quote_type of
@@ -442,7 +424,8 @@ val _ =
 subsection \<open>Examples\<close>
 
 text \<open>You can choose cartouches\<close>
-setup Explorer_Lib.switch_to_cartouches
+declare [[explorer_delim = "cartouches"]]
+
 lemma
   "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
   apply (induct xs)
@@ -527,7 +510,7 @@ lemma
 
 text \<open>You can also choose quotes\<close>
 
-setup Explorer_Lib.switch_to_quotes
+declare [[explorer_delim = "quotes"]]
 
 lemma
   "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
@@ -541,7 +524,8 @@ lemma
 
 
 text \<open>And switch back\<close>
-setup Explorer_Lib.switch_to_cartouches
+
+declare [[explorer_delim = "cartouches"]]
 
 lemma
   "distinct xs \<Longrightarrow> P xs \<Longrightarrow> sh \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
