@@ -1,23 +1,30 @@
 (* Title: Explorer
-   Initial author: Florian Haftmann
-   Initial author: Fabian Immler
-   Maintainer: Mathias Fleury
+   Initial author: Florian Haftmann (TUM)
+   Initial author: Fabian Immler (TUM)
+   Contributors: Simon Wimmer (TUM)
+   Maintainer: Mathias Fleury (MPI-INF, JKU)
    License: ?
    From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
    Link: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
 
 Remark that a similar version (with fewer variants) is now in Isabelle in the theory
 "HOL-ex.Sketch_and_Explore".
-
-CHANGES:
-  - `setup Explorer_Lib.switch_to_<quote_type>` was replaced by 
-    `declare [[explorer_delim = "<quote_type>"]]` (suggestion by Lukas Stevens)
-
 *)
+text \<open>
+CHANGES:
+ \<^item> \<^text>\<open>setup Explorer_Lib.switch_to_<quote_type>\<close> was replaced by 
+   \<^text>\<open>declare [[explorer_delim = "<quote_type>"]]\<close> (suggestion by Lukas Stevens to simplify
+  the code)
+
+NEWS:
+ \<^item> added \<^text>\<open>explore_subgoal\<close>, contributed by Simon Wimmer (his original file:
+  \<^url>\<open>https://github.com/wimmers/explore-subgoal/blob/main/Explorer.thy\<close>, Zulip discussion on
+  \<^url>\<open>https://isabelle.zulipchat.com/#narrow/stream/202961-General/topic/turn.20subgoal.20into.20Isar.20style.20statement/near/235190160\<close>)
+\<close>
 
 theory Explorer
 imports Main
-keywords "explore" "explore_have" "explore_lemma" "explore_context" :: diag
+keywords "explore" "explore_have" "explore_lemma" "explore_context" "explore_subgoal" :: diag
 begin
 
 
@@ -27,7 +34,7 @@ text \<open>This theory contains the definition of four tactics that work on goa
 and put them in an Isar proof:
   \<^item> \<open>explore\<close> generates an assume-show proof block
   \<^item> \<open>explore_have\<close> generates an have-if-for block
-  \<^item> \<open>lemma\<close> generates a lemma-fixes-assumes-shows block
+  \<^item> \<open>explore_lemma\<close> generates a lemma-fixes-assumes-shows block
   \<^item> \<open>explore_context\<close> is mostly meaningful on several goals: it combines assumptions and variables
     between the goals to generate a context-fixes-begin-end bloc with lemmas in the middle. This
     tactic is mostly useful when a lot of assumption and proof steps would be shared.
@@ -63,13 +70,13 @@ ML \<open>
 
 signature EXPLORER =
 sig
-  datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
+  datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT | SUBGOAL
   val explore: explore_kind -> Toplevel.state -> Proof.state
 end
 
 structure Explorer: EXPLORER =
 struct
-datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
+datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT | SUBGOAL
 
 fun split_clause t =
   let
@@ -95,6 +102,24 @@ fun keyword_assume HAVE_IF =       "  if "
 fun keyword_goal HAVE_IF =        ""
   | keyword_goal ASSUME_SHOW =    "  show "
   | keyword_goal ASSUMES_SHOWS =  "  shows "
+
+fun subgoal_text ctxt aim enclosure (fixes, _, _) =
+  let
+    val kw_subgoal = "subgoal"
+    val kw_premises = "premises prems"
+    val kw_fix = "for"
+    val kw_goal = "using prems apply -"
+    val kw_sorry = "sorry"
+    val fixes_s = if null fixes then ""
+      else kw_fix ^ " " ^ space_implode " "
+        (map (fn (v, _) => v) fixes)
+    val lines = map (space_implode " ")
+      [
+        [kw_subgoal, kw_premises] @ (if fixes_s = "" then [] else [fixes_s]),
+        [kw_goal],
+        [kw_sorry]
+      ]
+    in space_implode "\n  " lines end;
 
 fun isar_skeleton ctxt aim enclosure (fixes, assms, shows) =
   let
@@ -149,7 +174,11 @@ fun generate_text ASSUME_SHOW context enclosure clauses =
       val raw_lines_with_lemma_and_proof_body = map treat_line raw_lines
     in
       separate "\n" raw_lines_with_lemma_and_proof_body
-    end;
+    end
+ | generate_text SUBGOAL context enclosure clauses =
+   let
+     val lines = map (subgoal_text context SUBGOAL enclosure) clauses
+   in (separate "" lines @ ["done"]) end;
 
 
 datatype proof_step = ASSUMPTION of term | FIXES of (string * typ) | GOAL of term
@@ -418,6 +447,14 @@ val _ =
   Outer_Syntax.command @{command_keyword "explore_context"}
     "explore current goal state as Isar proof with context and lemmas"
     (Scan.succeed explore_ctxt_cmd)
+
+val explore_subgoal_cmd =
+  Toplevel.keep_proof (K () o Explorer.explore Explorer.SUBGOAL)
+
+val _ =
+  Outer_Syntax.command @{command_keyword "explore_subgoal"}
+    "explore current goal state as apply-style subgoals"
+    (Scan.succeed explore_subgoal_cmd)
 \<close>
 
 
@@ -491,6 +528,17 @@ proof -
   show ?thesis sorry
 qed
  *)
+  explore_subgoal
+(*
+subgoal premises prems
+  using prems apply -
+  sorry
+
+subgoal premises prems for a xs
+  using prems apply -
+  sorry
+done
+*)
   oops
 
 lemma
@@ -520,6 +568,7 @@ lemma
   explore
   explore_have
   explore_lemma
+  explore_subgoal
   oops
 
 
@@ -535,6 +584,7 @@ lemma
   explore
   explore_have
   explore_lemma
+  explore_subgoal
   oops
 
 end
