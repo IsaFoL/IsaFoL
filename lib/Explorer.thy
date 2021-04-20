@@ -1,7 +1,7 @@
 (* Title: Explorer
    Initial author: Florian Haftmann (TUM)
    Initial author: Fabian Immler (TUM)
-   Contributors: Simon Wimmer (TUM)
+   Contributors: Simon Wimmer (AU)
    Maintainer: Mathias Fleury (MPI-INF, JKU)
    License: ?
    From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
