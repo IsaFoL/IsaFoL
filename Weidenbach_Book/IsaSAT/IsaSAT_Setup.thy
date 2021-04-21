@@ -1373,4 +1373,10 @@ subsection \<open>Lifting of Options\<close>
 definition get_target_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts_target\<close> where
   \<open>get_target_opts S = opts_target (get_opts S)\<close>
 
+definition get_GC_units_opt :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_GC_units_opt S = opts_GC_units_lim (get_opts S)\<close>
+
+definition units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>units_since_last_GC_st S = units_since_last_GC (get_stats_heur S)\<close>
+
 end
