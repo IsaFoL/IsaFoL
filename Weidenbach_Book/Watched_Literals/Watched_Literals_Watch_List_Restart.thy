@@ -133,10 +133,22 @@ lemma correct_watching'_correct_watching'': \<open>correct_watching' S \<Longrig
 
 declare correct_watching'.simps[simp del] correct_watching''.simps[simp del]
 
+text \<open>Now comes a weaker version of the invariants on watch lists: instead of knowing that
+  the watch lists are correct, we only know that the clauses appear somewhere in the watch lists.
+  From a conceptual point of view, this is sufficient to specify all operations, but this is not
+  sufficient to derive bounds on the length. Hence, we also add the invariants that each watch list
+  does not contain duplicates.
+\<close>
 definition no_lost_clause_in_WL :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>no_lost_clause_in_WL S \<equiv>
   set_mset (dom_m (get_clauses_wl S))
-    \<subseteq> clauses_pointed_to (set_mset (all_init_lits_of_wl S)) (get_watched_wl S)\<close>
+    \<subseteq> clauses_pointed_to (set_mset (all_init_lits_of_wl S)) (get_watched_wl S) \<and>
+  (\<forall>L\<in># all_init_lits_of_wl S. distinct_watched (watched_by S L))\<close>
+
+definition no_lost_clause_in_WL0 :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>no_lost_clause_in_WL0 S \<equiv>
+  set_mset (dom_m (get_clauses_wl S))
+  \<subseteq> clauses_pointed_to (set_mset (all_init_lits_of_wl S)) (get_watched_wl S)\<close>
 
 
 definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
@@ -268,7 +280,6 @@ lemma correct_watching''_clauses_pointed_to0:
     (is ?G1 is \<open>_ \<subseteq> ?A\<close>) and
     \<open>no_lost_clause_in_WL xa\<close> (is ?G2)
 proof -
-
   let ?\<A> = \<open>all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)\<close>
   show ?G1
   proof
@@ -337,6 +348,16 @@ proof -
     by (auto simp: all_init_atms_def all_init_lits_def all_lits_of_mm_def image_image
       image_Un
       simp del: all_init_atms_def[symmetric]) 
+  moreover have \<open>distinct_watched (watched_by xa (Pos L))\<close>
+    \<open>distinct_watched (watched_by xa (Neg L))\<close>
+    if \<open>L \<in># all_init_atms_st xa\<close> for L
+    using that corr
+    by (cases xa;
+        auto simp: correct_watching''.simps all_init_lits_of_wl_def all_init_atms_def
+        all_lits_of_mm_union all_init_lits_def all_init_atms_st_def literal.atm_of_def
+        in_all_lits_of_mm_uminus_iff[symmetric, of \<open>Pos _\<close>]
+        simp del: all_init_atms_def[symmetric]
+        split: literal.splits; fail)+
   ultimately show ?G2
     unfolding no_lost_clause_in_WL_def
     by (auto simp del: all_init_atms_def[symmetric]) 
