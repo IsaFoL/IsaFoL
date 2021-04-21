@@ -1277,7 +1277,17 @@ proof -
       all_lits_of_mm_def all_init_atms_st_def all_init_atms_def
     by (auto simp: all_init_atms_def all_init_lits_def all_lits_of_mm_def image_image
       image_Un
-      simp del: all_init_atms_def[symmetric]) 
+      simp del: all_init_atms_def[symmetric])
+  moreover have \<open>distinct_watched (watched_by xa (Pos L))\<close>
+    \<open>distinct_watched (watched_by xa (Neg L))\<close>
+    if \<open>L \<in># all_init_atms_st xa\<close> for L
+    using that corr
+    by (cases xa;
+      auto simp: correct_watching''.simps all_init_lits_of_wl_def all_init_atms_def
+      all_lits_of_mm_union all_init_lits_def all_init_atms_st_def literal.atm_of_def
+      in_all_lits_of_mm_uminus_iff[symmetric, of \<open>Pos _\<close>]
+      simp del: all_init_atms_def[symmetric]
+      split: literal.splits; fail)+
   ultimately show ?G2
     unfolding no_lost_clause_in_WL_def
     by (auto simp del: all_init_atms_def[symmetric]) 
@@ -1505,8 +1515,12 @@ definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_s
     RETURN (M, N', D, NE, UE, NS, US, N0, U0, Q, WS)
   })\<close>
 
+lemma no_lost_clause_in_WL_no_lost_clause_in_WL0D:
+  \<open>no_lost_clause_in_WL S \<Longrightarrow> no_lost_clause_in_WL0 S\<close>
+  by (auto simp: no_lost_clause_in_WL_def no_lost_clause_in_WL0_def)
+
 lemma no_lost_clause_in_WL_alt_def:
-  \<open>no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<longleftrightarrow>
+  \<open>no_lost_clause_in_WL0 (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<longleftrightarrow>
   set_mset (dom_m N\<^sub>0) \<subseteq> clauses_pointed_to
   (Neg ` set_mset (all_init_atms N\<^sub>0 (NE+NS+N0)) \<union> Pos ` set_mset (all_init_atms N\<^sub>0 (NE+NS+N0))) WS\<close>
 proof -
@@ -1517,7 +1531,7 @@ proof -
       sum_mset.union image_Un
     by (auto simp add: image_image image_Un)
   show ?thesis
-    unfolding no_lost_clause_in_WL_def
+    unfolding no_lost_clause_in_WL0_def
     by auto
 qed
 
@@ -1544,7 +1558,9 @@ proof -
       unfolding cdcl_GC_clauses_pre_wl_def 
       by blast
     subgoal by auto
-    subgoal using assms unfolding cdcl_GC_clauses_prog_wl_inv_def no_lost_clause_in_WL_alt_def
+    subgoal using assms
+      no_lost_clause_in_WL_no_lost_clause_in_WL0D[of \<open>(M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>, unfolded no_lost_clause_in_WL_alt_def]
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
       by (auto simp: all_init_atms_st_def)
     subgoal by auto
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x s aj bj ak bk al bl xa

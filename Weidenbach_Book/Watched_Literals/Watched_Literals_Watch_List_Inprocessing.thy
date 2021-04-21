@@ -106,8 +106,33 @@ proof -
       intro!: image_mset_cong2 filter_mset_cong2)
     apply (metis fmdrop_eq_update_eq fmupd_lookup union_single_eq_member)
     by (metis add_mset_remove_trivial dom_m_fmdrop)
-   have [simp]: \<open>mset a \<subseteq># mset b \<Longrightarrow> length a= 1 \<Longrightarrow> a ! 0 \<in> set b\<close> for a b
+  have [simp]: \<open>mset a \<subseteq># mset b \<Longrightarrow> length a= 1 \<Longrightarrow> a ! 0 \<in> set b\<close> for a b
      by (cases a, auto)
+   have K1: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     irred b j \<Longrightarrow>
+     j \<in># dom_m b \<Longrightarrow>
+     L \<in># all_lits_of_m (mset (b \<propto> j)) \<Longrightarrow> distinct_watched (k L)\<close> for b d f h k j L
+     by (auto simp: ran_m_def all_lits_of_mm_add_mset dest!: multi_member_split)
+   have K2: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     irred b j \<Longrightarrow>
+     j \<in># dom_m b \<Longrightarrow>
+     mset C \<subseteq># mset (b \<propto> j) \<Longrightarrow>
+     length C = Suc 0 \<Longrightarrow>
+     L \<in># all_lits_of_m ({#C!0#}) \<Longrightarrow> distinct_watched (k L)\<close> for b d f h k j L C
+     using all_lits_of_m_mono[of \<open>mset C\<close> \<open>mset (b \<propto> j)\<close>]
+      all_lits_of_m_mono[of \<open>{#C!0#}\<close> \<open>mset C\<close>]
+     by (auto simp: ran_m_def all_lits_of_mm_add_mset dest!: multi_member_split[of _ \<open>dom_m _\<close>])
+   have K3: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     L \<in># all_lits_of_mm ({#mset (fst x). x \<in># remove1_mset (the (fmlookup b j)) (init_clss_l b)#} + d + f + h) \<Longrightarrow>
+     distinct_watched (k L)\<close> for b d f h k j L C
+     by (cases \<open>j \<in># dom_m b\<close>; cases \<open>irred b j\<close>)
+      (auto  dest!: multi_member_split[of _ \<open>dom_m _\<close>] simp: ran_m_def
+         all_lits_of_mm_union all_lits_of_mm_add_mset image_mset_remove1_mset_if
+       split: if_splits)
+        
   show ?thesis
     supply [[goals_limit=1]]
     using ST point
@@ -132,10 +157,13 @@ proof -
       subgoal apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev add_mset_commute
         no_lost_clause_in_WL_def
-        dest: in_diffD)
+        dest: in_diffD
+        intro:)
         apply (subst add_mset_commute)
-        by (auto simp: all_lits_of_mm_add_mset clauses_pointed_to_union
+        apply (auto simp: all_lits_of_mm_add_mset clauses_pointed_to_union
           dest: in_diffD)
+        apply (metis K1 K2 K3)+
+        done
       subgoal by auto
       subgoal by (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev all_lits_of_mm_add_mset
@@ -149,7 +177,8 @@ proof -
         dest: in_diffD
           intro: )
         apply (metis (no_types, lifting) basic_trans_rules(31) dom_m_fmdrop insert_DiffM) 
-        by (metis (no_types, lifting) basic_trans_rules(31) dom_m_fmdrop init_clss_l_fmdrop_irrelev insert_DiffM)
+        apply (metis (no_types, lifting) basic_trans_rules(31) dom_m_fmdrop init_clss_l_fmdrop_irrelev insert_DiffM)
+        by (metis init_clss_l_fmdrop_irrelev)
       done
 qed
 
