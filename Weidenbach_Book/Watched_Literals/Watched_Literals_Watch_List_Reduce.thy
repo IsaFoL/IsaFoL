@@ -1537,9 +1537,9 @@ qed
 
 lemma cdcl_GC_clauses_prog_wl:
   assumes \<open>((M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS), S) \<in> state_wl_l None \<and>
-    correct_watching'' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
-    no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
+    no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
+    cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<le>
       (SPEC(\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
@@ -1604,9 +1604,9 @@ qed
 
 lemma cdcl_GC_clauses_prog_wl2:
   assumes \<open>((M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS), S) \<in> state_wl_l None \<and>
-    correct_watching'' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
-    no_lost_clause_in_WL  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
+    no_lost_clause_in_WL (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<and>
+    cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS)\<close>
   \<open>N\<^sub>0 = N\<^sub>0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, WS) \<le> \<Down> Id
