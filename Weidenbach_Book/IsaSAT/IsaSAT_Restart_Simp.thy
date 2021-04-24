@@ -1,4 +1,4 @@
-theory IsaSAT_Restart
+theory IsaSAT_Restart_Simp
   imports IsaSAT_Restart_Heuristics IsaSAT_Other IsaSAT_Propagate_Conflict
 begin
 
