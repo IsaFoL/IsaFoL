@@ -949,7 +949,7 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
   \<open>simplify_clause_with_unit = (\<lambda>C M N. do {
   SPEC(\<lambda>(b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and> C \<in># dom_m N' \<and>
      (\<not>b \<longrightarrow> (\<forall>L \<in># mset (N' \<propto> C). undefined_lit M L)) \<and>
-     (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). -L \<in> lits_of_l M) \<and>
+     (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
      (irred N C = irred N' C) \<and>
      (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)))
   })\<close>
@@ -957,13 +957,13 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>simplify_clause_with_unit_st_pre = (\<lambda>C S.
     C \<in># dom_m (get_clauses_l S) \<and> count_decided (get_trail_l S) = 0 \<and> get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
-    C \<notin> set (get_all_mark_of_propagated (get_trail_l S)) \<and>
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T)
 )\<close>
 
 definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>simplify_clause_with_unit_st = (\<lambda>C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q). do {
-    ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None \<and> WS = {#});
+    ASSERT(simplify_clause_with_unit_st_pre C  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q));
+    ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None \<and> WS = {#} \<and> no_dup M);
     if C \<in> set (get_all_mark_of_propagated M)
     then RETURN (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q)
     else do {
@@ -985,8 +985,9 @@ definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l 
     }
      })\<close>
 
+(*TODO Move*)
 lemma true_clss_clss_def_more_atms:
-  "N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> N' \<union> N'') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')"
+  \<open>N \<Turnstile>ps N' \<longleftrightarrow> (\<forall>I. total_over_m I (N \<union> N' \<union> N'') \<longrightarrow> consistent_interp I \<longrightarrow> I \<Turnstile>s N \<longrightarrow> I \<Turnstile>s N')\<close>
   (is \<open>?A \<longleftrightarrow> ?B\<close>)
 proof (rule iffI)
   assume ?A
@@ -1040,7 +1041,8 @@ lemma
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
     dec: \<open>count_decided (get_trail_l S) = 0\<close> and
-    false: \<open>\<forall>L \<in># C'. -L \<in> lits_of_l (get_trail_l S)\<close> and
+    false: \<open>\<forall>L \<in># C'. \<not>undefined_lit (get_trail_l S) L\<close>
+      \<open>\<forall>L \<in># C'. L \<notin> lits_of_l (get_trail_l S)\<close> and
     ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T)\<close>
   shows cdcl_twl_unitres_l_intros2':
       \<open>irred N D \<Longrightarrow> undefined_lit M K \<Longrightarrow> mset (N \<propto> D) = {#K#} +C' \<Longrightarrow>
@@ -1083,9 +1085,11 @@ proof -
     (get_all_ann_decomposition (trail ((state\<^sub>W_of T))))\<close> and
     alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close> and
     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of T)\<close> and
-    tauto: \<open>\<forall>s\<in>#learned_clss (state\<^sub>W_of T). \<not> tautology s\<close>
+    tauto: \<open>\<forall>s\<in>#learned_clss (state\<^sub>W_of T). \<not> tautology s\<close> and
+    nd: \<open>no_dup (trail (state_of (pstate\<^sub>W_of T)))\<close>
     using st_invs unfolding twl_struct_invs_def unfolding pcdcl_all_struct_invs_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def state\<^sub>W_of_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def state\<^sub>W_of_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by fast+
   moreover have \<open>(\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m b \<and> snd a} \<union> set_mset d \<union> f \<union> h \<union> U\<Turnstile>ps
        unmark_l aa \<Longrightarrow>
@@ -1097,6 +1101,9 @@ proof -
     by (smt in_unmark_l_in_lits_of_l_iff list_of_l_convert_lits_l
       true_clss_clss_in_imp_true_clss_cls true_clss_clss_left_right
       true_clss_clss_union_and)
+  moreover have false: \<open>\<forall>L \<in># C'. -L \<in> lits_of_l (get_trail_l S)\<close>
+    using false nd by (auto dest!: multi_member_split
+      simp: Decided_Propagated_in_iff_in_lits_of_l)
   ultimately show ent2: \<open>(mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S + get_subsumed_init_clauses_l S + get_init_clauses0_l S) \<Turnstile>psm mset_set (CNot C')\<close>
     using dec ST false ent
     by (cases S; cases T)
@@ -1235,10 +1242,16 @@ proof -
     using assms
     unfolding simplify_clause_with_unit_st_def simplify_clause_with_unit_def
     apply refine_vcg
+    subgoal using assms unfolding simplify_clause_with_unit_st_pre_def
+      apply (intro conjI)
+      apply (simp; fail)+
+      apply (rule exI[of _ T], simp)
+      done
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using n_d by simp
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -1255,7 +1268,9 @@ proof -
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
       using ST st_invs apply -
       apply (rule disjI2, rule disjI1)
-      apply (auto simp: length_list_Suc_0 cdcl_twl_unitres_l_intros2' cdcl_twl_unitres_l_intros4'
+      apply (auto simp: length_list_Suc_0
+        dest: in_diffD
+        intro!: cdcl_twl_unitres_l_intros2' cdcl_twl_unitres_l_intros4'
         intro:  cdcl_twl_unitres_l_intros2'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
         and T = T]
         cdcl_twl_unitres_l_intros4'[where C' = \<open>mset (get_clauses_l S \<propto> C) - mset (bj \<propto> C)\<close>
