@@ -193,4 +193,37 @@ sepref_def get_target_opts_impl
   unfolding get_target_opts_def
   by sepref
 
+sepref_register print_literal_of_trail
+    print_trail print_trail_st print_trail_st2
+
+sepref_def print_encoded_lit_code
+  is print_literal_of_trail
+  :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_literal_of_trail_def
+  by sepref
+
+
+sepref_def print_trail_code
+  is \<open>print_trail\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_trail_def trail_pol_fast_assn_def
+  apply (rewrite at \<open>print_literal_of_trail \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemmas print_trail[sepref_fr_rules] =
+  print_trail_code.refine[FCOMP print_trail_print_trail2_rel[unfolded convert_fref],
+  unfolded trail_pol_fast_assn_def]
+sepref_register print_trail2
+
+sepref_def print_trail_st_code
+  is \<open>print_trail_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_trail_st_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  print_trail_st_code.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
+
 end

@@ -310,6 +310,10 @@ void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
 #endif
 }
 
+void IsaSAT_Stats_LLVM_print_encoded_lit_code(uint32_t lit) {
+  printf("v %d \n", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
+}
+
 _Bool has_suffix (const char * str, const char * suffix) {
   size_t k = strlen (str), l = strlen (suffix);
   return k > l && !strcmp (str + k - l, suffix);

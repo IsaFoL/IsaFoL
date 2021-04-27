@@ -60,31 +60,35 @@ definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, clvls, cach, lbd,
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((MM'), N', D', j, W', vm, clvls, cach, lbd,
     outl, stats,
     heur, vdom, avdom, lcount, opts, old_arena).
-     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
+    do {_ \<leftarrow> print_trail2 (MM');
+        (M,M') \<leftarrow> RETURN MM';
+        mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;
         RETURN (False, M, stats)
      })\<close>
-  by (auto simp: extract_model_of_state_stat_def mop_free_def intro!: ext)
+  by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def
+    intro!: ext)
 
 sepref_def extract_model_of_state_stat
   is \<open>RETURN o extract_model_of_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]]
   unfolding extract_model_of_state_stat_alt_def isasat_bounded_assn_def
-   trail_pol_fast_assn_def
+    trail_pol_fast_assn_def
   by sepref
 
 lemma extract_state_stat_alt_def:
   \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats,
        heur,
        vdom, avdom, lcount, opts, old_arena).
-     do {mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
+     do { 
+        mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
@@ -450,7 +454,7 @@ begin
                struct {int32_t dec_lev;
                 CONTROL_STACK cs;};};};};} TRAIL;
   \<close>
-  file \<open>code/isasat_restart.ll\<close>
+  file \<open>code/src/isasat_restart.ll\<close>
 
 end
 

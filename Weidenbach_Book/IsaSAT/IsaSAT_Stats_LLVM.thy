@@ -1,7 +1,8 @@
 theory IsaSAT_Stats_LLVM
 imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM
 begin
-  abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
+
+abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
      \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
 
@@ -305,5 +306,11 @@ sepref_def clss_size_incr_lcount_fast_code
 schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
   unfolding heuristic_assn_def
   by synthesize_free
+
+sepref_def print_encoded_lit_code
+  is print_literal_of_trail
+  :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_literal_of_trail_def
+  by sepref
 
 end

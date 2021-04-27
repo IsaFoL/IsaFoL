@@ -2,6 +2,7 @@ theory IsaSAT_Stats
   imports IsaSAT_Literals IsaSAT_EMA IsaSAT_Rephase IsaSAT_Reluctant
 begin
 
+
 section \<open>Statistics\<close>
 
 text \<open>
@@ -310,5 +311,63 @@ lemma [simp]:
   by (auto simp: clss_size_lcountU0_def clss_size_decr_lcount_def clss_size_incr_lcountUE_def
       clss_size_incr_lcountUS_def clss_size_incr_lcountU0_def
     split: prod.splits)
+
+definition print_literal_of_trail where
+  \<open>print_literal_of_trail _ = RETURN ()\<close>
+
+definition print_trail where
+  \<open>print_trail = (\<lambda>(M, _). do {
+  i \<leftarrow> WHILE\<^sub>T(\<lambda>i. i < length M)
+  (\<lambda>i. do {
+  ASSERT(i < length M);
+  print_literal_of_trail (M!i);
+  RETURN (i+1)})
+  0;
+  print_literal_of_trail (0 :: nat);
+  RETURN ()
+  })\<close>
+
+definition print_trail2 where
+  \<open>print_trail2 = (\<lambda>(M, _). RETURN ())\<close>
+
+lemma print_trail_print_trail2:
+  \<open>(M,M')\<in>Id \<Longrightarrow> print_trail M \<le> \<Down> Id (print_trail2 M')\<close>
+  unfolding print_trail_def print_trail2_def
+  apply (refine_vcg WHILET_rule[where 
+    R = \<open>measure (\<lambda>i. Suc (length (fst M)) - i)\<close> and
+    I = \<open>\<lambda>i. i \<le> length (fst M)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  done
+
+lemma print_trail_print_trail2_rel:
+  \<open>(print_trail, print_trail2) \<in> Id \<rightarrow>\<^sub>f \<langle>unit_rel\<rangle>nres_rel\<close>
+  using print_trail_print_trail2 by (fastforce intro: frefI nres_relI)
+
+
+definition print_trail_st where
+  \<open>print_trail_st = (\<lambda>(M, _). print_trail M)\<close>
+
+definition print_trail_st2 where
+  \<open>print_trail_st2 _ = ()\<close>
+
+lemma print_trail_st_print_trail_st2:
+  \<open>print_trail_st S \<le> \<Down>unit_rel (RETURN (print_trail_st2 S))\<close>
+  unfolding print_trail_st2_def print_trail_st_def
+    print_trail_def
+  apply (refine_vcg WHILET_rule[where 
+       R = \<open>measure (\<lambda>i. Suc (length (fst (fst S))) - i)\<close> and
+       I = \<open>\<lambda>i. i \<le> length (fst (fst S))\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  done
+
+lemma print_trail_st_print_trail_st2_rel:
+  \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
+  using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
 
 end

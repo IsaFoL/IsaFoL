@@ -1852,6 +1852,14 @@ definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bo
      (False, (fst (get_trail_wl_heur U)),
        (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). stat) U)\<close>
 
+lemma extract_model_of_state_stat_alt_def:
+  \<open>extract_model_of_state_stat U =
+     (let _ = print_trail_st2 U in
+     (False, (fst (get_trail_wl_heur U)),
+       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). stat) U))\<close>
+  unfolding extract_model_of_state_stat_def print_trail_st2_def
+  by auto
+
 definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_state_stat U =
      (True, [],
