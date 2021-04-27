@@ -310,7 +310,14 @@ void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
 #endif
 }
 
-void IsaSAT_Stats_LLVM_print_encoded_lit_code(uint32_t lit) {
+void IsaSAT_Setup3_LLVM_print_encoded_lit_code(uint32_t lit) {
+  printf("v %d \n", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
+}
+void IsaSAT_Setup3_LLVM_print_encoded_lit_end_code(uint32_t lit) {
+  printf("v %d \n", lit);
+}
+
+void IsaSAT_Setup3_LLVM_print_literal_of_trail_code(uint32_t lit) {
   printf("v %d \n", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
 }
 

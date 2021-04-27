@@ -307,10 +307,4 @@ schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE h
   unfolding heuristic_assn_def
   by synthesize_free
 
-sepref_def print_encoded_lit_code
-  is print_literal_of_trail
-  :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
-  unfolding print_literal_of_trail_def
-  by sepref
-
 end

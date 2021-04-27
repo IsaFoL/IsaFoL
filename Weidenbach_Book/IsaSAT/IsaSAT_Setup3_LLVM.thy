@@ -196,18 +196,23 @@ sepref_def get_target_opts_impl
 sepref_register print_literal_of_trail
     print_trail print_trail_st print_trail_st2
 
-sepref_def print_encoded_lit_code
+sepref_def print_literal_of_trail_code
   is print_literal_of_trail
   :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
   unfolding print_literal_of_trail_def
   by sepref
 
+sepref_def print_encoded_lit_end_code
+  is print_literal_of_trail
+  :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_literal_of_trail_def
+  by sepref
 
 sepref_def print_trail_code
   is \<open>print_trail\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
   unfolding print_trail_def trail_pol_fast_assn_def
-  apply (rewrite at \<open>print_literal_of_trail \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>print_literal_of_trail (\<hole>)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

@@ -323,7 +323,7 @@ definition print_trail where
   print_literal_of_trail (M!i);
   RETURN (i+1)})
   0;
-  print_literal_of_trail (0 :: nat);
+  print_literal_of_trail ((0::nat));
   RETURN ()
   })\<close>
 
