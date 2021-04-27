@@ -1,6 +1,6 @@
 CLANG = clang
 
-CFLAGS = -flto -std=c11 -fuse-ld=../../clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/ld.lld
+CFLAGS = -flto -std=c11 --path-ld=`pwd`/../../clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/ld.lld
 
 all: isasat
 
