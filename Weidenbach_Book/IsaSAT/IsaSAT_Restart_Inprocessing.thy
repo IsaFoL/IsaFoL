@@ -9,21 +9,22 @@ definition simplify_clause_with_unit2_pre where
      C \<in># dom_m N \<and> no_dup M\<close>
 
 definition simplify_clause_with_unit2 where
-  \<open>simplify_clause_with_unit2 C M N = do {
-      ASSERT(C \<in># dom_m N);
-      let l = length (N \<propto> C);
+  \<open>simplify_clause_with_unit2 C M N\<^sub>0 = do {
+      ASSERT(C \<in># dom_m N\<^sub>0);
+        let l = length (N\<^sub>0 \<propto> C);
         (i, j, N, del, is_true) \<leftarrow> WHILE\<^sub>T\<^bsup>(\<lambda>(i, j, N, del, b). C \<in># dom_m N)\<^esup>
         (\<lambda>(i, j, N, del, b). \<not>b \<and> j < l)
         (\<lambda>(i, j, N, del, is_true). do {
            ASSERT(i < length (N \<propto> C) \<and> j < length (N \<propto> C) \<and> C \<in># dom_m N);
            let L = N \<propto> C ! j;
+           ASSERT(L \<in> set (N\<^sub>0 \<propto> C));
            let val = polarity M L;
            if val = Some True then RETURN (i, j+1, N, add_mset L del, True)
            else if val = Some False
-         then RETURN (i, j+1, N, add_mset L del, False)
+           then RETURN (i, j+1, N, add_mset L del, False)
            else RETURN (i+1, j+1, N(C \<hookrightarrow> ((N \<propto> C)[i := L])), del, False)
         })
-        (0, 0, N, {#}, False);
+        (0, 0, N\<^sub>0, {#}, False);
     let L = N \<propto> C ! 0;
     if is_true \<or> i \<le> 1
     then RETURN (fmdrop C N, L, is_true, i)
@@ -165,6 +166,10 @@ proof -
     by (simp_all add: filter_mset_eq_conv filter_empty_conv)
   have [simp]: \<open>take (Suc 0) C = [C!0] \<longleftrightarrow> C \<noteq> []\<close> for C
     by (cases C) auto
+  have in_set_dropp_begin:
+    \<open>drop n xs = drop n ys \<Longrightarrow> n < length xs \<Longrightarrow> xs ! n \<in> set ys\<close> for n xs ys
+    by (metis in_set_dropI nat_le_eq_or_lt set_drop_subset subset_code(1))+
+
   show ?thesis
     unfolding simplify_clause_with_unit_def simplify_clause_with_unit2_def
       Let_def H conc_fun_RES st
@@ -178,6 +183,7 @@ proof -
     subgoal by (auto simp: I_def)
     subgoal by (auto simp: I_def)
     subgoal by (auto simp: I_def)
+    subgoal by (auto simp: I_def intro: in_set_dropp_begin)
     subgoal by (auto simp: I_def split: if_splits)
     subgoal by (rule I_Suc)
     subgoal by (auto simp: I_def)
@@ -306,7 +312,7 @@ definition arena_shorten :: \<open>nat \<Rightarrow> nat \<Rightarrow> arena \<R
 
 definition arena_shorten_pre where
     \<open>arena_shorten_pre C j arena \<longleftrightarrow> j \<ge> 2 \<and> arena_is_valid_clause_idx arena C \<and>
-      j < arena_length arena C\<close>
+      j \<le> arena_length arena C\<close>
 
 definition mop_arena_shorten where
   \<open>mop_arena_shorten C j arena = do {
@@ -421,6 +427,23 @@ proof -
     by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
 qed
 
+lemma mop_arena_shorten_spec:
+  assumes C: \<open>C \<in># dom_m N\<close> and
+    j: \<open>j \<le> arena_length arena C\<close> and
+    valid: \<open>valid_arena arena N vdom\<close> and
+    j2: \<open>j \<ge> 2\<close> and
+    \<open>(C,C')\<in>nat_rel\<close> \<open>(j,j')\<in>nat_rel\<close>
+  shows \<open>mop_arena_shorten C j arena \<le> SPEC(\<lambda>c. (c, N(C' \<hookrightarrow> take j' (N \<propto> C'))) \<in>
+       {(arena, N). valid_arena arena N vdom})\<close>
+  unfolding mop_arena_shorten_def
+  apply refine_vcg
+  subgoal
+    using assms
+    unfolding arena_shorten_pre_def arena_is_valid_clause_idx_def by auto
+  subgoal
+    using assms
+    by (auto intro!: valid_arena_arena_shorten)
+  done
 
 definition arenap_update_lit :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> arena \<Rightarrow> arena\<close> where
   \<open>arenap_update_lit C j L N = N[C + j := ALit L]\<close>
@@ -565,7 +588,7 @@ definition isa_simplify_clause_with_unit2 where
     (i, j, N::arena, is_true) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, j, N::arena, b). \<not>b \<and> j < l)
     (\<lambda>(i, j, N, is_true). do {
       L \<leftarrow> mop_arena_lit2 N C j;
-      let val = polarity M L;
+      val \<leftarrow> mop_polarity_pol M L;
       if val = Some True then RETURN (i, j+1, N,True)
       else if val = Some False
       then RETURN (i, j+1, N,  False)
@@ -583,21 +606,22 @@ definition isa_simplify_clause_with_unit2 where
     }\<close>
  
 lemma simplify_clause_with_unit2_alt_def:
-  \<open>simplify_clause_with_unit2 C M N = do {
-      ASSERT(C \<in># dom_m N);
-      let l = length (N \<propto> C);
+  \<open>simplify_clause_with_unit2 C M N\<^sub>0 = do {
+      ASSERT(C \<in># dom_m N\<^sub>0);
+      let l = length (N\<^sub>0 \<propto> C);
         (i, j, N, del, is_true) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, j, N, del, b). C \<in># dom_m N\<^esup>
         (\<lambda>(i, j, N, del, b). \<not>b \<and> j < l)
         (\<lambda>(i, j, N, del, is_true). do {
            ASSERT(i < length (N \<propto> C) \<and> j < length (N \<propto> C) \<and> C \<in># dom_m N);
            let L = N \<propto> C ! j;
+           ASSERT(L \<in> set (N\<^sub>0 \<propto> C));
            let val = polarity M L;
            if val = Some True then RETURN (i, j+1, N, add_mset L del, True)
            else if val = Some False
          then RETURN (i, j+1, N, add_mset L del, False)
            else let N = N(C \<hookrightarrow> ((N \<propto> C)[i := L])) in RETURN (i+1, j+1, N, del, False)
         })
-        (0, 0, N, {#}, False);
+        (0, 0, N\<^sub>0, {#}, False);
     let L = N \<propto> C ! 0;
     if is_true \<or> i \<le> 1
     then RETURN (fmdrop C N, L, is_true, i)
@@ -607,11 +631,13 @@ lemma simplify_clause_with_unit2_alt_def:
    by simp
 
 lemma
-  assumes \<open>valid_arena arena N vdom\<close>
+  assumes \<open>valid_arena arena N vdom\<close> and
+    trail: \<open>(M, M') \<in> trail_pol \<A>\<close> and
+    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close>
   shows \<open>isa_simplify_clause_with_unit2 C M arena \<le> \<Down>
     ({(arena, N). valid_arena arena N vdom} \<times>\<^sub>r
     Id \<times>\<^sub>r bool_rel \<times>\<^sub>r nat_rel)
-    (simplify_clause_with_unit2 C M N)\<close>
+    (simplify_clause_with_unit2 C M' N)\<close>
 proof -
   have [refine0]: \<open>C \<in># dom_m N \<Longrightarrow>
   ((0, 0, arena, False), 0, 0, N, {#}, False) \<in> {((i, j, N, is_true),
@@ -623,8 +649,12 @@ proof -
   show ?thesis
     supply [[goals_limit=1]]
     unfolding isa_simplify_clause_with_unit2_def simplify_clause_with_unit2_alt_def
+      mop_polarity_pol_def nres_monad3
     apply (refine_rcg mop_arena_lit[where vdom=vdom]
-      
+      polarity_pol_pre[OF trail]
+      polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
+        THEN fref_to_Down_unRET_uncurry]
+       mop_arena_shorten_spec[where vdom=vdom]
      )
     subgoal using assms by (auto simp add: arena_lifting)
     subgoal by auto
@@ -632,6 +662,17 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal
+      using lits
+      by (auto simp:
+      all_lits_of_mm_def ran_m_def dest!: multi_member_split
+      dest!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD)
+    subgoal
+      using lits
+      by (auto simp:
+        all_lits_of_mm_def ran_m_def dest!: multi_member_split
+        dest!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD)
+    subgoal using assms by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -653,8 +694,12 @@ proof -
     subgoal by auto
     subgoal by (auto intro!: valid_arena_extra_information_mark_to_delete')
     subgoal by auto
+    subgoal apply auto sorry
     subgoal by auto
-
-      oops
-        find_theorems valid_arena extra_information_mark_to_delete
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 end
