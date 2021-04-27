@@ -37,7 +37,7 @@ tar xf ../archives/clang*
 mv isasat* isasat
 cd isasat/src
 make CLANG=../../clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang-12 isallvm
-install -s isasat ../../bin/
+install -s isasat ../../../bin/
 EOF
 chmod 755 $dir/build/build.sh
 echo "starexec_build script"

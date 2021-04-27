@@ -226,38 +226,54 @@ typedef struct R {
 } R;
 
 void IsaSAT_LLVM_print_propa_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("\nc propagations %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_confl_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c conflicts %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_dec_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c decisions %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_res_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c reductions %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_lres_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c local_restarts %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_uset_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c uset %ld\n", props);
+#endif
 }
 
 void IsaSAT_LLVM_print_gc_impl(int64_t props) {
+#ifdef PRINTSTATS
   printf("c GCs %ld\n", props);
+#endif
 }
 
 void print_phase(int8_t phase) {
+#ifdef PRINTSTATS
   if(phase == 1)
     printf("c phase: QUIET\n");
   else
     printf("c phase: RESTART\n");
+#endif
 }
 
 /*
@@ -268,20 +284,30 @@ declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
 declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
 */
 void IsaSAT_Show_LLVM_print_c_impl() {
+#ifdef PRINTSTATS
   printf("\nc ");
+#endif
 }
 
 void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
+#ifdef PRINTSTATS
   printf(" %12ld ", p);
+#endif
 }
 void IsaSAT_Show_LLVM_print_open_colour_impl(int64_t c) {
+#ifdef PRINTSTATS
   printf("\e[%lim", c);
+#endif
 }
 void IsaSAT_Show_LLVM_print_close_colour_impl(int64_t c) {
+#ifdef PRINTSTATS
   printf("\e[0m");
+#endif
 }
 void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
+#ifdef PRINTSTATS
   printf("%c", (char)c);
+#endif
 }
 
 _Bool has_suffix (const char * str, const char * suffix) {
@@ -377,7 +403,9 @@ void init_profiles () {
 
 void start_profile(struct PROFILE *p) {
   if(p->active) {
+#ifdef PRINTSTATS
     printf("c incorrect use of profiling: missing stop... recovering by ignoring last interval\n");
+#endif
   }
   p->active = 1;
   struct timeval time;
@@ -404,7 +432,9 @@ void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
   else if (t == IsaSAT_Profile_INITIALISATION ()) {
     start_profile(&init_prof);
   } else {
+#ifdef PRINTSTATS
     printf("c unrecognised profile, ignoring\n");
+#endif
   }
 }
 
@@ -495,7 +525,9 @@ int main(int argc, char *argv[]) {
 
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
+#ifdef PRINTSTATS
     printf("c compressed file\n");
+#endif
     if (!inputfile) goto READ_FILE;
   } else if (has_suffix (inputname, ".lzma")) {
     inputfile = read_pipe ("lzma -c -d %s", lzmasig, inputname);
@@ -511,7 +543,9 @@ int main(int argc, char *argv[]) {
     if (!inputfile) goto READ_FILE;
   } else {
 READ_FILE:
+#ifdef PRINTSTATS
     printf("c not compressed file\n");
+#endif
     inputfile = fopen (inputname, "r");
   }
 
@@ -528,9 +562,10 @@ READ_FILE:
   //print_clauses(&clauses);
   init_profiles();
   start_profile(&total_prof);
-
+#ifdef PRINTSTATS
   printf("c propagations                       redundant                   lrestarts                       GC                        not-mem-reasons\n"
 	 "c                     conflicts                     reductions                 level-0                         LBDs                      subsumed\n");
+#endif
   int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema, sema, clauses);
   stop_profile(&total_prof);
 
@@ -543,9 +578,9 @@ READ_FILE:
     printf("s UNSATISFIABLE\n");
   else
     printf("s SATISFIABLE\n");
-  // free_clauses(&clauses);
 
 
+#ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
     init_prof.total;
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
@@ -558,6 +593,6 @@ READ_FILE:
   printf("c total verified      : %Lf s\n", total_prof.total / 1000000);
   printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
-
+#endif
   return 0;
 }
