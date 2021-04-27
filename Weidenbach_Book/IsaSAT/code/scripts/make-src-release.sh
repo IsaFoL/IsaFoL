@@ -26,7 +26,7 @@ echo "$fullgitid"
 EOF
 chmod 755 $dir/scripts/*.sh
 cd /tmp
-rm -rf /tmp/$name/.git
+rm -rf /tmp/$name/.git /tmp/$name/ML
 tar cJf $tar $name
 bytes="`ls --block-size=1 -s $tar 2>/dev/null |awk '{print $1}'`"
 echo "generated '$tar' of $bytes bytes"
