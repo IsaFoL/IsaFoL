@@ -50,6 +50,8 @@ cat <<EOF >$dir/bin/starexec_run_default
 exec ./isasat \$1
 EOF
 chmod 755 $dir/bin/starexec_run_default
+description=$dir/starexec_description.txt
+echo "IsaSAT is a verified SAT solving using the proof assistant Isabelle" > $description
 archive=/tmp/$base.zip
 rm -f $archive
 cd $dir
