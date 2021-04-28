@@ -652,6 +652,6 @@ READ_FILE:
   if (interrupted)
     return 0;
   else if (satisfiable)
-    return 10;
-  else return 20;
+    return 20;
+  else return 10;
 }
