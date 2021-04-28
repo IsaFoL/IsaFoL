@@ -28,15 +28,12 @@ mkdir $dir/archives
 printf "cp to archives $tar\n"
 printf "cp to archives $dir\n"
 cp -a $tar $dir/archives
-cp -a ~/Downloads/clang12-shrink2.tar.xz $dir/archives
 echo "build script"
 cat <<EOF >$dir/build/build.sh
 #!/bin/sh
 tar xf ../archives/isasat*
-tar xf ../archives/clang*
 mv isasat* isasat
 cd isasat/src
-make CLANG=../../clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04/bin/clang-12 isallvm
 install -s isasat ../../../bin/
 EOF
 chmod 755 $dir/build/build.sh
