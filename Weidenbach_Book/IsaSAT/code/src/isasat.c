@@ -493,6 +493,15 @@ void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
   }
 }
 
+int compare_atom(const void* lit1, const void* lit2) {
+  const int ilit1 = *((int *)lit1);
+  const int ilit2 = *((int *)lit2);
+  const int atom1 = ilit1 < 0 ? -ilit1 : ilit1;
+  const int atom2 = ilit2 < 0 ? -ilit2 : ilit2;
+  if(atom1 == atom2)
+    return 0;
+  return atom1 > atom2;
+}
 int main(int argc, char *argv[]) {
   start_profile(&parsing_prof);
   if(argc < 2) {
@@ -598,9 +607,24 @@ READ_FILE:
     printf("s UNSATISFIABLE\n");
   else {
     printf("s SATISFIABLE\n");
-    for(int i = 0; i < model.used; ++i) {
-      printf("v %d\n", model.model[i]);
-    }
+    // model.used - 1 to keep 0 at the end
+    qsort(model.model, model.used - 1, sizeof(int32_t), compare_atom);
+    // taken from CaDiCaL's print_witness
+    int c = 0, i = 0, tmp;
+    do {
+      if (!c)
+        printf("v"), c = 1;
+      tmp = model.model[i++];
+      char str[20];
+      sprintf(str, " %d", tmp);
+      int l = strlen(str);
+      if (c + l > 78)
+        printf("\nv"), c = 1;
+      printf("%s", str);
+      c += l;
+    } while (tmp);
+    if (c)
+      printf("\n");
   }
   free(model.model);
 
