@@ -9,7 +9,14 @@
 
 #include "isasat_restart.h"
 
+/* Put the model in an array to print it*/
+typedef struct MODEL {
+  int32_t* model;
+  int used;
+  int size;
+} MODEL;
 
+MODEL model;
 
 /*the parser is based on the code from lingeling*/
 
@@ -199,6 +206,9 @@ DONE:
   if(clause_num != num_clss)
     perr("found %d clauses, while %d were expected", clause_num, num_clss);
 
+  model.size = num_lits + 2;
+  model.model = malloc((num_lits + 2) * sizeof(int32_t));
+  model.used = 0;
   free(cl.clause);
   return clauses;
 }
@@ -310,15 +320,14 @@ void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
 #endif
 }
 
-void IsaSAT_Setup3_LLVM_print_encoded_lit_code(uint32_t lit) {
-  printf("v %d \n", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
-}
+
 void IsaSAT_Setup3_LLVM_print_encoded_lit_end_code(uint32_t lit) {
-  printf("v %d \n", lit);
+  model.model[model.used++] = lit;
 }
 
 void IsaSAT_Setup3_LLVM_print_literal_of_trail_code(uint32_t lit) {
-  printf("v %d \n", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
+  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
+  model.model[model.used++] = ilit;
 }
 
 _Bool has_suffix (const char * str, const char * suffix) {
@@ -587,9 +596,13 @@ READ_FILE:
     printf("s UNKNOWN\n");
   else if (satisfiable)
     printf("s UNSATISFIABLE\n");
-  else
+  else {
     printf("s SATISFIABLE\n");
-
+    for(int i = 0; i < model.used; ++i) {
+      printf("v %d\n", model.model[i]);
+    }
+  }
+  free(model.model);
 
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
