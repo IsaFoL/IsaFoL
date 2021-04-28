@@ -649,5 +649,9 @@ READ_FILE:
   printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
 #endif
-  return 0;
+  if (interrupted)
+    return 0;
+  else if (satisfiable)
+    return 10;
+  else return 20;
 }
