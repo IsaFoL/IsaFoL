@@ -24,11 +24,14 @@ definition simplify_clause_with_unit2 where
            then RETURN (i, j+1, N, add_mset L del, False)
            else RETURN (i+1, j+1, N(C \<hookrightarrow> ((N \<propto> C)[i := L])), del, False)
         })
-        (0, 0, N\<^sub>0, {#}, False);
+         (0, 0, N\<^sub>0, {#}, False);
+    ASSERT(C \<in># dom_m N \<and> i \<le> length (N \<propto> C));
     let L = N \<propto> C ! 0;
     if is_true \<or> i \<le> 1
     then RETURN (fmdrop C N, L, is_true, i)
-    else RETURN (N(C \<hookrightarrow> (take i (N \<propto> C))), L, is_true, i)
+    else do {
+      RETURN (N(C \<hookrightarrow> (take i (N \<propto> C))), L, is_true, i)
+    }
   }\<close>
 
 
@@ -85,6 +88,19 @@ lemma simplify_clause_with_unit2_simplify_clause_with_unit:
   (\<not>b \<longrightarrow> i = size (N' \<propto> C))}
   (simplify_clause_with_unit C' M' N')\<close>
 proof -
+  have simplify_clause_with_unit_alt_def:
+    \<open>simplify_clause_with_unit = (\<lambda>C M N. do {
+    (b, N') \<leftarrow>
+      SPEC(\<lambda>(b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and> C \<in># dom_m N' \<and>
+        (\<not>b \<longrightarrow> (\<forall>L \<in># mset (N' \<propto> C). undefined_lit M L)) \<and>
+        (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
+       (irred N C = irred N' C) \<and>
+       (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)));
+    RETURN (b, N')
+    })\<close> (is \<open>_ = (\<lambda>C M N. do {
+    (_, _) \<leftarrow> SPEC (?P C M N);
+      RETURN _})\<close>)
+    unfolding simplify_clause_with_unit_def by auto
   have st: \<open>M' = M\<close> \<open>C'=C\<close> \<open>N'=N\<close>
     using st by auto
   let ?R = \<open>measure (\<lambda>(i, j, N', is_true). Suc (length (N \<propto> C)) - j)\<close>
@@ -170,13 +186,25 @@ proof -
     \<open>drop n xs = drop n ys \<Longrightarrow> n < length xs \<Longrightarrow> xs ! n \<in> set ys\<close> for n xs ys
     by (metis in_set_dropI nat_le_eq_or_lt set_drop_subset subset_code(1))+
 
+      term \<open>?P C M N (b, N'')\<close>
+      term I
+  let ?Q = \<open>\<lambda>(i::nat, j::nat, N', del, is_true) (b, N'').
+    (let P = (if is_true
+      then N'(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
+    else N'(C \<hookrightarrow> take i (N' \<propto> C)))in
+        (P, N'') \<in> Id \<and> ?P C M N (b, N''))\<close>
+   have H3: \<open>\<forall>x\<in>#ab. defined_lit M x \<Longrightarrow>
+        undefined_lit M a \<Longrightarrow>
+        mset (N \<propto> C) = add_mset a ab \<Longrightarrow>
+        filter (undefined_lit M) (N \<propto> C) = [a]\<close> for a ab
+     by (simp add: H0 filt)
   show ?thesis
-    unfolding simplify_clause_with_unit_def simplify_clause_with_unit2_def
+    unfolding simplify_clause_with_unit_alt_def simplify_clause_with_unit2_def
       Let_def H conc_fun_RES st
     apply (rule ASSERT_leI)
     subgoal using assms by auto
-    apply (rule RETURN_le_RES_no_return5)
-    apply (refine_vcg WHILEIT_rule_stronger_inv[where I'=I and R = \<open>?R\<close>])
+    apply (refine_vcg WHILEIT_rule_stronger_inv_RES'[where I'=I and R = \<open>?R\<close> and
+      H = \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>])
     subgoal by auto
     subgoal by (auto simp: I_def)
     subgoal by (rule I0)
@@ -187,39 +215,43 @@ proof -
     subgoal by (auto simp: I_def split: if_splits)
     subgoal by (rule I_Suc)
     subgoal by (auto simp: I_def)
-    subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
-      apply (clarsimp simp:)
-      apply (intro conjI impI exI[of _ \<open>if x2c \<or> x1 \<le> 1
-    then x1b(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C)) else x1b\<close>])
-      apply (simp add: I_def fmdrop_fmupd_same; fail)+
-      apply (auto simp: I_def mset_remove_filtered fmdrop_fmupd_same
-        intro!: exI[of _ x1b]
-        dest: in_set_takeD; fail)+
-      subgoal apply (auto simp add: I_def filt H0)
-        apply ((subst filt | subst (asm) filt),
-          (auto simp: I_def length_list_Suc_0 filt le_Suc_eq
-          intro!: exI[of _ x1b]
-          dest: in_set_takeD))+
-        done
-      apply (auto simp: I_def mset_remove_filtered fmdrop_fmupd_same 
-        intro!: exI[of _ x1b]
-        dest: in_set_takeD; fail)+
-      subgoal
-        apply (simp)
+      find_theorems "do {ASSERT _; _} \<le> (SPEC _)"
+    subgoal for s
+      supply [[goals_limit=1]]
+      using assms(2)
+      unfolding mem_Collect_eq RETURN_RES_refine_iff case_prod_beta
+      apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
+        intro: in_lits_of_l_defined_litD)
+      apply (auto dest: in_set_takeD)[4]
+      apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s
+    then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
+      else (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
+      apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
+          intro: in_lits_of_l_defined_litD dest: )
         apply (auto simp add: I_def filt H0)
         apply (simp only: size_mset[symmetric] mset_filter filter_union_mset)
-        apply (subst filt(2), simp)
-        apply (subst filt(1), simp)
-        apply simp
+        apply (subst filt(1), simp, simp)
+        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
         apply (simp only: size_mset[symmetric] mset_filter filter_union_mset)
-        apply (subst filt(2), simp)
-        apply (subst filt(1), simp)
-        apply simp
+        apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s  \<or> fst s \<le> 1
+      then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
+        else  (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
+        apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
+          intro: in_lits_of_l_defined_litD)
+        apply (auto simp add: I_def filt H0 H3)
+        apply (subst filt(1), simp, simp)
+        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
+        apply (subst filt(1), simp, simp)
+        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
+        apply (case_tac x; case_tac \<open>aa \<propto> C\<close>)
+        apply (auto simp: H3)
         done
-      apply (auto simp: I_def mset_remove_filtered fmdrop_fmupd_same 
-          intro!: exI[of _ x1b]
-        dest: in_set_takeD; fail)+
-      done
+     subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
+        by (auto simp add: I_def)
+    subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
+      by (auto simp add: I_def)
+    subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
+      by (auto simp add: I_def split: if_splits)
     done
 qed
 
@@ -622,15 +654,17 @@ lemma simplify_clause_with_unit2_alt_def:
            else let N = N(C \<hookrightarrow> ((N \<propto> C)[i := L])) in RETURN (i+1, j+1, N, del, False)
         })
         (0, 0, N\<^sub>0, {#}, False);
+    ASSERT (C \<in># dom_m N \<and> i \<le> length (N \<propto> C));
     let L = N \<propto> C ! 0;
     if is_true \<or> i \<le> 1
     then RETURN (fmdrop C N, L, is_true, i)
-    else let N = N(C \<hookrightarrow> (take i (N \<propto> C))) in RETURN (N, L, is_true, i)
+      else do {
+      let N = N(C \<hookrightarrow> (take i (N \<propto> C))) in RETURN (N, L, is_true, i)}
   }\<close>
    unfolding Let_def simplify_clause_with_unit2_def
    by simp
 
-lemma
+lemma isa_simplify_clause_with_unit2_isa_simplify_clause_with_unit:
   assumes \<open>valid_arena arena N vdom\<close> and
     trail: \<open>(M, M') \<in> trail_pol \<A>\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close>
@@ -694,7 +728,7 @@ proof -
     subgoal by auto
     subgoal by (auto intro!: valid_arena_extra_information_mark_to_delete')
     subgoal by auto
-    subgoal apply auto sorry
+    subgoal by (auto simp: arena_lifting)
     subgoal by auto
     subgoal by auto
     subgoal by auto
