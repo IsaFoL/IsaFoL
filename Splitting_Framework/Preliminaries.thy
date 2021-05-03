@@ -219,7 +219,8 @@ end
    
 
 
-locale sound_inference_system = inference_system Inf + sound_cons: consequence_relation bot entails_sound
+locale sound_inference_system =
+  inference_system Inf + sound_cons: consequence_relation bot entails_sound
   for
     Inf :: "'f inference set" and
     bot :: "'f" and
@@ -476,6 +477,10 @@ locale dynamically_complete_calculus = calculus +
   assumes dynamically_complete:
     \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> shd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> Ns !! i\<close>
     
+
+
+
+
     (* First attempt at formalizing sect. 2.3 *)
     (* below, I force 'v to be countable, but not infinite, alternative, enforce bijection with nat
     in the first locale where it is used? *)
@@ -487,7 +492,7 @@ locale dynamically_complete_calculus = calculus +
     
     (* discussions on this datatype allowed to detect a spurious assumption: 'v doesn't need to be
     infinite*)
-    (* TODO: should "countable" be added as a requirement of the A_calculus locale? *)
+    (* TODO: should "countable" be added as a requirement of the AF_calculus locale? *)
 datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v neg set")
 
 definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
@@ -496,7 +501,7 @@ definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
   (* TODO: find a shorter name for this type (?) *)
 typedef 'v propositional_interpretation = "{J :: 'v neg set. is_interpretation J}"
 proof
-  show \<open>{} \<in> {J :: 'v neg set. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
+  show \<open>{} \<in> {J. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
 qed
   
   find_theorems name: Abs name: propositional_interpretation
@@ -510,12 +515,39 @@ begin
 
   lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
     is "(\<in>\<^sub>v)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
-
 end
 
 definition total :: "'v propositional_interpretation \<Rightarrow> bool" where
-  \<open>total J \<equiv> \<forall>v. v \<in>\<^sub>J J\<close>
+  \<open>total J \<equiv> (\<forall>v. (\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J J \<and> to_V v\<^sub>J = v))\<close>
   
+typedef 'v total_interpretation = "{J :: 'v propositional_interpretation. total J}"
+proof
+  show \<open>interp_of (Pos ` (UNIV :: 'v set)) \<in> {J. total J}\<close>
+    unfolding total_def   
+  proof 
+    show "\<forall>v. \<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J interp_of (range Pos) \<and> to_V v\<^sub>J = v"
+    proof
+      fix v
+      have "Pos v \<in>\<^sub>J interp_of (range Pos) \<and> to_V (Pos v) = v"
+        by (simp add: Abs_propositional_interpretation_inverse belong_to.rep_eq is_interpretation_def)
+      then show "\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J interp_of (range Pos) \<and> to_V v\<^sub>J = v" by blast
+    qed
+  qed
+qed
+
+abbreviation "total_interp_of \<equiv> (\<lambda>x. Abs_total_interpretation (interp_of x))"
+abbreviation "total_strip \<equiv> (\<lambda>x. strip (Rep_total_interpretation x))"
+  
+context
+begin
+  setup_lifting type_definition_total_interpretation
+
+  lift_definition belong_to_total :: "'v neg \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
+    is "(\<in>\<^sub>J)::('v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool)" .
+end
+  (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
+  \<t>erm \<open>'v neg set\<close> *)
+
 lemma \<open>(v::'v neg) \<in>\<^sub>J J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>J J)\<close>
 proof transfer
   fix v J
@@ -553,7 +585,7 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
  *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
  *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
 
-locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
+locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
@@ -562,11 +594,11 @@ locale A_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
     entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>s" 50) and
     Red_I :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
-    + fixes
+  + fixes
     V:: "'v::countable itself" and
     (* \<J> :: "'v::countable neg set set" and *)
     fml :: "'v \<Rightarrow> 'f"
-    (* assumes
+  (* assumes
     j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
 
@@ -578,19 +610,19 @@ begin
  *   cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
   *   cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J" *)
   
-inductive "enabled" :: "('f, 'v::countable) AF \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" where
-  cond1: "(A_of C) \<subseteq> (strip J) \<Longrightarrow> enabled C J" |
-  cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (strip J) = {}) \<Longrightarrow> enabled C J"
+inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
+  cond1: "(A_of C) \<subseteq> (total_strip J) \<Longrightarrow> enabled C J" |
+  cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (total_strip J) = {}) \<Longrightarrow> enabled C J"
   
-definition enabled_set :: "('f, 'v::countable) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool"
+definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool"
   where
   \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
 
-definition enabled_inf :: "('f, 'v::countable) AF inference \<Rightarrow> 'v propositional_interpretation \<Rightarrow>
+definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpretation \<Rightarrow>
   bool" where
   \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
   
-definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v propositional_interpretation \<Rightarrow>
+definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow>
   ('f, 'v) AF set" where
   \<open>enabled_projection N J = {C. C \<in> N \<and> enabled C J}\<close>
 
@@ -598,39 +630,39 @@ definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) A
   \<open>propositional_projection N = {C. C \<in> N \<and> F_of C = bot}\<close>
 
 definition enabled_projection_Inf ::
-  "('f, 'v) AF inference set \<Rightarrow> 'v propositional_interpretation \<Rightarrow> ('f, 'v) AF inference set" where
+  "('f, 'v) AF inference set \<Rightarrow> 'v total_interpretation \<Rightarrow> ('f, 'v) AF inference set" where
   \<open>enabled_projection_Inf I J = {\<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
 
 fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
   "fml_ext (Pos v) = Pos (fml v)" |
   "fml_ext (Neg v) = Neg (fml_ext v)"
 
-definition sound_consistent :: "'v propositional_interpretation \<Rightarrow> bool" where
-  \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (strip J)) {Pos bot})\<close>
+definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" where
+  \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (total_strip J)) {Pos bot})\<close>
   
   (* most probably overkill *)
 (* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
   \<open>F_of_set N \<equiv> F_of ` N\<close> *)
  
-definition propositional_model :: "'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p" 50) where
   \<open>J \<Turnstile>\<^sub>p N \<equiv> bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J))\<close>
 
-definition sound_propositional_model :: "'v propositional_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
   \<open>J \<Turnstile>s\<^sub>p N \<equiv> (bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J)) \<or>
     \<not> sound_consistent J)\<close>
 
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable N \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p N)\<close>
-
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> F_of ` (enabled_projection M J) \<Turnstile> F_of ` N))\<close>
   
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
-  \<open>AF_entails_sound M N \<equiv> (\<forall>J. ((total J \<and> enabled_set N J) \<longrightarrow>
-    sound_cons.entails_neg ((fml_ext ` (strip J)) \<union> (Pos ` F_of ` (enabled_projection M J))) (Pos ` F_of ` N)))\<close>
+  \<open>AF_entails_sound M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow>
+    sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union>
+      (Pos ` F_of ` (enabled_projection M J))) (Pos ` F_of ` N)))\<close>
   
 lemma "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml v) {Pos v}}"
   unfolding AF_entails_sound_def enabled_projection_def enabled_set_def total_def
