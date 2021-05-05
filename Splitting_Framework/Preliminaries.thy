@@ -540,6 +540,7 @@ abbreviation "total_strip \<equiv> (\<lambda>x. strip (Rep_total_interpretation 
   
 context
 begin
+  (* TODO : seems the command below fails. What is its impact? *)
   setup_lifting type_definition_total_interpretation
 
   lift_definition belong_to_total :: "'v neg \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
@@ -548,7 +549,7 @@ end
   (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
   \<t>erm \<open>'v neg set\<close> *)
 
-lemma \<open>(v::'v neg) \<in>\<^sub>J J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>J J)\<close>
+lemma neg_prop_interp: \<open>(v::'v neg) \<in>\<^sub>J J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>J J)\<close>
 proof transfer
   fix v J
   assume
@@ -566,6 +567,14 @@ proof transfer
       unfolding is_interpretation_def 
       by (metis is_Pos.simps(2) is_in.simps(2) to_V.simps(2))
   qed
+qed
+
+lemma neg_total_interp: \<open>(v::'v neg) \<in>\<^sub>t J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>t J)\<close>
+proof transfer
+  fix v J
+  assume v_in: \<open>v \<in>\<^sub>J J\<close>
+  show \<open>\<not> Neg v \<in>\<^sub>J J\<close>
+    using neg_prop_interp[OF v_in] by simp
 qed
 
 
@@ -601,7 +610,8 @@ locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* assumes
     j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
-
+  
+  (* various attempts at representing the "enabled" concept *)
 (* definition enabled0 :: "('f, 'v) AF \<Rightarrow> 'v neg set \<Rightarrow> bool" where
  *   \<open>enabled0 C J = (J \<in> \<J> \<and> ((A_of C) \<subseteq> J \<or> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {})))\<close> *)
 
@@ -610,28 +620,32 @@ begin
  *   cond1: "J \<in> \<J> \<Longrightarrow> (A_of C) \<subseteq> J \<Longrightarrow> enabled C J" |
   *   cond2: "J \<in> \<J> \<Longrightarrow> (F_of C = bot \<and> (\<sim> (A_of C)) \<inter> J = {}) \<Longrightarrow> enabled C J" *)
   
-inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
-  cond1: "(A_of C) \<subseteq> (total_strip J) \<Longrightarrow> enabled C J" |
-  cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (total_strip J) = {}) \<Longrightarrow> enabled C J"
+(* inductive "enabled" :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
+ *   cond1: "(A_of C) \<subseteq> (total_strip J) \<Longrightarrow> enabled C J" |
+  *   cond2: "(F_of C = bot \<and> (\<sim> (A_of C)) \<inter> (total_strip J) = {}) \<Longrightarrow> enabled C J" *)
+
+definition \<iota>F_of :: "('f, 'v) AF inference \<Rightarrow> 'f inference" where
+  \<open>\<iota>F_of \<iota> = Infer (List.map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>))\<close>
   
-definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool"
-  where
+definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" ("proj\<^sub>\<bottom>") where
+  \<open>proj\<^sub>\<bottom> N = {C. C \<in> N \<and> F_of C = bot}\<close>
+
+definition enabled :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
+  "enabled C J \<equiv> (A_of C) \<subseteq> (total_strip J)"
+
+definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
 
-definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpretation \<Rightarrow>
-  bool" where
+definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
   
-definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow>
-  ('f, 'v) AF set" where
-  \<open>enabled_projection N J = {C. C \<in> N \<and> enabled C J}\<close>
+definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> 'f set"
+  (infix "proj\<^sub>J" 60)  where
+  \<open>N proj\<^sub>J J = {F_of C | C. C \<in> N \<and> enabled C J}\<close>
 
-definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" where
-  \<open>propositional_projection N = {C. C \<in> N \<and> F_of C = bot}\<close>
-
-definition enabled_projection_Inf ::
-  "('f, 'v) AF inference set \<Rightarrow> 'v total_interpretation \<Rightarrow> ('f, 'v) AF inference set" where
-  \<open>enabled_projection_Inf I J = {\<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
+definition enabled_projection_Inf :: "('f, 'v) AF inference set \<Rightarrow> 'v total_interpretation \<Rightarrow>
+  'f inference set" (infix "\<iota>proj\<^sub>J" 60) where
+  \<open>I \<iota>proj\<^sub>J J = {\<iota>F_of \<iota> | \<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
 
 fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
   "fml_ext (Pos v) = Pos (fml v)" |
@@ -644,31 +658,65 @@ definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" wher
 (* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
   \<open>F_of_set N \<equiv> F_of ` N\<close> *)
  
-definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
-  (infix "\<Turnstile>\<^sub>p" 50) where
-  \<open>J \<Turnstile>\<^sub>p N \<equiv> bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J))\<close>
+definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>p" 50)
+  where
+  \<open>J \<Turnstile>\<^sub>p N \<equiv> bot \<notin> ((proj\<^sub>\<bottom> N) proj\<^sub>J J)\<close>
 
 definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
-  \<open>J \<Turnstile>s\<^sub>p N \<equiv> (bot \<notin> (F_of ` (enabled_projection (propositional_projection N) J)) \<or>
+  \<open>J \<Turnstile>s\<^sub>p N \<equiv> (bot \<notin> ((enabled_projection (propositional_projection N) J)) \<or>
     \<not> sound_consistent J)\<close>
 
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable N \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p N)\<close>
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
-  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> F_of ` (enabled_projection M J) \<Turnstile> F_of ` N))\<close>
+  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> M proj\<^sub>J J \<Turnstile> F_of ` N))\<close>
   
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails_sound M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow>
-    sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union>
-      (Pos ` F_of ` (enabled_projection M J))) (Pos ` F_of ` N)))\<close>
-  
-lemma "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml v) {Pos v}}"
-  unfolding AF_entails_sound_def enabled_projection_def enabled_set_def total_def
-    sound_cons.entails_neg_def using enabled.simps
-  sorry
+  sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (M proj\<^sub>J J))) (Pos ` F_of ` N)))\<close>
 
+lemma sound_entail_tautology: "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml (v::'v)) {Pos v}}"
+  unfolding AF_entails_sound_def enabled_projection_def enabled_set_def total_def
+    sound_cons.entails_neg_def enabled_def
+proof (simp, rule allI, rule impI)
+  fix J 
+    assume \<open>Pos v \<in> total_strip J\<close>
+    then have \<open>fml v \<in> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C}\<close>
+      by force
+    then show \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<Turnstile>s
+      insert (fml v) {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}\<close>
+      by (meson Set.insert_mono empty_subsetI insert_subset sound_cons.entails_reflexive
+        sound_cons.entails_subsets)
+qed
+
+lemma entails_in_sound_entails_for_prop_clauses:
+  \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+  unfolding AF_entails_sound_def AF_entails_def sound_cons.entails_neg_def
+proof 
+  fix J
+  assume
+    entails_AF: \<open>\<forall>J. enabled_set C\<^sub>2 J \<longrightarrow> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` C\<^sub>2\<close>
+  (* show \<open>enabled_set C\<^sub>2 J \<longrightarrow>
+   *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
+   *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
+   *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
+   *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+   * proof
+   *   assume \<open>enabled_set C\<^sub>2 J\<close>
+   *   then have entails_F: \<open>C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` C\<^sub>2\<close> using entails_AF by simp
+   *   have in_left: \<open>C\<^sub>1 proj\<^sub>J J \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C}\<close>
+   *     by force 
+   *   moreover have in_right: \<open>F_of ` C\<^sub>2 \<subseteq> {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C}\<close>
+   *     by force
+   *   ultimately show \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
+   *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
+   *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
+   *     {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+   *     using entails_F sound_cons.entails_subsets *)
+    oops
+    
 end
 
 end
