@@ -691,7 +691,8 @@ proof (simp, rule allI, rule impI)
       sound_cons.entails_subsets)
 qed
   
-  (* this is a counter-example to the attempted lemma below *)
+  (* this is a counter-example to an early version of the lemma below
+   * without the precondition \<not> {} \<Turnstile> {} *)
 lemma cex_entailments_inclusion:
   assumes
     tautoAF: \<open>{} \<Turnstile>\<^sub>A\<^sub>F {}\<close> and
@@ -713,45 +714,89 @@ proof (rule exI, rule exI)
   show \<open>proj\<^sub>\<bottom> C \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> D \<and> \<not> proj\<^sub>\<bottom> C \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> D\<close> using pos neg by auto 
 qed
 
-  (* I believe this one is false in general *)
-(* lemma entails_in_sound_entails_for_prop_clauses:
- *   \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
- *   unfolding AF_entails_sound_def AF_entails_def sound_cons.entails_neg_def
- * proof 
- *   fix J
- *   assume
- *     entails_AF: \<open>\<forall>J. enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J \<longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` proj\<^sub>\<bottom> C\<^sub>2\<close>
- *   show \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J \<longrightarrow>
- *     {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
- *     {to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
- *     {to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> is_Pos C} \<union>
- *     {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
- *   proof
- *     assume \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J\<close>
- *     then have \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` proj\<^sub>\<bottom> C\<^sub>2\<close> using entails_AF by simp
- *     have simp_c1: \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {} \<or> proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {bot}\<close> 
- *       unfolding propositional_projection_def enabled_projection_def by force
- *     have simp_c2: \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {bot}\<close>
- *       unfolding propositional_projection_def enabled_projection_def by force
- *     have \<open>{to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close> by auto
- *   (\* show \<open>enabled_set C\<^sub>2 J \<longrightarrow>
- *    *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
- *    *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
- *    *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
- *    *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
- *    * proof
- *    *   assume \<open>enabled_set C\<^sub>2 J\<close>
- *    *   then have entails_F: \<open>C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` C\<^sub>2\<close> using entails_AF by simp
- *    *   have in_left: \<open>C\<^sub>1 proj\<^sub>J J \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C}\<close>
- *    *     by force 
- *    *   moreover have in_right: \<open>F_of ` C\<^sub>2 \<subseteq> {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C}\<close>
- *    *     by force
- *    *   ultimately show \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
- *    *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
- *    *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
- *    *     {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
- *    *     using entails_F sound_cons.entails_subsets *\)
- *     oops
- * end *)
+lemma entails_bot_to_entails_empty: \<open>{} \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close>
+  unfolding AF_entails_def 
+proof simp
+  assume \<open>\<forall>J. enabled_set {to_AF bot} J \<longrightarrow> {} proj\<^sub>J J \<Turnstile> {F_of (to_AF bot)}\<close>
+  then have \<open>{} \<Turnstile> {bot}\<close>
+    unfolding enabled_set_def enabled_def by (simp add: enabled_projection_def to_AF_def)
+  then have empty_entails_empty: \<open>{} \<Turnstile> {}\<close>
+    using entails_reflexive[of bot] entails_each[of "{}" "{bot}" "{}" "{}"] bot_entails_empty
+    by auto
+  then show \<open>\<forall>J. enabled_set {} J \<longrightarrow> {} proj\<^sub>J J \<Turnstile> {}\<close>
+    using entails_empty_reflexive_dangerous by simp
+qed
+
+
+lemma entails_in_sound_entails_for_prop_clauses:
+  \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {} \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+proof -
+  assume
+    entails_useful: \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close> and
+    entails_nonsound: \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+  show \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+    unfolding AF_entails_sound_def 
+  proof
+    fix J
+    show \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J \<longrightarrow> sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J)) (Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2)\<close>
+    proof
+      assume \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J\<close>
+      have \<open>Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {Pos bot}\<close> sorry
+      show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J))
+        (Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2)\<close>
+    oops
+
+
+
+lemma entails_in_sound_entails_for_prop_clauses:
+  \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {} \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+  unfolding AF_entails_sound_def AF_entails_def sound_cons.entails_neg_def
+proof 
+  fix J
+  assume
+    not_useless: \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close> and
+    entails_AF: \<open>\<forall>J. enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J \<longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` proj\<^sub>\<bottom> C\<^sub>2\<close>
+  have simp_c2: \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {bot}\<close>
+    unfolding propositional_projection_def enabled_projection_def by force
+  have simp_entails_AF: \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` proj\<^sub>\<bottom> C\<^sub>2\<close>
+    using simp_c2 entails_AF unfolding enabled_set_def enabled_def 
+  have simp_c1: \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {} \<or> proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {bot}\<close> 
+    unfolding propositional_projection_def enabled_projection_def by force
+  then have terrible: \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {} \<Longrightarrow> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close>
+    using entails_bot_to_entails_empty entails_AF sorry
+  then have simp_simp_c1: \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J = {bot}\<close>
+    using not_useless simp_c1 by argo
+    
+  show \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J \<longrightarrow>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
+    {to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+  proof
+    assume \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J\<close>
+    then have \<open>proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` proj\<^sub>\<bottom> C\<^sub>2\<close> using entails_AF by simp
+    have simp_c2: \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {bot}\<close>
+      unfolding propositional_projection_def enabled_projection_def by force
+    have \<open>{to_V C |C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close> by auto
+  (* show \<open>enabled_set C\<^sub>2 J \<longrightarrow>
+   *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
+   *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
+   *   {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
+   *   {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+   * proof
+   *   assume \<open>enabled_set C\<^sub>2 J\<close>
+   *   then have entails_F: \<open>C\<^sub>1 proj\<^sub>J J \<Turnstile> F_of ` C\<^sub>2\<close> using entails_AF by simp
+   *   have in_left: \<open>C\<^sub>1 proj\<^sub>J J \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C}\<close>
+   *     by force 
+   *   moreover have in_right: \<open>F_of ` C\<^sub>2 \<subseteq> {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C}\<close>
+   *     by force
+   *   ultimately show \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> is_Pos C} \<union>
+   *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> \<not> is_Pos C} \<Turnstile>s
+   *     {to_V C |C. C \<in> Pos ` F_of ` C\<^sub>2 \<and> is_Pos C} \<union>
+   *     {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (C\<^sub>1 proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+   *     using entails_F sound_cons.entails_subsets *)
+    oops
+end
 
 end
