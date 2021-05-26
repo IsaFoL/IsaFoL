@@ -57,6 +57,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_CDCL_LLVM
 
     IsaSAT_Restart_Reduce
+    IsaSAT_Restart_Reduce_LLVM
     IsaSAT_Restart_Inprocessing
     IsaSAT_Restart_Simp
     IsaSAT_Restart_Heuristics
