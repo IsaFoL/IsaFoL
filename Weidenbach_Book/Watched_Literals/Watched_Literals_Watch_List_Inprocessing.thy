@@ -3,25 +3,49 @@ theory Watched_Literals_Watch_List_Inprocessing
     Watched_Literals_Watch_List_Restart
 begin
 
+definition simplify_clause_with_unit_st_wl_pre where
+  \<open>simplify_clause_with_unit_st_wl_pre C S \<longleftrightarrow> (\<exists>T.
+  (S, T) \<in> state_wl_l None \<and>
+  simplify_clause_with_unit_st_pre C T)\<close>
+
 definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>simplify_clause_with_unit_st_wl = (\<lambda>C (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT (C \<in># dom_m N \<and> count_decided M = 0 \<and> D = None );
-    if C \<in> set (get_all_mark_of_propagated M)
+    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
+    ASSERT (C \<in># dom_m N \<and> count_decided M = 0 \<and> D = None \<and> no_dup M \<and> C \<noteq> 0);
+    let S = (M, N, D, NE, UE, NS, US, N0, U0, Q, W);
+    if False
     then RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W)
     else do {
       let E = mset (N \<propto> C);
       let irr = irred N C;
       (b, N) \<leftarrow> simplify_clause_with_unit C M N;
-      if b then
+      if b then do {
+        let T = (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W);
+        ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
+        ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
         RETURN (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W)
+      }
       else if size (N \<propto> C) = 1
       then do {
         let L = ((N \<propto> C) ! 0);
-        RETURN (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W)}
+        let T = (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
+        ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
+        ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
+        RETURN T
+      }
       else if size (N \<propto> C) = 0
-        then RETURN (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W)
-      else
-          RETURN (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W)
+      then do {
+         let T =  (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W);
+        ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
+        ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
+        RETURN T
+      }
+      else do {
+        let T =  (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W);
+        ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
+        ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
+        RETURN T
+     }
     }
      })\<close>
 
@@ -42,11 +66,14 @@ definition simplify_clauses_with_unit_st_wl :: \<open>'v twl_st_wl \<Rightarrow>
   do {
     ASSERT(simplify_clauses_with_unit_st_wl_pre S);
     xs \<leftarrow> SPEC(\<lambda>xs. xs \<subseteq>set_mset (dom_m (get_clauses_wl S)));
-    FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_wl_inv S it T)
-    (xs)
-    (\<lambda>S. get_conflict_wl S = None)
-    (\<lambda>i S. simplify_clause_with_unit_st_wl i S)
-    S
+    T \<leftarrow> FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_wl_inv S it T)
+      (xs)
+      (\<lambda>S. get_conflict_wl S = None)
+      (\<lambda>i S. simplify_clause_with_unit_st_wl i S)
+       S;
+    ASSERT(set_mset (all_learned_lits_of_wl T) \<subseteq> set_mset (all_learned_lits_of_wl S));
+    ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
+    RETURN T
   }\<close>
 lemma clauses_pointed_to_union:
   \<open>clauses_pointed_to (A \<union> B) W = clauses_pointed_to A W \<union> clauses_pointed_to B W\<close>
@@ -132,15 +159,40 @@ proof -
       (auto  dest!: multi_member_split[of _ \<open>dom_m _\<close>] simp: ran_m_def
          all_lits_of_mm_union all_lits_of_mm_add_mset image_mset_remove1_mset_if
        split: if_splits)
-        
+  have K4: \<open>
+    irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow>
+    all_lits_of_mm
+    (add_mset (mset (b \<propto> j))
+    ({#mset (fst x). x \<in># init_clss_l (fmdrop j b)#} + d + f + h)) =
+    all_lits_of_mm
+    ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h)\<close>
+    \<open>\<not>irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow>
+    all_lits_of_mm
+    (add_mset (mset (b \<propto> j))
+    ({#mset (fst x). x \<in># learned_clss_l (fmdrop j b)#} + d + f + h)) =
+    all_lits_of_mm
+    ({#mset (fst x). x \<in># learned_clss_l b#} + d + f + h)\<close>
+    for d f h j b
+    using distinct_mset_dom[of b]
+    apply (auto simp add: init_clss_l_fmdrop learned_clss_l_fmdrop_if)
+    by (smt (z3) fmupd_same image_mset_add_mset learned_clss_l_mapsto_upd prod.collapse
+        union_mset_add_mset_left)
+
   show ?thesis
     supply [[goals_limit=1]]
     using ST point
     apply (cases S; hypsubst)
     apply (cases T; hypsubst)
     unfolding simplify_clause_with_unit_st_wl_def simplify_clause_with_unit_st_def ij
-      state_wl_l_def prod.simps
+      state_wl_l_def prod.simps Let_def[of \<open>(_,_)\<close>]
     apply refine_rcg
+    subgoal for a b c d e f g h i ja k aa ba ca da ea fa ga ha ia jaa ka
+      using ST
+      unfolding simplify_clause_with_unit_st_wl_pre_def
+      by (rule_tac x = \<open>(aa, ba, ca, da, ea, fa, ga, ha, ia, jaa, ka)\<close> in exI)
+       simp
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -149,28 +201,40 @@ proof -
       apply (rule Id)
       subgoal by auto
       subgoal by auto
+      subgoal
+        by (auto simp add: all_learned_lits_of_wl_def all_init_lits_of_l_def
+          all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+          all_learned_lits_of_l_def get_init_clss_l_def)
       subgoal by (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def
         no_lost_clause_in_WL_def
         dest: in_diffD)
       subgoal by auto
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by  (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
       subgoal apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev add_mset_commute
         no_lost_clause_in_WL_def
         dest: in_diffD
         intro:)
-        apply (subst add_mset_commute)
-        apply (auto simp: all_lits_of_mm_add_mset clauses_pointed_to_union
-          dest: in_diffD)
-        apply (metis K1 K2 K3)+
         done
       subgoal by auto
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
       subgoal by (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev all_lits_of_mm_add_mset
         no_lost_clause_in_WL_def
         dest: in_diffD)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
       subgoal for a b c d e f g h i ja k aa ba ca da ea fa ga ha ia jaa ka x x' x1 x2 x1a x2a
-        
         apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
           init_clss_l_fmdrop_irrelev H
           no_lost_clause_in_WL_def
@@ -178,7 +242,7 @@ proof -
           intro: )
         apply (metis (no_types, lifting) basic_trans_rules(31) dom_m_fmdrop insert_DiffM) 
         apply (metis (no_types, lifting) basic_trans_rules(31) dom_m_fmdrop init_clss_l_fmdrop_irrelev insert_DiffM)
-        by (metis init_clss_l_fmdrop_irrelev)
+        done
       done
 qed
 
@@ -192,7 +256,6 @@ lemma [twl_st_wl, simp]:
   using assms by (auto simp: state_wl_l_def all_learned_lits_of_l_def
     all_learned_lits_of_wl_def all_init_lits_of_l_def
     all_init_lits_of_wl_def)
-
 
 lemma simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st:
   assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and
@@ -253,6 +316,12 @@ proof -
       by (rule conc_fun_R_mono)
         (use assms(3) in \<open>auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def
         blits_in_\<L>\<^sub>i\<^sub>n'_def\<close>)
+    subgoal
+      using ST lits
+      by (auto 4 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def
+        blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    subgoal
+      using ST by auto
     subgoal
       using ST lits
       by (auto 4 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def

@@ -764,10 +764,7 @@ proof -
       for T T' U U'
   proof -
     have \<open>T = T'\<close> and \<open>?f S T \<or> S = T\<close> and
-      count_0: \<open>count_decided (get_trail_l T') = 0\<close> (*and
-      T'U': \<open>cdcl_twl_restart_l_inp\<^sup>*\<^sup>* T' U'\<close> and
-      count_0_U: \<open>count_decided (get_trail_l U') = 0\<close> and
-      confl_U': \<open>get_conflict_l U' = None\<close>*)
+      count_0: \<open>count_decided (get_trail_l T') = 0\<close>
       using that by auto
     have confl: \<open>get_conflict_l T' = None\<close>
       using \<open>?f S T \<or> S = T\<close> confl
@@ -991,7 +988,7 @@ proof -
 
     show ?thesis
       apply (rule simplify_clauses_with_unit_st_spec[THEN order_trans, of _ U''])
-      apply (use lev0 UU'' struct_invs list_invs confl clss ent in auto)[7]
+      apply (use lev0 UU'' struct_invs list_invs confl clss ent in auto)[8]
       apply (use mark in \<open>auto 4 4 dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
         rtranclp_cdcl_twl_inprocessing_l_count_dec 
         simp: st lev0 get_all_mark_of_propagated_alt_def
