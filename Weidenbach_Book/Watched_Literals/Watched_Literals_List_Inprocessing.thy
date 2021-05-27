@@ -952,13 +952,14 @@ lemma cdcl_twl_unitres_l_cdcl_twl_unitres:
         init_clss_l_fmdrop learned_clss_l_l_fmdrop_irrelev)
   done
 
-definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> (bool \<times> 'v clauses_l) nres\<close> where
+definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_lits \<Rightarrow> 'v clauses_l \<Rightarrow> (bool \<times> bool \<times> 'v clauses_l) nres\<close> where
   \<open>simplify_clause_with_unit = (\<lambda>C M N. do {
-  SPEC(\<lambda>(b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and> C \<in># dom_m N' \<and>
+  SPEC(\<lambda>(unc, b, N'). fmdrop C N = fmdrop C N' \<and> mset (N' \<propto> C) \<subseteq># mset (N \<propto> C) \<and> C \<in># dom_m N' \<and>
      (\<not>b \<longrightarrow> (\<forall>L \<in># mset (N' \<propto> C). undefined_lit M L)) \<and>
      (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
      (irred N C = irred N' C) \<and>
-     (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)))
+     (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
+     (unc \<longrightarrow> N = N'))
   })\<close>
 
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
@@ -976,10 +977,14 @@ definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l 
     else do {
       let E = mset (N\<^sub>0 \<propto> C);
       let irr = irred N\<^sub>0 C;
-      (b, N) \<leftarrow> simplify_clause_with_unit C M N\<^sub>0;
+      (unc, b, N) \<leftarrow> simplify_clause_with_unit C M N\<^sub>0;
       ASSERT(fmdrop C N = fmdrop C N\<^sub>0 \<and> irred N C = irred N\<^sub>0 C \<and> mset (N \<propto> C) \<subseteq># mset (N\<^sub>0 \<propto> C) \<and>
         C \<in># dom_m N);
-      if b then do {
+      if unc then do {
+        ASSERT (N = N\<^sub>0);
+        RETURN (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q)
+      }
+      else if b then do {
         let T = (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, WS, Q);
           ASSERT (set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q)));
           ASSERT (set_mset (all_learned_lits_of_l T) = set_mset (all_learned_lits_of_l  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, WS, Q)));
@@ -1273,16 +1278,18 @@ proof -
   have in_lits:
     \<open>C \<in># dom_m aa \<and> count_decided a = 0 \<and> ab = None \<and> ai = {#} \<and> no_dup a \<and> C \<noteq> 0\<Longrightarrow>
   case x of
-    (b, N') \<Rightarrow>
+    (unc, b, N') \<Rightarrow>
     fmdrop C aa = fmdrop C N' \<and>
     mset (N' \<propto> C) \<subseteq># mset (aa \<propto> C) \<and>
     C \<in># dom_m N' \<and>
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
-    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<Longrightarrow>
-    x = (aj, bj) \<Longrightarrow>
+    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
+    (unc \<longrightarrow> (aa = N')) \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
-    aj \<Longrightarrow>
+    x = (unc, bj') \<Longrightarrow>
+    bj' = (aj, bj) \<Longrightarrow>
+    \<not>unc \<Longrightarrow> aj \<Longrightarrow>
     set_mset
     (all_init_lits_of_l
     (a, fmdrop C bj, ab, (if irred aa C then add_mset (mset (aa \<propto> C)) else id) ac,
@@ -1291,22 +1298,24 @@ proof -
 \<close>
     \<open>C \<in># dom_m aa \<and> count_decided a = 0 \<and> ab = None \<and> ai = {#} \<and> no_dup a \<and> C \<noteq> 0 \<Longrightarrow>
   case x of
-    (b, N') \<Rightarrow>
+    (unc, b, N') \<Rightarrow>
     fmdrop C aa = fmdrop C N' \<and>
     mset (N' \<propto> C) \<subseteq># mset (aa \<propto> C) \<and>
     C \<in># dom_m N' \<and>
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
-    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<Longrightarrow>
-    x = (aj, bj) \<Longrightarrow>
+    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
+    (unc \<longrightarrow> (aa = N'))  \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
-    aj \<Longrightarrow>
+    x = (unc, bj') \<Longrightarrow>
+    bj' = (aj, bj) \<Longrightarrow>
+    \<not>unc \<Longrightarrow> aj \<Longrightarrow>
     set_mset
     (all_learned_lits_of_l
       (a, fmdrop C bj, ab, (if irred aa C then add_mset (mset (aa \<propto> C)) else id) ac,
       (if \<not> irred aa C then add_mset (mset (aa \<propto> C)) else id) ad, ae, af, ag, ah, ai, bi)) =
     set_mset (all_learned_lits_of_l (a, aa, ab, ac, ad, ae, af, ag, ah, ai, bi)) \<close>
-    for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+    for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj unc bj'
     using assms distinct_mset_dom[of bj]  distinct_mset_dom[of aa]
     apply (auto simp: all_init_lits_of_l_def get_init_clss_l_def ran_m_def
       all_lits_of_mm_add_mset all_lits_of_mm_union
@@ -1318,16 +1327,18 @@ proof -
    have in_lits_prop:
      \<open>C \<in># dom_m aa \<and> count_decided a = 0 \<and> ab = None \<and> ai = {#} \<and> no_dup a \<and> C \<noteq> 0 \<Longrightarrow>
     case x of
-    (b, N') \<Rightarrow>
+    (unc, b, N') \<Rightarrow>
    fmdrop C aa = fmdrop C N' \<and>
    mset (N' \<propto> C) \<subseteq># mset (aa \<propto> C) \<and>
    C \<in># dom_m N' \<and>
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
-   irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<Longrightarrow>
-    x = (aj, bj) \<Longrightarrow>
+   irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
+      (unc \<longrightarrow> aa = N') \<Longrightarrow>
+      x = (unc, bj') \<Longrightarrow>
+      bj' = (aj, bj) \<Longrightarrow>
+      \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
-    \<not> aj \<Longrightarrow>
     length (bj \<propto> C) = 1 \<Longrightarrow>
     set_mset
   (all_init_lits_of_l
@@ -1338,16 +1349,18 @@ proof -
       \<close>
       \<open>C \<in># dom_m aa \<and> count_decided a = 0 \<and> ab = None \<and> ai = {#} \<and> no_dup a \<and> C \<noteq> 0 \<Longrightarrow>
     case x of
-    (b, N') \<Rightarrow>
+    (unc, b, N') \<Rightarrow>
    fmdrop C aa = fmdrop C N' \<and>
    mset (N' \<propto> C) \<subseteq># mset (aa \<propto> C) \<and>
    C \<in># dom_m N' \<and>
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
-   irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<Longrightarrow>
-    x = (aj, bj) \<Longrightarrow>
+   irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
+    (unc \<longrightarrow> aa = N') \<Longrightarrow>
+      x = (unc, bj') \<Longrightarrow>
+      bj' = (aj, bj) \<Longrightarrow>
+      \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
-    \<not> aj \<Longrightarrow>
     length (bj \<propto> C) = 1 \<Longrightarrow>
     set_mset
   (all_learned_lits_of_l
@@ -1356,7 +1369,7 @@ proof -
      (if \<not> irred aa C then add_mset (mset (aa \<propto> C)) else id) af, ag, ah, ai, add_mset (- bj \<propto> C ! 0) bi)) =
     set_mset (all_learned_lits_of_l (a, aa, ab, ac, ad, ae, af, ag, ah, ai, bi))
       \<close>
-      for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+      for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj bj' unc
       subgoal
         using assms distinct_mset_dom[of bj]  distinct_mset_dom[of aa]
           image_mset_cong2[of \<open>dom_m (fmdrop C aa)\<close>
@@ -1446,6 +1459,10 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     subgoal 
       by (rule in_lits)
     subgoal 
@@ -1461,7 +1478,7 @@ proof -
       by (rule in_lits_prop)
     subgoal 
       by (rule in_lits_prop)
-    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ aj bj
       using ST st_invs C0 apply -
       apply (rule disjI2, rule disjI1)
       apply (auto simp: length_list_Suc_0
@@ -1486,7 +1503,7 @@ proof -
       dest: all_lits_of_mm_diffD
       intro: in_all_lits_of_mm_learned_clss_l_single_out)
       by (metis all_lits_of_mm_add_mset diff_single_trivial insert_DiffM union_iff)
-    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ aj bj
       using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs C0
         cdcl_twl_unitres_false_entailed[of C \<open>get_clauses_l S\<close> \<open>get_trail_l S\<close>
          \<open>get_unit_init_clauses_l S\<close> \<open>get_unit_learned_clss_l S\<close>
@@ -1516,7 +1533,7 @@ proof -
       intro: in_all_lits_of_mm_init_clss_l_single_out)
       apply (smt (z3) Watched_Literals_Clauses.ran_m_mapsto_upd all_lits_of_mm_add_mset filter_mset_add_mset fmupd_same image_mset_add_mset prod.collapse ran_m_lf_fmdrop union_iff)+
       done
-    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x aj bj
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ aj bj
       using assms
       by (auto  simp: list_length_2_isabelle_come_on twl_list_invs_def
         intro!: cdcl_twl_unitres_l_intros3' cdcl_twl_unitres_l_intros1'
