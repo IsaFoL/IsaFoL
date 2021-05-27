@@ -9,17 +9,21 @@ definition simplify_clause_with_unit_st_wl_pre where
   simplify_clause_with_unit_st_pre C T)\<close>
 
 definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>simplify_clause_with_unit_st_wl = (\<lambda>C (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
-    ASSERT (C \<in># dom_m N \<and> count_decided M = 0 \<and> D = None \<and> no_dup M \<and> C \<noteq> 0);
-    let S = (M, N, D, NE, UE, NS, US, N0, U0, Q, W);
+  \<open>simplify_clause_with_unit_st_wl = (\<lambda>C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W). do {
+    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W));
+    ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None \<and> no_dup M \<and> C \<noteq> 0);
+    let S = (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W);
     if False
-    then RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W)
+    then RETURN S
     else do {
-      let E = mset (N \<propto> C);
-      let irr = irred N C;
-      (b, N) \<leftarrow> simplify_clause_with_unit C M N;
-      if b then do {
+      let E = mset (N\<^sub>0 \<propto> C);
+      let irr = irred N\<^sub>0 C;
+      (unc, b, N) \<leftarrow> simplify_clause_with_unit C M N\<^sub>0;
+      if unc then do {
+        ASSERT (N = N\<^sub>0);
+        RETURN S
+      }
+      else if b then do {
         let T = (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
@@ -199,6 +203,9 @@ proof -
     subgoal by auto
     subgoal by auto
       apply (rule Id)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal
