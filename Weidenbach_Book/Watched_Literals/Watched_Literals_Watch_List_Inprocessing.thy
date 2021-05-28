@@ -230,8 +230,8 @@ proof -
       subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
         all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
       subgoal by auto
-      subgoal apply (auto simp: all_lits_st_alt_def) sorry
-        find_theorems all_init_lits_of_l all_lits_st
+      subgoal by (auto simp: all_lits_st_alt_def all_learned_lits_of_wl_def
+        all_init_lits_of_l_def all_init_lits_of_wl_def get_init_clss_l_def)
       subgoal apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev add_mset_commute
         no_lost_clause_in_WL_def
