@@ -25,6 +25,7 @@ definition simplify_clause_with_unit2 where
         })
          (0, 0, N\<^sub>0, {#}, False);
     ASSERT(C \<in># dom_m N \<and> i \<le> length (N \<propto> C));
+    ASSERT(is_true \<or> j = l);
     let L = N \<propto> C ! 0;
     if is_true \<or> i \<le> 1
     then RETURN (False, fmdrop C N, L, is_true, i)
@@ -202,7 +203,8 @@ proof -
       then N'(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
     else N'(C \<hookrightarrow> take i (N' \<propto> C)))in
         (P, N'') \<in> Id \<and> ?P C M N (unc, b, N'') \<and>
-        (unc \<longleftrightarrow> \<not>is_true \<and> i = j))\<close>
+        (is_true \<or> j = length (N \<propto> C)) \<and>
+        (unc \<longleftrightarrow> \<not>is_true \<and> i = j \<and> i > 1))\<close>
    have H3: \<open>\<forall>x\<in>#ab. defined_lit M x \<Longrightarrow>
         undefined_lit M a \<Longrightarrow>
         mset (N \<propto> C) = add_mset a ab \<Longrightarrow>
@@ -268,6 +270,12 @@ proof -
       apply (auto intro!: ext split: if_splits)
       by metis
     done
+  have H11: \<open>\<not> irred N C \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>
+    size (learned_clss_l (fmdrop C N)) = size (learned_clss_l N) - Suc 0\<close> for N
+    using distinct_mset_dom[of N]
+    by (auto simp: learned_clss_l_l_fmdrop ran_m_def dest!: multi_member_split
+      intro!: arg_cong[of _ _ size] image_mset_cong2 filter_mset_cong2)
+
   have fmdrop_eq_update_eq': \<open>fmdrop C aa = fmdrop C N \<Longrightarrow> b = irred N C \<Longrightarrow>  N = fmupd C (N \<propto> C, b) aa\<close> for aa b
     using assms(1) fmdrop_eq_update_eq by blast
   have [simp]: \<open>fmupd C (D) aa = fmupd C (E) aa \<longleftrightarrow> D = E\<close> for aa D E
@@ -276,7 +284,11 @@ proof -
   have [simp]: \<open>(\<forall>a. a) \<longleftrightarrow> False\<close>
     by blast
   define simp_work_around where \<open>simp_work_around unc b \<equiv> unc \<longrightarrow> N = b\<close> for unc b
-      term  \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>
+  have simp_work_around_simp[simp]: \<open>simp_work_around True b \<longleftrightarrow> b = N\<close> for b
+    unfolding simp_work_around_def by auto
+    term  \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>
+  have hd_nth_take: \<open>length C > 0 \<Longrightarrow> [C!0] = take (Suc 0) C\<close> for C
+    by (cases C; auto)
   show ?thesis
     unfolding simplify_clause_with_unit_alt_def simplify_clause_with_unit2_def
       Let_def H conc_fun_RES st
@@ -295,6 +307,139 @@ proof -
     subgoal by (rule I_Suc)
     subgoal by (auto simp: I_def)
     subgoal for s
+      apply (cases s)
+      apply (clarsimp intro!: RETURN_SPEC_refine)
+      apply (intro conjI)
+      subgoal
+        apply (intro impI)
+        apply (clarsimp simp add: I_def fmdrop_fmupd_same)
+        apply (auto simp add: I_def mset_remove_filtered
+          dest: in_set_takeD)
+        done
+      subgoal
+        by (intro impI)
+         (auto simp add: I_def fmdrop_fmupd_same
+          intro!: fmdrop_eq_update_eq')
+      done
+    subgoal
+      unfolding I_def simp_work_around_def[symmetric]
+      by simp
+    subgoal
+      unfolding I_def simp_work_around_def[symmetric]
+      by simp
+    subgoal
+      unfolding I_def simp_work_around_def[symmetric]
+      by clarsimp
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+      unfolding I_def simp_work_around_def[symmetric]
+      apply (cases \<open>x2e \<or> x1b \<le> 1\<close>)
+      apply (simp only: if_True split: )
+      subgoal
+        apply (simp add: hd_nth_take learned_clss_l_l_fmdrop_irrelev H5 H4 H9[of x2a] H11
+            ;
+          (subst (asm) eq_commute[of \<open>If _ (fmupd C (_, _) _) _\<close> x2a])?)
+        apply (intro conjI impI allI)
+        apply (simp add: hd_nth_take)
+        apply (clarsimp simp only:)
+        apply (simp add: )
+        apply (clarsimp simp only:)
+        apply (clarsimp simp only:)
+        apply (simp add: )
+        apply (metis length_0_conv)
+        apply (clarsimp simp only:; fail)+
+        apply (simp add: )
+        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>])
+        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>] refl
+          split: if_splits)
+          apply (metis (no_types, lifting) H8)
+          apply (metis (no_types, lifting) H8)
+        apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
+          apply (metis (no_types, lifting))
+        apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
+        done
+      apply (cases \<open>x1b = x1c \<and> \<not> x2e\<close>)
+      subgoal
+        using fmupd_same[of C x1d]
+        apply (cases \<open>the (fmlookup x1d C)\<close>)
+        apply (simp only: if_True if_False simp_thms mem_Collect_eq prod.case
+          Let_def linorder_class.not_le[symmetric] simp_work_around_simp
+          take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
+          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
+          fst_conv snd_conv)
+        apply (intro conjI impI allI)
+        oops
+                    apply (clarsimp simp only:)
+        apply simp
+          oops
+
+        apply (clarsimp simp only: take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
+          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
+          fst_conv snd_conv)
+          oops
+          find_theorems "\<not> _ \<le> _ \<longleftrightarrow> _ < _"
+        apply (intro conjI impI allI)
+        apply (clarsimp simp only: take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
+          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
+          fst_conv snd_conv)
+        unfolding  take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
+          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
+        apply (clarsimp simp only:)
+        apply simp
+        apply (clarsimp simp only:)
+        apply simp
+          
+          find_theorems "the (Some _) "
+        apply (intro conjI impI allI)
+        apply (simp add: hd_nth_take)
+          oops
+        apply (clarsimp simp only:)
+        apply (simp add: )
+        apply (clarsimp simp only:)
+        apply (clarsimp simp only:)
+        apply (simp add: )
+        apply (metis length_0_conv)
+        apply (clarsimp simp only:; fail)+
+        apply (simp add: )
+        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>])
+        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>] refl
+          split: if_splits)
+          apply (metis (no_types, lifting) H8)
+          apply (metis (no_types, lifting) H8)
+        apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
+          apply (metis (no_types, lifting) H8)
+          apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
+            oops
+        apply (clarsimp only:)
+        by (metis (full_types) take_all_iff)
+      subgoal
+        apply (simp add: hd_nth_take learned_clss_l_l_fmdrop_irrelev H5 H4;
+          (subst (asm) eq_commute[of \<open>If _ (fmupd C (_, _) _) _\<close> x2a])?)
+        apply (intro conjI impI allI)
+        apply (simp add: hd_nth_take)
+        apply (clarsimp simp only:)
+        apply (clarsimp simp only:)
+        apply simp
+        apply (clarsimp simp only: dom_m_fmupd add_mset_remove_trivial refl simp_thms
+          split: if_splits)
+        done
+      subgoal
+        apply (simp add: hd_nth_take learned_clss_l_l_fmdrop_irrelev H5 H4;
+          (subst (asm) eq_commute[of \<open>(fmupd C (take _ _, _) _)\<close> x2a])?)
+        apply (intro conjI impI allI)
+        apply (simp add: hd_nth_take)
+        apply (clarsimp simp only:)
+        apply (simp_all add: learned_clss_l_l_fmdrop_irrelev
+          learned_clss_l_l_fmdrop H5 H4)
+        done
+find_theorems "_ \<longrightarrow> True"
+          oops
+        apply clarsimp
+        apply (auto simp add: hd_nth_take)
+        sledgehammer
+
+      sorry
+      
+        find_theorems "RETURN _ \<le> \<Down> _ (SPEC _)"
       supply [[goals_limit=1]]
       using assms(2)
       unfolding mem_Collect_eq RETURN_RES_refine_iff case_prod_beta
