@@ -2,6 +2,12 @@ theory Watched_Literals_Watch_List_Inprocessing
   imports Watched_Literals_Watch_List Watched_Literals_List_Simp
     Watched_Literals_Watch_List_Restart
 begin
+(*TODO Move*)
+lemma all_lits_st_alt_def:
+  \<open>Watched_Literals_Watch_List.all_lits_st S = all_init_lits_of_wl S + all_learned_lits_of_wl S\<close>
+  apply (auto simp: all_lits_st_def all_init_lits_of_wl_def all_learned_lits_of_wl_def
+    ac_simps all_lits_def all_lits_of_mm_union)
+   by (metis all_clss_l_ran_m all_lits_of_mm_union get_unit_clauses_wl_alt_def image_mset_union union_assoc) 
 
 definition simplify_clause_with_unit_st_wl_pre where
   \<open>simplify_clause_with_unit_st_wl_pre C S \<longleftrightarrow> (\<exists>T.
@@ -35,6 +41,7 @@ definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st
         let T = (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
+        ASSERT (undefined_lit M L \<and> L \<in># all_lits_st S);
         RETURN T
       }
       else if size (N \<propto> C) = 0
@@ -220,8 +227,11 @@ proof -
       subgoal by auto
       subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
         all_learned_lits_of_l_def get_init_clss_l_def)
-      subgoal by  (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
         all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
+      subgoal by auto
+      subgoal apply (auto simp: all_lits_st_alt_def) sorry
+        find_theorems all_init_lits_of_l all_lits_st
       subgoal apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
         init_clss_l_fmdrop_irrelev add_mset_commute
         no_lost_clause_in_WL_def
