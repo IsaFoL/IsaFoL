@@ -1167,7 +1167,7 @@ definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightar
     RETURN T
   }\<close>
 
-lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
+lemma isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2:
   assumes \<open>(S, S') \<in> twl_st_heur\<close>
   shows \<open>isa_simplify_clauses_with_unit_st2 S \<le>
     \<Down>twl_st_heur (simplify_clauses_with_unit_st2 S')\<close>
@@ -1192,24 +1192,23 @@ proof -
 
   have [refine]: \<open>RETURN [] \<le> \<Down> {(xs, a). a = set xs \<and> distinct xs} (SPEC (\<lambda>xs. xs \<subseteq> set_mset (dom_m (get_clauses_wl S'))))\<close>
     by (auto simp: RETURN_RES_refine)
-find_theorems nfoldli WHILE\<^sub>T
-  thm nfoldli_upt_by_while
-  (* have [refine]: \<open> ((0, S), x, S') \<in>  \<times>\<^sub>f twl_st_heur\<close> for x
-   *   using assms by auto *)
+
+    have [refine]: \<open>(xs, xsa) \<in> {(xs, a). a = set xs \<and> distinct xs} \<Longrightarrow>
+      xsa \<in> {xs. xs \<subseteq> set_mset (dom_m (get_clauses_wl S'))} \<Longrightarrow>
+      ([0..<length xs], xsa) \<in> \<langle>{(i, a). xs ! i =a}\<rangle>list_set_rel\<close> for xs xsa
+      by (auto simp: list_set_rel_def br_def
+        intro!: relcompI[of _ xs])
+       (auto simp: list_rel_def intro!: list_all2_all_nthI)
   show ?thesis
     unfolding isa_simplify_clauses_with_unit_st2_def simplify_clauses_with_unit_st2_def
       nfoldli_upt_by_while[symmetric]  nres_monad3
     apply (refine_vcg isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2
       LFOci_refine)
-      find_theorems FOREACHci nfoldli
-    apply (subst while_upt_while_direct, simp)
+    subgoal by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id]
+      assms get_conflict_wl_is_None_def)
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    
-    oops
+    subgoal using assms by auto
+    done
+qed
 
-      thm while_eq_nfoldli
-      find_theorems name:while FOREACH_cond
-term get_conflict_wl_is_None_heur
-  end
+end
