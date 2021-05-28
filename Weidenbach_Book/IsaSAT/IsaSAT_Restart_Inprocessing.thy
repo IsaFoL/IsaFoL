@@ -364,219 +364,28 @@ proof -
         apply (simp only: if_True if_False simp_thms mem_Collect_eq prod.case
           Let_def linorder_class.not_le[symmetric] simp_work_around_simp
           take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
-          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
+          option.sel fst_conv simp_work_around_simp eq_commute[of \<open>fmupd _ _ _\<close> N]
+          eq_commute [of x2a N]
           fst_conv snd_conv)
         apply (intro conjI impI allI)
-        oops
-                    apply (clarsimp simp only:)
-        apply simp
-          oops
-
-        apply (clarsimp simp only: take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
-          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
-          fst_conv snd_conv)
-          oops
-          find_theorems "\<not> _ \<le> _ \<longleftrightarrow> _ < _"
-        apply (intro conjI impI allI)
-        apply (clarsimp simp only: take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
-          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
-          fst_conv snd_conv)
-        unfolding  take_all[OF order.refl] fmupd_lookup refl if_True simp_thms
-          option.sel fst_conv simp_work_around_simp eq_commute[of N \<open>fmupd _ _ _\<close>]
-        apply (clarsimp simp only:)
-        apply simp
-        apply (clarsimp simp only:)
-        apply simp
-          
-          find_theorems "the (Some _) "
-        apply (intro conjI impI allI)
-        apply (simp add: hd_nth_take)
-          oops
-        apply (clarsimp simp only:)
-        apply (simp add: )
-        apply (clarsimp simp only:)
-        apply (clarsimp simp only:)
-        apply (simp add: )
-        apply (metis length_0_conv)
-        apply (clarsimp simp only:; fail)+
-        apply (simp add: )
-        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>])
-        apply (clarsimp simp only: if_True if_False H11 H8[of \<open>fmupd _ _ x1d\<close>] refl
-          split: if_splits)
-          apply (metis (no_types, lifting) H8)
-          apply (metis (no_types, lifting) H8)
-        apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
-          apply (metis (no_types, lifting) H8)
-          apply (clarsimp simp only: if_True if_False H11 H8[of x1d])
-            oops
-        apply (clarsimp only:)
-        by (metis (full_types) take_all_iff)
-      subgoal
-        apply (simp add: hd_nth_take learned_clss_l_l_fmdrop_irrelev H5 H4;
-          (subst (asm) eq_commute[of \<open>If _ (fmupd C (_, _) _) _\<close> x2a])?)
-        apply (intro conjI impI allI)
-        apply (simp add: hd_nth_take)
-        apply (clarsimp simp only:)
-        apply (clarsimp simp only:)
-        apply simp
-        apply (clarsimp simp only: dom_m_fmupd add_mset_remove_trivial refl simp_thms
-          split: if_splits)
+        apply (clarsimp simp :; fail)+
         done
-      subgoal
-        apply (simp add: hd_nth_take learned_clss_l_l_fmdrop_irrelev H5 H4;
-          (subst (asm) eq_commute[of \<open>(fmupd C (take _ _, _) _)\<close> x2a])?)
-        apply (intro conjI impI allI)
-        apply (simp add: hd_nth_take)
-        apply (clarsimp simp only:)
-        apply (simp_all add: learned_clss_l_l_fmdrop_irrelev
-          learned_clss_l_l_fmdrop H5 H4)
+     subgoal
+        using fmupd_same[of C x1d]
+        apply (cases \<open>the (fmlookup x1d C)\<close>)
+        apply (cases \<open>irred x2a C\<close>)
+        apply (simp_all only: if_True if_False simp_thms mem_Collect_eq prod.case
+          Let_def linorder_class.not_le[symmetric] simp_work_around_simp
+          take_all[OF order.refl] fmupd_lookup refl if_True simp_thms H4 H5
+          option.sel fst_conv simp_work_around_simp eq_commute[of \<open>fmupd _ _ _\<close> x2a]
+          eq_commute [of x2a N] H4 H5
+          fst_conv snd_conv;
+          intro conjI impI allI)
+        apply (clarsimp simp :; fail)+
+        apply (clarsimp simp add: eq_commute[of \<open>fmupd _ _ _\<close> x2a])
+        apply (metis set_mset_mset union_iff)
+        apply (clarsimp simp: H4 H5; fail)+
         done
-find_theorems "_ \<longrightarrow> True"
-          oops
-        apply clarsimp
-        apply (auto simp add: hd_nth_take)
-        sledgehammer
-
-      sorry
-      
-        find_theorems "RETURN _ \<le> \<Down> _ (SPEC _)"
-      supply [[goals_limit=1]]
-      using assms(2)
-      unfolding mem_Collect_eq RETURN_RES_refine_iff case_prod_beta
-      apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
-        intro: in_lits_of_l_defined_litD eq_upd_same)
-      apply (auto dest: in_set_takeD)[4]
-      apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s
-    then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
-      else (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
-      apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
-          intro: in_lits_of_l_defined_litD dest: )
-        apply (auto simp add: I_def filt H0)
-        apply (simp only: size_mset[symmetric] mset_filter filter_union_mset)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (simp only: size_mset[symmetric] mset_filter filter_union_mset)
-        apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s  \<or> fst s \<le> 1
-      then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
-        else  (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
-        apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
-          intro: in_lits_of_l_defined_litD)
-        apply (auto simp add: I_def filt H0 H3)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (case_tac x; case_tac \<open>aa \<propto> C\<close>)
-        apply (auto simp: H3)
-        apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s  \<or> fst s \<le> 1
-      then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
-        else  (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
-        apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
-          intro!: fmdrop_eq_update_eq'
-          intro: in_lits_of_l_defined_litD)
-        apply (auto simp add: I_def filt H0 H3)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (case_tac x; case_tac \<open>aa \<propto> C\<close>)
-        apply (auto simp: H3 eq_commute [of \<open>_ # _\<close> \<open>_ \<propto>  _\<close>])
-        apply (intro conjI impI exI[of _ \<open>if (snd o snd o snd o snd) s  \<or> fst s \<le> 1
-      then (fst (snd (snd s)))(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
-        else  (fst (snd (snd s)))(C \<hookrightarrow> take (fst s) ((fst (snd (snd s))) \<propto> C))\<close>])
-        apply (auto simp: I_def fmdrop_fmupd_same mset_remove_filtered comp_def
-          eq_commute [of \<open>_ # _\<close> \<open>_ \<propto>  _\<close>]
-          intro!: fmdrop_eq_update_eq'
-          intro: in_lits_of_l_defined_litD)
-        apply (auto simp add: I_def filt H0 H3)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (subst filt(1), simp, simp)
-        apply (metis (no_types, lifting) diff_union_cancelR filt(1) set_mset_mset)
-        apply (case_tac x; case_tac \<open>aa \<propto> C\<close>)
-        apply (auto simp: H3 eq_commute [of \<open>_ # _\<close> \<open>_ \<propto>  _\<close>])
-        done
-     subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
-       unfolding I_def simp_work_around_def[symmetric]
-       by simp
-     subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
-       unfolding I_def simp_work_around_def[symmetric]
-      by (auto simp add: I_def)
-    subgoal for s x1 x2 x1a x2a x1b x2b x1c x2c
-      supply [[goals_limit=1]]
-      unfolding I_def simp_work_around_def[symmetric] Let_def
-      apply (subst if_split[of \<open> \<lambda>x. (x, _) \<in> A\<close> for A])+
-      apply (intro conjI impI)
-      subgoal
-      apply(simp only: mem_Collect_eq prod.case
-        split: if_split)
-        apply clarsimp
-      apply (intro conjI impI)
-      apply (auto dest: H9)[10]
-thm if_split[of \<open> \<lambda>x. x \<in> A\<close> for A]
-      apply (intro conjI impI)
-      apply (auto dest: H9)[]
-
-
-        oops
-      apply (simp add: learned_clss_l_fmdrop_if H4 H5 H6 H7
-        eq_commute[of \<open>take (Suc 0) (N \<propto> C)\<close>]
-        )
-      apply normalize_goal+
-      apply (simp add: learned_clss_l_fmdrop_if H4 H5 H6 H7
-        eq_commute[of \<open>take (Suc 0) (N \<propto> C)\<close>]
-        (* eq_commute[of \<open>If _ (fmupd _ _ _)  _\<close>] *)
-        split: if_splits)
-      apply (intro conjI impI)
-      apply (auto dest: H9)[6]
-      apply blast
-      apply (auto dest: H9)[17]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[4]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[]
-      apply blast
-      apply (auto dest: H9)[7]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[4]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[5]
-      apply (intro conjI impI)
-      apply (auto dest: H9)[]
-      apply blast
-      apply (auto dest: H9)[11]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[4]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[]
-      apply blast
-      apply (auto dest: H9)[7]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[4]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[5]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-
-      apply (simp add:
-        eq_commute[of \<open>If _ (fmupd _ _ _)  _\<close>]
-        eq_commute[of \<open>take (Suc 0) (N \<propto> C)\<close>])
-          oops
-        apply clarsimp
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[5]
-      apply (rule H8; simp)
-      apply (rule H8; simp)
-      apply (auto dest: H9)[5]
       done
     done
 qed
@@ -594,7 +403,7 @@ definition simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> nat twl_st_
       let T = (M, N, D, NE, UE, NS, US, N0, U0, Q, W);
       RETURN T
     }
-    if b then do {
+    else if b then do {
        let T = (M, N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W);
       ASSERT (set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
       ASSERT (set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
