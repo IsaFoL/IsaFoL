@@ -1,6 +1,7 @@
 theory IsaSAT_Restart_Inprocessing
   imports IsaSAT_Restart
     Watched_Literals.Watched_Literals_Watch_List_Inprocessing
+    More_Refinement_Libs.WB_More_Refinement_Loops
 begin
 
 definition simplify_clause_with_unit2_pre where
@@ -1149,4 +1150,66 @@ proof -
    done
 qed
 
-end
+  term simplify_clauses_with_unit_st2
+  term isa_simplify_clause_with_unit_st2
+definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>  where
+  \<open>isa_simplify_clauses_with_unit_st2 S =
+  do {
+    xs \<leftarrow> RETURN [];
+    (_, T) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
+      (\<lambda>(i,T). do {
+        T \<leftarrow> isa_simplify_clause_with_unit_st2 (xs!i) T;
+        ASSERT(i < length xs);
+        RETURN (i+1, T)
+      })
+     (0, S);
+    RETURN T
+  }\<close>
+
+lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
+  assumes \<open>(S, S') \<in> twl_st_heur\<close>
+  shows \<open>isa_simplify_clauses_with_unit_st2 S \<le>
+    \<Down>twl_st_heur (simplify_clauses_with_unit_st2 S')\<close>
+proof -
+  have isa_simplify_clauses_with_unit_st2_def: \<open>isa_simplify_clauses_with_unit_st2 S =
+  do {
+    xs \<leftarrow> RETURN [];
+    T \<leftarrow> do {
+    (_, T) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
+      (\<lambda>(i,T). do {
+        T \<leftarrow> isa_simplify_clause_with_unit_st2 (xs!i) T;
+        ASSERT(i < length xs);
+        RETURN (i+1, T)
+      })
+     (0, S);
+    RETURN T
+    };
+    RETURN T
+    }\<close>
+    unfolding isa_simplify_clauses_with_unit_st2_def by auto
+
+  have [refine]: \<open>RETURN [] \<le> \<Down> {(xs, a). a = set xs \<and> distinct xs} (SPEC (\<lambda>xs. xs \<subseteq> set_mset (dom_m (get_clauses_wl S'))))\<close>
+    by (auto simp: RETURN_RES_refine)
+find_theorems nfoldli WHILE\<^sub>T
+  thm nfoldli_upt_by_while
+  (* have [refine]: \<open> ((0, S), x, S') \<in>  \<times>\<^sub>f twl_st_heur\<close> for x
+   *   using assms by auto *)
+  show ?thesis
+    unfolding isa_simplify_clauses_with_unit_st2_def simplify_clauses_with_unit_st2_def
+      nfoldli_upt_by_while[symmetric]  nres_monad3
+    apply (refine_vcg isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2
+      LFOci_refine)
+      find_theorems FOREACHci nfoldli
+    apply (subst while_upt_while_direct, simp)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    
+    oops
+
+      thm while_eq_nfoldli
+      find_theorems name:while FOREACH_cond
+term get_conflict_wl_is_None_heur
+  end
