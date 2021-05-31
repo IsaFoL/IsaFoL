@@ -469,6 +469,14 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
     set_mset (all_init_lits_of_wl T) =
     set_mset (all_lits_st T))\<close>
 
+definition cdcl_twl_full_restart_wl_GC_prog_post_confl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_full_restart_wl_GC_prog_post_confl S T \<longleftrightarrow>
+  (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+    cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
+    cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S' T' \<and>
+    set_mset (all_init_lits_of_wl T) =
+    set_mset (all_lits_st T))\<close>
+
 definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
     (\<exists>S' last_GC last_Restart. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' last_GC last_Restart brk
