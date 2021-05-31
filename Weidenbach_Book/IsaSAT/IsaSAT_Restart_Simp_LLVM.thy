@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Simp_LLVM
-imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLVM
+imports IsaSAT_Restart_Simp IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLVM
   IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM IsaSAT_Inprocessing_LLVM
 begin
 
@@ -48,8 +48,31 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_def mark_to_delete_clauses_GC_wl_D_heur_heur_fast_impl
+  is \<open>mark_to_delete_clauses_GC_wl_D_heur\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding mark_to_delete_clauses_GC_wl_D_heur_def
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    get_the_propagation_reason_heur_def[symmetric]
+    clause_is_learned_heur_def[symmetric]
+    clause_lbd_heur_def[symmetric]
+    access_length_heur_def[symmetric]
+    mark_to_delete_clauses_wl_D_heur_is_Some_iff
+    marked_as_used_st_def[symmetric] if_conn(4)
+    fold_tuple_optimizations
+    mop_arena_lbd_st_def[symmetric]
+    mop_marked_as_used_st_def[symmetric]
+    mop_arena_status_st_def[symmetric]
+    mop_arena_length_st_def[symmetric]
+  supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
+      length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
+  apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
-sepref_register cdcl_twl_full_restart_wl_prog_heur
+term mark_to_delete_clauses_GC_wl_D_heur
+sepref_register cdcl_twl_full_restart_wl_prog_heur mark_to_delete_clauses_GC_wl_D_heur
 
 sepref_def cdcl_twl_full_restart_wl_prog_heur_fast_code
   is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
@@ -75,7 +98,17 @@ sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
+sepref_def cdcl_twl_full_restart_wl_D_inprocess_heur_prog_fast_code
+  is \<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding cdcl_twl_full_restart_wl_D_inprocess_heur_prog_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
+  cdcl_twl_full_restart_wl_D_inprocess_heur_prog
 
 sepref_def restart_prog_wl_D_heur_fast_code
   is \<open>uncurry4 (restart_prog_wl_D_heur)\<close>

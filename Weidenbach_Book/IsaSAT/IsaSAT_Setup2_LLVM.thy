@@ -47,8 +47,35 @@ sepref_def opts_restart_coeff2_st_fast_code
   unfolding opts_restart_coeff2_st_def isasat_bounded_assn_def
   by sepref
 
+
+lemma units_since_last_GC_st_alt_def:
+  \<open>RETURN o units_since_last_GC_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena). RETURN (units_since_last_GC stats))\<close>
+  by (auto intro!: ext simp: units_since_last_GC_st_def)
+
+sepref_def units_since_last_GC_st_code
+  is \<open>RETURN o units_since_last_GC_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k  \<rightarrow>\<^sub>a word_assn\<close>
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  unfolding units_since_last_GC_st_alt_def
+    isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+
+lemma get_GC_units_opt_alt_def:
+  \<open>RETURN o get_GC_units_opt = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>
+  by (auto intro!: ext simp: get_GC_units_opt_def)
+
+sepref_def get_GC_units_opt_code
+  is \<open>RETURN o get_GC_units_opt\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_GC_units_opt_alt_def
+    isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
-    opts_minimum_between_restart_st opts_unbounded_mode_st
+    opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
 
 sepref_register isasat_length_trail_st
 

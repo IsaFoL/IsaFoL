@@ -1,5 +1,5 @@
 theory IsaSAT
-  imports IsaSAT_CDCL IsaSAT_Restart IsaSAT_Initialisation
+  imports IsaSAT_CDCL IsaSAT_Restart_Simp IsaSAT_Initialisation
 begin
 
 chapter \<open>Full IsaSAT\<close>
@@ -190,8 +190,8 @@ lemma pcdcl_stgy_restart_entailed_by_init:
   subgoal
     using pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init rtranclp_pcdcl_stgy_pcdcl
     by blast
-  subgoal for U V
-    using pcdcl_restart_entailed_by_init[of U V] pcdcl_restart_pcdcl_all_struct_invs[of S U]
+  subgoal for U
+    using pcdcl_restart_entailed_by_init[of U R1'] pcdcl_restart_pcdcl_all_struct_invs[of S U]
       rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S U]
       rtranclp_pcdcl_inprocessing_entailed_by_init[of S U]
     by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
@@ -343,10 +343,10 @@ lemma pcdcl_stgy_restart_same_init_vars:
     by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
       simp: rtranclp_pcdcl_same_init_vars)
-  subgoal for U V
+  subgoal for U
     apply (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_same_init_vars
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy')
-    using pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss apply blast
+    using rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss apply blast
       by (smt pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss)
   subgoal
     by (auto simp: pcdcl_restart_only_same_init_vars)
@@ -1443,8 +1443,7 @@ proof -
      subgoal by (rule init_dt_wl_pre)
      by (auto simp: conc_fun_RES init_dt_wl_spec_full_def correct_watching_init_correct_watching
        finalise_init_def literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
-       simp flip: all_lits_st_alt_def)
-
+       simp flip: all_lits_st_alt_def IsaSAT_Setup.all_lits_st_alt_def)
     ultimately show ?thesis
       by (rule add_invar_refineI_P)
   qed
@@ -1871,10 +1870,10 @@ definition empty_conflict :: \<open>nat literal list option\<close> where
 definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
-  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
+  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
 
 
 definition convert_state where
@@ -1893,6 +1892,7 @@ definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<cl
   \<open>isasat_fast_init S \<longleftrightarrow>
       (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
        learned_clss_count_init S < uint64_max)\<close>
+
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -3919,7 +3919,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
 definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code' = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 
 lemma IsaSAT_bounded_heur_alt_def:

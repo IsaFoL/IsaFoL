@@ -3,6 +3,7 @@ theory IsaSAT_Restart_Heuristics_LLVM
      IsaSAT_VMTF_State_LLVM IsaSAT_Rephase_State_LLVM
      IsaSAT_Arena_Sorting_LLVM
      IsaSAT_Restart_Reduce_LLVM
+     IsaSAT_Inprocessing_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI
@@ -35,6 +36,11 @@ sepref_def FLAG_Reduce_restart_impl
   unfolding FLAG_Reduce_restart_def
   by sepref
 
+sepref_def FLAG_Inprocess_restart_impl
+  is \<open>uncurry0 (RETURN FLAG_Inprocess_restart)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding FLAG_Inprocess_restart_def
+  by sepref
 
 sepref_def end_of_restart_phase_impl
   is \<open>RETURN o end_of_restart_phase\<close>
@@ -153,6 +159,13 @@ sepref_def GC_required_heur_fast_code
   supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
   unfolding GC_required_heur_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def GC_units_required_heur_fast_code
+  is \<open>RETURN o GC_units_required\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  unfolding GC_units_required_def
   by sepref
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur

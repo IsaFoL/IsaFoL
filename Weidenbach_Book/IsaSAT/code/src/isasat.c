@@ -516,6 +516,8 @@ int main(int argc, char *argv[]) {
   uint64_t restartmargin = 17;
   uint64_t fema = 128849010;
   uint64_t sema = 429450;
+  uint64_t unitinterval = 128849010;
+
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
     int n;
@@ -539,6 +541,10 @@ int main(int argc, char *argv[]) {
     }
     else if (strcmp(opt, "--emaslow\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
       sema = (uint64_t)n;
+      ++i;
+    }
+    else if (strcmp(opt, "--unitinterval\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+      unitinterval = (uint64_t)n;
       ++i;
     }
     else {
@@ -595,7 +601,8 @@ READ_FILE:
   printf("c propagations                       redundant                   lrestarts                       GC                        not-mem-reasons\n"
 	 "c                     conflicts                     reductions                 level-0                         LBDs                      subsumed\n");
 #endif
-  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema, sema, clauses);
+  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
+			     sema, unitinterval, clauses);
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;

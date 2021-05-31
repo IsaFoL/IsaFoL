@@ -484,7 +484,8 @@ proof -
       (ebrk, brk, T, last_GC, last_Restart, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 o snd\<^esup>
 	        (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
 	        (\<lambda>(_, brk, S, last_GC, last_Restart,n).
-	        do {
+                do {
+                  ASSERT (\<not> brk);
 	          T \<leftarrow> unit_propagation_outer_loop_wl S;
 	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	          (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
@@ -497,7 +498,7 @@ proof -
       RETURN (ebrk, T)
     }\<close> for S\<^sub>0
     unfolding cdcl_twl_stgy_restart_prog_bounded_wl_def nres_monad1 Let_def
-    by (auto intro: bind_cong[OF refl])
+    by (auto intro!: bind_cong[OF refl])
 
   have [refine0]: \<open>RETURN (\<not>(isasat_fast x \<and> n < uint64_max)) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>(isasat_fast x \<and> n < uint64_max)))} (RES UNIV)\<close>
