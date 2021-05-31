@@ -1,3 +1,5 @@
+chapter Weidenbach_Book
+
 session "More_Sepref" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session contains some libraries for Refinement.\<close>
   options [document = pdf, document_output = "output"]
