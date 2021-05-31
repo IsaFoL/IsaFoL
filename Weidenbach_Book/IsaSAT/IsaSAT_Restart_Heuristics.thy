@@ -107,7 +107,10 @@ lemma
         (S, T) \<in> twl_st_heur''' r \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart_ana r\<close> (is \<open>_ \<Longrightarrow> _ ?A\<close>) and
      cdcl_twl_full_restart_wl_D_GC_prog_post_heur:
        \<open>cdcl_twl_full_restart_wl_GC_prog_post S0 T \<Longrightarrow>
-        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>  (is \<open>_ \<Longrightarrow> _ ?B\<close>)
+        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>  (is \<open>_ \<Longrightarrow> _ ?B\<close>) and
+     cdcl_twl_full_restart_wl_D_GC_prog_post_confl_heur:
+       \<open>cdcl_twl_full_restart_wl_GC_prog_post_confl S0 T \<Longrightarrow>
+        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>  (is \<open>_ \<Longrightarrow> _ ?C\<close>)
 proof -
   note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
@@ -140,6 +143,44 @@ proof -
   show \<open>cdcl_twl_full_restart_wl_GC_prog_post S0 T \<Longrightarrow> ?B\<close>
     supply [[goals_limit=1]]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
+       cdcl_twl_full_restart_wl_GC_prog_post_def
+       cdcl_twl_full_restart_l_GC_prog_pre_def
+    apply normalize_goal+
+    subgoal for S0' T' S0''
+    apply (rule iffI)
+    subgoal
+      apply (rule rtranclp_cdcl_twl_restart_l_inp_cdcl_twl_restart_inp[of S0' T' S0''], assumption+)
+      apply (frule rtranclp_cdcl_twl_inp_twl_struct_invs, assumption+)
+      subgoal for V
+        using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T T' V]
+          cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close>]
+          vdom_m_cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+        apply -
+        apply (clarsimp simp del: isasat_input_nempty_def isasat_input_bounded_def)
+        apply (cases S; cases T; cases T'; cases V)
+        apply (simp add: twl_st_heur_def twl_st_heur_restart_def all_atms_st_def all_init_atms_st_def
+          del: isasat_input_nempty_def)
+        using isa_vmtf_cong option_lookup_clause_rel_cong trail_pol_cong heuristic_rel_cong
+        by presburger+
+      done
+    subgoal
+      apply (rule rtranclp_cdcl_twl_restart_l_inp_cdcl_twl_restart_inp[of S0' T' S0''], assumption+)
+      apply (frule rtranclp_cdcl_twl_inp_twl_struct_invs, assumption+)
+      subgoal for V
+        using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T T']
+          cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
+          vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+          cdcl_twl_restart_l_invs[of S0' S0'' T']
+        apply -
+        apply (cases S; cases T)
+        by (clarsimp simp add: twl_st_heur_def twl_st_heur_restart_def all_atms_st_def all_init_atms_st_def
+          simp del: isasat_input_nempty_def)
+      done
+    done
+    done
+  show \<open>cdcl_twl_full_restart_wl_GC_prog_post_confl S0 T \<Longrightarrow> ?B\<close>
+    supply [[goals_limit=1]]
+    unfolding cdcl_twl_full_restart_wl_GC_prog_post_confl_def
        cdcl_twl_full_restart_wl_GC_prog_post_def
        cdcl_twl_full_restart_l_GC_prog_pre_def
     apply normalize_goal+
@@ -550,8 +591,11 @@ proof -
     subgoal
       by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
         (auto simp: get_conflict_wl_is_None_def)
-    subgoal apply (auto simp: twl_st_heur_restart_ana_def)
-      sorry
+    subgoal for x y
+      unfolding mem_Collect_eq prod.case
+      apply (subst cdcl_twl_full_restart_wl_D_GC_prog_post_confl_heur)
+      apply assumption
+      by (auto simp: twl_st_heur_restart_ana_def)
     apply (assumption)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)

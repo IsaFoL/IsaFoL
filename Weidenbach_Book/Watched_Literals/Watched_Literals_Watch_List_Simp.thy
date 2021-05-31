@@ -52,7 +52,10 @@ definition cdcl_twl_full_restart_inprocess_wl_prog where
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
   T \<leftarrow> simplify_clauses_with_unit_st_wl S';
-  if get_conflict_wl T \<noteq> None then RETURN T
+  if get_conflict_wl T \<noteq> None then do {
+    ASSERT(cdcl_twl_full_restart_wl_GC_prog_post_confl S T);
+    RETURN T
+  }
   else do {
     ASSERT(mark_to_delete_clauses_GC_wl_pre T);
     U \<leftarrow> mark_to_delete_clauses_GC_wl T;
@@ -84,6 +87,12 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal for x y S' S'a T Ta U Ua
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Ua U]
+    unfolding cdcl_twl_full_restart_wl_GC_prog_post_confl_def apply -
+    by (rule exI[of _ y], rule exI[of _ Ua])
+      (smt (verit, best) all_lits_st_alt_def basic_trans_rules(31) in_pair_collect_simp
+         literals_are_\<L>\<^sub>i\<^sub>n'_def set_mset_set_mset_eq_iff union_iff)
   subgoal by auto
   subgoal
     unfolding mark_to_delete_clauses_GC_wl_pre_def

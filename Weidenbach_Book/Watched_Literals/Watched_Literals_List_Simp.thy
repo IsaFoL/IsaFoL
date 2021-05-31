@@ -113,8 +113,10 @@ definition cdcl_twl_full_restart_inprocess_l where
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
   S' \<leftarrow> simplify_clauses_with_unit_st S';
-  if (get_conflict_l S' \<noteq> None) then
+  if (get_conflict_l S' \<noteq> None) then do {
+    ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
     RETURN S'
+  }
   else do {
       ASSERT(mark_to_delete_clauses_l_pre S');
       U \<leftarrow> mark_to_delete_clauses_l S';
@@ -757,7 +759,7 @@ proof -
     done
 
   have 1: \<open>remove_one_annot_true_clause_imp T \<le> SPEC (?f2 T')\<close>
-    if 
+    if
       \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>  and
       \<open>(T, T') \<in> Id\<close>
@@ -1011,7 +1013,9 @@ proof -
       by (rule 1)
     subgoal for  T T' U U'
       by (rule simplify_clauses_with_unit_st)
-    subgoal by auto 
+    subgoal by auto
+    subgoal
+      by (auto 5 3 dest: cdcl_twl_restart_l_inp.intros)
     subgoal for T T' U U' V V'
       by (rule mark_to_delete_clauses_l_pre)
     subgoal for U U'
