@@ -68,7 +68,7 @@ typedef struct {
 } TRAIL;
 
 STRING_VERSION llvm_version();
-int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, CLAUSES);
+int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES);
 uint32_t arena_lit_impl(ARENA, int64_t);
 PROFILE_CST IsaSAT_Profile_GC();
 uint32_t count_decided_st_heur_pol_fast(TRAIL);

@@ -64,6 +64,13 @@ sepref_def opts_rel_sema_code
   unfolding opts_rel_alt_defs opts_rel_assn_def
   by sepref
 
+sepref_def opts_rel_GC_units_lim_code
+  is \<open>RETURN o opts_rel_GC_units_lim\<close>
+  :: \<open>opts_rel_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding opts_rel_alt_defs opts_rel_assn_def
+  by sepref
+
+
 definition opts_assn :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close> where
   \<open>opts_assn = hr_comp opts_rel_assn opts_rel\<close>
 
@@ -77,6 +84,7 @@ lemmas [sepref_fr_rules] =
   opts_rel_target_code.refine[FCOMP opts_rel_target, unfolded opts_assn_def[symmetric]]
   opts_rel_fema_code.refine[FCOMP opts_rel_fema, unfolded opts_assn_def[symmetric]]
   opts_rel_sema_code.refine[FCOMP opts_rel_sema, unfolded opts_assn_def[symmetric]]
+  opts_rel_GC_units_lim_code.refine[FCOMP opts_GC_units_lim, unfolded opts_assn_def[symmetric]]
 
 sepref_register opts_restart opts_reduce opts_minimum_between_restart opts_restart_coeff1
   opts_restart_coeff2 opts_target opts_fema opts_sema

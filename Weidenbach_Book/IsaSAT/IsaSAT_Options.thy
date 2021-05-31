@@ -107,7 +107,6 @@ lemma opts_rel_fema:
 
 fun opts_rel_sema :: \<open>opts_ref \<Rightarrow> 64 word\<close> where
   \<open>opts_rel_sema (res, red, unbd, mini, res1, res2, target, fema, sema, units) = sema\<close>
-
 lemma opts_rel_sema:
   \<open>(opts_rel_sema, opts_sema) \<in> opts_rel \<rightarrow> Id\<close>
   by (auto simp: opts_rel_def intro!: frefI)

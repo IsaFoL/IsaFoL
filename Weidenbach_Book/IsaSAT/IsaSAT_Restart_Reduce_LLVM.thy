@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Reduce_LLVM
-  imports IsaSAT_Restart_Reduce IsaSAT_Setup_LLVM
+  imports IsaSAT_Restart_Reduce IsaSAT_Setup_LLVM IsaSAT_VMTF_State_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI

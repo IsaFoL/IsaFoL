@@ -2,7 +2,7 @@ theory IsaSAT_LLVM
   imports
     IsaSAT_CDCL_LLVM
     IsaSAT_Initialisation_LLVM
-    IsaSAT_Restart_LLVM
+    IsaSAT_Restart_Simp_LLVM
     Version
     IsaSAT
 begin
@@ -19,11 +19,11 @@ abbreviation  model_stat_assn\<^sub>0 ::
     "bool \<times>
      nat literal list \<times>
      64 word \<times>
-     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
+     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
      \<Rightarrow> 1 word \<times>
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
        64 word \<times>
-       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
+       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
        \<Rightarrow> llvm_amemory \<Rightarrow> bool"
 where
   \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
@@ -238,7 +238,7 @@ lemma isasat_information_banner_alt_def:
 schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost_assn ?fr\<close>
   unfolding ghost_assn_def
   by synthesize_free
- 
+
 lemma convert_state_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
@@ -337,12 +337,12 @@ abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> 
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
 definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
-  8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
-  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema C = do {
+  8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
+  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema units C = do {
       let opts = IsaOptions (C_bool_to_bool red) (C_bool_to_bool res)
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
-         fema sema;
+         fema sema units;
       (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let _ = print_propa propa;
       let _ = print_confl confl;
@@ -365,9 +365,9 @@ abbreviation bool_C_assn where
    \<open>bool_C_assn \<equiv> (word_assn' (TYPE(8)))\<close>
 
 sepref_def IsaSAT_code_wrapped
-  is \<open>uncurry9 IsaSAT_bounded_heur_wrapper\<close>
+  is \<open>uncurry10 IsaSAT_bounded_heur_wrapper\<close>
   :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
-      (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a 
+      (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       word64_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
@@ -422,7 +422,7 @@ begin
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
     IsaSAT_code_wrapped is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
-        int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, CLAUSES)\<close>
+        int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES)\<close>
     IsaSAT_Profile_PROPAGATE is \<open>PROFILE_CST IsaSAT_Profile_PROPAGATE\<close>
     IsaSAT_Profile_REDUCE is \<open>PROFILE_CST IsaSAT_Profile_REDUCE\<close>
     IsaSAT_Profile_GC is \<open>PROFILE_CST IsaSAT_Profile_GC\<close>

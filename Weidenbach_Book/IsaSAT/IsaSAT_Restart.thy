@@ -292,7 +292,7 @@ definition FLAG_GC_restart :: \<open>8 word\<close> where
   \<open>FLAG_GC_restart = 2\<close>
 
 definition FLAG_Inprocess_restart :: \<open>8 word\<close> where
-  \<open>FLAG_Inprocess_restart = 3\<close>
+  \<open>FLAG_Inprocess_restart = 4\<close>
 
 definition restart_flag_rel :: \<open>(8 word \<times> restart_type) set\<close> where
   \<open>restart_flag_rel = {(FLAG_no_restart, NO_RESTART), (FLAG_restart, RESTART), (FLAG_GC_restart, GC),
