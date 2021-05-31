@@ -1,6 +1,6 @@
-theory IsaSAT_Restart_LLVM
+theory IsaSAT_Restart_Simp_LLVM
 imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLVM
-  IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM
+  IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM IsaSAT_Inprocessing_LLVM
 begin
 
 sepref_register update_all_phases
