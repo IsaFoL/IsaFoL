@@ -1,3 +1,5 @@
+chapter Weidenbach_Book
+
 session "More_Refinement_Libs" (Weidenbach_Book) = "Refine_Monadic"  +
   description \<open>This session contains some libraries for Refinement.\<close>
   options [document = pdf, document_output = "output"]
