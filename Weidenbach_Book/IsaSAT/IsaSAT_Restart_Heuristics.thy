@@ -664,8 +664,8 @@ lemma restart_required_heur_restart_required_wl0:
         clss_size_def clss_size_lcount_def clss_size_lcountUE_def
         clss_size_lcountUS_def)
     subgoal
-      by (simp split: if_splits add: twl_st_heur_def RETURN_RES_refine_iff)
-        (auto simp add: twl_st_heur_def get_learned_clss_wl_def
+      by (clarsimp split: if_splits simp add: twl_st_heur_def RETURN_RES_refine_iff)
+       (auto simp add: twl_st_heur_def get_learned_clss_wl_def
           clss_size_def clss_size_lcount_def clss_size_lcountUE_def RETURN_RES_refine_iff
           clss_size_lcountUS_def clss_size_lcountU0_def)
     done
