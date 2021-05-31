@@ -1,6 +1,6 @@
 theory IsaSAT_Restart_Heuristics
 imports
-  IsaSAT_Restart_Reduce
+  IsaSAT_Restart_Reduce IsaSAT_Restart_Inprocessing
 begin
 
 definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
@@ -222,6 +222,311 @@ proof -
     done
 qed
 
+
+
+thm cdcl_twl_full_restart_inprocess_wl_prog_def
+  cdcl_twl_full_restart_wl_D_GC_heur_prog_def
+
+
+
+definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
+\<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog S0 = do {
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_GC);
+    S \<leftarrow> do {
+      if count_decided_st_heur S0 > 0
+      then do {
+        S \<leftarrow> find_decomp_wl_st_int 0 S0;
+        empty_Q (empty_US_heur S)
+      } else RETURN (empty_US_heur S0)
+    };
+    ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count S \<le> learned_clss_count S0);
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_simplify_clauses_with_unit_st2 S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
+    ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count U \<le> learned_clss_count S0);
+    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
+    RETURN V
+  }\<close>
+thm restart_prog_wl_def
+
+lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
+\<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog S0 = do {
+    S \<leftarrow> do {
+      if count_decided_st_heur S0 > 0
+      then do {
+        S \<leftarrow> find_decomp_wl_st_int 0 S0;
+        empty_Q (empty_US_heur S)
+      } else RETURN (empty_US_heur S0)
+    };
+    ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count S \<le> learned_clss_count S0);
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_simplify_clauses_with_unit_st2 S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
+    ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count U \<le> learned_clss_count S0);
+    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    RETURN V
+  }\<close>
+  unfolding cdcl_twl_full_restart_wl_D_inprocess_heur_prog_def IsaSAT_Profile.start_def
+    IsaSAT_Profile.stop_def by auto
+
+
+lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
+  assumes \<open>(S, S') \<in> (twl_st_heur''''u r u)\<close> and \<open>(C,C')\<in> nat_rel\<close>
+  shows \<open>isa_simplify_clause_with_unit_st2 C S \<le>
+    \<Down>(twl_st_heur''''u r u) (simplify_clause_with_unit_st2 C' S')\<close>
+proof -
+  have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
+    by auto
+  have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
+    by auto
+  have H'': \<open>A = B \<Longrightarrow> A \<subseteq> c \<Longrightarrow> B \<subseteq> c\<close> for A B c
+    by auto
+
+  have vdom_m_cong2: \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> W N \<subseteq> vd \<Longrightarrow> dom_m N' \<subseteq># dom_m N \<Longrightarrow>
+    vdom_m \<B> W N' \<subseteq> vd\<close>
+    for \<A> W N N' vd \<B>
+    by (subst vdom_m_cong[of \<B> \<A>])
+      (auto simp: vdom_m_def)
+  note cong =  trail_pol_cong heuristic_rel_cong
+    option_lookup_clause_rel_cong isa_vmtf_cong
+    vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
+    isasat_input_bounded_cong[THEN iffD1]
+    cach_refinement_empty_cong[THEN H']
+    phase_saving_cong[THEN H']
+    \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
+    D\<^sub>0_cong[THEN H]
+    D\<^sub>0_cong[OF sym]
+    vdom_m_cong[THEN H'']
+    vdom_m_cong2
+  have set_conflict_to_false: \<open>(a, None) \<in> option_lookup_clause_rel \<A> \<Longrightarrow>
+    (set_conflict_to_false a, Some {#}) \<in> option_lookup_clause_rel \<A>\<close> for a \<A>
+    by (auto simp: option_lookup_clause_rel_def set_conflict_to_false_def
+      lookup_clause_rel_def)
+  have outl: \<open>out_learned x1 None x1s \<Longrightarrow> out_learned x1 (Some {#}) (x1s)\<close>
+    \<open>0 \<in> counts_maximum_level x1 (Some {#})\<close> for x1 x1s
+    by (cases x1s, auto simp: out_learned_def counts_maximum_level_def)
+
+  show ?thesis
+    supply [[goals_limit=1]]
+    supply [simp] = learned_clss_count_def
+    using assms
+    unfolding isa_simplify_clause_with_unit_st2_def
+      simplify_clause_with_unit_st2_def Let_def[of "(_,_)"] Let_def[of \<open>mset _\<close>]
+    apply (refine_rcg isa_simplify_clause_with_unit2_isa_simplify_clause_with_unit[where
+      vdom=\<open>set (get_vdom S)\<close> and \<A> = \<open>all_atms_st S'\<close>]
+      mop_arena_status[where vdom = \<open>set (get_vdom S)\<close>]
+      cons_trail_Propagated_tr2[where \<A> = \<open>all_atms_st S'\<close>]
+      mop_isa_length_trail_length_u[of \<open>all_atms_st (S')\<close>, THEN fref_to_Down_Id_keep,
+      unfolded length_uint32_nat_def comp_def])
+    subgoal by auto
+    subgoal by (auto simp: twl_st_heur_def)
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    subgoal
+      using literals_are_in_mm_clauses[of S']
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n
+      x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x x' x1z x2z x1aa x2aa x1ab
+      x2ab x1ac x2ac x1ad x2ad x1ae x2ae
+      apply (clarsimp simp only: twl_st_heur_def in_pair_collect_simp prod.simps
+        get_vdom.simps prod_rel_iff TrueI refl
+        cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+        uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+        \<open>all_atms_st (_, _, _, (If _ _ _) _, _)\<close>]
+        clss_size_def clss_size_incr_lcountUE_def
+        clss_size_decr_lcount_def)
+      apply (clarsimp split: if_splits
+        simp: clss_size_lcount_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcountU0_def)
+     done
+   subgoal by simp
+   subgoal by (auto simp: twl_st_heur_def)
+   subgoal by auto
+   subgoal by (auto simp: DECISION_REASON_def)
+   subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
+     x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y E x x' x1z x2z x1aa x2aa x1ab x2ab x1ac x2ac x1ad
+     x2ad x1ae x2ae M Ma
+     apply (clarsimp simp only: twl_st_heur_def in_pair_collect_simp prod.simps
+       get_vdom.simps prod_rel_iff TrueI refl
+       cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+       \<open>all_atms_st (_, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
+       clss_size_decr_lcount_def)
+      apply (clarsimp split: if_splits
+        simp: clss_size_lcount_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcountU0_def)
+     done
+   subgoal by simp
+   subgoal by simp
+   subgoal by (auto simp add: twl_st_heur_def)
+   subgoal  for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
+     x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y E x x' x1z x2z x1aa x2aa x1ab x2ab x1ac x2ac x1ad
+     x2ad x1ae x2ae
+     apply (clarsimp simp only: twl_st_heur_def in_pair_collect_simp prod.simps
+       get_vdom.simps prod_rel_iff TrueI refl
+       cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+       \<open>all_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
+       clss_size_incr_lcountU0_def
+       clss_size_decr_lcount_def
+       option_lookup_clause_rel_cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+       \<open>all_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
+       set_conflict_to_false)
+      apply (clarsimp split: if_splits
+        simp: clss_size_lcount_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcountU0_def)
+     done
+   subgoal  for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
+     x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y E x x' x1z x2z x1aa x2aa x1ab x2ab x1ac x2ac x1ad
+     x2ad x1ae x2ae
+     apply (clarsimp simp only: twl_st_heur_def in_pair_collect_simp prod.simps
+       get_vdom.simps prod_rel_iff TrueI refl
+       cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+       \<open>all_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+       clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
+       clss_size_incr_lcountU0_def
+       clss_size_decr_lcount_def
+       option_lookup_clause_rel_cong[of \<open>all_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
+       \<open>all_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
+       set_conflict_to_false)
+      apply (clarsimp split: if_splits
+        simp: clss_size_lcount_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcountU0_def)
+     done
+   done
+qed
+
+lemma isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2:
+  assumes \<open>(S, S') \<in> (twl_st_heur''''u r u)\<close>
+  shows \<open>isa_simplify_clauses_with_unit_st2 S \<le>
+    \<Down>(twl_st_heur''''u r u) (simplify_clauses_with_unit_st2 S')\<close>
+proof -
+  have isa_simplify_clauses_with_unit_st2_def: \<open>isa_simplify_clauses_with_unit_st2 S =
+  do {
+    xs \<leftarrow> RETURN [];
+    T \<leftarrow> do {
+    (_, T) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
+      (\<lambda>(i,T). do {
+        T \<leftarrow> isa_simplify_clause_with_unit_st2 (xs!i) T;
+        ASSERT(i < length xs);
+        RETURN (i+1, T)
+      })
+     (0, S);
+    RETURN T
+    };
+    RETURN T
+    }\<close>
+    unfolding isa_simplify_clauses_with_unit_st2_def by auto
+
+  have [refine]: \<open>RETURN [] \<le> \<Down> {(xs, a). a = set xs \<and> distinct xs} (SPEC (\<lambda>xs. xs \<subseteq> set_mset (dom_m (get_clauses_wl S'))))\<close>
+    by (auto simp: RETURN_RES_refine)
+
+    have [refine]: \<open>(xs, xsa) \<in> {(xs, a). a = set xs \<and> distinct xs} \<Longrightarrow>
+      xsa \<in> {xs. xs \<subseteq> set_mset (dom_m (get_clauses_wl S'))} \<Longrightarrow>
+      ([0..<length xs], xsa) \<in> \<langle>{(i, a). xs ! i =a}\<rangle>list_set_rel\<close> for xs xsa
+      by (auto simp: list_set_rel_def br_def
+        intro!: relcompI[of _ xs])
+       (auto simp: list_rel_def intro!: list_all2_all_nthI)
+  show ?thesis
+    unfolding isa_simplify_clauses_with_unit_st2_def simplify_clauses_with_unit_st2_def
+      nfoldli_upt_by_while[symmetric]  nres_monad3
+    apply (refine_vcg isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2
+      LFOci_refine)
+    subgoal by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id]
+      assms get_conflict_wl_is_None_def)
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    done
+qed
+
+lemma
+  assumes \<open>(S,S') \<in> twl_st_heur''''u r u\<close>
+  shows
+    \<open>isa_simplify_clauses_with_unit_st2 S \<le> \<Down> (twl_st_heur''''u r u) (simplify_clauses_with_unit_st_wl S')\<close>
+  apply (rule order_trans)
+    defer
+  apply (rule ref_two_step')
+  apply (rule simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st[unfolded Down_id_eq, of S'])
+  subgoal by auto
+  subgoal
+    apply (rule isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2[THEN order_trans, of _ S'])
+  subgoal using assms by auto
+    find_theorems simplify_clauses_with_unit_st_wl simplify_clauses_with_unit_st2
+      sorry
+
+lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
+  \<open>(cdcl_twl_full_restart_wl_D_inprocess_heur_prog, cdcl_twl_full_restart_inprocess_wl_prog) \<in>
+    twl_st_heur''''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur''''uu r u\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>(S, S') \<in> twl_st_heur_restart_ana r \<Longrightarrow>
+       (S, S')  \<in> twl_st_heur_restart_ana' r (learned_clss_count S)\<close> for S S'
+    by auto
+  have H2: \<open>(x, y) \<in> IsaSAT_Setup.twl_st_heur''''u r u \<Longrightarrow>
+     cdcl_twl_full_restart_wl_GC_prog_pre y \<Longrightarrow>
+    (x, y) \<in> twl_st_heur_restart_ana' r (learned_clss_count x)\<close> for x y
+    using cdcl_twl_full_restart_wl_GC_prog_pre_heur[of y x r]
+    by auto
+  have UUa: \<open>(U, Ua) \<in> twl_st_heur_restart_ana' r u \<Longrightarrow>
+    (U, Ua) \<in> twl_st_heur_restart'''u r u\<close> for U Ua r u
+    by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+  show ?thesis
+    unfolding cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def
+      cdcl_twl_full_restart_inprocess_wl_prog_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg cdcl_twl_local_restart_wl_spec0
+      remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D[where r=r, THEN fref_to_Down]
+      mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D[where r=r, THEN fref_to_Down]
+      isasat_GC_clauses_wl_D[where r=r, THEN fref_to_Down])
+    apply (rule H2; assumption)
+    subgoal
+      unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def
+        cdcl_twl_full_restart_l_GC_prog_pre_def
+      by normalize_goal+ auto
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    apply (assumption)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    apply (assumption)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    apply (rule UUa; assumption)
+    subgoal for x y
+      unfolding mem_Collect_eq prod.case
+      apply (subst cdcl_twl_full_restart_wl_D_GC_prog_post_heur)
+      apply assumption
+      by auto
+    done
+qed
+
 definition restart_prog_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat \<times> nat \<times> nat) nres\<close>
 where
@@ -236,7 +541,7 @@ where
          RETURN (T, last_GC, learned_clss_count T, n)
       }
       else if b \<noteq> FLAG_no_restart
-      then do {
+      then if b \<noteq> FLAG_Inprocess_restart then do {
          if b = FLAG_Reduce_restart
          then do {
            T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
@@ -248,7 +553,11 @@ where
            ASSERT(learned_clss_count T \<le> learned_clss_count S);
            RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
          }
-      }
+     } else do {
+         T \<leftarrow> cdcl_twl_full_restart_wl_D_inprocess_heur_prog S;
+         ASSERT(learned_clss_count T \<le> learned_clss_count S);
+         RETURN (S, last_GC, last_Restart, n)
+     }
       else RETURN (S, last_GC, last_Restart, n)
     }
   }\<close>
@@ -333,7 +642,7 @@ lemma restart_prog_wl_alt_def2:
     if brk then RETURN (S, last_GC, last_Restart, n)
     else do {
      b \<leftarrow> restart_required_wl S last_GC last_Restart n;
-      if b = RESTART \<and> \<not>brk then do {
+     if b = RESTART \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_wl_prog S;
        RETURN (T, last_GC, size (get_all_learned_clss_wl T), n)
      }

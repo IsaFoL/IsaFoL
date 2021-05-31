@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Simp
-  imports IsaSAT_Restart_Heuristics IsaSAT_Other IsaSAT_Propagate_Conflict
+  imports IsaSAT_Restart_Heuristics IsaSAT_Other IsaSAT_Propagate_Conflict IsaSAT_Restart_Inprocessing
 begin
 
 chapter \<open>Full CDCL with Restarts\<close>

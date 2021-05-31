@@ -3,11 +3,11 @@ theory IsaSAT_Options_LLVM
 begin
 
 type_synonym opts_assn = \<open>1 word \<times> 1 word \<times> 1 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 3 word \<times> 64 word
-   \<times> 64 word\<close>
+   \<times> 64 word \<times> 64 word\<close>
 
 definition opts_rel_assn :: \<open>opts_ref \<Rightarrow> _ \<Rightarrow> assn\<close> where
   \<open>opts_rel_assn = bool1_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a word_assn \<times>\<^sub>a word_assn 
-   \<times>\<^sub>a snat_assn' TYPE(64) \<times>\<^sub>a word_assn' TYPE(3) \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+   \<times>\<^sub>a snat_assn' TYPE(64) \<times>\<^sub>a word_assn' TYPE(3) \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 sepref_def opts_rel_restart_code
   is \<open>RETURN o opts_rel_restart\<close>
@@ -88,24 +88,27 @@ lemma opts_assn_assn_pure[safe_constraint_rules]: \<open>CONSTRAINT is_pure opts
 lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF opts_assn_assn_pure[unfolded CONSTRAINT_def]]
 
 definition default_opts :: opts where
-  \<open>default_opts = IsaOptions True True True 50 11 4 1 128849010 429450\<close>
+  \<open>default_opts = IsaOptions True True True 50 11 4 1 128849010 429450 15\<close>
 
 definition default_opts2 :: opts_ref where
-  \<open>default_opts2 = (True, True, True, 50, 11, 4, 2, 128849010, 429450)\<close>
+  \<open>default_opts2 = (True, True, True, 50, 11, 4, 2, 128849010, 429450, 15)\<close>
 
-definition IsaOptions_rel :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> opts_target \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> opts_ref\<close> where
-  \<open>IsaOptions_rel a b c d e f g h i = (a, b, c, d, e, f, g, h, i)\<close>
+definition IsaOptions_rel
+  :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> opts_target \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow>
+    64 word \<Rightarrow> opts_ref\<close> where
+  \<open>IsaOptions_rel a b c d e f g h i j = (a, b, c, d, e, f, g, h, i, j)\<close>
 
 lemma IsaOptions_rel:
-  \<open>(uncurry8 (RETURN ooooooooo IsaOptions_rel), uncurry8 (RETURN ooooooooo IsaOptions)) \<in>
-     bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<rightarrow>
-     \<langle>opts_rel\<rangle>nres_rel\<close>
+  \<open>(uncurry9 (RETURN oooooooooo IsaOptions_rel), uncurry9 (RETURN oooooooooo IsaOptions)) \<in>
+    bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f
+      word_rel  \<times>\<^sub>f word_rel \<rightarrow>
+   \<langle>opts_rel\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI simp: opts_rel_def IsaOptions_rel_def)
 
 sepref_def IsaOptions_rel_impl
-  is \<open>uncurry8 (RETURN ooooooooo IsaOptions_rel)\<close>
+  is \<open>uncurry9 (RETURN oooooooooo IsaOptions_rel)\<close>
   :: \<open>bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a
-     (snat_assn' (TYPE(64)))\<^sup>k  *\<^sub>a (word_assn' (TYPE(3)))\<^sup>k  *\<^sub>a word_assn\<^sup>k  *\<^sub>a word_assn\<^sup>k \<rightarrow>\<^sub>a
+     (snat_assn' (TYPE(64)))\<^sup>k  *\<^sub>a (word_assn' (TYPE(3)))\<^sup>k  *\<^sub>a word_assn\<^sup>k  *\<^sub>a word_assn\<^sup>k  *\<^sub>a word_assn\<^sup>k  \<rightarrow>\<^sub>a
         opts_rel_assn\<close>
   unfolding IsaOptions_rel_def opts_rel_assn_def
   by sepref
