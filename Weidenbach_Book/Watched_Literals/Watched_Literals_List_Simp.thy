@@ -112,7 +112,7 @@ definition cdcl_twl_full_restart_inprocess_l where
   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
-  S' \<leftarrow> simplify_clauses_with_unit_st S';
+  S' \<leftarrow> simplify_clauses_with_units_st S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
     RETURN S'
@@ -937,7 +937,7 @@ proof -
     by auto
 
   have simplify_clauses_with_unit_st:
-    \<open>simplify_clauses_with_unit_st U \<le> SPEC (?finp U')\<close>
+    \<open>simplify_clauses_with_units_st U \<le> SPEC (?finp U')\<close>
     if 
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -989,7 +989,7 @@ proof -
         cdcl_twl_restart_l.simps st twl_st_l_def)
 
     show ?thesis
-      apply (rule simplify_clauses_with_unit_st_spec[THEN order_trans, of _ U''])
+      apply (rule simplify_clauses_with_units_st_spec[THEN order_trans, of _ U''])
       apply (use lev0 UU'' struct_invs list_invs confl clss ent in auto)[8]
       apply (use mark in \<open>auto 4 4 dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
         rtranclp_cdcl_twl_inprocessing_l_count_dec 

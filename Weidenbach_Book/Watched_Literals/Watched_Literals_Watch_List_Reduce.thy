@@ -501,7 +501,6 @@ where
         ASSERT(C \<in># dom_m (get_clauses_wl S));
 	S \<leftarrow> replace_annot_wl L C S;
 	S \<leftarrow> remove_and_add_cls_wl C S;
-        \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>\<close>
         RETURN (i+1, S)
       }
   })\<close>

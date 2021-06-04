@@ -269,7 +269,7 @@ proof -
       \<open>ao \<in> counts_maximum_level bt bv\<close> and
       \<open>cach_refinement_empty ?\<A> (aq, bd)\<close> and
       \<open>out_learned bt bv as\<close> and
-      \<open>bq = clss_size bu bw bx NS US N0 U0\<close> and
+      \<open>clss_size_corr bu bw bx NS US N0 U0 bq\<close> and
       \<open>vdom_m ?\<A> bz bu \<subseteq> set bo\<close> and
       \<open>set bp \<subseteq> set bo\<close> and
       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>. nat_of_lit L \<le> uint32_max\<close> and
@@ -1351,7 +1351,7 @@ proof -
     by (cases S; cases T)
       (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
-      remove_all_learned_subsumed_clauses_wl_def
+      remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
       clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def 
         RES_RETURN_RES)
@@ -2672,7 +2672,7 @@ proof-
         rtranclp_GC_remap_learned_clss_l
         dest!: )
     subgoal
-      by (clarsimp simp add: twl_st_heur_restart_def
+      by (clarsimp simp add: twl_st_heur_restart_def clss_size_corr_def
         cdcl_GC_clauses_prog_wl_inv_def H H' clss_size_def
         rtranclp_GC_remap_all_init_atms learned_clss_count_def
         rtranclp_GC_remap_learned_clss_l)

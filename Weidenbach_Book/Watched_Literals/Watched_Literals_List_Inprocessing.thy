@@ -964,7 +964,8 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
 
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>simplify_clause_with_unit_st_pre = (\<lambda>C S.
-    C \<in># dom_m (get_clauses_l S) \<and> count_decided (get_trail_l S) = 0 \<and> get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
+  C \<in># dom_m (get_clauses_l S) \<and> count_decided (get_trail_l S) = 0 \<and> get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
+    twl_list_invs S \<and>
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T)
 )\<close>
 
@@ -1678,10 +1679,9 @@ definition simplify_clauses_with_unit_st_pre where
   count_decided (get_trail_l S) = 0 \<and>
   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
 
-definition simplify_clauses_with_unit_st_inv where
+definition simplify_clauses_with_unit_st_inv :: \<open>'v twl_st_l \<Rightarrow> nat set \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it S \<longleftrightarrow> (
     cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 S \<and>
-     it \<subseteq> set_mset (dom_m (get_clauses_l S)) \<and>
   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq>
     set (get_all_mark_of_propagated (get_trail_l S\<^sub>0)) \<union> {0})\<close>
 
@@ -1918,11 +1918,11 @@ definition simplify_clauses_with_unit_st :: \<open>'v twl_st_l \<Rightarrow> 'v 
   \<open>simplify_clauses_with_unit_st S =
   do {
   ASSERT(simplify_clauses_with_unit_st_pre S);
-  xs \<leftarrow> SPEC(\<lambda>xs. xs \<subseteq>set_mset (dom_m (get_clauses_l S)));
+  xs \<leftarrow> SPEC(\<lambda>xs. finite xs);
   T \<leftarrow> FOREACHci(\<lambda>it T. simplify_clauses_with_unit_st_inv S it T)
   (xs)
   (\<lambda>S. get_conflict_l S = None)
-  (\<lambda>i S. simplify_clause_with_unit_st i S)
+  (\<lambda>i S. if i \<in># dom_m (get_clauses_l S) then simplify_clause_with_unit_st i S else RETURN S)
   S;
   ASSERT(set_mset (all_learned_lits_of_l T) \<subseteq> set_mset (all_learned_lits_of_l S));
   ASSERT(set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S));
@@ -1948,8 +1948,6 @@ proof -
       unfolding simplify_clauses_with_unit_st_pre_def
       by (rule exI[of _ T]) auto
     subgoal
-      by (meson finite_set_mset rev_finite_subset)
-    subgoal
       unfolding simplify_clauses_with_unit_st_inv_def
         simplify_clauses_with_unit_st_pre_def
       by blast
@@ -1974,6 +1972,9 @@ proof -
       by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
     subgoal
       unfolding simplify_clauses_with_unit_st_inv_def
+      by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+    subgoal
+      unfolding simplify_clauses_with_unit_st_inv_def
       by (auto dest: rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
     subgoal
       unfolding simplify_clauses_with_unit_st_inv_def
@@ -1993,8 +1994,18 @@ proof -
     done
 qed
 
+definition simplify_clauses_with_units_st_pre where
+  \<open>simplify_clauses_with_units_st_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)) \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    clauses_to_update_l S = {#} \<and>
+    get_conflict_l S = None \<and>
+    count_decided (get_trail_l S) = 0)\<close>
+
 definition simplify_clauses_with_units_st where
   \<open>simplify_clauses_with_units_st S = do {
+    ASSERT(simplify_clauses_with_units_st_pre S);
     new_units \<leftarrow> SPEC (\<lambda>_. True);
     if new_units
     then simplify_clauses_with_unit_st S
@@ -2014,6 +2025,7 @@ lemma simplify_clauses_with_units_st_spec:
     simplify_clauses_with_unit_st_inv S {} T))\<close>
   using assms unfolding simplify_clauses_with_units_st_def
   apply (refine_vcg simplify_clauses_with_unit_st_spec[THEN order_trans])
+  subgoal unfolding simplify_clauses_with_units_st_pre_def by blast
   apply assumption+
   subgoal by auto
   subgoal by auto

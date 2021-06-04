@@ -51,7 +51,7 @@ definition cdcl_twl_full_restart_inprocess_wl_prog where
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
-  T \<leftarrow> simplify_clauses_with_unit_st_wl S';
+  T \<leftarrow> simplify_clauses_with_units_st_wl S';
   if get_conflict_wl T \<noteq> None then do {
     ASSERT(cdcl_twl_full_restart_wl_GC_prog_post_confl S T);
     RETURN T
@@ -77,7 +77,7 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
   apply (refine_vcg
     remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down]
     cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0
-    simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st
+    simplify_clauses_with_units_st_wl_simplify_clause_with_units_st
     mark_to_delete_clauses_wl_mark_to_delete_clauses_l2[THEN fref_to_Down]
     cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down]
     )

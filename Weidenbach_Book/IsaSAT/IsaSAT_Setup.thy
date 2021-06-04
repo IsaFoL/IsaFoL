@@ -198,7 +198,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    clss_size_corr N NE UE NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -267,7 +267,7 @@ where
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    clss_size_corr N NE UE NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -306,7 +306,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     clvls \<in> counts_maximum_level M None \<and>
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M None outl \<and>
-    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    clss_size_corr N NE UE NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -1217,12 +1217,12 @@ lemma clause_not_marked_to_delete_heur_alt_def:
 
 
 lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrightarrow>
-                      learned_clss_count T =
+                      learned_clss_count T \<le>
                       size (get_learned_clss_wl Ta) +
                       size (get_unit_learned_clss_wl Ta) +
                      size (get_subsumed_learned_clauses_wl Ta) +
                      size (get_learned_clauses0_wl Ta)\<close>
-  by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def
+  by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def clss_size_corr_def
     clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def
     get_learned_clss_wl_def clss_size_lcountU0_def)
 
@@ -1379,4 +1379,9 @@ definition get_GC_units_opt :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<clos
 definition units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_st S = units_since_last_GC (get_stats_heur S)\<close>
 
+definition reset_units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
+       vdom, avdom, lcount, opts, old_arena))\<close>
 end

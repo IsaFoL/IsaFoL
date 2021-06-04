@@ -2127,8 +2127,8 @@ lemma finalise_init_finalise_init_full:
     twl_st_heur_parsing_no_WL_wl_def
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
       twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps
-      intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
-      dest: isa_vmtf_init_nemptyD)
+    intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
+    dest: isa_vmtf_init_nemptyD)
   done
 
 lemma finalise_init_finalise_init:

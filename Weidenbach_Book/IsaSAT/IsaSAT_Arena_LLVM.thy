@@ -1008,6 +1008,45 @@ lemmas [sepref_fr_rules] =
   arena_other_watched_as_swap_impl.refine[FCOMP arena_other_watched_as_swap_arena_other_watched',
     unfolded arena_fast_al_unat_assn]
 
+
+lemma arena_lit_pre2_le_lengthD: \<open>arena_lit_pre2 arena i j \<Longrightarrow> i + j < length arena\<close>
+  apply (auto simp: arena_lit_pre2_def)
+  using arena_lifting(7) nat_le_iff_add by auto
+
+sepref_def mop_arena_update_lit_code
+  is \<open>uncurry3 mop_arena_update_lit\<close>
+  :: \<open>[\<lambda>(((_, _), _), N). length N \<le> sint64_max]\<^sub>a
+  sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn\<close>
+  supply [intro] = arena_lit_implI
+  supply [dest] = arena_lit_pre2_le_lengthD
+  unfolding mop_arena_update_lit_def arenap_update_lit_def
+  by sepref
+
+lemma arena_shorten_preI:
+  assumes \<open>arena_shorten_pre C j arena\<close>
+  shows
+    \<open>j \<ge> 2\<close> and
+    \<open>C - Suc 0  < length arena\<close> and
+    \<open>C \<ge> Suc 0\<close> and
+    \<open>j > MAX_LENGTH_SHORT_CLAUSE \<Longrightarrow> C \<ge> 3\<close>
+  using assms arena_lifting[of arena _ _ C]
+  unfolding arena_shorten_pre_def by (auto simp: arena_is_valid_clause_idx_def SHIFTS_def
+      header_size_def
+    intro: less_imp_diff_less)
+
+sepref_def mop_arena_shorten_code
+  is \<open>uncurry2 mop_arena_shorten\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  supply [dest] = arena_shorten_preI
+  supply [dest] = arena_lit_pre2_le_lengthD
+  unfolding mop_arena_shorten_def arena_shorten_def SIZE_SHIFT_def POS_SHIFT_def
+  apply (rewrite at  \<open>_[_ := ASize (_ - \<hole>), _ := _]\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>_[_ := ASize (_ - \<hole>)]\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>_[_ := _, _ := APos \<hole>]\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
+    apply (rewrite  at \<open>( _ < \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
+  by sepref
+
 end
 
 sepref_def mop_arena_length_impl

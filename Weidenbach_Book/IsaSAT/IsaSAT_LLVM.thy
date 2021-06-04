@@ -15,8 +15,8 @@ chapter \<open>Code of Full IsaSAT\<close>
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
-abbreviation  model_stat_assn\<^sub>0 ::
-    "bool \<times>
+abbreviation model_stat_assn\<^sub>0 ::
+    \<open>bool \<times>
      nat literal list \<times>
      64 word \<times>
      64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
@@ -24,7 +24,7 @@ abbreviation  model_stat_assn\<^sub>0 ::
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
        64 word \<times>
        64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
-       \<Rightarrow> llvm_amemory \<Rightarrow> bool"
+       \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close>
 where
   \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 

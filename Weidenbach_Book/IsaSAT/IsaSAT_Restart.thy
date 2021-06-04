@@ -12,7 +12,7 @@ lemma twl_st_heur_change_subsumed_clauses:
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) \<in> twl_st_heur\<close>
     \<open>set_mset (all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)) = set_mset (all_atms_st (M, N, D, NE, UE, NS', US', N0, U0, Q, W))\<close>and
-    \<open>lcount' = clss_size N NE UE NS' US' N0 U0\<close>
+    \<open>clss_size_corr N NE UE NS' US' N0 U0 lcount'\<close>
   shows \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount', opts, old_arena),
      (M, N, D, NE, UE, NS', US', N0, U0, Q, W)) \<in> twl_st_heur\<close>
@@ -71,7 +71,7 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_init_atms N (NE+NS+N0)) cach \<and>
     out_learned M D outl \<and>
-    lcount = clss_size N NE UE NS US N0 U0 \<and>
+    clss_size_corr N NE UE NS US N0 U0 lcount \<and>
     vdom_m (all_init_atms N (NE+NS+N0))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     isasat_input_bounded (all_init_atms N (NE+NS+N0)) \<and>
@@ -1153,11 +1153,10 @@ proof -
 	    empty_Q_wl2_def twl_st_heur_restart_ana_def learned_clss_count_def
             all_init_atms_st_def
 	intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
-       (auto  simp: upd_def find_decomp_wl0_def
-        intro!: RETURN_SPEC_refine simp: twl_st_heur_restart_def out_learned_def
-	    empty_Q_wl2_def twl_st_heur_restart_ana_def learned_clss_count_def
-	intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
   qed
+  have [simp]: \<open>clss_size_corr x1a x1c x1d x1e x1f x1g x1h (ck, cl, cm, cn) \<Longrightarrow>
+    clss_size_corr x1a x1c x1d x1e {#} x1g x1h (ck, cl, 0, cn)\<close> for  x1a x1c x1d x1e x1f x1g x1h ck cl cm cn
+    by (auto simp: clss_size_corr_def clss_size_def)
 
   have Sy': \<open>(empty_US_heur S, empty_US_heur_wl y) \<in> twl_st_heur_restart_ana' r u\<close>
     using Sy by (cases y; cases S; auto simp: twl_st_heur_restart_ana_def

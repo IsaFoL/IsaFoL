@@ -868,14 +868,6 @@ qed
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-(*TODO Move*)
-lemma clss_size_lcount_incr_lcount_simps[simp]:
-  \<open>clss_size_lcount (clss_size_incr_lcount S) = Suc (clss_size_lcount S)\<close>
-  \<open>clss_size_lcountUE (clss_size_incr_lcount S) = (clss_size_lcountUE S)\<close>
-  \<open>clss_size_lcountUS (clss_size_incr_lcount S) = (clss_size_lcountUS S)\<close>
-  \<open>clss_size_lcountU0 (clss_size_incr_lcount (S)) = clss_size_lcountU0 ( (S))\<close>
-  by (cases S; auto simp: clss_size_lcount_def clss_size_incr_lcount_def
-    clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def; fail)+
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
@@ -963,7 +955,7 @@ proof -
       \<open>clvls \<in> counts_maximum_level M D\<close> and
       cach_empty: \<open>cach_refinement_empty (all_atms_st S) cach\<close> and
       outl: \<open>out_learned M D outl\<close> and
-      lcount: \<open>lcount = clss_size N NE UE NS US N0 U0\<close> and
+      lcount: \<open>clss_size_corr N NE UE NS US N0 U0 lcount\<close> and
       \<open>vdom_m (all_atms_st S) W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel (all_atms_st S)\<close> and
       arena: \<open>valid_arena arena N (set vdom)\<close> and
@@ -1815,7 +1807,7 @@ proof -
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
       vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
-      lcount: \<open>lcount = clss_size N NE UE NS US N0 U0\<close> and
+      lcount: \<open>clss_size_corr N NE UE NS US N0 U0 lcount\<close> and
       vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
@@ -2186,8 +2178,9 @@ proof -
       subgoal
         using D' C_1_neq_hd vmtf avdom M1'_M1 size_learned_clss_dom_m[of N] valid_arena_size_dom_m_le_arena[OF valid]
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-            phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
-            sint64_max_def uint32_max_def)
+          phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
+          sint64_max_def uint32_max_def)
+
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x'
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
       subgoal using length_watched_le[of S' S \<open>-lit_of_hd_trail M\<close>] corr SS' uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'_eq S_arena
@@ -2318,7 +2311,7 @@ proof -
       empty_cach: \<open>cach_refinement_empty  (all_atms_st U') cach\<close> and
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
-      lcount: \<open>lcount = clss_size N NE UE NS US N0 U0\<close> and
+      lcount: \<open>clss_size_corr N NE UE NS US N0 U0 lcount\<close> and
       vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
@@ -2469,6 +2462,11 @@ proof -
     qed
     have stuff: \<open>NE + UE + (NS + US) + N0 + U0 = NE + UE + NS + US + N0 + U0\<close>
       by auto
+    have [simp]: \<open>clss_size_corr N NE (add_mset C UE) NS US N0 U0
+      (clss_size_incr_lcountUE (get_learned_count S))\<close> for C
+      using lcount UU' r' unfolding U' U
+      by (cases S)
+       (simp add: twl_st_heur_bt_def clss_size_corr_intro)
 
     show ?thesis
       using empty_cach n_d_M1 W'W outl vmtf C undef uL_M vdom lcount valid D' avdom

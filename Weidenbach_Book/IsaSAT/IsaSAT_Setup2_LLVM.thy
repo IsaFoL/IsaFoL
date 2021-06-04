@@ -61,6 +61,28 @@ sepref_def units_since_last_GC_st_code
     isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
+lemma reset_units_since_last_GC_st_alt_def:
+  \<open>RETURN o reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
+  vdom, avdom, lcount, opts, old_arena))\<close>
+  unfolding reset_units_since_last_GC_st_def by auto
+
+sepref_register reset_units_since_last_GC
+sepref_def reset_units_since_last_GC_code
+  is \<open>RETURN o reset_units_since_last_GC\<close>
+  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  unfolding reset_units_since_last_GC_def
+  by sepref
+
+sepref_def reset_units_since_last_GC_st_code
+  is \<open>RETURN o reset_units_since_last_GC_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  unfolding reset_units_since_last_GC_st_alt_def
+    isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+
 lemma get_GC_units_opt_alt_def:
   \<open>RETURN o get_GC_units_opt = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
   vdom, avdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>

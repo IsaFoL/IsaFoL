@@ -562,7 +562,8 @@ lemma arena_lit_pre:
 
 lemma all_atms_swap[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow> i < length (N \<propto> C) \<Longrightarrow> j < length (N \<propto> C) \<Longrightarrow>
-  all_atms (N(C \<hookrightarrow> swap (N \<propto> C) i j)) = all_atms N\<close>
+  all_atms (N(C \<hookrightarrow> swap (N \<propto> C) i j)
+) = all_atms N\<close>
   unfolding all_atms_def
   by (auto simp del: all_atms_def[symmetric] simp: all_atms_def  intro!: ext)
 

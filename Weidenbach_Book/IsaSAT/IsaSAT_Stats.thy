@@ -345,7 +345,7 @@ definition print_trail2 where
 lemma print_trail_print_trail2:
   \<open>(M,M')\<in>Id \<Longrightarrow> print_trail M \<le> \<Down> Id (print_trail2 M')\<close>
   unfolding print_trail_def print_trail2_def
-  apply (refine_vcg WHILET_rule[where 
+  apply (refine_vcg WHILET_rule[where
     R = \<open>measure (\<lambda>i. Suc (length (fst M)) - i)\<close> and
     I = \<open>\<lambda>i. i \<le> length (fst M)\<close>])
   subgoal by auto
@@ -369,7 +369,7 @@ lemma print_trail_st_print_trail_st2:
   \<open>print_trail_st S \<le> \<Down>unit_rel (RETURN (print_trail_st2 S))\<close>
   unfolding print_trail_st2_def print_trail_st_def
     print_trail_def
-  apply (refine_vcg WHILET_rule[where 
+  apply (refine_vcg WHILET_rule[where
        R = \<open>measure (\<lambda>i. Suc (length (fst (fst S))) - i)\<close> and
        I = \<open>\<lambda>i. i \<le> length (fst (fst S))\<close>])
   subgoal by auto
@@ -382,4 +382,54 @@ lemma print_trail_st_print_trail_st2_rel:
   \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
   using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
 
+definition clss_size_corr :: \<open>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> clss_size \<Rightarrow> bool\<close> where
+  \<open>clss_size_corr N NE UE NS US N0 U0 c \<longleftrightarrow>
+  (case (clss_size N NE UE NS US N0 U0, c) of
+  ((lcount, lcountUE, lcountUS, lcountU0), (lcount', lcountUE', lcountUS', lcountU0')) \<Rightarrow>
+     lcount = lcount' \<and> lcountUE \<ge> lcountUE' \<and> lcountUS \<ge> lcountUS' \<and> lcountU0 \<ge> lcountU0')\<close>
+
+text \<open>There is no equivalence because of rounding errors. However, we do not care about that in
+  the proofs and we are always safe in IsaSAT.
+
+  However, the intro rule are still too dangerous and make it hard to recognize the original goal.
+  Therefore, they are not marked as safe.
+\<close>
+lemma
+  clss_size_corr_intro[intro!]:
+    \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr (fmdrop C N) NE UE NS US N0 U0 (clss_size_decr_lcount c)\<close>
+    \<open>C \<notin># dom_m N \<Longrightarrow> \<not>b \<Longrightarrow>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr (fmupd C (D, b) N) NE UE NS US N0 U0 (clss_size_incr_lcount c)\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE (add_mset E UE) NS US N0 U0 (clss_size_incr_lcountUE c)\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE UE NS (add_mset E US) N0 U0 (clss_size_incr_lcountUS c)\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE UE NS US N0 (add_mset E U0) (clss_size_incr_lcountU0 c)\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 (clss_size N NE UE NS US N0 U0)\<close> and
+  clss_size_corr_intro2[intro]:
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE (add_mset E UE) NS US N0 U0 c\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE UE NS (add_mset E US) N0 U0 c\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE UE NS US N0 (add_mset E U0) c\<close>
+  and
+  clss_size_corr_simp[simp]:
+    \<open>clss_size_corr N NE UE NS US N0 U0 c \<Longrightarrow> clss_size_corr N NE UE NS {#} N0 U0 (clss_size_resetUS c)\<close>
+    \<open>C \<notin># dom_m N \<Longrightarrow> b \<Longrightarrow> clss_size_corr (fmupd C (D, b) N) NE UE NS US N0 U0 c \<longleftrightarrow>
+      clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow> clss_size_corr (fmdrop C N) NE UE NS US N0 U0 c = clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>C \<in># dom_m N \<Longrightarrow> clss_size_corr (N(C \<hookrightarrow> swap (N \<propto> C) i j)) NE UE NS US N0 U0 c = clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>clss_size_corr N (add_mset E NE) UE NS US N0 U0 c = clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>clss_size_corr N NE UE (add_mset E NS) US N0 U0 c = clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>clss_size_corr N NE UE NS US (add_mset E N0) U0 c = clss_size_corr N NE UE NS US N0 U0 c\<close>
+    \<open>clss_size_corr N NE UE NS US N0 U0 lcount \<Longrightarrow> clss_size_lcount lcount = size (learned_clss_lf N)\<close>
+  by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def learned_clss_l_fmupd_if
+    clss_size_incr_lcount_def clss_size_incr_lcountUS_def clss_size_incr_lcountU0_def
+    clss_size_incr_lcountUE_def  clss_size_lcount_def
+      size_remove1_mset_If clss_size_resetUS_def clss_size_corr_def)
+
+
+(*TODO Move inside this file*)
+lemma clss_size_lcount_incr_lcount_simps[simp]:
+  \<open>clss_size_lcount (clss_size_incr_lcount S) = Suc (clss_size_lcount S)\<close>
+  \<open>clss_size_lcountUE (clss_size_incr_lcount S) = (clss_size_lcountUE S)\<close>
+  \<open>clss_size_lcountUS (clss_size_incr_lcount S) = (clss_size_lcountUS S)\<close>
+  \<open>clss_size_lcountU0 (clss_size_incr_lcount (S)) = clss_size_lcountU0 ( (S))\<close>
+  by (cases S; auto simp: clss_size_lcount_def clss_size_incr_lcount_def
+      clss_size_corr_def clss_size_lcount_def clss_size_def
+    clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def; fail)+
 end

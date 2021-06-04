@@ -1905,4 +1905,286 @@ definition mop_arena_mark_used2 where
     RETURN (mark_used2 C arena)
   }\<close>
 
+(*TODO Sort*)
+
+definition arena_shorten :: \<open>nat \<Rightarrow> nat \<Rightarrow> arena \<Rightarrow> arena\<close> where
+  \<open>arena_shorten C j N =
+  (if j > MAX_LENGTH_SHORT_CLAUSE then  N[C - SIZE_SHIFT := ASize (j-2), C - POS_SHIFT := APos 0]
+  else N[C - SIZE_SHIFT := ASize (j-2)])\<close>
+
+
+definition arena_shorten_pre where
+    \<open>arena_shorten_pre C j arena \<longleftrightarrow> j \<ge> 2 \<and> arena_is_valid_clause_idx arena C \<and>
+      j \<le> arena_length arena C\<close>
+
+definition mop_arena_shorten where
+  \<open>mop_arena_shorten C j arena = do {
+    ASSERT(arena_shorten_pre C j arena);
+    RETURN (arena_shorten C j arena)
+  }\<close>
+
+lemma length_arena_shorten[simp]:
+  \<open>length (arena_shorten C' j' arena) = length arena\<close>
+  by (auto simp: arena_shorten_def)
+
+lemma valid_arena_arena_shorten:
+  assumes C: \<open>C \<in># dom_m N\<close> and
+    j: \<open>j \<le> arena_length arena C\<close> and
+    valid: \<open>valid_arena arena N vdom\<close> and
+    j2: \<open>j \<ge> 2\<close>
+  shows \<open>valid_arena (arena_shorten C j arena) (N(C \<hookrightarrow> take j (N \<propto> C))) vdom\<close>
+proof -
+  let ?N = \<open>N(C \<hookrightarrow> take j (N \<propto> C))\<close>
+  have header: \<open>header_size (take j (N \<propto> C)) \<le> header_size (N \<propto> C)\<close>
+    by (auto simp: header_size_def)
+  let ?arena = \<open>(if j > MAX_LENGTH_SHORT_CLAUSE then
+       arena[C - SIZE_SHIFT := ASize (j-2), C - POS_SHIFT := APos 0]
+    else arena[C - SIZE_SHIFT := ASize (j-2)])\<close>
+  have dead_clause: \<open>arena_dead_clause (Misc.slice (i - 2) i ?arena) \<longleftrightarrow>
+    arena_dead_clause (Misc.slice (i - 2) i arena)\<close>
+    if i: \<open>i \<in> vdom\<close> \<open>i \<notin># dom_m N\<close>
+    for i
+  proof -
+    have [simp]: \<open>Misc.slice (i - 2) i (arena[C - Suc 0 := ASize (j - 2)]) =
+      Misc.slice (i - 2) i (arena)\<close>
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j
+        valid_arena_in_vdom_le_arena[OF valid, of i]
+      apply -
+      apply (subst slice_irrelevant(3))
+      apply auto
+      by (metis One_nat_def SIZE_SHIFT_def Suc_le_lessD Suc_pred \<open>\<lbrakk>i \<notin># dom_m N; C \<le> i; i \<in> vdom\<rbrakk> \<Longrightarrow> length (N \<propto> C) + 2 \<le> i - C\<close> add_leD2 diff_diff_cancel diff_le_self le_diff_iff' nat_le_Suc_less_imp that(1) that(2) verit_comp_simplify1(3)) 
+
+    have [simp]:
+      \<open>Misc.slice (i - 2) i (arena[C - SIZE_SHIFT := ASize (j - 2), C - POS_SHIFT := APos 0]) =
+      Misc.slice (i - 2) i arena\<close> if j5: \<open>j > MAX_LENGTH_SHORT_CLAUSE\<close>
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j that i
+        valid_arena_in_vdom_le_arena[OF valid, of i] j
+      apply -
+      apply (subst slice_irrelevant(3))
+      apply (auto simp: SHIFTS_def not_less_eq header_size_def linorder_class.not_le
+        split: if_splits)
+      by (metis diff_diff_cancel diff_le_self le_diff_iff' less_or_eq_imp_le numeral_3_eq_3 verit_comp_simplify1(3))
+    show ?thesis
+      using that
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j 
+        valid_arena_in_vdom_le_arena[OF valid, of i]
+      apply -
+      apply (simp split: if_splits, intro conjI impI)
+      subgoal
+        apply (subst slice_irrelevant(3))
+        apply (cases \<open>C < i\<close>)
+        apply (auto simp: arena_dead_clause_def not_less_eq
+          SHIFTS_def header_size_def)
+        by (metis less_Suc_eq nat_le_Suc_less_imp)
+     done
+   qed
+  have other_active: \<open>i \<noteq> C \<Longrightarrow>
+    i \<in># dom_m N \<Longrightarrow>
+    xarena_active_clause (clause_slice (?arena) N i)
+    (the (fmlookup N i)) \<longleftrightarrow>
+    xarena_active_clause (clause_slice (arena) N i)
+    (the (fmlookup N i))\<close> for i
+    using 
+      arena_lifting(1,4,15,18)[OF valid C] j
+      arena_lifting(18)[OF valid, of i]
+      valid_minimal_difference_between_valid_index[OF valid C, of i]
+      valid_minimal_difference_between_valid_index[OF valid _ C, of i]
+    apply -
+    apply (simp split: if_splits, intro conjI impI)
+    apply (subst slice_irrelevant(3))
+    subgoal
+      by (cases \<open>C < i\<close>)
+       (auto simp: arena_dead_clause_def arena_lifting SHIFTS_def not_less_eq
+        header_size_def split: if_splits)
+    subgoal
+      by (cases \<open>C < i\<close>)
+        (auto simp: arena_dead_clause_def arena_lifting SHIFTS_def not_less_eq
+        header_size_def split: if_splits)
+    subgoal
+      by (cases \<open>C < i\<close>)
+        (auto simp: arena_dead_clause_def arena_lifting SHIFTS_def not_less_eq
+        header_size_def split: if_splits)
+   done
+ have [simp]:
+   \<open>Misc.slice C (C + arena_length arena C) arena = map ALit (N \<propto> C) \<Longrightarrow> Misc.slice C (C + j) arena = map ALit (take j (N \<propto> C))\<close>
+   by (drule arg_cong[of _ _ \<open>take j\<close>])
+    (use j j2 arena_lifting[OF valid C] in \<open>auto simp: Misc.slice_def take_map\<close>)
+
+  have arena2: \<open>xarena_active_clause (clause_slice arena N C) (the (fmlookup N C)) \<Longrightarrow>
+    xarena_active_clause (clause_slice ?arena ?N C)
+    (take j (N \<propto> C), irred N C)\<close>
+    using j j2 arena_lifting[OF valid C] header
+    apply (subst (asm) xarena_active_clause_alt_def)
+    apply (subst xarena_active_clause_def)
+    apply simp
+    apply (intro conjI impI)
+    apply (simp add: slice_head SHIFTS_def header_size_def
+      slice_len_min_If slice_nth; fail)+
+    done
+
+  show ?thesis
+    using assms header distinct_mset_dom[of N] arena2 other_active dead_clause
+    unfolding valid_arena_def arena_shorten_def
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+qed
+
+lemma mop_arena_shorten_spec:
+  assumes C: \<open>C \<in># dom_m N\<close> and
+    j: \<open>j \<le> arena_length arena C\<close> and
+    valid: \<open>valid_arena arena N vdom\<close> and
+    j2: \<open>j \<ge> 2\<close> and
+    \<open>(C,C')\<in>nat_rel\<close> \<open>(j,j')\<in>nat_rel\<close>
+  shows \<open>mop_arena_shorten C j arena \<le> SPEC(\<lambda>c. (c, N(C' \<hookrightarrow> take j' (N \<propto> C'))) \<in>
+       {(arena', N). valid_arena arena' N vdom \<and> length arena = length arena'})\<close>
+  unfolding mop_arena_shorten_def
+  apply refine_vcg
+  subgoal
+    using assms
+    unfolding arena_shorten_pre_def arena_is_valid_clause_idx_def by auto
+  subgoal
+    using assms
+    by (auto intro!: valid_arena_arena_shorten)
+  done
+
+definition arenap_update_lit :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> arena \<Rightarrow> arena\<close> where
+  \<open>arenap_update_lit C j L N = N[C + j := ALit L]\<close>
+
+lemma length_arenap_update_lit[simp]: \<open>length (arenap_update_lit C j L arena) = length arena\<close>
+  by (auto simp: arenap_update_lit_def)
+
+lemma valid_arena_arenap_update_lit:
+  assumes C: \<open>C \<in># dom_m N\<close> and
+    j: \<open>j < arena_length arena C\<close> and
+    valid: \<open>valid_arena arena N vdom\<close>
+  shows \<open>valid_arena (arenap_update_lit C j  L arena) (N(C \<hookrightarrow> (N \<propto> C)[j := L])) vdom\<close>
+proof -
+  let ?N = \<open>N(C \<hookrightarrow> (N \<propto> C)[j := L])\<close>
+  have header[simp]: \<open>header_size (?N \<propto> C) = header_size (N \<propto> C)\<close>
+    by (auto simp: header_size_def)
+  let ?arena = \<open>arenap_update_lit C j L arena\<close>
+  have dead_clause: \<open>arena_dead_clause (Misc.slice (i - 2) i ?arena) \<longleftrightarrow>
+    arena_dead_clause (Misc.slice (i - 2) i arena)\<close>
+    if i: \<open>i \<in> vdom\<close> \<open>i \<notin># dom_m N\<close>
+    for i
+  proof -
+    have [simp]: \<open>Misc.slice (i - 2) i (arena[C - Suc 0 := ASize (j - 2)]) =
+      Misc.slice (i - 2) i (arena)\<close>
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j
+        valid_arena_in_vdom_le_arena[OF valid, of i]
+      apply -
+      apply (subst slice_irrelevant(3))
+      apply auto
+      by (metis One_nat_def SIZE_SHIFT_def Suc_le_lessD Suc_pred \<open>\<lbrakk>i \<notin># dom_m N; C \<le> i; i \<in> vdom\<rbrakk> \<Longrightarrow> length (N \<propto> C) + 2 \<le> i - C\<close> add_leD2 diff_diff_cancel diff_le_self le_diff_iff' nat_le_Suc_less_imp that(1) that(2) verit_comp_simplify1(3)) 
+
+    have [simp]:
+      \<open>Misc.slice (i - 2) i ?arena =
+      Misc.slice (i - 2) i arena\<close>
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j that i
+        valid_arena_in_vdom_le_arena[OF valid, of i] j
+      unfolding arenap_update_lit_def
+      apply -
+      apply (subst slice_irrelevant(3))
+      apply (auto simp: SHIFTS_def not_less_eq header_size_def linorder_class.not_le
+        split: if_splits)
+      apply linarith
+      apply linarith
+      done
+    show ?thesis
+      using that
+      using minimal_difference_between_invalid_index[OF valid C, of i]
+        minimal_difference_between_invalid_index2[OF valid C, of i]
+        arena_lifting(1,4,15,18)[OF valid C] j 
+        valid_arena_in_vdom_le_arena[OF valid, of i]
+      unfolding arenap_update_lit_def
+      apply -
+      apply (subst slice_irrelevant(3))
+      apply (cases \<open>C < i\<close>)
+      apply (auto simp: arena_dead_clause_def not_less_eq
+        SHIFTS_def header_size_def)
+     done
+  qed
+  have other_active: \<open>i \<noteq> C \<Longrightarrow>
+    i \<in># dom_m N \<Longrightarrow>
+    xarena_active_clause (clause_slice (?arena) N i)
+    (the (fmlookup N i)) \<longleftrightarrow>
+    xarena_active_clause (clause_slice (arena) N i)
+    (the (fmlookup N i))\<close> for i
+    using 
+      arena_lifting(1,4,15,18)[OF valid C] j
+      arena_lifting(18)[OF valid, of i]
+      valid_minimal_difference_between_valid_index[OF valid C, of i]
+      valid_minimal_difference_between_valid_index[OF valid _ C, of i]
+    unfolding arenap_update_lit_def
+    apply -
+    apply (subst slice_irrelevant(3))
+    subgoal
+      by (cases \<open>C < i\<close>)
+       (auto simp: arena_dead_clause_def arena_lifting SHIFTS_def not_less_eq
+        header_size_def split: if_splits)
+    subgoal
+      by (cases \<open>C < i\<close>)
+        (auto simp: arena_dead_clause_def arena_lifting SHIFTS_def not_less_eq
+        header_size_def split: if_splits)
+   done
+ have [simp]: \<open>header_size ((N \<propto> C)[j := L]) = header_size (N \<propto> C)\<close>
+   by (auto simp: header_size_def)
+ have [simp]:
+   \<open>Misc.slice C (C + arena_length arena C) arena = map ALit (N \<propto> C) \<Longrightarrow>
+   drop (header_size (N \<propto> C)) ((Misc.slice (C - header_size (N \<propto> C)) (C + arena_length arena C) arena)[j + header_size (N \<propto> C) := ALit L]) =
+   map ALit ((N \<propto> C)[j := L])\<close>
+   by (drule arg_cong[of _ _ \<open> \<lambda>xs. xs [j := ALit L]\<close>])
+      (use j arena_lifting(1-4)[OF valid C] in \<open>auto simp: drop_update_swap map_update\<close>)
+
+  have arena2: \<open>xarena_active_clause (clause_slice arena N C) (the (fmlookup N C)) \<Longrightarrow>
+    xarena_active_clause (clause_slice ?arena ?N C)
+    ((?N \<propto> C), irred N C)\<close>
+    using j arena_lifting[OF valid C] header
+    unfolding arenap_update_lit_def
+    apply (subst (asm) xarena_active_clause_alt_def)
+    apply (subst xarena_active_clause_def)
+    apply (subst prod.simps)
+    apply simp
+    apply (intro conjI impI)
+    apply (simp add: slice_head SHIFTS_def header_size_def
+      slice_len_min_If slice_nth; fail)+
+    done
+  show ?thesis
+    using assms distinct_mset_dom[of N] arena2 other_active dead_clause
+    unfolding valid_arena_def arena_shorten_def
+    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+qed
+
+definition mop_arena_update_lit :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> arena \<Rightarrow> arena nres\<close> where
+  \<open>mop_arena_update_lit C j L arena = do {
+    ASSERT(arena_lit_pre2 arena C j);
+    RETURN (arenap_update_lit C j L arena)
+  }\<close>
+
+lemma mop_arena_update_lit_spec:
+  assumes C: \<open>C \<in># dom_m N\<close> and
+    j: \<open>j < arena_length arena C\<close> and
+    valid: \<open>valid_arena arena N vdom\<close> and
+    \<open>(j,j') \<in> nat_rel\<close> and
+    \<open>(C,C') \<in> nat_rel\<close> and
+    \<open>(L,L') \<in> Id\<close>
+  shows
+    \<open>mop_arena_update_lit C j L arena \<le> SPEC (\<lambda>c. (c, (N(C' \<hookrightarrow> (N \<propto> C')[j' := L']))) \<in>
+    {(arena', N). valid_arena arena' N vdom \<and> length arena' = length arena})\<close>
+  unfolding mop_arena_update_lit_def
+  apply refine_vcg
+  subgoal using assms unfolding arena_lit_pre2_def
+    by (auto simp: arena_lifting)
+  subgoal using assms by (auto intro!: valid_arena_arenap_update_lit)
+  done
+
 end
