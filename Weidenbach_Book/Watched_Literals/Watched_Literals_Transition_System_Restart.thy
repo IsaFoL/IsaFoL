@@ -37,7 +37,7 @@ restart_trail:
     \<open>U' + UE' \<subseteq># U\<close> and
     \<open>N = N' + NE'\<close> and
     \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#clause E. L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
-    \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + NE + UE''\<close>
+    \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># clause `# (N + U') + (NE+ clauses NE') + UE''\<close>
     \<open>UE'' \<subseteq>#  UE + clauses UE'\<close> |
 restart_clauses:
    \<open>cdcl_twl_restart (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
@@ -46,9 +46,9 @@ restart_clauses:
     \<open>U' + UE' \<subseteq># U\<close> and
     \<open>N = N' + NE'\<close> and
     \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#clause E. L \<in> lits_of_l M \<and> get_level M L = 0\<close>
-    \<open>\<forall>L E. Propagated L E \<in> set M \<longrightarrow> E \<in># clause `# (N + U') + NE + UE''\<close>
+    \<open>\<forall>L E. Propagated L E \<in> set M \<longrightarrow> E \<in># clause `# (N + U') + (NE+ clauses NE') + UE''\<close>
     \<open>US' = {#}\<close>
-    \<open>UE'' \<subseteq>#  UE + clauses UE'\<close> 
+    \<open>UE'' \<subseteq>#  UE + clauses UE'\<close>
 
 inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
 
