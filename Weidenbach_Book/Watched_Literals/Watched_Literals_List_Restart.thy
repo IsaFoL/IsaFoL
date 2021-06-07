@@ -299,11 +299,15 @@ text \<open>
   \<^item> The cases \<^term>\<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow>
     E' \<noteq> 0 \<longrightarrow> P\<close> are already covered by the invariants (where \<^term>\<open>P\<close> means that there is
     clause which was already present before).
+  \<^item> There is no simple way to express that a reason is in \<^term>\<open>UE\<close> or not in it. This was not a
+    problem as long we did not empty it, but we had to include that. The only solution is to
+    split the components in two parts: the one in the trail (that stay there forever and count
+    toward the number of clauses) and the authorers that can be deleted.
 \<close>
 inductive cdcl_twl_restart_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 restart_trail:
    \<open>cdcl_twl_restart_l (M, N, None, NE, UE, NS, US, N0, U0, {#}, Q)
-       (M', N', None, NE + mset `# NE', UE + mset `# UE', NS, US', N0, U0, {#}, Q')\<close>
+       (M', N', None, NE + mset `# NE', UE'', NS, US', N0, U0', {#}, Q')\<close>
   if
     \<open>valid_trail_reduction M M'\<close> and
     \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
@@ -312,15 +316,18 @@ restart_trail:
     \<open>\<forall>L E E' . Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E > 0  \<longrightarrow> E' > 0 \<longrightarrow>
         E \<in># dom_m N' \<and> N' \<propto> E = N \<propto> E'\<close> and
     \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E = 0 \<longrightarrow> E' \<noteq> 0 \<longrightarrow>
-       mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> and
+       mset (N \<propto> E') \<in># NE + mset `# NE' + UE''\<close> and
     \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E' = 0 \<longrightarrow> E = 0\<close> and
     \<open>0 \<notin># dom_m N'\<close> and
     \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
-    \<open>US' = {#}\<close>
+    \<open>US' = {#}\<close> and
+    \<open>UE'' \<subseteq># UE + mset `# UE'\<close> and
+    \<open>U0' = {#}\<close>
 
 
 lemma cdcl_twl_restart_l_refl:
   \<open>get_conflict_l S = None \<Longrightarrow> get_subsumed_learned_clauses_l S = {#} \<Longrightarrow>
+  get_learned_clauses0_l S = {#} \<Longrightarrow>
   clauses_to_update_l S = {#} \<Longrightarrow> twl_list_invs S \<Longrightarrow> no_dup (get_trail_l S) \<Longrightarrow>
   cdcl_twl_restart_l S S\<close>
   by (cases S)
@@ -334,11 +341,13 @@ lemma cdcl_twl_restart_l_list_invs:
     \<open>twl_list_invs T\<close>
   using assms
 proof (induction rule: cdcl_twl_restart_l.induct)
-  case (restart_trail M M' N N' NE' UE' NE UE Q Q' US' NS US N0 U0) note red = this(1) and init = this(2) and
+  case (restart_trail M M' N N' NE' UE' NE UE'' Q Q' US' UE U0' U0 NS US N0) note red = this(1) and
+    init = this(2) and
     learned = this(3) and NUE = this(4) and tr_ge0 = this(5) and tr_new0 = this(6) and
-    tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and US = this(10) and list_invs = this(11)
-  let ?S = \<open>(M, N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
-  let ?T = \<open>(M', N', None, NE + mset `# NE', UE + mset `# UE', NS, US', N0, U0, {#}, Q')\<close>
+    tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and US = this(10) and incl = this(11)
+    and U0' = this(12) and list_invs = this(13)
+  let ?S = \<open>(M, N, None, NE, UE, NS, US, N0, U0', {#}, Q)\<close>
+  let ?T = \<open>(M', N', None, NE + mset `# NE', UE'', NS, US', N0, U0', {#}, Q')\<close>
   show ?case
     unfolding twl_list_invs_def
   proof (intro conjI impI allI ballI)
@@ -388,7 +397,6 @@ proof (induction rule: cdcl_twl_restart_l.induct)
       by simp
     ultimately show \<open>\<not>tautology (mset C)\<close>
       by auto
-  next
   qed
 qed
 
@@ -473,13 +481,14 @@ proof -
     if \<open>cdcl_twl_restart_l S S'\<close> for S'
     using that ST struct_invs
   proof (induction rule: cdcl_twl_restart_l.induct)
-    case (restart_trail M M' N N' NE' UE' NE UE Q Q' US' NS US N0 U0) note red = this(1) and init = this(2) and
+    case (restart_trail M M' N N' NE' UE' NE UE'' Q Q' US' UE U0' NS US N0 U0) note red = this(1) and
+      init = this(2) and
       learned = this(3) and NUE = this(4) and tr_ge0 = this(5) and tr_new0 = this(6) and
-      tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and US = this(10) and ST = this(11) and
-      struct_invs = this(12)
+      tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and US = this(10) and incl = this(11)
+      and U0 = this(12) and ST = this(13) and struct_invs = this(14)
     let ?T' = \<open>(drop (length M - length M') (get_trail T), twl_clause_of `# init_clss_lf N',
-          twl_clause_of `# learned_clss_lf N', None, NE+mset `# NE', UE+mset `# UE', NS, US', N0,
-          U0, {#}, Q')\<close>
+          twl_clause_of `# learned_clss_lf N', None, NE+mset `# NE', UE'', NS, US', N0,
+          U0', {#}, Q')\<close>
     have [intro]: \<open>Q \<noteq> Q' \<Longrightarrow> Q' = {#}\<close>
       using QQ' by (auto split: if_splits)
     obtain TM where
@@ -507,8 +516,7 @@ proof -
               (twl_clause_of `# init_clss_lf N +
                 twl_clause_of `# learned_clss_lf N') +
               NE +
-              UE +
-              clauses (twl_clause_of `# UE')\<close>
+              UE''\<close>
       proof (intro allI impI conjI)
         fix L E
         assume \<open>Propagated L E \<in> set TM\<close>
@@ -521,7 +529,7 @@ proof -
 
         consider
           \<open>E' = 0\<close> and \<open>E'' = 0\<close> |
-          \<open>E' > 0\<close> and \<open>E'' = 0\<close> and \<open>mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> |
+          \<open>E' > 0\<close> and \<open>E'' = 0\<close> and \<open>mset (N \<propto> E') \<in># NE + mset `# NE' + UE''\<close> |
           \<open>E' > 0\<close> and \<open>E'' > 0\<close> and \<open>E'' \<in># dom_m N'\<close> and \<open>N \<propto> E' = N' \<propto> E''\<close>
           using tr_ge0 tr_new0 tr_still0 LE'_M LE''_M E_E'
           by (cases \<open>E''>0\<close>; cases \<open>E' > 0\<close>) auto
@@ -529,12 +537,13 @@ proof -
               (twl_clause_of `# init_clss_lf N +
                 twl_clause_of `# learned_clss_lf N') +
               NE +
-              UE +
-              clauses (twl_clause_of `# UE')\<close>
+              UE''\<close>
           apply cases
           subgoal
-            using E_E'
-            by (auto simp: mset_take_mset_drop_mset' convert_lit.simps)
+            using E_E' incl tr_still0
+            apply (auto simp: mset_take_mset_drop_mset' convert_lit.simps)
+            sledgehammer
+              sorry
           subgoal
             using E_E' init
             by (auto simp: mset_take_mset_drop_mset' convert_lit.simps)
@@ -548,7 +557,7 @@ proof -
           NE, UE, NS, US, N0, U0, {#}, Q)
         (TM, twl_clause_of `# init_clss_lf N', twl_clause_of `# learned_clss_lf N', None,
           NE + clauses (twl_clause_of `# NE'), UE + clauses (twl_clause_of `# UE'),
-          NS, {#}, N0, U0, {#}, Q)\<close> (is \<open>cdcl_twl_restart ?A ?B\<close>)
+          NS, {#}, N0, {#}, {#}, Q)\<close> (is \<open>cdcl_twl_restart ?A ?B\<close>)
         apply (rule cdcl_twl_restart.restart_clauses)
         subgoal
           using learned by (auto dest: image_mset_subseteq_mono)
