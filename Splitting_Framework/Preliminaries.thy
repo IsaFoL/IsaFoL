@@ -821,114 +821,75 @@ next
 next
   fix M P N Q
   assume
-    "M \<Turnstile>s\<^sub>A\<^sub>F P" and
-    "\<forall>C\<in>M. N \<Turnstile>s\<^sub>A\<^sub>F Q \<union> {C}" and
-    "\<forall>D\<in>P. N \<union> {D} \<Turnstile>s\<^sub>A\<^sub>F Q"
+    m_entails_p: "M \<Turnstile>s\<^sub>A\<^sub>F P" and
+    n_to_q_m: "\<forall>C\<in>M. N \<Turnstile>s\<^sub>A\<^sub>F Q \<union> {C}" and
+    n_p_to_q: "\<forall>D\<in>P. N \<union> {D} \<Turnstile>s\<^sub>A\<^sub>F Q"
   show \<open>N \<Turnstile>s\<^sub>A\<^sub>F Q\<close>
     unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      sorry
-  qed
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-next
-  fix M P N Q
-  assume
-    m_entails_p: \<open>M \<Turnstile>\<^sub>A\<^sub>F P\<close> and
-    n_to_q_m: \<open>\<forall>C\<in>M. N \<Turnstile>\<^sub>A\<^sub>F Q \<union> {C}\<close> and
-    n_p_to_q: \<open>\<forall>D\<in>P. N \<union> {D} \<Turnstile>\<^sub>A\<^sub>F Q\<close> 
-  show \<open>N \<Turnstile>\<^sub>A\<^sub>F Q\<close>
-    unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
   proof (rule allI, rule impI)
     fix J
     assume q_enabled: \<open>\<forall>C\<in>Q. A_of C \<subseteq> total_strip J\<close>
-    show \<open>{F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
+    show \<open>sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q)\<close>
     proof (cases "\<forall>C\<in>P. A_of C \<subseteq> total_strip J")  
     assume
-      p_enabled: \<open>\<forall>C\<in>P. A_of C \<subseteq> total_strip J\<close> (* and *)
-      (* m_enabled: \<open>\<forall>C\<in>M. A_of C \<subseteq> total_strip J\<close> *)
+      p_enabled: \<open>\<forall>C\<in>P. A_of C \<subseteq> total_strip J\<close>
     define M\<^sub>J :: "('f, 'v) AF set" where "M\<^sub>J = {C. C \<in> M \<and> A_of C \<subseteq> total_strip J}"
-    then have mj_enabled: \<open>\<forall>C\<in>M\<^sub>J. A_of C \<subseteq> total_strip J\<close>
-      by blast 
-    have simp_m: \<open>{F_of C |C. C \<in> M\<^sub>J \<and> A_of C \<subseteq> total_strip J} = F_of ` M\<^sub>J\<close>
-      using mj_enabled by blast 
-    have \<open>{F_of C |C. C \<in> P \<and> A_of C \<subseteq> total_strip J} = F_of ` P\<close>
-      using p_enabled by blast 
-    have each_hyp1: \<open>F_of ` M\<^sub>J \<Turnstile> F_of ` P\<close>
-      using m_entails_p simp_m p_enabled 
-      unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
+    have each_hyp1: \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> (Pos ` F_of ` M\<^sub>J)) (Pos ` F_of ` P)\<close>
+      using m_entails_p p_enabled 
+      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
       by (simp add: M\<^sub>J_def setcompr_eq_image)
-    have \<open>\<forall>C\<in>M\<^sub>J. (\<forall>C\<in>Q \<union> {C}. A_of C \<subseteq> total_strip J)\<close> using mj_enabled q_enabled by fast
-    then have \<open>\<forall>C\<in>M\<^sub>J. {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` (Q \<union> {C})\<close>
-      using n_to_q_m M\<^sub>J_def
-      unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
-       by blast 
-    then have each_hyp2: \<open>\<forall>C\<in>F_of ` M\<^sub>J. {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q \<union> {C}\<close>
-      by force
-    have \<open>\<forall>D\<in>P. {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close> 
-      using n_p_to_q q_enabled
-      unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
-      by blast 
-    moreover have \<open>\<forall>D\<in>P. {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} =
-      {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> {F_of C |C. C \<in> {D}}\<close>
-      using p_enabled
-      by blast 
-    ultimately have each_hyp3:
-      \<open>\<forall>D\<in>F_of ` P. {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> {D} \<Turnstile> F_of ` Q\<close>
+    have \<open>\<forall>C\<in>M\<^sub>J. (\<forall>C\<in>Q \<union> {C}. A_of C \<subseteq> total_strip J)\<close>
+      using q_enabled M\<^sub>J_def by fastforce
+    then have \<open>\<forall>C\<in>M\<^sub>J. sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of `( Q \<union> {C}))\<close>
+      using n_to_q_m q_enabled 
+      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+      by (metis (no_types, lifting) M\<^sub>J_def mem_Collect_eq) 
+    moreover have \<open>\<forall>C\<in>fml_ext ` total_strip J. sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of `  Q \<union> {C})\<close>
+      using sound_cons_rel.entails_reflexive sound_cons_rel.entails_subsets 
+       by (meson UnCI empty_subsetI insert_subset subsetI) 
+    ultimately have each_hyp2:
+      \<open>\<forall>C\<in>fml_ext ` total_strip J \<union> Pos ` F_of ` M\<^sub>J. sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q \<union> {C})\<close>
       by auto
-    show \<open>{F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
-      using entails_each[OF each_hyp1 each_hyp2 each_hyp3] .
+    have \<open>\<forall>D\<in>P. sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q)\<close>
+      using n_p_to_q q_enabled
+      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+      by blast
+    moreover have \<open>\<forall>D\<in>P. Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} =
+      Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> Pos ` F_of ` {D}\<close>
+      using p_enabled by blast 
+    ultimately have each_hyp3: \<open>\<forall>D\<in>Pos ` F_of ` P. sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> {D})
+      (Pos ` F_of ` Q)\<close>
+      by simp
+    show \<open>sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q)\<close>
+      using sound_cons_rel.entails_each[OF each_hyp1 each_hyp2 each_hyp3] .
   next
     assume
       p_not_enabled: \<open>\<not> (\<forall>C\<in>P. A_of C \<subseteq> total_strip J)\<close>
     then obtain D where d_in: "D \<in> P" and d_not_enabled: "\<not> (A_of D \<subseteq> total_strip J)"
       by fast
-    have \<open>{F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
+    have \<open>sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q)\<close>
       using n_p_to_q q_enabled d_in
-      unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
+      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
       by blast 
-    then show \<open>{F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
+    then show \<open>sound_cons.entails_neg
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}) (Pos ` F_of ` Q)\<close>
       using d_not_enabled 
-        by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
+      by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
     qed 
   qed
 qed
