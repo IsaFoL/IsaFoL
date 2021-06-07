@@ -680,7 +680,8 @@ definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Righta
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails_sound M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow>
   sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (M proj\<^sub>J J))) (Pos ` F_of ` N)))\<close>
-
+  
+  (* Splitting report Lemma 7, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
   show \<open>{to_AF bot} \<Turnstile>\<^sub>A\<^sub>F {}\<close>
@@ -773,134 +774,16 @@ next
   qed
 qed
 
-  find_theorems name: entails_neg
-  
-  (* duplicated from the consequence_relation locale because it can't be a sublocale *)
-interpretation ext_cons_rel_sound: consequence_relation "Pos bot" AF_cons_rel.entails_neg
-proof
-  show "entails_neg {Pos bot} {}"
-    unfolding entails_neg_def using bot_entails_empty by simp
-next
-  fix C
-  show \<open>entails_neg {C} {C}\<close>
-    unfolding entails_neg_def using entails_cond_reflexive by auto
-next
-  fix M N P Q
-  assume
-    subs1: "M \<subseteq> N" and
-    subs2: "P \<subseteq> Q" and
-    entails1: "entails_neg M P"
-  have union_subs1: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<subseteq>
-    {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> Q \<and> \<not> is_Pos C}\<close>
-    using subs1 subs2 by auto
-  have union_subs2: \<open>{to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq>
-    {to_V C |C. C \<in> Q \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
-    using subs1 subs2 by auto
-  have union_entails1: "{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<Turnstile>
-    {to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
-    using entails1 unfolding entails_neg_def .
-  show \<open>entails_neg N Q\<close>
-    using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
-next
-  fix M P N Q
-  assume
-    D4_hyp1: "entails_neg M P" and
-    n_to_qm: "\<forall>C\<in>M. entails_neg N (Q \<union> {C})" and
-    np_to_q: "\<forall>D\<in>P. entails_neg (N \<union> {D}) Q"
-  define NpQm where "NpQm = {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> Q \<and> \<not> is_Pos C}"
-  define NmQp where "NmQp = {to_V C |C. C \<in> Q \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}"
-  define MpPm where "MpPm = {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C}"
-  define MmPp where "MmPp = {to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
-    
-  have "Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow>
-    {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca}" for Cn
-    by blast
-  also have "Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} =
-    {to_V Ca |Ca. Ca \<in> Q \<and> is_Pos Ca} \<union> {to_V Cn}" for Cn
-    by blast
-  ultimately have m_pos: \<open>Cn \<in> M \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_V Cn}\<close> for Cn
-    using n_to_qm unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_m_pos: \<open>\<forall>C\<in>{to_V C |C. C \<in> M \<and> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
-  proof
-    fix C
-    assume "C \<in> {to_V C |C. C \<in> M \<and> is_Pos C}"
-    then obtain Ca where "to_V Ca = C" "Ca \<in> M" "is_Pos Ca" by blast
-    then show "NpQm \<Turnstile> NmQp \<union> {C}"
-      using m_pos[of Ca] by blast
-  qed
-    
-  have "Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_V Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca} \<union> {to_V Cn}" for Cn
-    by blast
-  also have "Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow>
-    {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> N \<and> is_Pos Ca}" for Cn
-    by blast
-  ultimately have p_neg: \<open>Cn \<in> P \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm \<Turnstile> NmQp \<union> {to_V Cn}\<close> for Cn
-    using np_to_q unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_p_neg: \<open>\<forall>C\<in>{to_V C |C. C \<in> P \<and> \<not> is_Pos C}. NpQm \<Turnstile> NmQp \<union> {C}\<close>
-  proof
-    fix C
-    assume "C \<in> {to_V C |C. C \<in> P \<and> \<not> is_Pos C}"
-    then obtain Ca where "to_V Ca = C" "Ca \<in> P" "\<not> is_Pos Ca" by blast
-    then show "NpQm \<Turnstile> NmQp \<union> {C}"
-      using p_neg[of Ca] by blast
-  qed
-
-  have D4_hyp2: \<open>\<forall>C\<in>MpPm. NpQm \<Turnstile> NmQp \<union> {C}\<close>
-    using entails_m_pos entails_p_neg unfolding MpPm_def by fast
-      
-  have "Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_V Ca |Ca. Ca \<in> Q \<and> \<not> is_Pos Ca} \<union> {to_V Cn}" for Cn
-    by blast
-  also have "Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow>
-    {to_V Ca |Ca. Ca \<in> Q \<union> {Cn} \<and> is_Pos Ca} = {to_V Ca |Ca. Ca \<in> Q \<and> is_Pos Ca}" for Cn
-    by blast
-  ultimately have m_neg: \<open>Cn \<in> M \<Longrightarrow> \<not> is_Pos Cn \<Longrightarrow> NpQm  \<union> {to_V Cn} \<Turnstile> NmQp\<close> for Cn
-    using n_to_qm unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_m_neg: \<open>\<forall>C\<in>{to_V C |C. C \<in> M \<and> \<not> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
-  proof
-    fix C
-    assume "C \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
-    then obtain Ca where "to_V Ca = C" "Ca \<in> M" "\<not> is_Pos Ca" by blast
-    then show "NpQm \<union> {C} \<Turnstile> NmQp"
-      using m_neg[of Ca] by blast
-  qed
-    
-  have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> \<not> is_Pos Ca} =
-    {to_V Ca |Ca. Ca \<in> N \<and> \<not> is_Pos Ca}" for Cn
-    by blast
-  also have "Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> {to_V Ca |Ca. Ca \<in> N \<union> {Cn} \<and> is_Pos Ca} =
-    {to_V Ca |Ca. Ca \<in> N \<and> is_Pos Ca} \<union> {to_V Cn}" for Cn
-    by blast
-  ultimately have p_pos: \<open>Cn \<in> P \<Longrightarrow> is_Pos Cn \<Longrightarrow> NpQm \<union> {to_V Cn} \<Turnstile> NmQp\<close> for Cn
-    using np_to_q unfolding entails_neg_def NpQm_def NmQp_def by force
-  have entails_p_pos: \<open>\<forall>C\<in>{to_V C |C. C \<in> P \<and> is_Pos C}. NpQm \<union> {C} \<Turnstile> NmQp\<close>
-  proof
-    fix C
-    assume "C \<in> {to_V C |C. C \<in> P \<and> is_Pos C}"
-    then obtain Ca where "to_V Ca = C" "Ca \<in> P" "is_Pos Ca" by blast
-    then show "NpQm \<union> {C} \<Turnstile> NmQp"
-      using p_pos[of Ca] by blast
-  qed
-
-  have D4_hyp3: \<open>\<forall>C\<in>MmPp. NpQm \<union> {C} \<Turnstile> NmQp\<close>
-    using entails_m_neg entails_p_pos unfolding MmPp_def by fast
-
-  show "entails_neg N Q"
-    using entails_each[OF _ D4_hyp2 D4_hyp3] D4_hyp1
-    unfolding entails_neg_def MpPm_def MmPp_def NpQm_def NmQp_def
-    by blast
-qed
-
+interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
+  using AF_cons_rel.ext_cons_rel .
 
 interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel .
     
-    find_theorems name: sound_cons_rel name: entails
-  
+(* Splitting report Lemma 7, 2/2 *)
 interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
 proof
-  have \<open>{Pos bot} \<subseteq> Pos ` {F_of C |C. C \<in> {to_AF bot} \<and> A_of C \<subseteq> total_strip J}\<close>
+  have \<open>{Pos bot} \<subseteq> Pos ` {F_of C |C. C \<in> {to_AF bot} \<and> A_of C \<subseteq> total_strip (J :: 'v total_interpretation)}\<close>
     unfolding to_AF_def by simp
   then show \<open>{to_AF bot} \<Turnstile>s\<^sub>A\<^sub>F {}\<close>
     using sound_cons_rel.bot_entails_empty sound_cons_rel.entails_subsets
@@ -911,10 +794,10 @@ next
   fix C :: "('f, 'v) AF"
   have \<open>Pos ` {F_of Ca |Ca. Ca \<in> {C} \<and> A_of Ca \<subseteq> total_strip J} \<subseteq> (Pos ` F_of ` {C})\<close>
     by auto
-  then show \<open>{C} \<Turnstile>s\<^sub>A\<^sub>F {C}\<close>
+  show \<open>{C} \<Turnstile>s\<^sub>A\<^sub>F {C}\<close>
     unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-    using sound_cons_rel.entails_reflexive sound_cons_rel.entails_subsets 
-      by (smt (z3) UnCI empty_is_image imageE image_eqI image_insert mem_Collect_eq subsetI)
+    using sound_cons_rel.entails_reflexive[of "Pos (F_of C)"] sound_cons_rel.entails_subsets 
+    by (smt (verit, ccfv_SIG) UnCI empty_subsetI imageI insert_subset mem_Collect_eq singletonI)
 next
   fix M N P Q
   assume m_in_n: \<open>M \<subseteq> N\<close> and
@@ -931,38 +814,19 @@ next
       using p_in_q by blast
     ultimately show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union>
       Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}) (Pos ` F_of ` Q)\<close>
-      using m_entails_p  sound_cons_rel.entails_subsets
+      using m_entails_p  sound_cons_rel.entails_subsets m_in_n
       unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-       proof - (* suggested by sledgehammer but not terminating *)
-    assume a1: "\<forall>J. (\<forall>C\<in>P. A_of C \<subseteq> total_strip J) \<longrightarrow> sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> M \<and> A_of C \<subseteq> total_strip J}) (Pos ` F_of ` P)"
-    have f2: "(v2_16 (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}) (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J}) \<notin> fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J} \<or> v2_16 (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}) (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J}) \<in> fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}) \<or> v2_16 (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}) (fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J}) \<in> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J}"
-      by force
-    obtain ff :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f" where
-      "\<forall>x0 x1. (\<exists>v2. v2 \<in> x1 \<and> v2 \<notin> x0) = (ff x0 x1 \<in> x1 \<and> ff x0 x1 \<notin> x0)"
-      by moura
-    then have f3: "\<forall>F Fa. (\<not> F \<subseteq> Fa \<or> (\<forall>f. f \<notin> F \<or> f \<in> Fa)) \<and> (F \<subseteq> Fa \<or> ff Fa F \<in> F \<and> ff Fa F \<notin> Fa)"
-      by blast
-    obtain nn :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> 'f neg" where
-      "\<forall>x0 x1. (\<exists>v2. v2 \<in> x1 \<and> v2 \<notin> x0) = (nn x0 x1 \<in> x1 \<and> nn x0 x1 \<notin> x0)"
-      by moura
-    then have f4: "\<forall>N Na. (\<not> N \<subseteq> Na \<or> (\<forall>n. n \<notin> N \<or> n \<in> Na)) \<and> (N \<subseteq> Na \<or> nn Na N \<in> N \<and> nn Na N \<notin> Na)"
-      by blast
-    have f5: "Pos ` F_of ` P \<subseteq> Pos ` F_of ` Q"
-      using f3 \<open>F_of ` P \<subseteq> F_of ` Q\<close> by force
-    obtain aa :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF" where
-      f6: "\<forall>t. aa t \<in> P \<and> \<not> A_of (aa t) \<subseteq> total_strip t \<or> sound_cons.entails_neg (fml_ext ` total_strip t \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip t}) (Pos ` F_of ` P)"
-      using a1 by meson
-    have f7: "\<forall>a. a \<notin> P \<or> a \<in> Q"
-      using p_in_q by auto
-    have "\<forall>f. f \<notin> {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J} \<or> f \<in> {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}"
-      using f3 \<open>{F_of C |C. C \<in> M \<and> A_of C \<subseteq> total_strip J} \<subseteq> {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}\<close> by presburger
-    then have "fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> M \<and> A_of a \<subseteq> total_strip J} \<subseteq> fml_ext ` total_strip J \<union> Pos ` {F_of a |a. a \<in> N \<and> A_of a \<subseteq> total_strip J}"
-      using f4 f2 sorry
-    then show ?thesis
-      using f7 f6 f5 by (meson consequence_relation.entails_subsets q_enabled sound_cons_rel.consequence_relation_axioms)
+      by (smt (z3) Un_iff consequence_relation.entails_subsets imageE image_eqI mem_Collect_eq p_in_q q_enabled sound_cons_rel.consequence_relation_axioms subset_iff)
   qed 
-        (* by (metis (mono_tags, lifting) q_enabled p_in_q subset_iff) *)
-        sorry
+next
+  fix M P N Q
+  assume
+    "M \<Turnstile>s\<^sub>A\<^sub>F P" and
+    "\<forall>C\<in>M. N \<Turnstile>s\<^sub>A\<^sub>F Q \<union> {C}" and
+    "\<forall>D\<in>P. N \<union> {D} \<Turnstile>s\<^sub>A\<^sub>F Q"
+  show \<open>N \<Turnstile>s\<^sub>A\<^sub>F Q\<close>
+    unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
+      sorry
   qed
 
 
