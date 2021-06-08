@@ -1805,19 +1805,19 @@ qed
 
 definition replace_annot_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>replace_annot_l L C =
-    (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-      ASSERT(replace_annot_l_pre L C (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
-      RES {(M', N, D, NE, UE, NS, {#}, N0, U0, Q, W)| M'.
+    (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+      ASSERT(replace_annot_l_pre L C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+      RES {(M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W)| M'.
        (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
    })\<close>
 
 definition remove_and_add_cls_l :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>remove_and_add_cls_l C =
-    (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
+    (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
        ASSERT(C \<in># dom_m N);
-        RETURN (M, fmdrop C N, D,
-         (if irred N C then add_mset (mset (N\<propto>C)) else id) NE,
-	 (if \<not>irred N C then add_mset (mset (N\<propto>C)) else id) UE, NS, {#}, N0, U0, Q, W)
+        RETURN (M, fmdrop C N, D, NE, UE,
+         (if irred N C then add_mset (mset (N\<propto>C)) else id) NEk,
+	 (if \<not>irred N C then add_mset (mset (N\<propto>C)) else id) UEk, NS, {#}, N0, U0, Q, W)
     })\<close>
 
 text \<open>The following progrom removes all clauses that are annotations. However, this is not compatible
@@ -1835,7 +1835,6 @@ where
         ASSERT(C \<in># dom_m (get_clauses_l S));
 	S \<leftarrow> replace_annot_l L C S;
 	S \<leftarrow> remove_and_add_cls_l C S;
-        \<^cancel>\<open>S \<leftarrow> remove_all_annot_true_clause_imp L S;\<close>
         RETURN (i+1, S)
       }
   })\<close>
@@ -2026,7 +2025,8 @@ lemma remove_one_annot_true_clause_one_imp_spec:
          \<le> SPEC  (\<lambda>s'. remove_one_annot_true_clause_imp_inv S s' \<and>
                 (s', iT) \<in> measure (\<lambda>(i, _). length (get_trail_l S) - i))\<close>
 proof -
-  obtain M N D NE UE NS US N0 U0 WS Q where T: \<open>T = (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)\<close>
+  obtain M N D NE UE NEk UEk NS US N0 U0 WS Q where
+    T: \<open>T = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)\<close>
     by (cases T)
 
   obtain x where
@@ -2117,8 +2117,8 @@ proof -
         by (auto simp: T M dest!: in_set_definedD)
       have \<open>Ca > 0\<close>
         using that(6) by auto
-      let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, add_mset (mset (N \<propto> Ca)) NE, UE,
-         NS, {#}, N0, U0, WS, Q)\<close>
+      let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, NE, UE,
+         add_mset (mset (N \<propto> Ca)) NEk, UEk, NS, {#}, N0, {#}, WS, Q)\<close>
 
       have lev: \<open>get_level (M2 @ Propagated L C # M1) L = 0\<close> and
         M1: \<open>length M1 = i\<close>
@@ -2185,7 +2185,7 @@ proof -
       have \<open>Ca > 0\<close>
         using that(6) by auto
       let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, NE,
-        add_mset (mset (N \<propto> Ca)) UE, NS, {#}, N0, U0, WS, Q)\<close>
+        UE, NEk, add_mset (mset (N \<propto> Ca)) UEk, NS, {#}, N0, {#}, WS, Q)\<close>
 
       have lev: \<open>get_level (M2 @ Propagated L C # M1) L = 0\<close> and
         M1: \<open>length M1 = i\<close>
@@ -2237,14 +2237,13 @@ proof -
 	le T clss_upd lits_upd ST TU D cond \<open>i < length M\<close> M1
 	unfolding remove_one_annot_true_clause_imp_inv_def prod.case
 	by (auto simp: less_Suc_eq nth_append)
-      have 2: \<open>length (get_trail_l S) - Suc i < length (get_trail_l S) - i\<close>
-        by (simp add: T \<open>i < length M\<close> diff_less_mono2 le)
+      have 2: \<open>length (get_trail_l S) - Suc i < length (get_trail_l S) - i\<close>        by (simp add: T \<open>i < length M\<close> diff_less_mono2 le)
       note 1 2
     }
     moreover have \<open>C = Ca\<close> if \<open>M = M2 @ Propagated L Ca # M1\<close> for M1 M2 Ca
       using LC_T n_d
       by (auto simp: T that dest!: in_set_definedD)
-    moreover have \<open>replace_annot_l_pre L C (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)\<close>
+    moreover have \<open>replace_annot_l_pre L C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)\<close>
       using LC_T that unfolding replace_annot_l_pre_def
       by (auto simp: T)
     ultimately show ?thesis
@@ -2318,7 +2317,6 @@ lemma remove_one_annot_true_clause_imp_spec:
   unfolding remove_one_annot_true_clause_imp_def
   apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). length (get_trail_l S) - i)\<close> and
       I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
-    remove_one_annot_true_clause_imp_inv_spec
     remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
   subgoal by auto
   subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
@@ -2415,7 +2413,8 @@ where
    (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S)\<close>
 
 definition mark_garbage_l:: \<open>nat \<Rightarrow>  'v twl_st_l \<Rightarrow> 'v twl_st_l\<close>  where
-  \<open>mark_garbage_l = (\<lambda>C (M, N0, D, NE, UE, NS, US, WS, Q). (M, fmdrop C N0, D, NE, UE, NS, {#}, WS, Q))\<close>
+  \<open>mark_garbage_l = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q).
+  (M, fmdrop C N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q))\<close>
 
 definition can_delete where
   \<open>can_delete S C b = (b \<longrightarrow>
@@ -2563,10 +2562,11 @@ proof -
       [simp]: \<open>b\<close>
      for x s i T b xs0 sT xs
   proof -
-    obtain M N D NE UE NS US N0 U0 WS Q where S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)\<close>
+    obtain M N D NE UE NEk UEk NS US N0 U0 WS Q where
+      S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)\<close>
       by (cases S)
-    obtain M' N' D' NE' UE' NS' US' N0' U0' WS' Q' where T: \<open>T = (M', N', D', NE', UE', NS', US',
-        N0', U0', WS', Q')\<close>
+    obtain M' N' D' NE' UE' NEk' UEk' NS' US' N0' U0' WS' Q' where
+      T: \<open>T = (M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', WS', Q')\<close>
       by (cases T)
     have
       rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T\<close>
@@ -3127,15 +3127,15 @@ definition cdcl_GC_clauses_pre :: \<open>'v twl_st_l \<Rightarrow> bool\<close> 
   ) \<close>
 
 definition cdcl_GC_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-\<open>cdcl_GC_clauses = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, WS, Q). do {
-  ASSERT(cdcl_GC_clauses_pre (M, N, D, NE, UE, NS, US, N0, U0, WS, Q));
+\<open>cdcl_GC_clauses = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
+  ASSERT(cdcl_GC_clauses_pre (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
   b \<leftarrow> SPEC(\<lambda>b. True);
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
-    RETURN (M, N', D, NE, UE, NS, {#}, N0, U0, WS, Q)
+    RETURN (M, N', D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)
   }
-  else RETURN (M, N, D, NE, UE, NS, {#}, N0, U0, WS, Q)})\<close>
+  else RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)})\<close>
 
 lemma cdcl_GC_clauses_cdcl_twl_restart_l:
   assumes
@@ -3155,7 +3155,8 @@ proof -
     subgoal using assms unfolding cdcl_GC_clauses_pre_def by blast
     subgoal using confl upd count_dec mark by (auto simp: cdcl_twl_restart_l.simps
         valid_trail_reduction_refl
-      dest: rtranclp_GC_remap_init_clss_l_old_new rtranclp_GC_remap_learned_clss_l_old_new)
+      dest: rtranclp_GC_remap_init_clss_l_old_new rtranclp_GC_remap_learned_clss_l_old_new
+      intro!: exI[of _ \<open>{#}\<close>])
     subgoal by simp
     subgoal using confl upd count_dec mark by (auto simp: cdcl_twl_restart_l.simps
         valid_trail_reduction_refl cdcl_GC_clauses_pre_def twl_list_invs_def)
@@ -3181,7 +3182,7 @@ proof -
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
           pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by (simp add: twl_st twl_st_l)
-    have subs_U': \<open>get_subsumed_learned_clauses_l U' = {#}\<close>
+    have subs_U': \<open>get_subsumed_learned_clauses_l U' = {#} \<and> get_learned_clauses0_l U' = {#}\<close>
       using rem unfolding tranclp_unfold_end
       by (cases U'; auto simp: remove_one_annot_true_clause.simps)
     have SU': \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U'\<close>
@@ -3212,12 +3213,12 @@ definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> nat \<Ri
       \<and> twl_list_invs S \<and> clauses_to_update_l S = {#})\<close>
 
 definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, W, Q). do {
-      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NS, US, N0, U0, W, Q)
+  \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q). do {
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
          last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, W, Q)
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
    })\<close>
 
 definition cdcl_twl_restart_l_prog where
@@ -3244,11 +3245,11 @@ proof -
   have S: \<open>S = (get_trail_l S, snd S)\<close>
     by (cases S) auto
 
-  obtain M N D NE UE NS US N0 U0 W Q where
-    S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, W, Q)\<close>
+  obtain M N D NE UE NEk UEk NS US N0 U0 W Q where
+    S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)\<close>
     by (cases S)
-  have restart: \<open>cdcl_twl_restart_only_l S (M', N, D, NE, UE, NS, US, N0, U0, W, Q') \<and>
-    twl_list_invs (M', N, D, NE, UE, NS, US, N0, U0, W, Q')\<close> (is \<open>?A \<and> ?B\<close>)
+  have restart: \<open>cdcl_twl_restart_only_l S (M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q') \<and>
+    twl_list_invs (M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q')\<close> (is \<open>?A \<and> ?B\<close>)
     if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
     for M' K M2 Q'
@@ -3264,9 +3265,9 @@ proof -
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
       have
-        S1: \<open>S = (M', N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close> and
-        S2 : \<open>(M', N, D, NE, UE, NS, US, N0, U0, W, Q') =
-          (M', N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+        S1: \<open>S = (M', N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q') =
+          (M', N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close>
         using confl upd unfolding S
         by auto
       show ?thesis
@@ -3277,9 +3278,9 @@ proof -
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
       have
-        S1: \<open>S = (M, N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close> and
-        S2 : \<open>(M', N, D, NE, UE, NS, US, N0, U0, W, Q') = (M', N, None, NE, UE,
-          NS, US, N0, U0, {#}, {#})\<close>
+        S1: \<open>S = (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q') = (M', N, None, NE, UE,
+          NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
         using confl upd unfolding S Q
         by auto
 
@@ -3307,12 +3308,12 @@ proof -
 qed
 
 definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, W, Q). do {
-      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NS, US, N0, U0, W, Q)
+  \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q). do {
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
         last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
-      RETURN (M, N, D, NE, UE, NS, {#}, N0, U0, W, Q)
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q)
    })\<close>
 
 
@@ -3333,10 +3334,10 @@ proof -
   have S: \<open>S = (get_trail_l S, snd S)\<close>
     by (cases S) auto
 
-  obtain M N D NE UE NS US N0 U0 W Q where
-    S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, W, Q)\<close>
+  obtain M N D NE UE NEk UEk NS US N0 U0 W Q where
+    S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)\<close>
     by (cases S)
-  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, NS, {#}, N0, U0, W, Q')\<close> (is ?A)
+  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q')\<close> (is ?A)
     if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
     for M' K M2 Q'
@@ -3352,9 +3353,10 @@ proof -
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
       have
-        S1: \<open>S = (M', N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close> and
-        S2 : \<open>(M', N, D, NE, UE, NS, {#}, N0, U0, W, Q') =
-          (M', N, None, NE + mset `# {#}, UE + mset `# {#}, NS, {#}, N0, U0, {#}, Q)\<close>
+        S1: \<open>S = (M', N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q') =
+        (M', N, None, NE + mset `# {#}, UE + mset `# {#}, NEk + mset `# {#}, UEk + mset `# {#},
+           NS, {#}, N0, {#}, {#}, Q)\<close>
         using confl upd unfolding S
         by auto
      have
@@ -3381,7 +3383,7 @@ proof -
 
       show ?thesis
         unfolding S[symmetric] S1 S2
-        apply (rule cdcl_twl_restart_l.intros)
+        apply (rule cdcl_twl_restart_l.intros[where UE' = \<open>{#}\<close>])
         subgoal by (auto)
         subgoal by auto
         subgoal by auto
@@ -3392,15 +3394,18 @@ proof -
         subgoal using dom0 unfolding S by auto
         subgoal by auto
         subgoal by auto
+        subgoal by auto
+        subgoal by auto
         done
     next
       case decomp note decomp = this(1) and Q = this(2)
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
       have
-        S1: \<open>S = (M, N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close> and
-        S2 : \<open>(M', N, D, NE, UE, NS, {#}, N0, U0, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#},
-          NS, {#}, N0, U0, {#}, {#})\<close>
+        S1: \<open>S = (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q') =
+          (M', N, None, NE + mset `# {#}, UE + mset `# {#},
+          NEk + mset `# {#}, UEk + mset `# {#}, NS, {#}, N0, {#}, {#}, {#})\<close>
         using confl upd unfolding S Q
         by auto
 
@@ -3430,7 +3435,7 @@ proof -
 
       show ?thesis
         unfolding S[symmetric] S1 S2
-        apply (rule cdcl_twl_restart_l.intros)
+        apply (rule cdcl_twl_restart_l.intros[where UE' = \<open>{#}\<close>])
         subgoal by (rule valid)
         subgoal by auto
         subgoal by auto
@@ -3440,6 +3445,8 @@ proof -
         subgoal using propa_MM annot unfolding S by fastforce
         subgoal using dom0 unfolding S by auto
         subgoal using decomp unfolding S by auto
+        subgoal by auto
+        subgoal by auto
         subgoal by auto
         done
     qed

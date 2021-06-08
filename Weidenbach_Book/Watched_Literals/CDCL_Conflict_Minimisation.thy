@@ -1511,8 +1511,8 @@ lemma trail_length_ge2:
     \<open>length (get_clauses_l S \<propto> C) \<ge> 2\<close>
 proof -
   have conv:
-   \<open>(get_trail_l S, get_trail T) \<in> convert_lits_l (get_clauses_l S) (get_unit_clauses_l S)\<close>
-   using ST unfolding twl_st_l_def by auto
+   \<open>(get_trail_l S, get_trail T) \<in> convert_lits_l (get_clauses_l S) (get_kept_unit_clauses_l S)\<close>
+    using ST unfolding twl_st_l_def by auto
 
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
@@ -1576,10 +1576,10 @@ lemma lit_redundant_rec_wl:
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W NS US N0 U0 where
-    S: \<open>S = (M, NU, D', NE, UE, NS, US, N0, U0, Q, W)\<close>
+  obtain D' NE UE Q W NEk UEk NS US N0 U0 where
+    S: \<open>S = (M, NU, D', NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
     using M_def NU by (cases S) auto
-  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE + UE)\<close>
+  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NEk + UEk)\<close>
     using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
   then have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
     by auto
@@ -1723,11 +1723,11 @@ proof -
         assume [simp]: \<open>a = 0\<close>
         obtain E' where
            x1d_M': \<open>Propagated (- x1g) E' \<in> set M'\<close> and
-           \<open>E' \<in># NE + UE\<close>
+           \<open>E' \<in># NEk + UEk\<close>
           using x1e_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
               convert_lit.simps
               elim!: list_rel_in_find_correspondanceE split: if_splits)
-        moreover have \<open>unit_clss S'' = NE + UE\<close>
+        moreover have \<open>unit_clss S'' = NE + NEk + UE + UEk\<close>
           using S_S' S'_S'' x1d_M' by (auto simp: S)
         moreover have \<open>Propagated (- x1g) E' \<in> set (get_trail S'')\<close>
           using S_S' S'_S'' x1d_M' by (auto simp: S state_wl_l_def twl_st_l_def M')
@@ -1974,10 +1974,10 @@ lemma literal_redundant_wl_literal_redundant:
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W NS US N0 U0 where
-    S: \<open>S = (M, NU, D', NE, UE, NS, US, N0, U0, Q, W)\<close>
+  obtain D' NE UE NEk UEk Q W NS US N0 U0 where
+    S: \<open>S = (M, NU, D', NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
     using M_def NU by (cases S) auto
-  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE+UE)\<close>
+  have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NEk+UEk)\<close>
     using NU S_S' S'_S'' S M' by (auto simp: twl_st_l_def state_wl_l_def)
   have [simp]: \<open>lits_of_l M' = lits_of_l M\<close>
     using M'_def by auto
@@ -2038,11 +2038,11 @@ proof -
           assume [simp]: \<open>a = 0\<close>
           obtain E' where
             x1d_M': \<open>Propagated (- L) E' \<in> set M'\<close> and
-            \<open>E' \<in># NE + UE\<close>
+            \<open>E' \<in># NEk + UEk\<close>
             using L_M M'_def by (auto dest: split_list simp: convert_lits_l_def p2rel_def
                 convert_lit.simps
                 elim!: list_rel_in_find_correspondanceE split: if_splits)
-          moreover have \<open>unit_clss S'' = NE + UE\<close>
+          moreover have \<open>unit_clss S'' = NE + NEk + UE + UEk\<close>
             using S_S' S'_S'' x1d_M' by (auto simp: S)
           moreover have \<open>Propagated (- L) E' \<in> set (get_trail S'')\<close>
             using S_S' S'_S'' x1d_M' by (auto simp: S state_wl_l_def twl_st_l_def M')

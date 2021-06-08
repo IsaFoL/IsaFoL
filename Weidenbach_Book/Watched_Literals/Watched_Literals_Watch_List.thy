@@ -16,53 +16,57 @@ type_synonym 'v lit_queue_wl = \<open>'v literal multiset\<close>
 type_synonym 'v twl_st_wl =
   \<open>('v, nat) ann_lits \<times> 'v clauses_l \<times>
   'v cconflict \<times> 'v clauses \<times> 'v clauses  \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times>
-  'v lit_queue_wl \<times> ('v literal \<Rightarrow> 'v watched)\<close>
+  'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times> ('v literal \<Rightarrow> 'v watched)\<close>
 
 
 section \<open>Access Functions\<close>
 
 fun clauses_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl\<close> where
-  \<open>clauses_to_update_wl (_, N, _, _, _, _, _ ,_ , _, _, W) L i =
+  \<open>clauses_to_update_wl (_, N, _, _, _, _, _ ,_ , _, _, _, _, W) L i =
       filter_mset (\<lambda>i. i \<in># dom_m N) (mset (drop i (map fst (W L))))\<close>
 
 fun get_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v, nat) ann_lit list\<close> where
   \<open>get_trail_wl (M, _, _, _, _, _, _ ,_ , _) = M\<close>
 
 fun literals_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v lit_queue_wl\<close> where
-  \<open>literals_to_update_wl (_, _, _, _, _, _ ,_ , _, _, Q, _) = Q\<close>
+  \<open>literals_to_update_wl (_, _, _, _, _, _ ,_ , _, _, _, _, Q, _) = Q\<close>
 
 fun set_literals_to_update_wl :: \<open>'v lit_queue_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_literals_to_update_wl Q (M, N, D, NE, UE, NS, US, N0, U0, _, W) = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>set_literals_to_update_wl Q (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, _, W) =
+     (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
 
 fun get_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v cconflict\<close> where
   \<open>get_conflict_wl (_, _, D, _, _, _, _) = D\<close>
 
 fun get_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses_l\<close> where
-  \<open>get_clauses_wl (M, N, D, NE, UE, WS, Q) = N\<close>
+  \<open>get_clauses_wl (M, N, D, NE, UE, NEk, UEk, WS, Q) = N\<close>
 
 fun get_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_learned_clss_wl (M, N, D, NE, UE, NS, US, Q, W) = UE\<close>
+  \<open>get_unit_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = UE + UEk\<close>
 
 fun get_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_init_clss_wl (M, N, D, NE, UE, NS, US, Q, W) = NE\<close>
+  \<open>get_unit_init_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NE + NEk\<close>
 
 fun get_unit_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_clauses_wl (M, N, D, NE, UE, NS, US, Q, W) = NE + UE\<close>
+  \<open>get_unit_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NE + NEk + UE + UEk\<close>
+
+fun get_kept_unit_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NEk + UEk\<close>
 
 fun get_subsumed_init_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_init_clauses_wl (M, N, D, NE, UE, NS, US, Q, W) = NS\<close>
+  \<open>get_subsumed_init_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NS\<close>
 
 fun get_subsumed_learned_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_learned_clauses_wl (M, N, D, NE, UE, NS, US, Q, W) = US\<close>
+  \<open>get_subsumed_learned_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = US\<close>
 
 abbreviation get_subsumed_clauses_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_clauses_wl S \<equiv> get_subsumed_init_clauses_wl S + get_subsumed_learned_clauses_wl S\<close>
 
 fun get_init_clauses0_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_init_clauses0_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) = N0\<close>
+  \<open>get_init_clauses0_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = N0\<close>
 
 fun get_learned_clauses0_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
-  \<open>get_learned_clauses0_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) = U0\<close>
+  \<open>get_learned_clauses0_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = U0\<close>
 
 abbreviation get_clauses0_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_clauses0_wl S \<equiv> get_init_clauses0_wl S + get_learned_clauses0_wl S\<close>
@@ -79,7 +83,7 @@ lemma get_unit_clauses_wl_alt_def:
   by (cases S) auto
 
 fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
-  \<open>get_watched_wl (_, _, _, _, _, _, _, _, _, _, W) = W\<close>
+  \<open>get_watched_wl (_, _, _, _, _, _, _, _, _, _, _, _, W) = W\<close>
 
 
 abbreviation get_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause_l multiset\<close> where
@@ -176,50 +180,50 @@ lemma distinct_watched_alt_def: \<open>distinct_watched xs = distinct (map fst x
 
 
 fun correct_watching_except :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching_except i j K (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  \<open>correct_watching_except i j K (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        (L = K \<longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
              K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))) \<and>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (W L) \<and>
          ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))))\<close>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))))\<close>
 
 fun correct_watching :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  \<open>correct_watching (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).  b \<longrightarrow> i \<in># dom_m N) \<and>
-       filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+       filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
 
 declare correct_watching.simps[simp del]
 
 
 lemma all_lits_st_simps[simp]:
-   \<open>all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W(K := WK)) =
-   all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-   \<open>all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, add_mset K Q, W) =
-   all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> \<comment> \<open>actually covered below, but still useful for 'unfolding' by hand\<close>
+   \<open>all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K := WK)) =
+   all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+   \<open>all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset K Q, W) =
+   all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> \<comment> \<open>actually covered below, but still useful for 'unfolding' by hand\<close>
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
-     all_lits_st (x1b, x1aa(x1 \<hookrightarrow> WB_More_Refinement_List.swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NS, US, N0, U0, x1e,
+     all_lits_st (x1b, x1aa(x1 \<hookrightarrow> WB_More_Refinement_List.swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e,
              x2e) =
    all_lits_st
-            (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e,
+            (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e,
              x2e)\<close>
-  \<open>all_lits_st (L # M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>NO_MATCH {#} Q \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-     all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
-  \<open>NO_MATCH [] M \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-     all_lits_st ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>NO_MATCH None D \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-  all_lits_st (M, N, None, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_lits_st (L # M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH {#} Q \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
+  \<open>NO_MATCH [] M \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     all_lits_st ([], N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH None D \<Longrightarrow> all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+  all_lits_st (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   \<open>all_lits_st (set_literals_to_update_wl WS S) = all_lits_st S\<close>
   by (cases S; auto simp: all_lits_st_def all_lits_def all_lits_of_mm_union ran_m_clause_upd
     image_mset_remove1_mset_if; fail)+
@@ -235,25 +239,25 @@ lemma in_clause_in_all_lits_of_mm[simp]:
 lemma correct_watching_except_correct_watching:
   assumes
     j: \<open>j \<ge> length (W K)\<close> and
-    corr: \<open>correct_watching_except i j K (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
- shows \<open>correct_watching (M, N, D, NE, UE, NS, US, N0, U0, Q, W(K := take i (W K)))\<close>
+    corr: \<open>correct_watching_except i j K (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+ shows \<open>correct_watching (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K := take i (W K)))\<close>
 proof -
   have
-    H1: \<open>\<And>L i' K' b. L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<Longrightarrow>
+    H1: \<open>\<And>L i' K' b. L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<Longrightarrow>
        (L = K \<Longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          (((i', K', b)\<in>#mset (take i (W L) @ drop j (W L)) \<longrightarrow> i' \<in># dom_m N \<longrightarrow>
                 K' \<in> set (N \<propto> i') \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (i', K', b)) \<and>
          ((i', K', b)\<in>#mset (take i (W L) @ drop j (W L)) \<longrightarrow> b \<longrightarrow> i' \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) =
-            clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})))\<close> and
-    H2: \<open>\<And>L i K' b. L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<Longrightarrow> (L \<noteq> K \<Longrightarrow>
+            clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})))\<close> and
+    H2: \<open>\<And>L i K' b. L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<Longrightarrow> (L \<noteq> K \<Longrightarrow>
          distinct_watched (W L) \<and>
          (((i, K', b)\<in>#mset (W L) \<longrightarrow> i \<in># dom_m N \<longrightarrow> K' \<in> set (N \<propto> i) \<and> K' \<noteq> L \<and>
              (correctly_marked_as_binary N (i, K', b))) \<and>
           ((i, K', b)\<in>#mset (W L) \<longrightarrow> b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
-             clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})))\<close>
+             clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})))\<close>
     using corr unfolding correct_watching_except.simps
     by fast+
   show ?thesis
@@ -303,33 +307,33 @@ lemma length_ge2I: \<open>x \<noteq> y \<Longrightarrow> x \<in> set xs \<Longri
   by auto
 
 lemma correct_watching_except_alt_def:
-  \<open>correct_watching_except i j K (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  \<open>correct_watching_except i j K (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        (L = K \<longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
              K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))) \<and>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (W L) \<and>
          ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l(N \<propto> i)) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))))\<close>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))))\<close>
 proof -
-  have 1: \<open>correct_watching_except i j K (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  have 1: \<open>correct_watching_except i j K (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        (L = K \<longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
              K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))) \<and>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (W L) \<and>
          ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
-         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))))\<close>
+         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))))\<close>
       unfolding correct_watching_except.simps
       apply (intro impI ballI conjI iffI)
       subgoal by auto[]
@@ -376,7 +380,7 @@ definition clause_to_update_wl:: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<
 
 (*TODO kill, see alt def below*)
 fun watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v watched\<close> where
-  \<open>watched_by (M, N, D, NE, UE, NS, US, N0, U0, Q, W) L = W L\<close>
+  \<open>watched_by (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) L = W L\<close>
 
 lemma watched_by_alt_def: \<open>watched_by S L = get_watched_wl S L\<close>
   by (cases S) auto
@@ -456,12 +460,12 @@ lemma in_set_all_atms_iff:
 
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch:
-  assumes \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g)\<close> and
-    w:\<open>w < length (watched_by (a, b, c, d, e,  NS, US, N0, U0, f, g) K)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g (K := (g K)[j := g K ! w]))\<close>
+  assumes \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close> and
+    w:\<open>w < length (watched_by (a, b, c, d, e,  NEk, UEk, NS, US, N0, U0, f, g) K)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g (K := (g K)[j := g K ! w]))\<close>
 proof -
-  let ?S = \<open>(a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  let ?T = \<open>(a, b, c, d, e, NS, US, N0, U0, f, g (K := (g K)[j := g K ! w]))\<close>
+  let ?S = \<open>(a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  let ?T = \<open>(a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g (K := (g K)[j := g K ! w]))\<close>
   let ?g = \<open>g (K := (g K)[j := g K ! w])\<close>
   have H: \<open>\<And>L i K b. L\<in># all_lits_st ?S \<Longrightarrow> (i, K, b) \<in>set (g L) \<Longrightarrow>
         K \<in># all_lits_st ?S\<close>
@@ -499,37 +503,37 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n_propagate:
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
     blits_in_\<L>\<^sub>i\<^sub>n (Propagated A x1' # x1b, x1aa
          (x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'), D, x1c, x1d,
-          NS, US, N0, U0, add_mset A' x1e, x2e) \<longleftrightarrow>
-    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e)\<close>
+          NEk, UEk, NS, US, N0, U0, add_mset A' x1e, x2e) \<longleftrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
     blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa
-         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<longleftrightarrow>
-    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e)\<close>
+         (x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<longleftrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
   \<open>blits_in_\<L>\<^sub>i\<^sub>n
         (Propagated A x1' # x1b, x1aa, D, x1c, x1d,
-         NS, US, N0, U0, add_mset A' x1e, x2e) \<longleftrightarrow>
-    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e)\<close>
+         NEk, UEk, NS, US, N0, U0, add_mset A' x1e, x2e) \<longleftrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
   \<open>x1' \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1') \<Longrightarrow> n' < length (x1aa \<propto> x1') \<Longrightarrow>
-    K \<in># all_lits_st (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n
+    K \<in># all_lits_st (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n
         (x1a, x1aa(x1' \<hookrightarrow> swap (x1aa \<propto> x1') n n'), D, x1c, x1d,
-         NS, US, N0, U0, x1e, x2e
+         NEk, UEk, NS, US, N0, U0, x1e, x2e
          (x1aa \<propto> x1' ! n' :=
             x2e (x1aa \<propto> x1' ! n') @ [(x1', K, b')])) \<longleftrightarrow>
-    blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e)\<close>
-  \<open>K \<in># all_lits_st (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
+    blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
+  \<open>K \<in># all_lits_st (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
      blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d,
-         NS, US, N0, U0, x1e, x2e
+         NEk, UEk, NS, US, N0, U0, x1e, x2e
          (K' := x2e K' @ [(x1', K, b')])) \<longleftrightarrow>
-  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e, x2e)\<close>
+  blits_in_\<L>\<^sub>i\<^sub>n (x1a, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
   by (auto split: if_splits)
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
-  assumes K': \<open>fst (snd w) \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close> and
-    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g (K := (g K)[j := w]))\<close>
+  assumes K': \<open>fst (snd w) \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close> and
+    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g (K := (g K)[j := w]))\<close>
 proof -
-  let ?\<A> = \<open>all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
+  let ?\<A> = \<open>all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
   let ?g = \<open>g (K := (g K)[j := w])\<close>
   have H: \<open>\<And>L i K b'. L\<in># ?\<A> \<Longrightarrow> (i, K, b') \<in>set (g L) \<Longrightarrow> K \<in># ?\<A>\<close>
     using assms
@@ -548,18 +552,18 @@ qed
 
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'':
-  assumes K': \<open>K' \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-    \<open>L' \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close> and
-    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f,
+  assumes K': \<open>K' \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+    \<open>L' \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close> and
+    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f,
     g (K := (g K)[j := (i, K', b')], L := g L @ [(i', L', b'')]))\<close>
   using assms
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
   by (auto split: if_splits elim!: in_set_upd_cases)
 
 lemma clause_to_update_wl_alt_def:
-   \<open>clause_to_update_wl L (a, b, c, d, e, NS, US, N0, U0, f, g) =
-     clause_to_update L (a, b, c, d, e, NS, US, N0, U0, {#}, {#})\<close>
+   \<open>clause_to_update_wl L (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g) =
+     clause_to_update L (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
   unfolding clause_to_update_wl_def clause_to_update_def by simp
 
 lemma correct_watching_except_alt_def2:
@@ -581,7 +585,8 @@ lemma correct_watching_except_alt_def2:
       get_clauses_wl.simps clause_to_update_wl_alt_def get_unit_clauses_wl.simps)
 
 fun update_watched :: \<open>'v literal \<Rightarrow> 'v watched \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>update_watched L WL (M, N, D, NE, UE, NS, US, N0, U0, Q, W) = (M, N, D, NE, UE, NS, US, N0, U0, Q, W(L:= WL))\<close>
+  \<open>update_watched L WL (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L:= WL))\<close>
 
 definition mop_watched_by_at :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> 'v watcher nres\<close> where
 \<open>mop_watched_by_at = (\<lambda>S L w. do {
@@ -620,10 +625,10 @@ declare correct_watching_except.simps[simp del]
 
 
 fun st_l_of_wl :: \<open>('v literal \<times> nat) option \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>st_l_of_wl None (M, N, D, NE, UE, NS, US, N0, U0, Q, W) = (M, N, D, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
-| \<open>st_l_of_wl (Some (L, j)) (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    (M, N, D, NE, UE, NS, US, N0, U0,
-     (if D \<noteq> None then {#} else clauses_to_update_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) L j,
+  \<open>st_l_of_wl None (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close>
+| \<open>st_l_of_wl (Some (L, j)) (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,
+     (if D \<noteq> None then {#} else clauses_to_update_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) L j,
       Q))\<close>
 
 definition state_wl_l :: \<open>('v literal \<times> nat) option \<Rightarrow> ('v twl_st_wl \<times> 'v twl_st_l) set\<close> where
@@ -650,6 +655,7 @@ lemma [twl_st_wl]:
     \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
     \<open>get_unit_learned_clss_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
+    \<open>get_kept_unit_clauses_l T = get_kept_unit_clauses_wl S\<close>
     \<open>get_subsumed_init_clauses_l T = get_subsumed_init_clauses_wl S\<close>
     \<open>get_subsumed_learned_clauses_l T = get_subsumed_learned_clauses_wl S\<close>
     \<open>get_subsumed_clauses_l T = get_subsumed_clauses_wl S\<close>
@@ -698,9 +704,9 @@ definition set_conflict_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Righta
    (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> set_conflict_l_pre C S' \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition set_conflict_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
-     RETURN (M, N, Some (mset (N \<propto> C)), NE, UE, NS, US, N0, U0, {#}, W)
+  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     RETURN (M, N, Some (mset (N \<propto> C)), NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)
    })\<close>
 
 lemma state_wl_l_mark_of_is_decided:
@@ -790,14 +796,16 @@ qed
 
 
 fun equality_except_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>equality_except_conflict_wl (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)
-     (M', N', D', NE', UE', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
-    M = M' \<and> N = N' \<and> NE = NE' \<and> UE = UE' \<and> NS = NS' \<and> US = US' \<and> N0 = N0' \<and> U0 = U0' \<and> WS = WS' \<and> Q = Q'\<close>
+\<open>equality_except_conflict_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)
+     (M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
+  M = M' \<and> N = N' \<and> NE = NE' \<and> UE = UE' \<and> NEk = NEk' \<and> UEk = UEk' \<and> NS = NS' \<and> US = US' \<and>
+  N0 = N0' \<and> U0 = U0' \<and> WS = WS' \<and> Q = Q'\<close>
 
 fun equality_except_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>equality_except_trail_wl (M, N, D, NE, UE, NS, US, N0, U0, WS, Q)
-     (M', N', D', NE', UE', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
-    N = N' \<and> D = D' \<and> NE = NE' \<and> NS = NS' \<and> US = US' \<and> UE = UE' \<and> N0 = N0' \<and> U0 = U0' \<and> WS = WS' \<and> Q = Q'\<close>
+\<open>equality_except_trail_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)
+     (M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
+  N = N' \<and> D = D' \<and> NE = NE' \<and> NEk = NEk' \<and> UEk = UEk' \<and> NS = NS' \<and> US = US' \<and> UE = UE' \<and>
+  N0 = N0' \<and> U0 = U0' \<and> WS = WS' \<and> Q = Q'\<close>
 
 lemma equality_except_conflict_wl_get_clauses_wl:
     \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close> and
@@ -889,41 +897,41 @@ next
 qed
 
 definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_general = (\<lambda>L' C i (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
+  \<open>propagate_lit_wl_general = (\<lambda>L' C i (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
-      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, add_mset (-L') Q, W) })\<close>
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset (-L') Q, W) })\<close>
 
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
+  \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
-      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, add_mset (-L') Q, W)
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset (-L') Q, W)
    })\<close>
 
 definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_bin = (\<lambda>L' C (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
+  \<open>propagate_lit_wl_bin = (\<lambda>L' C (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
       ASSERT(D = None);
       ASSERT(C \<in># dom_m N);
-      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+      ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
       M \<leftarrow> cons_trail_propagate_l L' C M;
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, add_mset (-L') Q, W)})\<close>
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset (-L') Q, W)})\<close>
 
 definition propagate_lit_wl_bin' ::\<open> 'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close>
    where
 \<open>propagate_lit_wl_bin' L' C i = propagate_lit_wl_bin L' C\<close>
 
 definition keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, NS, US, N0, U0, Q, W).
-      (M, N,  D, NE, UE, NS, US, N0, U0, Q, W(L := (W L)[i := W L ! j])))\<close>
+  \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+      (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L := (W L)[i := W L ! j])))\<close>
 
 definition mop_keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>mop_keep_watch = (\<lambda>L i j S. do {
@@ -948,26 +956,26 @@ lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
 
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
-  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
      ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and>
-        correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
-     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+        correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      K' \<leftarrow> mop_clauses_at N C f;
-     ASSERT(K' \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
+     ASSERT(K' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
-     RETURN (j, w+1, (M, N', D, NE, UE, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
+     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
   })\<close>
 
 
 definition update_blit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
-  \<open>update_blit_wl = (\<lambda>(L::'v literal) C b j w K (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
-     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
-     ASSERT(K \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>update_blit_wl = (\<lambda>(L::'v literal) C b j w K (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     ASSERT(K \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      ASSERT(j \<le> w);
      ASSERT(w < length (W L));
      ASSERT(C \<in># dom_m N);
-     RETURN (j+1, w+1, (M, N, D, NE, UE, NS, US, N0, U0, Q, W(L := (W L)[j:=(C, K, b)])))
+     RETURN (j+1, w+1, (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L := (W L)[j:=(C, K, b)])))
   })\<close>
 
 
@@ -992,7 +1000,7 @@ lemma correct_watching_except_correct_watching_except_Suc_Suc_keep_watch:
     corr: \<open>correct_watching_except j w L S\<close>
   shows \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S)\<close>
 proof -
-  obtain M N D NE UE NS US N0 U0 Q W where S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> by (cases S)
+  obtain M N D NE UE NEk UEk NS US N0 U0 Q W where S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> by (cases S)
   let ?\<L> = \<open>all_lits_st S\<close>
   have
     Hneq: \<open>\<And>La. La\<in>#?\<L> \<longrightarrow>
@@ -1001,7 +1009,7 @@ proof -
          (\<forall>(i, K, b)\<in>#mset (W La). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (W La). b \<longrightarrow> i \<in># dom_m N) \<and>
-         {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> and
+         {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> and
     Heq: \<open>\<And>La. La\<in>#?\<L> \<longrightarrow>
         (La = L \<longrightarrow>
 	 distinct_watched (take j (W La) @ drop w (W La)) \<and>
@@ -1009,7 +1017,7 @@ proof -
             K \<noteq> La \<and> correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). b \<longrightarrow> i \<in># dom_m N) \<and>
          {#i \<in># fst `# mset (take j (W La) @ drop w (W La)). i \<in># dom_m N#} =
-         clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+         clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
     using corr unfolding S correct_watching_except.simps
     by fast+
 
@@ -1044,7 +1052,7 @@ proof -
                (take (Suc j) ((W(L := (W L)[j := W L ! w])) La) @
                 drop (Suc w) ((W(L := (W L)[j := W L ! w])) La)).
        i \<in># dom_m N#} =
-      clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+      clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     if
       \<open>La \<in># ?\<L>\<close> and
       \<open>La = L\<close>
@@ -1069,7 +1077,7 @@ proof -
     using that Hneq[of La]
     by auto
   moreover have \<open>{#i \<in># fst `# mset ((W(L := (W L)[j := W L ! w])) La). i \<in># dom_m N#} =
-      clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+      clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     if
       \<open>La \<in># ?\<L>\<close> and
       \<open>La \<noteq> L\<close>
@@ -1106,14 +1114,14 @@ qed
 
 lemma correct_watching_except_update_blit:
   assumes
-    corr: \<open>correct_watching_except i j L (a, b, c, d, e, NS, US, N0, U0, f, g(L := (g L)[j' := (x1, C, b')]))\<close> and
-    C': \<open>C' \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
+    corr: \<open>correct_watching_except i j L (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g(L := (g L)[j' := (x1, C, b')]))\<close> and
+    C': \<open>C' \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
       \<open>C' \<in> set (b \<propto> x1)\<close>
       \<open>C' \<noteq> L\<close> and
     corr_watched: \<open>correctly_marked_as_binary b (x1, C', b')\<close>
-  shows \<open>correct_watching_except i j L (a, b, c, d, e, NS, US, N0, U0, f, g(L := (g L)[j' := (x1, C', b')]))\<close>
+  shows \<open>correct_watching_except i j L (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g(L := (g L)[j' := (x1, C', b')]))\<close>
 proof -
-  let ?\<L> = \<open>all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
+  let ?\<L> = \<open>all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
   have
     Hdisteq: \<open>\<And>La i' K' b''. La\<in>#?\<L> \<Longrightarrow>
         (La = L \<longrightarrow>
@@ -1126,7 +1134,7 @@ proof -
               b'' \<longrightarrow> i' \<in># dom_m b)) \<and>
          {#i \<in># fst `# mset (take i ((g(L := (g L)[j' := (x1, C, b')])) La) @ drop j ((g(L := (g L)[j' := (x1, C, b')])) La)).
           i \<in># dom_m b#} =
-         clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#}))\<close> and
+         clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> and
     Hdistneq: \<open>\<And>La i' K' b''. La\<in>#?\<L> \<Longrightarrow>
         (La \<noteq> L \<longrightarrow> distinct_watched (((g(L := (g L)[j' := (x1, C, b')])) La)))\<close> and
     Hneq: \<open>\<And>La i K b''. La\<in>#?\<L> \<Longrightarrow> La \<noteq> L \<Longrightarrow>
@@ -1135,7 +1143,7 @@ proof -
             K \<in> set (b \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary b (i, K, b'')) \<and>
          ((i, K, b'')\<in>#mset ((g(L := (g L)[j' := (x1, C, b')])) La)\<longrightarrow> b'' \<longrightarrow> i \<in># dom_m b) \<and>
          {#i \<in># fst `# mset ((g(L := (g L)[j' := (x1, C, b')])) La). i \<in># dom_m b#} =
-            clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#})\<close>
+            clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     using corr unfolding correct_watching_except.simps all_lits_st_simps
     by fast+
   define g' where \<open>g' = g(L := (g L)[j' := (x1, C, b')])\<close>
@@ -1187,7 +1195,7 @@ proof -
     using Hdisteq[of L] unfolding g_g'[symmetric]
     by (cases \<open>j' < j\<close>)
        (auto simp: map_update drop_update_swap)
-  have \<L>_alt: \<open>?\<L> = all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g')\<close>
+  have \<L>_alt: \<open>?\<L> = all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g')\<close>
     unfolding g'_def by simp
   have \<open>La\<in>#?\<L> \<Longrightarrow>
         La = L \<Longrightarrow>
@@ -1198,7 +1206,7 @@ proof -
             b'' \<longrightarrow> i' \<in># dom_m b) \<and>
          {#i \<in># fst `# mset (take i ((g'(L := (g' L)[j' := (x1, C', b')])) La) @ drop j ((g'(L := (g' L)[j' := (x1, C', b')])) La)).
           i \<in># dom_m b#} =
-         clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#})\<close> for La i' K b''
+         clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> for La i' K b''
     using C' Heq[of La i' K] Heq[of La i' K b'] H H' dist[of La] corr_watched unfolding g_g' g'_def[symmetric]
     apply (auto elim!: in_set_upd_cases simp: drop_update_swap simp del: distinct_append)
     apply (cases \<open>j' < j\<close>; auto elim!: in_set_upd_cases simp: drop_update_swap simp del: distinct_append)+
@@ -1214,7 +1222,7 @@ proof -
             ba \<longrightarrow> i \<in># dom_m b) \<and>
         {#i \<in># fst `# mset ((g'(L := (g' L)[j' := (x1, C', b')])) La).
          i \<in># dom_m b#} =
-        clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#}))\<close>
+        clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
      for La
     using Hneq Hdistneq
     unfolding correct_watching_except.simps g_g' g'_def[symmetric]
@@ -1234,7 +1242,8 @@ lemma correct_watching_except_correct_watching_except_Suc_notin:
     corr: \<open>correct_watching_except j w L S\<close>
   shows \<open>correct_watching_except j (Suc w) L (keep_watch L j w S)\<close>
 proof -
-  obtain M N D NE UE NS US N0 U0 Q W where S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> by (cases S)
+  obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
+    S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> by (cases S)
   let ?\<L> = \<open>all_lits_st S\<close>
   have [simp]: \<open>fst (W L ! w) \<notin># dom_m N\<close>
     using assms unfolding S by auto
@@ -1245,7 +1254,7 @@ proof -
          ((\<forall>(i, K, b)\<in>#mset (W La). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W La). b \<longrightarrow> i \<in># dom_m N)) \<and>
-          {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> and
+          {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> and
     Heq: \<open>\<And>La. La\<in>#?\<L> \<longrightarrow>
         (La = L \<longrightarrow>
 	 distinct_watched (take j (W La) @ drop w (W La)) \<and>
@@ -1253,7 +1262,7 @@ proof -
               K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). b \<longrightarrow> i \<in># dom_m N) \<and>
          {#i \<in># fst `# mset (take j (W La) @ drop w (W La)). i \<in># dom_m N#} =
-         clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})))\<close>
+         clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})))\<close>
     using corr unfolding S correct_watching_except.simps
     by fast+
 
@@ -1287,7 +1296,7 @@ proof -
                (take j ((W(L := (W L)[j := W L ! w])) La) @
                 drop (Suc w) ((W(L := (W L)[j := W L ! w])) La)).
        i \<in># dom_m N#} =
-      clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+      clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     if
       \<open>La \<in># ?\<L>\<close> and
       \<open>La = L\<close>
@@ -1312,7 +1321,7 @@ proof -
     using that Hneq[of La]
     by auto
   moreover have \<open>{#i \<in># fst `# mset ((W(L := (W L)[j := W L ! w])) La). i \<in># dom_m N#} =
-      clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+      clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     if
       \<open>La \<in># ?\<L>\<close> and
       \<open>La \<noteq> L\<close>
@@ -1349,12 +1358,12 @@ qed
 lemma correct_watching_except_correct_watching_except_update_clause:
   assumes
     corr: \<open>correct_watching_except (Suc j) (Suc w) L
-       (M, N, D, NE, UE, NS, US, N0, U0, Q, W(L := (W L)[j := W L ! w]))\<close> and
+       (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L := (W L)[j := W L ! w]))\<close> and
     j_w: \<open>j \<le> w\<close> and
     w_le: \<open>w < length (W L)\<close> and
-    L': \<open>L' \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+    L': \<open>L' \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       \<open>L' \<in> set (N \<propto> x1)\<close>and
-    L_L: \<open>L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> and
+    L_L: \<open>L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> and
     L: \<open>L \<noteq> N \<propto> x1 ! xa\<close> and
     dom: \<open>x1 \<in># dom_m N\<close> and
     i_xa: \<open>i < length (N \<propto> x1)\<close> \<open>xa < length (N \<propto> x1)\<close> and
@@ -1364,7 +1373,7 @@ lemma correct_watching_except_correct_watching_except_update_clause:
     i_2: \<open>i < 2\<close> and \<open>xa \<ge> 2\<close> and
     L_neq: \<open>L' \<noteq> N \<propto> x1 ! xa\<close> \<comment>\<open>The new blocking literal is not the new watched literal.\<close>
   shows \<open>correct_watching_except j (Suc w) L
-          (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, Q, W
+          (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W
            (L := (W L)[j := (x1, x2, b)],
             N \<propto> x1 ! xa := W (N \<propto> x1 ! xa) @ [(x1, L', b)]))\<close>
 proof -
@@ -1372,8 +1381,8 @@ proof -
   have \<open>length (N \<propto> x1) > 2\<close>
     using i_2 i_xa assms
     by (auto simp: correctly_marked_as_binary.simps)
-  let ?\<L> = \<open>all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  have \<L>: \<open>?\<L> = all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W')\<close>
+  let ?\<L> = \<open>all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  have \<L>: \<open>?\<L> = all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W')\<close>
     using assms unfolding W'_def by simp
   have
     Heq: \<open>\<And>La i K b. La\<in># ?\<L> \<Longrightarrow>
@@ -1387,7 +1396,7 @@ proof -
                    mset
                     (take (Suc j) (W' La) @ drop (Suc w) (W' La)).
             i \<in># dom_m N#} =
-           clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+           clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> and
     Hneq: \<open>\<And>La i K b. La\<in>#?\<L> \<Longrightarrow>
           La \<noteq> L \<Longrightarrow>
 	   distinct_watched (W' La) \<and>
@@ -1395,12 +1404,12 @@ proof -
                correctly_marked_as_binary N (i, K, b)) \<and>
            ((i, K, b)\<in>#mset (W' La) \<longrightarrow> b \<longrightarrow> i \<in># dom_m N) \<and>
            {#i \<in># fst `# mset (W' La). i \<in># dom_m N#} =
-           clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+           clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> and
     Hneq2: \<open>\<And>La. La\<in>#?\<L> \<Longrightarrow>
           (La \<noteq> L \<longrightarrow>
 	   distinct_watched (W' La) \<and>
            {#i \<in># fst `# mset (W' La). i \<in># dom_m N#} =
-           clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+           clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
     using corr unfolding correct_watching_except.simps W'_def[symmetric] \<L>
     by fast+
   have H1: \<open>mset `# ran_mf (N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa)) = mset `# ran_mf N\<close>
@@ -1461,10 +1470,10 @@ proof -
     have \<open>N \<propto> x1 ! xa \<in># ?\<L>\<close>
       using dom i_xa by auto
     then have \<open>{#i \<in># fst `# mset (W (N \<propto> x1 ! xa)). i \<in># dom_m N#} =
-        clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+        clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
       using Hneq[of \<open>N \<propto> x1 ! xa\<close>] L unfolding W'_def \<L>
       by simp
-    then have \<open>x1 \<in># clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+    then have \<open>x1 \<in># clause_to_update (N \<propto> x1 ! xa) (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
       using H dom by (metis (no_types, lifting) mem_Collect_eq set_image_mset
         set_mset_filter set_mset_mset)
     then show False
@@ -1491,7 +1500,7 @@ proof -
           La = L \<Longrightarrow>
 	  distinct_watched (take j (W L) @ drop (Suc w) (W L)) \<and>
           {#i \<in># fst `# mset (take j (W L)). i \<in># dom_m N#} + {#i \<in># fst `# mset (drop (Suc w) (W L)). i \<in># dom_m N#} =
-          clause_to_update L (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> for La
+          clause_to_update L (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> for La
     using Heq[of L x1 x2 b] j_w w_le dom L_notin_swap N_xa_in_swap distinct_mset_dom[of N]
     i_xa i_2 assms(12)
     by (auto simp: take_Suc_conv_app_nth W'_def list_update_append set_N_x1 assms(11)
@@ -1543,17 +1552,17 @@ proof -
           (x1 \<in># dom_m N \<longrightarrow>
            (La = N \<propto> x1 ! xa \<longrightarrow>
             add_mset x1 {#i \<in># fst `# mset (W' (N \<propto> x1 ! xa)). i \<in># dom_m N#} =
-            clause_to_update (N \<propto> x1 ! xa) (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, {#}, {#})) \<and>
+            clause_to_update (N \<propto> x1 ! xa) (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})) \<and>
            (La \<noteq> N \<propto> x1 ! xa \<longrightarrow>
             {#i \<in># fst `# mset (W La). i \<in># dom_m N#} =
-            clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, {#}, {#}))) \<and>
+            clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))) \<and>
           (x1 \<notin># dom_m N \<longrightarrow>
            (La = N \<propto> x1 ! xa \<longrightarrow>
             {#i \<in># fst `# mset (W' (N \<propto> x1 ! xa)). i \<in># dom_m N#} =
-            clause_to_update (N \<propto> x1 ! xa) (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NS, US, NE, UE, N0, U0, {#}, {#})) \<and>
+            clause_to_update (N \<propto> x1 ! xa) (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NS, US, NEk, UEk, NE, UE, N0, U0, {#}, {#})) \<and>
            (La \<noteq> N \<propto> x1 ! xa \<longrightarrow>
             {#i \<in># fst `# mset (W La). i \<in># dom_m N#} =
-            clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NS, US, N0, U0, {#}, {#})))\<close> for La
+            clause_to_update La (M, N(x1 \<hookrightarrow> swap (N \<propto> x1) i xa), D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})))\<close> for La
       using Hneq2[of La] j_w w_le L' dom distinct_mset_dom[of N] L_notin_swap N_xa_in_swap L_neq
       apply (auto simp: take_Suc_conv_app_nth W'_def list_update_append clause_to_update_def
         add_mset_eq_add_mset set_N_x1 set_N_swap_x1 assms(11) N_i all_lits_def ac_simps
@@ -1898,10 +1907,10 @@ lemma clause_to_update_mapsto_upd_If:
   assumes
     i: \<open>i \<in># dom_m N\<close>
   shows
-  \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, NS, US, N0, U0, WS, Q) =
+  \<open>clause_to_update L (M, N(i \<hookrightarrow> C'), C, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) =
     (if L \<in> set (watched_l C')
-     then add_mset i (remove1_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q)))
-     else remove1_mset i (clause_to_update L (M, N, C, NE, UE, NS, US, N0, U0, WS, Q)))\<close>
+     then add_mset i (remove1_mset i (clause_to_update L (M, N, C, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)))
+     else remove1_mset i (clause_to_update L (M, N, C, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)))\<close>
 proof -
   define D' where \<open>D' = dom_m N - {#i#}\<close>
   then have [simp]: \<open>dom_m N = add_mset i D'\<close>
@@ -1940,7 +1949,7 @@ lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
      i: \<open>i \<le> 1\<close>
   shows \<open>propagate_lit_wl_general L' C i S \<le> SPEC(\<lambda>c. correct_watching_except j w L c)\<close>
 proof -
-  obtain M N D NE UE NS US N0 U0 Q W where S: \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> by (cases S)
+  obtain M N D NE UE NEk UEk NS US N0 U0 Q W where S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> by (cases S)
   let ?\<L> = \<open>all_lits_st S\<close>
   have
     Hneq: \<open>\<And>La. La\<in>#?\<L> \<Longrightarrow>
@@ -1948,14 +1957,14 @@ proof -
          (\<forall>(i, K, b)\<in>#mset (W La). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
             correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (W La). b \<longrightarrow> i \<in># dom_m N) \<and>
-         {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> and
+         {#i \<in># fst `# mset (W La). i \<in># dom_m N#} = clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> and
     Heq: \<open>\<And>La. La\<in>#?\<L> \<Longrightarrow>
         La = L \<Longrightarrow>
          (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
               correctly_marked_as_binary N (i, K, b)) \<and>
          (\<forall>(i, K, b)\<in>#mset (take j (W La) @ drop w (W La)). b \<longrightarrow> i \<in># dom_m N) \<and>
          {#i \<in># fst `# mset (take j (W La) @ drop w (W La)). i \<in># dom_m N#} =
-         clause_to_update La (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+         clause_to_update La (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     using corr unfolding S correct_watching_except.simps
     by fast+
   define N' where \<open>N' \<equiv> if length (N \<propto> C) > 2 then N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)) else N\<close>
@@ -1985,13 +1994,13 @@ proof -
   have [iff]: \<open>correctly_marked_as_binary N C' \<longleftrightarrow> correctly_marked_as_binary N' C'\<close> for C' ia
     by (cases C')
       (auto simp: correctly_marked_as_binary.simps N'_def)
-  have H6: \<open>propagate_lit_wl_general L' C i (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-     RETURN (Propagated L' C # M, N', D, NE, UE, NS, US, N0, U0, add_mset (- L') Q, W)\<close>
+  have H6: \<open>propagate_lit_wl_general L' C i (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     RETURN (Propagated L' C # M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset (- L') Q, W)\<close>
    using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef confl lit
    by (auto simp: mop_clauses_swap_def S propagate_lit_wl_general_def N'_def
      cons_trail_propagate_l_def)
- have \<L>: \<open>all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-   all_lits_st (M, N', D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+ have \<L>: \<open>all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+   all_lits_st (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
    using assms i_le unfolding N'_def by (auto simp: S)
   show ?thesis
     using corr lit unfolding S H6 apply -
@@ -2801,8 +2810,8 @@ proof -
       using S_S' loop_inv cond Sa unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
       by normalize_goal+ auto
 
-    then obtain M N NE UE NS US N0 U0 Q W where
-      S: \<open>S = (M, N, None, NE, UE, NS, US, N0, U0, Q, W)\<close>
+    then obtain M N NE UE NEk UEk NS US N0 U0 Q W where
+      S: \<open>S = (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases S) (auto simp: twl_st_l)
     have dom': \<open>x1 \<in># dom_m (get_clauses_wl (keep_watch L j w S)) \<longleftrightarrow> True\<close>
       using dom by auto
@@ -2862,7 +2871,7 @@ proof -
           {#TWL_Clause (mset (watched_l (fst x)))
              (mset (unwatched_l (fst x)))
           . x \<in># learned_clss_l N#},
-          None, NE, UE, NS, US, N0, U0,
+          None, NE+NEk, UE+UEk, NS, US, N0, U0,
           add_mset
            (L, TWL_Clause
                 (mset (watched_l (N \<propto> fst ((W L)[j := W L ! w] ! w))))
@@ -2907,7 +2916,7 @@ proof -
       using j_w w_le L_watched ge0 ge1i SLw S_x i Sa SLw' unfolding i_def
       by (auto simp: take_2_if twl_st_wl S keep_watch_def split: if_splits)
 
-    have \<open>((M, N, None, NE, UE, NS, US, N0, U0, Q, W (L := (W L)[j := (x1, L', x2a)])),
+    have \<open>((M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W (L := (W L)[j := (x1, L', x2a)])),
        fst X2) \<in> state_wl_l (Some (L, Suc w))\<close>
      using S_S' X2 j_w w_le SLw x' dom L' i SLw' dom unfolding Sa
      by (cases \<open>W L ! w\<close>)
@@ -2921,7 +2930,7 @@ proof -
       have \<open>Suc 0 - i \<noteq> i\<close>
         using i by (auto simp: i_def split: if_splits)
       then have \<open>correct_watching_except (Suc j) (Suc w) L
-        (M, N, None, NE, UE, NS, US, N0, U0, Q, W(L := (W L)[j := (x1, L', x2a)]))\<close>
+        (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L := (W L)[j := (x1, L', x2a)]))\<close>
         using SLw apply -
         apply (rule correct_watching_except_update_blit)
         using N_x1_in_L corr_Sa i_le distinct_N_x1 i_le bin SLw' L' i unfolding S Sa
@@ -2982,17 +2991,17 @@ proof -
       \<open>vaaa = Some False\<close>
    for  x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa f x'a
   proof -
-    have [simp]: \<open>correct_watching_except a b L (M, N, Some D', NE, UE, NS, US, N0, U0, W, oth) \<longleftrightarrow>
-        correct_watching_except a b L (M, N, None, NE, UE, NS, US, N0, U0, W, oth)\<close>
-         \<open>NO_MATCH {#} W \<Longrightarrow> correct_watching_except a b L (M, N, None, NE, UE, NS, US, N0, U0, W, oth) \<longleftrightarrow>
-        correct_watching_except a b L (M, N, None, NE, UE, NS, US, N0, U0, {#}, oth)\<close>
-      for a b M N D' NE UE W oth NS US N0 U0
+    have [simp]: \<open>correct_watching_except a b L (M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, W, oth) \<longleftrightarrow>
+        correct_watching_except a b L (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, W, oth)\<close>
+         \<open>NO_MATCH {#} W \<Longrightarrow> correct_watching_except a b L (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, W, oth) \<longleftrightarrow>
+        correct_watching_except a b L (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, oth)\<close>
+      for a b M N D' NE UE W oth NS US N0 U0 NEk UEk
       by (simp_all add: correct_watching_except.simps all_lits_st_def
         set_conflict_wl_def prod.case clause_to_update_def get_clauses_l.simps)
-     have [simp]: \<open>NO_MATCH None d \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, d, x1c, x1d, NS, US, N0, U0, x2e, g) \<longleftrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NS, US, N0, U0, x2e, g)\<close> and
-       [simp]: \<open>NO_MATCH {#} x2e \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NS, US, N0, U0, x2e, g) \<longleftrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NS, US, N0, U0, {#}, g)\<close> for x1b x1aa x1c x1d x2e g d NS US N0 U0
+     have [simp]: \<open>NO_MATCH None d \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, d, x1c, x1d, NEk, UEk, NS, US, N0, U0, x2e, g) \<longleftrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NEk, UEk, NS, US, N0, U0, x2e, g)\<close> and
+       [simp]: \<open>NO_MATCH {#} x2e \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NEk, UEk,  NS, US, N0, U0, x2e, g) \<longleftrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, NEk, UEk, NS, US, N0, U0, {#}, g)\<close> for x1b x1aa x1c x1d x2e g d NS US N0 U0 NEk UEk
         unfolding blits_in_\<L>\<^sub>i\<^sub>n_def by auto
     have \<open>get_conflict_wl (keep_watch L j w S) = None\<close>
       using confl_S by (cases S) (auto simp: keep_watch_def)
@@ -3268,23 +3277,23 @@ proof -
       by (simp add: corr_w correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
           j_w w_le)
     moreover have \<open>correct_watching_except (Suc j) (Suc w) L
-       (a, b, None, d, e, NS, US, N0, U0, f, ga(L := (ga L)[j := (x1, b \<propto> x1 ! xa, x2a)]))\<close>
+       (a, b, None, d, e, NEk, UEk, NS, US, N0, U0, f, ga(L := (ga L)[j := (x1, b \<propto> x1 ! xa, x2a)]))\<close>
       if
         corr: \<open>correct_watching_except (Suc j) (Suc w) L
-      (a, b, None, d, e, NS, US, N0, U0, f, ga(L := (ga L)[j := (x1, x1a, x2a)]))\<close> and
+      (a, b, None, d, e, NEk, UEk, NS, US, N0, U0, f, ga(L := (ga L)[j := (x1, x1a, x2a)]))\<close> and
         \<open>ga L ! w = (x1, x1a, x2a)\<close> and
-        S[simp]: \<open>S = (a, b, None, d, e, NS, US, N0, U0, f, ga)\<close> and
+        S[simp]: \<open>S = (a, b, None, d, e, NEk, UEk, NS, US, N0, U0, f, ga)\<close> and
         \<open>X2 = (set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S', x1)\<close> and
-        \<open>(a, b, None, d, e, NS, US, N0, U0, 
+        \<open>(a, b, None, d, e, NEk, UEk, NS, US, N0, U0, 
       {#i \<in># mset (drop (Suc w) (map fst ((ga L)[j := (x1, x1a, x2a)]))). i \<in># dom_m b#}, f) =
       set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S'\<close>
       for a :: \<open>('v literal, 'v literal,nat) annotated_lit list\<close> and
         b :: \<open>(nat, 'v literal list \<times>  bool) fmap\<close> and
-        d e NS US N0 U0 :: \<open>'v literal multiset multiset\<close> and
+        d e NS US N0 U0 NEk UEk :: \<open>'v literal multiset multiset\<close> and
         f :: \<open>'v literal multiset\<close> and
         ga :: \<open>'v literal \<Rightarrow> (nat \<times> 'v literal \<times> bool) list\<close>
     proof -
-      have \<open>b \<propto> x1 ! xa \<in># all_lits_st (a, b, None, d, e, NS, US, N0, U0, f, ga)\<close>
+      have \<open>b \<propto> x1 ! xa \<in># all_lits_st (a, b, None, d, e, NEk, UEk, NS, US, N0, U0, f, ga)\<close>
         using dom fx' Sa by (auto simp: ran_m_def all_lits_of_mm_add_mset x' f twl_st_wl
             dest!: multi_member_split
             simp: all_lits_def
@@ -3416,11 +3425,11 @@ proof -
     have [simp]: \<open>xa = x'b\<close> \<open>Ka = Kb\<close> \<open>Kb = get_clauses_wl Sa \<propto> x1 ! xa\<close> \<open>ia = va\<close>
        using fx' Ka i by auto
     have update_clause_l_alt_def:
-      \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, NS, US, N0, U0, WS, Q). do {
-           ASSERT (update_clause_l_pre  C i f (M, N, D, NE, UE, NS, US, N0, U0, WS, Q));
+      \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
+           ASSERT (update_clause_l_pre  C i f (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
            K \<leftarrow> RETURN (op_clauses_at N C f);
            N' \<leftarrow> mop_clauses_swap N C i f;
-           RETURN (M, N', D, NE, UE, NS, US, N0, U0, WS, Q)
+           RETURN (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)
       })\<close>
       unfolding update_clause_l_def by (auto intro!: ext)
     have unit_T: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
@@ -3680,16 +3689,16 @@ definition unit_propagation_inner_loop_wl_loop
   }\<close>
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_cut_watch:
-  assumes corr: \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
+  assumes corr: \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
   using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def dest!: in_set_takeD in_set_dropD)
 
 lemma correct_watching_except_correct_watching_cut_watch:
-  assumes corr: \<open>correct_watching_except j w L (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  shows \<open>correct_watching (a, b, c, d, e, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
+  assumes corr: \<open>correct_watching_except j w L (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  shows \<open>correct_watching (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
 proof -
-  let ?\<L> = \<open>all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
-  have \<L>: \<open>?\<L> =  all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
+  let ?\<L> = \<open>all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g(L := take j (g L) @ drop w (g L)))\<close>
+  have \<L>: \<open>?\<L> =  all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
     by (auto simp: all_lits_st_def)
   have
     Heq:
@@ -3701,7 +3710,7 @@ proof -
        ((i, K, b')\<in>#mset (take j (g La) @ drop w (g La)) \<longrightarrow>
            b' \<longrightarrow> i \<in># dom_m b) \<and>
        {#i \<in># fst `# mset (take j (g La) @ drop w (g La)). i \<in># dom_m b#} =
-       clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#}))\<close> and
+       clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> and
     Hneq:
       \<open>\<And>La i K b'. La\<in>#?\<L> \<Longrightarrow>
       (La \<noteq> L \<longrightarrow>
@@ -3710,7 +3719,7 @@ proof -
           \<and> correctly_marked_as_binary b (i, K, b')) \<and>
         ((i, K, b')\<in>#mset (g La) \<longrightarrow> b' \<longrightarrow> i \<in># dom_m b) \<and>
        {#i \<in># fst `# mset (g La). i \<in># dom_m b#} =
-       clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#}))\<close>
+       clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
     using corr
     unfolding correct_watching.simps correct_watching_except.simps \<L>
     by fast+
@@ -3721,7 +3730,7 @@ proof -
             b' \<longrightarrow> i \<in># dom_m b\<close> and
     \<open>{#i \<in># fst `# mset ((g(L := take j (g L) @ drop w (g L))) La).
          i \<in># dom_m b#} =
-        clause_to_update La (a, b, c, d, e, NS, US, N0, U0, {#}, {#})\<close>and
+        clause_to_update La (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>and
     \<open>distinct_watched ((g(L := take j (g L) @ drop w (g L))) La)\<close>
   if \<open>La\<in>#?\<L>\<close>
   for La i K b'
@@ -3767,9 +3776,9 @@ lemma unit_propagation_inner_loop_wl_loop_alt_def:
   unfolding unit_propagation_inner_loop_wl_loop_def Let_def by auto
 
 definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-      ASSERT(j \<le> w \<and> j \<le> length (W L) \<and> w \<le> length (W L) \<and> L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W(L := take j (W L) @ drop w (W L)))
+  \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+      ASSERT(j \<le> w \<and> j \<le> length (W L) \<and> w \<le> length (W L) \<and> L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(L := take j (W L) @ drop w (W L)))
     })\<close>
 
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
@@ -3996,15 +4005,15 @@ proof -
       inv_l: \<open>unit_propagation_outer_loop_l_inv S\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
   proof -
-    obtain M N D NE UE NS US N0 U0 W Q where
-      S': \<open>S' = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+    obtain M N D NE UE NEk UEk NS US N0 U0 W Q where
+      S': \<open>S' = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases S') auto
     obtain R where
       S_R: \<open>(S, R) \<in> twl_st_l None\<close> and
       struct_invs: \<open>twl_struct_invs R\<close>
       using inv_l unfolding unit_propagation_outer_loop_l_inv_def by blast
     have [simp]: (* \<open>trail (state\<^sub>W_of R) = convert_lits_l N M\<close> *)
-      \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf N) + NE + NS + N0\<close>
+      \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf N) + NE + NEk + NS + N0\<close>
       \<open>atm_of ` lits_of_l (get_trail R) = atm_of ` lits_of_l M\<close>
       using S_R S by (auto simp: twl_st S' twl_st_wl simp flip: state\<^sub>W_of_def)
     have
@@ -4013,7 +4022,7 @@ proof -
       using struct_invs that by (auto simp: twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         pcdcl_all_struct_invs_def state\<^sub>W_of_def)
-    then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US) + (N0 + U0))\<close>
+    then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NEk + UEk) + (NS + US) + (N0 + U0))\<close>
       if LQ: \<open>L \<in># Q\<close> for L
     proof -
       have [simp]: \<open>(f o g) ` I = f ` g ` I\<close> for f g I
@@ -4037,6 +4046,7 @@ proof -
         have \<open>atm_of ` lits_of_l M
          \<subseteq> (\<Union>x\<in>set_mset (init_clss_lf N). atm_of ` set x) \<union>
            (\<Union>x\<in>set_mset NE. atms_of x) \<union>
+           (\<Union>x\<in>set_mset NEk. atms_of x) \<union>
            (\<Union>x\<in>set_mset NS. atms_of x) \<union>
            (\<Union>x\<in>set_mset N0. atms_of x)\<close>
           using that alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
@@ -4044,17 +4054,18 @@ proof -
               all_lits_of_mm_def atms_of_ms_def simp flip: state\<^sub>W_of_def)
         then have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set_mset (init_clss_lf N). atm_of ` set x) \<union>
          (\<Union>x\<in>set_mset NE. atms_of x) \<union>
+         (\<Union>x\<in>set_mset NEk. atms_of x) \<union>
          (\<Union>x\<in>set_mset NS. atms_of x) \<union>
          (\<Union>x\<in>set_mset N0. atms_of x)\<close>
         unfolding image_Un[symmetric]
           set_append[symmetric]
           append_take_drop_id
           .
-        then have \<open>atm_of ` lits_of_l M \<subseteq> atms_of_mm (mset `# init_clss_lf N + NE + NS + N0)\<close>
+        then have \<open>atm_of ` lits_of_l M \<subseteq> atms_of_mm (mset `# init_clss_lf N + NE + NEk + NS + N0)\<close>
           by (smt UN_Un Un_iff append_take_drop_id atms_of_ms_def atms_of_ms_mset_unfold set_append
               set_image_mset set_mset_mset set_mset_union subset_eq)
       }
-      ultimately have \<open>atm_of L \<in> atms_of_mm (mset `# ran_mf N + NE + NS + N0)\<close>
+      ultimately have \<open>atm_of L \<in> atms_of_mm (mset `# ran_mf N + NE + NEk + NS + N0)\<close>
         using that
         unfolding all_lits_of_mm_union atms_of_ms_union all_clss_lf_ran_m[symmetric]
           image_mset_union set_mset_union
@@ -4063,7 +4074,7 @@ proof -
         using that by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
     qed
     have H: \<open>clause_to_update L S = {#i \<in># fst `# mset (W L). i \<in># dom_m N#}\<close>
-       \<open>L \<in># all_lits_st ([], N, None, NE, UE, NS, US, N0, U0, {#}, W)\<close>
+       \<open>L \<in># all_lits_st ([], N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
         if \<open>L \<in># Q\<close> for L
       using corr_w that S H1[OF that] by (auto simp: correct_watching.simps S' clause_to_update_def
         Ball_def ac_simps all_conj_distrib all_lits_st_def all_lits_def
@@ -4134,8 +4145,8 @@ definition decide_wl_or_skip_pre where
   )\<close>
 
 definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>decide_lit_wl = (\<lambda>L' (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
-      (Decided L' # M, N, D, NE, UE, NS, US, N0, U0, {#- L'#}, W))\<close>
+  \<open>decide_lit_wl = (\<lambda>L' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+      (Decided L' # M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#- L'#}, W))\<close>
 
 
 definition decide_wl_or_skip :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
@@ -4191,7 +4202,8 @@ definition mop_tl_state_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> mop_tl_state_l_pre S')\<close>
 
 definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>tl_state_wl = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, WS, Q). (tl M, N, D, NE, UE, NS, US, N0, U0, WS, Q))\<close>
+  \<open>tl_state_wl = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q).
+    (tl M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q))\<close>
 
 definition mop_tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
   \<open>mop_tl_state_wl = (\<lambda>S. do {
@@ -4203,9 +4215,9 @@ definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow
    remove1_mset L (remove1_mset (-L) (the (get_conflict_wl S) \<union># (mset (get_clauses_wl S \<propto> C))))\<close>
 
 definition update_confl_tl_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl\<close> where
-  \<open>update_confl_tl_wl = (\<lambda>L C (M, N, D, NE, UE, NS, US, N0, U0, WS, Q).
-     let D = resolve_cls_wl' (M, N, D, NE, UE, NS, US, N0, U0, WS, Q) C L in
-        (False, (tl M, N, Some D, NE, UE, NS, US, N0, U0, WS, Q)))\<close>
+  \<open>update_confl_tl_wl = (\<lambda>L C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q).
+     let D = resolve_cls_wl' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) C L in
+        (False, (tl M, N, Some D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)))\<close>
 
 definition update_confl_tl_wl_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>update_confl_tl_wl_pre L C S \<longleftrightarrow>
@@ -4357,12 +4369,12 @@ proof -
     if \<open>(S', S) \<in> state_wl_l None\<close> and \<open>correct_watching S'\<close> and \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') (auto simp: state_wl_l_def)
-  have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, NS, US, N0, U0, ha, h) \<longleftrightarrow>
-    correct_watching (aa, ca, None, ea, fa, NS, US, N0, U0, ha, h)\<close>
-    for aa ba ca L da ea fa ha h NS US
+  have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, NEk, UEk, NS, US, N0, U0, ha, h) \<longleftrightarrow>
+    correct_watching (aa, ca, None, ea, fa, NEk, UEk, NS, US, N0, U0, ha, h)\<close>
+    for aa ba ca L da ea fa ha h NS US NEk UEk
     by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
-  have [simp]: \<open>NO_MATCH None da \<Longrightarrow> correct_watching  (aa, ca, da, ea, fa, NS, US, N0, U0, ha, h) \<longleftrightarrow>
-    correct_watching (aa, ca, None, ea, fa, NS, US, N0, U0, ha, h)\<close>
+  have [simp]: \<open>NO_MATCH None da \<Longrightarrow> correct_watching  (aa, ca, da, ea, fa, NEk, UEk, NS, US, N0, U0, ha, h) \<longleftrightarrow>
+    correct_watching (aa, ca, None, ea, fa, NEk, UEk, NS, US, N0, U0, ha, h)\<close>
     for aa ba ca L da ea fa ha h NS US N0 U0
     by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
 
@@ -4424,20 +4436,20 @@ qed
 subsection \<open>Backtrack\<close>
 
 definition find_decomp_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>find_decomp_wl = (\<lambda>L (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
-    SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, D, NE, UE, NS, US, N0, U0, Q, W) \<and>
+  \<open>find_decomp_wl = (\<lambda>L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+    SPEC(\<lambda>S. \<exists>K M2 M1. S = (M1, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and>
          (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
           get_level M K = get_maximum_level M (the D - {#-L#}) + 1))\<close>
 
 definition find_lit_of_max_level_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> 'v literal nres\<close> where
-  \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, D, NE, UE, NS, US, Q, W) L.
+  \<open>find_lit_of_max_level_wl =  (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) L.
     SPEC(\<lambda>L'. L' \<in># remove1_mset (-L) (the D) \<and> get_level M L' = get_maximum_level M (the D - {#-L#})))\<close>
 
 
 fun extract_shorter_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>extract_shorter_conflict_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) = SPEC(\<lambda>S.
-     \<exists>D'. D' \<subseteq># the D \<and> S = (M, N, Some D', NE, UE, NS, US, N0, U0, Q, W) \<and>
-     clause `# twl_clause_of `# ran_mf N + NE + UE + NS + US \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
+  \<open>extract_shorter_conflict_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = SPEC(\<lambda>S.
+     \<exists>D'. D' \<subseteq># the D \<and> S = (M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and>
+     clause `# twl_clause_of `# ran_mf N + NE + NEk + UE + UEk + NS + US \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
 
 declare extract_shorter_conflict_wl.simps[simp del]
 lemmas extract_shorter_conflict_wl_def = extract_shorter_conflict_wl.simps
@@ -4463,15 +4475,15 @@ definition propagate_bt_wl_pre where
    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_bt_l_pre L L' S')\<close>
 
 definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_bt_wl = (\<lambda>L L' (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT(propagate_bt_wl_pre L L' (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>propagate_bt_wl = (\<lambda>L L' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+    ASSERT(propagate_bt_wl_pre L L' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
     D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
-    i \<leftarrow> get_fresh_index_wl N (NE + UE + NS + US + N0 + U0) W;
+    i \<leftarrow> get_fresh_index_wl N (NE + UE + NEk + UEk + NS + US + N0 + U0) W;
     let b = (length ([-L, L'] @ (remove1 (-L) (remove1 L' D''))) = 2);
     M \<leftarrow> cons_trail_propagate_l (-L) i M;
     RETURN (M,
         fmupd i ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False) N,
-          None, NE, UE, NS, US, N0, U0, {#L#}, W(-L:= W (-L) @ [(i, L', b)], L':= W L' @ [(i, -L, b)]))
+          None, NE, UE, NEk, UEk, NS, US, N0, U0, {#L#}, W(-L:= W (-L) @ [(i, L', b)], L':= W L' @ [(i, -L, b)]))
       })\<close>
 
 definition propagate_unit_bt_wl_pre where
@@ -4479,11 +4491,11 @@ definition propagate_unit_bt_wl_pre where
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_unit_bt_l_pre L S')\<close>
 
 definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT(L \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
-    ASSERT(propagate_unit_bt_wl_pre L (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+    ASSERT(L \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+    ASSERT(propagate_unit_bt_wl_pre L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
     M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
-    RETURN (M, N, None, NE, add_mset (the D) UE, NS, US, N0, U0, {#L#}, W)})\<close>
+    RETURN (M, N, None, NE, UE, NEk, add_mset (the D) UEk, NS, US, N0, U0, {#L#}, W)})\<close>
 
 definition mop_lit_hd_trail_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
 \<open>mop_lit_hd_trail_wl_pre S \<longleftrightarrow>
@@ -4513,183 +4525,16 @@ definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<
      }
   }\<close>
 
-(*TODO Kill
-lemma correct_watching_learn:
-  assumes
-    L1: \<open>atm_of L1 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
-    L2: \<open>atm_of L2 \<in> atms_of_mm (mset `# ran_mf N + NE)\<close> and
-    UW: \<open>atms_of (mset UW) \<subseteq> atms_of_mm (mset `# ran_mf N + NE)\<close> and
-    i_dom: \<open>i \<notin># dom_m N\<close> and
-    fresh: \<open>\<And>L. L\<in># all_lits_st (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, Q, W) \<Longrightarrow>
-      i \<notin> fst ` set (W L)\<close> and
-    [iff]: \<open>L1 \<noteq> L2\<close> and
-    b: \<open>b \<longleftrightarrow> length (L1 # L2 # UW) = 2\<close>
-  shows
-  \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW, b') N,
-    D, NE, UE, NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) \<longleftrightarrow>
-  correct_watching (M, N, D, NE, UE, NS, US, N0, U0, Q', W)\<close>
-  (is \<open>?l \<longleftrightarrow> ?c\<close> is \<open>correct_watching (_, ?N, _) = _\<close>)
-proof -
-  let ?S = \<open>(M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  let ?T = \<open>(M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
-  let ?\<L> = \<open>all_lits_st ?S\<close>
-  have [iff]: \<open>L2 \<noteq> L1\<close>
-    using \<open>L1 \<noteq> L2\<close> by (subst eq_commute)
-  have [simp]: \<open>clause_to_update L1 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-         add_mset i (clause_to_update L1 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> for L2 UW
-    using i_dom
-    by (auto simp: clause_to_update_def intro: filter_mset_cong)
-  have [simp]: \<open>clause_to_update L2 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-         add_mset i (clause_to_update L2 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> for L1 UW
-    using i_dom
-    by (auto simp: clause_to_update_def intro: filter_mset_cong)
-  have [simp]: \<open>x \<noteq> L1 \<Longrightarrow> x \<noteq> L2 \<Longrightarrow>
-   clause_to_update x (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-        clause_to_update x (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> for x UW
-    using i_dom
-    by (auto simp: clause_to_update_def intro: filter_mset_cong)
-  have [simp]: \<open>L1 \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE) + (N0 + U0))\<close>
-    \<open>L2 \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE) + (N0 + U0))\<close>
-    using i_dom L1 L2 UW
-    by (fastforce simp: ran_m_mapsto_upd_notin
-      all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_m_ain_atms_of_iff
-      in_all_lits_of_mm_ain_atms_of_iff)+
-  have \<L>_mono: \<open>set_mset ?\<L> = set_mset (all_lits_st ?T)\<close>
-      using assms(1-3) i_dom
-      by (auto 5 3 simp: all_lits_st_def all_lits_def all_lits_of_mm_union all_lits_of_mm_add_mset
-        ran_m_mapsto_upd_notin all_lits_of_m_add_mset in_all_lits_of_mm_ain_atms_of_iff
-        in_all_lits_of_m_ain_atms_of_iff atm_of_eq_atm_of)
-  then have H':
-     \<open>{#ia \<in># fst `# mset (W x). ia = i \<or> ia \<in># dom_m N#} =  {#ia \<in># fst `# mset (W x). ia \<in># dom_m N#}\<close>
-     if \<open>x \<in># ?\<L>\<close> for x
-    using i_dom fresh[of x] that
-    by (auto simp: clause_to_update_def intro!: filter_mset_cong)
-  have [simp]:
-    \<open>clause_to_update L1 (K # M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}) = clause_to_update L1 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
-    for L1 N D NE UE M K NS US
-    by (auto simp: clause_to_update_def)
-
-  have [simp]: \<open>set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m ?N#} + (NE + UE) + (NS + US) + (N0 + U0))) =
-    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE) + (NS + US) + (N0 + U0)))\<close>
-    using i_dom L1 L2 UW
-    by (fastforce simp: ran_m_mapsto_upd_notin
-        all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_m_ain_atms_of_iff
-        in_all_lits_of_mm_ain_atms_of_iff)
-   let ?\<T> = \<open>all_lits_st (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, Q, W
-      (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)]))\<close>
-   have \<L>\<T>: \<open>set_mset ?\<L> = set_mset (all_lits_st (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE,
-       NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])))\<close>
-      using \<L>_mono by (auto simp: all_lits_st_def)
-
-  show ?thesis
-  proof (rule iffI)
-    assume corr: ?l (is \<open>correct_watching ?S\<close>)
-    have
-      H: \<open>\<And>L ia K' b''. (L\<in>#?\<L> \<Longrightarrow>
-      distinct_watched ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L) \<and>
-      ((ia, K', b'')\<in>#mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L) \<longrightarrow>
-          ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N) \<longrightarrow>
-          K' \<in> set (fmupd i (L1 # L2 # UW, b') N \<propto> ia) \<and> K' \<noteq> L \<and>
-          correctly_marked_as_binary (fmupd i (L1 # L2 # UW, b') N) (ia, K', b'') ) \<and>
-      ((ia, K', b'')\<in>#mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L) \<longrightarrow>
-          b'' \<longrightarrow> ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N)) \<and>
-      {#ia \<in># fst `#
-              mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L).
-       ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N)#} =
-      clause_to_update L
-       (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
-      using corr unfolding correct_watching.simps \<L>\<T>
-      by blast+
-
-    have \<open>x \<in># ?\<L> \<Longrightarrow> distinct_watched (W x) \<and>
-         (xa \<in># mset (W x) \<longrightarrow> (((case xa of (i, K, b'') \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> x \<and>
-           correctly_marked_as_binary N (i, K, b'')) \<and>
-           (case xa of (i, K, b'') \<Rightarrow> b'' \<longrightarrow> i \<in># dom_m N)))) \<and>
-         {#i \<in># fst `# mset (W x). i \<in># dom_m N#} = clause_to_update x (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
-      for x xa
-      supply correctly_marked_as_binary.simps[simp]
-      using H[of x \<open>fst xa\<close> \<open>fst (snd xa)\<close> \<open>snd (snd xa)\<close>] fresh[of x] i_dom
-      apply (cases \<open>x = L1\<close>; cases \<open>x = L2\<close>)
-      subgoal
-        by (cases xa)
-          (auto dest!: multi_member_split simp: H')
-      subgoal
-        using \<L>_mono
-        by (cases xa) (auto simp add: H' split: if_splits)
-      subgoal
-        by (cases xa)
-          (force simp add: H' split: if_splits)
-      subgoal
-        using \<L>_mono
-        by (cases xa)
-          (force simp add: H' split: if_splits)
-      done
-    then show ?c
-      unfolding correct_watching.simps Ball_def
-      by (auto 5 5 simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset
-          all_conj_distrib all_lits_of_mm_union dest: multi_member_split)
-  next
-    assume corr: ?c
-    have \<open>?\<L> = all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q', W)\<close>
-      by auto
-    then have
-      H: \<open>\<And>L ia K' b''. (L\<in># ?\<L> \<Longrightarrow>
-      distinct_watched (W L) \<and>
-      ((ia, K', b'')\<in>#mset (W L) \<longrightarrow>
-          ia \<in># dom_m N \<longrightarrow>
-          K' \<in> set (N \<propto> ia) \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (ia, K', b'')) \<and>
-      ((ia, K', b'')\<in>#mset (W L) \<longrightarrow> b'' \<longrightarrow> ia \<in># dom_m N) \<and>
-      {#ia \<in># fst `# mset (W L). ia \<in># dom_m N#} = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
-      using corr unfolding correct_watching.simps
-      by auto
-    have \<open>x \<in># ?\<L> \<longrightarrow>
-         distinct_watched ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<and>
-         (xa \<in># mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<longrightarrow>
-               (case xa of (ia, K, b'') \<Rightarrow> ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N) \<longrightarrow>
-                 K \<in> set (fmupd i (L1 # L2 # UW, b') N \<propto> ia) \<and> K \<noteq> x \<and>
-                    correctly_marked_as_binary (fmupd i (L1 # L2 # UW, b') N) (ia, K, b''))) \<and>
-         (xa \<in># mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<longrightarrow>
-               (case xa of (ia, K, b'') \<Rightarrow> b'' \<longrightarrow> ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N))) \<and>
-         {#ia \<in># fst `# mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x). ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N)#} =
-         clause_to_update x (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
-      for x :: \<open>'a literal\<close> and xa
-      supply correctly_marked_as_binary.simps[simp]
-      using H[of x \<open>fst xa\<close> \<open>fst (snd xa)\<close> \<open>snd (snd xa)\<close>] fresh[of x] i_dom b unfolding \<L>\<T>
-      apply (cases \<open>x = L1\<close>; cases \<open>x = L2\<close>)
-      subgoal
-        by (cases xa)
-          (auto dest!: multi_member_split simp: H')
-      subgoal
-        using \<L>_mono
-        by (cases xa)
-          (auto dest!: multi_member_split simp: H')
-      subgoal
-        using \<L>_mono
-        by (cases xa)
-          (auto dest!: multi_member_split simp: H')
-      subgoal
-        using \<L>_mono
-        by (cases xa)
-          (auto dest!: multi_member_split simp: H')
-      done
-  then show ?l
-    using \<L>_mono
-    unfolding correct_watching.simps Ball_def
-    by auto
-  qed
-qed
-*)
-
 lemma all_lits_st_learn_simps:
   assumes
-    L1: \<open>L1 \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> and
-    L2: \<open>L2 \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> and
+    L1: \<open>L1 \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> and
+    L2: \<open>L2 \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> and
     UW: \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq>
-       set_mset (all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))\<close> and
+       set_mset (all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close> and
     i_dom: \<open>i \<notin># dom_m N\<close>
   shows
-    \<open>set_mset (all_lits_st (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, Q, W)) =
-     set_mset (all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))\<close>
+    \<open>set_mset (all_lits_st (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) =
+     set_mset (all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close>
   using assms
   by (auto 5 3 simp: all_lits_st_def all_lits_def all_lits_of_mm_union all_lits_of_mm_add_mset
         ran_m_mapsto_upd_notin all_lits_of_m_add_mset in_all_lits_of_mm_ain_atms_of_iff
@@ -4697,22 +4542,22 @@ lemma all_lits_st_learn_simps:
 
 lemma correct_watching_learn2:
   assumes
-    L1: \<open>L1 \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> and
-    L2: \<open>L2 \<in># all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> and
+    L1: \<open>L1 \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> and
+    L2: \<open>L2 \<in># all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> and
     UW: \<open>set_mset (all_lits_of_m (mset UW)) \<subseteq>
-       set_mset (all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W))\<close> and
+       set_mset (all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))\<close> and
     i_dom: \<open>i \<notin># dom_m N\<close> and
-    fresh: \<open>\<And>L. L\<in>#all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<Longrightarrow> i \<notin> fst ` set (W L)\<close> and
+    fresh: \<open>\<And>L. L\<in>#all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<Longrightarrow> i \<notin> fst ` set (W L)\<close> and
     [iff]: \<open>L1 \<noteq> L2\<close> and
     b: \<open>b \<longleftrightarrow> length (L1 # L2 # UW) = 2\<close>
   shows
   \<open>correct_watching (K # M, fmupd i (L1 # L2 # UW, b') N,
-    D, NE, UE, NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) \<longleftrightarrow>
-  correct_watching (M, N, D', NE, UE, NS, US, N0, U0, Q', W)\<close>
+    D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) \<longleftrightarrow>
+  correct_watching (M, N, D', NE, UE, NEk, UEk, NS, US, N0, U0, Q', W)\<close>
   (is \<open>?l \<longleftrightarrow> ?c\<close> is \<open>correct_watching (_, ?N, _) = _\<close>)
 proof -
-  let ?S = \<open>(M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  let ?T = \<open>(M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
+  let ?S = \<open>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  let ?T = \<open>(M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
   let ?\<L> = \<open>all_lits_st ?S\<close>
   have \<L>_mono: \<open>set_mset ?\<L> = set_mset (all_lits_st ?T)\<close>
     using assms(1-3) i_dom
@@ -4721,22 +4566,22 @@ proof -
         in_all_lits_of_m_ain_atms_of_iff atm_of_eq_atm_of)
 
   have \<L>\<T>: \<open>set_mset ?\<L> = set_mset (all_lits_st (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE,
-       NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])))\<close>
+       NEk, UEk, NS, US, N0, U0, Q, W (L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])))\<close>
       using \<L>_mono by (auto simp: all_lits_st_def)
 
   have [iff]: \<open>L2 \<noteq> L1\<close>
     using \<open>L1 \<noteq> L2\<close> by (subst eq_commute)
-  have [simp]: \<open>clause_to_update L1 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-         add_mset i (clause_to_update L1 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> for L2 UW
+  have [simp]: \<open>clause_to_update L1 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}) =
+         add_mset i (clause_to_update L1 (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> for L2 UW
     using i_dom
     by (auto simp: clause_to_update_def intro: filter_mset_cong)
-  have [simp]: \<open>clause_to_update L2 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-         add_mset i (clause_to_update L2 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close> for L1 UW
+  have [simp]: \<open>clause_to_update L2 (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}) =
+         add_mset i (clause_to_update L2 (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close> for L1 UW
     using i_dom
     by (auto simp: clause_to_update_def intro: filter_mset_cong)
   have [simp]: \<open>x \<noteq> L1 \<Longrightarrow> x \<noteq> L2 \<Longrightarrow>
-   clause_to_update x (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-        clause_to_update x (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close> for x UW
+   clause_to_update x (M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}) =
+        clause_to_update x (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close> for x UW
     using i_dom
     by (auto simp: clause_to_update_def intro: filter_mset_cong)
 
@@ -4746,8 +4591,8 @@ proof -
     using i_dom fresh[of x] that
     by (auto simp: clause_to_update_def intro!: filter_mset_cong)
   have [simp]:
-    \<open>clause_to_update L1 (K # M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}) =
-       clause_to_update L1 (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+    \<open>clause_to_update L1 (K # M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}) =
+       clause_to_update L1 (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
     for L1 N D NE UE M K NS US
     by (auto simp: clause_to_update_def)
 
@@ -4767,7 +4612,7 @@ proof -
               mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) L).
        ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N)#} =
       clause_to_update L
-       (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+       (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
       using corr unfolding correct_watching.simps \<L>\<T>
       by fast+
 
@@ -4776,7 +4621,7 @@ proof -
          (xa \<in># mset (W x) \<longrightarrow> (((case xa of (i, K, b'') \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> x \<and>
            correctly_marked_as_binary N (i, K, b'')) \<and>
            (case xa of (i, K, b'') \<Rightarrow> b'' \<longrightarrow> i \<in># dom_m N)))) \<and>
-         {#i \<in># fst `# mset (W x). i \<in># dom_m N#} = clause_to_update x (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+         {#i \<in># fst `# mset (W x). i \<in># dom_m N#} = clause_to_update x (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
       for x xa
       supply correctly_marked_as_binary.simps[simp]
       using H[of x \<open>fst xa\<close> \<open>fst (snd xa)\<close> \<open>snd (snd xa)\<close>] fresh[of x] i_dom
@@ -4800,7 +4645,7 @@ proof -
          dest: multi_member_split)
   next
     assume corr: ?c
-    have \<open>?\<L> = all_lits_st (M, N, D, NE, UE, NS, US, N0, U0, Q', W)\<close>
+    have \<open>?\<L> = all_lits_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q', W)\<close>
       by auto
     then have
       H: \<open>\<And>L ia K' b''. (L\<in># ?\<L> \<Longrightarrow>
@@ -4809,7 +4654,7 @@ proof -
           ia \<in># dom_m N \<longrightarrow>
           K' \<in> set (N \<propto> ia) \<and> K' \<noteq> L \<and> correctly_marked_as_binary N (ia, K', b'')) \<and>
       ((ia, K', b'')\<in>#mset (W L) \<longrightarrow> b'' \<longrightarrow> ia \<in># dom_m N) \<and>
-      {#ia \<in># fst `# mset (W L). ia \<in># dom_m N#} = clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+      {#ia \<in># fst `# mset (W L). ia \<in># dom_m N#} = clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
       using corr unfolding correct_watching.simps clause_to_update_def get_clauses_l.simps
       by auto
     have \<open>x \<in># ?\<L> \<longrightarrow>
@@ -4821,7 +4666,7 @@ proof -
          (xa \<in># mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x) \<longrightarrow>
                (case xa of (ia, K, b'') \<Rightarrow> b'' \<longrightarrow> ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N))) \<and>
          {#ia \<in># fst `# mset ((W(L1 := W L1 @ [(i, L2, b)], L2 := W L2 @ [(i, L1, b)])) x). ia \<in># dom_m (fmupd i (L1 # L2 # UW, b') N)#} =
-         clause_to_update x (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NS, US, N0, U0, {#}, {#})\<close>
+         clause_to_update x (K # M, fmupd i (L1 # L2 # UW, b') N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#})\<close>
       for x :: \<open>'a literal\<close> and xa
       supply correctly_marked_as_binary.simps[simp]
       using H[of x \<open>fst xa\<close> \<open>fst (snd xa)\<close> \<open>snd (snd xa)\<close>] fresh[of x] i_dom b
@@ -4855,10 +4700,10 @@ lemma all_lits_fmupd_new[simp]:
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch''':
   assumes
-    K': \<open>K' \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-      \<open>L' \<in># all_lits_st (a, b, c, d, e, NS, US, N0, U0, f, g)\<close> and
-    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NS, US, N0, U0, f, g (K := (g K) @[(i, K', b')], L := g L @ [(i', L', b'')]))\<close>
+    K': \<open>K' \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+      \<open>L' \<in># all_lits_st (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close> and
+    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f, g (K := (g K) @[(i, K', b')], L := g L @ [(i', L', b'')]))\<close>
   using assms
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
   by (auto split: if_splits elim!: in_set_upd_cases)
@@ -4875,6 +4720,8 @@ lemma backtrack_wl_spec:
           correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
   (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
+  have H: \<open>A \<Turnstile>p C \<Longrightarrow> \<not>B \<Turnstile>p C \<Longrightarrow> A \<subseteq> B \<Longrightarrow> False\<close> for A B C
+    by (meson true_clss_cls_subset)
   have extract_shorter_conflict_wl: \<open>extract_shorter_conflict_wl S'
     \<le> \<Down> {(U'::'v twl_st_wl, U).
           (U', U) \<in> state_wl_l None \<and> equality_except_conflict_wl U' S' \<and>
@@ -4889,10 +4736,10 @@ proof -
     unfolding extract_shorter_conflict_wl_def extract_shorter_conflict_l_def
     apply (refine_rcg, rule RES_refine)
     using that
-    by (auto simp: extract_shorter_conflict_wl_def extract_shorter_conflict_l_def
-        mset_take_mset_drop_mset state_wl_l_def correct_watching.simps
-        clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n_def dest!: multi_member_split)
-
+    by  (auto simp: extract_shorter_conflict_wl_def extract_shorter_conflict_l_def
+        mset_take_mset_drop_mset' state_wl_l_def correct_watching.simps Un_assoc
+      clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n_def dest!: multi_member_split
+      dest: H)
   have find_decomp_wl: \<open>find_decomp_wl L T'
     \<le> \<Down> {(U'::'v twl_st_wl, U).
           (U', U) \<in> state_wl_l None \<and> equality_except_trail_wl U' T' \<and>
@@ -4959,23 +4806,23 @@ proof -
     using that unfolding cons_trail_propagate_l_def
     by (auto intro!: ASSERT_refine_right)
 
-  have fresh: \<open>get_fresh_index_wl N (NE + UE + NS + US + N0 + U0) W \<le>
+  have fresh: \<open>get_fresh_index_wl N (NE + UE + NEk + UEk + NS + US + N0 + U0) W \<le>
     \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N \<and>
-         (\<forall>L \<in># all_lits_st (x1, N, D, NE, UE, NS, US, N0, U0, x1e, x2e). i \<notin> fst ` set (W L))}
+         (\<forall>L \<in># all_lits_st (x1, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, x1e, x2e). i \<notin> fst ` set (W L))}
        (get_fresh_index N')\<close>
-    if \<open>N = N'\<close> \<open>propagate_bt_wl_pre L L' (x1, N, D, NE, UE, NS, US, N0, U0, x1e, x2e)\<close>
-    for N N' NUE W NE UE N0 U0 x1e x2e NS US x1 D L L'
+    if \<open>N = N'\<close> \<open>propagate_bt_wl_pre L L' (x1, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, x1e, x2e)\<close>
+    for N N' NUE W NE UE N0 U0 x1e x2e NS US x1 D L L' NEk UEk
     unfolding that get_fresh_index_def get_fresh_index_wl_def all_lits_def all_lits_st_def
     by (auto intro: RES_refine simp: ac_simps)
 
   have blit: \<open>i \<notin># dom_m x1a \<Longrightarrow>
-   set_mset (all_lits_of_m (mset C)) \<subseteq> set_mset (all_lits_st (x1, x1a, Some xd, x1c, x1d, NS, US, N0, U0, x1e, x2e)) \<Longrightarrow>
+   set_mset (all_lits_of_m (mset C)) \<subseteq> set_mset (all_lits_st (x1, x1a, Some xd, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e)) \<Longrightarrow>
      blits_in_\<L>\<^sub>i\<^sub>n
-        (x1, x1a, Some xd, x1c, x1d, NS, US, N0, U0,  x1e, x2e) \<Longrightarrow>
+        (x1, x1a, Some xd, x1c, x1d, NEk, UEk, NS, US, N0, U0,  x1e, x2e) \<Longrightarrow>
        blits_in_\<L>\<^sub>i\<^sub>n
         (x1,
          fmupd i (C, b)  x1a,
-         None, x1c, x1d, NS, US, N0, U0, {#}, x2e)\<close> for x x1a x1 xd x1d x1c x1e x2e i C b NS US N0 U0
+         None, x1c, x1d, NEk, UEk, NS, US, N0, U0, {#}, x2e)\<close> for x x1a x1 xd x1d x1c x1e x2e i C b NS US N0 U0 NEk UEk
     by (auto simp:  blits_in_\<L>\<^sub>i\<^sub>n_def dest!: multi_member_split simp: all_lits_st_def)
   have [simp]: \<open>mset (unwatched_l (x)) + mset (watched_l (x)) = mset x\<close> for x
     by (metis add.commute mset_take_mset_drop_mset')
@@ -5025,19 +4872,19 @@ proof -
       done
     done
 
-  have correct_watching_unit: \<open>La \<in># all_lits_st (x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
-        correct_watching (x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
+  have correct_watching_unit: \<open>La \<in># all_lits_st (x1, x1a, x1b, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
+        correct_watching (x1, x1a, x1b, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
           correct_watching
            (Propagated (- La) 0 # x1, x1a, None, x1c,
-            add_mset {#-La#} x1d, NS, US, N0, U0, {#La#}, x2e)\<close>
-     \<open>La \<in># all_lits_st (x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
+           x1d, NEk, add_mset {#-La#} UEk, NS, US, N0, U0, {#La#}, x2e)\<close>
+     \<open>La \<in># all_lits_st (x1, x1a, x1b, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
         blits_in_\<L>\<^sub>i\<^sub>n
-        (x1, x1a, x1b, x1c, x1d, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
+        (x1, x1a, x1b, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e, x2e) \<Longrightarrow>
        blits_in_\<L>\<^sub>i\<^sub>n
-        (Propagated (- La) 0 # x1, x1a, None, x1c, add_mset {#-La#} x1d, NS, US, N0, U0, {#La#},
+        (Propagated (- La) 0 # x1, x1a, None, x1c, x1d, NEk, add_mset {#-La#} UEk, NS, US, N0, U0, {#La#},
          x2e)\<close>
      for a b c d e f g x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
-       M Ma La NS US N0 U0
+       M Ma La NS US N0 U0 NEk UEk
      unfolding all_lits_st_def all_lits_def
     apply (subst (asm) in_all_lits_of_mm_uminus_iff[symmetric])
     apply (auto simp: correct_watching.simps all_lits_of_mm_add_mset

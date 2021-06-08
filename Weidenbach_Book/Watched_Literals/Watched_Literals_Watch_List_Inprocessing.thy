@@ -15,10 +15,10 @@ definition simplify_clause_with_unit_st_wl_pre where
   simplify_clause_with_unit_st_pre C T)\<close>
 
 definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>simplify_clause_with_unit_st_wl = (\<lambda>C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>simplify_clause_with_unit_st_wl = (\<lambda>C (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
     ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None \<and> no_dup M \<and> C \<noteq> 0);
-    let S = (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W);
+    let S = (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W);
     if False
     then RETURN S
     else do {
@@ -30,15 +30,15 @@ definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st
         RETURN S
       }
       else if b then do {
-        let T = (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W);
+        let T = (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NEk, UEk, NS, US, N0, U0, Q, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
-        RETURN (M, fmdrop C N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W)
+        RETURN T
       }
       else if size (N \<propto> C) = 1
       then do {
         let L = ((N \<propto> C) ! 0);
-        let T = (Propagated L 0 # M, fmdrop C N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
+        let T = (Propagated L 0 # M, fmdrop C N, D, NE, UE, (if irr then add_mset {#L#} else id) NEk, (if \<not>irr then add_mset {#L#} else id)UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
         ASSERT (undefined_lit M L \<and> L \<in># all_lits_st S);
@@ -46,13 +46,13 @@ definition simplify_clause_with_unit_st_wl :: \<open>nat \<Rightarrow> 'v twl_st
       }
       else if size (N \<propto> C) = 0
       then do {
-         let T =  (M, fmdrop C N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W);
+         let T =  (M, fmdrop C N, Some {#}, NE, UE, NEk, UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
         RETURN T
       }
       else do {
-        let T =  (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W);
+        let T =  (M, N, D, NE, UE, NEk, UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W);
         ASSERT(set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
         ASSERT(set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
         RETURN T
@@ -197,10 +197,10 @@ proof -
     unfolding simplify_clause_with_unit_st_wl_def simplify_clause_with_unit_st_def ij
       state_wl_l_def prod.simps Let_def[of \<open>(_,_)\<close>]
     apply refine_rcg
-    subgoal for a b c d e f g h i ja k aa ba ca da ea fa ga ha ia jaa ka
+    subgoal for a b c d e f g h i ja k l m aa ba ca da ea fa ga ha ia jaa ka la ma
       using ST
       unfolding simplify_clause_with_unit_st_wl_pre_def
-      by (rule_tac x = \<open>(aa, ba, ca, da, ea, fa, ga, ha, ia, jaa, ka)\<close> in exI)
+      by (rule_tac x = \<open>(aa, ba, ca, da, ea, fa, ga, ha, ia, jaa, ka, la, ma)\<close> in exI)
        simp
     subgoal by auto
     subgoal by auto
