@@ -532,10 +532,14 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_empty:
     correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, {#}, Q)\<close>
    \<open>NO_MATCH {#} U0 \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
     correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, {#}, x2m, Q)\<close>
+   \<open>NO_MATCH {#} b \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, {#}, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', {#}, N0, U0, x2m, Q)\<close>
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, {#}, x2m, Q)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, {#}, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
    by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
      correct_watching'.simps correct_watching''.simps clause_to_update_def all_init_lits_of_wl_def
      all_learned_lits_of_wl_def)

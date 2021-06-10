@@ -990,9 +990,9 @@ definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
     Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)\<and> literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
-    RETURN (M, N', D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)
+    RETURN (M, N', D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, WS, Q)
   }
-  else RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)})\<close>
+  else RETURN (M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, WS, Q)})\<close>
 
 lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
@@ -1008,7 +1008,7 @@ lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h
        x2h x1i x2i x1j x2j x1k x2k b xa x' x1l x2l x1m x2m Q
     by (auto simp: state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n'_empty
-      dest: literals_are_\<L>\<^sub>i\<^sub>n'_empty(5,6))
+      dest: literals_are_\<L>\<^sub>i\<^sub>n'_empty(6-))
   subgoal by auto
   done
 

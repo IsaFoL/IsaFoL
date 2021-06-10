@@ -430,21 +430,21 @@ qed
 
 
 definition simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>simplify_clause_with_unit_st2 =  (\<lambda>C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W). do {
-    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>simplify_clause_with_unit_st2 =  (\<lambda>C (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+    ASSERT(simplify_clause_with_unit_st_wl_pre C (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
     ASSERT (C \<in># dom_m N\<^sub>0 \<and> count_decided M = 0 \<and> D = None);
-    let S =  (M, N\<^sub>0, D, NE, UE, NS, US, N0, U0, Q, W);
+    let S =  (M, N\<^sub>0, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W);
     let E = mset (N\<^sub>0 \<propto> C);
     let irr = irred N\<^sub>0 C;
     (unc, N, L, b, i) \<leftarrow> simplify_clause_with_unit2 C M N\<^sub>0;
     ASSERT(dom_m N \<subseteq># dom_m N\<^sub>0);
       if unc then do {
       ASSERT(N = N\<^sub>0);
-      let T = (M, N, D, NE, UE, NS, US, N0, U0, Q, W);
+      let T = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W);
       RETURN T
     }
     else if b then do {
-       let T = (M, N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NS, US, N0, U0, Q, W);
+       let T = (M, N, D, (if irr then add_mset E else id) NE, (if \<not>irr then add_mset E else id) UE, NEk, UEk, NS, US, N0, U0, Q, W);
       ASSERT (set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
       ASSERT (set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
       ASSERT (set_mset (all_atms_st T) = set_mset (all_atms_st S));
@@ -456,7 +456,7 @@ definition simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> nat twl_st_
     then do {
       ASSERT (undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S));
       M \<leftarrow> cons_trail_propagate_l L 0 M;
-      let T = (M, N, D, (if irr then add_mset {#L#} else id) NE, (if \<not>irr then add_mset {#L#} else id)UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
+      let T = (M, N, D, NE, UE, (if irr then add_mset {#L#} else id) NEk, (if \<not>irr then add_mset {#L#} else id)UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id)US, N0, U0, add_mset (-L) Q, W);
       ASSERT (set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
       ASSERT (set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
       ASSERT (set_mset (all_atms_st T) = set_mset (all_atms_st S));
@@ -467,7 +467,7 @@ definition simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> nat twl_st_
     else if i = 0
     then do {
       let j = length M;
-      let T = (M, N, Some {#}, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W);
+      let T = (M, N, Some {#}, NE, UE, NEk, UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, (if irr then add_mset {#} else id) N0, (if \<not>irr then add_mset {#} else id)U0, {#}, W);
       ASSERT (set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
       ASSERT (set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
       ASSERT (set_mset (all_atms_st T) = set_mset (all_atms_st S));
@@ -476,7 +476,7 @@ definition simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> nat twl_st_
       RETURN T
     }
     else do {
-      let T = (M, N, D, NE, UE, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W);
+      let T = (M, N, D, NE, UE, NEk, UEk, (if irr then add_mset E else id) NS, (if \<not>irr then add_mset E else id) US, N0, U0, Q, W);
       ASSERT (set_mset (all_learned_lits_of_wl T) = set_mset (all_learned_lits_of_wl S));
       ASSERT (set_mset (all_init_lits_of_wl T) = set_mset (all_init_lits_of_wl S));
       ASSERT (set_mset (all_atms_st T) = set_mset (all_atms_st S));
@@ -513,9 +513,10 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n
+    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j
+      x2j x1k x2k x1l x2l x1m x2m x1n _ _ _ _
       x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x x' x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y
-      by (cases \<open>C' \<notin># dom_m x1w\<close>)
+      by (cases \<open>C' \<notin># dom_m x1y\<close>)
         (simp_all add: eq_commute[of \<open>remove1_mset _ _\<close> \<open>dom_m _\<close>])
     subgoal by auto
     subgoal
@@ -839,7 +840,7 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
      RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
      vdom, avdom, if E = LEARNED
-       then clss_size_decr_lcount ((lcount))
+       then clss_size_decr_lcount (clss_size_incr_lcountUEk (lcount))
        else lcount, opts, old_arena)}
    else if i = 0
    then do {
@@ -878,8 +879,8 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
   \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
-  (M, N, D, NE, UE, NS, US, N0, U0, Q, W)).
-  let \<A> = all_init_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) in
+  (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
+  let \<A> = all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) in
     (M', M) \<in> trail_pol \<A>  \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel \<A> \<and>
@@ -891,7 +892,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty \<A>  cach \<and>
     out_learned M D outl \<and>
-    clss_size_corr N NE UE NS US N0 U0 lcount \<and>
+    clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     isasat_input_bounded \<A>  \<and>
@@ -906,6 +907,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_cong:
   \<open>set_mset A = set_mset B \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_mm A = literals_are_in_\<L>\<^sub>i\<^sub>n_mm B\<close>
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def \<L>\<^sub>a\<^sub>l\<^sub>l_cong by force
+
 
 lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
   assumes \<open>(S, S') \<in> {(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and> length (get_clauses_wl_heur a) = r \<and>
@@ -964,7 +966,7 @@ proof -
     subgoal by auto
     subgoal by (auto simp: twl_st_heur_restart_def)
     subgoal by (auto simp: twl_st_heur_restart_def clss_size_corr_def ran_m_def
-        clss_size_lcount_def clss_size_def
+        clss_size_def
       dest!: multi_member_split)
     subgoal
       by (auto simp: twl_st_heur_restart_def)
@@ -991,8 +993,8 @@ proof -
       apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
         get_vdom.simps prod_rel_iff TrueI refl
         cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-        uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-        \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] clss_size_corr_def get_learned_count.simps
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+        \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] clss_size_corr_restart_def get_learned_count.simps
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
         clss_size_decr_lcount_def)
       apply (clarsimp split: if_splits simp:
@@ -1012,9 +1014,9 @@ proof -
       apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
         get_vdom.simps prod_rel_iff TrueI refl
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-       \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_def get_learned_count.simps
-        clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def get_learned_count.simps
+        clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def
         clss_size_decr_lcount_def)
       apply (clarsimp split: if_splits simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
@@ -1030,14 +1032,15 @@ proof -
      apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
        get_vdom.simps prod_rel_iff TrueI refl
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def
-       clss_size_decr_lcount_def clss_size_corr_def
-       option_lookup_clause_rel_cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
+       clss_size_decr_lcount_def clss_size_corr_restart_def
+       option_lookup_clause_rel_cong[of
+       \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
        set_conflict_to_false get_learned_count.simps
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
         clss_size_decr_lcount_def)
@@ -1052,14 +1055,14 @@ proof -
      apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
        get_vdom.simps prod_rel_iff TrueI refl
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def
-       clss_size_decr_lcount_def clss_size_corr_def
+       clss_size_decr_lcount_def clss_size_corr_restart_def
        option_lookup_clause_rel_cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
-       uminus `# lit_of `# mset (drop x1m (rev x1)), x2i)\<close>
-       \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
+         x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
+       \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
        set_conflict_to_false)
      apply (clarsimp split: if_splits)
      done

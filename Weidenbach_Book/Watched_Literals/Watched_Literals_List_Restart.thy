@@ -2858,12 +2858,12 @@ lemma rtranclp_GC_remap_ran_m_no_new_lost:
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for y z
-    apply (cases \<open>C \<in># dom_m (fst y)\<close>)
-    apply (auto simp: ran_m_lf_fmdrop ran_m_mapsto_upd_notin
-        dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite
-        intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
-    apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
-    apply (smt GC_remap_ran_m_no_rewrite_map contra_subsetD domI prod.collapse rtranclp_GC_remap_ran_m_no_lost)
+    using GC_remap_ran_m_no_lost[of y z] GC_remap_ran_m_remap[of \<open>fst y\<close> \<open>fst (snd y)\<close> \<open>snd (snd y)\<close>
+      \<open>fst z\<close> \<open>fst (snd z)\<close> \<open>snd (snd z)\<close>] rtranclp_GC_remap_ran_m_no_lost[of x y]
+      GC_remap_ran_m_no_rewrite_map[of \<open>fst y\<close> \<open>fst (snd y)\<close> \<open>snd (snd y)\<close>
+      \<open>fst z\<close> \<open>fst (snd z)\<close> \<open>snd (snd z)\<close>]
+    apply (auto simp flip: in_dom_m_lookup_iff simp del: lookup_None_notin_dom_m)
+    apply (smt (verit, best) domIff option.collapse option.discI rtranclp_GC_remap_ran_m_no_lost subset_eq)
     done
   done
 
@@ -3133,9 +3133,9 @@ definition cdcl_GC_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
-    RETURN (M, N', D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)
+    RETURN (M, N', D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, WS, Q)
   }
-  else RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q)})\<close>
+  else RETURN (M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, WS, Q)})\<close>
 
 lemma cdcl_GC_clauses_cdcl_twl_restart_l:
   assumes

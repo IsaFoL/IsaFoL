@@ -106,15 +106,15 @@ where
 
 
 lemma cdcl_twl_local_restart_wl_D_spec_int:
-  \<open>cdcl_twl_local_restart_wl_spec (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<ge> ( do {
-      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NS, US, N0, U0, Q, W) last_GC last_Restart False);
+  \<open>cdcl_twl_local_restart_wl_spec (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<ge> ( do {
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) last_GC last_Restart False);
       i \<leftarrow> SPEC(\<lambda>_. True);
       if i
-      then RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W)
+      then RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)
       else do {
         (M, Q') \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
               Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-        RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q', W)
+        RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q', W)
      }
    })\<close>
 proof -
@@ -155,8 +155,8 @@ proof -
   by (cases S) auto
 
   have [dest]: \<open>av = None\<close> \<open>out_learned a av am \<Longrightarrow> out_learned x1 av am\<close>
-    if \<open>restart_abs_wl_pre (a, au, av, aw, ax, NS, US, N0, U0, ay, bd) last_GC last_Restart False\<close>
-    for a au av aw ax ay bd x1 am NS US last_GC last_Restart N0 U0
+    if \<open>restart_abs_wl_pre (a, au, av, aw, ax, NEk, UEk, NS, US, N0, U0, ay, bd) last_GC last_Restart False\<close>
+    for a au av aw ax ay bd x1 am NEk UEk NS US last_GC last_Restart N0 U0
     using that
     unfolding restart_abs_wl_pre_def restart_abs_l_pre_def
       restart_prog_pre_def
@@ -223,9 +223,9 @@ proof -
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs),
-	bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)
+	bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)
        \<in> twl_st_heur\<close> and
-      \<open>\<exists>last_GC last_Restart. restart_abs_wl_pre (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz) last_GC last_Restart False\<close> and
+      \<open>\<exists>last_GC last_Restart. restart_abs_wl_pre (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz) last_GC last_Restart False\<close> and
       \<open>restart_abs_wl_heur_pre
 	((a, aa, ab, ac, ad, b), ae, heur, ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
@@ -234,8 +234,8 @@ proof -
 	False\<close> and
       lvl: \<open>(lvl, i)
        \<in> {(i, b).
-	  b = (i = count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz))) \<and>
-	  i \<le> count_decided (get_trail_wl (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz))}\<close> and
+	  b = (i = count_decided (get_trail_wl (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz))) \<and>
+	  i \<le> count_decided (get_trail_wl (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz))}\<close> and
       \<open>i \<in> {_. True}\<close> and
       \<open>lvl \<noteq>
        count_decided_st_heur
@@ -244,19 +244,19 @@ proof -
 	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs)\<close> and
       i: \<open>\<not> i\<close> and
-    H: \<open>(\<And>vm0. ((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) \<Longrightarrow>
-           ((aj, ak, al, am, bb), vm0) \<in> vmtf (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) bt \<Longrightarrow>
+    H: \<open>(\<And>vm0. ((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)) \<Longrightarrow>
+           ((aj, ak, al, am, bb), vm0) \<in> vmtf (all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)) bt \<Longrightarrow>
       isa_find_decomp_wl_imp (a, aa, ab, ac, ad, b) lvl
         ((aj, ak, al, am, bb), an, bc)
-	\<le> \<Down> {(a, b). (a,b) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) \<times>\<^sub>f
-               (Id \<times>\<^sub>f distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)))}
-	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
+	\<le> \<Down> {(a, b). (a,b) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)) \<times>\<^sub>f
+               (Id \<times>\<^sub>f distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)))}
+	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
     for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at'
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
        bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
-       x1g x2g x1h x2h x1i x2i P NS US heur last_GC last_Restart N0 U0
+       x1g x2g x1h x2h x1i x2i P NS US heur last_GC last_Restart N0 U0 NEk UEk
   proof -
-    let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NS, US, N0, U0, by, bz)\<close>
+    let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NEk, UEk, NS, US, N0, U0, by, bz)\<close>
     have
       tr: \<open>((a, aa, ab, ac, ad, b), bt) \<in> trail_pol ?\<A>\<close> and
       \<open>valid_arena ae bu (set bo)\<close> and
@@ -269,7 +269,7 @@ proof -
       \<open>ao \<in> counts_maximum_level bt bv\<close> and
       \<open>cach_refinement_empty ?\<A> (aq, bd)\<close> and
       \<open>out_learned bt bv as\<close> and
-      \<open>clss_size_corr bu bw bx NS US N0 U0 bq\<close> and
+      \<open>clss_size_corr bu bw bx NEk UEk NS US N0 U0 bq\<close> and
       \<open>vdom_m ?\<A> bz bu \<subseteq> set bo\<close> and
       \<open>set bp \<subseteq> set bo\<close> and
       \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>. nat_of_lit L \<le> uint32_max\<close> and
@@ -337,14 +337,14 @@ proof -
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
        bt bu bv bw bx _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
-       lvl i vm0
+       cq cr cs ct lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
-      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cn\<close> and NS' = cm and
-        lcount' = \<open>(cb, cc, cd, ce)\<close>])
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cq\<close> and NS' = cp and
+        lcount' = \<open>(cb, cc, cd, ce, cf)\<close>])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (solves \<open>auto simp: twl_st_heur_def\<close>)[]
       apply (frule H(2))
