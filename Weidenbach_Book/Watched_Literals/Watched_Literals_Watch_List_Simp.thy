@@ -37,7 +37,7 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
     by (auto dest: correct_watching''_clauses_pointed_to2)
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
-      cdcl_twl_restart_l_inp.intros(1)
+      cdcl_twl_restart_l_inp.intros(1)[of y Va] apply -
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
     by blast
   subgoal for x y S S' T Ta U Ua V Va

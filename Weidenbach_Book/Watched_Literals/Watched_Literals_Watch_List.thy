@@ -53,6 +53,9 @@ fun get_unit_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> 
 fun get_kept_unit_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_kept_unit_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NEk + UEk\<close>
 
+fun get_unkept_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unkept_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q) = UE\<close>
+
 fun get_subsumed_init_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_init_clauses_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NS\<close>
 
@@ -85,6 +88,25 @@ lemma get_unit_clauses_wl_alt_def:
 fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
   \<open>get_watched_wl (_, _, _, _, _, _, _, _, _, _, _, _, W) = W\<close>
 
+fun get_unkept_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unkept_unit_init_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NE\<close>
+
+fun get_unkept_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unkept_unit_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = UE\<close>
+
+fun get_kept_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_init_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NEk\<close>
+
+fun get_kept_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = UEk\<close>
+
+lemma get_unit_init_clss_wl_alt_def:
+  \<open>get_unit_init_clss_wl T = get_unkept_unit_init_clss_wl T + get_kept_unit_init_clss_wl T\<close>
+  by (cases T) auto
+
+lemma get_unit_learned_clss_wl_alt_def:
+  \<open>get_unit_learned_clss_wl T = get_unkept_unit_learned_clss_wl T + get_kept_unit_learned_clss_wl T\<close>
+  by (cases T) auto
 
 abbreviation get_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_init_clss_wl S \<equiv> init_clss_lf (get_clauses_wl S)\<close>
@@ -664,6 +686,7 @@ lemma [twl_st_wl]:
     \<open>get_clauses0_l T = get_clauses0_wl S\<close>
     \<open>get_init_clss_l T = get_init_clss_wl S\<close>
     \<open>all_lits_of_st_l T = all_lits_st S\<close>
+    \<open>get_unkept_learned_clss_l T = get_unkept_learned_clss_wl S\<close>
     \<open>all_lits_of_mm (get_all_clss_l T) = all_lits_st S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   apply (cases S; cases T; cases L; auto split: option.splits simp: get_init_clss_l_def

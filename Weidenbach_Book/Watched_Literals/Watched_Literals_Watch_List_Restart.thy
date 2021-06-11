@@ -87,6 +87,9 @@ lemma all_init_lits_of_wl_simps[simp]:
   \<open>NO_MATCH {#} U0 \<Longrightarrow>
   all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
     all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, {#}, Q, W)\<close>
+  \<open>NO_MATCH {#} UE \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, {#}, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
     image_mset_remove1_mset_if)
 
@@ -476,10 +479,14 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S' T' \<and> correct_watching' T \<and>
     set_mset (all_init_lits_of_wl T) =
-    set_mset (all_lits_st T))\<close>
+    set_mset (all_lits_st T) \<and>
+    get_unkept_learned_clss_wl T = {#} \<and>
+    get_subsumed_learned_clauses_wl T = {#} \<and>
+    get_learned_clauses0_wl T = {#}
+)\<close>
 
 definition cdcl_twl_full_restart_wl_GC_prog_post_confl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>cdcl_twl_full_restart_wl_GC_prog_post_confl S T \<longleftrightarrow>
+\<open>cdcl_twl_full_restart_wl_GC_prog_post_confl  S T \<longleftrightarrow>
   (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S' T' \<and>
@@ -562,11 +569,13 @@ lemma all_init_learned_lits_simps_Q:
   \<open>NO_MATCH {#} Q \<Longrightarrow> all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
     all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
   by (auto simp: all_init_lits_of_wl_def all_learned_lits_of_wl_def all_lits_of_mm_def)
-    
+
 lemma in_all_learned_lits_of_wl_addUS:
   \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o,  {#}, x1q, x1r, x1s, x2s)) \<Longrightarrow>
   x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
   \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o,  x1p, x1q, {#}, x1s, x2s)) \<Longrightarrow>
+  x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
+  \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, {#}, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s)) \<Longrightarrow>
   x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
   by (auto simp: all_learned_lits_of_wl_def all_lits_of_mm_union)
 

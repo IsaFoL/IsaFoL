@@ -980,7 +980,7 @@ text \<open>
 inductive remove_one_annot_true_clause :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 remove_irred_trail:
   \<open>remove_one_annot_true_clause (M @ Propagated L C # M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
-     (M @ Propagated L 0 # M', fmdrop C N, D, NE, UE, add_mset (mset (N\<propto>C)) NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
+     (M @ Propagated L 0 # M', fmdrop C N, D, NE, {#}, add_mset (mset (N\<propto>C)) NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
 if
   \<open>get_level (M @ Propagated L C # M') L = 0\<close> and
   \<open>C > 0\<close> and
@@ -988,7 +988,7 @@ if
   \<open>irred N C\<close> |
 remove_red_trail:
   \<open>remove_one_annot_true_clause (M @ Propagated L C # M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
-     (M @ Propagated L 0 # M', fmdrop C N, D, NE, UE, NEk, add_mset (mset (N\<propto>C)) UEk, NS, {#}, N0, {#}, W, Q)\<close>
+     (M @ Propagated L 0 # M', fmdrop C N, D, NE, {#}, NEk, add_mset (mset (N\<propto>C)) UEk, NS, {#}, N0, {#}, W, Q)\<close>
 if
   \<open>get_level (M @ Propagated L C # M') L = 0\<close> and
   \<open>C > 0\<close> and
@@ -996,7 +996,7 @@ if
   \<open>\<not>irred N C\<close> |
 remove_irred:
   \<open>remove_one_annot_true_clause (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
-     (M, fmdrop C N, D, add_mset (mset (N\<propto>C))NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
+     (M, fmdrop C N, D, add_mset (mset (N\<propto>C))NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
 if
   \<open>L \<in> lits_of_l M\<close> and
   \<open>get_level M L = 0\<close> and
@@ -1006,14 +1006,14 @@ if
   \<open>\<forall>L. Propagated L C \<notin> set M\<close> |
 delete:
   \<open>remove_one_annot_true_clause (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
-     (M, fmdrop C N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
+     (M, fmdrop C N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
 if
   \<open>C \<in># dom_m N\<close> and
   \<open>\<not>irred N C\<close> and
   \<open>\<forall>L. Propagated L C \<notin> set M\<close> |
 delete_subsumed:
   \<open>remove_one_annot_true_clause (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q)
-     (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
+     (M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)\<close>
 
 text \<open>Remarks:
   \<^enum> \<^term>\<open>\<forall>L. Propagated L C \<notin> set M\<close> is overkill. However, I am currently unsure how I want to
@@ -1363,8 +1363,6 @@ proof -
        irred = this(4) and L_notin_M = this(5)
     have D: \<open>D = None\<close> and W: \<open>W = {#}\<close>
       using confl upd unfolding S by auto
-    have UE: \<open>UE = UE + mset `# {#}\<close>
-      by simp
     have NE: \<open>NE = NE + mset `# {#}\<close>
       by simp
     have H: \<open>UEk = UEk + mset `# {#}\<close>
@@ -1379,7 +1377,6 @@ proof -
     show ?thesis
       unfolding S T D W
       apply (subst (2) NE)
-      apply (subst (2) UE)
       apply (subst(2) H(1))
       apply (subst(2)H(2))
       apply (rule cdcl_twl_restart_l.intros[where UE'=\<open>{#}\<close>])
@@ -1409,7 +1406,7 @@ proof -
   next
     case (delete_subsumed M N D NE UE NEk UEk NS US N0 U0 W Q)
     have \<open>cdcl_twl_restart_l (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-      (M, N, None, NE + mset `# {#}, UE + mset `# {#}, NEk + mset `# {#}, UEk + mset `# {#},
+      (M, N, None, NE + mset `# {#}, {#}, NEk + mset `# {#}, UEk + mset `# {#},
       NS, {#}, N0, {#}, {#}, Q)\<close>
       by (rule cdcl_twl_restart_l.intros)
         (use lst_invs n_d in \<open>auto dest: no_dup_same_annotD simp: delete_subsumed twl_list_invs_def\<close>)
@@ -1807,7 +1804,7 @@ definition replace_annot_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v twl_st_l
   \<open>replace_annot_l L C =
     (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
       ASSERT(replace_annot_l_pre L C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
-      RES {(M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W)| M'.
+      RES {(M', N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, Q, W)| M'.
        (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
    })\<close>
 
@@ -1841,7 +1838,7 @@ where
 
 definition remove_all_learned_subsumed_clauses :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
 \<open>remove_all_learned_subsumed_clauses = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
-   RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W))\<close>
+   RETURN (M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, Q, W))\<close>
 
 
 lemma decomp_nth_eq_lit_eq:
@@ -2117,7 +2114,7 @@ proof -
         by (auto simp: T M dest!: in_set_definedD)
       have \<open>Ca > 0\<close>
         using that(6) by auto
-      let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, NE, UE,
+      let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, NE, {#},
          add_mset (mset (N \<propto> Ca)) NEk, UEk, NS, {#}, N0, {#}, WS, Q)\<close>
 
       have lev: \<open>get_level (M2 @ Propagated L C # M1) L = 0\<close> and
@@ -2185,7 +2182,7 @@ proof -
       have \<open>Ca > 0\<close>
         using that(6) by auto
       let ?U = \<open>(M2 @ Propagated L 0 # M1, fmdrop Ca N, D, NE,
-        UE, NEk, add_mset (mset (N \<propto> Ca)) UEk, NS, {#}, N0, {#}, WS, Q)\<close>
+        {#}, NEk, add_mset (mset (N \<propto> Ca)) UEk, NS, {#}, N0, {#}, WS, Q)\<close>
 
       have lev: \<open>get_level (M2 @ Propagated L C # M1) L = 0\<close> and
         M1: \<open>length M1 = i\<close>
@@ -2414,7 +2411,7 @@ where
 
 definition mark_garbage_l:: \<open>nat \<Rightarrow>  'v twl_st_l \<Rightarrow> 'v twl_st_l\<close>  where
   \<open>mark_garbage_l = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q).
-  (M, fmdrop C N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, WS, Q))\<close>
+  (M, fmdrop C N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, WS, Q))\<close>
 
 definition can_delete where
   \<open>can_delete S C b = (b \<longrightarrow>
@@ -2449,12 +2446,6 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
     remove_all_learned_subsumed_clauses S
   })\<close>
 
-
-definition mark_to_delete_clauses_l_post where
-  \<open>mark_to_delete_clauses_l_post S T \<longleftrightarrow>
-     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
-       twl_list_invs S \<and> twl_struct_invs S' \<and> get_conflict_l S = None \<and>
-       clauses_to_update_l S = {#})\<close>
 
 lemma mark_to_delete_clauses_l_spec:
   assumes

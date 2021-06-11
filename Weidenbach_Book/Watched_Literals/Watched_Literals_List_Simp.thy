@@ -99,6 +99,14 @@ proof -
     using that by blast
 qed
 
+definition mark_to_delete_clauses_l_post where
+  \<open>mark_to_delete_clauses_l_post S T \<longleftrightarrow>
+     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
+       twl_list_invs S \<and> twl_struct_invs S' \<and> get_conflict_l S = None \<and>
+       clauses_to_update_l S = {#} \<and> get_unkept_learned_clss_l T = {#} \<and>
+    get_subsumed_learned_clauses_l T = {#} \<and>
+    get_learned_clauses0_l T = {#})\<close>
+
 definition cdcl_twl_full_restart_l_prog where
   \<open>cdcl_twl_full_restart_l_prog S = do {
   ASSERT(mark_to_delete_clauses_l_pre S);
@@ -179,7 +187,14 @@ proof -
       by auto
     have list_U: \<open>twl_list_invs U\<close>
       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-     have [simp]:
+    have \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>
+      get_unkept_learned_clss_l V' = {#} \<and>
+      get_subsumed_learned_clauses_l V' = {#} \<and>
+      get_learned_clauses0_l V' = {#}\<close> for V'
+      by (subst (asm)tranclp_unfold_end)
+       (auto simp: remove_one_annot_true_clause.simps)
+
+     then have [simp]:
       \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
       unfolding mark_to_delete_clauses_l_post_def
       using UV struct_invs_V list_U confl_U upd_U

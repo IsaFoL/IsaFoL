@@ -693,10 +693,10 @@ lemma clss_size_corr_restart_intro3[intro]:
     clss_size_resetU0_def clss_size_resetUE_def)
 
 lemma twl_st_heur_restart_ana_US_empty:
-  \<open>NO_MATCH {#} US \<Longrightarrow> NO_MATCH {#} U0 \<Longrightarrow> ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  \<open>NO_MATCH {#} US \<Longrightarrow> NO_MATCH {#} U0 \<Longrightarrow>  NO_MATCH {#} UE \<Longrightarrow> ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena), M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena), M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, W, Q)
+       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena), M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)
        \<in> twl_st_heur_restart_ana r\<close>
   by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
     intro: clss_size_corr_simp)
@@ -704,7 +704,7 @@ lemma twl_st_heur_restart_ana_US_empty:
 fun equality_except_trail_empty_US_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
 \<open>equality_except_trail_empty_US_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)
      (M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', WS', Q') \<longleftrightarrow>
-  N = N' \<and> D = D' \<and> NE = NE' \<and> NEk = NEk' \<and> UEk = UEk' \<and> NS = NS' \<and> US = {#} \<and> UE = UE' \<and>
+  N = N' \<and> D = D' \<and> NE = NE' \<and> NEk = NEk' \<and> UEk = UEk' \<and> NS = NS' \<and> US = {#} \<and> UE = {#} \<and>
   N0' = N0 \<and> U0 = {#} \<and> WS = WS' \<and> Q = Q'\<close>
 
 lemma equality_except_conflict_wl_get_clauses_wl:
@@ -752,7 +752,7 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
     unfolding replace_annot_wl_pre_def replace_annot_l_pre_def
     apply (clarify dest!: split_list[of \<open>Propagated _ _\<close>])
     apply (rule RETURN_SPEC_refine)
-    apply (rule_tac x = \<open>(ys @ Propagated L 0 # zs, x1a, x1b, x1c, x1d, x1e, x1f, x1g, {#}, x1i, {#}, x1k, x2k)\<close> in exI)
+    apply (rule_tac x = \<open>(ys @ Propagated L 0 # zs, x1a, x1b, x1c, {#}, x1e, x1f, x1g, {#}, x1i, {#}, x1k, x2k)\<close> in exI)
     apply (intro conjI)
     prefer 2
     apply (rule_tac x = \<open>ys @ Propagated L 0 # zs\<close> in exI)
@@ -1137,6 +1137,7 @@ proof -
   have Sy': \<open>(empty_US_heur S, empty_US_heur_wl y) \<in> twl_st_heur_restart_ana' r u\<close>
     using Sy by (cases y; cases S; auto simp: twl_st_heur_restart_ana_def
       empty_US_heur_wl_def twl_st_heur_restart_def empty_US_heur_def clss_size_resetUE_def
+      clss_size_lcountUEk_def
       clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def clss_size_resetU0_def
       learned_clss_count_def clss_size_def clss_size_lcountUS_def clss_size_lcountUE_def)
   show ?thesis
@@ -1151,7 +1152,7 @@ proof -
       apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
       by refine_vcg
        (auto simp add: mop_isa_length_trail_def twl_st_heur_restart_ana_def
-        twl_st_heur_restart_def learned_clss_count_def clss_size_resetUS_def
+        twl_st_heur_restart_def learned_clss_count_def clss_size_resetUS_def clss_size_lcountUEk_def
         clss_size_lcount_def clss_size_lcountU0_def clss_size_resetU0_def clss_size_resetUE_def
       learned_clss_count_def clss_size_def clss_size_lcountUS_def clss_size_lcountUE_def)
     subgoal
@@ -1265,12 +1266,8 @@ lemma mark_garbage_heur4_remove_and_add_cls_l:
   apply (cases S; cases T)
   apply refine_rcg
   subgoal
-    by  (auto simp: twl_st_heur_restart_def arena_lifting
-      valid_arena_extra_information_mark_to_delete'
-      all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
-      learned_clss_l_l_fmdrop_irrelev twl_st_heur_restart_ana_def ASSERT_refine_left
-      size_Diff_singleton red_in_dom_number_of_learned_ge1 intro!: ASSERT_leI
-    dest: in_vdom_m_fmdropD)
+    by (auto simp add: twl_st_heur_restart_def twl_st_heur_restart_ana_def arena_lifting
+      dest!: clss_size_corr_restart_rew multi_member_split simp: ran_m_def)
   subgoal
     supply [[goals_limit=1]]
     by (auto simp: learned_clss_count_def)
@@ -1720,11 +1717,11 @@ lemma WHILEIT_refine_with_invariant_and_break:
   done
 
 definition rewatch_spec :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, WS).
-  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', N0', U0', Q', WS').
-     (M', N', D', NE', UE', NS', US', N0', U0', Q') = (M, N, D, NE, UE, NS, {#}, N0, U0, Q) \<and>
-     correct_watching' (M, N', D, NE, UE, NS', US, N0, U0, Q', WS') \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NS', US, N0, U0, Q', WS')))\<close>
+\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', Q', WS').
+     (M', N', D', NE', UE', NEk', UEk', NS', US', N0', U0', Q') = (M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, Q) \<and>
+     correct_watching' (M, N', D, NE, UE, NEk', UEk', NS', US, N0, U0, Q', WS') \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NEk', UEk', NS', US, N0, U0, Q', WS')))\<close>
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0':
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, NEk, UEk, ae, af, N0, U0, Q, b) \<Longrightarrow>
@@ -1734,6 +1731,12 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0':
 lemma RES_RES11_RETURN_RES:
    \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l). RES (f a b c d e g h i j k l)) =
    RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l). f a b c d e g h i j k l) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma RES_RES13_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). RES (f a b c d e g h i j k l m n)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j, k, l, m, n). f a b c d e g h i j k l m n) ` A))\<close>
   by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
     split: prod.splits)
 

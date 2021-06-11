@@ -892,7 +892,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty \<A>  cach \<and>
     out_learned M D outl \<and>
-    clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 lcount \<and>
+    clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     isasat_input_bounded \<A>  \<and>
@@ -967,7 +967,7 @@ proof -
     subgoal by (auto simp: twl_st_heur_restart_def)
     subgoal by (auto simp: twl_st_heur_restart_def clss_size_corr_def ran_m_def
         clss_size_def
-      dest!: multi_member_split)
+      dest!: multi_member_split clss_size_corr_restart_rew)
     subgoal
       by (auto simp: twl_st_heur_restart_def)
     subgoal
@@ -997,10 +997,9 @@ proof -
         \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] clss_size_corr_restart_def get_learned_count.simps
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
         clss_size_decr_lcount_def)
-      apply (clarsimp split: if_splits simp:
+      apply (auto split: if_splits simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
-        clss_size_lcountU0_def clss_size_lcountUE_def)
-      apply linarith
+        clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
      done
    subgoal by simp
    subgoal by (auto simp: twl_st_heur_restart_def all_init_atms_st_def)
@@ -1018,10 +1017,9 @@ proof -
        \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def get_learned_count.simps
         clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def
         clss_size_decr_lcount_def)
-      apply (clarsimp split: if_splits simp:
+      apply (auto split: if_splits simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
-        clss_size_lcountU0_def clss_size_lcountUE_def)
-      apply linarith
+        clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
      done
    subgoal by simp
    subgoal by simp
@@ -1044,10 +1042,9 @@ proof -
        set_conflict_to_false get_learned_count.simps
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
         clss_size_decr_lcount_def)
-      apply (clarsimp split: if_splits simp:
+      apply (auto split: if_splits simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
-        clss_size_lcountU0_def clss_size_lcountUE_def)
-      apply linarith
+        clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
      done
    subgoal  for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
      x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y E x x' x1z x2z x1aa x2aa x1ab x2ab x1ac x2ac x1ad
@@ -1064,7 +1061,7 @@ proof -
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
        set_conflict_to_false)
-     apply (clarsimp split: if_splits)
+     apply (auto split: if_splits)
      done
    done
 qed

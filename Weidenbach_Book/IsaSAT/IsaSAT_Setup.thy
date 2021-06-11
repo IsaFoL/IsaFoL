@@ -222,7 +222,8 @@ lemma twl_st_heur_state_simp:
 
 definition learned_clss_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
-    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) +
+  clss_size_lcountUE (get_learned_count S) + clss_size_lcountUEk (get_learned_count S) +
+  clss_size_lcountUS (get_learned_count S) +
     clss_size_lcountU0 (get_learned_count S)\<close>
 
 lemma get_learned_count_learned_clss_countD:
@@ -1051,7 +1052,7 @@ definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_he
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
        restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu), vdom, avdom,
-       clss_size_resetUS lcount, opts, old_arena)
+       lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -1218,13 +1219,13 @@ lemma clause_not_marked_to_delete_heur_alt_def:
 
 
 lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrightarrow>
-                      learned_clss_count T \<le>
+                      learned_clss_count T=
                       size (get_learned_clss_wl Ta) +
                       size (get_unit_learned_clss_wl Ta) +
                      size (get_subsumed_learned_clauses_wl Ta) +
                      size (get_learned_clauses0_wl Ta)\<close>
   by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def clss_size_corr_def
-    clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def
+    clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
     get_learned_clss_wl_def clss_size_lcountU0_def)
 
 

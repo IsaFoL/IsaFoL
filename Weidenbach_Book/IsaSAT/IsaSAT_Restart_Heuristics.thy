@@ -126,11 +126,13 @@ proof -
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close>]
 	vdom_m_cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+        find_theorems clss_size_corr clss_size_corr_restart
       apply -
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_ana_def all_atms_st_def
-        twl_st_heur_restart_def all_init_atms_st_def del: isasat_input_nempty_def)
+      by (auto simp add: twl_st_heur_def twl_st_heur_restart_ana_def all_atms_st_def
+        clss_size_corr_restart_def clss_size_corr_def
+        twl_st_heur_restart_def all_init_atms_st_def simp del: isasat_input_nempty_def)
     subgoal for U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
@@ -298,7 +300,7 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
       RETURN V
     }
   }\<close>
-thm restart_prog_wl_def
+
 
 lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
 \<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog S0 = do {
