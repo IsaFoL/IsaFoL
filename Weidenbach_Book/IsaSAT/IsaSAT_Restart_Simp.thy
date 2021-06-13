@@ -6,7 +6,12 @@ chapter \<open>Full CDCL with Restarts\<close>
 
 definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
   \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 = (\<lambda>(brk, T, last_GC, last_Rephase).
-    (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
+    (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur_loop \<and>
+      cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' (brk, T', last_GC, last_Rephase)))\<close>
+
+definition cdcl_twl_stgy_restart_abs_wl_heur_inv2 where
+  \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv2 S\<^sub>0 = (\<lambda>(brk, T, last_GC, last_Rephase).
+    (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur_loop \<and> (T, T') \<in> twl_st_heur_loop \<and>
       cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' (brk, T', last_GC, last_Rephase)))\<close>
 
 (*TODO FIX rephasing probably does not work after GC*)
@@ -79,10 +84,28 @@ proof -
     done
 qed
 
+lemma cdcl_twl_stgy_restart_abs_wl_inv_NoneD:
+  \<open>cdcl_twl_stgy_restart_abs_wl_inv y (False, x1a, x1b, x1c, x2c) \<Longrightarrow>
+  get_conflict_wl x1a = None\<close>
+  unfolding cdcl_twl_stgy_restart_abs_wl_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
+    prod.simps cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_prog_int_inv_def
+  unfolding not_False_eq_True simp_thms
+  apply normalize_goal+
+  by simp
+
+(*TODO Move*)
+lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
+  \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur_loop \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
+  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def
+     split: option.splits)
 
 lemma cdcl_twl_stgy_restart_prog_wl_heur_cdcl_twl_stgy_restart_prog_wl_D:
   \<open>(cdcl_twl_stgy_restart_prog_wl_heur, cdcl_twl_stgy_restart_prog_wl) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur_loop\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>(x1e, x1a) \<in> twl_st_heur \<Longrightarrow> (x1e, x1a)
        \<in> {(S, T).
@@ -96,8 +119,8 @@ proof -
         restart_prog_wl_D_heur_restart_prog_wl_D2[THEN fref_to_Down_curry4]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
-        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>])
-    subgoal by (auto simp: learned_clss_count_twl_st_heur)
+        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur_loop \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>])
+    subgoal by (auto simp: learned_clss_count_twl_st_heur intro!: twl_st_heur_twl_st_heur_loopD)
     subgoal for x y xa x'
       unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def prod_rel_fst_snd_iff case_prod_beta
       apply (rule_tac x = \<open>y\<close>  in exI)
@@ -105,7 +128,9 @@ proof -
       apply (cases x')
       by auto
     subgoal by auto
-    subgoal by auto
+    subgoal
+      by (rule twl_st_heur_loop_twl_st_heurD)
+       (auto dest: cdcl_twl_stgy_restart_abs_wl_inv_NoneD)
     subgoal by auto
     subgoal by auto
     subgoal unfolding get_conflict_wl_is_None
@@ -119,6 +144,16 @@ definition fast_number_of_iterations :: \<open>_ \<Rightarrow> bool\<close> wher
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
    [simp]: \<open>isasat_fast_slow S = RETURN S\<close>
+
+definition convert_to_full_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  [simp]: \<open>convert_to_full_state_wl_heur S = RETURN S\<close>
+definition convert_to_full_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  [simp]: \<open>convert_to_full_state_wl S = RETURN S\<close>
+
+lemma convert_to_full_state_wl_heur:
+  \<open>(S, T) \<in> twl_st_heur_loop \<Longrightarrow> get_conflict_wl T = None \<Longrightarrow>
+  (convert_to_full_state_wl_heur S, convert_to_full_state_wl T) \<in> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  by (auto intro!: nres_relI frefI twl_st_heur_loop_twl_st_heurD)
 
 definition cdcl_twl_stgy_restart_prog_early_wl_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -148,7 +183,7 @@ where
         get_old_arena T = []);
     if \<not>brk then do {
        T \<leftarrow> isasat_fast_slow T;
-       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv T\<^esup>
+       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv2 T\<^esup>
 	         (\<lambda>(brk, _). \<not>brk)
 	         (\<lambda>(brk, S, last_GC, last_Restart, n).
 	         do {
@@ -163,13 +198,57 @@ where
     else isasat_fast_slow T
   }\<close>
 
+lemma cdcl_twl_stgy_restart_prog_early_wl_heur_alt_def:
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_heur S\<^sub>0 = do {
+    ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
+    (ebrk, brk, T, n) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, last_GC, last_Restart, n).
+       cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 (brk, T, last_GC, last_Restart, n) \<and>
+        (\<not>ebrk \<longrightarrow>isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
+      do {
+        ASSERT(\<not>brk \<and> \<not>ebrk);
+        ASSERT(length (get_clauses_wl_heur S) \<le> uint64_max);
+        S \<leftarrow> convert_to_full_state_wl_heur S;
+        T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        (T, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
+	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
+        RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, n)
+      })
+      (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
+    ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
+        get_old_arena T = []);
+    if \<not>brk then do {
+       T \<leftarrow> isasat_fast_slow T;
+       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv2 T\<^esup>
+	         (\<lambda>(brk, _). \<not>brk)
+	         (\<lambda>(brk, S, last_GC, last_Restart, n).
+	         do {
+                   S \<leftarrow> convert_to_full_state_wl_heur S;
+	           T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+	           (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+	           (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
+	           RETURN (brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
+	         })
+	         (False, T, n);
+       RETURN T
+    }
+    else isasat_fast_slow T
+                     }\<close>
+    unfolding convert_to_full_state_wl_heur_def Let_def cdcl_twl_stgy_restart_prog_early_wl_heur_def
+      bind_to_let_conv
+   by auto
 
 lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
   assumes r: \<open>r \<le> uint64_max\<close>
   shows \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl) \<in>
-   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_loop\<rangle>nres_rel\<close>
 proof -
-thm cdcl_twl_stgy_restart_prog_early_wl_def
   have cdcl_twl_stgy_restart_prog_early_wl_alt_def:
   \<open>cdcl_twl_stgy_restart_prog_early_wl S\<^sub>0 = do {
       ebrk \<leftarrow> RES UNIV;
@@ -177,6 +256,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
 	        (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
 	        (\<lambda>(_, brk, S, last_GC, last_Res, n).
 	        do {
+                  S \<leftarrow> convert_to_full_state_wl S;
 	          T \<leftarrow> unit_propagation_outer_loop_wl S;
 	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	          (T, last_GC, last_Res, n) \<leftarrow> restart_prog_wl T last_GC last_Res n brk;
@@ -190,7 +270,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
 	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv T\<^esup>
 	  (\<lambda>(brk, _). \<not>brk)
 	  (\<lambda>(brk, S, last_GC, last_Res, n).
-	  do {
+    	do {
+            S \<leftarrow> convert_to_full_state_wl S;
 	    T \<leftarrow> unit_propagation_outer_loop_wl S;
 	    (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	    (T, last_GC, last_Res, n) \<leftarrow> restart_prog_wl T last_GC last_Res n brk;
@@ -201,7 +282,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       }
       else RETURN T
     }\<close> for S\<^sub>0
-      unfolding cdcl_twl_stgy_restart_prog_early_wl_def nres_monad1
+      unfolding cdcl_twl_stgy_restart_prog_early_wl_def nres_monad1 bind_to_let_conv
       by (auto intro!: bind_cong)
   have [refine0]: \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
@@ -215,14 +296,20 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     show ?thesis
       unfolding isasat_fast_slow_def by auto
   qed
-  have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur \<Longrightarrow>
-    (x1e, x1b)
-    \<in> twl_st_heur''
+
+  let ?R = \<open>{((ebrk, brk, T, last_GC, last_Rephase, n),
+         (ebrk', brk', T', last_GC', last_Rephase', n')).
+	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur_loop \<and> n = n' \<and>
+              last_GC' = last_GC \<and>  last_Rephase' = last_Rephase \<and>
+	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>
+  have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur_loop \<Longrightarrow> get_conflict_wl x1b = None \<Longrightarrow>
+    (convert_to_full_state_wl_heur x1e) \<le>\<Down>
+    (twl_st_heur''
         (dom_m (get_clauses_wl x1b))
         (length (get_clauses_wl_heur x1e))
-        (get_learned_count x1e)\<close>
+        (get_learned_count x1e)) (convert_to_full_state_wl x1b)\<close>
     for x1e x1b
-    by (auto simp: twl_st_heur'_def)
+    by (auto simp: twl_st_heur'_def intro!: nres_relI twl_st_heur_loop_twl_st_heurD)
   have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
     (x1e, x1b)
     \<in> {(S, Taa).
@@ -231,7 +318,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
           learned_clss_count S = clss_size_allcount lcount}\<close>
     for x1e x1b r \<D> lcount
     by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
-      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
+      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
+      split: prod.splits)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
       twl_st_heur'''' (length (get_clauses_wl_heur x1e) + MAX_HEADER_SIZE+1 + uint32_max div 2) \<Longrightarrow>
@@ -245,68 +333,33 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       bool_rel\<close> for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e T Ta xb
        x'a x1f x2f x1g x2g
     by auto
-  (* have abs_inv: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
-   *   (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)} \<Longrightarrow>
-   *   (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
-   *   case x'a of
-   *   (brk, xa, xb) \<Rightarrow>
-   *     cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
-   *   x2f = (x1g, x2g) \<Longrightarrow>
-   *   xb = (x1f, x2f) \<Longrightarrow>
-   *   cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
-   *  for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
-   *      x1e x2e T Ta xb x'a x1f x2f x1g x2g
-   *   unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce *)
-  have H''': \<open>(((((x2k, x1h), x1i), x2i), x1k), (((x2j, x1c), x1d), x2d), x1j)
-        \<in> twl_st_heur''''u (length (get_clauses_wl_heur x2k)) (learned_clss_count x2k) \<times>\<^sub>f
-          nat_rel \<times>\<^sub>f
-          nat_rel \<times>\<^sub>f
-          nat_rel \<times>\<^sub>f
-          bool_rel\<close>
-    if 
-      \<open>(x, y) \<in> twl_st_heur''' r\<close> and
-      \<open>(ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)}\<close> and
-      \<open>ebrka \<in> UNIV\<close> and
-      \<open>(xa, x')
-       \<in> {((ebrk, brk, T, last_GC, last_Rephase, n), ebrk', brk', T',
-          last_GC', last_Rephase', n').
-          ebrk = ebrk' \<and>
-          brk = brk' \<and>
-          (T, T') \<in> twl_st_heur \<and>
-          n = n' \<and>
-          last_GC' = last_GC \<and>
-          last_Rephase' = last_Rephase \<and>
-          (\<not> ebrk \<longrightarrow> isasat_fast T) \<and>
-          length (get_clauses_wl_heur T) \<le> uint64_max}\<close> and
-      \<open>(cdcl_twl_stgy_restart_abs_wl_inv y \<circ> snd) x'\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x2b = (x1c, x2c)\<close> and
-      \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>x' = (x1, x2)\<close> and
-      \<open>x2h = (x1i, x2i)\<close> and
-      \<open>x2g = (x1h, x2h)\<close> and
-      \<open>x2f = (x1g, x2g)\<close> and
-      \<open>x2e = (x1f, x2f)\<close> and
-      \<open>xa = (x1e, x2e)\<close> and
-      \<open>\<not> x1f \<and> \<not> x1e\<close> and
-      \<open>length (get_clauses_wl_heur x1g) \<le> uint64_max\<close> and
-      \<open>(T, Ta)
-       \<in> twl_st_heur'' (dom_m (get_clauses_wl x1b))
-          (length (get_clauses_wl_heur x1g)) lcount\<close> and
-      \<open>length (get_clauses_wl_heur T) \<le> uint64_max\<close> and
-      \<open>length (get_clauses_wl_heur T) = length (get_clauses_wl_heur x1g)\<close> and
-      \<open>(xb, x'a)
-       \<in> bool_rel \<times>\<^sub>f
-         twl_st_heur''''uu
-          (length (get_clauses_wl_heur x1g) + 3 + 1 + uint32_max div 2)
-          lcount'\<close> and
-      \<open>x'a = (x1j, x2j)\<close> and
-      \<open>xb = (x1k, x2k)\<close> and
-      \<open>length (get_clauses_wl_heur x2k) \<le> uint64_max\<close>
-    for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
-      x2f x1g x2g x1h x2h x1i x2i T Ta xb x'a x1j x2j x1k x2k lcount lcount'
-    using that by auto
+
+  have H''':
+    \<open>\<And>x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i S Sa T Ta
+    xb x'a x1j x2j x1k x2k.
+    (xa, x') \<in> ?R \<Longrightarrow>
+    x2c = (x1d, x2d) \<Longrightarrow>
+    x2b = (x1c, x2c) \<Longrightarrow>
+    x2a = (x1b, x2b) \<Longrightarrow>
+    x2 = (x1a, x2a) \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x2h = (x1i, x2i) \<Longrightarrow>
+    x2g = (x1h, x2h) \<Longrightarrow>
+    x2f = (x1g, x2g) \<Longrightarrow>
+    x2e = (x1f, x2f) \<Longrightarrow>
+    xa = (x1e, x2e) \<Longrightarrow>
+    \<not> x1f \<and> \<not> x1e \<Longrightarrow>
+    length (get_clauses_wl_heur x1g) \<le> uint64_max \<Longrightarrow>
+    (xb, x'a)
+    \<in> bool_rel \<times>\<^sub>f
+      twl_st_heur''''uu (length (get_clauses_wl_heur x1g) + 3 + 1 + uint32_max div 2)
+    (Suc (clss_size_allcount (get_learned_count x1g))) \<Longrightarrow>
+    x'a = (x1j, x2j) \<Longrightarrow>
+    xb = (x1k, x2k) \<Longrightarrow>
+    (((((x2k, x1h), x1i), x2i), x1k), (((x2j, x1c), x1d), x2d), x1j)
+    \<in> twl_st_heur''''u (length (get_clauses_wl_heur x2k))
+      (Suc (clss_size_allcount (get_learned_count x1g))) \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close>
+    by simp
 
   have H4: \<open>(((((x2q, x1n), x1o), x2o), x1q), (((x2p, x1j), x1k), x2k), x1p)
         \<in> twl_st_heur''''u (length (get_clauses_wl_heur x2q)) (learned_clss_count x2q) \<times>\<^sub>f
@@ -324,7 +377,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       \<open>x2e = (x1f, x2f)\<close> and
       \<open>xa = (x1e, x2e)\<close> and
       \<open>(xb, x'a)
-       \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f (nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f nat_rel)))\<close> and
+       \<in> bool_rel \<times>\<^sub>f (twl_st_heur_loop \<times>\<^sub>f (nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f nat_rel)))\<close> and
       \<open>x2j = (x1k, x2k)\<close> and
       \<open>x2i = (x1j, x2j)\<close> and
       \<open>x2h = (x1i, x2i)\<close> and
@@ -347,20 +400,17 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
 
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp] learned_clss_count_twl_st_heur[simp]
-    unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
+    unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_alt_def
       cdcl_twl_stgy_restart_prog_early_wl_alt_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry4]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
-        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
-        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
-      WHILEIT_refine[where R = \<open>{((ebrk, brk, T, last_GC, last_Rephase, n),
-         (ebrk', brk', T', last_GC', last_Rephase', n')).
-	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
-              last_GC' = last_GC \<and>  last_Rephase' = last_Rephase \<and>
-	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>])
-    subgoal using r by auto
+      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
+      convert_to_full_state_wl_heur
+        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur_loop \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+      WHILEIT_refine[where R = \<open>?R\<close>])
+    subgoal using r by (auto intro!: twl_st_heur_twl_st_heur_loopD)
     subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
       unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def prod.case prod_rel_fst_snd_iff
       apply (rule_tac x=y in exI)
@@ -373,7 +423,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     subgoal by auto
     subgoal by fast
     subgoal by auto
-    apply (rule twl_st_heur''; auto; fail)
+      apply (rule twl_st_heur''; auto dest!: cdcl_twl_stgy_restart_abs_wl_inv_NoneD; fail)
+    apply assumption
     subgoal by auto
     subgoal by auto
     apply (rule twl_st_heur'''; assumption)
@@ -382,7 +433,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     subgoal unfolding get_conflict_wl_is_None
       by (auto simp: get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
     subgoal by auto
-    subgoal by (subst (asm)(2) twl_st_heur_def) force
+    subgoal by (subst (asm)twl_st_heur_loop_def) force
     subgoal by auto
     subgoal by auto
     subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
@@ -394,7 +445,8 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       apply (case_tac xb; case_tac x'a)
       by simp
     subgoal by auto
-    apply (rule twl_st_heur''; auto; fail)
+      apply (rule twl_st_heur''; auto dest!: cdcl_twl_stgy_restart_abs_wl_inv_NoneD; fail)
+      apply assumption
     apply (rule twl_st_heur'''; assumption)
     apply (rule H4; assumption)
     subgoal unfolding get_conflict_wl_is_None
@@ -432,7 +484,7 @@ lemma (in -) isasat_fast_alt_def:
      clss_size_allcount lcount < uint64_max))\<close>
   unfolding isasat_fast_def
   by (auto intro!: ext simp: learned_clss_count_def clss_size_allcount_def clss_size_lcount_def
-    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcountU0_def)
+    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcountU0_def clss_size_lcountUEk_def)
 
 definition isasat_fast_relaxed :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
@@ -471,7 +523,8 @@ where
 (*TODO Move*)
 lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) = learned_clss_count S\<close>
     by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
-      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
+      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
+      split: prod.splits)
 
 lemma cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D:
   assumes r: \<open>r \<le> uint64_max\<close>
@@ -531,7 +584,8 @@ proof -
           learned_clss_count S = clss_size_allcount lcount}\<close>
     for x1e x1b r \<D> lcount
     by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
-      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def split: prod.splits)
+      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
+      split: prod.splits)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
       twl_st_heur'''' (length (get_clauses_wl_heur x1e) + MAX_HEADER_SIZE+1 + uint32_max div 2) \<Longrightarrow>

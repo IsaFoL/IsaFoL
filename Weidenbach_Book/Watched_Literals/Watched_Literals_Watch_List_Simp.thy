@@ -355,7 +355,9 @@ proof -
    subgoal by auto
     subgoal for S T U V
       unfolding cdcl_twl_stgy_restart_abs_wl_inv_def case_prod_beta
-      by (fastforce simp: prod_rel_fst_snd_iff)
+      apply (rule_tac x= \<open>T\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd V)\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -385,8 +387,10 @@ proof -
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal by auto
     subgoal for x y ebrk ebrka xa x'
-      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-      by (fastforce simp: prod_rel_fst_snd_iff)
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>y\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
@@ -428,16 +432,23 @@ proof -
        cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
        cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
      subgoal by auto
-    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-       by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal for x y ebrk ebrka xa x'
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>y\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      by simp
      subgoal by auto
     subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
      subgoal by auto
      subgoal by auto
      subgoal by (auto simp: correct_watching_correct_watching)
-    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-      by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+    x1f x2f x1g x2g x1h x2h x1i x2i xb x'a
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      apply (rule_tac x= \<open>(fst (snd x'a))\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by auto
     subgoal by auto

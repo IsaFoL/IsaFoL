@@ -119,9 +119,9 @@ proof -
     \<in> {(S, Taa).
           (S, Taa) \<in> twl_st_heur \<and>
           length (get_clauses_wl_heur S) = r \<and>
-          learned_clss_count S = (\<lambda>(a,b,c,d). a + b + c + d) (lcount)}\<close>
+          learned_clss_count S = (\<lambda>(a,b,c,d,e). a + b + c + d+e) (lcount)}\<close>
     for x1e x1b r \<D> lcount
-    by (auto simp: twl_st_heur'_def learned_clss_count_def
+    by (auto simp: twl_st_heur'_def learned_clss_count_def clss_size_lcountUEk_def
       clss_size_lcountUE_def clss_size_lcountU0_def clss_size_lcount_def clss_size_lcountUS_def
       split: prod.splits)
   have H: \<open>SPEC (\<lambda>_::bool. True) = RES UNIV\<close> by auto

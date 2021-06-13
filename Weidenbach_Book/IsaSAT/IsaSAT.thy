@@ -68,23 +68,6 @@ lemma cdcl_twl_stgy_restart_prog_bounded_spec: \<open>twl_struct_invs S \<Longri
   apply (rule cdcl_twl_stgy_prog_bounded_spec; assumption?)
   by auto
 
-(* find_theorems cdcl_twl_stgy_restart_prog_bounded
- * lemma cdcl_twl_stgy_restart_restart_prog_early_spec: \<open>twl_struct_invs S \<Longrightarrow>
- *   twl_stgy_invs S \<Longrightarrow>
- *   clauses_to_update S = {#} \<Longrightarrow>
- *   get_conflict S = None \<Longrightarrow>
- *   cdcl_twl_stgy_restart_prog_early S \<le> conclusive_TWL_run S\<close>
- *   apply (rule order_trans)
- *   apply (rule cdcl_twl_stgy_prog_early_spec; assumption?)
- *   unfolding conclusive_TWL_run_def twl_restart_def
- *   by auto *)
-(*
-lemma distinct_nat_of_uint32[iff]:
-  \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
-  \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
-  using distinct_image_mset_inj[of nat_of_uint32]
-  by (auto simp: inj_on_def distinct_map)
-*)
 lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
   by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.cases cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps)
@@ -128,33 +111,6 @@ lemma rtranclp_pcdcl_entailed_by_init:
   by (induction rule: rtranclp_induct)
    (auto dest!: pcdcl_entailed_by_init
     intro: rtranclp_pcdcl_all_struct_invs)
-
-lemma pcdcl_restart_entailed_by_init:
-  assumes \<open>pcdcl_restart S T\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  apply (induction rule: pcdcl_restart.induct)
-  subgoal
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      subset_mset.le_iff_add ac_simps)
-  subgoal
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      subset_mset.le_iff_add ac_simps)
-  done
-
-lemma pcdcl_restart_only_entailed_by_init:
-  assumes \<open>pcdcl_restart_only S T\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  apply (induction rule: pcdcl_restart_only.induct)
-  subgoal
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      subset_mset.le_iff_add ac_simps)
-  done
 
 lemma pcdcl_inprocessing_entailed_by_init:
   \<open>pcdcl_inprocessing S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
@@ -540,7 +496,7 @@ proof (rule RES_refine)
 qed
 
 definition init_state_l :: \<open>'v twl_st_l_init\<close> where
-  \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
+  \<open>init_state_l = (([], fmempty, None, {#}, {#},{#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
 
 definition to_init_state_l :: \<open>nat twl_st_l_init \<Rightarrow> nat twl_st_l_init\<close> where
   \<open>to_init_state_l S = S\<close>
@@ -1113,7 +1069,8 @@ proof -
     subgoal for b ba T Ta
       unfolding all_clss_lf_ran_m[symmetric] image_mset_union
       by (cases T; cases Ta)
-       (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+        (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset'
+        , auto simp: ac_simps)
     subgoal for b ba T Ta
       by (cases T; cases Ta)
         (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
@@ -1133,7 +1090,8 @@ proof -
           init_dt_spec0_def)
     subgoal for b ba _ _ _ _ T Ta
       unfolding all_clss_lf_ran_m[symmetric] image_mset_union
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset'
+        , auto simp: ac_simps)
     subgoal for b ba _ _ _ _ T Ta
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
     subgoal for b ba _ _ _ _ T Ta
@@ -1147,7 +1105,8 @@ proof -
     subgoal by auto
     subgoal for b ba T Ta
       unfolding all_clss_lf_ran_m[symmetric] image_mset_union
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset'
+        , auto simp: ac_simps)
     subgoal for b ba T Ta
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
     subgoal for b ba T Ta
@@ -1174,7 +1133,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
         T \<leftarrow> rewatch_st (from_init_state T);
         if get_conflict_wl T \<noteq> None
         then RETURN T
-        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined))
+        else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined))
         else do {
 	  ASSERT (extract_atms_clss CS {} \<noteq> {});
 	  ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
@@ -1195,7 +1154,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
           T \<leftarrow> rewatch_st (from_init_state T);
           if get_conflict_wl T \<noteq> None
           then RETURN T
-          else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#},\<lambda>_. undefined))
+          else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#},\<lambda>_. undefined))
           else do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
@@ -1207,7 +1166,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
         } else do {
           if get_conflict_wl T \<noteq> None
           then RETURN T
-          else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#},\<lambda>_. undefined))
+          else if CS = [] then RETURN (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#},\<lambda>_. undefined))
           else do {
             ASSERT (extract_atms_clss CS {} \<noteq> {});
             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
@@ -1319,7 +1278,8 @@ proof -
       apply (simp only: prod.case fst_conv)
       apply normalize_goal+
       apply (rule specify_left)
-      apply (rule_tac M =aa and N=ba and C=c and NE=d and UE=e and NS=f and US=g and Q=j in
+      apply (rule_tac M =aa and N=ba and C=c and NE=d and UE=e and NEk=f and UEk=g and NS=h and
+        US=i and Q=l in
 	  rewatch_correctness[OF _ init_dt_wl_spec_rewatch_pre])
       subgoal by rule
       apply (assumption)
@@ -1334,7 +1294,7 @@ qed
 lemma init_dt_wl_pre:
   shows \<open>init_dt_wl_pre CS (to_init_state init_state_wl)\<close>
   unfolding init_dt_wl_pre_def to_init_state_def init_state_wl_def
-  apply (rule exI[of _ \<open>(([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>])
+  apply (rule exI[of _ \<open>(([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>])
   apply (intro conjI)
    apply (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def)[]
   unfolding init_dt_pre_def
@@ -1414,8 +1374,8 @@ proof -
       apply (subst le_wa)
       apply (auto simp: rewatch_st_def from_init_state_def intro!: bind_refine[of _ Id])
       done
-    have [intro]: \<open>correct_watching_init (af, ag, None, ai, aj, NS, US, N0, U0, {#}, ba) \<Longrightarrow>
-       blits_in_\<L>\<^sub>i\<^sub>n (af, ag, ah, ai, aj, NS, US, N0, U0, ak, ba)\<close> for af ag ah ai aj ak ba NS US N0 U0
+    have [intro]: \<open>correct_watching_init (af, ag, None, ai, aj, NEk, UEk, NS, US, N0, U0, {#}, ba) \<Longrightarrow>
+       blits_in_\<L>\<^sub>i\<^sub>n (af, ag, ah, ai, aj, NEk, UEk, NS, US, N0, U0, ak, ba)\<close> for af ag ah ai aj ak ba NS US N0 U0 NEk UEk
        by (auto simp: correct_watching_init.simps blits_in_\<L>\<^sub>i\<^sub>n_def
          all_blits_are_in_problem_init.simps all_lits_st_def all_lits_def
 	 in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_all_lits_of_mm_ain_atms_of_iff
@@ -1480,7 +1440,7 @@ proof -
   qed
 
   have conflict_during_init:
-    \<open>(([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined), fst init_state_l)
+    \<open>(([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined), fst init_state_l)
        \<in> {(T, T'). (T, T') \<in> state_wl_l None}\<close>
     by (auto simp: init_state_l_def state_wl_l_def)
 
@@ -1885,7 +1845,8 @@ definition IsaSAT_use_fast_mode where
 
 definition learned_clss_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat\<close> where
   \<open>learned_clss_count_init S = clss_size_lcount (get_learned_count_init S) +
-    clss_size_lcountUE (get_learned_count_init S) + clss_size_lcountUS (get_learned_count_init S) +
+    clss_size_lcountUE (get_learned_count_init S) + 
+    clss_size_lcountUEk (get_learned_count_init S) + clss_size_lcountUS (get_learned_count_init S) +
     clss_size_lcountU0 (get_learned_count_init S)\<close>
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
@@ -2115,8 +2076,10 @@ abbreviation rewatch_heur_st_rewatch_st_rel where
 	 get_subsumed_init_clauses_wl (fst T) = get_subsumed_init_clauses_wl (fst V) \<and>
 	 get_subsumed_learned_clauses_wl (fst T) = get_subsumed_learned_clauses_wl (fst V) \<and>
 	 get_learned_clauses0_wl (fst T) = get_learned_clauses0_wl (fst V) \<and>
-	 get_unit_init_clss_wl (fst T) = get_unit_init_clss_wl (fst V) \<and>
-	 get_unit_learned_clss_wl (fst T) = get_unit_learned_clss_wl (fst V) \<and>
+	 get_unkept_unit_init_clss_wl (fst T) = get_unkept_unit_init_clss_wl (fst V) \<and>
+	 get_kept_unit_init_clss_wl (fst T) = get_kept_unit_init_clss_wl (fst V) \<and>
+	 get_unkept_unit_learned_clss_wl (fst T) = get_unkept_unit_learned_clss_wl (fst V) \<and>
+	 get_kept_unit_learned_clss_wl (fst T) = get_kept_unit_learned_clss_wl (fst V) \<and>
 	 get_unit_clauses_wl (fst T) = get_unit_clauses_wl (fst V) \<and>
 	 get_clauses0_wl (fst T) = get_clauses0_wl (fst V)} O {(S, T). S = (T, {#})}\<close>
 
@@ -2137,9 +2100,9 @@ proof -
          \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) True O
            {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close>
     using assms(1) unfolding assms(2) by simp
-  obtain M' arena D' j W' vm \<phi> clvls cach lbd vdom M N D NE UE NS US Q W OC failed N0 U0 where
+  obtain M' arena D' j W' vm \<phi> clvls cach lbd vdom M N D NE UE NS US Q W OC failed N0 U0 NEk UEk where
     U: \<open>U = ((M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed))\<close> and
-    V: \<open>V = ((M, N, D, NE, UE, NS, US, N0, U0, Q, W), OC)\<close>
+    V: \<open>V = ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W), OC)\<close>
     by (cases U; cases V) auto
   have valid: \<open>valid_arena arena N (set vdom)\<close> and
     dist: \<open>distinct vdom\<close> and
@@ -2163,7 +2126,7 @@ proof -
     subgoal using vdom_N[symmetric] by simp
     subgoal  by (auto simp: vdom_m_def)
     subgoal by (auto simp: U V twl_st_heur_parsing_def Collect_eq_comp'
-      twl_st_heur_parsing_no_WL_def)
+      twl_st_heur_parsing_no_WL_def ac_simps)
     done
 qed
 
@@ -2629,12 +2592,12 @@ proof -
     have \<open>get_learned_count_init Tb = get_learned_count Td \<Longrightarrow>
       learned_clss_count_init Tb = learned_clss_count Td\<close>
       by (cases Tb; cases Td; auto simp: learned_clss_count_init_def
-        learned_clss_count_def clss_size_lcountU0_def)
+        learned_clss_count_def clss_size_lcountU0_def clss_size_lcountUEk_def)
      moreover have \<open>get_learned_count Td = get_learned_count_init T \<Longrightarrow>
       learned_clss_count Td = learned_clss_count_init T\<close>
       by (cases Td; cases T; auto simp: learned_clss_count_init_def
         learned_clss_count_def clss_size_lcountUS_def clss_size_lcountUE_def
-        clss_size_lcount_def)
+        clss_size_lcount_def clss_size_lcountUEk_def)
      ultimately show ?thesis
        using fast Td Tb unfolding mem_Collect_eq prod.case isasat_fast_init_def
        by (auto simp add: isasat_fast_def
@@ -2745,14 +2708,6 @@ proof -
     done
 qed
 
-(*
-lemma nat_of_uint32_max:
-  \<open>max (nat_of_uint32 a) (nat_of_uint32 b) = nat_of_uint32 (max a b)\<close> for a b
-  by (auto simp: max_def nat_of_uint32_le_iff)
-
-lemma max_0L_uint32[simp]: \<open>max (0::uint32) a = a\<close>
-  by (metis max.cobounded2 max_def uint32_less_than_0)
-*)
 
 definition length_get_clauses_wl_heur_init where
   \<open>length_get_clauses_wl_heur_init S = length (get_clauses_wl_heur_init S)\<close>
@@ -3376,7 +3331,8 @@ proof -
           init_dt_spec0_def)
     subgoal for b ba T Ta
       unfolding all_clss_lf_ran_m[symmetric] image_mset_union
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset',
+        auto simp: ac_simps)
     subgoal for T Ta finished finisheda
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
     subgoal for T Ta finished finisheda
@@ -3399,7 +3355,7 @@ definition SAT_wl_bounded :: \<open>nat clause_l list \<Rightarrow> (bool \<time
     } else do {
       if get_conflict_wl T \<noteq> None
       then RETURN (False, T)
-      else if CS = [] then RETURN (False, ([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined))
+      else if CS = [] then RETURN (False, ([], fmempty, None, {#}, {#},{#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined))
       else do {
         ASSERT (extract_atms_clss CS {} \<noteq> {});
         ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
@@ -3490,7 +3446,8 @@ proof -
   qed
 
   have conflict_during_init:
-    \<open>((False, ([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined)), (False, fst init_state_l))
+    \<open>((False, ([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, {#}, \<lambda>_. undefined)),
+    (False, fst init_state_l))
        \<in> {((b, T), b', T'). b = b' \<and> (\<not>b \<longrightarrow> (T, T') \<in> state_wl_l None)}\<close>
     by (auto simp: init_state_l_def state_wl_l_def)
 
@@ -4388,7 +4345,7 @@ proof -
        twl_st_heur_parsing_no_WL_def to_init_state_def
        init_state_wl_def init_state_wl_heur_def
        inres_def RES_RES_RETURN_RES
-       RES_RETURN_RES)
+       RES_RETURN_RES ac_simps)
     subgoal by auto
     subgoal by (simp add: empty_conflict_code_def model_stat_rel_def
       empty_init_code_def)

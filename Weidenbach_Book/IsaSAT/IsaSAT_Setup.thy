@@ -220,6 +220,36 @@ lemma twl_st_heur_state_simp:
        nat_of_lit C < length(get_watched_wl_heur S)\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def ac_simps all_atms_st_def)
 
+text \<open>
+  This is the version of the invariants where some informations are already lost. For example,
+  losing statistics does not matter if UNSAT was derived.
+  \<close>
+definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+\<open>twl_st_heur_loop =
+  {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena),
+     (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
+    (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
+    valid_arena N' N (set vdom) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
+    (D = None \<longrightarrow> j \<le> length M) \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))) \<and>
+    vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) M \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) cach \<and>
+    out_learned M D outl \<and>
+    (D = None \<longrightarrow> clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount) \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
+    mset avdom \<subseteq># mset vdom \<and>
+    distinct vdom \<and>
+    isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
+    isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
+    old_arena = [] \<and>
+    heuristic_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) heur
+  }\<close>
+
 definition learned_clss_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
   clss_size_lcountUE (get_learned_count S) + clss_size_lcountUEk (get_learned_count S) +

@@ -327,7 +327,7 @@ lemma all_atms_st_cons_trail_Decided[simp]:
   \<open>all_atms_st (cons_trail_Decided x'a x1b, oth) = all_atms_st (x1b, oth)\<close> and
   all_atms_st_cons_trail_empty_Q:
   \<open>NO_MATCH {#} Q \<Longrightarrow>
-     all_atms_st (x1b, N, D, NS, US, NE, UE, N0, U0, Q, W) = all_atms_st (x1b, N, D, NS, US, NE, UE, N0, U0, {#}, W)\<close>
+     all_atms_st (x1b, N, D, NS, US, NEk, UEk, NE, UE, N0, U0, Q, W) = all_atms_st (x1b, N, D, NS, US, NEk, UEk, NE, UE, N0, U0, {#}, W)\<close>
   by (cases oth) (auto simp: cons_trail_Decided_def all_atms_st_def)
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:

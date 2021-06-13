@@ -989,7 +989,7 @@ definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
        (S\<^sub>0, S\<^sub>0') \<in> state_wl_l None \<and>
        (T, T') \<in> state_wl_l None \<and>
        cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0' (brk, T', last_GC, last_Restart, n) \<and>
-       \<not>brk \<longrightarrow> correct_watching T))\<close>
+       (\<not>brk \<longrightarrow> correct_watching T)))\<close>
 end
 
 
