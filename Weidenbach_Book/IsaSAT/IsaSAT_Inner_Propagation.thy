@@ -658,13 +658,14 @@ lemma update_clause_wl_heur_update_clause_wl:
       twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def map_fun_rel_def2
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
-  subgoal for x y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _ _ _
-       _ _ _ _ _
+  subgoal for ax y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _ _ _
+       _ _ _ _
        ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
-       x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x1r
+    x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x
+    x2m x1n x2n x1o x1p x1q x1r
        x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y
        x2y x1z x2z K' K'a N' K'a'
-    by (auto dest!: length_watched_le2[of _ _ _ _ x2u \<D> r lcount K'a])
+    by (auto dest!: length_watched_le2[of _ _ _ _ x2u \<D> r lcount K'])
       (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def2 ac_simps)
   subgoal
     by
@@ -1246,9 +1247,9 @@ definition update_blit_wl_heur_pre where
       simp flip: all_lits_alt_def2
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
-       dk y x
+    dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], cz, None, da, db, dd, de, df, dg, dh, di, {#}, dk))
       (dk(K := (dk K)[ac := (aa, ae, ab)]))
       cz \<subseteq>
@@ -1257,7 +1258,7 @@ definition update_blit_wl_heur_pre where
     apply (rule vdom_m_update_subset')
     apply auto
     done
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], da, None, dd, de, df, dg, dh, di, dk, y, {#}, x)) (x(K := (x K)[ac := (aa, ae, ab)])) da \<subseteq>

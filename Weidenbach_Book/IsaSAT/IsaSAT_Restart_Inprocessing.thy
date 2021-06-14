@@ -832,20 +832,20 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_
    if unc then RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
       vdom, avdom, lcount, opts, old_arena, ivdom)
    else if b then
-   RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
+   RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur, vdom, avdom,
      if E = LEARNED then clss_size_decr_lcount (lcount) else lcount,
      opts, old_arena, ivdom)
    else if i = 1
    then do {
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
+     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur,
      vdom, avdom, if E = LEARNED
        then clss_size_decr_lcount (clss_size_incr_lcountUEk (lcount))
        else lcount, opts, old_arena, ivdom)}
    else if i = 0
    then do {
      j \<leftarrow> mop_isa_length_trail M;
-     RETURN  (M, N, set_conflict_to_false D, j, W, vm, 0, cach, lbd, outl, stats, heur,
+     RETURN  (M, N, set_conflict_to_false D, j, W, vm, 0, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur,
      vdom, avdom,
      if E = LEARNED
      then clss_size_decr_lcount ((lcount)) else lcount,
@@ -853,8 +853,7 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_
    }
    else
      RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
-     if E = LEARNED
-     then (lcount) else lcount, opts, old_arena, ivdom)
+           lcount, opts, old_arena, ivdom)
      })\<close>
 
 lemma literals_are_in_mm_clauses:
@@ -896,6 +895,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     isasat_input_bounded \<A>  \<and>
     isasat_input_nempty \<A>  \<and>
     distinct vdom \<and> old_arena = [] \<and>

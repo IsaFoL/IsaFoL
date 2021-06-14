@@ -991,7 +991,8 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Right
        vdom, avdom, lcount, opts). do{
     let st = arena_status N' C = IRRED;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
-    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl,
+      if st then decr_irred_clss stats else stats, heur,
       vdom, avdom,
       if st then lcount else
         (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)), opts) })\<close>

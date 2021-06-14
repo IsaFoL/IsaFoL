@@ -1090,25 +1090,27 @@ proof -
           conc_fun_RES
         dest!: twl_st_heur_restart_anaD dest: twl_st_heur_restart_same_annotD imageI[of _ _ lit_of])
   qed
-  have \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount),
+  have \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
            S')
           \<in> twl_st_heur_restart \<Longrightarrow>
-    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom', lcount),
+    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom', lcount, opts, old_arena, ivdom),
            S')
           \<in> twl_st_heur_restart\<close>
     if \<open>mset avdom' \<subseteq># mset avdom\<close>
-    for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema
+    for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema opts old_arena ivdom
       ccount vdom lcount S' avdom' avdom heur
     using that unfolding twl_st_heur_restart_def
-    by auto
+    apply (auto elim: subset_mset.less_eqE)
+      apply (metis IntI in_multiset_in_set in_multiset_nempty set_mset_empty subset_mset.less_eqE union_iff)+
+   done
   then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
     \<open>mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, vdom, avdom', lcount) \<Longrightarrow>
+       heur, vdom, avdom', lcount, opts, old_arena, ivdom) \<Longrightarrow>
       mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-        heur, vdom, avdom, lcount)\<close>
+        heur, vdom, avdom, lcount, opts, old_arena, ivdom)\<close>
     if \<open>mset avdom \<subseteq># mset avdom'\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema avdom avdom'
-      ccount vdom lcount heur
+      ccount vdom lcount heur old_arena ivdom opts
     using that
     unfolding mark_to_delete_clauses_wl_D_heur_pre_def
     by metis
@@ -1188,7 +1190,7 @@ proof -
   proof -
     show ?thesis
       using xx le unfolding st
-      by (auto simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
+      by (fastforce simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
           twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
           learned_clss_l_l_fmdrop size_remove1_mset_If learned_clss_count_def
           intro: valid_arena_extra_information_mark_to_delete'
@@ -1507,46 +1509,6 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
     cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
 
 
-
-(*
-lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
-  \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl_D) \<in>
-    twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
-  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
-    remove_one_annot_true_clause_imp_wl_D_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T}\<close>])
-  subgoal by (auto simp: twl_st_heur_restart_count_decided_st_alt_def
-    twl_st_heur_restart_isa_length_trail_get_trail_wl)
-  subgoal for S T
-    apply (rule order_trans)
-      apply (rule get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS[THEN fref_to_Down_curry,
-        of \<open>get_trail_wl T\<close> \<open>0::nat\<close> \<open>get_trail_wl_heur S\<close> _ \<open>all_init_atms_st T\<close>])
-    apply (auto simp: get_pos_of_level_in_trail_pre_def twl_st_heur_restart_count_decided_st_alt_def
-      dest: twl_st_heur_restart_trailD
-      intro!: get_pos_of_level_in_trail_le_decomp)
-    done
-  subgoal
-    by (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
-  subgoal for x y k ka xa x'
-    unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
-    apply (subst case_prod_beta)
-    apply (subst (asm)(11) surjective_pairing)
-    apply (subst (asm)(9) surjective_pairing)
-    unfolding prod_rel_iff
-    apply (rule_tac x=y in exI)
-    apply (rule_tac x= \<open>snd x'\<close> in exI)
-    apply auto
-    done
-  subgoal by auto
-  subgoal sor ry
-  subgoal by auto
-  done
-
-
-    *)
-
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D:
   \<open>(mark_to_delete_clauses_GC_wl_D_heur, mark_to_delete_clauses_GC_wl) \<in>
      twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f
@@ -1678,7 +1640,7 @@ proof -
     if \<open>mset avdom' \<subseteq># mset avdom\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema
       ccount vdom lcount S' avdom' avdom heur
-    using that unfolding twl_st_heur_restart_def
+    using that set_mset_mono[OF that] unfolding twl_st_heur_restart_def
     by auto
   then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
     \<open>mark_to_delete_clauses_GC_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
@@ -1767,7 +1729,7 @@ proof -
   proof -
     show ?thesis
       using xx le unfolding st
-      by (auto simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
+      by (fastforce simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
           twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
           learned_clss_l_l_fmdrop size_remove1_mset_If learned_clss_count_def
           intro: valid_arena_extra_information_mark_to_delete'
@@ -2181,9 +2143,10 @@ proof -
    subgoal
      by (force simp: isasat_GC_entry_def dest: arena_lifting(2))
    subgoal by (auto simp: arena_header_size_def)
-   subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d D
+   subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f D
+     using valid_arena_in_vdom_le_arena(1)[of x1d x2a \<open>set x1e\<close> D] apply -
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
-       (auto intro: valid_arena_extra_information_mark_to_delete'
+      (auto intro: valid_arena_extra_information_mark_to_delete'
          simp: arena_lifting remove_1_mset_id_iff_notin
             mark_garbage_pre_def isasat_GC_entry_def min_def
             valid_arena_header_size
@@ -3181,4 +3144,4 @@ lemma isasat_GC_clauses_wl_D:
   done
 
 
-  end
+end

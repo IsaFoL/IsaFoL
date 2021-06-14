@@ -456,16 +456,4 @@ lemmas [sepref_fr_rules] =
   tri_bool_SET_FALSE_impl.refine[FCOMP tri_bool_SET_FALSE_refine_aux]
   tri_bool_eq_impl.refine[FCOMP tri_bool_eq_refine_aux]
 
-(*TODO identified by Peter lammich*)
-  lemma ins_extr_prod_simp[llvm_inline]: "doM {
-       (x::'a::llvm_rep \<times> 'b::llvm_rep) \<leftarrow> ll_insert_fst init a;
-       x \<leftarrow> ll_insert_snd x b;
-       a::'a \<leftarrow> ll_extract_fst x;
-       b::'b \<leftarrow> ll_extract_snd x;
-       f a b
-     } = f a b"
-     apply (auto simp add: ll_insert_fst_def ll_insert_snd_def ll_extract_fst_def ll_extract_snd_def
-   checked_from_val_def checked_split_pair_def)
-     done
-
 end

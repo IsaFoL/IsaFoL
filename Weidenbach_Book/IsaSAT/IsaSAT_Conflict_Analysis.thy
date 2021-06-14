@@ -819,11 +819,11 @@ note [[goals_limit=1]]
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
      x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS'
   unfolding twl_st_heur_conflict_ana_def isa_vmtf_def apply (clarsimp simp only: prod_rel_iff)
-  subgoal for a aa ab ac b c d e f
+  subgoal for x y xa a b aa ab ac ad ba bb
     apply (rule isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
-        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, a, aa, ab)\<close>,
+        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, xa, a, b)\<close>,
         THEN fref_to_Down_curry4,
-          of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>((ac, b, c, d, e), f)\<close>,
+          of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>((aa, ab, ac, ad, ba), bb)\<close>,
         THEN order_trans])
     subgoal by (simp add: twl_st_heur_conflict_ana_def)
     subgoal by (auto simp add: twl_st_heur_conflict_ana_def isa_vmtf_def)
@@ -891,7 +891,7 @@ note [[goals_limit=1]]
         dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
        x1k x1l x2k x1m x1n x1o x1p x1q x1r x1t D x1v x1w x2v x1x x1y
-         by (rule tl_trailt_tr_pre[of x1e _ \<open>all_atms_st (x1e, x1x, x1g, x2g, x1h, x1i, ha, ia, ja, x1, x2, x1a, x1b)\<close>])
+         by (rule tl_trailt_tr_pre[of x1f _ \<open>all_atms_st (x1f, x1y, x2g, x1h, x1i, x1k, ia, ja, x1, x2, x1a, x1b, x1c)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
              simp flip: all_lits_st_alt_def
