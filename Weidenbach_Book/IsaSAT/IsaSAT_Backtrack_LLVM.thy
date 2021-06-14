@@ -112,12 +112,17 @@ sepref_def update_heuristics_impl
   unfolding update_heuristics_def heuristic_assn_def
   by sepref
 
+(*TODO Move to isasat_fast_countD*)
+lemma isasat_fast_countD_tmp:
+  \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUEk (get_learned_count S) < uint64_max\<close>
+  by (auto simp: isasat_fast_def learned_clss_count_def)
+
 sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
   :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-    isasat_fast_countD[dest]
+    isasat_fast_countD[dest] isasat_fast_countD_tmp[dest]
   unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
     PR_CONST_def
   unfolding fold_tuple_optimizations

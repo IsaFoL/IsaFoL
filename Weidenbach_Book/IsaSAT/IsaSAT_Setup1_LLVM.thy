@@ -143,7 +143,7 @@ lemma mop_mark_garbage_heur3_alt_def:
     ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
        stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, delete_index_and_swap avdom i, clss_size_resetUS (clss_size_decr_lcount lcount), opts, old_arena)
+       vdom, delete_index_and_swap avdom i, (clss_size_decr_lcount lcount), opts, old_arena)
    })\<close>
   unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
   by (auto intro!: ext)

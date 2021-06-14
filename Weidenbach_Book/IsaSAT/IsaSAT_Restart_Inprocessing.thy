@@ -915,7 +915,7 @@ lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
     \<open>(C,C')\<in> nat_rel\<close>
   shows \<open>isa_simplify_clause_with_unit_st2 C S \<le>
     \<Down>{(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and> length (get_clauses_wl_heur a) = r\<and>
-    learned_clss_count a \<le> w} (simplify_clause_with_unit_st2 C' S')\<close>
+    learned_clss_count a \<le> w \<and> learned_clss_count a \<le> learned_clss_count S} (simplify_clause_with_unit_st2 C' S')\<close>
 proof -
   have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
     by auto
@@ -1074,7 +1074,8 @@ definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightar
       (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
          ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i \<and>
-           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
+           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
+            learned_clss_count T \<le> learned_clss_count S);
          let C = access_vdom_at T i;
          E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
          if E \<noteq> DELETED then do {
@@ -1125,7 +1126,8 @@ proof -
       (T) \<leftarrow>
         do {
          ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i\<and>
-           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
+           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
+            learned_clss_count T \<le> learned_clss_count S);
          let C = access_vdom_at (T) i;
            E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           if E \<noteq> DELETED then do {
@@ -1165,7 +1167,8 @@ proof -
     by (rule RETURN_RES_refine)
      (auto intro!:  simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
   let ?R = \<open>{(a, b). (a, b) \<in> twl_st_heur_restart \<and> get_avdom a = get_avdom S \<and> get_vdom a = get_vdom S\<and>
-    length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u}\<close>
+    length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u \<and>
+            learned_clss_count a \<le> learned_clss_count S}\<close>
    have [refine]: \<open>(xs, xsa) \<in> ?A \<Longrightarrow>
       xsa \<in> {xs:: nat set. finite xs} \<Longrightarrow>
      ([0..<length xs], xsa) \<in> \<langle>{(i, a). xs ! i =a \<and> i < length xs}\<rangle>list_set_rel\<close>
@@ -1208,14 +1211,18 @@ proof -
     subgoal by auto
     subgoal by (auto simp: access_vdom_at_pre_def)
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by auto
     apply assumption+
     subgoal by (auto simp: access_vdom_at_def)
       apply (rule H2; assumption)
     apply (rule H3; assumption)
     subgoal by auto
     apply (rule isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2[where
-      u = \<open>(get_avdom S)\<close> and v = \<open>(get_vdom S)\<close> and r=r]; assumption?)
-    apply (rule H4; assumption?)
+      u = \<open>(get_avdom S)\<close> and v = \<open>(get_vdom S)\<close> and r=r, THEN order_trans]; assumption?)
+    apply (auto; fail)[]
+    apply (auto; fail)[]
+    subgoal
+      by (frule H4; assumption?) (clarsimp intro!: conc_fun_R_mono)
    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
    subgoal by (auto simp: twl_st_heur_restart_ana_def reset_units_since_last_GC_def)
    done

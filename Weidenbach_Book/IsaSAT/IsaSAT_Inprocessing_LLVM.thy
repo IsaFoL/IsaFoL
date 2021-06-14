@@ -43,8 +43,9 @@ sepref_def set_conflict_to_false_code
 
 sepref_def isa_simplify_clause_with_unit_st2_code
   is \<open>uncurry isa_simplify_clause_with_unit_st2\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [simp] = learned_clss_count_def
   unfolding isa_simplify_clause_with_unit_st2_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
     mop_arena_status_st_def[symmetric] isasat_bounded_assn_def
@@ -62,7 +63,8 @@ lemma isa_simplify_clauses_with_unit_st2_alt_def:
       (\<lambda>(i, T). i < n \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
          ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i \<and>
-           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
+         length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
+         learned_clss_count T \<le> learned_clss_count S);
          let C = access_vdom_at T i;
          E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
          if E \<noteq> DELETED then do {
@@ -81,7 +83,7 @@ lemma isa_simplify_clauses_with_unit_st2_alt_def:
 sepref_register isa_simplify_clauses_with_unit_st2
 sepref_def isa_simplify_clauses_with_unit_st2_code
   is isa_simplify_clauses_with_unit_st2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_simplify_clauses_with_unit_st2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
@@ -92,7 +94,7 @@ sepref_def isa_simplify_clauses_with_unit_st2_code
 
 sepref_def isa_simplify_clauses_with_unit_st_wl2_code
   is isa_simplify_clauses_with_unit_st_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_simplify_clauses_with_unit_st_wl2_def
   supply [[goals_limit=1]]
@@ -101,7 +103,7 @@ sepref_def isa_simplify_clauses_with_unit_st_wl2_code
 
 sepref_def isa_simplify_clauses_with_units_st_wl2_code
   is isa_simplify_clauses_with_units_st_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_simplify_clauses_with_units_st_wl2_def
   supply [[goals_limit=1]]

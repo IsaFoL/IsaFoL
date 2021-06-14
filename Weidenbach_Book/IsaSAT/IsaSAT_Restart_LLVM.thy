@@ -2,7 +2,7 @@ theory IsaSAT_Restart_LLVM
 imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLVM
   IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM
 begin
-
+(*
 sepref_register mark_to_delete_clauses_wl_D_heur
 
 sepref_def MINIMUM_DELETION_LBD_impl
@@ -62,5 +62,5 @@ begin
     cdcl_twl_local_restart_wl_D_heur_fast_code
    get_conflict_wl_is_None_fast_code
 end
-
+*)
 end

@@ -153,16 +153,21 @@ lemma isasat_fast_init_alt_def:
           a \<leftarrow> RETURN (a + clss_size_lcountUS lcount);
           if \<not>a < c - clss_size_lcountU0 lcount then RETURN False
           else do {
-             ASSERT(a +  clss_size_lcountU0 lcount \<in> unats LENGTH(64));
-             a \<leftarrow> RETURN (a + clss_size_lcountU0 lcount);
-             RETURN(a < c)
+            ASSERT(a +  clss_size_lcountU0 lcount \<in> unats LENGTH(64));
+            a \<leftarrow> RETURN (a + clss_size_lcountU0 lcount);
+            if \<not>a < c - clss_size_lcountUEk lcount then RETURN False
+            else do {
+            ASSERT(a +  clss_size_lcountUEk lcount \<in> unats LENGTH(64));
+            a \<leftarrow> RETURN (a + clss_size_lcountUEk lcount);
+              RETURN(a < c)
+            }
          }
 
       }
    }})\<close>
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def max_uint_def
     clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcount_def learned_clss_count_init_def unats_def
-    clss_size_lcountU0_def Let_def bind_ASSERT_eq_if split: if_splits intro!: ASSERT_leI
+    clss_size_lcountU0_def clss_size_lcountUEk_def Let_def bind_ASSERT_eq_if split: if_splits intro!: ASSERT_leI
   intro!: ext)
 
 lemma isasat_fast_init_codeI: \<open>(aa :: 64 word, b) \<in> unat_rel64 \<Longrightarrow>  b \<le> 18446744073709551615\<close>
