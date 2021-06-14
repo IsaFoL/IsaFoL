@@ -215,4 +215,18 @@ sepref_def get_count_max_lvls_heur_impl
   unfolding get_count_max_lvls_heur_def isasat_bounded_assn_def
   by sepref
 
+lemma clss_size_resetUS0_st_alt_def:
+  \<open>RETURN o clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
+  unfolding clss_size_resetUS0_st_def
+  by (auto intro!: ext)
+
+sepref_def clss_size_resetUS0_st
+  is \<open>RETURN o clss_size_resetUS0_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding fold_tuple_optimizations isasat_bounded_assn_def clss_size_resetUS0_st_alt_def
+  by sepref
+
 end

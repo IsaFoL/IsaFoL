@@ -333,6 +333,16 @@ lemma clss_size_incr_lcount_alt_def:
   (\<lambda>(lcount,  lcountUE, lcountUS). RETURN (lcount + 1, lcountUE, lcountUS))\<close>
   by (auto simp: clss_size_incr_lcount_def)
 
+lemma clss_size_lcountUEk_alt_def:
+  \<open>RETURN o clss_size_lcountUEk = (\<lambda>(lcount, lcountUE, lcountUEk, lcountUS). RETURN lcountUEk)\<close>
+  by (auto simp: clss_size_lcountUEk_def)
+
+sepref_def clss_size_lcountUEk_fast_code
+  is \<open>RETURN o clss_size_lcountUEk\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountUEk_alt_def clss_size_lcount_def
+  by sepref
+
 sepref_register clss_size_incr_lcount
 sepref_def clss_size_incr_lcount_fast_code
   is \<open>RETURN o clss_size_incr_lcount\<close>

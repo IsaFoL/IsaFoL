@@ -2636,7 +2636,7 @@ proof -
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
       using p(27)
-      by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def
+      by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
@@ -2667,7 +2667,7 @@ proof -
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
       using p(35)
-      by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def
+      by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
@@ -2699,7 +2699,7 @@ proof -
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
       using p(33)
-      by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def
+      by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
@@ -4378,7 +4378,7 @@ proof -
     subgoal by simp
     subgoal premises p
       using p(27-)
-      by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def
+      by (auto simp: twl_st_heur_loop_def get_conflict_wl_is_None_heur_def
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map

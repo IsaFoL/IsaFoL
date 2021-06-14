@@ -559,10 +559,20 @@ proof -
     using Sx xxa by auto
 qed
 
+abbreviation restart_prog_wl_heur_rel :: \<open>_\<close> where
+  \<open>restart_prog_wl_heur_rel r u\<equiv> {((T, a, b, c), (U, d, e, f)). 
+  (T,U) \<in> twl_st_heur_loop''''uu r u \<and>
+  (get_conflict_wl U = None \<longrightarrow>((a,b,c), (d,e,f)) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel)}\<close>
+
+abbreviation restart_prog_wl_heur_rel2 :: \<open>_\<close> where
+  \<open>restart_prog_wl_heur_rel2\<equiv> {((T, a, b, c), (U, d, e, f)). 
+  (T,U) \<in> twl_st_heur_loop \<and>
+  (get_conflict_wl U = None \<longrightarrow>((a,b,c), (d,e,f)) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel)}\<close>
+
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
   twl_st_heur''''u r u \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f
-  \<langle>twl_st_heur_loop''''uu r u \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+  \<langle>restart_prog_wl_heur_rel r u\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>RETURN b \<le> \<Down>{(c, c'). c' \<longleftrightarrow> (c = FLAG_Reduce_restart)} (SPEC (\<lambda>_::bool. True))\<close> for b
     by (auto simp: GC_required_heur_def RETURN_RES_refine_iff)
@@ -625,8 +635,7 @@ proof -
     subgoal
       by auto
     subgoal
-      apply (auto dest: restart_abs_wl_pre_emptyN0S intro!: twl_st_heur_twl_st_heur_loopD)
-      sorry
+      by (auto dest: restart_abs_wl_pre_emptyN0S dest!: twl_st_heur_loop_twl_st_heurD)
     subgoal
       by (auto intro!: twl_st_heur_twl_st_heur_loopD)
     done
@@ -635,7 +644,7 @@ proof -
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
-  twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur_loop \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+  twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>restart_prog_wl_heur_rel2\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> and
        u2 = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close> in
