@@ -1416,4 +1416,11 @@ definition reset_units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> t
   vdom, avdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
        vdom, avdom, lcount, opts, old_arena))\<close>
+
+definition clss_size_resetUS0_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
+
 end

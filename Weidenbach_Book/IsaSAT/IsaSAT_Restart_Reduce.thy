@@ -620,12 +620,6 @@ lemma mark_to_delete_clauses_wl_post_alt_def:
     done
   done
 
-definition clss_size_resetUS0_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
-  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
-
 lemma mark_to_delete_clauses_wl_D_heur_pre_alt_def:
   \<open>(\<exists>S'. (S, S') \<in> twl_st_heur \<and> mark_to_delete_clauses_wl_pre S') \<Longrightarrow>
   mark_to_delete_clauses_wl_D_heur_pre S\<close> (is \<open>?pre \<Longrightarrow> ?A\<close>) and
