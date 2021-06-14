@@ -87,19 +87,22 @@ fun get_conflict_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v cconflict\<c
   \<open>get_conflict_l_init ((_, _, D, _, _, _, _), _) = D\<close>
 
 fun get_unit_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = NE + UE\<close>
+  \<open>get_unit_clauses_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q), _) = NE + NEk + UE + UEk\<close>
+
+fun get_kept_unit_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_clauses_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q), _) = NEk + UEk\<close>
 
 fun get_learned_unit_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_learned_unit_clauses_l_init ((M, N, D, NE, UE, WS, Q), _) = UE\<close>
+  \<open>get_learned_unit_clauses_l_init ((M, N, D, NEk, UEk, NE, UE, WS, Q), _) = UE + UEk\<close>
 
 fun get_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses_l\<close> where
   \<open>get_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = N\<close>
 
 fun literals_to_update_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clause\<close> where
-  \<open>literals_to_update_l_init ((_, _, _, _, _, NS, US, N0, U0, _, Q), _) = Q\<close>
+  \<open>literals_to_update_l_init ((_, _, _, _, _, NEk, UEk, NS, US, N0, U0, _, Q), _) = Q\<close>
 
 fun clauses_to_update_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses_to_update_l\<close> where
-  \<open>clauses_to_update_l_init ((_, _, _, _, _, NS, US, N0, U0, WS, _), _) = WS\<close>
+  \<open>clauses_to_update_l_init ((_, _, _, _, _, NEk, UEk, NS, US, N0, U0, WS, _), _) = WS\<close>
 
 fun other_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
   \<open>other_clauses_l_init ((_, _, _, _, _, _, _), OC) = OC\<close>
@@ -112,23 +115,22 @@ fun state\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v cdcl\<^sub>W_resta
 "state\<^sub>W_of_init (S) = state_of (pstate\<^sub>W_of_init S)"
 
 fun get_subsumed_init_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_init_clauses_l_init ((_, _, _, _, _, NS, US, _, _), _) = NS\<close>
+  \<open>get_subsumed_init_clauses_l_init ((_, _, _, _, _, NEk, UEk, NS, US, _, _), _) = NS\<close>
 
 fun get_subsumed_learned_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_learned_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = US\<close>
+  \<open>get_subsumed_learned_clauses_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q), _) = US\<close>
 
 fun get_subsumed_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = NS+US\<close>
-
+  \<open>get_subsumed_clauses_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q), _) = NS+US\<close>
 
 fun get_init_clauses0_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_init_clauses0_l_init ((_, _, _, _, _, NS, US, N0, U0, _, _), _) = N0\<close>
+  \<open>get_init_clauses0_l_init ((_, _, _, _, _, NEk, UEk, NS, US, N0, U0, _, _), _) = N0\<close>
 
 fun get_learned_clauses0_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_learned_clauses0_l_init ((M, N, D, NE, UE, NS, US, N0, U0,WS, Q), _) = U0\<close>
+  \<open>get_learned_clauses0_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,WS, Q), _) = U0\<close>
 
 fun get_clauses0_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_clauses0_l_init ((M, N, D, NE, UE, NS, US, N0, U0,WS, Q), _) = N0+U0\<close>
+  \<open>get_clauses0_l_init ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,WS, Q), _) = N0+U0\<close>
 
 
 named_theorems twl_st_init \<open>Convertion for inital theorems\<close>
@@ -176,12 +178,12 @@ lemma [twl_st_init]:
   by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
 
 definition twl_st_l_init :: \<open>('v twl_st_l_init \<times> 'v twl_st_init) set\<close> where
-  \<open>twl_st_l_init = {(((M, N, C, NE, UE, NS, US, N0, U0, WS, Q), OC),
+  \<open>twl_st_l_init = {(((M, N, C, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q), OC),
       ((M', N', C', NE', UE', NS', US', N0', U0', WS', Q'), OC')).
-    (M , M') \<in> convert_lits_l N (NE+UE) \<and>
+    (M , M') \<in> convert_lits_l N (NEk+UEk) \<and>
     ((N', C', NE', UE', NS', US', N0', U0', WS', Q'), OC') =
       ((twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N,
-         C, NE, UE, NS, US, N0, U0, {#}, Q), OC)}\<close>
+         C, NE + NEk, UE + UEk, NS, US, N0, U0, {#}, Q), OC)}\<close>
 
 lemma twl_st_l_init_alt_def:
   \<open>(S, T) \<in> twl_st_l_init \<longleftrightarrow>
@@ -227,93 +229,43 @@ lemma twl_struct_invs_init_twl_struct_invs:
   apply (intro iffI impI conjI)
   by (cases W; clarsimp simp: twl_st_init)+
 
-
-(* lemma twl_struct_invs_init_add_mset:
- *   assumes \<open>twl_struct_invs_init (S, QC)\<close> and [simp]: \<open>distinct_mset C\<close> and
- *     count_dec: \<open>count_decided (trail (state\<^sub>W_of S)) = 0\<close>
- *   shows \<open>twl_struct_invs_init (S, add_mset C QC)\<close>
- * proof -
- *   have
- *     st_inv: \<open>twl_st_inv S\<close> and
- *     valid: \<open>valid_enqueued S\<close> and
- *     struct: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init (S, QC))\<close> and
- *     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init (S, QC))\<close> and
- *     excep: \<open>twl_st_exception_inv S\<close> and
- *     no_dup: \<open>no_duplicate_queued S\<close> and
- *     dist: \<open>distinct_queued S\<close> and
- *     cands_confl: \<open>confl_cands_enqueued S\<close> and
- *     cands_propa: \<open>propa_cands_enqueued S\<close> and
- *     confl: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
- *     to_upd: \<open>clauses_to_update_inv S\<close> and
- *     past: \<open>past_invs S\<close>
- *     using assms unfolding twl_struct_invs_init_def fst_conv
- *     by (auto simp add: twl_st_init)
- * 
- *   show ?thesis
- *     unfolding twl_struct_invs_init_def fst_conv
- *     apply (intro conjI)
- *     subgoal by (rule st_inv)
- *     subgoal by (rule valid)
- *     subgoal using struct count_dec no_dup unfolding pcdcl_all_struct_invs_def
- *       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
- *       apply (intro conjI)
- *       apply (cases S; simp add: clauses_def
- *           cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
- *           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def psubsumed_invs_def
- *         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
- *            entailed_clss_inv_def
- *           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
- *           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def; fail)+
- *     subgoal using smaller count_dec by (cases S)(auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
- *           cdcl\<^sub>W_restart_mset_state)
- *     subgoal by (rule excep)
- *     subgoal by (rule no_dup)
- *     subgoal by (rule dist)
- *     subgoal by (rule cands_confl)
- *     subgoal by (rule cands_propa)
- *     subgoal using confl by (auto simp: twl_st_init)
- *     subgoal by (rule to_upd)
- *     subgoal by (rule past)
- *     done
- * qed *)
-
 fun add_empty_conflict_init_l :: \<open>'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   add_empty_conflict_init_l_def[simp del]:
-   \<open>add_empty_conflict_init_l ((M, N, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-       ((M, N, Some {#}, NE, UE, NS, US, add_mset {#} N0, U0, WS, {#}), OC)\<close>
+   \<open>add_empty_conflict_init_l ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q), OC) =
+       ((M, N, Some {#}, NE, UE, NEk, UEk, NS, US, add_mset {#} N0, U0, WS, {#}), OC)\<close>
 
 
 fun propagate_unit_init_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
   propagate_unit_init_l_def[simp del]:
-   \<open>propagate_unit_init_l L ((M, N, D, NE, UE, NS, US, N0, U0, WS, Q), OC) = do {
+   \<open>propagate_unit_init_l L ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q), OC) = do {
        M \<leftarrow> cons_trail_propagate_l L 0 M;
-       RETURN ((M, N, D, add_mset {#L#} NE, UE, NS, US, N0, U0, WS, add_mset (-L) Q), OC)
+       RETURN ((M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, WS, add_mset (-L) Q), OC)
      }\<close>
 
 
 fun already_propagated_unit_init_l :: \<open>'v clause \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   already_propagated_unit_init_l_def[simp del]:
-   \<open>already_propagated_unit_init_l C ((M, N, D, NE, UE, NS, US, WS, Q), OC) =
-       ((M, N, D, add_mset C NE, UE, NS, US, WS, Q), OC)\<close>
+   \<open>already_propagated_unit_init_l C ((M, N, D, NE, UE, NEk, UEk, NS, US, WS, Q), OC) =
+       ((M, N, D, NE, UE, add_mset C NEk, UEk, NS, US, WS, Q), OC)\<close>
 
 
 fun set_conflict_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   set_conflict_init_l_def[simp del]:
-   \<open>set_conflict_init_l C ((M, N, _, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-       ((M, N, Some (mset C), add_mset (mset C) NE, UE, NS, US, N0, U0, {#}, {#}), OC)\<close>
+   \<open>set_conflict_init_l C ((M, N, _, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q), OC) =
+       ((M, N, Some (mset C), add_mset (mset C) NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}), OC)\<close>
 
 
 fun add_to_clauses_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   add_to_clauses_init_l_def[simp del]:
-   \<open>add_to_clauses_init_l C ((M, N, _, NE, UE, NS, US, WS, Q), OC) = do {
+   \<open>add_to_clauses_init_l C ((M, N, _, NE, UE, NEk, UEk, NS, US, WS, Q), OC) = do {
         i \<leftarrow> get_fresh_index N;
-        RETURN ((M, fmupd i (C, True) N, None, NE, UE, NS, US, WS, Q), OC)
+        RETURN ((M, fmupd i (C, True) N, None, NE, UE, NEk, UEk, NS, US, WS, Q), OC)
     }\<close>
 
 fun add_to_tautology_init_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
   add_to_tautology_init_l_def[simp del]:
-  \<open>add_to_tautology_init_l C ((M, N, D, NE, UE, NS, US, N0, U0, WS, Q), OC) =
-  ((M, N, D, NE, UE, add_mset (remdups_mset (mset C)) NS, US, N0, U0, WS, Q), OC)\<close>
+  \<open>add_to_tautology_init_l C ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q), OC) =
+  ((M, N, D, NE, UE, NEk, UEk, add_mset (remdups_mset (mset C)) NS, US, N0, U0, WS, Q), OC)\<close>
 
 fun add_to_other_init where
   \<open>add_to_other_init C (S, OC) = (S, add_mset (remdups_mset (mset C)) OC)\<close>
@@ -903,14 +855,14 @@ lemma twl_st_l_init_no_decision_iff:
         (\<forall>s\<in>set (get_trail_init T). \<not> is_decided s) \<longleftrightarrow>
         (\<forall>s\<in>set (get_trail_l_init S). \<not> is_decided s)\<close>
   by (subst convert_lits_l_no_decision_iff[of _ _ \<open>get_clauses_l_init S\<close>
-        \<open>get_unit_clauses_l_init S\<close>])
+        \<open>get_kept_unit_clauses_l_init S\<close>])
     (auto simp: twl_st_l_init_def)
 
 lemma twl_st_l_init_defined_lit[twl_st_l_init]:
    \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow>
         defined_lit (get_trail_init T) = defined_lit (get_trail_l_init S)\<close>
   by (auto simp: twl_st_l_init_def)
-    
+
 lemma [twl_st_l_init]:
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_learned_clauses_init T = {#} \<longleftrightarrow> learned_clss_l (get_clauses_l_init S) = {#}\<close>
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_unit_learned_clauses_init T = {#} \<longleftrightarrow> get_learned_unit_clauses_l_init S = {#}
@@ -945,8 +897,8 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  obtain M N D NE UE Q U OC NS US N0 U0 where
-    S: \<open>S = ((M, N, U, D, NE, UE, NS, US, N0, U0, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk Q U OC NS US N0 U0 where
+    S: \<open>S = ((M, N, U, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
     by (cases S) auto
   have [simp]: \<open>twl_list_invs (fst (already_propagated_unit_init_l (mset C) S))\<close>
     using add_inv by (auto simp:  already_propagated_unit_init_l_def S
@@ -1004,8 +956,8 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  obtain M N D NE UE Q U OC NS US N0 U0 where
-    S: \<open>S = ((M, N, U, D, NE, UE, NS, US, N0, U0, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk Q U OC NS US N0 U0 where
+    S: \<open>S = ((M, N, U, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
     by (cases S) auto
   let ?S = \<open>add_to_tautology_init_l C S\<close>
   have [simp]: \<open>twl_list_invs (fst ?S)\<close>
@@ -1072,8 +1024,8 @@ proof -
     apply -
     apply normalize_goal+
     by presburger
-  obtain M N D NE UE Q U OC NS US N0 U0 where
-    S: \<open>S = ((M, N, U, D, NE, UE, NS, US, N0, U0, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk Q U OC NS US N0 U0 where
+    S: \<open>S = ((M, N, U, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
     by (cases S) auto
   have 1: \<open>propagate_unit_init_l L S \<le> SPEC( \<lambda>S'. (S', propagate_unit_init L T)
         \<in> twl_st_l_init)\<close>
@@ -1175,8 +1127,8 @@ proof -
     apply -
     apply normalize_goal+
     by force
-  obtain M N D NE UE Q U OC NS US N0 U0 where
-    S: \<open>S = ((M, N, U, D, NE, UE, NS, US, N0, U0, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk Q U OC NS US N0 U0 where
+    S: \<open>S = ((M, N, U, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
     by (cases S) auto
   have [simp]: \<open>twl_list_invs (fst (set_conflict_init_l C S))\<close>
     using add_inv by (auto simp:  set_conflict_init_l_def S
@@ -1325,8 +1277,8 @@ proof -
     apply -
     apply normalize_goal+
     by force
-  obtain M N D NE UE Q U OC NS US N0 U0 where
-    S: \<open>S = ((M, N, U, D, NE, UE, NS, US, N0, U0, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk Q U OC NS US N0 U0 where
+    S: \<open>S = ((M, N, U, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
     by (cases S) auto
   have [simp]: \<open>twl_list_invs (fst (add_empty_conflict_init_l S))\<close>
     using add_inv by (auto simp: add_empty_conflict_init_l_def S
@@ -1469,21 +1421,21 @@ proof -
     using SOC_T dec apply -
     apply (rule twl_st_l_init_no_decision_iff[THEN iffD2])
     using SOC_T dec SOC_T by (auto simp: twl_st_l_init twl_st_init convert_lits_l_def)
-  obtain M N NE UE Q OC NS US N0 U0 where
-    S: \<open>S = ((M, N, None, NE, UE, NS, US, N0, U0, {#}, Q), OC)\<close>
+  obtain M N NE UE NEk UEk Q OC NS US N0 U0 where
+    S: \<open>S = ((M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)\<close>
     using D WS by (cases S) auto
   have le_2: \<open>length a \<ge> 2\<close>
     using a by (cases a) auto
   have
-    \<open>init_dt_pre CS ((M, fmupd i (a, True) N, None, NE, UE, NS, US, N0, U0, {#}, Q), OC)\<close> (is ?pre1) and
+    \<open>init_dt_pre CS ((M, fmupd i (a, True) N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)\<close> (is ?pre1) and
     \<open>init_dt_spec [a'] S
-          ((M, fmupd i (a, True) N, None, NE, UE, NS, US, N0, U0, {#}, Q), OC)\<close> (is ?spec1)
+          ((M, fmupd i (a, True) N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)\<close> (is ?spec1)
     if
       i_0: \<open>0 < i\<close> and
       i_dom: \<open>i \<notin># dom_m N\<close>
     for i :: \<open>nat\<close>
   proof -
-    let ?S = \<open>((M, fmupd i (a, True) N, None, NE, UE, NS, US, N0, U0, {#}, Q), OC)\<close>
+    let ?S = \<open>((M, fmupd i (a, True) N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)\<close>
     have \<open>Propagated L i \<notin> set M\<close> for L
       using add_inv i_dom i_0 unfolding S
       by (auto simp: twl_list_invs_def)
@@ -1491,7 +1443,7 @@ proof -
       using SOC_T i_dom
       by (auto simp: S twl_st_l_init_def init_clss_l_mapsto_upd_notin
           learned_clss_l_mapsto_upd_notin_irrelev convert_lit.simps
-          intro!: convert_lits_l_extend_mono[of _ _ N \<open>NE+UE\<close> \<open>fmupd i (a, True) N\<close>])
+          intro!: convert_lits_l_extend_mono[of _ _ N \<open>NEk+UEk\<close> \<open>fmupd i (a, True) N\<close>])
     moreover have \<open>twl_struct_invs_init (add_to_clauses_init a T)\<close>
       apply (rule twl_struct_invs_init_add_to_clauses_init)
       subgoal
@@ -1510,7 +1462,7 @@ proof -
       subgoal by (use dec SOC_T in_literals_to_update in
           \<open>auto simp: S count_decided_0_iff twl_st_l_init twl_st_init le_2 inv\<close>)
       done
-    moreover have \<open>twl_list_invs (M, fmupd i (a, True) N, None, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+    moreover have \<open>twl_list_invs (M, fmupd i (a, True) N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close>
       using add_inv i_dom i_0 not_tauto' by (auto simp: S twl_list_invs_def ran_m_mapsto_upd_notin)
     moreover have \<open>twl_stgy_invs (fst (add_to_clauses_init a T))\<close>
       by (rule twl_stgy_invs_backtrack_lvl_0)
@@ -1557,10 +1509,10 @@ proof -
   have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (rule twl_st_l_init_no_decision_iff[THEN iffD2])
 
-  obtain M N D NE UE NS US N0 U0 Q where
-    S: \<open>SOC = ((M, N, D, NE, UE, NS, US, N0, U0, {#}, Q), OC)\<close>
+  obtain M N D NE UE NEk UEk NS US N0 U0 Q where
+    S: \<open>SOC = ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)\<close>
     using WS by (cases SOC) (auto simp: SOC)
-  then have S': \<open>S = (M, N, D, NE, UE, NS, US, N0, U0, {#}, Q)\<close>
+  then have S': \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)\<close>
     using S unfolding SOC by auto
   show ?thesis
   proof (cases \<open>get_conflict_l (fst SOC)\<close>)
@@ -1584,18 +1536,18 @@ proof -
     then have [simp]: \<open>D = Some D'\<close>
       by (auto simp: S)
     have [simp]:
-       \<open>(((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC),
+       \<open>(((M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC),
            add_to_other_init a T)
          \<in> twl_st_l_init\<close> for a
       using SOC_T by (cases T; auto simp: S S' twl_st_l_init_def; fail)+
-    have \<open>init_dt_pre CS ((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC)\<close>
+    have \<open>init_dt_pre CS ((M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC)\<close>
       unfolding init_dt_pre_def
       apply (rule exI[of _ \<open>add_to_other_init (a) T\<close>])
       using inv WS dec' dec in_literals_to_update add_inv stgy_inv SOC_T tauto
       by (auto simp: S' count_decided_0_iff twl_st_init
           intro!: twl_struct_invs_init_add_to_other_init)
-    moreover have \<open>init_dt_spec [a] ((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), OC)
-      ((M, N, Some D', NE, UE, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC)\<close>
+    moreover have \<open>init_dt_spec [a] ((M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), OC)
+      ((M, N, Some D', NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q), add_mset (remdups_mset (mset a)) OC)\<close>
       unfolding init_dt_spec_def
       apply (rule exI[of _ \<open>add_to_other_init (a) T\<close>])
       using inv WS dec dec' in_literals_to_update add_inv stgy_inv SOC_T
@@ -1766,7 +1718,7 @@ next
 qed
 
 lemma init_dt_pre_empty_state:
-  \<open>init_dt_pre [] (([], fmempty, None, {#}, {#}, {#}, {#}, {#},{#}, {#},{#}), {#})\<close>
+  \<open>init_dt_pre [] (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#},{#}, {#},{#}), {#})\<close>
   unfolding init_dt_pre_def
   by (auto simp: twl_st_l_init_def twl_struct_invs_init_def twl_st_inv.simps
       twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1781,7 +1733,7 @@ lemma init_dt_pre_empty_state:
 
 lemma twl_init_invs:
   \<open>twl_struct_invs_init (([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#},{#}, {#},{#}), {#})\<close>
-  \<open>twl_list_invs ([], fmempty, None, {#}, {#}, {#}, {#}, {#},{#}, {#},{#})\<close>
+  \<open>twl_list_invs ([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}, {#},{#}, {#},{#})\<close>
   \<open>twl_stgy_invs ([], {#}, {#}, None, {#}, {#}, {#}, {#}, {#}, {#}, {#},{#})\<close>
   by (auto simp: twl_struct_invs_init_def twl_st_inv.simps twl_list_invs_def twl_stgy_invs_def
       past_invs.simps

@@ -9,6 +9,8 @@
 
 #include "isasat_restart.h"
 
+#define PRINTSTATS 1
+
 /* Put the model in an array to print it*/
 typedef struct MODEL {
   int32_t* model;

@@ -68,39 +68,48 @@ lemma all_init_atms_fmdrop_add_mset_unit:
 
 lemma all_init_lits_of_wl_simps[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>
-  all_init_lits_of_wl (M, fmdrop C N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  all_init_lits_of_wl (M, fmdrop C N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   \<open>NO_MATCH {#} US \<Longrightarrow>
-  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_init_lits_of_wl (M, N, D, NE, UE, NS, {#}, N0, U0, Q, W)\<close>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, U0, Q, W)\<close>
   \<open>NO_MATCH [] M \<Longrightarrow>
-  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_init_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl ([], N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow>
-   all_init_lits_of_wl (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, US, N0, U0, Q, W) =
-  all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>all_init_lits_of_wl (M, N, D, NE, add_mset E UE, NS, US, N0, U0, Q, W) =
-    all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+   all_init_lits_of_wl (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_init_lits_of_wl (M, N, D, NE, add_mset E UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH {#} UEk \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, {#}, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH {#} U0 \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, {#}, Q, W)\<close>
+  \<open>NO_MATCH {#} UE \<Longrightarrow>
+  all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, {#}, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
     image_mset_remove1_mset_if)
 
 lemma all_learned_lits_of_wl_simps[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow>
-  all_learned_lits_of_wl (M, fmdrop C N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  all_learned_lits_of_wl (M, fmdrop C N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   (* \<open>NO_MATCH {#} NS \<Longrightarrow>
    * all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
    *   all_learned_lits_of_wl (M, N, D, NE, UE, {#}, US, N0, U0, Q, W)\<close> *)
   \<open>NO_MATCH [] M \<Longrightarrow>
-  all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_learned_lits_of_wl ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>all_learned_lits_of_wl (M, N, D, add_mset E NE, UE, NS, US, N0, U0, Q, W) =
-    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>all_learned_lits_of_wl (M, N, D, NE, UE, add_mset E NS, US, N0, U0, Q, W) =
-    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl ([], N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_learned_lits_of_wl (M, N, D, add_mset E NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, add_mset E NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>
-  all_learned_lits_of_wl (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, US, N0, U0, Q, W) =
-  all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  all_learned_lits_of_wl (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+  all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   by (auto simp: all_learned_lits_of_wl_def all_lits_of_mm_add_mset
     image_mset_remove1_mset_if)
   
@@ -109,24 +118,24 @@ text \<open>To ease the proof, we introduce the following ``alternative'' defini
   clauses, but only moved to another component).
 \<close>
 fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching' (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  \<open>correct_watching' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              b \<longrightarrow> i \<in># dom_m N) \<and>
         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
-          clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+          clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
 
 fun correct_watching'' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching'' (M, N, D, NE, UE, NS, US, N0, U0, Q, W) \<longleftrightarrow>
-    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W).
+  \<open>correct_watching'' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
-          clause_to_update L (M, N, D, NE, UE, NS, US, N0, U0, {#}, {#}))\<close>
+          clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
 
 lemma correct_watching'_correct_watching'': \<open>correct_watching' S \<Longrightarrow> correct_watching'' S\<close>
   by (cases S) auto
@@ -271,7 +280,7 @@ lemma correct_watching''_clauses_pointed_to0:
     L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close> and
     xb_x: \<open>(xb, x) \<in> twl_st_l None\<close> and
     struct_invs: \<open>twl_struct_invs x\<close>
-    
+
   shows \<open>set_mset (dom_m (get_clauses_wl xa))
     \<subseteq> clauses_pointed_to
     (Neg ` set_mset (all_init_atms_st xa) \<union>
@@ -285,8 +294,8 @@ proof -
   proof
     fix C
     assume C: \<open>C \<in># dom_m (get_clauses_wl xa)\<close>
-    obtain M N D NE UE NS US N0 U0 Q W where
-      xa: \<open>xa = (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
+    obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
+      xa: \<open>xa = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases xa)
     have \<open>twl_st_inv x\<close>
       using xb_x C struct_invs
@@ -387,11 +396,11 @@ definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> nat \<
       \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NS, US, N0, U0, Q, W) last_GC last_Restart False);
+  \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-      RETURN (M, N, D, NE, UE, NS, US, N0, U0, Q, W)
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)
    })\<close>
 
 lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
@@ -402,37 +411,40 @@ proof -
   have [simp]:
     \<open>all_lits N (NE + UE + (NS + US) + (N0 + U0)) = all_lits N (NE + UE + NS + US + N0 + U0)\<close>
     \<open>all_lits N ((NE + UE) + (NS + US) + (N0 + U0)) = all_lits N (NE + UE + NS + US + N0 + U0)\<close>
-    for NE UE NS US N
+    for NE UE NS US N N0 U0
     by (auto simp: ac_simps)
   have [refine0]:
-    \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k
-    x2k y1f y2g y2g y1h y1i x2m x1l x1n x2o y2i x1o x1p x2p x1q x2q y2i y1i y2j y1j y2k x2r x1q
-    y1k y2l x1k.
-        (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow>
-        y2j = (y1j, y2k) \<Longrightarrow>
-        y2i = (y1i, y2j) \<Longrightarrow>
-        y2g = (y1h, y2i) \<Longrightarrow>
-        x2e = (y1f, y2g) \<Longrightarrow>
-        x2d = (x1e, x2e) \<Longrightarrow>
-        x2c = (x1d, x2d) \<Longrightarrow>
-        x2b = (x1c, x2c) \<Longrightarrow>
-        x2a = (x1b, x2b) \<Longrightarrow>
-        x2 = (x1a, x2a) \<Longrightarrow>
-        y = (x1, x2) \<Longrightarrow>
-        x2p = (x1p, x2q) \<Longrightarrow>
-        x2o = (x1o, x2p) \<Longrightarrow>
-        x2m = (x1n, x2o) \<Longrightarrow>
-        x2k = (x1l, x2m) \<Longrightarrow>
-        x2j = (x1k, x2k) \<Longrightarrow>
-        x2i = (x1j, x2j) \<Longrightarrow>
-        x2h = (x1i, x2i) \<Longrightarrow>
-        x2g = (x1h, x2h) \<Longrightarrow>
-        x2f = (x1g, x2g) \<Longrightarrow>
-        x = (x1f, x2f) \<Longrightarrow>
-        SPEC (\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1f) \<and>
-           Q' = {#}) \<or> M' = x1f \<and> Q' = x1p)
-        \<le> \<Down>Id (SPEC (\<lambda>(M', Q') .(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1) \<and>
-    Q' = {#}) \<or> M' = x1 \<and> Q' = y2k))\<close>
+    \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n
+    x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w xa x1x x2x.
+    (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow>
+    x2j = (x1k, x2k) \<Longrightarrow>
+    x2i = (x1j, x2j) \<Longrightarrow>
+    x2h = (x1i, x2i) \<Longrightarrow>
+    x2g = (x1h, x2h) \<Longrightarrow>
+    x2f = (x1g, x2g) \<Longrightarrow>
+    x2e = (x1f, x2f) \<Longrightarrow>
+    x2d = (x1e, x2e) \<Longrightarrow>
+    x2c = (x1d, x2d) \<Longrightarrow>
+    x2b = (x1c, x2c) \<Longrightarrow>
+    x2a = (x1b, x2b) \<Longrightarrow>
+    x2 = (x1a, x2a) \<Longrightarrow>
+    y = (x1, x2) \<Longrightarrow>
+    x2v = (x1w, x2w) \<Longrightarrow>
+    x2u = (x1v, x2v) \<Longrightarrow>
+    x2t = (x1u, x2u) \<Longrightarrow>
+    x2s = (x1t, x2t) \<Longrightarrow>
+    x2r = (x1s, x2s) \<Longrightarrow>
+    x2q = (x1r, x2r) \<Longrightarrow>
+    x2p = (x1q, x2q) \<Longrightarrow>
+    x2o = (x1p, x2p) \<Longrightarrow>
+    x2n = (x1o, x2o) \<Longrightarrow>
+    x2m = (x1n, x2n) \<Longrightarrow>
+    x2l = (x1m, x2m) \<Longrightarrow>
+    x = (x1l, x2l) \<Longrightarrow>
+    case xa of
+    (M', Q') \<Rightarrow> (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1l) \<and> Q' = {#}) \<or> M' = x1l \<and> Q' = x1w \<Longrightarrow>
+    xa = (x1x, x2x) \<Longrightarrow>
+    (\<exists>K M2. (Decided K # x1x, M2) \<in> set (get_all_ann_decomposition x1) \<and> x2x = {#}) \<or> x1x = x1 \<and> x2x = x2k\<close>
     by (auto 5 3 simp: state_wl_l_def)
   show ?thesis
     unfolding cdcl_twl_local_restart_wl_spec_def cdcl_twl_local_restart_l_spec_def
@@ -467,10 +479,14 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S' T' \<and> correct_watching' T \<and>
     set_mset (all_init_lits_of_wl T) =
-    set_mset (all_lits_st T))\<close>
+    set_mset (all_lits_st T) \<and>
+    get_unkept_learned_clss_wl T = {#} \<and>
+    get_subsumed_learned_clauses_wl T = {#} \<and>
+    get_learned_clauses0_wl T = {#}
+)\<close>
 
 definition cdcl_twl_full_restart_wl_GC_prog_post_confl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>cdcl_twl_full_restart_wl_GC_prog_post_confl S T \<longleftrightarrow>
+\<open>cdcl_twl_full_restart_wl_GC_prog_post_confl  S T \<longleftrightarrow>
   (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S' T' \<and>
@@ -483,11 +499,11 @@ definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool 
       \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-      ASSERT(restart_abs_wl_pre2 (M, N, D, NE, UE, NS, US, N0, U0, Q, W) False);
+  \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+      ASSERT(restart_abs_wl_pre2 (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
-      RETURN (M, N, D, NE, UE, NS, {#}, N0, U0, Q, W)
+      RETURN (M, N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W)
    })\<close>
 
 definition cdcl_twl_full_restart_wl_GC_prog_pre
@@ -498,14 +514,14 @@ where
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0:
   \<open>NO_MATCH {#} f' \<Longrightarrow>
-  literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, NS, US, N0, U0, f', g) \<longleftrightarrow>
-      literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, NS, US, N0, U0, {#}, g)\<close>
+  literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, NEk, UEk, NS, US, N0, U0, f', g) \<longleftrightarrow>
+      literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, NEk, UEk, NS, US, N0, U0, {#}, g)\<close>
   by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def all_init_lits_of_wl_def all_learned_lits_of_wl_def)
 
 lemma all_init_lits_of_wl_keepUSD:
-  \<open>L \<in># all_init_lits_of_wl ([], x1k, x1l, x1m, x1n, x1o, {#}, x1q, x1r, {#}, x2s) \<Longrightarrow>
-  L \<in># all_init_lits_of_wl ([], x1k, x1l, x1m, x1n, x1o, {#}, x1q, x1r, Q, x2s)\<close>
+  \<open>L \<in># all_init_lits_of_wl ([], x1k, x1l, x1m, x1n, NEk, UEk, x1o, {#}, x1q, x1r, {#}, x2s) \<Longrightarrow>
+  L \<in># all_init_lits_of_wl ([], x1k, x1l, x1m, x1n, NEk, UEk, x1o, {#}, x1q, x1r, Q, x2s)\<close>
   by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_def)
 
 lemma (in -)[twl_st,simp]: \<open>learned_clss (state\<^sub>W_of S) = get_all_learned_clss S\<close>
@@ -515,22 +531,30 @@ lemma (in -)[twl_st,simp]: \<open>init_clss (state\<^sub>W_of S) = get_all_init_
   by (cases S) auto
  
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_empty:
-  \<open>NO_MATCH {#} x2m \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
-     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, N0, U0, {#}, Q)\<close>
-   \<open>NO_MATCH {#} x2l \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
-    correct_watching' (x1h, x1i, x1j, x1k, b, x', {#}, N0, U0, x2m, Q)\<close>
-   \<open>NO_MATCH {#} x2m \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
-    correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, N0, U0, {#}, Q)\<close>
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
-     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', {#}, N0, U0, x2m, Q)\<close>
+  \<open>NO_MATCH {#} x2m \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, {#}, Q)\<close>
+   \<open>NO_MATCH {#} x2l \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', {#}, N0, U0, x2m, Q)\<close>
+   \<open>NO_MATCH {#} x2m \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, {#}, Q)\<close>
+   \<open>NO_MATCH {#} U0 \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, {#}, x2m, Q)\<close>
+   \<open>NO_MATCH {#} b \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, {#}, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', {#}, N0, U0, x2m, Q)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, {#}, x2m, Q)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, {#}, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
    by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
      correct_watching'.simps correct_watching''.simps clause_to_update_def all_init_lits_of_wl_def
      all_learned_lits_of_wl_def)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_decompD:
   \<open>(K # x1h', M2) \<in> set (get_all_ann_decomposition x1h) \<Longrightarrow>
-  literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j', x1k, b, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
-     literals_are_\<L>\<^sub>i\<^sub>n' (x1h', x1p, x1j, x1k, b, x', x2l, N0, U0, x2m, Q)\<close>
+  literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j', x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h', x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
   by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
      correct_watching'.simps correct_watching''.simps clause_to_update_def all_init_lits_of_wl_def
      all_learned_lits_of_wl_def
@@ -538,15 +562,21 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_decompD:
 
 
 lemma all_init_learned_lits_simps_Q:
-  \<open>NO_MATCH {#} Q \<Longrightarrow> all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_init_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
-  \<open>NO_MATCH {#} Q \<Longrightarrow> all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_learned_lits_of_wl (M, N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
+  \<open>NO_MATCH {#} Q \<Longrightarrow> all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
+  \<open>NO_MATCH {#} U0 \<Longrightarrow> all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, {#}, Q, W)\<close>
+  \<open>NO_MATCH {#} Q \<Longrightarrow> all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
   by (auto simp: all_init_lits_of_wl_def all_learned_lits_of_wl_def all_lits_of_mm_def)
-    
+
 lemma in_all_learned_lits_of_wl_addUS:
-  \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, x1o,  {#}, x1q, x1r, x1s, x2s)) \<Longrightarrow>
-  x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
+  \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o,  {#}, x1q, x1r, x1s, x2s)) \<Longrightarrow>
+  x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
+  \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o,  x1p, x1q, {#}, x1s, x2s)) \<Longrightarrow>
+  x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
+  \<open>x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, {#}, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s)) \<Longrightarrow>
+  x \<in> set_mset (all_learned_lits_of_wl (M, x1k, x1l, x1m, x1n, NEk, UEk, x1o, x1p, x1q, x1r, x1s, x2s))\<close>
   by (auto simp: all_learned_lits_of_wl_def all_lits_of_mm_union)
 
 lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
@@ -563,14 +593,14 @@ lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
       conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0
       intro: literals_are_\<L>\<^sub>i\<^sub>n'_decompD literals_are_\<L>\<^sub>i\<^sub>n'_empty(4))
   subgoal
-    by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_empty
+    by (auto 4 3 simp add: literals_are_\<L>\<^sub>i\<^sub>n'_empty
         state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
       conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0 
       literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_learned_lits_simps_Q blits_in_\<L>\<^sub>i\<^sub>n'_def
       dest: all_init_lits_of_wl_keepUSD
       in_all_learned_lits_of_wl_addUS)
   done
-  
+
 lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
   assumes
     pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre y\<close> and

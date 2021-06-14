@@ -37,7 +37,7 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
     by (auto dest: correct_watching''_clauses_pointed_to2)
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
-      cdcl_twl_restart_l_inp.intros(1)
+      cdcl_twl_restart_l_inp.intros(1)[of y Va] apply -
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
     by blast
   subgoal for x y S S' T Ta U Ua V Va
@@ -51,7 +51,7 @@ definition cdcl_twl_full_restart_inprocess_wl_prog where
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
-  T \<leftarrow> simplify_clauses_with_unit_st_wl S';
+  T \<leftarrow> simplify_clauses_with_units_st_wl S';
   if get_conflict_wl T \<noteq> None then do {
     ASSERT(cdcl_twl_full_restart_wl_GC_prog_post_confl S T);
     RETURN T
@@ -77,7 +77,7 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
   apply (refine_vcg
     remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down]
     cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0
-    simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st
+    simplify_clauses_with_units_st_wl_simplify_clause_with_units_st
     mark_to_delete_clauses_wl_mark_to_delete_clauses_l2[THEN fref_to_Down]
     cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down]
     )
@@ -355,7 +355,9 @@ proof -
    subgoal by auto
     subgoal for S T U V
       unfolding cdcl_twl_stgy_restart_abs_wl_inv_def case_prod_beta
-      by (fastforce simp: prod_rel_fst_snd_iff)
+      apply (rule_tac x= \<open>T\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd V)\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -385,8 +387,10 @@ proof -
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal by auto
     subgoal for x y ebrk ebrka xa x'
-      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-      by (fastforce simp: prod_rel_fst_snd_iff)
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>y\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
@@ -428,16 +432,23 @@ proof -
        cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry4]
        cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
      subgoal by auto
-    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-       by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal for x y ebrk ebrka xa x'
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>y\<close>in exI)
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      by simp
      subgoal by auto
     subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
      subgoal by auto
      subgoal by auto
      subgoal by (auto simp: correct_watching_correct_watching)
-    subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def
-      by (fastforce simp: prod_rel_fst_snd_iff)
+    subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+    x1f x2f x1g x2g x1h x2h x1i x2i xb x'a
+      unfolding cdcl_twl_stgy_restart_abs_wl_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>fst (snd (snd x'))\<close>in exI)
+      apply (rule_tac x= \<open>(fst (snd x'a))\<close>in exI)
+      by simp
     subgoal by auto
     subgoal by auto
     subgoal by auto

@@ -99,6 +99,14 @@ proof -
     using that by blast
 qed
 
+definition mark_to_delete_clauses_l_post where
+  \<open>mark_to_delete_clauses_l_post S T \<longleftrightarrow>
+     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
+       twl_list_invs S \<and> twl_struct_invs S' \<and> get_conflict_l S = None \<and>
+       clauses_to_update_l S = {#} \<and> get_unkept_learned_clss_l T = {#} \<and>
+    get_subsumed_learned_clauses_l T = {#} \<and>
+    get_learned_clauses0_l T = {#})\<close>
+
 definition cdcl_twl_full_restart_l_prog where
   \<open>cdcl_twl_full_restart_l_prog S = do {
   ASSERT(mark_to_delete_clauses_l_pre S);
@@ -112,7 +120,7 @@ definition cdcl_twl_full_restart_inprocess_l where
   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
-  S' \<leftarrow> simplify_clauses_with_unit_st S';
+  S' \<leftarrow> simplify_clauses_with_units_st S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
     RETURN S'
@@ -179,7 +187,14 @@ proof -
       by auto
     have list_U: \<open>twl_list_invs U\<close>
       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
-     have [simp]:
+    have \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>
+      get_unkept_learned_clss_l V' = {#} \<and>
+      get_subsumed_learned_clauses_l V' = {#} \<and>
+      get_learned_clauses0_l V' = {#}\<close> for V'
+      by (subst (asm)tranclp_unfold_end)
+       (auto simp: remove_one_annot_true_clause.simps)
+
+     then have [simp]:
       \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
       unfolding mark_to_delete_clauses_l_post_def
       using UV struct_invs_V list_U confl_U upd_U
@@ -937,7 +952,7 @@ proof -
     by auto
 
   have simplify_clauses_with_unit_st:
-    \<open>simplify_clauses_with_unit_st U \<le> SPEC (?finp U')\<close>
+    \<open>simplify_clauses_with_units_st U \<le> SPEC (?finp U')\<close>
     if 
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -989,7 +1004,7 @@ proof -
         cdcl_twl_restart_l.simps st twl_st_l_def)
 
     show ?thesis
-      apply (rule simplify_clauses_with_unit_st_spec[THEN order_trans, of _ U''])
+      apply (rule simplify_clauses_with_units_st_spec[THEN order_trans, of _ U''])
       apply (use lev0 UU'' struct_invs list_invs confl clss ent in auto)[8]
       apply (use mark in \<open>auto 4 4 dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
         rtranclp_cdcl_twl_inprocessing_l_count_dec 

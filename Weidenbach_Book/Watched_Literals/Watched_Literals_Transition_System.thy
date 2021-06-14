@@ -5156,10 +5156,22 @@ lemma (in -)propa_cands_enqueued_subsumed_mono:
       propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) (auto 5 5)
 
+lemma (in -)propa_cands_enqueued_U0_mono:
+  \<open>U0' \<subseteq># U0 \<Longrightarrow>
+     propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      propa_cands_enqueued  (M, N, U, D, NE, UE, NS, US', N0, U0', WS, Q)\<close>
+  by (cases D) (auto 5 5)
+
 lemma (in -)confl_cands_enqueued_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
      confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
       confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
+  by (cases D) auto
+
+lemma (in -)confl_cands_enqueued_U0_mono:
+  \<open>U0' \<subseteq># U0 \<Longrightarrow>
+     confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      confl_cands_enqueued  (M, N, U, D, NE, UE, NS, US, N0, U0', WS, Q)\<close>
   by (cases D) auto
 
 lemma (in -)twl_st_exception_inv_subsumed_mono:
@@ -5168,10 +5180,22 @@ lemma (in -)twl_st_exception_inv_subsumed_mono:
       twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
   by (cases D) (fastforce simp: twl_exception_inv.simps)+
 
+lemma (in -)twl_st_exception_inv_U0_mono:
+  \<open>U0' \<subseteq># U0 \<Longrightarrow>
+     twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_exception_inv  (M, N, U, D, NE, UE, NS, US, N0, U0', WS, Q)\<close>
+  by (cases D) (fastforce simp: twl_exception_inv.simps)+
+
 lemma (in -)twl_st_inv_subsumed_mono:
   \<open>US' \<subseteq># US \<Longrightarrow>
      twl_st_inv (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
-      twl_st_inv (M, N, U, D, NE, UE, NS, US', N0, U0, WS, Q)\<close>
+      twl_st_inv (M, N, U, D, NE, UE, NS, US', N0, U0', WS, Q)\<close>
+  by (cases D) (fastforce simp: twl_st_inv.simps)+
+
+lemma (in -)twl_st_inv_U0_subsumed_mono:
+  \<open>U0' \<subseteq># U0 \<Longrightarrow>
+     twl_st_inv (M, N, U, D, NE, UE, NS, US, N0, U0, WS, Q) \<Longrightarrow>
+      twl_st_inv (M, N, U, D, NE, UE, NS, US, N0, U0', WS, Q)\<close>
   by (cases D) (fastforce simp: twl_st_inv.simps)+
 
 lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:

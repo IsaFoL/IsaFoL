@@ -562,7 +562,8 @@ lemma arena_lit_pre:
 
 lemma all_atms_swap[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow> i < length (N \<propto> C) \<Longrightarrow> j < length (N \<propto> C) \<Longrightarrow>
-  all_atms (N(C \<hookrightarrow> swap (N \<propto> C) i j)) = all_atms N\<close>
+  all_atms (N(C \<hookrightarrow> swap (N \<propto> C) i j)
+) = all_atms N\<close>
   unfolding all_atms_def
   by (auto simp del: all_atms_def[symmetric] simp: all_atms_def  intro!: ext)
 
@@ -578,36 +579,36 @@ lemma mop_arena_swap[mop_arena_lit]:
     (auto simp: arena_lifting valid_arena_swap_lits op_clauses_swap_def)
 
 lemma update_clause_wl_alt_def:
-  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NS, US, N0, U0, Q, W). do {
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
      ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and>
-        correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
-     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W));
+        correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      K' \<leftarrow> mop_clauses_at N C f;
-     ASSERT(K' \<in>#  all_lits_st (M, N,  D, NE, UE, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
+     ASSERT(K' \<in>#  all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
-     RETURN (j, w+1, (M, N', D, NE, UE, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
+     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
   })\<close>
   unfolding update_clause_wl_def by (auto intro!: ext simp flip: all_lits_alt_def2)
 
 lemma all_atms_st_simps[simp]:
-   \<open>all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W(K := WK)) =
-   all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-   \<open>all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, add_mset K Q, W) =
-   all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close> \<comment> \<open>actually covered below, but still useful for 'unfolding' by hand\<close>
+   \<open>all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K := WK)) =
+   all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+   \<open>all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, add_mset K Q, W) =
+   all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close> \<comment> \<open>actually covered below, but still useful for 'unfolding' by hand\<close>
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
-     all_atms_st (x1b, x1aa(x1 \<hookrightarrow> WB_More_Refinement_List.swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NS, US, N0, U0, x1e,
+     all_atms_st (x1b, x1aa(x1 \<hookrightarrow> WB_More_Refinement_List.swap (x1aa \<propto> x1) n n'), D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e,
              x2e) =
    all_atms_st
-            (x1b, x1aa, D, x1c, x1d, NS, US, N0, U0, x1e,
+            (x1b, x1aa, D, x1c, x1d, NEk, UEk, NS, US, N0, U0, x1e,
              x2e)\<close>
-  \<open>all_atms_st (L # M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-    all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>NO_MATCH {#} Q \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-     all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, {#}, W)\<close>
-  \<open>NO_MATCH [] M \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-     all_atms_st ([], N, D, NE, UE, NS, US, N0, U0, Q, W)\<close>
-  \<open>NO_MATCH None D \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NS, US, N0, U0, Q, W) =
-  all_atms_st (M, N, None, NE, UE, NS, US, N0, U0, Q, W)\<close>
+  \<open>all_atms_st (L # M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+    all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH {#} Q \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)\<close>
+  \<open>NO_MATCH [] M \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+     all_atms_st ([], N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
+  \<open>NO_MATCH None D \<Longrightarrow> all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) =
+  all_atms_st (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
   \<open>all_atms_st (set_literals_to_update_wl WS S) = all_atms_st S\<close>
   by (cases S; auto simp: all_atms_st_def all_atms_def ran_m_clause_upd
     image_mset_remove1_mset_if simp del: all_atms_def[symmetric]; fail)+
@@ -657,7 +658,8 @@ lemma update_clause_wl_heur_update_clause_wl:
       twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def map_fun_rel_def2
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
-  subgoal for x y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _
+  subgoal for x y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _ _ _
+       _ _ _ _
        ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
        x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x1r
        x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y
@@ -973,11 +975,11 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_clauses[simp]: \<open>literals_are
   done
 
 lemma set_conflict_wl_alt_def:
-  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NS, US, N0, U0, Q, W). do {
-     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NS, US, N0, U0, Q, W));
+  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      let D = Some (mset (N \<propto> C));
      j \<leftarrow> RETURN (length M);
-     RETURN (M, N, D, NE, UE, NS, US, N0, U0, {#}, W)
+     RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)
     })\<close>
   unfolding set_conflict_wl_def Let_def by (auto simp: ac_simps)
 
@@ -1064,6 +1066,13 @@ proof -
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q
        x1r x2r x1s x2s x1t x2t
   proof -
+    have [iff]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm
+             (all_atms_st ([], x1b, None, x1d, x1e, x1f, xaa, af, ag, ah, ai, {#}, bb))
+      {#mset (fst x). x \<in># ran_m x1b#}\<close> for xaa af ag ah ai bb
+      by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n all_atms_st_def
+        in_all_lits_of_mm_ain_atms_of_iff all_atms_def all_lits_def
+        simp del: all_atms_def[symmetric])
+
     show ?thesis
       apply (rule order_trans)
       apply (rule H[of _ _ _ _ _ _ x1a x1b x1g x1c 0 x1r \<open>all_atms_st x2\<close>
@@ -1237,23 +1246,22 @@ definition update_blit_wl_heur_pre where
       simp flip: all_lits_alt_def2
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by"
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
-    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], db, None, dd, de, df, dg, dh, di, {#}, dk))
-      (dk(K := (dk K)[ac := (aa, ae, ab)])) db \<subseteq>
-        vdom_m (all_atms_st ([], db, None, dd, de, df, dg, dh, di, {#}, dk))
-         (dk) db\<close>)
+    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], cz, None, da, db, dd, de, df, dg, dh, di, {#}, dk))
+      (dk(K := (dk K)[ac := (aa, ae, ab)]))
+      cz \<subseteq>
+        vdom_m (all_atms_st ([], cz, None, da, db, dd, de, df, dg, dh, di, {#}, dk)) dk cz\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
     done
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by"
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
-    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], dd, None, df, dg, dh, di, dk, y, {#}, x))
-      (x(K := (x K)[ac := (aa, ae, ab)])) dd \<subseteq>
-        vdom_m (all_atms_st ([], dd, None, df, dg, dh, di, dk, y, {#}, x)) x dd\<close>)
+    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], da, None, dd, de, df, dg, dh, di, dk, y, {#}, x)) (x(K := (x K)[ac := (aa, ae, ab)])) da \<subseteq>
+        vdom_m (all_atms_st ([], da, None, dd, de, df, dg, dh, di, dk, y, {#}, x)) x da\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto

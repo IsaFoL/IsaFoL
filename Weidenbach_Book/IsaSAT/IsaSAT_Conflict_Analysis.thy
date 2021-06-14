@@ -124,15 +124,15 @@ lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
   done
 
 lemma mop_tl_state_wl_pre_simps:
-  \<open>mop_tl_state_wl_pre ([], ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<longleftrightarrow> False\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow>
-     lit_of (hd xa) \<in># all_lits_st (xa', ax, ay'', az, bga, NS, US, N0, U0, bh'', bi'')\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># the ay\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># the ay\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># ay'\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># ay'\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> is_proped (hd xa)\<close>
-  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NS, US, N0, U0, bh, bi) \<Longrightarrow> count_decided xa > 0\<close>
+  \<open>mop_tl_state_wl_pre ([], ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<longleftrightarrow> False\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow>
+     lit_of (hd xa) \<in># all_lits_st (xa', ax, ay'', az, bga, NEk, UEk, NS, US, N0, U0, bh'', bi'')\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> is_proped (hd xa)\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, NEk, UEk, NS, US, N0, U0, bh, bi) \<Longrightarrow> count_decided xa > 0\<close>
   unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
     mop_tl_state_pre_def tl_state_wl_heur_pre_def
   apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
@@ -142,10 +142,10 @@ lemma mop_tl_state_wl_pre_simps:
   done
 
 lemma all_atms_st_st_simps2[simp]:
-  \<open>all_atms_st (tl xaa, bu, bv, bw, bx, by, bz, ca, cb, cc, cd) =
-  all_atms_st (xaa, bu, bv, bw, bx, by, bz, ca, cb, cc, cd)\<close>
-  \<open>all_atms_st (xaa, bu, Some (bv' \<union># tt - uu), bw, bx, by, bz, ca, cb, cc, cd) =
-  all_atms_st (xaa, bu, Some bv', bw, bx, by, bz, ca, cb, cc, cd)\<close>
+  \<open>all_atms_st (tl xaa, bu, bv, bw, bx, by, NEk, UEk, bz, ca, cb, cc, cd) =
+  all_atms_st (xaa, bu, bv, bw, bx, by, NEk, UEk, bz, ca, cb, cc, cd)\<close>
+  \<open>all_atms_st (xaa, bu, Some (bv' \<union># tt - uu), bw, bx, by, NEk, UEk, bz, ca, cb, cc, cd) =
+  all_atms_st (xaa, bu, Some bv', bw, bx, by, NEk, UEk, bz, ca, cb, cc, cd)\<close>
   by (auto simp: all_atms_st_def)
 
 declare isasat_input_bounded_def[simp del]
@@ -488,7 +488,7 @@ lemma (in -)out_learned_tl_Some_notin:
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
 
-(*TODO*)
+(*TODO Move*)
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
   by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
@@ -819,11 +819,11 @@ note [[goals_limit=1]]
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
      x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS'
   unfolding twl_st_heur_conflict_ana_def isa_vmtf_def apply (clarsimp simp only: prod_rel_iff)
-  subgoal for a aa ab ac b ba
+  subgoal for a aa ab ac b c d e f
     apply (rule isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
-        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la)\<close>,
+        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, a, aa, ab)\<close>,
         THEN fref_to_Down_curry4,
-          of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>((a, aa, ab, ac, b), ba)\<close>,
+          of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>((ac, b, c, d, e), f)\<close>,
         THEN order_trans])
     subgoal by (simp add: twl_st_heur_conflict_ana_def)
     subgoal by (auto simp add: twl_st_heur_conflict_ana_def isa_vmtf_def)
@@ -891,7 +891,7 @@ note [[goals_limit=1]]
         dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
        x1k x1l x2k x1m x1n x1o x1p x1q x1r x1t D x1v x1w x2v x1x x1y
-         by (rule tl_trailt_tr_pre[of x1c x1k \<open>all_atms_st (x1c, x1d, x1e, x1f, x1g, x2g, ha, ia, ja, x1, x2)\<close>])
+         by (rule tl_trailt_tr_pre[of x1e _ \<open>all_atms_st (x1e, x1x, x1g, x2g, x1h, x1i, ha, ia, ja, x1, x2, x1a, x1b)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
              simp flip: all_lits_st_alt_def

@@ -9,14 +9,20 @@ inductive cdcl_twl_inp :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow>
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> cdcl_twl_inp S T\<close> |
   \<open>cdcl_twl_restart S T \<Longrightarrow> cdcl_twl_inp S T\<close>
 
+lemma true_clss_clss_subset_entailedI:
+  \<open>UE + UE' = UE'' + ca \<Longrightarrow> A \<Turnstile>ps set_mset UE \<Longrightarrow> A \<Turnstile>ps set_mset UE' \<Longrightarrow> A \<Turnstile>ps set_mset UE''\<close>
+  \<open>UE + UE' = ca + UE'' \<Longrightarrow> A \<Turnstile>ps set_mset UE \<Longrightarrow> A \<Turnstile>ps set_mset UE' \<Longrightarrow> A \<Turnstile>ps set_mset UE''\<close>
+  for UE :: \<open>'v clauses\<close>
+  by (metis set_mset_union true_clss_clss_union_and)+
+
 lemma cdcl_twl_restart_entailed_init:
   \<open>cdcl_twl_restart S T \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of (pstate\<^sub>W_of S)) \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of (pstate\<^sub>W_of T))\<close>
   by (induction rule: cdcl_twl_restart.induct)
    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-    subset_mset.le_iff_add Un_left_commute image_Un sup_commute)
-
+    subset_mset.le_iff_add Un_left_commute image_Un sup_commute
+    intro: true_clss_clss_subset_entailedI)
 
 lemma cdcl_twl_inp_invs:
   assumes \<open>cdcl_twl_inp S T\<close>
@@ -314,10 +320,10 @@ lemma pcdcl_restart_entailed_by_init:
   apply (induction rule: pcdcl_restart.induct)
   subgoal
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      subset_mset.le_iff_add ac_simps)
+      subset_mset.le_iff_add ac_simps intro: true_clss_clss_subset_entailedI)
   subgoal
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      subset_mset.le_iff_add ac_simps)
+      subset_mset.le_iff_add ac_simps intro: true_clss_clss_subset_entailedI)
   done
 
 lemma pcdcl_restart_only_entailed_by_init:
