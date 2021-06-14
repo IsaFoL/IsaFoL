@@ -822,26 +822,26 @@ qed
 definition set_conflict_to_false :: \<open>conflict_option_rel \<Rightarrow> conflict_option_rel\<close> where
   \<open>set_conflict_to_false = (\<lambda>(b, n, xs). (False, 0, xs))\<close>
 
-text \<open>We butcher our statistics here, but this is easier than handling overflows.\<close>
+text \<open>We butcher our statistics here, but the clauses are deleted later anyway.\<close>
 definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isa_simplify_clause_with_unit_st2 =  (\<lambda>C (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts, old_arena). do {
+      vdom, avdom, lcount, opts, old_arena, ivdom). do {
   E \<leftarrow> mop_arena_status N C;
    ASSERT(E = LEARNED \<longrightarrow> 1 \<le> clss_size_lcount lcount);
   (unc, N, L, b, i) \<leftarrow> isa_simplify_clause_with_unit2 C M N;
    if unc then RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts, old_arena)
+      vdom, avdom, lcount, opts, old_arena, ivdom)
    else if b then
    RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
      if E = LEARNED then clss_size_decr_lcount (lcount) else lcount,
-     opts, old_arena)
+     opts, old_arena, ivdom)
    else if i = 1
    then do {
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
      RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
      vdom, avdom, if E = LEARNED
        then clss_size_decr_lcount (clss_size_incr_lcountUEk (lcount))
-       else lcount, opts, old_arena)}
+       else lcount, opts, old_arena, ivdom)}
    else if i = 0
    then do {
      j \<leftarrow> mop_isa_length_trail M;
@@ -849,12 +849,12 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_
      vdom, avdom,
      if E = LEARNED
      then clss_size_decr_lcount ((lcount)) else lcount,
-     opts, old_arena)
+     opts, old_arena, ivdom)
    }
    else
      RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
      if E = LEARNED
-     then (lcount) else lcount, opts, old_arena)
+     then (lcount) else lcount, opts, old_arena, ivdom)
      })\<close>
 
 lemma literals_are_in_mm_clauses:
@@ -878,7 +878,7 @@ lemma mop_arena_status:
 lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
   \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
   (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
   let \<A> = all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) in
     (M', M) \<in> trail_pol \<A>  \<and>
@@ -895,6 +895,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
     isasat_input_bounded \<A>  \<and>
     isasat_input_nempty \<A>  \<and>
     distinct vdom \<and> old_arena = [] \<and>
@@ -1066,6 +1067,10 @@ proof -
    done
 qed
 
+(*TODO Move*)
+definition access_ivdom_at_pre where
+  \<open>access_ivdom_at_pre S i \<longleftrightarrow> i < length (get_ivdom S)\<close>
+
 definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>  where
   \<open>isa_simplify_clauses_with_unit_st2 S =
   do {
@@ -1076,7 +1081,7 @@ definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightar
          ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i \<and>
            length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-         let C = access_vdom_at T i;
+         let C = (access_vdom_at T i);
          E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
          if E \<noteq> DELETED then do {
           T \<leftarrow> isa_simplify_clause_with_unit_st2 C T;

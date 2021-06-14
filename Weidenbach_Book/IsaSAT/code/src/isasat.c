@@ -373,9 +373,7 @@ char * find (const char * prg) {
     size_t pathlen = (q - p) + prglen;
     char path [pathlen + 1];
     sprintf (path, "%s/%s", p, prg);
-    free(path);
   }
-  free(e);
   return res;
 }
 
@@ -518,7 +516,7 @@ int main(int argc, char *argv[]) {
   uint64_t restartmargin = 17;
   uint64_t fema = 128849010;
   uint64_t sema = 429450;
-  uint64_t unitinterval = 128849010;
+  uint64_t unitinterval = 10;
 
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
@@ -550,7 +548,7 @@ int main(int argc, char *argv[]) {
       ++i;
     }
     else {
-      printf("c ignoring  unrecognised option %s", opt);
+      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     }
   }
   inputname = argv[argc-1];

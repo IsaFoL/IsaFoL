@@ -14,13 +14,13 @@ sepref_register length_ll extra_information_mark_to_delete nth_rll
   LEARNED
 
 lemma isasat_GC_clauses_prog_copy_wl_entry_alt_def:
-\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N0 W A (N', vdm, avdm). do {
+\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N0 W A (N', vdm, avdm, ivdm). do {
     ASSERT(nat_of_lit A < length W);
     ASSERT(length (W ! nat_of_lit A) \<le> length N0);
     let le = length (W ! nat_of_lit A);
-    (i, N, N', vdm, avdm) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, N, N', vdm, avdm). i < le)
-      (\<lambda>(i, N, (N', vdm, avdm)). do {
+    (i, N, N', vdm, avdm, ivdm) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N', vdm, avdm, ivdm). i < le)
+      (\<lambda>(i, N, (N', vdm, avdm, ivdm)). do {
         ASSERT(i < length (W ! nat_of_lit A));
         let (C, _, _) = (W ! nat_of_lit A ! i);
         ASSERT(arena_is_valid_clause_vdom N C);
@@ -35,10 +35,11 @@ lemma isasat_GC_clauses_prog_copy_wl_entry_alt_def:
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],
-             (if st = LEARNED then avdm @ [D] else avdm))
-        } else RETURN (i+1, N, (N', vdm, avdm))
-      }) (0, N0, (N', vdm, avdm));
-    RETURN (N, (N', vdm, avdm))
+            (if st = LEARNED then avdm @ [D] else avdm),
+            (if st \<noteq> LEARNED then ivdm @ [D] else ivdm))
+        } else RETURN (i+1, N, (N', vdm, avdm, ivdm))
+      }) (0, N0, (N', vdm, avdm, ivdm));
+    RETURN (N, (N', vdm, avdm, ivdm))
   })\<close>
 proof -
   have H: \<open>(let (a, _, _) = c in f a) = (let a = fst c in f a)\<close> for a c f

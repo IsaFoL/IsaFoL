@@ -57,7 +57,7 @@ type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> restart_heuristics \<times>
-    vdom \<times> vdom \<times> clss_size \<times> opts \<times> arena\<close>
+    vdom \<times> vdom \<times> clss_size \<times> opts \<times> arena \<times> vdom\<close>
 
 
 paragraph \<open>Accessors\<close>
@@ -146,7 +146,10 @@ fun get_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
   \<open>get_opts (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
 
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
-  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
+  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena, _) = old_arena\<close>
+
+fun get_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
+  \<open>get_ivdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom) = vdom\<close>
 
 definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
@@ -185,7 +188,7 @@ state. \<^term>\<open>avdom\<close> includes the active clauses.
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -201,6 +204,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -227,7 +232,7 @@ text \<open>
 definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_loop =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -243,6 +248,8 @@ definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) se
     (D = None \<longrightarrow> clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount) \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -289,7 +296,7 @@ definition twl_st_heur_conflict_ana
 where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
-       avdom, lcount, opts, old_arena),
+       avdom, lcount, opts, old_arena, ivdom),
       (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -303,6 +310,8 @@ where
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -328,7 +337,7 @@ separate array.\<close>
 definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
   {((M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
-       old_arena),
+       old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -342,6 +351,8 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -944,6 +955,13 @@ definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarro
 lemma access_vdom_at_alt_def:
   \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
   by (intro ext) (auto simp: access_vdom_at_def)
+
+definition access_ivdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_ivdom_at S i = get_ivdom S ! i\<close>
+
+lemma access_ivdom_at_alt_def:
+  \<open>access_ivdom_at = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, ivdom) i. ivdom ! i)\<close>
+  by (intro ext) (auto simp: access_ivdom_at_def)
 
 definition access_vdom_at_pre where
   \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>

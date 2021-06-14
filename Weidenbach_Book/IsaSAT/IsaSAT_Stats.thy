@@ -13,7 +13,7 @@ overflow), there are just there to look for regressions, do some comparisons (e.
 we are propagating slower than the other solvers), or to test different option combinations.
 \<close>
 type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>
-  64 word \<times> ema\<close>
+  64 word \<times> 64 word \<times> ema\<close>
 
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
@@ -41,8 +41,7 @@ definition stats_conflicts :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>stats_conflicts = (\<lambda>(propa, confl, dec). confl)\<close>
 
 definition add_lbd :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, units, ema_update (unat lbd) lbds))\<close>
-
+  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, ema_update (unat lbd) lbds))\<close>
 
 definition units_since_last_GC :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). units)\<close>
@@ -53,6 +52,12 @@ definition incr_units_since_last_GC :: \<open>stats \<Rightarrow> stats\<close> 
 
 definition reset_units_since_last_GC :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>reset_units_since_last_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, 0, lbds))\<close>
+
+definition incr_irred_clss :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_irred_clss = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss+1, lbds))\<close>
+
+definition decr_irred_clss :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>decr_irred_clss = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss-1, lbds))\<close>
 
 
 section \<open>Information related to restarts\<close>

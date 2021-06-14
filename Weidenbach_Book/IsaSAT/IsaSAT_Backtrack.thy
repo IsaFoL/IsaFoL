@@ -1799,10 +1799,10 @@ proof -
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
     obtain M1' vm' W' clvls cach lbd outl stats heur avdom vdom lcount arena D'
-        Q' opts
+        Q' opts ivdom
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
-           vdom, avdom, lcount, opts, [])\<close>
+           vdom, avdom, lcount, opts, [], ivdom)\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
 
     have [simp]:
@@ -2306,10 +2306,10 @@ proof -
        \<open>LK = LK'\<close>
        using KK' SS' S' by (auto simp: T')
     obtain vm' W' clvls cach lbd outl stats heur vdom avdom lcount arena D' Q' opts
-      M1'
+      M1' ivdom
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
-           vdom, avdom, lcount, opts, [])\<close> and
+           vdom, avdom, lcount, opts, [], ivdom)\<close> and
         avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
             \<open>get_learned_count U = get_learned_count S\<close>

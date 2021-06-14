@@ -659,7 +659,7 @@ lemma update_clause_wl_heur_update_clause_wl:
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
   subgoal for x y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _ _ _
-       _ _ _ _
+       _ _ _ _ _
        ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
        x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x1r
        x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y

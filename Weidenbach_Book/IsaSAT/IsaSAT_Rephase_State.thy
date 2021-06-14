@@ -18,13 +18,13 @@ lemma rephase_heur_spec:
 
 definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>rephase_heur_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom, avdom, lcount, opts, old_arena, ivdom). do {
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur b heur;
       let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
                   b stats lcount;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena)
+       vdom, avdom, lcount, opts, old_arena, ivdom)
    })\<close>
 
 lemma rephase_heur_st_spec:
@@ -52,12 +52,12 @@ lemma save_phase_heur_spec:
 
 definition save_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>save_phase_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom, avdom, lcount, opts, old_arena, ivdom). do {
       ASSERT(isa_length_trail_pre M');
       let n = isa_length_trail M';
       heur \<leftarrow> save_rephase_heur n heur;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena)
+       vdom, avdom, lcount, opts, old_arena, ivdom)
    })\<close>
 
 lemma save_phase_st_spec:
