@@ -229,4 +229,10 @@ sepref_def clss_size_resetUS0_st
   unfolding fold_tuple_optimizations isasat_bounded_assn_def clss_size_resetUS0_st_alt_def
   by sepref
 
+sepref_def length_clauses_heur_impl
+  is \<open>RETURN o length_clauses_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding length_clauses_heur_alt_def isasat_bounded_assn_def
+  by sepref
+
 end

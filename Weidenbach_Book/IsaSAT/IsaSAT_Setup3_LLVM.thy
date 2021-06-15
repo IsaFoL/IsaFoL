@@ -160,10 +160,17 @@ sepref_def mark_garbage_heur4_code
     fold_tuple_optimizations
   by sepref
 
-sepref_def access_vdom_at_fast_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+sepref_def access_avdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_avdom_at)\<close>
+  :: \<open>[uncurry access_avdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding access_avdom_at_alt_def access_avdom_at_pre_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_def access_ivdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_ivdom_at)\<close>
+  :: \<open>[uncurry access_ivdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding access_ivdom_at_alt_def access_ivdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 

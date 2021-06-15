@@ -65,12 +65,36 @@ sepref_def rewatch_heur_st_fast_code
   by sepref
 
 
-sepref_register length_avdom
+sepref_register length_avdom length_ivdom
 
 sepref_def length_avdom_fast_code
   is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding length_avdom_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+definition workaround_RF where
+  \<open>workaround_RF xs = length xs\<close>
+
+sepref_def workaround_RF_code
+  is \<open>RETURN o workaround_RF\<close>
+  :: \<open>vdom_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding workaround_RF_def
+  by sepref
+
+
+lemma length_ivdom_alt_def:
+  \<open>length_ivdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena, ivdom). workaround_RF ivdom)\<close>
+  unfolding workaround_RF_def length_ivdom_alt_def by auto
+
+sepref_register workaround_RF
+sepref_def length_ivdom_fast_code
+  is \<open>RETURN o length_ivdom\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding length_ivdom_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 

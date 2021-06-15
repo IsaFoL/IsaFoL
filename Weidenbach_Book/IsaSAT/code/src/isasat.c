@@ -9,8 +9,6 @@
 
 #include "isasat_restart.h"
 
-#define PRINTSTATS 1
-
 /* Put the model in an array to print it*/
 typedef struct MODEL {
   int32_t* model;
@@ -279,6 +277,12 @@ void IsaSAT_LLVM_print_gc_impl(int64_t props) {
 #endif
 }
 
+void IsaSAT_LLVM_print_irred_clss_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c irred_clss %ld\n", props);
+#endif
+}
+
 void print_phase(int8_t phase) {
 #ifdef PRINTSTATS
   if(phase == 1)
@@ -373,9 +377,7 @@ char * find (const char * prg) {
     size_t pathlen = (q - p) + prglen;
     char path [pathlen + 1];
     sprintf (path, "%s/%s", p, prg);
-    free(path);
   }
-  free(e);
   return res;
 }
 
@@ -518,7 +520,7 @@ int main(int argc, char *argv[]) {
   uint64_t restartmargin = 17;
   uint64_t fema = 128849010;
   uint64_t sema = 429450;
-  uint64_t unitinterval = 128849010;
+  uint64_t unitinterval = 10;
 
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
@@ -550,7 +552,7 @@ int main(int argc, char *argv[]) {
       ++i;
     }
     else {
-      printf("c ignoring  unrecognised option %s", opt);
+      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     }
   }
   inputname = argv[argc-1];
@@ -600,8 +602,8 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 #ifdef PRINTSTATS
-  printf("c propagations                       redundant                   lrestarts                       GC                        not-mem-reasons\n"
-	 "c                     conflicts                     reductions                 level-0                         LBDs                      subsumed\n");
+  printf("c propagations                       redundant        reductions             level-0                     LBDS                    subsumed\n"
+	 "c                     conflicts               irred               lrestarts                 GCs                  not-mem-reasons         \n");
 #endif
   int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
 			     sema, unitinterval, clauses);

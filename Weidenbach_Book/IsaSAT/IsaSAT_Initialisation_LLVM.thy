@@ -44,13 +44,13 @@ lemmas [sepref_fr_rules] = distinct_atms_empty_code.refine atoms_hash_empty_code
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times> 
+    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> vdom_fast_assn \<times> 1 word \<times> 
   (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn\<close>
 
 definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
        64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
-  32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times>
+  32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> vdom_fast_assn \<times> 1 word \<times>
   (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
@@ -62,6 +62,7 @@ where
   uint32_nat_assn \<times>\<^sub>a
   cach_refinement_l_assn \<times>\<^sub>a
   lbd_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
   vdom_fast_assn \<times>\<^sub>a
   bool1_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a
   marked_struct_assn\<close>
@@ -667,9 +668,10 @@ schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE marked_
 lemma finalise_init_code_alt_def:
   \<open>finalise_init_code opts =
   (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
-  lbd, vdom, _, lcount, mark). do {
-  ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-  let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,  0::64 word, ema_fast_init);
+  lbd, vdom, ivdom, _, lcount, mark). do {
+   ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
+  let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
+    of_nat (length vdom)::64 word, ema_fast_init);
   let fema = ema_init (opts_fema opts);
   let sema = ema_init (opts_sema opts);
   let ccount = restart_info_init;
@@ -677,7 +679,7 @@ lemma finalise_init_code_alt_def:
   RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
     clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
     (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
-    reluctant_init), vdom, [], lcount, opts, [])
+    reluctant_init), vdom, [], lcount, opts, [], ivdom)
     })\<close>
     unfolding finalise_init_code_def mop_free_def by auto
 
@@ -685,7 +687,7 @@ sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply  [[goals_limit=1]]
+  supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
   unfolding finalise_init_code_alt_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
      heuristic_assn_def phase_heur_assn_def
@@ -695,7 +697,7 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
@@ -759,16 +761,18 @@ sepref_def init_state_wl_D'_code
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> annotate_assn[where A= \<open>arl64_assn atom_assn\<close>])
   apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
   apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>watchlist_fast_assn\<close>])
-  apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _; _ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
-  apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _; _= _ in RETURN _\<close> larray_fold_custom_replicate)
+  apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _;_=_; _ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _; _= _; _=_ in RETURN _\<close> larray_fold_custom_replicate)
   apply (rewrite in \<open>let _= (True, _, \<hole>) in  _\<close> array_fold_custom_replicate)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>let _= (True, \<hole>, _) in _\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
+  apply (rewrite at \<open>let _= \<hole>; _ = _ ; _ =_ in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
   apply (rewrite at \<open>let _= \<hole>; _ = _ in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole>; _=_; _ = _ in RETURN _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>let _= \<hole>; _ = _ in RETURN _\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False, _)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>(_,\<hole>, _ ,_, _, _, False, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>let _ = (\<hole>, _, _) in RETURN _\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>let _ = (_, \<hole>, _) in RETURN _\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>let _ = ( _, _, \<hole>, _) in RETURN _\<close> unat_const_fold[where 'a=64])

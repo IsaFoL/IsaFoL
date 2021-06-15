@@ -336,14 +336,14 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        cq cr cs ct lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
-      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cq\<close> and NS' = cp and
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cr\<close> and NS' = cq and
         lcount' = \<open>(cb, cc, cd, ce, cf)\<close>])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (solves \<open>auto simp: twl_st_heur_def\<close>)[]
@@ -354,12 +354,6 @@ proof -
 	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] learned_clss_count_def
           all_atms_st_def
 	  intro: isa_vmtfI trail_pol_no_dup)
-      (* apply (rule trail_pol_cong)
-       * apply assumption
-       * apply fast
-       * apply (rule isa_vmtf_cong)
-       * apply assumption
-       * apply (fast intro: isa_vmtfI) *)
       done
     done
 qed
@@ -705,7 +699,7 @@ where
       (\<lambda>(i, S). i < length (get_avdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         b \<leftarrow> mop_clause_not_marked_to_delete_heur T C;
@@ -764,7 +758,7 @@ where
       (\<lambda>(i, S). i < length (get_avdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         b \<leftarrow> mop_clause_not_marked_to_delete_heur T C;
@@ -815,7 +809,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
             WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(i, S). i < length (get_avdom S))
              (\<lambda>(i, T). do {
                    ASSERT (i < length (get_avdom T));
-                   ASSERT (access_vdom_at_pre T i);
+                   ASSERT (access_avdom_at_pre T i);
                    ASSERT
                         (clause_not_marked_to_delete_heur_pre
                           (T, get_avdom T ! i));
@@ -901,7 +895,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
             WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(i, S). i < length (get_avdom S))
              (\<lambda>(i, T). do {
                    ASSERT (i < length (get_avdom T));
-                   ASSERT (access_vdom_at_pre T i);
+                   ASSERT (access_avdom_at_pre T i);
                    ASSERT
                         (clause_not_marked_to_delete_heur_pre
                           (T, get_avdom T ! i));
@@ -1058,7 +1052,7 @@ proof -
     \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
     \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
     \<open>x1b < length (get_avdom x2b)\<close> and
-    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>access_avdom_at_pre x2b x1b\<close> and
     dom: \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -1096,25 +1090,27 @@ proof -
           conc_fun_RES
         dest!: twl_st_heur_restart_anaD dest: twl_st_heur_restart_same_annotD imageI[of _ _ lit_of])
   qed
-  have \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount),
+  have \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
            S')
           \<in> twl_st_heur_restart \<Longrightarrow>
-    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom', lcount),
+    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom', lcount, opts, old_arena, ivdom),
            S')
           \<in> twl_st_heur_restart\<close>
     if \<open>mset avdom' \<subseteq># mset avdom\<close>
-    for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema
+    for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema opts old_arena ivdom
       ccount vdom lcount S' avdom' avdom heur
     using that unfolding twl_st_heur_restart_def
-    by auto
+    apply (auto elim: subset_mset.less_eqE)
+      apply (metis IntI in_multiset_in_set in_multiset_nempty set_mset_empty subset_mset.less_eqE union_iff)+
+   done
   then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
     \<open>mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, vdom, avdom', lcount) \<Longrightarrow>
+       heur, vdom, avdom', lcount, opts, old_arena, ivdom) \<Longrightarrow>
       mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-        heur, vdom, avdom, lcount)\<close>
+        heur, vdom, avdom, lcount, opts, old_arena, ivdom)\<close>
     if \<open>mset avdom \<subseteq># mset avdom'\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema avdom avdom'
-      ccount vdom lcount heur
+      ccount vdom lcount heur old_arena ivdom opts
     using that
     unfolding mark_to_delete_clauses_wl_D_heur_pre_def
     by metis
@@ -1187,14 +1183,14 @@ proof -
       \<open>x' = (x1, x2)\<close>
       \<open>xa = (x1b, x2b)\<close> and
       le: \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>(b, ba) \<in> {(b, b'). (b, b') \<in> bool_rel \<and> b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close> and
       \<open>\<not>ba\<close>
     for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa ba b
   proof -
     show ?thesis
       using xx le unfolding st
-      by (auto simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
+      by (fastforce simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
           twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
           learned_clss_l_l_fmdrop size_remove1_mset_If learned_clss_count_def
           intro: valid_arena_extra_information_mark_to_delete'
@@ -1299,7 +1295,7 @@ proof -
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
       \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
       \<open>(b, ba)
        \<in> {(b, b').
@@ -1357,7 +1353,7 @@ proof -
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
@@ -1513,46 +1509,6 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
     cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
 
 
-
-(*
-lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D:
-  \<open>(remove_one_annot_true_clause_imp_wl_D_heur, remove_one_annot_true_clause_imp_wl_D) \<in>
-    twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
-  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
-    remove_one_annot_true_clause_imp_wl_D_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T}\<close>])
-  subgoal by (auto simp: twl_st_heur_restart_count_decided_st_alt_def
-    twl_st_heur_restart_isa_length_trail_get_trail_wl)
-  subgoal for S T
-    apply (rule order_trans)
-      apply (rule get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS[THEN fref_to_Down_curry,
-        of \<open>get_trail_wl T\<close> \<open>0::nat\<close> \<open>get_trail_wl_heur S\<close> _ \<open>all_init_atms_st T\<close>])
-    apply (auto simp: get_pos_of_level_in_trail_pre_def twl_st_heur_restart_count_decided_st_alt_def
-      dest: twl_st_heur_restart_trailD
-      intro!: get_pos_of_level_in_trail_le_decomp)
-    done
-  subgoal
-    by (auto simp: remove_one_annot_true_clause_imp_wl_D_inv_def)
-  subgoal for x y k ka xa x'
-    unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
-    apply (subst case_prod_beta)
-    apply (subst (asm)(11) surjective_pairing)
-    apply (subst (asm)(9) surjective_pairing)
-    unfolding prod_rel_iff
-    apply (rule_tac x=y in exI)
-    apply (rule_tac x= \<open>snd x'\<close> in exI)
-    apply auto
-    done
-  subgoal by auto
-  subgoal sor ry
-  subgoal by auto
-  done
-
-
-    *)
-
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D:
   \<open>(mark_to_delete_clauses_GC_wl_D_heur, mark_to_delete_clauses_GC_wl) \<in>
      twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f
@@ -1637,7 +1593,7 @@ proof -
     \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
     \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
     \<open>x1b < length (get_avdom x2b)\<close> and
-    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>access_avdom_at_pre x2b x1b\<close> and
     dom: \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -1684,7 +1640,7 @@ proof -
     if \<open>mset avdom' \<subseteq># mset avdom\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema
       ccount vdom lcount S' avdom' avdom heur
-    using that unfolding twl_st_heur_restart_def
+    using that set_mset_mono[OF that] unfolding twl_st_heur_restart_def
     by auto
   then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
     \<open>mark_to_delete_clauses_GC_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
@@ -1766,14 +1722,14 @@ proof -
       \<open>x' = (x1, x2)\<close>
       \<open>xa = (x1b, x2b)\<close> and
       le: \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>(b, ba) \<in> {(b, b'). (b, b') \<in> bool_rel \<and> b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close> and
       \<open>\<not>ba\<close>
     for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa ba b
   proof -
     show ?thesis
       using xx le unfolding st
-      by (auto simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
+      by (fastforce simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
           twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
           learned_clss_l_l_fmdrop size_remove1_mset_If learned_clss_count_def
           intro: valid_arena_extra_information_mark_to_delete'
@@ -1877,7 +1833,7 @@ proof -
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
       \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
       \<open>(b, ba)
        \<in> {(b, b').
@@ -1933,7 +1889,7 @@ proof -
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
@@ -2025,15 +1981,15 @@ qed
 
 definition isasat_GC_clauses_prog_copy_wl_entry
   :: \<open>arena \<Rightarrow> (nat watcher) list list \<Rightarrow> nat literal \<Rightarrow>
-         (arena \<times> _ \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _ \<times> _)) nres\<close>
+         (arena \<times> _ \<times> _ \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _ \<times> _ \<times> _)) nres\<close>
 where
-\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N0 W A (N', vdm, avdm). do {
+\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N0 W A (N', vdm, avdm, ivdm). do {
     ASSERT(nat_of_lit A < length W);
     ASSERT(length (W ! nat_of_lit A) \<le> length N0);
     let le = length (W ! nat_of_lit A);
-    (i, N, N', vdm, avdm) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, N, N', vdm, avdm). i < le)
-      (\<lambda>(i, N, (N', vdm, avdm)). do {
+    (i, N, N', vdm, avdm, ivdom) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N', vdm, avdm, ivdm). i < le)
+      (\<lambda>(i, N, (N', vdm, avdm, ivdm)). do {
         ASSERT(i < length (W ! nat_of_lit A));
         let C = fst (W ! nat_of_lit A ! i);
         ASSERT(arena_is_valid_clause_vdom N C);
@@ -2046,25 +2002,29 @@ where
           ASSERT(length N = length N0);
           ASSERT(length vdm < length N0);
           ASSERT(length avdm < length N0);
+          ASSERT(length ivdm < length N0);
           let D = length N' + (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],
-             (if st = LEARNED then avdm @ [D] else avdm))
-        } else RETURN (i+1, N, (N', vdm, avdm))
-      }) (0, N0, (N', vdm, avdm));
-    RETURN (N, (N', vdm, avdm))
+             (if st = LEARNED then avdm @ [D] else avdm),
+             (if st \<noteq> LEARNED then ivdm @ [D] else ivdm))
+        } else RETURN (i+1, N, (N', vdm, avdm, ivdm))
+      }) (0, N0, (N', vdm, avdm, ivdm));
+    RETURN (N, (N', vdm, avdm, ivdom))
   })\<close>
 
 definition isasat_GC_entry :: \<open>_\<close> where
-\<open>isasat_GC_entry \<A> vdom0 arena_old W'  = {((arena\<^sub>o, (arena, vdom, avdom)), (N\<^sub>o, N)). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
+\<open>isasat_GC_entry \<A> vdom0 arena_old W'  = {((arena\<^sub>o, (arena, vdom, avdom,ivdom)), (N\<^sub>o, N)). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
+  arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> mset ivdom \<subseteq># mset vdom \<and> set avdom \<inter> set ivdom = {} \<and>
+  length arena\<^sub>o = length arena_old \<and>
     move_is_packed arena\<^sub>o N\<^sub>o arena N}\<close>
 
 definition isasat_GC_refl :: \<open>_\<close> where
-\<open>isasat_GC_refl \<A> vdom0 arena_old = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+\<open>isasat_GC_refl \<A> vdom0 arena_old = {((arena\<^sub>o, (arena, vdom, avdom, ivdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
      (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
+  arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> mset ivdom \<subseteq># mset vdom \<and> set avdom \<inter> set ivdom = {} \<and>
+  length arena\<^sub>o = length arena_old \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o) \<and>move_is_packed arena\<^sub>o N\<^sub>o arena N}\<close>
 
 lemma move_is_packed_empty[simp]: \<open>valid_arena arena N vdom \<Longrightarrow> move_is_packed arena N [] fmempty\<close>
@@ -2129,10 +2089,11 @@ lemma isasat_GC_clauses_prog_copy_wl_entry:
     \<open>dom_m N' = mset vdom\<close> \<open>distinct vdom\<close> and
    \<open>arena_is_packed arena' N'\<close> and
     avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
+    ivdom: \<open>mset ivdom \<subseteq># mset vdom\<close> \<open>set avdom \<inter> set ivdom = {}\<close> and
     r: \<open>length arena = r\<close> and
     le: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W L) \<le> length arena\<close> and
     packed: \<open>move_is_packed arena N arena' N'\<close>
-  shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom, avdom)
+  shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom, avdom, ivdom)
      \<le> \<Down> (isasat_GC_entry \<A> vdom0 arena W)
          (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
      (is \<open>_ \<le> \<Down> (?R) _\<close>)
@@ -2177,13 +2138,15 @@ proof -
    subgoal using r by (auto simp: isasat_GC_entry_def)
    subgoal by (auto dest: valid_arena_header_size simp: arena_lifting dest!: valid_arena_vdom_subset multi_member_split simp: arena_header_size_def isasat_GC_entry_def
     split: if_splits)
-    subgoal by (auto simp: isasat_GC_entry_def dest!: size_mset_mono)
+   subgoal by (auto simp: isasat_GC_entry_def dest!: size_mset_mono)
+   subgoal by (auto simp: isasat_GC_entry_def dest!: size_mset_mono)
    subgoal
      by (force simp: isasat_GC_entry_def dest: arena_lifting(2))
    subgoal by (auto simp: arena_header_size_def)
-   subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d D
+   subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f D
+     using valid_arena_in_vdom_le_arena(1)[of x1d x2a \<open>set x1e\<close> D] apply -
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
-       (auto intro: valid_arena_extra_information_mark_to_delete'
+      (auto intro: valid_arena_extra_information_mark_to_delete'
          simp: arena_lifting remove_1_mset_id_iff_notin
             mark_garbage_pre_def isasat_GC_entry_def min_def
             valid_arena_header_size
@@ -2198,17 +2161,17 @@ proof -
  qed
 
 definition isasat_GC_clauses_prog_single_wl
-  :: \<open>arena \<Rightarrow>  (arena \<times> _ \<times> _) \<Rightarrow> (nat watcher) list list \<Rightarrow> nat \<Rightarrow>
-        (arena \<times> (arena \<times> _ \<times> _) \<times> (nat watcher) list list) nres\<close>
+  :: \<open>arena \<Rightarrow>  (arena \<times> _ \<times> _\<times> _) \<Rightarrow> (nat watcher) list list \<Rightarrow> nat \<Rightarrow>
+        (arena \<times> (arena \<times> _ \<times> _\<times> _) \<times> (nat watcher) list list) nres\<close>
 where
 \<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N0 N' WS A. do {
     let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
     ASSERT(nat_of_lit L < length WS);
     ASSERT(nat_of_lit (-L) < length WS);
-    (N, (N', vdom, avdom)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N0 WS L N';
+    (N, (N', vdom, avdom, ivdom)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N0 WS L N';
     let WS = WS[nat_of_lit L := []];
     ASSERT(length N = length N0);
-    (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdom, avdom);
+    (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdom, avdom, ivdom);
     let WS = WS[nat_of_lit (-L) := []];
     RETURN (N, N', WS)
   })\<close>
@@ -2217,9 +2180,10 @@ where
 lemma isasat_GC_clauses_prog_single_wl:
   assumes
     \<open>(X, X') \<in> isasat_GC_refl \<A> vdom0 arena0\<close> and
-    X: \<open>X = (arena, (arena', vdom, avdom), W)\<close> \<open>X' = (N, N', W')\<close> and
+    X: \<open>X = (arena, (arena', vdom, avdom, ivdom), W)\<close> \<open>X' = (N, N', W')\<close> and
     L: \<open>A \<in># \<A>\<close> and
-    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom, avdom)\<close> and
+    st: \<open>(A, A') \<in> Id\<close> and
+    st': \<open>narena = (arena', vdom, avdom, ivdom)\<close> and
     ae: \<open>length arena0 = length arena\<close> and
     le_all: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<close>
   shows \<open>isasat_GC_clauses_prog_single_wl arena narena  W A
@@ -2238,6 +2202,7 @@ proof -
     dist: \<open>distinct vdom\<close> and
     packed: \<open>arena_is_packed arena' N'\<close> and
     avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
+    ivdom: \<open>mset ivdom \<subseteq># mset vdom\<close> \<open>set avdom \<inter> set ivdom = {}\<close> and
     packed2: \<open>move_is_packed arena N arena' N'\<close> and
     incl: \<open>vdom_m \<A> W' N \<subseteq> vdom0\<close>
     using assms X st by (auto simp: isasat_GC_refl_def)
@@ -2280,6 +2245,8 @@ proof -
     subgoal using dist by blast
     subgoal using packed by blast
     subgoal using avdom by blast
+    subgoal using ivdom by blast
+    subgoal using ivdom by blast
     subgoal by blast
     subgoal using le_all by auto
     subgoal using packed2 by auto
@@ -2298,6 +2265,8 @@ proof -
     subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using W ae le_all vdom by (auto simp: dest!: vdom_upD)
     subgoal using W ae le_all vdom by (auto simp: dest!: vdom_upD)
     done
 qed
@@ -2350,12 +2319,13 @@ lemma isasat_GC_clauses_prog_wl2:
     bounded: \<open>isasat_input_bounded \<A>\<close> and old: \<open>old_arena = []\<close> and
     le_all: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o\<close>
  shows
-    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, (old_arena, [], []), W)
-        \<le> \<Down> ({((arena\<^sub>o', (arena, vdom, avdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o' N\<^sub>o' vdom0 \<and>
+    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, (old_arena, [], [], []), W)
+        \<le> \<Down> ({((arena\<^sub>o', (arena, vdom, avdom, ivdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o' N\<^sub>o' vdom0 \<and>
                 valid_arena arena N (set vdom) \<and>
        (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
         cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W') \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-        arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o' = length arena\<^sub>o})
+       arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> mset ivdom \<subseteq># mset vdom \<and> set avdom \<inter> set ivdom = {} \<and>
+       length arena\<^sub>o' = length arena\<^sub>o})
          (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W')\<close>
 proof -
   define f where
@@ -2365,7 +2335,7 @@ proof -
       length arena\<^sub>o' = length arena\<^sub>o}\<close>
   have H: \<open>(X, X') \<in> ?R \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
      X' = (x1', x2') \<Longrightarrow> x2' = (x3', x4') \<Longrightarrow> x4' = (x5', x6') \<Longrightarrow>
-     ((x3, (fst x5, fst (snd x5), snd (snd x5)), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0 arena\<^sub>o\<close>
+     ((x3, (fst x5, fst (snd x5), fst (snd (snd x5)), snd (snd (snd x5))), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0 arena\<^sub>o\<close>
     for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6' x0 x0' x x'
      supply [[show_types]]
     by auto
@@ -2440,11 +2410,11 @@ qed
 
 definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), clvls, cach, lbd, outl, stats,
-    heur,  vdom, avdom, lcount, opts, old_arena). do {
+    heur,  vdom, avdom, lcount, opts, old_arena, ivdom). do {
     ASSERT(old_arena = []);
-    (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom), W');
+    (N, (N', vdom, avdom, ivdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom, take 0 ivdom), W');
     RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), clvls, cach, lbd, outl, incr_GC stats, heuristic_reluctant_untrigger (set_zero_wasted heur),
-       vdom, avdom, lcount, opts, take 0 N)
+       vdom, avdom, lcount, opts, take 0 N, ivdom)
   })\<close>
 
 lemma length_watched_le'':
@@ -2874,9 +2844,9 @@ proof -
     by (cases T) auto
 
   obtain M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema ccount
-       vdom avdom lcount opts old_arena where
+       vdom ivdom avdom lcount opts old_arena where
     S: \<open>S = (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
-       vdom, avdom, lcount, opts, old_arena)\<close>
+       vdom, avdom, lcount, opts, old_arena, ivdom)\<close>
     by (cases S) auto
 
   have
@@ -3014,11 +2984,11 @@ proof -
          ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} +  (NE + (NEk + (NS + N0))))
         (M, N, get_conflict_wl y, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
       ((M', N', D', j, x, vm, clvls, cach, lbd, outl, stats, (fast_ema,
-         slow_ema, ccount), vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena),
+         slow_ema, ccount), vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena, ivdom),
         M, N, get_conflict_wl y, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, Q, W'a)
        \<in> twl_st_heur_restart\<close> for W'a m x
-       using S_T dom_m_vdom
-       by (auto simp: S T twl_st_heur_restart_def all_init_atms_st_def y_x NUE ac_simps)
+      using S_T dom_m_vdom
+      by (auto simp: S T twl_st_heur_restart_def all_init_atms_st_def y_x NUE ac_simps)
   have Su: \<open>learned_clss_count S \<le> u\<close>
     using S_T by auto
   have truc: \<open>xa \<in># all_learned_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W'a) \<Longrightarrow>
@@ -3174,4 +3144,4 @@ lemma isasat_GC_clauses_wl_D:
   done
 
 
-  end
+end

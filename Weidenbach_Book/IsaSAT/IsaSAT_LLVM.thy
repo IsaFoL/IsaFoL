@@ -19,11 +19,11 @@ abbreviation model_stat_assn\<^sub>0 ::
     \<open>bool \<times>
      nat literal list \<times>
      64 word \<times>
-     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
+     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
      \<Rightarrow> 1 word \<times>
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
        64 word \<times>
-       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
+       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
        \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close>
 where
   \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
@@ -140,7 +140,7 @@ sepref_def isasat_fast_bound_impl
   by sepref
 
 lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount, _). do{
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, _, failed, lcount, _). do{
      ASSERT(18446744073709551615 \<in> unats LENGTH(64));
      c \<leftarrow> RETURN 18446744073709551615;
      if \<not>(length N \<le> isasat_fast_bound \<and> clss_size_lcount lcount < c - clss_size_lcountUE lcount) then RETURN False
@@ -201,7 +201,7 @@ lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 
 
 lemma is_failed_heur_init_alt_def:
-  \<open>is_failed_heur_init = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, failed, _). failed)\<close>
+  \<open>is_failed_heur_init = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, failed, _). failed)\<close>
   by (auto)
 
 sepref_def is_failed_heur_init_impl
@@ -211,8 +211,6 @@ sepref_def is_failed_heur_init_impl
   by sepref
 
 lemmas [sepref_fr_rules] = is_failed_heur_init_impl.refine
-
-definition ghost_assn where \<open>ghost_assn = hr_comp unit_assn virtual_copy_rel\<close>
 
 lemma [sepref_fr_rules]: \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> lits_with_max_assn\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
 proof -
@@ -336,10 +334,19 @@ sepref_def print_uset_impl
   unfolding print_uset_def
   by sepref
 
+definition print_irred_clss :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_irred_clss _ = ()\<close>
+
 sepref_def print_gc_impl
   is \<open>RETURN o print_gcs\<close>
   :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
   unfolding print_gcs_def
+  by sepref
+
+sepref_def print_irred_clss_impl
+  is \<open>RETURN o print_irred_clss\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_irred_clss_def
   by sepref
 
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
@@ -352,7 +359,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
          fema sema units;
-      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, _, irred_clss, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let _ = print_propa propa;
       let _ = print_confl confl;
       let _ = print_dec dec;
@@ -360,6 +367,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let _ = print_lres lres;
       let _ = print_uset uset;
       let _ = print_gcs gcs;
+      let _ = print_irred_clss irred_clss;
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 

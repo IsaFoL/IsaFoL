@@ -937,7 +937,7 @@ declare isasat_GC_clauses_wl_D_code.refine[sepref_fr_rules]
 
 sepref_register number_clss_to_keep
 
-sepref_register access_vdom_at
+sepref_register access_avdom_at
 
 lemma (in -) uint32_max_nat_hnr:
   \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
@@ -967,23 +967,23 @@ sepref_definition number_clss_to_keep_fast_impl
 declare number_clss_to_keep_impl.refine[sepref_fr_rules]
    number_clss_to_keep_fast_impl.refine[sepref_fr_rules]
 
-sepref_definition access_vdom_at_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
+sepref_definition access_avdom_at_code
+  is \<open>uncurry (RETURN oo access_avdom_at)\<close>
+  :: \<open>[uncurry access_avdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding access_avdom_at_alt_def access_avdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-sepref_definition access_vdom_at_fast_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+sepref_definition access_avdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_avdom_at)\<close>
+  :: \<open>[uncurry access_avdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  unfolding access_avdom_at_alt_def access_avdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 
-declare access_vdom_at_fast_code.refine[sepref_fr_rules]
-  access_vdom_at_code.refine[sepref_fr_rules]
+declare access_avdom_at_fast_code.refine[sepref_fr_rules]
+  access_avdom_at_code.refine[sepref_fr_rules]
 
 
 end

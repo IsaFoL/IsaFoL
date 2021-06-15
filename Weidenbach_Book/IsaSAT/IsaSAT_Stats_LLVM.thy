@@ -4,11 +4,11 @@ begin
 
 abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
-     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
+     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
 
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a
-     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
+     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
 
 
 lemma [sepref_import_param]:
@@ -22,6 +22,9 @@ lemma [sepref_import_param]:
   \<open>(incr_GC,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(add_lbd,add_lbd) \<in> word32_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(units_since_last_GC,units_since_last_GC)\<in> stats_rel \<rightarrow> word_rel\<close>
+  \<open>(decr_irred_clss,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_irred_clss,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_units_since_last_GC, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by auto
 
 lemmas [llvm_inline] =
@@ -34,6 +37,9 @@ lemmas [llvm_inline] =
   incr_GC_def
   stats_conflicts_def
   units_since_last_GC_def
+  decr_irred_clss_def
+  incr_irred_clss_def
+  incr_units_since_last_GC_def
 
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>

@@ -56,7 +56,7 @@ definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
 
 definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> stats\<close> where
 \<open>isasat_current_information =
-   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, lbds) (lcount, lcountUE, lcountUS, _).
+   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then do{
        let _ = print_c propa;
@@ -65,17 +65,19 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Ri
          _ = print_uint64 propa;
          _ = print_uint64 confl;
          _ = print_uint64 (of_nat lcount);
+         _ = print_uint64 (irred_clss);
          _ = print_uint64 frestarts;
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
          _ = print_uint64 (ema_extract_value lbds);
          _ = print_uint64 (of_nat lcountUE);
+         _ = print_uint64 (of_nat lcountUEk);
          _ = print_uint64 (of_nat lcountUS);
          _ = print_close_colour 0
        in
-         (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, lbds)}
-      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, lbds)
+         (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds)}
+      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds)
     )\<close>
 
 
@@ -99,7 +101,7 @@ lemma isasat_current_status_id:
 
 definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
 \<open>isasat_print_progress c curr_phase =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, units, lbds) (lcount, lcountUE, lcountUS, _).
+  (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      let
          _ = print_c propa;
          _ = if curr_phase = 1 then print_open_colour 33 else ();
@@ -107,12 +109,14 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
          _ = print_uint64 propa;
          _ = print_uint64 confl;
          _ = print_uint64 (of_nat lcount);
+         _ = print_uint64 (irred_clss);
          _ = print_uint64 frestarts;
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
          _ = print_uint64 (ema_extract_value lbds);
          _ = print_uint64 (of_nat lcountUE);
+         _ = print_uint64 (of_nat lcountUEk);
          _ = print_uint64 (of_nat lcountUS);
          _ = print_close_colour 0
      in

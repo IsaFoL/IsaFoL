@@ -822,39 +822,38 @@ qed
 definition set_conflict_to_false :: \<open>conflict_option_rel \<Rightarrow> conflict_option_rel\<close> where
   \<open>set_conflict_to_false = (\<lambda>(b, n, xs). (False, 0, xs))\<close>
 
-text \<open>We butcher our statistics here, but this is easier than handling overflows.\<close>
+text \<open>We butcher our statistics here, but the clauses are deleted later anyway.\<close>
 definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isa_simplify_clause_with_unit_st2 =  (\<lambda>C (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts, old_arena). do {
+      vdom, avdom, lcount, opts, old_arena, ivdom). do {
   E \<leftarrow> mop_arena_status N C;
    ASSERT(E = LEARNED \<longrightarrow> 1 \<le> clss_size_lcount lcount);
   (unc, N, L, b, i) \<leftarrow> isa_simplify_clause_with_unit2 C M N;
    if unc then RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts, old_arena)
+      vdom, avdom, lcount, opts, old_arena, ivdom)
    else if b then
-   RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
+   RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur, vdom, avdom,
      if E = LEARNED then clss_size_decr_lcount (lcount) else lcount,
-     opts, old_arena)
+     opts, old_arena, ivdom)
    else if i = 1
    then do {
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
+     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then (incr_uset stats) else decr_irred_clss (incr_uset stats), heur,
      vdom, avdom, if E = LEARNED
        then clss_size_decr_lcount (clss_size_incr_lcountUEk (lcount))
-       else lcount, opts, old_arena)}
+       else lcount, opts, old_arena, ivdom)}
    else if i = 0
    then do {
      j \<leftarrow> mop_isa_length_trail M;
-     RETURN  (M, N, set_conflict_to_false D, j, W, vm, 0, cach, lbd, outl, stats, heur,
+     RETURN  (M, N, set_conflict_to_false D, j, W, vm, 0, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur,
      vdom, avdom,
      if E = LEARNED
      then clss_size_decr_lcount ((lcount)) else lcount,
-     opts, old_arena)
+     opts, old_arena, ivdom)
    }
    else
      RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
-     if E = LEARNED
-     then (lcount) else lcount, opts, old_arena)
+           lcount, opts, old_arena, ivdom)
      })\<close>
 
 lemma literals_are_in_mm_clauses:
@@ -878,7 +877,7 @@ lemma mop_arena_status:
 lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
   \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
   (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
   let \<A> = all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) in
     (M', M) \<in> trail_pol \<A>  \<and>
@@ -895,6 +894,8 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     isasat_input_bounded \<A>  \<and>
     isasat_input_nempty \<A>  \<and>
     distinct vdom \<and> old_arena = [] \<and>
@@ -910,11 +911,13 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_cong:
 
 
 lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
-  assumes \<open>(S, S') \<in> {(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and> length (get_clauses_wl_heur a) = r \<and>
+  assumes \<open>(S, S') \<in> {(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and>
+    get_ivdom a = x \<and>length (get_clauses_wl_heur a) = r \<and>
     learned_clss_count a \<le> w}\<close>
     \<open>(C,C')\<in> nat_rel\<close>
   shows \<open>isa_simplify_clause_with_unit_st2 C S \<le>
-    \<Down>{(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and> length (get_clauses_wl_heur a) = r\<and>
+    \<Down>{(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and> get_ivdom a = x \<and>
+    length (get_clauses_wl_heur a) = r\<and>
     learned_clss_count a \<le> w \<and> learned_clss_count a \<le> learned_clss_count S} (simplify_clause_with_unit_st2 C' S')\<close>
 proof -
   have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
@@ -1069,16 +1072,19 @@ qed
 definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>  where
   \<open>isa_simplify_clauses_with_unit_st2 S =
   do {
-    xs \<leftarrow> RETURN (get_avdom S);
+     xs \<leftarrow> RETURN (get_avdom S @ get_ivdom S);
+    ASSERT(length xs \<le> length (get_vdom S) \<and> length (get_vdom S) \<le> length (get_clauses_wl_heur S));
     (_, T) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
-         ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i \<and>
+           ASSERT((i < length (get_avdom T) \<longrightarrow> access_avdom_at_pre T i) \<and>
+           (i \<ge> length (get_avdom T) \<longrightarrow> access_ivdom_at_pre T (i - length_avdom S)) \<and>
+           length_avdom T = length_avdom S \<and>
            length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-         let C = access_vdom_at T i;
-         E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
-         if E \<noteq> DELETED then do {
+          let C = (if i < length (get_avdom S) then access_avdom_at T i else access_ivdom_at T (i - length_avdom S));
+          E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
+          if E \<noteq> DELETED then do {
           T \<leftarrow> isa_simplify_clause_with_unit_st2 C T;
           ASSERT(i < length xs);
           RETURN (i+1, T)
@@ -1118,17 +1124,20 @@ lemma isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2:
 proof -
   have isa_simplify_clauses_with_unit_st2_def: \<open>isa_simplify_clauses_with_unit_st2 S =
   do {
-    xs \<leftarrow> RETURN (get_avdom S);
+    xs \<leftarrow> RETURN (get_avdom S @ get_ivdom S);
+    ASSERT(length xs \<le> length (get_vdom S) \<and> length (get_vdom S) \<le> length (get_clauses_wl_heur S));
     T \<leftarrow> do {
     (_, T) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
       (T) \<leftarrow>
         do {
-         ASSERT(i < length (get_avdom T) \<and> access_vdom_at_pre T i\<and>
-           length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
+           ASSERT((i < length (get_avdom T) \<longrightarrow> access_avdom_at_pre T i) \<and>
+             (i \<ge> length (get_avdom T) \<longrightarrow> access_ivdom_at_pre T (i - length_avdom S)) \<and>
+             length_avdom T = length_avdom S \<and>
+             length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-         let C = access_vdom_at (T) i;
+           C \<leftarrow> RETURN (if i < length (get_avdom S) then access_avdom_at T i else access_ivdom_at T (i - length_avdom S));
            E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           if E \<noteq> DELETED then do {
             isa_simplify_clause_with_unit_st2 C T
@@ -1160,13 +1169,27 @@ proof -
         RETURN T
       }\<close> for S
     unfolding simplify_clauses_with_unit_st2_def by (auto simp: Let_def)
-  have [refine]: \<open>RETURN (get_avdom S) \<le> \<Down> {(xs, a). a = set xs \<and> distinct xs \<and> set xs \<subseteq> set (get_vdom S) \<and>
-       xs = get_avdom S} (SPEC (\<lambda>xs. finite xs))\<close>
+  have dist_vdom: \<open>distinct (get_vdom S)\<close> and
+      valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close>
+    using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+
+
+  have vdom_incl: \<open>set (get_vdom S) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur S)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have le_vdom_arena: \<open>length (get_vdom S) \<le> length (get_clauses_wl_heur S)\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+
+  have [refine]: \<open>RETURN (get_avdom S@ get_ivdom S) \<le> \<Down> {(xs, a). a = set xs \<and> distinct xs \<and> set xs \<subseteq> set (get_vdom S) \<and>
+       xs = get_avdom S@ get_ivdom S} (SPEC (\<lambda>xs. finite xs))\<close>
     (is \<open>_ \<le> \<Down>?A _\<close>)
-    using assms distinct_mset_mono[of \<open>mset (get_avdom S)\<close> \<open>mset (get_vdom S)\<close>] apply -
+    using assms distinct_mset_mono[of \<open>mset (get_avdom S)\<close> \<open>mset (get_vdom S)\<close>]
+    distinct_mset_mono[of \<open>mset (get_ivdom S)\<close> \<open>mset (get_vdom S)\<close>] apply -
     by (rule RETURN_RES_refine)
      (auto intro!:  simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
   let ?R = \<open>{(a, b). (a, b) \<in> twl_st_heur_restart \<and> get_avdom a = get_avdom S \<and> get_vdom a = get_vdom S\<and>
+     get_ivdom a = get_ivdom S \<and>
     length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u \<and>
             learned_clss_count a \<le> learned_clss_count S}\<close>
    have [refine]: \<open>(xs, xsa) \<in> ?A \<Longrightarrow>
@@ -1176,28 +1199,36 @@ proof -
       by (auto simp: list_set_rel_def br_def
         intro!: relcompI[of _ xs])
        (auto simp: list_rel_def intro!: list_all2_all_nthI)
-    have H4[refine]:\<open>(s,si)\<in> ?R \<Longrightarrow> (xs, xsa) \<in> ?A \<Longrightarrow>(xi, x) \<in> ?B xs \<Longrightarrow> (access_vdom_at s xi, x) \<in> nat_rel\<close>
-      for xi xs x s si xsa
-      by (auto simp: access_vdom_at_def)
+
    have H: \<open>(xi, x) \<in> ?B xs \<Longrightarrow>
     (xi, x) \<in> {(i, a). xs ! i = a}\<close> for xi x xs
      by auto
   have H2: \<open>(si, s) \<in> ?R \<Longrightarrow>
     valid_arena (get_clauses_wl_heur si) (get_clauses_wl s) (set (get_vdom S))\<close> for si s
     by (auto simp: twl_st_heur_restart_def)
-  have H3: \<open>(s,si)\<in> ?R \<Longrightarrow> (xi, x) \<in> ?B xs \<Longrightarrow> (xs, xsa) \<in> ?A \<Longrightarrow>
-    (xa, access_vdom_at s xi \<in># dom_m (get_clauses_wl si))
+  have H3: \<open>(if xi < length (get_avdom S) then access_avdom_at si xi else access_ivdom_at si (xi - length_avdom S), x)
+   \<in> {(C,C'). (C,C')\<in> nat_rel \<and> C \<in> set (get_vdom S)}\<close> (is \<open>_ \<in> ?access\<close>)
+     if 
+       \<open>(xs, xsa)
+     \<in> {(xs, a). a = set xs \<and> distinct xs \<and> set xs \<subseteq> set (get_vdom S) \<and> xs = get_avdom S @ get_ivdom S}\<close> and
+       \<open>(xi, x) \<in> {(i, a). xs ! i = a \<and> i < length xs}\<close> and
+       \<open>(si, s) \<in> ?R\<close>
+     for xs xsa x xi s si
+     using that by (auto simp: access_ivdom_at_def access_avdom_at_def nth_append length_avdom_def)
+  have H5: \<open>(s,si)\<in> ?R \<Longrightarrow> (xi, x) \<in> ?B xs \<Longrightarrow> (xs, xsa) \<in> ?A \<Longrightarrow> (C,C') \<in> ?access \<Longrightarrow>
+    (xa, C \<in># dom_m (get_clauses_wl si))
     \<in> {(a, b).
     (b \<longrightarrow>
-     (a = IRRED) = irred (get_clauses_wl si) (access_vdom_at s xi) \<and>
-     (a = LEARNED) = (\<not> irred (get_clauses_wl si) (access_vdom_at s xi))) \<and>
+     (a = IRRED) = irred (get_clauses_wl si) (C) \<and>
+     (a = LEARNED) = (\<not> irred (get_clauses_wl si) C)) \<and>
     (a = DELETED) = (\<not> b)} \<Longrightarrow>
-    (xa, x \<in># dom_m (get_clauses_wl si)) \<in> {(a, b).
+    (xa, C' \<in># dom_m (get_clauses_wl si)) \<in> {(a, b).
     (b \<longrightarrow>
-     (a = IRRED) = irred (get_clauses_wl si) (access_vdom_at s xi) \<and>
-     (a = LEARNED) = (\<not> irred (get_clauses_wl si) (access_vdom_at s xi))) \<and>
-    (a = DELETED) = (\<not> b)}\<close> for xi xs x s xa si xsa
-    by (auto simp: access_vdom_at_def)
+     (a = IRRED) = irred (get_clauses_wl si) C' \<and>
+     (a = LEARNED) = (\<not> irred (get_clauses_wl si) C')) \<and>
+    (a = DELETED) = (\<not> b)}\<close> for xi xs x s xa si xsa C C'
+    by (auto simp: access_avdom_at_def)
+  have H4: \<open>(C,C')\<in>?access \<Longrightarrow> (C,C')\<in> nat_rel\<close> for C C' by auto
   show ?thesis
     unfolding isa_simplify_clauses_with_unit_st2_def simplify_clauses_with_unit_st2_def
       nfoldli_upt_by_while[symmetric]
@@ -1205,24 +1236,29 @@ proof -
     apply (refine_vcg
       LFOci_refine[where R= ?R]
       mop_arena_status2[where vdom = \<open>set (get_vdom S)\<close>])
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def card_Un_Int
+      simp flip: distinct_card intro!: card_mono)
+    subgoal using le_vdom_arena by auto
     subgoal
       by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart[THEN fref_to_Down_unRET_Id])
         (auto simp: get_conflict_wl_is_None_def)
-    subgoal by auto
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
+    subgoal by (auto simp: access_ivdom_at_pre_def length_avdom_def less_diff_conv2)
+    subgoal by (auto simp: length_avdom_def)
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by auto
-    apply assumption+
-    subgoal by (auto simp: access_vdom_at_def)
-      apply (rule H2; assumption)
     apply (rule H3; assumption)
+    apply (rule H4; assumption)
+    subgoal by auto
+    apply (rule H2; assumption)
+    apply (rule H5; assumption)
     subgoal by auto
     apply (rule isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2[where
-      u = \<open>(get_avdom S)\<close> and v = \<open>(get_vdom S)\<close> and r=r, THEN order_trans]; assumption?)
+      u = \<open>(get_avdom S)\<close> and v = \<open>(get_vdom S)\<close> and x = \<open>(get_ivdom S)\<close> and r=r, THEN order_trans]; assumption?)
     apply (auto; fail)[]
     apply (auto; fail)[]
     subgoal
-      by (frule H4; assumption?) (clarsimp intro!: conc_fun_R_mono)
+      by (clarsimp intro!: conc_fun_R_mono)
    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
    subgoal by (auto simp: twl_st_heur_restart_ana_def reset_units_since_last_GC_def)
    done

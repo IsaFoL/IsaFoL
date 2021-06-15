@@ -9,12 +9,12 @@ chapter \<open>Restarts\<close>
 lemma twl_st_heur_change_subsumed_clauses:
   fixes lcount lcount' :: clss_size
   assumes \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<in> twl_st_heur\<close>
     \<open>set_mset (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) = set_mset (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS', US', N0, U0, Q, W))\<close>and
     \<open>clss_size_corr N NE UE NEk UEk NS' US' N0 U0 lcount'\<close>
   shows \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount', opts, old_arena),
+       vdom, avdom, lcount', opts, old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS', US', N0, U0, Q, W)) \<in> twl_st_heur\<close>
 proof -
   note cong = trail_pol_cong heuristic_rel_cong
@@ -58,7 +58,7 @@ declare all_atms_def[symmetric,simp]
 definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena),
+       vdom, avdom, lcount, opts, old_arena, ivdom),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_init_atms N (NE+NEk+NS+N0)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -74,6 +74,8 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
     vdom_m (all_init_atms N (NE+NEk+NS+N0)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    set avdom \<inter> set ivdom = {} \<and>
     isasat_input_bounded (all_init_atms N (NE+NEk+NS+N0)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NEk+NS+N0)) \<and>
     distinct vdom \<and> old_arena = [] \<and>
@@ -267,8 +269,6 @@ lemma clss_size_corr_restart_simp2:
   \<open>NO_MATCH {#} U0 \<Longrightarrow> clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 c =
   clss_size_corr_restart N NE UE NEk UEk NS US N0 {#} c\<close> and
   clss_size_corr_restart_intro:
-  (* \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 c \<Longrightarrow>
-   * clss_size_corr_restart (fmdrop C N) NE UE NEk UEk NS {#} N0 {#} (clss_size_decr_lcount c)\<close> *)
   \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow>clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 c \<Longrightarrow>
   clss_size_corr_restart (fmdrop C N) NE UE NEk UEk NS US' N0 U0' (clss_size_decr_lcount c)\<close>
   by (auto simp: clss_size_corr_restart_def)
@@ -282,7 +282,7 @@ lemma mark_garbage_heur_wl:
   using assms
   apply (cases S; cases T)
    apply (simp add: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def)
-  by (auto simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
+  by (fastforce simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
          learned_clss_l_l_fmdrop size_remove1_mset_If clss_size_corr_restart_intro
     simp: all_init_atms_def all_init_lits_def mset_butlast_remove1_mset
      simp del: all_init_atms_def[symmetric]
@@ -300,7 +300,7 @@ lemma mark_garbage_heur_wl_ana:
   using assms
   apply (cases S; cases T)
    apply (simp add: twl_st_heur_restart_ana_def mark_garbage_heur3_def mark_garbage_wl_def)
-  by (auto simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
+  by (fastforce simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
     learned_clss_l_l_fmdrop size_remove1_mset_If init_clss_l_fmdrop_irrelev
     valid_arena_extra_information_mark_to_delete' clss_size_corr_restart_intro
      simp: all_init_atms_def all_init_lits_def clss_size_corr_restart_simp2
@@ -405,16 +405,15 @@ lemma in_set_delete_index_and_swapD:
 
 lemma delete_index_vdom_heur_twl_st_heur_restart:
   \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow> i < length (get_avdom S) \<Longrightarrow>
-    (delete_index_vdom_heur i S, T) \<in> twl_st_heur_restart\<close>
-  by (auto simp: twl_st_heur_restart_def delete_index_vdom_heur_def
-    dest: in_set_delete_index_and_swapD)
-
+  (delete_index_vdom_heur i S, T) \<in> twl_st_heur_restart\<close>
+  using in_set_delete_index_and_swapD[of _ \<open>get_avdom S\<close> i]
+  by (fastforce simp: twl_st_heur_restart_def delete_index_vdom_heur_def)
 
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_avdom S) \<Longrightarrow>
     (delete_index_vdom_heur i S, T) \<in> twl_st_heur_restart_ana r\<close>
-  by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def delete_index_vdom_heur_def
-    dest: in_set_delete_index_and_swapD)
+  using in_set_delete_index_and_swapD[of _ \<open>get_avdom S\<close> i]
+  by (fastforce simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def delete_index_vdom_heur_def)
 
 definition mark_clauses_as_unused_wl_D_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -425,7 +424,7 @@ where
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
         ASSERT(length (get_avdom T) \<le> length (get_avdom S));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
@@ -486,7 +485,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal unfolding access_vdom_at_pre_def by auto
+      subgoal unfolding access_avdom_at_pre_def by auto
       subgoal for st a S'
         unfolding clause_not_marked_to_delete_heur_pre_def
 	  arena_is_valid_clause_vdom_def
@@ -694,9 +693,9 @@ lemma clss_size_corr_restart_intro3[intro]:
 
 lemma twl_st_heur_restart_ana_US_empty:
   \<open>NO_MATCH {#} US \<Longrightarrow> NO_MATCH {#} U0 \<Longrightarrow>  NO_MATCH {#} UE \<Longrightarrow> ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena), M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
+       vdom, avdom, lcount, opts, old_arena, ivdom), M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena), M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)
+       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena, ivdom), M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)
        \<in> twl_st_heur_restart_ana r\<close>
   by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
     intro: clss_size_corr_simp)
@@ -723,11 +722,11 @@ definition isasat_replace_annot_in_trail
   where
   \<open>isasat_replace_annot_in_trail L C = (\<lambda>((M, val, lvls, reason, k), N', D', j, W', vm, clvls, cach,
   lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena). do {
+  vdom, avdom, lcount, opts, old_arena, ivdom). do {
   ASSERT(atm_of L < length reason);
   RETURN ((M, val, lvls, reason[atm_of L := 0], k), N', D', j, W', vm, clvls, cach, lbd, outl,
   stats, heur,
-  vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena)
+  vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena, ivdom)
   })\<close>
 
 lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
@@ -1019,9 +1018,9 @@ lemma cdcl_twl_local_restart_wl_spec0:
 proof -
   define upd :: \<open>_ \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
     \<open>upd M' vm = (\<lambda> (M, N, D, j, W, _, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, avdom, lcount, opts, old_arena, ivdom).
        (M', N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena))\<close>
+       vdom, avdom, lcount, opts, old_arena, ivdom))\<close>
      for M' :: trail_pol and vm
 
   have find_decomp_wl_st_int_alt_def:
@@ -1868,9 +1867,9 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
 
 lemmas learned_clss_count__simps [simp] =
   learned_clss_count_def[of \<open>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, (a, b, c), opts, old_arena)\<close>
+  vdom, avdom, (a, b, c), opts, old_arena, ivdom)\<close>
   for M' N' D' j W' vm clvls cach lbd outl stats heur
-    vdom avdom a b c  opts old_arena,
+    vdom avdom a b c  opts old_arena ivdom,
     unfolded get_learned_count.simps clss_size_lcount_def clss_size_lcountUE_def
     clss_size_lcountUS_def prod.simps]
 
@@ -1880,13 +1879,13 @@ definition end_of_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 wo
 
 definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, avdom, lcount, opts, old_arena, ivdom).
       end_of_restart_phase heur)\<close>
 
 
 definition end_of_rephasing_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>end_of_rephasing_phase_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, avdom, lcount, opts, old_arena, ivdom).
       end_of_rephasing_phase_heur heur)\<close>
 
 
@@ -1897,12 +1896,12 @@ fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_he
 
 definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom, avdom, lcount, opts, old_arena, ivdom). do {
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts, old_arena)
+         vdom, avdom, lcount, opts, old_arena, ivdom)
   })\<close>
 
 

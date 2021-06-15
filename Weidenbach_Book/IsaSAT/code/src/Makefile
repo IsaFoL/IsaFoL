@@ -11,6 +11,7 @@ all: isasat
 remove-print:
 	echo "fix printing functions"
 	sed -i -e '/define void @IsaSAT_LLVM_print_gc_impl/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_LLVM_print_irred_clss_impl/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' isasat_restart.ll
@@ -44,6 +45,7 @@ declare void @IsaSAT_LLVM_print_res_impl(i64)\
 declare void @IsaSAT_LLVM_print_lres_impl(i64)\
 declare void @IsaSAT_LLVM_print_uset_impl(i64)\
 declare void @IsaSAT_LLVM_print_gc_impl(i64)\
+declare void @IsaSAT_LLVM_print_irred_clss_impl(i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\
@@ -53,4 +55,7 @@ declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)/g' \
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
+	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+
+competition:
 	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
