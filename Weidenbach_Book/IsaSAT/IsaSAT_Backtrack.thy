@@ -741,7 +741,7 @@ definition propagate_unit_bt_wl_D_int
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
-      let stats = incr_uset stats;
+      let stats = incr_units_since_last_GC (incr_uset stats);
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
         heuristic_reluctant_tick (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUEk lcount, opts, old_arena)})\<close>
 
@@ -2492,7 +2492,7 @@ proof -
       using empty_cach n_d_M1 W'W outl vmtf C undef uL_M vdom lcount valid D' avdom
       unfolding U U' propagate_unit_bt_wl_D_int_def prod.simps hd_SM
         propagate_unit_bt_wl_alt_def
-      apply (rewrite at \<open>let _ = incr_uset _ in _\<close> Let_def)
+      apply (rewrite at \<open>let _ = incr_units_since_last_GC (incr_uset _) in _\<close> Let_def)
       apply (refine_rcg cons_trail_Propagated_tr2[where \<A> = \<open>all_atms_st U'\<close>])
       subgoal by (auto simp: DECISION_REASON_def)
       subgoal

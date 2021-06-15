@@ -34,20 +34,6 @@ declare
 sepref_register
   cdcl_twl_o_prog_wl_D_heur
 
-definition length_clauses_heur where
-  \<open>length_clauses_heur S = length (get_clauses_wl_heur S)\<close>
-
-lemma length_clauses_heur_alt_def: \<open>length_clauses_heur = (\<lambda>(M, N, _). length N)\<close>
-  by (auto intro!: ext simp: length_clauses_heur_def)
-
-sepref_def length_clauses_heur_impl
-  is \<open>RETURN o length_clauses_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding length_clauses_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
-declare length_clauses_heur_impl.refine [sepref_fr_rules]
-
 lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292156 \<and>
   clss_size_lcount (get_learned_count S) < 18446744073709551615 - clss_size_lcountUE (get_learned_count S) \<and>
   clss_size_lcount (get_learned_count S) + clss_size_lcountUE (get_learned_count S) < 18446744073709551615 - clss_size_lcountUS (get_learned_count S) \<and>

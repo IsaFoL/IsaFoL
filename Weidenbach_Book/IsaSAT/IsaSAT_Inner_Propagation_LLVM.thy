@@ -149,7 +149,6 @@ sepref_def propagate_lit_wl_fast_code
   by sepref
 
 
-
 sepref_def propagate_lit_wl_bin_fast_code
   is \<open>uncurry2 propagate_lit_wl_bin_heur\<close>
   :: \<open>[\<lambda>((L, C), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a

@@ -24,6 +24,7 @@ lemma [sepref_import_param]:
   \<open>(units_since_last_GC,units_since_last_GC)\<in> stats_rel \<rightarrow> word_rel\<close>
   \<open>(decr_irred_clss,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_irred_clss,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_units_since_last_GC, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by auto
 
 lemmas [llvm_inline] =
@@ -38,6 +39,7 @@ lemmas [llvm_inline] =
   units_since_last_GC_def
   decr_irred_clss_def
   incr_irred_clss_def
+  incr_units_since_last_GC_def
 
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>

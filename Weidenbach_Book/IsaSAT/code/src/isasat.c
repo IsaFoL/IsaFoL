@@ -9,8 +9,6 @@
 
 #include "isasat_restart.h"
 
-#define PRINTSTATS 1
-
 /* Put the model in an array to print it*/
 typedef struct MODEL {
   int32_t* model;
@@ -276,6 +274,12 @@ void IsaSAT_LLVM_print_uset_impl(int64_t props) {
 void IsaSAT_LLVM_print_gc_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c GCs %ld\n", props);
+#endif
+}
+
+void IsaSAT_LLVM_print_irred_clss_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c irred_clss %ld\n", props);
 #endif
 }
 
@@ -598,8 +602,8 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 #ifdef PRINTSTATS
-  printf("c propagations                       redundant                   lrestarts                       GC                        not-mem-reasons\n"
-	 "c                     conflicts                     reductions                 level-0                         LBDs                      subsumed\n");
+  printf("c propagations                       redundant        reductions             level-0                     LBDS                    subsumed\n"
+	 "c                     conflicts               irred               lrestarts                 GCs                  not-mem-reasons         \n");
 #endif
   int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
 			     sema, unitinterval, clauses);

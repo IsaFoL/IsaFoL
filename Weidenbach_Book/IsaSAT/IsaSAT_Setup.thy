@@ -903,6 +903,14 @@ lemma length_avdom_alt_def:
   by (intro ext) (auto simp: length_avdom_def)
 
 
+definition length_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>length_ivdom S = length (get_ivdom S)\<close>
+
+lemma length_ivdom_alt_def:
+  \<open>length_ivdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+    vdom, avdom, lcount, _, _, ivdom). length ivdom)\<close>
+  by (intro ext) (auto simp: length_ivdom_def)
+
 definition clause_is_learned_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool\<close>
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
@@ -965,6 +973,9 @@ lemma access_ivdom_at_alt_def:
 
 definition access_vdom_at_pre where
   \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
+
+definition access_ivdom_at_pre where
+  \<open>access_ivdom_at_pre S i \<longleftrightarrow> i < length (get_ivdom S)\<close>
 
 (*TODO check which of theses variants are used!*)
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
@@ -1254,6 +1265,11 @@ lemma twl_st_heur_get_clauses_access_lit[simp]:
     for S T C i
     by (cases S; cases T)
       (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
+definition length_clauses_heur where
+  \<open>length_clauses_heur S = length (get_clauses_wl_heur S)\<close>
+
+lemma length_clauses_heur_alt_def: \<open>length_clauses_heur = (\<lambda>(M, N, _). length N)\<close>
+  by (auto intro!: ext simp: length_clauses_heur_def)
 
 text \<open>In an attempt to avoid using @{thm ac_simps} everywhere.\<close>
 lemma all_lits_simps[simp]:

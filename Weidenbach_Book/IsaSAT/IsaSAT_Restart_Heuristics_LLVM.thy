@@ -244,6 +244,43 @@ sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_register number_clss_to_keep
+
+
+lemma [sepref_fr_rules]:
+  \<open>(return o id, RETURN o unat) \<in> word64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+proof -
+  have [simp]: \<open>(\<lambda>s. \<exists>xa. (\<up>(xa = unat x) \<and>* \<up>(xa = unat x)) s) = \<up>True\<close>
+    by (intro ext)
+     (auto intro!: exI[of _ \<open>unat x\<close>] simp: pure_true_conv pure_part_pure_eq pred_lift_def
+      simp flip: import_param_3)
+  show ?thesis
+    apply sepref_to_hoare
+    apply (vcg)
+    apply (auto simp: unat_rel_def unat.rel_def br_def pred_lift_def ENTAILS_def pure_true_conv simp flip: import_param_3 pure_part_def)
+    done
+qed
+
+sepref_def number_clss_to_keep_fast_code
+  is \<open>number_clss_to_keep_impl\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding number_clss_to_keep_impl_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  apply (rewrite at \<open>If _ _ \<hole>\<close> annot_unat_snat_conv)
+  apply (rewrite at \<open>If (\<hole> \<le>_)\<close> annot_snat_unat_conv)
+  by sepref
+
+lemma number_clss_to_keep_impl_number_clss_to_keep:
+  \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Sepref_Rules.freft Id (\<lambda>_. \<langle>nat_rel\<rangle>nres_rel)\<close>
+  by (auto simp: number_clss_to_keep_impl_def number_clss_to_keep_def Let_def intro!: Sepref_Rules.frefI nres_relI)
+
+lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
+  \<open>(number_clss_to_keep_fast_code, number_clss_to_keep) \<in> (isasat_bounded_assn)\<^sup>k \<rightarrow>\<^sub>a snat_assn\<close>
+  using hfcomp[OF number_clss_to_keep_fast_code.refine
+    number_clss_to_keep_impl_number_clss_to_keep, simplified]
+  by auto
+
 experiment
 begin
   export_llvm restart_required_heur_fast_code

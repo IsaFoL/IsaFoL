@@ -167,6 +167,13 @@ sepref_def access_vdom_at_fast_code
   supply [[goals_limit = 1]]
   by sepref
 
+sepref_def access_ivdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_ivdom_at)\<close>
+  :: \<open>[uncurry access_ivdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding access_ivdom_at_alt_def access_ivdom_at_pre_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
 sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
   get_target_opts get_opts
 

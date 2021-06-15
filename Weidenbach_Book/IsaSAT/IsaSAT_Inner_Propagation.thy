@@ -776,7 +776,7 @@ where
   \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
     heur, sema). do {
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
+      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset (incr_units_since_last_GC stats) else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl,
          stats, heur, sema)
