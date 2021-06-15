@@ -699,7 +699,7 @@ where
       (\<lambda>(i, S). i < length (get_avdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         b \<leftarrow> mop_clause_not_marked_to_delete_heur T C;
@@ -758,7 +758,7 @@ where
       (\<lambda>(i, S). i < length (get_avdom S))
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         b \<leftarrow> mop_clause_not_marked_to_delete_heur T C;
@@ -809,7 +809,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
             WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(i, S). i < length (get_avdom S))
              (\<lambda>(i, T). do {
                    ASSERT (i < length (get_avdom T));
-                   ASSERT (access_vdom_at_pre T i);
+                   ASSERT (access_avdom_at_pre T i);
                    ASSERT
                         (clause_not_marked_to_delete_heur_pre
                           (T, get_avdom T ! i));
@@ -895,7 +895,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
             WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(i, S). i < length (get_avdom S))
              (\<lambda>(i, T). do {
                    ASSERT (i < length (get_avdom T));
-                   ASSERT (access_vdom_at_pre T i);
+                   ASSERT (access_avdom_at_pre T i);
                    ASSERT
                         (clause_not_marked_to_delete_heur_pre
                           (T, get_avdom T ! i));
@@ -1052,7 +1052,7 @@ proof -
     \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
     \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
     \<open>x1b < length (get_avdom x2b)\<close> and
-    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>access_avdom_at_pre x2b x1b\<close> and
     dom: \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -1183,7 +1183,7 @@ proof -
       \<open>x' = (x1, x2)\<close>
       \<open>xa = (x1b, x2b)\<close> and
       le: \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>(b, ba) \<in> {(b, b'). (b, b') \<in> bool_rel \<and> b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close> and
       \<open>\<not>ba\<close>
     for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa ba b
@@ -1295,7 +1295,7 @@ proof -
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
       \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
       \<open>(b, ba)
        \<in> {(b, b').
@@ -1353,7 +1353,7 @@ proof -
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
@@ -1593,7 +1593,7 @@ proof -
     \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
     \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
     \<open>x1b < length (get_avdom x2b)\<close> and
-    \<open>access_vdom_at_pre x2b x1b\<close> and
+    \<open>access_avdom_at_pre x2b x1b\<close> and
     dom: \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -1722,7 +1722,7 @@ proof -
       \<open>x' = (x1, x2)\<close>
       \<open>xa = (x1b, x2b)\<close> and
       le: \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>(b, ba) \<in> {(b, b'). (b, b') \<in> bool_rel \<and> b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close> and
       \<open>\<not>ba\<close>
     for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa ba b
@@ -1833,7 +1833,7 @@ proof -
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
       \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_vdom_at_pre x2b x1b\<close> and
+      \<open>access_avdom_at_pre x2b x1b\<close> and
       \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
       \<open>(b, ba)
        \<in> {(b, b').
@@ -1889,7 +1889,7 @@ proof -
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps

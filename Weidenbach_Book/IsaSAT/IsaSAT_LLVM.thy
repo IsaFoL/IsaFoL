@@ -212,8 +212,6 @@ sepref_def is_failed_heur_init_impl
 
 lemmas [sepref_fr_rules] = is_failed_heur_init_impl.refine
 
-definition ghost_assn where \<open>ghost_assn = hr_comp unit_assn virtual_copy_rel\<close>
-
 lemma [sepref_fr_rules]: \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> lits_with_max_assn\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
 proof -
   have [simp]: \<open>(\<lambda>s. (\<exists>xa. (\<up>(xa = x)) s)) = (\<up>True)\<close> for s :: \<open>'b::sep_algebra\<close> and x :: 'a

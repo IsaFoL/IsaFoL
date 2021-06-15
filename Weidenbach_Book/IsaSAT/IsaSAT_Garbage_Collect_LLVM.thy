@@ -135,7 +135,7 @@ sepref_def isasat_GC_clauses_wl_D_code
   unfolding isasat_GC_clauses_wl_D_def
   by sepref
 
-sepref_register access_vdom_at
+sepref_register access_avdom_at
 
 experiment
 begin

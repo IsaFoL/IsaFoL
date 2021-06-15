@@ -27,7 +27,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric]
@@ -40,7 +40,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     mop_arena_status_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
-      length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+      length_avdom_def[symmetric, simp] access_avdom_at_def[simp]
   apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
   apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -50,7 +50,7 @@ sepref_def mark_to_delete_clauses_GC_wl_D_heur_heur_fast_impl
   is \<open>mark_to_delete_clauses_GC_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_GC_wl_D_heur_def
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric]
@@ -63,7 +63,7 @@ sepref_def mark_to_delete_clauses_GC_wl_D_heur_heur_fast_impl
     mop_arena_status_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
-      length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+      length_avdom_def[symmetric, simp] access_avdom_at_def[simp]
   apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
   apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)

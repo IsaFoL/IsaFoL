@@ -10,14 +10,14 @@ sepref_register clause_is_learned_heur
 sepref_definition length_avdom_code
   is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
+  unfolding length_avdom_alt_def access_avdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition length_avdom_fast_code
   is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+  unfolding length_avdom_alt_def access_avdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -28,14 +28,14 @@ sepref_register get_the_propagation_reason_heur
 sepref_definition get_the_propagation_reason_heur_code
   is \<open>uncurry get_the_propagation_reason_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
-  unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
+  unfolding get_the_propagation_reason_heur_alt_def access_avdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition get_the_propagation_reason_heur_fast_code
   is \<open>uncurry get_the_propagation_reason_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
-  unfolding get_the_propagation_reason_heur_alt_def access_vdom_at_pre_def
+  unfolding get_the_propagation_reason_heur_alt_def access_avdom_at_pre_def
      isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -291,7 +291,7 @@ sepref_definition mark_clauses_as_unused_wl_D_heur_code
   supply [[goals_limit=1]]
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric]
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     arena_act_pre_mark_used[intro!]
   by sepref
 
@@ -306,7 +306,7 @@ sepref_definition mark_clauses_as_unused_wl_D_heur_fast_code
   supply [[goals_limit=1]] length_avdom_def[simp]
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric] one_uint64_nat_def[symmetric]
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
   by sepref
 
 declare mark_clauses_as_unused_wl_D_heur_fast_code.refine[sepref_fr_rules]
@@ -319,7 +319,7 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_impl
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply if_splits[split]
   unfolding mark_to_delete_clauses_wl_D_heur_def
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric]
@@ -340,7 +340,7 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric] nat_of_uint64_conv_def
@@ -348,7 +348,7 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
     marked_as_used_st_def[symmetric] one_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]] option.splits[split] if_splits[split]
-    length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+    length_avdom_def[symmetric, simp] access_avdom_at_def[simp]
   by sepref
 
 declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]

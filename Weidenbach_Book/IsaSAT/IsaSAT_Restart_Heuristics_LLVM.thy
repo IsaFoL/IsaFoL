@@ -240,7 +240,7 @@ sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
   supply [[goals_limit=1]] length_avdom_def[simp]
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric]
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -284,7 +284,7 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
 experiment
 begin
   export_llvm restart_required_heur_fast_code
-    access_vdom_at_fast_code
+    access_avdom_at_fast_code
 end
 
 end

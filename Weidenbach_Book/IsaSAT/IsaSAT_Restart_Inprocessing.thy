@@ -1077,12 +1077,12 @@ definition isa_simplify_clauses_with_unit_st2 :: \<open>twl_st_wl_heur \<Rightar
     (_, T) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, T). i < length xs \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
-           ASSERT((i < length (get_avdom T) \<longrightarrow> access_vdom_at_pre T i) \<and>
+           ASSERT((i < length (get_avdom T) \<longrightarrow> access_avdom_at_pre T i) \<and>
            (i \<ge> length (get_avdom T) \<longrightarrow> access_ivdom_at_pre T (i - length_avdom S)) \<and>
            length_avdom T = length_avdom S \<and>
            length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-          let C = (if i < length (get_avdom S) then access_vdom_at T i else access_ivdom_at T (i - length_avdom S));
+          let C = (if i < length (get_avdom S) then access_avdom_at T i else access_ivdom_at T (i - length_avdom S));
           E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           if E \<noteq> DELETED then do {
           T \<leftarrow> isa_simplify_clause_with_unit_st2 C T;
@@ -1132,12 +1132,12 @@ proof -
       (\<lambda>(i,T). do {
       (T) \<leftarrow>
         do {
-           ASSERT((i < length (get_avdom T) \<longrightarrow> access_vdom_at_pre T i) \<and>
+           ASSERT((i < length (get_avdom T) \<longrightarrow> access_avdom_at_pre T i) \<and>
              (i \<ge> length (get_avdom T) \<longrightarrow> access_ivdom_at_pre T (i - length_avdom S)) \<and>
              length_avdom T = length_avdom S \<and>
              length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-           C \<leftarrow> RETURN (if i < length (get_avdom S) then access_vdom_at T i else access_ivdom_at T (i - length_avdom S));
+           C \<leftarrow> RETURN (if i < length (get_avdom S) then access_avdom_at T i else access_ivdom_at T (i - length_avdom S));
            E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           if E \<noteq> DELETED then do {
             isa_simplify_clause_with_unit_st2 C T
@@ -1206,7 +1206,7 @@ proof -
   have H2: \<open>(si, s) \<in> ?R \<Longrightarrow>
     valid_arena (get_clauses_wl_heur si) (get_clauses_wl s) (set (get_vdom S))\<close> for si s
     by (auto simp: twl_st_heur_restart_def)
-  have H3: \<open>(if xi < length (get_avdom S) then access_vdom_at si xi else access_ivdom_at si (xi - length_avdom S), x)
+  have H3: \<open>(if xi < length (get_avdom S) then access_avdom_at si xi else access_ivdom_at si (xi - length_avdom S), x)
    \<in> {(C,C'). (C,C')\<in> nat_rel \<and> C \<in> set (get_vdom S)}\<close> (is \<open>_ \<in> ?access\<close>)
      if 
        \<open>(xs, xsa)
@@ -1214,7 +1214,7 @@ proof -
        \<open>(xi, x) \<in> {(i, a). xs ! i = a \<and> i < length xs}\<close> and
        \<open>(si, s) \<in> ?R\<close>
      for xs xsa x xi s si
-     using that by (auto simp: access_ivdom_at_def access_vdom_at_def nth_append length_avdom_def)
+     using that by (auto simp: access_ivdom_at_def access_avdom_at_def nth_append length_avdom_def)
   have H5: \<open>(s,si)\<in> ?R \<Longrightarrow> (xi, x) \<in> ?B xs \<Longrightarrow> (xs, xsa) \<in> ?A \<Longrightarrow> (C,C') \<in> ?access \<Longrightarrow>
     (xa, C \<in># dom_m (get_clauses_wl si))
     \<in> {(a, b).
@@ -1227,7 +1227,7 @@ proof -
      (a = IRRED) = irred (get_clauses_wl si) C' \<and>
      (a = LEARNED) = (\<not> irred (get_clauses_wl si) C')) \<and>
     (a = DELETED) = (\<not> b)}\<close> for xi xs x s xa si xsa C C'
-    by (auto simp: access_vdom_at_def)
+    by (auto simp: access_avdom_at_def)
   have H4: \<open>(C,C')\<in>?access \<Longrightarrow> (C,C')\<in> nat_rel\<close> for C C' by auto
   show ?thesis
     unfolding isa_simplify_clauses_with_unit_st2_def simplify_clauses_with_unit_st2_def
@@ -1242,7 +1242,7 @@ proof -
     subgoal
       by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart[THEN fref_to_Down_unRET_Id])
         (auto simp: get_conflict_wl_is_None_def)
-    subgoal by (auto simp: access_vdom_at_pre_def)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal by (auto simp: access_ivdom_at_pre_def length_avdom_def less_diff_conv2)
     subgoal by (auto simp: length_avdom_def)
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)

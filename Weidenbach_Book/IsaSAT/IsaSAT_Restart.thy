@@ -424,7 +424,7 @@ where
       (\<lambda>(i, T). do {
         ASSERT(i < length (get_avdom T));
         ASSERT(length (get_avdom T) \<le> length (get_avdom S));
-        ASSERT(access_vdom_at_pre T i);
+        ASSERT(access_avdom_at_pre T i);
         let C = get_avdom T ! i;
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
@@ -485,7 +485,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal by auto
-      subgoal unfolding access_vdom_at_pre_def by auto
+      subgoal unfolding access_avdom_at_pre_def by auto
       subgoal for st a S'
         unfolding clause_not_marked_to_delete_heur_pre_def
 	  arena_is_valid_clause_vdom_def

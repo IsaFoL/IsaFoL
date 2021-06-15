@@ -957,12 +957,12 @@ lemma marked_as_used_st_alt_def:
   by (intro ext) (auto simp: marked_as_used_st_def)
 
 
-definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>access_vdom_at S i = get_avdom S ! i\<close>
+definition access_avdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_avdom_at S i = get_avdom S ! i\<close>
 
-lemma access_vdom_at_alt_def:
-  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
-  by (intro ext) (auto simp: access_vdom_at_def)
+lemma access_avdom_at_alt_def:
+  \<open>access_avdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
+  by (intro ext) (auto simp: access_avdom_at_def)
 
 definition access_ivdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_ivdom_at S i = get_ivdom S ! i\<close>
@@ -971,8 +971,8 @@ lemma access_ivdom_at_alt_def:
   \<open>access_ivdom_at = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, ivdom) i. ivdom ! i)\<close>
   by (intro ext) (auto simp: access_ivdom_at_def)
 
-definition access_vdom_at_pre where
-  \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
+definition access_avdom_at_pre where
+  \<open>access_avdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
 
 definition access_ivdom_at_pre where
   \<open>access_ivdom_at_pre S i \<longleftrightarrow> i < length (get_ivdom S)\<close>

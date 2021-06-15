@@ -6,8 +6,7 @@ begin
 sepref_register 0 1
 
 sepref_register mop_arena_update_lit
-    term isa_simplify_clause_with_unit2
-term mop_arena_update_lit
+
 sepref_def isa_simplify_clause_with_unit2_code
   is \<open>uncurry2 isa_simplify_clause_with_unit2\<close>
   :: \<open>[\<lambda>((_, _), N). length (N) \<le> sint64_max]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>
@@ -66,12 +65,12 @@ lemma isa_simplify_clauses_with_unit_st2_alt_def:
     (_, T) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, T). i < mn \<and> get_conflict_wl_is_None_heur T)
       (\<lambda>(i,T). do {
-           ASSERT((i < length (get_avdom T) \<longrightarrow> access_vdom_at_pre T i) \<and>
+           ASSERT((i < length (get_avdom T) \<longrightarrow> access_avdom_at_pre T i) \<and>
            (i \<ge> length (get_avdom T) \<longrightarrow> access_ivdom_at_pre T (i - length_avdom S)) \<and>
            length_avdom T = length_avdom S \<and>
            length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S) \<and>
             learned_clss_count T \<le> learned_clss_count S);
-          let C = (if i < m then access_vdom_at T i else access_ivdom_at T (i - m));
+          let C = (if i < m then access_avdom_at T i else access_ivdom_at T (i - m));
           E \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           if E \<noteq> DELETED then do {
           T \<leftarrow> isa_simplify_clause_with_unit_st2 C T;

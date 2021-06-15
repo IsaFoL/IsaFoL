@@ -164,4 +164,79 @@ export_llvm
   \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
 
+
+type_synonym virtual_vdom_fast_assn = \<open>64 word\<close>
+definition virtual_vdom_fast_assn :: \<open>vdom \<Rightarrow> virtual_vdom_fast_assn \<Rightarrow> _\<close> where
+  \<open>virtual_vdom_fast_assn = hr_comp sint64_nat_assn {(a,b). a= 0}\<close>
+
+definition qqq where \<open>qqq xs _ = return xs\<close>
+lemmas [llvm_inline] = qqq_def
+
+lemma [unfolded qqq_def, sepref_fr_rules]:
+  \<open>(uncurry (qqq), uncurry (RETURN oo op_list_append))
+  \<in> virtual_vdom_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a virtual_vdom_fast_assn\<close>
+proof -
+  have [iff]: \<open>x = snat u \<and> snat_invar u \<and> x = 0 \<longleftrightarrow> x = 0 \<and> u= 0\<close> for x u
+    by (auto intro: snat_invar_0)
+     (auto simp add: snat_eq_unat_aux2 unat_arith_simps(3))
+
+  have [simp]: "\<And>ns u. virtual_vdom_fast_assn (ns::nat list) (u) = \<up>(u=0)"
+    by (auto simp add: Sepref_Basic.pure_def virtual_vdom_fast_assn_def hr_comp_def snat_rel_def
+      snat.rel_def br_def
+      simp flip: import_param_3
+      simp del: import_param_3)
+     (auto simp: import_param_3 exists_eq_star_conv)
+
+  have [simp]: \<open>(\<exists>x. (\<up>True \<and>* \<up>(x = a @ [b])) s) = \<box> s\<close> for a b s
+    by (auto simp: Exists_eq_simp, simp_all add: pure_true_conv) 
+  show ?thesis
+    unfolding qqq_def
+    apply sepref_to_hoare
+    by (vcg)
+qed
+
+
+definition empty_virtual_vdom :: \<open>nat list\<close> where
+  \<open>empty_virtual_vdom = []\<close>
+
+sepref_register empty_virtual_vdom
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN empty_virtual_vdom))
+  \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a virtual_vdom_fast_assn\<close>
+proof -
+  have [iff]: \<open>x = snat u \<and> snat_invar u \<and> x = 0 \<longleftrightarrow> x = 0 \<and> u= 0\<close> for x u
+    by (auto intro: snat_invar_0)
+     (auto simp add: snat_eq_unat_aux2 unat_arith_simps(3))
+
+  have [simp]: "\<And>ns u. virtual_vdom_fast_assn (ns::nat list) (u) = \<up>(u=0)"
+    by (auto simp add: Sepref_Basic.pure_def virtual_vdom_fast_assn_def hr_comp_def snat_rel_def
+      snat.rel_def br_def
+      simp flip: import_param_3
+      simp del: import_param_3)
+     (auto simp: import_param_3 exists_eq_star_conv)
+
+  have [simp]: \<open>(\<exists>x. (\<up>True \<and>* \<up>(x = a @ [b])) s) = \<box> s\<close> for a b s
+    by (auto simp: Exists_eq_simp, simp_all add: pure_true_conv) 
+  show ?thesis
+    unfolding qqq_def
+    apply sepref_to_hoare
+    by (vcg)
+qed
+
+schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE virtual_vdom_fast_assn ?fr\<close>
+  unfolding virtual_vdom_fast_assn_def
+  by synthesize_free
+
+experiment
+begin
+definition \<open>test0 \<equiv> (\<lambda> xs C. RETURN (xs @ [C]))\<close>
+sepref_def test
+  is \<open>uncurry test0\<close>
+  :: \<open>virtual_vdom_fast_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a virtual_vdom_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding test0_def
+  by sepref
+
+    export_llvm test
+ end
 end
