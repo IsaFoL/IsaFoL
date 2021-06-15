@@ -516,11 +516,11 @@ int main(int argc, char *argv[]) {
   CBOOL target_phases = 1;
   CBOOL reduce = 1;
   CBOOL restart = 1;
-  uint64_t restartint = 10;
+  uint64_t restartint = 20;
   uint64_t restartmargin = 17;
   uint64_t fema = 128849010;
   uint64_t sema = 429450;
-  uint64_t unitinterval = 10;
+  uint64_t unitinterval = 1000;
 
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
