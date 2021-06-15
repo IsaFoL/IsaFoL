@@ -12,7 +12,6 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
     let curr_phase = get_restart_phase S;
     let can_res = (learned_clss_count S > last_Restart);
     let can_GC = (learned_clss_count S - last_GC> n);
-    let should_inprocess = GC_units_required S;
 
     if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
@@ -39,6 +38,7 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
            \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
         of_nat level > (shiftr fema 32));
       GC_required \<leftarrow> GC_required_heur S n;
+      let should_inprocess = (GC_units_required S \<or> (GC_required \<and> units_since_last_GC_st S > 0));
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart
