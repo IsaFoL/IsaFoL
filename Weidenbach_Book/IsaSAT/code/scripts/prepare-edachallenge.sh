@@ -1,0 +1,64 @@
+#!/bin/sh
+set -e
+
+cd `dirname $0`/..
+root=`pwd`
+tmp=/tmp/prepare-isasat-eda2021-submission.log
+VERSION="eda2021"
+rm -f $tmp
+##########################################################################
+echo "make-src-release.sh"
+cd $root
+./scripts/make-src-release.sh >$tmp || exit 1
+tar=`awk '{print $2}' $tmp |sed -e "s,',,g"`
+echo `cat $tmp`
+printf "$tar\n"
+##########################################################################
+echo "now starexec"
+cd $root
+base=isasat-${VERSION}-starexec
+dir=/tmp/$base
+printf "dir = $dir; tar = $tar"
+rm -rf $dir
+echo "mkdir"
+mkdir $dir
+mkdir $dir/code
+printf "cp to code $tar\n"
+printf "cp to code $dir\n"
+cp -a $tar $dir/code
+cp -a ./src/LICENSE $dir/
+
+echo "build script"
+cat <<EOF >$dir/build.sh
+#!/bin/sh
+mkdir -p binary
+tar xf ./code/isasat*
+mv isasat* isasat
+cd isasat/src
+make competition
+install -s isasat ../../binary/
+EOF
+chmod 755 $dir/build.sh
+
+echo "run script"
+cat <<EOF >$dir/readme.txt
+IsaSAT is a formally verified SAT solver using Isabelle
+
+To simplify the building process we provide directly the generated files instead of
+the Isabelle files. The files are automatically generated in the LLVM intermediate
+representation and require clang to compile. The full theory files can be found on the
+repository 'https://bitbucket.org/isafol/isafol/wiki/Home'.
+
+Currently no proofs are supported.
+
+To run the solver execute './binary/isasat'.
+EOF
+
+archive=/tmp/$base.zip
+rm -f $archive
+cd $dir
+zip -r $archive .
+cd /tmp/
+ls -l $archive
+rm -f $tmp
+rm -rf $dir/
