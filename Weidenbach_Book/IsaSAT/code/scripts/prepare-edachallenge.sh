@@ -62,3 +62,10 @@ cd /tmp/
 ls -l $archive
 rm -f $tmp
 rm -rf $dir/
+
+zipfileAll=/tmp/$base-all.zip
+mkdir -p $dir
+cd $dir
+cp $archive .
+cp /home/zmaths/Documents/repos/isafol-private/Papers/2021_EDA_Challenge/paper.pdf system_description.pdf
+zip -q -r $zipfileAll .

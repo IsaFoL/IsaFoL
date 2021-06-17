@@ -671,7 +671,7 @@ lemma finalise_init_code_alt_def:
   lbd, vdom, ivdom, _, lcount, mark). do {
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
   let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
-    of_nat (length vdom)::64 word, ema_fast_init);
+    of_nat (length ivdom)::64 word, ema_fast_init);
   let fema = ema_init (opts_fema opts);
   let sema = ema_init (opts_sema opts);
   let ccount = restart_info_init;
