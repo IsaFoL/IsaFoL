@@ -58,7 +58,7 @@ isallvm:
 	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
 
 competition:
-	$(CLANG) $(CFLAGS) -DHARD_CODED_OPTIONS=1 -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) $(CFLAGS) -DNOOPTIONS=1 -DNOPROFILING -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
 
 clean:
 	rm -rf isasat

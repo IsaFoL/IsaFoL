@@ -426,6 +426,7 @@ void init_profiles () {
 }
 
 void start_profile(struct PROFILE *p) {
+#ifndef NOPROFILING
   if(p->active) {
 #ifdef PRINTSTATS
     printf("c incorrect use of profiling: missing stop... recovering by ignoring last interval\n");
@@ -435,9 +436,11 @@ void start_profile(struct PROFILE *p) {
   struct timeval time;
   gettimeofday(&time, NULL);
   p->start =  time.tv_sec * 1000000 + time.tv_usec;
+#endif
 }
 
 void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
+#ifndef NOPROFILING
   if(t == IsaSAT_Profile_PROPAGATE ()) {
     start_profile(&propagate_prof);
   }
@@ -460,9 +463,11 @@ void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
     printf("c unrecognised profile, ignoring\n");
 #endif
   }
+#endif
 }
 
 void stop_profile(struct PROFILE *p) {
+#ifndef NOPROFILING
   if(!p->active) {
     printf("c incorrect use of profiling: missing start... recovering by ignoring last interval\n");
     return;
@@ -472,9 +477,11 @@ void stop_profile(struct PROFILE *p) {
   gettimeofday(&time, NULL);
   // printf("profile start at %Lf and stopped at %ld, running for %Lf\n", p->start,  time.tv_sec * 1000000 +time.tv_usec,  time.tv_sec * 1000000 + time.tv_usec - p->start);
   p->total += time.tv_sec * 1000000 + (time.tv_usec - p->start);
+#endif
 }
 
 void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
+#ifndef NOPROFILING
   if(t == IsaSAT_Profile_PROPAGATE ()) {
     stop_profile(&propagate_prof);
   }
@@ -495,6 +502,7 @@ void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
   } else {
     printf("c unrecognised profile, ignoring\n");
   }
+#endif
 }
 
 int compare_atom(const void* lit1, const void* lit2) {
@@ -513,7 +521,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-#ifdef HARD_CODED_OPTIONS
+#ifdef NOOPTIONS
 #define OPTIONu64 const uint64_t
 #define OPTIONb const CBOOL
 #else
@@ -529,7 +537,7 @@ int main(int argc, char *argv[]) {
   OPTIONu64 sema = 429450;
   OPTIONu64 unitinterval = 1000;
 
-#ifndef HARD_CODED_OPTIONS
+#ifndef NOOPTIONS
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
     int n;
@@ -621,7 +629,6 @@ READ_FILE:
 
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
-  fflush(stdout);
   if(interrupted)
     printf("s UNKNOWN\n");
   else if (satisfiable)
