@@ -2,7 +2,7 @@ CLANG = clang
 
 CFLAGS = -flto -std=c11
 
-all: isasat
+all: isallvm
 
 
 # There is no way to print from Isabelle_LLVM
@@ -55,7 +55,10 @@ declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)/g' \
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
-	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
 
 competition:
-	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) $(CFLAGS) -DHARD_CODED_OPTIONS=1 -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+
+clean:
+	rm -rf isasat

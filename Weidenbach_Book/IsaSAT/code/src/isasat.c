@@ -522,6 +522,7 @@ int main(int argc, char *argv[]) {
   uint64_t sema = 429450;
   uint64_t unitinterval = 1000;
 
+#ifdef HARD_CODED_OPTIONS
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
     int n;
@@ -555,12 +556,14 @@ int main(int argc, char *argv[]) {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     }
   }
+#endif
   inputname = argv[argc-1];
-  if(has_suffix(inputname, "version")) {
+  if(has_suffix(inputname, "version\0")) {
     print_version();
     printf("\n");
     return 0;
   }
+
 
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
