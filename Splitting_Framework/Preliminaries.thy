@@ -931,20 +931,6 @@ proof (rule exI, rule exI)
   show \<open>proj\<^sub>\<bottom> C \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> D \<and> \<not> proj\<^sub>\<bottom> C \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> D\<close> using pos neg by auto 
 qed
 
-(* lemma entails_bot_to_entails_empty: \<open>{} \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close>
- *   unfolding AF_entails_def 
- * proof simp
- *   assume \<open>\<forall>J. enabled_set {to_AF bot} J \<longrightarrow> {} proj\<^sub>J J \<Turnstile> {F_of (to_AF bot)}\<close>
- *   then have \<open>{} \<Turnstile> {bot}\<close>
- *     unfolding enabled_set_def enabled_def by (simp add: enabled_projection_def to_AF_def)
- *   then have empty_entails_empty: \<open>{} \<Turnstile> {}\<close>
- *     using entails_reflexive[of bot] entails_each[of "{}" "{bot}" "{}" "{}"] bot_entails_empty
- *     by auto
- *   then show \<open>\<forall>J. enabled_set {} J \<longrightarrow> {} proj\<^sub>J J \<Turnstile> {}\<close>
- *     using entails_empty_reflexive_dangerous by simp
- * qed *)
-
-
 lemma entails_in_sound_entails_for_prop_clauses:
   \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {} \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
 proof -
@@ -962,7 +948,7 @@ proof -
       have \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {bot}\<close>
         unfolding propositional_projection_def enabled_projection_def by force
       then have \<open>(proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) = {bot}\<close>
-        (* unfolding enabled_projection_def using AF_entails.entails_bot_to_entails_empty *)
+        unfolding enabled_projection_def using AF_cons_rel.entails_bot_to_entails_empty
         sorry
       then have \<open>{C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close>
         by auto
