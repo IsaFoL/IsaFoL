@@ -1,6 +1,41 @@
 #!/bin/sh
 set -e
 
+if [ -t 2 ]
+then
+  BOLD="\033[1m"
+  GREEN="\033[1;32m"
+  NORMAL="\033[0m"
+  RED="\033[1;31m"
+  YELLOW="\033[1;33m"
+else
+  BOLD=""
+  GREEN=""
+  NORMAL=""
+  RED=""
+  YELLOW=""
+fi
+
+die () {
+  echo "${BOLD}$script: ${RED}error:${NORMAL} $*" 1>&2
+  exit 1
+}
+
+fatal () {
+  echo "${BOLD}$script: ${RED}fatal error:${NORMAL} $*" 1>&2
+  exit 1
+}
+
+msg () {
+  echo "$script: $*" 1>&2
+}
+
+wrn () {
+  echo "${BOLD}$script: ${YELLOW}warning:${NORMAL} $*" 1>&2
+}
+
+script=`basename $0`
+
 cd `dirname $0`/..
 root=`pwd`
 tmp=/tmp/prepare-isasat-eda2021-submission.log
@@ -16,7 +51,7 @@ printf "$tar\n"
 ##########################################################################
 echo "now starexec"
 cd $root
-base=isasat-${VERSION}-starexec
+base=isasat-${VERSION}-edachallenge
 dir=/tmp/$base
 printf "dir = $dir; tar = $tar"
 rm -rf $dir
@@ -66,6 +101,13 @@ rm -rf $dir/
 zipfileAll=/tmp/$base-all.zip
 mkdir -p $dir
 cd $dir
+rm -rf *
 cp $archive .
-cp /home/zmaths/Documents/repos/isafol-private/Papers/2021_EDA_Challenge/paper.pdf system_description.pdf
+cp /home/zmaths/Documents/repos/isafol-private/Papers/2021_EDA_Challenge/paper.pdf system_description_same_as_kissat.pdf
 zip -q -r $zipfileAll .
+
+rm -rf $dir/
+
+msg "generated ${GREEN}'$zipfileAll'${NORMAL}"
+BYTES="`ls --block-size=1 -s $zipfileAll 2>/dev/null |awk '{print $1}'`"
+msg "full zip file has $BYTES bytes"

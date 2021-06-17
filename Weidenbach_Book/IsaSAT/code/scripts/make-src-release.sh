@@ -8,7 +8,7 @@ die () {
 
 
 cd `dirname $0`/..
-version="7653da1c"
+version="`./src/isasat --version 2>/dev/null|awk '{print $1}'`"
 fullgitid="`./scripts/get-git-id.sh`"
 gitid="`echo $fullgitid|sed -e 's,^\(.......\).*,\1,'`"
 branch=`git branch|grep '^\*'|head -1|awk '{print $2}'`
