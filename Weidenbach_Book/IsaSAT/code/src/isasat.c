@@ -513,16 +513,23 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  CBOOL target_phases = 1;
-  CBOOL reduce = 1;
-  CBOOL restart = 1;
-  uint64_t restartint = 20;
-  uint64_t restartmargin = 17;
-  uint64_t fema = 128849010;
-  uint64_t sema = 429450;
-  uint64_t unitinterval = 1000;
-
 #ifdef HARD_CODED_OPTIONS
+#define OPTIONu64 const uint64_t
+#define OPTIONb const CBOOL
+#else
+#define OPTIONu64 uint64_t
+#define OPTIONb CBOOL
+#endif
+  OPTIONb target_phases = 1;
+  OPTIONb reduce = 1;
+  OPTIONb restart = 1;
+  OPTIONu64 restartint = 20;
+  OPTIONu64 restartmargin = 17;
+  OPTIONu64 fema = 128849010;
+  OPTIONu64 sema = 429450;
+  OPTIONu64 unitinterval = 1000;
+
+#ifndef HARD_CODED_OPTIONS
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
     int n;
