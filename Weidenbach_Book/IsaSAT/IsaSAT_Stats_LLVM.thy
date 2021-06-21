@@ -259,13 +259,13 @@ sepref_def ema_extract_value_impl
   by sepref
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn)\<close>
+   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn \<times> 1 word)\<close>
 
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn \<times>\<^sub>a
   ema_assn \<times>\<^sub>a
   restart_info_assn \<times>\<^sub>a
-  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn\<close>
+  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn\<close>
 
 lemma set_zero_wasted_def:
   \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>).
@@ -361,4 +361,23 @@ schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE h
   unfolding heuristic_assn_def
   by synthesize_free
 
+sepref_def is_fully_propagated_heur_impl
+  is \<open>RETURN o is_fully_propagated_heur\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding is_fully_propagated_heur_def heuristic_assn_def
+  by sepref
+
+sepref_def set_fully_propagated_heur_impl
+  is \<open>RETURN o set_fully_propagated_heur\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding set_fully_propagated_heur_def heuristic_assn_def
+  by sepref
+
+sepref_def unset_fully_propagated_heur_impl
+  is \<open>RETURN o unset_fully_propagated_heur\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding unset_fully_propagated_heur_def heuristic_assn_def
+  by sepref
+
+sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
 end

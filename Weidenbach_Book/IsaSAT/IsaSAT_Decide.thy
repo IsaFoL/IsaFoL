@@ -66,7 +66,7 @@ where
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
       ASSERT(get_saved_phase_heur_pre (L) heur);
       L \<leftarrow> lit_of_found_atm heur L;
-      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
        vdom, avdom, lcount, opts, old_arena), L)
     })\<close>
 
@@ -449,7 +449,7 @@ where
   \<open>find_unassigned_lit_wl_D_heur2 = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
-      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
        vdom, avdom, lcount, opts, old_arena), L)
     })\<close>
 
@@ -496,11 +496,11 @@ proof -
        (do {
                    ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd a f;
                    ASSERT (IsaSAT_Decide.get_saved_phase_heur_pre L l);
-                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, l, m, n, p, q, r))
+                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p, q, r))
                      | Some L \<Rightarrow> do {
                        _ \<leftarrow> SPEC (\<lambda>_::bool. True);
                        L \<leftarrow>RES {Pos L, Neg L};
-                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, l, m, n, p, q, r);
+                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p, q, r);
                       RETURN (False, T)
                      }})\<close> for S a b c d e f g h i  j k l m n p q r
      unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
@@ -527,7 +527,11 @@ proof -
   have [refine]: \<open>decide_lit_wl_heur L S
     \<le> \<Down> Id
         (decide_lit_wl_heur La Sa)\<close> if \<open>(L, La) \<in> Id\<close> \<open>(S, Sa) \<in> Id\<close> for L La S Sa
-        using that by auto
+    using that by auto
+  have [intro!]: \<open>IsaSAT_Decide.get_saved_phase_heur_pre (snd pa) l \<Longrightarrow>
+    IsaSAT_Decide.get_saved_phase_heur_pre (snd pa) (set_fully_propagated_heur l)\<close> for pa l
+    by (cases l; cases pa) (auto simp: IsaSAT_Decide.get_saved_phase_heur_pre_def
+      set_fully_propagated_heur_def)
   show ?thesis
     apply (cases S, simp only: S)
     unfolding find_unassigned_lit_wl_D_heur_def
@@ -544,7 +548,7 @@ proof -
     subgoal by auto
     apply assumption
     subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: set_fully_propagated_heur_def split: prod.splits)
     subgoal by auto
     subgoal by auto
     subgoal by auto

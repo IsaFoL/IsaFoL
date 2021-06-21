@@ -1108,18 +1108,18 @@ text \<open>
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info, wasted, \<phi>, relu), vdom, avdom, lcount, opts, old_arena). do{
+       res_info, wasted, \<phi>, relu, fullyproped), vdom, avdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
-       restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu), vdom, avdom,
+       restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu, fullyproped), vdom, avdom,
        lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted, \<phi>, relu), vdom, avdom, lcount). do{
+     res_info, wasted, \<phi>, relu, fullyproped), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_lrestart stats,
-       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu),
+       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu, fullyproped),
        vdom, avdom, lcount)
   })\<close>
 
@@ -1457,5 +1457,9 @@ definition clss_size_resetUS0_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
   vdom, avdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
+
+definition is_fully_propagated_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>is_fully_propagated_heur_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena). is_fully_propagated_heur heur)\<close>
 
 end

@@ -679,7 +679,7 @@ lemma finalise_init_code_alt_def:
   RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
     clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
     (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
-    reluctant_init), vdom, [], lcount, opts, [], ivdom)
+    reluctant_init, False), vdom, [], lcount, opts, [], ivdom)
     })\<close>
     unfolding finalise_init_code_def mop_free_def by auto
 

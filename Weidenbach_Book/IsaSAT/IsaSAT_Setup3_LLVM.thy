@@ -238,4 +238,13 @@ sepref_def print_trail_st_code
 lemmas [sepref_fr_rules] =
   print_trail_st_code.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
 
+sepref_register is_fully_propagated_heur_st
+
+sepref_def is_fully_propagated_heur_st_code
+  is \<open>RETURN o is_fully_propagated_heur_st\<close>
+  ::  \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding is_fully_propagated_heur_st_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
+
 end

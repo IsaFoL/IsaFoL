@@ -90,7 +90,7 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 section \<open>Heuristics\<close>
 
-type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant\<close>
+type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool\<close>
 
 fun fast_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
   \<open>fast_ema_of (fast_ema, slow_ema, restart_info, wasted, \<phi>) = fast_ema\<close>
@@ -152,34 +152,45 @@ definition mop_get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristi
 }\<close>
 
 definition heuristic_reluctant_tick :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>heuristic_reluctant_tick = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
-     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_tick reluctant))\<close>
+  \<open>heuristic_reluctant_tick = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
+     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_tick reluctant, fullyproped))\<close>
 
 definition heuristic_reluctant_enable :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>heuristic_reluctant_enable = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
-     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_init))\<close>
+  \<open>heuristic_reluctant_enable = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
+     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_init, fullyproped))\<close>
 
 definition heuristic_reluctant_disable :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>heuristic_reluctant_disable = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
-     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_disable reluctant))\<close>
+  \<open>heuristic_reluctant_disable = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
+     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_disable reluctant, fullyproped))\<close>
 
 definition heuristic_reluctant_triggered :: \<open>restart_heuristics \<Rightarrow> restart_heuristics \<times> bool\<close> where
-  \<open>heuristic_reluctant_triggered = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
+  \<open>heuristic_reluctant_triggered = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
     let (reluctant, b) = reluctant_triggered reluctant in
-     ((fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant), b))\<close>
+     ((fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped), b))\<close>
 
 definition heuristic_reluctant_triggered2 :: \<open>restart_heuristics \<Rightarrow> bool\<close> where
-  \<open>heuristic_reluctant_triggered2 = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
+  \<open>heuristic_reluctant_triggered2 = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
     reluctant_triggered2 reluctant)\<close>
 
 definition heuristic_reluctant_untrigger :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>heuristic_reluctant_untrigger = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant).
-    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_untrigger reluctant))\<close>
+  \<open>heuristic_reluctant_untrigger = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fullyproped).
+    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant_untrigger reluctant, fullyproped))\<close>
 
 definition end_of_rephasing_phase_heur :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>end_of_rephasing_phase_heur =
     (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant). end_of_rephasing_phase phasing)\<close>
 
+definition is_fully_propagated_heur :: \<open>restart_heuristics \<Rightarrow> bool\<close> where
+  \<open>is_fully_propagated_heur = 
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped). fullyproped)\<close>
+
+definition set_fully_propagated_heur :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>set_fully_propagated_heur = 
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped). (fast_ema, slow_ema, res_info, wasted, phasing, reluctant, True))\<close>
+
+definition unset_fully_propagated_heur :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>unset_fully_propagated_heur = 
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped). (fast_ema, slow_ema, res_info, wasted, phasing, reluctant, False))\<close>
 
 lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
@@ -189,8 +200,11 @@ lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_tick heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_enable heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_untrigger heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_fully_propagated_heur heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (unset_fully_propagated_heur heur)\<close>
   by (clarsimp_all simp: heuristic_rel_def save_phase_heur_def phase_save_heur_rel_def phase_saving_def
-    heuristic_reluctant_tick_def heuristic_reluctant_enable_def heuristic_reluctant_untrigger_def)
+    heuristic_reluctant_tick_def heuristic_reluctant_enable_def heuristic_reluctant_untrigger_def
+    set_fully_propagated_heur_def unset_fully_propagated_heur_def)
 
 lemma heuristic_rel_heuristic_reluctant_triggeredD:
   \<open>heuristic_rel \<A> heur \<Longrightarrow>

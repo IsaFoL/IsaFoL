@@ -1247,7 +1247,7 @@ definition update_blit_wl_heur_pre where
       simp flip: all_lits_alt_def2
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
     dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], cz, None, da, db, dd, de, df, dg, dh, di, {#}, dk))
@@ -1258,7 +1258,7 @@ definition update_blit_wl_heur_pre where
     apply (rule vdom_m_update_subset')
     apply auto
     done
-  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _
+  subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by" _ _ _ _ _
        bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp cq cr cv cw cx cy cz da db dd de df dg dh di
        dk y x
     apply (subgoal_tac \<open>vdom_m (all_atms_st ([], da, None, dd, de, df, dg, dh, di, dk, y, {#}, x)) (x(K := (x K)[ac := (aa, ae, ab)])) da \<subseteq>

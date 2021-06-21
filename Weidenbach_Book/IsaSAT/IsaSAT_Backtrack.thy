@@ -676,9 +676,9 @@ lemma the_option_lookup_clause_assn:
     (auto simp: option_lookup_clause_rel_def)
 
 definition update_heuristics where
-  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info, wasted).
+  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info, wasted, phasing, reluctant, fullyproped).
      (ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info, wasted))\<close>
+          incr_conflict_count_since_last_restart res_info, wasted,phasing, reluctant, False))\<close>
 
 lemma heuristic_rel_update_heuristics[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (update_heuristics glue heur)\<close>
