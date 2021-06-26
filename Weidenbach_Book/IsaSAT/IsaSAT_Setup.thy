@@ -159,6 +159,78 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
+paragraph \<open>AI-vdom\<close>
+text \<open>
+We keep all the indices. This is a subset of \<^term>\<open>vdom\<close> but is cleaned more aggressively.
+At first we traid to express the relation directly but this was too cumbersome to use, due to having
+both sets and multisets.
+\<close>
+definition aivdom_inv :: \<open>vdom \<Rightarrow> vdom \<Rightarrow> vdom \<Rightarrow> _ \<Rightarrow> bool\<close> where
+  \<open>aivdom_inv vdom avdom ivdom d \<longleftrightarrow>
+    set avdom \<inter> set ivdom = {} \<and>
+    set_mset d \<subseteq> set avdom \<union> set ivdom \<and>
+    mset avdom \<subseteq># mset vdom \<and>
+    mset ivdom \<subseteq># mset vdom \<and>
+    distinct_mset d \<and>
+    distinct vdom\<close>
+
+lemma aivdom_inv_alt_def:
+  \<open>aivdom_inv vdom avdom ivdom d \<longleftrightarrow>
+    set avdom \<inter> set ivdom = {} \<and>
+    set_mset d \<subseteq> set avdom \<union> set ivdom \<and>
+    set avdom \<subseteq> set vdom \<and>
+    set ivdom \<subseteq> set vdom \<and>
+    distinct vdom\<and>
+    distinct ivdom\<and>
+    distinct_mset d \<and>
+    distinct avdom\<close>
+  using distinct_mset_mono[of \<open>mset avdom\<close> \<open>mset vdom\<close>]  distinct_mset_mono[of \<open>mset ivdom\<close> \<open>mset vdom\<close>]
+    distinct_subseteq_iff[of  \<open>mset avdom\<close> \<open>mset vdom\<close>] distinct_subseteq_iff[of \<open>mset ivdom\<close> \<open>mset vdom\<close>]
+  by (auto simp: aivdom_inv_def)
+
+ 
+lemma distinct_butlast_set:
+  \<open>distinct xs \<Longrightarrow> set (butlast xs) = set xs - {last xs}\<close>
+  by (cases xs rule: rev_cases) auto
+
+lemma distinct_remove_readd_last_set:
+  \<open>distinct xs \<Longrightarrow> i < length xs \<Longrightarrow> set (butlast (xs[i := last xs])) = set xs - {xs!i}\<close>
+  by (cases xs rule: rev_cases) (auto simp: list_update_append set_update_distinct nth_append)
+
+lemma aivdom_inv_intro_add_mset:
+  \<open>C \<notin># d \<Longrightarrow> C \<notin> set vdom \<Longrightarrow> aivdom_inv vdom avdom ivdom d \<Longrightarrow> aivdom_inv (vdom @ [C]) (avdom @ [C]) ivdom (add_mset C d)\<close>
+  unfolding aivdom_inv_alt_def
+  by (cases \<open>C \<in> (set avdom \<union> set ivdom)\<close>)
+   (auto dest: subset_mset_imp_subset_add_mset)
+
+lemma aivdom_inv_remove_and_swap_inactive:
+  assumes \<open>i < length n\<close> and \<open>aivdom_inv m n s baa\<close>
+  shows \<open>aivdom_inv m (butlast (n[i := last n])) s (remove1_mset (n ! i) baa)\<close>
+proof -
+  have [simp]: \<open>set n - {n ! i} \<union> set s = set n \<union> set s - {n ! i}\<close>
+    using assms nth_mem[of i n]
+    by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set
+      dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
+  have [simp]: \<open>mset_set (set n \<union> set s - {n ! i}) = remove1_mset (n!i) (mset_set (set n \<union> set s))\<close>
+    using assms
+    by (auto simp: aivdom_inv_alt_def mset_set_Diff)
+  show ?thesis
+    using assms
+    by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set mset_le_subtract
+      dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
+qed
+
+lemma aivdom_inv_remove_clause:
+  \<open>aivdom_inv m n s baa \<Longrightarrow> aivdom_inv m n s (remove1_mset C baa)\<close>
+  by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set
+      dest: in_set_butlastD dest: in_diffD)
+
+
+lemma aivdom_inv_removed_inactive:
+  assumes \<open>i < length n\<close> and \<open>aivdom_inv m n s baa\<close> \<open>n!i \<notin># baa\<close>
+  shows \<open>aivdom_inv m (butlast (n[i := last n])) s baa\<close>
+  by (metis aivdom_inv_remove_and_swap_inactive assms(1) assms(2) assms(3) diff_single_trivial)
+
 
 paragraph \<open>VMTF\<close>
 
@@ -203,9 +275,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    set avdom \<inter> set ivdom = {} \<and>
+    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -247,9 +317,7 @@ definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) se
     out_learned M D outl \<and>
     (D = None \<longrightarrow> clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount) \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    set avdom \<inter> set ivdom = {} \<and>
+    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -309,9 +377,7 @@ where
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    set avdom \<inter> set ivdom = {} \<and>
+    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
@@ -350,9 +416,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     out_learned M None outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
     vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    set avdom \<inter> set ivdom = {} \<and>
+    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>

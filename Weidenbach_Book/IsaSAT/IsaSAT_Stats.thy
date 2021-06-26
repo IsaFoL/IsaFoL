@@ -217,6 +217,7 @@ lemma save_phase_heur_preI:
   by (auto simp: heuristic_rel_def phase_saving_def save_phase_heur_pre_def
      phase_save_heur_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
+
 subsection \<open>Number of clauses\<close>
 
 type_synonym clss_size = \<open>nat \<times> nat \<times> nat \<times> nat \<times> nat\<close>

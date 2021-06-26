@@ -953,9 +953,9 @@ proof -
     obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
       S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases S)
-    obtain M' W' vm clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts where
+    obtain M' W' vm clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts old_arena ivdom where
       S': \<open>S' = (M', arena, (b, D'), Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
-        avdom, lcount, opts)\<close>
+        avdom, lcount, opts, old_arena, ivdom)\<close>
       using S'_S by (cases S') (fastforce simp: twl_st_heur_conflict_ana_def S)
     have
       M'_M: \<open>(M', M) \<in> trail_pol (all_atms_st S)\<close>  and
@@ -969,8 +969,8 @@ proof -
       \<open>vdom_m (all_atms_st S) W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel (all_atms_st S)\<close> and
       arena: \<open>valid_arena arena N (set vdom)\<close> and
-      avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
-      bounded: \<open>isasat_input_bounded (all_atms_st S)\<close>
+      bounded: \<open>isasat_input_bounded (all_atms_st S)\<close> and
+      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close>
       using S'_S unfolding S S' twl_st_heur_conflict_ana_def
       by (auto simp: S all_atms_def[symmetric])
     obtain T U where
@@ -1289,7 +1289,7 @@ proof -
     qed
 
     have final: \<open>(((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take 1 x2a,
-            stats, heur, vdom, avdom, lcount, opts),
+            stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
             x2c, x1c),
           M, N, Da, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)
           \<in> ?shorter\<close>
@@ -1367,7 +1367,7 @@ proof -
         \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
       have \<open>((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take (Suc 0) x2a,
-          stats, heur, vdom, avdom, lcount, opts),
+          stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
         del_conflict_wl (M, N, Da, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
         \<in> twl_st_heur_bt\<close>
         using S'_S x1b_None cach out vm' unfolding twl_st_heur_bt_def
@@ -1822,9 +1822,7 @@ proof -
       vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
-      avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
-      ivdom: \<open>mset ivdom \<subseteq># mset vdom\<close> and
-      aivdom: \<open>set avdom \<inter> set ivdom = {}\<close> and
+      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
       dist_vdom: \<open>distinct vdom\<close> and
@@ -2166,6 +2164,8 @@ proof -
       by auto
     have arena_le: \<open>length arena + header_size C + length C \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
+    have avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and ivdom: \<open>mset ivdom \<subseteq># mset vdom\<close>
+      using aivdom unfolding aivdom_inv_def by auto
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
        vm \<in> isa_vmtf (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
       by (cases vm)
@@ -2224,20 +2224,20 @@ proof -
       subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
-        using D' C_1_neq_hd vmtf avdom ivdom aivdom M1'_M1 bounded nempty r r' arena_le
+        using D' C_1_neq_hd vmtf avdom aivdom M1'_M1 bounded nempty r r' arena_le
           set_mset_mono[OF ivdom]
         by (clarsimp simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
-            RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def subset_mset_imp_subset_add_mset
+            RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew learned_clss_count_def all_atms_st_def
-            intro!: valid_arena_update_lbd
+            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
             simp del: isasat_input_bounded_def isasat_input_nempty_def
           dest: valid_arena_one_notin_vdomD
             get_learned_count_learned_clss_countD)
          (intro conjI,  auto
-            intro!: valid_arena_update_lbd simp: vdom_m_simps5
+            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset simp: vdom_m_simps5
             simp del: isasat_input_bounded_def isasat_input_nempty_def
            dest: valid_arena_one_notin_vdomD)
       done
@@ -2313,7 +2313,6 @@ proof -
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
            vdom, avdom, lcount, opts, [], ivdom)\<close> and
-        avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
             \<open>get_learned_count U = get_learned_count S\<close>
             \<open>learned_clss_count U \<le> u\<close>
@@ -2336,7 +2335,7 @@ proof -
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
       dist_vdom: \<open>distinct vdom\<close> and
-      aivdom: \<open>set avdom \<inter> set ivdom = {}\<close> \<open>mset ivdom \<subseteq># mset vdom\<close> and
+      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close> and
       heur: \<open>heuristic_rel (all_atms_st U') heur\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
     have [simp]: \<open>C ! 0 = - lit_of (hd M)\<close> and
@@ -2489,7 +2488,7 @@ proof -
        (simp add: twl_st_heur_bt_def clss_size_corr_intro)
 
     show ?thesis
-      using empty_cach n_d_M1 W'W outl vmtf C undef uL_M vdom lcount valid D' avdom
+      using empty_cach n_d_M1 W'W outl vmtf C undef uL_M vdom lcount valid D' aivdom
       unfolding U U' propagate_unit_bt_wl_D_int_def prod.simps hd_SM
         propagate_unit_bt_wl_alt_def
       apply (rewrite at \<open>let _ = incr_units_since_last_GC (incr_uset _) in _\<close> Let_def)
