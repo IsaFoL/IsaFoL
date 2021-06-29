@@ -675,15 +675,23 @@ lemma the_option_lookup_clause_assn:
   by (intro frefI nres_relI)
     (auto simp: option_lookup_clause_rel_def)
 
-definition update_heuristics where
-  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info, wasted, phasing, reluctant, fullyproped).
+definition update_propagation_heuristics_stats where
+  \<open>update_propagation_heuristics_stats = (\<lambda>glue (fema, sema, res_info, wasted, phasing, reluctant, fullyproped).
      (ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, wasted,phasing, reluctant, False))\<close>
 
+lemma heuristic_rel_stats_update_heuristics_stats[intro!]:
+  \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (update_propagation_heuristics_stats glue heur)\<close>
+  by (auto simp: heuristic_rel_stats_def phase_save_heur_rel_def phase_saving_def
+    update_propagation_heuristics_stats_def)
+
+definition update_propagation_heuristics where
+  \<open>update_propagation_heuristics glue = Restart_Heuristics o update_propagation_heuristics_stats glue o get_content\<close>
+
 lemma heuristic_rel_update_heuristics[intro!]:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (update_heuristics glue heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (update_propagation_heuristics glue heur)\<close>
   by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def
-    update_heuristics_def)
+    update_propagation_heuristics_def)
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -719,7 +727,7 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>
@@ -743,7 +751,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_units_since_last_GC (incr_uset stats);
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
-        heuristic_reluctant_tick (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUEk lcount, opts, old_arena)})\<close>
+        heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUEk lcount, opts, old_arena)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -1886,7 +1894,7 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
           RETURN (M, N, D, j, W, vm, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [ i],
+            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [ i],
               avdom @ [i], clss_size_incr_lcount lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2126,7 +2134,7 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
           isasat_input_nempty_def cach_refinement_nonull_def
-          heuristic_rel_def phase_save_heur_rel_def
+          heuristic_rel_def phase_save_heur_rel_def heuristic_rel_stats_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2144,7 +2152,7 @@ proof -
           isasat_input_bounded_def[symmetric]
           isasat_input_nempty_def[symmetric]
           heuristic_rel_def[symmetric]
-          heuristic_rel_def[symmetric] phase_save_heur_rel_def[symmetric]
+          heuristic_rel_def[symmetric] phase_save_heur_rel_def[symmetric] heuristic_rel_stats_def[symmetric]
         apply auto
         done
       show ?K
@@ -2451,7 +2459,7 @@ proof -
       show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K and ?L
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
-          distinct_hash_atoms_rel_def
+          distinct_hash_atoms_rel_def heuristic_rel_stats_def
           atoms_hash_rel_def A A2 A3 C option_lookup_clause_rel_def
           lookup_clause_rel_def phase_saving_def cach_refinement_empty_def
           cach_refinement_def
@@ -2474,7 +2482,7 @@ proof -
           cach_refinement_list_def[symmetric]
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric] cach_refinement_nonull_def[symmetric]
-          isasat_input_nempty_def[symmetric] heuristic_rel_def[symmetric]
+          isasat_input_nempty_def[symmetric] heuristic_rel_def[symmetric] heuristic_rel_stats_def[symmetric]
           phase_save_heur_rel_def[symmetric] phase_saving_def[symmetric]
         apply auto
         done
@@ -2665,7 +2673,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>

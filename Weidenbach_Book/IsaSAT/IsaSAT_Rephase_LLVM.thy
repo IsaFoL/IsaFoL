@@ -18,7 +18,7 @@ definition phase_heur_assn where
 
 schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE phase_heur_assn ?fr\<close>
   unfolding phase_heur_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+  by synthesize_free+
 
 sepref_def rephase_random_impl
   is \<open>uncurry rephase_random\<close>
@@ -101,9 +101,9 @@ sepref_def phase_save_phase_impl
   by sepref
 
 sepref_def get_next_phase_imp
-  is \<open>uncurry2 get_next_phase\<close>
+  is \<open>uncurry2 get_next_phase_stats\<close>
   :: \<open>bool1_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding get_next_phase_def phase_heur_assn_def
+  unfolding get_next_phase_stats_def phase_heur_assn_def
   apply annot_all_atm_idxs
   by  sepref
 

@@ -56,7 +56,7 @@ paragraph \<open>Definition\<close>
 type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> restart_heuristics \<times>
+    nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> isasat_stats \<times> isasat_restart_heuristics \<times>
     vdom \<times> vdom \<times> clss_size \<times> opts \<times> arena \<times> vdom\<close>
 
 
@@ -118,7 +118,7 @@ fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
 fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
   \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
-fun get_stats_heur :: \<open>twl_st_wl_heur \<Rightarrow> stats\<close> where
+fun get_stats_heur :: \<open>twl_st_wl_heur \<Rightarrow> isasat_stats\<close> where
   \<open>get_stats_heur (_, _, _, _, _, _, _, _, _, _, stats, _, _) = stats\<close>
 
 fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
@@ -576,8 +576,8 @@ lemma phase_save_heur_rel_cong:
 
 lemma heuristic_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
-  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) heur\<close>]
-  by (auto simp: heuristic_rel_def)
+  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) (get_restart_heuristics heur)\<close>]
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def)
 
 lemma vmtf_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf \<A> M \<Longrightarrow> L \<in> vmtf \<B> M\<close>
@@ -1132,24 +1132,22 @@ lemma mark_unused_st_heur_simp[simp]:
 
 lemma get_slow_ema_heur_alt_def:
    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, (fema, sema,  _), lcount). RETURN sema)\<close>
+       stats, heur, lcount). RETURN (slow_ema_of heur))\<close>
   by auto
-
 
 lemma get_fast_ema_heur_alt_def:
    \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, (fema, sema, ccount), lcount). RETURN fema)\<close>
+       stats, heur, lcount). RETURN (fast_ema_of heur))\<close>
   by auto
 
 
 fun get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _,
-    (_, _, (ccount, _), _), _)
-      = ccount\<close>
+  \<open>get_conflict_count_since_last_restart_heur (M, N0, D, Q, W, vm, clvls, cach, lbd,
+       outl, stats, heur, lcount) = get_conflict_count_since_last_restart stats\<close>
 
 lemma (in -) get_counflict_count_heur_alt_def:
    \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
-       outl, stats, (_, _, (ccount, _), _), lcount). RETURN ccount)\<close>
+       outl, stats, heur, lcount). RETURN (get_conflict_count_since_last_restart stats))\<close>
   by auto
 
 lemma get_learned_count_alt_def:
@@ -1171,35 +1169,29 @@ text \<open>
   to test the performance, I remove it.
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info, wasted, \<phi>, relu, fullyproped), vdom, avdom, lcount, opts, old_arena). do{
+  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
-       (fast_ema, slow_ema,
-       restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu, fullyproped), vdom, avdom,
+       heuristic_reluctant_untrigger (restart_info_restart_done_heur heur), vdom, avdom,
        lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted, \<phi>, relu, fullyproped), vdom, avdom, lcount). do{
+  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_lrestart stats,
-       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu, fullyproped),
+       heuristic_reluctant_untrigger (restart_info_restart_done_heur heur),
        vdom, avdom, lcount)
   })\<close>
 
 definition incr_wasted_st :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>incr_wasted_st = (\<lambda>waste (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted, \<phi>), vdom, avdom, lcount). do{
-     (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-       (fast_ema, slow_ema, res_info, wasted+waste, \<phi>),
+  \<open>incr_wasted_st = (\<lambda>waste (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount). do{
+     (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, incr_wasted waste heur,
        vdom, avdom, lcount)
   })\<close>
 
 
 definition wasted_bytes_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>wasted_bytes_st = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted, \<phi>), vdom, avdom, lcount).
-     wasted)\<close>
+  \<open>wasted_bytes_st = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount).
+     wasted_of heur)\<close>
 
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -1394,6 +1386,9 @@ definition empty_Q_wl2  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close
 definition empty_US_heur_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
 \<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). (M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W))\<close>
 
+lemma restart_info_of_stats_simp [simp]: \<open>restart_info_of_stats (incr_wasted_stats C heur) = restart_info_of_stats heur\<close>
+
+  by (cases heur; auto; fail)+
 lemma incr_wasted_st_twl_st[simp]:
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
   \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
@@ -1402,7 +1397,7 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
   \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
-  by (cases T; auto simp: incr_wasted_st_def; fail)+
+  by (cases T; auto simp: incr_wasted_st_def incr_wasted_st_def incr_wasted_def restart_info_of_def; fail)+
 
 definition heuristic_reluctant_triggered2_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>heuristic_reluctant_triggered2_st = (\<lambda> (_, _, _, _, _, _, _, _, _, _, _, heur, _). heuristic_reluctant_triggered2 heur)\<close>

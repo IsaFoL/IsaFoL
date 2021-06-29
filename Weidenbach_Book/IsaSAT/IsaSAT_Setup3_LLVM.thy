@@ -13,27 +13,11 @@ sepref_def wasted_bytes_st_impl
   is \<open>RETURN o wasted_bytes_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def
-    heuristic_assn_def wasted_bytes_st_def
+  unfolding isasat_bounded_assn_def wasted_bytes_st_def
   by sepref
 
-
-lemma id_unat[sepref_fr_rules]:
-   \<open>(return o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  by (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps
-     pred_lift_def pure_true_conv)
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
-
-
-sepref_def add_lbd_impl
-  is \<open>uncurry (RETURN oo add_lbd)\<close>
-  :: \<open>word32_assn\<^sup>k *\<^sub>a stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding add_lbd_def
-  by sepref
 
 
 sepref_register isa_trail_nth isasat_trail_nth_st
@@ -77,8 +61,13 @@ sepref_def incr_restart_stat_fast_code
   supply [[goals_limit=1]]
   unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
     heuristic_assn_def fold_tuple_optimizations
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+oops
   by sepref
-
+find_theorems incr_restart
 sepref_register incr_lrestart_stat clss_size_decr_lcount
     clss_size_incr_lcountUE clss_size_incr_lcountUS
 
