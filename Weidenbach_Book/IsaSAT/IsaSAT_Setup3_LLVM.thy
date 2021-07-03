@@ -59,15 +59,9 @@ sepref_def incr_restart_stat_fast_code
   is \<open>incr_restart_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-oops
+  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def fold_tuple_optimizations
   by sepref
-find_theorems incr_restart
+
 sepref_register incr_lrestart_stat clss_size_decr_lcount
     clss_size_incr_lcountUE clss_size_incr_lcountUS
 
@@ -76,7 +70,7 @@ sepref_def incr_lrestart_stat_fast_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
+    fold_tuple_optimizations
   by sepref
 
 sepref_register mark_unused_st_heur
@@ -109,18 +103,6 @@ sepref_def empty_US_heur_code
   is \<open>RETURN o empty_US_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding empty_US_heur_def isasat_bounded_assn_def
-  by sepref
-
-lemma current_restart_phase_alt_def:
-  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase), _).
-    restart_phase)\<close>
-  by auto
-
-sepref_def current_restart_phase_impl
-  is \<open>RETURN o current_restart_phase\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding current_restart_phase_alt_def heuristic_assn_def
   by sepref
 
 sepref_def get_restart_phase_imp

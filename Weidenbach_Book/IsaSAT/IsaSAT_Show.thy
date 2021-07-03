@@ -106,8 +106,8 @@ lemma isasat_current_status_id:
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def isasat_current_status_def learned_clss_count_def)
 
-definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
-\<open>isasat_print_progress c curr_phase =
+definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
+\<open>isasat_print_progress_stats c curr_phase =
   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      let
          _ = print_c propa;
@@ -129,6 +129,8 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
      in
        ())\<close>
 
+definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> clss_size \<Rightarrow> unit\<close>  where
+  \<open>isasat_print_progress c curr_phase stats lcount = isasat_print_progress_stats c curr_phase (get_content stats) lcount\<close>
 
 definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_progress =
@@ -137,7 +139,7 @@ definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heu
        vdom, lcount, opts, old_arena).
      let
        curr_phase = current_restart_phase heur;
-       _ = isasat_print_progress c curr_phase (get_content stats) lcount
+       _ = isasat_print_progress c curr_phase stats lcount
      in RETURN ())\<close>
 
 

@@ -76,7 +76,6 @@ definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> whe
 definition decr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>decr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss-1, lbds))\<close>
 
-  
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation = Stats o incr_propagation_stats o get_stats\<close>
 

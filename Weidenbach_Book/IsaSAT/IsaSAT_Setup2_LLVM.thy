@@ -69,11 +69,6 @@ lemma reset_units_since_last_GC_st_alt_def:
   unfolding reset_units_since_last_GC_st_def by auto
 
 sepref_register reset_units_since_last_GC
-sepref_def reset_units_since_last_GC_code
-  is \<open>RETURN o reset_units_since_last_GC\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  unfolding reset_units_since_last_GC_def
-  by sepref
 
 sepref_def reset_units_since_last_GC_st_code
   is \<open>RETURN o reset_units_since_last_GC_st\<close>
@@ -188,8 +183,8 @@ sepref_def incr_wasted_st_impl
   is \<open>uncurry (RETURN oo incr_wasted_st)\<close>
   :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply[[goals_limit=1]]
-  unfolding incr_wasted_st_def incr_wasted.simps
-    isasat_bounded_assn_def heuristic_assn_def fold_tuple_optimizations
+  unfolding incr_wasted_st_def
+    isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def full_arena_length_st_impl

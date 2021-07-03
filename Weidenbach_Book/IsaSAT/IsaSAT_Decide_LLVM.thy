@@ -61,11 +61,8 @@ sepref_def find_unassigned_lit_wl_D_heur_impl
 sepref_def get_next_phase_st_impl
   is \<open>uncurry2 get_next_phase_st\<close>
   :: \<open>bool1_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding get_next_phase_st_def isasat_bounded_assn_def heuristic_assn_def
+  unfolding get_next_phase_st_def isasat_bounded_assn_def
   by sepref
-
-
-term get_next_phase_st
 
 sepref_def decide_wl_or_skip_D_fast_code
   is \<open>decide_wl_or_skip_D_heur\<close>

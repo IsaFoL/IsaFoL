@@ -115,30 +115,161 @@ sepref_def add_lbd_stats_impl
   by sepref
 
 lemma add_lbd_stats_add_lbd:
-  \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close> and
+  get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart:
+  \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart) \<in> stats_rel \<rightarrow> word_rel\<close> and
+  units_since_last_GC_stats_units_since_last_GC:
+  \<open>(units_since_last_GC_stats, units_since_last_GC) \<in> stats_rel \<rightarrow> word_rel\<close> and
+  reset_units_since_last_GC_stats_reset_units_since_last_GC:
+  \<open>(reset_units_since_last_GC_stats, reset_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  incr_irred_clss_stats_incr_irred_clss:
+  \<open>(incr_irred_clss_stats, incr_irred_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  decr_irred_clss_stats_decr_irred_clss:
+  \<open>(decr_irred_clss_stats, decr_irred_clss) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  incr_propagation_stats_incr_propagation:
+  \<open>(incr_propagation_stats, incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_conflict_stats_incr_conflict:
+  \<open>(incr_conflict_stats, incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_decision_stats_incr_decision:
+  \<open>(incr_decision_stats, incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_GC_stats_incr_GC:
+  \<open>(incr_GC_stats, incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_uset_stats_incr_uset:
+  \<open>(incr_uset_stats, incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_restart_stats_incr_restart:
+  \<open>(incr_restart_stats, incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_lrestart_stats_incr_lrestart:
+  \<open>(incr_lrestart_stats, incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  stats_conflicts_stats_stats_conflicts:
+  \<open>(stats_conflicts_stats, stats_conflicts)\<in> stats_rel \<rightarrow> word_rel\<close> and
+  incr_units_since_last_GC_stats_incr_units_since_last_GC:
+  \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def
     incr_lrestart_def incr_uset_def
     incr_GC_def add_lbd_def add_lbd_def
-    units_since_last_GC_def
+    units_since_last_GC_def reset_units_since_last_GC_def
     incr_restart_def incr_irred_clss_def get_conflict_count_since_last_restart_def
     decr_irred_clss_def incr_units_since_last_GC_def)
 
+sepref_def get_conflict_count_since_last_restart_stats_impl
+  is \<open>(RETURN o get_conflict_count_since_last_restart_stats)\<close>
+  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_conflict_count_since_last_restart_stats_def
+  by sepref
+
+
+sepref_def units_since_last_GC_stats_impl
+  is \<open>(RETURN o units_since_last_GC_stats)\<close>
+  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding units_since_last_GC_stats_def
+  by sepref
+
+sepref_def reset_units_since_last_GC_stats_impl
+  is \<open>(RETURN o reset_units_since_last_GC_stats)\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding reset_units_since_last_GC_stats_def
+  by sepref
+
+sepref_def incr_irred_clss_stats_impl
+  is \<open>RETURN o incr_irred_clss_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_irred_clss_stats_def
+  by sepref
+
+sepref_def decr_irred_clss_stats_impl
+  is \<open>RETURN o decr_irred_clss_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding decr_irred_clss_stats_def
+  by sepref
+
+sepref_def incr_propagation_stats_impl
+  is \<open>RETURN o incr_propagation_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_propagation_stats_def
+  by sepref
+
+sepref_def incr_conflict_stats_impl
+  is \<open>RETURN o incr_conflict_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_conflict_stats_def
+  by sepref
+
+sepref_def incr_decision_stats_impl
+  is \<open>RETURN o incr_decision_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_decision_stats_def
+  by sepref
+
+sepref_def incr_restart_stats_impl
+  is \<open>RETURN o incr_restart_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_restart_stats_def
+  by sepref
+
+sepref_def incr_lrestart_stats_impl
+  is \<open>RETURN o incr_lrestart_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_lrestart_stats_def
+  by sepref
+
+sepref_def incr_uset_stats_impl
+  is \<open>RETURN o incr_uset_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_uset_stats_def
+  by sepref
+
+sepref_def incr_GC_stats_impl
+  is \<open>RETURN o incr_GC_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_GC_stats_def
+  by sepref
+
+sepref_def stats_conflicts_stats_impl
+  is \<open>RETURN o stats_conflicts_stats\<close>
+  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_conflicts_stats_def
+    by sepref
+
+sepref_def incr_units_since_last_GC_stats_impl
+  is \<open>RETURN o incr_units_since_last_GC_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_units_since_last_GC_stats_def
+  by sepref
+
 lemma stats_assn_alt_def: \<open>stats_assn = hr_comp stats_int_assn stats_rel\<close>
+  \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
   by (auto simp: stats_assn_def code_hider_assn_def)
 
 context
-  notes [fcomp_norm_unfold] = stats_assn_alt_def[symmetric]
+  notes [fcomp_norm_unfold] = stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
 begin
 
 lemmas [sepref_fr_rules] =
   add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
+  get_conflict_count_since_last_restart_stats_impl.refine[FCOMP get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart]
+  units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]
+  reset_units_since_last_GC_stats_impl.refine[FCOMP reset_units_since_last_GC_stats_reset_units_since_last_GC]
+  incr_irred_clss_stats_impl.refine[FCOMP incr_irred_clss_stats_incr_irred_clss]
+  decr_irred_clss_stats_impl.refine[FCOMP decr_irred_clss_stats_decr_irred_clss]
+  incr_propagation_stats_impl.refine[FCOMP incr_propagation_stats_incr_propagation]
+  incr_decision_stats_impl.refine[FCOMP incr_decision_stats_incr_decision]
+  incr_restart_stats_impl.refine[FCOMP incr_restart_stats_incr_restart]
+  incr_lrestart_stats_impl.refine[FCOMP incr_lrestart_stats_incr_lrestart]
+  incr_uset_stats_impl.refine[FCOMP incr_uset_stats_incr_uset]
+  incr_conflict_stats_impl.refine[FCOMP incr_conflict_stats_incr_conflict]
+  incr_GC_stats_impl.refine[FCOMP incr_GC_stats_incr_GC]
+  stats_conflicts_stats_impl.refine[FCOMP stats_conflicts_stats_stats_conflicts]
+  incr_units_since_last_GC_stats_impl.refine[FCOMP incr_units_since_last_GC_stats_incr_units_since_last_GC]
+  hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
+  hn_id[FCOMP get_content_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
+
 end
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
-
 abbreviation (input) restart_info_assn where
+
   \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 lemma restart_info_params[sepref_import_param]:
@@ -406,12 +537,27 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
   set_zero_wasted_stats_set_zero_wasted:
   \<open>(set_zero_wasted_stats, set_zero_wasted) \<in> heur_rel \<rightarrow> heur_rel\<close> and
   wasted_of_stats_wasted_of:
-  \<open>(wasted_of_stats, wasted_of) \<in> heur_rel \<rightarrow> word64_rel\<close>
+  \<open>(wasted_of_stats, wasted_of) \<in> heur_rel \<rightarrow> word64_rel\<close> and
+  slow_ema_of_stats_slow_ema_of:
+  \<open>(slow_ema_of_stats, slow_ema_of) \<in> heur_rel \<rightarrow> ema_rel\<close> and
+  fast_ema_of_stats_fast_ema_of:
+  \<open>(fast_ema_of_stats, fast_ema_of) \<in> heur_rel \<rightarrow> ema_rel\<close> and
+  current_restart_phase_stats_current_restart_phase:
+  \<open>(current_restart_phase_stats, current_restart_phase) \<in> heur_rel \<rightarrow> word_rel\<close> and
+  incr_wasted_stats_incr_wasted:
+  \<open>(incr_wasted_stats, incr_wasted) \<in> word_rel \<rightarrow> heur_rel \<rightarrow> heur_rel\<close> and
+  current_rephasing_phase_stats_current_rephasing_phase:
+  \<open>(current_rephasing_phase_stats, current_rephasing_phase) \<in> heur_rel \<rightarrow> word_rel\<close> and
+  get_next_phase_heur_stats_get_next_phase_heur:
+  \<open>(uncurry2 (get_next_phase_heur_stats), uncurry2 (get_next_phase_heur))
+  \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f heur_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (auto simp: set_zero_wasted_def code_hider_rel_def heuristic_reluctant_tick_def
     heuristic_reluctant_enable_def heuristic_reluctant_triggered_def apfst_def map_prod_def
     heuristic_reluctant_disable_def heuristic_reluctant_triggered2_def is_fully_propagated_heur_def
     end_of_rephasing_phase_heur_def unset_fully_propagated_heur_def restart_info_restart_done_heur_def
-    heuristic_reluctant_untrigger_def set_fully_propagated_heur_def wasted_of_def
+    heuristic_reluctant_untrigger_def set_fully_propagated_heur_def wasted_of_def get_next_phase_heur_def
+    slow_ema_of_def fast_ema_of_def current_restart_phase_def incr_wasted_def current_rephasing_phase_def
+    intro!: frefI nres_relI
     split: prod.splits)
 
 (*heuristic_reluctant_triggered*)
@@ -470,7 +616,7 @@ sepref_def end_of_rephasing_phase_impl [llvm_inline]
   unfolding end_of_rephasing_phase_def phase_heur_assn_def
   by sepref
 
-sepref_def end_of_rephasing_phase_heur_stats
+sepref_def end_of_rephasing_phase_heur_stats_impl
   is \<open>RETURN o end_of_rephasing_phase_heur_stats\<close>
   :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding heuristic_int_assn_def end_of_rephasing_phase_heur_stats_def
@@ -516,6 +662,59 @@ sepref_def wasted_of_stats_impl
   unfolding heuristic_int_assn_def wasted_of_stats_alt_def
   by sepref
 
+lemma slow_ema_of_stats_alt_def:
+  \<open>RETURN o slow_ema_of_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). RETURN slow_ema)\<close> and
+  fast_ema_of_stats_alt_def:
+  \<open>RETURN o fast_ema_of_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). RETURN fast_ema)\<close>
+  by auto
+
+sepref_def slow_ema_of_stats_impl
+  is \<open>RETURN o slow_ema_of_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding heuristic_int_assn_def slow_ema_of_stats_alt_def
+  by sepref
+
+sepref_def fast_ema_of_stats_impl
+  is \<open>RETURN o fast_ema_of_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding heuristic_int_assn_def fast_ema_of_stats_alt_def
+  by sepref
+
+lemma current_restart_phase_stats_alt_def:
+  \<open>RETURN o current_restart_phase_stats =
+  (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>). RETURN restart_phase)\<close>
+  by auto
+
+sepref_def current_restart_phase_impl
+  is \<open>RETURN o current_restart_phase_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding heuristic_int_assn_def current_restart_phase_stats_alt_def
+  by sepref
+
+lemma incr_wasted_stats_stats_alt_def:
+  \<open>RETURN oo incr_wasted_stats =
+  (\<lambda>waste (fast_ema, slow_ema, res_info, wasted, \<phi>). RETURN (fast_ema, slow_ema, res_info, wasted + waste, \<phi>))\<close>
+  by (auto intro!: ext)
+
+sepref_def incr_wasted_stats_impl
+  is \<open>uncurry (RETURN oo incr_wasted_stats)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  unfolding heuristic_int_assn_def incr_wasted_stats_stats_alt_def
+  by sepref
+
+sepref_def current_rephasing_phase_stats_impl
+  is \<open>RETURN o current_rephasing_phase_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding heuristic_int_assn_def current_rephasing_phase_stats_def
+    phase_current_rephasing_phase_def phase_heur_assn_def
+  by sepref
+
+sepref_def get_next_phase_heur_stats_impl
+  is \<open>uncurry2 get_next_phase_heur_stats\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding get_next_phase_heur_stats_def heuristic_int_assn_def
+  by sepref
+
 lemma hn_id_pure:
   \<open>CONSTRAINT is_pure A \<Longrightarrow> (return, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
   apply sepref_to_hoare
@@ -531,13 +730,19 @@ lemmas [sepref_fr_rules] =
   heuristic_reluctant_triggered_stats_impl.refine[FCOMP heuristic_reluctant_triggered_stats_heuristic_reluctant_triggered]
   heuristic_reluctant_triggered2_stats_impl.refine[FCOMP heuristic_reluctant_triggered2_stats_heuristic_reluctant_triggered2]
   heuristic_reluctant_untrigger_stats_impl.refine[FCOMP heuristic_reluctant_untrigger_stats_heuristic_reluctant_untrigger]
-  end_of_rephasing_phase_heur_stats.refine[FCOMP end_of_rephasing_phase_heur_stats_end_of_rephasing_phase_heur]
+  end_of_rephasing_phase_heur_stats_impl.refine[FCOMP end_of_rephasing_phase_heur_stats_end_of_rephasing_phase_heur]
   is_fully_propagated_heur_stats_impl.refine[FCOMP is_fully_propagated_heur_stats_is_fully_propagated_heur]
   set_fully_propagated_heur_stats_impl.refine[FCOMP set_fully_propagated_heur_stats_set_fully_propagated_heur]
   unset_fully_propagated_heur_stats_impl.refine[FCOMP unset_fully_propagated_heur_stats_unset_fully_propagated_heur]
   restart_info_restart_done_heur_stats_impl.refine[FCOMP restart_info_restart_done_heur_stats_restart_info_restart_done_heur]
   set_zero_wasted_impl.refine[FCOMP set_zero_wasted_stats_set_zero_wasted]
   wasted_of_stats_impl.refine[FCOMP wasted_of_stats_wasted_of]
+  current_restart_phase_impl.refine[FCOMP current_restart_phase_stats_current_restart_phase]
+  slow_ema_of_stats_impl.refine[FCOMP slow_ema_of_stats_slow_ema_of]
+  fast_ema_of_stats_impl.refine[FCOMP fast_ema_of_stats_fast_ema_of]
+  incr_wasted_stats_impl.refine[FCOMP incr_wasted_stats_incr_wasted]
+  current_rephasing_phase_stats_impl.refine[FCOMP current_rephasing_phase_stats_current_rephasing_phase]
+  get_next_phase_heur_stats_impl.refine[FCOMP get_next_phase_heur_stats_get_next_phase_heur]
   hn_id[of heuristic_int_assn, FCOMP get_content_hnr[of heur_int_rel]]
   hn_id[of heuristic_int_assn, FCOMP Constructor_hnr[of heur_int_rel]]
 
@@ -623,4 +828,5 @@ sepref_def clss_size_incr_lcount_fast_code
   by sepref
 
 sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
+
 end

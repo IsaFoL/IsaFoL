@@ -31,7 +31,7 @@ definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur b heur;
       let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
-                  b (get_content stats) lcount;
+                  b stats lcount;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena, ivdom)
    })\<close>
