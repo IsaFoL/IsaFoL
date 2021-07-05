@@ -218,19 +218,19 @@ sepref_def marked_as_used_st_fast_code
 sepref_def get_slow_ema_heur_fast_code
   is \<open>RETURN o get_slow_ema_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def fold_tuple_optimizations
+  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def get_fast_ema_heur_fast_code
   is \<open>RETURN o get_fast_ema_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def fold_tuple_optimizations
+  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def get_conflict_count_since_last_restart_heur_fast_code
   is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding get_counflict_count_heur_alt_def isasat_bounded_assn_def heuristic_assn_def fold_tuple_optimizations
+  unfolding get_counflict_count_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def get_learned_count_fast_code

@@ -105,11 +105,17 @@ sepref_register fm_add_new_fast
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length (get_clauses_wl_heur S)) < max_snat 64\<close>
   by (cases S) (auto simp: isasat_fast_def max_snat_def sint64_max_def)
 
-sepref_register update_heuristics
+sepref_register update_propagation_heuristics
+sepref_def update_heuristics_stats_impl
+  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_propagation_heuristics_stats)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  unfolding update_propagation_heuristics_stats_def heuristic_int_assn_def
+  by sepref
+
 sepref_def update_heuristics_impl
-  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_heuristics)\<close>
+  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_propagation_heuristics)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
-  unfolding update_heuristics_def heuristic_assn_def
+  unfolding update_propagation_heuristics_def
   by sepref
 
 (*TODO Move to isasat_fast_countD*)

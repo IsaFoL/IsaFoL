@@ -13,27 +13,11 @@ sepref_def wasted_bytes_st_impl
   is \<open>RETURN o wasted_bytes_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def
-    heuristic_assn_def wasted_bytes_st_def
+  unfolding isasat_bounded_assn_def wasted_bytes_st_def
   by sepref
 
-
-lemma id_unat[sepref_fr_rules]:
-   \<open>(return o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  by (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps
-     pred_lift_def pure_true_conv)
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
-
-
-sepref_def add_lbd_impl
-  is \<open>uncurry (RETURN oo add_lbd)\<close>
-  :: \<open>word32_assn\<^sup>k *\<^sub>a stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding add_lbd_def
-  by sepref
 
 
 sepref_register isa_trail_nth isasat_trail_nth_st
@@ -75,8 +59,7 @@ sepref_def incr_restart_stat_fast_code
   is \<open>incr_restart_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
+  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def fold_tuple_optimizations
   by sepref
 
 sepref_register incr_lrestart_stat clss_size_decr_lcount
@@ -87,7 +70,7 @@ sepref_def incr_lrestart_stat_fast_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
+    fold_tuple_optimizations
   by sepref
 
 sepref_register mark_unused_st_heur
@@ -120,18 +103,6 @@ sepref_def empty_US_heur_code
   is \<open>RETURN o empty_US_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding empty_US_heur_def isasat_bounded_assn_def
-  by sepref
-
-lemma current_restart_phase_alt_def:
-  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase), _).
-    restart_phase)\<close>
-  by auto
-
-sepref_def current_restart_phase_impl
-  is \<open>RETURN o current_restart_phase\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding current_restart_phase_alt_def heuristic_assn_def
   by sepref
 
 sepref_def get_restart_phase_imp
@@ -237,5 +208,14 @@ sepref_def print_trail_st_code
 
 lemmas [sepref_fr_rules] =
   print_trail_st_code.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
+
+sepref_register is_fully_propagated_heur_st
+
+sepref_def is_fully_propagated_heur_st_code
+  is \<open>RETURN o is_fully_propagated_heur_st\<close>
+  ::  \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding is_fully_propagated_heur_st_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
 
 end

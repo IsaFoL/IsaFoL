@@ -12,8 +12,9 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
     let curr_phase = get_restart_phase S;
     let can_res = (learned_clss_count S > last_Restart);
     let can_GC = (learned_clss_count S - last_GC> n);
+    let fully_proped = is_fully_propagated_heur_st S;
 
-    if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red then RETURN FLAG_no_restart
+    if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red \<or> \<not>fully_proped then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
     then do {
       GC_required \<leftarrow> GC_required_heur S n;

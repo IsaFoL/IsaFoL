@@ -2106,14 +2106,14 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd, vdom, ivdom, _, lcount, mark). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-     let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,(of_nat (length ivdom))::64 word, ema_fast_init);
+     let init_stats = Constructor (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,(of_nat (length ivdom))::64 word, ema_fast_init);
      let fema = ema_init (opts_fema opts);
      let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
+     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False));
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
-       clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-       (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
-           reluctant_init), vdom, [], lcount, opts, [], ivdom)
+       clvls, cach, lbd, take 1 (replicate 160 (Pos 0)), init_stats,
+       heur, vdom, [], lcount, opts, [], ivdom)
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -2128,8 +2128,9 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
 lemma heuristic_rel_initI:
-   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e)\<close>
-   by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def)
+  \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow>
+  heuristic_rel \<A> (Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e)))\<close>
+  by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def heuristic_rel_stats_def)
 
 lemma finalise_init_finalise_init_full:
   \<open>get_conflict_wl S = None \<Longrightarrow>
@@ -2141,9 +2142,9 @@ lemma finalise_init_finalise_init_full:
   apply (cases S; cases T)
   apply (simp add: finalise_init_code_def)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
-    twl_st_heur_parsing_no_WL_wl_def
+    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
-      twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps
+      twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps aivdom_inv_def
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
     dest: isa_vmtf_init_nemptyD)
   done

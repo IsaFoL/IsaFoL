@@ -893,9 +893,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     out_learned M D outl \<and>
     clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
     vdom_m \<A>  W N \<subseteq> set vdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    set avdom \<inter> set ivdom = {} \<and>
+    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
     isasat_input_bounded \<A>  \<and>
     isasat_input_nempty \<A>  \<and>
     distinct vdom \<and> old_arena = [] \<and>
@@ -909,6 +907,10 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_cong:
   \<open>set_mset A = set_mset B \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_mm A = literals_are_in_\<L>\<^sub>i\<^sub>n_mm B\<close>
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def \<L>\<^sub>a\<^sub>l\<^sub>l_cong by force
 
+lemma aivdom_inv_mono:
+  \<open>B \<subseteq># A \<Longrightarrow> aivdom_inv v x1y x2aa A \<Longrightarrow> aivdom_inv v x1y x2aa B\<close>
+  using distinct_mset_mono[of B A]
+  by (auto simp: aivdom_inv_alt_def)
 
 lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:
   assumes \<open>(S, S') \<in> {(a,b). (a,b) \<in> twl_st_heur_restart \<and> get_avdom a = u\<and> get_vdom a = v\<and>
@@ -998,9 +1000,9 @@ proof -
         cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
         \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] clss_size_corr_restart_def get_learned_count.simps
-        clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
+        clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def aivdom_inv_mono
         clss_size_decr_lcount_def)
-      apply (auto split: if_splits simp:
+      apply (auto split: if_splits intro: aivdom_inv_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
         clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
      done
@@ -1018,9 +1020,9 @@ proof -
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def get_learned_count.simps
-        clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def
+        clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_mono
         clss_size_decr_lcount_def)
-      apply (auto split: if_splits simp:
+      apply (auto split: if_splits intro: aivdom_inv_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
         clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
      done
@@ -1042,7 +1044,7 @@ proof -
        \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>, OF sym] outl
-       set_conflict_to_false get_learned_count.simps
+       set_conflict_to_false get_learned_count.simps aivdom_inv_mono
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def
         clss_size_decr_lcount_def)
       apply (auto split: if_splits simp:
@@ -1058,7 +1060,7 @@ proof -
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
-       clss_size_incr_lcountU0_def
+       clss_size_incr_lcountU0_def aivdom_inv_mono
        clss_size_decr_lcount_def clss_size_corr_restart_def
        option_lookup_clause_rel_cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop x1o (rev x1)), x2k)\<close>
@@ -1187,7 +1189,7 @@ proof -
     using assms distinct_mset_mono[of \<open>mset (get_avdom S)\<close> \<open>mset (get_vdom S)\<close>]
     distinct_mset_mono[of \<open>mset (get_ivdom S)\<close> \<open>mset (get_vdom S)\<close>] apply -
     by (rule RETURN_RES_refine)
-     (auto intro!:  simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+     (auto intro!:  simp: twl_st_heur_restart_def aivdom_inv_def twl_st_heur_restart_ana_def)
   let ?R = \<open>{(a, b). (a, b) \<in> twl_st_heur_restart \<and> get_avdom a = get_avdom S \<and> get_vdom a = get_vdom S\<and>
      get_ivdom a = get_ivdom S \<and>
     length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u \<and>

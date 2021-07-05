@@ -665,44 +665,67 @@ schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE marked_
   unfolding marked_struct_assn_def
   by synthesize_free
 
+definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> restart_heuristics\<close> where
+  \<open>empty_heuristics_stats opts \<phi> = (
+  let fema = ema_init (opts_fema opts) in
+  let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
+  let n = (length \<phi>)  in
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False))\<close>
+
+sepref_def empty_heuristics_stats_impl
+  is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>
+  :: \<open>opts_assn\<^sup>k *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  supply  [[goals_limit=1]]  
+  unfolding heuristic_int_assn_def empty_heuristics_stats_def phase_heur_assn_def
+  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
+  apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
+  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
+  apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
+  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
+  by sepref
+
 lemma finalise_init_code_alt_def:
   \<open>finalise_init_code opts =
   (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
   lbd, vdom, ivdom, _, lcount, mark). do {
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-  let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
+  let init_stats = Stats (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
     of_nat (length ivdom)::64 word, ema_fast_init);
-  let fema = ema_init (opts_fema opts);
-  let sema = ema_init (opts_sema opts);
-  let ccount = restart_info_init;
+  let heur = empty_heuristics_stats opts \<phi>;
   mop_free mark;
   RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
     clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-    (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
-    reluctant_init), vdom, [], lcount, opts, [], ivdom)
+    Restart_Heuristics heur, vdom, [], lcount, opts, [], ivdom)
     })\<close>
-    unfolding finalise_init_code_def mop_free_def by auto
+    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def by (auto simp: Let_def)
 
+lemma stats_int_assn_alt_def: \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
+  by auto
+
+thm Constructor_hnr[of stats_int_rel]
+  hn_id[of stats_int_assn]
+  hn_id[FCOMP Constructor_hnr[of stats_int_rel], of stats_int_assn,
+  unfolded stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
+  stats_int_assn_alt_def[symmetric],
+    sepref_fr_rules]
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
+  supply [sepref_fr_rules] = hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel,
+    unfolded stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
+    stats_int_assn_alt_def[symmetric]]
   unfolding finalise_init_code_alt_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
-     heuristic_assn_def phase_heur_assn_def
+     phase_heur_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
-  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
-  apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
-  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
-  apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
   by sepref
 
 sepref_register initialise_VMTF

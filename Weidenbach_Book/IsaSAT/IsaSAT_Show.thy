@@ -54,8 +54,8 @@ definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
 definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_close_colour _ = ()\<close>
 
-definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> stats\<close> where
-\<open>isasat_current_information =
+definition isasat_current_information_stats :: \<open>64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> stats\<close> where
+  \<open>isasat_current_information_stats =
    (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then do{
@@ -80,6 +80,13 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Ri
       else (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds)
     )\<close>
 
+definition isasat_current_information :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> clss_size \<Rightarrow> isasat_stats\<close> where
+\<open>isasat_current_information =
+  (\<lambda>curr_phase stats count.
+  Stats (isasat_current_information_stats curr_phase (get_content stats) count)
+    )\<close>
+
+
 
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_current_status =
@@ -99,8 +106,8 @@ lemma isasat_current_status_id:
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def isasat_current_status_def learned_clss_count_def)
 
-definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
-\<open>isasat_print_progress c curr_phase =
+definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
+\<open>isasat_print_progress_stats c curr_phase =
   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      let
          _ = print_c propa;
@@ -122,6 +129,8 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
      in
        ())\<close>
 
+definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> clss_size \<Rightarrow> unit\<close>  where
+  \<open>isasat_print_progress c curr_phase stats lcount = isasat_print_progress_stats c curr_phase (get_content stats) lcount\<close>
 
 definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_progress =

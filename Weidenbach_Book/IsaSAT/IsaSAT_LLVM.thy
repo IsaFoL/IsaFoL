@@ -13,7 +13,7 @@ hide_const (open)IICF_Multiset.mset_rel
 chapter \<open>Code of Full IsaSAT\<close>
 
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
 
 abbreviation model_stat_assn\<^sub>0 ::
     \<open>bool \<times>
@@ -26,7 +26,7 @@ abbreviation model_stat_assn\<^sub>0 ::
        64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
        \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close>
 where
-  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
+  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
 
 abbreviation lits_with_max_assn :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
@@ -70,7 +70,7 @@ lemma extract_model_of_state_stat_alt_def:
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;
-        RETURN (False, M, stats)
+        RETURN (False, M, get_content stats)
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def
     intro!: ext)
@@ -93,7 +93,7 @@ lemma extract_state_stat_alt_def:
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;
-        RETURN (True, [], stats)})\<close>
+        RETURN (True, [], get_content stats)})\<close>
   by (auto simp: extract_state_stat_def mop_free_def intro!: ext)
 
 sepref_def extract_state_stat
