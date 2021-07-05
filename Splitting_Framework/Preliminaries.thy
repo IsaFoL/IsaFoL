@@ -932,11 +932,11 @@ proof (rule exI, rule exI)
 qed
 
 lemma entails_in_sound_entails_for_prop_clauses:
-  \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {} \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2 \<Longrightarrow> proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
-proof -
-  assume
+  assumes
     entails_useful: \<open>\<not> {} \<Turnstile>\<^sub>A\<^sub>F {}\<close> and
     entails_nonsound: \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+  shows \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
+proof -
   show \<open>proj\<^sub>\<bottom> C\<^sub>1 \<Turnstile>s\<^sub>A\<^sub>F proj\<^sub>\<bottom> C\<^sub>2\<close>
     unfolding AF_entails_sound_def 
   proof
@@ -945,21 +945,31 @@ proof -
       (fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J)) (Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2)\<close>
     proof
       assume enabled_c2: \<open>enabled_set (proj\<^sub>\<bottom> C\<^sub>2) J\<close>
-      have \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {bot}\<close>
+      have empty_bot_proj_c1: \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>1 = {bot}\<close>
         unfolding propositional_projection_def enabled_projection_def by force
-      then have \<open>(proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) = {bot}\<close>
-        unfolding enabled_projection_def using AF_cons_rel.entails_bot_to_entails_empty
-        sorry
+      have empty_bot_proj_c2: \<open>F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {bot}\<close>
+        unfolding propositional_projection_def enabled_projection_def by force
+          {
+      assume \<open>(proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) = {}\<close>
+      then have \<open>False\<close>
+        using entails_useful entails_nonsound empty_bot_proj_c2
+          by (metis AF_entails_def enabled_c2 entails_bot_to_entails_empty entails_empty_reflexive_dangerous)
+            }
+      then have c1_to_bot: \<open>(proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J) = {bot}\<close>
+        unfolding enabled_projection_def using empty_bot_proj_c1
+          by (smt (verit, best) Collect_cong emptyE empty_Collect_eq mem_Collect_eq rev_image_eqI singleton_conv2)
       then have \<open>{C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close>
         by auto
       have \<open>Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {} \<or> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 = {Pos bot}\<close>
         unfolding propositional_projection_def enabled_projection_def by force
-      then have \<open>{C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close>
+      then have c2_to_empty: \<open>{C. C \<in> Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2 \<and> \<not> is_Pos C} = {}\<close>
         by auto
 
       show \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> Pos ` (proj\<^sub>\<bottom> C\<^sub>1 proj\<^sub>J J))
         (Pos ` F_of ` proj\<^sub>\<bottom> C\<^sub>2)\<close>
         unfolding sound_cons.entails_neg_def
+        using c1_to_bot c2_to_empty
+          apply auto
     oops
       
 
