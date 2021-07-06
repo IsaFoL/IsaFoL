@@ -988,9 +988,19 @@ proof -
     unfolding AF_entails_def
   proof
     fix J
-    assume \<open>enabled_set (to_AF ` N) J \<longrightarrow> to_AF ` M proj\<^sub>J J \<Turnstile> F_of ` to_AF ` N\<close>
-    show \<open>M \<Turnstile> N\<close>
-      sorry
+    assume m_to_n_af: \<open>enabled_set (to_AF ` N) J \<longrightarrow> to_AF ` M proj\<^sub>J J \<Turnstile> F_of ` to_AF ` N\<close>
+    have \<open>enabled_set (to_AF ` N) J\<close>
+      unfolding enabled_set_def enabled_def to_AF_def by simp
+    then have to_af_thesis: \<open>to_AF ` M proj\<^sub>J J \<Turnstile> F_of ` to_AF ` N\<close>
+      using m_to_n_af
+      by (smt (z3) AF.sel(1) consequence_relation.entails_subsets consequence_relation_axioms imageE
+        image_insert insertI1 mk_disjoint_insert subsetI to_AF_def)
+    have simp_n: \<open>F_of ` to_AF ` N = N\<close>
+      unfolding to_AF_def by force
+    have simp_m: \<open>to_AF ` M proj\<^sub>J J = M\<close>
+      unfolding enabled_projection_def enabled_def to_AF_def by force 
+    then show \<open>M \<Turnstile> N\<close>
+      using to_af_thesis by (simp add: simp_n simp_m)
   qed
     }
   moreover {
