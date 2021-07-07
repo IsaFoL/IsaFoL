@@ -365,7 +365,9 @@ qed
     by auto
 qed
 
-text \<open>This version is closeto the paper proof.\<close>
+
+text \<open>This version is close to the paper proof of proposition 1. However, it is still too far away
+to be included as is in the actual paper.\<close>
 lemma extensions_are_safe:
   assumes \<open>x' \<in> vars p\<close> and
     x': \<open>x' \<notin> \<V>\<close> and
