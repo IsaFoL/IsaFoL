@@ -119,11 +119,11 @@ definition incr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<cl
 definition decr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>decr_irred_clss = Stats o decr_irred_clss_stats o get_stats\<close>
 
-definition get_conflict_count_since_last_restart_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_since_last_restart_stats =  (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). confl)\<close>
+definition get_conflict_count_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count_stats =  (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). confl)\<close>
 
-definition get_conflict_count_since_last_restart :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_since_last_restart=  get_conflict_count_since_last_restart_stats o get_stats\<close>
+definition get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count =  get_conflict_count_stats o get_stats\<close>
 
 section \<open>Information related to restarts\<close>
 
@@ -194,6 +194,13 @@ fun set_zero_wasted_stats :: \<open>restart_heuristics \<Rightarrow> restart_heu
 
 fun wasted_of_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>wasted_of_stats (fast_ema, slow_ema, res_info, wasted, \<phi>) = wasted\<close>
+
+fun get_conflict_count_since_last_restart_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count_since_last_restart_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
+    ccount\<close>
+
+definition get_conflict_count_since_last_restart :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count_since_last_restart = get_conflict_count_since_last_restart_stats o get_content\<close>
 
 definition heuristic_rel_stats :: \<open>nat multiset \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
   \<open>heuristic_rel_stats \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _). phase_save_heur_rel \<A> \<phi>)\<close>

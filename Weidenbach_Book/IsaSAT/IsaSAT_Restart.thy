@@ -415,7 +415,7 @@ definition number_clss_to_keep_impl :: \<open>twl_st_wl_heur \<Rightarrow> nat n
   \<open>number_clss_to_keep_impl = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur,
        vdom, avdom, lcount).
-    let n = unat (1000 + 150 * (get_lrestart_count stats)) in RETURN (if n \<ge> sint64_max then sint64_max else n))\<close>
+    let n = unat (1000 + 150 * (get_restart_count stats)) in RETURN (if n \<ge> sint64_max then sint64_max else n))\<close>
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
   \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Id \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>

@@ -74,7 +74,7 @@ lemma [sepref_import_param]:
   \<open>(decr_irred_clss_stats,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_irred_clss_stats,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart) \<in> stats_rel \<rightarrow> word64_rel\<close>
+  \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word64_rel\<close>
   \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
@@ -82,7 +82,7 @@ lemma [sepref_import_param]:
     incr_lrestart_def incr_uset_def
     incr_GC_def add_lbd_def add_lbd_def
     units_since_last_GC_def
-    incr_restart_def incr_irred_clss_def get_conflict_count_since_last_restart_def
+    incr_restart_def incr_irred_clss_def get_conflict_count_def
     decr_irred_clss_def incr_units_since_last_GC_def)
 
 lemmas [llvm_inline] =
@@ -98,7 +98,7 @@ lemmas [llvm_inline] =
   decr_irred_clss_stats_def
   incr_irred_clss_stats_def
   incr_units_since_last_GC_stats_def
-  get_conflict_count_since_last_restart_stats_def
+  get_conflict_count_stats_def
 
 
 lemma id_unat[sepref_fr_rules]:
@@ -116,8 +116,8 @@ sepref_def add_lbd_stats_impl
 
 lemma add_lbd_stats_add_lbd:
   \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close> and
-  get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart:
-  \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart) \<in> stats_rel \<rightarrow> word_rel\<close> and
+  get_conflict_count_stats_get_conflict_count:
+  \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word_rel\<close> and
   units_since_last_GC_stats_units_since_last_GC:
   \<open>(units_since_last_GC_stats, units_since_last_GC) \<in> stats_rel \<rightarrow> word_rel\<close> and
   reset_units_since_last_GC_stats_reset_units_since_last_GC:
@@ -150,13 +150,13 @@ lemma add_lbd_stats_add_lbd:
     incr_lrestart_def incr_uset_def
     incr_GC_def add_lbd_def add_lbd_def
     units_since_last_GC_def reset_units_since_last_GC_def
-    incr_restart_def incr_irred_clss_def get_conflict_count_since_last_restart_def
+    incr_restart_def incr_irred_clss_def get_conflict_count_def
     decr_irred_clss_def incr_units_since_last_GC_def)
 
-sepref_def get_conflict_count_since_last_restart_stats_impl
-  is \<open>(RETURN o get_conflict_count_since_last_restart_stats)\<close>
+sepref_def get_conflict_count_stats_impl
+  is \<open>(RETURN o get_conflict_count_stats)\<close>
   :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_conflict_count_since_last_restart_stats_def
+  unfolding get_conflict_count_stats_def
   by sepref
 
 
@@ -248,7 +248,7 @@ begin
 
 lemmas [sepref_fr_rules] =
   add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
-  get_conflict_count_since_last_restart_stats_impl.refine[FCOMP get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart]
+  get_conflict_count_stats_impl.refine[FCOMP get_conflict_count_stats_get_conflict_count]
   units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]
   reset_units_since_last_GC_stats_impl.refine[FCOMP reset_units_since_last_GC_stats_reset_units_since_last_GC]
   incr_irred_clss_stats_impl.refine[FCOMP incr_irred_clss_stats_incr_irred_clss]
@@ -550,13 +550,17 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
   \<open>(current_rephasing_phase_stats, current_rephasing_phase) \<in> heur_rel \<rightarrow> word_rel\<close> and
   get_next_phase_heur_stats_get_next_phase_heur:
   \<open>(uncurry2 (get_next_phase_heur_stats), uncurry2 (get_next_phase_heur))
-  \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f heur_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f heur_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close> and
+  get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats:
+  \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart)
+  \<in> heur_rel \<rightarrow> word_rel\<close>
   by (auto simp: set_zero_wasted_def code_hider_rel_def heuristic_reluctant_tick_def
     heuristic_reluctant_enable_def heuristic_reluctant_triggered_def apfst_def map_prod_def
     heuristic_reluctant_disable_def heuristic_reluctant_triggered2_def is_fully_propagated_heur_def
     end_of_rephasing_phase_heur_def unset_fully_propagated_heur_def restart_info_restart_done_heur_def
     heuristic_reluctant_untrigger_def set_fully_propagated_heur_def wasted_of_def get_next_phase_heur_def
     slow_ema_of_def fast_ema_of_def current_restart_phase_def incr_wasted_def current_rephasing_phase_def
+    get_conflict_count_since_last_restart_def
     intro!: frefI nres_relI
     split: prod.splits)
 
@@ -715,6 +719,17 @@ sepref_def get_next_phase_heur_stats_impl
   unfolding get_next_phase_heur_stats_def heuristic_int_assn_def
   by sepref
 
+lemma get_conflict_count_since_last_restart_stats_alt_def:
+  \<open>get_conflict_count_since_last_restart_stats =
+  (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>). ccount)\<close>
+  by auto
+
+sepref_def get_conflict_count_since_last_restart_stats_impl
+  is \<open>RETURN o get_conflict_count_since_last_restart_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_conflict_count_since_last_restart_stats_alt_def heuristic_int_assn_def
+  by sepref
+  
 lemma hn_id_pure:
   \<open>CONSTRAINT is_pure A \<Longrightarrow> (return, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
   apply sepref_to_hoare
@@ -743,6 +758,7 @@ lemmas [sepref_fr_rules] =
   incr_wasted_stats_impl.refine[FCOMP incr_wasted_stats_incr_wasted]
   current_rephasing_phase_stats_impl.refine[FCOMP current_rephasing_phase_stats_current_rephasing_phase]
   get_next_phase_heur_stats_impl.refine[FCOMP get_next_phase_heur_stats_get_next_phase_heur]
+  get_conflict_count_since_last_restart_stats_impl.refine[FCOMP get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats]
   hn_id[of heuristic_int_assn, FCOMP get_content_hnr[of heur_int_rel]]
   hn_id[of heuristic_int_assn, FCOMP Constructor_hnr[of heur_int_rel]]
 
