@@ -1143,11 +1143,11 @@ lemma get_fast_ema_heur_alt_def:
 
 fun get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart_heur (M, N0, D, Q, W, vm, clvls, cach, lbd,
-       outl, stats, heur, lcount) = get_conflict_count_since_last_restart stats\<close>
+       outl, stats, heur, lcount) = get_conflict_count_since_last_restart heur\<close>
 
-lemma (in -) get_counflict_count_heur_alt_def:
+lemma (in -) get_conflict_count_since_last_restart_heur_alt_def:
    \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
-       outl, stats, heur, lcount). RETURN (get_conflict_count_since_last_restart stats))\<close>
+       outl, stats, heur, lcount). RETURN (get_conflict_count_since_last_restart heur))\<close>
   by auto
 
 lemma get_learned_count_alt_def:
