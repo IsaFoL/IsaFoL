@@ -596,7 +596,8 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
  *     \<J> :: "'v::countable neg set set"
  *   assumes
  *     all_interp: "J \<in> \<J> \<Longrightarrow> is_interpretation J" and
- *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
+  *     all_in_J: "is_interpretation J \<Longrightarrow> J \<in> \<J>" *)
+
 
 locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
   (* + propositional_interpretations \<J>*)
@@ -611,8 +612,9 @@ locale AF_calculus = sound_calculus bot Inf entails entails_sound Red_I Red_F
     V:: "'v::countable itself" and
     (* \<J> :: "'v::countable neg set set" and *)
     fml :: "'v \<Rightarrow> 'f"
-  (* assumes
-    j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
+    assumes
+      entails_sound_compact: \<open>M \<Turnstile>s N \<Longrightarrow> (\<exists>M'\<subseteq>M. (\<exists>N'\<subseteq>N. finite M' \<and> finite N' \<and> M' \<Turnstile>s N'))\<close>
+    (*  j_is: \<open>\<J> = {J. is_interpretation J}\<close>*)
 begin
   
   (* various attempts at representing the "enabled" concept *)
@@ -977,45 +979,58 @@ proof -
   qed 
 qed
 
+lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
+  unfolding to_AF_def by force
+
+lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
+  unfolding to_AF_def enabled_projection_def enabled_def by force
+
+lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
+  unfolding enabled_set_def enabled_def to_AF_def by simp
+    
 
   (* Splitting report Lemma 6, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
+  unfolding AF_entails_def by simp
+
+  (* Splitting report Lemma 6, 2/2 *)
+lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
 proof -
   fix M N
     {
-  assume \<open>to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N\<close>
-  then have \<open>M \<Turnstile> N\<close>
+  assume \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+  then have \<open>\<exists>J's\<subseteq>total_strip J. finite J's \<and>
+    {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} \<Turnstile>s
+      {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+      {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C} \<close>
+    using entails_sound_compact
+    sorry
+  then have \<open>M \<Turnstile>s N\<close>
     unfolding AF_entails_def
-  proof
-    fix J
-    assume m_to_n_af: \<open>enabled_set (to_AF ` N) J \<longrightarrow> to_AF ` M proj\<^sub>J J \<Turnstile> F_of ` to_AF ` N\<close>
-    have \<open>enabled_set (to_AF ` N) J\<close>
-      unfolding enabled_set_def enabled_def to_AF_def by simp
-    then have to_af_thesis: \<open>to_AF ` M proj\<^sub>J J \<Turnstile> F_of ` to_AF ` N\<close>
-      using m_to_n_af
-      by (smt (z3) AF.sel(1) consequence_relation.entails_subsets consequence_relation_axioms imageE
-        image_insert insertI1 mk_disjoint_insert subsetI to_AF_def)
-    have simp_n: \<open>F_of ` to_AF ` N = N\<close>
-      unfolding to_AF_def by force
-    have simp_m: \<open>to_AF ` M proj\<^sub>J J = M\<close>
-      unfolding enabled_projection_def enabled_def to_AF_def by force 
-    then show \<open>M \<Turnstile> N\<close>
-      using to_af_thesis by (simp add: simp_n simp_m)
-  qed
-    }
-  moreover {
-  assume \<open>M \<Turnstile> N\<close>
-  then have \<open>to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N\<close>
-    unfolding AF_entails_def
-    by (smt (z3) AF.sel(1) AF.sel(2) AF_calculus.enabled_def AF_calculus.enabled_projection_def
-      AF_calculus_axioms bot.extremum consequence_relation.entails_subsets
-      consequence_relation_axioms image_insert insertI1 mem_Collect_eq mk_disjoint_insert subsetI
-      to_AF_def)
+    sorry
       }
-  ultimately show \<open>to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N \<equiv> M \<Turnstile> N\<close>
+  moreover {
+  assume m_to_n: \<open>M \<Turnstile>s N\<close>
+  have \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+    unfolding AF_entails_sound_def sound_cons.entails_neg_def 
+  proof (simp, rule allI)
+    fix J
+    have \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
+      by force
+    moreover have \<open>N \<subseteq> {to_V C |C. C \<in> Pos ` N \<and> is_Pos C}\<close>
+      by force
+    ultimately show \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C} \<union>
+      {to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} \<Turnstile>s
+        {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+        {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C}\<close>
+      using m_to_n by (meson sound_cons.entails_subsets sup.cobounded1)
+  qed
+      }
+  ultimately show \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N \<equiv> M \<Turnstile>s N\<close>
     by argo
 qed      
-      
 
+  
 
 end
