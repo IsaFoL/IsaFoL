@@ -98,7 +98,7 @@ definition linear_combi_l where
            err \<leftarrow> check_linear_combi_l_dom_err q\<^sub>0 i;
            RETURN (p, xs, error_msg i err)
          } else do {
-           ASSERT(fmlookup A i \<noteq> None);  
+           ASSERT(fmlookup A i \<noteq> None);
            let r = the (fmlookup A i);
            ASSERT(vars_llist r \<subseteq> \<V>);
            if q\<^sub>0 = [([], 1)]

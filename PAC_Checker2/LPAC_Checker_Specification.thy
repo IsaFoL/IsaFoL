@@ -476,78 +476,78 @@ proof -
      unfolding p_p'[symmetric]
      by metis
 
-  have ISABLLE_come_on: \<open>a * (p * g a) = p * (a * g a)\<close> for a
-    by auto
-  have q1: \<open>q = p * (\<Sum>a\<in>t'. g a * a) + (\<Sum>a\<in>t'. h a * a) + p * r p\<close>
-    (is \<open>_ = _ + ?NOx' + _\<close>)
-    using fin_t t'' unfolding q t ISABLLE_come_on r
-    apply (subst semiring_class.distrib_right)+
-    apply (auto simp: comm_monoid_add_class.sum.distrib semigroup_mult_class.mult.assoc
-      ISABLLE_come_on simp flip: semiring_0_class.sum_distrib_right
-         semiring_0_class.sum_distrib_left)
-    by (auto simp: field_simps)
-  also have \<open>... = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
-    by (auto simp: field_simps)
-  finally have q_decomp: \<open>q = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
-    (is \<open>q = ?X * p + ?NOx'\<close>).
-
-  have \<open>x \<in> t' \<Longrightarrow> x' \<in> vars x \<Longrightarrow> False\<close> for x
-    using  \<open>t \<subseteq> ?trimmed\<close> t assms(2,3)
-    apply (auto simp: polynomial_bool_def dest!: multi_member_split)
-    apply (frule set_rev_mp)
-    apply assumption
-    apply (auto dest!: multi_member_split)
-    done
-   then have \<open>x' \<notin> (\<Union>m\<in>t'. vars (h m * m))\<close>
-     using fin_t x'_h vars_mult[of \<open>h _\<close>]
-     by (auto simp: t elim!: vars_unE)
-   then have \<open>x' \<notin> vars ?NOx'\<close>
-     using vars_setsum[of \<open>t'\<close> \<open>\<lambda>a. h a * a\<close>] fin_t x'_h
-     by (auto simp: t)
-
-  moreover {
-    have \<open>x' \<notin> vars p'\<close>
-      using assms(7)
-      unfolding p'_def
+    have ISABLLE_come_on: \<open>a * (p * g a) = p * (a * g a)\<close> for a
       by auto
-    then have \<open>x' \<notin> vars (h p * p')\<close>
-      using vars_mult[of \<open>h p\<close> p'] x'_h
+    have q1: \<open>q = p * (\<Sum>a\<in>t'. g a * a) + (\<Sum>a\<in>t'. h a * a) + p * r p\<close>
+      (is \<open>_ = _ + ?NOx' + _\<close>)
+      using fin_t t'' unfolding q t ISABLLE_come_on r
+      apply (subst semiring_class.distrib_right)+
+      apply (auto simp: comm_monoid_add_class.sum.distrib semigroup_mult_class.mult.assoc
+        ISABLLE_come_on simp flip: semiring_0_class.sum_distrib_right
+           semiring_0_class.sum_distrib_left)
+      by (auto simp: field_simps)
+    also have \<open>... = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+      by (auto simp: field_simps)
+    finally have q_decomp: \<open>q = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+      (is \<open>q = ?X * p + ?NOx'\<close>).
+
+    have \<open>x \<in> t' \<Longrightarrow> x' \<in> vars x \<Longrightarrow> False\<close> for x
+      using  \<open>t \<subseteq> ?trimmed\<close> t assms(2,3)
+      apply (auto simp: polynomial_bool_def dest!: multi_member_split)
+      apply (frule set_rev_mp)
+      apply assumption
+      apply (auto dest!: multi_member_split)
+      done
+     then have \<open>x' \<notin> (\<Union>m\<in>t'. vars (h m * m))\<close>
+       using fin_t x'_h vars_mult[of \<open>h _\<close>]
+       by (auto simp: t elim!: vars_unE)
+     then have \<open>x' \<notin> vars ?NOx'\<close>
+       using vars_setsum[of \<open>t'\<close> \<open>\<lambda>a. h a * a\<close>] fin_t x'_h
+       by (auto simp: t)
+
+    moreover {
+      have \<open>x' \<notin> vars p'\<close>
+        using assms(7)
+        unfolding p'_def
+        by auto
+      then have \<open>x' \<notin> vars (h p * p')\<close>
+        using vars_mult[of \<open>h p\<close> p'] x'_h
+        by auto
+    }
+    ultimately have
+      \<open>x' \<notin> vars q\<close>
+      \<open>x' \<notin> vars ?NOx'\<close>
+      \<open>x' \<notin> vars p'\<close>
+      using x' vars_q vars_add[of \<open>h p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>] x'_h
+        leading p'_def
       by auto
-  }
-  ultimately have
-    \<open>x' \<notin> vars q\<close>
-    \<open>x' \<notin> vars ?NOx'\<close>
-    \<open>x' \<notin> vars p'\<close>
-    using x' vars_q vars_add[of \<open>h p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>] x'_h
-      leading p'_def
-    by auto
-  then have \<open>?X = 0\<close> and q_decomp: \<open>q = ?NOx'\<close>
-    unfolding mon[symmetric] p_p'
-    using polynomial_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
-    by auto
+    then have \<open>?X = 0\<close> and q_decomp: \<open>q = ?NOx'\<close>
+      unfolding mon[symmetric] p_p'
+      using polynomial_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
+      by auto
 
-  then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
-    (is \<open>_ = ?CL\<close>)
-    unfolding add.assoc add_eq_0_iff equation_minus_iff
-    by (auto simp: sum_negf ac_simps)
+    then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
+      (is \<open>_ = ?CL\<close>)
+      unfolding add.assoc add_eq_0_iff equation_minus_iff
+      by (auto simp: sum_negf ac_simps)
 
 
-  then have q2: \<open>q = (\<Sum>a\<in>t'. a * (r a - p * g a))\<close>
-    using fin_t unfolding q
-    apply (auto simp: t r q
-         comm_monoid_add_class.sum.distrib[symmetric]
-         sum_distrib_left
-         sum_distrib_right
-         left_diff_distrib
-        intro!: sum.cong)
-    apply (auto simp: field_simps)
-    done
-  then show \<open>?thesis\<close>
-    using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
-    by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
-      simp: field_simps polynomial_bool_def)
+    then have q2: \<open>q = (\<Sum>a\<in>t'. a * (r a - p * g a))\<close>
+      using fin_t unfolding q
+      apply (auto simp: t r q
+           comm_monoid_add_class.sum.distrib[symmetric]
+           sum_distrib_left
+           sum_distrib_right
+           left_diff_distrib
+          intro!: sum.cong)
+      apply (auto simp: field_simps)
+      done
+    then show \<open>?thesis\<close>
+      using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
+      by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
+        simp: field_simps polynomial_bool_def)
+  qed
 qed
-
 
 
 text \<open>

@@ -1371,11 +1371,14 @@ where
     case st of
      CL _ _ _ \<Rightarrow>
        do {
-        r \<leftarrow> full_normalize_poly (pac_res st);
-        (eq, r) \<leftarrow> check_linear_combi_l_s spec A \<V> (new_id st) (pac_srcs st) r;
+        let i = (new_id st);
+        let lincomb = (pac_srcs st);
+        let r = pac_res st;
+        r \<leftarrow> full_normalize_poly r;
+        (eq, r) \<leftarrow> check_linear_combi_l_s spec A \<V> i lincomb r;
         let _ = eq;
         if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq, \<V>, fmupd (new_id st) r A)
+        then RETURN (merge_cstatus st' eq, \<V>, fmupd i r A)
        else RETURN (eq, \<V>, A)
      }
     | Del _ \<Rightarrow>
@@ -1428,7 +1431,8 @@ proof -
     by auto
   show ?thesis
     unfolding PAC_checker_l_step_s_def PAC_checker_l_step_prep_def pac_step.case_eq_if
-      prod.simps
+      prod.simps Let_def[of \<open>LPAC_Checker_Specification.pac_step.new_id _\<close>]
+      Let_def[of \<open>pac_srcs _\<close>] Let_def[of \<open>pac_res _\<close>]
     apply (refine_rcg check_linear_combi_l_s_check_linear_combi_l
       check_extension_l2_s_check_extension_l2 add_poly_l_s_add_poly_l)
     subgoal using assms by auto
@@ -2317,6 +2321,45 @@ lemmas [sepref_fr_rules] =
   check_linear_combi_l_s_impl.refine
   check_del_l_impl.refine
 
+
+lemma PAC_checker_l_step_s_alt_def:
+  \<open>PAC_checker_l_step_s = (\<lambda>spec (st', \<V>, A) st. do {
+    ASSERT (\<not>is_cfailed st');
+    case st of
+     CL _ _ _ \<Rightarrow>
+       do {
+        i \<leftarrow> RETURN (new_id st);
+        lincomb \<leftarrow> RETURN (pac_srcs st);
+        r \<leftarrow> RETURN (pac_res st);
+        r \<leftarrow> full_normalize_poly r;
+        (eq, r) \<leftarrow> check_linear_combi_l_s spec A \<V> i lincomb r;
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmupd i r A)
+       else RETURN (eq, \<V>, A)
+     }
+    | Del _ \<Rightarrow>
+       do {
+        eq \<leftarrow> check_del_l spec A (pac_src1 st);
+        let _ = eq;
+        if \<not>is_cfailed eq
+        then RETURN (merge_cstatus st' eq, \<V>, fmdrop (pac_src1 st) A)
+        else RETURN (eq, \<V>, A)
+     }
+   | Extension _ _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> full_normalize_poly (pac_res st);
+        (eq, r, \<V>, v) \<leftarrow> check_extension_l2_s spec A (\<V>) (new_id st) (new_var st) r;
+        if \<not>is_cfailed eq
+        then do {
+           r \<leftarrow> add_poly_l_s \<V> ([([v], -1)], r);
+          RETURN (st', \<V>, fmupd (new_id st) r A)
+        }
+        else RETURN (eq, \<V>, A)
+     }}
+          )\<close>
+  unfolding PAC_checker_l_step_s_def bind_to_let_conv Let_def by auto
+
 sepref_definition PAC_checker_l_step_s_impl
   is \<open>uncurry2 PAC_checker_l_step_s\<close>
   :: \<open>poly_s_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn \<times>\<^sub>a shared_vars_assn \<times>\<^sub>a polys_s_assn)\<^sup>d *\<^sub>a
@@ -2324,7 +2367,7 @@ sepref_definition PAC_checker_l_step_s_impl
   \<close>
   supply [[goals_limit = 1]]
   supply [intro] = is_Mult_lastI
-  unfolding PAC_checker_l_step_s_def Let_def
+  unfolding PAC_checker_l_step_s_alt_def Let_def[of _ \<open>\<lambda>_. If _ _ _\<close>]
     pac_step.case_eq_if
     HOL_list.fold_custom_empty
   by sepref
