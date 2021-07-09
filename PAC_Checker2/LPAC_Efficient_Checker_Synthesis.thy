@@ -2135,7 +2135,7 @@ sepref_definition linear_combi_l_prep_s_impl
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric] conv_to_is_Nil
   unfolding is_Nil_def
-    HOL_list.fold_custom_empty
+    HOL_list.fold_custom_empty not_not
   apply (rewrite in \<open>op_HOL_list_empty\<close> annotate_assn[where A=\<open>poly_s_assn\<close>])
   by sepref
 

@@ -160,7 +160,7 @@ sepref_definition is_new_variable_c_impl
   is \<open>uncurry is_new_variable_c\<close>
   :: \<open>string_assn\<^sup>k  *\<^sub>a  perfect_shared_vars_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply [simp] = in_dom_m_lookup_iff
-  unfolding is_new_variable_c_def fmlookup'_def[symmetric] in_dom_m_lookup_iff
+  unfolding is_new_variable_c_def fmlookup'_def[symmetric] in_dom_m_lookup_iff not_not
   by sepref
 
 definition nth_uint64 where

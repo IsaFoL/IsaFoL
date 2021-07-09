@@ -1205,7 +1205,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "516a03e1";
+val version : string = "c5becbb5";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
@@ -1777,7 +1777,7 @@ fun is_new_variable_c_impl x =
         ht_lookup (equal_literal, hashable_literal, heap_literal) heap_uint64 ai
           a2 ();
     in
-      not (not (is_None xa))
+      is_None xa
     end)
     x;
 
@@ -2253,7 +2253,7 @@ fun linear_combi_l_prep_s_impl x =
                   bib ();
               val xaa = vars_llist_in_s_impl bia a1b ();
             in
-              (if not (not (is_None xa)) orelse not xaa
+              (if is_None xa orelse not xaa
                 then (fn () =>
                        (a1, (a1a, error_msg show_nat (nat_of_uint64 a2b)
                                     (check_linear_combi_l_s_dom_err_impl a1
