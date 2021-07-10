@@ -51,13 +51,11 @@ section \<open>Unit propagation, Outer Loop\<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
   \<open>select_and_remove_from_literals_to_update_wl_heur =
-   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, lcount). do {
+   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount). do {
       ASSERT(j < length (fst M'));
       ASSERT(j + 1 \<le> uint32_max);
       L \<leftarrow> isa_trail_nth M' j;
-      RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, lcount), -L)
+      RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount), -L)
      })
     \<close>
   unfolding select_and_remove_from_literals_to_update_wl_heur_def
@@ -72,8 +70,7 @@ definition  literals_to_update_wl_literals_to_update_wl_empty :: \<open>twl_st_w
 
 lemma literals_to_update_wl_literals_to_update_wl_empty_alt_def:
   \<open>literals_to_update_wl_literals_to_update_wl_empty =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, lcount). j < isa_length_trail M')\<close>
+    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount). j < isa_length_trail M')\<close>
   unfolding literals_to_update_wl_literals_to_update_wl_empty_def isa_length_trail_def
   by (auto intro!: ext split: prod.splits)
 

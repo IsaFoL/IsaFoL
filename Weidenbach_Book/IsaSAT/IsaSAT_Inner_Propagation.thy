@@ -662,7 +662,7 @@ lemma update_clause_wl_heur_update_clause_wl:
        _ _ _ _
        ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
     x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x
-    x2m x1n x2n x1o x1p x1q x1r
+    x2m x1n x2n x1o x1p
        x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y
        x2y x1z x2z K' K'a N' K'a'
     by (auto dest!: length_watched_le2[of _ _ _ _ x2u \<D> r lcount K'])
@@ -1248,17 +1248,19 @@ definition update_blit_wl_heur_pre where
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by"
-       bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn
-    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], cc, None, cd, ce, cf, cg, ch, ci, cj, ck, {#}, cl)) (cl(K := (cl K)[ac := (aa, ae, ab)])) cc  \<subseteq>
-      vdom_m (all_atms_st ([], cc, None, cd, ce, cf, cg, ch, ci, cj, ck, {#}, cl)) cl cc\<close>)
+       bz ca cb cc cd ce cf cg ch ci cj ck cl
+    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], ca, None, cb, cc, cd, ce, cf, cg, ch, ci, {#}, cj))
+    (cj(K := (cj K)[ac := (aa, ae, ab)])) ca  \<subseteq> vdom_m
+      (all_atms_st ([], ca, None, cb, cc, cd, ce, cf, cg, ch, ci, {#}, cj)) cj ca\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
     done
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq bi as bo bp bq br bs' bs bt bu bv bw bx "by"
-    bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn
-    apply (subgoal_tac \<open>vdom_m (all_atms_st ([], cd, None, cf, cg, ch, ci, cj, ck, cl, cm, {#}, cn)) (cn(K := (cn K)[ac := (aa, ae, ab)])) cd \<subseteq>
-      vdom_m (all_atms_st ([], cd, None, cf, cg, ch, ci, cj, ck, cl, cm, {#}, cn)) cn cd \<close>)
+    bz ca cb cc cd ce cf cg ch ci cj ck cl
+    apply (subgoal_tac \<open>vdom_m (all_atms_st
+      ([], cb, None, cd, ce, cf, cg, ch, ci, cj, ck, {#}, cl)) (cl(K := (cl K)[ac := (aa, ae, ab)])) cb \<subseteq>
+      vdom_m (all_atms_st ([], cb, None, cd, ce, cf, cg, ch, ci, cj, ck, {#}, cl)) cl cb\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
     apply auto
@@ -2003,7 +2005,7 @@ proof -
   have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x')
-      (auto simp: twl_st_heur_def twl_st_heur'_def st)
+      (auto simp: twl_st_heur_def twl_st_heur'_def st aivdom_inv_dec_alt_def)
 
   have
       valid: \<open>valid_arena (get_clauses_wl_heur xa) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
@@ -2115,7 +2117,7 @@ lemma update_clause_wl_heur_pre_le_sint64:
   assumes
     \<open>arena_is_valid_clause_idx_and_access a1'a bf baa\<close> and
     \<open>length (get_clauses_wl_heur
-      (a1', a1'a, (da, db, dc), a1'c, a1'd, E, fa, fb, fc, fd, fe, fs, fj, fk, fl, fm, fn)) \<le> sint64_max\<close> and
+      (a1', a1'a, (da, db, dc), a1'c, a1'd, E, fa, fb, fc, fd, fe, fs, fj, fk, fl)) \<le> sint64_max\<close> and
     \<open>arena_lit_pre a1'a (bf + baa)\<close>
   shows \<open>bf + baa \<le> sint64_max\<close>
        \<open>length a1'a \<le> sint64_max\<close>

@@ -9,12 +9,12 @@ chapter \<open>Restarts\<close>
 lemma twl_st_heur_change_subsumed_clauses:
   fixes lcount lcount' :: clss_size
   assumes \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom),
+       vdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<in> twl_st_heur\<close>
     \<open>set_mset (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) = set_mset (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS', US', N0, U0, Q, W))\<close>and
     \<open>clss_size_corr N NE UE NEk UEk NS' US' N0 U0 lcount'\<close>
   shows \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount', opts, old_arena, ivdom),
+       vdom, lcount', opts, old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS', US', N0, U0, Q, W)) \<in> twl_st_heur\<close>
 proof -
   note cong = trail_pol_cong heuristic_rel_cong
@@ -58,10 +58,10 @@ declare all_atms_def[symmetric,simp]
 definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom),
+       vdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_init_atms N (NE+NEk+NS+N0)) \<and>
-    valid_arena N' N (set vdom) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_init_atms N (NE+NEk+NS+N0)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
@@ -72,11 +72,11 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     cach_refinement_empty (all_init_atms N (NE+NEk+NS+N0)) cach \<and>
     out_learned M D outl \<and>
     clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
-    vdom_m (all_init_atms N (NE+NEk+NS+N0)) W N \<subseteq> set vdom \<and>
-    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
+    vdom_m (all_init_atms N (NE+NEk+NS+N0)) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_init_atms N (NE+NEk+NS+N0)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NEk+NS+N0)) \<and>
-    distinct vdom \<and> old_arena = [] \<and>
+    old_arena = [] \<and>
     heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur
   }\<close>
 
@@ -204,13 +204,13 @@ definition get_lrestart_count where \<open>get_lrestart_count = get_lrestart_cou
 
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
-  stats, heur, vdom, avdom, lcount, opts).
+  stats, heur, vdom, lcount, opts).
   of_nat (clss_size_lcount lcount) < 3000 + 1000 * (get_restart_count stats))\<close>
 
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
   stats, heur,
-  vdom, avdom, lcount, opts, old).
+  vdom, lcount, opts, old).
   (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (of_nat (clss_size_lcount lcount) < 2000 + 1000 * (get_restart_count stats)))))\<close>
 
 definition div2 where [simp]: \<open>div2 n = n div 2\<close>
@@ -293,7 +293,7 @@ proof -
     simp: all_init_atms_def all_init_lits_def
      simp del: all_init_atms_def[symmetric]
     intro: valid_arena_extra_information_mark_to_delete'
-    intro!: aivdom_inv_remove_and_swap_inactive
+    intro!: aivdom_inv_dec_remove_and_swap_inactive
       dest!: in_set_butlastD in_vdom_m_fmdropD
     elim!: in_set_upd_cases)
 qed
@@ -353,7 +353,7 @@ lemma twl_st_heur_restart_get_avdom_nth_get_vdom[twl_st_heur_restart]:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart\<close> \<open>i < length (get_avdom S)\<close>
   shows \<open>get_avdom S ! i \<in> set (get_vdom S)\<close>
-  using assms by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_def
+  using assms by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
     dest!: set_mset_mono)
 
 lemma [twl_st_heur_restart]:
@@ -370,7 +370,7 @@ proof -
     using assms
     by (cases S; cases T)
       (auto simp add: twl_st_heur_restart_def clause_not_marked_to_delete_heur_def
-          arena_dom_status_iff(1) aivdom_inv_def
+          arena_dom_status_iff(1) aivdom_inv_dec_alt_def
         split: prod.splits)
   assume C: \<open>C \<in># dom_m (get_clauses_wl T)\<close>
   show \<open>arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>
@@ -432,18 +432,6 @@ lemma in_set_delete_index_and_swapD:
   apply (auto dest!: in_set_butlastD)
   by (metis List.last_in_set in_set_upd_cases list.size(3) not_less_zero)
 
-(*TODO Move*)
-lemma aivdom_inv_remove_and_swap_removed:
-  assumes \<open>i < length n\<close> and \<open>aivdom_inv m n s baa\<close> \<open>n!i \<notin># baa\<close>
-  shows \<open>aivdom_inv m (butlast (n[i := last n])) s (baa)\<close>
-  using aivdom_inv_remove_and_swap_inactive[OF assms(1-2)] assms(3) by auto
-
-
-lemma aivdom_inv_remove_clause:
-  \<open>aivdom_inv m n s baa \<Longrightarrow> aivdom_inv m n s (remove1_mset C baa)\<close>
-  by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set
-      dest: in_set_butlastD dest: in_diffD)
-
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_avdom S) \<Longrightarrow>
   get_avdom S ! i \<notin># dom_m (get_clauses_wl T) \<Longrightarrow>
@@ -452,7 +440,7 @@ lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
     distinct_mset_mono[of \<open>mset (get_avdom S)\<close> \<open>mset (get_vdom S)\<close>]
   supply [[goals_limit=1]]
   by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def delete_index_vdom_heur_def)
-    (auto intro!: aivdom_inv_remove_and_swap_removed)
+    (auto intro!: aivdom_inv_dec_removed_inactive)
 
 definition mark_clauses_as_unused_wl_D_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -528,7 +516,7 @@ proof -
       subgoal for st a S'
         unfolding clause_not_marked_to_delete_heur_pre_def
 	  arena_is_valid_clause_vdom_def
-        by (auto 7 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_def
+        by (auto 7 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
           dest!: set_mset_mono
           intro!: exI[of _ \<open>get_clauses_wl T\<close>]  exI[of _ \<open>set (get_vdom S')\<close>])
       subgoal for s a b x1 x2
@@ -1318,7 +1306,7 @@ lemma mark_garbage_heur4_remove_and_add_cls_l:
         arena_lifting
      valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
-      learned_clss_l_l_fmdrop_irrelev aivdom_inv_remove_clause
+      learned_clss_l_l_fmdrop_irrelev aivdom_inv_dec_remove_clause
       size_Diff_singleton red_in_dom_number_of_learned_ge1 learned_clss_count_def
       clss_size_corr_restart_intro clss_size_corr_restart_simp3
       dest: in_vdom_m_fmdropD dest: in_diffD
@@ -1327,7 +1315,7 @@ lemma mark_garbage_heur4_remove_and_add_cls_l:
         arena_lifting
      valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
-      learned_clss_l_l_fmdrop_irrelev aivdom_inv_remove_clause
+      learned_clss_l_l_fmdrop_irrelev aivdom_inv_dec_remove_clause
       size_Diff_singleton red_in_dom_number_of_learned_ge1 learned_clss_count_def
       clss_size_corr_restart_intro clss_size_corr_restart_simp3
       dest: in_vdom_m_fmdropD dest: in_diffD

@@ -62,12 +62,12 @@ definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
       ASSERT(get_saved_phase_heur_pre (L) (get_content heur));
       L \<leftarrow> lit_of_found_atm heur L;
       RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
-       vdom, avdom, lcount, opts, old_arena), L)
+       vdom, lcount, opts, old_arena), L)
     })\<close>
 
 lemma lit_of_found_atm_D_pre:
@@ -156,7 +156,7 @@ proof -
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
       T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 stats, heur, bo, bp, bq, br, bs),
+	 stats, heur, bo, bp, bq),
 	bt, bu, bv, bw, bx, by, bz, baa, bab)
        \<in> twl_st_heur\<close> and
       \<open>r =
@@ -164,7 +164,7 @@ proof -
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	   stats, heur, bo, bp, bq, br, bs))\<close>
+	   stats, heur, bo, bp, bq))\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
 	 au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
 	 bw bx "by" bz heur baa bab stats
@@ -220,7 +220,7 @@ proof -
       \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
       \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 stats, heur, bo, bp, bq, br, bs),
+	 stats, heur, bo, bp, bq),
 	bt, bu, bv, bw, bx, by, bz, baa, bab)
        \<in> twl_st_heur\<close> and
       \<open>r =
@@ -228,7 +228,7 @@ proof -
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	   stats, heur, bo, bp, bq, br, bs))\<close> and
+	   stats, heur, bo, bp, bq))\<close> and
       \<open>(x, L) \<in> ?find bt bu bv bw bx by bz baa bab\<close> and
       \<open>x1 = (x1a, x2)\<close> and
       \<open>x = (x1, x2a)\<close>
@@ -258,7 +258,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       _ _ x L x1 x1a x2 x2a La Lb
+       x L x1 x1a x2 x2a La Lb
       by (cases L)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
          all_lits_st_alt_def[symmetric]
@@ -307,7 +307,7 @@ definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur
 
 definition mop_get_saved_phase_heur_st :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool nres\<close> where
    \<open>mop_get_saved_phase_heur_st =
-     (\<lambda>L (M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
+     (\<lambda>L (M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount, opts,
        old_arena).
       mop_get_saved_phase_heur L heur)\<close>
 
@@ -441,17 +441,17 @@ do {
 
 definition get_next_phase_st :: \<open>bool \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool) nres\<close> where
   \<open>get_next_phase_st = (\<lambda>b L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, lcount, opts, old_arena).
      (get_next_phase_heur b L heur))\<close>
 
 definition find_unassigned_lit_wl_D_heur2
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat option) nres\<close>
 where
   \<open>find_unassigned_lit_wl_D_heur2 = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
       RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
-       vdom, avdom, lcount, opts, old_arena), L)
+       vdom, lcount, opts, old_arena), L)
     })\<close>
 
 fun get_heur :: \<open>twl_st_wl_heur \<Rightarrow> _\<close> where
@@ -492,16 +492,16 @@ proof -
   have K: \<open>RES {Some (Pos x2), Some (Neg x2)} \<le> \<Down> {(x, y). x = Some y} (RES {Pos x2, Neg x2})\<close>
     \<open>RES {(Pos x2), (Neg x2)} \<le> \<Down> {(y, x). x = Some y} (RES {Some (Pos x2), Some (Neg x2)})\<close>  for x2
     by (auto intro!: RES_refine)
-  have S: \<open>S = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r) \<Longrightarrow>
+  have S: \<open>S = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p) \<Longrightarrow>
        decide_wl_or_skip_D_heur S =
        (do {
                    ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd a f;
                    ASSERT (IsaSAT_Decide.get_saved_phase_heur_pre L (get_restart_heuristics l));
-                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p, q, r))
+                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p))
                      | Some L \<Rightarrow> do {
                        _ \<leftarrow> SPEC (\<lambda>_::bool. True);
                        L \<leftarrow>RES {Pos L, Neg L};
-                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p, q, r);
+                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p);
                       RETURN (False, T)
                      }})\<close> for S a b c d e f g h i  j k l m n p q r
      unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def

@@ -91,13 +91,11 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> isasat_sta
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, avdom,
-       vdom, lcount, opts, old_arena).
+       heur,        vdom, lcount, opts, old_arena).
      let curr_phase = current_restart_phase heur;
         stats = (isasat_current_information curr_phase stats lcount)
      in RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, avdom,
-       vdom, lcount, opts, old_arena))\<close>
+       heur, vdom, lcount, opts, old_arena))\<close>
 
 lemma isasat_current_status_id:
   \<open>(isasat_current_status, RETURN o id) \<in>
@@ -135,8 +133,7 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
 definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_progress =
    (\<lambda>c (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, avdom,
-       vdom, lcount, opts, old_arena).
+       heur,        vdom, lcount, opts, old_arena).
      let
        curr_phase = current_restart_phase heur;
        _ = isasat_print_progress c curr_phase stats lcount

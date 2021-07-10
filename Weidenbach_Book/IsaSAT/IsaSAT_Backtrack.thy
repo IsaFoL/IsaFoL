@@ -695,9 +695,9 @@ lemma heuristic_rel_update_heuristics[intro!]:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). do {
-      ASSERT(length vdom \<le> length N0);
-      ASSERT(length avdom \<le> length N0);
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur, vdom, lcount, opts). do {
+      ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
+      ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
@@ -707,17 +707,17 @@ definition propagate_bt_wl_D_heur
       let b = False;
       let b' = (length C = 2);
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-        vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+        vdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-        vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
+        vdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+         vdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+         vdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -727,9 +727,9 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [i],
-          avdom @ [i],
-          clss_size_incr_lcount lcount, opts)
+        cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur),
+        add_learned_clause_aivdom i vdom,
+        clss_size_incr_lcount lcount, opts)
     })\<close>
 
 definition remove_last
@@ -741,7 +741,7 @@ definition propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
     \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-        heur, vdom, avdom, lcount, opts, old_arena). do {
+        heur, vdom, lcount, opts, old_arena). do {
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
@@ -751,7 +751,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_units_since_last_GC (incr_uset stats);
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
-        heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUEk lcount, opts, old_arena)})\<close>
+        heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom, clss_size_incr_lcountUEk lcount, opts, old_arena)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -838,7 +838,7 @@ proof -
   have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_conflict_ana_def twl_st_heur'_def)
+      (auto simp: twl_st_heur_conflict_ana_def twl_st_heur'_def aivdom_inv_dec_alt_def)
   have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
     using x2 xb_x'a unfolding all_atms_def
     by auto
@@ -886,6 +886,13 @@ lemma [simp]:
   by (auto simp: clss_size_lcountUE_def clss_size_lcount_def clss_size_incr_lcountUEk_def
     clss_size_lcountUEk_def clss_size_lcountU0_def clss_size_lcountUS_def
     split: prod.splits)
+
+lemma get_aivdom_add_learned_clause_aivdom[simp]:
+  \<open>get_vdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_vdom_aivdom vdom @ [x2]\<close>
+  \<open>get_avdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_avdom_aivdom vdom @ [x2]\<close>
+  \<open>get_ivdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_ivdom_aivdom vdom\<close>
+  by (cases vdom; auto simp: add_learned_clause_aivdom_def add_learned_clause_aivdom_int_def; fail)+
+(*END Move*)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
@@ -961,10 +968,11 @@ proof -
     obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
       S: \<open>S = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases S)
-    obtain M' W' vm clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts old_arena ivdom where
+    obtain M' W' vm clvls cach lbd outl stats heur vdom lcount D' arena b Q' opts old_arena where
       S': \<open>S' = (M', arena, (b, D'), Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
-        avdom, lcount, opts, old_arena, ivdom)\<close>
+        lcount, opts, old_arena)\<close>
       using S'_S by (cases S') (fastforce simp: twl_st_heur_conflict_ana_def S)
+    let ?vdom = \<open>set (get_vdom_aivdom vdom)\<close>
     have
       M'_M: \<open>(M', M) \<in> trail_pol (all_atms_st S)\<close>  and
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st S))\<close> and
@@ -974,11 +982,11 @@ proof -
       cach_empty: \<open>cach_refinement_empty (all_atms_st S) cach\<close> and
       outl: \<open>out_learned M D outl\<close> and
       lcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount\<close> and
-      \<open>vdom_m (all_atms_st S) W N \<subseteq> set vdom\<close> and
+      \<open>vdom_m (all_atms_st S) W N \<subseteq> ?vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel (all_atms_st S)\<close> and
-      arena: \<open>valid_arena arena N (set vdom)\<close> and
+      arena: \<open>valid_arena arena N ?vdom\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st S)\<close> and
-      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close>
+      aivdom: \<open>aivdom_inv_dec vdom (dom_m N)\<close>
       using S'_S unfolding S S' twl_st_heur_conflict_ana_def
       by (auto simp: S all_atms_def[symmetric])
     obtain T U where
@@ -1230,7 +1238,7 @@ proof -
           isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict
           [THEN fref_to_Down_curry5,
             of \<open>all_atms_st S\<close> M N \<open>remove1_mset (-lit_of (hd M)) (the D)\<close> cach' lbd \<open>outl[0 := - lit_of (hd M)]\<close>
-            _ _ _ _ _ _ \<open>set vdom\<close>])
+            _ _ _ _ _ _ \<open>?vdom\<close>])
       subgoal using bounded by (auto simp: S all_atms_def)
       subgoal using tauto_confl' pre2 by auto
       subgoal using D' not_none arena S_T uL_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l not_empty D' L_D b cach_empty M'_M unfolding all_atms_def
@@ -1297,7 +1305,7 @@ proof -
     qed
 
     have final: \<open>(((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take 1 x2a,
-            stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
+            stats, heur, vdom, lcount, opts, old_arena),
             x2c, x1c),
           M, N, Da, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)
           \<in> ?shorter\<close>
@@ -1375,7 +1383,7 @@ proof -
         \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
       have \<open>((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take (Suc 0) x2a,
-          stats, heur, vdom, avdom, lcount, opts, old_arena, ivdom),
+          stats, heur, vdom, lcount, opts, old_arena),
         del_conflict_wl (M, N, Da, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
         \<in> twl_st_heur_bt\<close>
         using S'_S x1b_None cach out vm' unfolding twl_st_heur_bt_def
@@ -1583,8 +1591,8 @@ proof -
     obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
       T': \<open>T' = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)\<close>
       by (cases T')
-    obtain M' W' vm clvls cach lbd outl stats arena D' Q' heur vdom avdom lcount opts old_arena where
-      T: \<open>T = (M', arena, D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount,
+    obtain M' W' vm clvls cach lbd outl stats arena D' Q' heur vdom lcount opts old_arena where
+      T: \<open>T = (M', arena, D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount,
          opts, old_arena)\<close>
       using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def)
     have
@@ -1806,13 +1814,13 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
-    obtain M1' vm' W' clvls cach lbd outl stats heur avdom vdom lcount arena D'
-        Q' opts ivdom
+    obtain M1' vm' W' clvls cach lbd outl stats heur vdom lcount arena D'
+        Q' opts
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
-           vdom, avdom, lcount, opts, [], ivdom)\<close>
+           vdom, lcount, opts, [])\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
-
+    let ?vdom = \<open>set (get_vdom_aivdom vdom)\<close>
     have [simp]:
        \<open>LK' = lit_of (hd M)\<close>
        \<open>LK = LK'\<close>
@@ -1825,17 +1833,18 @@ proof -
       empty_cach: \<open>cach_refinement_empty (all_atms_st U') cach\<close> and
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
-      vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
+      vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> ?vdom\<close> and
       lcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount\<close> and
-      vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
+      vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> ?vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
-      valid: \<open>valid_arena arena N (set vdom)\<close> and
-      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close> and
+      valid: \<open>valid_arena arena N ?vdom\<close> and
+      aivdom: \<open>aivdom_inv_dec vdom (dom_m N)\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
-      dist_vdom: \<open>distinct vdom\<close> and
+      dist_vdom: \<open>distinct (get_vdom_aivdom vdom)\<close> and
       heur: \<open>heuristic_rel (all_atms_st U') heur\<close>
-      using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
+      using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric]
+        aivdom_inv_dec_alt_def)
     have [simp]: \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
       using SS' C_L' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_conflict_ana_def hd_conv_nth)
@@ -1862,9 +1871,9 @@ proof -
 
     have propagate_bt_wl_D_heur_alt_def:
       \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-           vdom, avdom, lcount, opts). do {
-          ASSERT(length vdom \<le> length N0);
-          ASSERT(length avdom \<le> length N0);
+           vdom, lcount, opts). do {
+          ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
+          ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
           ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
           ASSERT(length C > 1);
           let L' = C!1;
@@ -1874,17 +1883,17 @@ proof -
           let _ = C;
           let b = False;
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-            vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+            vdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-             vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
+             vdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-            vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+            vdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-            vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+            vdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
           j \<leftarrow> mop_isa_length_trail M;
@@ -1894,8 +1903,8 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
           RETURN (M, N, D, j, W, vm, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [ i],
-              avdom @ [i], clss_size_incr_lcount lcount, opts)
+            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur),
+            add_learned_clause_aivdom i vdom, clss_size_incr_lcount lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -2020,7 +2029,7 @@ proof -
       by (auto simp: list_of_mset2_def S')
     have [simp]: \<open>0 < header_size D''\<close> for D''
       by (auto simp: header_size_def)
-    have [simp]: \<open>length arena + header_size D'' \<notin> set vdom\<close>
+    have [simp]: \<open>length arena + header_size D'' \<notin> ?vdom\<close>
       \<open>length arena + header_size D'' \<notin> vdom_m (all_atms_st U') W N\<close>
       \<open>length arena + header_size D'' \<notin># dom_m N\<close> for D''
       using valid_arena_in_vdom_le_arena(1)[OF valid] vdom
@@ -2041,8 +2050,8 @@ proof -
       by (auto simp: T' vdom_m_def literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def U' all_atms_def
         all_lits_st_def all_lits_def ac_simps)
     have [refine0]: \<open>fm_add_new False C arena
-       \<le> \<Down> {((arena', i), (N', i')). valid_arena arena' N' (insert i (set vdom)) \<and> i = i' \<and>
-             i \<notin># dom_m N \<and> i \<notin> set vdom \<and> length arena' = length arena + header_size D'' + length D''}
+       \<le> \<Down> {((arena', i), (N', i')). valid_arena arena' N' (insert i ?vdom) \<and> i = i' \<and>
+             i \<notin># dom_m N \<and> i \<notin> ?vdom \<and> length arena' = length arena + header_size D'' + length D''}
           (SPEC
             (\<lambda>(N', i).
                 N' = fmupd i (D'', False) N \<and>
@@ -2079,7 +2088,7 @@ proof -
       by (auto simp: all_atms_def S')
     let ?NUE_after = \<open>NE + NEk + UE + UEk + (NS + US) + N0 + U0\<close>
     let ?NUE_before = \<open>(NE + NEk + UE + UEk + (NS + US) + N0 + U0)\<close>
-    
+
     have All_atms_rew: \<open>set_mset (all_atms (fmupd x' (C', b) N) ?NUE_before) =
         set_mset (all_atms N ?NUE_after)\<close> (is ?A)
       \<open>trail_pol (all_atms (fmupd x' (C', b) N) ?NUE_before) =
@@ -2172,8 +2181,9 @@ proof -
       by auto
     have arena_le: \<open>length arena + header_size C + length C \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
-    have avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and ivdom: \<open>mset ivdom \<subseteq># mset vdom\<close>
-      using aivdom unfolding aivdom_inv_def by auto
+    have avdom: \<open>mset (get_avdom_aivdom vdom) \<subseteq># mset (get_vdom_aivdom vdom)\<close> and
+      ivdom: \<open>mset (get_ivdom_aivdom vdom) \<subseteq># mset (get_vdom_aivdom vdom)\<close>
+      using aivdom unfolding aivdom_inv_dec_alt_def by auto
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
        vm \<in> isa_vmtf (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
       by (cases vm)
@@ -2240,12 +2250,14 @@ proof -
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew learned_clss_count_def all_atms_st_def
+            aivdom_inv_dec_intro_add_mset
             intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
             simp del: isasat_input_bounded_def isasat_input_nempty_def
           dest: valid_arena_one_notin_vdomD
             get_learned_count_learned_clss_countD)
-         (intro conjI,  auto
-            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset simp: vdom_m_simps5
+          (intro conjI,  auto
+          intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+          simp: vdom_m_simps5
             simp del: isasat_input_bounded_def isasat_input_nempty_def
            dest: valid_arena_one_notin_vdomD)
       done
@@ -2316,18 +2328,18 @@ proof -
        \<open>LK' = lit_of (hd (get_trail_wl T'))\<close>
        \<open>LK = LK'\<close>
        using KK' SS' S' by (auto simp: T')
-    obtain vm' W' clvls cach lbd outl stats heur vdom avdom lcount arena D' Q' opts
-      M1' ivdom
+    obtain vm' W' clvls cach lbd outl stats heur vdom lcount arena D' Q' opts
+      M1'
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
-           vdom, avdom, lcount, opts, [], ivdom)\<close> and
+           vdom, lcount, opts, [])\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
             \<open>get_learned_count U = get_learned_count S\<close>
             \<open>learned_clss_count U \<le> u\<close>
       using SS' UU' find_decomp r \<open>(TnC, T') \<in> ?shorter S' S\<close>
         get_learned_count_learned_clss_countD2[of U S]
-      by (cases U) (auto simp: U' T' twl_st_heur_bt_def
-        dest: )
+      by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
+    let ?vdom = \<open>set (get_vdom_aivdom vdom)\<close>
     have
       M'M: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
@@ -2337,15 +2349,16 @@ proof -
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
       lcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount\<close> and
-      vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
-      valid: \<open>valid_arena arena N (set vdom)\<close> and
+      vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> ?vdom\<close> and
+      valid: \<open>valid_arena arena N ?vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
-      dist_vdom: \<open>distinct vdom\<close> and
-      aivdom: \<open>aivdom_inv vdom avdom ivdom (dom_m N)\<close> and
+      dist_vdom: \<open>distinct (get_vdom_aivdom vdom)\<close> and
+      aivdom: \<open>aivdom_inv_dec vdom (dom_m N)\<close> and
       heur: \<open>heuristic_rel (all_atms_st U') heur\<close>
-      using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
+      using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric]
+        aivdom_inv_dec_alt_def)
     have [simp]: \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
       using SS' hd_C \<open>C \<noteq> []\<close> by (auto simp: S' U' T' twl_st_heur_conflict_ana_def hd_conv_nth)
@@ -2641,9 +2654,9 @@ lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<L
 
 lemma propagate_bt_wl_D_heur_alt_def:
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts). do {
-      ASSERT(length vdom \<le> length N0);
-      ASSERT(length avdom \<le> length N0);
+         vdom, lcount, opts). do {
+      ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
+      ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
@@ -2653,17 +2666,17 @@ lemma propagate_bt_wl_D_heur_alt_def:
       let b = False;
       let b' = (length C = 2);
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+         vdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
+         vdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+         vdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+         vdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -2673,8 +2686,8 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur), vdom @ [i],
-          avdom @ [i],
+        cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur),
+        add_learned_clause_aivdom i vdom,
           clss_size_incr_lcount lcount, opts)
     })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def by (auto intro!: ext)
