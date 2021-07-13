@@ -12,6 +12,543 @@ begin
 
 section \<open>Checker Algorithm\<close>
 
+subsection \<open>Version for the paper\<close>
+
+lemma vars_mult_Var:
+  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close>
+  for p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1,ring_1_no_zero_divisors} mpoly\<close>
+proof -
+  have \<open>p \<noteq> 0 \<Longrightarrow>
+    \<exists>xa. (\<exists>k. xa = monomial (Suc 0) x + k) \<and>
+         lookup (mapping_of p) (xa - monomial (Suc 0) x) \<noteq> 0 \<and>
+         0 < lookup xa x\<close>
+   by (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
+     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
+  then show ?thesis
+    apply (auto simp: vars_def times_mpoly.rep_eq Var.rep_eq
+    elim!: in_keys_timesE dest: keys_add')
+    apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def
+      lookup_add eq_diff_eq'[symmetric])
+    done
+qed
+
+lemma keys_mult_monomial:
+  \<open>keys (monomial (n :: 'a :: {comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1,ring_1_no_zero_divisors}) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
+proof -
+  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
+               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
+        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
+      for xa
+    by (smt Sum_any.cong mult_not_zero)
+  show ?thesis
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq times_poly_mapping.rep_eq
+      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+    apply (auto simp: lookup_monomial_If prod_fun_def
+      keys_def times_poly_mapping.rep_eq)
+    done
+qed
+
+lemma vars_add_monom2:
+assumes "p2 = monom (monomial (1) x') (1::'a::{comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1,ring_1_no_zero_divisors})  * A"  "x' \<notin> vars p1"
+shows "vars (p1 + p2) = vars p1 \<union> vars p2"
+proof -
+  have "keys (mapping_of p2) = (+) (monomial (Suc 0) x') ` keys (mapping_of A)"
+    unfolding assms by (simp add: times_mpoly.rep_eq keys_mult_monomial times_mpoly.rep_eq
+      keys_mult_monomial)
+  then have "keys (mapping_of (p1+p2)) = keys (mapping_of p1) \<union> keys (mapping_of p2)"
+    using assms(2) apply -
+    apply (subst keys_add)
+    apply (auto split: if_splits simp: plus_mpoly.rep_eq vars_def)
+    by (metis One_nat_def in_keys_iff lookup_add lookup_single_eq one_neq_zero plus_eq_zero)
+  then show ?thesis unfolding vars_def by simp
+qed
+
+lemma polynomial_split_on_var_restricted:
+  fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1,ring_1_no_zero_divisors} mpoly\<close>
+  obtains q r where
+    \<open>p = monom (monomial (Suc 0) x') 1 * q + r\<close> and
+    \<open>x' \<notin> vars r\<close> and
+    \<open>vars q \<subseteq> vars p\<close>
+    \<open>vars r \<subseteq> vars p\<close>
+proof -
+  have [simp]: \<open>{x \<in> keys (mapping_of p). x' \<in> keys x} \<union>
+        {x \<in> keys (mapping_of p). x' \<notin> keys x} = keys (mapping_of p)\<close>
+    by auto
+  have
+    \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close> (is \<open>_ = (\<Sum>x \<in> ?I. ?f x)\<close>)
+    using polynomial_sum_monoms(1)[of p] .
+  also have \<open>... = (\<Sum>x\<in> {x \<in> ?I. x' \<in> keys x}. ?f x) + (\<Sum>x\<in> {x \<in> ?I. x' \<notin> keys x}. ?f x)\<close> (is \<open>_ = ?pX + ?qX\<close>)
+    by (subst comm_monoid_add_class.sum.union_disjoint[symmetric]) auto
+  finally have 1: \<open>p = ?pX + ?qX\<close> .
+  have H: \<open>0 < lookup x x' \<Longrightarrow> (\<lambda>k. (if x' = k then Suc 0 else 0) +
+          (if k = x' \<and> 0 < lookup x k then lookup x k - 1
+           else lookup x k)) = lookup x\<close> for x x'
+    by auto
+  have [simp]: \<open>finite {x. 0 < (Suc 0 when x' = x)}\<close> for x' :: nat and x
+    by (smt bounded_nat_set_is_finite lessI mem_Collect_eq neq0_conv when_cong when_neq_zero)
+  have H: \<open>x' \<in> keys x \<Longrightarrow> monomial (Suc 0) x' + Abs_poly_mapping (\<lambda>k. if k = x' \<and> 0 < lookup x k then lookup x k - 1 else lookup x k) = x\<close>
+    for x and x' :: nat
+    apply (simp only: keys_def single.abs_eq)
+    apply (subst plus_poly_mapping.abs_eq)
+    by (auto simp: eq_onp_def when_def H
+        intro!: finite_subset[of \<open>{xa. (xa = x' \<and> 0 < lookup x xa \<longrightarrow> Suc 0 < lookup x x') \<and>
+           (xa \<noteq> x' \<longrightarrow> 0 < lookup x xa)}\<close> \<open>{xa. 0 < lookup x xa}\<close>])
+
+  have [simp]: \<open>x' \<in> keys x \<Longrightarrow>
+        MPoly_Type.monom (monomial (Suc 0) x' + decrease_key x' x) n =
+        MPoly_Type.monom x n\<close> for x n and x'
+    apply (subst mpoly.mapping_of_inject[symmetric], subst poly_mapping.lookup_inject[symmetric])
+    unfolding mapping_of_monom lookup_single
+    apply (auto intro!: ext simp: decrease_key_def when_def H)
+    done
+  have Var_x': \<open>Var x' = MPoly_Type.monom (monomial (Suc 0) x') 1\<close>
+    by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+  have pX: \<open>?pX = monom (monomial (Suc 0) x') 1 * (\<Sum>x\<in> {x \<in> ?I. x' \<in> keys x}. MPoly_Type.monom (decrease_key x' x) (MPoly_Type.coeff p x))\<close>
+    (is \<open>_ = _ * ?pX'\<close>)
+    by (subst sum_distrib_left, subst mult_monom)
+     (auto intro!: sum.cong)
+  have \<open>x' \<notin> vars ?qX\<close>
+    using vars_setsum[of \<open>{x. x \<in> keys (mapping_of p) \<and> x' \<notin> keys x}\<close> \<open>?f\<close>]
+    by (auto dest!: vars_monom_subset[unfolded subset_eq Ball_def, rule_format])
+  moreover have \<open>vars ?qX \<subseteq> vars p\<close>
+    apply (subst (3)1)
+    unfolding pX
+    apply auto
+    subgoal for x
+      apply (subst add.commute)
+      apply (subst vars_add_monom2[of _ x' \<open>(\<Sum>x | x \<in> keys (mapping_of p) \<and> x' \<in> keys x.
+    MPoly_Type.monom (decrease_key x' x) (MPoly_Type.coeff p x))\<close>])
+      apply auto
+      using calculation by blast
+    done
+  moreover have \<open>vars ?pX' \<subseteq> vars p\<close>
+    apply (subst (3)1)
+    unfolding pX
+    apply auto
+    subgoal for x
+      apply (subst add.commute)
+      apply (subst vars_add_monom2[of _ x' \<open>(\<Sum>x | x \<in> keys (mapping_of p) \<and> x' \<in> keys x.
+    MPoly_Type.monom (decrease_key x' x) (MPoly_Type.coeff p x))\<close>])
+      apply auto[]
+      using calculation apply blast
+        unfolding Var_x'[symmetric]
+        apply (auto simp: vars_mult_Var elim!: )
+      done
+    done
+  ultimately show ?thesis
+    using that[of ?pX' ?qX]
+    unfolding pX[symmetric] 1[symmetric]
+    by auto
+qed
+
+
+lemma ideal_span_explicit_vars:
+  fixes q :: \<open>int mpoly\<close>
+  assumes \<open>finite b\<close> and
+   q:  \<open>q \<in> More_Modules.ideal b\<close>
+  shows
+    \<open>q \<in> {\<Sum>a\<in>t. r a * a |t r. finite t \<and> t \<subseteq> b \<and> (\<forall>a \<in> t. vars (r a) \<subseteq> \<Union>(vars ` b) \<union> vars q) }\<close>
+  (is "_ \<in> ?B")
+proof -
+  obtain r t where
+    q: \<open>q = (\<Sum>a\<in>t. r a * a)\<close> and
+    fin_t: \<open>finite t\<close> and
+    t: \<open>t \<subseteq> b\<close>
+    using q unfolding ideal.span_explicit
+    by auto
+  let ?\<Sigma>' = \<open>\<Union>(vars ` r ` t) - (\<Union>(vars ` b) \<union> vars q)\<close>
+  let ?\<Sigma> = \<open>\<Union>(vars ` r ` t)\<close>
+  have H: \<open>q \<in> {\<Sum>a\<in>t. r a * a |t r. finite t \<and> t \<subseteq> b \<and> (\<forall>a \<in> t. vars (r a) \<subseteq> ?\<Sigma> - \<Sigma>)}\<close>
+    if \<open>\<Sigma> \<subseteq> ?\<Sigma>'\<close>
+    for \<Sigma>
+  proof -
+    have \<open>finite \<Sigma>\<close>
+      by (rule finite_subset[OF that])
+       (auto intro!: finite_UN_I fin_t finite_UN_I vars_finite)
+    then show ?thesis
+      using that
+    proof (induction rule: finite_induct)
+      case empty
+      then show ?case
+        using q fin_t t by blast
+    next
+      case (insert x F)
+      then have
+        \<open>F \<subseteq> \<Union> (vars ` r ` t) - (\<Union> (vars ` b)\<union> vars q)\<close>
+        \<open>x \<in> \<Union> (vars ` r ` t)\<close> and
+        x_notin: \<open>x \<notin> \<Union> (vars ` b)\<close> \<open>x \<notin> vars q\<close> and
+        q: \<open>q \<in> {\<Sum>a\<in>ta. ra a * a |ta ra. finite ta \<and> ta \<subseteq> b \<and> (\<forall>a\<in>ta. vars (ra a) \<subseteq> ?\<Sigma> - F)}\<close>
+        by auto
+
+      obtain r' t' where
+        q: \<open>q = (\<Sum>a\<in>t'. r' a * a)\<close> and
+        fin_t: \<open>finite t'\<close> and
+        t: \<open>t' \<subseteq> b\<close> and
+        vars: \<open>a \<in> t' \<Longrightarrow> vars (r' a) \<subseteq> ?\<Sigma> - F\<close> for a
+        using q by auto
+
+      have \<open>\<exists>g' h'. r' a = g' + h' * Var x \<and> x \<notin> vars g' \<and> vars g' \<subseteq> vars (r' a) \<and>
+         vars h' \<subseteq> vars (r' a)\<close> if \<open>a \<in> t'\<close> for a
+        by (metis One_nat_def Var.abs_eq Var\<^sub>0_def ab_semigroup_add_class.add.commute
+          ab_semigroup_mult_class.mult.commute monom.abs_eq polynomial_split_on_var_restricted)
+      then obtain g' h' where
+        r': \<open>r' a = g' a + h' a * Var x\<close> and
+        NOX: \<open>x \<notin> vars (g' a)\<close> and
+        var_g': \<open>vars (g' a) \<subseteq> vars (r' a)\<close> and
+        var_h': \<open>vars (h' a) \<subseteq> vars (r' a)\<close> if \<open>a \<in> t'\<close> for a
+        by metis
+      have \<open>q = (\<Sum>a\<in>t'. g' a * a + h' a * a * Var x)\<close>
+        unfolding q by (auto intro!: sum.cong simp: r' field_simps)
+      also have \<open>... = (\<Sum>a\<in>t'. g' a * a) + (\<Sum>a\<in>t'. h' a * a) * Var x\<close>
+        by (auto simp: r' comm_monoid_add_class.sum.distrib sum_distrib_right)
+      finally have \<open>q = (\<Sum>a\<in>t'. g' a * a) + (\<Sum>a\<in>t'. h' a * a) * Var x\<close> (is \<open>_ = ?NOX + ?X * Var x\<close>)
+        .
+
+      moreover {
+        have \<open>x \<notin> (\<Union>a\<in>t'. vars (g' a * a))\<close>
+          using NOX t x_notin
+          by (auto elim!: vars_unE)
+        then have \<open>x \<notin> vars ?NOX\<close>
+          using vars_setsum[OF fin_t] by auto
+     }
+     ultimately have \<open>q = ?NOX\<close>
+       by (metis (no_types, lifting) add_cancel_left_right degree_mult_Var degree_notin_vars
+         mult_eq_0_iff nat.simps(3) vars_in_right_only x_notin(2))
+     moreover {
+       have \<open>a \<in> t' \<Longrightarrow> vars (g' a) \<subseteq> ?\<Sigma> - F\<close> for a
+         using vars[of a] r'[of a] var_g'[of a]
+         by auto
+       then have \<open>(\<forall>a\<in>t'. vars (g' a) \<subseteq> \<Union> (vars ` r ` t) - insert x F)\<close>
+         using NOX by auto
+     }
+     ultimately show ?case
+       using fin_t t polynomial_decomp_alien_var[of q \<open>?NOX\<close> x ?X]
+       by auto
+    qed
+  qed
+  have \<open>\<Union> (vars ` r ` t) -
+               (\<Union> (vars ` r ` t) - (\<Union> (vars ` b) \<union> vars q)) \<subseteq> (\<Union> (vars ` b) \<union> vars q)\<close>
+    by auto
+  with H[of \<open>\<Union> (vars ` r ` t) - (\<Union> (vars ` b) \<union> vars q)\<close>] show "q \<in> ?B"
+    by (smt (verit, best) mem_Collect_eq subset_iff)
+qed
+
+lemma vars_polynomial_constraints[simp]: \<open>vars ((Var ca)\<^sup>2 - Var ca) = {ca}\<close> for ca
+  apply (auto simp: vars_def Var_def Var\<^sub>0_def mpoly.MPoly_inverse keys_def lookup_minus_fun
+      lookup_times_monomial_right single.rep_eq split: if_splits)
+   apply (auto simp: vars_def Var_def Var\<^sub>0_def mpoly.MPoly_inverse keys_def lookup_minus_fun
+      lookup_times_monomial_right single.rep_eq when_def ac_simps adds_def lookup_plus_fun
+      power2_eq_square times_mpoly.rep_eq minus_mpoly.rep_eq split: if_splits)
+  apply (rule_tac x = \<open>(2 :: nat \<Rightarrow>\<^sub>0 nat) * monomial (Suc 0) ca\<close> in exI)
+  apply (auto dest: monomial_0D simp: plus_eq_zero_2 lookup_plus_fun mult_2)
+  by (meson Suc_neq_Zero monomial_0D plus_eq_zero_2)
+
+text \<open>This is an important lemma, because it shows the equivalence between the Isabelle version of
+the theorems and the paper version that restricts the polynomial constraints to only the relevant
+variables.\<close>
+lemma cut_ideal_to_relevant_vars:
+  assumes
+    \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
+    vars_q: \<open>vars q \<subseteq> \<V>\<close>
+  shows
+    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynomial_bool) \<longleftrightarrow>
+    q \<in> More_Modules.ideal (set_mset A \<union> (\<lambda>c. Var c ^ 2 - Var c) ` \<V>)\<close>
+    (is \<open>q \<in> ?A \<longleftrightarrow> q \<in> ?B\<close> is \<open>_ \<in> More_Modules.ideal ?f \<longleftrightarrow> _ \<in> More_Modules.ideal ?r\<close>)
+proof
+  assume \<open>q \<in> ?B\<close>
+  moreover have \<open>?B \<subseteq> ?A\<close>
+    by (rule ideal.span_mono) (auto simp: polynomial_bool_def)
+  ultimately show \<open>q \<in> ?A\<close>
+    by blast
+next
+  assume q: \<open>q \<in> ?A\<close>
+  then obtain r t where
+    q: \<open>q = (\<Sum>a\<in>t. r a * a)\<close> and
+    fin_t: \<open>finite t\<close> and
+    t: \<open>t \<subseteq> set_mset A \<union> polynomial_bool\<close>
+    unfolding ideal.span_explicit
+    by auto
+  have t2: \<open>t \<subseteq> ?r \<union> (t \<inter> polynomial_bool - ?r)\<close>
+    using t by auto
+  let ?\<Sigma> = \<open>t \<inter> (?f - ?r)\<close>
+  have fin_\<Sigma>: \<open>finite ?\<Sigma>\<close>
+    using fin_t by auto
+  have \<open>\<exists>t' r. q = (\<Sum>a\<in>t'. r a * a) \<and> finite t' \<and> t' \<subseteq> ?r \<union> (?\<Sigma> - E)\<close> if \<open>E \<subseteq> ?\<Sigma>\<close> for E
+  proof -
+    have \<open>finite E\<close>
+      using that fin_\<Sigma> finite_subset by blast
+    then show ?thesis
+      using t2 that
+    proof (induction rule: finite_induct)
+      case empty
+      then show ?case using q fin_t t by fast
+    next
+      case (insert x E)
+      have \<open>\<exists>t' r. q = (\<Sum>a\<in>t'. r a * a) \<and> finite t' \<and> t' \<subseteq> ?r \<union> (?\<Sigma> - E)\<close> and
+        x: \<open>x \<in> ?\<Sigma>\<close>
+        apply (rule insert.IH | rule insert.prems | use insert.prems in auto; fail)+
+        done
+      then obtain t' r where
+       q: \<open>q = (\<Sum>a\<in>t'. r a * a)\<close> and
+        fin_t': \<open>finite t'\<close> and
+        t'': \<open>t' \<subseteq> ?r \<union> (?\<Sigma> - E)\<close>
+        by auto
+      obtain c where x: \<open>x = (Var c)\<^sup>2 - Var c\<close> and \<open>c \<notin> \<V>\<close> and \<open>x \<in> t\<close>
+        using insert.prems(2) by (auto simp: polynomial_bool_def)
+      show ?case
+      proof (cases \<open>x \<in> t'\<close>)
+        case False
+        then show ?thesis using q fin_t' t'' by auto
+      next
+        case True
+        define t'' where \<open>t'' = t' - {x}\<close>
+        then have t''[simp]: \<open>t' = insert x t''\<close> \<open>x \<notin> t''\<close> \<open>finite t''\<close>
+          using True fin_t' by auto
+        have \<open>t'' \<subseteq> ?r \<union> (?\<Sigma> - E) - {x}\<close>
+          using \<open>t' \<subseteq> ?r \<union> (?\<Sigma> - E)\<close> apply (auto simp: x)
+          using t''(2) x apply blast
+          using t''(2) x apply force+
+          done
+        then have \<open>t'' \<subseteq> ?r \<union> (?\<Sigma> - insert x E)\<close>
+          by auto
+        have \<open>\<exists>g h. r a = Var c * g + h \<and> c \<notin> vars h\<close> for a
+          by (rule polynomial_split_on_var[of \<open>r a\<close> c])
+           (auto simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+        then obtain g h where
+          r: \<open>r a = Var c * g a + h a\<close> and
+          c: \<open>c \<notin> vars (h a)\<close> for a
+          by metis
+        have [simp]: \<open>vars x = {c}\<close>
+          by (auto simp: x)
+        have r': \<open>r a * a = Var c * (g a * a) + h a *a\<close> for a
+          unfolding r by (auto simp: field_simps)
+        have \<open>q = ((\<Sum>a\<in>t''. g a * a) + r x * (Var c - 1)) * Var c + (\<Sum>a\<in>t''. h a * a)\<close>
+          unfolding q t''
+          apply (simp add: sum.insert_if)
+          apply (subst (2)r')
+          apply (auto simp: comm_monoid_add_class.sum.insert_if ring_distribs
+            sum.distrib simp flip: ideal.scale_sum_left sum_distrib_right sum_distrib_left)
+          apply (subst (2)x)
+          by (auto simp: field_simps power2_eq_square)
+        moreover {
+        have \<open>c \<notin> (\<Union>m\<in>t''. vars (h m * m))\<close>
+          using fin_t vars_mult[of \<open>h _\<close>] c
+          apply (auto simp: t elim!: vars_unE)
+          using \<open>t'' \<subseteq> ?r \<union> (?\<Sigma> - insert x E)\<close> apply -
+          apply (frule set_rev_mp)
+          apply assumption
+          apply auto
+          apply (meson UN_I \<open>c \<notin> \<V>\<close> assms(1) subset_iff)
+          using \<open>c \<notin> \<V>\<close> apply fastforce
+          by (metis (no_types, lifting) vars_polynomial_constraints
+            \<open>\<And>thesis. (\<And>c. \<lbrakk>x = (Var c)\<^sup>2 - Var c; c \<notin> \<V>; x \<in> t\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> \<open>vars x = {c}\<close>
+            imageE mk_disjoint_insert polynomial_bool_def singleton_insert_inj_eq')
+        then have \<open>c \<notin> vars (\<Sum>a\<in>t''. h a * a)\<close>
+          using c vars_setsum[of t'' \<open>\<lambda>a. h a * a\<close>]
+          by auto
+      }
+      moreover have \<open>c \<notin> vars q\<close>
+        using \<open>c \<notin> \<V>\<close> vars_q by blast
+      ultimately have \<open>q = (\<Sum>a\<in>t''. h a * a)\<close>
+        by (metis (no_types, lifting) One_nat_def Var.abs_eq Var\<^sub>0_def monom.abs_eq
+            polynomial_decomp_alien_var(2))
+      
+      then show ?thesis
+        using \<open>t'' \<subseteq> ?r \<union> (?\<Sigma> - insert x E)\<close>
+        by (auto intro!: exI[of _ t''])
+    qed
+  qed
+qed
+  from this[of ?\<Sigma>] show \<open>q \<in> ?B\<close>
+    unfolding ideal.span_explicit
+    by auto
+qed
+
+
+text \<open>This version is close to the paper proof of proposition 1. However, it is still too far away
+to be included as is in the actual paper.\<close>
+lemma extensions_are_safe:
+  assumes \<open>x' \<in> vars p\<close> and
+    x': \<open>x' \<notin> \<V>\<close> and
+    A: \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
+    p_x_coeff: \<open>coeff p (monomial (Suc 0) x') = 1\<close> and
+    vars_q: \<open>vars q \<subseteq> \<V>\<close> and
+    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynomial_bool))\<close> and
+    leading: \<open>x' \<notin> vars (p - Var x')\<close> and
+    diff: \<open>(Var x' - p)\<^sup>2 - (Var x' - p) \<in> More_Modules.ideal polynomial_bool\<close> and
+    varsp: \<open>vars p \<subseteq> insert x' \<V>\<close>
+  shows
+    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynomial_bool)\<close>
+proof -
+  define p' where \<open>p' \<equiv> p - Var x'\<close>
+  let ?v = \<open>Var x' :: int mpoly\<close>
+  have p_p': \<open>p = ?v + p'\<close>
+    by (auto simp: p'_def)
+  define q' where \<open>q' \<equiv> Var x' - p\<close>
+  have q_q': \<open>p = ?v - q'\<close>
+    by (auto simp: q'_def)
+  have diff: \<open>q'^2 - q' \<in> More_Modules.ideal polynomial_bool\<close>
+    using diff unfolding q_q' by auto
+  have \<open>vars q' \<subseteq> \<V>\<close>
+    using leading apply -
+    unfolding diff_conv_add_uminus q'_def
+    apply standard
+    by (metis (no_types, lifting) diff_add_cancel diff_conv_add_uminus in_mono insertCI insertE
+        leading minus_diff_eq vars_subst_in_left_only_iff vars_uminus varsp)
+
+  then have \<open>vars (q'\<^sup>2 - q') \<subseteq> \<V>\<close>
+    unfolding diff_conv_add_uminus apply -
+    apply standard
+    apply (elim in_vars_addE)
+    by (auto elim!: in_vars_addE vars_unE simp: power2_eq_square)
+
+  have q: \<open>q \<in> More_Modules.ideal (set_mset (add_mset p A) \<union> (\<lambda>c. Var c ^ 2 - Var c) ` insert x' \<V>)\<close>
+    by (rule cut_ideal_to_relevant_vars[THEN iffD1])
+     (use vars_q q varsp A in auto)
+  moreover have eq: \<open>More_Modules.ideal (set_mset (add_mset p A) \<union> (\<lambda>c. Var c ^ 2 - Var c) ` insert x' \<V>) =
+     More_Modules.ideal (set_mset (add_mset p A) \<union> (\<lambda>c. Var c ^ 2 - Var c) ` \<V>)\<close>
+    (is \<open>_ = More_Modules.ideal ?trimmed\<close>)
+  proof -
+    have 1: \<open>(Var x' - p)\<^sup>2 - (Var x' - p) \<in> More_Modules.ideal (set_mset {#} \<union> (\<lambda>c. Var c ^ 2 - Var c) ` \<V>)\<close>
+      unfolding q'_def[symmetric]
+      by (rule cut_ideal_to_relevant_vars[of \<open>{#}\<close> \<V> \<open>q'^2 - q'\<close>, THEN iffD1])
+        (use \<open>vars (q'\<^sup>2 - q') \<subseteq> \<V>\<close> A diff  in auto)
+    have eq: \<open>(Var x')\<^sup>2 - (Var x') = (q'\<^sup>2 - q') + p * (2 * Var x' - p - 1)\<close>
+      unfolding q'_def
+      by (auto simp: power2_eq_square field_simps)
+    have \<open>(Var x')\<^sup>2 - (Var x') \<in> More_Modules.ideal ((set_mset (add_mset p A) \<union> (\<lambda>c. Var c ^ 2 - Var c) ` \<V>))\<close>
+      unfolding eq
+      apply (subst ideal.span_add_eq)
+       apply (use 1 q'_def ideal.span_mono[of \<open>((\<lambda>c. (Var c)\<^sup>2 - Var c) ` \<V>)\<close> \<open>((set_mset (add_mset p A) \<union> (\<lambda>c. Var c ^ 2 - Var c) ` \<V>))\<close>] 
+          in auto; fail)[]
+       apply (rule ideal_mult_right_in; rule ideal.span_base)
+      by auto 
+    then show ?thesis
+      by (auto intro!: ideal.span_insert_idI)
+  qed
+
+
+  obtain r t where
+    q: \<open>q = (\<Sum>a\<in>t. r a * a)\<close> and
+    fin_t: \<open>finite t\<close> and
+    t: \<open>t \<subseteq> ?trimmed\<close>
+    using q unfolding eq unfolding ideal.span_explicit
+    by auto
+
+  define t' where \<open>t' \<equiv> t - {p}\<close>
+  have t': \<open>t = (if p \<in> t then insert p t' else t')\<close> and
+    t''[simp]: \<open>p \<notin> t'\<close>
+    unfolding t'_def by auto
+  show ?thesis
+  proof (cases \<open>r p = 0 \<or> p \<notin> t\<close>)
+    case True
+    have
+      q: \<open>q = (\<Sum>a\<in>t'. r a * a)\<close> and
+     fin_t: \<open>finite t'\<close> and
+      t: \<open>t' \<subseteq> set_mset A \<union> polynomial_bool\<close>
+      using q fin_t t True t''
+      apply (subst (asm) t')
+      apply (auto intro: sum.cong simp: sum.insert_remove t'_def)
+      using q fin_t t True t''
+      apply (auto intro: sum.cong simp: sum.insert_remove t'_def polynomial_bool_def)
+      done
+    then show ?thesis
+      by (auto simp: ideal.span_explicit)
+  next
+    case False
+    then have \<open>r p \<noteq> 0\<close> and \<open>p \<in> t\<close>
+      by auto
+    then have t: \<open>t = insert p t'\<close>
+      by (auto simp: t'_def)
+
+   have \<open>x' \<notin> vars (- p')\<close>
+     using leading p'_def vars_in_right_only by fastforce
+   moreover have mon: \<open>monom (monomial (Suc 0) x') 1 = Var x'\<close>
+     by (auto simp: coeff_def minus_mpoly.rep_eq Var_def Var\<^sub>0_def monom_def
+       times_mpoly.rep_eq lookup_minus lookup_times_monomial_right mpoly.MPoly_inverse)
+   ultimately have \<open>\<forall>a. \<exists>g h. r a = (?v + p') * g + h \<and> x' \<notin> vars h\<close>
+     using polynomial_split_on_var2[of x' \<open>-p'\<close> \<open>r _\<close>]
+     by (metis diff_minus_eq_add)
+   then obtain g h where
+     r: \<open>r a = p * g a + h a\<close> and
+     x'_h: \<open>x' \<notin> vars (h a)\<close> for a
+     unfolding p_p'[symmetric]
+     by metis
+
+    have ISABLLE_come_on: \<open>a * (p * g a) = p * (a * g a)\<close> for a
+      by auto
+    have q1: \<open>q = p * (\<Sum>a\<in>t'. g a * a) + (\<Sum>a\<in>t'. h a * a) + p * r p\<close>
+      (is \<open>_ = _ + ?NOx' + _\<close>)
+      using fin_t t'' unfolding q t ISABLLE_come_on r
+      apply (subst semiring_class.distrib_right)+
+      apply (auto simp: comm_monoid_add_class.sum.distrib semigroup_mult_class.mult.assoc
+        ISABLLE_come_on simp flip: semiring_0_class.sum_distrib_right
+           semiring_0_class.sum_distrib_left)
+      by (auto simp: field_simps)
+    also have \<open>... = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+      by (auto simp: field_simps)
+    finally have q_decomp: \<open>q = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+      (is \<open>q = ?X * p + ?NOx'\<close>).
+
+    have \<open>x \<in> t' \<Longrightarrow> x' \<in> vars x \<Longrightarrow> False\<close> for x
+      using  \<open>t \<subseteq> ?trimmed\<close> t assms(2,3)
+      apply (auto simp: polynomial_bool_def dest!: multi_member_split)
+      apply (frule set_rev_mp)
+      apply assumption
+      apply (auto dest!: multi_member_split)
+      done
+     then have \<open>x' \<notin> (\<Union>m\<in>t'. vars (h m * m))\<close>
+       using fin_t x'_h vars_mult[of \<open>h _\<close>]
+       by (auto simp: t elim!: vars_unE)
+     then have \<open>x' \<notin> vars ?NOx'\<close>
+       using vars_setsum[of \<open>t'\<close> \<open>\<lambda>a. h a * a\<close>] fin_t x'_h
+       by (auto simp: t)
+
+    moreover {
+      have \<open>x' \<notin> vars p'\<close>
+        using assms(7)
+        unfolding p'_def
+        by auto
+      then have \<open>x' \<notin> vars (h p * p')\<close>
+        using vars_mult[of \<open>h p\<close> p'] x'_h
+        by auto
+    }
+    ultimately have
+      \<open>x' \<notin> vars q\<close>
+      \<open>x' \<notin> vars ?NOx'\<close>
+      \<open>x' \<notin> vars p'\<close>
+      using x' vars_q vars_add[of \<open>h p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>] x'_h
+        leading p'_def
+      by auto
+    then have \<open>?X = 0\<close> and q_decomp: \<open>q = ?NOx'\<close>
+      unfolding mon[symmetric] p_p'
+      using polynomial_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
+      by auto
+
+    then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
+      (is \<open>_ = ?CL\<close>)
+      unfolding add.assoc add_eq_0_iff equation_minus_iff
+      by (auto simp: sum_negf ac_simps)
+
+
+    then have q2: \<open>q = (\<Sum>a\<in>t'. a * (r a - p * g a))\<close>
+      using fin_t unfolding q
+      apply (auto simp: t r q
+           comm_monoid_add_class.sum.distrib[symmetric]
+           sum_distrib_left
+           sum_distrib_right
+           left_diff_distrib
+          intro!: sum.cong)
+      apply (auto simp: field_simps)
+      done
+    then show \<open>?thesis\<close>
+      using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
+      by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
+        simp: field_simps polynomial_bool_def)
+  qed
+qed
+
 
 text \<open>
 

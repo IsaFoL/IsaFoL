@@ -35,7 +35,6 @@ sepref_def empty_Q_fast_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding empty_Q_def isasat_bounded_assn_def fold_tuple_optimizations
-    heuristic_assn_def
   by sepref
 
 sepref_register cdcl_twl_local_restart_wl_D_heur

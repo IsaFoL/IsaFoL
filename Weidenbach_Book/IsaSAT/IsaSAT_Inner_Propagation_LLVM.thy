@@ -148,6 +148,7 @@ sepref_def propagate_lit_wl_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
+sepref_register incr_uset incr_units_since_last_GC
 
 sepref_def propagate_lit_wl_bin_fast_code
   is \<open>uncurry2 propagate_lit_wl_bin_heur\<close>

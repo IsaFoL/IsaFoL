@@ -64,7 +64,7 @@ proof -
     unfolding update_all_phases_def update_restart_phases_def
     by (auto simp: twl_st_heur'_def twl_st_heur_loop_def learned_clss_count_def
         intro!: rephase_heur_st_spec[THEN order_trans]
-        simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
+        simp del: incr_restart_phase_end_stats.simps incr_restart_phase_stats.simps)
   have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
     for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
     unfolding update_all_phases_def rephase_heur_st_def

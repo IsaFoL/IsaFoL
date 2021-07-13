@@ -558,12 +558,13 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
     ASSERT (\<not>is_cfailed st');
     case st of
      CL _ _ _ \<Rightarrow>
-       do {
+      do {
+        let i = new_id st;
         r \<leftarrow> full_normalize_poly (pac_res st);
-        (eq, r) \<leftarrow> check_linear_combi_l_prop spec A \<V> (new_id st) (pac_srcs st) r;
+        (eq, r) \<leftarrow> check_linear_combi_l_prop spec A \<V> i (pac_srcs st) r;
         let _ = eq;
         if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq, \<V>, fmupd (new_id st) r A)
+        then RETURN (merge_cstatus st' eq, \<V>, fmupd i r A)
        else RETURN (eq, \<V>, A)
      }
     | Del _ \<Rightarrow>
@@ -576,16 +577,17 @@ definition PAC_checker_l_step_prep ::  \<open>_ \<Rightarrow> string code_status
      }
    | Extension _ _ _ \<Rightarrow>
        do {
+        let i = new_id st;
          r \<leftarrow> full_normalize_poly (pac_res st);
         (eq, r, \<V>, v) \<leftarrow> check_extension_l2_prop spec A (\<V>) (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
-      then do {
-        r \<leftarrow> add_poly_l_prep \<V> ([([v], -1)], r);
-        RETURN (st', \<V>, fmupd (new_id st) r A)
+        then do {
+          r \<leftarrow> add_poly_l_prep \<V> ([([v], -1)], r);
+          RETURN (st', \<V>, fmupd i r A)
         }
         else RETURN (eq, \<V>, A)
-     }}
-          )\<close>
+        }
+      })\<close>
 
 lemma PAC_checker_l_step_prep_PAC_checker_l_step:
   assumes \<open>(state, state') \<in> {((st, \<V>, A), (st', \<V>', A')). (st,st')\<in>Id \<and> (A,A')\<in>Id \<and> (\<not>is_cfailed st \<longrightarrow> (\<V>,\<V>')\<in> {(x, y). y = set_mset x})}\<close>
@@ -599,7 +601,7 @@ proof -
     by auto
   show ?thesis
     using assms apply -
-    unfolding PAC_checker_l_step_prep_def PAC_checker_l_step_def
+    unfolding PAC_checker_l_step_prep_def PAC_checker_l_step_def Let_def[of "LPAC_Checker_Specification.pac_step.new_id _"]
     apply (simp only: split: prod.splits)
     apply (simp only: split:prod.splits pac_step.splits)
     apply (intro conjI impI allI)
