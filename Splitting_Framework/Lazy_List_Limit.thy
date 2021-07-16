@@ -8,6 +8,14 @@ theory Lazy_List_Limit
   imports Lazy_List_Limsup Ordered_Resolution_Prover.Lazy_List_Liminf
 begin
 
+subsection \<open>Library\<close>
+
+lemma lnth_ldrop':
+  assumes \<open>enat i < llength xs\<close>
+  shows \<open>lnth xs (i + k) = lnth (ldrop i xs) k\<close>
+  using assms by (metis diff_add_inverse lappend_ltake_ldrop le_add1 llength_ltake lnth_lappend2
+      min_def order.strict_implies_order)
+
 subsection \<open>Homeomorphic embedding\<close>
 
 text \<open>Lemmas inspired by the Sublist theory on finite lists\<close>
@@ -85,7 +93,7 @@ proof -
     using assms unfolding llist_emb_def by blast
 
   let ?f = \<open>\<lambda>i. if i = 0 then 0 else f (i - 1) + 1\<close>
- 
+
   have \<open>\<forall>i j. i < j \<longrightarrow> ?f i < ?f j\<close>
     using f(1) by simp
   moreover have \<open>\<forall>i. enat i < llength (LCons x xs) \<longrightarrow>
@@ -315,12 +323,271 @@ lemma llist_emb_Cons_iff2 [simp]:
   shows "llist_emb P (LCons x xs) (LCons y ys) \<longleftrightarrow> llist_emb P (LCons x xs) ys"
   using assms by (metis lappend_code(1-2) lfinite.simps llist_emb_LCons_False llist_emb_append2)
 
-subsection \<open>Limit Points\<close>
+lemma llist_emb_lfinite:
+  assumes \<open>llist_emb P xs ys\<close> \<open>lfinite ys\<close>
+  shows \<open>lfinite xs\<close>
+  using assms llist_emb_length by (metis enat_ile lfinite_conv_llength_enat)
+
+lemma llist_emb_ldrop:
+  fixes i :: nat
+  assumes \<open>llist_emb P xs ys\<close>
+  shows \<open>llist_emb P (ldrop i xs) (ldrop i ys)\<close>
+proof -
+  obtain f where f:
+    \<open>\<forall>i j. i < j \<longrightarrow> f i < f j\<close>
+    \<open>\<forall>i. enat i < llength xs \<longrightarrow> enat (f i) < llength ys \<and> P (lnth xs i) (lnth ys (f i))\<close>
+    using assms unfolding llist_emb_def by blast
+
+  let ?f = \<open>\<lambda>j. f (j + i) - i\<close>
+
+  have \<open>\<forall>i j. i < j \<longrightarrow> ?f i < ?f j\<close>
+    using f(1)
+    by (metis add_diff_cancel_right' add_leE diff_less_mono less_diff_conv mono_nat_linear_lb)
+  moreover have \<open>\<forall>j. enat j < llength (ldrop i xs) \<longrightarrow>
+      enat (?f j) < llength (ldrop i ys) \<and> P (lnth (ldrop i xs) j) (lnth (ldrop i ys) (?f j))\<close>
+    using f by (smt (verit, best) add.commute add_leE ldrop_enat ldropn_Suc_conv_ldropn
+        ldropn_eq_LConsD ldropn_ldropn le_add_diff_inverse lnth_ldropn mono_nat_linear_lb)
+  ultimately show ?thesis
+    unfolding llist_emb_def by meson
+qed
+
+subsection \<open>Intersection from a point and onwards\<close>
+
+definition Inter_from :: \<open>'a set llist \<Rightarrow> nat \<Rightarrow> 'a set\<close> where
+  \<open>Inter_from xs i \<equiv> \<Inter>j \<in> {j. i \<le> j \<and> enat j < llength xs}. lnth xs j\<close>
+
+lemma Inter_from_0: \<open>Inter_from xs 0 = \<Inter>(lset xs)\<close>
+  unfolding Inter_from_def by (smt (verit, best) Collect_cong INT_iff Inf_set_def Inter_iff
+      in_lset_conv_lnth le0 mem_Collect_eq)
+
+lemma Inter_from_llength:
+  assumes \<open>llength xs \<le> i\<close>
+  shows \<open>Inter_from xs i = UNIV\<close>
+  unfolding Inter_from_def using assms
+  using enat_ord_simps(1) image_is_empty order_subst1 by fastforce
+
+lemma Inter_from_Suc:
+  assumes \<open>enat i < llength xs\<close>
+  shows \<open>Inter_from xs i = lnth xs i \<inter> Inter_from xs (Suc i)\<close>
+proof -
+  have \<open>Inter_from xs i = \<Inter>(lnth xs ` {j. i \<le> j \<and> enat j < llength xs})\<close>
+    unfolding Inter_from_def by blast
+  also have \<open>\<dots> = \<Inter>(lnth xs ` ({i} \<union> {j. Suc i \<le> j \<and> enat j < llength xs}))\<close>
+    using assms by fastforce
+  also have \<open>\<dots> = lnth xs i \<inter> \<Inter>(lnth xs ` {j. Suc i \<le> j \<and> enat j < llength xs})\<close>
+    by simp
+  finally show ?thesis
+    unfolding Inter_from_def .
+qed
+
+lemma Inter_from_ldrop:
+  assumes \<open>enat i < llength xs\<close>
+  shows \<open>Inter_from xs (i + j) = Inter_from (ldrop i xs) j\<close>
+proof (cases \<open>llength xs\<close>)
+  case (enat n)
+  have \<open>{k. i + j \<le> k \<and> k < n} = {i+j..<n}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {j..<n-i}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < n - i}\<close>
+    by fastforce
+  finally have *: \<open>{k. i + j \<le> k \<and> k < n} = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < n - i}\<close> .
+
+  have \<open>Inter_from xs (i + j) = \<Inter>(lnth xs ` {k. i + j \<le> k \<and> k < n})\<close>
+    unfolding Inter_from_def using enat by simp
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth xs (i + k)) ` {k. j \<le> k \<and> k < n - i})\<close>
+    using * by simp
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < n - i})\<close>
+    using lnth_ldrop' assms by fast
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < llength (ldrop i xs)})\<close>
+    using enat by (simp add: ldrop_enat)
+  also have \<open>\<dots> = Inter_from (ldrop i xs) j\<close>
+    unfolding Inter_from_def by blast
+  finally show ?thesis .
+next
+  case infinity
+    (* TODO: can we unify these two cases? *)
+  have \<open>{k. i + j \<le> k \<and> k < \<infinity>} = {i+j..}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {j..}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < \<infinity>}\<close>
+    by fastforce
+  finally have *: \<open>{k. i + j \<le> k \<and> k < \<infinity>} = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < \<infinity>}\<close> .
+
+  have \<open>Inter_from xs (i + j) = \<Inter>(lnth xs ` {k. i + j \<le> k \<and> k < \<infinity>})\<close>
+    unfolding Inter_from_def using infinity by simp
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth xs (i + k)) ` {k. j \<le> k \<and> k < \<infinity>})\<close>
+    using * by simp
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < \<infinity>})\<close>
+    using lnth_ldrop' assms by fast
+  also have \<open>\<dots> = \<Inter>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < llength (ldrop i xs)})\<close>
+    using infinity by (simp add: ldrop_enat)
+  also have \<open>\<dots> = Inter_from (ldrop i xs) j\<close>
+    unfolding Inter_from_def by blast
+  finally show ?thesis .
+qed
+
+lemma Inter_from_lset: \<open>Inter_from xs i = \<Inter>(lset (ldrop i xs))\<close>
+  using Inter_from_0 Inter_from_ldrop Inter_from_llength
+  by (metis add.right_neutral ldrop_0 ldrop_eq_LNil not_le zero_enat_def)
+
+subsection \<open>Union from a point and onwards\<close>
+
+definition Union_from :: \<open>'a set llist \<Rightarrow> nat \<Rightarrow> 'a set\<close> where
+  \<open>Union_from xs i \<equiv> \<Union>j \<in> {j. i \<le> j \<and> enat j < llength xs}. lnth xs j\<close>
+
+lemma Union_from_0: \<open>Union_from xs 0 = \<Union>(lset xs)\<close>
+  unfolding Union_from_def by (smt (verit, ccfv_threshold) SUP_eqI Sup_least Sup_upper
+      bot_nat_0.extremum in_lset_conv_lnth mem_Collect_eq)
+
+lemma Union_from_llength:
+  assumes \<open>llength xs \<le> i\<close>
+  shows \<open>Union_from xs i = {}\<close>
+  unfolding Union_from_def using assms
+  using enat_ord_simps(1) image_is_empty order_subst1 by fastforce
+
+lemma Union_from_Suc:
+  assumes \<open>enat i < llength xs\<close>
+  shows \<open>Union_from xs i = lnth xs i \<union> Union_from xs (Suc i)\<close>
+proof -
+  have *: \<open>{j. i \<le> j \<and> enat j < llength xs} = {i} \<union> {j. Suc i \<le> j \<and> enat j < llength xs}\<close>
+    using assms by auto
+
+  have \<open>Union_from xs i = \<Union>(lnth xs ` {j. i \<le> j \<and> enat j < llength xs})\<close>
+    unfolding Union_from_def by blast
+  also have \<open>\<dots> = \<Union>(lnth xs ` ({i} \<union> {j. Suc i \<le> j \<and> enat j < llength xs}))\<close>
+    using * by simp
+  also have \<open>\<dots> = lnth xs i \<union> \<Union>(lnth xs ` {j. Suc i \<le> j \<and> enat j < llength xs})\<close>
+    by simp
+  finally show ?thesis
+    unfolding Union_from_def .
+qed
+
+lemma Union_from_ldrop:
+  assumes \<open>enat i < llength xs\<close>
+  shows \<open>Union_from xs (i + j) = Union_from (ldrop i xs) j\<close>
+    (* TODO: this proof is exactly Inter_from_ldrop but with \<Union> instead of \<Inter> *)
+proof (cases \<open>llength xs\<close>)
+  case (enat n)
+  have \<open>{k. i + j \<le> k \<and> k < n} = {i+j..<n}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {j..<n-i}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < n - i}\<close>
+    by fastforce
+  finally have *: \<open>{k. i + j \<le> k \<and> k < n} = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < n - i}\<close> .
+
+  have \<open>Union_from xs (i + j) = \<Union>(lnth xs ` {k. i + j \<le> k \<and> k < n})\<close>
+    unfolding Union_from_def using enat by simp
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth xs (i + k)) ` {k. j \<le> k \<and> k < n - i})\<close>
+    using * by simp
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < n - i})\<close>
+    using lnth_ldrop' assms by fast
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < llength (ldrop i xs)})\<close>
+    using enat by (simp add: ldrop_enat)
+  also have \<open>\<dots> = Union_from (ldrop i xs) j\<close>
+    unfolding Union_from_def by blast
+  finally show ?thesis .
+next
+  case infinity
+  have \<open>{k. i + j \<le> k \<and> k < \<infinity>} = {i+j..}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {j..}\<close>
+    by auto
+  also have \<open>\<dots> = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < \<infinity>}\<close>
+    by fastforce
+  finally have *: \<open>{k. i + j \<le> k \<and> k < \<infinity>} = (\<lambda>k. i + k) ` {k. j \<le> k \<and> k < \<infinity>}\<close> .
+
+  have \<open>Union_from xs (i + j) = \<Union>(lnth xs ` {k. i + j \<le> k \<and> k < \<infinity>})\<close>
+    unfolding Union_from_def using infinity by simp
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth xs (i + k)) ` {k. j \<le> k \<and> k < \<infinity>})\<close>
+    using * by simp
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < \<infinity>})\<close>
+    using lnth_ldrop' assms by fast
+  also have \<open>\<dots> = \<Union>((\<lambda>k. lnth (ldrop i xs) k) ` {k. j \<le> k \<and> k < llength (ldrop i xs)})\<close>
+    using infinity by (simp add: ldrop_enat)
+  also have \<open>\<dots> = Union_from (ldrop i xs) j\<close>
+    unfolding Union_from_def by blast
+  finally show ?thesis .
+qed
+
+lemma Union_from_lset: \<open>Union_from xs i = \<Union>(lset (ldrop i xs))\<close>
+  using Union_from_0 Union_from_ldrop Union_from_llength
+  by (metis add.right_neutral ldrop_0 ldrop_eq_LNil not_le zero_enat_def)
+
+subsection \<open>Subsequences\<close>
 
 abbreviation lsubseq :: "'a llist \<Rightarrow> 'a llist \<Rightarrow> bool"
   where "lsubseq xs ys \<equiv> llist_emb (=) xs ys"
 
+lemma lsubseq_lset:
+  assumes \<open>lsubseq xs ys\<close>
+  shows \<open>lset xs \<subseteq> lset ys\<close>
+  using assms unfolding llist_emb_def
+  by (metis in_lset_conv_lnth subsetI)
+
+lemma lsubseq_Inter_from:
+  assumes \<open>lsubseq xs ys\<close>
+  shows \<open>Inter_from ys i \<subseteq> Inter_from xs i\<close>
+  using assms by (simp add: Inter_from_lset llist_emb_ldrop Inter_anti_mono lsubseq_lset)
+
+(* "It is obvious by definition that the limit inferior of
+    a subsequence must be a superset of the limit inferior of the original sequence"
+
+  This means that a "subsequence" as used in the report must be infinite by definition.
+*)
+
+lemma lsubseq_Liminf:
+  assumes \<open>lsubseq xs ys\<close> \<open>\<not> lfinite xs\<close>
+  shows \<open>Liminf_llist ys \<subseteq> Liminf_llist xs\<close>
+  using assms
+proof -
+  have \<open>\<forall>i. enat i < llength ys \<longrightarrow> (\<exists>j. j < llength xs \<and> Inter_from ys i \<subseteq> Inter_from xs j)\<close>
+    using assms lsubseq_Inter_from by (metis enat_ord_code(4) llength_eq_infty_conv_lfinite)
+  moreover have \<open>Liminf_llist ys = (\<Union>i \<in> {i. enat i < llength ys}. Inter_from ys i)\<close>
+    unfolding Liminf_llist_def Inter_from_def by blast
+  moreover have \<open>Liminf_llist xs = (\<Union>i \<in> {i. enat i < llength xs}. Inter_from xs i)\<close>
+    unfolding Liminf_llist_def Inter_from_def by blast
+  ultimately show ?thesis
+    unfolding Liminf_llist_def Inter_from_def by fastforce
+qed
+
+lemma lsubseq_Union_from:
+  assumes \<open>lsubseq xs ys\<close>
+  shows \<open>Union_from xs i \<subseteq> Union_from ys i\<close>
+  using assms by (simp add: Union_from_lset llist_emb_ldrop Union_mono lsubseq_lset)
+
+lemma lsubseq_Limsup:
+  assumes \<open>lsubseq xs ys\<close> \<open>\<not> lfinite xs\<close>
+  shows \<open>Limsup_llist xs \<subseteq> Limsup_llist ys\<close>
+  using assms
+proof -
+  have \<open>\<forall>i. enat i < llength ys \<longrightarrow> (\<exists>j. j < llength xs \<and> Union_from xs j \<subseteq> Union_from ys i)\<close>
+    using assms lsubseq_Union_from by (metis enat_ord_code(4) llength_eq_infty_conv_lfinite)
+  moreover have \<open>Limsup_llist xs = (\<Inter>i \<in> {i. enat i < llength xs}. Union_from xs i)\<close>
+    unfolding Limsup_llist_def Union_from_def by blast
+  moreover have \<open>Limsup_llist ys = (\<Inter>i \<in> {i. enat i < llength ys}. Union_from ys i)\<close>
+    unfolding Limsup_llist_def Union_from_def by blast
+  ultimately show ?thesis
+    unfolding Limsup_llist_def Union_from_def
+    by (smt (z3) le_INF_iff mem_Collect_eq order_refl order_trans)
+qed
+
+subsection \<open>Limit Points\<close>
+
 definition limit_point :: \<open>'a set \<Rightarrow> 'a set llist \<Rightarrow> bool\<close> where
-  \<open>limit_point X Xs \<equiv> \<exists>Xs'. lsubseq Xs' Xs \<and> X = Limsup_llist Xs' \<and> X = Liminf_llist Xs'\<close>
+  \<open>limit_point X Xs \<equiv> \<exists>Xs'.
+    lsubseq Xs' Xs \<and> \<not> lfinite Xs' \<and>
+    X = Limsup_llist Xs' \<and> X = Liminf_llist Xs'\<close>
+
+
+(* Lemma 32 *)
+
+lemma
+  assumes \<open>limit_point X Xs\<close> \<open>\<not> lfinite Xs\<close>
+  shows \<open>Liminf_llist Xs \<subseteq> X\<close> \<open>X \<subseteq> Limsup_llist Xs\<close>
+  using assms unfolding limit_point_def
+  using lsubseq_Liminf lsubseq_Limsup by blast+
 
 end
