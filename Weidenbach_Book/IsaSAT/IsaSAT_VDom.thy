@@ -73,6 +73,20 @@ lemma aivdom_inv_dec_alt_def:
   apply (simp add: aivdom_inv_alt_def)
   done
 
+lemma aivdom_inv_dec_alt_def2:
+  \<open>aivdom_inv_dec aivdom d \<longleftrightarrow>
+  (set (get_avdom_aivdom aivdom) \<inter> set (get_ivdom_aivdom aivdom) = {} \<and>
+    set_mset d \<subseteq> set (get_avdom_aivdom aivdom) \<union> set (get_ivdom_aivdom aivdom) \<and>
+    mset (get_avdom_aivdom aivdom) \<subseteq># mset (get_vdom_aivdom aivdom) \<and>
+    mset (get_ivdom_aivdom aivdom) \<subseteq># mset (get_vdom_aivdom aivdom) \<and>
+  distinct_mset d \<and> distinct (get_vdom_aivdom aivdom) \<and> distinct (get_avdom_aivdom aivdom) \<and>
+  distinct (get_ivdom_aivdom aivdom))\<close>
+  apply (subst AIvdom_split)
+  apply (subst aivdom_inv_dec_def)
+  apply (subst comp_def)
+  apply (auto dest: distinct_mset_mono simp add: aivdom_inv_alt_def)
+  done
+ 
 lemma distinct_butlast_set:
   \<open>distinct xs \<Longrightarrow> set (butlast xs) = set xs - {last xs}\<close>
   by (cases xs rule: rev_cases) auto

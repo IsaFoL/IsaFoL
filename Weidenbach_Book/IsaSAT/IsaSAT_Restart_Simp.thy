@@ -527,7 +527,7 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
 
 lemma (in -) isasat_fast_alt_def:
   \<open>RETURN o isasat_fast = (\<lambda>(M, N, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1) \<and>
+       vdom, lcount, opts, old_arena). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1) \<and>
      clss_size_allcount lcount < uint64_max))\<close>
   unfolding isasat_fast_def
   by (auto intro!: ext simp: learned_clss_count_def clss_size_allcount_def clss_size_lcount_def

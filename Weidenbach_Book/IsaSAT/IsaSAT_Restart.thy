@@ -321,7 +321,7 @@ proof -
       simp: all_init_atms_def all_init_lits_def clss_size_corr_restart_simp2
       simp del: all_init_atms_def[symmetric] clss_size_corr_restart_simp
       intro: valid_arena_extra_information_mark_to_delete'
-      intro!: aivdom_inv_remove_and_swap_inactive
+      intro!: aivdom_inv_dec_remove_and_swap_inactive
       dest!: in_set_butlastD in_vdom_m_fmdropD
       elim!: in_set_upd_cases)
 qed
@@ -722,9 +722,9 @@ lemma clss_size_corr_restart_intro3[intro]:
 
 lemma twl_st_heur_restart_ana_US_empty:
   \<open>NO_MATCH {#} US \<Longrightarrow> NO_MATCH {#} U0 \<Longrightarrow>  NO_MATCH {#} UE \<Longrightarrow> ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom), M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
+       vdom, lcount, opts, old_arena), M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, W, Q) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
    ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena, ivdom), M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)
+       vdom, clss_size_resetUS0 lcount, opts, old_arena), M, N, D, NE, {#}, NEk, UEk, NS, {#}, N0, {#}, W, Q)
        \<in> twl_st_heur_restart_ana r\<close>
   by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
     intro: clss_size_corr_simp)
@@ -751,11 +751,11 @@ definition isasat_replace_annot_in_trail
   where
   \<open>isasat_replace_annot_in_trail L C = (\<lambda>((M, val, lvls, reason, k), N', D', j, W', vm, clvls, cach,
   lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena, ivdom). do {
+  vdom, lcount, opts, old_arena). do {
   ASSERT(atm_of L < length reason);
   RETURN ((M, val, lvls, reason[atm_of L := 0], k), N', D', j, W', vm, clvls, cach, lbd, outl,
   stats, heur,
-  vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena, ivdom)
+  vdom, clss_size_resetUS0 lcount, opts, old_arena)
   })\<close>
 
 lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
@@ -776,7 +776,7 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
       all_init_lits_alt_def(2))
   subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k
     x2k x1l x1m x2l x1n x2m x1o x2n x1p x2o x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v
-    x2v x1w x2w x1x x2x x1y x2y x1z x2z x1aa x2aa x1ab x2ab x1ac x2ac x1ad x2ad x1ae x2ae
+    x2v x1w x2w x1x x2x x1y x2y x1z x2z
     unfolding replace_annot_wl_pre_def replace_annot_l_pre_def
     apply (clarify dest!: split_list[of \<open>Propagated _ _\<close>])
     apply (rule RETURN_SPEC_refine)
@@ -1053,9 +1053,9 @@ lemma cdcl_twl_local_restart_wl_spec0:
 proof -
   define upd :: \<open>_ \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
     \<open>upd M' vm = (\<lambda> (M, N, D, j, W, _, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom).
+       vdom, lcount, opts, old_arena).
        (M', N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom))\<close>
+       vdom, lcount, opts, old_arena))\<close>
      for M' :: trail_pol and vm
 
   have find_decomp_wl_st_int_alt_def:
@@ -1071,9 +1071,9 @@ proof -
 	    isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S);
 	  RETURN (upd M' vm S)
     } \<le> \<Down> {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts),
+       vdom, lcount, opts),
      T).
-    ((M', N', D', isa_length_trail M', W', vm, clvls, cach, lbd, outl, stats, restart_info_restart_done_heur heur, vdom, avdom, lcount, opts),
+    ((M', N', D', isa_length_trail M', W', vm, clvls, cach, lbd, outl, stats, restart_info_restart_done_heur heur, vdom, lcount, opts),
 	  (empty_Q_wl2 T)) \<in> twl_st_heur_restart_ana' r u \<and>
 	  isa_length_trail_pre M'} (SPEC (find_decomp_wl0 y))\<close>
      (is \<open>_ \<le> \<Down> ?A _\<close>)
@@ -1083,10 +1083,10 @@ proof -
   proof -
     have A:
       \<open>?A = {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts),
+       vdom, lcount, opts),
      T).
       ((M', N', D', length (get_trail_wl T), W', vm, clvls, cach, lbd, outl, stats, restart_info_restart_done_heur heur,
-      vdom, avdom, lcount, opts),
+      vdom, lcount, opts),
 	  (empty_Q_wl2 T)) \<in> twl_st_heur_restart_ana' r u \<and>
 	  isa_length_trail_pre M'}\<close>
 	  supply[[goals_limit=1]]
@@ -1909,9 +1909,9 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
 
 lemmas learned_clss_count__simps [simp] =
   learned_clss_count_def[of \<open>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, (a, b, c), opts, old_arena, ivdom)\<close>
+  vdom, (a, b, c), opts, old_arena)\<close>
   for M' N' D' j W' vm clvls cach lbd outl stats heur
-    vdom avdom a b c  opts old_arena ivdom,
+    vdom a b c  opts old_arena,
     unfolded get_learned_count.simps clss_size_lcount_def clss_size_lcountUE_def
     clss_size_lcountUS_def prod.simps]
 
@@ -1924,13 +1924,13 @@ definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow
 
 definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom).
+       vdom, lcount, opts, old_arena).
       end_of_restart_phase heur)\<close>
 
 
 definition end_of_rephasing_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>end_of_rephasing_phase_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom).
+       vdom, lcount, opts, old_arena).
       end_of_rephasing_phase_heur heur)\<close>
 
 
@@ -1944,12 +1944,12 @@ definition incr_restart_phase_end :: \<open>isasat_restart_heuristics \<Rightarr
 
 definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom). do {
+       vdom, lcount, opts, old_arena). do {
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts, old_arena, ivdom)
+         vdom, lcount, opts, old_arena)
   })\<close>
 
 

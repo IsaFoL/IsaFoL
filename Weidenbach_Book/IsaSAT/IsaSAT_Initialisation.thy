@@ -2111,9 +2111,10 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False));
+     let vdoms = AIvdom (vdom, [], ivdom);
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1 (replicate 160 (Pos 0)), init_stats,
-       heur, vdom, [], lcount, opts, [], ivdom)
+       heur, vdoms, lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -2144,7 +2145,7 @@ lemma finalise_init_finalise_init_full:
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
-      twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps aivdom_inv_def
+      twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps aivdom_inv_dec_def
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
     dest: isa_vmtf_init_nemptyD)
   done

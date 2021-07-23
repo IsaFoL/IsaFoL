@@ -138,6 +138,9 @@ fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
 fun get_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
   \<open>get_ivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_ivdom_aivdom vdom\<close>
 
+fun get_aivdom :: \<open>twl_st_wl_heur \<Rightarrow> isasat_aivdom\<close> where
+  \<open>get_aivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+
 fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> where
   \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
 
