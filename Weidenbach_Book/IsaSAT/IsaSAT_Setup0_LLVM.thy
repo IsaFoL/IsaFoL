@@ -6,6 +6,7 @@ theory IsaSAT_Setup0_LLVM
     IsaSAT_Rephase_LLVM
     IsaSAT_EMA_LLVM
     IsaSAT_Stats_LLVM
+    IsaSAT_VDom_LLVM
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
@@ -25,9 +26,8 @@ type_synonym twl_st_wll_trail_fast =
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
     heur_assn \<times>
-  vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
-  opts_assn \<times> arena_assn \<times>
-    vdom_fast_assn\<close>
+   aivdom_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
+  opts_assn \<times> arena_assn\<close>
 
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
@@ -43,10 +43,8 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   out_learned_assn \<times>\<^sub>a
   stats_assn \<times>\<^sub>a
   heuristic_assn \<times>\<^sub>a
-  vdom_fast_assn \<times>\<^sub>a
-  vdom_fast_assn \<times>\<^sub>a
+  aivdom_assn \<times>\<^sub>a
   lcount_assn \<times>\<^sub>a
-  opts_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
-  vdom_fast_assn\<close>
+  opts_assn \<times>\<^sub>a arena_fast_assn\<close>
 
 end

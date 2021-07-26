@@ -93,6 +93,17 @@ sepref_def remove_deleted_clauses_from_avdom_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_def isa_isa_remove_deleted_clauses_from_avdom_impl
+  is \<open>uncurry isa_isa_remove_deleted_clauses_from_avdom\<close>
+  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  unfolding isa_isa_remove_deleted_clauses_from_avdom_def
+  by sepref
+
+sepref_def sort_clauses_by_score_aivdom_impl
+  is \<open>uncurry sort_clauses_by_score_aivdom\<close>
+  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  unfolding sort_clauses_by_score_aivdom_def
+  by sepref
 
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>

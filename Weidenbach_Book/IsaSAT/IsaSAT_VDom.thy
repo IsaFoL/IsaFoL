@@ -177,6 +177,67 @@ lemma get_aivdom_remove_inactive_aivdom[simp]:
   \<open>get_vdom_aivdom (remove_inactive_aivdom i m) = get_vdom_aivdom m\<close>
   \<open>get_avdom_aivdom (remove_inactive_aivdom i m) = (delete_index_and_swap (get_avdom_aivdom m) i)\<close>
   \<open>get_ivdom_aivdom (remove_inactive_aivdom i m) = get_ivdom_aivdom m\<close>
-by (cases m; auto simp: remove_inactive_aivdom_def remove_inactive_aivdom_int_def; fail)+
+  by (cases m; auto simp: remove_inactive_aivdom_def remove_inactive_aivdom_int_def; fail)+
 
+definition vdom_aivdom_at_int :: \<open>aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>vdom_aivdom_at_int  = (\<lambda>(a,b,c) C. a ! C)\<close>
+
+definition vdom_aivdom_at :: \<open>isasat_aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>vdom_aivdom_at ai C = get_vdom_aivdom ai ! C\<close>
+
+lemma vdom_aivdom_at_alt_def:
+  \<open>vdom_aivdom_at = vdom_aivdom_at_int o get_content\<close>
+  by (intro ext, rename_tac x y, case_tac x) (auto simp: vdom_aivdom_at_int_def vdom_aivdom_at_def)
+
+
+definition avdom_aivdom_at_int :: \<open>aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>avdom_aivdom_at_int = (\<lambda>(a,b,c) C. b ! C)\<close>
+
+definition avdom_aivdom_at :: \<open>isasat_aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>avdom_aivdom_at ai C = get_avdom_aivdom ai ! C\<close>
+
+lemma avdom_aivdom_at_alt_def:
+  \<open>avdom_aivdom_at = avdom_aivdom_at_int o get_content\<close>
+  by (intro ext, rename_tac x y, case_tac x) (auto simp: avdom_aivdom_at_int_def avdom_aivdom_at_def)
+
+
+definition ivdom_aivdom_at_int :: \<open>aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>ivdom_aivdom_at_int = (\<lambda>(a,b,c) C. c ! C)\<close>
+
+definition ivdom_aivdom_at :: \<open>isasat_aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>ivdom_aivdom_at ai C = get_ivdom_aivdom ai ! C\<close>
+
+lemma ivdom_aivdom_at_alt_def:
+  \<open>ivdom_aivdom_at = ivdom_aivdom_at_int o get_content\<close>
+  by (intro ext, rename_tac x y, case_tac x) (auto simp: ivdom_aivdom_at_int_def ivdom_aivdom_at_def)
+
+definition length_ivdom_aivdom_int :: \<open>aivdom \<Rightarrow> nat\<close> where
+  \<open>length_ivdom_aivdom_int = (\<lambda>(a,b,c). length c)\<close>
+
+definition length_ivdom_aivdom :: \<open>isasat_aivdom \<Rightarrow> nat\<close> where
+  \<open>length_ivdom_aivdom ai = length (get_ivdom_aivdom ai)\<close>
+
+lemma length_ivdom_aivdom_alt_def:
+  \<open>length_ivdom_aivdom = length_ivdom_aivdom_int o get_content\<close>
+  by (intro ext, rename_tac x, case_tac x) (auto simp: length_ivdom_aivdom_def length_ivdom_aivdom_int_def)
+
+definition length_avdom_aivdom_int :: \<open>aivdom \<Rightarrow> nat\<close> where
+  \<open>length_avdom_aivdom_int = (\<lambda>(a,b,c). length b)\<close>
+
+definition length_avdom_aivdom :: \<open>isasat_aivdom \<Rightarrow> nat\<close> where
+  \<open>length_avdom_aivdom ai = length (get_avdom_aivdom ai)\<close>
+
+lemma length_avdom_aivdom_alt_def:
+  \<open>length_avdom_aivdom = length_avdom_aivdom_int o get_content\<close>
+  by (intro ext, rename_tac x, case_tac x) (auto simp: length_avdom_aivdom_def length_avdom_aivdom_int_def)
+
+definition length_vdom_aivdom_int :: \<open>aivdom \<Rightarrow> nat\<close> where
+  \<open>length_vdom_aivdom_int = (\<lambda>(a,b,c). length a)\<close>
+
+definition length_vdom_aivdom :: \<open>isasat_aivdom \<Rightarrow> nat\<close> where
+  \<open>length_vdom_aivdom ai = length (get_vdom_aivdom ai)\<close>
+
+lemma length_vdom_aivdom_alt_def:
+  \<open>length_vdom_aivdom = length_vdom_aivdom_int o get_content\<close>
+  by (intro ext, rename_tac x, case_tac x) (auto simp: length_vdom_aivdom_def length_vdom_aivdom_int_def)
 end

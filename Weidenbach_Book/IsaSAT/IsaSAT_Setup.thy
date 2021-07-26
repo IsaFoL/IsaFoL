@@ -661,6 +661,9 @@ lemma arena_lit_pre_le_sint64_max:
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
       arena_is_valid_clause_idx_and_access_def)
 
+definition rewatch_heur_vdom where
+  \<open>rewatch_heur_vdom vdom = rewatch_heur (get_vdom_aivdom vdom)\<close>
+
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
