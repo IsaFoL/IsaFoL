@@ -116,7 +116,7 @@ sepref_def rewatch_heur_st_code
   :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  append_ll_def[simp]
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-    rewatch_heur_st_def Let_def rewatch_heur_st_pre_alt_def
+    rewatch_heur_st_def Let_def rewatch_heur_st_pre_alt_def rewatch_heur_vdom_def[symmetric]
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
