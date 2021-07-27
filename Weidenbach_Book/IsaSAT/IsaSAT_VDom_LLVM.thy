@@ -4,18 +4,44 @@ begin
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-abbreviation aivdom_int_rel :: \<open>(aivdom \<times> aivdom) set\<close> where
-  \<open>aivdom_int_rel \<equiv> \<langle>Id\<rangle>list_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
+type_synonym aivdom2 = \<open>vdom \<times> vdom \<times> vdom\<close>
+abbreviation aivdom_int_rel :: \<open>(aivdom2 \<times> aivdom) set\<close> where
+  \<open>aivdom_int_rel \<equiv> {(a, (_, a')). (a,a') \<in> \<langle>Id\<rangle>list_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<times>\<^sub>r \<langle>Id\<rangle>list_rel}\<close>
 
-abbreviation aivdom_rel :: \<open>(aivdom \<times> isasat_aivdom) set\<close> where
+abbreviation aivdom_rel :: \<open>(aivdom2 \<times> isasat_aivdom) set\<close> where
   \<open>aivdom_rel \<equiv> \<langle>aivdom_int_rel\<rangle>code_hider_rel\<close>
 
-abbreviation aivdom_int_assn :: \<open>aivdom \<Rightarrow> _ \<Rightarrow> assn\<close> where
-  \<open>aivdom_int_assn \<equiv> LBD_it.arr_assn \<times>\<^sub>a LBD_it.arr_assn \<times>\<^sub>a LBD_it.arr_assn\<close>
+abbreviation aivdom_int_assn :: \<open>aivdom2 \<Rightarrow> _ \<Rightarrow> assn\<close> where
+  \<open>aivdom_int_assn \<equiv> LBD_it.arr_assn \<times>\<^sub>a LBD_it.arr_assn  \<times>\<^sub>a LBD_it.arr_assn\<close>
 type_synonym aivdom_assn = \<open>vdom_fast_assn \<times> vdom_fast_assn \<times> vdom_fast_assn\<close>
 definition aivdom_assn :: \<open>isasat_aivdom \<Rightarrow> _ \<Rightarrow> assn\<close> where
-  \<open>aivdom_assn = code_hider_assn aivdom_int_assn Id\<close>
+  \<open>aivdom_assn = code_hider_assn aivdom_int_assn aivdom_int_rel\<close>
 
+definition add_learned_clause_aivdom_int where
+  \<open>add_learned_clause_aivdom_int = (\<lambda> C (avdom, ivdom). (avdom @ [C], ivdom))\<close>
+
+definition remove_inactive_aivdom_int :: \<open>_ \<Rightarrow> aivdom2 \<Rightarrow> aivdom2\<close> where
+  \<open>remove_inactive_aivdom_int = (\<lambda>i (avdom, ivdom). (delete_index_and_swap avdom i, ivdom))\<close>
+
+definition avdom_aivdom_at_int :: \<open>aivdom2 \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>avdom_aivdom_at_int = (\<lambda>(b,c) C. b ! C)\<close>
+
+definition tvdom_aivdom_at_int :: \<open>aivdom2 \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>tvdom_aivdom_at_int = (\<lambda>(b,c,d) C. d ! C)\<close>
+
+
+definition length_ivdom_aivdom_int :: \<open>aivdom2 \<Rightarrow> nat\<close> where
+  \<open>length_ivdom_aivdom_int = (\<lambda>(b,c,d). length c)\<close>
+
+definition ivdom_aivdom_at_int :: \<open>aivdom2 \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>ivdom_aivdom_at_int = (\<lambda>(b,c,d) C. c ! C)\<close>
+
+definition length_tvdom_aivdom_int :: \<open>aivdom2 \<Rightarrow> nat\<close> where
+  \<open>length_tvdom_aivdom_int = (\<lambda>(b,c,d). length d)\<close>
+
+definition length_avdom_aivdom_int :: \<open>aivdom2 \<Rightarrow> nat\<close> where
+  \<open>length_avdom_aivdom_int = (\<lambda>(b,c,d). length b)\<close>
+  
 lemma
   add_learned_clause_aivdom_int:
   \<open>(uncurry (RETURN oo add_learned_clause_aivdom_int), uncurry (RETURN oo add_learned_clause_aivdom)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
@@ -23,18 +49,27 @@ lemma
   \<open>(uncurry (RETURN oo remove_inactive_aivdom_int), uncurry (RETURN oo remove_inactive_aivdom)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   avdom_aivdom_at_int:
   \<open>(uncurry (RETURN oo avdom_aivdom_at_int), uncurry (RETURN oo avdom_aivdom_at)) \<in> aivdom_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>and
+  tvdom_aivdom_at_int:
+  \<open>(uncurry (RETURN oo tvdom_aivdom_at_int), uncurry (RETURN oo tvdom_aivdom_at)) \<in> aivdom_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>and
   ivdom_aivdom_at_int:
   \<open>(uncurry (RETURN oo ivdom_aivdom_at_int), uncurry (RETURN oo ivdom_aivdom_at)) \<in> aivdom_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>and
-  vdom_aivdom_at_int:
-  \<open>(uncurry (RETURN oo vdom_aivdom_at_int), uncurry (RETURN oo vdom_aivdom_at)) \<in> aivdom_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
-  length_vdom_aivdom_int:
-  \<open>(RETURN o length_vdom_aivdom_int, RETURN o length_vdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>and
   length_avdom_aivdom_int:
   \<open>(RETURN o length_avdom_aivdom_int, RETURN o length_avdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>and
   length_ivdom_aivdom_int:
-  \<open>(RETURN o length_ivdom_aivdom_int, RETURN o length_ivdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  \<open>(RETURN o length_ivdom_aivdom_int, RETURN o length_ivdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
+  length_tvdom_aivdom_int:
+  \<open>(RETURN o length_tvdom_aivdom_int, RETURN o length_tvdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI simp: code_hider_rel_def add_learned_clause_aivdom_def remove_inactive_aivdom_def avdom_aivdom_at_alt_def
-    ivdom_aivdom_at_alt_def vdom_aivdom_at_alt_def length_vdom_aivdom_alt_def length_avdom_aivdom_alt_def length_ivdom_aivdom_alt_def)
+    ivdom_aivdom_at_alt_def vdom_aivdom_at_alt_def length_vdom_aivdom_alt_def length_avdom_aivdom_alt_def length_ivdom_aivdom_alt_def length_tvdom_aivdom_alt_def tvdom_aivdom_at_alt_def add_learned_clause_aivdom_int_def
+    IsaSAT_VDom.add_learned_clause_aivdom_int_def
+    IsaSAT_VDom.remove_inactive_aivdom_int_def remove_inactive_aivdom_int_def
+    IsaSAT_VDom.avdom_aivdom_at_int_def avdom_aivdom_at_int_def
+    IsaSAT_VDom.tvdom_aivdom_at_int_def tvdom_aivdom_at_int_def
+    IsaSAT_VDom.ivdom_aivdom_at_int_def ivdom_aivdom_at_int_def
+    IsaSAT_VDom.length_avdom_aivdom_int_def length_avdom_aivdom_int_def
+    IsaSAT_VDom.length_ivdom_aivdom_int_def length_ivdom_aivdom_int_def
+    IsaSAT_VDom.length_tvdom_aivdom_int_def length_tvdom_aivdom_int_def
+    )
 
 sepref_def add_learned_clause_aivdom_impl
   is \<open>uncurry (RETURN oo add_learned_clause_aivdom_int)\<close>
@@ -44,26 +79,26 @@ sepref_def add_learned_clause_aivdom_impl
 
 sepref_def remove_inactive_aivdom_impl
   is \<open>uncurry (RETURN oo remove_inactive_aivdom_int)\<close>
-  :: \<open>[\<lambda>(C,(a,b,c)). C < (length b)]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
+  :: \<open>[\<lambda>(C,(a,b,c)). C < (length a)]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
   unfolding remove_inactive_aivdom_int_def
   by sepref
 
 sepref_def ivdom_aivdom_at_impl
   is \<open>uncurry (RETURN oo ivdom_aivdom_at_int)\<close>
-  :: \<open>[\<lambda>((a,b,c), C). C < (length c)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
+  :: \<open>[\<lambda>((b,c,d), C). C < (length c)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
   unfolding ivdom_aivdom_at_int_def
-  by sepref
-
-sepref_def vdom_aivdom_at_impl
-  is \<open>uncurry (RETURN oo vdom_aivdom_at_int)\<close>
-  :: \<open>[\<lambda>((a,b,c), C). C < (length a)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
-  unfolding vdom_aivdom_at_int_def
   by sepref
 
 sepref_def avdom_aivdom_at_impl
   is \<open>uncurry (RETURN oo avdom_aivdom_at_int)\<close>
-  :: \<open>[\<lambda>((a,b,c), C). C < (length b)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
+  :: \<open>[\<lambda>((b,c), C). C < (length b)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
   unfolding avdom_aivdom_at_int_def
+  by sepref
+
+sepref_def tvdom_aivdom_at_impl
+  is \<open>uncurry (RETURN oo tvdom_aivdom_at_int)\<close>
+  :: \<open>[\<lambda>((b,c,d), C). C < (length d)]\<^sub>a aivdom_int_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
+  unfolding tvdom_aivdom_at_int_def
   by sepref
 
 sepref_def length_avdom_aivdom_impl
@@ -95,9 +130,15 @@ sepref_def length_vdom_aivdom_impl
   unfolding length_vdom_aivdom_int_def
   by sepref
 
+sepref_def length_tvdom_aivdom_impl
+  is \<open>RETURN o length_tvdom_aivdom_int\<close>
+  :: \<open>aivdom_int_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding length_tvdom_aivdom_int_def comp_def workaround_RF_def[symmetric]
+  by sepref
+
 lemma aivdom_assn_alt_def:
   \<open>aivdom_assn = hr_comp aivdom_int_assn
-  (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel\<rangle>code_hider_rel)\<close>
+  (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel\<rangle>code_hider_rel)\<close>
   unfolding aivdom_assn_def code_hider_assn_def by auto
 
 context
@@ -111,7 +152,7 @@ theorem [sepref_fr_rules]:
 proof -
   have H: \<open>?c
 \<in> [comp_PRE
-    (nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel)
+    (nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel)
     (\<lambda>_. True)
     (\<lambda>x y. case y of (C, a, b, c) \<Rightarrow> Suc (length a) < max_snat 64 \<and> Suc (length b) < max_snat 64)
     (\<lambda>x. nofail
@@ -137,7 +178,7 @@ theorem [sepref_fr_rules]:
 proof -
   have H: \<open>?c
 \<in> [comp_PRE
-   (nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel)
+   (nat_rel \<times>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel)
    (\<lambda>_. True) (\<lambda>x y. case y of (C, a, b, c) \<Rightarrow> C < length b)
    (\<lambda>x. nofail
       (uncurry (RETURN \<circ>\<circ> remove_inactive_aivdom)
@@ -162,7 +203,7 @@ theorem [sepref_fr_rules]:
 proof -
   have H: \<open>?c
 \<in> [comp_PRE
-    (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel \<times>\<^sub>f nat_rel)
+    (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel \<times>\<^sub>f nat_rel)
     (\<lambda>_. True) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (a, b, c) \<Rightarrow> \<lambda>C. C < length b) xa)
     (\<lambda>x. nofail
     (uncurry (RETURN \<circ>\<circ> avdom_aivdom_at) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
@@ -186,8 +227,8 @@ theorem [sepref_fr_rules]:
 proof -
   have H: \<open>?c
 \<in> [comp_PRE
-    (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel \<times>\<^sub>f nat_rel)
-    (\<lambda>_. True) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (a, b, c) \<Rightarrow> \<lambda>C. C < length c) xa)
+    (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel \<times>\<^sub>f nat_rel)
+    (\<lambda>_. True) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (a, b, c, d) \<Rightarrow> \<lambda>C. C < length c) xa)
     (\<lambda>x. nofail
     (uncurry (RETURN \<circ>\<circ> ivdom_aivdom_at) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a _ \<rightarrow> _\<close>)
@@ -204,21 +245,21 @@ qed
 
 
 theorem [sepref_fr_rules]:
-  \<open>(uncurry vdom_aivdom_at_impl, uncurry (RETURN \<circ>\<circ> vdom_aivdom_at))
-\<in> [\<lambda>(ai, C). C < (length (get_vdom_aivdom ai))]\<^sub>a aivdom_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  \<open>(uncurry tvdom_aivdom_at_impl, uncurry (RETURN \<circ>\<circ> tvdom_aivdom_at))
+\<in> [\<lambda>(ai, C). C < (length (get_tvdom_aivdom ai)) ]\<^sub>a aivdom_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>?c
 \<in> [comp_PRE
-     (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel)\<rangle>code_hider_rel \<times>\<^sub>f
-      nat_rel)
-     (\<lambda>_. True) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (a, b, c) \<Rightarrow> \<lambda>C. C < length a) xa)
-     (\<lambda>x. nofail
-        (uncurry (RETURN \<circ>\<circ> vdom_aivdom_at) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
+   (\<langle>\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f
+     (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel))\<rangle>code_hider_rel \<times>\<^sub>f
+    nat_rel)
+   (\<lambda>_. True) (\<lambda>x y. case y of (x, xa) \<Rightarrow> (case x of (a, b, c, d) \<Rightarrow> \<lambda>C. C < length d) xa)
+   (\<lambda>x. nofail
+      (uncurry (RETURN \<circ>\<circ> tvdom_aivdom_at) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a _ \<rightarrow> _\<close>)
-    using hfref_compI_PRE[OF vdom_aivdom_at_impl.refine
-      vdom_aivdom_at_int, unfolded fcomp_norm_unfold aivdom_assn_alt_def[symmetric]]
-    by blast
+    using hfref_compI_PRE[OF tvdom_aivdom_at_impl.refine
+      tvdom_aivdom_at_int, unfolded fcomp_norm_unfold aivdom_assn_alt_def[symmetric]] by simp
   have pre: \<open>?pre' = ?pre\<close> for x h
     by (intro ext, rename_tac x, case_tac x, case_tac \<open>fst x\<close>)
       (auto simp: comp_PRE_def code_hider_rel_def)
@@ -228,15 +269,17 @@ proof -
     by blast
 qed
 
+
 lemma aivdom_int_assn_alt_def:
   \<open>aivdom_int_assn = hr_comp aivdom_int_assn
-  (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel))\<close>
+  (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel))\<close>
   by auto
 
 lemmas [sepref_fr_rules] =
   length_avdom_aivdom_impl.refine[FCOMP length_avdom_aivdom_int]
   length_vdom_aivdom_impl.refine[FCOMP length_vdom_aivdom_int]
   length_ivdom_aivdom_impl.refine[FCOMP length_ivdom_aivdom_int]
+  length_tvdom_aivdom_impl.refine[FCOMP length_tvdom_aivdom_int]
   hn_id[FCOMP Constructor_hnr[of aivdom_int_rel], of aivdom_int_assn,
   unfolded aivdom_assn_alt_def[symmetric] aivdom_assn_def[symmetric] aivdom_int_assn_alt_def[symmetric]]
     hn_id[FCOMP get_content_hnr[of aivdom_int_rel], of aivdom_int_assn,

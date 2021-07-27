@@ -908,13 +908,14 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_cong:
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def \<L>\<^sub>a\<^sub>l\<^sub>l_cong by force
 
 lemma aivdom_inv_mono:
-  \<open>B \<subseteq># A \<Longrightarrow> aivdom_inv (v, x1y, x2aa) A \<Longrightarrow> aivdom_inv (v, x1y, x2aa) B\<close>
+  \<open>B \<subseteq># A \<Longrightarrow> aivdom_inv (v, x1y, x2aa, tvdom) A \<Longrightarrow> aivdom_inv (v, x1y, x2aa, tvdom) B\<close>
   using distinct_mset_mono[of B A]
   by (auto simp: aivdom_inv_alt_def)
 
 lemma aivdom_inv_dec_mono:
   \<open>B \<subseteq># A \<Longrightarrow> aivdom_inv_dec vdom A \<Longrightarrow> aivdom_inv_dec vdom B\<close>
-  using aivdom_inv_mono[of B A \<open>get_vdom_aivdom vdom\<close> \<open>get_avdom_aivdom vdom\<close> \<open>get_ivdom_aivdom vdom\<close>]
+  using aivdom_inv_mono[of B A \<open>get_vdom_aivdom vdom\<close> \<open>get_avdom_aivdom vdom\<close> \<open>get_ivdom_aivdom vdom\<close>
+    \<open>get_tvdom_aivdom vdom\<close>]
   by (cases vdom) (auto simp: aivdom_inv_dec_def)
 
 lemma isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2:

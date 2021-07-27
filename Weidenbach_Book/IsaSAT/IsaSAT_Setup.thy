@@ -25,6 +25,26 @@ text \<open>We here define the last step of our refinement: the step with all th
   We have successfully killed all natural numbers when generating LLVM. However, the LLVM binding
   does not have a binding to GMP integers.
 \<close>
+(*TODO Move*)
+fun get_unkept_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unkept_unit_init_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NE\<close>
+
+fun get_unkept_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_unkept_unit_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = UE\<close>
+
+fun get_kept_unit_init_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_init_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = NEk\<close>
+
+fun get_kept_unit_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
+  \<open>get_kept_unit_learned_clss_wl (M, N, D, NE, UE, NEk, UEk, NS, US, Q, W) = UEk\<close>
+
+lemma get_unit_init_clss_wl_alt_def:
+  \<open>get_unit_init_clss_wl T = get_unkept_unit_init_clss_wl T + get_kept_unit_init_clss_wl T\<close>
+  by (cases T) auto
+
+lemma get_unit_learned_clss_wl_alt_def:
+  \<open>get_unit_learned_clss_wl T = get_unkept_unit_learned_clss_wl T + get_kept_unit_learned_clss_wl T\<close>
+  by (cases T) auto
 
 
 section \<open>VMTF\<close>
@@ -137,6 +157,9 @@ fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
 
 fun get_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
   \<open>get_ivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_ivdom_aivdom vdom\<close>
+
+fun get_tvdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
+  \<open>get_tvdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_tvdom_aivdom vdom\<close>
 
 fun get_aivdom :: \<open>twl_st_wl_heur \<Rightarrow> isasat_aivdom\<close> where
   \<open>get_aivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
@@ -662,15 +685,15 @@ lemma arena_lit_pre_le_sint64_max:
       arena_is_valid_clause_idx_and_access_def)
 
 definition rewatch_heur_vdom where
-  \<open>rewatch_heur_vdom vdom = rewatch_heur (get_vdom_aivdom vdom)\<close>
+  \<open>rewatch_heur_vdom vdom = rewatch_heur (get_tvdom_aivdom vdom)\<close>
 
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, heur, vdom, ccount, lcount). do {
-  ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
-  W \<leftarrow> rewatch_heur (get_vdom_aivdom vdom) N0 W;
+  ASSERT(length (get_tvdom_aivdom vdom) \<le> length N0);
+  W \<leftarrow> rewatch_heur (get_tvdom_aivdom vdom) N0 W;
   RETURN (M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, heur, vdom, ccount, lcount)
   })\<close>
@@ -680,7 +703,7 @@ definition rewatch_heur_st_fast where
 
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_vdom S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
+     ((\<forall>x \<in> set (get_tvdom S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{
@@ -903,6 +926,14 @@ lemma length_ivdom_alt_def:
     vdom, lcount, _, _). length (get_ivdom_aivdom vdom))\<close>
   by (intro ext) (auto simp: length_ivdom_def)
 
+definition length_tvdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>length_tvdom S = length (get_tvdom S)\<close>
+
+lemma length_tvdom_alt_def:
+  \<open>length_tvdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+    vdom, lcount, _, _). length (get_tvdom_aivdom vdom))\<close>
+  by (intro ext) (auto simp: length_tvdom_def)
+
 definition clause_is_learned_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool\<close>
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
@@ -963,11 +994,21 @@ lemma access_ivdom_at_alt_def:
   \<open>access_ivdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_ivdom_aivdom vdom ! i)\<close>
   by (intro ext) (auto simp: access_ivdom_at_def)
 
+definition access_tvdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_tvdom_at S i = get_tvdom S ! i\<close>
+
+lemma access_tvdom_at_alt_def:
+  \<open>access_tvdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_tvdom_aivdom vdom ! i)\<close>
+  by (intro ext) (auto simp: access_tvdom_at_def)
+
 definition access_avdom_at_pre where
   \<open>access_avdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
 
 definition access_ivdom_at_pre where
   \<open>access_ivdom_at_pre S i \<longleftrightarrow> i < length (get_ivdom S)\<close>
+
+definition access_tvdom_at_pre where
+  \<open>access_tvdom_at_pre S i \<longleftrightarrow> i < length (get_tvdom S)\<close>
 
 (*TODO check which of theses variants are used!*)
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
@@ -1266,7 +1307,6 @@ lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
      RETURN (arena_status arena C \<noteq> DELETED))\<close>
   unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
-
 
 lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrightarrow>
                       learned_clss_count T=
