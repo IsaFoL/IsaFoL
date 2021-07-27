@@ -3,75 +3,29 @@
 #define _ISASAT_RESTART_H 1
 
 
+
+typedef struct CLAUSE CLAUSE;
+typedef struct CLAUSES CLAUSES;
+
+
+
 typedef int8_t CBOOL;
-typedef int8_t PROFILE_CST;
-typedef struct {
+typedef struct CLAUSE {
   int64_t size;
   struct {
     int64_t used;
     uint32_t*clause;
   };
 } CLAUSE;
-typedef struct {
+typedef struct CLAUSES {
   int64_t num_clauses;
   CLAUSE*clauses;
 } CLAUSES;
-typedef struct {
-  int64_t size;
-  struct {
-    int64_t capacity;
-    int32_t*data;
-  };
-} ARENA;
+typedef int8_t PROFILE_CST;
 typedef int32_t* STRING_VERSION;
-typedef struct {
-  int64_t size;
-  struct {
-    int64_t capacity;
-    uint32_t*data;
-  };
-} RAW_TRAIL;
-typedef struct {
-  int64_t size;
-  int8_t*polarity;
-} POLARITY;
-typedef struct {
-  int64_t size;
-  int32_t*level;
-} LEVEL;
-typedef struct {
-  int64_t size;
-  int64_t*reasons;
-} REASONS;
-typedef struct {
-  int64_t size;
-  struct {
-    int64_t capacity;
-    int32_t*data;
-  };
-} CONTROL_STACK;
-typedef struct {
-  RAW_TRAIL raw_trail;
-  struct {
-    POLARITY pol;
-    struct {
-      LEVEL lev;
-      struct {
-        REASONS resasons;
-        struct {
-          int32_t dec_lev;
-          CONTROL_STACK cs;
-        };
-      };
-    };
-  };
-} TRAIL;
 
 STRING_VERSION llvm_version();
-int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES);
-uint32_t arena_lit_impl(ARENA, int64_t);
 PROFILE_CST IsaSAT_Profile_GC();
-uint32_t count_decided_st_heur_pol_fast(TRAIL);
 PROFILE_CST IsaSAT_Profile_REDUCE();
 PROFILE_CST IsaSAT_Profile_ANALYZE();
 PROFILE_CST IsaSAT_Profile_PROPAGATE();

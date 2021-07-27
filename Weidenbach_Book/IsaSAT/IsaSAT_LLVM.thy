@@ -385,7 +385,7 @@ sepref_register IsaSAT_bounded_heur default_opts
 abbreviation bool_C_assn where
    \<open>bool_C_assn \<equiv> (word_assn' (TYPE(8)))\<close>
 
-sepref_def IsaSAT_code_wrapped
+sepref_def IsaSAT_wrapped
   is \<open>uncurry10 IsaSAT_bounded_heur_wrapper\<close>
   :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
@@ -440,10 +440,8 @@ begin
   export_llvm
     llvm_version is \<open>STRING_VERSION llvm_version()\<close>
     IsaSAT_code
-    count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
-    arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
-    IsaSAT_code_wrapped is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
-        int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES)\<close>
+    IsaSAT_wrapped (*is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
+        int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES)\<close>*)
     IsaSAT_Profile_PROPAGATE is \<open>PROFILE_CST IsaSAT_Profile_PROPAGATE()\<close>
     IsaSAT_Profile_REDUCE is \<open>PROFILE_CST IsaSAT_Profile_REDUCE()\<close>
     IsaSAT_Profile_GC is \<open>PROFILE_CST IsaSAT_Profile_GC()\<close>
@@ -455,21 +453,7 @@ begin
      typedef int8_t PROFILE_CST;
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
-
-     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} ARENA;
      typedef int32_t* STRING_VERSION;
-
-     typedef struct {int64_t size; struct {int64_t capacity; uint32_t *data;};} RAW_TRAIL;
-     typedef struct {int64_t size; int8_t *polarity;} POLARITY;
-     typedef struct {int64_t size; int32_t *level;} LEVEL;
-     typedef struct {int64_t size; int64_t *reasons;} REASONS;
-     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} CONTROL_STACK;
-     typedef struct {RAW_TRAIL raw_trail;
-         struct {POLARITY pol;
-           struct {LEVEL lev;
-             struct {REASONS resasons;
-               struct {int32_t dec_lev;
-                CONTROL_STACK cs;};};};};} TRAIL;
   \<close>
   file \<open>code/src/isasat_restart.ll\<close>
 

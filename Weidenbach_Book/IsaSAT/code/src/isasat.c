@@ -9,6 +9,7 @@
 
 #include "isasat_restart.h"
 
+
 /* Put the model in an array to print it*/
 typedef struct MODEL {
   int32_t* model;
@@ -87,6 +88,8 @@ static void append_lit(int32_t lit, CLAUSE * cl) {
 static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
+
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -620,10 +623,12 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 #ifdef PRINTSTATS
-  printf("c propagations                       redundant        reductions             level-0                     LBDS                    subsumed\n"
-	 "c                     conflicts               irred               lrestarts                 GCs                  not-mem-reasons         \n");
+  printf("c    propagations                       redundant                 reductions                  level-0                       LBDS                    not-mem-reasons\n"
+	 "c                     conflicts                      irred                      lrestarts                       GCs                       unit-subsumed               subsumed\n");
+  //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0 
+
 #endif
-  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
+  int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
 			     sema, unitinterval, clauses);
   stop_profile(&total_prof);
 
