@@ -135,6 +135,7 @@ sepref_def access_avdom_at_fast_code
   is \<open>uncurry (RETURN oo access_avdom_at)\<close>
   :: \<open>[uncurry access_avdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding access_avdom_at_alt_def access_avdom_at_pre_def isasat_bounded_assn_def
+    avdom_aivdom_at_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -142,6 +143,7 @@ sepref_def access_ivdom_at_fast_code
   is \<open>uncurry (RETURN oo access_ivdom_at)\<close>
   :: \<open>[uncurry access_ivdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding access_ivdom_at_alt_def access_ivdom_at_pre_def isasat_bounded_assn_def
+    ivdom_aivdom_at_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -156,7 +158,7 @@ sepref_def mop_access_lit_in_clauses_heur_impl
   by sepref
 
 lemma get_opts_alt_def:
-  \<open>get_opts = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
+  \<open>get_opts = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
   by (auto intro!: ext)
 
 sepref_def get_opts_impl

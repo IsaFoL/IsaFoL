@@ -557,7 +557,7 @@ proof -
 
 note [[goals_limit=1]]
   have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
-      x1s, x1t, m, n, p, q, ra, s, t),
+      x1s, x1t, m, n, p, q, ra),
      (x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)
     \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
     CLS = ((x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<Longrightarrow>
@@ -581,7 +581,7 @@ note [[goals_limit=1]]
      apply (refine_vcg lhs_step_If)
      apply (rule isasat_lookup_merge_eq2_lookup_merge_eq2[where
         vdom = \<open>set (get_vdom (x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
-      x1s, x1t, m, n, p, q, ra, s, t))\<close> and M = x1a and  N = x1b and C = x1c and
+      x1s, x1t, m, n, p, q, ra))\<close> and M = x1a and  N = x1b and C = x1c and
       \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<close>, THEN order_trans])
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre' simp: update_confl_tl_wl_pre'_def)
@@ -633,12 +633,12 @@ note [[goals_limit=1]]
          intro!: ASSERT_leI)
      done
     subgoal
-      apply (subst (asm) arena_lifting(4)[where vdom = \<open>set p\<close> and N = x1b, symmetric])
+      apply (subst (asm) arena_lifting(4)[where vdom = \<open>set (get_vdom_aivdom p)\<close> and N = x1b, symmetric])
       subgoal by (auto simp: twl_st_heur_conflict_ana_def)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def)
       apply (rule isa_resolve_merge_conflict_gt2[where
-         \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)\<close> and vdom = \<open>set p\<close>,
+         \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)\<close> and vdom = \<open>set (get_vdom_aivdom p)\<close>,
        THEN fref_to_Down_curry5, of x1a x1b x2g x1c x1q x1t,
        THEN order_trans])
      subgoal unfolding merge_conflict_m_pre_def
@@ -657,13 +657,13 @@ note [[goals_limit=1]]
       done
     done
   have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q,
-         x1r, x1s, l, m, n, p, q, ra, s),
+         x1r, x1s, l, m, n, p, q, ra),
         (x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja)
        \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
        CLS = ((x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja) \<Longrightarrow>
        CLS' =
        ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
-        x1s, l, m, n, p, q, ra, s) \<Longrightarrow>
+        x1s, l, m, n, p, q, ra) \<Longrightarrow>
        update_confl_tl_wl_pre x1 x2
         (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja) \<Longrightarrow>
        ((x1t, x2t :: bool list), x1b)
@@ -671,7 +671,7 @@ note [[goals_limit=1]]
           valid_arena arena' N'
            (set (get_vdom
                   (snd ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n,
-                        x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s)))) \<and>
+                        x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra)))) \<and>
           N = N' \<and> length x1i = length arena'} \<Longrightarrow>
        1 \<le> x1p \<Longrightarrow>
        arena_is_valid_clause_idx x1t x2g \<Longrightarrow>
@@ -689,7 +689,7 @@ note [[goals_limit=1]]
      apply (refine_vcg lhs_step_If)
      apply (rule isasat_lookup_merge_eq2_lookup_merge_eq2[where
         vdom = \<open>set (get_vdom (x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q,
-         x1r, x1s, l, m, n, p, q, ra, s))\<close> and M = x1a and  N = x1b and C = x1c and
+         x1r, x1s, l, m, n, p, q, ra))\<close> and M = x1a and  N = x1b and C = x1c and
       \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>, THEN order_trans])
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre' simp: update_confl_tl_wl_pre'_def)
@@ -737,12 +737,12 @@ note [[goals_limit=1]]
          intro!: ASSERT_leI)
      done
     subgoal
-      apply (subst (asm) arena_lifting(4)[where vdom = \<open>set n\<close> and N = x1b, symmetric])
+      apply (subst (asm) arena_lifting(4)[where vdom = \<open>set (get_vdom_aivdom n)\<close> and N = x1b, symmetric])
       subgoal by (auto simp: )
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def)
       apply (rule isa_resolve_merge_conflict_gt2[where
-         \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close> and vdom = \<open>set n\<close>,
+         \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close> and vdom = \<open>set (get_vdom_aivdom n)\<close>,
        THEN fref_to_Down_curry5, of x1a x1b x2g x1c x1p x1s,
        THEN order_trans])
      subgoal unfolding merge_conflict_m_pre_def
@@ -786,16 +786,16 @@ note [[goals_limit=1]]
         dest!: multi_member_split[of _ \<open>dom_m _\<close>])
 
  have isa_vmtf_mark_to_rescore_clause: \<open>
-    (((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s), (x1, x2), x1a, x1b, x1c, x1d,
+    (((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra), (x1, x2), x1a, x1b, x1c, x1d,
      x1e, x1f, ha, ia, ja, ka, la)
     \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
     CLS = ((x1, x2), x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) \<Longrightarrow>
-    CLS' = ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s) \<Longrightarrow>
+    CLS' = ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra) \<Longrightarrow>
     update_confl_tl_wl_pre x1 x2 (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja, ka, la) \<Longrightarrow>
     ((x1t, x2t), N)
     \<in> {((arena', lbd), N').
     valid_arena arena' N'
-     (set (get_vdom (snd ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s)))) \<and>
+     (set (get_vdom (snd ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra)))) \<and>
     x1b = N' \<and> length x1i = length arena'} \<Longrightarrow>
     1 \<le> x1p \<Longrightarrow>
     arena_is_valid_clause_idx x1t x2g \<Longrightarrow>
@@ -819,9 +819,9 @@ note [[goals_limit=1]]
    for l m n p q ra s ha ia ja ka la x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i x1k x1l x2k
      x1m x1n x1o x1p x1q x1r x1s N x1t x2t D x1v x1w x2v x1x x2x CLS CLS'
   unfolding twl_st_heur_conflict_ana_def isa_vmtf_def apply (clarsimp simp only: prod_rel_iff)
-  subgoal for x y xa a b aa ab ac ad ba bb
+  subgoal for x y xa aa ab ac ad ba bb
     apply (rule isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
-        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, xa, a, b)\<close>,
+        where \<A> = \<open>all_atms_st (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja, ka, x, y, xa)\<close>,
         THEN fref_to_Down_curry4,
           of _ _ _ _ _ x1a x1t x2 \<open>-x1\<close> \<open>((aa, ab, ac, ad, ba), bb)\<close>,
         THEN order_trans])
@@ -830,7 +830,7 @@ note [[goals_limit=1]]
     subgoal
       apply (rule ref_two_step'[THEN order_trans, OF vmtf_mark_to_rescore_also_reasons_cl_spec,
         of _ _ x1a _
-          N \<open>set n\<close>])
+          N \<open>set (get_vdom_aivdom n)\<close>])
       subgoal by (auto simp: )
       subgoal by (auto simp: update_confl_tl_wl_pre_def update_confl_tl_l_pre_def
         twl_st_l_def state_wl_l_def)
@@ -891,7 +891,7 @@ note [[goals_limit=1]]
         dest: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of _ M \<open>lit_of (hd M)\<close> for M])
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
        x1k x1l x2k x1m x1n x1o x1p x1q x1r x1t D x1v x1w x2v x1x x1y
-         by (rule tl_trailt_tr_pre[of x1f _ \<open>all_atms_st (x1f, x1y, x2g, x1h, x1i, x1k, ia, ja, x1, x2, x1a, x1b, x1c)\<close>])
+         by (rule tl_trailt_tr_pre[of x1d _ \<open>all_atms_st (x1d, x2v, x1f, x1g, x2g, x1h, t, ha, ia, ja, x1, x2, x1a)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
              simp flip: all_lits_st_alt_def

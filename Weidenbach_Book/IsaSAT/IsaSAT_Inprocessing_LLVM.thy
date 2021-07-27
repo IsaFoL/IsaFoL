@@ -119,8 +119,8 @@ sepref_def isa_simplify_clauses_with_units_st_wl2_code
 experiment
 begin
   export_llvm isa_simplify_clauses_with_unit_st2_code
-  isa_simplify_clauses_with_unit_st_wl2_code
-  isa_simplify_clauses_with_units_st_wl2_code
+    isa_simplify_clauses_with_unit_st_wl2_code
+    isa_simplify_clauses_with_units_st_wl2_code
 end
 
 end

@@ -50,7 +50,7 @@ sepref_def opts_restart_coeff2_st_fast_code
 
 lemma units_since_last_GC_st_alt_def:
   \<open>RETURN o units_since_last_GC_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena). RETURN (units_since_last_GC stats))\<close>
+  vdom, lcount, opts, old_arena). RETURN (units_since_last_GC stats))\<close>
   by (auto intro!: ext simp: units_since_last_GC_st_def)
 
 sepref_def units_since_last_GC_st_code
@@ -63,9 +63,9 @@ sepref_def units_since_last_GC_st_code
 
 lemma reset_units_since_last_GC_st_alt_def:
   \<open>RETURN o reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
+  vdom, lcount, opts, old_arena).
   RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
-  vdom, avdom, lcount, opts, old_arena))\<close>
+  vdom, lcount, opts, old_arena))\<close>
   unfolding reset_units_since_last_GC_st_def by auto
 
 sepref_register reset_units_since_last_GC
@@ -80,7 +80,7 @@ sepref_def reset_units_since_last_GC_st_code
 
 lemma get_GC_units_opt_alt_def:
   \<open>RETURN o get_GC_units_opt = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>
+  vdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>
   by (auto intro!: ext simp: get_GC_units_opt_def)
 
 sepref_def get_GC_units_opt_code
@@ -212,9 +212,9 @@ sepref_def get_count_max_lvls_heur_impl
 
 lemma clss_size_resetUS0_st_alt_def:
   \<open>RETURN o clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
+  vdom, lcount, opts, old_arena).
   RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
+  vdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
   unfolding clss_size_resetUS0_st_def
   by (auto intro!: ext)
 

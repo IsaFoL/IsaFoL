@@ -9,6 +9,7 @@ theory IsaSAT_Setup
     IsaSAT_EMA
     IsaSAT_Stats
     IsaSAT_Profile
+    IsaSAT_VDom
 begin
 
 chapter \<open>Complete state\<close>
@@ -31,8 +32,6 @@ section \<open>VMTF\<close>
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
 
 type_synonym out_learned = \<open>nat clause_l\<close>
-
-type_synonym vdom = \<open>nat list\<close>
 
 
 subsection \<open>Conflict\<close>
@@ -57,7 +56,7 @@ type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> isasat_stats \<times> isasat_restart_heuristics \<times>
-    vdom \<times> vdom \<times> clss_size \<times> opts \<times> arena \<times> vdom\<close>
+    isasat_aivdom \<times> clss_size \<times> opts \<times> arena\<close>
 
 
 paragraph \<open>Accessors\<close>
@@ -131,25 +130,28 @@ fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> restart_info\
   \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, heur, _) = restart_info_of heur\<close>
 
 fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_vdom_aivdom vdom\<close>
 
 fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
-
-fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> where
-  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
-
-fun get_learned_count_number :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>get_learned_count_number (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = clss_size_lcount lcount\<close>
-
-fun get_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
-  \<open>get_opts (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
-
-fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
-  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena, _) = old_arena\<close>
+  \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_avdom_aivdom vdom\<close>
 
 fun get_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_ivdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom) = vdom\<close>
+  \<open>get_ivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = get_ivdom_aivdom vdom\<close>
+
+fun get_aivdom :: \<open>twl_st_wl_heur \<Rightarrow> isasat_aivdom\<close> where
+  \<open>get_aivdom (_, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+
+fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> where
+  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
+
+fun get_learned_count_number :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>get_learned_count_number (_, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = clss_size_lcount lcount\<close>
+
+fun get_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
+  \<open>get_opts (_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
+
+fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
+  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
 definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
@@ -158,79 +160,6 @@ definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<clo
 definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
-
-paragraph \<open>AI-vdom\<close>
-text \<open>
-We keep all the indices. This is a subset of \<^term>\<open>vdom\<close> but is cleaned more aggressively.
-At first we traid to express the relation directly but this was too cumbersome to use, due to having
-both sets and multisets.
-\<close>
-definition aivdom_inv :: \<open>vdom \<Rightarrow> vdom \<Rightarrow> vdom \<Rightarrow> _ \<Rightarrow> bool\<close> where
-  \<open>aivdom_inv vdom avdom ivdom d \<longleftrightarrow>
-    set avdom \<inter> set ivdom = {} \<and>
-    set_mset d \<subseteq> set avdom \<union> set ivdom \<and>
-    mset avdom \<subseteq># mset vdom \<and>
-    mset ivdom \<subseteq># mset vdom \<and>
-    distinct_mset d \<and>
-    distinct vdom\<close>
-
-lemma aivdom_inv_alt_def:
-  \<open>aivdom_inv vdom avdom ivdom d \<longleftrightarrow>
-    set avdom \<inter> set ivdom = {} \<and>
-    set_mset d \<subseteq> set avdom \<union> set ivdom \<and>
-    set avdom \<subseteq> set vdom \<and>
-    set ivdom \<subseteq> set vdom \<and>
-    distinct vdom\<and>
-    distinct ivdom\<and>
-    distinct_mset d \<and>
-    distinct avdom\<close>
-  using distinct_mset_mono[of \<open>mset avdom\<close> \<open>mset vdom\<close>]  distinct_mset_mono[of \<open>mset ivdom\<close> \<open>mset vdom\<close>]
-    distinct_subseteq_iff[of  \<open>mset avdom\<close> \<open>mset vdom\<close>] distinct_subseteq_iff[of \<open>mset ivdom\<close> \<open>mset vdom\<close>]
-  by (auto simp: aivdom_inv_def)
-
- 
-lemma distinct_butlast_set:
-  \<open>distinct xs \<Longrightarrow> set (butlast xs) = set xs - {last xs}\<close>
-  by (cases xs rule: rev_cases) auto
-
-lemma distinct_remove_readd_last_set:
-  \<open>distinct xs \<Longrightarrow> i < length xs \<Longrightarrow> set (butlast (xs[i := last xs])) = set xs - {xs!i}\<close>
-  by (cases xs rule: rev_cases) (auto simp: list_update_append set_update_distinct nth_append)
-
-lemma aivdom_inv_intro_add_mset:
-  \<open>C \<notin># d \<Longrightarrow> C \<notin> set vdom \<Longrightarrow> aivdom_inv vdom avdom ivdom d \<Longrightarrow> aivdom_inv (vdom @ [C]) (avdom @ [C]) ivdom (add_mset C d)\<close>
-  unfolding aivdom_inv_alt_def
-  by (cases \<open>C \<in> (set avdom \<union> set ivdom)\<close>)
-   (auto dest: subset_mset_imp_subset_add_mset)
-
-lemma aivdom_inv_remove_and_swap_inactive:
-  assumes \<open>i < length n\<close> and \<open>aivdom_inv m n s baa\<close>
-  shows \<open>aivdom_inv m (butlast (n[i := last n])) s (remove1_mset (n ! i) baa)\<close>
-proof -
-  have [simp]: \<open>set n - {n ! i} \<union> set s = set n \<union> set s - {n ! i}\<close>
-    using assms nth_mem[of i n]
-    by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set
-      dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
-  have [simp]: \<open>mset_set (set n \<union> set s - {n ! i}) = remove1_mset (n!i) (mset_set (set n \<union> set s))\<close>
-    using assms
-    by (auto simp: aivdom_inv_alt_def mset_set_Diff)
-  show ?thesis
-    using assms
-    by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set mset_le_subtract
-      dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
-qed
-
-lemma aivdom_inv_remove_clause:
-  \<open>aivdom_inv m n s baa \<Longrightarrow> aivdom_inv m n s (remove1_mset C baa)\<close>
-  by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set
-      dest: in_set_butlastD dest: in_diffD)
-
-
-lemma aivdom_inv_removed_inactive:
-  assumes \<open>i < length n\<close> and \<open>aivdom_inv m n s baa\<close> \<open>n!i \<notin># baa\<close>
-  shows \<open>aivdom_inv m (butlast (n[i := last n])) s baa\<close>
-  by (metis aivdom_inv_remove_and_swap_inactive assms(1) assms(2) assms(3) diff_single_trivial)
-
 
 paragraph \<open>VMTF\<close>
 
@@ -260,10 +189,10 @@ state. \<^term>\<open>avdom\<close> includes the active clauses.
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom),
+       vdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
-    valid_arena N' N (set vdom) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
@@ -274,9 +203,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
-    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
-    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
-    distinct vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
@@ -302,10 +230,10 @@ text \<open>
 definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_loop =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena, ivdom),
+       vdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
-    valid_arena N' N (set vdom) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
@@ -316,9 +244,8 @@ definition twl_st_heur_loop :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) se
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
     (D = None \<longrightarrow> clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount) \<and>
-    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set vdom \<and>
-    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
-    distinct vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))  W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
@@ -364,10 +291,10 @@ definition twl_st_heur_conflict_ana
 where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
-       avdom, lcount, opts, old_arena, ivdom),
+       lcount, opts, old_arena),
       (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
-    valid_arena N' N (set vdom) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))) \<and>
     vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) M \<and>
@@ -376,9 +303,8 @@ where
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
-    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
-    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
-    distinct vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
@@ -402,11 +328,11 @@ from the refined state, where the conflict has been removed from the data struct
 separate array.\<close>
 definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
-       old_arena, ivdom),
+  {((M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount, opts,
+       old_arena),
      (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
     (M', M) \<in> trail_pol (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
-    valid_arena N' N (set vdom) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
     (D', None) \<in> option_lookup_clause_rel (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))) \<and>
     vm \<in> isa_vmtf (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) M \<and>
@@ -415,9 +341,8 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     cach_refinement_empty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) cach \<and>
     out_learned M None outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
-    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set vdom \<and>
-    aivdom_inv vdom avdom ivdom (dom_m N) \<and>
-    distinct vdom \<and>
+    vdom_m (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     isasat_input_nempty (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) \<and>
     old_arena = [] \<and>
@@ -736,15 +661,18 @@ lemma arena_lit_pre_le_sint64_max:
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
       arena_is_valid_clause_idx_and_access_def)
 
+definition rewatch_heur_vdom where
+  \<open>rewatch_heur_vdom vdom = rewatch_heur (get_vdom_aivdom vdom)\<close>
+
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, ccount, lcount). do {
-  ASSERT(length vdom \<le> length N0);
-  W \<leftarrow> rewatch_heur vdom N0 W;
+       stats, heur, vdom, ccount, lcount). do {
+  ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
+  W \<leftarrow> rewatch_heur (get_vdom_aivdom vdom) N0 W;
   RETURN (M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, ccount, lcount)
+       stats, heur, vdom, ccount, lcount)
   })\<close>
 
 definition rewatch_heur_st_fast where
@@ -819,7 +747,7 @@ proof -
   have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
+      (auto simp: twl_st_heur_def twl_st_heur'_def aivdom_inv_dec_alt_def)
   have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
     using x2 xb_x'a unfolding all_atms_def
     by auto
@@ -871,7 +799,7 @@ proof -
   have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
+      (auto simp: twl_st_heur_def twl_st_heur'_def aivdom_inv_dec_alt_def)
 
   have
       valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
@@ -963,7 +891,7 @@ definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
 
 lemma length_avdom_alt_def:
   \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-    vdom, avdom, lcount). length avdom)\<close>
+    vdom, lcount). length (get_avdom_aivdom vdom))\<close>
   by (intro ext) (auto simp: length_avdom_def)
 
 
@@ -972,7 +900,7 @@ definition length_ivdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
 
 lemma length_ivdom_alt_def:
   \<open>length_ivdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-    vdom, avdom, lcount, _, _, ivdom). length ivdom)\<close>
+    vdom, lcount, _, _). length (get_ivdom_aivdom vdom))\<close>
   by (intro ext) (auto simp: length_ivdom_def)
 
 definition clause_is_learned_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool\<close>
@@ -1025,14 +953,14 @@ definition access_avdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarr
   \<open>access_avdom_at S i = get_avdom S ! i\<close>
 
 lemma access_avdom_at_alt_def:
-  \<open>access_avdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
+  \<open>access_avdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_avdom_aivdom vdom ! i)\<close>
   by (intro ext) (auto simp: access_avdom_at_def)
 
 definition access_ivdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_ivdom_at S i = get_ivdom S ! i\<close>
 
 lemma access_ivdom_at_alt_def:
-  \<open>access_ivdom_at = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, ivdom) i. ivdom ! i)\<close>
+  \<open>access_ivdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_ivdom_aivdom vdom ! i)\<close>
   by (intro ext) (auto simp: access_ivdom_at_def)
 
 definition access_avdom_at_pre where
@@ -1044,37 +972,38 @@ definition access_ivdom_at_pre where
 (*TODO check which of theses variants are used!*)
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, delete_index_and_swap avdom i, clss_size_decr_lcount lcount, opts, old_arena))\<close>
+       remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts). do{
+       vdom, lcount, opts). do{
     let st = arena_status N' C = IRRED;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, if st then lcount else clss_size_decr_lcount lcount, opts) })\<close>
+       vdom,  if st then lcount else clss_size_decr_lcount lcount, opts) })\<close>
 
 definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, delete_index_and_swap avdom i, clss_size_decr_lcount lcount, opts, old_arena))\<close>
+       remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
+
 definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur4 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts). do{
+       vdom, lcount, opts). do{
     let st = arena_status N' C = IRRED;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl,
       if st then decr_irred_clss stats else stats, heur,
-      vdom, avdom,
+      vdom,
       if st then lcount else
         (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)), opts) })\<close>
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
-  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount).
-     (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, delete_index_and_swap avdom i, lcount))\<close>
+  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount).
+     (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, remove_inactive_aivdom i vdom, lcount))\<close>
 
 lemma arena_act_pre_mark_used:
   \<open>arena_act_pre arena C \<Longrightarrow>
@@ -1100,10 +1029,10 @@ definition mop_mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
-      stats, heur, vdom, avdom, lcount, opts).
+      stats, heur, vdom, lcount, opts).
     (M', mark_unused N' C, D', j, W', vm, clvls, cach,
       lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts))\<close>
+      vdom, lcount, opts))\<close>
 
 
 definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -1114,12 +1043,12 @@ definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<
 
 lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
+       vdom,lcount, opts, old_arena). do {
     ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
+       stats, heur, vdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length (get_avdom_aivdom vdom));
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur,
-       vdom, delete_index_and_swap avdom i, clss_size_decr_lcount lcount, opts, old_arena)
+       remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena)
    })\<close>
   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
   by (auto intro!: ext)
@@ -1152,7 +1081,7 @@ lemma (in -) get_conflict_count_since_last_restart_heur_alt_def:
 
 lemma get_learned_count_alt_def:
    \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
+       stats, _, vdom, lcount, opts). RETURN lcount)\<close>
   by auto
 
 definition get_global_conflict_count where
@@ -1169,23 +1098,23 @@ text \<open>
   to test the performance, I remove it.
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts, old_arena). do{
+  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
-       heuristic_reluctant_untrigger (restart_info_restart_done_heur heur), vdom, avdom,
+       heuristic_reluctant_untrigger (restart_info_restart_done_heur heur), vdom,
        lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount). do{
+  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_lrestart stats,
        heuristic_reluctant_untrigger (restart_info_restart_done_heur heur),
-       vdom, avdom, lcount)
+       vdom, lcount)
   })\<close>
 
 definition incr_wasted_st :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>incr_wasted_st = (\<lambda>waste (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount). do{
+  \<open>incr_wasted_st = (\<lambda>waste (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount). do{
      (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, incr_wasted waste heur,
-       vdom, avdom, lcount)
+       vdom, lcount)
   })\<close>
 
 
@@ -1196,27 +1125,27 @@ definition wasted_bytes_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, _). (opts_restart opts))\<close>
+       vdom, lcount, opts, _). (opts_restart opts))\<close>
 
 definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
+       stats, heur, vdom, lcount, opts, _). (opts_reduce opts))\<close>
 
 definition opts_unbounded_mode_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_unbounded_mode_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, _). (opts_unbounded_mode opts))\<close>
+       stats, heur, vdom, lcount, opts, _). (opts_unbounded_mode opts))\<close>
 
 definition opts_minimum_between_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>opts_minimum_between_restart_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, _). (opts_minimum_between_restart opts))\<close>
+       stats, heur, vdom, lcount, opts, _). (opts_minimum_between_restart opts))\<close>
 
 definition opts_restart_coeff1_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>opts_restart_coeff1_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, _). (opts_restart_coeff1 opts))\<close>
+       stats, heur, vdom, lcount, opts, _). (opts_restart_coeff1 opts))\<close>
 
 definition opts_restart_coeff2_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>opts_restart_coeff2_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, _). (opts_restart_coeff2 opts))\<close>
+       stats, heur, vdom, lcount, opts, _). (opts_restart_coeff2 opts))\<close>
 
 definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
@@ -1260,7 +1189,7 @@ definition mop_arena_lbd_st where
 
 lemma mop_arena_lbd_st_alt_def:
   \<open>mop_arena_lbd_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) C. do {
+       vdom, lcount, opts, old_arena) C. do {
        ASSERT(get_clause_LBD_pre arena C);
       RETURN(arena_lbd arena C)
    })\<close>
@@ -1273,7 +1202,7 @@ definition mop_arena_status_st where
 
 lemma mop_arena_status_st_alt_def:
   \<open>mop_arena_status_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) C. do {
+       vdom, lcount, opts, old_arena) C. do {
        ASSERT(arena_is_valid_clause_vdom arena C);
       RETURN(arena_status arena C)
    })\<close>
@@ -1287,7 +1216,7 @@ definition mop_marked_as_used_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
 
 lemma mop_marked_as_used_st_alt_def:
   \<open>mop_marked_as_used_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) C. do {
+       vdom, lcount, opts, old_arena) C. do {
        ASSERT(marked_as_used_pre arena C);
       RETURN(marked_as_used arena C)
    })\<close>
@@ -1300,7 +1229,7 @@ definition mop_arena_length_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Righ
 
 lemma mop_arena_length_st_alt_def:
   \<open>mop_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) C. do {
+       vdom, lcount, opts, old_arena) C. do {
       ASSERT(arena_is_valid_clause_idx arena C);
       RETURN (arena_length arena C)
    })\<close>
@@ -1309,7 +1238,7 @@ lemma mop_arena_length_st_alt_def:
 
 definition full_arena_length_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>full_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). length arena)\<close>
+       vdom, lcount, opts, old_arena). length arena)\<close>
 
 definition (in -) access_lit_in_clauses where
   \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
@@ -1372,9 +1301,9 @@ lemma get_the_propagation_reason_pol_st_alt_def:
 
 definition empty_US_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>empty_US_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
+       vdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena)
+       vdom, clss_size_resetUS0 lcount, opts, old_arena)
   )\<close>
 
 definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
@@ -1404,9 +1333,9 @@ definition heuristic_reluctant_triggered2_st :: \<open>twl_st_wl_heur \<Rightarr
 
 definition heuristic_reluctant_untrigger_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>heuristic_reluctant_untrigger_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
+  vdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heuristic_reluctant_untrigger heur,
-       vdom, avdom, lcount, opts, old_arena))\<close>
+       vdom, lcount, opts, old_arena))\<close>
 lemma twl_st_heur''D_twl_st_heurD:
   assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel)\<close>
   shows \<open>f \<in> {(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount} \<rightarrow>\<^sub>f
@@ -1507,18 +1436,18 @@ definition units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word
 
 definition reset_units_since_last_GC_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
+  vdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
-       vdom, avdom, lcount, opts, old_arena))\<close>
+       vdom, lcount, opts, old_arena))\<close>
 
 definition clss_size_resetUS0_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena).
+  vdom, lcount, opts, old_arena).
   (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
+       vdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
 
 definition is_fully_propagated_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>is_fully_propagated_heur_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena). is_fully_propagated_heur heur)\<close>
+  vdom, lcount, opts, old_arena). is_fully_propagated_heur heur)\<close>
 
 end

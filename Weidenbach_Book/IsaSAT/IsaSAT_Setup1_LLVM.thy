@@ -54,13 +54,32 @@ sepref_def access_lit_in_clauses_heur_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
+sepref_def rewatch_heur_vdom_fast_code
+  is \<open>uncurry2 (rewatch_heur_vdom)\<close>
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_vdom_aivdom vdom). x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
+        length (get_vdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+        aivdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
+  supply [[goals_limit=1]]
+     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+  supply [simp] = append_ll_def length_vdom_aivdom_def
+  supply [dest] = arena_lit_implI(1)
+  unfolding rewatch_heur_alt_def Let_def PR_CONST_def rewatch_heur_vdom_def
+    vdom_aivdom_at_def[symmetric] length_vdom_aivdom_def[symmetric]
+  unfolding while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  unfolding if_not_swap
+    FOREACH_cond_def FOREACH_body_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
 sepref_def rewatch_heur_st_fast_code
   is \<open>(rewatch_heur_st_fast)\<close>
   :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
-    isasat_bounded_assn_def rewatch_heur_st_fast_def
+    isasat_bounded_assn_def rewatch_heur_st_fast_def rewatch_heur_vdom_def[symmetric]
   unfolding fold_tuple_optimizations
   by sepref
 
@@ -71,30 +90,15 @@ sepref_def length_avdom_fast_code
   is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding length_avdom_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+    length_avdom_aivdom_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
-
-definition workaround_RF where
-  \<open>workaround_RF xs = length xs\<close>
-
-sepref_def workaround_RF_code
-  is \<open>RETURN o workaround_RF\<close>
-  :: \<open>vdom_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding workaround_RF_def
-  by sepref
-
-
-lemma length_ivdom_alt_def:
-  \<open>length_ivdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, avdom, lcount, opts, old_arena, ivdom). workaround_RF ivdom)\<close>
-  unfolding workaround_RF_def length_ivdom_alt_def by auto
-
-sepref_register workaround_RF
 sepref_def length_ivdom_fast_code
   is \<open>RETURN o length_ivdom\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding length_ivdom_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+    length_ivdom_aivdom_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -161,24 +165,13 @@ sepref_def mark_garbage_heur_code2
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
-lemma mop_mark_garbage_heur3_alt_def:
-  \<open>mop_mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
-    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, delete_index_and_swap avdom i, (clss_size_decr_lcount lcount), opts, old_arena)
-   })\<close>
-  unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
-  by (auto intro!: ext)
-
 sepref_def mop_mark_garbage_heur3_impl
   is \<open>uncurry2 mop_mark_garbage_heur3\<close>
   :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding mop_mark_garbage_heur3_alt_def
-    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+  unfolding mop_mark_garbage_heur3_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def mark_garbage_heur3_def
   by sepref
 
 sepref_register delete_index_vdom_heur
@@ -244,14 +237,14 @@ sepref_register clss_size_lcount get_learned_count_number
 
 lemma get_learned_count_number_alt_def:
    \<open>RETURN o get_learned_count_number = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, avdom, (lcount, _), opts). RETURN (lcount))\<close>
+       stats, _, vdom, lcount, opts). RETURN (clss_size_lcount lcount))\<close>
   by (auto simp: clss_size_lcount_def intro!: ext)
 
 
 sepref_def get_learned_count_number_fast_code
   is \<open>RETURN o get_learned_count_number\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def lcount_assn_def
+  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def
   by sepref
 
 sepref_def learned_clss_count_fast_code
