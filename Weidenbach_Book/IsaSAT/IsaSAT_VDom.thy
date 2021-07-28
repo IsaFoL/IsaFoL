@@ -388,4 +388,26 @@ lemma [simp]:
   by (auto simp: empty_aivdom_def empty_aivdom_int_def aivdom_inv_dec_alt_def
     aivdom_inv_strong_dec_def)
 
+fun swap_avdom_aivdom where
+  \<open>swap_avdom_aivdom (AIvdom (vdom, avdom, ivdom, tvdom)) i j =
+  (AIvdom (vdom, swap avdom i j, ivdom, tvdom))\<close>
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (swap_avdom_aivdom aivdom i j) = swap (get_avdom_aivdom aivdom) i j\<close>
+  \<open>get_vdom_aivdom (swap_avdom_aivdom aivdom i j) = (get_vdom_aivdom aivdom)\<close>
+  \<open>get_ivdom_aivdom (swap_avdom_aivdom aivdom i j) = (get_ivdom_aivdom aivdom)\<close>
+  \<open>get_tvdom_aivdom (swap_avdom_aivdom aivdom i j) = (get_tvdom_aivdom aivdom)\<close>
+  by (cases aivdom; auto simp:)+
+
+fun take_avdom_aivdom where
+  \<open>take_avdom_aivdom i (AIvdom (vdom, avdom, ivdom, tvdom)) =
+  (AIvdom (vdom, take i avdom, ivdom, tvdom))\<close>
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (take_avdom_aivdom i aivdom) = take i (get_avdom_aivdom aivdom)\<close>
+  \<open>get_vdom_aivdom (take_avdom_aivdom i aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_tvdom_aivdom (take_avdom_aivdom i aivdom) = get_tvdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (take_avdom_aivdom i aivdom) = get_ivdom_aivdom aivdom\<close>
+  by (cases aivdom; auto simp:; fail)+
+
 end

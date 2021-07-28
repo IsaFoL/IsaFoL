@@ -57,19 +57,6 @@ definition lbd_sort_clauses :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat
 lemmas LBD_introsort[sepref_fr_rules] =
   LBD_it.introsort_param_impl_correct[unfolded lbd_sort_clauses_raw_def[symmetric] PR_CONST_def]
 
-lemma quicksort_clauses_by_score_sort:
- \<open>(lbd_sort_clauses, sort_clauses_by_score) \<in>
-   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-   apply (intro fun_relI nres_relI)
-   subgoal for arena arena' vdom vdom'
-   by (auto simp: lbd_sort_clauses_def lbd_sort_clauses_raw_def sort_clauses_by_score_def
-       pslice_sort_spec_def le_ASSERT_iff idx_cdom_def slice_rel_def br_def
-       conc_fun_RES sort_spec_def
-       eq_commute[of _ \<open>length vdom'\<close>]
-     intro!: ASSERT_leI slice_sort_spec_refine_sort[THEN order_trans, of _ vdom vdom])
-   done
-
-
 sepref_register lbd_sort_clauses_raw
 sepref_def lbd_sort_clauses_impl
   is \<open>uncurry lbd_sort_clauses\<close>
@@ -79,31 +66,34 @@ sepref_def lbd_sort_clauses_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-lemmas [sepref_fr_rules] =
-  lbd_sort_clauses_impl.refine[FCOMP quicksort_clauses_by_score_sort]
-
 sepref_register remove_deleted_clauses_from_avdom arena_status DELETED
 
 sepref_def remove_deleted_clauses_from_avdom_fast_code
   is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>[\<lambda>(N, vdom). length vdom \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn\<close>
+  :: \<open>[\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
   supply [[goals_limit=1]]
+  supply [simp] = length_avdom_aivdom_def
   unfolding isa_remove_deleted_clauses_from_avdom_def
-    convert_swap gen_swap if_conn(4)
+    convert_swap gen_swap if_conn(4) length_avdom_aivdom_def[symmetric]
+    avdom_aivdom_at_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_def isa_isa_remove_deleted_clauses_from_avdom_impl
-  is \<open>uncurry isa_isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
-  unfolding isa_isa_remove_deleted_clauses_from_avdom_def
-  by sepref
+definition (in -) quicksort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>quicksort_clauses_by_score arena =
+    full_quicksort_ref clause_score_ordering2 (clause_score_extract arena)\<close>
 
-sepref_def sort_clauses_by_score_aivdom_impl
-  is \<open>uncurry sort_clauses_by_score_aivdom\<close>
-  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
-  unfolding sort_clauses_by_score_aivdom_def
-  by sepref
+lemma quicksort_clauses_by_score_sort:
+ \<open>(quicksort_clauses_by_score, sort_clauses_by_score) \<in>
+   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   by (intro fun_relI nres_relI)
+    (auto simp: quicksort_clauses_by_score_def sort_clauses_by_score_def
+       reorder_list_def  clause_score_extract_def clause_score_ordering2_def
+       le_ASSERT_iff
+     intro!: insert_sort_reorder_list[THEN fref_to_Down, THEN order_trans])
+thm lbd_sort_clauses_impl.refine
+lemmas [sepref_fr_rules] =
+  lbd_sort_clauses_impl.refine[FCOMP quicksort_clauses_by_score_sort]
 
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
@@ -111,6 +101,11 @@ sepref_def sort_vdom_heur_fast_code
   supply sort_clauses_by_score_invI[intro]
     [[goals_limit=1]]
   unfolding sort_vdom_heur_def isasat_bounded_assn_def
+    apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
+    apply sepref_dbg_side_unfold
+oops
   by sepref
 
 
