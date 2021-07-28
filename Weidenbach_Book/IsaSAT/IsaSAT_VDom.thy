@@ -410,4 +410,10 @@ lemma [simp]:
   \<open>get_ivdom_aivdom (take_avdom_aivdom i aivdom) = get_ivdom_aivdom aivdom\<close>
   by (cases aivdom; auto simp:; fail)+
 
+definition map_vdom_aivdom :: \<open>_\<close> where
+  \<open>map_vdom_aivdom f = (\<lambda>x. case x of AIvdom (vdom, avdom, ivdom, tvdom) \<Rightarrow> do {
+    avdom \<leftarrow> f avdom;
+    RETURN (AIvdom (vdom, avdom, ivdom, tvdom))
+  })\<close>
+
 end

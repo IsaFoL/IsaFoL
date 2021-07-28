@@ -358,11 +358,31 @@ definition reorder_vdom_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nre
 definition sort_clauses_by_score :: \<open>arena \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom nres\<close> where
   \<open>sort_clauses_by_score arena vdom = do {
       ASSERT(\<forall>i\<in>set (get_vdom_aivdom vdom). valid_sort_clause_score_pre_at arena i);
+      ASSERT(\<forall>i\<in>set (get_avdom_aivdom vdom). valid_sort_clause_score_pre_at arena i);
   SPEC(\<lambda>vdom'. mset (get_vdom_aivdom vdom) = mset (get_vdom_aivdom vdom') \<and>
       mset (get_avdom_aivdom vdom) = mset (get_avdom_aivdom vdom') \<and>
       mset (get_ivdom_aivdom vdom) = mset (get_ivdom_aivdom vdom') \<and>
       mset (get_tvdom_aivdom vdom) = mset (get_tvdom_aivdom vdom'))
   }\<close>
+
+definition (in -) quicksort_clauses_by_score_avdom :: \<open>arena \<Rightarrow> vdom \<Rightarrow> vdom nres\<close> where
+  \<open>quicksort_clauses_by_score_avdom arena =
+     (full_quicksort_ref clause_score_ordering2 (clause_score_extract arena))\<close>
+
+definition (in -) quicksort_clauses_by_score :: \<open>arena \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom nres\<close> where
+  \<open>quicksort_clauses_by_score arena =
+    map_vdom_aivdom (quicksort_clauses_by_score_avdom arena)\<close>
+
+lemma quicksort_clauses_by_score_sort:
+ \<open>(quicksort_clauses_by_score, sort_clauses_by_score) \<in>
+   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   by (intro fun_relI nres_relI specify_left)
+    (auto simp: quicksort_clauses_by_score_def sort_clauses_by_score_def
+       reorder_list_def  clause_score_extract_def clause_score_ordering2_def
+       le_ASSERT_iff map_vdom_aivdom_def quicksort_clauses_by_score_avdom_def
+     intro: specify_left[OF insert_sort_reorder_list[THEN fref_to_Down, THEN order_trans]]
+     split: code_hider.splits)
+
 
 definition remove_deleted_clauses_from_avdom :: \<open>_\<close> where
 \<open>remove_deleted_clauses_from_avdom N avdom0 = do {
@@ -612,24 +632,35 @@ lemma aivdom_inv_dec_cong2:
   by (cases aivdom; cases aivdom') (auto simp: aivdom_inv_dec_def simp del: aivdom_inv.simps)
 
 lemma sort_clauses_by_score_reorder:
-  \<open>valid_arena arena N (set (get_vdom_aivdom vdom)) \<Longrightarrow>
-  aivdom_inv_dec vdom (dom_m N) \<Longrightarrow>
-  sort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset (get_avdom_aivdom vdom) = mset (get_avdom_aivdom vdom') \<and>
-  mset (get_vdom_aivdom vdom) = mset (get_vdom_aivdom vdom') \<and>
-   mset (get_ivdom_aivdom vdom) = mset (get_ivdom_aivdom vdom') \<and>
-   mset (get_tvdom_aivdom vdom) = mset (get_tvdom_aivdom vdom') \<and>
-  aivdom_inv_dec vdom' (dom_m N))\<close>
-  unfolding sort_clauses_by_score_def
-  apply refine_vcg
-  unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
-    get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
-    valid_sort_clause_score_pre_at_def
-  apply (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff(2-)
-    arena_dom_status_iff(1)[symmetric] in_set_conv_nth
-    arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
-    intro:  aivdom_inv_dec_cong2 dest!: set_mset_mono mset_subset_eqD)
-  using arena_dom_status_iff(1) apply force
-  done
+  assumes
+    \<open>valid_arena arena N (set (get_vdom_aivdom vdom))\<close> and
+    \<open>aivdom_inv_dec vdom (dom_m N)\<close>
+  shows \<open>sort_clauses_by_score arena vdom
+      \<le> SPEC
+      (\<lambda>vdom'.
+       mset (get_avdom_aivdom vdom) = mset (get_avdom_aivdom vdom') \<and>
+       mset (get_vdom_aivdom vdom) = mset (get_vdom_aivdom vdom') \<and>
+       mset (get_ivdom_aivdom vdom) = mset (get_ivdom_aivdom vdom') \<and>
+       mset (get_tvdom_aivdom vdom) = mset (get_tvdom_aivdom vdom') \<and>
+    aivdom_inv_dec vdom' (dom_m N))\<close>
+proof -
+  have \<open>set (get_avdom_aivdom vdom) \<subseteq> set (get_vdom_aivdom vdom)\<close>
+    using assms(2)
+    by (auto simp: aivdom_inv_dec_alt_def)
+  then show ?thesis
+    using assms
+    unfolding sort_clauses_by_score_def
+    apply refine_vcg
+    unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
+      get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
+      valid_sort_clause_score_pre_at_def
+    apply (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff(2-)
+      arena_dom_status_iff(1)[symmetric] in_set_conv_nth
+      arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
+      intro:  aivdom_inv_dec_cong2 dest!: set_mset_mono mset_subset_eqD)
+    using arena_dom_status_iff(1) apply force
+    done
+qed
 
 lemma specify_left_RES:
   assumes "m \<le> RES \<Phi>"

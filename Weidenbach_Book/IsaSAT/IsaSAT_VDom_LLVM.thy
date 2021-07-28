@@ -63,7 +63,13 @@ lemma take_avdom_aivdom_alt_def:
   \<open>take_avdom_aivdom i aivdom =
   (AIvdom (get_vdom_aivdom aivdom, take i (get_avdom_aivdom aivdom), get_ivdom_aivdom aivdom, get_tvdom_aivdom aivdom))\<close>
   by (cases aivdom) auto
-  
+
+definition map_vdom_aivdom_int :: \<open>_ \<Rightarrow> aivdom2 \<Rightarrow> aivdom2 nres\<close> where
+  \<open>map_vdom_aivdom_int f = (\<lambda>(avdom, ivdom, tvdom). do {
+    avdom \<leftarrow> f avdom;
+    RETURN ((avdom, ivdom, tvdom))
+  })\<close>
+
 lemma
   add_learned_clause_aivdom_int:
   \<open>(uncurry (RETURN oo add_learned_clause_aivdom_int), uncurry (RETURN oo add_learned_clause_aivdom)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
@@ -81,6 +87,8 @@ lemma
   \<open>(RETURN o length_ivdom_aivdom_int, RETURN o length_ivdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
   length_tvdom_aivdom_int:
   \<open>(RETURN o length_tvdom_aivdom_int, RETURN o length_tvdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
+  map_vdom_aivdom_int:
+  \<open>(map_vdom_aivdom_int f, map_vdom_aivdom f) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   swap_avdom_aivdom_int:
   \<open>(uncurry2 (RETURN ooo swap_avdom_aivdom_int), uncurry2 (RETURN ooo swap_avdom_aivdom))
   \<in> aivdom_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel  \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
@@ -97,7 +105,10 @@ lemma
     IsaSAT_VDom.length_avdom_aivdom_int_def length_avdom_aivdom_int_def
     IsaSAT_VDom.length_ivdom_aivdom_int_def length_ivdom_aivdom_int_def
     IsaSAT_VDom.length_tvdom_aivdom_int_def length_tvdom_aivdom_int_def
+    map_vdom_aivdom_def map_vdom_aivdom_int_def
     swap_avdom_aivdom_alt_def)
+  apply (case_tac y; case_tac "f ab"; auto simp: swap_avdom_aivdom_int_def take_avdom_aivdom_int_def
+     RES_RETURN_RES conc_fun_RES)[]
    apply (case_tac ab; auto simp: swap_avdom_aivdom_int_def take_avdom_aivdom_int_def)
    apply (case_tac ba; auto simp: swap_avdom_aivdom_int_def take_avdom_aivdom_int_def)
    done
