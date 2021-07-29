@@ -987,11 +987,22 @@ lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
 
 lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
   unfolding enabled_set_def enabled_def to_AF_def by simp
+
+lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} = {}\<close>
+  by auto
     
+lemma [simp]: \<open>{to_V C |C. C \<in> U \<union> Pos ` M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> U \<and> \<not> is_Pos C}\<close>
+  by auto
 
   (* Splitting report Lemma 6, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
+  sledgehammer [zipperposition]
   unfolding AF_entails_def by simp
+
+lemma distrib_union_in_set: \<open>{f a |a. a\<in> B \<union> C \<and> D a} = {f a| a. a\<in>B\<and>D a} \<union> {f a| a. a\<in>C \<and> D a}\<close>
+  by blast
+
+
 
   (* Splitting report Lemma 6, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
@@ -999,12 +1010,50 @@ proof -
   fix M N
     {
   assume \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+  then have \<open> \<forall>J. (\<exists>M' N'. finite M' \<and> finite N' \<and>
+    M' \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` M \<and> is_Pos C} \<and>
+    N' \<subseteq> {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` M \<and> \<not> is_Pos C} \<and>
+    M' \<Turnstile>s N')\<close>
+    using entails_sound_compact unfolding AF_entails_sound_def sound_cons.entails_neg_def
+    by (simp, meson)
+  moreover have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` M \<and> is_Pos C} =
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> {to_V C |C. C \<in> Pos ` M \<and> is_Pos C}\<close>
+    using distrib_union_in_set[of to_V "fml_ext ` total_strip J" "Pos ` M"] by presburger 
+  moreover have \<open>{to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` M \<and> \<not> is_Pos C} =
+    {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> Pos ` M \<and> \<not> is_Pos C}\<close>
+    using distrib_union_in_set[of to_V "fml_ext ` total_strip J" "Pos ` M"]
+    by blast
+  ultimately have \<open> \<forall>J. (\<exists>M' N'. finite M' \<and> finite N' \<and>
+    M' \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> {to_V C |C. C \<in> Pos ` M \<and> is_Pos C} \<and>
+    N' \<subseteq> {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+    {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> Pos ` M \<and> \<not> is_Pos C} \<and>
+    M' \<Turnstile>s N')\<close>
+    by (metis distrib_union_in_set sup_assoc)
+  then have \<open>\<forall>J. \<exists>J1 J2 M' N'. finite J1 \<and> finite J2 \<and>
+    J1 \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<and>
+    J2 \<subseteq> {to_V C |C. C\<in> fml_ext ` total_strip J \<and> is_Pos C} \<and>
+    finite M' \<and> finite N' \<and> M' \<subseteq> M \<and> N' \<subseteq> N \<and>
+    J1 \<union> {to_V C |C. C\<in> Pos ` M' \<and> is_Pos C} \<Turnstile>s
+    J2 \<union> {to_V C |C. C\<in> Pos ` N' \<and> is_Pos C}\<close>
+   sorry 
+    
+    
+
+
+
+
+
+
+
   then have \<open>\<exists>J's\<subseteq>total_strip J. finite J's \<and>
     {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> is_Pos C} \<union>
     {to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} \<Turnstile>s
       {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
       {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C} \<close>
-    using entails_sound_compact
+    using entails_sound_compact unfolding AF_entails_sound_def sound_cons.entails_neg_def
     sorry
   then have \<open>M \<Turnstile>s N\<close>
     unfolding AF_entails_def
