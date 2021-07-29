@@ -416,4 +416,7 @@ definition map_vdom_aivdom :: \<open>_\<close> where
     RETURN (AIvdom (vdom, avdom, ivdom, tvdom))
   })\<close>
 
+definition AIvdom_init :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> isasat_aivdom\<close> where
+  \<open>AIvdom_init vdom avdom ivdom = AIvdom (vdom, avdom, ivdom, vdom)\<close>
+
 end

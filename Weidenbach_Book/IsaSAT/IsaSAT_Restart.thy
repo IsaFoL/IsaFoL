@@ -1971,13 +1971,13 @@ lemma twl_st_heur'''_twl_st_heur''''uD:
 
 
 definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> sint64_max)\<close>
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes
     \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
     \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
-    \<open>\<forall>i \<in> set (get_vdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
+    \<open>\<forall>i \<in> set (get_tvdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
   shows \<open>rewatch_heur_st_pre xc\<close>
   using assms
   unfolding rewatch_heur_st_pre_def all_set_conv_all_nth

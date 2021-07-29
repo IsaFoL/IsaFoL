@@ -2954,7 +2954,7 @@ definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_
   if b then do {
     T \<leftarrow> isasat_GC_clauses_prog_wl S;
     ASSERT(length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S));
-    ASSERT(\<forall>i \<in> set (get_vdom T). i < length (get_clauses_wl_heur S));
+    ASSERT(\<forall>i \<in> set (get_tvdom T). i < length (get_clauses_wl_heur S));
     U \<leftarrow> rewatch_heur_st (empty_US_heur T);
     RETURN U
   }
@@ -3360,7 +3360,7 @@ lemma isasat_GC_clauses_rel_packed_le:
     xy: \<open>(x, y) \<in> twl_st_heur_restart''' r\<close> and
     ST: \<open>(S, T) \<in> isasat_GC_clauses_rel y u\<close>
   shows \<open>length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur x)\<close> and
-     \<open>\<forall>C \<in> set (get_vdom S). C < length (get_clauses_wl_heur x)\<close>
+     \<open>\<forall>C \<in> set (get_tvdom S). C < length (get_clauses_wl_heur x)\<close>
 proof -
   obtain m where
     \<open>(S, T) \<in> twl_st_heur_restart_strong_aivdom\<close> and
@@ -3390,7 +3390,10 @@ proof -
 
   have \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close>
     using ST unfolding twl_st_heur_restart_strong_aivdom_def by (cases S; cases T) auto
-  then show \<open>\<forall>C \<in> set (get_vdom S). C < length (get_clauses_wl_heur x)\<close>
+  moreover have \<open>set (get_tvdom S) \<subseteq> set (get_vdom S)\<close>
+    using ST by (auto simp: twl_st_heur_restart_strong_aivdom_def
+      aivdom_inv_strong_dec_alt_def)
+  ultimately show \<open>\<forall>C \<in> set (get_tvdom S). C < length (get_clauses_wl_heur x)\<close>
     using le
     by (auto dest: valid_arena_in_vdom_le_arena)
 qed

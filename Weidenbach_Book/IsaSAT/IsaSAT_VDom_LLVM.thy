@@ -21,6 +21,12 @@ text \<open>To keep my sanity, I use the same name, even if the function drops o
 definition add_learned_clause_aivdom_int where
   \<open>add_learned_clause_aivdom_int = (\<lambda> C (avdom, ivdom). (avdom @ [C], ivdom))\<close>
 
+definition add_learned_clause_aivdom_strong_int where
+  \<open>add_learned_clause_aivdom_strong_int = (\<lambda> C (avdom, ivdom, tvdom). (avdom @ [C], ivdom, tvdom @ [C]))\<close>
+
+definition add_init_clause_aivdom_strong_int where
+  \<open>add_init_clause_aivdom_strong_int = (\<lambda> C (avdom, ivdom, tvdom). (avdom, ivdom @ [C], tvdom @ [C]))\<close>
+
 definition remove_inactive_aivdom_int :: \<open>_ \<Rightarrow> aivdom2 \<Rightarrow> aivdom2\<close> where
   \<open>remove_inactive_aivdom_int = (\<lambda>i (avdom, ivdom). (delete_index_and_swap avdom i, ivdom))\<close>
 
@@ -70,9 +76,19 @@ definition map_vdom_aivdom_int :: \<open>_ \<Rightarrow> aivdom2 \<Rightarrow> a
     RETURN ((avdom, ivdom, tvdom))
   })\<close>
 
+definition empty_aivdom_int where
+  \<open>empty_aivdom_int = (\<lambda>(avdom, ivdom, tvdom). (take 0 avdom, take 0 ivdom, take 0 tvdom))\<close>
+
+definition AIvdom_init_int :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> aivdom2\<close> where
+   \<open>AIvdom_init_int vdom avdom ivdom = (avdom, ivdom, vdom)\<close>
+
 lemma
   add_learned_clause_aivdom_int:
   \<open>(uncurry (RETURN oo add_learned_clause_aivdom_int), uncurry (RETURN oo add_learned_clause_aivdom)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
+  add_learned_clause_aivdom_strong_int:
+  \<open>(uncurry (RETURN oo add_learned_clause_aivdom_strong_int), uncurry (RETURN oo add_learned_clause_aivdom_strong)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
+  add_init_clause_aivdom_strong_int:
+  \<open>(uncurry (RETURN oo add_init_clause_aivdom_strong_int), uncurry (RETURN oo add_init_clause_aivdom_strong)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   remove_inactive_aivdom_int:
   \<open>(uncurry (RETURN oo remove_inactive_aivdom_int), uncurry (RETURN oo remove_inactive_aivdom)) \<in> nat_rel \<times>\<^sub>f aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   avdom_aivdom_at_int:
@@ -87,6 +103,10 @@ lemma
   \<open>(RETURN o length_ivdom_aivdom_int, RETURN o length_ivdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
   length_tvdom_aivdom_int:
   \<open>(RETURN o length_tvdom_aivdom_int, RETURN o length_tvdom_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close> and
+  empty_aivdom_int:
+  \<open>(RETURN o empty_aivdom_int, RETURN o empty_aivdom) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
+  AIvdom_init_int:
+  \<open>(uncurry2 (RETURN ooo AIvdom_init_int), uncurry2 (RETURN ooo AIvdom_init)) \<in> \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel  \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   map_vdom_aivdom_int:
   \<open>(map_vdom_aivdom_int f, map_vdom_aivdom f) \<in> aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close> and
   swap_avdom_aivdom_int:
@@ -97,6 +117,9 @@ lemma
   \<in> nat_rel \<times>\<^sub>f aivdom_rel  \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close>
   apply (auto intro!: frefI nres_relI simp: code_hider_rel_def add_learned_clause_aivdom_def remove_inactive_aivdom_def avdom_aivdom_at_alt_def
     ivdom_aivdom_at_alt_def vdom_aivdom_at_alt_def length_vdom_aivdom_alt_def length_avdom_aivdom_alt_def length_ivdom_aivdom_alt_def length_tvdom_aivdom_alt_def tvdom_aivdom_at_alt_def add_learned_clause_aivdom_int_def
+    IsaSAT_VDom.add_learned_clause_aivdom_strong_int_def add_learned_clause_aivdom_strong_def add_learned_clause_aivdom_strong_int_def
+    IsaSAT_VDom.add_init_clause_aivdom_strong_int_def add_init_clause_aivdom_strong_def add_init_clause_aivdom_strong_int_def
+    add_init_clause_aivdom_def add_init_clause_aivdom_int_def
     IsaSAT_VDom.add_learned_clause_aivdom_int_def
     IsaSAT_VDom.remove_inactive_aivdom_int_def remove_inactive_aivdom_int_def
     IsaSAT_VDom.avdom_aivdom_at_int_def avdom_aivdom_at_int_def
@@ -105,7 +128,9 @@ lemma
     IsaSAT_VDom.length_avdom_aivdom_int_def length_avdom_aivdom_int_def
     IsaSAT_VDom.length_ivdom_aivdom_int_def length_ivdom_aivdom_int_def
     IsaSAT_VDom.length_tvdom_aivdom_int_def length_tvdom_aivdom_int_def
+    IsaSAT_VDom_LLVM.empty_aivdom_int_def empty_aivdom_def IsaSAT_VDom.empty_aivdom_int_def
     map_vdom_aivdom_def map_vdom_aivdom_int_def
+    AIvdom_init_int_def AIvdom_init_def
     swap_avdom_aivdom_alt_def)
   apply (case_tac y; case_tac "f ab"; auto simp: swap_avdom_aivdom_int_def take_avdom_aivdom_int_def
      RES_RETURN_RES conc_fun_RES)[]
@@ -117,6 +142,18 @@ sepref_def add_learned_clause_aivdom_impl
   is \<open>uncurry (RETURN oo add_learned_clause_aivdom_int)\<close>
   :: \<open>[\<lambda>(C,(a,b,c)). Suc (length (a)) < max_snat 64]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
   unfolding add_learned_clause_aivdom_int_def
+  by sepref
+
+sepref_def add_learned_clause_aivdom_strong_impl
+  is \<open>uncurry (RETURN oo add_learned_clause_aivdom_strong_int)\<close>
+  :: \<open>[\<lambda>(C,(a,b,c)). Suc (length (a)) < max_snat 64 \<and> Suc (length (c)) < max_snat 64]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
+  unfolding add_learned_clause_aivdom_strong_int_def
+  by sepref
+
+sepref_def add_init_clause_aivdom_strong_impl
+  is \<open>uncurry (RETURN oo add_init_clause_aivdom_strong_int)\<close>
+  :: \<open>[\<lambda>(C,(a,b,c)). Suc (length (b)) < max_snat 64 \<and> Suc (length (c)) < max_snat 64]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
+  unfolding add_init_clause_aivdom_strong_int_def
   by sepref
 
 sepref_def remove_inactive_aivdom_impl
@@ -184,6 +221,19 @@ sepref_def take_avdom_aivdom_impl
   unfolding take_avdom_aivdom_int_def
   by sepref
 
+sepref_def empty_aivdom_impl
+  is \<open>RETURN o empty_aivdom_int\<close>
+  :: \<open>aivdom_int_assn\<^sup>d \<rightarrow>\<^sub>a aivdom_int_assn\<close>
+  unfolding empty_aivdom_int_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def AIvdom_init_impl
+  is \<open>uncurry2 (RETURN ooo AIvdom_init_int)\<close>
+  :: \<open>vdom_fast_assn\<^sup>d *\<^sub>a vdom_fast_assn\<^sup>d *\<^sub>a vdom_fast_assn\<^sup>d  \<rightarrow>\<^sub>a aivdom_int_assn\<close>
+  unfolding AIvdom_init_int_def
+  by sepref
+
 lemma aivdom_assn_alt_def:
   \<open>aivdom_assn = hr_comp aivdom_int_assn (\<langle>aivdom_int_rel\<rangle>code_hider_rel)\<close>
   unfolding aivdom_assn_def code_hider_assn_def by auto
@@ -213,6 +263,47 @@ proof -
     by blast
 qed
 
+theorem [sepref_fr_rules]:
+  \<open>(uncurry add_learned_clause_aivdom_strong_impl, uncurry (RETURN \<circ>\<circ> add_learned_clause_aivdom_strong))
+\<in> [\<lambda>(C,ai). Suc (length (get_avdom_aivdom ai)) < max_snat 64 \<and> Suc (length (get_tvdom_aivdom ai)) < max_snat 64]\<^sub>a snat_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+\<in> [comp_PRE (nat_rel \<times>\<^sub>f aivdom_rel) (\<lambda>_. True)
+   (\<lambda>x y. case y of (C, a, b, c) \<Rightarrow> Suc (length a) < max_snat 64 \<and> Suc (length c) < max_snat 64)
+   (\<lambda>x. nofail (uncurry (RETURN \<circ>\<circ> add_learned_clause_aivdom_strong) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a _ \<rightarrow> _\<close>)
+    using hfref_compI_PRE[OF add_learned_clause_aivdom_strong_impl.refine
+      add_learned_clause_aivdom_strong_int, unfolded fcomp_norm_unfold aivdom_assn_alt_def[symmetric]] by blast
+  have pre: \<open>?pre' = ?pre\<close> for x h
+    by (intro ext, rename_tac x, case_tac x, case_tac \<open>snd x\<close>)
+      (auto simp: comp_PRE_def code_hider_rel_def)
+  show ?thesis
+    using H
+    unfolding pre
+    by blast
+qed
+
+theorem [sepref_fr_rules]:
+  \<open>(uncurry add_init_clause_aivdom_strong_impl, uncurry (RETURN \<circ>\<circ> add_init_clause_aivdom_strong))
+\<in> [\<lambda>(C,ai). Suc (length (get_ivdom_aivdom ai)) < max_snat 64 \<and> Suc (length (get_tvdom_aivdom ai)) < max_snat 64]\<^sub>a snat_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+\<in> [comp_PRE (nat_rel \<times>\<^sub>f aivdom_rel) (\<lambda>_. True)
+   (\<lambda>x y. case y of (C, a, b, c) \<Rightarrow> Suc (length b) < max_snat 64 \<and> Suc (length c) < max_snat 64)
+   (\<lambda>x. nofail (uncurry (RETURN \<circ>\<circ> add_init_clause_aivdom_strong) x))]\<^sub>a ?im \<rightarrow> ?f\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a _ \<rightarrow> _\<close>)
+    using hfref_compI_PRE[OF add_init_clause_aivdom_strong_impl.refine
+      add_init_clause_aivdom_strong_int, unfolded fcomp_norm_unfold aivdom_assn_alt_def[symmetric]] by blast
+  have pre: \<open>?pre' = ?pre\<close> for x h
+    by (intro ext, rename_tac x, case_tac x, case_tac \<open>snd x\<close>)
+      (auto simp: comp_PRE_def code_hider_rel_def)
+  show ?thesis
+    using H
+    unfolding pre
+    by blast
+qed
 
 theorem [sepref_fr_rules]:
   \<open>(uncurry remove_inactive_aivdom_impl, uncurry (RETURN \<circ>\<circ> remove_inactive_aivdom))
@@ -367,7 +458,12 @@ lemma aivdom_int_assn_alt_def:
   (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f (\<langle>nat_rel\<rangle>list_rel \<times>\<^sub>f \<langle>nat_rel\<rangle>list_rel))\<close>
   by auto
 
-sepref_register swap_avdom_aivdom take_avdom_aivdom
+sepref_register swap_avdom_aivdom take_avdom_aivdom add_init_clause_aivdom_strong add_learned_clause_aivdom_strong
+  add_learned_clause_aivdom
+
+lemma vdom_fast_assn_alt_def: \<open>vdom_fast_assn = hr_comp LBD_it.arr_assn (\<langle>nat_rel\<rangle>list_rel)\<close>
+  by auto
+
 lemmas [sepref_fr_rules] =
   length_avdom_aivdom_impl.refine[FCOMP length_avdom_aivdom_int]
   length_ivdom_aivdom_impl.refine[FCOMP length_ivdom_aivdom_int]
@@ -376,7 +472,8 @@ lemmas [sepref_fr_rules] =
   unfolded aivdom_assn_alt_def[symmetric] aivdom_assn_def[symmetric] aivdom_int_assn_alt_def[symmetric]]
     hn_id[FCOMP get_content_hnr[of aivdom_int_rel], of aivdom_int_assn,
   unfolded aivdom_assn_alt_def[symmetric] aivdom_assn_def[symmetric] aivdom_int_assn_alt_def[symmetric]]
-
+  empty_aivdom_impl.refine[FCOMP empty_aivdom_int]
+  AIvdom_init_impl.refine[FCOMP AIvdom_init_int, unfolded vdom_fast_assn_alt_def[symmetric]]
 end
 
 end
