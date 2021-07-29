@@ -56,15 +56,15 @@ sepref_def access_lit_in_clauses_heur_fast_code
 
 sepref_def rewatch_heur_vdom_fast_code
   is \<open>uncurry2 (rewatch_heur_vdom)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_vdom_aivdom vdom). x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
-        length (get_vdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set (get_tvdom_aivdom vdom). x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
+        length (get_tvdom_aivdom vdom) \<le> sint64_max]\<^sub>a
         aivdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
      arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
-  supply [simp] = append_ll_def length_vdom_aivdom_def
+  supply [simp] = append_ll_def length_tvdom_aivdom_def
   supply [dest] = arena_lit_implI(1)
   unfolding rewatch_heur_alt_def Let_def PR_CONST_def rewatch_heur_vdom_def
-    vdom_aivdom_at_def[symmetric] length_vdom_aivdom_def[symmetric]
+    tvdom_aivdom_at_def[symmetric] length_tvdom_aivdom_def[symmetric]
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding if_not_swap
@@ -84,7 +84,7 @@ sepref_def rewatch_heur_st_fast_code
   by sepref
 
 
-sepref_register length_avdom length_ivdom
+sepref_register length_avdom length_ivdom length_tvdom
 
 sepref_def length_avdom_fast_code
   is \<open>RETURN o length_avdom\<close>
@@ -102,6 +102,14 @@ sepref_def length_ivdom_fast_code
   supply [[goals_limit = 1]]
   by sepref
 
+sepref_def length_tvdom_fast_code
+  is \<open>RETURN o length_tvdom\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding length_tvdom_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+    length_tvdom_aivdom_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+ 
 sepref_register get_the_propagation_reason_heur
 
 sepref_def get_the_propagation_reason_heur_fast_code

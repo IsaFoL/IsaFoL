@@ -51,59 +51,119 @@ sepref_def cdcl_twl_local_restart_wl_D_heur_fast_code
 definition lbd_sort_clauses_raw :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>lbd_sort_clauses_raw arena N = pslice_sort_spec idx_cdom clause_score_less arena N\<close>
 
-definition lbd_sort_clauses :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat list nres\<close> where
-  \<open>lbd_sort_clauses arena N = lbd_sort_clauses_raw arena N 0 (length N)\<close>
+definition lbd_sort_clauses_avdom :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat list nres\<close> where
+  \<open>lbd_sort_clauses_avdom arena N = lbd_sort_clauses_raw arena N 0 (length N)\<close>
 
 lemmas LBD_introsort[sepref_fr_rules] =
   LBD_it.introsort_param_impl_correct[unfolded lbd_sort_clauses_raw_def[symmetric] PR_CONST_def]
 
-lemma quicksort_clauses_by_score_sort:
- \<open>(lbd_sort_clauses, sort_clauses_by_score) \<in>
-   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-   apply (intro fun_relI nres_relI)
-   subgoal for arena arena' vdom vdom'
-   by (auto simp: lbd_sort_clauses_def lbd_sort_clauses_raw_def sort_clauses_by_score_def
-       pslice_sort_spec_def le_ASSERT_iff idx_cdom_def slice_rel_def br_def
-       conc_fun_RES sort_spec_def
-       eq_commute[of _ \<open>length vdom'\<close>]
-     intro!: ASSERT_leI slice_sort_spec_refine_sort[THEN order_trans, of _ vdom vdom])
-   done
-
-
 sepref_register lbd_sort_clauses_raw
-sepref_def lbd_sort_clauses_impl
-  is \<open>uncurry lbd_sort_clauses\<close>
+sepref_def lbd_sort_clauses_avdom_impl
+  is \<open>uncurry lbd_sort_clauses_avdom\<close>
   :: \<open>arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow>\<^sub>a vdom_fast_assn\<close>
   supply[[goals_limit=1]]
-  unfolding lbd_sort_clauses_def
+  unfolding lbd_sort_clauses_avdom_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
-lemmas [sepref_fr_rules] =
-  lbd_sort_clauses_impl.refine[FCOMP quicksort_clauses_by_score_sort]
 
 sepref_register remove_deleted_clauses_from_avdom arena_status DELETED
 
 sepref_def remove_deleted_clauses_from_avdom_fast_code
   is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>[\<lambda>(N, vdom). length vdom \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn\<close>
+  :: \<open>[\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
   supply [[goals_limit=1]]
+  supply [simp] = length_avdom_aivdom_def
   unfolding isa_remove_deleted_clauses_from_avdom_def
-    convert_swap gen_swap if_conn(4)
+    convert_swap gen_swap if_conn(4) length_avdom_aivdom_def[symmetric]
+    avdom_aivdom_at_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_def isa_isa_remove_deleted_clauses_from_avdom_impl
-  is \<open>uncurry isa_isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
-  unfolding isa_isa_remove_deleted_clauses_from_avdom_def
+
+definition lbd_sort_clauses :: \<open>arena \<Rightarrow> aivdom2 \<Rightarrow> aivdom2 nres\<close> where
+  \<open>lbd_sort_clauses arena N = map_vdom_aivdom_int (lbd_sort_clauses_avdom arena) N\<close>
+
+sepref_def lbd_sort_clauses_impl
+  is \<open>uncurry lbd_sort_clauses\<close>
+  :: \<open>[\<lambda>(N, vdom). length (fst vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
+  unfolding lbd_sort_clauses_def map_vdom_aivdom_int_def
   by sepref
 
-sepref_def sort_clauses_by_score_aivdom_impl
-  is \<open>uncurry sort_clauses_by_score_aivdom\<close>
-  :: \<open>[\<lambda>(arena, vdom). length (get_avdom_aivdom vdom) \<le> length arena]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
-  unfolding sort_clauses_by_score_aivdom_def
-  by sepref
+lemma
+  map_vdom_aivdom_int2:
+  \<open>(uncurry (\<lambda>arena. map_vdom_aivdom_int (f arena)), uncurry (\<lambda>arena. map_vdom_aivdom (f arena)))
+  \<in> Id \<times>\<^sub>r aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    using map_vdom_aivdom_int[of \<open>f (fst x)\<close>]
+    apply (cases x; cases y)
+    apply (auto intro!: frefI nres_relI simp: fref_def nres_rel_def)
+    done
+  done
+
+lemma get_aivdom_eq_aivdom_iff:
+  \<open>IsaSAT_VDom.get_aivdom b = (x1, a, aa, ba) \<longleftrightarrow> b = AIvdom (x1, a, aa, ba)\<close>
+  by (cases b) auto
+lemma quicksort_clauses_by_score_sort:
+  \<open>(uncurry lbd_sort_clauses, uncurry sort_clauses_by_score) \<in>
+  Id \<times>\<^sub>r aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close>
+  apply (intro fun_relI nres_relI frefI)
+  subgoal for arena arena'
+    unfolding uncurry_def lbd_sort_clauses_def map_vdom_aivdom_int_def
+      lbd_sort_clauses_avdom_def lbd_sort_clauses_raw_def sort_clauses_by_score_def
+    apply (refine_vcg)
+    apply (rule specify_left)
+    apply (auto simp: lbd_sort_clauses_def lbd_sort_clauses_raw_def
+      pslice_sort_spec_def le_ASSERT_iff idx_cdom_def slice_rel_def br_def uncurry_def
+      conc_fun_RES sort_spec_def map_vdom_aivdom_int_def lbd_sort_clauses_avdom_def
+      code_hider_rel_def
+      split:prod.splits
+      intro!: ASSERT_leI 
+      )
+    apply (case_tac x2; auto)
+
+    apply (rule order_trans)
+    apply (rule slice_sort_spec_refine_sort)
+    apply (auto simp: lbd_sort_clauses_def lbd_sort_clauses_raw_def
+      pslice_sort_spec_def le_ASSERT_iff idx_cdom_def slice_rel_def br_def uncurry_def
+      conc_fun_RES sort_spec_def map_vdom_aivdom_int_def lbd_sort_clauses_avdom_def
+      code_hider_rel_def
+      split:prod.splits
+      intro!: ASSERT_leI 
+      )
+    apply (case_tac x2; auto simp: get_aivdom_eq_aivdom_iff)
+    apply (rule_tac x = \<open>AIvdom (x1a, x, ad, bb)\<close> in exI)
+    apply auto
+    by (metis slice_complete)
+  done
+
+context
+  notes [fcomp_norm_unfold] = aivdom_assn_alt_def[symmetric] aivdom_assn_def[symmetric]
+begin
+
+lemma lbd_sort_clauses_impl_lbd_sort_clauses[sepref_fr_rules]:
+  \<open>(uncurry lbd_sort_clauses_impl, uncurry sort_clauses_by_score)
+  \<in> [\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> sint64_max]\<^sub>a (al_assn arena_el_impl_assn)\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
+proof -
+  have H: \<open>?c
+\<in> [comp_PRE (Id \<times>\<^sub>f aivdom_rel) (\<lambda>_. True) (\<lambda>x y. case y of (N, vdom) \<Rightarrow> length (fst vdom) \<le> sint64_max)
+   (\<lambda>x. nofail (uncurry sort_clauses_by_score x))]\<^sub>a ?im \<rightarrow> ?f\<close>
+    (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> _\<close>)
+    using hfref_compI_PRE[OF lbd_sort_clauses_impl.refine,
+  OF quicksort_clauses_by_score_sort[unfolded convert_fref], unfolded fcomp_norm_unfold] by blast
+  have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
+    using that 
+    by (case_tac x, case_tac \<open>snd x\<close>)
+      (auto simp: comp_PRE_def code_hider_rel_def)
+  show ?thesis
+    apply (rule hfref_weaken_pre[OF ])
+     defer
+    using H apply assumption
+    using pre ..
+qed
+
+end
 
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>

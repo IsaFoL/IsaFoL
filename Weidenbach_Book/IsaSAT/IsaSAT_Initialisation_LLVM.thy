@@ -696,7 +696,7 @@ lemma finalise_init_code_alt_def:
   mop_free mark;
   RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
     clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-    Restart_Heuristics heur, AIvdom (vdom, [], ivdom), lcount, opts, [])
+    Restart_Heuristics heur, AIvdom_init vdom [] ivdom, lcount, opts, [])
     })\<close>
     unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def by (auto simp: Let_def)
 
@@ -723,7 +723,7 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>AIvdom_init _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   by sepref

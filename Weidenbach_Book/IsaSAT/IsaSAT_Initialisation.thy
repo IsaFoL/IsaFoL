@@ -2111,7 +2111,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False));
-     let vdoms = AIvdom (vdom, [], ivdom);
+     let vdoms = AIvdom_init vdom [] ivdom;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1 (replicate 160 (Pos 0)), init_stats,
        heur, vdoms, lcount, opts, [])
@@ -2138,12 +2138,13 @@ lemma finalise_init_finalise_init_full:
   all_atms_st S \<noteq> {#} \<Longrightarrow> size (learned_clss_l (get_clauses_wl S)) = 0 \<Longrightarrow>
   ((ops', T), ops, S) \<in> Id \<times>\<^sub>f twl_st_heur_post_parsing_wl True \<Longrightarrow>
   finalise_init_code ops' T \<le> \<Down> {(S', T'). (S', T') \<in> twl_st_heur \<and>
-    get_clauses_wl_heur_init T = get_clauses_wl_heur S' \<and> 
+  get_clauses_wl_heur_init T = get_clauses_wl_heur S' \<and>
+  aivdom_inv_strong_dec (get_aivdom S') (dom_m (get_clauses_wl T')) \<and>
      get_learned_count_init T = get_learned_count S'} (RETURN (finalise_init S))\<close>
   apply (cases S; cases T)
-  apply (simp add: finalise_init_code_def)
+  apply (simp add: finalise_init_code_def aivdom_inv_strong_dec_def2)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
-    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom
+    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
       twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps aivdom_inv_dec_def
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
@@ -2267,9 +2268,6 @@ proof -
     done
 qed
 
-(*TODO Move *)
-
-(*END Move*)
 lemma init_state_wl_D0:
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
