@@ -1029,7 +1029,7 @@ definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_
   \<open>mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
+       vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
 
 definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur4 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
@@ -1064,7 +1064,7 @@ definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> t
 
 definition mop_mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mop_mark_garbage_heur3 C i = (\<lambda>S. do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1 \<and> i < length (get_avdom S));
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1);
     RETURN (mark_garbage_heur3 C i S)
   })\<close>
 

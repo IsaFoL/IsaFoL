@@ -290,7 +290,7 @@ proof -
    apply (simp add: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def)
   by (auto simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
          learned_clss_l_l_fmdrop size_remove1_mset_If clss_size_corr_restart_intro
-    simp: all_init_atms_def all_init_lits_def
+    simp: all_init_atms_def all_init_lits_def aivdom_inv_dec_remove_clause
      simp del: all_init_atms_def[symmetric]
     intro: valid_arena_extra_information_mark_to_delete'
     intro!: aivdom_inv_dec_remove_and_swap_inactive
@@ -302,8 +302,7 @@ lemma mark_garbage_heur_wl_ana:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
-    \<open>\<not> irred (get_clauses_wl T) C\<close> and \<open>i < length (get_avdom S)\<close> and
-    iC: \<open>get_avdom S ! i = C\<close>
+    \<open>\<not> irred (get_clauses_wl T) C\<close> and \<open>i < length (get_avdom S)\<close>
   shows \<open>(mark_garbage_heur3 C i S, mark_garbage_wl C T) \<in> twl_st_heur_restart_ana r\<close>
 proof -
   have [intro!]: \<open>distinct n \<Longrightarrow> mset n \<subseteq># mset m \<Longrightarrow> mset (removeAll (n ! i) n) \<subseteq># mset m\<close> for n A m
@@ -316,7 +315,7 @@ proof -
     apply (cases S; cases T)
     apply (simp add: twl_st_heur_restart_ana_def mark_garbage_heur3_def mark_garbage_wl_def)
     by (auto simp: twl_st_heur_restart_def mark_garbage_heur3_def mark_garbage_wl_def
-      learned_clss_l_l_fmdrop size_remove1_mset_If init_clss_l_fmdrop_irrelev
+      learned_clss_l_l_fmdrop size_remove1_mset_If init_clss_l_fmdrop_irrelev aivdom_inv_dec_remove_clause
       valid_arena_extra_information_mark_to_delete' clss_size_corr_restart_intro
       simp: all_init_atms_def all_init_lits_def clss_size_corr_restart_simp2
       simp del: all_init_atms_def[symmetric] clss_size_corr_restart_simp
@@ -575,7 +574,7 @@ lemma get_vdom_mark_garbage[simp]:
   \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
   \<open>get_avdom (mark_garbage_heur C i S) = delete_index_and_swap (get_avdom S) i\<close>
   \<open>get_vdom (mark_garbage_heur3 C i S) = get_vdom S\<close>
-  \<open>get_avdom (mark_garbage_heur3 C i S) = delete_index_and_swap (get_avdom S) i\<close>
+  \<open>get_avdom (mark_garbage_heur3 C i S) = get_avdom S\<close>
   \<open>learned_clss_count (mark_garbage_heur3 C i (S)) \<le> learned_clss_count S\<close>
   \<open>learned_clss_count (mark_garbage_heur3 C i (incr_wasted_st b S)) \<le> learned_clss_count S\<close>
   by (cases S; auto simp: mark_garbage_heur_def mark_garbage_heur3_def

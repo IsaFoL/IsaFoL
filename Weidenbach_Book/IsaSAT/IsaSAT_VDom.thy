@@ -419,4 +419,25 @@ definition map_vdom_aivdom :: \<open>_\<close> where
 definition AIvdom_init :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> isasat_aivdom\<close> where
   \<open>AIvdom_init vdom avdom ivdom = AIvdom (vdom, avdom, ivdom, vdom)\<close>
 
+
+definition push_to_tvdom_int where
+  \<open>push_to_tvdom_int = (\<lambda> C (vdom, avdom, ivdom, tvdom). (vdom, avdom, ivdom, tvdom @ [C]))\<close>
+
+definition push_to_tvdom :: \<open>_ \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom\<close> where
+  \<open>push_to_tvdom C \<equiv> AIvdom o push_to_tvdom_int C o get_aivdom\<close>
+
+lemma aivdom_inv_push_to_tvdom_int:
+  \<open>C \<in> set vdom \<Longrightarrow> C \<notin> set tvdom \<Longrightarrow> aivdom_inv (vdom, avdom, ivdom, tvdom) d \<Longrightarrow> aivdom_inv (vdom, avdom, ivdom, tvdom @ [C]) d\<close>
+  unfolding aivdom_inv_alt_def
+  by (auto dest: subset_mset_imp_subset_add_mset simp: add_learned_clause_aivdom_strong_int_def
+    split: code_hider.splits)
+
+lemma \<open>C \<in> set (get_vdom_aivdom aivdom) \<Longrightarrow> C \<notin> set (get_tvdom_aivdom aivdom) \<Longrightarrow> aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (push_to_tvdom C aivdom) d\<close>
+  using aivdom_inv_push_to_tvdom_int[of C \<open>get_vdom_aivdom aivdom\<close> \<open>get_tvdom_aivdom aivdom\<close>
+    \<open>get_avdom_aivdom aivdom\<close> \<open>get_ivdom_aivdom aivdom\<close> d]
+  by (cases aivdom)
+    (auto simp: aivdom_inv_dec_def add_learned_clause_aivdom_strong_int_def add_learned_clause_aivdom_strong_def
+    aivdom_inv_strong_dec_def push_to_tvdom_def push_to_tvdom_int_def
+    simp del: aivdom_inv.simps)
+
 end
