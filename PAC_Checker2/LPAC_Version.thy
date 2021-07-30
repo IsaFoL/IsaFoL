@@ -1,4 +1,4 @@
- (*
+(*
   File:         PAC_Version.thy
   Author:       Mathias Fleury, Daniela Kaufmann, JKU
   Maintainer:   Mathias Fleury, JKU

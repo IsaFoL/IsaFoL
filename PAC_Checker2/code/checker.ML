@@ -1205,7 +1205,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "85519403";
+val version : string = "c5becbb5";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false
@@ -1777,7 +1777,7 @@ fun is_new_variable_c_impl x =
         ht_lookup (equal_literal, hashable_literal, heap_literal) heap_uint64 ai
           a2 ();
     in
-      not (not (is_None xa))
+      is_None xa
     end)
     x;
 
@@ -2253,7 +2253,7 @@ fun linear_combi_l_prep_s_impl x =
                   bib ();
               val xaa = vars_llist_in_s_impl bia a1b ();
             in
-              (if not (not (is_None xa)) orelse not xaa
+              (if is_None xa orelse not xaa
                 then (fn () =>
                        (a1, (a1a, error_msg show_nat (nat_of_uint64 a2b)
                                     (check_linear_combi_l_s_dom_err_impl a1
@@ -2477,30 +2477,34 @@ fun pAC_checker_l_step_s_impl x =
       val (a1, (a1a, a2a)) = bia;
     in
       (if is_CL bi
-        then (fn () =>
-               let
-                 val x_a = fully_normalize_poly_impl (pac_res bi) ();
-                 val a =
-                   check_linear_combi_l_s_impl ai a2a a1a (new_id bi)
-                     (pac_srcs bi) x_a ();
-               in
+        then let
+               val x_a = new_id bi;
+             in
+               (fn () =>
                  let
-                   val (a1b, a2b) = a;
+                   val x_d = fully_normalize_poly_impl (pac_res bi) ();
+                   val a =
+                     check_linear_combi_l_s_impl ai a2a a1a x_a (pac_srcs bi)
+                       x_d ();
                  in
-                   (if not (is_cfailed a1b)
-                     then (fn f_ => fn () => f_
-                            ((ht_update
-                               (equal_uint64, hashable_uint64, heap_uint64)
-                               (heap_list
-                                 (heap_prod (heap_list heap_uint64) heap_int))
-                               (new_id bi) a2b a2a)
-                            ()) ())
-                            (fn xa =>
-                              (fn () => (merge_cstatus a1 a1b, (a1a, xa))))
-                     else (fn () => (a1b, (a1a, a2a))))
-                 end
-                   ()
-               end)
+                   let
+                     val (a1b, a2b) = a;
+                   in
+                     (if not (is_cfailed a1b)
+                       then (fn f_ => fn () => f_
+                              ((ht_update
+                                 (equal_uint64, hashable_uint64, heap_uint64)
+                                 (heap_list
+                                   (heap_prod (heap_list heap_uint64) heap_int))
+                                 x_a a2b a2a)
+                              ()) ())
+                              (fn xa =>
+                                (fn () => (merge_cstatus a1 a1b, (a1a, xa))))
+                       else (fn () => (a1b, (a1a, a2a))))
+                   end
+                     ()
+                 end)
+             end
         else (if is_Extension bi
                then (fn () =>
                       let
