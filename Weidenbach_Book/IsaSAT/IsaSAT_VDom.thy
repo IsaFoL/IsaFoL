@@ -159,11 +159,34 @@ lemma aivdom_inv_dec_intro_init_add_mset:
     (auto simp: aivdom_inv_dec_def add_init_clause_aivdom_int_def add_init_clause_aivdom_def
     simp del: aivdom_inv.simps)
 
+definition remove_inactive_aivdom_tvdom_int :: \<open>_ \<Rightarrow> aivdom \<Rightarrow> aivdom\<close> where
+  \<open>remove_inactive_aivdom_tvdom_int = (\<lambda>i (vdom, avdom, ivdom, tvdom). (vdom, avdom, ivdom, delete_index_and_swap tvdom i))\<close>
+
+definition remove_inactive_aivdom_tvdom :: \<open>_ \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom\<close> where
+  \<open>remove_inactive_aivdom_tvdom C \<equiv> AIvdom o remove_inactive_aivdom_tvdom_int C o get_aivdom\<close>
+
 definition remove_inactive_aivdom_int :: \<open>_ \<Rightarrow> aivdom \<Rightarrow> aivdom\<close> where
-  \<open>remove_inactive_aivdom_int = (\<lambda>i (vdom, avdom, ivdom). (vdom, delete_index_and_swap avdom i, ivdom))\<close>
+  \<open>remove_inactive_aivdom_int = (\<lambda>i (vdom, avdom, ivdom, tvdom). (vdom, delete_index_and_swap avdom i, ivdom, tvdom))\<close>
 
 definition remove_inactive_aivdom :: \<open>_ \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom\<close> where
   \<open>remove_inactive_aivdom C \<equiv> AIvdom o remove_inactive_aivdom_int C o get_aivdom\<close>
+
+lemma aivdom_inv_remove_and_swap_inactive_tvdom:
+  assumes \<open>i < length tv\<close> and \<open>aivdom_inv (m, n, s, tv) baa\<close>
+  shows \<open>aivdom_inv (m, n, s, butlast (tv[i := last tv])) (remove1_mset (tv ! i) baa)\<close>
+proof -
+  show ?thesis
+    using assms distinct_mset_mono[of \<open>mset n\<close> \<open>mset m\<close>]
+    by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set mset_le_subtract distinct_butlast_set
+       dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
+qed
+lemma aivdom_inv_dec_remove_and_swap_inactive_tvdom:
+  assumes \<open>i < length (get_tvdom_aivdom ai)\<close> and \<open>aivdom_inv_dec ai baa\<close>
+  shows \<open>aivdom_inv_dec (remove_inactive_aivdom_tvdom i ai)  (remove1_mset (get_tvdom_aivdom ai ! i) baa)\<close>
+  using aivdom_inv_remove_and_swap_inactive_tvdom[of i \<open>get_tvdom_aivdom ai\<close>
+    \<open>get_vdom_aivdom ai\<close> \<open>get_avdom_aivdom ai\<close> \<open>get_ivdom_aivdom ai\<close> baa] assms
+  by (cases ai; auto simp: aivdom_inv_dec_def remove_inactive_aivdom_tvdom_int_def remove_inactive_aivdom_tvdom_def
+    simp del: aivdom_inv.simps)
 
 lemma aivdom_inv_remove_and_swap_inactive:
   assumes \<open>i < length n\<close> and \<open>aivdom_inv (m, n, s, tv) baa\<close>
@@ -181,6 +204,7 @@ proof -
     by (auto simp: aivdom_inv_alt_def distinct_remove_readd_last_set mset_le_subtract distinct_butlast_set
        dest: in_set_butlastD in_vdom_m_fmdropD simp del: nth_mem)
 qed
+
 lemma aivdom_inv_dec_remove_and_swap_inactive:
   assumes \<open>i < length (get_avdom_aivdom ai)\<close> and \<open>aivdom_inv_dec ai baa\<close>
   shows \<open>aivdom_inv_dec (remove_inactive_aivdom i ai)  (remove1_mset (get_avdom_aivdom ai ! i) baa)\<close>
@@ -217,11 +241,32 @@ lemma aivdom_inv_dec_removed_inactive:
 lemmas aivdom_inv_remove_and_swap_removed = aivdom_inv_removed_inactive
 
 
+
+lemma aivdom_inv_removed_inactive_tvdom:
+  assumes \<open>i < length tv\<close> and \<open>aivdom_inv (m, n, s, tv) baa\<close> \<open>tv!i \<notin># baa\<close>
+  shows \<open>aivdom_inv (m, n, s, butlast (tv[i := last tv])) baa\<close>
+  by (metis aivdom_inv_remove_and_swap_inactive_tvdom assms(1) assms(2) assms(3) diff_single_trivial)
+
+lemma aivdom_inv_dec_removed_inactive_tvdom:
+  assumes \<open>i < length (get_tvdom_aivdom ai)\<close> and \<open>aivdom_inv_dec ai baa\<close> \<open>get_tvdom_aivdom ai!i \<notin># baa\<close>
+  shows \<open>aivdom_inv_dec (remove_inactive_aivdom_tvdom i ai) baa\<close>
+  using aivdom_inv_removed_inactive_tvdom[OF assms(1), of \<open>get_vdom_aivdom ai\<close>
+    \<open>get_avdom_aivdom ai\<close> \<open>get_ivdom_aivdom ai\<close> baa] assms(2-)
+  by (cases ai)
+    (auto simp: aivdom_inv_dec_def remove_inactive_aivdom_tvdom_int_def
+    remove_inactive_aivdom_tvdom_def simp del: aivdom_inv.simps)
+
 lemma get_aivdom_remove_inactive_aivdom[simp]:
   \<open>get_vdom_aivdom (remove_inactive_aivdom i m) = get_vdom_aivdom m\<close>
   \<open>get_avdom_aivdom (remove_inactive_aivdom i m) = (delete_index_and_swap (get_avdom_aivdom m) i)\<close>
   \<open>get_ivdom_aivdom (remove_inactive_aivdom i m) = get_ivdom_aivdom m\<close>
-  by (cases m; auto simp: remove_inactive_aivdom_def remove_inactive_aivdom_int_def; fail)+
+  \<open>get_tvdom_aivdom (remove_inactive_aivdom i m) = get_tvdom_aivdom m\<close>
+  \<open>get_vdom_aivdom (remove_inactive_aivdom_tvdom i m) = get_vdom_aivdom m\<close>
+  \<open>get_tvdom_aivdom (remove_inactive_aivdom_tvdom i m) = (delete_index_and_swap (get_tvdom_aivdom m) i)\<close>
+  \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i m) = get_avdom_aivdom m\<close>
+  \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i m) = get_ivdom_aivdom m\<close>
+  by (cases m; auto simp: remove_inactive_aivdom_def remove_inactive_aivdom_int_def
+      remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
 
 definition vdom_aivdom_at_int :: \<open>aivdom \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>vdom_aivdom_at_int  = (\<lambda>(a,b,c) C. a ! C)\<close>

@@ -279,8 +279,8 @@ lemma mark_garbage_heur_wl:
   assumes
     ST: \<open>(S, T) \<in> twl_st_heur_restart\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
-    \<open>\<not> irred (get_clauses_wl T) C\<close> and \<open>i < length (get_avdom S)\<close> and
-    iC: \<open>get_avdom S ! i = C\<close>
+    \<open>\<not> irred (get_clauses_wl T) C\<close> and \<open>i < length (get_tvdom S)\<close> and
+    iC: \<open>get_tvdom S ! i = C\<close>
   shows \<open>(mark_garbage_heur3 C i S, mark_garbage_wl C T) \<in> twl_st_heur_restart\<close>
 proof -
   show ?thesis
@@ -293,7 +293,8 @@ proof -
     simp: all_init_atms_def all_init_lits_def aivdom_inv_dec_remove_clause
      simp del: all_init_atms_def[symmetric]
     intro: valid_arena_extra_information_mark_to_delete'
-    intro!: aivdom_inv_dec_remove_and_swap_inactive
+    intro!: aivdom_inv_dec_remove_and_swap_inactive_tvdom
+    aivdom_inv_dec_remove_and_swap_inactive
       dest!: in_set_butlastD in_vdom_m_fmdropD
     elim!: in_set_upd_cases)
 qed
@@ -302,7 +303,7 @@ lemma mark_garbage_heur_wl_ana:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
-    \<open>\<not> irred (get_clauses_wl T) C\<close> and \<open>i < length (get_avdom S)\<close>
+    \<open>\<not> irred (get_clauses_wl T) C\<close> \<open>C = get_tvdom S ! i\<close> \<open>i < length (get_tvdom S)\<close>
   shows \<open>(mark_garbage_heur3 C i S, mark_garbage_wl C T) \<in> twl_st_heur_restart_ana r\<close>
 proof -
   have [intro!]: \<open>distinct n \<Longrightarrow> mset n \<subseteq># mset m \<Longrightarrow> mset (removeAll (n ! i) n) \<subseteq># mset m\<close> for n A m
@@ -321,6 +322,7 @@ proof -
       simp del: all_init_atms_def[symmetric] clss_size_corr_restart_simp
       intro: valid_arena_extra_information_mark_to_delete'
       intro!: aivdom_inv_dec_remove_and_swap_inactive
+      aivdom_inv_dec_remove_and_swap_inactive_tvdom
       dest!: in_set_butlastD in_vdom_m_fmdropD
       elim!: in_set_upd_cases)
 qed
@@ -355,12 +357,18 @@ lemma twl_st_heur_restart_get_avdom_nth_get_vdom[twl_st_heur_restart]:
   using assms by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
     dest!: set_mset_mono)
 
+lemma twl_st_heur_restart_get_tvdom_nth_get_vdom[twl_st_heur_restart]:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart\<close> \<open>i < length (get_tvdom S)\<close>
+  shows \<open>get_tvdom S ! i \<in> set (get_vdom S)\<close>
+  using assms by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
+    dest!: set_mset_mono)
+
 lemma [twl_st_heur_restart]:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart\<close> and
     \<open>C \<in> set (get_avdom S)\<close>
-  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow>
-         (C \<in># dom_m (get_clauses_wl T))\<close> and
+  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
@@ -397,8 +405,54 @@ lemma [twl_st_heur_restart]:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close> and
     \<open>C \<in> set (get_avdom S)\<close>
-  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow>
-         (C \<in># dom_m (get_clauses_wl T))\<close> and
+  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
+    using assms
+    by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart)
+
+lemma [twl_st_heur_restart]:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart\<close> and
+    \<open>C \<in> set (get_tvdom S)\<close>
+  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
+proof -
+  show \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close>
+    using assms
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_restart_def clause_not_marked_to_delete_heur_def
+          arena_dom_status_iff(1) aivdom_inv_dec_alt_def
+        split: prod.splits)
+  assume C: \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  show \<open>arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_restart_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+  show \<open>arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_restart_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+  show \<open>arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
+    using assms C
+    by (cases S; cases T)
+      (auto simp add: twl_st_heur_restart_def clause_not_marked_to_delete_heur_def
+          arena_lifting
+        split: prod.splits)
+qed
+
+lemma [twl_st_heur_restart]:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close> and
+    \<open>C \<in> set (get_tvdom S)\<close>
+  shows \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> (C \<in># dom_m (get_clauses_wl T))\<close> and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_lit (get_clauses_wl_heur S) C = get_clauses_wl T \<propto> C ! 0\<close>and
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED \<longleftrightarrow> \<not>irred (get_clauses_wl T) C\<close>
     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow> arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl T \<propto> C)\<close>
@@ -431,42 +485,26 @@ lemma in_set_delete_index_and_swapD:
   apply (auto dest!: in_set_butlastD)
   by (metis List.last_in_set in_set_upd_cases list.size(3) not_less_zero)
 
+lemma [simp]:
+  \<open>get_vdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_ivdom_aivdom aivdom\<close>
+  by (cases aivdom; auto simp: remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
+  
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
-  \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_avdom S) \<Longrightarrow>
-  get_avdom S ! i \<notin># dom_m (get_clauses_wl T) \<Longrightarrow>
+  \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_tvdom S) \<Longrightarrow>
+  get_tvdom S ! i \<notin># dom_m (get_clauses_wl T) \<Longrightarrow>
     (delete_index_vdom_heur i S, T) \<in> twl_st_heur_restart_ana r\<close>
-  using in_set_delete_index_and_swapD[of _ \<open>get_avdom S\<close> i]
-    distinct_mset_mono[of \<open>mset (get_avdom S)\<close> \<open>mset (get_vdom S)\<close>]
+  using in_set_delete_index_and_swapD[of _ \<open>get_tvdom S\<close> i]
+    distinct_mset_mono[of \<open>mset (get_tvdom S)\<close> \<open>mset (get_vdom S)\<close>]
   supply [[goals_limit=1]]
   by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def delete_index_vdom_heur_def)
-    (auto intro!: aivdom_inv_dec_removed_inactive)
-
-definition mark_clauses_as_unused_wl_D_heur
-  :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
-where
-\<open>mark_clauses_as_unused_wl_D_heur  = (\<lambda>i S. do {
-    (_, T) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, S). i < length (get_avdom S))
-      (\<lambda>(i, T). do {
-        ASSERT(i < length (get_avdom T));
-        ASSERT(length (get_avdom T) \<le> length (get_avdom S));
-        ASSERT(access_avdom_at_pre T i);
-        let C = get_avdom T ! i;
-        ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
-        if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
-        else do {
-          ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
-          RETURN (i+1, (mark_unused_st_heur C T))
-        }
-      })
-      (i, S);
-    RETURN T
-  })\<close>
+    (auto intro!: aivdom_inv_dec_removed_inactive_tvdom)
 
 lemma avdom_delete_index_vdom_heur[simp]:
-  \<open>get_avdom (delete_index_vdom_heur i S) =
-     delete_index_and_swap (get_avdom S) i\<close>
-  by (cases S) (auto simp: delete_index_vdom_heur_def)
+  \<open>get_avdom (delete_index_vdom_heur i S) =  (get_avdom S)\<close>
+  \<open>get_tvdom (delete_index_vdom_heur i S) = delete_index_and_swap (get_tvdom S) i\<close>
+  by (cases S; auto simp: delete_index_vdom_heur_def; fail)+
 
 lemma incr_wasted_st:
   assumes
@@ -490,63 +528,6 @@ lemma [simp]:
   by (cases T; auto simp: learned_clss_count_def delete_index_vdom_heur_def
     mark_unused_st_heur_def; fail)+
 
-lemma mark_clauses_as_unused_wl_D_heur:
-  assumes \<open>(S, T) \<in> twl_st_heur_restart_ana' r u\<close>
-  shows \<open>mark_clauses_as_unused_wl_D_heur i S \<le> \<Down> (twl_st_heur_restart_ana' r u) (SPEC ( (=) T))\<close>
-proof -
-  have 1: \<open> \<Down> (twl_st_heur_restart_ana' r u) (SPEC ((=) T)) = do {
-      (i, T) \<leftarrow> SPEC (\<lambda>(i::nat, T'). (T', T) \<in> twl_st_heur_restart_ana' r u);
-      RETURN T
-    }\<close>
-    by (auto simp: RES_RETURN_RES2 uncurry_def conc_fun_RES)
-  show ?thesis
-    unfolding mark_clauses_as_unused_wl_D_heur_def 1 mop_arena_length_st_def
-    apply (rule Refine_Basic.bind_mono)
-    subgoal
-      apply (refine_vcg
-         WHILET_rule[where R = \<open>measure (\<lambda>(i, T). length (get_avdom T) - i)\<close> and
-	   I = \<open>\<lambda>(_, S'). (S', T) \<in> twl_st_heur_restart_ana' r u \<and> length (get_avdom S') \<le> length(get_avdom S)\<close>])
-      subgoal by auto
-      subgoal using assms by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal unfolding access_avdom_at_pre_def by auto
-      subgoal for st a S'
-        unfolding clause_not_marked_to_delete_heur_pre_def
-	  arena_is_valid_clause_vdom_def
-        by (auto 7 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
-          dest!: set_mset_mono
-          intro!: exI[of _ \<open>get_clauses_wl T\<close>]  exI[of _ \<open>set (get_vdom S')\<close>])
-      subgoal for s a b x1 x2
-        by (auto intro!: delete_index_vdom_heur_twl_st_heur_restart_ana
-          simp: twl_st_heur_restart)
-      subgoal by auto
-      subgoal by auto
-      subgoal
-        unfolding arena_is_valid_clause_idx_def
-	  arena_is_valid_clause_vdom_def arena_act_pre_def
-       by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart
-            dest!: twl_st_heur_restart_anaD)
-      subgoal for s a b
-        apply (auto intro!: mark_unused_st_heur_ana)
-        unfolding arena_act_pre_def arena_is_valid_clause_idx_def
-          arena_is_valid_clause_idx_def
-          arena_is_valid_clause_vdom_def arena_act_pre_def
-        by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart
-            intro!: mark_unused_st_heur_ana
-            dest!: twl_st_heur_restart_anaD)
-      subgoal
-        unfolding twl_st_heur_restart_ana_def
-        by (auto simp: twl_st_heur_restart_def)
-      subgoal
-        by (auto intro!: mark_unused_st_heur_ana incr_wasted_st simp: twl_st_heur_restart
-          dest: twl_st_heur_restart_anaD)
-      subgoal by auto
-      done
-      subgoal by auto
-      done
-qed
 
 lemma twl_st_heur_restart_same_annotD:
   \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow> Propagated L C \<in> set (get_trail_wl T) \<Longrightarrow>
@@ -573,12 +554,16 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_init_all:
 lemma get_vdom_mark_garbage[simp]:
   \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
   \<open>get_avdom (mark_garbage_heur C i S) = delete_index_and_swap (get_avdom S) i\<close>
+  \<open>get_ivdom (mark_garbage_heur C i S) = get_ivdom S\<close>
+  \<open>get_tvdom (mark_garbage_heur C i S) = get_tvdom S\<close>
+  \<open>get_tvdom (mark_garbage_heur3 C i S) = delete_index_and_swap (get_tvdom S) i\<close>
+  \<open>get_ivdom (mark_garbage_heur3 C i S) = get_ivdom S\<close>
   \<open>get_vdom (mark_garbage_heur3 C i S) = get_vdom S\<close>
-  \<open>get_avdom (mark_garbage_heur3 C i S) = get_avdom S\<close>
   \<open>learned_clss_count (mark_garbage_heur3 C i (S)) \<le> learned_clss_count S\<close>
   \<open>learned_clss_count (mark_garbage_heur3 C i (incr_wasted_st b S)) \<le> learned_clss_count S\<close>
   by (cases S; auto simp: mark_garbage_heur_def mark_garbage_heur3_def
    learned_clss_count_def incr_wasted_st_def; fail)+
+
 
 lemma twl_st_heur_restartD2:
   \<open>x \<in> twl_st_heur_restart \<Longrightarrow> x \<in> twl_st_heur_restart_ana' (length (get_clauses_wl_heur (fst x)))
