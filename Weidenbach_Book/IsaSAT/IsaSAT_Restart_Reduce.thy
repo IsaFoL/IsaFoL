@@ -578,31 +578,41 @@ proof -
     done
 qed
 
+(*TODO Move*)
+lemma arena_status_mark_unused[simp]:
+  \<open>arena_status (mark_unused arena C) D = arena_status arena D\<close>
+  by (auto simp: arena_status_def mark_unused_def LBD_SHIFT_def
+    nth_list_update')
+(*TODO rename to: accumulate candidates to tvdom or something alike*)
 definition isa_remove_deleted_clauses_from_avdom :: \<open>_\<close> where
 \<open>isa_remove_deleted_clauses_from_avdom arena avdom0 = do {
   ASSERT(length (get_avdom_aivdom avdom0) \<le> length arena);
   let n = length (get_avdom_aivdom avdom0);
-  (i, j, avdom) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, j, _). i \<le> j \<and> j \<le> n\<^esup>
-    (\<lambda>(i, j, avdom). j < n)
-    (\<lambda>(i, j, avdom). do {
+  (arena, i, j, avdom) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(_, i, j, _). i \<le> j \<and> j \<le> n\<^esup>
+    (\<lambda>(arena, i, j, avdom). j < n)
+    (\<lambda>(arena, i, j, avdom). do {
       ASSERT(j < n);
       ASSERT(arena_is_valid_clause_vdom arena (get_avdom_aivdom avdom!j) \<and> j < length (get_avdom_aivdom avdom) \<and> i < length (get_avdom_aivdom avdom));
     if arena_status arena (get_avdom_aivdom avdom ! j) \<noteq> DELETED then do{
-         should_push \<leftarrow> RETURN (arena_status arena (get_avdom_aivdom avdom ! j) \<noteq> IRRED);
-       if should_push then  RETURN (i+1, j+1, push_to_tvdom (get_avdom_aivdom avdom ! j) (swap_avdom_aivdom avdom i j))
-       else RETURN (i+1, j+1, swap_avdom_aivdom avdom i j)
+        ASSERT(arena_act_pre arena (get_avdom_aivdom avdom ! j));
+        let arena = mark_unused arena (get_avdom_aivdom avdom ! j);
+        should_push \<leftarrow> RETURN (arena_status arena (get_avdom_aivdom avdom ! j) \<noteq> IRRED);
+       if should_push then  RETURN (arena, i+1, j+1, push_to_tvdom (get_avdom_aivdom avdom ! j) (swap_avdom_aivdom avdom i j))
+       else RETURN (arena, i+1, j+1, swap_avdom_aivdom avdom i j)
       }
-      else RETURN (i, j+1, avdom)
-    }) (0, 0, empty_tvdom avdom0);
+      else RETURN (arena, i, j+1, avdom)
+    }) (arena, 0, 0, empty_tvdom avdom0);
   ASSERT(i \<le> length (get_avdom_aivdom avdom));
-  RETURN (take_avdom_aivdom i avdom)
+  RETURN (arena, take_avdom_aivdom i avdom)
 }\<close>
 
 lemma isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom:
    \<open>valid_arena arena N (set vdom) \<Longrightarrow> mset (get_avdom_aivdom avdom0) \<subseteq># mset vdom \<Longrightarrow> distinct vdom \<Longrightarrow>
-   isa_remove_deleted_clauses_from_avdom arena avdom0 \<le> \<Down>Id (remove_deleted_clauses_from_avdom N avdom0)\<close>
+  isa_remove_deleted_clauses_from_avdom arena avdom0 \<le>
+  \<Down>{((arena', st), st'). (st, st') \<in> Id \<and> length arena' = length arena \<and> valid_arena arena' N (set vdom)}
+  (remove_deleted_clauses_from_avdom N avdom0)\<close>
   unfolding isa_remove_deleted_clauses_from_avdom_def remove_deleted_clauses_from_avdom_def Let_def
-  apply (refine_vcg WHILEIT_refine[where R= \<open>Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>])
+  apply (refine_vcg WHILEIT_refine[where R= \<open>{((arena', st), st'). (st, st') \<in> Id \<and> length arena' = length arena \<and> valid_arena arena' N (set vdom)}\<close>])
   subgoal by (auto dest!: valid_arena_vdom_le(2) size_mset_mono simp: distinct_card)
   subgoal by auto
   subgoal by (auto simp: remove_deleted_clauses_from_avdom_inv_def)
@@ -616,16 +626,18 @@ lemma isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom:
   subgoal by auto
   subgoal by auto
   subgoal
-     by (force simp: arena_lifting arena_dom_status_iff(1) Cons_nth_drop_Suc[symmetric] remove_deleted_clauses_from_avdom_inv_def
-       dest!: mset_eq_setD dest: mset_le_add_mset)
-  subgoal
+    apply (auto simp: arena_lifting arena_dom_status_iff(1) Cons_nth_drop_Suc[symmetric] remove_deleted_clauses_from_avdom_inv_def
+      dest!: mset_eq_setD dest: mset_le_add_mset)
+    by (metis arena_dom_status_iff(1) mset_subset_eqD set_mset_mset union_single_eq_member)
+   subgoal by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def)
+   subgoal
      by (force simp: arena_lifting arena_dom_status_iff(1) Cons_nth_drop_Suc[symmetric] remove_deleted_clauses_from_avdom_inv_def
        dest!: mset_eq_setD dest: mset_le_add_mset)
   subgoal
      by (force simp: arena_lifting arena_dom_status_iff(1) Cons_nth_drop_Suc[symmetric]
        dest!: mset_eq_setD dest: mset_le_add_mset)
-  subgoal by auto
-  subgoal by auto
+  subgoal by (auto intro!: valid_arena_mark_unused)
+  subgoal by (auto intro!: valid_arena_mark_unused)
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -646,10 +658,12 @@ lemma isa_isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdo
     \<open>aivdom_inv_dec avdom (dom_m N)\<close>
  shows
   \<open>isa_remove_deleted_clauses_from_avdom arena avdom \<le>
-   (SPEC (\<lambda>aivdom. aivdom_inv_dec aivdom (dom_m N) \<and>
+   (SPEC (\<lambda>(arena', aivdom). aivdom_inv_dec aivdom (dom_m N) \<and>
      get_vdom_aivdom aivdom = get_vdom_aivdom avdom\<and>
      get_ivdom_aivdom aivdom = get_ivdom_aivdom avdom\<and>
-     mset (get_tvdom_aivdom aivdom) \<subseteq># mset (get_avdom_aivdom avdom)))\<close>
+     mset (get_tvdom_aivdom aivdom) \<subseteq># mset (get_avdom_aivdom avdom) \<and>
+   valid_arena arena' N (set (get_vdom_aivdom avdom)) \<and>
+   length arena' = length arena))\<close>
 proof -
   have i: \<open>mset (get_avdom_aivdom avdom) \<subseteq># mset (get_vdom_aivdom avdom)\<close> \<open>distinct (get_vdom_aivdom avdom)\<close>
     using assms(2) by (auto simp: aivdom_inv_dec_alt_def)
@@ -662,7 +676,7 @@ proof -
     apply (rule order_trans)
     apply (rule ref_two_step'[OF remove_deleted_clauses_from_avdom])
     apply (rule assms)
-    apply auto
+    apply (auto simp: conc_fun_RES)
     done
 qed
 
@@ -670,7 +684,7 @@ definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
   \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, lcount, opts, old_arena). do {
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
-    vdom \<leftarrow> isa_remove_deleted_clauses_from_avdom arena vdom;
+    (arena, vdom) \<leftarrow> isa_remove_deleted_clauses_from_avdom arena vdom;
     ASSERT(valid_sort_clause_score_pre arena (get_vdom_aivdom vdom));
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
     vdom \<leftarrow> sort_clauses_by_score arena vdom;
@@ -757,6 +771,7 @@ proof -
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
         mem_Collect_eq prod.case)
+    apply (subst case_prod_beta)
     apply (subst assert_bind_spec_conv, intro conjI)
     subgoal for x y
       unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
@@ -778,9 +793,9 @@ proof -
       subgoal
        by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD)
      subgoal
-       by (case_tac vdom; case_tac \<open>get_content vdom\<close>) simp
+       by (case_tac \<open>vdom\<close>; case_tac \<open>get_content (snd vdom)\<close>) simp
       subgoal
-        by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def intro: aivdom_inv_dec_cong2
+        by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def intro: aivdom_inv_dec_cong2
           dest: mset_eq_setD)
       done
     done
@@ -1132,7 +1147,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_GC_wl_D_heur  = (\<lambda>S0. do {
           ASSERT (mark_to_delete_clauses_GC_wl_D_heur_pre S0);
           S \<leftarrow> sort_vdom_heur S0;
-          _ \<leftarrow> RETURN (get_avdom S);
+          _ \<leftarrow> RETURN (get_tvdom S);
           l \<leftarrow> number_clss_to_keep S;
           ASSERT
                (length (get_tvdom S) \<le> length (get_clauses_wl_heur S0));
@@ -1341,16 +1356,17 @@ proof -
 
   have mark_to_delete_clauses_wl_D_heur_pre_cong:
     \<open>aivdom_inv_dec vdom' (dom_m (get_clauses_wl S')) \<Longrightarrow>
-    mset (get_vdom_aivdom vdom') = mset (get_vdom_aivdom vdom) \<Longrightarrow>
+    mset (get_vdom_aivdom vdom) = mset (get_vdom_aivdom vdom') \<Longrightarrow>
      ((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount, opts, old_arena),
     S') \<in> twl_st_heur_restart \<Longrightarrow>
     mark_to_delete_clauses_wl_pre S' \<Longrightarrow>
     mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
     heur, vdom, lcount, opts, old_arena) \<Longrightarrow>
-    mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
+    valid_arena N'' (get_clauses_wl S') (set (get_vdom_aivdom vdom)) \<Longrightarrow>
+    mark_to_delete_clauses_wl_D_heur_pre (M', N'', D', j, W', vm, clvls, cach, lbd, outl, stats,
     heur, vdom', lcount, opts, old_arena)\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema avdom avdom'
-      ccount vdom lcount heur old_arena ivdom opts S' vdom'
+      ccount vdom lcount heur old_arena ivdom opts S' vdom' N''
     unfolding mark_to_delete_clauses_wl_D_heur_pre_def apply normalize_goal+
     by (rule_tac x=S' in exI)
      (auto simp: twl_st_heur_restart_def dest: mset_eq_setD intro: )
@@ -1374,11 +1390,12 @@ proof -
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
+    apply (subst case_prod_beta)
     apply (intro ASSERT_leI)
     subgoal for x y
       unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
-      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
+      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff(1)[symmetric]
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
         intro!: exI[of _ \<open>get_clauses_wl T\<close>] exI[of _ \<open>set (get_vdom S)\<close>]
         dest: set_mset_mono mset_subset_eqD)
@@ -1394,7 +1411,7 @@ proof -
       subgoal
         by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD)
       subgoal
-        by (cases \<open>vdom\<close>; cases \<open>get_content vdom\<close>)
+        by (cases \<open>vdom\<close>; cases \<open>get_content (snd vdom)\<close>)
          (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
       subgoal
         apply auto
@@ -1404,8 +1421,8 @@ proof -
           dest: mset_eq_setD)
           apply (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def 
             intro: aivdom_inv_cong2 dest: mset_eq_setD; fail)[]
-            apply (rule mark_to_delete_clauses_wl_D_heur_pre_cong)
-              apply assumption+
+          apply (rule mark_to_delete_clauses_wl_D_heur_pre_cong)
+          apply assumption+
           apply (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
           done
           done
@@ -1585,7 +1602,7 @@ proof -
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
       access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down])
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_restart_stat)
     subgoal
       unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
     subgoal by auto
@@ -1794,7 +1811,7 @@ proof -
      \<open>(\<And>x. h x = h' x) \<Longrightarrow> do {x \<leftarrow> f; h x} = do {x \<leftarrow> f; h' x}\<close> for f f' :: \<open>_ nres\<close> and g g' and h h'
     by auto
 
-  have [refine0]: \<open>RETURN (get_avdom x) \<le> \<Down> {(xs, xs'). xs = xs' \<and> xs = get_avdom x} (collect_valid_indices_wl y)\<close>
+  have [refine0]: \<open>RETURN (get_tvdom x) \<le> \<Down> {(xs, xs'). xs = xs' \<and> xs = get_tvdom x} (collect_valid_indices_wl y)\<close>
     if
       \<open>(x, y) \<in> twl_st_heur_restart_ana r\<close> and
       \<open>mark_to_delete_clauses_GC_wl_D_heur_pre x\<close>
@@ -1804,7 +1821,7 @@ proof -
   qed
   have init_rel[refine0]: \<open>(x, y) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
        (l, la) \<in> nat_rel \<Longrightarrow>
-       ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur_restart_ana r \<and> get_avdom S = get_avdom x}\<close>
+       ((l, x), la, y) \<in> nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur_restart_ana r \<and> get_tvdom S = get_tvdom x}\<close>
     for x y l la
     by auto
 
@@ -1829,15 +1846,15 @@ proof -
           mark_to_delete_clauses_GC_wl_pre V) \<and>
         (mark_to_delete_clauses_GC_wl_D_heur_pre x \<longrightarrow>
           mark_to_delete_clauses_GC_wl_D_heur_pre U)}\<close> and
-    \<open>(ys, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S}\<close> and
+    \<open>(ys, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_tvdom S}\<close> and
     \<open>(l, la) \<in> nat_rel\<close> and
     \<open>la \<in> {_. True}\<close> and
     xa_x': \<open>(xa, x')
-     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close> and
-    \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
+     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close> and
+    \<open>case xa of (i, S) \<Rightarrow> i < length (get_tvdom S)\<close> and
     \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
-    \<open>x1b < length (get_avdom x2b)\<close> and
-    \<open>access_avdom_at_pre x2b x1b\<close> and
+    \<open>x1b < length (get_tvdom x2b)\<close> and
+    \<open>access_tvdom_at_pre x2b x1b\<close> and
     dom: \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -1845,7 +1862,7 @@ proof -
       \<open>\<not> \<not> b\<close>
       \<open>\<not> \<not> ba\<close> and
     \<open>0 < length (get_clauses_wl x1a \<propto> (x2a ! x1))\<close> and
-    \<open>access_lit_in_clauses_heur_pre ((x2b, get_avdom x2b ! x1b), 0)\<close> and
+    \<open>access_lit_in_clauses_heur_pre ((x2b, get_tvdom x2b ! x1b), 0)\<close> and
     st:
       \<open>x2 = (x1a, x2a)\<close>
       \<open>x' = (x1, x2)\<close>
@@ -1864,7 +1881,7 @@ proof -
       apply (rule order.trans)
       apply (rule get_the_propagation_reason_pol[THEN fref_to_Down_curry,
         of \<open>all_init_atms_st x1a\<close> \<open>get_trail_wl x1a\<close>
-	  \<open>arena_lit (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b + 0)\<close>])
+	  \<open>arena_lit (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b + 0)\<close>])
       subgoal
         using xa_x' L L' by (auto simp add: twl_st_heur_restart_def st)
       subgoal
@@ -1884,10 +1901,11 @@ proof -
     mark_to_delete_clauses_GC_wl_pre S' \<Longrightarrow>
     mark_to_delete_clauses_GC_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
     heur, vdom, lcount, opts, old_arena) \<Longrightarrow>
-    mark_to_delete_clauses_GC_wl_D_heur_pre (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
+    valid_arena N'' (get_clauses_wl S') (set (get_vdom_aivdom vdom)) \<Longrightarrow>
+    mark_to_delete_clauses_GC_wl_D_heur_pre (M', N'', D', j, W', vm, clvls, cach, lbd, outl, stats,
     heur, vdom', lcount, opts, old_arena)\<close>
     for M' N' D' j W' vm clvls cach lbd outl stats fast_ema slow_ema avdom avdom'
-      ccount vdom lcount heur old_arena ivdom opts S' vdom'
+      ccount vdom lcount heur old_arena ivdom opts S' vdom' N''
     unfolding mark_to_delete_clauses_GC_wl_D_heur_pre_def apply normalize_goal+
     by (rule_tac x=S' in exI)
      (auto simp: twl_st_heur_restart_def dest: mset_eq_setD)
@@ -1912,11 +1930,12 @@ proof -
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
+    apply (subst case_prod_beta)
     apply (intro ASSERT_leI)
     subgoal for x y
       unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
-      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
+      by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff(1)[symmetric]
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
         intro!: exI[of _ \<open>get_clauses_wl T\<close>] exI[of _ \<open>set (get_vdom S)\<close>]
         dest: set_mset_mono mset_subset_eqD)
@@ -1933,7 +1952,7 @@ proof -
       subgoal
         by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD)
       subgoal
-        by (cases \<open>vdom\<close>; cases \<open>get_content vdom\<close>)
+        by (cases \<open>vdom\<close>; cases \<open>get_content (snd vdom)\<close>)
          (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
       subgoal
         apply (auto simp: learned_clss_count_def (* twl_st_heur_restart_ana_def twl_st_heur_restart_def *)
@@ -1954,7 +1973,7 @@ proof -
   have already_deleted:
     \<open>((x1b, delete_index_vdom_heur x1b x2b), x1, x1a,
        delete_index_and_swap x2a x1)
-      \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close>
+      \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close>
     if
       \<open>(x, y) \<in> twl_st_heur_restart_ana' r u\<close> and
       \<open>mark_to_delete_clauses_GC_wl_D_heur_pre x\<close> and
@@ -1969,15 +1988,15 @@ proof -
       \<open>(l, la) \<in> nat_rel\<close> and
       \<open>la \<in> {_. True}\<close> and
       xx: \<open>(xa, x')
-     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close> and
-      \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
+     \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close> and
+      \<open>case xa of (i, S) \<Rightarrow> i < length (get_tvdom S)\<close> and
       \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
       st:
       \<open>x2 = (x1a, x2a)\<close>
       \<open>x' = (x1, x2)\<close>
       \<open>xa = (x1b, x2b)\<close> and
-      le: \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_avdom_at_pre x2b x1b\<close> and
+      le: \<open>x1b < length (get_tvdom x2b)\<close> and
+      \<open>access_tvdom_at_pre x2b x1b\<close> and
       ba: \<open>(b, ba) \<in> {(b, b'). (b, b') \<in> bool_rel \<and> b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close>
       \<open>\<not>ba\<close>
     for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d ys x1b Sa ba b
@@ -1987,7 +2006,7 @@ proof -
       by (auto simp: twl_st_heur_restart_ana_def delete_index_vdom_heur_def
           twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
           learned_clss_l_l_fmdrop size_remove1_mset_If learned_clss_count_def
-        intro: valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_removed_inactive
+        intro: valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_removed_inactive_tvdom
           dest!: in_set_butlastD in_vdom_m_fmdropD
           elim!: in_set_upd_cases)
   qed
@@ -1997,7 +2016,7 @@ proof -
       \<open>(xa, x')
        \<in> nat_rel \<times>\<^sub>f
          {(Sa, T, xs).
-          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close> and
+          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
@@ -2008,10 +2027,10 @@ proof -
         \<open>\<not> \<not> b\<close>
         \<open>\<not> \<not> ba\<close> and
       \<open>MINIMUM_DELETION_LBD
-    < arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<and>
-    arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED \<and>
-    arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> 2 \<and>
-    marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > 0\<close> and
+    < arena_lbd (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<and>
+    arena_status (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) = LEARNED \<and>
+    arena_length (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<noteq> 2 \<and>
+    marked_as_used (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) > 0\<close> and
       \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del b ba
   proof -
     have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
@@ -2022,7 +2041,7 @@ proof -
        dest!: multi_member_split clss_size_corr_restart_rew)
   qed
   have mop_clause_not_marked_to_delete_heur:
-    \<open>mop_clause_not_marked_to_delete_heur x2b (get_avdom x2b ! x1b)
+    \<open>mop_clause_not_marked_to_delete_heur x2b (get_tvdom x2b ! x1b)
         \<le> SPEC
            (\<lambda>c. (c, x2a ! x1 \<in># dom_m (get_clauses_wl x1a))
                 \<in> {(b, b'). (b,b') \<in> bool_rel \<and> (b \<longleftrightarrow> x2a ! x1 \<in># dom_m (get_clauses_wl x1a))})\<close>
@@ -2030,14 +2049,14 @@ proof -
       \<open>(xa, x')
        \<in> nat_rel \<times>\<^sub>f
          {(Sa, T, xs).
-          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close> and
-      \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
+          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close> and
+      \<open>case xa of (i, S) \<Rightarrow> i < length (get_tvdom S)\<close> and
       \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
       \<open>mark_to_delete_clauses_GC_wl_inv Sa xs x'\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
-      \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close>
+      \<open>clause_not_marked_to_delete_heur_pre (x2b, get_tvdom x2b ! x1b)\<close>
     for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b
     unfolding mop_clause_not_marked_to_delete_heur_def
     apply refine_vcg
@@ -2049,15 +2068,15 @@ proof -
 
 
   have init:
-    \<open>(u', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S} \<Longrightarrow>
+    \<open>(u', xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_tvdom S} \<Longrightarrow>
     (l, la) \<in> nat_rel \<Longrightarrow>
     (S, Sa) \<in> twl_st_heur_restart_ana' r u \<Longrightarrow>
     ((l, S), la, Sa, xs) \<in>  nat_rel \<times>\<^sub>f
-       {(Sa, (T, xs)). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close>
+       {(Sa, (T, xs)). (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close>
        for x y S Sa xs l la u'
     by auto
   have mop_access_lit_in_clauses_heur:
-    \<open>mop_access_lit_in_clauses_heur x2b (get_avdom x2b ! x1b) 0
+    \<open>mop_access_lit_in_clauses_heur x2b (get_tvdom x2b ! x1b) 0
         \<le> SPEC
            (\<lambda>c. (c, get_clauses_wl x1a \<propto> (x2a ! x1) ! 0)
                 \<in> {(L, L'). (L, L') \<in> nat_lit_lit_rel \<and> L' = get_clauses_wl x1a \<propto> (x2a ! x1) ! 0})\<close>
@@ -2073,23 +2092,23 @@ proof -
            mark_to_delete_clauses_GC_wl_pre V) \<and>
           (mark_to_delete_clauses_GC_wl_D_heur_pre x \<longrightarrow>
            mark_to_delete_clauses_GC_wl_D_heur_pre U)}\<close> and
-      \<open>(uu, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S}\<close> and
+      \<open>(uu, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_tvdom S}\<close> and
       \<open>(l, la) \<in> nat_rel\<close> and
       \<open>la \<in> {uu. True}\<close> and
-      \<open>length (get_avdom S) \<le> length (get_clauses_wl_heur x)\<close> and
+      \<open>length (get_tvdom S) \<le> length (get_clauses_wl_heur x)\<close> and
       \<open>(xa, x')
        \<in> nat_rel \<times>\<^sub>f
          {(Sa, T, xs).
-          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_avdom Sa}\<close> and
-      \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
+          (Sa, T) \<in> twl_st_heur_restart_ana' r u \<and> xs = get_tvdom Sa}\<close> and
+      \<open>case xa of (i, S) \<Rightarrow> i < length (get_tvdom S)\<close> and
       \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
       \<open>mark_to_delete_clauses_GC_wl_inv Sa xs x'\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>xa = (x1b, x2b)\<close> and
-      \<open>x1b < length (get_avdom x2b)\<close> and
-      \<open>access_avdom_at_pre x2b x1b\<close> and
-      \<open>clause_not_marked_to_delete_heur_pre (x2b, get_avdom x2b ! x1b)\<close> and
+      \<open>x1b < length (get_tvdom x2b)\<close> and
+      \<open>access_tvdom_at_pre x2b x1b\<close> and
+      \<open>clause_not_marked_to_delete_heur_pre (x2b, get_tvdom x2b ! x1b)\<close> and
       \<open>(b, ba)
        \<in> {(b, b').
           (b, b') \<in> bool_rel \<and>
@@ -2099,7 +2118,7 @@ proof -
       \<open>0 < length (get_clauses_wl x1a \<propto> (x2a ! x1))\<close> and
       \<open>get_clauses_wl x1a \<propto> (x2a ! x1) ! 0
        \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1a)\<close> and
-      pre: \<open>access_lit_in_clauses_heur_pre ((x2b, get_avdom x2b ! x1b), 0)\<close>
+      pre: \<open>access_lit_in_clauses_heur_pre ((x2b, get_tvdom x2b ! x1b), 0)\<close>
      for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b b ba
   unfolding mop_access_lit_in_clauses_heur_def mop_arena_lit2_def
   apply refine_vcg
@@ -2117,17 +2136,6 @@ proof -
         remove_all_learned_subsumed_clauses_wl_def learned_clss_count_def
         RES_RETURN_RES)
 
-  have [refine0]: \<open>mark_clauses_as_unused_wl_D_heur i T\<bind> incr_restart_stat
-    \<le> \<Down> (twl_st_heur_restart_ana' r u)
-       (remove_all_learned_subsumed_clauses_wl S)\<close>
-    if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i
-    apply (cases S)
-    apply (rule bind_refine_res[where R = Id, simplified])
-    defer
-    apply (rule mark_clauses_as_unused_wl_D_heur[unfolded conc_fun_RES, OF that, of i])
-    apply (rule incr_restart_stat[THEN order_trans, of _ S])
-    by auto
-
   show ?thesis
     supply sort_vdom_heur_def[simp] twl_st_heur_restart_anaD[dest] [[goals_limit=1]]
     unfolding mark_to_delete_clauses_GC_wl_D_heur_alt_def mark_to_delete_clauses_GC_wl_D_alt_def
@@ -2144,7 +2152,7 @@ proof -
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: access_avdom_at_pre_def)
+    subgoal by (auto simp: access_tvdom_at_pre_def)
     subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
@@ -2158,7 +2166,7 @@ proof -
     subgoal for x y _ _ _ _ _ xs l la xa x' x1 x2 x1a x2a
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
-      by (rule bex_leI[of _ \<open>get_avdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x1\<close>])
+      by (rule bex_leI[of _ \<open>get_tvdom x2a ! x1a\<close>], simp, rule exI[of _ \<open>get_clauses_wl x1\<close>])
         (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
         all_init_atms_st_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
@@ -2196,7 +2204,7 @@ proof -
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding mop_arena_length_st_def
       apply (rule mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,
-        of \<open>get_clauses_wl x1a\<close> \<open>get_avdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
+        of \<open>get_clauses_wl x1a\<close> \<open>get_tvdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
       subgoal
         by auto
       subgoal
@@ -2213,7 +2221,7 @@ proof -
            apply auto
            done
         subgoal
-          by (use arena_lifting(24)[of \<open>get_clauses_wl_heur x2b\<close> _ _  \<open>get_avdom x2b ! x1\<close>] in
+          by (use arena_lifting(24)[of \<open>get_clauses_wl_heur x2b\<close> _ _  \<open>get_tvdom x2b ! x1\<close>] in
             \<open>auto intro!: incr_wasted_st mark_garbage_heur_wl_ana
             dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD\<close>)
         subgoal
@@ -2231,7 +2239,7 @@ proof -
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
       dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal
-      by auto
+      by (auto intro!: incr_restart_stat)
     done
 qed
 
