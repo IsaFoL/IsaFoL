@@ -461,6 +461,12 @@ definition map_vdom_aivdom :: \<open>_\<close> where
     RETURN (AIvdom (vdom, avdom, ivdom, tvdom))
   })\<close>
 
+definition map_tvdom_aivdom :: \<open>_\<close> where
+  \<open>map_tvdom_aivdom f = (\<lambda>x. case x of AIvdom (vdom, avdom, ivdom, tvdom) \<Rightarrow> do {
+    tvdom \<leftarrow> f tvdom;
+    RETURN (AIvdom (vdom, avdom, ivdom, tvdom))
+  })\<close>
+
 definition AIvdom_init :: \<open>nat list \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> isasat_aivdom\<close> where
   \<open>AIvdom_init vdom avdom ivdom = AIvdom (vdom, avdom, ivdom, vdom)\<close>
 
@@ -484,5 +490,11 @@ lemma \<open>C \<in> set (get_vdom_aivdom aivdom) \<Longrightarrow> C \<notin> s
     (auto simp: aivdom_inv_dec_def add_learned_clause_aivdom_strong_int_def add_learned_clause_aivdom_strong_def
     aivdom_inv_strong_dec_def push_to_tvdom_def push_to_tvdom_int_def
     simp del: aivdom_inv.simps)
+
+fun empty_tvdom_int where
+  \<open>empty_tvdom_int (vdom, avdom, ivdom, tvdom) = (vdom, avdom, ivdom, take 0 tvdom)\<close>
+
+definition empty_tvdom where
+  \<open>empty_tvdom = AIvdom o empty_tvdom_int o get_content\<close>
 
 end

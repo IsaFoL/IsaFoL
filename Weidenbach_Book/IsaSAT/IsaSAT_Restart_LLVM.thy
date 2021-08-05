@@ -12,13 +12,6 @@ sepref_def update_all_phases_impl
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 
-sepref_def MINIMUM_DELETION_LBD_impl
-  is \<open>uncurry0 (RETURN MINIMUM_DELETION_LBD)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding MINIMUM_DELETION_LBD_def
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
-  by sepref
-
 
 sepref_register delete_index_and_swap mop_mark_garbage_heur mop_mark_garbage_heur3
   mop_access_lit_in_clauses_heur
