@@ -1065,15 +1065,11 @@ where
           ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur T));
           L \<leftarrow> mop_access_lit_in_clauses_heur T C 0;
           D \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur T) L;
-          lbd \<leftarrow> mop_arena_lbd (get_clauses_wl_heur T) C;
-          length \<leftarrow> mop_arena_length (get_clauses_wl_heur T) C;
           status \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
           used \<leftarrow> mop_marked_as_used (get_clauses_wl_heur T) C;
           let can_del = (D \<noteq> Some C) \<and>
-	     lbd > MINIMUM_DELETION_LBD \<and>
              status = LEARNED \<and>
-             length \<noteq> 2 \<and>
-	     used > 0;
+             length \<noteq> 2;
           if can_del
           then
             do {
@@ -1123,15 +1119,11 @@ where
           ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur T));
           L \<leftarrow> mop_access_lit_in_clauses_heur T C 0;
           D \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur T) L;
-          lbd \<leftarrow> mop_arena_lbd (get_clauses_wl_heur T) C;
           length \<leftarrow> mop_arena_length (get_clauses_wl_heur T) C;
           status \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
-          used \<leftarrow> mop_marked_as_used (get_clauses_wl_heur T) C;
           let can_del = (D \<noteq> Some C) \<and>
-	     lbd > MINIMUM_DELETION_LBD \<and>
              status = LEARNED \<and>
-             length \<noteq> 2 \<and>
-	     used > 0;
+             length \<noteq> 2;
           if can_del
           then
             do {
@@ -1196,17 +1188,11 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                                (marked_as_used_pre
                                  (get_clauses_wl_heur T) (get_tvdom T ! i));
                           let can_del = (D \<noteq> Some (get_tvdom T ! i) \<and>
-                             MINIMUM_DELETION_LBD
-                             < arena_lbd (get_clauses_wl_heur T)
-                                (get_tvdom T ! i) \<and>
                              arena_status (get_clauses_wl_heur T)
                               (get_tvdom T ! i) =
                              LEARNED \<and>
                              arena_length (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) \<noteq>
-                             2 \<and>
-                             marked_as_used (get_clauses_wl_heur T)
-                                (get_tvdom T ! i) > 0);
+                              (get_tvdom T ! i) \<noteq> 2);
                           if can_del
                           then do {
                                 wasted \<leftarrow> mop_arena_length_st T (get_tvdom T ! i);
@@ -1285,14 +1271,8 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
                              MINIMUM_DELETION_LBD
                              < arena_lbd (get_clauses_wl_heur T)
                                 (get_tvdom T ! i) \<and>
-                             arena_status (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) =
-                             LEARNED \<and>
                              arena_length (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) \<noteq>
-                             2 \<and>
-                             marked_as_used (get_clauses_wl_heur T)
-                                (get_tvdom T ! i) > 0);
+                              (get_tvdom T ! i) \<noteq> 2);
                           if can_del
                           then do {
                                 wasted \<leftarrow> mop_arena_length_st T (get_tvdom T ! i);
@@ -1600,11 +1580,8 @@ proof -
             b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close>
         \<open>\<not> \<not> b\<close>
         \<open>\<not> \<not> ba\<close> and
-      \<open>MINIMUM_DELETION_LBD
-    < arena_lbd (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<and>
-    arena_status (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) = LEARNED \<and>
-    arena_length (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<noteq> 2 \<and>
-    marked_as_used (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) > 0\<close> and
+      \<open>arena_status (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) = LEARNED \<and>
+    arena_length (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<noteq> 2\<close> and
       \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del b ba
   proof -
     have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
@@ -2159,11 +2136,8 @@ proof -
             b = (x2a ! x1 \<in># dom_m (get_clauses_wl x1a))}\<close>
         \<open>\<not> \<not> b\<close>
         \<open>\<not> \<not> ba\<close> and
-      \<open>MINIMUM_DELETION_LBD
-    < arena_lbd (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<and>
-    arena_status (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) = LEARNED \<and>
-    arena_length (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<noteq> 2 \<and>
-    marked_as_used (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) > 0\<close> and
+      \<open>arena_status (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) = LEARNED \<and>
+    arena_length (get_clauses_wl_heur x2b) (get_tvdom x2b ! x1b) \<noteq> 2\<close> and
       \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del b ba
   proof -
     have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
