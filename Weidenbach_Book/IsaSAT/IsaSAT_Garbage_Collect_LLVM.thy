@@ -22,7 +22,7 @@ lemma isasat_GC_clauses_prog_copy_wl_entry_alt_def:
       (\<lambda>(i, N, N', aivdom). i < le)
       (\<lambda>(i, N, (N', aivdom)). do {
         ASSERT(i < length (W ! nat_of_lit A));
-        let (C, _, _) = (W ! nat_of_lit A ! i);b
+        let (C, _, _) = W ! nat_of_lit A ! i;
         ASSERT(arena_is_valid_clause_vdom N C);
         let st = arena_status N C;
         if st \<noteq> DELETED then do {

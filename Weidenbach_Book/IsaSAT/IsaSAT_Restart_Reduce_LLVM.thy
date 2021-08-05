@@ -101,7 +101,7 @@ sepref_def isa_is_candidate_for_removal_impl
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
       length_avdom_def[symmetric, simp] access_avdom_at_def[simp]
   apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
-  apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
+  apply (rewrite in \<open>_ = 0\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

@@ -468,7 +468,7 @@ definition number_clss_to_keep_impl :: \<open>twl_st_wl_heur \<Rightarrow> nat n
   \<open>number_clss_to_keep_impl = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur,
        vdom, avdom, lcount).
-    let n = unat (1000 + 150 * (get_restart_count stats)) in RETURN (if n \<ge> sint64_max then sint64_max else n))\<close>
+    RETURN (length_tvdom_aivdom vdom >> 1))\<close>
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
   \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Id \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
@@ -490,7 +490,7 @@ lemma [simp]:
   \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_avdom_aivdom aivdom\<close>
   \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_ivdom_aivdom aivdom\<close>
   by (cases aivdom; auto simp: remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
-  
+
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_tvdom S) \<Longrightarrow>
   get_tvdom S ! i \<notin># dom_m (get_clauses_wl T) \<Longrightarrow>

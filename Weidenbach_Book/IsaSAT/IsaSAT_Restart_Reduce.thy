@@ -601,11 +601,10 @@ definition isa_is_candidate_for_removal where
       lbd > MINIMUM_DELETION_LBD \<and>
       status = LEARNED \<and>
       length \<noteq> 2 \<and>
-      used > 0;
+      used = 0;
     RETURN can_del
   }\<close>
-thm twl_st_heur_def
-  thm all_atms_def
+
 lemma isa_is_candidate_for_removal_is_candidate_for_removal:
   assumes
     valid: \<open>valid_arena arena N vdom\<close> and
