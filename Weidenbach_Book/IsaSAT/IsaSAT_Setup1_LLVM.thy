@@ -187,9 +187,10 @@ sepref_register delete_index_vdom_heur
 
 sepref_def delete_index_vdom_heur_fast_code2
   is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
-  :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
+  :: \<open>[\<lambda>(i, S). i < length_tvdom S]\<^sub>a
         sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
+  supply [simp] = length_tvdom_def
   unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def fold_tuple_optimizations
   by sepref

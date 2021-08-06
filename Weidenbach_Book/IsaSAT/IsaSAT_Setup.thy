@@ -1029,7 +1029,7 @@ definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_
   \<open>mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
+       remove_inactive_aivdom_tvdom i vdom, clss_size_decr_lcount lcount, opts, old_arena))\<close>
 
 definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur4 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
@@ -1044,7 +1044,7 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Right
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
   \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount).
-     (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, remove_inactive_aivdom i vdom, lcount))\<close>
+     (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, remove_inactive_aivdom_tvdom i vdom, lcount))\<close>
 
 lemma arena_act_pre_mark_used:
   \<open>arena_act_pre arena C \<Longrightarrow>
@@ -1064,7 +1064,7 @@ definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> t
 
 definition mop_mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mop_mark_garbage_heur3 C i = (\<lambda>S. do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1 \<and> i < length (get_avdom S));
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1  \<and> i < length (get_tvdom S));
     RETURN (mark_garbage_heur3 C i S)
   })\<close>
 
@@ -1097,6 +1097,8 @@ lemma mop_mark_garbage_heur_alt_def:
 lemma mark_unused_st_heur_simp[simp]:
   \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
   \<open>get_vdom (mark_unused_st_heur C T) = get_vdom T\<close>
+  \<open>get_ivdom (mark_unused_st_heur C T) = get_ivdom T\<close>
+  \<open>get_tvdom (mark_unused_st_heur C T) = get_tvdom T\<close>
   by (cases T; auto simp: mark_unused_st_heur_def; fail)+
 
 
@@ -1361,6 +1363,8 @@ lemma restart_info_of_stats_simp [simp]: \<open>restart_info_of_stats (incr_wast
 lemma incr_wasted_st_twl_st[simp]:
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
   \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
+  \<open>get_ivdom (incr_wasted_st w T) = get_ivdom T\<close>
+  \<open>get_tvdom (incr_wasted_st w T) = get_tvdom T\<close>
   \<open>get_trail_wl_heur (incr_wasted_st w T) = get_trail_wl_heur T\<close>
   \<open>get_clauses_wl_heur (incr_wasted_st C T) = get_clauses_wl_heur T\<close>
   \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>

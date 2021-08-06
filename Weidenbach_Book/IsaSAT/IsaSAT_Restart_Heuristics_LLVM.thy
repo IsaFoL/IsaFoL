@@ -250,7 +250,7 @@ sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register mark_clauses_as_unused_wl_D_heur remove_one_annot_true_clause_imp_wl_D_heur
+sepref_register remove_one_annot_true_clause_imp_wl_D_heur
 
 lemma remove_one_annot_true_clause_imp_wl_D_heurI:
   \<open>learned_clss_count x \<le> uint64_max \<Longrightarrow>
@@ -269,17 +269,6 @@ sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
-
-sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
-  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
-  :: \<open>[\<lambda>(_, S). length (get_avdom S) \<le> sint64_max]\<^sub>a
-    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] length_avdom_def[simp]
-  unfolding mark_clauses_as_unused_wl_D_heur_def
-    mark_unused_st_heur_def[symmetric]
-    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  by sepref
 
 sepref_register number_clss_to_keep
 
@@ -304,8 +293,7 @@ sepref_def number_clss_to_keep_fast_code
   supply [[goals_limit = 1]]
   unfolding number_clss_to_keep_impl_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  apply (rewrite at \<open>If _ _ \<hole>\<close> annot_unat_snat_conv)
-  apply (rewrite at \<open>If (\<hole> \<le>_)\<close> annot_snat_unat_conv)
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:

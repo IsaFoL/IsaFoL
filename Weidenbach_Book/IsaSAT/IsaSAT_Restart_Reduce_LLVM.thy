@@ -67,10 +67,51 @@ sepref_def lbd_sort_clauses_avdom_impl
   by sepref
 
 sepref_register remove_deleted_clauses_from_avdom arena_status DELETED
+lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
+  \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> ((the D) = C)\<close>
+  by auto
+
+sepref_def mop_marked_as_used_impl
+  is \<open>uncurry mop_marked_as_used\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(2)\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_marked_as_used_def
+  by sepref
+
+sepref_def MINIMUM_DELETION_LBD_impl
+  is \<open>uncurry0 (RETURN MINIMUM_DELETION_LBD)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding MINIMUM_DELETION_LBD_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
+sepref_def isa_is_candidate_for_removal_impl
+  is \<open>uncurry2 isa_is_candidate_for_removal\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding isa_is_candidate_for_removal_def
+      unfolding
+    access_avdom_at_def[symmetric] length_avdom_def[symmetric]
+    get_the_propagation_reason_heur_def[symmetric]
+    clause_is_learned_heur_def[symmetric]
+    clause_lbd_heur_def[symmetric]
+    access_length_heur_def[symmetric]
+    mark_to_delete_clauses_wl_D_heur_is_Some_iff
+    marked_as_used_st_def[symmetric] if_conn(4)
+    fold_tuple_optimizations
+  supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
+      length_avdom_def[symmetric, simp] access_avdom_at_def[simp]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
+  apply (rewrite in \<open>_ = 0\<close> unat_const_fold[where 'a=2])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_register isa_is_candidate_for_removal
 
 sepref_def remove_deleted_clauses_from_avdom_fast_code
-  is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>[\<lambda>(N, vdom). length (get_avdom_aivdom vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
+  is \<open>uncurry2 isa_remove_deleted_clauses_from_avdom\<close>
+  :: \<open>[\<lambda>((M, N), vdom). length (get_vdom_aivdom vdom) \<le> sint64_max]\<^sub>a
+  trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d \<rightarrow>
+  arena_fast_assn \<times>\<^sub>a aivdom_assn\<close>
   supply [[goals_limit=1]]
   supply [simp] = length_avdom_aivdom_def
   unfolding isa_remove_deleted_clauses_from_avdom_def
@@ -81,12 +122,12 @@ sepref_def remove_deleted_clauses_from_avdom_fast_code
 
 
 definition lbd_sort_clauses :: \<open>arena \<Rightarrow> aivdom2 \<Rightarrow> aivdom2 nres\<close> where
-  \<open>lbd_sort_clauses arena N = map_vdom_aivdom_int (lbd_sort_clauses_avdom arena) N\<close>
+  \<open>lbd_sort_clauses arena N = map_tvdom_aivdom_int (lbd_sort_clauses_avdom arena) N\<close>
 
 sepref_def lbd_sort_clauses_impl
   is \<open>uncurry lbd_sort_clauses\<close>
   :: \<open>[\<lambda>(N, vdom). length (fst vdom) \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a aivdom_int_assn\<^sup>d \<rightarrow> aivdom_int_assn\<close>
-  unfolding lbd_sort_clauses_def map_vdom_aivdom_int_def
+  unfolding lbd_sort_clauses_def map_tvdom_aivdom_int_def
   by sepref
 
 lemma
@@ -109,7 +150,7 @@ lemma quicksort_clauses_by_score_sort:
   Id \<times>\<^sub>r aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close>
   apply (intro fun_relI nres_relI frefI)
   subgoal for arena arena'
-    unfolding uncurry_def lbd_sort_clauses_def map_vdom_aivdom_int_def
+    unfolding uncurry_def lbd_sort_clauses_def map_tvdom_aivdom_int_def
       lbd_sort_clauses_avdom_def lbd_sort_clauses_raw_def sort_clauses_by_score_def
     apply (refine_vcg)
     apply (rule specify_left)
@@ -132,7 +173,7 @@ lemma quicksort_clauses_by_score_sort:
       intro!: ASSERT_leI 
       )
     apply (case_tac x2; auto simp: get_aivdom_eq_aivdom_iff)
-    apply (rule_tac x = \<open>AIvdom (x1a, x, ad, bb)\<close> in exI)
+    apply (rule_tac x = \<open>AIvdom (x1a, ac, ad, x)\<close> in exI)
     apply auto
     by (metis slice_complete)
   done
@@ -170,7 +211,7 @@ sepref_def sort_vdom_heur_fast_code
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply sort_clauses_by_score_invI[intro]
     [[goals_limit=1]]
-  unfolding sort_vdom_heur_def isasat_bounded_assn_def
+  unfolding sort_vdom_heur_def isasat_bounded_assn_def EQ_def
   by sepref
 
 
