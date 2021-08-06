@@ -1065,8 +1065,8 @@ where
           ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur T));
           L \<leftarrow> mop_access_lit_in_clauses_heur T C 0;
           D \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur T) L;
+          length \<leftarrow> mop_arena_length (get_clauses_wl_heur T) C;
           status \<leftarrow> mop_arena_status (get_clauses_wl_heur T) C;
-          used \<leftarrow> mop_marked_as_used (get_clauses_wl_heur T) C;
           let can_del = (D \<noteq> Some C) \<and>
              status = LEARNED \<and>
              length \<noteq> 2;
@@ -1176,23 +1176,14 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                           D \<leftarrow> get_the_propagation_reason_pol
                                (get_trail_wl_heur T) L;
                           ASSERT
-                               (get_clause_LBD_pre (get_clauses_wl_heur T)
-                                 (get_tvdom T ! i));
-                          ASSERT
                                (arena_is_valid_clause_idx
                                  (get_clauses_wl_heur T) (get_tvdom T ! i));
                           ASSERT
                                (arena_is_valid_clause_vdom
                                  (get_clauses_wl_heur T) (get_tvdom T ! i));
-                          ASSERT
-                               (marked_as_used_pre
-                                 (get_clauses_wl_heur T) (get_tvdom T ! i));
                           let can_del = (D \<noteq> Some (get_tvdom T ! i) \<and>
-                             arena_status (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) =
-                             LEARNED \<and>
-                             arena_length (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) \<noteq> 2);
+                             arena_status (get_clauses_wl_heur T) (get_tvdom T ! i) = LEARNED \<and>
+                             arena_length (get_clauses_wl_heur T) (get_tvdom T ! i) \<noteq> 2);
                           if can_del
                           then do {
                                 wasted \<leftarrow> mop_arena_length_st T (get_tvdom T ! i);
@@ -1256,23 +1247,14 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
                           D \<leftarrow> get_the_propagation_reason_pol
                                (get_trail_wl_heur T) L;
                           ASSERT
-                               (get_clause_LBD_pre (get_clauses_wl_heur T)
-                                 (get_tvdom T ! i));
-                          ASSERT
                                (arena_is_valid_clause_idx
                                  (get_clauses_wl_heur T) (get_tvdom T ! i));
                           ASSERT
                                (arena_is_valid_clause_vdom
                                  (get_clauses_wl_heur T) (get_tvdom T ! i));
-                          ASSERT
-                               (marked_as_used_pre
-                                 (get_clauses_wl_heur T) (get_tvdom T ! i));
                           let can_del = (D \<noteq> Some (get_tvdom T ! i) \<and>
-                             MINIMUM_DELETION_LBD
-                             < arena_lbd (get_clauses_wl_heur T)
-                                (get_tvdom T ! i) \<and>
-                             arena_length (get_clauses_wl_heur T)
-                              (get_tvdom T ! i) \<noteq> 2);
+                             arena_status (get_clauses_wl_heur T) (get_tvdom T ! i) = LEARNED \<and>
+                             arena_length (get_clauses_wl_heur T) (get_tvdom T ! i) \<noteq> 2);
                           if can_del
                           then do {
                                 wasted \<leftarrow> mop_arena_length_st T (get_tvdom T ! i);
@@ -1730,11 +1712,6 @@ proof -
     apply (rule get_the_propagation_reason; assumption)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps
-        get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
-        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
-      unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena
@@ -1745,9 +1722,6 @@ proof -
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart arena_dom_status_iff
           dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
-    subgoal
-      unfolding marked_as_used_pre_def
-      by (auto simp: twl_st_heur_restart reason_rel_def)
     subgoal
       unfolding marked_as_used_pre_def
       by (auto simp: twl_st_heur_restart reason_rel_def)
@@ -2283,11 +2257,6 @@ proof -
     apply (rule get_the_propagation_reason; assumption)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       unfolding prod.simps
-        get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
-        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
-      unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena
@@ -2298,9 +2267,6 @@ proof -
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart arena_dom_status_iff
           dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
-    subgoal
-      unfolding marked_as_used_pre_def
-      by (auto simp: twl_st_heur_restart reason_rel_def)
     subgoal
       by (auto simp: twl_st_heur_restart reason_rel_def)
     subgoal
