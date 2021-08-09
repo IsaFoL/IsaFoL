@@ -13,7 +13,7 @@ lemma rtranclp_cdcl_twl_inprocessing_l_count_dec:
   \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
   by (induction rule: rtranclp_induct)
     (auto dest!: cdcl_twl_inprocessing_l_count_dec)
-    
+
 inductive cdcl_twl_restart_l_inp for S T where
   \<open>cdcl_twl_restart_l S T \<Longrightarrow> cdcl_twl_restart_l_inp S T\<close> |
   \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> cdcl_twl_restart_l_inp S T\<close>

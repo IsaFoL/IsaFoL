@@ -122,6 +122,12 @@ definition all_learned_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause
   \<open>all_learned_lits_of_wl S' \<equiv> all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S') + get_unit_learned_clss_wl S' +
           get_subsumed_learned_clauses_wl S' + get_learned_clauses0_wl S')\<close>
 
+lemma all_lits_st_alt_def:
+  \<open>Watched_Literals_Watch_List.all_lits_st S = all_init_lits_of_wl S + all_learned_lits_of_wl S\<close>
+  apply (auto simp: all_lits_st_def all_init_lits_of_wl_def all_learned_lits_of_wl_def
+    ac_simps all_lits_def all_lits_of_mm_union)
+   by (metis all_clss_l_ran_m all_lits_of_mm_union get_unit_clauses_wl_alt_def image_mset_union union_assoc) 
+
 lemma all_init_lits_of_wl_all_lits_st:
   \<open>set_mset (all_init_lits_of_wl S) \<subseteq> set_mset (all_lits_st S)\<close>
   unfolding all_lits_st_def all_init_lits_of_wl_def all_lits_def

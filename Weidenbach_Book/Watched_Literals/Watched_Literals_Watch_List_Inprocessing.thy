@@ -2,12 +2,6 @@ theory Watched_Literals_Watch_List_Inprocessing
   imports Watched_Literals_Watch_List Watched_Literals_List_Inprocessing
     Watched_Literals_Watch_List_Restart
 begin
-(*TODO Move*)
-lemma all_lits_st_alt_def:
-  \<open>Watched_Literals_Watch_List.all_lits_st S = all_init_lits_of_wl S + all_learned_lits_of_wl S\<close>
-  apply (auto simp: all_lits_st_def all_init_lits_of_wl_def all_learned_lits_of_wl_def
-    ac_simps all_lits_def all_lits_of_mm_union)
-   by (metis all_clss_l_ran_m all_lits_of_mm_union get_unit_clauses_wl_alt_def image_mset_union union_assoc) 
 
 definition simplify_clause_with_unit_st_wl_pre where
   \<open>simplify_clause_with_unit_st_wl_pre C S \<longleftrightarrow> (\<exists>T.
