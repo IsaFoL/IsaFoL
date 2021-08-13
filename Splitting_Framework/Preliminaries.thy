@@ -1078,7 +1078,7 @@ proof -
       using finite_m1_j1 finite_n1_j2 m1_sub n1_sub j1_sub j2_sub unions_entail 
       by (smt (verit, best) Un_commute) 
    qed   
-   have finite_sound_entail_fml_j: \<open>\<forall>J. \<exists>fml_Jpos fml_Jneg. finite fml_Jpos \<and> finite fml_Jneg \<and> 
+   have finite_sound_entail_fml_j_pos_neg: \<open>\<forall>J. \<exists>fml_Jpos fml_Jneg. finite fml_Jpos \<and> finite fml_Jneg \<and> 
      fml_Jpos \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<and>
      fml_Jneg \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} \<and>
      fml_Jpos \<union> M \<Turnstile>s fml_Jneg \<union> N\<close>
@@ -1100,7 +1100,7 @@ proof -
        using finite_jpos finite_jneg jpos_subs jneg_subs 
        by blast
    qed 
-   have \<open>\<forall>J. \<exists>fml_Jfin. finite fml_Jfin \<and> fml_Jfin \<subseteq> fml_ext ` total_strip J \<and>
+   have finite_sound_entail_fml_j: \<open>\<forall>J. \<exists>fml_Jfin. finite fml_Jfin \<and> fml_Jfin \<subseteq> fml_ext ` total_strip J \<and>
      {to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} \<union> M \<Turnstile>s {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N\<close>
    proof
      fix J
@@ -1108,7 +1108,7 @@ proof -
        jpos_subs: "toV_Jpos \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C}" and
        jneg_subs: "toV_Jneg \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}" and
        pos_entails_neg: "toV_Jpos \<union> M \<Turnstile>s toV_Jneg \<union> N"
-       using finite_sound_entail_fml_j by meson 
+       using finite_sound_entail_fml_j_pos_neg by meson 
      have \<open>\<exists>Jpos\<subseteq>fml_ext ` total_strip J. finite Jpos \<and> toV_Jpos = to_V ` Jpos \<and> (\<forall>C\<in>Jpos. is_Pos C)\<close>
        using finite_subset_image_with_prop[OF fin_vpos,
          of "\<lambda>x. to_V x"  "fml_ext ` total_strip J" is_Pos, OF jpos_subs]
@@ -1139,7 +1139,44 @@ proof -
    have \<open>\<forall>J. \<exists>Jfin. finite Jfin \<and> Jfin \<subseteq> total_strip J \<and>
      {to_V C |C. C \<in> fml_ext ` Jfin \<and> is_Pos C} \<union> M \<Turnstile>s
        {to_V C |C. C \<in> fml_ext ` Jfin \<and> \<not> is_Pos C} \<union> N\<close>
-     sorry
+   proof
+     fix J
+     obtain fml_Jfin where "finite fml_Jfin" and "fml_Jfin \<subseteq> fml_ext ` total_strip J" and
+       fml_sound_entails: "{to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} \<union> M \<Turnstile>s {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N"
+       using finite_sound_entail_fml_j by blast
+     then have \<open>\<exists>Jfin. finite Jfin \<and> Jfin \<subseteq> total_strip J \<and> fml_ext ` Jfin = fml_Jfin\<close>
+       by (metis (no_types, hide_lams) finite_subset_image)
+     then obtain Jfin where "finite Jfin" and "Jfin \<subseteq> total_strip J" and fml_jfin_is: "fml_ext ` Jfin = fml_Jfin"
+       by blast
+     moreover have \<open>{to_V C |C. C \<in> fml_ext ` Jfin \<and> is_Pos C} \<union> M \<Turnstile>s
+       {to_V C |C. C \<in> fml_ext ` Jfin \<and> \<not> is_Pos C} \<union> N\<close>
+       using fml_sound_entails fml_jfin_is by blast
+     ultimately show \<open>\<exists>Jfin. finite Jfin \<and> Jfin \<subseteq> total_strip J \<and>
+       {to_V C |C. C \<in> fml_ext ` Jfin \<and> is_Pos C} \<union> M \<Turnstile>s
+         {to_V C |C. C \<in> fml_ext ` Jfin \<and> \<not> is_Pos C} \<union> N\<close>
+       by blast 
+   qed
+   then obtain to_Jfin :: "'v total_interpretation \<Rightarrow> 'v neg set" where fin_to_Jfin: "finite (to_Jfin J)" and
+     "(to_Jfin J) \<subseteq> total_strip J" and "{to_V C |C. C \<in> fml_ext ` (to_Jfin J) \<and> is_Pos C} \<union> M \<Turnstile>s
+       {to_V C |C. C \<in> fml_ext ` (to_Jfin J) \<and> \<not> is_Pos C} \<union> N" for J
+     by meson
+   define Vfin :: "'v set" where "Vfin = to_V ` (\<Union>J. to_Jfin J)"
+   have \<open>finite Vfin\<close>
+   proof -
+     have \<open>finite  (\<Union>J. to_Jfin J)\<close>
+       using fin_to_Jfin sorry (* /!\ I suspect this does not hold /!\ *)
+     have \<open>\<forall>J. finite (to_V ` (to_Jfin J))\<close>
+     proof
+       fix J
+       show \<open>finite (to_V ` (to_Jfin J))\<close>
+         using finite_imageI[OF fin_to_Jfin, of to_V] by blast
+     qed
+           
+     
+      find_theorems finite "\<Union>_. _" 
+
+
+oops
 
  (*   have \<open>\<forall>J. \<exists>Jfin. finite (strip Jfin) \<and>
  *      strip Jfin \<subseteq> total_strip J \<and>
