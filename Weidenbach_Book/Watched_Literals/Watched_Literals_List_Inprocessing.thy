@@ -967,8 +967,10 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>simplify_clause_with_unit_st_pre = (\<lambda>C S.
   C \<in># dom_m (get_clauses_l S) \<and> count_decided (get_trail_l S) = 0 \<and> get_conflict_l S = None \<and> clauses_to_update_l S = {#} \<and>
-    twl_list_invs S \<and>
-   (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T)
+  twl_list_invs S \<and>
+  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+  (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)))
 )\<close>
 
 definition simplify_clause_with_unit_st :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
@@ -1268,16 +1270,8 @@ lemma pget_all_init_clss_get_all_init_clss_l:
   by (cases x; cases S)
    (auto simp: get_init_clss_l_def twl_st_l_def mset_take_mset_drop_mset')
 
-
 lemma simplify_clause_with_unit_st_spec:
-  assumes \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close>
-    \<open>get_conflict_l S = None\<close> and
-    \<open>clauses_to_update_l S = {#}\<close> and
-    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
-    st_invs: \<open>twl_struct_invs T\<close> and
-    list_invs: \<open>twl_list_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> and
-    annot: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
+  assumes \<open>simplify_clause_with_unit_st_pre C S\<close>
   shows \<open>simplify_clause_with_unit_st C S \<le> \<Down>Id (SPEC(\<lambda>T.
       (S = T \<or> cdcl_twl_unitres_l S T \<or> cdcl_twl_unitres_true_l S T) \<and>
     (set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq>
@@ -1285,8 +1279,19 @@ lemma simplify_clause_with_unit_st_spec:
       (dom_m (get_clauses_l T) = dom_m (get_clauses_l S) \<or>
           dom_m (get_clauses_l T) = remove1_mset C (dom_m (get_clauses_l S)))))\<close>
 proof -
+  obtain T where
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close> and
+    confl: \<open>get_conflict_l S = None\<close> and
+    clss: \<open>clauses_to_update_l S = {#}\<close> and
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    st_invs: \<open>twl_struct_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T))\<close> and
+    annot: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
+    using assms unfolding simplify_clause_with_unit_st_pre_def
+    by auto
   have C0: \<open>C \<noteq> 0\<close> \<open>C \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close>
-    using list_invs assms(1) annot
+    using list_invs C annot
     by (auto simp: twl_list_invs_def)
   have add_new: \<open>L \<in># all_init_lits_of_l S \<longleftrightarrow> L \<in># all_init_lits_of_l S + all_learned_lits_of_l S\<close>
     if \<open>simplify_clause_with_unit_st_pre C S\<close> for L S
@@ -1464,24 +1469,20 @@ proof -
     apply (blast dest: all_lits_of_m_mono)
     by (metis (no_types, lifting) add_mset_remove_trivial distinct_mset_add_mset distinct_mset_dom dom_m_fmdrop fmlookup_drop image_mset_cong2)
   have tauto: \<open>\<not>tautology (mset ((get_clauses_l S) \<propto> C))\<close>
-    using list_invs assms(1)
+    using list_invs C
     by (auto simp: twl_list_invs_def)
   then show ?thesis
     supply [[goals_limit=1]]
     using assms
     unfolding simplify_clause_with_unit_st_def simplify_clause_with_unit_def Let_def
     apply refine_vcg
-    subgoal using assms unfolding simplify_clause_with_unit_st_pre_def
-      apply (intro conjI)
-      apply (simp; fail)+
-      apply (rule exI[of _ T], simp)
-      done
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
-    subgoal using assms by auto
+    subgoal using assms by blast
+    subgoal using C by auto
+    subgoal using C by auto
+    subgoal using confl by auto
+    subgoal using clss by auto
     subgoal using n_d by simp
-    subgoal using assms by (auto simp: twl_list_invs_def)
+    subgoal using C list_invs by (auto simp: twl_list_invs_def)
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -1516,7 +1517,7 @@ proof -
         all_learned_lits_of_l_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset)
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ _ _ _ _ aj bj
-      using ST st_invs C0 apply -
+      using ST st_invs C0 ent apply -
       apply (rule disjI2, rule disjI1)
       apply (auto simp: length_list_Suc_0
         dest: in_diffD
@@ -1541,7 +1542,7 @@ proof -
       intro: in_all_lits_of_mm_learned_clss_l_single_out)
       by (metis all_lits_of_mm_add_mset diff_single_trivial insert_DiffM union_iff)
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ _ _ _ _ aj bj
-      using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs C0
+      using count_decided_ge_get_level[of \<open>get_trail_l S\<close>] ST st_invs C0 ent
         cdcl_twl_unitres_false_entailed[of C \<open>get_clauses_l S\<close> \<open>get_trail_l S\<close>
          \<open>get_unkept_init_clauses_l S\<close> \<open>get_unkept_learned_clss_l S\<close>
          \<open>get_kept_init_clauses_l S\<close> \<open>get_kept_learned_clss_l S\<close>
@@ -1573,7 +1574,7 @@ proof -
       done
     subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi x _ _ _ _ _ _ aj bj
       using assms
-      by (auto  simp: list_length_2_isabelle_come_on twl_list_invs_def
+      by (auto  simp: list_length_2_isabelle_come_on twl_list_invs_def simplify_clause_with_unit_st_pre_def
         intro!: cdcl_twl_unitres_l_intros3' cdcl_twl_unitres_l_intros1'
         dest: distinct_mset_mono[of \<open>mset _\<close> \<open>mset _\<close>, unfolded distinct_mset_mset_distinct]
         intro!: exI[of _ C] fmdrop_eq_update_eq2)
@@ -2390,9 +2391,8 @@ proof -
        apply normalize_goal+
       apply (rule simplify_clause_with_unit_st_spec[THEN order_trans])
       subgoal
-        unfolding simplify_clauses_with_unit_st_inv_def
-        by normalize_goal+ auto
-      apply assumption+
+        unfolding simplify_clauses_with_unit_st_inv_def simplify_clause_with_unit_st_pre_def
+        by normalize_goal+ fast
       subgoal
         using empty
         by (auto 5 3 simp: simplify_clauses_with_unit_st_inv_def distinct_mset_dom
@@ -2485,19 +2485,89 @@ definition backward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
   ASSERT (backward_subsumption_all_pre S);
   xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># (dom_m (get_clauses_l S)));
   (xs, S) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> backward_subsumption_all_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S \<noteq> None)
+    WHILE\<^sub>T\<^bsup> backward_subsumption_all_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S = None)
     (\<lambda>(xs, S). do {
        C \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-       S \<leftarrow> simplify_clause_with_unit_st C S;
-       if get_conflict_l S = None then do {
-         S \<leftarrow> backward_subsumption_one C S;
-         RETURN (remove1_mset C xs, S)
-       }
-       else RETURN (remove1_mset C xs, S)
+       if C \<notin># dom_m (get_clauses_l S)
+       then RETURN (remove1_mset C xs, S)
+       else do {
+         S \<leftarrow> simplify_clause_with_unit_st C S;
+         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) then do {
+           S \<leftarrow> backward_subsumption_one C S;
+           RETURN (remove1_mset C xs, S)
+         }
+         else RETURN (remove1_mset C xs, S)
+      }
     })
     (xs, S);
   RETURN S
   }
 )\<close>
+
+lemma
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+  shows
+    rtranclp_cdcl_twl_inprocessing_l_count_decided:
+    \<open>count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> (is ?A) and
+    rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l:
+    \<open>clauses_to_update_l T = clauses_to_update_l S\<close> (is ?B)
+proof -
+  have [dest]:
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> 
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> for S T
+    by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_subsumed_l.simps
+      cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps)
+      (*set (get_all_mark_of_propagated (get_trail_l T))*)
+  show ?A ?B
+    using assms
+    by (induction rule: rtranclp_induct; auto; fail)+
+qed
+
+lemma backward_subsumption_one:
+  assumes \<open>backward_subsumption_all_pre S\<close>
+  shows \<open>backward_subsumption_all S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+proof -
+  let ?R = \<open>measure (\<lambda>(xs, _). size xs)\<close>
+  have \<open>simplify_clause_with_unit_st_pre D T\<close>
+    if 
+      \<open>backward_subsumption_all_pre S\<close> and
+      \<open>C \<subseteq># dom_m (get_clauses_l S)\<close> and
+      \<open>backward_subsumption_all_inv S xsS\<close> and
+      \<open>case xsS of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      st: \<open>xsS = (Cs, T)\<close> and
+      \<open>D \<in># Cs\<close> and
+      \<open>\<not> D \<notin># dom_m (get_clauses_l T)\<close>
+    for C xsS Cs T D
+  proof -
+    have \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+      using that unfolding simplify_clause_with_unit_st_pre_def backward_subsumption_all_inv_def st prod.simps
+      apply - apply normalize_goal+
+      by auto
+     
+      find_theorems cdcl_twl_inprocessing_l count_decided
+    show ?thesis
+      using that unfolding simplify_clause_with_unit_st_pre_def backward_subsumption_all_inv_def st prod.simps
+      apply - apply normalize_goal+
+      sorry
+qed
+  show ?thesis
+    unfolding backward_subsumption_all_def
+    apply (refine_vcg WHILEIT_rule[where R= ?R] backward_subsumption_one[THEN order_trans]
+      simplify_clause_with_unit_st_spec[THEN order_trans])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
+    subgoal for C xsS Cs T D
+      explore_have sorry
+    subgoal apply (clarsimp , (intro impI conjI)?)
+      apply (rule specify_left)
+      apply (rule backward_subsumption_one[unfolded Down_id_eq])
+
+      sorry
+find_theorems "\<Down>Id _ = _"
+    subgoal 
 
 end
