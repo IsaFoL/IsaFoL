@@ -1,0 +1,13 @@
+session "Given_Clause_Loops" = Saturation_Framework +
+  options [timeout=300]
+  sessions
+    "HOL-Library"
+  theories
+    Given_Clause_Basis_Extension
+    GC_Extension
+    LGC_Extension
+    OL_in_GC
+    DL_in_LGC
+    IL_in_GC
+    IL_in_GC_from_OL
+    ZL_in_LGC
