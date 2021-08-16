@@ -31,10 +31,34 @@ locale consequence_relation =
     bot_entails_empty: "{bot} \<Turnstile> {}" and
     entails_reflexive: "{C} \<Turnstile> {C}" and
     entails_subsets: "M \<subseteq> N \<Longrightarrow> P \<subseteq> Q \<Longrightarrow> M \<Turnstile> P \<Longrightarrow> N \<Turnstile> Q" and
-    entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q"
+    entails_supsets: "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
+    (* the version of D4 below was relaxed to fix lemma 6, which was found broken due to the forma *)
+    (* entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" *)
     (* this was an earlier version of entails_each: "M \<Turnstile> N \<Longrightarrow> (\<forall>D\<in>N. M \<union> {D} \<Turnstile> P) \<Longrightarrow> M \<Turnstile> P"
     it was detected to be unsufficient thanks to the forma*)
 begin
+
+lemma entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" 
+proof -
+  fix M P N Q
+  assume \<open>M \<Turnstile> P\<close>
+    and \<open>\<forall>C\<in>M. N \<Turnstile> Q \<union> {C}\<close>
+    and \<open>\<forall>D\<in>P. N \<union> {D} \<Turnstile> Q\<close>
+  have \<open>(\<forall>N' Q'. N' \<union> Q' = UNIV \<longrightarrow> N' \<inter> P = {} \<longrightarrow> Q' \<inter> M = {} \<longrightarrow> P \<subseteq> Q' \<and> M \<subseteq> N')\<close> 
+    by auto
+  have \<open>\<forall>M' N'. (M' \<supseteq> N \<and> N' \<supseteq> Q \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N'\<close>
+  proof clarsimp
+    fix M' N'
+    assume \<open>M' \<supseteq> N\<close> and
+      \<open>N' \<supseteq> Q\<close> and
+      \<open>M' \<union> N' = UNIV\<close>
+    show \<open>M' \<Turnstile> N'\<close>
+      sorry
+  qed
+  show \<open>N \<Turnstile> Q\<close>
+    sorry
+qed
+
 
 lemma entails_bot_to_entails_empty: \<open>{} \<Turnstile> {bot} \<Longrightarrow> {} \<Turnstile> {}\<close>
   using entails_reflexive[of bot] entails_each[of "{}" "{bot}" "{}" "{}"] bot_entails_empty
@@ -46,8 +70,8 @@ abbreviation equi_entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" wh
 lemma entails_cond_reflexive: \<open>N \<noteq> {} \<Longrightarrow> N \<Turnstile> N\<close>
   using entails_reflexive entails_subsets by (meson bot.extremum from_nat_into insert_subset)
     
-    (* This lemma shows that an entailment such that {} \<Turnstile> {} is useless, it may or may not help better
-    understand what this entailment is depending on who you ask ^_^' *)
+  (* This lemma shows that an entailment such that {} \<Turnstile> {} is useless, it may or may not help better
+  understand what this entailment is depending on who you ask ^_^' *)
 lemma entails_empty_reflexive_dangerous: \<open>{} \<Turnstile> {} \<Longrightarrow> M \<Turnstile> N\<close>
   using entails_subsets[of "{}" M "{}" N] by simp
 
