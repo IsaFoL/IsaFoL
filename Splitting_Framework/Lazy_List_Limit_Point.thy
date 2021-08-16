@@ -4,7 +4,7 @@
 
 section \<open>Limit Points of Lazy Lists\<close>
 
-theory Lazy_List_Limit
+theory Lazy_List_Limit_Point
   imports Lazy_List_Limsup Ordered_Resolution_Prover.Lazy_List_Liminf
 begin
 
