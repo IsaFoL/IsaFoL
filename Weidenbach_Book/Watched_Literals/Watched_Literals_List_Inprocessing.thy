@@ -961,7 +961,7 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
      (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
      (irred N C = irred N' C) \<and>
      (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-     (unc \<longrightarrow> N = N'))
+     (unc \<longrightarrow> N = N' \<and> \<not>b))
   })\<close>
 
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
@@ -1277,7 +1277,8 @@ lemma simplify_clause_with_unit_st_spec:
     (set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq>
        set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}) \<and>
       (dom_m (get_clauses_l T) = dom_m (get_clauses_l S) \<or>
-          dom_m (get_clauses_l T) = remove1_mset C (dom_m (get_clauses_l S)))))\<close>
+           dom_m (get_clauses_l T) = remove1_mset C (dom_m (get_clauses_l S))) \<and>
+      (C \<in># dom_m (get_clauses_l T) \<longrightarrow> (\<forall>L\<in>set (get_clauses_l T \<propto> C). undefined_lit (get_trail_l T) L))))\<close>
 proof -
   obtain T where
     C: \<open>C \<in># dom_m (get_clauses_l S)\<close> \<open>count_decided (get_trail_l S) = 0\<close> and
@@ -1320,7 +1321,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> (aa = N')) \<Longrightarrow>
+    (unc \<longrightarrow> (aa = N' \<and> \<not>b)) \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1340,7 +1341,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> (aa = N'))  \<Longrightarrow>
+    (unc \<longrightarrow> (aa = N' \<and> \<not>b))  \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1369,7 +1370,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-      (unc \<longrightarrow> aa = N') \<Longrightarrow>
+      (unc \<longrightarrow> aa = N'\<and> \<not>b) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
@@ -1391,7 +1392,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> aa = N') \<Longrightarrow>
+    (unc \<longrightarrow> aa = N'\<and> \<not>b) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
@@ -1494,6 +1495,7 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto
     subgoal 
       by (rule in_lits)
     subgoal 
@@ -1505,6 +1507,7 @@ proof -
         intro!: exI[of _ C])
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff)+
     subgoal 
       by (rule in_lits_prop)
     subgoal 
@@ -1529,6 +1532,7 @@ proof -
       done
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff)+
     subgoal using assms apply (auto simp: all_init_lits_of_l_def
       all_lits_of_mm_union init_clss_l_fmdrop_if image_mset_remove1_mset_if
       get_init_clss_l_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
@@ -1557,6 +1561,7 @@ proof -
       done
     subgoal using assms by auto
     subgoal using assms by auto
+    subgoal using assms by auto (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff)+
     subgoal using assms apply (auto simp: all_init_lits_of_l_def
       all_lits_of_mm_union init_clss_l_fmdrop_if image_mset_remove1_mset_if
       get_init_clss_l_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
@@ -1586,12 +1591,11 @@ proof -
       done
     subgoal using assms by auto
        (metis dom_m_fmdrop insert_DiffM)+
+    subgoal using assms by auto
     done
 qed
 
-(*
-TODO Support binary clauses
-*)
+
 definition backward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>backward_subsumption_one_pre = (\<lambda>C S.
   \<exists>T. C \<noteq> 0 \<and>
@@ -1605,7 +1609,7 @@ definition backward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l 
   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
   C \<in># dom_m (get_clauses_l S) \<and>
   (\<forall>L \<in># mset (get_clauses_l S \<propto> C). undefined_lit (get_trail_l S) L) \<and>
-  length (get_clauses_l S \<propto> C) \<ge> 3)\<close>
+  length (get_clauses_l S \<propto> C) \<ge> 2)\<close>
 
 datatype 'v subsumption =
   is_subsumed: SUBSUMED_BY (subsumed_by: nat) |
@@ -2510,7 +2514,9 @@ lemma
     rtranclp_cdcl_twl_inprocessing_l_count_decided:
     \<open>count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> (is ?A) and
     rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l:
-    \<open>clauses_to_update_l T = clauses_to_update_l S\<close> (is ?B)
+    \<open>clauses_to_update_l T = clauses_to_update_l S\<close> (is ?B) and
+    rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated:
+    \<open>set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> (is ?C)
 proof -
   have [dest]:
     \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> 
@@ -2519,17 +2525,17 @@ proof -
     by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_subsumed_l.simps
       cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps)
       (*set (get_all_mark_of_propagated (get_trail_l T))*)
-  show ?A ?B
+  show ?A ?B ?C
     using assms
     by (induction rule: rtranclp_induct; auto; fail)+
 qed
 
-lemma backward_subsumption_one:
+lemma backward_subsumption_all:
   assumes \<open>backward_subsumption_all_pre S\<close>
   shows \<open>backward_subsumption_all S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
 proof -
   let ?R = \<open>measure (\<lambda>(xs, _). size xs)\<close>
-  have \<open>simplify_clause_with_unit_st_pre D T\<close>
+  have simplify_clause_with_unit_st_pre: \<open>simplify_clause_with_unit_st_pre D T\<close>
     if 
       \<open>backward_subsumption_all_pre S\<close> and
       \<open>C \<subseteq># dom_m (get_clauses_l S)\<close> and
@@ -2544,15 +2550,40 @@ proof -
       using that unfolding simplify_clause_with_unit_st_pre_def backward_subsumption_all_inv_def st prod.simps
       apply - apply normalize_goal+
       by auto
-     
-      find_theorems cdcl_twl_inprocessing_l count_decided
-    show ?thesis
-      using that unfolding simplify_clause_with_unit_st_pre_def backward_subsumption_all_inv_def st prod.simps
-      apply - apply normalize_goal+
-      sorry
-qed
   show ?thesis
-    unfolding backward_subsumption_all_def
+      using rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated[of S T] rtranclp_cdcl_twl_inprocessing_l_twl_st_l[of S T]
+      using that unfolding simplify_clause_with_unit_st_pre_def backward_subsumption_all_inv_def st prod.simps
+        backward_subsumption_all_pre_def
+      apply - apply normalize_goal+
+      apply (auto dest: rtranclp_cdcl_twl_inprocessing_l_count_decided
+        rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l
+        rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated)
+      apply (meson rtranclp_cdcl_twl_inprocessing_l_twl_list_invs)
+      by metis
+  qed
+  have 0: \<open>\<Down>Id  (do {
+  ASSERT (backward_subsumption_all_pre S);
+  xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># (dom_m (get_clauses_l S)));
+  (xs, S) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> backward_subsumption_all_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S = None)
+    (\<lambda>(xs, S). do {
+       C \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
+       if C \<notin># dom_m (get_clauses_l S)
+       then RETURN (remove1_mset C xs, S)
+       else do {
+         S \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
+            (C \<in># dom_m (get_clauses_l T) \<longrightarrow> (\<forall>L\<in> set (get_clauses_l T \<propto> C). undefined_lit (get_trail_l T) L)));
+         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) then do {
+           S \<leftarrow> SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S);
+           RETURN (remove1_mset C xs, S)
+         }
+         else RETURN (remove1_mset C xs, S)
+      }
+    })
+    (xs, S);
+  RETURN S
+           }) \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+    apply (subst (1) Down_id_eq)
     apply (refine_vcg WHILEIT_rule[where R= ?R] backward_subsumption_one[THEN order_trans]
       simplify_clause_with_unit_st_spec[THEN order_trans])
     subgoal using assms by auto
@@ -2560,14 +2591,106 @@ qed
     subgoal by (auto simp: backward_subsumption_all_inv_def)
     subgoal by (auto simp: backward_subsumption_all_inv_def)
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
-    subgoal for C xsS Cs T D
-      explore_have sorry
-    subgoal apply (clarsimp , (intro impI conjI)?)
-      apply (rule specify_left)
-      apply (rule backward_subsumption_one[unfolded Down_id_eq])
-
-      sorry
-find_theorems "\<Down>Id _ = _"
-    subgoal 
-
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    done
+  have backward_subsumption_one_pre: \<open>backward_subsumption_one_pre C T\<close>
+    if 
+     pre: \<open>backward_subsumption_all_pre S\<close> and
+      \<open>(xs, xsa) \<in> Id\<close> and
+      \<open>xs \<in> {xs. xs \<subseteq># dom_m (get_clauses_l S)}\<close> and
+      \<open>xsa \<in> {xs. xs \<subseteq># dom_m (get_clauses_l S)}\<close> and
+      xx': \<open>(x, x') \<in> Id \<times>\<^sub>f Id\<close> and
+      \<open>case x of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      \<open>case x' of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      inv: \<open>backward_subsumption_all_inv S x\<close> and
+      \<open>backward_subsumption_all_inv S x'\<close> and
+      st: \<open>x' = (x1, x2)\<close> \<open>x = (x1a, x2a)\<close> and
+      CCa: \<open>(C, Ca) \<in> nat_rel\<close> and
+       \<open>C \<in> {C'. C' \<in># x1a}\<close> and
+      \<open>Ca \<in> {C'. C' \<in># x1}\<close> and
+      C: \<open>\<not> C \<notin># dom_m (get_clauses_l x2a)\<close> and
+      \<open>\<not> Ca \<notin># dom_m (get_clauses_l x2)\<close> and
+      TU: \<open>(T, U) \<in> Id\<close> and
+      U: \<open>U \<in> {T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* x2 T \<and>
+      (Ca \<in># dom_m (get_clauses_l T) \<longrightarrow>
+       (\<forall>L\<in>set (get_clauses_l T \<propto> Ca). undefined_lit (get_trail_l T) L))}\<close> and
+      \<open>get_conflict_l T = None \<and> C \<in># dom_m (get_clauses_l T)\<close> and
+      conflU: \<open>get_conflict_l U = None \<and> Ca \<in># dom_m (get_clauses_l U)\<close>
+    for xs xsa x x' x1 x2 x1a x2a C Ca T U
+  proof -
+    have TU: \<open>T = U\<close> and
+      x2U: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* x2 U\<close> and
+      Sx2a: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S x2\<close> and
+      SU: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close> and
+      st': \<open>x1 = x1a\<close> \<open>x2 = x2a\<close> \<open>C=Ca\<close> and
+      C:  \<open>C \<in># dom_m (get_clauses_l x2a)\<close>  and
+      undef: \<open>\<forall>L\<in>set (get_clauses_l T \<propto> C). undefined_lit (get_trail_l T) L\<close>
+      using TU U inv xx' C CCa conflU unfolding backward_subsumption_all_inv_def st by auto
+    obtain x where
+      Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
+      struct_S: \<open>twl_struct_invs x\<close> and
+      list_S: \<open>twl_list_invs S\<close> and
+      [simp]: \<open>clauses_to_update_l S = {#}\<close> and
+      [simp]: \<open>get_conflict_l S = None\<close> and
+      ent_S: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of x)\<close> and
+      [simp]: \<open>count_decided (get_trail_l S) = 0\<close> and
+      marks: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
+      using pre unfolding backward_subsumption_all_pre_def by fast
+    have [intro]: \<open>2 \<le> length (get_clauses_l U \<propto> C)\<close>
+      if 
+        H: \<open>(U, Va) \<in> twl_st_l None\<close> \<open>twl_struct_invs Va\<close>  \<open>C \<in># dom_m (get_clauses_l U)\<close>
+      for Va C
+    proof -
+      have \<open>struct_wf_twl_cls (twl_clause_of (get_clauses_l U \<propto> C))\<close> for x
+        using that
+        by (cases Va, cases U; cases \<open>irred (get_clauses_l U) C\<close>)
+         (clarsimp_all simp: twl_struct_invs_def twl_st_inv.simps twl_st_l_def ran_m_def conj_disj_distribR
+          Collect_disj_eq Collect_conv_if
+          dest!: multi_member_split)
+      then show ?thesis
+        by auto
+    qed
+    show ?thesis
+      using undef apply -
+      apply (rule rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF Sx2a Sx struct_S list_S ent_S])
+      apply (rule rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF x2U])
+      unfolding st'
+      apply assumption+
+      unfolding backward_subsumption_one_pre_def TU
+      apply (rule_tac x=Va in exI)
+      using rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l[OF SU]
+        rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated[OF SU]
+        rtranclp_cdcl_twl_inprocessing_l_count_decided[OF SU]
+        rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated[OF SU]
+        conflU marks
+      by (auto simp: twl_list_invs_def)
+  qed
+  show ?thesis
+    apply (rule order_trans)
+    prefer 2
+    apply (rule 0)
+    unfolding backward_subsumption_all_def
+    apply (refine_vcg WHILEIT_refine[where R=\<open>Id \<times>\<^sub>f Id\<close>] backward_subsumption_one[THEN order_trans]
+      simplify_clause_with_unit_st_spec[THEN order_trans])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: backward_subsumption_all_inv_def)
+    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
+    subgoal by auto
+    subgoal by (rule simplify_clause_with_unit_st_pre)
+      auto
+    subgoal by (auto dest!: cdcl_twl_inprocessing_l.intros)
+    subgoal by auto
+    subgoal by (rule backward_subsumption_one_pre)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 end
