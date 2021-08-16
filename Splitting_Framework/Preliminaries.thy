@@ -46,7 +46,7 @@ abbreviation equi_entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" wh
 lemma entails_cond_reflexive: \<open>N \<noteq> {} \<Longrightarrow> N \<Turnstile> N\<close>
   using entails_reflexive entails_subsets by (meson bot.extremum from_nat_into insert_subset)
     
-(* This lemma shows that an entailment such that {} \<Turnstile> {} is useless, it may or may not help better
+    (* This lemma shows that an entailment such that {} \<Turnstile> {} is useless, it may or may not help better
     understand what this entailment is depending on who you ask ^_^' *)
 lemma entails_empty_reflexive_dangerous: \<open>{} \<Turnstile> {} \<Longrightarrow> M \<Turnstile> N\<close>
   using entails_subsets[of "{}" M "{}" N] by simp
@@ -218,9 +218,23 @@ next
     unfolding entails_neg_def MpPm_def MmPp_def NpQm_def NmQp_def
     by blast
 qed
-  
+
+
+interpretation neg_ext_cons_rel: consequence_relation "Pos bot" entails_neg
+  using ext_cons_rel by simp 
+    
+    (* Splitting report Lemma 1 *)
+lemma pos_neg_entails_bot: \<open>{C} \<union> {Neg C} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
+proof -
+  have \<open>{C} \<union> {Neg C} \<Turnstile>\<^sub>\<sim> {}\<close> unfolding entails_neg_def
+    by (smt (verit, ccfv_threshold) Collect_empty_eq Un_empty Un_insert_right empty_iff
+      empty_subsetI entails_reflexive entails_subsets insertI1 insert_iff insert_subset
+      is_Pos.simps(2) mem_Collect_eq singletonD sup_bot.right_neutral sup_bot_left to_V.simps(2))
+  then show ?thesis using neg_ext_cons_rel.entails_subsets by blast 
+qed
+
 end
-   
+  
 
 
 locale sound_inference_system =
@@ -434,7 +448,8 @@ begin
 
 lemma inf_from_subs: "M \<subseteq> N \<Longrightarrow> Inf_from M \<subseteq> Inf_from N"
   unfolding Inf_from_def by blast
-
+    
+    (* Splitting report Lemma 3 *)
 lemma nobot_in_Red: \<open>bot \<notin> Red_F N\<close>
 proof -
   have \<open>UNIV \<Turnstile> {bot}\<close>
@@ -448,7 +463,8 @@ proof -
     using statically_complete[OF sat_non_red non_red_entails_bot] by fast
   then show ?thesis using Red_F_of_subset[of _ UNIV] by auto
 qed
-
+  
+  (* Splitting report Remark 4 *)
 interpretation strict_calculus:
   statically_complete_calculus bot Inf entails Red_I_strict Red_F_strict
 proof -
@@ -480,10 +496,6 @@ end
 locale dynamically_complete_calculus = calculus +
   assumes dynamically_complete:
     \<open>is_derivation (\<rhd>) Ns \<Longrightarrow> fair Ns \<Longrightarrow> shd Ns \<Turnstile> {bot} \<Longrightarrow> \<exists>i. bot \<in> Ns !! i\<close>
-    
-
-
-
 
     (* First attempt at formalizing sect. 2.3 *)
     (* below, I force 'v to be countable, but not infinite, alternative, enforce bijection with nat
@@ -745,7 +757,8 @@ next
       using n_to_q_m M\<^sub>J_def
       unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
        by blast 
-    then have each_hyp2: \<open>\<forall>C\<in>F_of ` M\<^sub>J. {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q \<union> {C}\<close>
+     then have each_hyp2:
+       \<open>\<forall>C\<in>F_of ` M\<^sub>J. {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q \<union> {C}\<close>
       by force
     have \<open>\<forall>D\<in>P. {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close> 
       using n_p_to_q q_enabled
@@ -785,7 +798,8 @@ interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails
 (* Splitting report Lemma 5, 2/2 *)
 interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
 proof
-  have \<open>{Pos bot} \<subseteq> Pos ` {F_of C |C. C \<in> {to_AF bot} \<and> A_of C \<subseteq> total_strip (J :: 'v total_interpretation)}\<close>
+  have \<open>{Pos bot} \<subseteq> Pos ` {F_of C |C. C \<in> {to_AF bot} \<and>
+    A_of C \<subseteq> total_strip (J :: 'v total_interpretation)}\<close>
     unfolding to_AF_def by simp
   then show \<open>{to_AF bot} \<Turnstile>s\<^sub>A\<^sub>F {}\<close>
     using sound_cons_rel.bot_entails_empty sound_cons_rel.entails_subsets
@@ -810,7 +824,8 @@ next
   proof (rule allI, rule impI)
     fix J
     assume q_enabled: \<open>\<forall>C\<in>Q. A_of C \<subseteq> total_strip J\<close>
-    have \<open>{F_of C |C. C \<in> M \<and> A_of C \<subseteq> total_strip J} \<subseteq> {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}\<close>
+    have \<open>{F_of C |C. C \<in> M \<and> A_of C \<subseteq> total_strip J} \<subseteq>
+      {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}\<close>
       using m_in_n by blast
     moreover have \<open>F_of ` P \<subseteq> F_of ` Q\<close>
       using p_in_q by blast
@@ -818,7 +833,8 @@ next
       Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}) (Pos ` F_of ` Q)\<close>
       using m_entails_p  sound_cons_rel.entails_subsets m_in_n
       unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      by (smt (z3) Un_iff consequence_relation.entails_subsets imageE image_eqI mem_Collect_eq p_in_q q_enabled sound_cons_rel.consequence_relation_axioms subset_iff)
+      by (smt (z3) Un_iff consequence_relation.entails_subsets imageE image_eqI mem_Collect_eq
+        p_in_q q_enabled sound_cons_rel.consequence_relation_axioms subset_iff)
   qed 
 next
   fix M P N Q
@@ -838,7 +854,8 @@ next
     assume
       p_enabled: \<open>\<forall>C\<in>P. A_of C \<subseteq> total_strip J\<close>
     define M\<^sub>J :: "('f, 'v) AF set" where "M\<^sub>J = {C. C \<in> M \<and> A_of C \<subseteq> total_strip J}"
-    have each_hyp1: \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> (Pos ` F_of ` M\<^sub>J)) (Pos ` F_of ` P)\<close>
+    have each_hyp1:
+      \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> (Pos ` F_of ` M\<^sub>J)) (Pos ` F_of ` P)\<close>
       using m_entails_p p_enabled 
       unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
       by (simp add: M\<^sub>J_def setcompr_eq_image)
@@ -889,7 +906,8 @@ next
       unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
       by blast 
     then show \<open>sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}) (Pos ` F_of ` Q)\<close>
+      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
+      (Pos ` F_of ` Q)\<close>
       using d_not_enabled 
       by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
     qed 
@@ -1078,7 +1096,8 @@ proof -
       using finite_m1_j1 finite_n1_j2 m1_sub n1_sub j1_sub j2_sub unions_entail 
       by (smt (verit, best) Un_commute) 
    qed   
-   have finite_sound_entail_fml_j_pos_neg: \<open>\<forall>J. \<exists>fml_Jpos fml_Jneg. finite fml_Jpos \<and> finite fml_Jneg \<and> 
+   have finite_sound_entail_fml_j_pos_neg:
+     \<open>\<forall>J. \<exists>fml_Jpos fml_Jneg. finite fml_Jpos \<and> finite fml_Jneg \<and>
      fml_Jpos \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<and>
      fml_Jneg \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} \<and>
      fml_Jpos \<union> M \<Turnstile>s fml_Jneg \<union> N\<close>
@@ -1100,7 +1119,8 @@ proof -
        using finite_jpos finite_jneg jpos_subs jneg_subs 
        by blast
    qed 
-   have finite_sound_entail_fml_j: \<open>\<forall>J. \<exists>fml_Jfin. finite fml_Jfin \<and> fml_Jfin \<subseteq> fml_ext ` total_strip J \<and>
+   have finite_sound_entail_fml_j:
+     \<open>\<forall>J. \<exists>fml_Jfin. finite fml_Jfin \<and> fml_Jfin \<subseteq> fml_ext ` total_strip J \<and>
      {to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} \<union> M \<Turnstile>s {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N\<close>
    proof
      fix J
@@ -1109,19 +1129,23 @@ proof -
        jneg_subs: "toV_Jneg \<subseteq> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}" and
        pos_entails_neg: "toV_Jpos \<union> M \<Turnstile>s toV_Jneg \<union> N"
        using finite_sound_entail_fml_j_pos_neg by meson 
-     have \<open>\<exists>Jpos\<subseteq>fml_ext ` total_strip J. finite Jpos \<and> toV_Jpos = to_V ` Jpos \<and> (\<forall>C\<in>Jpos. is_Pos C)\<close>
+     have \<open>\<exists>Jpos\<subseteq>fml_ext ` total_strip J. finite Jpos \<and> toV_Jpos = to_V ` Jpos \<and>
+       (\<forall>C\<in>Jpos. is_Pos C)\<close>
        using finite_subset_image_with_prop[OF fin_vpos,
          of "\<lambda>x. to_V x"  "fml_ext ` total_strip J" is_Pos, OF jpos_subs]
        by blast 
-     then obtain Jpos where fpos_subs: \<open>Jpos \<subseteq> fml_ext ` total_strip J\<close> and fin_fpos: \<open>finite Jpos\<close> and
-       v_to_f_pos: \<open>toV_Jpos = to_V ` Jpos\<close> and pos_all_pos: \<open>\<forall>C\<in>Jpos. is_Pos C\<close>
+     then obtain Jpos where fpos_subs: \<open>Jpos \<subseteq> fml_ext ` total_strip J\<close> and
+       fin_fpos: \<open>finite Jpos\<close> and v_to_f_pos: \<open>toV_Jpos = to_V ` Jpos\<close> and
+       pos_all_pos: \<open>\<forall>C\<in>Jpos. is_Pos C\<close>
        by blast
-     have \<open>\<exists>Jneg\<subseteq>fml_ext ` total_strip J. finite Jneg \<and> toV_Jneg = to_V ` Jneg \<and> (\<forall>C\<in>Jneg. \<not> is_Pos C)\<close>
+     have \<open>\<exists>Jneg\<subseteq>fml_ext ` total_strip J. finite Jneg \<and> toV_Jneg = to_V ` Jneg \<and>
+       (\<forall>C\<in>Jneg. \<not> is_Pos C)\<close>
        using finite_subset_image_with_prop[OF fin_vneg,
          of "\<lambda>x. to_V x"  "fml_ext ` total_strip J" "\<lambda>x. \<not> is_Pos x", OF jneg_subs]
        by blast 
-     then obtain Jneg where fneg_subs: \<open>Jneg \<subseteq> fml_ext ` total_strip J\<close> and fin_fneg: \<open>finite Jneg\<close> and
-       v_to_f_neg: \<open>toV_Jneg = to_V ` Jneg\<close> and neg_all_neg: \<open>\<forall>C\<in>Jneg. \<not> is_Pos C\<close>
+     then obtain Jneg where fneg_subs: \<open>Jneg \<subseteq> fml_ext ` total_strip J\<close> and
+       fin_fneg: \<open>finite Jneg\<close> and v_to_f_neg: \<open>toV_Jneg = to_V ` Jneg\<close> and
+       neg_all_neg: \<open>\<forall>C\<in>Jneg. \<not> is_Pos C\<close>
        by blast
      define fml_Jfin where "fml_Jfin = Jpos \<union> Jneg"
      have \<open>{to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} = to_V ` Jpos\<close>
@@ -1142,11 +1166,13 @@ proof -
    proof
      fix J
      obtain fml_Jfin where "finite fml_Jfin" and "fml_Jfin \<subseteq> fml_ext ` total_strip J" and
-       fml_sound_entails: "{to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} \<union> M \<Turnstile>s {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N"
+       fml_sound_entails: "{to_V C |C. C \<in> fml_Jfin \<and> is_Pos C} \<union> M \<Turnstile>s
+         {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N"
        using finite_sound_entail_fml_j by blast
      then have \<open>\<exists>Jfin. finite Jfin \<and> Jfin \<subseteq> total_strip J \<and> fml_ext ` Jfin = fml_Jfin\<close>
        by (metis (no_types, hide_lams) finite_subset_image)
-     then obtain Jfin where "finite Jfin" and "Jfin \<subseteq> total_strip J" and fml_jfin_is: "fml_ext ` Jfin = fml_Jfin"
+     then obtain Jfin where "finite Jfin" and "Jfin \<subseteq> total_strip J" and
+       fml_jfin_is: "fml_ext ` Jfin = fml_Jfin"
        by blast
      moreover have \<open>{to_V C |C. C \<in> fml_ext ` Jfin \<and> is_Pos C} \<union> M \<Turnstile>s
        {to_V C |C. C \<in> fml_ext ` Jfin \<and> \<not> is_Pos C} \<union> N\<close>
@@ -1156,8 +1182,9 @@ proof -
          {to_V C |C. C \<in> fml_ext ` Jfin \<and> \<not> is_Pos C} \<union> N\<close>
        by blast 
    qed
-   then obtain to_Jfin :: "'v total_interpretation \<Rightarrow> 'v neg set" where fin_to_Jfin: "finite (to_Jfin J)" and
-     "(to_Jfin J) \<subseteq> total_strip J" and "{to_V C |C. C \<in> fml_ext ` (to_Jfin J) \<and> is_Pos C} \<union> M \<Turnstile>s
+   then obtain to_Jfin :: "'v total_interpretation \<Rightarrow> 'v neg set" where
+     fin_to_Jfin: "finite (to_Jfin J)" and "(to_Jfin J) \<subseteq> total_strip J" and
+     "{to_V C |C. C \<in> fml_ext ` (to_Jfin J) \<and> is_Pos C} \<union> M \<Turnstile>s
        {to_V C |C. C \<in> fml_ext ` (to_Jfin J) \<and> \<not> is_Pos C} \<union> N" for J
      by meson
    define Vfin :: "'v set" where "Vfin = to_V ` (\<Union>J. to_Jfin J)"
@@ -1211,34 +1238,34 @@ oops
 
 
 
-  then have \<open>\<exists>J's\<subseteq>total_strip J. finite J's \<and>
-    {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> is_Pos C} \<union>
-    {to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} \<Turnstile>s
-      {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
-      {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C} \<close>
-    using entails_sound_compact unfolding AF_entails_sound_def sound_cons.entails_neg_def
-    sorry
-  have \<open>M \<Turnstile>s N\<close>
-    unfolding AF_entails_def
-    sorry
-      }
-  moreover {
-  assume m_to_n: \<open>M \<Turnstile>s N\<close>
-  have \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
-    unfolding AF_entails_sound_def sound_cons.entails_neg_def 
-  proof (simp, rule allI)
-    fix J
-    have \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
-      by force
-    then show \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C} \<Turnstile>s
-        N \<union> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C}\<close>
-      using m_to_n by (meson sound_cons.entails_subsets sup.cobounded1)
-  qed
-      }
-  ultimately show \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N \<equiv> M \<Turnstile>s N\<close>
-    by argo
-qed
-
-  
+(*   then have \<open>\<exists>J's\<subseteq>total_strip J. finite J's \<and>
+ *     {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> is_Pos C} \<union>
+ *     {to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} \<Turnstile>s
+ *       {to_V C |C. C \<in> Pos ` N \<and> is_Pos C} \<union>
+ *       {to_V C |C. (C \<in> fml_ext ` J's \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C} \<close>
+ *     using entails_sound_compact unfolding AF_entails_sound_def sound_cons.entails_neg_def
+ *     sorry
+ *   have \<open>M \<Turnstile>s N\<close>
+ *     unfolding AF_entails_def
+ *     sorry
+ *       }
+ *   moreover {
+ *   assume m_to_n: \<open>M \<Turnstile>s N\<close>
+ *   have \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+ *     unfolding AF_entails_sound_def sound_cons.entails_neg_def 
+ *   proof (simp, rule allI)
+ *     fix J
+ *     have \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
+ *       by force
+ *     then show \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C} \<Turnstile>s
+ *         N \<union> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C}\<close>
+ *       using m_to_n by (meson sound_cons.entails_subsets sup.cobounded1)
+ *   qed
+ *       }
+ *   ultimately show \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N \<equiv> M \<Turnstile>s N\<close>
+ *     by argo
+ * qed *)
+ 
+end
 
 end

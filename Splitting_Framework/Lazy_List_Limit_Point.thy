@@ -582,9 +582,8 @@ definition limit_point :: \<open>'a set \<Rightarrow> 'a set llist \<Rightarrow>
     X = Limsup_llist Xs' \<and> X = Liminf_llist Xs'\<close>
 
 
-(* Lemma 32 *)
-
-lemma
+(* Splitting report Lemma 31 *)
+lemma limit_point_bounds:
   assumes \<open>limit_point X Xs\<close> \<open>\<not> lfinite Xs\<close>
   shows \<open>Liminf_llist Xs \<subseteq> X\<close> \<open>X \<subseteq> Limsup_llist Xs\<close>
   using assms unfolding limit_point_def
