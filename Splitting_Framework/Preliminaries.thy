@@ -162,63 +162,57 @@ lemma rm_all_ext_neg: \<open>{to_V C |C. C \<in> all_ext M \<and> \<not> is_Pos 
 definition all_ext_complement :: "'f neg set \<Rightarrow> 'f neg set" where
   "all_ext_complement M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D \<noteq> is_Pos C})" 
 
+lemma shortcut:
+  assumes "\<And>x. x\<in>A \<Longrightarrow> x\<in>B" and
+    "\<And>x. x\<in>B \<Longrightarrow> x\<in>A"
+  shows "A = B"
+  using assms by fastforce
+
 lemma rm_all_ext_comp: \<open>{to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C} =
   {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-proof
-  show \<open>{to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C} \<subseteq> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-  proof
-    fix x
-    assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
-    then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close> and c_pos: \<open>is_Pos C\<close>
-      by blast 
-    obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>\<not> is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
-      using c_in c_pos unfolding all_ext_complement_def
-      by auto
-    then show \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-      using x_is by auto 
-  qed
+proof (intro equalityI subsetI)
+  fix x
+  assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
+  then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close> and c_pos: \<open>is_Pos C\<close>
+    by blast 
+  obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>\<not> is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
+    using c_in c_pos unfolding all_ext_complement_def
+    by auto
+  then show \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    using x_is by auto 
 next
-  show \<open>{to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
-  proof
-    fix x
-    assume \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>\<not> is_Pos C\<close>
-      by blast 
-    then have \<open>Pos x \<in> all_ext_complement M\<close>
-      unfolding all_ext_complement_def by auto 
-    then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
-      by force 
-  qed
+  fix x
+  assume \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+  then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>\<not> is_Pos C\<close>
+    by blast 
+  then have \<open>Pos x \<in> all_ext_complement M\<close>
+    unfolding all_ext_complement_def by auto 
+  then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
+    by force 
 qed
 
 lemma rm_all_ext_comp_neg: \<open>{to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} =
   {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-proof
-  show \<open>{to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-  proof
-    fix x
-    assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
-    then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close>
-      and c_pos: \<open>\<not> is_Pos C\<close>
-      by blast 
-    obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
-      using c_in c_pos unfolding all_ext_complement_def
-      by auto
-    then show \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-      using x_is by auto 
-  qed
+proof (intro equalityI subsetI)
+  fix x
+  assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
+  then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close>
+    and c_pos: \<open>\<not> is_Pos C\<close>
+    by blast 
+  obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
+    using c_in c_pos unfolding all_ext_complement_def
+    by auto
+  then show \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
+    using x_is by auto 
 next
-  show \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<subseteq> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
-  proof
-    fix x
-    assume \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-    then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>is_Pos C\<close>
-      by blast 
-    then have \<open>Neg (Pos x) \<in> all_ext_complement M\<close>
-      unfolding all_ext_complement_def by auto 
-    then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
-      by force 
-  qed
+  fix x
+  assume \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
+  then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>is_Pos C\<close>
+    by blast 
+  then have \<open>Neg (Pos x) \<in> all_ext_complement M\<close>
+    unfolding all_ext_complement_def by auto 
+  then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
+    by force 
 qed
 
 lemma ext_cons_rel: \<open>consequence_relation (Pos bot) entails_neg\<close>
@@ -282,26 +276,18 @@ next
     proof -
       have \<open>{to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C} =
         K - to_V ` (M \<union> N)\<close> for K
-      proof 
-        show \<open>{to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C} \<subseteq>
-          K - to_V ` (M \<union> N)\<close>
-        proof
-          fix x
-          assume \<open>x \<in> {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
-          then show \<open>x \<in> K - to_V ` (M \<union> N)\<close>
-            by fast 
-        qed
+      proof (intro equalityI subsetI)
+        fix x
+        assume \<open>x \<in> {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
+        then show \<open>x \<in> K - to_V ` (M \<union> N)\<close>
+          by fast 
       next
-        show \<open>K - to_V ` (M \<union> N) \<subseteq>
-          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
-        proof
-          fix x
-          assume \<open>x \<in> K - to_V ` (M \<union> N)\<close>
-          then have \<open>Pos x \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)}\<close>
-            by simp
-          then show \<open>x \<in> {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
-            by (metis (mono_tags, lifting) mem_Collect_eq to_V.simps(1))
-        qed
+        fix x
+        assume \<open>x \<in> K - to_V ` (M \<union> N)\<close>
+        then have \<open>Pos x \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)}\<close>
+          by simp
+        then show \<open>x \<in> {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
+          by (metis (mono_tags, lifting) mem_Collect_eq to_V.simps(1))
       qed
       have
         \<open>{to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> K - to_V ` (M \<union> N)} \<and> is_Pos C} = {}\<close> for K
@@ -312,12 +298,16 @@ next
         using n_pos_subs inter_empty by auto 
       have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}
         \<union> M' - to_V ` (M \<union> N) = M'\<close>
-      proof
-        show \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> M' - to_V ` (M \<union> N) \<subseteq> M'\<close>
-
+      proof (intro equalityI subsetI)
+        fix x
+        assume \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+           M' - to_V ` (M \<union> N)\<close>
+        show \<open>x \<in> M'\<close>
           sorry
       next
-        show \<open>M' \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> M' - to_V ` (M \<union> N)\<close>
+        fix x
+        assume \<open>x \<in> M'\<close>
+        show \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> M' - to_V ` (M \<union> N)\<close>
           sorry
       qed
        have \<open>{to_V C |C. C \<in> X \<and> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> \<not> is_Pos C} = M'\<close>
