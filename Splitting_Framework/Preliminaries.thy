@@ -1,5 +1,5 @@
 (* Title:        Preliminaries of the Splitting Framework
-* Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
+ * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
 
 theory Preliminaries
   imports Saturation_Framework.Calculus 
@@ -41,22 +41,42 @@ begin
 lemma entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" 
 proof -
   fix M P N Q
-  assume \<open>M \<Turnstile> P\<close>
-    and \<open>\<forall>C\<in>M. N \<Turnstile> Q \<union> {C}\<close>
-    and \<open>\<forall>D\<in>P. N \<union> {D} \<Turnstile> Q\<close>
-  have \<open>(\<forall>N' Q'. N' \<union> Q' = UNIV \<longrightarrow> N' \<inter> P = {} \<longrightarrow> Q' \<inter> M = {} \<longrightarrow> P \<subseteq> Q' \<and> M \<subseteq> N')\<close> 
-    by auto
+  assume m_entails_p: \<open>M \<Turnstile> P\<close>
+    and n_to_q_m: \<open>\<forall>C\<in>M. N \<Turnstile> Q \<union> {C}\<close>
+    and n_p_to_q: \<open>\<forall>D\<in>P. N \<union> {D} \<Turnstile> Q\<close>
   have \<open>\<forall>M' N'. (M' \<supseteq> N \<and> N' \<supseteq> Q \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N'\<close>
   proof clarsimp
     fix M' N'
-    assume \<open>M' \<supseteq> N\<close> and
-      \<open>N' \<supseteq> Q\<close> and
-      \<open>M' \<union> N' = UNIV\<close>
-    show \<open>M' \<Turnstile> N'\<close>
-      sorry
+    assume n_sub_mp: \<open>M' \<supseteq> N\<close> and
+      q_sub_np: \<open>N' \<supseteq> Q\<close> and
+      union_univ: \<open>M' \<union> N' = UNIV\<close>
+    consider (a) "\<not> (M' \<inter> P = {})" | (b) "\<not> (N' \<inter> M = {})" | (c) "P \<subseteq> N' \<and> M \<subseteq> M'"
+      using union_univ by auto 
+    then show \<open>M' \<Turnstile> N'\<close>
+    proof cases
+      case a
+      assume \<open>M' \<inter> P \<noteq> {}\<close>
+      then obtain D where d_in: \<open>D \<in> M' \<inter> P\<close> by auto
+      then have \<open>N \<union> {D} \<subseteq> M'\<close> using n_sub_mp by auto
+      moreover have \<open>N \<union> {D} \<Turnstile> Q\<close> using n_p_to_q d_in by blast
+      ultimately show ?thesis
+        using entails_subsets[OF _ q_sub_np] by blast
+    next
+      case b
+      assume \<open>N' \<inter> M \<noteq> {}\<close>
+      then obtain C where c_in: \<open>C \<in> M \<inter> N'\<close> by auto
+      then have \<open>Q \<union> {C} \<subseteq> N'\<close> using q_sub_np by auto
+      moreover have \<open>N \<Turnstile> Q \<union> {C}\<close> using n_to_q_m c_in by blast
+      ultimately show ?thesis
+        using entails_subsets[OF n_sub_mp] by blast
+    next
+      case c
+      then show ?thesis
+        using entails_subsets[OF _ _ m_entails_p] by simp
+    qed      
   qed
-  show \<open>N \<Turnstile> Q\<close>
-    sorry
+  then show \<open>N \<Turnstile> Q\<close>
+    using entails_supsets by simp
 qed
 
 
@@ -153,7 +173,11 @@ next
   show \<open>entails_neg N Q\<close>
     using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
 next
-  fix M P N Q
+  fix M N
+  assume \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>\<sim> N'\<close>
+  show \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
+    sorry
+(*  fix M P N Q
   assume
     D4_hyp1: "entails_neg M P" and
     n_to_qm: "\<forall>C\<in>M. entails_neg N (Q \<union> {C})" and
@@ -240,7 +264,7 @@ next
   show "entails_neg N Q"
     using entails_each[OF _ D4_hyp2 D4_hyp3] D4_hyp1
     unfolding entails_neg_def MpPm_def MmPp_def NpQm_def NmQp_def
-    by blast
+    by blast *)
 qed
 
 
@@ -750,7 +774,11 @@ next
       by (metis (mono_tags, lifting) q_enabled p_in_q subset_iff)
   qed
 next
-  fix M P N Q
+  fix M N
+  assume \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
+  show \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+    sorry
+  (* fix M P N Q
   assume
     m_entails_p: \<open>M \<Turnstile>\<^sub>A\<^sub>F P\<close> and
     n_to_q_m: \<open>\<forall>C\<in>M. N \<Turnstile>\<^sub>A\<^sub>F Q \<union> {C}\<close> and
@@ -809,8 +837,8 @@ next
     then show \<open>{F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
       using d_not_enabled 
         by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
-    qed 
-  qed
+    qed
+  qed *)
 qed
 
 interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
@@ -861,7 +889,11 @@ next
         p_in_q q_enabled sound_cons_rel.consequence_relation_axioms subset_iff)
   qed 
 next
-  fix M P N Q
+  fix M N
+  assume \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
+  show \<open>M \<Turnstile>s\<^sub>A\<^sub>F N\<close>
+    sorry
+(*  fix M P N Q
   assume
     m_entails_p: "M \<Turnstile>s\<^sub>A\<^sub>F P" and
     n_to_q_m: "\<forall>C\<in>M. N \<Turnstile>s\<^sub>A\<^sub>F Q \<union> {C}" and
@@ -935,7 +967,7 @@ next
       using d_not_enabled 
       by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
     qed 
-  qed
+  qed *)
 qed
 
 lemma sound_entail_tautology: "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml (v::'v)) {Pos v}}"
