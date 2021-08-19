@@ -215,7 +215,9 @@ next
   then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
     by force 
 qed
-
+  
+lemma all_ext_and_comp: \<open>all_ext M \<union> all_ext_complement M = {C. to_V C \<in> to_V ` M}\<close>
+  unfolding all_ext_def all_ext_complement_def by auto 
 
 lemma ext_cons_rel: \<open>consequence_relation (Pos bot) entails_neg\<close>
 proof
@@ -259,20 +261,43 @@ next
     proof (cases "M' \<inter> N' = {}")
       case True
       assume inter_empty: \<open>M' \<inter> N' = {}\<close>
-        
     define X where \<open>X = all_ext M \<union> all_ext_complement N \<union>
       {C. is_Pos C \<and> to_V C \<in> M' - (to_V ` (M \<union> N))} \<union>
       {C. \<not> is_Pos C \<and> to_V C \<in> N' - (to_V ` (M \<union> N))}\<close>
     define Y where \<open>Y = all_ext N \<union> all_ext_complement M \<union>
       {C. is_Pos C \<and> to_V C \<in> N' - (to_V ` (M \<union> N))} \<union>
       {C. \<not> is_Pos C \<and> to_V C \<in> M' - (to_V ` (M \<union> N))}\<close>
-    have \<open>X \<union> Y = UNIV\<close> unfolding X_def Y_def 
-      sorry
-    moreover have \<open>M \<subseteq> X\<close>
+    have \<open>UNIV = X \<union> Y\<close> unfolding X_def Y_def 
+    proof (intro UNIV_eq_I)
+      fix x
+      consider (a) "x \<in> {C. to_V C \<in> to_V ` M}" | (b) "x \<in> {C. to_V C \<in> to_V ` N}" |
+        (c) "x \<in> {C. to_V C \<in> (M' \<union> N' - to_V ` (M \<union> N))}"
+        using union_univ by blast 
+      then show \<open>x \<in> all_ext M \<union> all_ext_complement N \<union>
+        {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<union>
+        {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
+        (all_ext N \<union> all_ext_complement M \<union> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
+        {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)})\<close>
+      proof cases
+        case a
+        have \<open>x \<in> all_ext M \<union> all_ext_complement M\<close>
+          using all_ext_and_comp[of M] a by simp
+        then show ?thesis by auto 
+      next
+        case b
+        have \<open>x \<in> all_ext N \<union> all_ext_complement N\<close>
+          using all_ext_and_comp[of N] b by simp
+        then show ?thesis by auto 
+      next
+        case c
+        then show ?thesis by fast 
+      qed
+    qed
+    moreover have \<open>M \<subseteq> X\<close> 
       unfolding X_def using self_in_all_ext[of M] by auto 
     moreover have \<open>N \<subseteq> Y\<close>
       unfolding Y_def  using self_in_all_ext[of N] by auto
-    ultimately have \<open>X \<Turnstile>\<^sub>\<sim> Y\<close>
+    ultimately have x_entails_neg_y: \<open>X \<Turnstile>\<^sub>\<sim> Y\<close>
       using all_supsets_entails by auto
     show \<open>M' \<Turnstile> N'\<close>
     proof -
@@ -298,7 +323,66 @@ next
         using m_neg_subs inter_empty by auto 
       have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} \<inter> M' = {}\<close>
         using n_pos_subs inter_empty by auto 
-      have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}
+
+      have \<open>{to_V C |C. C \<in> X \<and> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> \<not> is_Pos C} =
+        {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> (M' - to_V ` (M \<union> N))\<close>
+        unfolding X_def Y_def
+      proof -
+        have \<open>{to_V C |C. C \<in> all_ext M \<union> all_ext_complement N \<union>
+          {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<union> all_ext_complement M \<union>
+          {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
+          {to_V C |C. C \<in> all_ext M \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C}\<close>
+          by auto
+        also have \<open>{to_V C |C. C \<in> all_ext M \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
+          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> \<not> is_Pos C}\<close>
+          using rm_all_ext[of M] rm_all_ext_neg[of N] rm_all_ext_comp[of N]
+            rm_all_ext_comp_neg[of M] by auto 
+        also have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> \<not> is_Pos C} =
+          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> (M' - to_V ` (M \<union> N))}\<close>
+          by fast 
+        also have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> (M' - to_V ` (M \<union> N))} =
+          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
+          (M' - to_V ` (M \<union> N))\<close> 
+          by (metis tov_set) 
+        finally
+        show \<open>{to_V C |C. C \<in> all_ext M \<union> all_ext_complement N \<union>
+          {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<union> all_ext_complement M \<union>
+          {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
+          {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> (M' - to_V ` (M \<union> N))\<close>
+          by auto
+      qed
+      also have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}
         \<union> (M' - to_V ` (M \<union> N)) = M'\<close>
       proof (intro equalityI subsetI)
         fix x
@@ -345,65 +429,118 @@ next
           (M' - to_V ` (M \<union> N))\<close>
           using x_from_m x_from_n by auto
       qed
-      have \<open>{to_V C |C. C \<in> X \<and> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> \<not> is_Pos C} =
-        {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> (M' - to_V ` (M \<union> N))\<close>
+      finally have xy_to_mp: \<open>{to_V C |C. C \<in> X \<and> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> \<not> is_Pos C} = M'\<close> .
+        
+      have \<open>{to_V C |C. C \<in> X \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> is_Pos C} =
+        {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> (N' - to_V ` (M \<union> N))\<close>
         unfolding X_def Y_def
       proof -
         have \<open>{to_V C |C. C \<in> all_ext M \<union> all_ext_complement N \<union>
           {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<union>
-          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
           {to_V C |C. C \<in> all_ext N \<union> all_ext_complement M \<union>
           {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
-          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
-          {to_V C |C. C \<in> all_ext M \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext_complement N \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C}\<close>
+          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} =
+          {to_V C |C. C \<in> all_ext M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C}\<close>
           by auto
-        also have \<open>{to_V C |C. C \<in> all_ext M \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext_complement N \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
-          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> \<not> is_Pos C}\<close>
-          using rm_all_ext[of M] rm_all_ext_neg[of N] rm_all_ext_comp[of N]
-            rm_all_ext_comp_neg[of M] by auto 
-        also have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> M' - to_V ` (M \<union> N) \<and> \<not> is_Pos C} =
-          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> (M' - to_V ` (M \<union> N))}\<close>
-          using pos_neg_union[of to_V "\<lambda>C. to_V C \<in> M' - to_V ` (M \<union> N)"] by fast 
-        also have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
-          {to_V C |C. to_V C \<in> (M' - to_V ` (M \<union> N))} =
-          {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union>
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union>
-          (M' - to_V ` (M \<union> N))\<close> 
+        also have \<open>{to_V C |C. C \<in> all_ext M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement N \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} =
+          {to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> N' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> N' - to_V ` (M \<union> N) \<and> \<not> is_Pos C}\<close>
+          using rm_all_ext[of N] rm_all_ext_neg[of M] rm_all_ext_comp[of M]
+            rm_all_ext_comp_neg[of N] by auto 
+        also have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> N' - to_V ` (M \<union> N) \<and> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> N' - to_V ` (M \<union> N) \<and> \<not> is_Pos C} =
+          {to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> (N' - to_V ` (M \<union> N))}\<close>
+          by fast 
+        also have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union>
+          {to_V C |C. to_V C \<in> (N' - to_V ` (M \<union> N))} =
+          {to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union>
+          (N' - to_V ` (M \<union> N))\<close> 
           by (metis tov_set) 
         finally
         show \<open>{to_V C |C. C \<in> all_ext M \<union> all_ext_complement N \<union>
           {C. is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<union>
-          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> is_Pos C} \<union>
+          {C. \<not> is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} \<union>
           {to_V C |C. C \<in> all_ext N \<union> all_ext_complement M \<union>
           {C. is_Pos C \<and> to_V C \<in> N' - to_V ` (M \<union> N)} \<union>
-          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> \<not> is_Pos C} =
-          {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<union> (M' - to_V ` (M \<union> N))\<close>
+          {C. \<not> is_Pos C \<and> to_V C \<in> M' - to_V ` (M \<union> N)} \<and> is_Pos C} =
+          {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> (N' - to_V ` (M \<union> N))\<close>
           by auto
       qed
-      show \<open>M' \<Turnstile> N'\<close> sorry
+      also have \<open>{to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> is_Pos C}
+        \<union> (N' - to_V ` (M \<union> N)) = N'\<close>
+      proof (intro equalityI subsetI)
+        fix x
+        assume \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+           (N' - to_V ` (M \<union> N))\<close>
+        then show \<open>x \<in> N'\<close>
+          using n_pos_subs m_neg_subs by auto 
+      next
+        fix x
+        assume x_in: \<open>x \<in> N'\<close>
+        have x_from_m: \<open> x \<in> to_V ` M \<Longrightarrow> x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+        proof -
+          assume \<open>x \<in> to_V ` M\<close>
+          then obtain C where c_in: \<open>C \<in> M\<close> and x_is: \<open>to_V C = x\<close> by blast
+          have \<open>\<not> is_Pos C\<close>
+          proof (rule ccontr)
+            assume \<open>\<not> \<not> is_Pos C\<close>
+            then have \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
+              using c_in x_is by auto 
+            then show \<open>False\<close>
+              using x_in inter_empty m_pos_subs by blast 
+          qed
+          then show \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+            using c_in x_is by auto 
+        qed
+        have x_from_n: \<open> x \<in> to_V ` N \<Longrightarrow> x \<in> {to_V C |C. C \<in> N \<and> is_Pos C}\<close>
+        proof - 
+          assume \<open>x \<in> to_V ` N\<close>
+          then obtain C where c_in: \<open>C \<in> N\<close> and x_is: \<open>to_V C = x\<close> by blast
+          have \<open>is_Pos C\<close>
+          proof (rule ccontr)
+            assume \<open>\<not> is_Pos C\<close>
+            then have \<open>x \<in> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
+              using c_in x_is by auto 
+            then show \<open>False\<close>
+              using x_in inter_empty n_neg_subs by blast 
+          qed
+          then show \<open>x \<in> {to_V C |C. C \<in> N \<and> is_Pos C}\<close>
+            using c_in x_is by auto
+        qed
+        consider (a) "x \<in> N' - to_V ` (M \<union> N)" | (b) "x \<in> to_V ` M" | (c) "x \<in> to_V ` N"
+          using x_in by blast 
+        then show \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> is_Pos C} \<union>
+          (N' - to_V ` (M \<union> N))\<close>
+          using x_from_m x_from_n by auto
+      qed
+      finally have xy_to_np: \<open>{to_V C |C. C \<in> X \<and> \<not> is_Pos C} \<union> {to_V C |C. C \<in> Y \<and> is_Pos C} = N'\<close> .
+
+      show \<open>M' \<Turnstile> N'\<close> 
+        using xy_to_mp xy_to_np x_entails_neg_y unfolding entails_neg_def
+        by (smt (z3) inf_sup_aci(5))
     qed
   next
     case False
