@@ -1065,9 +1065,72 @@ next
   qed
 next
   fix M N
-  assume \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
+  assume prem_entails_supsets_af: \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
   show \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
-    sorry
+    unfolding AF_entails_def
+  proof (intro allI impI)
+    fix J
+    assume enabled_n: \<open>enabled_set N J\<close>
+    have \<open>\<forall>M' N'. M proj\<^sub>J J \<subseteq> M' \<and> F_of ` N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile> N'\<close>
+    proof clarsimp
+      fix M' N'
+      assume proj_m: \<open>M proj\<^sub>J J \<subseteq> M'\<close> and
+        fn_in_np: \<open>F_of ` N \<subseteq> N'\<close> and
+        \<open>M' \<union> N' = UNIV\<close>
+      show \<open>M' \<Turnstile> N'\<close>
+      proof (cases "M' \<inter> N' = {}")
+        case True
+        define \<N>' where np_def: \<open>\<N>' = {C. F_of C \<in> N' \<and> enabled C J}\<close>
+        define \<M>' where mp_def: \<open>\<M>' = UNIV - \<N>'\<close>
+        have \<open>M \<subseteq> \<M>'\<close>
+        proof
+          fix x
+          assume x_in: \<open>x \<in> M\<close>
+          have \<open>\<not> enabled x J \<or> F_of x \<in> M'\<close>
+            using proj_m unfolding enabled_def enabled_projection_def using x_in by blast 
+          then have \<open>x \<notin> \<N>'\<close>
+            unfolding np_def using True by fastforce 
+          then show \<open>x \<in> \<M>'\<close>
+            unfolding mp_def by blast 
+        qed
+        moreover have \<open>N \<subseteq> \<N>'\<close>
+          using fn_in_np enabled_n unfolding np_def enabled_set_def by force 
+        ultimately have mp_entails_af_np: \<open>\<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
+          using prem_entails_supsets_af mp_def by simp 
+        moreover have enabled_np: \<open>enabled_set \<N>' J\<close>
+          unfolding np_def enabled_set_def by auto
+        moreover have \<open>F_of ` \<N>' = N'\<close>
+        proof (intro equalityI subsetI)
+          fix x
+          assume \<open>x \<in> F_of ` \<N>'\<close>
+          then show \<open>x \<in> N'\<close>
+            unfolding np_def by auto 
+        next
+          fix x
+          assume x_in: \<open>x \<in> N'\<close>
+          define C where \<open>C = Pair x (total_strip J)\<close>
+          have \<open>enabled C J\<close>
+            unfolding C_def enabled_def by auto 
+          then show \<open>x \<in> F_of ` \<N>'\<close>
+            unfolding C_def np_def using x_in by force 
+        qed
+        ultimately show \<open>M' \<Turnstile> N'\<close>
+            sorry
+        next
+          case False
+          assume inter_not_empty: \<open>M' \<inter> N' \<noteq> {}\<close>
+          then obtain C where \<open>C \<in> M' \<inter> N'\<close> by blast 
+          then show \<open>M' \<Turnstile> N'\<close> using entails_reflexive entails_subsets
+            by (meson Int_lower1 Int_lower2 entails_cond_reflexive inter_not_empty)
+        qed
+          
+        (* then obtain \<M>' \<N>' where "enabled_set \<N>' J"  "F_of ` \<N>' = N'" "\<M>' proj\<^sub>J J = M'"
+            *)
+    qed
+    show \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
+
+      sorry
+  qed
   (* fix M P N Q
   assume
     m_entails_p: \<open>M \<Turnstile>\<^sub>A\<^sub>F P\<close> and
