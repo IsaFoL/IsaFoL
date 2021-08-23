@@ -468,7 +468,7 @@ definition number_clss_to_keep_impl :: \<open>twl_st_wl_heur \<Rightarrow> nat n
   \<open>number_clss_to_keep_impl = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur,
        vdom, avdom, lcount).
-    RETURN (length_tvdom_aivdom vdom >> 1))\<close>
+    RETURN (length_tvdom_aivdom vdom >> 2))\<close>
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
   \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Id \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
