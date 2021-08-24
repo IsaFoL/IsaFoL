@@ -10,7 +10,7 @@ sepref_def mark_lbd_from_clause_heur_impl
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d \<rightarrow>\<^sub>a lbd_assn\<close>
   unfolding mark_lbd_from_clause_heur_def nfoldli_upt_by_while
   apply (rewrite at \<open>_ = \<hole>\<close> unat_const_fold[where 'a=32])
-  apply (annot_snat_const \<open>TYPE(64)\<close>) 
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def calculate_LBD_heur_st_impl

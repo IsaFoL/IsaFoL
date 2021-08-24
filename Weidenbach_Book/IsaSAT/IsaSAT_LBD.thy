@@ -47,14 +47,18 @@ lemma mark_lbd_from_clause_heur_correctness:
 definition calculate_LBD_st :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clauses_l nres\<close> where
   \<open>calculate_LBD_st = (\<lambda>M N C. RETURN N)\<close>
 
+abbreviation TIER_TWO_MAXIMUM where
+  \<open>TIER_TWO_MAXIMUM \<equiv> 6\<close>
+
 abbreviation TIER_ONE_MAXIMUM where
   \<open>TIER_ONE_MAXIMUM \<equiv> 6\<close>
+
 definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> lbd \<Rightarrow> nat \<Rightarrow> (arena \<times> lbd) nres\<close> where
   \<open>calculate_LBD_heur_st = (\<lambda>M N lbd C. do{
      old_glue \<leftarrow> mop_arena_lbd N C;
      st \<leftarrow> mop_arena_status N C;
      if st = IRRED then RETURN (N, lbd)
-     else if old_glue < TIER_ONE_MAXIMUM then do {
+     else if old_glue < TIER_TWO_MAXIMUM then do {
        N \<leftarrow> mop_arena_mark_used2 N C;
        RETURN (N, lbd)
      }
@@ -63,7 +67,7 @@ definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> l
        glue \<leftarrow> get_LBD lbd;
        lbd \<leftarrow> lbd_empty lbd;
        N \<leftarrow> (if glue < old_glue then mop_arena_update_lbd C glue N else RETURN N);
-       N \<leftarrow> (if glue < TIER_ONE_MAXIMUM \<or> old_glue < TIER_ONE_MAXIMUM then mop_arena_mark_used2 N C else mop_arena_mark_used N C);
+       N \<leftarrow> (if glue < TIER_TWO_MAXIMUM \<or> old_glue < TIER_TWO_MAXIMUM then mop_arena_mark_used2 N C else mop_arena_mark_used N C);
        RETURN (N, lbd)
     }})\<close>
 
