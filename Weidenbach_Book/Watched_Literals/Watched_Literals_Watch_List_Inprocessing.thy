@@ -394,7 +394,17 @@ There are two solutions to this problem:
   \<^item> implement forward subsumption directly.
 
 Long story short: we gave up and implemented the forward approach directly.
-  \<close>
+
+
+We do the simplifications in two rounds:
+  \<^item> one with binary clauses only
+  \<^item> one with all other clauses
+
+TODO
+This has the advantage that we do not have to care new units when subsuming all other clauses, 
+avoiding various special causes. To reduce the effort, we use the same code base with a flag
+to indicate which code we use.
+\<close>
 
 definition subsume_clauses_match_pre :: \<open>_\<close> where
   \<open>subsume_clauses_match_pre C C' N  \<longleftrightarrow>
@@ -536,14 +546,16 @@ definition subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> 'v subsumption \
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   })\<close>
 
-definition forward_subsumption_one_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_one_wl_pre = (\<lambda>k S xs.
-  (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_pre (xs!k) S' \<and> k < length xs))\<close>
+
+definition forward_subsumption_one_wl_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_one_wl_pre = (\<lambda>binary_only k S xs.
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_pre (xs!k) S' \<and> k < length xs \<and>
+    (binary_only \<longrightarrow> (\<forall>C \<in> set xs. C \<in># dom_m (get_clauses_wl S) \<longrightarrow> length (get_clauses_wl S \<propto> C) = 2))))\<close>
 
 
-definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>forward_subsumption_one_wl = (\<lambda>k xs S . do {
-  ASSERT (forward_subsumption_one_wl_pre k S xs);
+definition forward_subsumption_one_wl :: \<open>bool \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
+  \<open>forward_subsumption_one_wl binary_only = (\<lambda>k xs S . do {
+  ASSERT (forward_subsumption_one_wl_pre binary_only k S xs);
   let C = xs!k;
   let ys = take k xs;
   (xs, s) \<leftarrow>
@@ -559,69 +571,31 @@ definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rig
     })
     (0, NONE);
   S \<leftarrow> subsume_or_strengthen_wl C s S;
-  RETURN S
-  }
-        )\<close>
+  RETURN (S, s \<noteq> NONE)
+  })\<close>
 
-lemma
-  assumes \<open>forward_correctly_sorted_int N xs k\<close>
-  shows forward_correctly_sorted_intI1:
-      \<open>i < k \<Longrightarrow> forward_correctly_sorted_int (fmdrop (xs!i) N) xs k\<close>
-      \<open>j' < k \<Longrightarrow> xs!j' \<in># dom_m N \<Longrightarrow> forward_correctly_sorted_int (fmupd (xs ! j') (N \<propto> (xs ! j'), b) N) xs k\<close> and
-   forward_correctly_sorted_intI2:
-      \<open>k < length xs \<Longrightarrow> forward_correctly_sorted_int N xs (Suc k)\<close>
-      \<open>k < length xs \<Longrightarrow> forward_correctly_sorted_int (fmupd (xs ! k) (remove1 (- t') (N \<propto> (xs ! k)), b) N) xs (Suc k)\<close>
-proof -
-  have [simp]: \<open>x \<notin># dom_m N - {#a, x#}\<close>
-    \<open>x \<notin># dom_m N - {#x, a#}\<close> 
-    \<open>x \<notin># dom_m N - {#x#}\<close>  for x1m a x
-    by (smt (z3) add_mset_commute add_mset_diff_bothsides add_mset_remove_trivial_eq
-      distinct_mset_add_mset distinct_mset_dom in_diffD)+
-  have [simp]: \<open>j \<noteq> i \<Longrightarrow> j < length xs \<Longrightarrow> i < length xs \<Longrightarrow>
-    xs ! j \<in># remove1_mset (xs ! i) (dom_m N) \<longleftrightarrow>  xs ! j \<in># (dom_m N)\<close>
-    \<open>j < length xs \<Longrightarrow> i < length xs \<Longrightarrow> xs ! j = xs ! i \<longleftrightarrow> j = i\<close> for j i
-    by (metis assms forward_correctly_sorted_int_def in_remove1_mset_neq nth_eq_iff_index_eq)+
-  show \<open>i < k \<Longrightarrow> forward_correctly_sorted_int (fmdrop (xs!i) N) xs k\<close>
-    using assms
-    by (auto simp: forward_correctly_sorted_int_def)
+definition strengthen_clause_pre :: \<open>_\<close> where
+  \<open>strengthen_clause_pre xs C s t S \<longleftrightarrow>
+     distinct xs \<and> C \<in># dom_m (get_clauses_wl S) \<close>
 
-  show \<open>k < length xs \<Longrightarrow> forward_correctly_sorted_int N xs (Suc k)\<close>
-    using assms
-    by (auto simp: forward_correctly_sorted_int_def)
-  have \<open>i < length xs \<Longrightarrow>
-    Suc k \<le> i \<Longrightarrow> length ((N \<propto> (xs ! k))) \<le> length (N \<propto> (xs ! i))\<close> for i
-    using assms unfolding forward_correctly_sorted_int_def by auto
-  
-  then have [simp]: \<open>i < length xs \<Longrightarrow>
-    Suc k \<le> i \<Longrightarrow> length (remove1 L (N \<propto> (xs ! k))) \<le> length (N \<propto> (xs ! i))\<close> for i L
-    apply (auto simp: length_remove1)
-    by (meson diff_le_self le_trans)
-  show \<open>k < length xs \<Longrightarrow> forward_correctly_sorted_int (fmupd (xs ! k) (remove1 (- t') (N \<propto> (xs ! k)), b) N) xs (Suc k)\<close>
-    using assms
-    by (auto simp: forward_correctly_sorted_int_def)
-  show \<open>j' < k \<Longrightarrow> xs!j' \<in># dom_m N \<Longrightarrow> forward_correctly_sorted_int (fmupd (xs ! j') (N \<propto> (xs ! j'), b) N) xs k\<close>
-    using assms
-    by (auto simp: forward_correctly_sorted_int_def)
-qed
- 
 lemma strengthen_clause_wl_strengthen_clause:
   assumes 
     \<open>(C, C') \<in> nat_rel\<close> and
     \<open>(s, s') \<in> nat_rel\<close> and
     \<open>(t, t') \<in> Id\<close> and
     \<open>(S, S') \<in> state_wl_l None\<close> and
-    b: \<open>forward_correctly_sorted S xs k\<close> and
     \<open>C = xs ! k\<close> and
     \<open>s' = xs ! j'\<close> and
     \<open>j' < k\<close> and
-    \<open>k < length xs\<close>
+    \<open>k < length xs\<close> and
+    b: \<open>strengthen_clause_pre xs C s t S\<close>
   shows \<open>strengthen_clause_wl C s t S
       \<le> \<Down> {(T, T').
-        (T, T') \<in> state_wl_l None \<and> forward_correctly_sorted T xs (Suc k) \<and> get_watched_wl T = get_watched_wl S}
+        (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S}
       (strengthen_clause C' s' t' S')\<close>
 proof -
   have dist: \<open>distinct xs\<close>
-    using b unfolding forward_correctly_sorted_def forward_correctly_sorted_int_def by auto
+    using b unfolding strengthen_clause_pre_def by auto
   have [simp]: \<open>x \<notin># dom_m x1m - {#a, x#}\<close>
     \<open>x \<notin># dom_m x1m - {#x, a#}\<close> 
     \<open>x \<notin># dom_m x1m - {#x#}\<close>  for x1m a x
@@ -634,7 +608,7 @@ proof -
   have [simp]: \<open>k < length xs \<Longrightarrow> i < length xs \<Longrightarrow> xs ! k = xs ! i \<longleftrightarrow> k = i\<close> for i
     using nth_eq_iff_index_eq[OF dist, of k \<open>i\<close>] by auto
   have H: \<open>xs ! k \<in># dom_m (get_clauses_wl S)\<close>
-    using assms by (auto simp: forward_correctly_sorted_def forward_correctly_sorted_int_def)
+    using assms by (auto simp: strengthen_clause_pre_def)
 
   show ?thesis
     using assms
@@ -645,17 +619,14 @@ proof -
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j
     x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t
       x2t x1u x2u x1v x2v x1w x2w
-      by (auto 5 2 simp: state_wl_l_def forward_correctly_sorted_def no_lost_clause_in_WL_def
-        intro!: forward_correctly_sorted_intI1 intro: forward_correctly_sorted_intI2 split: subsumption.splits)
+      by (auto 5 2 simp: state_wl_l_def intro: split: subsumption.splits)
     subgoal by (auto simp: state_wl_l_def split: subsumption.splits)
-    subgoal by (auto simp: state_wl_l_def forward_correctly_sorted_def length_remove1 no_lost_clause_in_WL_def
-      intro!: forward_correctly_sorted_intI1 intro: forward_correctly_sorted_intI2 split: subsumption.splits)
+    subgoal by (auto simp: state_wl_l_def length_remove1 no_lost_clause_in_WL_def split: subsumption.splits)
     subgoal using H
       apply (cases \<open>irred (get_clauses_wl S) (xs ! k)\<close>)
-      by (auto simp: state_wl_l_def forward_correctly_sorted_def no_lost_clause_in_WL_def all_init_lits_of_wl_def
+      by (auto simp: state_wl_l_def no_lost_clause_in_WL_def all_init_lits_of_wl_def
         all_lits_of_mm_add_mset init_clss_l_mapsto_upd all_lits_of_mm_union init_clss_l_mapsto_upd_irrel
-        dest!: all_lits_of_m_diffD
-        intro!: forward_correctly_sorted_intI1 intro: forward_correctly_sorted_intI2 split: subsumption.splits)
+        dest!: all_lits_of_m_diffD split: subsumption.splits)
     done
 qed
 
@@ -667,16 +638,15 @@ lemma subsume_or_strengthen_wl_subsume_or_strengthen:
     \<open>C = xs ! k\<close> and
     \<open>is_subsumed s' \<Longrightarrow> \<exists>j'. subsumed_by s' = xs ! j' \<and> j' < k\<close> and
     \<open>is_strengthened s' \<Longrightarrow> \<exists>j'. strengthened_by s' = xs ! j' \<and> j' < k\<close> and
-    \<open>k < length xs\<close>
-    \<open>forward_correctly_sorted S xs k\<close>
-  shows \<open>subsume_or_strengthen_wl C s S \<le> \<Down>{(T, T'). (T, T') \<in> state_wl_l None \<and> forward_correctly_sorted T xs (k + 1) \<and> get_watched_wl T = get_watched_wl S}
+    \<open>k < length xs\<close> and
+    \<open>distinct xs \<and> C \<in># dom_m (get_clauses_wl S)\<close>
+  shows \<open>subsume_or_strengthen_wl C s S \<le> \<Down>{(T, T'). (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S}
     (subsume_or_strengthen C' s' S')\<close>
     using assms
   unfolding subsume_or_strengthen_wl_def subsume_or_strengthen_def
   apply (refine_vcg strengthen_clause_wl_strengthen_clause)
   subgoal unfolding subsume_or_strengthen_wl_pre_def by fast
-  subgoal by (auto simp: state_wl_l_def forward_correctly_sorted_def subsume_or_strengthen_pre_def
-    intro!: forward_correctly_sorted_intI1 intro: forward_correctly_sorted_intI2
+  subgoal by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
     intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
     split: subsumption.splits)
   done
@@ -684,19 +654,18 @@ lemma subsume_or_strengthen_wl_subsume_or_strengthen:
 lemma forward_subsumption_one_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    inv: \<open>forward_correctly_sorted S xs k\<close> and
     C: \<open>C = xs!k\<close> and
-    [simp]: \<open>k < length xs\<close>
+    [simp]: \<open>k < length xs\<close> and
+    inv: \<open>distinct xs\<close>
   shows
-   \<open>forward_subsumption_one_wl k xs S \<le> \<Down>{(T, T').
-    (T, T') \<in> state_wl_l None \<and> forward_correctly_sorted T xs (Suc k) \<and> get_watched_wl T = get_watched_wl S}
+   \<open>forward_subsumption_one_wl k xs S \<le> \<Down>({(T, T').
+    (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S} \<times>\<^sub>f bool_rel)
     (forward_subsumption_one C S')\<close>
 proof -
   let ?ys = \<open>take k xs\<close>
   have [refine0]: \<open>RETURN (take k xs) \<le> \<Down> {(xs,ys). mset xs = ys} (SPEC (\<lambda>xs. C \<notin># xs))\<close>
     (is \<open>_ \<le> \<Down>?XS _\<close>)
-    using inv C by (auto simp: RETURN_def conc_fun_RES forward_correctly_sorted_def
-      forward_correctly_sorted_int_def distinct_in_set_take_iff)
+    using inv C by (auto simp: RETURN_def conc_fun_RES distinct_in_set_take_iff)
   have [refine0]: \<open>(take k xs, xsa) \<in> ?XS \<Longrightarrow>
     ((0, NONE), xsa, NONE) \<in> {((i, s), (ys, s')). s = s' \<and> ys = mset (drop i (take k xs)) \<and>
       (is_subsumed s \<longrightarrow> (\<exists>j'. subsumed_by s' = xs ! j' \<and> j' < k))\<and>
@@ -726,7 +695,6 @@ proof -
     obtain S'' where
       inv: \<open>forward_subsumption_one_inv (xs ! k) S' (mset (drop x1a (take k xs)), x2a)\<close> and
       C': \<open>C' = xs ! x1a\<close> and
-      backs: \<open>forward_correctly_sorted S xs k\<close>
       \<open>k < length xs\<close> and
       x1a: \<open>x1a < k\<close>
       \<open>C \<noteq> 0\<close> and
@@ -738,7 +706,7 @@ proof -
       by auto
     have \<open>length (get_clauses_wl S \<propto> (xs ! x1a)) \<le> length (get_clauses_wl S \<propto> (xs ! k))\<close> and
       k_dom: \<open>xs ! k \<in># dom_m (get_clauses_wl S)\<close>
-      using backs C'_dom x1a SS' unfolding forward_correctly_sorted_def forward_correctly_sorted_int_def C'
+      using C'_dom x1a SS' unfolding C'
       by (auto)
     moreover have \<open>distinct (get_clauses_wl S \<propto> (xs ! x1a))\<close> \<open>distinct (get_clauses_wl S \<propto> (xs ! k))\<close>
       \<open>\<not>tautology (mset (get_clauses_wl S \<propto> (xs ! k)))\<close>
@@ -782,6 +750,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using inv by auto
+    subgoal by auto
     subgoal by auto
     done
 qed
@@ -834,15 +803,15 @@ proof -
   (\<lambda>xs. mset xs \<subseteq># dom_m (get_clauses_wl S) \<and>
      sorted_wrt
       (\<lambda>i j. length (get_clauses_wl S \<propto> i) \<le> length (get_clauses_wl S \<propto> j)) xs)
-    \<le> \<Down> {(xs,ys). mset xs = ys \<and> forward_correctly_sorted S xs 0}
+    \<le> \<Down> {(xs,ys). mset xs = ys \<and> backward_correctly_sorted S xs 0}
     (SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_l S')))\<close> (is \<open>_ \<le>\<Down>?XS _\<close>)
     using SS' distinct_mset_mono[OF _ distinct_mset_dom[of \<open>get_clauses_wl S\<close>], of \<open>mset _\<close>]
     by (auto simp: conc_fun_RES
-      intro!: forward_correctly_sorted_init)
+      intro!: backward_correctly_sorted_init)
   have [refine]: \<open>(xs,ys) \<in> ?XS \<Longrightarrow>
     forward_subsumption_all_inv S' (ys, S') \<Longrightarrow>
     ((0, S), ys, S') \<in> {((i, T), (xsa, T')). xsa = mset (drop i xs) \<and> get_watched_wl T = get_watched_wl S \<and>
-    (T, T') \<in> state_wl_l None \<and> forward_correctly_sorted T xs (i)}\<close>
+    (T, T') \<in> state_wl_l None \<and> backward_correctly_sorted T xs (i)}\<close>
     for xs ys
     using SS' unfolding forward_subsumption_all_wl_inv_def prod.simps mem_Collect_eq
     apply (intro conjI)
@@ -858,9 +827,9 @@ proof -
     apply (rename_tac S' T')
     apply (rule_tac x=S' in exI, rule_tac x=T' in exI)
     apply (cases \<open>x1a < length xs\<close>)
-    by (auto simp add: forward_correctly_sorted_def
+    by (auto simp add: backward_correctly_sorted_def
       forward_subsumption_all_inv_def simp flip: Cons_nth_drop_Suc
-      intro: forward_correctly_sorted_intI1 forward_correctly_sorted_intI2
+      intro: backward_correctly_sorted_intI1 backward_correctly_sorted_intI2
       dest: mset_le_add_mset_decr_left1)
  
   have forward_subsumption_all_wl_inv_no_lost:
@@ -889,8 +858,8 @@ proof -
     subgoal by (auto simp flip: Cons_nth_drop_Suc)
     subgoal by auto
     subgoal by (auto simp flip: Cons_nth_drop_Suc
-      simp: forward_correctly_sorted_def
-      intro!: forward_subsumption_all_wl_inv_Suc_nothing forward_correctly_sorted_intI2)
+      simp: backward_correctly_sorted_def
+      intro!: forward_subsumption_all_wl_inv_Suc_nothing backward_correctly_sorted_intI2)
     subgoal by auto
     subgoal by (auto intro!: forward_subsumption_all_wl_inv_no_lost)
     subgoal by auto
@@ -898,7 +867,7 @@ proof -
     subgoal 
   oops
 text \<open>For documentation purpose, we keep the current try (because one day we might actually add
-  forward subsumption and anyway a lot of it can be used for forward subsumption).\<close>
+  backward subsumption and anyway a lot of it can be used for forward subsumption).\<close>
 
 subsection \<open>Forward subsumption\<close>
 
@@ -908,6 +877,9 @@ definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rig
   ASSERT (forward_subsumption_one_wl_pre k S xs);
   let C = xs!k;
   let ys = take k xs;
+S \<leftarrow> simplify_clause_with_unit_st_wl C S;
+         if get_conflict_wl S = None \<and> C \<in># dom_m (get_clauses_wl S) then do {
+
   (xs, s) \<leftarrow>
     WHILE\<^sub>T\<^bsup> forward_subsumption_one_wl_inv C S ys \<^esup> (\<lambda>(i, s). i < k \<and> s = NONE)
     (\<lambda>(i, s). do {
@@ -922,6 +894,6 @@ definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rig
     (0, NONE);
   S \<leftarrow> subsume_or_strengthen_wl C s S;
   RETURN S
-  }
-        )\<close>
+  })\<close>
+
 end
