@@ -1033,7 +1033,7 @@ definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<
   \<open>AF_entails_sound M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow>
   sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (M proj\<^sub>J J))) (Pos ` F_of ` N)))\<close>
   
-  (* Splitting report Lemma 5, 1/2 *)
+  (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
   show \<open>{to_AF bot} \<Turnstile>\<^sub>A\<^sub>F {}\<close>
@@ -1152,7 +1152,85 @@ interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_
 interpretation sound_cons_rel: consequence_relation "Pos bot" sound_cons.entails_neg
   using sound_cons.ext_cons_rel .
     
-(* Splitting report Lemma 5, 2/2 *)
+lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
+  unfolding to_AF_def by force
+
+lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
+  unfolding to_AF_def enabled_projection_def enabled_def by force
+
+lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
+  unfolding enabled_set_def enabled_def to_AF_def by simp
+
+lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} = {}\<close>
+  by auto
+    
+lemma [simp]: \<open>{to_V C |C. C \<in> U \<union> Pos ` M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> U \<and> \<not> is_Pos C}\<close>
+  by auto
+
+lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` F_of ` N \<and> is_Pos C} = F_of ` N\<close>
+  by force 
+
+lemma [simp]: \<open>{C. F_of C \<in> M} proj\<^sub>J J = M\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> {C. F_of C \<in> M} proj\<^sub>J J\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> M\<close> 
+    using x_in unfolding enabled_projection_def enabled_def to_AF_def by auto 
+next
+  fix x
+  assume x_in: \<open>x \<in> M\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in>  {C. F_of C \<in> M} proj\<^sub>J J\<close> 
+    using x_in unfolding enabled_projection_def enabled_def to_AF_def
+    by (metis (mono_tags, lifting) AF.sel(1) AF.sel(2) mem_Collect_eq subsetI)
+qed 
+
+lemma [simp]: \<open>F_of ` {C. F_of C \<in> M} = M\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> M\<close>
+    using x_in by blast 
+next
+  fix x
+  assume x_in: \<open>x \<in> M\<close>
+  define C where \<open>C = to_AF x\<close>
+  then show \<open>x \<in> F_of ` {C. F_of C \<in> M}\<close>
+    using x_in by (smt (z3) AF.sel(1) imageI mem_Collect_eq) 
+qed
+  
+lemma set_on_union_triple_split: \<open>{f C |C. C \<in> M \<union> N \<union> g J \<and> l C J} = {f C |C. C \<in> M \<and> l C J} \<union>
+  {f C |C. C \<in> N \<and> l C J} \<union> {f C |C. C \<in> g J \<and> l C J}\<close>
+  by blast 
+
+lemma [simp]: \<open>{F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J} = {}\<close>
+proof (intro equalityI subsetI)
+  fix x
+  assume x_in: \<open>x \<in> {F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J}\<close>
+  then obtain C where \<open>F_of C = x\<close> and c_in: \<open>C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J}\<close> and
+    enab_c: \<open>enabled C J\<close>
+    by blast
+  then have \<open>\<not> enabled C J\<close> using c_in by blast 
+  then have \<open>False\<close> using enab_c by auto 
+  then show \<open>x \<in> {}\<close> by auto 
+qed auto
+
+lemma f_of_simp_enabled [simp]: \<open>{F_of C |C. F_of C \<in> M \<and> enabled C J} = M\<close>
+  unfolding enabled_def
+  by (smt (z3) AF.sel(1) AF.sel(2) Collect_mono_iff conj_subset_def mem_Collect_eq order_refl
+    subset_antisym subset_eq)
+
+lemma [simp]: \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = M\<close>
+proof -
+  have \<open>F_of ` {C. F_of C \<in> M \<and> enabled C J} = {F_of C |C. F_of C \<in> M \<and> enabled C J}\<close>
+    by blast 
+  then show ?thesis by simp
+qed
+
+
+(* Splitting report Lemma 4, 2/2 *)
 interpretation AF_sound_cons_rel: consequence_relation "to_AF bot" AF_entails_sound
 proof
   have \<open>{Pos bot} \<subseteq> Pos ` {F_of C |C. C \<in> {to_AF bot} \<and>
@@ -1197,165 +1275,99 @@ next
   fix M N
   assume prem_entails_supsets_af: \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>s\<^sub>A\<^sub>F N'\<close>
   show \<open>M \<Turnstile>s\<^sub>A\<^sub>F N\<close>
-    unfolding AF_entails_sound_def (* sound_cons.entails_neg_def *)
+    unfolding AF_entails_sound_def sound_cons.entails_neg_def
   proof (intro allI impI)
     fix J
     assume enabled_n: \<open>enabled_set N J\<close>
-    have \<open>\<forall>M' N'. fml_ext ` total_strip J \<union> Pos ` (M proj\<^sub>J J) \<subseteq> M' \<and> Pos ` F_of ` N \<subseteq> N' \<and>
-      M' \<union> N' = UNIV \<longrightarrow> sound_cons.entails_neg M' N'\<close>
+    define P where \<open>P = {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C}  \<union> (M proj\<^sub>J J)\<close>
+    define Q where \<open>Q = F_of ` N \<union> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}\<close>
+    have \<open>\<forall>P' Q'. P \<subseteq> P' \<and> Q \<subseteq> Q' \<and> P'\<union>Q' = UNIV \<longrightarrow> P' \<Turnstile>s Q'\<close>
     proof clarsimp
-      fix M' N'
-      assume \<open>fml_ext ` total_strip J \<subseteq> M'\<close> and
-        proj_m: \<open>Pos ` (M proj\<^sub>J J) \<subseteq> M'\<close> and
-        fn_in_np: \<open>Pos ` F_of ` N \<subseteq> N'\<close> and
-        m_n_partition: \<open>M' \<union> N' = UNIV\<close>
-      show \<open>sound_cons.entails_neg M' N'\<close>
-      proof (cases "M' \<inter> N' = {}")
-        case True
-        define \<N>' where np_def: \<open>\<N>' = {C. Pos (F_of C) \<in> N' \<and> enabled C J}\<close>
-        define \<M>' where mp_def: \<open>\<M>' = UNIV - \<N>'\<close>
-        have \<open>M \<subseteq> \<M>'\<close>
-        proof
-          fix x
-          assume x_in: \<open>x \<in> M\<close>
-          have \<open>\<not> enabled x J \<or> Pos (F_of x) \<in> M'\<close>
-            using proj_m unfolding enabled_def enabled_projection_def using x_in by blast 
-          then have \<open>x \<notin> \<N>'\<close>
-            unfolding np_def using True by fastforce 
-          then show \<open>x \<in> \<M>'\<close>
-            unfolding mp_def by blast 
-        qed
-        moreover have \<open>N \<subseteq> \<N>'\<close>
-          using fn_in_np enabled_n unfolding np_def enabled_set_def by force 
-        ultimately have mp_entails_af_np: \<open>\<M>' \<Turnstile>s\<^sub>A\<^sub>F \<N>'\<close>
-          using prem_entails_supsets_af mp_def by simp 
-        moreover have enabled_np: \<open>enabled_set \<N>' J\<close>
-          unfolding np_def enabled_set_def by auto
-        moreover have \<open>Pos ` F_of ` \<N>' = N'\<close>
-        proof (intro equalityI subsetI)
-          fix x
-          assume \<open>x \<in> Pos ` F_of ` \<N>'\<close>
-          then show \<open>x \<in> N'\<close>
-            unfolding np_def by auto 
-        next
-          fix x
-          assume x_in: \<open>x \<in> N'\<close>
-          define C where \<open>C = (Pair x (total_strip J))\<close>
-            oops
-  (*         have \<open>enabled C J\<close>
-   *           unfolding C_def enabled_def by auto 
-   *         then show \<open>x \<in> Pos ` F_of ` \<N>'\<close>
-   *           unfolding C_def np_def using x_in by force 
-   *       qed
-   *       moreover have \<open>\<M>' proj\<^sub>J J = M'\<close>
-   *       proof (intro equalityI subsetI)
-   *         fix x
-   *         assume \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-   *         then obtain C where f_of_c: \<open>F_of C = x\<close> and c_in: \<open>C \<in> \<M>'\<close> and c_enabled: \<open>enabled C J\<close>
-   *           unfolding enabled_projection_def by blast 
-   *         then show \<open>x \<in> M'\<close>
-   *           using m_n_partition unfolding mp_def np_def by auto
-   *       next
-   *         fix x
-   *         assume x_in: \<open>x \<in> M'\<close>
-   *         define C where \<open>C = Pair x (total_strip J)\<close>
-   *         then show \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-   *           unfolding mp_def np_def enabled_projection_def using True x_in
-   *           by (smt (verit, del_insts) AF.sel(1) AF.sel(2) DiffI UNIV_I disjoint_iff enabled_def
-   *             mem_Collect_eq order_refl)
-   *       qed
-   *       ultimately show \<open>M' \<Turnstile> N'\<close>
-   *         unfolding AF_entails_def by blast 
-   *       next
-   *         case False
-   *         assume inter_not_empty: \<open>M' \<inter> N' \<noteq> {}\<close>
-   *         then obtain C where \<open>C \<in> M' \<inter> N'\<close> by blast 
-   *         then show \<open>M' \<Turnstile> N'\<close> using entails_reflexive entails_subsets
-   *           by (meson Int_lower1 Int_lower2 entails_cond_reflexive inter_not_empty)
-   *       qed
-   *   qed
-   *   then show \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
-   *     using entails_supsets by presburger 
-   * qed *)
-
-
-
-(*  fix M P N Q
-  assume
-    m_entails_p: "M \<Turnstile>s\<^sub>A\<^sub>F P" and
-    n_to_q_m: "\<forall>C\<in>M. N \<Turnstile>s\<^sub>A\<^sub>F Q \<union> {C}" and
-    n_p_to_q: "\<forall>D\<in>P. N \<union> {D} \<Turnstile>s\<^sub>A\<^sub>F Q"
-  show \<open>N \<Turnstile>s\<^sub>A\<^sub>F Q\<close>
-    unfolding AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-  proof (rule allI, rule impI)
-    fix J
-    assume q_enabled: \<open>\<forall>C\<in>Q. A_of C \<subseteq> total_strip J\<close>
-    show \<open>sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q)\<close>
-    proof (cases "\<forall>C\<in>P. A_of C \<subseteq> total_strip J")  
-    assume
-      p_enabled: \<open>\<forall>C\<in>P. A_of C \<subseteq> total_strip J\<close>
-    define M\<^sub>J :: "('f, 'v) AF set" where "M\<^sub>J = {C. C \<in> M \<and> A_of C \<subseteq> total_strip J}"
-    have each_hyp1:
-      \<open>sound_cons.entails_neg (fml_ext ` total_strip J \<union> (Pos ` F_of ` M\<^sub>J)) (Pos ` F_of ` P)\<close>
-      using m_entails_p p_enabled 
-      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      by (simp add: M\<^sub>J_def setcompr_eq_image)
-    have \<open>\<forall>C\<in>M\<^sub>J. (\<forall>C\<in>Q \<union> {C}. A_of C \<subseteq> total_strip J)\<close>
-      using q_enabled M\<^sub>J_def by fastforce
-    then have \<open>\<forall>C\<in>M\<^sub>J. sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of `( Q \<union> {C}))\<close>
-      using n_to_q_m q_enabled 
-      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      by (metis (no_types, lifting) M\<^sub>J_def mem_Collect_eq) 
-    moreover have \<open>\<forall>C\<in>fml_ext ` total_strip J. sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of `  Q \<union> {C})\<close>
-      using sound_cons_rel.entails_reflexive sound_cons_rel.entails_subsets 
-       by (meson UnCI empty_subsetI insert_subset subsetI) 
-    ultimately have each_hyp2:
-      \<open>\<forall>C\<in>fml_ext ` total_strip J \<union> Pos ` F_of ` M\<^sub>J. sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q \<union> {C})\<close>
-      by auto
-    have \<open>\<forall>D\<in>P. sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q)\<close>
-      using n_p_to_q q_enabled
-      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      by blast
-    moreover have \<open>\<forall>D\<in>P. Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J} =
-      Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> Pos ` F_of ` {D}\<close>
-      using p_enabled by blast 
-    ultimately have each_hyp3: \<open>\<forall>D\<in>Pos ` F_of ` P. sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<union> {D})
-      (Pos ` F_of ` Q)\<close>
-      by simp
-    show \<open>sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q)\<close>
-      using sound_cons_rel.entails_each[OF each_hyp1 each_hyp2 each_hyp3] .
-  next
-    assume
-      p_not_enabled: \<open>\<not> (\<forall>C\<in>P. A_of C \<subseteq> total_strip J)\<close>
-    then obtain D where d_in: "D \<in> P" and d_not_enabled: "\<not> (A_of D \<subseteq> total_strip J)"
-      by fast
-    have \<open>sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<union> {D} \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q)\<close>
-      using n_p_to_q q_enabled d_in
-      unfolding to_AF_def AF_entails_sound_def enabled_def enabled_projection_def enabled_set_def
-      by blast 
-    then show \<open>sound_cons.entails_neg
-      (fml_ext ` total_strip J \<union> Pos ` {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J})
-      (Pos ` F_of ` Q)\<close>
-      using d_not_enabled 
-      by (smt (verit, best) Collect_cong Un_iff mem_Collect_eq singleton_conv2)
-    qed 
-  qed *)
+      fix P' Q'
+      assume p_sub: \<open>P \<subseteq> P'\<close> and
+        q_sub: \<open>Q \<subseteq> Q'\<close> and
+        pq_univ: \<open>P' \<union> Q' = UNIV\<close>
+      define M' where \<open>M' = M \<union> {C. F_of C \<in> P'} \<union> {C. F_of C \<in> Q' \<and> \<not> enabled C J}\<close>
+      define N' where \<open>N' = N \<union> {C. F_of C \<in> Q' \<and> enabled C J}\<close>
+      have \<open>M \<subseteq> M'\<close> using M'_def by auto
+      moreover have \<open>N \<subseteq> N'\<close> using N'_def by auto
+      moreover have \<open>M' \<union> N' = UNIV\<close> unfolding M'_def N'_def using pq_univ by blast 
+      ultimately have mp_entails_np: \<open>M' \<Turnstile>s\<^sub>A\<^sub>F N'\<close> using prem_entails_supsets_af by auto 
+      have simp_left: \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` (M' proj\<^sub>J J))
+        \<and> is_Pos C} = {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> (M' proj\<^sub>J J) \<close> for J
+        by force 
+      have simp_right: \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` (M' proj\<^sub>J J))
+        \<and> \<not> is_Pos C} = {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} \<union>
+        {to_V C |C. C \<in> Pos ` (M' proj\<^sub>J J) \<and> \<not> is_Pos C}\<close> for J
+        by blast 
+      have \<open>enabled_set N' J\<close>
+        unfolding N'_def using enabled_n enabled_set_def by fastforce 
+      then have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> (M' proj\<^sub>J J) \<Turnstile>s
+        F_of ` N' \<union> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}\<close>
+        using mp_entails_np 
+        unfolding AF_entails_sound_def sound_cons.entails_neg_def
+        by (simp add: simp_left simp_right)
+      moreover have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> (M' proj\<^sub>J J) = P'\<close>
+      proof -
+        have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> (M' proj\<^sub>J J) =
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> P'} \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J}\<close>
+          unfolding enabled_projection_def M'_def
+          using set_on_union_triple_split[of F_of M _ _ J enabled]
+          by blast 
+        also have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> P'} \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> Q' \<and> \<not> enabled C J} \<and> enabled C J} =
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> P'} \<and> enabled C J}\<close> by simp
+        also have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union>
+          {F_of C |C. C \<in> {C. F_of C \<in> P'} \<and> enabled C J} =
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union> P'\<close> by simp
+        also have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> 
+          {F_of C |C. C \<in> M  \<and> enabled C J} \<union> P' = P'\<close>
+          using p_sub unfolding P_def enabled_projection_def by auto 
+        finally show  \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<and> is_Pos C} \<union> (M' proj\<^sub>J J) = P'\<close> .
+      qed
+      moreover have \<open>F_of ` N' \<union> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} = Q'\<close>
+      proof -
+        have \<open>F_of ` N' \<union> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} = 
+          F_of ` N \<union> F_of ` {C. F_of C \<in> Q' \<and> enabled C J} \<union>
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}\<close>
+          unfolding N'_def by blast 
+        also have \<open>F_of ` N \<union> F_of ` {C. F_of C \<in> Q' \<and> enabled C J} \<union>
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} = F_of ` N \<union> Q' \<union>
+          {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C}\<close> by simp
+        also have \<open>F_of ` N \<union> Q' \<union> {to_V C |C. C \<in> fml_ext ` total_strip J \<and> \<not> is_Pos C} = Q'\<close>
+          using Q_def q_sub by blast 
+        finally show ?thesis .
+      qed
+      ultimately show \<open>P' \<Turnstile>s Q'\<close> by auto 
+    qed
+    then have p_entails_q: \<open>P \<Turnstile>s Q\<close>
+      using sound_cons.entails_supsets by auto 
+    show \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (M proj\<^sub>J J) \<and> is_Pos C} \<union>
+      {to_V C |C. C \<in> Pos ` F_of ` N \<and> \<not> is_Pos C} \<Turnstile>s
+      {to_V C |C. C \<in> Pos ` F_of ` N \<and> is_Pos C} \<union>
+      {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (M proj\<^sub>J J) \<and> \<not> is_Pos C}\<close>
+    proof -
+      have \<open>{to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (M proj\<^sub>J J) \<and> is_Pos C} \<union>
+        {to_V C |C. C \<in> Pos ` F_of ` N \<and> \<not> is_Pos C} = P\<close>
+        unfolding P_def by force
+      moreover have \<open>{to_V C |C. C \<in> Pos ` F_of ` N \<and> is_Pos C} \<union>
+        {to_V C |C. C \<in> fml_ext ` total_strip J \<union> Pos ` (M proj\<^sub>J J) \<and> \<not> is_Pos C} = Q\<close>
+        unfolding Q_def by auto
+      ultimately show ?thesis
+        using p_entails_q by auto 
+    qed
+  qed
 qed
+
 
 lemma sound_entail_tautology: "{} \<Turnstile>s\<^sub>A\<^sub>F {Pair (fml (v::'v)) {Pos v}}"
   unfolding AF_entails_sound_def enabled_projection_def enabled_set_def total_def
@@ -1439,23 +1451,8 @@ proof -
     qed 
   qed 
 qed
-
-lemma [simp]: \<open>F_of ` to_AF ` N = N\<close>
-  unfolding to_AF_def by force
-
-lemma [simp]: \<open>to_AF ` M proj\<^sub>J J = M\<close>
-  unfolding to_AF_def enabled_projection_def enabled_def by force
-
-lemma [simp]: \<open>enabled_set (to_AF ` N) J\<close>
-  unfolding enabled_set_def enabled_def to_AF_def by simp
-
-lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` N \<and> \<not> is_Pos C} = {}\<close>
-  by auto
-    
-lemma [simp]: \<open>{to_V C |C. C \<in> U \<union> Pos ` M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> U \<and> \<not> is_Pos C}\<close>
-  by auto
-
-  (* Splitting report Lemma 6, 1/2 *)
+  
+  (* Splitting report Lemma 5, 1/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile> N)\<close>
   unfolding AF_entails_def by simp
 
@@ -1464,7 +1461,6 @@ lemma distrib_union_in_set: \<open>{f a |a. a\<in> B \<union> C \<and> D a} = {f
     
 lemma [simp]: \<open>{to_V C |C. C \<in> Pos ` M \<and> is_Pos C} = M\<close>
   by force
-
 
 lemma finite_subsets_split: \<open>\<forall>J. \<exists>A. finite A \<and> A \<subseteq> B J \<union> C \<Longrightarrow>
   \<exists>A1 A2. finite A1 \<and> finite A2 \<and> A1 \<subseteq> B J \<and> A2 \<subseteq> C\<close>
@@ -1483,7 +1479,7 @@ next
     by (clarsimp simp del: image_insert simp add: image_insert [symmetric]) blast
 qed
 
-  (* Splitting report Lemma 6, 2/2 *)
+  (* Splitting report Lemma 5, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
 proof -
   fix M N
