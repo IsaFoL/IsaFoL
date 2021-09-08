@@ -41,11 +41,11 @@ cd `dirname $0`/..
 root=`pwd`
 tmp=/tmp/prepare-isasat-eda2021-submission.log
 
-if [ x"$PDF" != x"" ] && [ -f $PDF ]; then
-    msg "using file $PDF as description"
-else
-    fatal "missing PDF file as description"
-fi;
+#if [ x"$PDF" != x"" ] && [ -f $PDF ]; then
+#    msg "using file $PDF as description"
+#else
+#    fatal "missing PDF file as description"
+#fi;
 VERSION="eda2021"
 rm -f $tmp
 ##########################################################################
@@ -69,16 +69,25 @@ cp -a ./src/LICENSE $dir/
 echo "build script"
 cat <<EOF >$dir/build.sh
 #!/bin/sh
-mkdir -p binary
-tar xf ./code/isasat*
-mv isasat* isasat
-cd isasat/src
-make competition
-install -s isasat ../../binary/
+#mkdir -p binary
+#tar xf ./code/isasat*
+#mv isasat* isasat
+#cd isasat/src
+#make competition
+#install -s isasat ../../binary/
 EOF
 chmod 755 $dir/build.sh
 
 echo "run script"
+cat <<EOF >$dir/run.sh
+#!/bin/sh
+tar xf ./code/isasat*
+mv isasat* isasat
+./isasat/binary/isasat \$@
+EOF
+
+chmod 755 $dir/run.sh
+
 cat <<EOF >$dir/readme.txt
 IsaSAT is a formally verified SAT solver using Isabelle
 
@@ -116,7 +125,7 @@ mkdir -p $dir
 cd $dir
 rm -rf *
 cp $archive .
-cp /home/zmaths/Documents/repos/isafol-private/Papers/2021_EDA_Challenge/paper.pdf system_description_same_as_kissat.pdf
+#cp /home/zmaths/Documents/repos/isafol-private/Papers/2021_EDA_Challenge/paper.pdf system_description_same_as_kissat.pdf
 zip -q -r $zipfileAll .
 
 rm -rf $dir/
