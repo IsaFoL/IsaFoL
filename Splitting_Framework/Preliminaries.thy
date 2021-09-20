@@ -1479,6 +1479,81 @@ next
     by (clarsimp simp del: image_insert simp add: image_insert [symmetric]) blast
 qed
 
+    (* Splitting report Lemma 5, 2/2 *)
+lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
+proof -
+  {
+    fix M N
+    assume m_to_n: \<open>M \<Turnstile>s N\<close>
+    have \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+      unfolding AF_entails_sound_def sound_cons.entails_neg_def 
+    proof (simp, rule allI)
+      fix J
+      have \<open>M \<subseteq> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C}\<close>
+        by force
+      then show \<open>{to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> is_Pos C} \<Turnstile>s
+          N \<union> {to_V C |C. (C \<in> fml_ext ` total_strip J \<or> C \<in> Pos ` M) \<and> \<not> is_Pos C}\<close>
+        using m_to_n by (meson sound_cons.entails_subsets sup.cobounded1)
+    qed
+  } moreover {
+    fix M N
+    assume \<open>to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N\<close>
+    have all_bigger_entail: \<open>\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile>s N'\<close>
+    proof clarsimp 
+      fix M' N'
+      assume \<open>M \<subseteq> M'\<close> and
+        \<open>N \<subseteq> N'\<close> and
+        \<open>M' \<union> N' = UNIV\<close>
+      define J where \<open>J = total_interp_of ({v. fml_ext v \<in> Pos ` M'} \<union> {Neg v |v. fml_ext v \<notin> Pos ` M'})\<close>
+        (* why can I define J above without proving that UNIV is covered? This shouldn't work! *)
+      then have \<open>(fml_ext ` total_strip J) \<union> (Pos ` M) \<union> (Neg ` Pos ` N) \<subseteq> (Pos ` M') \<union> (Neg ` Pos ` N')\<close>
+        sorry
+      show \<open>M' \<Turnstile>s N'\<close>
+        sorry
+    qed
+    have \<open>M \<Turnstile>s N\<close>
+      using sound_cons.entails_supsets[OF all_bigger_entail] .
+      }
+  ultimately show \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
+    sorry
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   (* Splitting report Lemma 5, 2/2 *)
 lemma \<open>(to_AF ` M \<Turnstile>s\<^sub>A\<^sub>F to_AF ` N) \<equiv> (M \<Turnstile>s N)\<close>
 proof -
