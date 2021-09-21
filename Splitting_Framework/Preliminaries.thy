@@ -1514,10 +1514,10 @@ proof -
         by (meson Int_lower1 Int_lower2 sound_cons.entails_cond_reflexive)
           }
       moreover {
-        assume empty_inter_mp_np: \<open>M' \<inter> N' = {}\<close>
-        define Jpos where \<open>Jpos = {v. fml_ext v \<in> Pos ` M' \<and> is_Pos v}\<close>
+      assume empty_inter_mp_np: \<open>M' \<inter> N' = {}\<close>
+        define Jpos where \<open>Jpos = {v. to_V (fml_ext v) \<in> M' \<and> is_Pos v}\<close>
           (* /!\ Jneg is empty because of sign preservation of fml_ext. Find correct definition! /!\ *)
-        define Jneg where \<open>Jneg = {v |v. fml_ext v \<in> Pos ` N' \<and> \<not> is_Pos v}\<close>
+        define Jneg where \<open>Jneg = {v |v. to_V (fml_ext v) \<in> N' \<and> \<not> is_Pos v}\<close>
         define Jstrip where \<open>Jstrip = Jpos \<union> Jneg\<close>
         have \<open>is_interpretation Jstrip\<close>
           unfolding is_interpretation_def 
@@ -1529,9 +1529,17 @@ proof -
             contra: \<open>is_Pos v1 \<noteq> is_Pos v2\<close>
           have pos_neg_cases: \<open>(v1 \<in> Jpos \<and> v2 \<in> Jneg) \<or> (v1 \<in> Jneg \<and> v2 \<in> Jpos)\<close>
             using v1_in v2_in contra unfolding Jstrip_def Jpos_def Jneg_def by force 
+          then have \<open>to_V (fml_ext v1) \<noteq> to_V (fml_ext v2)\<close>
+            using empty_inter_mp_np unfolding Jneg_def Jpos_def by auto 
+              find_theorems name: fml_ext
+          moreover have \<open>to_V (fml_ext v1) = to_V (fml_ext v2)\<close>
+            using v12_eq 
+              sorry
           then show \<open>False\<close>
-            using v12_eq by (metis (no_types, lifting) Jneg_def pos_neg_cases
-              fml_ext.simps(2) imageE is_Pos.elims(3) mem_Collect_eq neg.distinct(1))
+            using v12_eq pos_neg_cases unfolding Jneg_def Jpos_def 
+            sorry
+            (* by (metis (no_types, lifting) Jneg_def pos_neg_cases
+             *   fml_ext.simps(2) imageE is_Pos.elims(3) mem_Collect_eq neg.distinct(1)) *)
         qed
         then obtain Jinterp where \<open>Jinterp = interp_of Jstrip\<close> by simp
         have \<open>total Jinterp\<close> unfolding total_def
