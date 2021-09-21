@@ -1007,6 +1007,9 @@ fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
   "fml_ext (Pos v) = Pos (fml v)" |
   "fml_ext (Neg v) = Neg (fml_ext v)"
 
+lemma fml_ext_preserves_sign: "is_Pos v \<equiv> is_Pos (fml_ext v)"
+  by (induct v, auto)
+ 
 definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" where
   \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (total_strip J)) {Pos bot})\<close>
   
@@ -1503,13 +1506,60 @@ proof -
       fix M' N'
       assume \<open>M \<subseteq> M'\<close> and
         \<open>N \<subseteq> N'\<close> and
-        \<open>M' \<union> N' = UNIV\<close>
+        union_mnp_is_univ: \<open>M' \<union> N' = UNIV\<close>
+        {
+      assume \<open>M' \<inter> N' \<noteq> {}\<close>
+      then have \<open>M' \<Turnstile>s N'\<close>
+        using sound_cons.entails_reflexive sound_cons.entails_subsets
+        by (meson Int_lower1 Int_lower2 sound_cons.entails_cond_reflexive)
+          }
+      moreover {
+        assume empty_inter_mp_np: \<open>M' \<inter> N' = {}\<close>
+        define Jpos where \<open>Jpos = {v. fml_ext v \<in> Pos ` M' \<and> is_Pos v}\<close>
+          (* /!\ Jneg is empty because of sign preservation of fml_ext. Find correct definition! /!\ *)
+        define Jneg where \<open>Jneg = {v |v. fml_ext v \<in> Pos ` N' \<and> \<not> is_Pos v}\<close>
+        define Jstrip where \<open>Jstrip = Jpos \<union> Jneg\<close>
+        have \<open>is_interpretation Jstrip\<close>
+          unfolding is_interpretation_def 
+        proof (clarsimp, rule ccontr)
+          fix v1 v2
+          assume v1_in: \<open>v1 \<in> Jstrip\<close> and
+            v2_in: \<open>v2 \<in> Jstrip\<close> and
+            v12_eq: \<open>to_V v1 = to_V v2\<close> and
+            contra: \<open>is_Pos v1 \<noteq> is_Pos v2\<close>
+          have pos_neg_cases: \<open>(v1 \<in> Jpos \<and> v2 \<in> Jneg) \<or> (v1 \<in> Jneg \<and> v2 \<in> Jpos)\<close>
+            using v1_in v2_in contra unfolding Jstrip_def Jpos_def Jneg_def by force 
+          then show \<open>False\<close>
+            using v12_eq by (metis (no_types, lifting) Jneg_def pos_neg_cases
+              fml_ext.simps(2) imageE is_Pos.elims(3) mem_Collect_eq neg.distinct(1))
+        qed
+        then obtain Jinterp where \<open>Jinterp = interp_of Jstrip\<close> by simp
+        have \<open>total Jinterp\<close> unfolding total_def
+        proof (intro allI)
+          fix v::"'v neg"
+            {
+          assume \<open>to_V (fml_ext v) \<in> M'\<close>
+          then have \<open>(Pos (to_V (fml_ext v))) \<in> fml_ext ` Jpos\<close>
+            unfolding Jpos_def 
+
+            }
+          obtain v\<^sub>J where \<open>to_V v\<^sub>J = v\<close>
+            by (meson to_V.simps(1)) 
+          then have \<open>v\<^sub>J \<in> Jpos \<or> v\<^sub>J \<in> Jneg\<close>
+            using union_mnp_is_univ unfolding Jpos_def Jneg_def sorry
+          show \<open>\<exists>v\<^sub>J. v\<^sub>J \<in>\<^sub>J Jinterp \<and> to_V v\<^sub>J = v\<close>
+            sorry
+        qed
       define J where \<open>J = total_interp_of ({v. fml_ext v \<in> Pos ` M'} \<union> {Neg v |v. fml_ext v \<notin> Pos ` M'})\<close>
         (* why can I define J above without proving that UNIV is covered? This shouldn't work! *)
       then have \<open>(fml_ext ` total_strip J) \<union> (Pos ` M) \<union> (Neg ` Pos ` N) \<subseteq> (Pos ` M') \<union> (Neg ` Pos ` N')\<close>
+
         sorry
-      show \<open>M' \<Turnstile>s N'\<close>
+      have \<open>M' \<Turnstile>s N'\<close>
         sorry
+          }
+      ultimately show \<open>M' \<Turnstile>s N'\<close>
+        by auto 
     qed
     have \<open>M \<Turnstile>s N\<close>
       using sound_cons.entails_supsets[OF all_bigger_entail] .
