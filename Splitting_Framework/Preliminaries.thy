@@ -1009,6 +1009,12 @@ fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
 
 lemma fml_ext_preserves_sign: "is_Pos v \<equiv> is_Pos (fml_ext v)"
   by (induct v, auto)
+
+lemma [simp]: \<open>to_V (fml_ext v) = fml (to_V v)\<close>
+  by (induct v, auto) 
+
+lemma fml_ext_preserves_val: \<open>to_V v1 = to_V v2 \<Longrightarrow> to_V (fml_ext v1) = to_V (fml_ext v2)\<close>
+  by simp
  
 definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" where
   \<open>sound_consistent J \<equiv> \<not> (sound_cons.entails_neg (fml_ext ` (total_strip J)) {Pos bot})\<close>
@@ -1531,15 +1537,8 @@ proof -
             using v1_in v2_in contra unfolding Jstrip_def Jpos_def Jneg_def by force 
           then have \<open>to_V (fml_ext v1) \<noteq> to_V (fml_ext v2)\<close>
             using empty_inter_mp_np unfolding Jneg_def Jpos_def by auto 
-              find_theorems name: fml_ext
-          moreover have \<open>to_V (fml_ext v1) = to_V (fml_ext v2)\<close>
-            using v12_eq 
-              sorry
           then show \<open>False\<close>
-            using v12_eq pos_neg_cases unfolding Jneg_def Jpos_def 
-            sorry
-            (* by (metis (no_types, lifting) Jneg_def pos_neg_cases
-             *   fml_ext.simps(2) imageE is_Pos.elims(3) mem_Collect_eq neg.distinct(1)) *)
+            using fml_ext_preserves_val[OF v12_eq] by blast 
         qed
         then obtain Jinterp where \<open>Jinterp = interp_of Jstrip\<close> by simp
         have \<open>total Jinterp\<close> unfolding total_def
@@ -1549,7 +1548,7 @@ proof -
           assume \<open>to_V (fml_ext v) \<in> M'\<close>
           then have \<open>(Pos (to_V (fml_ext v))) \<in> fml_ext ` Jpos\<close>
             unfolding Jpos_def 
-
+            sorry
             }
           obtain v\<^sub>J where \<open>to_V v\<^sub>J = v\<close>
             by (meson to_V.simps(1)) 
