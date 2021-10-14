@@ -864,8 +864,9 @@ proof -
     subgoal by (auto intro!: forward_subsumption_all_wl_inv_no_lost)
     subgoal by auto
     subgoal by auto
-    subgoal 
-  oops
+    subgoal
+      oops
+
 text \<open>For documentation purpose, we keep the current try (because one day we might actually add
   backward subsumption and anyway a lot of it can be used for forward subsumption).\<close>
 

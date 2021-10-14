@@ -2036,28 +2036,41 @@ lemma subsume_or_strengthen:
   done
 
 definition forward_subsumption_one_inv :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> _ \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_one_inv = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) (xs, s).
-  subsume_or_strengthen_pre C s (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) \<and> 
-    C \<notin># xs)\<close>
+  \<open>forward_subsumption_one_inv = (\<lambda>C S (T, xs, s).
+  (\<exists>S' . (S, S') \<in> twl_st_l None \<and>
+      twl_struct_invs S' \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+    subsume_or_strengthen_pre C s T \<and>
+    C \<notin># xs \<and> C \<in># dom_m (get_clauses_l T) \<and> count_decided (get_trail_l S) = 0 \<and> 
+    clauses_to_update_l S = {#} \<and> twl_list_invs S \<and> twl_struct_invs S' \<and>
+   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T))\<close>
 
-definition forward_subsumption_one :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> bool) nres\<close> where
-  \<open>forward_subsumption_one = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) . do {
-  ASSERT(forward_subsumption_one_pre C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
-  xs \<leftarrow> SPEC (\<lambda>xs. C \<notin># xs);
-  (xs, s) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_one_inv C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
-    (\<lambda>(xs, s). do {
-      C' \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-      if C' \<notin># dom_m N
-      then RETURN (remove1_mset C' xs, s)
-      else do  {
-        s \<leftarrow> SPEC(try_to_subsume C C' N);
-       RETURN (remove1_mset C' xs, s)
-      }
-    })
-    (xs, NONE);
-  S \<leftarrow> subsume_or_strengthen C s (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q);
-  RETURN (S, s \<noteq> NONE)
+
+definition forward_subsumption_one :: \<open> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> bool) nres\<close> where
+  \<open>forward_subsumption_one = (\<lambda>C S . do {
+    ASSERT(forward_subsumption_one_pre C S);
+    xs \<leftarrow> SPEC (\<lambda>xs. C \<notin># xs);
+    (S, xs, s) \<leftarrow>
+      WHILE\<^sub>T\<^bsup> forward_subsumption_one_inv C S \<^esup> (\<lambda>(S, xs, s). xs \<noteq> {#} \<and> s = NONE \<and> get_conflict_l S = None)
+      (\<lambda>(S, xs, s). do {
+        C' \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
+        if C' \<notin># dom_m (get_clauses_l S) 
+        then RETURN (S, remove1_mset C' xs, s)
+        else do {
+          S \<leftarrow> simplify_clause_with_unit_st C' S;
+          if C' \<notin># dom_m (get_clauses_l S) \<or> get_conflict_l S \<noteq> None
+          then RETURN (S, remove1_mset C' xs, s)
+          else do  {
+            s \<leftarrow> SPEC(try_to_subsume C C' (get_clauses_l S));
+           RETURN (S, remove1_mset C' xs, s)
+          }
+        }
+      })
+      (S, xs, NONE);
+    S \<leftarrow> subsume_or_strengthen C s S;
+    RETURN (S, s \<noteq> NONE)
   }
 )\<close>
 
@@ -2068,83 +2081,6 @@ lemma subset_mset_removeAll_iff:
     count_le_replicate_mset_subset_eq diff_subset_eq_self diff_zero filter_union_mset insert_iff
     mset_le_subtract_right removeAll_mset_filter_mset replicate_mset_minus_replicate_mset_same
     replicate_mset_subseteq_iff_le set_mset_minus_replicate_mset(1) subset_mset.diff_add)
-
-lemma forward_subsumption_one:
-  assumes \<open>forward_subsumption_one_pre C S\<close>
-  shows \<open>forward_subsumption_one C S \<le> \<Down>{((st, SR), st'). st = st' \<and> (\<not>SR \<longrightarrow> st = S)} (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
-proof -
-  obtain x where
-    Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
-    struct: \<open>twl_struct_invs x\<close> and
-    st_inv: \<open>twl_st_inv x\<close> and
-    list_invs: \<open>twl_list_invs S\<close> and
-    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of x)\<close> and
-    clss: \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> and
-    no_annot: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
-    using assms unfolding forward_subsumption_one_pre_def twl_struct_invs_def
-      pcdcl_all_struct_invs_def state\<^sub>W_of_def
-    apply -
-    by normalize_goal+ blast
-  have [refine0]: \<open>wf (measure (\<lambda>(d, _). size d))\<close>
-    by auto
-  have H: \<open>length (get_clauses_l S \<propto> D) \<ge>2\<close> \<open>distinct (get_clauses_l S \<propto> D)\<close>  \<open>D \<noteq> 0\<close>
-    \<open>D \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close> if \<open>D \<in># dom_m (get_clauses_l S)\<close>for D
-    using st_inv that Sx list_invs no_annot unfolding twl_struct_invs_def twl_list_invs_def apply -
-    by (auto simp: twl_struct_invs_def twl_st_l_def ran_m_def conj_disj_distribR
-      twl_st_inv.simps Collect_disj_eq image_image image_Un Collect_conv_if mset_take_mset_drop_mset'
-      dest!: multi_member_split split: if_splits
-      simp flip: insert_compr)
-  have H2: \<open>\<not>tautology (mset (get_clauses_l S \<propto> D))\<close> if \<open>D \<in># dom_m (get_clauses_l S)\<close> for D
-    using list_invs that by (auto simp: twl_list_invs_def ran_m_def)
-
-  show ?thesis
-    unfolding forward_subsumption_one_def conc_fun_RES
-    apply (rewrite at \<open>_ \<le> \<hole>\<close> RES_SPEC_conv)
-    apply (refine_vcg subsume_or_strengthen[unfolded Down_id_eq])
-    subgoal using assms by auto
-    subgoal
-      using H by (auto simp: subsume_or_strengthen_pre_def
-      forward_subsumption_one_pre_def distinct_mset_dom distinct_mset_remove1_All
-       forward_subsumption_one_inv_def subset_mset_removeAll_iff split)
-    subgoal by (auto simp: forward_subsumption_one_inv_def dest: in_diffD)
-    subgoal by (auto simp: forward_subsumption_one_inv_def dest: multi_member_split)
-    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi aj bj ak bk x s al bl xa xb
-      using H C H2 not_tautology_mono[of \<open>mset (removeAll _ (get_clauses_l S \<propto> C))\<close>
-        \<open>mset (get_clauses_l S \<propto> C)\<close>]
-      apply (auto simp: try_to_subsume_def distinct_mset_dom distinct_mset_remove1_All
-        subsume_or_strengthen_pre_def subset_mset_removeAll_iff tautology_union
-        forward_subsumption_one_inv_def
-        simp del: mset_removeAll
-        simp flip: mset_removeAll
-        split: subsumption.splits
-        dest: in_diffD)[]
-       apply (metis subset_mset.diff_add tautology_union)
-       by (smt (z3) count_le_replicate_mset_subset_eq in_replicate_mset order_refl set_mset_mset subset_mset.diff_add tautology_minus union_iff)
-    subgoal
-      by (auto dest!: multi_member_split)
-    subgoal
-      unfolding forward_subsumption_one_inv_def by blast
-    subgoal unfolding forward_subsumption_one_pre_def by auto
-    subgoal using clss by (auto simp only:)
-    done
-qed
-
-definition simplify_clauses_with_unit_st_pre where
-  \<open>simplify_clauses_with_unit_st_pre S \<longleftrightarrow> (\<exists>T.
-  (S, T) \<in> twl_st_l None \<and>
-  twl_struct_invs T \<and>
-  twl_list_invs S \<and>
-  clauses_to_update_l S = {#} \<and>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
-  count_decided (get_trail_l S) = 0 \<and>
-  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
-
-definition simplify_clauses_with_unit_st_inv :: \<open>'v twl_st_l \<Rightarrow> nat set \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it S \<longleftrightarrow> (
-    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 S \<and>
-  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq>
-    set (get_all_mark_of_propagated (get_trail_l S\<^sub>0)) \<union> {0})\<close>
 
 lemma cdcl_twl_inprocessing_l_twl_st_l0:
   assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
@@ -2169,6 +2105,7 @@ lemma cdcl_twl_unitres_l_list_invs:
     ran_m_mapsto_upd
     dest: in_diffD)
 
+
 lemma cdcl_twl_inprocessing_l_twl_list_invs:
   assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
     \<open>twl_list_invs S\<close>
@@ -2187,6 +2124,7 @@ lemma rtranclp_cdcl_twl_inprocessing_l_twl_list_invs:
   using assms by (induction rule: rtranclp_induct)
     (auto simp: cdcl_twl_inprocessing_l_twl_list_invs)
  
+
 lemma cdcl_twl_inprocessing_l_twl_st_l:
   assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
     \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -2213,6 +2151,7 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
     done
   done
 
+
 lemma rtranclp_cdcl_twl_inprocessing_l_twl_st_l:
   assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close> and
     \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -2234,6 +2173,297 @@ lemma rtranclp_cdcl_twl_inprocessing_l_twl_st_l:
     apply assumption+
     done
   done
+
+
+lemma
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+  shows
+    rtranclp_cdcl_twl_inprocessing_l_count_decided:
+    \<open>count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> (is ?A) and
+    rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l:
+    \<open>clauses_to_update_l T = clauses_to_update_l S\<close> (is ?B) and
+    rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated:
+    \<open>set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> (is ?C)
+proof -
+  have [dest]:
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> 
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
+    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> for S T
+    by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_subsumed_l.simps
+      cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps)
+      (*set (get_all_mark_of_propagated (get_trail_l T))*)
+  show ?A ?B ?C
+    using assms
+    by (induction rule: rtranclp_induct; auto; fail)+
+qed
+
+lemma forward_subsumption_one_inv_alt_def:
+  \<open>forward_subsumption_one_inv = (\<lambda>C S (T, xs, s).
+  (\<exists>S' T'. (S, S') \<in> twl_st_l None \<and>
+      twl_struct_invs S' \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+    subsume_or_strengthen_pre C s T \<and>
+    C \<notin># xs \<and> C \<in># dom_m (get_clauses_l T) \<and> count_decided (get_trail_l S) = 0 \<and> 
+    clauses_to_update_l S = {#} \<and> twl_list_invs S \<and> twl_struct_invs S' \<and>
+   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+   (T, T') \<in> twl_st_l None \<and>
+      twl_struct_invs T' \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T') \<and>
+    C \<notin># xs \<and> C \<in># dom_m (get_clauses_l T) \<and> count_decided (get_trail_l T) = 0 \<and> 
+    clauses_to_update_l T = {#} \<and> twl_list_invs T \<and> twl_struct_invs T' \<and>
+   set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> {0} \<and>
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T') \<and>
+   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T))\<close>
+  unfolding forward_subsumption_one_inv_def
+  apply (rule iffI ext)+
+  apply (case_tac x; hypsubst)
+  unfolding prod.simps
+  apply normalize_goal+
+  apply (frule rtranclp_cdcl_twl_inprocessing_l_twl_st_l; assumption?)
+  apply (rule_tac x=xa in exI)
+  apply (rule_tac x=V in exI)
+  apply (simp add: rtranclp_cdcl_twl_inprocessing_l_count_decided
+   rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated)
+  apply (drule rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated, blast)
+  apply (case_tac x; hypsubst)
+  unfolding prod.simps
+  apply normalize_goal+
+  apply (frule rtranclp_cdcl_twl_inprocessing_l_twl_st_l; assumption?)
+  apply (rule_tac x=xa in exI)
+  apply simp
+  done
+
+
+lemma forward_subsumption_one:
+  assumes \<open>forward_subsumption_one_pre C S\<close>
+  shows \<open>forward_subsumption_one C S \<le> \<Down>{((st, SR), st'). st = st' \<and> (\<not>SR \<longrightarrow> st = S)} (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+proof -
+  obtain x where
+    Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
+    struct: \<open>twl_struct_invs x\<close> and
+    st_inv: \<open>twl_st_inv x\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of x)\<close> and
+    clss: \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> and
+    no_annot: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close> and
+    init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of x)\<close> and
+    dec: \<open>count_decided (get_trail_l S) = 0\<close>
+    using assms unfolding forward_subsumption_one_pre_def twl_struct_invs_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
+    apply -
+    by normalize_goal+ blast
+  have [refine0]: \<open>wf (measure (\<lambda>(_, d, _). size d))\<close>
+    by auto
+  have H: \<open>length (get_clauses_l S \<propto> D) \<ge>2\<close> \<open>distinct (get_clauses_l S \<propto> D)\<close>  \<open>D \<noteq> 0\<close>
+    \<open>D \<notin> set (get_all_mark_of_propagated (get_trail_l S))\<close> if \<open>D \<in># dom_m (get_clauses_l S)\<close>for D
+    using st_inv that Sx list_invs no_annot unfolding twl_struct_invs_def twl_list_invs_def apply -
+    by (auto simp: twl_struct_invs_def twl_st_l_def ran_m_def conj_disj_distribR
+      twl_st_inv.simps Collect_disj_eq image_image image_Un Collect_conv_if mset_take_mset_drop_mset'
+      dest!: multi_member_split split: if_splits
+      simp flip: insert_compr)
+  have H2: \<open>\<not>tautology (mset (get_clauses_l S \<propto> D))\<close> if \<open>D \<in># dom_m (get_clauses_l S)\<close> for D
+    using list_invs that by (auto simp: twl_list_invs_def ran_m_def)
+find_theorems simplify_clause_with_unit_st
+
+  have \<open>subsume_or_strengthen_pre C (snd (snd xb')) U\<close>
+    if 
+      \<open>forward_subsumption_one_pre C S\<close> and
+      \<open>C \<notin># xs\<close> and
+      \<open>xa \<in># b\<close> and
+      \<open>xa \<in># dom_m (get_clauses_l ab)\<close> and
+      \<open>xa \<in># dom_m (get_clauses_l U) \<and> get_conflict_l U = None\<close> and
+      xb': \<open>xb'
+    \<in> (\<lambda>x. (U, remove1_mset xa b, x)) `
+      Collect (try_to_subsume C xa (get_clauses_l U))\<close> and
+      \<open>s = (ab, b, NONE)\<close> and
+      \<open>ba' = (b, NONE)\<close> and
+      \<open>b \<noteq> {#}\<close> and
+      abU: \<open>ab = U \<or> cdcl_twl_unitres_l ab U \<or> cdcl_twl_unitres_true_l ab U\<close> and
+      \<open>a = ab\<close> and
+      \<open>(S, x) \<in> twl_st_l None\<close> and
+      \<open>c = NONE\<close> and
+      \<open>get_conflict_l ab = None\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l U))
+    \<subseteq> insert 0 (set (get_all_mark_of_propagated (get_trail_l ab)))\<close> and
+      \<open>aa = b\<close> and
+      \<open>ba = NONE\<close> and
+      dom_U: \<open>dom_m (get_clauses_l U) = dom_m (get_clauses_l ab) \<or>
+    dom_m (get_clauses_l U) = remove1_mset xa (dom_m (get_clauses_l ab))\<close> and
+      all_undef: \<open>\<forall>L\<in>set (get_clauses_l U \<propto> xa). undefined_lit (get_trail_l U) L\<close> and
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init
+     (state_of (pstate\<^sub>W_of x))\<close> and
+      \<open>subsume_or_strengthen_pre C NONE S\<close> and
+      \<open>C \<notin># b\<close> and
+      \<open>C \<in># dom_m (get_clauses_l ab)\<close> and
+      \<open>count_decided (get_trail_l S) = 0\<close> and
+      \<open>clauses_to_update_l S = {#}\<close> and
+      \<open>twl_list_invs S\<close> and
+      \<open>twl_struct_invs x\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close> and
+      ST: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S ab\<close>
+    for ab U xa c xb xb' ba'
+  proof -
+    have C_ab: \<open>C \<in># dom_m (get_clauses_l ab)\<close>
+      using that by simp_all
+    have SU: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close>
+      using ST abU by (auto dest!: cdcl_twl_inprocessing_l.intros)
+    have no_annot: \<open>set (get_all_mark_of_propagated (get_trail_l U)) \<subseteq> {0}\<close> and
+      dec: \<open>count_decided (get_trail_l U) = 0\<close>
+      using \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
+        rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated[OF SU]
+        rtranclp_cdcl_twl_inprocessing_l_count_decided[OF SU]
+      unfolding \<open>count_decided (get_trail_l S) = 0\<close>
+      by blast+
+    obtain x where
+      Sx: \<open>(U, x) \<in> twl_st_l None\<close> and
+      struct: \<open>twl_struct_invs x\<close> and
+      list_invs: \<open>twl_list_invs U\<close> and
+      init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of x)\<close>
+      subgoal premises p
+        by (rule rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF SU Sx struct list_invs init])
+         (rule that; (assumption)?)
+      done
+    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of x)\<close> and
+      st_inv: \<open>twl_st_inv x\<close>
+      using struct
+      unfolding forward_subsumption_one_pre_def twl_struct_invs_def
+        pcdcl_all_struct_invs_def state\<^sub>W_of_def by fast+
+    have C: \<open>C \<in># dom_m (get_clauses_l U)\<close>
+      using dom_U C_ab that(3,5,22) by (auto intro!: in_remove1_msetI)
+    have H: \<open>length (get_clauses_l U \<propto> D) \<ge>2\<close> \<open>distinct (get_clauses_l U \<propto> D)\<close>  \<open>D \<noteq> 0\<close>
+      \<open>D \<notin> set (get_all_mark_of_propagated (get_trail_l U))\<close> if \<open>D \<in># dom_m (get_clauses_l U)\<close>for D
+      using st_inv that Sx list_invs no_annot unfolding twl_struct_invs_def twl_list_invs_def apply -
+      by (auto simp: twl_struct_invs_def twl_st_l_def ran_m_def conj_disj_distribR
+        twl_st_inv.simps Collect_disj_eq image_image image_Un Collect_conv_if mset_take_mset_drop_mset'
+        dest!: multi_member_split split: if_splits
+        simp flip: insert_compr)
+    show ?thesis
+      using H C xb' dec all_undef unfolding subsume_or_strengthen_pre_def try_to_subsume_def
+      apply (case_tac x)
+      apply (auto split: subsumption.splits simp add: state_decomp_to_state_l) sorry
+  qed
+
+  show ?thesis
+    unfolding forward_subsumption_one_def conc_fun_RES
+    apply (rewrite at \<open>_ \<le> \<hole>\<close> RES_SPEC_conv)
+    apply (refine_vcg subsume_or_strengthen[unfolded Down_id_eq]
+      simplify_clause_with_unit_st_spec[THEN order_trans] if_rule)
+    subgoal using assms by auto
+    subgoal for ax
+      unfolding forward_subsumption_one_inv_def prod.simps
+      apply (rule_tac x=x in exI)
+      using Sx H struct st_inv C init by (auto simp add: subsume_or_strengthen_pre_def forward_subsumption_one_pre_def)
+   subgoal for xs
+     unfolding simplify_clause_with_unit_st_pre_def forward_subsumption_one_inv_def case_prod_beta
+     apply normalize_goal+ 
+     by (rule_tac x=x in exI)
+      (auto dest: in_diffD)
+   subgoal
+     unfolding simplify_clause_with_unit_st_pre_def forward_subsumption_one_inv_def case_prod_beta
+     apply normalize_goal+ 
+     by  (auto dest: multi_member_split)
+   subgoal
+     unfolding simplify_clause_with_unit_st_pre_def forward_subsumption_one_inv_alt_def case_prod_beta
+     apply normalize_goal+ 
+    apply (intro conjI)
+    apply ((solves \<open>use dec init C in \<open>simp\<close>\<close>))+
+    apply ((solves \<open>use dec init C in \<open>fastforce\<close>\<close>)?)
+    done
+
+   subgoal for xs s a b aa ba xa unfolding Down_id_eq
+     apply (intro SPEC_rule)
+     apply (rule if_rule)
+     subgoal
+       apply clarsimp
+       apply (intro conjI)
+       subgoal
+         unfolding forward_subsumption_one_inv_def prod.simps
+         apply normalize_goal+
+         apply (rule_tac x=x in exI)
+         apply simp
+        apply (intro conjI)
+        defer
+        apply (metis in_diffD) 
+        apply (metis in_remove1_msetI)
+        apply (auto dest!: cdcl_twl_inprocessing_l.intros)
+        done
+     subgoal by (auto dest!: multi_member_split)
+     done
+   subgoal for U
+     unfolding RES_RETURN_RES
+     apply (subst nres_order_simps)
+     apply rule
+     apply (subst mem_Collect_eq)
+     apply (intro conjI)
+     subgoal for x
+        apply (case_tac s, hypsubst)
+         unfolding forward_subsumption_one_inv_def prod.simps case_prod_beta
+         apply normalize_goal+
+         apply (rule_tac x=x in exI)
+         apply simp
+         apply (intro conjI)
+defer
+       apply (clarsimp dest!: in_diffD)
+       apply (auto dest!: in_diffD intro: in_remove1_msetI)[]
+       apply (auto dest!: cdcl_twl_inprocessing_l.intros)[]
+explore_have
+find_theorems subsume_or_strengthen_pre 
+ apply simp
+     apply rule
+     apply simp
+     apply (intro conjI impI)
+     apply normalize_goal+
+    
+
+       find_theorems "SPEC _ \<le> SPEC _"
+oops
+      using H by (auto simp: subsume_or_strengthen_pre_def
+      forward_subsumption_one_pre_def distinct_mset_dom distinct_mset_remove1_All
+       forward_subsumption_one_inv_def subset_mset_removeAll_iff split)
+    subgoal 
+      unfolding simplify_clause_with_unit_st_pre_def
+ sorry
+    subgoal by (auto simp: forward_subsumption_one_inv_def dest: in_diffD)
+    subgoal by (auto simp: forward_subsumption_one_inv_def dest: multi_member_split)
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg ah bh ai bi aj bj ak bk x s al bl xa xb
+      using H C H2 not_tautology_mono[of \<open>mset (removeAll _ (get_clauses_l S \<propto> C))\<close>
+        \<open>mset (get_clauses_l S \<propto> C)\<close>]
+      apply (auto simp: try_to_subsume_def distinct_mset_dom distinct_mset_remove1_All
+        subsume_or_strengthen_pre_def subset_mset_removeAll_iff tautology_union
+        forward_subsumption_one_inv_def
+        simp del: mset_removeAll
+        simp flip: mset_removeAll
+        split: subsumption.splits
+        dest: in_diffD)[]
+       apply (metis subset_mset.diff_add tautology_union)
+       by (smt (z3) count_le_replicate_mset_subset_eq in_replicate_mset order_refl set_mset_mset subset_mset.diff_add tautology_minus union_iff)
+    subgoal
+      by (auto dest!: multi_member_split)
+    subgoal
+      unfolding forward_subsumption_one_inv_def by blast
+    subgoal unfolding forward_subsumption_one_pre_def by auto
+    subgoal using clss apply (auto simp only:)
+      sorry
+    done
+qed
+
+definition simplify_clauses_with_unit_st_pre where
+  \<open>simplify_clauses_with_unit_st_pre S \<longleftrightarrow> (\<exists>T.
+  (S, T) \<in> twl_st_l None \<and>
+  twl_struct_invs T \<and>
+  twl_list_invs S \<and>
+  clauses_to_update_l S = {#} \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
+  count_decided (get_trail_l S) = 0 \<and>
+  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
+
+definition simplify_clauses_with_unit_st_inv :: \<open>'v twl_st_l \<Rightarrow> nat set \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>simplify_clauses_with_unit_st_inv S\<^sub>0 it S \<longleftrightarrow> (
+    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S\<^sub>0 S \<and>
+  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq>
+    set (get_all_mark_of_propagated (get_trail_l S\<^sub>0)) \<union> {0})\<close>
 
 lemma simplify_clauses_with_unit_st_inv_simplify_clauses_with_unit_st_preD:
   assumes
@@ -2492,15 +2722,16 @@ lemma simplify_clauses_with_units_st_spec:
   subgoal unfolding simplify_clauses_with_unit_st_inv_def by auto
   done
 
-definition try_to_forward_subsume_inv :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<times> bool \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>try_to_forward_subsume_inv S0 = (\<lambda>C (i,brk,S).
+definition try_to_forward_subsume_inv :: \<open>bool \<Rightarrow> 'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<times> bool \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>try_to_forward_subsume_inv no_bin S0 = (\<lambda>C (i,brk,S).
   (cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S0 S \<and>
   clauses_to_update_l S = {#} \<and>
   count_decided (get_trail_l S) = 0 \<and>
   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
   (\<not>brk \<longrightarrow> (get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and>
   (\<forall>L \<in># mset (get_clauses_l S \<propto> C). undefined_lit (get_trail_l S) L) \<and>
-  length (get_clauses_l S \<propto> C) \<ge> 2))))\<close>
+  length (get_clauses_l S \<propto> C) \<ge> 2)) \<and>
+  (no_bin \<longrightarrow> get_trail_l S = get_trail_l S0)))\<close>
 
 definition try_to_forward_subsume_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>try_to_forward_subsume_pre = (\<lambda>C S.
@@ -2517,11 +2748,11 @@ definition try_to_forward_subsume_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<
   (\<forall>L \<in># mset (get_clauses_l S \<propto> C). undefined_lit (get_trail_l S) L) \<and>
   length (get_clauses_l S \<propto> C) \<ge> 2)\<close>
 
-definition try_to_forward_subsume :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>try_to_forward_subsume C S = do {
+definition try_to_forward_subsume :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>try_to_forward_subsume no_bin C S = do {
   ASSERT (try_to_forward_subsume_pre C S);
   n \<leftarrow> RES {_::nat. True};
-  (_, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup> try_to_forward_subsume_inv S C\<^esup>
+  (_, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup> try_to_forward_subsume_inv no_bin S C\<^esup>
     (\<lambda>(i, break, S). \<not>break \<and> i < n)
     (\<lambda>(i, break, S). do {
       (S, subs) \<leftarrow> forward_subsumption_one C S;
@@ -2533,31 +2764,9 @@ definition try_to_forward_subsume :: \<open>nat \<Rightarrow> 'v twl_st_l \<Righ
   }
   \<close>
 
-lemma
-  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
-  shows
-    rtranclp_cdcl_twl_inprocessing_l_count_decided:
-    \<open>count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> (is ?A) and
-    rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l:
-    \<open>clauses_to_update_l T = clauses_to_update_l S\<close> (is ?B) and
-    rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated:
-    \<open>set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> (is ?C)
-proof -
-  have [dest]:
-    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close> 
-    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
-    \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> for S T
-    by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_subsumed_l.simps
-      cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps)
-      (*set (get_all_mark_of_propagated (get_trail_l T))*)
-  show ?A ?B ?C
-    using assms
-    by (induction rule: rtranclp_induct; auto; fail)+
-qed
-
 lemma try_to_forward_forward_subsumption_one_pre:
   \<open>try_to_forward_subsume_pre C S \<Longrightarrow>
-  try_to_forward_subsume_inv S C (a, False, ba) \<Longrightarrow> forward_subsumption_one_pre C ba\<close>
+  try_to_forward_subsume_inv no_bin S C (a, False, ba) \<Longrightarrow> forward_subsumption_one_pre C ba\<close>
   unfolding try_to_forward_subsume_inv_def forward_subsumption_one_pre_def case_prod_beta
     try_to_forward_subsume_pre_def
   apply normalize_goal+
@@ -2569,7 +2778,7 @@ lemma try_to_forward_forward_subsumption_one_pre:
 
 lemma try_to_forward_subsume:
   assumes \<open>try_to_forward_subsume_pre C S\<close>
-  shows \<open>try_to_forward_subsume C S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+  shows \<open>try_to_forward_subsume no_bin C S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(i, _, _). Suc n - i))\<close> for n
     by auto
@@ -2605,8 +2814,8 @@ definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\
 definition forward_subsumption_all_inv :: \<open>'v twl_st_l \<Rightarrow> nat multiset \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S))\<close>
 
-definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>forward_subsumption_all = (\<lambda>S. do {
+definition forward_subsumption_all :: \<open>bool \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>forward_subsumption_all = (\<lambda>no_bin S. do {
   ASSERT (forward_subsumption_all_pre S);
   xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># (dom_m (get_clauses_l S)));
   (xs, S) \<leftarrow>
@@ -2618,7 +2827,7 @@ definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
        else do {
          S \<leftarrow> simplify_clause_with_unit_st C S;
          if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) then do {
-           S \<leftarrow> try_to_forward_subsume C S;
+           S \<leftarrow> try_to_forward_subsume no_bin C S;
            RETURN (remove1_mset C xs, S)
          }
          else RETURN (remove1_mset C xs, S)
