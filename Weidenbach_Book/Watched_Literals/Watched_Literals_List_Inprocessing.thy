@@ -2191,11 +2191,16 @@ definition clause_remove_duplicate_clause :: \<open>nat \<Rightarrow> 'v twl_st_
    RETURN (M, fmdrop C N, D, NE, UE, NEk, UEk, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS, (if irred N C then id else add_mset (mset (N \<propto> C))) US, N0, U0, WS, Q)
  })\<close>
 
+definition clause_remove_duplicate_clause_spec where
+  \<open>clause_remove_duplicate_clause_spec C S T \<longleftrightarrow> cdcl_twl_inprocessing_l S T \<and>
+    get_clauses_l T = fmdrop C (get_clauses_l S) \<and> get_trail_l T = get_trail_l S\<close>
+
 lemma clause_remove_duplicate_clause:
   assumes \<open>clause_remove_duplicate_clause_pre C S\<close>
-  shows \<open>clause_remove_duplicate_clause C S \<le> SPEC(\<lambda>T. cdcl_twl_inprocessing_l S T \<and> get_clauses_l T = fmdrop C (get_clauses_l S))\<close>
+  shows \<open>clause_remove_duplicate_clause C S \<le> SPEC(clause_remove_duplicate_clause_spec C S)\<close>
   using assms
   unfolding clause_remove_duplicate_clause_def clause_remove_duplicate_clause_pre_def
+    clause_remove_duplicate_clause_spec_def
   apply (cases S; hypsubst)
   unfolding prod.simps
   apply normalize_goal+
@@ -2267,18 +2272,19 @@ where
 \<open>deduplicate_binary_clauses_inv L xs0 S = (\<lambda>(abort, xs, CS, T). 
   \<exists>S'. (S,S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
     cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0 \<and>
-    deduplicate_binary_clauses_correctly_marked L xs0 xs CS T \<and>
+    (\<not>abort \<longrightarrow> deduplicate_binary_clauses_correctly_marked L xs0 xs CS T) \<and>
     twl_list_invs S \<and>
     count_decided (get_trail_l S) = 0 \<and>
     clauses_to_update_l S = {#} \<and>
-    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    (\<not>abort \<longrightarrow> undefined_lit (get_trail_l T) L))\<close>
 
 lemma deduplicate_binary_clauses_inv_alt_def:
 \<open>deduplicate_binary_clauses_inv L xs0 S = (\<lambda>(abort, xs, CS, T).
   \<exists>S' T'. (S,S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
      (T,T') \<in> twl_st_l None \<and> twl_struct_invs T' \<and>  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T') \<and>
    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0 \<and>
-    deduplicate_binary_clauses_correctly_marked L xs0 xs CS T \<and>
+   (\<not>abort \<longrightarrow> deduplicate_binary_clauses_correctly_marked L xs0 xs CS T) \<and>
   twl_list_invs S \<and>
   count_decided (get_trail_l S) = 0 \<and>
   clauses_to_update_l S = {#} \<and>
@@ -2286,7 +2292,8 @@ lemma deduplicate_binary_clauses_inv_alt_def:
   twl_list_invs T \<and>
   count_decided (get_trail_l T) = 0 \<and>
   clauses_to_update_l T = {#} \<and>
-  set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> {0})\<close>
+  set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> {0} \<and>
+  (\<not>abort \<longrightarrow>undefined_lit (get_trail_l T) L))\<close>
   unfolding deduplicate_binary_clauses_inv_def
   apply (intro ext iffI)
   unfolding case_prod_beta apply normalize_goal+
@@ -2308,7 +2315,8 @@ lemma deduplicate_binary_clauses_inv_alt_def2:
   \<open> deduplicate_binary_clauses_pre L S \<Longrightarrow>
   deduplicate_binary_clauses_inv L xs0 S = (\<lambda>(abort, xs, CS, T). 
     cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0 \<and>
-    deduplicate_binary_clauses_correctly_marked L xs0 xs CS T)\<close>
+    (\<not>abort \<longrightarrow> deduplicate_binary_clauses_correctly_marked L xs0 xs CS T) \<and>
+    (\<not>abort \<longrightarrow> undefined_lit (get_trail_l T) L))\<close>
   unfolding deduplicate_binary_clauses_pre_def deduplicate_binary_clauses_inv_def case_prod_beta
   apply (intro ext iffI)
   apply normalize_goal+
@@ -2317,7 +2325,7 @@ lemma deduplicate_binary_clauses_inv_alt_def2:
   apply (rule_tac x=x in exI)
   apply simp
   done
-  
+
 
 definition deduplicate_binary_clauses :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
 \<open>deduplicate_binary_clauses L S = do {
@@ -2340,8 +2348,8 @@ definition deduplicate_binary_clauses :: \<open>'v literal \<Rightarrow> 'v twl_
              S \<leftarrow> clause_remove_duplicate_clause C S;
              RETURN (abort, xs - {#C#}, CS, S)
            } else if CS (-L') \<noteq> None then do {
-             S \<leftarrow> binary_clause_subres C L L' S;
-             RETURN (abort, xs - {#C#}, CS, S)
+             S \<leftarrow> binary_clause_subres C L (-L') S;
+             RETURN (True, xs - {#C#}, CS, S)
            } else do {
              RETURN (abort, xs - {#C#}, CS (L' := Some (C, irred (get_clauses_l S) C)), S)
            }
@@ -2379,7 +2387,7 @@ lemma deduplicate_binary_clauses_inv_cdcl_twl_unitres_l:
      dom_m (get_clauses_l bb) = dom_m (get_clauses_l xc) \<Longrightarrow>
      \<forall>C'\<in>#dom_m (get_clauses_l xc). xa \<noteq> C' \<longrightarrow> fmlookup (get_clauses_l bb) C' = fmlookup (get_clauses_l xc) C' \<Longrightarrow>
       deduplicate_binary_clauses_inv L x S
-    (abort, remove1_mset xa aa, ab, xc)\<close>
+    (defined_lit (get_trail_l xc) L, remove1_mset xa aa, ab, xc)\<close>
 
     apply (subst deduplicate_binary_clauses_inv_alt_def2, assumption)
     apply (subst (asm)deduplicate_binary_clauses_inv_alt_def2, assumption)
@@ -2389,9 +2397,7 @@ lemma deduplicate_binary_clauses_inv_cdcl_twl_unitres_l:
     apply (clarsimp simp: deduplicate_binary_clauses_correctly_marked_def)
     apply (intro conjI impI allI)
     apply (auto dest: in_diffD simp: distinct_mset_in_diff)
-    apply (metis lookup_None_notin_dom_m)
-    apply (metis lookup_None_notin_dom_m)
-    apply (metis lookup_None_notin_dom_m)
+    apply (metis)+
     done
 
 lemma deduplicate_binary_clauses_inv_deleted:
@@ -2437,9 +2443,9 @@ lemma deduplicate_binary_clauses_inv_deleted:
     apply (metis in_dom_m_lookup_iff insert_DiffM insert_iff set_mset_add_mset_insert)
     done
 
-lemma
+lemma deduplicate_binary_clauses:
   assumes \<open>deduplicate_binary_clauses_pre L S\<close>
-  shows \<open>deduplicate_binary_clauses L S \<le> SPEC(cdcl_twl_inprocessing_l S)\<close>
+  shows \<open>deduplicate_binary_clauses L S \<le> SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S)\<close>
 proof -
   have clause_remove_duplicate_clause_pre:
     \<open>clause_remove_duplicate_clause_pre xa bb\<close>
@@ -2447,7 +2453,7 @@ proof -
       pre: \<open>deduplicate_binary_clauses_pre L S\<close> and
       x_spec: \<open>\<forall>C. (C \<in># x \<longrightarrow> L \<in> set (get_clauses_l S \<propto> C)) \<and> distinct_mset x\<close> and
       inv: \<open>deduplicate_binary_clauses_inv L x S s\<close> and
-      \<open>case s of (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      abort: \<open>case s of (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
       st: \<open>s = (a, b)\<close>
       \<open>b = (aa, ba)\<close>
       \<open>ba = (ab, bb)\<close> and
@@ -2463,11 +2469,11 @@ proof -
       C \<in># x - aa \<and> mset (get_clauses_l bb \<propto> C) = {#L, xb#} \<and> irred (get_clauses_l bb) C = b\<close>
       \<open>clauses_to_update_l bb = {#}\<close>
       \<open>xa \<notin> set (get_all_mark_of_propagated (get_trail_l bb))\<close> for C b
-      using inv pre xa apply -
-      unfolding clause_remove_duplicate_clause_pre_def st
+      using inv pre xa abort apply -
+      unfolding clause_remove_duplicate_clause_pre_def st prod.simps
       apply (clarsimp_all simp: deduplicate_binary_clauses_inv_alt_def deduplicate_binary_clauses_correctly_marked_def
         twl_list_invs_def)
-      apply (intro conjI)
+      apply (intro conjI impI)
       apply (metis neq0_conv)
       apply (metis empty_iff in_mono insert_iff)
       by (metis empty_iff singletonD subset_singletonD)
@@ -2496,7 +2502,7 @@ proof -
       \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
       \<open>undefined_lit (get_trail_l bb) xb\<close> and
       \<open>ab xb \<noteq> None \<and> (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa)\<close> and
-      \<open>cdcl_twl_inprocessing_l bb xc \<and> get_clauses_l xc = fmdrop xa (get_clauses_l bb)\<close>
+      \<open>clause_remove_duplicate_clause_spec xa bb xc\<close>
       for x s a b aa ba ab bb xa xb xc
   proof -
     show ?thesis
@@ -2504,22 +2510,82 @@ proof -
       apply (subst deduplicate_binary_clauses_inv_alt_def2)
       apply assumption
       apply (subst (asm)deduplicate_binary_clauses_inv_alt_def)
-      unfolding st prod.simps
+      unfolding st prod.simps clause_remove_duplicate_clause_spec_def
       apply normalize_goal+
-      apply (auto simp add: deduplicate_binary_clauses_correctly_marked_def)
-      apply (meson distinct_mset_in_diff)
-      apply (meson distinct_mset_in_diff)
-      apply (meson distinct_mset_in_diff)
-      apply (meson distinct_mset_in_diff)
-      apply (meson distinct_mset_in_diff in_diffD)
-      apply (meson distinct_mset_in_diff in_diffD)
-      apply (meson distinct_mset_in_diff in_diffD)
-      apply (meson distinct_mset_in_diff in_diffD)
-      apply (meson distinct_mset_in_diff in_diffD)
-      apply (meson distinct_mset_in_diff in_diffD)
+      by (intro conjI)
+       (auto simp add: deduplicate_binary_clauses_correctly_marked_def
+        distinct_mset_remove1_All distinct_mset_dom distinct_mset_in_diff)
+  qed
+  have binary_clause_subres_lits_pre: \<open>binary_clause_subres_lits_pre xa L (-xb) bb\<close>
+    if
+      pre: \<open>deduplicate_binary_clauses_pre L S\<close> and
+      \<open>\<forall>C. (C \<in># x \<longrightarrow> L \<in> set (get_clauses_l S \<propto> C)) \<and> distinct_mset x\<close> and
+      inv: \<open>deduplicate_binary_clauses_inv L x S s\<close> and
+      abort: \<open>case s of (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      st: \<open>s = (a, b)\<close>
+        \<open>b = (aa, ba)\<close>
+        \<open>ba = (ab, bb)\<close> and
+      \<open>xa \<in># aa\<close> and
+      \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
+      \<open>undefined_lit (get_trail_l bb) xb\<close> and
+      \<open>\<not> (ab xb \<noteq> None \<and>
+      (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa))\<close> and
+      xb: \<open>ab (- xb) \<noteq> None\<close>
+    for x s a b aa ba ab bb xa xb
+  proof -
+    have H: \<open>ab (- xb) = Some (C, b) \<Longrightarrow> C \<noteq> 0 \<and> C \<notin> set (get_all_mark_of_propagated (get_trail_l bb)) \<and>
+      C \<in># dom_m (get_clauses_l bb) \<and>
+      C \<in># x - aa \<and> mset (get_clauses_l bb \<propto> C) = {#L, (- xb)#} \<and> irred (get_clauses_l bb) C = b\<close>
+      \<open>clauses_to_update_l bb = {#}\<close>
+      \<open>xa \<notin> set (get_all_mark_of_propagated (get_trail_l bb))\<close> for C b
+      using inv pre xb abort apply -
+      unfolding clause_remove_duplicate_clause_pre_def st prod.simps
+      apply (clarsimp_all simp: deduplicate_binary_clauses_inv_alt_def deduplicate_binary_clauses_correctly_marked_def
+        twl_list_invs_def)
+      apply (intro conjI)
+      apply (metis neq0_conv)
+      apply (metis empty_iff in_mono insert_iff)
+      by (metis in_mono singletonD that(9))
+    show ?thesis
+      using that H apply -
+      unfolding binary_clause_subres_lits_pre_def
+      by (rule exI[of _ \<open>fst (the (ab (-xb)))\<close>])
+       (auto simp: deduplicate_binary_clauses_inv_alt_def deduplicate_binary_clauses_correctly_marked_def
+        dest!: )
+  qed
+  have new_lit: \<open>deduplicate_binary_clauses_inv L x S
+    (a, remove1_mset xa aa, ab(xb \<mapsto> (xa, irred (get_clauses_l bb) xa)), bb)\<close>
+    if 
+      \<open>deduplicate_binary_clauses_pre L S\<close> and
+      \<open>\<forall>C. (C \<in># x \<longrightarrow> L \<in> set (get_clauses_l S \<propto> C)) \<and> distinct_mset x\<close> and
+      \<open>deduplicate_binary_clauses_inv L x S s\<close> and
+      \<open>case s of
+      (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      st: \<open>s = (a, b)\<close>
+        \<open>b = (aa, ba)\<close>
+        \<open>ba = (ab, bb)\<close> and
+      \<open>xa \<in># aa\<close> and
+      \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
+      \<open>undefined_lit (get_trail_l bb) xb\<close> and
+      \<open>\<not> (ab xb \<noteq> None \<and> (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa))\<close> and
+      \<open>\<not> ab (- xb) \<noteq> None\<close>
+      for x s a b aa ba ab bb xa xb
+  proof -
+    show ?thesis
+      using that unfolding prod.simps st apply -
+      apply (subst deduplicate_binary_clauses_inv_alt_def2, assumption)
+      apply (subst (asm) deduplicate_binary_clauses_inv_alt_def2, assumption)
+      apply normalize_goal+
+      apply (auto simp: deduplicate_binary_clauses_correctly_marked_def distinct_mset_in_diff
+        dest!: multi_member_split)
+      apply (meson distinct_mset_add_mset distinct_mset_mono member_add_mset)
+      apply (meson distinct_mset_add_mset distinct_mset_mono member_add_mset)
+      apply (meson distinct_mset_add_mset distinct_mset_mono member_add_mset)
+      apply (meson distinct_mset_add_mset distinct_mset_mono member_add_mset)
       done
   qed
-  
   let ?R = \<open>measure (\<lambda>(abort, xs, CS, S). size xs)\<close>
   show ?thesis
     unfolding deduplicate_binary_clauses_def Let_def
@@ -2568,15 +2634,18 @@ proof -
     subgoal by (rule clause_remove_duplicate_clause_post)
     subgoal
       by (auto dest!: multi_member_split)
-    subgoal apply (auto) sorry
+    subgoal by (rule binary_clause_subres_lits_pre)
     subgoal 
+      by (subst deduplicate_binary_clauses_inv_alt_def2, assumption,
+          subst (asm)deduplicate_binary_clauses_inv_alt_def2, assumption)
+      (auto simp: )
+    subgoal by (auto dest!: multi_member_split)
+    subgoal by (rule new_lit)
+    subgoal by (auto dest!: multi_member_split)
+    subgoal unfolding deduplicate_binary_clauses_inv_def by fast
+    done
+qed
 
-thm multi_drop_mem_not_eq
-find_theorems size remove1_mset
-oops
-    
-thm WHILE_IT_spec
-find_theorems WHILEIT "_ \<le>RES _"
 definition forward_subsumption_one_inv :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> _ \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_inv = (\<lambda>C S (T, xs, s).
   (\<exists>S' . (S, S') \<in> twl_st_l None \<and>
