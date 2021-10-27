@@ -406,6 +406,317 @@ avoiding various special causes. To reduce the effort, we use the same code base
 to indicate which code we use.
 \<close>
 
+
+subsubsection \<open>Binary clauses\<close>
+
+definition clause_remove_duplicate_clause_wl_pre :: \<open>_\<close> where
+  \<open>clause_remove_duplicate_clause_wl_pre C S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
+     clause_remove_duplicate_clause_pre C S' \<and> correct_watching'' S)\<close>
+
+definition clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>clause_remove_duplicate_clause_wl C = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
+   ASSERT (clause_remove_duplicate_clause_wl_pre C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
+   RETURN (M, fmdrop C N, D, NE, UE, NEk, UEk, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS, (if irred N C then id else add_mset (mset (N \<propto> C))) US, N0, U0, WS, Q)
+ })\<close>
+
+(*TODO Move*)
+lemma filter_image_mset_removeAll:
+  \<open>{#C \<in># A. P C#} - {#C \<in># replicate_mset (count A C') C'. P C#} =
+    {#C \<in># A. P C \<and> C \<noteq> C'#}\<close>
+  by (metis count_filter_mset filter_filter_mset filter_mset_neq image_filter_replicate_mset replicate_mset_0)
+ 
+lemma filter_image_mset_swap: \<open>distinct_mset A \<Longrightarrow> distinct_mset B \<Longrightarrow>
+  {#i \<in># A. i \<in># B \<and> P i#} = {#i \<in># B. i \<in># A \<and> P i#}\<close>
+  by (smt (z3) Collect_cong distinct_mset_filter distinct_set_mset_eq set_mset_filter)
+(*END Move*)
+
+lemma correct_watching''_remove_subsumedI:
+  \<open>correct_watching'' (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+    C' \<in># dom_m x1m \<Longrightarrow>
+    irred x1m C' \<Longrightarrow>
+    correct_watching''
+  (x1l, fmdrop C' x1m, x1n, x1o, x1p, x1q, x1r, add_mset (mset (x1m \<propto> C')) x1s, x1t, x1u,
+   x1v, x1w, x2w)\<close>
+  \<open>correct_watching'' (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+    C' \<in># dom_m x1m \<Longrightarrow>
+    \<not> irred x1m C' \<Longrightarrow>
+    correct_watching''
+  (x1l, fmdrop C' x1m, x1n, x1o, x1p, x1q, x1r, x1s, add_mset (mset (x1m \<propto> C')) x1t, x1u,
+  x1v, x1w, x2w)\<close>
+  apply (auto simp: correct_watching''.simps all_init_lits_of_wl_def
+    image_mset_remove1_mset_if distinct_mset_remove1_All distinct_mset_dom
+    clause_to_update_def filter_image_mset_removeAll)
+  apply (drule bspec)
+  apply assumption
+  apply normalize_goal+
+  apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+  apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
+  apply (drule bspec)
+  apply assumption
+  apply normalize_goal+
+  apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+  apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
+  done
+
+lemma clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(S,T)\<in> state_wl_l None\<close> \<open>correct_watching'' S\<close>
+  shows \<open>clause_remove_duplicate_clause_wl C S \<le>
+      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'' U \<and> get_watched_wl U = get_watched_wl S} (clause_remove_duplicate_clause C' T)\<close>
+  using assms unfolding clause_remove_duplicate_clause_wl_def
+    clause_remove_duplicate_clause_def
+  apply (refine_vcg)
+  subgoal unfolding clause_remove_duplicate_clause_wl_pre_def
+    by fast
+  subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j
+    x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u
+    x2u x1v x2v x1w x2w
+    by (auto simp: state_wl_l_def clause_remove_duplicate_clause_pre_def
+      intro!: correct_watching''_remove_subsumedI)
+  done
+
+
+definition binary_clause_subres_lits_wl_pre :: \<open>_\<close> where
+  \<open>binary_clause_subres_lits_wl_pre C L L' S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
+     binary_clause_subres_lits_pre C L L' S')\<close>
+
+definition binary_clause_subres_wl :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>binary_clause_subres_wl C L L' = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+   ASSERT (binary_clause_subres_lits_wl_pre C L L' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+   RETURN (Propagated L 0 # M, fmdrop C N, D, NE, UE,
+      (if irred N C then add_mset {#L#} else id) NEk, (if irred N C then id else add_mset {#L#}) UEk,
+      (if irred N C then add_mset (mset (N \<propto> C)) else id) NS, (if irred N C then id else add_mset (mset (N \<propto> C))) US,
+       N0, U0, add_mset (-L) Q, W)
+ })\<close>
+
+lemma all_init_lits_of_wl_add_drop_irred:
+  assumes \<open>C' \<in># dom_m (x1m)\<close> \<open>irred x1m C'\<close>
+  shows \<open>all_init_lits_of_wl
+             ([], fmdrop C' x1m, x1n, x1o, {#}, x1q, {#},
+              add_mset (mset (x1m \<propto> C')) x1s, {#}, x1u, {#}, x1w, x2w) =
+  all_init_lits_of_wl
+             ([], x1m, x1n, x1o, {#}, x1q, {#},
+    x1s, {#}, x1u, {#}, x1w, x2w)\<close> (is ?A) and
+    \<open>K' \<in> set (x1m \<propto> C') \<Longrightarrow> set_mset (all_init_lits_of_wl
+     (x1l, x1m, None, x1o, x1p, add_mset {#K'#} x1q, x1r, x1s, x1t, x1u, x1v,
+      add_mset (- K') x1w, x2w)) = set_mset (all_init_lits_of_wl
+     (x1l, x1m, None, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w))\<close> (is \<open>_ \<Longrightarrow> ?B\<close>)
+proof -
+  have A: \<open>init_clss_l x1m = add_mset (x1m \<propto> C', irred x1m C') (init_clss_l (fmdrop C' x1m))\<close>
+    by (smt (z3) assms(1) assms(2) eq_fst_iff fmdrop_eq_update_eq2 init_clss_l_fmdrop_if
+      init_clss_l_mapsto_upd le_boolD le_boolI' sndE)
+  show ?A
+    using assms
+    by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset init_clss_l_fmdrop_if
+        image_mset_remove1_mset_if
+      dest!: multi_member_split)[]
+  show ?B if \<open>K' \<in> set (x1m \<propto> C')\<close>
+    using assms that apply -
+    apply (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
+      in_all_lits_of_mm_uminus_iff)
+   apply (subst A)
+   apply (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset add_mset_eq_add_mset
+     in_clause_in_all_lits_of_m in_set_mset_eq_in)
+   apply (subst A)
+   apply (auto simp add: all_lits_of_mm_add_mset all_lits_of_m_add_mset add_mset_eq_add_mset
+     in_clause_in_all_lits_of_m in_set_mset_eq_in)
+   done
+qed
+
+lemma correct_watching''_fmdropI:
+  assumes \<open>C' \<in># dom_m (x1m)\<close> \<open>irred x1m C'\<close>
+  shows
+     \<open>correct_watching''
+    (x1l, x1m, x1n, x1o, x1p,
+    x1q, x1r, x1s, x1t, x1u,
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+     (Propagated K' 0 # x1l, fmdrop C' x1m, x1n, x1o, x1p,
+    x1q, x1r, add_mset (mset (x1m \<propto> C')) x1s, x1t, x1u,
+    x1v, x1w, x2w)\<close>
+  using assms distinct_mset_dom[of x1m]
+  unfolding correct_watching''.simps
+  apply (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
+      filter_image_mset_removeAll
+    dest: multi_member_split[of C'])
+  apply (drule bspec)
+  apply assumption
+  apply normalize_goal+
+  apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+  apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
+  done
+
+lemma correct_watching''_fmdropI_red:
+  assumes \<open>C' \<in># dom_m (x1m)\<close> \<open>\<not>irred x1m C'\<close>
+  shows
+     \<open>correct_watching''
+    (x1l, x1m, x1n, x1o, x1p,
+    x1q, x1r, x1s, x1t, x1u,
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+     (Propagated K' 0 # x1l, fmdrop C' x1m, x1n, x1o, x1p,
+    x1q, x1r, x1s, add_mset (mset (x1m \<propto> C')) x1t, x1u,
+    x1v, x1w, x2w)\<close>
+    \<open>correct_watching''
+    (x1l, x1m, x1n, x1o, x1p,
+    x1q, x1r, x1s, x1t, x1u,
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+     (x1l, x1m, None, x1o, x1p, x1q, add_mset {#K'#} x1r, x1s, x1t, x1u, x1v,
+    add_mset (- K') x1w, x2w)\<close>
+  subgoal
+    using assms distinct_mset_dom[of x1m]
+    unfolding correct_watching''.simps
+    apply (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
+      filter_image_mset_removeAll
+      dest: multi_member_split[of C'])[]
+    apply (drule bspec)
+    apply assumption
+    apply normalize_goal+
+    apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+    apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
+    done
+  subgoal
+    using assms distinct_mset_dom[of x1m]
+    unfolding correct_watching''.simps
+    by (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
+      filter_image_mset_removeAll all_init_lits_of_wl_def
+      dest: multi_member_split[of C'])[]
+  done
+
+lemma correct_watching''_add_unitI:
+  assumes \<open>K' \<in># mset (x1m \<propto> C')\<close> \<open>C' \<in># dom_m x1m\<close> \<open>irred x1m C'\<close>
+  shows \<open>correct_watching''
+     (x1l, x1m, None, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+    correct_watching''
+     (x1l, x1m, None, x1o, x1p, add_mset {#K'#} x1q, x1r, x1s, x1t, x1u, x1v,
+      add_mset (- K') x1w, x2w)\<close>
+  using assms
+  by (auto simp: correct_watching''.simps clause_to_update_def
+    all_init_lits_of_wl_add_drop_irred)
+
+lemma binary_clause_subres_wl_binary_clause_subres:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(K,K')\<in>Id\<close> \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
+    \<open>correct_watching'' S\<close>
+  shows \<open>binary_clause_subres_wl C K L S \<le>
+      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'' U \<and> get_watched_wl U = get_watched_wl S} (binary_clause_subres C K' L' S')\<close>
+  using assms unfolding binary_clause_subres_wl_def binary_clause_subres_def
+  apply (refine_vcg)
+  subgoal unfolding binary_clause_subres_lits_wl_pre_def
+    by fast
+  subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+    x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
+    x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w
+    apply (auto simp: state_wl_l_def
+      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
+      correct_watching''_fmdropI_red)
+    apply (auto simp: binary_clause_subres_lits_pre_def)[2]
+    apply (auto simp: state_wl_l_def
+      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
+      correct_watching''_fmdropI_red)
+    apply (auto simp: binary_clause_subres_lits_pre_def)[2]
+    apply (auto simp: state_wl_l_def
+      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
+      correct_watching''_fmdropI_red)
+    done
+  done
+
+definition deduplicate_binary_clauses_pre_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>deduplicate_binary_clauses_pre_wl L S \<longleftrightarrow> (\<exists>T. (S, T) \<in> state_wl_l None \<and>
+     deduplicate_binary_clauses_pre L T \<and> correct_watching'' S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+definition deduplicate_binary_clauses_inv_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool \<times> nat \<times> _\<times> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>deduplicate_binary_clauses_inv_wl S L = (\<lambda>(abort, i, mark, T).
+   (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+     deduplicate_binary_clauses_inv L (fst `# mset (watched_by T L)) S'
+       (abort, fst `# mset (drop i (watched_by T L)), mark, T') \<and> correct_watching'' T \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' T \<and> get_watched_wl T = get_watched_wl S))\<close>
+
+definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>deduplicate_binary_clauses_wl L S = do {
+    ASSERT (deduplicate_binary_clauses_pre_wl L S);
+    let CS = (\<lambda>_. None);
+    let l = length (watched_by S L);
+    (_, _, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup>deduplicate_binary_clauses_inv_wl S L\<^esup> (\<lambda>(abort, i, CS, S). \<not>abort \<and> i < l \<and> get_conflict_wl S = None)
+      (\<lambda>(abort, i, CS, S).
+      do {
+         let C = fst (watched_by S L ! i);
+         if C \<notin># dom_m (get_clauses_wl S) then
+           RETURN (abort, i+1, CS, S)
+         else do {
+           L' \<leftarrow> SPEC (\<lambda>L'. mset (get_clauses_wl S \<propto> C) = {#L, L'#});
+           if defined_lit (get_trail_wl S) L' then do {
+             S \<leftarrow> simplify_clause_with_unit_st_wl C S;
+             RETURN (defined_lit (get_trail_wl S) L, i+1, CS, S)
+           }
+           else if CS L' \<noteq> None \<and> (\<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C)then do {
+             S \<leftarrow> clause_remove_duplicate_clause_wl C S;
+             RETURN (abort, i+1, CS, S)
+           } else if CS (-L') \<noteq> None then do {
+             S \<leftarrow> binary_clause_subres_wl C L (-L') S;
+             RETURN (True, i+1, CS, S)
+           } else do {
+             RETURN (abort, i+1, CS (L' := Some (C, irred (get_clauses_wl S) C)), S)
+           }
+        }
+      })
+      (defined_lit (get_trail_wl S) L, 0, CS, S);
+   RETURN S
+}\<close>
+
+
+lemma binary_clause_subres_wl_binary_clause_subres:
+  assumes \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
+    \<open>correct_watching'' S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>L \<in># all_init_lits_of_wl S\<close>
+  shows \<open>deduplicate_binary_clauses_wl L S \<le>
+      \<Down>{(S, T). (S,T)\<in> state_wl_l None} (deduplicate_binary_clauses L' S')\<close>
+proof -
+  let ?watched = \<open>{(i, CS). i = (length (watched_by S L)) \<and> CS = fst `# mset (watched_by S L)}\<close>
+  have [refine0]: \<open>RETURN (length (watched_by S L))
+    \<le> \<Down> ?watched (SPEC (\<lambda>CS. \<forall>C. (C \<in># CS \<longrightarrow> C \<in># dom_m (get_clauses_l S') \<longrightarrow> L' \<in> set (get_clauses_l S' \<propto> C)) \<and> distinct_mset CS))\<close>
+    using assms
+    apply (cases S)
+    apply (auto simp: RETURN_RES_refine_iff correct_watching''.simps)
+    apply (drule bspec)
+     apply assumption
+    apply auto
+    apply (drule bspec)
+     apply assumption
+     apply (auto simp: clause_to_update_def distinct_mset_image_mset distinct_watched_alt_def dest: in_set_takeD
+        dest!: multi_member_split split: if_splits)
+     apply (meson in_set_takeD)
+     apply (smt (z3) filter_mset_add_mset filter_mset_eq_add_msetD fst_conv image_mset_add_mset in_multiset_in_set multi_member_split)
+     done
+   let ?S = \<open>{((abort, i, CS, U), (abort', xs, CS', U')). abort=abort' \<and> fst `# mset (drop i (watched_by S L)) = xs \<and> CS=CS' \<and>
+       (U,U')\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S \<and> correct_watching'' U \<and> literals_are_\<L>\<^sub>i\<^sub>n' U}\<close>
+  have [refine0]: \<open>(length (watched_by S L), xs) \<in> ?watched \<Longrightarrow>
+    ((defined_lit (get_trail_wl S) L, 0, Map.empty, S), defined_lit (get_trail_l S') L', xs,
+    Map.empty, S') \<in> ?S\<close> for xs
+    using assms by auto
+  show ?thesis
+    supply [[goals_limit=1]]
+    using assms unfolding deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_def
+    apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st)
+    subgoal unfolding deduplicate_binary_clauses_pre_wl_def
+      by fast
+    subgoal for xs x x'
+      unfolding deduplicate_binary_clauses_inv_wl_def prod.simps case_prod_beta
+      apply (rule exI[of _ S'])
+      apply (rule exI[of _ \<open>snd (snd (snd x'))\<close>])
+      apply (auto simp: watched_by_alt_def)
+      done
+    subgoal for xs x x'
+      by auto
+    subgoal for xs x x'
+      by (auto intro!: imageI in_set_dropI simp: watched_by_alt_def)
+    subgoal
+      by auto
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal 
+oops
+
+subsubsection \<open>Large clauses\<close>
+
 definition subsume_clauses_match_pre :: \<open>_\<close> where
   \<open>subsume_clauses_match_pre C C' N  \<longleftrightarrow>
   length (N \<propto> C) \<le> length (N \<propto> C') \<and> C \<in># dom_m N \<and> C' \<in># dom_m N \<and> distinct (N \<propto> C) \<and> distinct (N \<propto> C') \<and>
@@ -493,7 +804,7 @@ proof -
     done
 qed
 
-
+(*
 definition forward_subsumption_all_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_wl_pre S = 
   (\<exists>T. (S, T) \<in> state_wl_l None \<and> forward_subsumption_all_pre T)\<close>
@@ -507,7 +818,7 @@ definition forward_subsumption_all_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> n
 definition forward_subsumption_one_wl_inv :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_wl_inv = (\<lambda>C S xs (i, s).
   (\<exists>T. (S, T) \<in> state_wl_l None \<and> forward_subsumption_one_inv C T (mset (drop i xs), s)))\<close>
-
+*)
 definition subsume_or_strengthen_wl_pre :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>subsume_or_strengthen_wl_pre C s S = (\<exists>T. (S, T) \<in> state_wl_l None \<and> subsume_or_strengthen_pre C s T)\<close>
 
@@ -546,7 +857,7 @@ definition subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> 'v subsumption \
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   })\<close>
 
-
+(*
 definition forward_subsumption_one_wl_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_wl_pre = (\<lambda>binary_only k S xs.
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_pre (xs!k) S' \<and> k < length xs \<and>
@@ -573,7 +884,7 @@ definition forward_subsumption_one_wl :: \<open>bool \<Rightarrow> nat \<Rightar
   S \<leftarrow> subsume_or_strengthen_wl C s S;
   RETURN (S, s \<noteq> NONE)
   })\<close>
-
+*)
 definition strengthen_clause_pre :: \<open>_\<close> where
   \<open>strengthen_clause_pre xs C s t S \<longleftrightarrow>
      distinct xs \<and> C \<in># dom_m (get_clauses_wl S) \<close>
@@ -651,6 +962,7 @@ lemma subsume_or_strengthen_wl_subsume_or_strengthen:
     split: subsumption.splits)
   done
 
+(*
 lemma forward_subsumption_one_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -779,7 +1091,7 @@ definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
   RETURN S
   }
 )\<close>
-
+*)
 lemma cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
   \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> dom_m (get_clauses_l T) \<subseteq># dom_m (get_clauses_l S)\<close>
   by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_unitres_true_l.simps cdcl_twl_unitres_l.simps
@@ -789,6 +1101,8 @@ lemma cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
 lemma rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
   \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<Longrightarrow> dom_m (get_clauses_l T) \<subseteq># dom_m (get_clauses_l S)\<close>
   by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_dom_get_clauses_l_mono)
+
+(*
 lemma forward_subsumption_one_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -896,5 +1210,6 @@ S \<leftarrow> simplify_clause_with_unit_st_wl C S;
   S \<leftarrow> subsume_or_strengthen_wl C s S;
   RETURN S
   })\<close>
+*)
 
 end
