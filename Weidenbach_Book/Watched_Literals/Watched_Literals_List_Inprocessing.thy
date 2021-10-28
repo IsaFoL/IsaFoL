@@ -962,7 +962,7 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
      (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
      (irred N C = irred N' C) \<and>
      (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-     (unc \<longrightarrow> N = N' \<and> \<not>b))
+     (unc \<longleftrightarrow> (N = N' \<and> \<not>b)))
   })\<close>
 
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
@@ -1323,7 +1323,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> (aa = N' \<and> \<not>b)) \<Longrightarrow>
+    (unc \<longleftrightarrow> (aa = N' \<and> \<not>b)) \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1343,7 +1343,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> (aa = N' \<and> \<not>b))  \<Longrightarrow>
+    (unc \<longleftrightarrow> (aa = N' \<and> \<not>b))  \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1372,7 +1372,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-      (unc \<longrightarrow> aa = N'\<and> \<not>b) \<Longrightarrow>
+      (unc \<longleftrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
@@ -1394,7 +1394,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longrightarrow> aa = N'\<and> \<not>b) \<Longrightarrow>
+    (unc \<longleftrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
@@ -1513,9 +1513,9 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff)+
-    subgoal 
+    subgoal
       by (rule in_lits_prop)
-    subgoal 
+    subgoal
       by (rule in_lits_prop)
     subgoal by (auto simp: all_init_lits_of_l_def)
     subgoal
@@ -2336,7 +2336,7 @@ definition deduplicate_binary_clauses :: \<open>'v literal \<Rightarrow> 'v twl_
       (\<lambda>(abort, xs, CS, S).
       do {
          C \<leftarrow> SPEC (\<lambda>C. C \<in># xs);
-         if C \<notin># dom_m (get_clauses_l S) then
+         if C \<notin># dom_m (get_clauses_l S) \<or> length (get_clauses_l S \<propto> C) \<noteq> 2 then
            RETURN (abort, xs - {#C#}, CS, S)
          else do {
            L' \<leftarrow> SPEC (\<lambda>L'. mset (get_clauses_l S \<propto> C) = {#L, L'#});
@@ -2458,7 +2458,7 @@ proof -
       \<open>b = (aa, ba)\<close>
       \<open>ba = (ab, bb)\<close> and
       aa: \<open>xa \<in># aa\<close> and
-      xa: \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      xa: \<open>\<not> (xa \<notin># dom_m (get_clauses_l bb) \<or> length (get_clauses_l bb \<propto> xa) \<noteq> 2)\<close> and
       xa_L: \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
       \<open>undefined_lit (get_trail_l bb) xb\<close> and
       ab: \<open>ab xb \<noteq> None \<and> (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa)\<close>
@@ -2498,7 +2498,7 @@ proof -
         \<open>b = (aa, ba)\<close>
         \<open>ba = (ab, bb)\<close> and
       \<open>xa \<in># aa\<close> and
-      \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      \<open>\<not> (xa \<notin># dom_m (get_clauses_l bb) \<or> length (get_clauses_l bb \<propto> xa) \<noteq> 2)\<close> and
       \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
       \<open>undefined_lit (get_trail_l bb) xb\<close> and
       \<open>ab xb \<noteq> None \<and> (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa)\<close> and
@@ -2526,7 +2526,7 @@ proof -
         \<open>b = (aa, ba)\<close>
         \<open>ba = (ab, bb)\<close> and
       \<open>xa \<in># aa\<close> and
-      \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      \<open>\<not> (xa \<notin># dom_m (get_clauses_l bb)\<or> length (get_clauses_l bb \<propto> xa) \<noteq> 2)\<close> and
       \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
       \<open>undefined_lit (get_trail_l bb) xb\<close> and
       \<open>\<not> (ab xb \<noteq> None \<and>
@@ -2566,7 +2566,7 @@ proof -
         \<open>b = (aa, ba)\<close>
         \<open>ba = (ab, bb)\<close> and
       \<open>xa \<in># aa\<close> and
-      \<open>\<not> xa \<notin># dom_m (get_clauses_l bb)\<close> and
+      \<open>\<not> (xa \<notin># dom_m (get_clauses_l bb) \<or> length (get_clauses_l bb \<propto> xa) \<noteq> 2)\<close> and
       \<open>mset (get_clauses_l bb \<propto> xa) = {#L, xb#}\<close> and
       \<open>undefined_lit (get_trail_l bb) xb\<close> and
       \<open>\<not> (ab xb \<noteq> None \<and> (\<not> snd (the (ab xb)) \<longrightarrow> \<not> irred (get_clauses_l bb) xa))\<close> and

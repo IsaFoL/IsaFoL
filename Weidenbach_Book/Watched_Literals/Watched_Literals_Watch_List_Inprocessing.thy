@@ -409,9 +409,21 @@ to indicate which code we use.
 
 subsubsection \<open>Binary clauses\<close>
 
+text \<open>This version does not enforce that binary clauses have not been deleted.\<close>
+fun correct_watching'_leaking_bin :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>correct_watching'_leaking_bin (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+       distinct_watched (W L) \<and>
+       (\<forall>(i, K, b)\<in>#mset (W L).
+             i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+        filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
+  clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
+
+declare correct_watching'_leaking_bin.simps[simp del]
+
 definition clause_remove_duplicate_clause_wl_pre :: \<open>_\<close> where
   \<open>clause_remove_duplicate_clause_wl_pre C S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
-     clause_remove_duplicate_clause_pre C S' \<and> correct_watching'' S)\<close>
+     clause_remove_duplicate_clause_pre C S' \<and> correct_watching'_leaking_bin S)\<close>
 
 definition clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>clause_remove_duplicate_clause_wl C = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
@@ -430,22 +442,49 @@ lemma filter_image_mset_swap: \<open>distinct_mset A \<Longrightarrow> distinct_
   by (smt (z3) Collect_cong distinct_mset_filter distinct_set_mset_eq set_mset_filter)
 (*END Move*)
 
-lemma correct_watching''_remove_subsumedI:
-  \<open>correct_watching'' (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+lemma correctly_marked_as_binary_fmdrop:
+  \<open>i \<in># dom_m x1m \<Longrightarrow> i \<noteq> C' \<Longrightarrow> correctly_marked_as_binary x1m (i, K, b)\<Longrightarrow> correctly_marked_as_binary (fmdrop C' x1m) (i, K, b) \<close>
+  by (auto simp: correctly_marked_as_binary.simps)
+
+lemma correct_watching'_leaking_bin_remove_subsumedI:
+  \<open>correct_watching'_leaking_bin (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
     C' \<in># dom_m x1m \<Longrightarrow>
     irred x1m C' \<Longrightarrow>
-    correct_watching''
+    correct_watching'_leaking_bin
   (x1l, fmdrop C' x1m, x1n, x1o, x1p, x1q, x1r, add_mset (mset (x1m \<propto> C')) x1s, x1t, x1u,
    x1v, x1w, x2w)\<close>
-  \<open>correct_watching'' (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+  \<open>correct_watching'_leaking_bin (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
     C' \<in># dom_m x1m \<Longrightarrow>
     \<not> irred x1m C' \<Longrightarrow>
-    correct_watching''
+    correct_watching'_leaking_bin
   (x1l, fmdrop C' x1m, x1n, x1o, x1p, x1q, x1r, x1s, add_mset (mset (x1m \<propto> C')) x1t, x1u,
   x1v, x1w, x2w)\<close>
-  apply (auto simp: correct_watching''.simps all_init_lits_of_wl_def
-    image_mset_remove1_mset_if distinct_mset_remove1_All distinct_mset_dom
+
+  \<open>correct_watching'_leaking_bin (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+    C' \<in># dom_m x1m \<Longrightarrow>
+    irred x1m C' \<Longrightarrow>
+    correct_watching'_leaking_bin
+  (x1l, fmdrop C' x1m, x1n, add_mset (mset (x1m \<propto> C')) x1o, x1p, x1q, x1r, x1s, x1t, x1u,
+   x1v, x1w, x2w)\<close>
+  \<open>correct_watching'_leaking_bin (x1l, x1m, x1n, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
+    C' \<in># dom_m x1m \<Longrightarrow>
+    \<not> irred x1m C' \<Longrightarrow>
+    correct_watching'_leaking_bin
+  (x1l, fmdrop C' x1m, x1n, x1o, add_mset (mset (x1m \<propto> C')) x1p, x1q, x1r, x1s, x1t, x1u,
+  x1v, x1w, x2w)\<close>
+  apply (auto simp: correct_watching'_leaking_bin.simps all_init_lits_of_wl_def
+    image_mset_remove1_mset_if distinct_mset_remove1_All distinct_mset_dom correctly_marked_as_binary.simps
     clause_to_update_def filter_image_mset_removeAll)
+  apply (drule bspec)
+  apply assumption
+  apply normalize_goal+
+  apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+  apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
+  apply (drule bspec)
+  apply assumption
+  apply normalize_goal+
+  apply (drule arg_cong[where f=\<open>filter_mset (\<lambda>C. C \<noteq> C')\<close>])
+  apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
   apply (drule bspec)
   apply assumption
   apply normalize_goal+
@@ -459,9 +498,9 @@ lemma correct_watching''_remove_subsumedI:
   done
 
 lemma clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause:
-  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(S,T)\<in> state_wl_l None\<close> \<open>correct_watching'' S\<close>
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(S,T)\<in> state_wl_l None\<close> \<open>correct_watching'_leaking_bin S\<close>
   shows \<open>clause_remove_duplicate_clause_wl C S \<le>
-      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'' U \<and> get_watched_wl U = get_watched_wl S} (clause_remove_duplicate_clause C' T)\<close>
+      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'_leaking_bin U \<and> get_watched_wl U = get_watched_wl S} (clause_remove_duplicate_clause C' T)\<close>
   using assms unfolding clause_remove_duplicate_clause_wl_def
     clause_remove_duplicate_clause_def
   apply (refine_vcg)
@@ -471,7 +510,7 @@ lemma clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause:
     x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u
     x2u x1v x2v x1w x2w
     by (auto simp: state_wl_l_def clause_remove_duplicate_clause_pre_def
-      intro!: correct_watching''_remove_subsumedI)
+      intro!: correct_watching'_leaking_bin_remove_subsumedI)
   done
 
 
@@ -522,20 +561,20 @@ proof -
    done
 qed
 
-lemma correct_watching''_fmdropI:
+lemma correct_watching'_leaking_bin_fmdropI:
   assumes \<open>C' \<in># dom_m (x1m)\<close> \<open>irred x1m C'\<close>
   shows
-     \<open>correct_watching''
+     \<open>correct_watching'_leaking_bin
     (x1l, x1m, x1n, x1o, x1p,
     x1q, x1r, x1s, x1t, x1u,
-    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching'_leaking_bin
      (Propagated K' 0 # x1l, fmdrop C' x1m, x1n, x1o, x1p,
     x1q, x1r, add_mset (mset (x1m \<propto> C')) x1s, x1t, x1u,
     x1v, x1w, x2w)\<close>
   using assms distinct_mset_dom[of x1m]
-  unfolding correct_watching''.simps
+  unfolding correct_watching'_leaking_bin.simps
   apply (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
-      filter_image_mset_removeAll
+      filter_image_mset_removeAll correctly_marked_as_binary.simps
     dest: multi_member_split[of C'])
   apply (drule bspec)
   apply assumption
@@ -544,27 +583,27 @@ lemma correct_watching''_fmdropI:
   apply (auto simp add: filter_filter_mset intro: filter_mset_cong)
   done
 
-lemma correct_watching''_fmdropI_red:
+lemma correct_watching'_leaking_bin_fmdropI_red:
   assumes \<open>C' \<in># dom_m (x1m)\<close> \<open>\<not>irred x1m C'\<close>
   shows
-     \<open>correct_watching''
+     \<open>correct_watching'_leaking_bin
     (x1l, x1m, x1n, x1o, x1p,
     x1q, x1r, x1s, x1t, x1u,
-    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching'_leaking_bin
      (Propagated K' 0 # x1l, fmdrop C' x1m, x1n, x1o, x1p,
     x1q, x1r, x1s, add_mset (mset (x1m \<propto> C')) x1t, x1u,
     x1v, x1w, x2w)\<close>
-    \<open>correct_watching''
+    \<open>correct_watching'_leaking_bin
     (x1l, x1m, x1n, x1o, x1p,
     x1q, x1r, x1s, x1t, x1u,
-    x1v, x1w, x2w) \<Longrightarrow> correct_watching''
+    x1v, x1w, x2w) \<Longrightarrow> correct_watching'_leaking_bin
      (x1l, x1m, None, x1o, x1p, x1q, add_mset {#K'#} x1r, x1s, x1t, x1u, x1v,
     add_mset (- K') x1w, x2w)\<close>
   subgoal
     using assms distinct_mset_dom[of x1m]
-    unfolding correct_watching''.simps
+    unfolding correct_watching'_leaking_bin.simps
     apply (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
-      filter_image_mset_removeAll
+      filter_image_mset_removeAll correctly_marked_as_binary.simps
       dest: multi_member_split[of C'])[]
     apply (drule bspec)
     apply assumption
@@ -574,28 +613,28 @@ lemma correct_watching''_fmdropI_red:
     done
   subgoal
     using assms distinct_mset_dom[of x1m]
-    unfolding correct_watching''.simps
+    unfolding correct_watching'_leaking_bin.simps
     by (auto simp: all_init_lits_of_wl_add_drop_irred distinct_mset_remove1_All clause_to_update_def
-      filter_image_mset_removeAll all_init_lits_of_wl_def
+      filter_image_mset_removeAll all_init_lits_of_wl_def correctly_marked_as_binary.simps
       dest: multi_member_split[of C'])[]
   done
 
-lemma correct_watching''_add_unitI:
+lemma correct_watching'_leaking_bin_add_unitI:
   assumes \<open>K' \<in># mset (x1m \<propto> C')\<close> \<open>C' \<in># dom_m x1m\<close> \<open>irred x1m C'\<close>
-  shows \<open>correct_watching''
+  shows \<open>correct_watching'_leaking_bin
      (x1l, x1m, None, x1o, x1p, x1q, x1r, x1s, x1t, x1u, x1v, x1w, x2w) \<Longrightarrow>
-    correct_watching''
+    correct_watching'_leaking_bin
      (x1l, x1m, None, x1o, x1p, add_mset {#K'#} x1q, x1r, x1s, x1t, x1u, x1v,
       add_mset (- K') x1w, x2w)\<close>
   using assms
-  by (auto simp: correct_watching''.simps clause_to_update_def
+  by (auto simp: correct_watching'_leaking_bin.simps clause_to_update_def
     all_init_lits_of_wl_add_drop_irred)
 
 lemma binary_clause_subres_wl_binary_clause_subres:
   assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(K,K')\<in>Id\<close> \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
-    \<open>correct_watching'' S\<close>
+    \<open>correct_watching'_leaking_bin S\<close>
   shows \<open>binary_clause_subres_wl C K L S \<le>
-      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'' U \<and> get_watched_wl U = get_watched_wl S} (binary_clause_subres C K' L' S')\<close>
+      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'_leaking_bin U \<and> get_watched_wl U = get_watched_wl S} (binary_clause_subres C K' L' S')\<close>
   using assms unfolding binary_clause_subres_wl_def binary_clause_subres_def
   apply (refine_vcg)
   subgoal unfolding binary_clause_subres_lits_wl_pre_def
@@ -604,30 +643,41 @@ lemma binary_clause_subres_wl_binary_clause_subres:
     x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
     x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w
     apply (auto simp: state_wl_l_def
-      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
-      correct_watching''_fmdropI_red)
+      intro!: correct_watching'_leaking_bin_fmdropI correct_watching'_leaking_bin_add_unitI
+      correct_watching'_leaking_bin_fmdropI_red)
     apply (auto simp: binary_clause_subres_lits_pre_def)[2]
     apply (auto simp: state_wl_l_def
-      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
-      correct_watching''_fmdropI_red)
+      intro!: correct_watching'_leaking_bin_fmdropI correct_watching'_leaking_bin_add_unitI
+      correct_watching'_leaking_bin_fmdropI_red)
     apply (auto simp: binary_clause_subres_lits_pre_def)[2]
     apply (auto simp: state_wl_l_def
-      intro!: correct_watching''_fmdropI correct_watching''_add_unitI
-      correct_watching''_fmdropI_red)
+      intro!: correct_watching'_leaking_bin_fmdropI correct_watching'_leaking_bin_add_unitI
+      correct_watching'_leaking_bin_fmdropI_red)
     done
   done
 
 definition deduplicate_binary_clauses_pre_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>deduplicate_binary_clauses_pre_wl L S \<longleftrightarrow> (\<exists>T. (S, T) \<in> state_wl_l None \<and>
-     deduplicate_binary_clauses_pre L T \<and> correct_watching'' S \<and>
+     deduplicate_binary_clauses_pre L T \<and> correct_watching'_leaking_bin S \<and>
     literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition deduplicate_binary_clauses_inv_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool \<times> nat \<times> _\<times> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>deduplicate_binary_clauses_inv_wl S L = (\<lambda>(abort, i, mark, T).
    (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
      deduplicate_binary_clauses_inv L (fst `# mset (watched_by T L)) S'
-       (abort, fst `# mset (drop i (watched_by T L)), mark, T') \<and> correct_watching'' T \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' T \<and> get_watched_wl T = get_watched_wl S))\<close>
+       (abort, fst `# mset (drop i (watched_by T L)), mark, T') \<and> correct_watching'_leaking_bin T \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S \<and> get_watched_wl T = get_watched_wl S))\<close>
+
+lemma deduplicate_binary_clauses_inv_wl_literals_are_in:
+  \<open>deduplicate_binary_clauses_inv_wl S L  (abort, i, mark, T) \<Longrightarrow>
+  literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+  supply [[goals_limit=1]]
+  unfolding deduplicate_binary_clauses_inv_wl_def prod.simps
+    deduplicate_binary_clauses_inv_def literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def
+  apply normalize_goal+
+  apply (frule rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+  apply (frule rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
+  by (auto simp: watched_by_alt_def)
 
 definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>deduplicate_binary_clauses_wl L S = do {
@@ -637,8 +687,8 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
     (_, _, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup>deduplicate_binary_clauses_inv_wl S L\<^esup> (\<lambda>(abort, i, CS, S). \<not>abort \<and> i < l \<and> get_conflict_wl S = None)
       (\<lambda>(abort, i, CS, S).
       do {
-         let C = fst (watched_by S L ! i);
-         if C \<notin># dom_m (get_clauses_wl S) then
+         let (C,_, b) = (watched_by S L ! i);
+         if C \<notin># dom_m (get_clauses_wl S) \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
            L' \<leftarrow> SPEC (\<lambda>L'. mset (get_clauses_wl S \<propto> C) = {#L, L'#});
@@ -662,9 +712,372 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
 }\<close>
 
 
+lemma correct_watching'_leaking_bin_propagate_unit_irred:
+  assumes 
+    \<open>irred b j\<close> and
+    \<open>j \<in># dom_m b\<close> and
+    \<open>correct_watching'_leaking_bin (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close>
+    \<open>L \<in> set (b \<propto> j)\<close>
+  shows \<open>correct_watching'_leaking_bin
+    (Propagated L 0 # a, b, None, d, e,
+     add_mset {#L#} f, g, h, i, ja, k,
+     add_mset (-L) l, m)\<close>
+proof -
+  have 1: \<open>L \<in># all_lits_of_mm {#mset (fst x). x \<in># init_clss_l b#}\<close>
+    by (metis assms(1) assms(2) assms(4) in_all_lits_of_mm_init_clss_l_single_out
+      in_clause_in_all_lits_of_m in_set_mset_eq_in)
+  moreover have \<open>- L \<in># all_lits_of_mm {#mset (fst x). x \<in># init_clss_l b#}\<close>
+    using 1 by (simp add: in_all_lits_of_mm_uminus_iff)
+  ultimately have [simp]: \<open>set_mset (all_init_lits_of_wl
+        ([], b, None, d, {#}, add_mset {#L#} f, {#}, h,
+    {#}, ja, {#}, add_mset (-L) l, m)) =
+    set_mset (all_init_lits_of_wl
+    ([], b, None, d, {#}, f, {#}, h, {#}, ja, {#}, l, m))\<close>
+    using assms unfolding all_init_lits_of_wl_def
+    by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
+      all_lits_of_m_add_mset all_lits_of_mm_union)
+  show ?thesis
+    using assms
+    by (auto simp: correct_watching'_leaking_bin.simps clause_to_update_def)
+qed
+
+
+lemma correct_watching'_leaking_bin_propagate_unit_red:
+  assumes 
+    \<open>\<not>irred b j\<close> and
+    \<open>j \<in># dom_m b\<close> and
+    \<open>correct_watching'_leaking_bin (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close>
+    \<open>L \<in> set (b \<propto> j)\<close>
+  shows \<open>correct_watching'_leaking_bin
+    (Propagated L 0 # a, b, None, d, e,
+     f, add_mset {#L#} g, h, i, ja, k,
+     add_mset (-L) l, m)\<close>
+proof -
+  have [simp]: \<open>set_mset (all_init_lits_of_wl
+         ([], b, None, d, {#}, f, {#}, h, {#}, ja, {#},
+        add_mset (- L) l, m)) =
+    set_mset (all_init_lits_of_wl
+     ([], b, None, d, {#}, f, {#}, h, {#}, ja, {#},
+        l, m))\<close>
+    using assms unfolding all_init_lits_of_wl_def
+    by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
+      all_lits_of_m_add_mset all_lits_of_mm_union)
+  show ?thesis
+    using assms
+    by (auto simp: correct_watching'_leaking_bin.simps clause_to_update_def)
+qed
+
+lemma correct_watching'_leaking_bin_empty_conflict:
+  \<open>correct_watching'_leaking_bin (a, b, c, d, e, f, g, h, i, ja, k, l, m) \<Longrightarrow>
+  correct_watching'_leaking_bin (a, b, Some {#}, d, e, f, g, h, i, add_mset {#} ja, k, {#}, m)\<close>
+  \<open>correct_watching'_leaking_bin (a, b, c, d, e, f, g, h, i, ja, k, l, m) \<Longrightarrow>
+  correct_watching'_leaking_bin (a, b, Some {#}, d, e, f, g, h, i, ja, add_mset {#} k, {#}, m)\<close>
+  by (auto simp: correct_watching'_leaking_bin.simps all_init_lits_of_wl_def
+    all_lits_of_mm_add_mset all_lits_of_m_add_mset clause_to_update_def)
+
+text \<open>For binary clauses, we can prove a stronger version of
+  @{thm simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st}, because watched literals do
+  not have to be changed.\<close>
+lemma simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st_correct_watching:
+  assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and ij: \<open>(i,j) \<in> nat_rel\<close> and
+    point: \<open>correct_watching'_leaking_bin S\<close> and
+    \<open>i \<in># dom_m (get_clauses_wl S)\<close> and
+    Si: \<open>length (get_clauses_wl S \<propto> i) = 2\<close>
+  shows
+  \<open>simplify_clause_with_unit_st_wl i S \<le> \<Down> {(S',T). (S',T) \<in> state_wl_l None \<and>
+    correct_watching'_leaking_bin S' \<and>
+    get_watched_wl S' = get_watched_wl S}
+  (simplify_clause_with_unit_st j T)\<close>
+proof -
+  have Id: \<open>A = B \<Longrightarrow> A \<le> \<Down>Id B\<close> for A B
+    by auto
+  have ij: \<open>i = j\<close>
+    using assms by auto
+  have [simp]:
+    \<open>irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow> add_mset (mset (b \<propto> j))
+    ({#mset (fst x). x \<in># remove1_mset (the (fmlookup b j)) (init_clss_l b)#} + d + f + h) =
+    ({#mset (fst x). x \<in># (init_clss_l b)#} + d + f + h)\<close> for C D d b f h j
+    by (auto simp: image_mset_remove1_mset_if ran_m_def
+      dest!: multi_member_split)
+  have KK[simp]: \<open>irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow>  C \<subseteq># mset (b \<propto> j) \<Longrightarrow>
+    set_mset (all_lits_of_mm (add_mset (mset (b \<propto> j))
+    (add_mset C
+    (mset `# remove1_mset (b \<propto> j) (init_clss_lf b) + d + f + h)))) =
+    set_mset (all_lits_of_mm (mset `# (init_clss_lf b) + d + f + h))\<close>
+    for b j C d f h
+    using all_lits_of_m_mono[of C \<open>mset (b \<propto> j)\<close>]
+    by (auto simp: image_mset_remove1_mset_if ran_m_def conj_disj_distribR Collect_disj_eq
+      image_Un Collect_conv_if all_lits_of_mm_add_mset
+      simp flip: insert_compr
+      dest!: multi_member_split[of j])
+
+  have H: \<open>fmdrop j x2 = fmdrop j b \<Longrightarrow>
+    mset (x2 \<propto> j) \<subseteq># mset (b \<propto> j) \<Longrightarrow>
+    irred x2 j \<Longrightarrow>
+    irred b j \<Longrightarrow>
+    j \<in># dom_m b \<Longrightarrow>
+    j \<in># dom_m x2 \<Longrightarrow>
+    set_mset (all_lits_of_mm (add_mset (mset (b \<propto> j)) ({#mset (fst x). x \<in># init_clss_l x2#} +
+    d + f + h))) =
+    set_mset (all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h))\<close>
+    for j x2 b d f h
+    using distinct_mset_dom[of x2] distinct_mset_dom[of b]
+    apply (subgoal_tac \<open>{#mset (fst x). x \<in># filter_mset snd {#the (fmlookup b x). x \<in># remove1_mset j (dom_m b)#}#} =
+      {#mset (fst x). x \<in># filter_mset snd {#the (fmlookup x2 x). x \<in># remove1_mset j (dom_m x2)#} #}\<close>)
+
+    apply (auto 5 3 simp: ran_m_def all_lits_of_mm_add_mset
+      dest!: multi_member_split[of _ \<open>dom_m _\<close>]
+      dest: all_lits_of_m_mono
+      intro!: image_mset_cong2 filter_mset_cong2)
+    apply (metis fmdrop_eq_update_eq fmupd_lookup union_single_eq_member)
+    by (metis add_mset_remove_trivial dom_m_fmdrop)
+  have [simp]: \<open>mset a \<subseteq># mset b \<Longrightarrow> length a= 1 \<Longrightarrow> a ! 0 \<in> set b\<close> for a b
+     by (cases a, auto)
+   have K1: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     irred b j \<Longrightarrow>
+     j \<in># dom_m b \<Longrightarrow>
+     L \<in># all_lits_of_m (mset (b \<propto> j)) \<Longrightarrow> distinct_watched (k L)\<close> for b d f h k j L
+     by (auto simp: ran_m_def all_lits_of_mm_add_mset dest!: multi_member_split)
+   have K2: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     irred b j \<Longrightarrow>
+     j \<in># dom_m b \<Longrightarrow>
+     mset C \<subseteq># mset (b \<propto> j) \<Longrightarrow>
+     length C = Suc 0 \<Longrightarrow>
+     L \<in># all_lits_of_m ({#C!0#}) \<Longrightarrow> distinct_watched (k L)\<close> for b d f h k j L C
+     using all_lits_of_m_mono[of \<open>mset C\<close> \<open>mset (b \<propto> j)\<close>]
+      all_lits_of_m_mono[of \<open>{#C!0#}\<close> \<open>mset C\<close>]
+     by (auto simp: ran_m_def all_lits_of_mm_add_mset dest!: multi_member_split[of _ \<open>dom_m _\<close>])
+   have K3: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
+     distinct_watched (k L) \<Longrightarrow>
+     L \<in># all_lits_of_mm ({#mset (fst x). x \<in># remove1_mset (the (fmlookup b j)) (init_clss_l b)#} + d + f + h) \<Longrightarrow>
+     distinct_watched (k L)\<close> for b d f h k j L C
+     by (cases \<open>j \<in># dom_m b\<close>; cases \<open>irred b j\<close>)
+      (auto  dest!: multi_member_split[of _ \<open>dom_m _\<close>] simp: ran_m_def
+         all_lits_of_mm_union all_lits_of_mm_add_mset image_mset_remove1_mset_if
+       split: if_splits)
+  have K4: \<open>
+    irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow>
+    all_lits_of_mm
+    (add_mset (mset (b \<propto> j))
+    ({#mset (fst x). x \<in># init_clss_l (fmdrop j b)#} + d + f + h)) =
+    all_lits_of_mm
+    ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h)\<close>
+    \<open>\<not>irred b j \<Longrightarrow> j \<in># dom_m b \<Longrightarrow>
+    all_lits_of_mm
+    (add_mset (mset (b \<propto> j))
+    ({#mset (fst x). x \<in># learned_clss_l (fmdrop j b)#} + d + f + h)) =
+    all_lits_of_mm
+    ({#mset (fst x). x \<in># learned_clss_l b#} + d + f + h)\<close>
+    for d f h j b
+    using distinct_mset_dom[of b]
+    apply (auto simp add: init_clss_l_fmdrop learned_clss_l_fmdrop_if)
+    by (smt (z3) fmupd_same image_mset_add_mset learned_clss_l_mapsto_upd prod.collapse
+        union_mset_add_mset_left)
+
+  text \<open>This case is most likely impossible. It comes from the fact that we do not attempt to prove
+    that the unchanged exactly captures when things are unchanged (missing backimplication).\<close>
+  have correct_watching_after_same_length: \<open>\<not> irred b j \<longrightarrow>
+    correct_watching'_leaking_bin
+    (a, x2a, None, d, e, f, g, h, add_mset (mset (b \<propto> j)) i, ja, k,
+    l, m)\<close> (is ?A)
+     \<open>irred b j \<longrightarrow>
+    correct_watching'_leaking_bin
+    (a, x2a, None, d, e, f, g, add_mset (mset (b \<propto> j)) h, i, ja, k,
+    l, m)\<close> (is ?B)
+    if
+      st: \<open>aa = a \<and>
+      ba = b \<and>
+      da = d \<and>
+      ea = e \<and>
+      fa = f \<and> ga = g \<and> ha = h \<and> ia = i \<and> jaa = ja \<and> ka = k \<and> ma = l\<close> and
+      corr: \<open>correct_watching'_leaking_bin (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close> and
+      S: \<open>S = (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close> and
+      \<open>T = (a, b, None, d, e, f, g, h, i, ja, k, {#}, l)\<close> and
+      \<open>simplify_clause_with_unit_st_pre j
+      (a, b, None, d, e, f, g, h, i, ja, k, {#}, l)\<close> and
+      \<open>ca = None \<and> la = {#}\<close> and
+      \<open>simplify_clause_with_unit_st_wl_pre j
+      (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close> and
+      \<open>j \<in># dom_m b \<and>
+      count_decided a = 0 \<and> c = None \<and> no_dup a \<and> 0 < j\<close> and
+      \<open>x2c = x2a\<close> and
+      \<open>x2 = (False, x2a)\<close> and
+      \<open>x' = (False, False, x2a)\<close> and
+      \<open>x2b = (False, x2a)\<close> and
+      \<open>x = (False, False, x2a)\<close> and
+      b: \<open>fmdrop j x2a = fmdrop j b \<and>
+      irred x2a j = irred b j \<and>
+      mset (x2a \<propto> j) \<subseteq># mset (b \<propto> j) \<and> j \<in># dom_m x2a\<close> and
+      \<open>\<not> x1b\<close> and
+      \<open>\<not> x1\<close> and
+      \<open>\<not> x1c\<close> and
+      \<open>\<not> x1a\<close> and
+      le: \<open>length (x2a \<propto> j) \<noteq> Suc 0\<close>  \<open>x2a \<propto> j \<noteq> []\<close> and
+      eq: \<open>set_mset
+      (all_init_lits_of_l
+      (a, x2a, None, d, e, f, g,
+      (if irred b j then add_mset (mset (ba \<propto> j)) else id) h,
+      (if irred b j then id else add_mset (mset (ba \<propto> j))) i, ja, k,
+      {#}, l)) =
+      set_mset
+      (all_init_lits_of_l
+      (a, b, None, d, e, f, g, h, i, ja, k, {#}, l))\<close>
+      \<open>set_mset
+      (all_learned_lits_of_l
+      (a, x2a, None, d, e, f, g,
+      (if irred b j then add_mset (mset (ba \<propto> j)) else id) h,
+      (if irred b j then id else add_mset (mset (ba \<propto> j))) i, ja, k,
+      {#}, l)) =
+      set_mset
+      (all_learned_lits_of_l
+      (a, b, None, d, e, f, g, h, i, ja, k, {#}, l))\<close>
+      \<open>set_mset
+      (all_learned_lits_of_wl
+      ([], x2a, None, d, e, f, g,
+      (if irred b j then add_mset (mset (b \<propto> j)) else id) h,
+      (if irred b j then id else add_mset (mset (b \<propto> j))) i, ja, k,
+      l, m)) =
+      set_mset
+      (all_learned_lits_of_wl
+      ([], b, None, d, e, f, g, h, i, ja, k, l, m))\<close>
+      \<open>set_mset
+      (all_init_lits_of_wl
+      ([], x2a, None, d, {#}, f, {#},
+      (if irred b j then add_mset (mset (b \<propto> j)) else id) h, {#}, ja,
+      {#}, l, m)) =
+      set_mset
+      (all_init_lits_of_wl
+      ([], b, None, d, {#}, f, {#}, h, {#}, ja, {#}, l, m))\<close>
+    for a b c d e f g h i ja k l m aa ba ca da ea fa ga ha ia jaa ka la ma
+      x x' x1 x2 x1a x2a x1b x2b x1c x2c
+  proof -
+    note [[goals_limit=1]]
+    have [simp]: \<open>aa \<in># dom_m x2a \<Longrightarrow> length (x2a \<propto> aa) = length (b \<propto> aa)\<close> for aa
+      apply (cases \<open>aa = j\<close>)
+      subgoal
+        using le b Si ij size_mset_mono[of \<open>mset (x2a \<propto> aa)\<close> \<open>mset (b \<propto> aa)\<close>]
+        by (cases \<open>x2a \<propto> aa\<close>; cases \<open>tl (x2a \<propto> aa)\<close>)
+         (clarsimp simp add: length_list_2 S subseteq_mset_size_eql_iff add_mset_eq_add_mset)+
+      subgoal
+        using b apply -
+        apply normalize_goal+
+        by (drule arg_cong [of _ _ \<open>\<lambda>a. a \<propto> aa\<close>]) auto
+      done
+    have [simp]: \<open>aa \<in># dom_m x2a \<Longrightarrow> set (x2a \<propto> aa) = set (b \<propto> aa)\<close> for aa
+      apply (cases \<open>aa = j\<close>)
+      subgoal
+        using le b Si ij size_mset_mono[of \<open>mset (x2a \<propto> aa)\<close> \<open>mset (b \<propto> aa)\<close>]
+        apply (simp add: S)
+        apply (clarsimp_all simp add: length_list_2 S)
+        by (cases \<open>x2a \<propto> aa\<close>; cases \<open>tl (x2a \<propto> aa)\<close>)
+         (auto simp add: length_list_2 S subseteq_mset_size_eql_iff add_mset_eq_add_mset)
+      subgoal
+        using b apply -
+        apply normalize_goal+
+        by (drule arg_cong [of _ _ \<open>\<lambda>a. a \<propto> aa\<close>]) auto
+      done
+    have [simp]: \<open>aa \<in># dom_m x2a \<Longrightarrow> set (watched_l (x2a \<propto> aa)) = set (watched_l (b \<propto> aa))\<close> for aa
+      apply (cases \<open>aa = j\<close>)
+      subgoal
+        using le b Si ij size_mset_mono[of \<open>mset (x2a \<propto> aa)\<close> \<open>mset (b \<propto> aa)\<close>]
+        by (simp add: S)
+      subgoal
+        using b apply -
+        apply normalize_goal+
+        by (drule arg_cong [of _ _ \<open>\<lambda>a. a \<propto> aa\<close>]) auto
+      done
+    have [simp]: \<open>dom_m x2a = dom_m b\<close>
+      using b by (metis dom_m_fmdrop insert_DiffM that(8))
+    show ?A ?B
+      using corr eq
+      by (auto simp: st correct_watching'_leaking_bin.simps clause_to_update_def correctly_marked_as_binary.simps
+        intro!: filter_mset_cong)
+  qed
+  show ?thesis
+    supply [[goals_limit=1]]
+    using ST point
+    apply (cases S; hypsubst)
+    apply (cases T; hypsubst)
+    unfolding simplify_clause_with_unit_st_wl_def simplify_clause_with_unit_st_def ij
+      state_wl_l_def prod.simps Let_def[of \<open>(_,_)\<close>]
+    apply refine_rcg
+    subgoal for a b c d e f g h i ja k l m aa ba ca da ea fa ga ha ia jaa ka la ma
+      using ST
+      unfolding simplify_clause_with_unit_st_wl_pre_def
+      by (rule_tac x = \<open>(aa, ba, ca, da, ea, fa, ga, ha, ia, jaa, ka, la, ma)\<close> in exI)
+       simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+      apply (rule Id)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal
+        by (auto simp add: all_learned_lits_of_wl_def all_init_lits_of_l_def
+          all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+          all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
+        init_clss_l_fmdrop_irrelev literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def
+        no_lost_clause_in_WL_def
+        intro: correct_watching'_leaking_bin_remove_subsumedI
+        dest: in_diffD)
+      subgoal by auto
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
+      subgoal by auto
+      subgoal by (auto simp: all_lits_st_alt_def all_learned_lits_of_wl_def
+        all_init_lits_of_l_def all_init_lits_of_wl_def get_init_clss_l_def)
+      subgoal for a b c d e f g h i ja k l m aa ba ca da ea fa ga ha ia jaa ka la ma
+        x x' x1 x2 x1a x2a x1b x2b x1c x2c
+        apply (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
+          init_clss_l_fmdrop_irrelev add_mset_commute
+          no_lost_clause_in_WL_def
+        intro: correct_watching'_leaking_bin_remove_subsumedI correct_watching'_leaking_bin_propagate_unit_irred[where j=j]
+          correct_watching'_leaking_bin_propagate_unit_red[where j=j]
+        dest: in_diffD
+        intro:)
+        apply (rule correct_watching'_leaking_bin_remove_subsumedI)
+        apply (rule correct_watching'_leaking_bin_propagate_unit_irred[where j=j])
+        apply auto
+        apply (rule correct_watching'_leaking_bin_remove_subsumedI)
+        apply (rule correct_watching'_leaking_bin_propagate_unit_red[where j=j])
+        apply auto
+        done
+      subgoal by auto
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
+      subgoal by (auto simp: all_init_lits_of_wl_def init_clss_l_fmdrop
+        init_clss_l_fmdrop_irrelev all_lits_of_mm_add_mset
+        intro: correct_watching'_leaking_bin_remove_subsumedI correct_watching'_leaking_bin_empty_conflict
+        dest: in_diffD)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def)
+      subgoal by (auto simp: all_learned_lits_of_wl_def all_init_lits_of_l_def
+        all_learned_lits_of_l_def get_init_clss_l_def all_init_lits_of_wl_def)
+      subgoal for a b c d e f g h i ja k l m aa ba ca da ea fa ga ha ia jaa ka la ma
+    x x' x1 x2 x1a x2a x1b x2b x1c x2c
+        by (simp)
+          (intro conjI; rule correct_watching_after_same_length; assumption)+
+      done
+qed
+
 lemma binary_clause_subres_wl_binary_clause_subres:
   assumes \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
-    \<open>correct_watching'' S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>L \<in># all_init_lits_of_wl S\<close>
+    \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>L \<in># all_init_lits_of_wl S\<close>
   shows \<open>deduplicate_binary_clauses_wl L S \<le>
       \<Down>{(S, T). (S,T)\<in> state_wl_l None} (deduplicate_binary_clauses L' S')\<close>
 proof -
@@ -673,7 +1086,7 @@ proof -
     \<le> \<Down> ?watched (SPEC (\<lambda>CS. \<forall>C. (C \<in># CS \<longrightarrow> C \<in># dom_m (get_clauses_l S') \<longrightarrow> L' \<in> set (get_clauses_l S' \<propto> C)) \<and> distinct_mset CS))\<close>
     using assms
     apply (cases S)
-    apply (auto simp: RETURN_RES_refine_iff correct_watching''.simps)
+    apply (auto simp: RETURN_RES_refine_iff correct_watching'_leaking_bin.simps)
     apply (drule bspec)
      apply assumption
     apply auto
@@ -685,34 +1098,84 @@ proof -
      apply (smt (z3) filter_mset_add_mset filter_mset_eq_add_msetD fst_conv image_mset_add_mset in_multiset_in_set multi_member_split)
      done
    let ?S = \<open>{((abort, i, CS, U), (abort', xs, CS', U')). abort=abort' \<and> fst `# mset (drop i (watched_by S L)) = xs \<and> CS=CS' \<and>
-       (U,U')\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S \<and> correct_watching'' U \<and> literals_are_\<L>\<^sub>i\<^sub>n' U}\<close>
+     (U,U')\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S \<and> correct_watching'_leaking_bin U \<and>
+     all_init_lits_of_wl U = all_init_lits_of_wl S}\<close>
   have [refine0]: \<open>(length (watched_by S L), xs) \<in> ?watched \<Longrightarrow>
     ((defined_lit (get_trail_wl S) L, 0, Map.empty, S), defined_lit (get_trail_l S') L', xs,
     Map.empty, S') \<in> ?S\<close> for xs
     using assms by auto
+  have watched_by: \<open>RETURN (watched_by x2e L ! x1d)
+    \<le> \<Down> {((C, L, b), C'). C=C' \<and> (C \<in># dom_m (get_clauses_wl x2e) \<longrightarrow> b = (length (get_clauses_wl x2e \<propto> C) = 2))}
+    (SPEC (\<lambda>C. C \<in># x1a))\<close>
+    if 
+      \<open>(L, L') \<in> Id\<close> and
+      \<open>(S, S') \<in> state_wl_l None\<close> and
+      \<open>correct_watching'_leaking_bin S\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> and
+      \<open>L \<in># all_init_lits_of_wl S\<close> and
+      \<open>deduplicate_binary_clauses_pre L' S'\<close> and
+      \<open>deduplicate_binary_clauses_pre_wl L S\<close> and
+      \<open>(length (watched_by S L), xs) \<in> ?watched\<close> and
+      xx': \<open>(x, x') \<in> ?S\<close> and
+      abort: \<open>case x of
+      (abort, i, CS, Sa) \<Rightarrow>
+      \<not> abort \<and> i < length (watched_by S L) \<and> get_conflict_wl Sa = None\<close> and
+      \<open>case x' of
+      (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      inv: \<open>deduplicate_binary_clauses_inv_wl S L x\<close> and
+      \<open>deduplicate_binary_clauses_inv L' xs S' x'\<close> and
+      st: \<open>x2a = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1c, x2c)\<close>
+    for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+  proof -
+    have \<open>x1d < length (get_watched_wl S L)\<close>
+      using xx' abort by (auto simp: watched_by_alt_def st)
+    then have \<open>watched_by x2e L ! x1d \<in> set (get_watched_wl S L)\<close>
+      \<open>get_watched_wl x2e = get_watched_wl S\<close>
+      \<open>correct_watching'_leaking_bin x2e\<close>
+      \<open>all_init_lits_of_wl x2e = all_init_lits_of_wl S\<close>
+      \<open>x1a = fst `# mset (drop x1d (watched_by S L))\<close>
+      \<open>get_watched_wl S L ! x1d \<in> set (drop x1d (get_watched_wl S L))\<close>
+      using xx' abort by (auto simp: watched_by_alt_def st intro!: in_set_dropI)
+    then show ?thesis
+      using assms(5) unfolding st
+      by (cases x2e)
+       (auto simp: RETURN_RES_refine_iff watched_by_alt_def eq_commute[of \<open>(_, _, _)\<close>]
+        correct_watching'_leaking_bin.simps correctly_marked_as_binary.simps 
+        intro!: bexI[of _ \<open>watched_by x2e L ! x1d\<close>]
+        dest!: multi_member_split[of L])
+  qed
   show ?thesis
     supply [[goals_limit=1]]
     using assms unfolding deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_def
-    apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st)
+    apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st_correct_watching)
     subgoal unfolding deduplicate_binary_clauses_pre_wl_def
       by fast
     subgoal for xs x x'
       unfolding deduplicate_binary_clauses_inv_wl_def prod.simps case_prod_beta
       apply (rule exI[of _ S'])
       apply (rule exI[of _ \<open>snd (snd (snd x'))\<close>])
-      apply (auto simp: watched_by_alt_def)
-      done
+      by (auto simp: watched_by_alt_def)
     subgoal for xs x x'
       by auto
-    subgoal for xs x x'
+    apply (rule watched_by; assumption)
+    subgoal for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       by (auto intro!: imageI in_set_dropI simp: watched_by_alt_def)
-    subgoal
-      by auto
     subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal 
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal apply (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+      dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
+    subgoal apply auto
 oops
 
 subsubsection \<open>Large clauses\<close>
