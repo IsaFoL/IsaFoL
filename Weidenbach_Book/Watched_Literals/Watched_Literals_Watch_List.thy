@@ -194,6 +194,38 @@ text \<open>
   definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Sum><^sub># Ls\<close>.
 
   In this definition \<^term>\<open>K\<close> is the blocking literal.
+
+
+  We have several different version of the watch-list invariants, either because we need a different
+  version or to simplify proofs.
+
+  \<^enum> CDCL: This is the invariant that is the most important. 
+     \<^item> binary clauses cannot be deleted
+     \<^item> blocking literals are in the clause
+     \<^item> the watched literals belong to the clause and are at the beginning.
+     \<^item> the set of all literals is the set of all literals (irred+red)
+
+  \<^enum> Inprocessing, deduplicating binary clauses
+     \<^item> binary clauses can be deleted
+     \<^item> blocking literals still are in the clause
+     \<^item> the watched literals belong to the clause and are at the beginning.
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+  \<^enum> Inprocessing, removing true/false literals
+     \<^item> all clauses appear in the watch list
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+(We also have the version for all literals)
+
+
+  \<^enum> Reduction
+     \<^item> all clauses appear in the watch list
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+   We use the set of irredundant literals because it is easier to handle removing literals --
+   deleting a clause does not change the set of all irredundant literals. We then rely on the
+   invariants to go back to the set of all literals.
+
 \<close>
 fun correctly_marked_as_binary where
   \<open>correctly_marked_as_binary N (i, K, b) \<longleftrightarrow> (b \<longleftrightarrow> (length (N \<propto> i) = 2))\<close>
