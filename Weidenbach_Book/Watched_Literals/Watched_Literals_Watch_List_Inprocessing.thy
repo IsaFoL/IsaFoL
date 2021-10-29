@@ -1075,11 +1075,26 @@ proof -
       done
 qed
 
+(*TODO Move*)
+lemma WHILEIT_refine_with_inv:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF: 
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>{(a,b). (a,b) \<in> R \<and> I a \<and> I' b} (WHILEIT I' b' f' x')" 
+  apply (rule WHILEIT_refine_with_post)
+  subgoal using R0 IREF by blast
+  subgoal using IREF by blast
+  subgoal using COND_REF by blast
+  subgoal using STEP_REF IREF by (smt (verit, best) in_pair_collect_simp inres_SPEC pw_ref_iff)
+  done
+
 lemma deduplicate_binary_clauses_wl_deduplicate_binary_clauses:
   assumes \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
     \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>deduplicate_binary_clauses_wl L S \<le>
-      \<Down>{(S, T). (S,T)\<in> state_wl_l None \<and> correct_watching'_leaking_bin S} (deduplicate_binary_clauses L' S')\<close>
+      \<Down>{(S, T). (S,T)\<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (deduplicate_binary_clauses L' S')\<close>
 proof -
   let ?watched = \<open>{(i, CS). i = (length (watched_by S L)) \<and> CS = fst `# mset (watched_by S L) \<and>
        (\<forall>C. (C \<in># CS \<longrightarrow> C \<in># dom_m (get_clauses_l S') \<longrightarrow> L' \<in> set (get_clauses_l S' \<propto> C)))}\<close>
@@ -1201,12 +1216,44 @@ proof -
       using watch xs bin SS' xx' LL' watcher
       by (auto simp: st length_list_2 watched_by_alt_def)
   qed
+
+  have post_inv: \<open>(x2e, x2b)
+     \<in> {(S, T).
+        (S, T) \<in> state_wl_l None \<and>
+        correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+    if 
+      \<open>(L, L') \<in> Id\<close> and
+      SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+      \<open>correct_watching'_leaking_bin S\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> and
+      \<open>deduplicate_binary_clauses_pre L' S'\<close> and
+      \<open>deduplicate_binary_clauses_pre_wl L S\<close> and
+      \<open>(length (watched_by S L), xs) \<in> ?watched\<close> and
+      xx': \<open>(x, x') \<in>{(a,b). (a,b) \<in> ?S \<and>
+        deduplicate_binary_clauses_inv_wl S L a \<and>
+       deduplicate_binary_clauses_inv L' xs S' b}\<close> and
+      st: \<open>x2a = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1c, x2c)\<close>
+      for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+  proof -
+    show ?thesis
+      using xx' assms(4) SS' apply - unfolding mem_Collect_eq prod.simps st deduplicate_binary_clauses_inv_def
+      apply normalize_goal+
+      using rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l[of S' x2b]
+        rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[of S' x2b]
+      by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_def st blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
+  qed
+    find_theorems "WHILEIT _ _ _ _ \<le>\<Down>  _ _"
   show ?thesis
     supply [[goals_limit=1]]
     using assms unfolding deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_def
     apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st_correct_watching
       clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause
-      binary_clause_subres_wl_binary_clause_subres)
+      binary_clause_subres_wl_binary_clause_subres WHILEIT_refine_with_inv)
     subgoal unfolding deduplicate_binary_clauses_pre_wl_def
       by fast
     subgoal for xs x x'
@@ -1245,12 +1292,11 @@ proof -
       dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
     subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
       dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
-    subgoal by auto
+    subgoal by (rule post_inv)
     done
 qed
 
-find_theorems deduplicate_binary_clauses
-term mark_duplicated_binary_clauses_as_garbage
+
 definition mark_duplicated_binary_clauses_as_garbage_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl = (\<lambda>S. (\<exists>T. (S,T) \<in> state_wl_l None  \<and>
      correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S))\<close>
@@ -1279,6 +1325,47 @@ definition mark_duplicated_binary_clauses_as_garbage_wl :: \<open>_ \<Rightarrow
      (S, Ls);
     RETURN S
   }\<close>
+
+
+lemma
+  assumes  \<open>(S, S') \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
+  shows \<open>mark_duplicated_binary_clauses_as_garbage_wl S \<le>
+    \<Down> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S}
+    (mark_duplicated_binary_clauses_as_garbage S')\<close>
+proof -
+  let ?R = \<open>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>f Id\<close>
+  have loop: \<open>(Ls,Ls')\<in>Id \<Longrightarrow> ((S, Ls), (S', Ls')) \<in> ?R\<close> for Ls Ls'
+    using assms by auto
+  show ?thesis
+    unfolding mark_duplicated_binary_clauses_as_garbage_wl_def mark_duplicated_binary_clauses_as_garbage_def
+    apply (refine_vcg loop deduplicate_binary_clauses_wl_deduplicate_binary_clauses)
+    subgoal using assms unfolding mark_duplicated_binary_clauses_as_garbage_pre_wl_def apply -
+      by (rule exI[of _ S']) auto
+    subgoal using assms by auto
+    subgoal for Ls Lsa x x'
+      unfolding mark_duplicated_binary_clauses_as_garbage_wl_inv_def
+      apply (cases x, cases x', hypsubst, unfold prod.simps)
+      apply (rule exI[of _ S'], rule exI[of _ \<open>fst x'\<close>])
+      apply (use assms in simp)
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
 
 subsubsection \<open>Large clauses\<close>
 
