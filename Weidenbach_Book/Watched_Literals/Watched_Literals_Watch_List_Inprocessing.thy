@@ -634,7 +634,7 @@ lemma binary_clause_subres_wl_binary_clause_subres:
   assumes \<open>(C,C')\<in>nat_rel\<close> \<open>(K,K')\<in>Id\<close> \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
     \<open>correct_watching'_leaking_bin S\<close>
   shows \<open>binary_clause_subres_wl C K L S \<le>
-      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'_leaking_bin U \<and> get_watched_wl U = get_watched_wl S} (binary_clause_subres C K' L' S')\<close>
+      \<Down>{(U, V). (U,V)\<in> state_wl_l None \<and> correct_watching'_leaking_bin U \<and> get_watched_wl U = get_watched_wl S} (binary_clause_subres C' K' L' S')\<close>
   using assms unfolding binary_clause_subres_wl_def binary_clause_subres_def
   apply (refine_vcg)
   subgoal unfolding binary_clause_subres_lits_wl_pre_def
@@ -687,11 +687,11 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
     (_, _, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup>deduplicate_binary_clauses_inv_wl S L\<^esup> (\<lambda>(abort, i, CS, S). \<not>abort \<and> i < l \<and> get_conflict_wl S = None)
       (\<lambda>(abort, i, CS, S).
       do {
-         let (C,_, b) = (watched_by S L ! i);
+         let (C,L', b) = (watched_by S L ! i);
          if C \<notin># dom_m (get_clauses_wl S) \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
-           L' \<leftarrow> SPEC (\<lambda>L'. mset (get_clauses_wl S \<propto> C) = {#L, L'#});
+           let L' = L';
            if defined_lit (get_trail_wl S) L' then do {
              S \<leftarrow> simplify_clause_with_unit_st_wl C S;
              RETURN (defined_lit (get_trail_wl S) L, i+1, CS, S)
@@ -1075,18 +1075,20 @@ proof -
       done
 qed
 
-lemma binary_clause_subres_wl_binary_clause_subres:
+lemma deduplicate_binary_clauses_wl_deduplicate_binary_clauses:
   assumes \<open>(L,L')\<in>Id\<close> \<open>(S,S')\<in> state_wl_l None\<close>
-    \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>L \<in># all_init_lits_of_wl S\<close>
+    \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>deduplicate_binary_clauses_wl L S \<le>
-      \<Down>{(S, T). (S,T)\<in> state_wl_l None} (deduplicate_binary_clauses L' S')\<close>
+      \<Down>{(S, T). (S,T)\<in> state_wl_l None \<and> correct_watching'_leaking_bin S} (deduplicate_binary_clauses L' S')\<close>
 proof -
-  let ?watched = \<open>{(i, CS). i = (length (watched_by S L)) \<and> CS = fst `# mset (watched_by S L)}\<close>
-  have [refine0]: \<open>RETURN (length (watched_by S L))
+  let ?watched = \<open>{(i, CS). i = (length (watched_by S L)) \<and> CS = fst `# mset (watched_by S L) \<and>
+       (\<forall>C. (C \<in># CS \<longrightarrow> C \<in># dom_m (get_clauses_l S') \<longrightarrow> L' \<in> set (get_clauses_l S' \<propto> C)))}\<close>
+  have [refine0]: \<open>deduplicate_binary_clauses_pre_wl L S \<Longrightarrow> RETURN (length (watched_by S L))
     \<le> \<Down> ?watched (SPEC (\<lambda>CS. \<forall>C. (C \<in># CS \<longrightarrow> C \<in># dom_m (get_clauses_l S') \<longrightarrow> L' \<in> set (get_clauses_l S' \<propto> C)) \<and> distinct_mset CS))\<close>
     using assms
     apply (cases S)
-    apply (auto simp: RETURN_RES_refine_iff correct_watching'_leaking_bin.simps)
+    apply (auto simp: RETURN_RES_refine_iff correct_watching'_leaking_bin.simps
+      deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def)
     apply (drule bspec)
      apply assumption
     apply auto
@@ -1098,24 +1100,23 @@ proof -
      apply (smt (z3) filter_mset_add_mset filter_mset_eq_add_msetD fst_conv image_mset_add_mset in_multiset_in_set multi_member_split)
      done
    let ?S = \<open>{((abort, i, CS, U), (abort', xs, CS', U')). abort=abort' \<and> fst `# mset (drop i (watched_by S L)) = xs \<and> CS=CS' \<and>
-     (U,U')\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S \<and> correct_watching'_leaking_bin U \<and>
-     all_init_lits_of_wl U = all_init_lits_of_wl S}\<close>
+     (U,U')\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S \<and> correct_watching'_leaking_bin U}\<close>
   have [refine0]: \<open>(length (watched_by S L), xs) \<in> ?watched \<Longrightarrow>
     ((defined_lit (get_trail_wl S) L, 0, Map.empty, S), defined_lit (get_trail_l S') L', xs,
     Map.empty, S') \<in> ?S\<close> for xs
     using assms by auto
   have watched_by: \<open>RETURN (watched_by x2e L ! x1d)
-    \<le> \<Down> {((C, L, b), C'). C=C' \<and> (C \<in># dom_m (get_clauses_wl x2e) \<longrightarrow> b = (length (get_clauses_wl x2e \<propto> C) = 2))}
-    (SPEC (\<lambda>C. C \<in># x1a))\<close>
+    \<le> \<Down> {((C, K, b), C'). C=C' \<and>
+           (C \<in># dom_m (get_clauses_wl x2e) \<longrightarrow> b = (length (get_clauses_wl x2e \<propto> C) = 2) \<and> K \<noteq> L \<and> K \<in> set (get_clauses_wl x2e \<propto> C) \<and> L \<in> set (get_clauses_wl x2e \<propto> C))}
+    (SPEC (\<lambda>C. C \<in># x1a))\<close> (is \<open>_ \<le> \<Down>?watch _\<close>)
     if 
-      \<open>(L, L') \<in> Id\<close> and
-      \<open>(S, S') \<in> state_wl_l None\<close> and
+      LL': \<open>(L, L') \<in> Id\<close> and
+      SS': \<open>(S, S') \<in> state_wl_l None\<close> and
       \<open>correct_watching'_leaking_bin S\<close> and
       \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> and
-      \<open>L \<in># all_init_lits_of_wl S\<close> and
-      \<open>deduplicate_binary_clauses_pre L' S'\<close> and
+      pre: \<open>deduplicate_binary_clauses_pre L' S'\<close> and
       \<open>deduplicate_binary_clauses_pre_wl L S\<close> and
-      \<open>(length (watched_by S L), xs) \<in> ?watched\<close> and
+      watched: \<open>(length (watched_by S L), xs) \<in> ?watched\<close> and
       xx': \<open>(x, x') \<in> ?S\<close> and
       abort: \<open>case x of
       (abort, i, CS, Sa) \<Rightarrow>
@@ -1123,7 +1124,7 @@ proof -
       \<open>case x' of
       (abort, xs, CS, S) \<Rightarrow> \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
       inv: \<open>deduplicate_binary_clauses_inv_wl S L x\<close> and
-      \<open>deduplicate_binary_clauses_inv L' xs S' x'\<close> and
+      inv2: \<open>deduplicate_binary_clauses_inv L' xs S' x'\<close> and
       st: \<open>x2a = (x1b, x2b)\<close>
         \<open>x2 = (x1a, x2a)\<close>
         \<open>x' = (x1, x2)\<close>
@@ -1132,27 +1133,80 @@ proof -
         \<open>x = (x1c, x2c)\<close>
     for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
   proof -
+    have L_S: \<open>L \<in># all_init_lits_of_wl S\<close> \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S' x2b\<close>
+      \<open>set_mset (all_init_lits_of_l x2b) = set_mset (all_init_lits_of_l S')\<close>
+       \<open>set_mset (all_init_lits_of_wl x2e) = set_mset (all_init_lits_of_wl S)\<close>
+      using pre SS' LL' inv2 xx' by (auto simp: deduplicate_binary_clauses_pre_def
+        deduplicate_binary_clauses_inv_def st
+        dest: rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
     have \<open>x1d < length (get_watched_wl S L)\<close>
       using xx' abort by (auto simp: watched_by_alt_def st)
     then have \<open>watched_by x2e L ! x1d \<in> set (get_watched_wl S L)\<close>
       \<open>get_watched_wl x2e = get_watched_wl S\<close>
       \<open>correct_watching'_leaking_bin x2e\<close>
-      \<open>all_init_lits_of_wl x2e = all_init_lits_of_wl S\<close>
       \<open>x1a = fst `# mset (drop x1d (watched_by S L))\<close>
       \<open>get_watched_wl S L ! x1d \<in> set (drop x1d (get_watched_wl S L))\<close>
       using xx' abort by (auto simp: watched_by_alt_def st intro!: in_set_dropI)
-    then show ?thesis
-      using assms(5) unfolding st
+    moreover have \<open>fst (get_watched_wl S L ! x1d) \<in># dom_m (get_clauses_wl x2e) \<Longrightarrow>
+        L \<in> set (get_clauses_wl x2e \<propto> fst (get_watched_wl S L ! x1d))\<close>
+      using L_S(1) xx' \<open>watched_by x2e L ! x1d \<in> set (get_watched_wl S L)\<close> xx'
+        multi_member_split[of \<open>watched_by x2e L ! x1d\<close> \<open>mset (get_watched_wl S L)\<close>]
+      unfolding L_S(4)[symmetric]
+      by (cases x2e)
+       (auto simp: watched_by_alt_def correct_watching'_leaking_bin.simps st
+        clause_to_update_def dest!: multi_member_split[of L]
+        dest!: filter_mset_eq_add_msetD' in_set_takeD)
+    ultimately show ?thesis
+      using L_S unfolding st
       by (cases x2e)
        (auto simp: RETURN_RES_refine_iff watched_by_alt_def eq_commute[of \<open>(_, _, _)\<close>]
         correct_watching'_leaking_bin.simps correctly_marked_as_binary.simps 
         intro!: bexI[of _ \<open>watched_by x2e L ! x1d\<close>]
         dest!: multi_member_split[of L])
   qed
+  have correct_blit: \<open>mset (get_clauses_l x2b \<propto> C) = {#L', x1g#}\<close>
+    if
+      LL': \<open>(L, L') \<in> Id\<close> and
+      SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+      \<open>correct_watching'_leaking_bin S\<close> and
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> and
+      pre: \<open>deduplicate_binary_clauses_pre L' S'\<close> and
+      \<open>deduplicate_binary_clauses_pre_wl L S\<close> and
+      xs: \<open>(length (watched_by S L), xs) \<in> ?watched\<close> and
+      xx': \<open>(x, x') \<in> ?S\<close> and
+      abort: \<open>case x of
+      (abort, i, CS, Sa) \<Rightarrow>
+      \<not> abort \<and>
+      i < length (watched_by S L) \<and> get_conflict_wl Sa = None\<close> and
+      \<open>case x' of
+      (abort, xs, CS, S) \<Rightarrow>
+      \<not> abort \<and> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      inv: \<open>deduplicate_binary_clauses_inv_wl S L x\<close> and
+      inv2: \<open>deduplicate_binary_clauses_inv L' xs S' x'\<close> and
+      st: \<open>x2a = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1c, x2c)\<close>  and
+      watch: \<open>(watched_by x2e L ! x1d, C) \<in> ?watch x2e\<close> and
+      watcher: \<open>watched_by x2e L ! x1d = (x1f, x2f)\<close> 
+        \<open>x2f = (x1g, x2g)\<close> and
+      bin: \<open>\<not> (x1f \<notin># dom_m (get_clauses_wl x2e) \<or> \<not> x2g)\<close>
+        \<open>\<not> (C \<notin># dom_m (get_clauses_l x2b) \<or> length (get_clauses_l x2b \<propto> C) \<noteq> 2)\<close>
+    for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C x1f x2f x1g
+      x2g
+  proof -
+    show ?thesis
+      using watch xs bin SS' xx' LL' watcher
+      by (auto simp: st length_list_2 watched_by_alt_def)
+  qed
   show ?thesis
     supply [[goals_limit=1]]
     using assms unfolding deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_def
-    apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st_correct_watching)
+    apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st_correct_watching
+      clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause
+      binary_clause_subres_wl_binary_clause_subres)
     subgoal unfolding deduplicate_binary_clauses_pre_wl_def
       by fast
     subgoal for xs x x'
@@ -1166,17 +1220,65 @@ proof -
     subgoal for xs x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       by (auto intro!: imageI in_set_dropI simp: watched_by_alt_def)
     subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def)
+    subgoal by (rule correct_blit)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal apply (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
       dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
-    subgoal apply auto
-oops
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+      dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+      dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+      dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
+    subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
+      dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
+    subgoal by auto
+    done
+qed
+
+find_theorems deduplicate_binary_clauses
+term mark_duplicated_binary_clauses_as_garbage
+definition mark_duplicated_binary_clauses_as_garbage_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl = (\<lambda>S. (\<exists>T. (S,T) \<in> state_wl_l None  \<and>
+     correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S))\<close>
+
+definition mark_duplicated_binary_clauses_as_garbage_wl_inv :: \<open>'v multiset \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<times> 'v multiset \<Rightarrow> bool\<close> where
+  \<open>mark_duplicated_binary_clauses_as_garbage_wl_inv = (\<lambda>xs S (U, ys).
+  \<exists>S' U'. (U, U') \<in> state_wl_l None \<and> (S, S') \<in> state_wl_l None \<and>
+    mark_duplicated_binary_clauses_as_garbage_inv xs S' (U', ys))\<close>
+  
+definition mark_duplicated_binary_clauses_as_garbage_wl :: \<open>_ \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>mark_duplicated_binary_clauses_as_garbage_wl S = do {
+     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl S);
+     Ls \<leftarrow> SPEC (\<lambda>Ls:: 'v multiset. \<forall>L\<in>#Ls. L \<in># atm_of `# all_init_lits_of_wl S);
+     (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_duplicated_binary_clauses_as_garbage_wl_inv Ls S\<^esup>(\<lambda>(S, Ls). Ls \<noteq> {#} \<and> get_conflict_wl S = None)
+      (\<lambda>(S, Ls). do {
+        L \<leftarrow> SPEC (\<lambda>L. L \<in># Ls);
+        skip \<leftarrow> RES (UNIV :: bool set);
+        ASSERT (L \<in># atm_of `# all_init_lits_of_wl S);
+        if skip then RETURN (S, remove1_mset L Ls)
+        else do {
+          S \<leftarrow> deduplicate_binary_clauses_wl (Pos L) S;
+          S \<leftarrow> deduplicate_binary_clauses_wl (Neg L) S;
+          RETURN (S, remove1_mset L Ls)
+        }
+     })
+     (S, Ls);
+    RETURN S
+  }\<close>
 
 subsubsection \<open>Large clauses\<close>
 
