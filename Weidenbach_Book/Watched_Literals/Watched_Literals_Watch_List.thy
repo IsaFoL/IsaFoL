@@ -199,7 +199,7 @@ text \<open>
   We have several different version of the watch-list invariants, either because we need a different
   version or to simplify proofs.
 
-  \<^enum> CDCL: This is the invariant that is the most important. 
+  \<^enum> CDCL: This is the invariant that is the most important.
      \<^item> binary clauses cannot be deleted
      \<^item> blocking literals are in the clause
      \<^item> the watched literals belong to the clause and are at the beginning.
@@ -225,6 +225,12 @@ text \<open>
    We use the set of irredundant literals because it is easier to handle removing literals --
    deleting a clause does not change the set of all irredundant literals. We then rely on the
    invariants to go back to the set of all literals.
+
+
+  One additional constraint is that the watch lists do not contain duplicates. This might seem like
+  a consequence from the fact that we are correctly watching. However, the invariant talks only
+  about non-deleted clauses. Technically we would not need the distinctiveness at this level, but
+  during refinement we need it in order to bound the length of the watch lists.
 
 \<close>
 fun correctly_marked_as_binary where
