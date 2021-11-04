@@ -1620,12 +1620,14 @@ text \<open>
   entry in the watch list.
 
   \<^item> then the \<open>try_to_forward_subsume\<close> iterates over multiple of whatever. Typically, the iteration
-  goes over all watch lists from the literals in the clause (and their negation)
+  goes over all watch lists from the literals in the clause (and their negation) to find strengthening
+  clauses.
 
   \<^item> finally, the \<open>all\<close> version goes over all clauses sorted in a set of indices.
 
   TODO: rescheduling is not supported currently (not obvious to make termination work -- the trick
-  is probably to keep the clause at the same location and argue that the clauses have become shorter)
+  is probably to keep the clause at the same location and argue that the clauses have become shorter).
+  An easier version is to do several rounds -- this is not complete, but should be good enough.
 \<close>
 
 definition forward_subsumption_one_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
@@ -3232,7 +3234,8 @@ lemma try_to_forward_forward_subsumption_one_pre:
 
 lemma try_to_forward_subsume:
   assumes \<open>try_to_forward_subsume_pre C S\<close>
-  shows \<open>try_to_forward_subsume C S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+  shows \<open>try_to_forward_subsume C S \<le> \<Down>Id (SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
+       (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> get_trail_l T = get_trail_l S)))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(i, _, _). Suc n - i))\<close> for n
     by auto
@@ -3250,6 +3253,7 @@ proof -
         try_to_forward_subsume_inv_def dest: rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l
         rtranclp_cdcl_twl_inprocessing_l_count_decided rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated)
     subgoal by (auto simp: try_to_forward_subsume_inv_def)
+    subgoal by (auto simp: try_to_forward_subsume_inv_def)
     done
 qed
 
@@ -3260,7 +3264,6 @@ definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\
   twl_struct_invs T \<and>
   twl_list_invs S \<and>
   clauses_to_update_l S = {#} \<and>
-  get_conflict_l S = None \<and>
   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
   count_decided (get_trail_l S) = 0 \<and>
   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
@@ -3271,7 +3274,7 @@ definition forward_subsumption_all_inv :: \<open>'v twl_st_l \<Rightarrow> nat m
 definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>forward_subsumption_all = (\<lambda>S. do {
   ASSERT (forward_subsumption_all_pre S);
-  xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># (dom_m (get_clauses_l S)));
+  xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_l S));
   (xs, S) \<leftarrow>
     WHILE\<^sub>T\<^bsup> forward_subsumption_all_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S = None)
     (\<lambda>(xs, S). do {
@@ -3280,8 +3283,8 @@ definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
        then RETURN (remove1_mset C xs, S)
        else do {
          S \<leftarrow> simplify_clause_with_unit_st C S;
-         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) then do {
-           (S, _) \<leftarrow> forward_subsumption_one C S;
+         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and> length (get_clauses_l S \<propto> C) > 2 then do {
+           S \<leftarrow> try_to_forward_subsume C S;
            RETURN (remove1_mset C xs, S)
          }
          else RETURN (remove1_mset C xs, S)
@@ -3336,7 +3339,7 @@ proof -
        else do {
          S \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and>
             (C \<in># dom_m (get_clauses_l T) \<longrightarrow> (\<forall>L\<in> set (get_clauses_l T \<propto> C). undefined_lit (get_trail_l T) L)));
-         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) then do {
+         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and> length (get_clauses_l S \<propto> C) > 2 then do {
            S \<leftarrow> SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S);
            RETURN (remove1_mset C xs, S)
          }
@@ -3360,7 +3363,7 @@ proof -
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     done
-  have forward_subsumption_one_pre: \<open>try_to_forward_subsume_pre C T\<close>
+  have try_to_forward_subsume_pre: \<open>try_to_forward_subsume_pre C T\<close>
     if
      pre: \<open>forward_subsumption_all_pre S\<close> and
       \<open>(xs, xsa) \<in> Id\<close> and
@@ -3381,8 +3384,8 @@ proof -
       U: \<open>U \<in> {T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* x2 T \<and>
       (Ca \<in># dom_m (get_clauses_l T) \<longrightarrow>
        (\<forall>L\<in>set (get_clauses_l T \<propto> Ca). undefined_lit (get_trail_l T) L))}\<close> and
-      \<open>get_conflict_l T = None \<and> C \<in># dom_m (get_clauses_l T)\<close> and
-      conflU: \<open>get_conflict_l U = None \<and> Ca \<in># dom_m (get_clauses_l U)\<close>
+      le: \<open>get_conflict_l T = None \<and> C \<in># dom_m (get_clauses_l T) \<and> length (get_clauses_l T \<propto> C) > 2\<close> and
+      conflU: \<open>get_conflict_l U = None \<and> Ca \<in># dom_m (get_clauses_l U)\<and> length (get_clauses_l U \<propto> Ca) > 2\<close>
     for xs xsa x x' x1 x2 x1a x2a C Ca T U
   proof -
     have TU: \<open>T = U\<close> and
@@ -3398,25 +3401,13 @@ proof -
       struct_S: \<open>twl_struct_invs x\<close> and
       list_S: \<open>twl_list_invs S\<close> and
       [simp]: \<open>clauses_to_update_l S = {#}\<close> and
-      [simp]: \<open>get_conflict_l S = None\<close> and
       ent_S: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of x)\<close> and
       [simp]: \<open>count_decided (get_trail_l S) = 0\<close> and
       marks: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close>
       using pre unfolding forward_subsumption_all_pre_def by fast
-    have [intro]: \<open>2 < length (get_clauses_l U \<propto> C)\<close>
-      if
-        H: \<open>(U, Va) \<in> twl_st_l None\<close> \<open>twl_struct_invs Va\<close>  \<open>C \<in># dom_m (get_clauses_l U)\<close>
-      for Va C
-    proof -
-      have \<open>struct_wf_twl_cls (twl_clause_of (get_clauses_l U \<propto> C))\<close> for x
-        using that
-        by (cases Va, cases U; cases \<open>irred (get_clauses_l U) C\<close>)
-         (clarsimp_all simp: twl_struct_invs_def twl_st_inv.simps twl_st_l_def ran_m_def conj_disj_distribR
-          Collect_disj_eq Collect_conv_if
-          dest!: multi_member_split)
-      then show ?thesis
-        by auto
-    qed
+    have [intro]: \<open>2 < length (get_clauses_l U \<propto> Ca)\<close>
+        using le TU CCa by auto
+
     show ?thesis
       using undef apply -
       apply (rule rtranclp_cdcl_twl_inprocessing_l_twl_st_l[OF Sx2a Sx struct_S list_S ent_S])
@@ -3432,13 +3423,15 @@ proof -
         conflU marks
       by (auto simp: twl_list_invs_def)
   qed
+
   show ?thesis
     apply (rule order_trans)
     prefer 2
     apply (rule 0)
     unfolding forward_subsumption_all_def
     apply (refine_vcg WHILEIT_refine[where R=\<open>Id \<times>\<^sub>f Id\<close>] try_to_forward_subsume[THEN order_trans]
-      simplify_clause_with_unit_st_spec[THEN order_trans])
+      simplify_clause_with_unit_st_spec[THEN order_trans]
+      forward_subsumption_one[THEN order_trans])
     subgoal using assms by auto
     subgoal by auto
     subgoal by (auto simp: forward_subsumption_all_inv_def)
@@ -3449,12 +3442,12 @@ proof -
       auto
     subgoal by (auto dest!: cdcl_twl_inprocessing_l.intros)
     subgoal by auto
-    subgoal by (rule forward_subsumption_one_pre)
+    subgoal by (rule try_to_forward_subsume_pre)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     done
 qed
-*)
+
 end
