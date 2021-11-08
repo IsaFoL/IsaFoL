@@ -962,7 +962,7 @@ definition simplify_clause_with_unit :: \<open>nat \<Rightarrow> ('v, nat) ann_l
      (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
      (irred N C = irred N' C) \<and>
      (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-     (unc \<longleftrightarrow> (N = N' \<and> \<not>b)))
+     (unc \<longrightarrow> (N = N' \<and> \<not>b)))
   })\<close>
 
 definition simplify_clause_with_unit_st_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
@@ -1323,7 +1323,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longleftrightarrow> (aa = N' \<and> \<not>b)) \<Longrightarrow>
+    (unc \<longrightarrow> (aa = N' \<and> \<not>b)) \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1343,7 +1343,7 @@ proof -
     (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
     Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
     irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longleftrightarrow> (aa = N' \<and> \<not>b))  \<Longrightarrow>
+    (unc \<longrightarrow> (aa = N' \<and> \<not>b))  \<Longrightarrow>
     fmdrop C bj = fmdrop C aa \<and> irred bj C = irred aa C \<and> mset (bj \<propto> C) \<subseteq># mset (aa \<propto> C) \<and> C \<in># dom_m bj \<Longrightarrow>
     x = (unc, bj') \<Longrightarrow>
     bj' = (aj, bj) \<Longrightarrow>
@@ -1372,7 +1372,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-      (unc \<longleftrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
+      (unc \<longrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>
@@ -1394,7 +1394,7 @@ proof -
    (\<not> b \<longrightarrow> (\<forall>L\<in>#mset (N' \<propto> C). undefined_lit a L)) \<and>
    Multiset.Ball (mset (aa \<propto> C) - mset (N' \<propto> C)) (defined_lit a) \<and>
    irred aa C = irred N' C \<and> b = (\<exists>L. L \<in># mset (aa \<propto> C) \<and> L \<in> lits_of_l a) \<and>
-    (unc \<longleftrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
+    (unc \<longrightarrow> (aa = N'\<and> \<not>b)) \<Longrightarrow>
       x = (unc, bj') \<Longrightarrow>
       bj' = (aj, bj) \<Longrightarrow>
       \<not>unc \<Longrightarrow> \<not>aj \<Longrightarrow>

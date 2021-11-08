@@ -141,7 +141,7 @@ proof -
         (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
        (irred N C = irred N' C) \<and>
         (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-       (unc \<longrightarrow> N = N'));
+       (unc \<longrightarrow> N = N' \<and> \<not>b));
     RETURN (unc, b, N')
     })\<close> (is \<open>_ = (\<lambda>C M N. do {
     (_, _, _) \<leftarrow> SPEC (?P C M N);
@@ -234,7 +234,6 @@ proof -
     \<open>drop n xs = drop n ys \<Longrightarrow> n < length xs \<Longrightarrow> xs ! n \<in> set ys\<close> for n xs ys
     by (metis in_set_dropD in_set_dropI le_cases)
 
-  term \<open>?P C M N (unc, b, N'')\<close>
   let ?Q = \<open>\<lambda>(i::nat, j::nat, N', del, is_true) (unc, b, N'').
     (let P = (if is_true
       then N'(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
@@ -320,8 +319,8 @@ proof -
     by (metis fmupd_lookup option.sel)
   have [simp]: \<open>(\<forall>a. a) \<longleftrightarrow> False\<close>
     by blast
-  define simp_work_around where \<open>simp_work_around unc b \<equiv> unc \<longrightarrow> N = b\<close> for unc b
-  have simp_work_around_simp[simp]: \<open>simp_work_around True b \<longleftrightarrow> b = N\<close> for b
+  define simp_work_around where \<open>simp_work_around unc b b' \<equiv> unc \<longrightarrow> N = b \<and> \<not>b'\<close> for unc b b'
+  have simp_work_around_simp[simp]: \<open>simp_work_around True b b' \<longleftrightarrow> b = N \<and> \<not>b'\<close> for b b'
     unfolding simp_work_around_def by auto
     term  \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>
   have hd_nth_take: \<open>length C > 0 \<Longrightarrow> [C!0] = take (Suc 0) C\<close> for C
