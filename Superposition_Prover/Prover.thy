@@ -193,6 +193,75 @@ proof (rule notI)
     by (simp add: X_def Y_def \<sigma>\<^sub>1_def \<sigma>\<^sub>2_def)
 qed
 
+lemma subst_equation_Nil[simp]: "subst_equation e [] = e"
+  by (cases e) simp
+
+lemma subst_lit_Nil[simp]: "subst_lit l [] = l"
+  by (cases l) simp_all
+
+fun sym_eq where
+  "sym_eq (Eq t s) = Eq s t"
+
+fun sym_lit :: "'a literal \<Rightarrow> 'a literal" where
+  "sym_lit (Pos e) = Pos (sym_eq e)" |
+  "sym_lit (Neg e) = Neg (sym_eq e)"
+
+lemma mset_lit_eq_conv: "mset_lit x = mset_lit y \<Longrightarrow> x = y \<or> x = sym_lit y"
+  apply (cases x rule: mset_lit.cases; cases y rule: mset_lit.cases)
+     apply simp_all
+     apply (metis add_eq_conv_ex add_mset_eq_singleton_iff)
+    apply (simp add: add_eq_conv_ex)
+   apply (simp add: add_eq_conv_ex)
+  by (smt (verit, ccfv_threshold) add_mset_eq_single add_mset_remove_trivial diff_union_swap)
+
+lemma trans_irrefl_imp_antisym:
+  assumes "trans R" and "irrefl R"
+  shows "antisym R"
+proof (rule antisymI)
+  fix x y
+  assume "(x, y) \<in> R" and "(y, x) \<in> R"
+  hence "(x, x) \<in> R"
+    using transD[OF \<open>trans R\<close>] by blast
+  moreover have "(x, x) \<notin> R"
+    using \<open>irrefl R\<close> by (simp add: irrefl_def)
+  ultimately show "x = y"
+    by contradiction
+qed
+
+lemma "antisym (Set.filter (\<lambda>((_, \<sigma>\<^sub>x), (_, \<sigma>\<^sub>y)). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) cl_ord_eq)"
+proof (rule antisymI)
+  note antisym_cl_ord = trans_irrefl_imp_antisym[OF cl_ord_trans irrefl_cl_ord]
+  fix x y
+  assume
+    "(x, y) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>x), _, \<sigma>\<^sub>y). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) cl_ord_eq" and
+    "(y, x) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>y), _, \<sigma>\<^sub>x). \<sigma>\<^sub>y = [] \<and> \<sigma>\<^sub>x = []) cl_ord_eq"
+  then obtain x' y' where
+    "x = (x', [])" and "(x, y) \<in> cl_ord_eq" and
+    "y = (y', [])" and "(y, x) \<in> cl_ord_eq"
+    using Set.member_filter by auto
+  hence
+    "(x, y) \<in> cl_ord \<or> image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y')" and
+    "(y, x) \<in> cl_ord \<or> image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y')"
+    by (auto simp add: cl_ord_eq_def)
+  then show "x = y"
+  proof (elim disjE; simp)
+    show "(x, y) \<in> cl_ord \<Longrightarrow> (y, x) \<in> cl_ord \<Longrightarrow> x = y"
+      by (rule antisymD[OF antisym_cl_ord])
+  next
+    show "(x, y) \<in> cl_ord \<Longrightarrow>
+      image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow> x = y"
+      by (metis (mono_tags, lifting) \<open>(x, y) \<in> cl_ord_eq\<close> \<open>(y, x) \<in> cl_ord_eq\<close> antisymD
+          antisym_cl_ord case_prodD case_prodI cl_ord_def cl_ord_eq_almost_antisym mem_Collect_eq)
+  next
+    show "image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow>
+      (y, x) \<in> cl_ord \<Longrightarrow> x = y"
+      by (metis (mono_tags, lifting) \<open>(x, y) \<in> cl_ord_eq\<close> \<open>(y, x) \<in> cl_ord_eq\<close> antisymD
+          antisym_cl_ord case_prodD case_prodI cl_ord_def cl_ord_eq_almost_antisym mem_Collect_eq)
+  next
+    show "image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow> x = y"
+      \<comment> \<open>Not a theorem because of @{thm mset_lit_eq_conv}\<close>
+      oops
+
 lemma wf_cl_ord:
   shows "wf cl_ord"
 proof -
@@ -253,26 +322,24 @@ qed
 
 subsection \<open>Finite clauses\<close>
 
-type_synonym 'b fclause = "'b literal fset \<times> 'b subst"
+type_synonym 'b fclause = "'b literal fset"
 
 print_locale wellorder
-term cl_ord
-term fset
-term Abs_fset
 
 definition fcl_ord where
-  "fcl_ord R \<equiv> {((Abs_fset A, \<sigma>\<^sub>A), (Abs_fset B, \<sigma>\<^sub>B)) | A \<sigma>\<^sub>A B \<sigma>\<^sub>B.
-    ((A, \<sigma>\<^sub>A), (B, \<sigma>\<^sub>B)) \<in> R \<and> finite A \<and> finite B}"
+  "fcl_ord R \<equiv> {(Abs_fset A, Abs_fset B) | A B. ((A, []), (B, [])) \<in> R \<and> finite A \<and> finite B}"
 
 lemma fcl_ord_refl:
   assumes "refl R"
   shows "refl (fcl_ord R)"
 proof (rule refl_onI)
   fix x
-  show "(x, x) \<in> fcl_ord R"
+  have "((fset x, []), (fset x, [])) \<in> R"
+    by (rule refl_onD[OF \<open>refl R\<close>, simplified])
+  then show "(x, x) \<in> fcl_ord R"
     unfolding fcl_ord_def
-    apply simp
-    by (metis UNIV_I assms finite_fset fset_inverse refl_onD surj_pair)
+    using finite_fset fset_inverse
+    by fastforce
 qed simp
 
 lemma fcl_ord_trans:
@@ -281,52 +348,43 @@ lemma fcl_ord_trans:
 proof (rule transI)
   fix X Y Z
   assume "(X, Y) \<in> fcl_ord R" and "(Y, Z) \<in> fcl_ord R"
-  then obtain X' Y' Z' \<sigma>\<^sub>X \<sigma>\<^sub>Y \<sigma>\<^sub>Z where
-    X_def: "X = (Abs_fset X', \<sigma>\<^sub>X)" and
-    Y_def: "Y = (Abs_fset Y', \<sigma>\<^sub>Y)" and
-    Z_def: "Z = (Abs_fset Z', \<sigma>\<^sub>Z)" and
-    X_Y_cl_ord: "((X', \<sigma>\<^sub>X), (Y', \<sigma>\<^sub>Y)) \<in> R" and
-    Y_Z_cl_ord: "((Y', \<sigma>\<^sub>Y), (Z', \<sigma>\<^sub>Z)) \<in> R" and
-    finite: "finite X'" "finite Y'" "finite Z'"
+  hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_Z: "((fset Y, []), (fset Z, [])) \<in> R"
     unfolding fcl_ord_def
-    by (smt (verit, best) Abs_fset_inject mem_Collect_eq prod.inject)
-  thus "(X, Z) \<in> fcl_ord R"
+    by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
+  show "(X, Z) \<in> fcl_ord R"
     unfolding fcl_ord_def
-    unfolding Set.mem_Collect_eq
-    using \<open>trans R\<close>[THEN transD, OF X_Y_cl_ord Y_Z_cl_ord]
-    by blast
+    using \<open>trans R\<close>[THEN transD, OF X_Y Y_Z] 
+    by (metis (mono_tags, lifting) finite_fset fset_inverse mem_Collect_eq)
+qed
+
+lemma fcl_ord_antisym:
+  assumes "antisym R"
+  shows "antisym (fcl_ord R)"
+proof (rule antisymI)
+  fix X Y
+  assume "(X, Y) \<in> fcl_ord R" and "(Y, X) \<in> fcl_ord R"
+  hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_X: "((fset Y, []), (fset X, [])) \<in> R"
+    unfolding fcl_ord_def
+    by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
+  show "X = Y"
+    using antisymD[OF \<open>antisym R\<close> X_Y Y_X]
+    by (simp add: fset_cong)
 qed
 
 lemma fcl_ord_wf:
   assumes "wf R"
   shows "wf (fcl_ord R)"
 proof (rule wfUNIVI)
-  fix P :: "'b fset \<times> 'c \<Rightarrow> bool" and X :: "'b fset \<times> 'c"
-  assume IH: "\<forall>x. (\<forall>y. (y, x) \<in> fcl_ord R \<longrightarrow> P y) \<longrightarrow> P x"
-  hence IH': "\<forall>x.
-    (\<forall>A \<sigma>\<^sub>A B \<sigma>\<^sub>B. x = (Abs_fset B, \<sigma>\<^sub>B) \<and> ((A, \<sigma>\<^sub>A), (B, \<sigma>\<^sub>B)) \<in> R \<and> finite A \<and> finite B \<longrightarrow>
-      P (Abs_fset A, \<sigma>\<^sub>A)) \<longrightarrow>
-    P x"
+  fix P :: "'b fset \<Rightarrow> bool" and X :: "'b fset"
+  assume "\<forall>x. (\<forall>y. (y, x) \<in> fcl_ord R \<longrightarrow> P y) \<longrightarrow> P x"
+  hence IH: "\<And>X. (\<And>Y. ((fset Y, []), (fset X, [])) \<in> R \<Longrightarrow> P Y) \<Longrightarrow> P X"
     unfolding fcl_ord_def
-    by (smt (verit, best) Pair_inject mem_Collect_eq)
-  have IH'': "finite B \<Longrightarrow> (\<And>A \<sigma>\<^sub>A. ((A, \<sigma>\<^sub>A), (B, \<sigma>\<^sub>B)) \<in> R \<Longrightarrow> finite A \<Longrightarrow> P (Abs_fset A, \<sigma>\<^sub>A)) \<Longrightarrow>
-        P (Abs_fset B, \<sigma>\<^sub>B)" for B \<sigma>\<^sub>B
-    apply (rule IH'[rule_format, of "(Abs_fset B, \<sigma>\<^sub>B)", simplified])
-    apply (elim conjE)
-    by (simp add: Abs_fset_inject[simplified])
-
-  obtain fX \<sigma>\<^sub>X where "X = (fX, \<sigma>\<^sub>X)"
-    by force
-  moreover obtain X' where "fX = Abs_fset X'" and "finite X'"
-    by (metis finite_fset fset_inverse)
-  ultimately have X_def: "X = (Abs_fset X', \<sigma>\<^sub>X)"
-    by simp
+    by (smt (verit) Abs_fset_inverse mem_Collect_eq prod.inject)
 
   show "P X"
-    unfolding X_def
-    apply (induction rule: IH''[OF \<open>finite X'\<close>])
+    apply (induction rule: IH)
     apply (induction rule: wf_induct[OF \<open>wf R\<close>, rule_format])
-    using IH'' by blast
+    using IH by blast
 qed
 
 definition fclause_less where
@@ -347,7 +405,8 @@ next
     by (auto elim: fcl_ord_trans[OF cl_ord_eq_trans, THEN transD])
 next
   show "\<And>x y. fclause_less_eq x y \<Longrightarrow> fclause_less_eq y x \<Longrightarrow> x = y"
-    unfolding fclause_less_eq_def fcl_ord_def
+    unfolding fclause_less_eq_def
+    apply (rule fcl_ord_antisym[THEN antisymD]; assumption?)
     \<comment> \<open>Not a theorem because of @{thm cl_ord_eq_not_antisym}\<close>
     sorry
 next
