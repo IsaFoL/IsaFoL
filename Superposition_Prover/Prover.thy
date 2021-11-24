@@ -26,6 +26,11 @@ lemma set_eq_unionI:
 lemma total_trancl: "total R \<Longrightarrow> total (trancl R)"
   by (meson r_into_trancl' total_on_def)
 
+lemma refl_Un: "refl S1 \<or> refl S2 \<Longrightarrow> refl (S1 \<union> S2)"
+  by (auto dest: refl_onD intro: refl_onI)
+
+lemma refl_trivial: "refl {(x, x) | x. True}"
+  by (rule refl_onI) simp_all
 
 subsection \<open>Generic lemmas about HOL-Library definitions\<close>
 
@@ -193,11 +198,55 @@ proof (rule notI)
     by (simp add: X_def Y_def \<sigma>\<^sub>1_def \<sigma>\<^sub>2_def)
 qed
 
-lemma subst_equation_Nil[simp]: "subst_equation e [] = e"
-  by (cases e) simp
+lemma subst_trm_ident[simp]:
+  assumes trivial_\<sigma>: "\<And>x d. x \<in> vars_of t \<Longrightarrow> assoc x d \<sigma> = d"
+  shows "subst t \<sigma> = t"
+  using trivial_\<sigma>
+  by (induction t) simp_all
 
-lemma subst_lit_Nil[simp]: "subst_lit l [] = l"
-  by (cases l) simp_all
+lemma subst_equation_ident[simp]:
+  assumes trivial_\<sigma>: "\<And>x d. x \<in> vars_of_eq e \<Longrightarrow> assoc x d \<sigma> = d"
+  shows "subst_equation e \<sigma> = e"
+  by (cases e) (simp add: trivial_\<sigma>)
+
+lemma subst_lit_ident[simp]:
+  assumes trivial_\<sigma>: "\<And>x d. x \<in> vars_of_lit l \<Longrightarrow> assoc x d \<sigma> = d"
+  shows "subst_lit l \<sigma> = l"
+  by (cases l) (simp_all add: trivial_\<sigma>)
+
+lemma subst_cl_ident[simp]:
+  assumes trivial_\<sigma>: "\<And>x d. x \<in> vars_of_cl C \<Longrightarrow> assoc x d \<sigma> = d"
+  shows "subst_cl C \<sigma> = C"
+proof -
+  have "subst_cl C \<sigma> = (\<lambda>l. subst_lit l \<sigma>) ` C"
+    by auto
+  also have "... = C"
+    by (rule image_cong[of C C _ id, simplified])
+      (auto dest: vars_of_cl_lem simp add: subset_iff trivial_\<sigma>)
+  finally show ?thesis
+    by assumption
+qed
+
+lemma subst_ecl_ident[simp]:
+  assumes trivial_\<sigma>: "\<And>x d. x \<in> vars_of_cl (cl_ecl C) \<union> \<Union>(vars_of ` (trms_ecl C)) \<Longrightarrow> assoc x d \<sigma> = d"
+  shows "subst_ecl C \<sigma> = C"
+proof (cases C)
+  case (Ecl C' ts)
+  note trivial_\<sigma>' = trivial_\<sigma>[unfolded Ecl cl_ecl.simps trms_ecl.simps Un_iff]
+  show ?thesis
+    unfolding Ecl subst_ecl.simps eclause.inject
+  proof (rule conjI)
+    show "subst_cl C' \<sigma> = C'"
+      using disjI1[THEN trivial_\<sigma>'] subst_cl_ident
+      by blast
+  next
+    show "{t \<lhd> \<sigma> |t. t \<in> ts} = ts"
+      unfolding Setcompr_eq_image
+      apply (rule image_cong[of ts ts _ id, simplified])
+      using disjI2[THEN trivial_\<sigma>']
+      by (meson UnionI imageI subst_trm_ident)
+  qed
+qed
 
 fun sym_eq where
   "sym_eq (Eq t s) = Eq s t"
@@ -228,39 +277,26 @@ proof (rule antisymI)
     by contradiction
 qed
 
-lemma "antisym (Set.filter (\<lambda>((_, \<sigma>\<^sub>x), (_, \<sigma>\<^sub>y)). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) cl_ord_eq)"
+lemma antisym_Un_cl_ord_trivial_refl:
+  defines ord_def: "ord \<equiv> cl_ord \<union> {(x, x) |x. True}"
+  shows "antisym (Set.filter (\<lambda>((_, \<sigma>\<^sub>x), (_, \<sigma>\<^sub>y)). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) ord)"
 proof (rule antisymI)
   note antisym_cl_ord = trans_irrefl_imp_antisym[OF cl_ord_trans irrefl_cl_ord]
   fix x y
   assume
-    "(x, y) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>x), _, \<sigma>\<^sub>y). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) cl_ord_eq" and
-    "(y, x) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>y), _, \<sigma>\<^sub>x). \<sigma>\<^sub>y = [] \<and> \<sigma>\<^sub>x = []) cl_ord_eq"
+    "(x, y) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>x), _, \<sigma>\<^sub>y). \<sigma>\<^sub>x = [] \<and> \<sigma>\<^sub>y = []) ord" and
+    "(y, x) \<in> Set.filter (\<lambda>((_, \<sigma>\<^sub>y), _, \<sigma>\<^sub>x). \<sigma>\<^sub>y = [] \<and> \<sigma>\<^sub>x = []) ord"
   then obtain x' y' where
-    "x = (x', [])" and "(x, y) \<in> cl_ord_eq" and
-    "y = (y', [])" and "(y, x) \<in> cl_ord_eq"
+    "x = (x', [])" and "(x, y) \<in> ord" and
+    "y = (y', [])" and "(y, x) \<in> ord"
     using Set.member_filter by auto
   hence
-    "(x, y) \<in> cl_ord \<or> image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y')" and
-    "(y, x) \<in> cl_ord \<or> image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y')"
-    by (auto simp add: cl_ord_eq_def)
+    "(x, y) \<in> cl_ord \<or> x = y" and
+    "(y, x) \<in> cl_ord \<or> x = y"
+    by (auto simp add: cl_ord_eq_def ord_def)
   then show "x = y"
-  proof (elim disjE; simp)
-    show "(x, y) \<in> cl_ord \<Longrightarrow> (y, x) \<in> cl_ord \<Longrightarrow> x = y"
-      by (rule antisymD[OF antisym_cl_ord])
-  next
-    show "(x, y) \<in> cl_ord \<Longrightarrow>
-      image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow> x = y"
-      by (metis (mono_tags, lifting) \<open>(x, y) \<in> cl_ord_eq\<close> \<open>(y, x) \<in> cl_ord_eq\<close> antisymD
-          antisym_cl_ord case_prodD case_prodI cl_ord_def cl_ord_eq_almost_antisym mem_Collect_eq)
-  next
-    show "image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow>
-      (y, x) \<in> cl_ord \<Longrightarrow> x = y"
-      by (metis (mono_tags, lifting) \<open>(x, y) \<in> cl_ord_eq\<close> \<open>(y, x) \<in> cl_ord_eq\<close> antisymD
-          antisym_cl_ord case_prodD case_prodI cl_ord_def cl_ord_eq_almost_antisym mem_Collect_eq)
-  next
-    show "image_mset mset_lit (mset_set x') = image_mset mset_lit (mset_set y') \<Longrightarrow> x = y"
-      \<comment> \<open>Not a theorem because of @{thm mset_lit_eq_conv}\<close>
-      oops
+    by (auto intro: antisymD[OF antisym_cl_ord])
+qed
 
 lemma wf_cl_ord:
   shows "wf cl_ord"
@@ -277,6 +313,327 @@ lemma cl_ord_iff_cl_ord_eq_and_not:
   "\<And>x y. (x, y) \<in> cl_ord \<longleftrightarrow> (x, y) \<in> cl_ord_eq \<and> (y, x) \<notin> cl_ord_eq"
   by (smt (verit, best) Un_iff case_prod_conv cl_ord_def cl_ord_eq_almost_antisym cl_ord_eq_def
       irrefl_def irrefl_mult mem_Collect_eq mult_trm_ord_trans trm_ord_irrefl trm_ord_trans)
+
+lemma cl_ord_iff_reflcl_cl_ord_and_not:
+  "\<And>x y. (x, y) \<in> cl_ord \<longleftrightarrow> (x, y) \<in> cl_ord\<^sup>= \<and> (y, x) \<notin> cl_ord\<^sup>="
+  using cl_ord_iff_cl_ord_eq_and_not by force
+
+lemma renaming_Nil[simp]: "renaming [] vs"
+  by (simp add: renaming_def)
+
+lemma renaming_ident[simp]: "renaming_cl C C"
+  unfolding renaming_cl_def
+proof (rule exI)
+  show "renaming [] (vars_of_cl (cl_ecl C)) \<and> C = subst_ecl C []"
+    by simp
+qed
+
+lemma subst_ecl_subst_ecl[simp]: "subst_ecl (subst_ecl C \<sigma>\<^sub>1) \<sigma>\<^sub>2 = subst_ecl C (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
+proof (cases C)
+  case (Ecl C' ts)
+  show ?thesis
+    unfolding Ecl subst_ecl.simps
+    unfolding eclause.inject
+  proof (rule conjI)
+    show "subst_cl (subst_cl C' \<sigma>\<^sub>1) \<sigma>\<^sub>2 = subst_cl C' (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
+      unfolding composition_of_substs_cl
+      by (rule refl)
+  next
+    show "{t \<lhd> \<sigma>\<^sub>2 |t. t \<in> {t \<lhd> \<sigma>\<^sub>1 |t. t \<in> ts}} = {t \<lhd> \<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2 |t. t \<in> ts}"
+      unfolding Setcompr_eq_image
+      by (simp add: image_image)
+  qed
+qed
+
+lemma all_trms_irreducible_empty[simp]: "all_trms_irreducible {} f"
+  unfolding all_trms_irreducible_def by simp
+
+(* lemma
+  assumes ren_\<sigma>\<^sub>1: "renaming \<sigma>\<^sub>1 vs" and ren_\<sigma>\<^sub>2: "renaming \<sigma>\<^sub>2 vs"
+  shows "renaming (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2) vs"
+proof -
+  from ren_\<sigma>\<^sub>1 have
+    all_var_\<sigma>\<^sub>1: "\<forall>x\<in>vs. is_a_variable (Var x \<lhd> \<sigma>\<^sub>1)" and
+    "\<forall>x y. x \<in> vs \<longrightarrow> y \<in> vs \<longrightarrow> x \<noteq> y \<longrightarrow> Var x \<lhd> \<sigma>\<^sub>1 \<noteq> Var y \<lhd> \<sigma>\<^sub>1"
+    unfolding renaming_def by simp_all
+  from ren_\<sigma>\<^sub>2 have
+    all_var_\<sigma>\<^sub>2: "\<forall>x\<in>vs. is_a_variable (Var x \<lhd> \<sigma>\<^sub>2)" and
+    "\<forall>x y. x \<in> vs \<longrightarrow> y \<in> vs \<longrightarrow> x \<noteq> y \<longrightarrow> Var x \<lhd> \<sigma>\<^sub>2 \<noteq> Var y \<lhd> \<sigma>\<^sub>2"
+    unfolding renaming_def by simp_all
+
+  from all_var_\<sigma>\<^sub>1 have all_var_\<sigma>\<^sub>1': "\<forall>x\<in>vs. \<exists>y. Var x \<lhd> \<sigma>\<^sub>1 = Var y"
+    by (meson is_a_variable.elims(2))
+
+  show ?thesis
+    unfolding renaming_def
+  proof (intro conjI ballI allI impI)
+    fix v
+    assume "v \<in> vs"
+    show "is_a_variable (Var v \<lhd> \<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
+      apply simp
+      using all_var_\<sigma>\<^sub>1'[rule_format, OF \<open>v \<in> vs\<close>] apply simp
+      apply safe
+      apply simp
+      using all_var_\<sigma>\<^sub>2
+      oops *)
+
+(* lemma transp_renaming_cl: "transp renaming_cl"
+proof (rule transpI)
+  fix C D E
+  assume "renaming_cl C D" and "renaming_cl D E"
+  then obtain \<sigma>\<^sub>1 \<sigma>\<^sub>2 where
+    ren_\<sigma>\<^sub>1: "renaming \<sigma>\<^sub>1 (vars_of_cl (cl_ecl C))" and
+    ren_\<sigma>\<^sub>2: "renaming \<sigma>\<^sub>2 (vars_of_cl (cl_ecl D))" and
+    D_def: "D = subst_ecl C \<sigma>\<^sub>1" and
+    E_def: "E = subst_ecl D \<sigma>\<^sub>2"
+    unfolding renaming_cl_def
+    by blast
+  show "renaming_cl C E"
+    unfolding renaming_cl_def
+  proof (intro exI conjI)
+    show "renaming (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2) (vars_of_cl (cl_ecl C))"
+      using ren_\<sigma>\<^sub>1 ren_\<sigma>\<^sub>2
+      (* This is sadly not true as the second argument to renaming should also contain substituted
+          variables from \<sigma>\<^sub>1. *)
+      sorry
+  next
+    show "E = subst_ecl C (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
+      using D_def E_def by simp
+  qed
+qed *)
+
+(* lemma
+  fixes N :: "'a eclause set"and C :: "'a eclause"
+  assumes saturated_N: "inference_saturated N" and deriv_C: "derivable_ecl C N"
+  shows "C \<in> N \<or> (\<exists>C'. C' \<in> N \<and> renaming_cl C' C)"
+  using deriv_C saturated_N
+proof (induction C N rule: derivable_ecl.induct)
+  case (init C N)
+  thus ?case by simp
+next
+  case (rn C N D)
+  show ?case
+  proof (rule disjI2, rule rn.IH[OF rn.prems, THEN disjE]; (elim exE conjE)?)
+    assume "C \<in> N"
+    thus "\<exists>E. E \<in> N \<and> renaming_cl E D"
+      using rn.hyps by fast
+  next
+    fix E
+    show "E \<in> N \<Longrightarrow> renaming_cl E C \<Longrightarrow> \<exists>E. E \<in> N \<and> renaming_cl E D"
+      (* using rn.hyps transp_renaming_cl[THEN transpD, of E C D]
+      by blast *)
+      sorry
+  qed
+next
+  case (deriv P S C S' \<sigma> C')
+  show ?case
+    apply (cases "C \<in> S")
+     apply simp
+    using deriv.hyps
+    using deriv.prems
+    using deriv.IH[rule_format]
+  oops *)
+  
+(* lemma
+  fixes C' \<sigma>
+  defines "eC' \<equiv> Ecl (subst_cl C' \<sigma>) {}"
+  assumes
+    in_N: "eC' \<in> N" and
+    ball_S_fin_cl: "\<forall>x\<in>S. finite (cl_ecl x)" and
+    "derivable C P S \<sigma> Ground C'"
+  shows "\<exists>\<eta>. redundant_inference eC' N P \<eta>"
+  unfolding redundant_inference_def
+proof (intro exI conjI ballI)
+  show "instances {eC'} \<subseteq> instances N"
+    using in_N by (simp add: instances_subset_eqI)
+next
+  show "set_entails_clause (clset_instances (instances {eC'})) (cl_ecl eC')"
+    by (auto intro: set_entails_clause_member)
+next
+  fix x
+  assume "x \<in> instances {eC'}"
+  then obtain \<eta> where x_def: "x = (eC', \<eta>)"
+    unfolding instances_def by blast
+  show "subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x)) (trms_ecl eC')"
+    by (simp add: x_def eC'_def subterms_inclusion_refl)
+next
+  fix x
+  assume "x \<in> instances {eC'}"
+  then obtain \<eta> where x_def: "x = (eC', \<eta>)"
+    unfolding instances_def by blast
+  show "\<exists>D'\<in>P. ((fst x, snd x), D', \<sigma>) \<in> ecl_ord"
+    apply (simp add: x_def)
+    using \<open>derivable C P S \<sigma> Ground C'\<close>
+    unfolding ecl_ord_def mem_Collect_eq case_prod_beta prod.sel
+    using conclusion_is_smaller_than_premisses[OF \<open>derivable C P S \<sigma> Ground C'\<close> ball_S_fin_cl]
+    unfolding mset_ecl.simps mset_cl.simps
+    unfolding eC'_def cl_ecl.simps
+    find_theorems "derivable _ _ _ _ Ground" *)
+    
+
+end
+
+subsection \<open>Prover\<close>
+
+locale superposition_prover =
+    SuperCalc: basic_superposition trm_ord sel pos_ord "UNIV :: 'a set" "\<lambda>_ _. {}"
+  for
+    \<comment> \<open>For SuperCalc\<close>
+    trm_ord :: "('a trm \<times> 'a trm) set" and
+    sel :: "'a literal set \<Rightarrow> 'a literal set" and
+    pos_ord :: "'a eclause \<Rightarrow> 'a trm \<Rightarrow> (indices list \<times> indices list) set" +
+  
+  fixes
+    \<comment> \<open>For the Framework\<close>
+    Bot :: "'f set" and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" and
+    Red_F :: "'f set \<Rightarrow> 'f set" and
+
+    \<comment> \<open>Glue between the Framework and SuperCalc\<close>
+    formula_to_eclause :: "'f \<Rightarrow> 'a eclause" and
+    eclause_to_formula :: "'a eclause \<Rightarrow> 'f"
+
+  assumes
+    infinite_vars: "\<not> finite (UNIV :: 'a set)" and
+
+    formula_has_empty_trms: "\<And>f. trms_ecl (formula_to_eclause f) = {}" and
+    formula_has_finite_cl: "\<And>f. finite (cl_ecl (formula_to_eclause f))" and
+    entails_bottom_imp_unsatisfiable: "\<And>B N.
+      B \<in> Bot \<Longrightarrow> entails N {B} \<Longrightarrow> \<not> satisfiable_clause_set (cl_ecl ` formula_to_eclause ` N)" and
+    empty_cl_imp_formula_in_Bot: "\<And>C. cl_ecl C = {} \<Longrightarrow> eclause_to_formula C \<in> Bot" and
+    eclause_mem_conv: "\<And>C N. eclause_to_formula C \<in> N \<Longrightarrow> C \<in> formula_to_eclause ` N" and
+    cl_formula_eclause_conv: "\<And> C. cl_ecl (formula_to_eclause (eclause_to_formula C)) = cl_ecl C"
+begin
+
+definition Inf where
+  "Inf \<equiv> {Infer P (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {})) | P S C \<sigma> k C'.
+    SuperCalc.derivable C (formula_to_eclause ` set P) S \<sigma> k C'}"
+
+definition Red_I where
+  "Red_I N \<equiv> {\<iota> \<in> Inf.
+    (let prems = formula_to_eclause ` (set (prems_of \<iota>)) in
+     let concl = formula_to_eclause (concl_of \<iota>) in
+     \<exists>\<sigma>. SuperCalc.redundant_inference concl (formula_to_eclause ` N) prems \<sigma>)}"
+
+sublocale inference_system Inf .
+
+sublocale consequence_relation Bot entails
+proof unfold_locales
+  show "Bot \<noteq> {}" sorry
+next
+  show "\<And>B N1. B \<in> Bot \<Longrightarrow> entails {B} N1" sorry
+next
+  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> entails N1 N2" sorry
+next
+  show "\<And>N2 N1. \<forall>C\<in>N2. entails N1 {C} \<Longrightarrow> entails N1 N2" sorry
+next
+  show "\<And>N1 N2 N3. entails N1 N2 \<Longrightarrow> entails N2 N3 \<Longrightarrow> entails N1 N3" sorry
+qed
+
+lemma False
+  by (metis Collect_mem_eq eclause_mem_conv empty_Collect_eq formula_has_empty_trms image_iff insert_iff trms_ecl.simps)
+
+sublocale calculus Bot Inf entails Red_I Red_F
+proof unfold_locales
+  show "\<And>N. Red_I N \<subseteq> Inf"
+    unfolding Red_I_def Inf_def Let_def by auto
+next
+  show "\<And>B N. B \<in> Bot \<Longrightarrow> entails N {B} \<Longrightarrow> entails (N - Red_F N) {B}" sorry
+next
+  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" sorry
+next
+  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" sorry
+next
+  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" sorry
+next
+  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" sorry
+next
+  show "\<And>\<iota> N. \<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
+    unfolding Red_I_def Inf_def
+    apply (simp del: subst_cl.simps)
+    apply (auto simp del: subst_cl.simps)
+    subgoal premises prems for N P S C \<sigma> k C'
+      apply (rule exI[where x = \<sigma>])
+      unfolding SuperCalc.redundant_inference_def
+      proof (intro exI conjI ballI)
+        show "SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<subseteq> SuperCalc.instances (formula_to_eclause ` N)"
+          apply (rule SuperCalc.instances_subset_eqI)
+          using prems(1)[THEN eclause_mem_conv]
+          by simp
+      next
+        show "set_entails_clause
+          (SuperCalc.clset_instances (SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}}))
+          (cl_ecl (formula_to_eclause (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {}))))"
+          unfolding cl_formula_eclause_conv
+          unfolding cl_ecl.simps
+          apply (rule set_entails_clause_member)
+          unfolding SuperCalc.instances_def
+          apply (simp del: subst_cl.simps ground_clause.simps add: composition_of_substs_cl)
+          unfolding SuperCalc.clset_instances_def
+          apply (simp del: subst_cl.simps ground_clause.simps)
+          sorry
+      next
+        show "\<And>x. x \<in> SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<Longrightarrow>
+          SuperCalc.subterms_inclusion
+            (subst_set (trms_ecl (fst x)) (snd x))
+            (trms_ecl (formula_to_eclause (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {}))))"
+          sorry
+      next
+        show "\<And>x. x \<in> SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<Longrightarrow>
+          \<exists>D'\<in>formula_to_eclause ` set P. ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord "
+          sorry
+      qed
+      done
+qed
+
+lemma empty_trms: "\<forall>x. x \<in> formula_to_eclause ` N \<longrightarrow> trms_ecl x = {}"
+  using formula_has_empty_trms by blast
+
+lemma finite_cl: "\<forall>x\<in>formula_to_eclause ` N. finite (cl_ecl x)"
+    using formula_has_finite_cl by blast
+
+lemma ball_well_constrained: "\<forall>C \<in> formula_to_eclause ` N. SuperCalc.well_constrained C"
+  by (auto simp add: SuperCalc.well_constrained_def formula_has_empty_trms)
+
+sublocale statically_complete_calculus Bot Inf entails Red_I Red_F
+proof unfold_locales
+  fix B N
+  assume "B \<in> Bot" and "saturated N" and "entails N {B}"
+
+  have unsat_N: "\<not> satisfiable_clause_set (cl_ecl ` formula_to_eclause ` N)"
+    by (rule entails_bottom_imp_unsatisfiable[OF \<open>B \<in> Bot\<close> \<open>entails N {B}\<close>])
+
+  have gr_inf_satur_N: "SuperCalc.ground_inference_saturated (formula_to_eclause ` N)"
+    using \<open>saturated N\<close>
+    sorry
+
+  obtain C where
+    derivable_C: "SuperCalc.derivable_ecl C (formula_to_eclause ` N)" and
+    empty_cl_C: "cl_ecl C = {}"
+    using SuperCalc.COMPLETENESS[of "formula_to_eclause ` N", OF empty_trms finite_cl unsat_N]
+    thm SuperCalc.int_clset_is_a_model[of "formula_to_eclause ` N",
+            OF gr_inf_satur_N finite_cl ball_well_constrained]
+    by blast
+
+  show "\<exists>B'\<in>Bot. B' \<in> N"
+  proof (rule bexI)
+    show "eclause_to_formula C \<in> N"
+      using \<open>saturated N\<close>
+      unfolding saturated_def
+      unfolding Inf_from_def
+      unfolding Red_I_def Let_def
+      unfolding Collect_mono_iff
+      using derivable_C
+      using Inf_def
+      using SuperCalc.derivable_ecl.induct
+      sorry
+  next
+    show "eclause_to_formula C \<in> Bot"
+      by (rule empty_cl_imp_formula_in_Bot[OF empty_cl_C])
+  qed
+qed
+
+end
 
 
 subsection \<open>Generic lemmas about SuperCalc without constraints\<close>
@@ -322,12 +679,30 @@ qed
 
 subsection \<open>Finite clauses\<close>
 
+(* First try to refactor the Framework extension locale and see if this is still needed afterward. *)
+(* redefine 'b equation as unordered pair (using uprod from HOL-Library), same thing with literal *)
+(* define mapping between these and SuperCalc's ones *)
+
+(* if < on terms is total, use canonical representation instead of SOME *)
+term "SOME x. P x"
+term "\<exists>x. P x"
+
 type_synonym 'b fclause = "'b literal fset"
 
-print_locale wellorder
+(* We need an injective mapping clause to clause, where all variables have been replaced by fresh
+constants. *)
+
+definition ground_inj where
+  "ground_inj \<equiv> id" (* FIXME: obviously not id *)
+
+print_locale preorder
+
+(* definition fcl_of_cl where
+  "fcl_of_cl C = Abs_fset (image flit_of_lit C)" *)
 
 definition fcl_ord where
-  "fcl_ord R \<equiv> {(Abs_fset A, Abs_fset B) | A B. ((A, []), (B, [])) \<in> R \<and> finite A \<and> finite B}"
+  "fcl_ord R \<equiv> {(Abs_fset C, Abs_fset D) | C D.
+    ((ground_inj C, []), (ground_inj D, [])) \<in> R \<and> finite C \<and> finite D}"
 
 lemma fcl_ord_refl:
   assumes "refl R"
@@ -337,7 +712,7 @@ proof (rule refl_onI)
   have "((fset x, []), (fset x, [])) \<in> R"
     by (rule refl_onD[OF \<open>refl R\<close>, simplified])
   then show "(x, x) \<in> fcl_ord R"
-    unfolding fcl_ord_def
+    unfolding fcl_ord_def ground_inj_def id_def
     using finite_fset fset_inverse
     by fastforce
 qed simp
@@ -349,11 +724,11 @@ proof (rule transI)
   fix X Y Z
   assume "(X, Y) \<in> fcl_ord R" and "(Y, Z) \<in> fcl_ord R"
   hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_Z: "((fset Y, []), (fset Z, [])) \<in> R"
-    unfolding fcl_ord_def
+    unfolding fcl_ord_def ground_inj_def id_def
     by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
   show "(X, Z) \<in> fcl_ord R"
-    unfolding fcl_ord_def
-    using \<open>trans R\<close>[THEN transD, OF X_Y Y_Z] 
+    unfolding fcl_ord_def ground_inj_def id_def
+    using \<open>trans R\<close>[THEN transD, OF X_Y Y_Z]
     by (metis (mono_tags, lifting) finite_fset fset_inverse mem_Collect_eq)
 qed
 
@@ -364,7 +739,7 @@ proof (rule antisymI)
   fix X Y
   assume "(X, Y) \<in> fcl_ord R" and "(Y, X) \<in> fcl_ord R"
   hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_X: "((fset Y, []), (fset X, [])) \<in> R"
-    unfolding fcl_ord_def
+    unfolding fcl_ord_def ground_inj_def id_def
     by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
   show "X = Y"
     using antisymD[OF \<open>antisym R\<close> X_Y Y_X]
@@ -378,7 +753,7 @@ proof (rule wfUNIVI)
   fix P :: "'b fset \<Rightarrow> bool" and X :: "'b fset"
   assume "\<forall>x. (\<forall>y. (y, x) \<in> fcl_ord R \<longrightarrow> P y) \<longrightarrow> P x"
   hence IH: "\<And>X. (\<And>Y. ((fset Y, []), (fset X, [])) \<in> R \<Longrightarrow> P Y) \<Longrightarrow> P X"
-    unfolding fcl_ord_def
+    unfolding fcl_ord_def ground_inj_def id_def
     by (smt (verit) Abs_fset_inverse mem_Collect_eq prod.inject)
 
   show "P X"
@@ -391,60 +766,49 @@ definition fclause_less where
   "fclause_less A B \<equiv> (A, B) \<in> fcl_ord cl_ord"
 
 definition fclause_less_eq where
-  "fclause_less_eq A B \<equiv> (A, B) \<in> fcl_ord cl_ord_eq"
+  "fclause_less_eq A B \<equiv> (A, B) \<in> fcl_ord (cl_ord\<^sup>=)"
 
-interpretation fclause_well: wellorder fclause_less_eq fclause_less
+interpretation fclause_preorder: preorder fclause_less_eq fclause_less
 proof (unfold_locales)
-  fix X
-  show "fclause_less_eq X X"
-    unfolding fclause_less_eq_def
-    by (rule fcl_ord_refl[OF cl_ord_eq_refl, THEN refl_onD, simplified])
-next
-  show "\<And>X Y Z. fclause_less_eq X Y \<Longrightarrow> fclause_less_eq Y Z \<Longrightarrow> fclause_less_eq X Z"
-    unfolding fclause_less_eq_def
-    by (auto elim: fcl_ord_trans[OF cl_ord_eq_trans, THEN transD])
-next
-  show "\<And>x y. fclause_less_eq x y \<Longrightarrow> fclause_less_eq y x \<Longrightarrow> x = y"
-    unfolding fclause_less_eq_def
-    apply (rule fcl_ord_antisym[THEN antisymD]; assumption?)
-    \<comment> \<open>Not a theorem because of @{thm cl_ord_eq_not_antisym}\<close>
-    sorry
-next
-  show "\<And>x y. fclause_less_eq x y \<or> fclause_less_eq y x"
-    unfolding fclause_less_eq_def
-    unfolding fcl_ord_def
-    \<comment> \<open>Not a theorem because of @{thm trm_ord_ground_total}, i.e. trm_ord is only total on ground
-      terms.\<close>
-    sorry
-next
-  show "\<And>P a. (\<And>x. (\<And>y. fclause_less y x \<Longrightarrow> P y) \<Longrightarrow> P x) \<Longrightarrow> P a"
-    unfolding fclause_less_def
-    using fcl_ord_wf[OF wf_cl_ord]
-    by (metis wf_induct)
-next
   show "\<And>x y. fclause_less x y = (fclause_less_eq x y \<and> \<not> fclause_less_eq y x)"
     unfolding fclause_less_def fclause_less_eq_def
     unfolding fcl_ord_def
-    unfolding cl_ord_iff_cl_ord_eq_and_not
+    unfolding cl_ord_iff_reflcl_cl_ord_and_not
     using Abs_fset_inject by fastforce
+next
+  show "\<And>X. fclause_less_eq X X"
+    unfolding fclause_less_eq_def
+    by (auto intro: fcl_ord_refl[THEN refl_onD, simplified])
+next
+  have "trans (cl_ord\<^sup>=)"
+    using cl_ord_trans by simp
+  then show "\<And>X Y Z. fclause_less_eq X Y \<Longrightarrow> fclause_less_eq Y Z \<Longrightarrow> fclause_less_eq X Z"
+    unfolding fclause_less_eq_def
+    by (auto elim: fcl_ord_trans[THEN transD])
 qed
+
+lemma wfP_fclause_less: "wfP fclause_less"
+  apply (rule wfPUNIVI[rule_format])
+  unfolding fclause_less_def
+  using fcl_ord_wf[OF wf_cl_ord]
+  by (metis wf_induct)
 
 subsection \<open>Massaging of SuperCalc\<close>
 
 definition Bot :: "'a fclause set" where
-  "Bot \<equiv> {({||}, \<sigma>) | \<sigma>. True}"
+  "Bot \<equiv> {{||}}"
 
 definition set_entails_set where
   "set_entails_set S C \<longleftrightarrow>
     (\<forall>I. fo_interpretation I \<longrightarrow> validate_clause_set I S \<longrightarrow> validate_clause_set I C)"
 
 definition cl_fclause :: "'a fclause \<Rightarrow> 'a clause" where
-  "cl_fclause \<equiv> uncurry (subst_cl \<circ> fset)"
+  "cl_fclause \<equiv> fset"
 
-abbreviation ecl_fclause where
+abbreviation ecl_fclause :: "'a fclause \<Rightarrow> 'a eclause"  where
   "ecl_fclause C \<equiv> ecl (cl_fclause C)"
 
-lemma cl_fclause_empty[simp]: "cl_fclause ({||}, \<sigma>) = {}"
+lemma cl_fclause_empty[simp]: "cl_fclause {||} = {}"
   by (simp add: cl_fclause_def)
 
 definition entails :: "'a fclause set \<Rightarrow> 'a fclause set \<Rightarrow> bool" where
@@ -458,7 +822,7 @@ proof (unfold_locales)
 next
   fix B N1
   assume "B \<in> Bot"
-  then obtain \<sigma>\<^sub>B where B_def: "B = ({||}, \<sigma>\<^sub>B)"
+  hence B_def: "B = {||}"
     unfolding Bot_def by blast
   show "entails {B} N1"
     unfolding entails_def set_entails_set_def
@@ -489,6 +853,8 @@ definition Inf :: "'a fclause inference set" where
 
 interpretation inf_sys_super: inference_system Inf
   done
+
+instantiation fclause :: (preorder) preorder begin
 
 print_locale calculus_with_finitary_standard_redundancy
 (* interpretation calc_standard_red: calculus_with_finitary_standard_redundancy Inf Bot entails *)
