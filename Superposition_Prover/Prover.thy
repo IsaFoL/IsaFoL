@@ -32,6 +32,10 @@ lemma refl_Un: "refl S1 \<or> refl S2 \<Longrightarrow> refl (S1 \<union> S2)"
 lemma refl_trivial: "refl {(x, x) | x. True}"
   by (rule refl_onI) simp_all
 
+lemma asympD: "asymp R \<Longrightarrow> R x y \<Longrightarrow> \<not> R y x"
+  by (rule asymD[to_pred])
+
+
 subsection \<open>Generic lemmas about HOL-Library definitions\<close>
 
 lemma irrefl_mult1:
@@ -44,17 +48,6 @@ proof (rule irreflI)
     using assms irrefl_def by fastforce
 qed
 
-lemma irrefl_mult:
-  assumes "irrefl R" "trans R"
-  shows "irrefl (mult R)"
-proof (intro irreflI notI)
-  fix X
-  assume "(X, X) \<in> mult R"
-  then show False
-    using add.commute assms(1) assms(2) mult_cancel mult_implies_one_step
-      subset_mset.zero_eq_add_iff_both_eq_0
-    by metis
-qed
 
 subsection \<open>Generic definitions and associated lemmas\<close>
 
@@ -167,9 +160,9 @@ proof (rule irreflI)
   fix X
   show "(X, X) \<notin> cl_ord"
     unfolding cl_ord_def
-    using irrefl_mult[OF irrefl_mult[OF trm_ord_irrefl trm_ord_trans] mult_trm_ord_trans]
+    using irrefl_mult[OF] irrefl_mult[OF trm_ord_trans trm_ord_irrefl]  mult_trm_ord_trans
     unfolding irrefl_def
-    by simp
+    by auto
 qed
 
 lemma cl_ord_eq_almost_antisym:
@@ -348,292 +341,15 @@ qed
 lemma all_trms_irreducible_empty[simp]: "all_trms_irreducible {} f"
   unfolding all_trms_irreducible_def by simp
 
-(* lemma
-  assumes ren_\<sigma>\<^sub>1: "renaming \<sigma>\<^sub>1 vs" and ren_\<sigma>\<^sub>2: "renaming \<sigma>\<^sub>2 vs"
-  shows "renaming (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2) vs"
-proof -
-  from ren_\<sigma>\<^sub>1 have
-    all_var_\<sigma>\<^sub>1: "\<forall>x\<in>vs. is_a_variable (Var x \<lhd> \<sigma>\<^sub>1)" and
-    "\<forall>x y. x \<in> vs \<longrightarrow> y \<in> vs \<longrightarrow> x \<noteq> y \<longrightarrow> Var x \<lhd> \<sigma>\<^sub>1 \<noteq> Var y \<lhd> \<sigma>\<^sub>1"
-    unfolding renaming_def by simp_all
-  from ren_\<sigma>\<^sub>2 have
-    all_var_\<sigma>\<^sub>2: "\<forall>x\<in>vs. is_a_variable (Var x \<lhd> \<sigma>\<^sub>2)" and
-    "\<forall>x y. x \<in> vs \<longrightarrow> y \<in> vs \<longrightarrow> x \<noteq> y \<longrightarrow> Var x \<lhd> \<sigma>\<^sub>2 \<noteq> Var y \<lhd> \<sigma>\<^sub>2"
-    unfolding renaming_def by simp_all
+definition set_entails_set where
+  "set_entails_set N1 N2 \<longleftrightarrow>
+    (\<forall>I. fo_interpretation I \<longrightarrow> validate_clause_set I N1 \<longrightarrow> validate_clause_set I N2)"
 
-  from all_var_\<sigma>\<^sub>1 have all_var_\<sigma>\<^sub>1': "\<forall>x\<in>vs. \<exists>y. Var x \<lhd> \<sigma>\<^sub>1 = Var y"
-    by (meson is_a_variable.elims(2))
-
-  show ?thesis
-    unfolding renaming_def
-  proof (intro conjI ballI allI impI)
-    fix v
-    assume "v \<in> vs"
-    show "is_a_variable (Var v \<lhd> \<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
-      apply simp
-      using all_var_\<sigma>\<^sub>1'[rule_format, OF \<open>v \<in> vs\<close>] apply simp
-      apply safe
-      apply simp
-      using all_var_\<sigma>\<^sub>2
-      oops *)
-
-(* lemma transp_renaming_cl: "transp renaming_cl"
-proof (rule transpI)
-  fix C D E
-  assume "renaming_cl C D" and "renaming_cl D E"
-  then obtain \<sigma>\<^sub>1 \<sigma>\<^sub>2 where
-    ren_\<sigma>\<^sub>1: "renaming \<sigma>\<^sub>1 (vars_of_cl (cl_ecl C))" and
-    ren_\<sigma>\<^sub>2: "renaming \<sigma>\<^sub>2 (vars_of_cl (cl_ecl D))" and
-    D_def: "D = subst_ecl C \<sigma>\<^sub>1" and
-    E_def: "E = subst_ecl D \<sigma>\<^sub>2"
-    unfolding renaming_cl_def
-    by blast
-  show "renaming_cl C E"
-    unfolding renaming_cl_def
-  proof (intro exI conjI)
-    show "renaming (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2) (vars_of_cl (cl_ecl C))"
-      using ren_\<sigma>\<^sub>1 ren_\<sigma>\<^sub>2
-      (* This is sadly not true as the second argument to renaming should also contain substituted
-          variables from \<sigma>\<^sub>1. *)
-      sorry
-  next
-    show "E = subst_ecl C (\<sigma>\<^sub>1 \<lozenge> \<sigma>\<^sub>2)"
-      using D_def E_def by simp
-  qed
-qed *)
-
-(* lemma
-  fixes N :: "'a eclause set"and C :: "'a eclause"
-  assumes saturated_N: "inference_saturated N" and deriv_C: "derivable_ecl C N"
-  shows "C \<in> N \<or> (\<exists>C'. C' \<in> N \<and> renaming_cl C' C)"
-  using deriv_C saturated_N
-proof (induction C N rule: derivable_ecl.induct)
-  case (init C N)
-  thus ?case by simp
-next
-  case (rn C N D)
-  show ?case
-  proof (rule disjI2, rule rn.IH[OF rn.prems, THEN disjE]; (elim exE conjE)?)
-    assume "C \<in> N"
-    thus "\<exists>E. E \<in> N \<and> renaming_cl E D"
-      using rn.hyps by fast
-  next
-    fix E
-    show "E \<in> N \<Longrightarrow> renaming_cl E C \<Longrightarrow> \<exists>E. E \<in> N \<and> renaming_cl E D"
-      (* using rn.hyps transp_renaming_cl[THEN transpD, of E C D]
-      by blast *)
-      sorry
-  qed
-next
-  case (deriv P S C S' \<sigma> C')
-  show ?case
-    apply (cases "C \<in> S")
-     apply simp
-    using deriv.hyps
-    using deriv.prems
-    using deriv.IH[rule_format]
-  oops *)
-  
-(* lemma
-  fixes C' \<sigma>
-  defines "eC' \<equiv> Ecl (subst_cl C' \<sigma>) {}"
-  assumes
-    in_N: "eC' \<in> N" and
-    ball_S_fin_cl: "\<forall>x\<in>S. finite (cl_ecl x)" and
-    "derivable C P S \<sigma> Ground C'"
-  shows "\<exists>\<eta>. redundant_inference eC' N P \<eta>"
-  unfolding redundant_inference_def
-proof (intro exI conjI ballI)
-  show "instances {eC'} \<subseteq> instances N"
-    using in_N by (simp add: instances_subset_eqI)
-next
-  show "set_entails_clause (clset_instances (instances {eC'})) (cl_ecl eC')"
-    by (auto intro: set_entails_clause_member)
-next
-  fix x
-  assume "x \<in> instances {eC'}"
-  then obtain \<eta> where x_def: "x = (eC', \<eta>)"
-    unfolding instances_def by blast
-  show "subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x)) (trms_ecl eC')"
-    by (simp add: x_def eC'_def subterms_inclusion_refl)
-next
-  fix x
-  assume "x \<in> instances {eC'}"
-  then obtain \<eta> where x_def: "x = (eC', \<eta>)"
-    unfolding instances_def by blast
-  show "\<exists>D'\<in>P. ((fst x, snd x), D', \<sigma>) \<in> ecl_ord"
-    apply (simp add: x_def)
-    using \<open>derivable C P S \<sigma> Ground C'\<close>
-    unfolding ecl_ord_def mem_Collect_eq case_prod_beta prod.sel
-    using conclusion_is_smaller_than_premisses[OF \<open>derivable C P S \<sigma> Ground C'\<close> ball_S_fin_cl]
-    unfolding mset_ecl.simps mset_cl.simps
-    unfolding eC'_def cl_ecl.simps
-    find_theorems "derivable _ _ _ _ Ground" *)
-    
-
-end
-
-subsection \<open>Prover\<close>
-
-locale superposition_prover =
-    SuperCalc: basic_superposition trm_ord sel pos_ord "UNIV :: 'a set" "\<lambda>_ _. {}"
-  for
-    \<comment> \<open>For SuperCalc\<close>
-    trm_ord :: "('a trm \<times> 'a trm) set" and
-    sel :: "'a literal set \<Rightarrow> 'a literal set" and
-    pos_ord :: "'a eclause \<Rightarrow> 'a trm \<Rightarrow> (indices list \<times> indices list) set" +
-  
-  fixes
-    \<comment> \<open>For the Framework\<close>
-    Bot :: "'f set" and
-    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" and
-    Red_F :: "'f set \<Rightarrow> 'f set" and
-
-    \<comment> \<open>Glue between the Framework and SuperCalc\<close>
-    formula_to_eclause :: "'f \<Rightarrow> 'a eclause" and
-    eclause_to_formula :: "'a eclause \<Rightarrow> 'f"
-
-  assumes
-    infinite_vars: "\<not> finite (UNIV :: 'a set)" and
-
-    formula_has_empty_trms: "\<And>f. trms_ecl (formula_to_eclause f) = {}" and
-    formula_has_finite_cl: "\<And>f. finite (cl_ecl (formula_to_eclause f))" and
-    entails_bottom_imp_unsatisfiable: "\<And>B N.
-      B \<in> Bot \<Longrightarrow> entails N {B} \<Longrightarrow> \<not> satisfiable_clause_set (cl_ecl ` formula_to_eclause ` N)" and
-    empty_cl_imp_formula_in_Bot: "\<And>C. cl_ecl C = {} \<Longrightarrow> eclause_to_formula C \<in> Bot" and
-    eclause_mem_conv: "\<And>C N. eclause_to_formula C \<in> N \<Longrightarrow> C \<in> formula_to_eclause ` N" and
-    cl_formula_eclause_conv: "\<And> C. cl_ecl (formula_to_eclause (eclause_to_formula C)) = cl_ecl C"
-begin
-
-definition Inf where
-  "Inf \<equiv> {Infer P (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {})) | P S C \<sigma> k C'.
-    SuperCalc.derivable C (formula_to_eclause ` set P) S \<sigma> k C'}"
-
-definition Red_I where
-  "Red_I N \<equiv> {\<iota> \<in> Inf.
-    (let prems = formula_to_eclause ` (set (prems_of \<iota>)) in
-     let concl = formula_to_eclause (concl_of \<iota>) in
-     \<exists>\<sigma>. SuperCalc.redundant_inference concl (formula_to_eclause ` N) prems \<sigma>)}"
-
-sublocale inference_system Inf .
-
-sublocale consequence_relation Bot entails
-proof unfold_locales
-  show "Bot \<noteq> {}" sorry
-next
-  show "\<And>B N1. B \<in> Bot \<Longrightarrow> entails {B} N1" sorry
-next
-  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> entails N1 N2" sorry
-next
-  show "\<And>N2 N1. \<forall>C\<in>N2. entails N1 {C} \<Longrightarrow> entails N1 N2" sorry
-next
-  show "\<And>N1 N2 N3. entails N1 N2 \<Longrightarrow> entails N2 N3 \<Longrightarrow> entails N1 N3" sorry
-qed
-
-lemma False
-  by (metis Collect_mem_eq eclause_mem_conv empty_Collect_eq formula_has_empty_trms image_iff insert_iff trms_ecl.simps)
-
-sublocale calculus Bot Inf entails Red_I Red_F
-proof unfold_locales
-  show "\<And>N. Red_I N \<subseteq> Inf"
-    unfolding Red_I_def Inf_def Let_def by auto
-next
-  show "\<And>B N. B \<in> Bot \<Longrightarrow> entails N {B} \<Longrightarrow> entails (N - Red_F N) {B}" sorry
-next
-  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'" sorry
-next
-  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" sorry
-next
-  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')" sorry
-next
-  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" sorry
-next
-  show "\<And>\<iota> N. \<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N"
-    unfolding Red_I_def Inf_def
-    apply (simp del: subst_cl.simps)
-    apply (auto simp del: subst_cl.simps)
-    subgoal premises prems for N P S C \<sigma> k C'
-      apply (rule exI[where x = \<sigma>])
-      unfolding SuperCalc.redundant_inference_def
-      proof (intro exI conjI ballI)
-        show "SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<subseteq> SuperCalc.instances (formula_to_eclause ` N)"
-          apply (rule SuperCalc.instances_subset_eqI)
-          using prems(1)[THEN eclause_mem_conv]
-          by simp
-      next
-        show "set_entails_clause
-          (SuperCalc.clset_instances (SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}}))
-          (cl_ecl (formula_to_eclause (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {}))))"
-          unfolding cl_formula_eclause_conv
-          unfolding cl_ecl.simps
-          apply (rule set_entails_clause_member)
-          unfolding SuperCalc.instances_def
-          apply (simp del: subst_cl.simps ground_clause.simps add: composition_of_substs_cl)
-          unfolding SuperCalc.clset_instances_def
-          apply (simp del: subst_cl.simps ground_clause.simps)
-          sorry
-      next
-        show "\<And>x. x \<in> SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<Longrightarrow>
-          SuperCalc.subterms_inclusion
-            (subst_set (trms_ecl (fst x)) (snd x))
-            (trms_ecl (formula_to_eclause (eclause_to_formula (Ecl (subst_cl C' \<sigma>) {}))))"
-          sorry
-      next
-        show "\<And>x. x \<in> SuperCalc.instances {Ecl (subst_cl C' \<sigma>) {}} \<Longrightarrow>
-          \<exists>D'\<in>formula_to_eclause ` set P. ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord "
-          sorry
-      qed
-      done
-qed
-
-lemma empty_trms: "\<forall>x. x \<in> formula_to_eclause ` N \<longrightarrow> trms_ecl x = {}"
-  using formula_has_empty_trms by blast
-
-lemma finite_cl: "\<forall>x\<in>formula_to_eclause ` N. finite (cl_ecl x)"
-    using formula_has_finite_cl by blast
-
-lemma ball_well_constrained: "\<forall>C \<in> formula_to_eclause ` N. SuperCalc.well_constrained C"
-  by (auto simp add: SuperCalc.well_constrained_def formula_has_empty_trms)
-
-sublocale statically_complete_calculus Bot Inf entails Red_I Red_F
-proof unfold_locales
-  fix B N
-  assume "B \<in> Bot" and "saturated N" and "entails N {B}"
-
-  have unsat_N: "\<not> satisfiable_clause_set (cl_ecl ` formula_to_eclause ` N)"
-    by (rule entails_bottom_imp_unsatisfiable[OF \<open>B \<in> Bot\<close> \<open>entails N {B}\<close>])
-
-  have gr_inf_satur_N: "SuperCalc.ground_inference_saturated (formula_to_eclause ` N)"
-    using \<open>saturated N\<close>
-    sorry
-
-  obtain C where
-    derivable_C: "SuperCalc.derivable_ecl C (formula_to_eclause ` N)" and
-    empty_cl_C: "cl_ecl C = {}"
-    using SuperCalc.COMPLETENESS[of "formula_to_eclause ` N", OF empty_trms finite_cl unsat_N]
-    thm SuperCalc.int_clset_is_a_model[of "formula_to_eclause ` N",
-            OF gr_inf_satur_N finite_cl ball_well_constrained]
-    by blast
-
-  show "\<exists>B'\<in>Bot. B' \<in> N"
-  proof (rule bexI)
-    show "eclause_to_formula C \<in> N"
-      using \<open>saturated N\<close>
-      unfolding saturated_def
-      unfolding Inf_from_def
-      unfolding Red_I_def Let_def
-      unfolding Collect_mono_iff
-      using derivable_C
-      using Inf_def
-      using SuperCalc.derivable_ecl.induct
-      sorry
-  next
-    show "eclause_to_formula C \<in> Bot"
-      by (rule empty_cl_imp_formula_in_Bot[OF empty_cl_C])
-  qed
-qed
-
-end
+lemma derivable_finite_conclusion:
+  assumes "\<forall>C \<in> P. finite (cl_ecl C)" and  "derivable C P S \<sigma> k C'"
+  shows "finite C'"
+  using assms
+  by (auto simp: derivable_def superposition_def factorization_def reflexion_def)
 
 
 subsection \<open>Generic lemmas about SuperCalc without constraints\<close>
@@ -670,11 +386,190 @@ next
     unfolding X_def fst_conv snd_conv
     (* using deriv conclusion_is_smaller_than_premisses *)
     using deriv[unfolded derivable_def]
+    using conclusion_is_smaller_than_premisses
     apply (elim disjE exE conjE)
     (* Search in SuperCalc for occurences of "\<in> ecl_ord" or "effective".
        Maybe (probably?) Nicolas already proved something similar. *)
     sorry
 qed
+
+lemma reflexion_conclusion_is_small_than_premisse:
+  assumes reflexion: "reflexion P C \<sigma> k C'" and finite_P: "finite (cl_ecl P)"
+  shows "((mset_cl (C', \<sigma>)), (mset_ecl (P, \<sigma>))) \<in> mult (mult trm_ord)"
+  using reflexion[unfolded reflexion_def]
+  apply safe
+  subgoal for L1
+  unfolding mset_cl.simps mset_ecl.simps
+  apply (simp add: mset_set_Diff[OF finite_P, of "{L1}"])
+  oops
+
+end
+
+
+subsection \<open>Prover\<close>
+
+type_synonym 'a fclause = "'a literal fset"
+
+locale superposition_prover =
+    SuperCalc: basic_superposition trm_ord sel pos_ord "UNIV :: 'a set" "\<lambda>_ _. {}"
+  for
+    \<comment> \<open>For SuperCalc\<close>
+    trm_ord :: "('a trm \<times> 'a trm) set" and
+    sel :: "'a literal set \<Rightarrow> 'a literal set" and
+
+    \<comment> \<open>Voir si pos_ord influence SuperCalc.derivable. Si oui, garder comme paramètre. Sinon, mettre
+    quelque chose de bidon\<close>
+    pos_ord :: "'a eclause \<Rightarrow> 'a trm \<Rightarrow> (indices list \<times> indices list) set" +
+  assumes
+    infinite_vars: "\<not> finite (UNIV :: 'a set)"
+begin
+
+(*
+Definir derivable_list qui est comme SuperCalc.derivable, sauf que les prémisses sont passées dans
+une liste et que l'ordre définie la prémisse principale de superposition.
+
+La prémisse principale est celle de droite, qui est parfois positive et parfois négative.
+*)
+
+definition derivable_list where
+  "derivable_list C P S \<sigma> k C' \<longleftrightarrow>
+    (\<exists>P1 \<in> S. \<exists>P2 \<in> S. P = [P2, P1] \<and> SuperCalc.superposition P1 P2 C \<sigma> k C') \<or>
+    (\<exists>P1 \<in> S. P = [P1] \<and> SuperCalc.factorization P1 C \<sigma> k C') \<or>
+    (\<exists>P1 \<in> S. P = [P1] \<and> SuperCalc.reflexion P1 C \<sigma> k C')"
+
+lemma derivable_list_imp_derivable:
+  "derivable_list C P S \<sigma> k C' \<Longrightarrow> SuperCalc.derivable C (set P) S \<sigma> k C'"
+  unfolding derivable_list_def SuperCalc.derivable_def
+  by (auto simp: insert_commute)
+
+definition F_Inf :: "'a fclause inference set" where
+  "F_Inf \<equiv> {Infer P (Abs_fset (subst_cl C' \<sigma>)) | P S C \<sigma> k C'.
+    derivable_list C (map (\<lambda>C. Ecl (fset C) {}) P) S \<sigma> k C'}"
+ 
+interpretation F: inference_system F_Inf .
+
+definition entails :: "'a fclause set \<Rightarrow> 'a fclause set \<Rightarrow> bool" (infix "\<TTurnstile>e" 50) where
+  "entails N1 N2 \<equiv> SuperCalc.set_entails_set (fset ` N1) (fset ` N2)"
+
+interpretation G: consequence_relation "{{||}}" entails
+proof unfold_locales
+  show "{{||}} \<noteq> {}"
+    by simp
+next
+  show "\<And>B N1. B \<in> {{||}} \<Longrightarrow> {B} \<TTurnstile>e N1"
+    unfolding entails_def
+    by (simp add: SuperCalc.set_entails_set_def)
+next
+  show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> N1 \<TTurnstile>e N2"
+    unfolding entails_def
+    by (auto simp add: SuperCalc.set_entails_set_def)
+next
+  show "\<And>N2 N1. \<forall>C\<in>N2. N1 \<TTurnstile>e {C} \<Longrightarrow> N1 \<TTurnstile>e N2"
+    unfolding entails_def
+    by (auto simp: SuperCalc.set_entails_set_def)
+next
+  show "\<And>N1 N2 N3. N1 \<TTurnstile>e N2 \<Longrightarrow> N2 \<TTurnstile>e N3 \<Longrightarrow> N1 \<TTurnstile>e N3"
+    unfolding entails_def SuperCalc.set_entails_set_def
+    by blast
+qed
+
+(* idéalement, réutiliser l'ordre de SuperCalc.
+Sinon, convertir fset en multiset et mult pour définir l'ordre sur les fset. *)
+
+definition fclause_ord :: "'a fclause \<Rightarrow> 'a fclause \<Rightarrow> bool" where
+  "fclause_ord C D \<equiv> ((fset C, []), (fset D, [])) \<in> SuperCalc.cl_ord"
+
+interpretation Standard_Redundancy:
+  calculus_with_finitary_standard_redundancy F_Inf "{{||}}" "(\<TTurnstile>e)" fclause_ord
+proof unfold_locales
+  show "transp fclause_ord"
+    unfolding fclause_ord_def
+    by (auto intro: transpI SuperCalc.cl_ord_trans[THEN transD])
+next
+  show "wfP fclause_ord"
+    unfolding fclause_ord_def wfP_def
+    by (rule compat_wf[of _ _ "\<lambda>C. (fset C, [])", OF _ SuperCalc.wf_cl_ord]) (simp add: compat_def)
+next
+  show "\<And>\<iota>. \<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
+    unfolding F_Inf_def
+    by (auto simp add: derivable_list_def)
+next
+  \<comment> \<open>I am not able to prove this one, but it is only necessary to prove Red_I_of_Inf_to_N in the
+      locale. Since we don't plan to use Red_I, maybe the locale could be splitted and we would not
+      need to prove it at all.\<close>
+  fix \<iota> :: "'a fclause inference"
+  assume "\<iota> \<in> F_Inf"
+  then obtain P S C \<sigma> k C' where
+    \<iota>_def: "\<iota> = Infer P (Abs_fset (subst_cl C' \<sigma>))" and
+    deriv_list_C': "derivable_list C (map (\<lambda>C. Ecl (fset C) {}) P) S \<sigma> k C'"
+    unfolding F_Inf_def by blast
+  note deriv_C' = deriv_list_C'[THEN derivable_list_imp_derivable, simplified]
+  have fin_C': "finite C'"
+    by (auto intro: SuperCalc.derivable_finite_conclusion[OF _ deriv_C'])
+  show "fclause_ord (concl_of \<iota>) (main_prem_of \<iota>)"
+    using fin_C'
+    apply (simp add: \<iota>_def fclause_ord_def Abs_fset_inverse)
+    using deriv_list_C'[unfolded derivable_list_def]
+  (* proof (elim disjE bexE conjE)
+    fix P1
+    assume "finite C'" and "P1 \<in> S" and
+      map_P_eq_P1: "map (\<lambda>C. Ecl (fset C) {}) P = [P1]" and
+      refl_C': "SuperCalc.reflexion P1 C \<sigma> k C'"
+    from map_P_eq_P1 obtain P1' where P_def: "P = [P1']" and P1_def: "P1 = Ecl (fset P1') {}"
+      by auto
+    show "(({L. \<exists>L'. L' \<in> C' \<and> L = subst_lit L' \<sigma>}, []), fset (last P), []) \<in> SuperCalc.cl_ord"
+      using refl_C'
+      apply (simp add: P_def P1_def SuperCalc.reflexion_def)
+      apply safe
+      unfolding SuperCalc.cl_ord_def
+      apply simp *)
+    sorry
+qed
+
+abbreviation Red_F :: "'a fclause set \<Rightarrow> 'a fclause set" where
+  "Red_F \<equiv> Standard_Redundancy.Red_F"
+
+definition Red_I :: "'a fclause set \<Rightarrow> 'a fclause inference set" where
+  "Red_I N \<equiv> {\<iota> \<in> F_Inf.
+    (let prems = (\<lambda>C. Ecl (fset C) {}) ` (set (prems_of \<iota>)) in
+     let concl = Ecl (fset (concl_of \<iota>)) {} in
+     \<exists>\<sigma>. SuperCalc.redundant_inference concl ((\<lambda>C. Ecl (fset C) {}) ` N) prems \<sigma>)}"
+
+sublocale calculus "{{||}}" F_Inf entails Red_I Red_F
+proof unfold_locales
+  show "\<And>N. Red_I N \<subseteq> F_Inf"
+    unfolding Red_I_def F_Inf_def Let_def by auto
+next
+  show "\<And>B N. B \<in> {{||}} \<Longrightarrow> N \<TTurnstile>e {B} \<Longrightarrow> (N - Red_F N) \<TTurnstile>e {B}"
+    apply (simp add: Standard_Redundancy.Red_F_def)
+    sorry
+next
+  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'"
+    by (fact Standard_Redundancy.Red_F_of_subset)
+next
+  show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" sorry
+next
+  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
+    by (fact Standard_Redundancy.Red_F_of_Red_F_subset)
+next
+  show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" sorry
+next
+  show "\<And>\<iota> N. \<iota> \<in> F_Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_I N" sorry
+qed
+
+sublocale statically_complete_calculus "{{||}}" F_Inf entails Red_I Red_F
+proof unfold_locales
+  fix B N
+  assume "B \<in> {{||}}" and "saturated N" and "N \<TTurnstile>e {B}"
+  hence B_def: "B = {||}" by simp
+  show "\<exists>B'\<in>{{||}}. B' \<in> N"
+    using \<open>saturated N\<close> \<open>N \<TTurnstile>e {B}\<close>[unfolded B_def entails_def, simplified]
+    thm SuperCalc.COMPLETENESS
+    thm SuperCalc.int_clset_is_a_model
+    sorry
+qed
+
+end
 
 
 subsection \<open>Finite clauses\<close>
