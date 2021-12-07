@@ -479,8 +479,8 @@ Sinon, convertir fset en multiset et mult pour définir l'ordre sur les fset. *)
 definition fclause_ord :: "'a fclause \<Rightarrow> 'a fclause \<Rightarrow> bool" where
   "fclause_ord C D \<equiv> ((fset C, []), (fset D, [])) \<in> SuperCalc.cl_ord"
 
-interpretation Standard_Redundancy:
-  calculus_with_finitary_standard_redundancy F_Inf "{{||}}" "(\<TTurnstile>e)" fclause_ord
+interpretation Standard_Red_F:
+  finitary_standard_formula_redundancy "{{||}}" "(\<TTurnstile>e)" fclause_ord
 proof unfold_locales
   show "transp fclause_ord"
     unfolding fclause_ord_def
@@ -489,45 +489,10 @@ next
   show "wfP fclause_ord"
     unfolding fclause_ord_def wfP_def
     by (rule compat_wf[of _ _ "\<lambda>C. (fset C, [])", OF _ SuperCalc.wf_cl_ord]) (simp add: compat_def)
-next
-  show "\<And>\<iota>. \<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
-    unfolding F_Inf_def
-    by (auto simp add: derivable_list_def)
-next
-  \<comment> \<open>I am not able to prove this one, but it is only necessary to prove Red_I_of_Inf_to_N in the
-      locale. Since we don't plan to use Red_I, maybe the locale could be splitted and we would not
-      need to prove it at all.\<close>
-  fix \<iota> :: "'a fclause inference"
-  assume "\<iota> \<in> F_Inf"
-  then obtain P S C \<sigma> k C' where
-    \<iota>_def: "\<iota> = Infer P (Abs_fset (subst_cl C' \<sigma>))" and
-    deriv_list_C': "derivable_list C (map (\<lambda>C. Ecl (fset C) {}) P) S \<sigma> k C'"
-    unfolding F_Inf_def by blast
-  note deriv_C' = deriv_list_C'[THEN derivable_list_imp_derivable, simplified]
-  have fin_C': "finite C'"
-    by (auto intro: SuperCalc.derivable_finite_conclusion[OF _ deriv_C'])
-  show "fclause_ord (concl_of \<iota>) (main_prem_of \<iota>)"
-    using fin_C'
-    apply (simp add: \<iota>_def fclause_ord_def Abs_fset_inverse)
-    using deriv_list_C'[unfolded derivable_list_def]
-  (* proof (elim disjE bexE conjE)
-    fix P1
-    assume "finite C'" and "P1 \<in> S" and
-      map_P_eq_P1: "map (\<lambda>C. Ecl (fset C) {}) P = [P1]" and
-      refl_C': "SuperCalc.reflexion P1 C \<sigma> k C'"
-    from map_P_eq_P1 obtain P1' where P_def: "P = [P1']" and P1_def: "P1 = Ecl (fset P1') {}"
-      by auto
-    show "(({L. \<exists>L'. L' \<in> C' \<and> L = subst_lit L' \<sigma>}, []), fset (last P), []) \<in> SuperCalc.cl_ord"
-      using refl_C'
-      apply (simp add: P_def P1_def SuperCalc.reflexion_def)
-      apply safe
-      unfolding SuperCalc.cl_ord_def
-      apply simp *)
-    sorry
 qed
 
 abbreviation Red_F :: "'a fclause set \<Rightarrow> 'a fclause set" where
-  "Red_F \<equiv> Standard_Redundancy.Red_F"
+  "Red_F \<equiv> Standard_Red_F.Red_F"
 
 definition Red_I :: "'a fclause set \<Rightarrow> 'a fclause inference set" where
   "Red_I N \<equiv> {\<iota> \<in> F_Inf.
@@ -541,16 +506,15 @@ proof unfold_locales
     unfolding Red_I_def F_Inf_def Let_def by auto
 next
   show "\<And>B N. B \<in> {{||}} \<Longrightarrow> N \<TTurnstile>e {B} \<Longrightarrow> (N - Red_F N) \<TTurnstile>e {B}"
-    apply (simp add: Standard_Redundancy.Red_F_def)
-    sorry
+    by (fact Standard_Red_F.Red_F_Bot)
 next
   show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'"
-    by (fact Standard_Redundancy.Red_F_of_subset)
+    by (fact Standard_Red_F.Red_F_of_subset)
 next
   show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'" sorry
 next
   show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
-    by (fact Standard_Redundancy.Red_F_of_Red_F_subset)
+    by (fact Standard_Red_F.Red_F_of_Red_F_subset)
 next
   show "\<And>N' N. N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')" sorry
 next
