@@ -474,7 +474,6 @@ lemma to_from_SuperCalc_cl[simp]:
 abbreviation to_SuperCalc_ecl where
   "to_SuperCalc_ecl C \<equiv> Ecl (to_SuperCalc_cl C) {}"
 
-
 locale superposition_prover =
     SuperCalc: basic_superposition trm_ord sel pos_ord "UNIV :: 'a set" "\<lambda>_ _. {}" +
     substitution subst_equation "[]" Unification.comp renamings_apart
@@ -492,7 +491,18 @@ locale superposition_prover =
     infinite_vars: "\<not> finite (UNIV :: 'a set)"
 begin
 
-lemma "to_SuperCalc_cl (subst_cls C \<sigma>) = subst_cl (to_SuperCalc_cl C) \<sigma>"
+text \<open>
+These simplification rules often hurt more than they help.
+Better to remove it and selectively add them tho @{method simp} when necessary.
+\<close>
+
+lemmas [simp del] = equational_clausal_logic.ground_clause.simps
+lemmas [simp del] = equational_clausal_logic.subst_cl.simps
+lemmas [simp del] = equational_clausal_logic.validate_ground_clause.simps
+lemmas [simp del] = terms.subst_set.simps
+lemmas [simp del] = SuperCalc.trm_rep.simps
+
+lemma to_SuperCalc_cl_subst_cls: "to_SuperCalc_cl (subst_cls C \<sigma>) = subst_cl (to_SuperCalc_cl C) \<sigma>"
   (is "?lhs = ?rhs")
 proof -
   have "to_SuperCalc_lit (local.subst_lit L \<sigma>) =
@@ -503,7 +513,7 @@ proof -
     by simp
   moreover have "?rhs = (\<lambda>x. equational_clausal_logic.subst_lit (to_SuperCalc_lit x) \<sigma>) ` set_mset C"
     unfolding to_SuperCalc_cl_def
-    by (auto simp add: setcompr_eq_image)
+    by (auto simp add: setcompr_eq_image subst_cl.simps)
   ultimately show "?lhs = ?rhs"
     by (simp add: image_image)
 qed
@@ -530,6 +540,9 @@ text \<open>
 Renaming is performed here in order to keep @{const derivable_list} as similar as possible to
 @{const SuperCalc.derivable}. Renaming would not strictly be necessary for
 @{const SuperCalc.factorization} and @{const SuperCalc.reflexion}, but it does not hurt either.
+
+If it ever cause a problem, change the structure to have access to @{type Clausal_Logic.clause} in
+@{const derivable_list}.
 \<close>
 
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
@@ -550,7 +563,8 @@ proof unfold_locales
 next
   show "\<And>B N1. B \<in> {{#}} \<Longrightarrow> {B} \<TTurnstile>e N1"
     unfolding entails_def
-    by (simp add: SuperCalc.set_entails_set_def to_SuperCalc_cl_def)
+    by (simp add: SuperCalc.set_entails_set_def to_SuperCalc_cl_def subst_cl.simps
+        ground_clause.simps validate_ground_clause.simps)
 next
   show "\<And>N2 N1. N2 \<subseteq> N1 \<Longrightarrow> N1 \<TTurnstile>e N2"
     unfolding entails_def
@@ -660,7 +674,7 @@ next
           simplified])
   hence to_from_subst_C': "to_SuperCalc_cl (from_SuperCalc_cl (subst_cl C' \<sigma>)) = subst_cl C' \<sigma>"
     using to_from_SuperCalc_cl
-    by simp
+    by (simp add: subst_cl.simps)
 
   have "SuperCalc.redundant_inference
     (to_SuperCalc_ecl (from_SuperCalc_cl (subst_cl C' \<sigma>)))
@@ -678,403 +692,118 @@ next
     by auto
 qed
 
+lemma renaming_imp_is_renaming:
+  fixes \<sigma> :: "('a \<times> 'a trm) list"
+  assumes "renaming \<sigma> UNIV"
+  shows "is_renaming \<sigma>"
+proof -
+  show ?thesis
+    using assms
+    unfolding renaming_def is_renaming_def
+    apply simp
+  oops
+
+lemma is_renaming_imp_renaming:
+  fixes \<sigma> :: "('a \<times> 'a trm) list" and S :: "'a set"
+  shows "is_renaming \<sigma> \<Longrightarrow> renaming \<sigma> S"
+  unfolding is_renaming_def
+  by (auto elim: comp.elims)
+
 sublocale statically_complete_calculus "{{#}}" F_Inf entails Red_I Red_F
 proof unfold_locales
-  fix B N
+  fix B and N :: "'a equation Clausal_Logic.clause set"
   assume "B \<in> {{#}}" and "saturated N" and "N \<TTurnstile>e {B}"
   hence B_def: "B = {#}" by simp
-  show "\<exists>B'\<in>{{#}}. B' \<in> N"
+
+  \<comment> \<open>We close @{term N} under \<alpha>-renaming.\<close>
+  define N'  :: "'a equation Clausal_Logic.clause set" where
+    "N' \<equiv> { subst_cls C \<sigma> | C \<sigma>. C \<in> N \<and> is_renaming \<sigma>}"
+
+  have "saturated N'"
     using \<open>saturated N\<close>
-    using \<open>N \<TTurnstile>e {B}\<close>[unfolded B_def entails_def, simplified]
-    using SuperCalc.int_clset_is_a_model
     sorry
-qed
 
-end
-
-
-subsection \<open>Finite clauses\<close>
-
-(* First try to refactor the Framework extension locale and see if this is still needed afterward. *)
-(* redefine 'b equation as unordered pair (using uprod from HOL-Library), same thing with literal *)
-(* define mapping between these and SuperCalc's ones *)
-
-(* if < on terms is total, use canonical representation instead of SOME *)
-term "SOME x. P x"
-term "\<exists>x. P x"
-
-type_synonym 'b fclause = "'b literal fset"
-
-(* We need an injective mapping clause to clause, where all variables have been replaced by fresh
-constants. *)
-
-definition ground_inj where
-  "ground_inj \<equiv> id" (* FIXME: obviously not id *)
-
-print_locale preorder
-
-(* definition fcl_of_cl where
-  "fcl_of_cl C = Abs_fset (image flit_of_lit C)" *)
-
-definition fcl_ord where
-  "fcl_ord R \<equiv> {(Abs_fset C, Abs_fset D) | C D.
-    ((ground_inj C, []), (ground_inj D, [])) \<in> R \<and> finite C \<and> finite D}"
-
-lemma fcl_ord_refl:
-  assumes "refl R"
-  shows "refl (fcl_ord R)"
-proof (rule refl_onI)
-  fix x
-  have "((fset x, []), (fset x, [])) \<in> R"
-    by (rule refl_onD[OF \<open>refl R\<close>, simplified])
-  then show "(x, x) \<in> fcl_ord R"
-    unfolding fcl_ord_def ground_inj_def id_def
-    using finite_fset fset_inverse
-    by fastforce
-qed simp
-
-lemma fcl_ord_trans:
-  assumes "trans R"
-  shows "trans (fcl_ord R)"
-proof (rule transI)
-  fix X Y Z
-  assume "(X, Y) \<in> fcl_ord R" and "(Y, Z) \<in> fcl_ord R"
-  hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_Z: "((fset Y, []), (fset Z, [])) \<in> R"
-    unfolding fcl_ord_def ground_inj_def id_def
-    by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
-  show "(X, Z) \<in> fcl_ord R"
-    unfolding fcl_ord_def ground_inj_def id_def
-    using \<open>trans R\<close>[THEN transD, OF X_Y Y_Z]
-    by (metis (mono_tags, lifting) finite_fset fset_inverse mem_Collect_eq)
-qed
-
-lemma fcl_ord_antisym:
-  assumes "antisym R"
-  shows "antisym (fcl_ord R)"
-proof (rule antisymI)
-  fix X Y
-  assume "(X, Y) \<in> fcl_ord R" and "(Y, X) \<in> fcl_ord R"
-  hence X_Y: "((fset X, []), (fset Y, [])) \<in> R" and Y_X: "((fset Y, []), (fset X, [])) \<in> R"
-    unfolding fcl_ord_def ground_inj_def id_def
-    by (smt (verit, best) fset_cases fset_inverse mem_Collect_eq prod.inject)+
-  show "X = Y"
-    using antisymD[OF \<open>antisym R\<close> X_Y Y_X]
-    by (simp add: fset_cong)
-qed
-
-lemma fcl_ord_wf:
-  assumes "wf R"
-  shows "wf (fcl_ord R)"
-proof (rule wfUNIVI)
-  fix P :: "'b fset \<Rightarrow> bool" and X :: "'b fset"
-  assume "\<forall>x. (\<forall>y. (y, x) \<in> fcl_ord R \<longrightarrow> P y) \<longrightarrow> P x"
-  hence IH: "\<And>X. (\<And>Y. ((fset Y, []), (fset X, [])) \<in> R \<Longrightarrow> P Y) \<Longrightarrow> P X"
-    unfolding fcl_ord_def ground_inj_def id_def
-    by (smt (verit) Abs_fset_inverse mem_Collect_eq prod.inject)
-
-  show "P X"
-    apply (induction rule: IH)
-    apply (induction rule: wf_induct[OF \<open>wf R\<close>, rule_format])
-    using IH by blast
-qed
-
-definition fclause_less where
-  "fclause_less A B \<equiv> (A, B) \<in> fcl_ord cl_ord"
-
-definition fclause_less_eq where
-  "fclause_less_eq A B \<equiv> (A, B) \<in> fcl_ord (cl_ord\<^sup>=)"
-
-interpretation fclause_preorder: preorder fclause_less_eq fclause_less
-proof (unfold_locales)
-  show "\<And>x y. fclause_less x y = (fclause_less_eq x y \<and> \<not> fclause_less_eq y x)"
-    unfolding fclause_less_def fclause_less_eq_def
-    unfolding fcl_ord_def
-    unfolding cl_ord_iff_reflcl_cl_ord_and_not
-    using Abs_fset_inject by fastforce
-next
-  show "\<And>X. fclause_less_eq X X"
-    unfolding fclause_less_eq_def
-    by (auto intro: fcl_ord_refl[THEN refl_onD, simplified])
-next
-  have "trans (cl_ord\<^sup>=)"
-    using cl_ord_trans by simp
-  then show "\<And>X Y Z. fclause_less_eq X Y \<Longrightarrow> fclause_less_eq Y Z \<Longrightarrow> fclause_less_eq X Z"
-    unfolding fclause_less_eq_def
-    by (auto elim: fcl_ord_trans[THEN transD])
-qed
-
-lemma wfP_fclause_less: "wfP fclause_less"
-  apply (rule wfPUNIVI[rule_format])
-  unfolding fclause_less_def
-  using fcl_ord_wf[OF wf_cl_ord]
-  by (metis wf_induct)
-
-subsection \<open>Massaging of SuperCalc\<close>
-
-definition Bot :: "'a fclause set" where
-  "Bot \<equiv> {{||}}"
-
-definition set_entails_set where
-  "set_entails_set S C \<longleftrightarrow>
-    (\<forall>I. fo_interpretation I \<longrightarrow> validate_clause_set I S \<longrightarrow> validate_clause_set I C)"
-
-definition cl_fclause :: "'a fclause \<Rightarrow> 'a clause" where
-  "cl_fclause \<equiv> fset"
-
-abbreviation ecl_fclause :: "'a fclause \<Rightarrow> 'a eclause"  where
-  "ecl_fclause C \<equiv> ecl (cl_fclause C)"
-
-lemma cl_fclause_empty[simp]: "cl_fclause {||} = {}"
-  by (simp add: cl_fclause_def)
-
-definition entails :: "'a fclause set \<Rightarrow> 'a fclause set \<Rightarrow> bool" where
-  "entails X Y \<equiv> set_entails_set (image cl_fclause X) (image cl_fclause Y)"
-
-interpretation conseq_rel_super: consequence_relation Bot entails
-proof (unfold_locales)
-  show "Bot \<noteq> {}"
-    using Bot_def
-    by force
-next
-  fix B N1
-  assume "B \<in> Bot"
-  hence B_def: "B = {||}"
-    unfolding Bot_def by blast
-  show "entails {B} N1"
-    unfolding entails_def set_entails_set_def
-    unfolding B_def image_insert cl_fclause_empty image_empty
+  have all_finite_N': "\<forall>x\<in>to_SuperCalc_ecl ` N'. finite (cl_ecl x)"
     by simp
-next
-  fix N2 N1
-  show "N2 \<subseteq> N1 \<Longrightarrow> entails N1 N2"
-    unfolding entails_def set_entails_set_def
-    by force
-next
-  fix N2 N1
-  show "\<forall>C \<in> N2. entails N1 {C} \<Longrightarrow> entails N1 N2"
-    unfolding entails_def set_entails_set_def
-    by force
-next
-  fix N1 N2 N3
-  show "entails N1 N2 \<Longrightarrow> entails N2 N3 \<Longrightarrow> entails N1 N3"
-    unfolding entails_def set_entails_set_def
-    by blast
-qed
 
-definition restriction where
-  "restriction I S x y \<equiv> x \<in> S \<and> y \<in> S \<and> I x y"
-
-definition Inf :: "'a fclause inference set" where
-  "Inf \<equiv> {Infer P C | P S C \<sigma> k C'. derivable (ecl_fclause C) (image ecl_fclause (set P)) S \<sigma> k C'}"
-
-interpretation inf_sys_super: inference_system Inf
-  done
-
-instantiation fclause :: (preorder) preorder begin
-
-print_locale calculus_with_finitary_standard_redundancy
-(* interpretation calc_standard_red: calculus_with_finitary_standard_redundancy Inf Bot entails *)
-
-
-term redundant_inference
-term prems_of
-term concl_of
-term "redundant_inference (concl_of \<iota>) (image ecl N) (set (prems_of \<iota>)) \<sigma>"
-
-definition Red_I :: "'a fclause set \<Rightarrow> 'a fclause inference set" where
-  "Red_I N \<equiv> {\<iota> \<in> Inf.
-    (let prems = image ecl_fclause (set (prems_of \<iota>)) in
-     let concl = ecl_fclause (concl_of \<iota>) in
-     \<exists>\<sigma>. redundant_inference concl (image ecl_fclause N) prems \<sigma>)}"
-
-text \<open>
-I first tried with the following definition.
-
-definition Red_F where
-  "Red_F N \<equiv>
-    {cl_ecl C | C \<sigma> C'. redundant_clause C (image ecl N) \<sigma> C' \<and> (\<forall>n \<in> N. \<not> renaming_cl C (ecl n))}"
-
-But I could not prove the lemma @{term "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'"}.
-\<close>
-
-term entails
-term cl_ord
-
-text \<open>So we let's now try the standard redundancy criterion for formulas.\<close>
-
-definition Red_F :: "'a fclause set \<Rightarrow> 'a fclause set" where
-  "Red_F N \<equiv> {}"
-
-lemma lt_set_entails_clause_imp_validate_clause:
-  assumes
-    fo_I: "fo_interpretation I" and
-    validate_I_N: "validate_clause_set I N" and
-    entails_lt_C: "set_entails_set {D \<in> N. \<exists>\<sigma>\<^sub>1 \<sigma>\<^sub>2. ((C, \<sigma>\<^sub>1), D, \<sigma>\<^sub>2) \<in> cl_ord} {C}"
-  shows "validate_clause I C"
-  using assms
-  by (simp add: Red_F_def set_entails_set_def)
-
-(* lemma validate_clause_set_imp_validate_Red_F:
-  assumes inter_I: "fo_interpretation I" and validate_N: "validate_clause_set I (image fset N)"
-  shows "validate_clause_set I (image fset (Red_F N))"
-  unfolding validate_clause_set.simps
-proof (intro allI impI)
-  fix C
-  assume "C \<in> Red_F N"
-  hence "set_entails_set {D \<in> N. \<exists>\<sigma>\<^sub>1 \<sigma>\<^sub>2. ((C, \<sigma>\<^sub>1), D, \<sigma>\<^sub>2) \<in> cl_ord} {C}"
-    unfolding Red_F_def entails_def by simp
-  moreover have "validate_clause_set I {D \<in> N. \<exists>\<sigma>\<^sub>1 \<sigma>\<^sub>2. ((C, \<sigma>\<^sub>1), D, \<sigma>\<^sub>2) \<in> cl_ord}"
-    using validate_N
-    by (simp add: validate_clause_subset_eq)
-  ultimately show "validate_clause I C"
-    using inter_I
-    unfolding set_entails_set_def
-    by simp
-qed *)
-
-
-sublocale calc_super: calculus Bot Inf entails Red_I Red_F
-proof (unfold_locales)
-  fix N
-  show "Red_I N \<subseteq> Inf"
-    unfolding Red_I_def by simp
-next
-  fix B N
-  assume "B \<in> Bot" and "entails N {B}"
-  then show "entails (N - Red_F N) {B}"
+  hence gr_inf_satur_N': "SuperCalc.ground_inference_saturated (to_SuperCalc_ecl ` N')"
     sorry
-next
-  fix N N' :: "'a fclause set"
-  assume "N \<subseteq> N'"
-  show "Red_F N \<subseteq> Red_F N'"
-    sorry
-next
-  fix N N' :: "'a fclause set"
-  assume "N \<subseteq> N'"
-  show "Red_I N \<subseteq> Red_I N'"
-  proof (rule subsetI)
-    fix \<iota> :: "'a fclause inference"
-    define prems where "prems = image ecl_fclause (set (prems_of \<iota>))"
-    define concl where "concl = ecl_fclause (concl_of \<iota>)"
-    assume "\<iota> \<in> Red_I N"
-    then obtain \<sigma> where
-      "\<iota> \<in> Inf" and
-      red_N: "redundant_inference concl (image ecl_fclause N) prems \<sigma>"
-      unfolding Red_I_def by (auto simp: prems_def concl_def)
-    have "redundant_inference concl (image ecl_fclause N') prems \<sigma>"
-      using \<open>N \<subseteq> N'\<close> red_N redundant_inference_subset_eqI[of "image ecl_fclause N" "image ecl_fclause N'"]
+
+  have ball_well_constrained_N': "Ball (to_SuperCalc_ecl ` N') SuperCalc.well_constrained"
+    by (simp add: SuperCalc.well_constrained_def)
+
+  have closed_renaming_N': "closed_under_renaming (to_SuperCalc_ecl ` N')"
+    unfolding closed_under_renaming_def
+  proof (intro allI impI)
+    fix C D
+    assume "C \<in> to_SuperCalc_ecl ` N'"
+    then obtain CC \<sigma> where
+      C_def: "C = to_SuperCalc_ecl (subst_cls CC \<sigma>)" and
+      "CC \<in> N" and "is_renaming \<sigma>"
+      unfolding N'_def
       by blast
-    thus "\<iota> \<in> Red_I N'"
-      using \<open>\<iota> \<in> Inf\<close>
-      by (auto simp: Red_I_def prems_def concl_def)
+    assume "renaming_cl C D"
+    then obtain \<eta> where "renaming \<eta> (vars_of_cl (cl_ecl C))" and D_def: "D = subst_ecl C \<eta>"
+      unfolding renaming_cl_def
+      by blast
+
+    show "D \<in> to_SuperCalc_ecl ` N'"
+      unfolding image_iff
+    proof (rule bexI)
+      show "D = to_SuperCalc_ecl (subst_cls (subst_cls CC \<sigma>) \<eta>)"
+        using D_def C_def
+        by (simp add: to_SuperCalc_cl_subst_cls)
+    next
+      show "subst_cls (subst_cls CC \<sigma>) \<eta> \<in> N'"
+        unfolding N'_def
+      proof (intro CollectI exI conjI)
+        show "CC \<in> N"
+          by (rule \<open>CC \<in> N\<close>)
+      next
+        show "is_renaming (\<sigma> \<lozenge> \<eta>)"
+          using is_renaming_imp_renaming[OF \<open>is_renaming \<sigma>\<close>]
+          using \<open>renaming \<eta> (vars_of_cl (cl_ecl C))\<close>
+          sorry
+      next
+        show "subst_cls (subst_cls CC \<sigma>) \<eta> = subst_cls CC (\<sigma> \<lozenge> \<eta>)"
+          by simp
+      qed
+    qed
   qed
-next
-  fix N' N
-  show "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
-    unfolding Red_F_def
-    sorry
-next
-  fix N' N
-  show "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')"
-    unfolding Red_I_def Red_F_def 
-    sorry
-next
-  fix \<iota> :: "'a fclause inference" and N :: "'a fclause set"
-  define prems where "prems = image ecl_fclause (set (prems_of \<iota>))"
-  define concl where "concl = ecl_fclause (concl_of \<iota>)"
-  assume "\<iota> \<in> Inf" and "concl_of \<iota> \<in> N"
 
-  obtain \<sigma> where red_N': "redundant_inference concl (image ecl_fclause N) prems \<sigma>"
-    (* using redundant_inference_member[of "concl_of \<iota>" "image ecl_fclause N"]
-    using \<open>concl_of \<iota> \<in> N\<close>
-    by (auto simp: concl_def) *)
+  note int_clset_is_a_model' = SuperCalc.int_clset_is_a_model[OF gr_inf_satur_N' all_finite_N'
+      ball_well_constrained_N' _ closed_renaming_N', rule_format]
+
+  obtain C \<sigma> where
+    C_in_N': "C \<in> to_SuperCalc_ecl ` N'" and
+    gr_cl_C_\<sigma>: "ground_clause (subst_cl (cl_ecl C) \<sigma>)" and
+    not_val_gr_cl_C_\<sigma>: "\<not> validate_ground_clause (SuperCalc.same_values
+      (\<lambda>t. SuperCalc.trm_rep t (to_SuperCalc_ecl ` N'))) (subst_cl (cl_ecl C) \<sigma>)"
     sorry
 
-  thus "\<iota> \<in> Red_I N"
-    using \<open>\<iota> \<in> Inf\<close>
-    by (auto simp add: Red_I_def prems_def concl_def)
+  have "trms_ecl C = {}"
+    using C_in_N'[unfolded N'_def] by force
+  hence all_trms_irreducible: "SuperCalc.all_trms_irreducible
+    (subst_set (trms_ecl C) \<sigma>) (\<lambda>t. SuperCalc.trm_rep t (to_SuperCalc_ecl ` N'))"
+    by (simp add: subst_set.simps)
+
+  have "\<not> (\<forall>x\<in>to_SuperCalc_ecl ` N'. cl_ecl x \<noteq> {})"
+    by (rule contrapos_nn[OF not_val_gr_cl_C_\<sigma>])
+      (auto intro: int_clset_is_a_model'[of "(C, \<sigma>)" C \<sigma>,
+          OF _ _ _ C_in_N' gr_cl_C_\<sigma> all_trms_irreducible, simplified])
+  then obtain C' where
+    "Ecl (to_SuperCalc_cl C') {} \<in> to_SuperCalc_ecl ` N'" and
+    "cl_ecl (Ecl (to_SuperCalc_cl C') {}) = {}"
+    by blast
+  then obtain C where "Ecl (to_SuperCalc_cl C) {} \<in> to_SuperCalc_ecl ` N" and
+    "cl_ecl (Ecl (to_SuperCalc_cl C) {}) = {}"
+    by (auto simp: N'_def to_SuperCalc_cl_def)
+  hence "C \<in> N" and "C = {#}"
+    by (auto simp: to_SuperCalc_cl_def)
+  thus "\<exists>B\<in>{{#}}. B \<in> N"
+    by simp
 qed
 
-(* lemma entails_Bot_to_not_sat:
-  assumes "B \<in> Bot" "entails N {B}"
-  shows "\<not> (satisfiable_clause_set N)"
-  unfolding satisfiable_clause_set_def
-proof (rule notI, elim exE conjE)
-  fix I
-  assume "fo_interpretation I" and "validate_clause_set I N"
-  hence "validate_clause_set I {B}"
-    using \<open>entails N {B}\<close>
-    unfolding entails_def set_entails_set_def by fast
-  moreover have "{B} = {{}}"
-    using \<open>B \<in> Bot\<close>[unfolded Bot_def] by force
-  ultimately show False
-    by simp
-qed *)
-
-lemma Ball_subset_BallD:
-  assumes "{s \<in> S. P s} \<subseteq> {t \<in> T. Q t}" and "S \<subseteq> T" and "s \<in> S"
-  shows "P s \<Longrightarrow> Q s"
-  using assms by blast
-
-lemmas Ball_subset_BallD' = Ball_subset_BallD[of S _ S for S, simplified]
-
-lemma finite_set_SOME_set[simp]: "finite M \<Longrightarrow> set (SOME xs. set xs = M) = M"
-  by (meson finite_list someI)
-thm finite_list
-
-sublocale stat_complete_calc_super: statically_complete_calculus Bot Inf entails Red_I Red_F
-proof (unfold_locales)
-  fix B N
-  assume satur_N: "calc_super.saturated N" and unsat_N: "B \<in> Bot" "entails N {B}"
-(* 
-  from satur_N have satur_N': "\<And>\<iota>. \<iota> \<in> local.Inf \<Longrightarrow> set (prems_of \<iota>) \<subseteq> N \<Longrightarrow> concl_of \<iota> \<in> N"
-    unfolding calc_super.saturated_def  inf_sys_super.Inf_from_def Red_I_def
-    by (auto dest: Ball_subset_BallD')
-  obtain S \<sigma> k C' where
-    satur_N'': "derivable ecl ((\<lambda>s. Ecl s {}) ` set (SOME xs. set xs = M)) S \<sigma> k C' \<Longrightarrow>
-      finite M \<Longrightarrow> M \<subseteq> N \<Longrightarrow> cl_ecl ecl \<in> N"
-    for ecl M
-    using satur_N' derivable_def by blast
-
-  have unsat_N': "\<not> satisfiable_clause_set N"
-    by (rule entails_Bot_to_not_sat[OF unsat_N])
-
-  have "\<exists>ecl. derivable_ecl ecl ((\<lambda>cl. Ecl cl {}) ` N) \<and> cl_ecl ecl = {}"
-  proof (rule COMPLETENESS)
-    show "\<forall>ecl\<in>(\<lambda>cl. Ecl cl {}) ` N. trms_ecl ecl = {}"
-      by simp
-  next
-    show "\<forall>ecl\<in>(\<lambda>cl. Ecl cl {}) ` N. finite (cl_ecl ecl)"
-      sorry
-  next
-    show "\<not> satisfiable_clause_set (cl_ecl ` (\<lambda>cl. Ecl cl {}) ` N)"
-      using unsat_N'
-      by (simp add: image_image)
-  qed
-  then obtain ecl where "derivable_ecl ecl ((\<lambda>cl. Ecl cl {}) ` N)" "cl_ecl ecl = {}"
-    (* by blast *)
-    sorry
-
-  then show "\<exists>B'\<in>Bot. B' \<in> N"
-    using satur_N''
-  proof (induction ecl "((\<lambda>cl. Ecl cl {}) ` N)" arbitrary: N rule: derivable_ecl.induct)
-    case (init C)
-    then show ?case
-      by (auto simp add: Bot_def)
-  next
-    case (rn C D)
-    have "cl_ecl C \<in> N"
-    have ?case if "finite N"
-      using that rn.prems(2)[OF rn.hyps(1)]
-      sorry
-  next
-    case (deriv P C \<sigma> C')
-    then show ?case
-      unfolding Inf_def
-      sorry
-  qed *)
-  oops
-    
 end
 
 end
