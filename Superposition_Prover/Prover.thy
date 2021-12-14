@@ -7,15 +7,6 @@ theory Prover
     "HOL-Library.FSet"
 begin
 
-(*
-1. use fset (HOL-Libary) or multiset (HOL-Library) instead of set for clauses here.
-2. sorry for compactness proof. (probably long and annoying)
-3. do the rest up to instantiation.
-4. prove compactness.
-
-if 4. fails, maybe redefine standard redundancy criteria to try to not need compactness.
-*)
-
 
 subsection \<open>Generic lemmas about HOL definitions\<close>
 
@@ -183,12 +174,12 @@ proof (rule notI)
   define \<sigma>\<^sub>2 where "\<sigma>\<^sub>2 \<equiv> [(x, t), (x, t)]"
   define X where "X \<equiv> ({lit}, \<sigma>\<^sub>1)"
   define Y where "Y \<equiv> ({lit}, \<sigma>\<^sub>2)"
-  
+
   have "mset_cl X = mset_cl Y"
     by (simp add: X_def Y_def lit_def)
   hence x_le_y: "(X, Y) \<in> cl_ord_eq" and y_le_x: "(Y, X)\<in> cl_ord_eq"
     by (simp_all add: cl_ord_eq_def)
-  
+
   assume "antisym cl_ord_eq"
   show False
     using antisymD[OF \<open>antisym cl_ord_eq\<close> x_le_y y_le_x]
@@ -300,8 +291,8 @@ lemma wf_cl_ord:
 proof -
   have "wf (mult trm_ord)" using trm_ord_wf and wf_mult  by auto
   then have "wf (mult (mult trm_ord))" using wf_mult  by auto
-  thus ?thesis 
-    using cl_ord_def 
+  thus ?thesis
+    using cl_ord_def
       and measure_wf [of "(mult (mult trm_ord))" cl_ord mset_cl]
       by blast
 qed
@@ -398,8 +389,7 @@ next
     using conclusion_is_smaller_than_premisses
     (* Search in SuperCalc for occurences of "\<in> ecl_ord" or "effective".
        Maybe (probably?) Nicolas already proved something similar. *)
-    sorry
-qed
+    oops
 
 (* lemma "subst_cl (C - {L1}) \<sigma> = subst_cl C \<sigma> - subst_cl {L1} \<sigma>" (is "?lhs = ?rhs")
 proof (rule equalityI; rule subsetI)
@@ -548,7 +538,7 @@ If it ever cause a problem, change the structure to have access to @{type Clausa
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
   "F_Inf \<equiv> {Infer P (from_SuperCalc_cl (subst_cl C' \<sigma>)) | P S C \<sigma> k C'.
     derivable_list C (map to_SuperCalc_ecl (map2 subst_cls P (renamings_apart P))) S \<sigma> k C'}"
- 
+
 interpretation F: inference_system F_Inf .
 
 definition entails
@@ -692,6 +682,186 @@ next
     by auto
 qed
 
+lemma vars_of_subst_conv:
+  fixes t and \<sigma>
+  shows "vars_of (subst t \<sigma>) = \<Union>((\<lambda>v. vars_of (assoc v (Var v) \<sigma>)) ` vars_of t)"
+  by (induction t) auto
+
+lemma vars_of_eq_subst_equation_conv:
+  fixes e and \<sigma>
+  shows "vars_of_eq (subst_equation e \<sigma>) = \<Union>((\<lambda>v. vars_of (assoc v (Var v) \<sigma>)) ` vars_of_eq e)"
+  by (cases e) (auto simp: vars_of_subst_conv)
+
+lemma vars_of_lit_subst_lit_conv:
+  fixes L and \<sigma>
+  shows "vars_of_lit (equational_clausal_logic.subst_lit L \<sigma>) =
+    \<Union>((\<lambda>v. vars_of (assoc v (Var v) \<sigma>)) ` vars_of_lit L)"
+  by (cases L) (auto simp: vars_of_eq_subst_equation_conv)
+
+lemma vars_of_cl_subst_cl_conv:
+  fixes C \<sigma>
+  shows "vars_of_cl (subst_cl C \<sigma>) = \<Union>((\<lambda>v. vars_of (assoc v (Var v) \<sigma>)) ` vars_of_cl C)"
+    (is "?lhs = ?rhs")
+proof (rule Set.equalityI; rule Set.subsetI)
+  fix x
+  assume "x \<in> ?lhs"
+  then obtain L where x_in_L: "x \<in> vars_of_lit L" and L_in_subst_C: "L \<in> subst_cl C \<sigma>"
+    by auto
+  obtain L' where L'_in_C: "L' \<in> C" and L_def: "L = equational_clausal_logic.subst_lit L' \<sigma>"
+    using L_in_subst_C by (auto simp: subst_cl.simps)
+  then show "x \<in> ?rhs"
+    using x_in_L by (auto simp: vars_of_lit_subst_lit_conv)
+next
+  fix x
+  assume "x \<in> ?rhs"
+  then obtain L v where
+    L_in_C: "L \<in> C " and
+    v_in_vars_C: "v \<in> vars_of_lit L" and
+    x_in_vars_v_\<sigma>: "x \<in> vars_of (assoc v (Var v) \<sigma>)"
+    by auto
+  let ?L' = "equational_clausal_logic.subst_lit L \<sigma>"
+  show "x \<in> ?lhs"
+    unfolding vars_of_cl.simps Set.mem_Collect_eq
+  proof (intro exI conjI)
+    show "x \<in> vars_of_lit ?L'"
+      using v_in_vars_C x_in_vars_v_\<sigma> vars_of_lit_subst_lit_conv by force
+  next
+    show "?L' \<in> subst_cl C \<sigma>"
+      using L_in_C by (auto simp: subst_cl.simps)
+  qed
+qed
+
+lemma is_a_variable_subst_comp:
+  fixes C \<sigma> \<eta>
+  assumes
+    ball_var_\<sigma>: "\<forall>x\<in>vars_of_cl C. is_a_variable (Var x \<lhd> \<sigma>)" and
+    ball_var_\<eta>: "\<forall>x\<in>vars_of_cl (subst_cl C \<sigma>). is_a_variable (Var x \<lhd> \<eta>)"
+  shows "\<forall>x\<in>vars_of_cl C. is_a_variable (Var x \<lhd> (\<sigma> \<lozenge> \<eta>))"
+proof (intro ballI)
+  fix x
+  assume x_in_C: "x \<in> vars_of_cl C"
+  hence "is_a_variable (Var x \<lhd> \<sigma>)"
+    using ball_var_\<sigma> by simp
+  then obtain x' where "Var x \<lhd> \<sigma> = Var x'"
+    by (auto elim: is_a_variable.elims(2))
+  hence "x' \<in> vars_of_cl (subst_cl C \<sigma>)"
+    unfolding vars_of_cl_subst_cl_conv
+    using x_in_C
+    by auto
+  then show "is_a_variable (Var x \<lhd> \<sigma> \<lozenge> \<eta>)"
+    unfolding Unification.subst_comp \<open>Var x \<lhd> \<sigma> = Var x'\<close>
+    using ball_var_\<eta>
+    by blast
+qed
+
+lemma in_vars_of_cl_subst_cl:
+  fixes C x x' \<sigma>
+  assumes "x \<in> vars_of_cl C" and "Var x \<lhd> \<sigma> = Var x'"
+  shows "x' \<in> vars_of_cl (subst_cl C \<sigma>)"
+proof -
+  from \<open>x \<in> vars_of_cl C\<close> obtain L where "x \<in> vars_of_lit L" and "L \<in> C"
+    by auto
+  let ?L' = "equational_clausal_logic.subst_lit L \<sigma>"
+  show ?thesis
+    unfolding vars_of_cl.simps Set.mem_Collect_eq
+  proof (intro exI conjI)
+    show "x' \<in> vars_of_lit ?L'"
+      using \<open>Var x \<lhd> \<sigma> = Var x'\<close> \<open>x \<in> vars_of_lit L\<close>
+      by (auto simp: vars_of_lit_subst_lit_conv intro: bexI[of _ x])
+  next
+    show "?L' \<in> subst_cl C \<sigma>"
+      using \<open>L \<in> C\<close>
+      by (auto simp add: subst_cl.simps)
+  qed
+qed
+
+lemma renaming_imp_ball_var: "\<And>\<sigma> S. renaming \<sigma> S \<Longrightarrow> \<forall>x\<in>S. is_a_variable (Var x \<lhd> \<sigma>)"
+  unfolding renaming_def by simp
+
+lemma renaming_imp_ball_neq_imp_neq_subst:
+  "\<And>\<sigma> S. renaming \<sigma> S \<Longrightarrow> \<forall>x\<in>S. \<forall>y\<in>S. x \<noteq> y \<longrightarrow> Var x \<lhd> \<sigma> \<noteq> Var y \<lhd> \<sigma>"
+  unfolding renaming_def by simp
+
+lemma closed_under_renaming_closure:
+  fixes N N'
+  defines "N' \<equiv> {subst_cls C \<sigma> |C \<sigma>. C \<in> N \<and> renaming \<sigma> (vars_of_cl (to_SuperCalc_cl C))}"
+  shows "closed_under_renaming (to_SuperCalc_ecl ` N')"
+  unfolding closed_under_renaming_def
+proof (intro allI impI)
+  fix C D
+  assume "C \<in> to_SuperCalc_ecl ` N'"
+  then obtain CC \<sigma> where
+    C_def: "C = to_SuperCalc_ecl (subst_cls CC \<sigma>)" and
+    "CC \<in> N" and
+    renaming_\<sigma>: "renaming \<sigma> (vars_of_cl (to_SuperCalc_cl CC))"
+    unfolding N'_def
+    by blast
+
+  assume "renaming_cl C D"
+  then obtain \<eta> where
+    renaming_\<eta>: "renaming \<eta> (vars_of_cl (subst_cl (to_SuperCalc_cl CC) \<sigma>))" and
+    D_def: "D = subst_ecl C \<eta>"
+    unfolding renaming_cl_def
+    unfolding C_def cl_ecl.simps to_SuperCalc_cl_subst_cls
+    by blast
+
+  show "D \<in> to_SuperCalc_ecl ` N'"
+    unfolding image_iff
+  proof (rule bexI)
+    show "D = to_SuperCalc_ecl (subst_cls (subst_cls CC \<sigma>) \<eta>)"
+      using D_def C_def
+      by (simp add: to_SuperCalc_cl_subst_cls)
+  next
+    show "subst_cls (subst_cls CC \<sigma>) \<eta> \<in> N'"
+      unfolding N'_def
+    proof (intro CollectI exI conjI)
+      show "CC \<in> N"
+        by (rule \<open>CC \<in> N\<close>)
+    next
+      have "\<forall>x\<in>vars_of_cl (to_SuperCalc_cl CC). is_a_variable (Var x \<lhd> comp_subst_abbrev \<sigma> \<eta>)"
+        using renaming_imp_ball_var[OF renaming_\<sigma>]
+        using renaming_imp_ball_var[OF renaming_\<eta>]
+        by (fact is_a_variable_subst_comp)
+
+      moreover have "(\<forall>x y.
+          x \<in> vars_of_cl (to_SuperCalc_cl CC) \<longrightarrow>
+          y \<in> vars_of_cl (to_SuperCalc_cl CC) \<longrightarrow>
+          x \<noteq> y \<longrightarrow> Var x \<lhd> comp_subst_abbrev \<sigma> \<eta> \<noteq> Var y \<lhd> comp_subst_abbrev \<sigma> \<eta>)"
+      proof (intro allI impI)
+        fix x y
+        assume
+          x_in_vars_CC: "x \<in> vars_of_cl (to_SuperCalc_cl CC)" and
+          y_in_vars_CC: "y \<in> vars_of_cl (to_SuperCalc_cl CC)" and
+          "x \<noteq> y"
+        hence x_\<sigma>_neq_y_\<sigma>: "Var x \<lhd> \<sigma> \<noteq> Var y \<lhd> \<sigma>"
+          using renaming_imp_ball_neq_imp_neq_subst[OF renaming_\<sigma>]
+          by simp
+        have "is_a_variable (Var x \<lhd> \<sigma>)" and "is_a_variable (Var y \<lhd> \<sigma>)"
+          using renaming_imp_ball_var[OF renaming_\<sigma>] x_in_vars_CC y_in_vars_CC by simp_all
+        then obtain x' y' where
+          x_subst_def: "(Var x \<lhd> \<sigma>) = Var x'" and
+          y_subst_def: "(Var y \<lhd> \<sigma>) = Var y'"
+          by (meson is_a_variable.elims(2))
+        show "Var x \<lhd> comp_subst_abbrev \<sigma> \<eta> \<noteq> Var y \<lhd> comp_subst_abbrev \<sigma> \<eta> "
+          unfolding Unification.subst_comp
+          unfolding x_subst_def y_subst_def
+          using renaming_imp_ball_neq_imp_neq_subst[OF renaming_\<eta>]
+          using in_vars_of_cl_subst_cl[OF x_in_vars_CC x_subst_def]
+          using in_vars_of_cl_subst_cl[OF y_in_vars_CC y_subst_def]
+          using x_\<sigma>_neq_y_\<sigma>[unfolded x_subst_def y_subst_def]
+          by simp
+      qed
+
+      ultimately show "renaming (\<sigma> \<lozenge> \<eta>) (vars_of_cl (to_SuperCalc_cl CC))"
+        unfolding renaming_def by simp
+    next
+      show "subst_cls (subst_cls CC \<sigma>) \<eta> = subst_cls CC (\<sigma> \<lozenge> \<eta>)"
+        by simp
+    qed
+  qed
+qed
+
+
 lemma renaming_imp_is_renaming:
   fixes \<sigma> :: "('a \<times> 'a trm) list"
   assumes "renaming \<sigma> UNIV"
@@ -716,9 +886,12 @@ proof unfold_locales
   hence B_def: "B = {#}" by simp
 
   \<comment> \<open>We close @{term N} under \<alpha>-renaming.\<close>
-  define N'  :: "'a equation Clausal_Logic.clause set" where
-    "N' \<equiv> { subst_cls C \<sigma> | C \<sigma>. C \<in> N \<and> is_renaming \<sigma>}"
+  \<comment> \<open>We cannot use @{const is_renaming} because we would need
+  @{term "\<And>\<sigma> S. is_renaming \<sigma> \<longleftrightarrow> renaming \<sigma> S"} but only the forward direction holds.\<close>
+  define N' :: "'a equation Clausal_Logic.clause set" where
+    "N' \<equiv> { subst_cls C \<sigma> | C \<sigma>. C \<in> N \<and> renaming \<sigma> (vars_of_cl (to_SuperCalc_cl C))}"
 
+  \<comment> \<open>Still not used?\<close>
   have "saturated N'"
     using \<open>saturated N\<close>
     sorry
@@ -733,43 +906,7 @@ proof unfold_locales
     by (simp add: SuperCalc.well_constrained_def)
 
   have closed_renaming_N': "closed_under_renaming (to_SuperCalc_ecl ` N')"
-    unfolding closed_under_renaming_def
-  proof (intro allI impI)
-    fix C D
-    assume "C \<in> to_SuperCalc_ecl ` N'"
-    then obtain CC \<sigma> where
-      C_def: "C = to_SuperCalc_ecl (subst_cls CC \<sigma>)" and
-      "CC \<in> N" and "is_renaming \<sigma>"
-      unfolding N'_def
-      by blast
-    assume "renaming_cl C D"
-    then obtain \<eta> where "renaming \<eta> (vars_of_cl (cl_ecl C))" and D_def: "D = subst_ecl C \<eta>"
-      unfolding renaming_cl_def
-      by blast
-
-    show "D \<in> to_SuperCalc_ecl ` N'"
-      unfolding image_iff
-    proof (rule bexI)
-      show "D = to_SuperCalc_ecl (subst_cls (subst_cls CC \<sigma>) \<eta>)"
-        using D_def C_def
-        by (simp add: to_SuperCalc_cl_subst_cls)
-    next
-      show "subst_cls (subst_cls CC \<sigma>) \<eta> \<in> N'"
-        unfolding N'_def
-      proof (intro CollectI exI conjI)
-        show "CC \<in> N"
-          by (rule \<open>CC \<in> N\<close>)
-      next
-        show "is_renaming (\<sigma> \<lozenge> \<eta>)"
-          using is_renaming_imp_renaming[OF \<open>is_renaming \<sigma>\<close>]
-          using \<open>renaming \<eta> (vars_of_cl (cl_ecl C))\<close>
-          sorry
-      next
-        show "subst_cls (subst_cls CC \<sigma>) \<eta> = subst_cls CC (\<sigma> \<lozenge> \<eta>)"
-          by simp
-      qed
-    qed
-  qed
+    unfolding N'_def by (fact closed_under_renaming_closure)
 
   note int_clset_is_a_model' = SuperCalc.int_clset_is_a_model[OF gr_inf_satur_N' all_finite_N'
       ball_well_constrained_N' _ closed_renaming_N', rule_format]
