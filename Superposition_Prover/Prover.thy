@@ -498,10 +498,136 @@ proof -
     using mult_trm_ord_trans by fastforce
 qed
 
+lemma trm_ord_replace_subterm:
+  assumes
+    "subterm t p v"
+    "replace_subterm t p v' t'"
+  shows "(v', v) \<in> trm_ord \<Longrightarrow> (t', t) \<in> trm_ord"
+  using assms
+proof (induction t p v' t' rule: replace_subterm.induct)
+  case (4 x y "next" u S)
+  then show ?case
+    by (auto intro: trm_ord_reduction_left[rule_format])
+next
+  case (5 x y "next" u S)
+  then show ?case
+    by (auto intro: trm_ord_reduction_right[rule_format])
+qed simp_all
 
+lemma mset_cl_minus_plus:
+  assumes fin_P: "finite P" and L_in_P: "L \<in> P"
+  shows "mset_cl (P - {L}, \<sigma>) + mset_cl ({L}, \<sigma>) = mset_cl (P, \<sigma>)"
+  using L_in_P
+  using add_mset_image_mset_mset_set_minus[OF fin_P L_in_P]
+  by force
 
-(* lemma "redundant_inference (Ecl C trms) N P \<sigma> \<Longrightarrow>
-  redundant_inference (Ecl (set_mset (mset_set C)) trms) N P \<sigma>" *)
+lemma superposition_conclusion_smaller:
+  assumes super_C': "superposition P1 P2 C \<sigma> k C'" and
+    fin_P1: "finite (cl_ecl P1)" and
+    fin_P2: "finite (cl_ecl P2)" and
+    total_trm_ord: "total trm_ord"
+  shows "((C', \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
+proof -
+  from super_C' obtain L1 t s u v L2 p polarity t' u' where
+    L1_in_P1: "L1 \<in> cl_ecl P1" and
+    "L2 \<in> cl_ecl P2" and
+    "eligible_literal L1 P1 \<sigma>" and
+    "eligible_literal L2 P2 \<sigma>" and
+    "variable_disjoint P1 P2" and
+    "\<not> is_a_variable u'" and
+    orient_L2: "orient_lit_inst L2 u v pos \<sigma>" and
+    orient_L1: "orient_lit_inst L1 t s polarity \<sigma>" and
+    u_neq_v: "u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>" and
+    subterm_t_p: "subterm t p u'" and
+    ck_unif_u'_u: "ck_unifier u' u \<sigma> k" and
+    replace_t_v: "replace_subterm t p v t'" and
+    L2_lt_L1: "(k = FirstOrder \<or> (subst_lit L2 \<sigma>, subst_lit L1 \<sigma>) \<in> lit_ord)" and
+    L2_max_P2: "(k = FirstOrder \<or> strictly_maximal_literal P2 L2 \<sigma>)" and
+    C'_def: "C' = cl_ecl P1 - {L1} \<union> (cl_ecl P2 - {L2} \<union> {mk_lit polarity (Eq t' s)})"
+    unfolding superposition_def
+    by blast
+
+  have trm_ord_v_u: "(v \<lhd> \<sigma>, u \<lhd> \<sigma>) \<in> trm_ord"
+    using orient_L2[unfolded orient_lit_inst_def]
+    using total_trm_ord[unfolded total_on_def, simplified, rule_format]
+    using u_neq_v by blast
+
+  have "(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<notin> trm_ord"
+    using orient_L1[unfolded orient_lit_inst_def] by blast
+
+  have u_eq_u': "u \<lhd> \<sigma> = u' \<lhd> \<sigma>"
+    using ck_unif_u'_u by (simp add: ck_unifier_conv Unifier_def)
+
+  have t'_lt_t:  "(t' \<lhd> \<sigma>, t \<lhd> \<sigma>) \<in> trm_ord"
+    by (rule replacement_monotonic[OF trm_ord_v_u[unfolded u_eq_u'] subterm_t_p replace_t_v])
+
+  define L where
+    "L \<equiv> mk_lit polarity (Eq t' s)"
+
+  have *: "(mset_lit (subst_lit L \<sigma>), mset_lit (subst_lit L1 \<sigma>)) \<in> mult trm_ord"
+    using orient_L1[unfolded orient_lit_inst_def]
+  proof (elim disjE conjE)
+    assume "polarity = pos" and "L1 = equational_clausal_logic.literal.Pos (Eq t s)"
+    thus ?thesis
+      using t'_lt_t L_def
+      by (auto intro: one_step_implies_mult[of "{#t \<lhd> \<sigma>#}" "{#t' \<lhd> \<sigma>#}" _ "{#s \<lhd> \<sigma>#}", simplified])
+  next
+    assume "polarity = pos" and "L1 = equational_clausal_logic.literal.Pos (Eq s t)"
+    thus ?thesis
+      using t'_lt_t L_def
+      by (auto simp add: add_mset_commute
+          intro: one_step_implies_mult[of "{#t \<lhd> \<sigma>#}" "{#t' \<lhd> \<sigma>#}" _ "{#s \<lhd> \<sigma>#}", simplified])
+  next
+    assume "polarity = neg" and "L1 = equational_clausal_logic.literal.Neg (Eq t s)"
+    thus ?thesis
+      using t'_lt_t L_def
+      by (auto intro: one_step_implies_mult[of "{#t \<lhd> \<sigma>, t \<lhd> \<sigma>#}" "{#t' \<lhd> \<sigma>, t' \<lhd> \<sigma>#}" _
+            "{#s \<lhd> \<sigma>, s \<lhd> \<sigma>#}", simplified])
+  next
+    assume "polarity = neg" and "L1 = equational_clausal_logic.literal.Neg (Eq s t)"
+    thus ?thesis
+      using t'_lt_t L_def
+      by (auto simp add: add_mset_commute
+          intro: one_step_implies_mult[of "{#t \<lhd> \<sigma>, t \<lhd> \<sigma>#}" "{#t' \<lhd> \<sigma>, t' \<lhd> \<sigma>#}" _
+            "{#s \<lhd> \<sigma>, s \<lhd> \<sigma>#}", simplified])
+  qed
+
+  have foo:
+    "mset_set (cl_ecl P1 - {L1} \<union> (cl_ecl P2 - {L2} \<union> {L})) =
+      mset_set (cl_ecl P1 - {L1}) +
+      mset_set (cl_ecl P1 - {L1} \<union> (cl_ecl P2 - {L2} \<union> {L}) - (cl_ecl P1 - {L1}))"
+    by (smt (verit, best) Diff_disjoint Un_Diff_cancel Un_absorb Un_commute Un_left_commute fin_P1
+        fin_P2 finite.emptyI finite.insertI finite_Diff finite_UnI mset_set_Union)
+
+  (* For exploration only *)
+  have "t \<noteq> t'"
+    using t'_lt_t trm_ord_wf by force
+  hence "L1 \<notin> cl_ecl P2 \<Longrightarrow> L1 \<notin> (cl_ecl P1 - {L1} \<union> (cl_ecl P2 - {L2} \<union> {L}) - (cl_ecl P1 - {L1}))"
+    apply simp
+    unfolding L_def
+    using orient_L1[unfolded orient_lit_inst_def]
+    by auto
+
+  show ?thesis
+    unfolding C'_def
+    apply (fold L_def)
+    unfolding cl_ord_def
+    apply (simp del: mset_cl.simps)
+    unfolding mset_cl_minus_plus[OF fin_P1 L1_in_P1, symmetric]
+    unfolding mset_cl.simps
+    unfolding insert_is_Un[of L "cl_ecl P1 - {L1} \<union> (cl_ecl P2 - {L2})"]
+    unfolding Un_commute[of "{L}"]
+    unfolding Un_assoc
+    unfolding foo
+    unfolding image_mset_union
+    apply (rule one_step_implies_mult)
+     apply simp
+    (* apply simp *)
+    apply (rule MAGIC[OF _ _ _ subterm_t_p ck_unif_u'_u trm_ord_v_u replace_t_v orient_L1])
+    using fin_P1 fin_P2 apply blast
+      apply (simp_all add: L_def)
+    using L2_max_P2 L2_lt_L1
+    oops
 
 
 subsection \<open>Generic lemmas about SuperCalc without constraints\<close>
