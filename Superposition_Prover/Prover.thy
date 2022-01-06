@@ -460,7 +460,7 @@ qed
   for ground terms! *)
 lemma factorization_conclusion_smaller:
   assumes fact_C': "factorization P1 C \<sigma> k C'" and fin_P1: "finite (cl_ecl P1)" and
-    total_trm_ord: "total trm_ord"
+    (* SHOW Sophie *) total_trm_ord: "total trm_ord"
   shows "((C', \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
 proof -
   from fact_C' obtain L1 L2 t s u v where
@@ -525,7 +525,9 @@ lemma superposition_conclusion_smaller:
   assumes super_C': "superposition P1 P2 C \<sigma> k C'" and
     fin_P1: "finite (cl_ecl P1)" and
     fin_P2: "finite (cl_ecl P2)" and
-    total_trm_ord: "total trm_ord"
+    (* SHOW Sophie *) total_trm_ord: "total trm_ord" and
+    (* SHOW Sophie *) "k = Ground"
+  (* Use Example 34 from JAR article *)
   shows "((C', \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
 proof -
   from super_C' obtain L1 t s u v L2 p polarity t' u' where
@@ -622,12 +624,17 @@ proof -
     unfolding image_mset_union
     apply (rule one_step_implies_mult)
      apply simp
+    (* SHOW Sophie here *)
     (* apply simp *)
     apply (rule MAGIC[OF _ _ _ subterm_t_p ck_unif_u'_u trm_ord_v_u replace_t_v orient_L1])
     using fin_P1 fin_P2 apply blast
       apply (simp_all add: L_def)
-    using L2_max_P2 L2_lt_L1
-    oops
+    using L2_max_P2 L2_lt_L1 \<open>k = Ground\<close>
+    by auto
+qed
+
+lemma subterms_inclusion_empty[simp]: "subterms_inclusion {} T"
+  by (simp add: subterms_inclusion_def)
 
 
 subsection \<open>Generic lemmas about SuperCalc without constraints\<close>
@@ -670,17 +677,6 @@ next
     (* Search in SuperCalc for occurences of "\<in> ecl_ord" or "effective".
        Maybe (probably?) Nicolas already proved something similar. *)
     oops
-
-(* lemma "subst_cl (C - {L1}) \<sigma> = subst_cl C \<sigma> - subst_cl {L1} \<sigma>" (is "?lhs = ?rhs")
-proof (rule equalityI; rule subsetI)
-  fix x
-  assume "x \<in> ?lhs"
-  then show "x \<in> ?rhs"
-    unfolding subst_cl.simps
-    apply safe
-     apply auto []
-    apply simp
-    apply safe *)
 
 lemma reflexion_conclusion_is_small_than_premisse:
   assumes reflexion: "reflexion P (Ecl C {}) \<sigma> k C'" and finite_P: "finite (cl_ecl P)" and
@@ -771,6 +767,9 @@ lemmas [simp del] = equational_clausal_logic.subst_cl.simps
 lemmas [simp del] = equational_clausal_logic.validate_ground_clause.simps
 lemmas [simp del] = terms.subst_set.simps
 lemmas [simp del] = SuperCalc.trm_rep.simps
+
+lemma subst_set_empty[simp]: "subst_set {} \<sigma> = {}"
+  by (simp add: subst_set.simps)
 
 lemma to_SuperCalc_cl_subst_cls: "to_SuperCalc_cl (subst_cls C \<sigma>) = subst_cl (to_SuperCalc_cl C) \<sigma>"
   (is "?lhs = ?rhs")
@@ -902,7 +901,7 @@ proof -
   show ?thesis
     unfolding \<iota>_def inference.sel
     unfolding fclause_ord_def to_from_SuperCalc_cl[OF \<open>finite (subst_cl C' \<sigma>)\<close>]
-    using deriv_list_C' unfolding derivable_list_def
+    using deriv_list_C'[unfolded derivable_list_def]
   proof (elim disjE bexE conjE)
     fix P1
     assume
@@ -923,8 +922,75 @@ proof -
     show "((subst_cl C' \<sigma>, []), to_SuperCalc_cl (last P), []) \<in> SuperCalc.cl_ord"
       unfolding P_def apply simp
       using SuperCalc.reflexion_conclusion_smaller[OF refl_C' fin_P1, unfolded P1_def, simplified]
+      (* SHOW Sophie here *)
+      (* From following usage site: *)
+      (*
+        ((to_SuperCalc_cl (concl_of \<iota>), \<sigma>\<^sub>g), to_SuperCalc_cl (main_prem_of \<iota>), [])
+          \<in> SuperCalc.cl_ord
+      *)
+      using SuperCalc.trm_ord_subst[rule_format]
+      using SuperCalc.lower_on_cl
+      find_theorems "(_, _) \<in> SuperCalc.ecl_ord"
       sorry
     oops
+
+lemma
+  assumes red_inf_N: "SuperCalc.redundant_inference C N P \<sigma>"
+  shows "\<exists>N'\<subseteq>N. finite N \<and> SuperCalc.redundant_inference C N' P \<sigma>"
+proof -
+  from red_inf_N obtain N' where
+    N'_subseteq: "N' \<subseteq> SuperCalc.instances N" and
+    N'_entails_C: "set_entails_clause (SuperCalc.clset_instances N') (cl_ecl C)" and
+    "\<forall>x\<in>N'. SuperCalc.subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x)) (trms_ecl C)" and
+    "\<forall>x\<in>N'. \<exists>D'\<in>P. ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord"
+    unfolding SuperCalc.redundant_inference_def
+    by auto
+  show ?thesis
+    using N'_entails_C unfolding set_entails_clause_def
+    find_theorems "set_entails_clause"
+    using SuperCalc.instances_def
+    oops
+
+
+lemma
+  assumes red_inf_N: "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` N) P \<sigma>"
+  shows "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` (N - Red_F N)) P \<sigma>"
+proof -
+  from red_inf_N obtain S' where
+    "S'\<subseteq>SuperCalc.instances (to_SuperCalc_ecl ` N)"
+    "set_entails_clause (SuperCalc.clset_instances S') (cl_ecl C)"
+    "(\<forall>x\<in>S'. SuperCalc.subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x)) (trms_ecl C))"
+    "(\<forall>x\<in>S'. \<exists>D'\<in>P. ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord)"
+    by (auto simp: SuperCalc.redundant_inference_def)
+  then show ?thesis
+    oops
+    
+
+lemma
+  fixes N N' :: "'a equation Clausal_Logic.clause set"
+  shows "Red_I N \<subseteq> Red_I (N - Red_F N)"
+proof (rule subsetI)
+  fix \<iota> :: "'a equation Clausal_Logic.clause inference"
+  assume "\<iota> \<in> Red_I N"
+  
+  then obtain \<sigma> where
+    "\<iota> \<in> F_Inf" and
+    red_inf: "SuperCalc.redundant_inference (to_SuperCalc_ecl (concl_of \<iota>)) (to_SuperCalc_ecl ` N)
+        (set (map to_SuperCalc_ecl (prems_of \<iota>))) \<sigma>"
+    unfolding Red_I_def by auto
+
+  from red_inf[unfolded SuperCalc.redundant_inference_def] obtain S' where
+    S'_subset_eq: "S' \<subseteq> SuperCalc.instances (to_SuperCalc_ecl ` N)" and
+    S'_entails_concl:
+    "set_entails_clause (SuperCalc.clset_instances S') (to_SuperCalc_cl (concl_of \<iota>))" and
+    "(\<forall>x\<in>S'. \<exists>D'\<in>set (map to_SuperCalc_ecl (prems_of \<iota>)).
+        ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord)"
+    by auto
+
+  show "\<iota> \<in> Red_I (N - Red_F N)"
+    using Standard_Red_F.wlog_non_Red_F
+    sorry
+qed
 
 sublocale calculus "{{#}}" F_Inf entails Red_I Red_F
 proof unfold_locales
@@ -964,12 +1030,74 @@ next
       red_inf: "SuperCalc.redundant_inference (to_SuperCalc_ecl (concl_of \<iota>)) (to_SuperCalc_ecl ` N)
         (set (map to_SuperCalc_ecl (prems_of \<iota>))) \<sigma>"
       unfolding Red_I_def by auto
-    have "SuperCalc.redundant_inference (to_SuperCalc_ecl (concl_of \<iota>))
-      (to_SuperCalc_ecl ` (N - N')) (set (map to_SuperCalc_ecl (prems_of \<iota>))) \<sigma>"
-      using red_inf
-      using N'_Red[unfolded Standard_Red_F.Red_F_def]
+    from red_inf[unfolded SuperCalc.redundant_inference_def] obtain S' where
+      S'_subset_eq: "S' \<subseteq> SuperCalc.instances (to_SuperCalc_ecl ` N)" and
+      S'_entails_concl:
+        "set_entails_clause (SuperCalc.clset_instances S') (to_SuperCalc_cl (concl_of \<iota>))" and
+      "(\<forall>x\<in>S'. SuperCalc.subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x))
+        (trms_ecl (to_SuperCalc_ecl (concl_of \<iota>))))" and
+      "(\<forall>x\<in>S'. \<exists>D'\<in>set (map to_SuperCalc_ecl (prems_of \<iota>)).
+        ((fst x, snd x), D', \<sigma>) \<in> SuperCalc.ecl_ord)"
+      by auto
+
+    have trms_ecl_S': "\<forall>x\<in>S'. trms_ecl (fst x) = {}"
+      using S'_subset_eq
+      by (auto simp: SuperCalc.instances_def)
+
+    moreover have "S' - SuperCalc.instances (to_SuperCalc_ecl ` N') \<subseteq>
+      SuperCalc.instances (to_SuperCalc_ecl ` (N - N'))"
+      by (smt (verit, ccfv_threshold) DiffE DiffI S'_subset_eq SuperCalc.instances_def image_diff_subset mem_Collect_eq subsetD subsetI)
+
+    moreover have "set_entails_clause
+      (SuperCalc.clset_instances (S' - SuperCalc.instances (to_SuperCalc_ecl ` N')))
+      (to_SuperCalc_cl (concl_of \<iota>))"
+      unfolding set_entails_clause_def
+    proof (intro allI impI)
+      fix I
+      assume int_I: "fo_interpretation I" and
+        val_I_instances: "validate_clause_set I
+          (SuperCalc.clset_instances (S' - SuperCalc.instances (to_SuperCalc_ecl ` N')))"
+
+      have "validate_clause_set I (SuperCalc.clset_instances S')"
+        unfolding validate_clause_set.simps
+      proof (intro allI impI)
+        fix C
+        assume "C \<in> SuperCalc.clset_instances S'"
+        then show "validate_clause I C"
+          unfolding SuperCalc.clset_instances_def
+          apply simp
+          apply safe
+          using val_I_instances[unfolded validate_clause_set.simps, rule_format]
+          
+          sorry
+      qed
+
+      (* have "validate_clause_set I
+        (SuperCalc.clset_instances (SuperCalc.instances (to_SuperCalc_ecl ` N')))"
+        using N'_Red[unfolded Standard_Red_F.Red_F_def]
+        using S'_subset_eq val_I_instances
+        sorry *)
+      from val_I_instances have "validate_clause_set I (SuperCalc.clset_instances S')"
+        unfolding validate_clause_set.simps
+        apply (auto simp del: validate_clause.simps)
+        using SuperCalc.clset_instances_def
+        sorry
+      thus "validate_clause I (to_SuperCalc_cl (concl_of \<iota>))"
+        using S'_entails_concl[unfolded set_entails_clause_def, rule_format, OF int_I]
+        by simp
+    qed
+
+    moreover have "\<forall>x\<in>S' - SuperCalc.instances (to_SuperCalc_ecl ` N').
+      \<exists>D'\<in>set (prems_of \<iota>). (x, to_SuperCalc_ecl D', \<sigma>) \<in> SuperCalc.ecl_ord"
       sorry
-    then show "\<iota> \<in> Red_I (N - N')"
+
+    ultimately have "SuperCalc.redundant_inference (to_SuperCalc_ecl (concl_of \<iota>))
+      (to_SuperCalc_ecl ` (N - N')) (set (map to_SuperCalc_ecl (prems_of \<iota>))) \<sigma>"
+      unfolding SuperCalc.redundant_inference_def
+      apply (intro exI[where x = "S' - SuperCalc.instances (to_SuperCalc_ecl ` N')"])
+      by simp
+
+    thus "\<iota> \<in> Red_I (N - N')"
       using \<open>\<iota> \<in> F_Inf\<close>
       unfolding Red_I_def Let_def
       by blast
@@ -1036,7 +1164,7 @@ next
         by (auto simp add: SuperCalc.instances_def)
       show "(x, to_SuperCalc_ecl (main_prem_of \<iota>), []) \<in> SuperCalc.ecl_ord"
         unfolding x_def SuperCalc.ecl_ord_conv
-        using F_Inf_reductive[OF in_\<iota>, unfolded fclause_ord_def, simplified]
+        (* using F_Inf_reductive[OF in_\<iota>, unfolded fclause_ord_def, simplified] *)
         using gr_concl_\<sigma>\<^sub>g
         (* TODO: Stuck here *)
 
@@ -1375,53 +1503,26 @@ proof unfold_locales
         fix P1
         assume "P1 \<in> S" and
           eq_P1: "map to_SuperCalc_ecl (Map2.map2 subst_cls Ps' (renamings_apart Ps')) = [P1]"
-        from eq_P1 have "length Ps' = Suc 0"
-          
-        proof (induction Ps')
-          case Nil
-          then show ?case by simp
-        next
-          case (Cons a Ps')
-          then show ?case
-            sorry
-        qed
+        from eq_P1 have "length Ps' = Suc 0" sorry
         
-        show "SuperCalc.factorization P1 C \<sigma> k
-           C'a \<Longrightarrow>
-          derivable_list C
-           (map (to_SuperCalc_ecl \<circ>
-                 (\<lambda>(x, y). subst_cls x y))
-             (zip Ps (renamings_apart Ps)))
-           S \<sigma> k C'a"
+        show "SuperCalc.factorization P1 C \<sigma> k C'a \<Longrightarrow>
+          derivable_list C (map (to_SuperCalc_ecl \<circ> (\<lambda>(x, y). subst_cls x y))
+            (zip Ps (renamings_apart Ps))) S \<sigma> k C'a"
           sorry
       next
-        show "\<And>P1 P2.
-       P1 \<in> S \<Longrightarrow>
-       P2 \<in> S \<Longrightarrow>
-       map to_SuperCalc_ecl
-        (Map2.map2 subst_cls Ps'
-          (renamings_apart Ps')) =
-       [P2, P1] \<Longrightarrow>
-       SuperCalc.superposition P1 P2 C \<sigma> k
-        C'a \<Longrightarrow>
-       derivable_list C
-        (map (to_SuperCalc_ecl \<circ>
-              (\<lambda>(x, y). subst_cls x y))
-          (zip Ps (renamings_apart Ps)))
-        S \<sigma> k C'a" sorry
+        show "\<And>P1 P2. P1 \<in> S \<Longrightarrow> P2 \<in> S \<Longrightarrow>
+          map to_SuperCalc_ecl (Map2.map2 subst_cls Ps' (renamings_apart Ps')) = [P2, P1] \<Longrightarrow>
+          SuperCalc.superposition P1 P2 C \<sigma> k C'a \<Longrightarrow>
+          derivable_list C (map (to_SuperCalc_ecl \<circ> (\<lambda>(x, y). subst_cls x y))
+            (zip Ps (renamings_apart Ps))) S \<sigma> k C'a" sorry
       next
         show "\<And>P1. P1 \<in> S \<Longrightarrow>
-          map to_SuperCalc_ecl
-           (Map2.map2 subst_cls Ps'
-             (renamings_apart Ps')) =
-          [P1] \<Longrightarrow>
+          map to_SuperCalc_ecl (Map2.map2 subst_cls Ps' (renamings_apart Ps')) = [P1] \<Longrightarrow>
           SuperCalc.reflexion P1 C \<sigma> k C'a \<Longrightarrow>
-          derivable_list C
-           (map (to_SuperCalc_ecl \<circ>
-                 (\<lambda>(x, y). subst_cls x y))
-             (zip Ps (renamings_apart Ps)))
-           S \<sigma> k C'a " sorry
+          derivable_list C (map (to_SuperCalc_ecl \<circ> (\<lambda>(x, y). subst_cls x y))
+            (zip Ps (renamings_apart Ps))) S \<sigma> k C'a " sorry
       qed
+    qed
     hence "\<iota> \<in> Red_I N"
       using sat_N_alt \<iota>_def Ps_subseteq_N by simp
 
@@ -1439,6 +1540,7 @@ proof unfold_locales
       unfolding Red_I_def Let_def Set.mem_Collect_eq
       by simp
   qed
+
   have gr_inf_satur_N': "SuperCalc.ground_inference_saturated (to_SuperCalc_ecl ` N')"
     unfolding SuperCalc.ground_inference_saturated_def
   proof (intro allI impI)
