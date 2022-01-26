@@ -34,14 +34,11 @@ locale iProver_loop =
     y :: 'l
 begin
 
-
-subsection \<open>definition, abbreviation, type and fun\<close>
-
 inductive iProver_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50) where
-ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow>
-  \<M> \<leadsto>IL \<M>'"
+  ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow>
+    \<M> \<leadsto>IL \<M>'"
 | replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
-  state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
+    state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
 
 lemma replace_in_GC:
   assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C)"
@@ -87,9 +84,6 @@ proof -
   ultimately show "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
     by simp
 qed
-
-
-subsection \<open>Inclusion of IL in GC\<close>
 
 theorem inclusion_ol_in_gc: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: iProver_loop.induct)

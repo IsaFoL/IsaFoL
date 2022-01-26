@@ -50,21 +50,21 @@ fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f
 inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
   choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A) "
 | delete_fwd: "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C'\<in> (P \<union> A). C' \<preceq>\<cdot> C) \<Longrightarrow>
-  state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P, {}, A) "
+    state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P, {}, A) "
 | simplify_fwd: "C \<in> no_labels.Red_F (P \<union> A \<union> {C'}) \<Longrightarrow>
-  state (N, {C}, P, {}, A) \<leadsto>OL state (N, {C'}, P, {}, A)"
+    state (N, {C}, P, {}, A) \<leadsto>OL state (N, {C'}, P, {}, A)"
 | delete_bwd_p: "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C'  \<Longrightarrow>
-  state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state(N, {C}, P, {}, A)"
+    state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state(N, {C}, P, {}, A)"
 | simplify_bwd_p: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
-  state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
+    state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
 | delete_bwd_a: "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C'  \<Longrightarrow>
-  state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N, {C}, P, {}, A)"
+    state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N, {C}, P, {}, A)"
 | simplify_bwd_a: "C' \<in> no_labels.Red_F ({C, C'' }) \<Longrightarrow>
-  state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
+    state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
 | transfer: "state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P \<union> {C}, {}, A)"
 | choose_p: "C \<notin> P \<Longrightarrow> state ({}, {}, P \<union> {C}, {}, A) \<leadsto>OL state ({}, {}, P, {C}, A)"
 | infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
-  state ({}, {}, P, {C}, A) \<leadsto>OL state  (M, {}, P, {}, A \<union> {C})"
+    state ({}, {}, P, {C}, A) \<leadsto>OL state  (M, {}, P, {}, A \<union> {C})"
 
 lemma labels_distinct:
   assumes "l \<in> { x, y, passive, new }"
@@ -120,9 +120,6 @@ proof -
     by simp
 qed
 
-
-subsection \<open>Main Lemmas\<close>
-
 lemma chooseN_in_GC: "state (N \<union> {C}, {}, P, {}, A) \<leadsto>GC state (N, {C}, P, {}, A)"
 proof -
   have x_ls_new: "x \<sqsubset>L new"
@@ -130,7 +127,7 @@ proof -
   moreover have x_neq_active: "x \<noteq> active"
     using labels_distinct by simp
   ultimately have almost_thesis: "state (N, {}, P, {}, A) \<union> {(C, new)} \<leadsto>GC state (N, {}, P, {}, A) \<union> {(C, x)}"
-    using P5 by auto
+    using relabel_inactive by auto
   have rewrite_left: "state (N, {}, P, {}, A) \<union> {(C, new)} = state (N \<union> {C}, {}, P, {}, A)"
     using state_add_C_new by blast
   moreover have rewrite_right: "state (N, {}, P, {}, A) \<union> {(C, x)} =  state (N, {C}, P, {}, A)"
@@ -155,7 +152,7 @@ proof
   have "C \<in> no_labels.Red_F ( fst` ( state (N, {}, P, {}, A) ))"
     using c_in_redf_NPA NPA_eq_prj_state_NPA by fastforce
   then show ?thesis
-    using P1 by auto
+    using remove_redundant_no_label by auto
 next
   assume "\<exists>C'\<in>P \<union> A. C' \<preceq>\<cdot> C"
   then obtain C' where "C' \<in> P \<union> A" and c'_le_c: "C' \<preceq>\<cdot> C"
@@ -170,7 +167,7 @@ next
     have "passive \<sqsubset>L x"
       using order_on_labels by simp
     then have "(state (N, {}, P, {}, A)) \<union> {(C, x)} \<leadsto>GC ( state (N, {}, P, {}, A) )"
-      using P4 c'_le_c c'_passive_in by blast
+      using remove_succ_L c'_le_c c'_passive_in by blast
     then show ?thesis
       by auto
   next
@@ -180,7 +177,7 @@ next
     also have active_ls_x: "active \<sqsubset>L x"
       using active_minimal labels_distinct by simp
     then  have " state (N, {}, P, {}, A) \<union> {(C, x)} \<leadsto>GC state (N, {}, P, {}, A) "
-      using P4 c'_le_c active_ls_x c'_active_in_state_NPA by blast
+      using remove_succ_L c'_le_c active_ls_x c'_active_in_state_NPA by blast
     then show ?thesis
       by auto
   qed
@@ -223,7 +220,7 @@ lemma deleteBwdP_in_GC:
     have "(C, x) \<in> state (N, {C}, P, {}, A)"
       by simp
     then have "?\<N> \<union> {(C', passive)} \<leadsto>GC ?\<N>"
-      using c_ls_c' P3 by blast
+      using c_ls_c' remove_succ_F by blast
     also have "?\<N> \<union> {(C', passive)} = state (N, {C}, P \<union> {C'}, {}, A)"
       by auto
     finally show ?thesis
@@ -237,7 +234,7 @@ lemma deleteBwdP_in_GC:
     then have " C' \<in> no_labels.Red_F (fst` ?\<N>) "
       using c'_in_redf_c by blast
     then have "?\<N> \<union> {(C', passive)} \<leadsto>GC ?\<N>"
-      using P1 by blast
+      using remove_redundant_no_label by blast
     then show ?thesis
       by (metis state_add_C_passive)
   qed
@@ -287,7 +284,7 @@ proof
     have " (C, x) \<in> state (N, {C}, P, {}, A) "
       by simp
     then have "?\<N> \<union> {(C', active)} \<leadsto>GC ?\<N>"
-      using c_ls_c' P3 by blast
+      using c_ls_c' remove_succ_F by blast
     also have "?\<N> \<union> {(C', active)} = state (N, {C}, P, {}, A \<union> {C'})"
       by auto
     finally show "state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>GC state(N, {C}, P, {}, A)"
@@ -303,7 +300,7 @@ next
     then have " C' \<in> no_labels.Red_F (fst` ?\<N>) "
       using c'_in_redf_c by blast
     then have "?\<N> \<union> {(C', active)} \<leadsto>GC ?\<N>"
-      using P1 by auto
+      using remove_redundant_no_label by auto
     then show ?thesis
       by (metis state_add_C_active)
 qed
@@ -345,7 +342,7 @@ proof -
   moreover have "passive \<noteq> active"
     by (simp add: labels_distinct)
   ultimately have "?\<N> \<union> {(C, x)} \<leadsto>GC ?\<N> \<union> {(C, passive)}"
-    using P5 by auto
+    using relabel_inactive by auto
   then show ?thesis
     by (metis sup_bot_left state_add_C_x state_add_C_passive)
 qed
@@ -359,7 +356,7 @@ proof -
   moreover have "y \<noteq> active"
     by (simp add: labels_distinct)
   ultimately have "?\<N> \<union> {(C, passive)} \<leadsto>GC ?\<N> \<union> {(C, y)}"
-    using P5 by auto
+    using relabel_inactive by auto
 
   then show ?thesis
     by (metis sup_bot_left state_add_C_passive state_add_C_y)
@@ -394,9 +391,6 @@ proof -
   finally show ?thesis
     by simp
 qed
-
-
-subsection \<open>Refinement Theorem\<close>
 
 theorem inclusion_ol_in_gc: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: OL.induct)

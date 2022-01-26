@@ -30,19 +30,14 @@ locale zipperposition_loop =
     active passive y :: 'l
 begin
 
-
-subsection \<open>Translation from representation\<close>
-
 fun zl_inferences_of :: " ('f inference llist) set \<Rightarrow> 'f inference set " where
   "zl_inferences_of T = \<Union> {lset x |x. x \<in> T}"
 
-fun zl_state ::
-  "'f inference llist set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow>
-   'f inference set \<times> ('f \<times> 'l) set " where
+fun
+  zl_state :: "'f inference llist set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow>
+    'f inference set \<times> ('f \<times> 'l) set"
+where
   "zl_state (T, P, Y, A) = (zl_inferences_of T, formulas_of (P, Y, A))"
-
-
-subsection \<open>Zipperposition Loop ZL\<close>
 
 inductive
   ZL :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool"
@@ -50,35 +45,31 @@ inductive
 where
   choose_p: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>ZL zl_state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
-  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {}, A)"
+    zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
-  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {C'}, A)"
+    zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {C'}, A)"
 | delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
-  zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P, {C}, A)"
+    zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P, {C}, A)"
 | simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
-  zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P \<union> {C''}, {C}, A)"
+    zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P \<union> {C''}, {C}, A)"
 | compute_infer: "\<iota>0 \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-  zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P\<union>{C}, {}, A)"
+    zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P\<union>{C}, {}, A)"
 | schedule_infer: "zl_inferences_of T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
-  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
+    zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
 | delete_orphans: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>
-  zl_state (T \<union> { \<iota>s }, P, Y, A) \<leadsto>ZL zl_state (T, P, Y, A)"
+    zl_state (T \<union> { \<iota>s }, P, Y, A) \<leadsto>ZL zl_state (T, P, Y, A)"
 
-
-subsection \<open>Auxiliary lemmas\<close>
-
-lemma flatten : " zl_inferences_of {(LCons \<iota>0 \<iota>s)} = zl_inferences_of {\<iota>s} \<union> { \<iota>0 }"
+lemma flatten: " zl_inferences_of {(LCons \<iota>0 \<iota>s)} = zl_inferences_of {\<iota>s} \<union> { \<iota>0 }"
   by auto
 
-lemma distr_zl_inferences_of_wrt_union : "zl_inferences_of (T\<union>T') = zl_inferences_of T \<union> zl_inferences_of T'"
+lemma distr_zl_inferences_of_wrt_union:
+  "zl_inferences_of (T \<union> T') = zl_inferences_of T \<union> zl_inferences_of T'"
   by auto
 
-lemma "zl_inferences_of (T \<union> { \<iota>s }) = zl_inferences_of T \<union> (lset \<iota>s)" by auto
+lemma "zl_inferences_of (T \<union> {\<iota>s}) = zl_inferences_of T \<union> (lset \<iota>s)"
+  by auto
 
-
-subsection \<open>Main lemmas\<close>
-
-lemma zl_choose_p_in_lgc : "zl_state (T, P \<union> {C}, {}, A) \<leadsto>LGC zl_state (T, P, {C}, A)"
+lemma zl_choose_p_in_lgc: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>LGC zl_state (T, P, {C}, A)"
 proof -
   let ?\<N> = "formulas_of (P, {}, A)"
   and ?\<T> = "zl_inferences_of T"
@@ -87,7 +78,7 @@ proof -
   moreover have "y \<noteq> active"
     using labels_distinct by simp
   ultimately have "(?\<T>, ?\<N> \<union> {(C, passive)}) \<leadsto>LGC (?\<T>, ?\<N> \<union> {(C, y)})"
-    using P5' by blast
+    using relabel_inactive by blast
   then have "(?\<T>, formulas_of (P \<union> {C}, {}, A)) \<leadsto>LGC (?\<T>, formulas_of (P, {C}, A))"
      by (metis PYA_add_passive_formula P0A_add_y_formula)
   then show ?thesis
@@ -105,7 +96,7 @@ proof
   then have "C \<in> no_labels.Red_F (fst ` (formulas_of (P, {}, A)))"
     by (metis (no_types, lifting) c_in in_mono no_labels.Red_F_of_subset)
   then show ?thesis
-    using P1' by auto
+    using remove_redundant_no_label by auto
 next
   assume "\<exists>C'\<in>A. C' \<preceq>\<cdot> C"
   then obtain C' where c'_in_and_c'_ls_c: "C' \<in> A \<and> C' \<preceq>\<cdot> C"
@@ -115,7 +106,7 @@ next
   moreover have "y \<sqsupset>L active" using order_on_labels
     by simp
   ultimately show ?thesis
-    by (metis P0A_add_y_formula P4' c'_in_and_c'_ls_c zl_state.simps)
+    by (metis P0A_add_y_formula remove_succ_L c'_in_and_c'_ls_c zl_state.simps)
 qed
 
 lemma zl_simplify_fwd_in_lgc:
@@ -155,7 +146,7 @@ proof
   then have "C' \<in> no_labels.Red_F_\<G> (fst` ?\<N>)"
     by (metis (no_types, lifting) c'_in insert_Diff insert_subset no_labels.Red_F_of_subset)
   then have "(zl_inferences_of T, ?\<N> \<union> {(C', active)}) \<leadsto>LGC (zl_inferences_of T, ?\<N>)"
-    using P1' by auto
+    using remove_redundant_no_label by auto
 
   moreover have "?\<N> \<union> {(C', active)} = formulas_of (P, {C}, A \<union> {C'})"
     using PYA_add_active_formula by blast
@@ -167,7 +158,7 @@ next
   moreover have "(C, y) \<in> formulas_of (P, {C}, A)"
     by simp
   ultimately show ?thesis
-    by (metis P3' PYA_add_active_formula zl_state.simps)
+    by (metis remove_succ_F PYA_add_active_formula zl_state.simps)
 qed
 
 lemma zl_simplify_bwd_in_lgc:
@@ -283,7 +274,7 @@ proof -
 qed
 
 theorem inclusion_zl_in_gc: "(T, \<M>) \<leadsto>ZL (T, \<M>') \<Longrightarrow> (T, \<M>) \<leadsto>LGC (T, \<M>')"
-proof (induction rule : ZL.induct)
+proof (induction rule: ZL.induct)
   case (choose_p T P C A)
   then show ?case using zl_choose_p_in_lgc by auto
 next

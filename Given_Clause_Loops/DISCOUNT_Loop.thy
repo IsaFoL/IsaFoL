@@ -35,9 +35,6 @@ locale discount_loop =
     order_on_labels: "active \<sqsubset>L y \<and> y \<sqsubset>L passive \<and> active \<sqsubset>L passive"
 begin
 
-
-subsection \<open>definition, abbreviation, type and fun\<close>
-
 abbreviation c_dot_succ :: " 'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<cdot>\<succ>" 50) where " C \<cdot>\<succ> C' \<equiv> C' \<prec>\<cdot> C"
 abbreviation sqsupset :: " 'l \<Rightarrow> 'l \<Rightarrow> bool " (infix "\<sqsupset>L" 50) where " l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
@@ -66,9 +63,6 @@ inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
   state ( T, P, {C}, A) \<leadsto>DL state ( T \<union> T', P, {}, A \<union> {C})"
 | delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = {} \<Longrightarrow>
   state ( T \<union> T', P, Y, A) \<leadsto>DL state ( T, P, Y, A)"
-
-
-subsection \<open>Auxiliary Lemmas\<close>
 
 lemma labels_distinct: " y \<noteq> active \<and> passive \<noteq> active "
 proof
@@ -130,7 +124,7 @@ proof -
   moreover have "y \<noteq> active"
     using labels_distinct by simp
   ultimately have "(T, ?\<N> \<union> {(C, passive)}) \<leadsto>LGC (T, ?\<N> \<union> {(C, y)})"
-    using P5' by blast
+    using relabel_inactive by blast
   then have "(T, formulas_of (P \<union> {C}, {}, A)) \<leadsto>LGC (T, formulas_of (P, {C}, A))"
      by (metis PYA_add_passive_formula P0A_add_y_formula)
   then show ?thesis
@@ -148,7 +142,7 @@ proof
   then have "C \<in> no_labels.Red_F (fst ` (formulas_of (P, {}, A)))"
     by (metis (no_types, lifting) c_in in_mono no_labels.Red_F_of_subset)
   then show ?thesis
-    using P1' by auto
+    using remove_redundant_no_label by auto
 next
   assume "\<exists>C'\<in>A. C' \<preceq>\<cdot> C"
   then obtain C' where c'_in_and_c'_ls_c: "C' \<in> A \<and> C' \<preceq>\<cdot> C"
@@ -158,7 +152,8 @@ next
   then have "y \<sqsupset>L active" using order_on_labels
     by simp
   then show ?thesis
-     by (metis c'_in_and_c'_ls_c P4' state.simps P0A_add_y_formula If_f_in_A_then_fl_in_PYA)
+    by (metis c'_in_and_c'_ls_c remove_succ_L state.simps P0A_add_y_formula
+        If_f_in_A_then_fl_in_PYA)
 qed
 
 lemma dl_simplify_fwd_in_lgc:
@@ -197,7 +192,7 @@ proof
   then have "C' \<in> no_labels.Red_F_\<G> (fst` ?\<N>)"
     by (metis (no_types, lifting) c'_in insert_Diff insert_subset no_labels.Red_F_of_subset)
   then have "(T, ?\<N> \<union> {(C', active)}) \<leadsto>LGC (T, ?\<N>)"
-    using P1' by auto
+    using remove_redundant_no_label by auto
   then show ?thesis
     by (metis state.simps PYA_add_active_formula)
 next
@@ -205,7 +200,7 @@ next
   moreover have "(C, y) \<in> formulas_of (P, {C}, A)"
     by simp
   ultimately show ?thesis
-    by (metis P3' state.simps PYA_add_active_formula)
+    by (metis remove_succ_F state.simps PYA_add_active_formula)
 qed
 
 lemma dl_simplify_bwd_in_lgc:
@@ -266,7 +261,7 @@ proof -
   also have "y \<noteq> active" using labels_distinct
     by simp
   then have "(T, formulas_of (P, {}, A) \<union> {(C, y)}) \<leadsto>LGC
-             (T \<union> T', formulas_of (P, {}, A) \<union> {(C, active)})"
+    (T \<union> T', formulas_of (P, {}, A) \<union> {(C, active)})"
     using calculation schedule_infer by blast
   then show ?thesis
     by (metis state.simps P0A_add_y_formula PYA_add_active_formula)

@@ -127,7 +127,7 @@ subsection \<open>Given Clause Procedure\<close>
 context given_clause
 begin
 
-lemma P0:
+lemma remove_redundant:
   assumes "(C, l) \<in> Red_F \<N>"
   shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
@@ -139,17 +139,17 @@ proof -
     by (metis process sup_bot_right)
 qed
 
-lemma P1:
+lemma remove_redundant_no_label:
   assumes " C \<in> no_labels.Red_F (fst ` \<N>)"
-  shows "\<N> \<union> {(C, l::'l)} \<leadsto>GC \<N>"
+  shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
   have "(C, l) \<in> Red_F \<N>"
     using lemma59point1 assms by simp
-  then show "\<N> \<union> {(C, l::'l)} \<leadsto>GC \<N>"
-    using P0 by auto
+  then show ?thesis
+    using remove_redundant by auto
 qed
 
-lemma P2:
+lemma add_inactive:
   assumes "l \<noteq> active"
   shows "\<N> \<leadsto>GC \<N> \<union> {(C, l)}"
 proof -
@@ -161,34 +161,34 @@ proof -
     by (metis active_subset_C_l process sup_bot.right_neutral)
 qed
 
-lemma P3:
+lemma remove_succ_F:
   assumes
     "(C', l') \<in> \<N>" and
     "C' \<prec>\<cdot> C"
-  shows " \<N> \<union> {(C, l)} \<leadsto>GC \<N>"
+  shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
-  have " C' \<in> fst ` \<N> "
+  have "C' \<in> fst ` \<N>"
     by (metis assms(1) fst_conv rev_image_eqI)
   then have "{(C, l)} \<subseteq> Red_F (\<N>)"
     using assms lemma59point2 by auto
   then show ?thesis
-    using P0 by simp
+    using remove_redundant by simp
 qed
 
-lemma P4:
+lemma remove_succ_L:
   assumes
     "(C', l') \<in> \<N>" and
-    "l' \<sqsubset>L l" and
-    "C' \<preceq>\<cdot> C"
+    "C' \<preceq>\<cdot> C" and
+    "l' \<sqsubset>L l"
   shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
-  have " (C, l) \<in> Red_F \<N> "
+  have "(C, l) \<in> Red_F \<N>"
     using assms lemma59point3 by auto
   then show "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
-    using P0 by auto
+    using remove_redundant by auto
 qed
 
-lemma P5:
+lemma relabel_inactive:
   assumes
     "l' \<sqsubset>L l" and
     "l' \<noteq> active"
@@ -218,7 +218,7 @@ subsection \<open>Lazy Given Clause Procedure\<close>
 context lazy_given_clause
 begin
 
-lemma P0':
+lemma remove_redundant:
   assumes "(C, l) \<in> Red_F \<N>"
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
@@ -230,17 +230,17 @@ proof -
     by (metis process sup_bot_right)
 qed
 
-lemma P1':
+lemma remove_redundant_no_label:
   assumes "C \<in> no_labels.Red_F (fst ` \<N>)"
-  shows "(T, \<N> \<union> {(C, l::'l)}) \<leadsto>LGC (T, \<N>)"
+  shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
   have "(C, l) \<in> Red_F \<N>"
     using lemma59point1 assms by simp
-  then show "(T, \<N> \<union> {(C, l::'l)}) \<leadsto>LGC (T, \<N>)"
-    using P0' by auto
+  then show "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
+    using remove_redundant by auto
 qed
 
-lemma P2':
+lemma add_inactive:
   assumes "l \<noteq> active"
   shows "(T, \<N>) \<leadsto>LGC (T, \<N> \<union> {(C, l)})"
 proof -
@@ -252,34 +252,34 @@ proof -
     by (metis active_subset_C_l process sup_bot.right_neutral)
 qed
 
-lemma P3':
+lemma remove_succ_F:
   assumes
     "(C', l') \<in> \<N>" and
     "C' \<prec>\<cdot> C"
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
-  have " C' \<in> fst ` \<N> "
+  have "C' \<in> fst ` \<N>"
     by (metis assms(1) fst_conv rev_image_eqI)
   then have "{(C, l)} \<subseteq> Red_F (\<N>)"
     using assms lemma59point2 by auto
   then show ?thesis
-    using P0' by simp
+    using remove_redundant by simp
 qed
 
-lemma P4':
+lemma remove_succ_L:
   assumes
     "(C', l') \<in> \<N>" and
-    "l' \<sqsubset>L l" and
-    "C' \<preceq>\<cdot> C"
+    "C' \<preceq>\<cdot> C" and
+    "l' \<sqsubset>L l"
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
-  have " (C, l) \<in> Red_F \<N> "
+  have "(C, l) \<in> Red_F \<N>"
     using assms lemma59point3 by auto
   then show "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
-    using P0' by auto
+    using remove_redundant by auto
 qed
 
-lemma P5':
+lemma relabel_inactive:
   assumes
     "l' \<sqsubset>L l" and
     "l' \<noteq> active"
