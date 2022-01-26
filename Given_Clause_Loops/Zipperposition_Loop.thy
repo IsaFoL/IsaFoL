@@ -273,32 +273,39 @@ proof -
     using thesis_before_rewriting zl_state.simps by presburger
 qed
 
-theorem inclusion_zl_in_gc: "(T, \<M>) \<leadsto>ZL (T, \<M>') \<Longrightarrow> (T, \<M>) \<leadsto>LGC (T, \<M>')"
+theorem zl_in_gc: "(T, \<M>) \<leadsto>ZL (T, \<M>') \<Longrightarrow> (T, \<M>) \<leadsto>LGC (T, \<M>')"
 proof (induction rule: ZL.induct)
   case (choose_p T P C A)
-  then show ?case using zl_choose_p_in_lgc by auto
+  then show ?case
+    using zl_choose_p_in_lgc by auto
 next
   case (delete_fwd C A T P)
-  then show ?case using zl_delete_fwd_in_lgc by auto
+  then show ?case
+    using zl_delete_fwd_in_lgc by auto
 next
   case (simplify_fwd C A C' T P)
-  then show ?case using zl_simplify_fwd_in_lgc by blast
+  then show ?case
+    using zl_simplify_fwd_in_lgc by blast
 next
   case (delete_bwd C' C T P A)
-  then show ?case using zl_delete_bwd_in_lgc by blast
+  then show ?case
+    using zl_delete_bwd_in_lgc by blast
 next
   case (simplify_bwd C' C C'' T P A)
-  then show ?case using zl_simplify_bwd_in_lgc by blast
+  then show ?case
+    using zl_simplify_bwd_in_lgc by blast
 next
   case (compute_infer \<iota>0 A C T \<iota>s P)
-  then show ?case using zl_compute_infer_in_lgc by auto
+  then show ?case
+    using zl_compute_infer_in_lgc by auto
 next
   case (schedule_infer T' A C T P)
   then show ?case
     using zl_schedule_infer_in_lgc by blast
 next
   case (delete_orphans \<iota>s A T P Y)
-  then show ?case using zl_delete_orphans_in_lgc by auto
+  then show ?case
+    using zl_delete_orphans_in_lgc by auto
 qed
 
 end

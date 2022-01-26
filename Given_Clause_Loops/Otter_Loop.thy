@@ -381,45 +381,55 @@ proof -
 
   then have "?\<N> \<union> {(C, yy)} \<leadsto>GC ?\<N> \<union> {(C, active)} \<union> ?\<M>"
     using labels_distinct active_subset_of_\<M> prj_fl_set_to_f_set_distr_union step.infer by force
-  also have "?\<N> \<union> {(C, yy)} =  state ( {}, {}, P, {C}, A)"
+  also have "?\<N> \<union> {(C, yy)} = state ({}, {}, P, {C}, A)"
     by simp
-  also have "?\<N> \<union> {(C, active)} \<union> ?\<M> = state  ( M, {}, P, {}, A \<union> {C})"
+  also have "?\<N> \<union> {(C, active)} \<union> ?\<M> = state (M, {}, P, {}, A \<union> {C})"
     by force
   finally show ?thesis
     by simp
 qed
 
-theorem inclusion_ol_in_gc: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
+theorem ol_in_gc: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: OL.induct)
   case (choose_n N C P A)
-  then show ?case using chooseN_in_GC by auto
+  then show ?case
+    using chooseN_in_GC by auto
 next
   case (delete_fwd C P A N)
-  then show ?case using deleteFwd_in_GC by auto
+  then show ?case
+    using deleteFwd_in_GC by auto
 next
   case (simplify_fwd C P A C' N)
-  then show ?case using simplifyFwd_in_GC by auto
+  then show ?case
+    using simplifyFwd_in_GC by auto
 next
   case (delete_bwd_p C' C N P A)
-  then show ?case using deleteBwdP_in_GC by auto
+  then show ?case
+    using deleteBwdP_in_GC by auto
 next
   case (simplify_bwd_p C' C C'' N P A)
-  then show ?case using simplifyBwdP_in_GC by auto
+  then show ?case
+    using simplifyBwdP_in_GC by auto
 next
   case (delete_bwd_a C' C N P A)
-  then show ?case using deleteBwdA_in_GC by auto
+  then show ?case
+    using deleteBwdA_in_GC by auto
 next
   case (simplify_bwd_a C' C N P A C'')
-  then show ?case using simplifyBwdA_in_GC by blast
+  then show ?case
+    using simplifyBwdA_in_GC by blast
 next
   case (transfer N C P A)
-  then show ?case using transfer_in_GC by auto
+  then show ?case
+    using transfer_in_GC by auto
 next
   case (choose_p P C A)
-  then show ?case using chooseP_in_GC by auto
+  then show ?case
+    using chooseP_in_GC by auto
 next
   case (infer A C M P)
-  then show ?case using infer_in_GC by auto
+  then show ?case
+    using infer_in_GC by auto
 qed
 
 end

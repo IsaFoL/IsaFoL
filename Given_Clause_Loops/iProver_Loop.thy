@@ -85,11 +85,11 @@ proof -
     by simp
 qed
 
-theorem inclusion_ol_in_gc: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
+theorem il_in_gc: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: iProver_loop.induct)
   case (ol \<M> \<M>')
   then show ?case
-    by (simp add: inclusion_ol_in_gc)
+    by (simp add: ol_in_gc)
 next
   case (replace C A M C' P)
   then show ?case using replace_in_GC by auto
