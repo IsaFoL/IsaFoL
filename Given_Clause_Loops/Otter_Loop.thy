@@ -6,14 +6,12 @@
 section \<open>Otter Loop\<close>
 
 theory Otter_Loop
-  imports
-    More_Given_Clause
-    Saturation_Framework.Given_Clause_Architectures
+  imports More_Given_Clause
 begin
 
-locale otter_loop = GC?: Given_Clause_Architectures.given_clause
-  Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-  Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active
+locale otter_loop =
+  given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
+    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -38,7 +36,8 @@ locale otter_loop = GC?: Given_Clause_Architectures.given_clause
     order_on_labels_trans: "l1 \<sqsubset>L l2 \<Longrightarrow> l2 \<sqsubset>L l3 \<Longrightarrow> l1 \<sqsubset>L l3"
 begin
 
-subsection \<open>definition, abbreviation, type and fun\<close>
+
+subsection \<open>Definition and Basic Lemmas\<close>
 
 fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> 'l) set" where
 "state (N, X, P, Y, A) =
@@ -66,8 +65,6 @@ inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Right
 | choose_p: "C \<notin> P \<Longrightarrow> state (\<emptyset>, \<emptyset>, P \<union> {C}, \<emptyset>, A) \<leadsto>OL state (\<emptyset>, \<emptyset>, P, {C}, A)"
 | infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
   state (\<emptyset>, \<emptyset>, P, {C}, A) \<leadsto>OL state  (M, \<emptyset>, P, \<emptyset>, A \<union> {C})"
-
-subsubsection \<open> Auxiliary Lemmas \<close>
 
 lemma labels_distinct:
   assumes "l \<in> { x, y, passive, new }"
@@ -123,7 +120,8 @@ proof -
     by simp
 qed
 
-subsection \<open> main lemmas \<close>
+
+subsection \<open>Main Lemmas\<close>
 
 lemma chooseN_in_GC: "state (N \<union> {C}, \<emptyset>, P, \<emptyset>, A) \<leadsto>GC state (N, {C}, P, \<emptyset>, A)"
 proof -
@@ -333,7 +331,6 @@ proof -
     using active_subset_of_setOfFormulasWithLabelDiffActive by auto
   then have "state (N, {C}, P, \<emptyset>, A) \<union> {(C', active)} \<leadsto>GC state (N, {C}, P, \<emptyset>, A) \<union> {(C'', new)}"
     using \<M>_included process[where ?M="?\<M>" and ?M'="?\<M>'"] by auto
-
   then show ?thesis
     by (metis state_add_C_new state_add_C_active)
 qed
@@ -349,7 +346,6 @@ proof -
     by (simp add: labels_distinct)
   ultimately have "?\<N> \<union> {(C, x)} \<leadsto>GC ?\<N> \<union> {(C, passive)}"
     using P5 by auto
-
   then show ?thesis
     by (metis sup_bot_left state_add_C_x state_add_C_passive)
 qed
@@ -399,7 +395,8 @@ proof -
     by simp
 qed
 
-subsection \<open>Theorem\<close>
+
+subsection \<open>Refinement Theorem\<close>
 
 theorem inclusion_ol_in_gc: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: OL.induct)
@@ -433,15 +430,6 @@ next
   case (infer A C M P)
   then show ?case using infer_in_GC by auto
 qed
-
-definition choose_n_fun :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow>
-  ('f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set)" where
-  \<open>choose_n_fun N X P Y A = (SOME s. s\<in>{(N', {C}, P, {}, A) | C N'. N = N' \<union> {C} \<and> X = {} \<and> Y = {}})\<close>
-
-inductive choose_n_fun2 :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow>
-  ('f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set) \<Rightarrow> bool" where
-\<open>choose_n_fun2 N {} P {} A (N-{C}, {C}, P, {}, A)\<close>
-if \<open>C \<in> N\<close>
 
 end
 

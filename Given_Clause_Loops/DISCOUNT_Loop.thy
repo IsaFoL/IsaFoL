@@ -6,14 +6,12 @@
 section \<open>DISCOUNT Loop\<close>
 
 theory DISCOUNT_Loop
-  imports
-    More_Lazy_Given_Clause
-    Saturation_Framework.Given_Clause_Architectures
+  imports More_Lazy_Given_Clause
 begin
 
-locale discount_loop = LGC?: lazy_given_clause
-  Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-  Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active
+locale discount_loop =
+  lazy_given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
+    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and

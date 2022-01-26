@@ -6,8 +6,7 @@
 section \<open>More Given Clause Basis Lemmas\<close>
 
 theory More_Given_Clause_Basis
-  imports
-    Saturation_Framework.Given_Clause_Architectures
+  imports Saturation_Framework.Given_Clause_Architectures
 begin
 
 context given_clause_basis

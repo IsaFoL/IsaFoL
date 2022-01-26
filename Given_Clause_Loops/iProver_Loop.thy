@@ -6,14 +6,12 @@
 section \<open>iProver Loop\<close>
 
 theory iProver_Loop
-  imports
-    Otter_Loop
-    Saturation_Framework.Given_Clause_Architectures
+  imports Otter_Loop
 begin
 
-locale iProver_loop = OL?: otter_loop
-  Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-  Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active new x passive y
+locale iProver_loop =
+  otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
+    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active new x passive y
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
