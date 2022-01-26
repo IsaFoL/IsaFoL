@@ -79,7 +79,7 @@ proof
     by (metis UNIV_I l_active minimal_element.minimal wf_prec_L)
 qed
 
-lemma prj_state_union_sets [simp]: "fst ` (state (N, X, P, Y, A)) = N \<union> X \<union> P \<union> Y \<union> A"
+lemma prj_state_union_sets [simp]: "fst ` state (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
   using prj_fl_set_to_f_set_distr_union prj_labeledN_eq_N by auto
 
 lemma active_subset_of_setOfFormulasWithLabelDiffActive:
@@ -151,9 +151,9 @@ proof
     using no_labels.Red_F_of_subset by simp
   then have c_in_redf_NPA: "C \<in> no_labels.Red_F (N \<union> {} \<union> P \<union> {} \<union> A)"
     using c_in_redf_PA by auto
-  have NPA_eq_prj_state_NPA: "N \<union> {} \<union> P \<union> {} \<union> A = fst` ( state (N, {}, P, {}, A) )"
+  have NPA_eq_prj_state_NPA: "N \<union> {} \<union> P \<union> {} \<union> A = fst ` state (N, {}, P, {}, A)"
     using prj_state_union_sets by simp
-  have "C \<in> no_labels.Red_F ( fst` ( state (N, {}, P, {}, A) ))"
+  have "C \<in> no_labels.Red_F (fst ` state (N, {}, P, {}, A))"
     using c_in_redf_NPA NPA_eq_prj_state_NPA by fastforce
   then show ?thesis
     using remove_redundant_no_label by auto
@@ -170,13 +170,13 @@ next
       by simp
     have "passive \<sqsubset>L xx"
       using order_on_labels by simp
-    then have "(state (N, {}, P, {}, A)) \<union> {(C, xx)} \<leadsto>GC ( state (N, {}, P, {}, A) )"
+    then have "state (N, {}, P, {}, A) \<union> {(C, xx)} \<leadsto>GC state (N, {}, P, {}, A)"
       using remove_succ_L c'_le_c c'_passive_in by blast
     then show ?thesis
       by auto
   next
     assume "C' \<in> A"
-    then have c'_active_in_state_NPA: "(C', active) \<in> ( state (N, {}, P, {}, A) )"
+    then have c'_active_in_state_NPA: "(C', active) \<in> state (N, {}, P, {}, A)"
       by simp
     also have active_ls_x: "active \<sqsubset>L xx"
       using active_minimal labels_distinct by simp
