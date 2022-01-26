@@ -11,7 +11,7 @@ begin
 
 locale iProver_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active new x passive y
+    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active new xx passive yy
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -29,9 +29,9 @@ locale iProver_loop =
     Prec_L :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>L" 50) and
     active :: "'l" and
     new :: 'l and
-    x :: 'l and
+    xx :: 'l and
     passive :: 'l and
-    y :: 'l
+    yy :: 'l
 begin
 
 inductive iProver_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50) where
@@ -45,10 +45,10 @@ lemma replace_in_GC:
   shows "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
 proof -
   let ?\<N> = "state ({}, {}, P, {}, A)"
-  and ?\<M> = "{(C, y)}"
+  and ?\<M> = "{(C, yy)}"
   and ?\<M>' = "{(x, new) |x. x\<in>M}"
 
-  have "(C, y) \<in> Red_F (?\<N> \<union> ?\<M>')"
+  have "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
     using assms
   proof
     assume c_in: "C \<in> no_labels.Red_F (A \<union> M)"
@@ -57,13 +57,13 @@ proof -
       by auto
     then have "C \<in> no_labels.Red_F (fst ` (?\<N> \<union> ?\<M>'))"
       by (metis (no_types, lifting) c_in calculation in_mono no_labels.Red_F_of_subset)
-    then show "(C, y) \<in> Red_F (?\<N> \<union> ?\<M>')"
+    then show "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
       using lemma59point1 by blast
   next
     assume assm: "M = {C'} \<and> C' \<prec>\<cdot> C"
     then have "C' \<in> fst ` (?\<N> \<union> ?\<M>')"
       by simp
-    then show "(C, y) \<in> Red_F (?\<N> \<union> ?\<M>')"
+    then show "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
       by (metis (mono_tags, lifting) assm lemma59point2)
   qed
 

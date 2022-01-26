@@ -10,8 +10,8 @@ theory Otter_Loop
 begin
 
 locale otter_loop =
-  given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active
+  given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F
+    Prec_F Prec_L active
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -28,24 +28,21 @@ locale otter_loop =
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
     Prec_L :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>L" 50) and
     active :: "'l" +
-  fixes new x passive y :: 'l
+  fixes new xx passive yy :: 'l
   assumes
     (* There are exactly 5 labels and there's an order on labels*)
-    five_labels: "\<forall>l::'l. l \<in> {new, x, passive, y, active}" and
-    order_on_labels: "active \<sqsubset>L y \<and> y \<sqsubset>L passive \<and> passive \<sqsubset>L x \<and> x \<sqsubset>L new" and
+    five_labels: "\<forall>l. l \<in> {new, xx, passive, yy, active}" and
+    order_on_labels: "active \<sqsubset>L yy \<and> yy \<sqsubset>L passive \<and> passive \<sqsubset>L xx \<and> xx \<sqsubset>L new" and
     order_on_labels_trans: "l1 \<sqsubset>L l2 \<Longrightarrow> l2 \<sqsubset>L l3 \<Longrightarrow> l1 \<sqsubset>L l3"
 begin
 
-
-subsection \<open>Definition and Basic Lemmas\<close>
-
 fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> 'l) set" where
-"state (N, X, P, Y, A) =
- {(C, new) | C. C \<in> N} \<union>
- {(C, x) | C. C \<in> X} \<union>
- {(C, passive) | C. C \<in> P} \<union>
- {(C, y) | C. C \<in> Y} \<union>
- {(C, active) | C. C \<in> A}"
+  "state (N, X, P, Y, A) =
+   {(C, new) | C. C \<in> N} \<union>
+   {(C, xx) | C. C \<in> X} \<union>
+   {(C, passive) | C. C \<in> P} \<union>
+   {(C, yy) | C. C \<in> Y} \<union>
+   {(C, active) | C. C \<in> A}"
 
 inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
   choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A) "
@@ -67,7 +64,7 @@ inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Right
     state ({}, {}, P, {C}, A) \<leadsto>OL state  (M, {}, P, {}, A \<union> {C})"
 
 lemma labels_distinct:
-  assumes "l \<in> { x, y, passive, new }"
+  assumes "l \<in> {xx, yy, passive, new}"
   shows "l \<noteq> active"
 proof
   assume l_active: "l = active"
@@ -89,14 +86,14 @@ lemma active_subset_of_setOfFormulasWithLabelDiffActive:
 lemma state_add_C_new: "state (N, X, P, Y, A) \<union> {(C, new)} = state (N \<union> {C}, X, P, Y, A)"
   by auto
 
-lemma state_add_C_x: "state (N, X, P, Y, A) \<union> {(C, x)} = state (N, X \<union> {C}, P, Y, A)"
+lemma state_add_C_xx: "state (N, X, P, Y, A) \<union> {(C, xx)} = state (N, X \<union> {C}, P, Y, A)"
   by auto
 
 lemma state_add_C_passive:
   "state (N, X, P, Y, A) \<union> {(C, passive)} = state (N, X, P \<union> {C}, Y, A)"
   by auto
 
-lemma state_add_C_y: "state (N, X, P, Y, A) \<union> {(C, y)} = state (N, X, P, Y \<union> {C}, A)"
+lemma state_add_C_yy: "state (N, X, P, Y, A) \<union> {(C, yy)} = state (N, X, P, Y \<union> {C}, A)"
   by auto
 
 lemma state_add_C_active: "state (N, X, P, Y, A) \<union> {(C, active)} = state (N, X, P, Y, A \<union> {C})"
@@ -104,17 +101,17 @@ lemma state_add_C_active: "state (N, X, P, Y, A) \<union> {(C, active)} = state 
 
 lemma prj_activeSubset_of_state: "fst ` (active_subset (state ( N, X, P, Y, A))) = A"
 proof -
-  have "active_subset {(C, new)|C. C \<in> N} = {}"
+  have "active_subset {(C, new) | C. C \<in> N} = {}"
     using labels_distinct active_subset_def by auto
-  moreover have "active_subset {(C, y)|C. C \<in> Y} = {}"
+  moreover have "active_subset {(C, yy) | C. C \<in> Y} = {}"
     using labels_distinct active_subset_def by auto
-  moreover have "active_subset {(C, passive)|C. C \<in> P} = {}"
+  moreover have "active_subset {(C, passive) | C. C \<in> P} = {}"
     using labels_distinct active_subset_def by auto
-  moreover have "active_subset {(C, x)|C. C \<in> X} = {}"
+  moreover have "active_subset {(C, xx) | C. C \<in> X} = {}"
     using labels_distinct active_subset_def by auto
-  moreover have "active_subset {(C, active)|C. C \<in> A} = {(C, active)|C. C \<in> A}"
+  moreover have "active_subset {(C, active) | C. C \<in> A} = {(C, active) | C. C \<in> A}"
     using active_subset_def by auto
-  ultimately have "fst ` (active_subset (state (N, X, P, Y, A))) = fst ` { (C, active) | C. C \<in> A}"
+  ultimately have "fst ` active_subset (state (N, X, P, Y, A)) = fst ` {(C, active) | C. C \<in> A}"
     by auto
   then show ?thesis
     by simp
@@ -122,16 +119,17 @@ qed
 
 lemma chooseN_in_GC: "state (N \<union> {C}, {}, P, {}, A) \<leadsto>GC state (N, {C}, P, {}, A)"
 proof -
-  have x_ls_new: "x \<sqsubset>L new"
+  have xx_ls_new: "xx \<sqsubset>L new"
     using order_on_labels by auto
-  moreover have x_neq_active: "x \<noteq> active"
+  moreover have x_neq_active: "xx \<noteq> active"
     using labels_distinct by simp
-  ultimately have almost_thesis: "state (N, {}, P, {}, A) \<union> {(C, new)} \<leadsto>GC state (N, {}, P, {}, A) \<union> {(C, x)}"
+  ultimately have almost_thesis:
+    "state (N, {}, P, {}, A) \<union> {(C, new)} \<leadsto>GC state (N, {}, P, {}, A) \<union> {(C, xx)}"
     using relabel_inactive by auto
   have rewrite_left: "state (N, {}, P, {}, A) \<union> {(C, new)} = state (N \<union> {C}, {}, P, {}, A)"
     using state_add_C_new by blast
-  moreover have rewrite_right: "state (N, {}, P, {}, A) \<union> {(C, x)} =  state (N, {C}, P, {}, A)"
-    using state_add_C_x by auto
+  moreover have rewrite_right: "state (N, {}, P, {}, A) \<union> {(C, xx)} =  state (N, {C}, P, {}, A)"
+    using state_add_C_xx by auto
   ultimately show ?thesis
     using almost_thesis rewrite_left rewrite_right by simp
 qed
@@ -164,9 +162,9 @@ next
     assume "C' \<in> P"
     then have c'_passive_in: "(C', passive) \<in> state (N, {}, P, {}, A)"
       by simp
-    have "passive \<sqsubset>L x"
+    have "passive \<sqsubset>L xx"
       using order_on_labels by simp
-    then have "(state (N, {}, P, {}, A)) \<union> {(C, x)} \<leadsto>GC ( state (N, {}, P, {}, A) )"
+    then have "(state (N, {}, P, {}, A)) \<union> {(C, xx)} \<leadsto>GC ( state (N, {}, P, {}, A) )"
       using remove_succ_L c'_le_c c'_passive_in by blast
     then show ?thesis
       by auto
@@ -174,9 +172,9 @@ next
     assume "C' \<in> A"
     then have c'_active_in_state_NPA: "(C', active) \<in> ( state (N, {}, P, {}, A) )"
       by simp
-    also have active_ls_x: "active \<sqsubset>L x"
+    also have active_ls_x: "active \<sqsubset>L xx"
       using active_minimal labels_distinct by simp
-    then  have " state (N, {}, P, {}, A) \<union> {(C, x)} \<leadsto>GC state (N, {}, P, {}, A) "
+    then  have " state (N, {}, P, {}, A) \<union> {(C, xx)} \<leadsto>GC state (N, {}, P, {}, A) "
       using remove_succ_L c'_le_c active_ls_x c'_active_in_state_NPA by blast
     then show ?thesis
       by auto
@@ -190,7 +188,7 @@ lemma simplifyFwd_in_GC:
 proof -
   assume c_in: "C \<in> no_labels.Red_F (P \<union> A \<union> {C'})"
   let ?\<N> = "state (N, {}, P, {}, A)"
-  and ?\<M> = "{(C, x)}" and ?\<M>' = "{(C', x)}"
+  and ?\<M> = "{(C, xx)}" and ?\<M>' = "{(C', xx)}"
 
   have "P \<union> A \<union> {C'} \<subseteq> fst` (?\<N> \<union> ?\<M>')"
     by auto
@@ -198,10 +196,10 @@ proof -
     using no_labels.Red_F_of_subset by auto
   then have "C \<in> no_labels.Red_F (fst` (?\<N> \<union> ?\<M>'))"
     using c_in by auto
-  then have c_x_in: "(C, x) \<in> Red_F (?\<N> \<union> ?\<M>')"
+  then have c_x_in: "(C, xx) \<in> Red_F (?\<N> \<union> ?\<M>')"
     using lemma59point1 by auto
   then have "?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>')" by auto
-  also have "x \<noteq> active "
+  also have "xx \<noteq> active "
     using labels_distinct by auto
   then have active_subset_of_m': "active_subset ?\<M>' = {}"
     using active_subset_of_setOfFormulasWithLabelDiffActive by auto
@@ -217,7 +215,7 @@ lemma deleteBwdP_in_GC:
     let ?\<N> = "state (N, {C}, P, {}, A)"
     assume c_ls_c': " C \<prec>\<cdot> C' "
 
-    have "(C, x) \<in> state (N, {C}, P, {}, A)"
+    have "(C, xx) \<in> state (N, {C}, P, {}, A)"
       by simp
     then have "?\<N> \<union> {(C', passive)} \<leadsto>GC ?\<N>"
       using c_ls_c' remove_succ_F by blast
@@ -281,7 +279,7 @@ proof
     let ?\<N> = "state (N, {C}, P, {}, A)"
     assume c_ls_c': " C \<prec>\<cdot> C' "
 
-    have " (C, x) \<in> state (N, {C}, P, {}, A) "
+    have " (C, xx) \<in> state (N, {C}, P, {}, A) "
       by simp
     then have "?\<N> \<union> {(C', active)} \<leadsto>GC ?\<N>"
       using c_ls_c' remove_succ_F by blast
@@ -337,37 +335,36 @@ lemma transfer_in_GC: "state (N, {C}, P, {}, A) \<leadsto>GC state  (N, {}, P \<
 proof -
   let ?\<N> = "state (N, {}, P, {}, A)"
 
-  have "passive \<sqsubset>L x"
+  have "passive \<sqsubset>L xx"
     by (simp add: order_on_labels)
   moreover have "passive \<noteq> active"
     by (simp add: labels_distinct)
-  ultimately have "?\<N> \<union> {(C, x)} \<leadsto>GC ?\<N> \<union> {(C, passive)}"
+  ultimately have "?\<N> \<union> {(C, xx)} \<leadsto>GC ?\<N> \<union> {(C, passive)}"
     using relabel_inactive by auto
   then show ?thesis
-    by (metis sup_bot_left state_add_C_x state_add_C_passive)
+    by (metis sup_bot_left state_add_C_xx state_add_C_passive)
 qed
 
 lemma chooseP_in_GC: "state ( {}, {}, P \<union> {C}, {}, A) \<leadsto>GC state  ( {}, {}, P, {C}, A)"
 proof -
   let ?\<N> = "state ({}, {}, P, {}, A)"
 
-  have "y \<sqsubset>L passive"
+  have "yy \<sqsubset>L passive"
     by (simp add: order_on_labels)
-  moreover have "y \<noteq> active"
+  moreover have "yy \<noteq> active"
     by (simp add: labels_distinct)
-  ultimately have "?\<N> \<union> {(C, passive)} \<leadsto>GC ?\<N> \<union> {(C, y)}"
+  ultimately have "?\<N> \<union> {(C, passive)} \<leadsto>GC ?\<N> \<union> {(C, yy)}"
     using relabel_inactive by auto
-
   then show ?thesis
-    by (metis sup_bot_left state_add_C_passive state_add_C_y)
+    by (metis sup_bot_left state_add_C_passive state_add_C_yy)
 qed
 
 lemma infer_in_GC:
   assumes "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M)"
-  shows "state ( {}, {}, P, {C}, A) \<leadsto>GC state  ( M, {}, P, {}, A \<union> {C})"
+  shows "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A \<union> {C})"
 proof -
-  let ?\<M> = "{(C', new)|C'. C' \<in> M}"
-  let ?\<N> = "state ( {}, {}, P, {}, A)"
+  let ?\<M> = "{(C', new) | C'. C' \<in> M}"
+  let ?\<N> = "state ({}, {}, P, {}, A)"
 
   have active_subset_of_\<M>: "active_subset ?\<M> = {}"
     using labels_distinct active_subset_def by auto
@@ -382,9 +379,9 @@ proof -
                     no_labels.Red_I ((fst` ?\<N>) \<union> {C} \<union> (fst` ?\<M>))"
     using assms by auto
 
-  then have "?\<N> \<union> {(C, y)} \<leadsto>GC ?\<N> \<union> {(C, active)} \<union> ?\<M>"
+  then have "?\<N> \<union> {(C, yy)} \<leadsto>GC ?\<N> \<union> {(C, active)} \<union> ?\<M>"
     using labels_distinct active_subset_of_\<M> prj_fl_set_to_f_set_distr_union step.infer by force
-  also have "?\<N> \<union> {(C, y)} =  state ( {}, {}, P, {C}, A)"
+  also have "?\<N> \<union> {(C, yy)} =  state ( {}, {}, P, {C}, A)"
     by simp
   also have "?\<N> \<union> {(C, active)} \<union> ?\<M> = state  ( M, {}, P, {}, A \<union> {C})"
     by force
