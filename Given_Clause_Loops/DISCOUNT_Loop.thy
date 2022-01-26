@@ -28,27 +28,31 @@ locale discount_loop =
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
     Prec_L :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>L" 50) and
     active :: "'l" +
-  fixes passive y :: 'l
+  fixes passive yy :: 'l
   assumes
     (* there are exactly 3 labels and there is an order *)
-    labels: "\<forall>l::'l. l \<in> {passive, y, active}" and
-    order_on_labels: "active \<sqsubset>L y \<and> y \<sqsubset>L passive \<and> active \<sqsubset>L passive"
+    labels: "\<forall>l. l \<in> {passive, yy, active}" and
+    order_on_labels: "active \<sqsubset>L yy \<and> yy \<sqsubset>L passive \<and> active \<sqsubset>L passive"
 begin
 
 abbreviation c_dot_succ :: " 'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<cdot>\<succ>" 50) where " C \<cdot>\<succ> C' \<equiv> C' \<prec>\<cdot> C"
-abbreviation sqsupset :: " 'l \<Rightarrow> 'l \<Rightarrow> bool " (infix "\<sqsupset>L" 50) where " l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
+abbreviation sqsupset :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsupset>L" 50) where "l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
 fun formulas_of :: " 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> 'l) set " where
   "formulas_of (P, Y, A) =
    {(C, passive) | C. C \<in> P} \<union>
-   {(C, y) | C. C \<in> Y} \<union>
+   {(C, yy) | C. C \<in> Y} \<union>
    {(C, active) | C. C \<in> A}"
 
-fun state :: " 'f inference set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set "
-  where "state (T, P, Y, A) = (T, formulas_of (P, Y, A))"
+fun
+  state :: "'f inference set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set "
+where
+  "state (T, P, Y, A) = (T, formulas_of (P, Y, A))"
 
-inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
-                             ('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>DL" 50) where
+inductive
+  DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow> ('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow> bool"
+  (infix "\<leadsto>DL" 50)
+where
   choose_p: "state (T, P \<union> {C}, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T, P, {}, A)"
@@ -65,12 +69,12 @@ inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
 | delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = {} \<Longrightarrow>
     state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
 
-lemma labels_distinct: "y \<noteq> active \<and> passive \<noteq> active"
+lemma labels_distinct: "yy \<noteq> active \<and> passive \<noteq> active"
 proof
-  show "y \<noteq> active"
+  show "yy \<noteq> active"
   proof
-    assume y_eq_active: " y = active "
-    then have "y \<sqsubset>L active"
+    assume y_eq_active: "yy = active "
+    then have "yy \<sqsubset>L active"
       using order_on_labels by simp
     then show "False"
       by (metis UNIV_I y_eq_active minimal_element.minimal wf_prec_L)
@@ -93,7 +97,7 @@ lemma PYA_add_passive_formula [simp]:
   "formulas_of (P, Y, A) \<union> {(C, passive)} = formulas_of (P \<union> {C}, Y, A)"
   by auto
 
-lemma P0A_add_y_formula [simp]: "formulas_of (P, {}, A) \<union> {(C, y)} = formulas_of (P, {C}, A)"
+lemma P0A_add_y_formula [simp]: "formulas_of (P, {}, A) \<union> {(C, yy)} = formulas_of (P, {C}, A)"
   by auto
 
 lemma PYA_add_active_formula [simp]:
@@ -102,7 +106,7 @@ lemma PYA_add_active_formula [simp]:
 
 lemma prj_active_subset_of_state: "fst ` (active_subset (formulas_of (P, Y, A))) = A"
 proof -
-  have "active_subset {(C, y) | C. C \<in> Y} = {}" and
+  have "active_subset {(C, yy) | C. C \<in> Y} = {}" and
        "active_subset {(C, passive) | C. C \<in> P} = {}"
     using active_subset_def labels_distinct by auto
   moreover have "active_subset {(C, active) | C. C \<in> A} = {(C, active) | C. C \<in> A}"
@@ -120,11 +124,11 @@ lemma active_subset_of_setOfFormulasWithLabelDiffActive:
 lemma dl_choose_p_in_lgc: "state (T, P \<union> {C}, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
   let ?\<N> = "formulas_of (P, {}, A)"
-  have "passive \<sqsupset>L y"
+  have "passive \<sqsupset>L yy"
     by (simp add: order_on_labels)
-  moreover have "y \<noteq> active"
+  moreover have "yy \<noteq> active"
     using labels_distinct by simp
-  ultimately have "(T, ?\<N> \<union> {(C, passive)}) \<leadsto>LGC (T, ?\<N> \<union> {(C, y)})"
+  ultimately have "(T, ?\<N> \<union> {(C, passive)}) \<leadsto>LGC (T, ?\<N> \<union> {(C, yy)})"
     using relabel_inactive by blast
   then have "(T, formulas_of (P \<union> {C}, {}, A)) \<leadsto>LGC (T, formulas_of (P, {C}, A))"
      by (metis PYA_add_passive_formula P0A_add_y_formula)
@@ -150,7 +154,7 @@ next
     by auto
   then have "(C', active) \<in> formulas_of (P, {}, A)"
     by auto
-  then have "y \<sqsupset>L active" using order_on_labels
+  then have "yy \<sqsupset>L active" using order_on_labels
     by simp
   then show ?thesis
     by (metis c'_in_and_c'_ls_c remove_succ_L state.simps P0A_add_y_formula
@@ -162,20 +166,20 @@ lemma dl_simplify_fwd_in_lgc:
   shows "state (T, P, {C}, A) \<leadsto>LGC state (T, P, {C'}, A)"
 proof -
   let ?\<N> = "formulas_of (P, {}, A)"
-  and ?\<M> = "{(C, y)}"
-  and ?\<M>'= "{(C', y)}"
+  and ?\<M> = "{(C, yy)}"
+  and ?\<M>'= "{(C', yy)}"
   have "A \<union> {C'} \<subseteq> fst` (?\<N> \<union> ?\<M>')"
     by auto
   then have "C \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (verit, ccfv_threshold) assms no_labels.Red_F_of_subset subset_iff)
-  then have "(C, y) \<in> Red_F (?\<N> \<union> ?\<M>')"
+  then have "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
     using lemma59point1 by simp
   then have "?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
     by simp
   moreover have "active_subset ?\<M>' = {}"
     using active_subset_of_setOfFormulasWithLabelDiffActive labels_distinct by blast
-  ultimately have "(T, formulas_of (P, {}, A) \<union> {(C, y)}) \<leadsto>LGC
-                    (T, formulas_of (P, {}, A) \<union> {(C', y)})"
+  ultimately have "(T, formulas_of (P, {}, A) \<union> {(C, yy)}) \<leadsto>LGC
+                    (T, formulas_of (P, {}, A) \<union> {(C', yy)})"
     using process[of _ _ "?\<M>" _ "?\<M>'"] by auto
   then show ?thesis
     by simp
@@ -198,7 +202,7 @@ proof
     by (metis state.simps PYA_add_active_formula)
 next
   assume "C' \<cdot>\<succ> C"
-  moreover have "(C, y) \<in> formulas_of (P, {C}, A)"
+  moreover have "(C, yy) \<in> formulas_of (P, {C}, A)"
     by simp
   ultimately show ?thesis
     by (metis remove_succ_F state.simps PYA_add_active_formula)
@@ -211,11 +215,12 @@ proof -
   let ?\<M> = "{(C', active)}"
   and ?\<M>' = "{(C'', passive)}"
   and ?\<N> = "formulas_of (P, {C}, A)"
+
   have "{C, C''} \<subseteq> fst` (?\<N> \<union> ?\<M>')"
     by simp
   then have "C' \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (z3) DiffI Diff_eq_empty_iff assms empty_iff no_labels.Red_F_of_subset)
-  then have \<M>_included: " ?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
+  then have \<M>_included: "?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
     using lemma59point1 by auto
   have "passive \<noteq> active"
     by (simp add: labels_distinct)
@@ -235,8 +240,8 @@ lemma dl_compute_infer_in_lgc:
   shows "state (T \<union> {\<iota>}, P, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
   let ?\<N> = "formulas_of (P, {}, A)"
-  and ?\<M> = "{(C, y)}"
-  have "A \<union> {C} \<subseteq> fst` (formulas_of (P, {}, A) \<union> {(C, y)})"
+  and ?\<M> = "{(C, yy)}"
+  have "A \<union> {C} \<subseteq> fst` (formulas_of (P, {}, A) \<union> {(C, yy)})"
     by auto
   then have "\<iota> \<in> no_labels.Red_I_\<G> (fst` (?\<N> \<union> ?\<M>))"
     by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
@@ -259,9 +264,9 @@ proof -
     using prj_active_subset_of_state by blast
   then have "T' = no_labels.Inf_between (fst ` (active_subset ?\<N>)) {C}"
     using assms by auto
-  also have "y \<noteq> active" using labels_distinct
+  also have "yy \<noteq> active" using labels_distinct
     by simp
-  then have "(T, formulas_of (P, {}, A) \<union> {(C, y)}) \<leadsto>LGC
+  then have "(T, formulas_of (P, {}, A) \<union> {(C, yy)}) \<leadsto>LGC
     (T \<union> T', formulas_of (P, {}, A) \<union> {(C, active)})"
     using calculation schedule_infer by blast
   then show ?thesis
