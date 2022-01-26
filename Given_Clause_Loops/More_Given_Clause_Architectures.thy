@@ -15,7 +15,7 @@ subsection \<open>Given Clause Procedure Basis\<close>
 context given_clause_basis
 begin
 
-lemma lemma59point1:
+lemma no_labels_Red_F_imp_Red_F:
   assumes "C \<in> no_labels.Red_F (fst ` \<N>)"
   shows "(C, l) \<in> Red_F \<N> "
 proof -
@@ -40,7 +40,7 @@ proof -
     using Red_F_def by simp
 qed
 
-lemma lemma59point2:
+lemma succ_F_imp_Red_F:
   assumes
     "C' \<in> fst ` \<N>" and
     "C' \<prec>\<cdot> C"
@@ -62,11 +62,11 @@ proof -
     using Red_F_def by auto
 qed
 
-lemma lemma59point3:
+lemma succ_L_imp_Red_F:
   assumes
     "(C', l') \<in> \<N>" and
-    "l' \<sqsubset>L l" and
-    "C' \<preceq>\<cdot> C"
+    "C' \<preceq>\<cdot> C" and
+    "l' \<sqsubset>L l"
   shows "(C, l) \<in> Red_F \<N>"
 proof -
   have c'_l'_ls_c_l: "(C', l') \<sqsubset> (C, l)"
@@ -79,7 +79,7 @@ proof -
     have "C' \<in> fst ` \<N>"
       by (metis assms(1) eq_fst_iff rev_image_eqI)
      then show ?thesis
-      using c'_ls_c lemma59point2 by blast
+      using c'_ls_c succ_F_imp_Red_F by blast
   next
     assume c'_eq_c: " C' \<doteq> C "
     have c_eq_c': "C \<doteq> C'"
@@ -144,7 +144,7 @@ lemma remove_redundant_no_label:
   shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
   have "(C, l) \<in> Red_F \<N>"
-    using lemma59point1 assms by simp
+    using no_labels_Red_F_imp_Red_F assms by simp
   then show ?thesis
     using remove_redundant by auto
 qed
@@ -170,7 +170,7 @@ proof -
   have "C' \<in> fst ` \<N>"
     by (metis assms(1) fst_conv rev_image_eqI)
   then have "{(C, l)} \<subseteq> Red_F (\<N>)"
-    using assms lemma59point2 by auto
+    using assms succ_F_imp_Red_F by auto
   then show ?thesis
     using remove_redundant by simp
 qed
@@ -183,7 +183,7 @@ lemma remove_succ_L:
   shows "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
 proof -
   have "(C, l) \<in> Red_F \<N>"
-    using assms lemma59point3 by auto
+    using assms succ_L_imp_Red_F by auto
   then show "\<N> \<union> {(C, l)} \<leadsto>GC \<N>"
     using remove_redundant by auto
 qed
@@ -202,7 +202,7 @@ proof -
   moreover have "(C, l') \<in> \<N> \<union> {(C, l')} "
     by auto
   ultimately have "(C, l) \<in> Red_F (\<N> \<union> {(C, l')})"
-    using assms lemma59point3[of _ _ "\<N> \<union> {(C, l')}"] by auto
+    using assms succ_L_imp_Red_F[of _ _ "\<N> \<union> {(C, l')}"] by auto
   then have "{(C, l)} \<subseteq> Red_F (\<N> \<union> {(C, l')})"
     by auto
 
@@ -235,7 +235,7 @@ lemma remove_redundant_no_label:
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
   have "(C, l) \<in> Red_F \<N>"
-    using lemma59point1 assms by simp
+    using no_labels_Red_F_imp_Red_F assms by simp
   then show "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
     using remove_redundant by auto
 qed
@@ -261,7 +261,7 @@ proof -
   have "C' \<in> fst ` \<N>"
     by (metis assms(1) fst_conv rev_image_eqI)
   then have "{(C, l)} \<subseteq> Red_F (\<N>)"
-    using assms lemma59point2 by auto
+    using assms succ_F_imp_Red_F by auto
   then show ?thesis
     using remove_redundant by simp
 qed
@@ -274,7 +274,7 @@ lemma remove_succ_L:
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
   have "(C, l) \<in> Red_F \<N>"
-    using assms lemma59point3 by auto
+    using assms succ_L_imp_Red_F by auto
   then show "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
     using remove_redundant by auto
 qed
@@ -293,7 +293,7 @@ proof -
   moreover have "(C, l') \<in> \<N> \<union> {(C, l')} "
     by auto
   ultimately have "(C, l) \<in> Red_F (\<N> \<union> {(C, l')})"
-    using assms lemma59point3[of _ _ "\<N> \<union> {(C, l')}"] by auto
+    using assms succ_L_imp_Red_F[of _ _ "\<N> \<union> {(C, l')}"] by auto
   then have "{(C, l)} \<subseteq> Red_F (\<N> \<union> {(C, l')})"
     by auto
 

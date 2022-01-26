@@ -30,6 +30,9 @@ locale zipperposition_loop =
     active passive y :: 'l
 begin
 
+
+subsection \<open>Definition and Lemmas\<close>
+
 fun zl_inferences_of :: " ('f inference llist) set \<Rightarrow> 'f inference set " where
   "zl_inferences_of T = \<Union> {lset x |x. x \<in> T}"
 
@@ -68,6 +71,9 @@ lemma distr_zl_inferences_of_wrt_union:
 
 lemma "zl_inferences_of (T \<union> {\<iota>s}) = zl_inferences_of T \<union> (lset \<iota>s)"
   by auto
+
+
+subsection \<open>Refinement\<close>
 
 lemma zl_choose_p_in_lgc: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>LGC zl_state (T, P, {C}, A)"
 proof -
@@ -121,7 +127,7 @@ proof -
   then have "C \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (verit, ccfv_SIG) assms no_labels.Red_F_of_subset subset_iff)
   then have "(C, y) \<in> Red_F (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by simp
+    using no_labels_Red_F_imp_Red_F by simp
   then have "?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
     by simp
   moreover have "active_subset ?\<M>' = {}"
@@ -173,7 +179,7 @@ proof -
   then have "C' \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (z3) DiffI Diff_eq_empty_iff assms empty_iff no_labels.Red_F_of_subset)
   then have \<M>_included: " ?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by auto
+    using no_labels_Red_F_imp_Red_F by auto
   have "passive \<noteq> active"
     by (simp add: labels_distinct)
   then have "active_subset ?\<M>' = {}"

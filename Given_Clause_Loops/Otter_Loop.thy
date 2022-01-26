@@ -36,6 +36,9 @@ locale otter_loop =
     order_on_labels_trans: "l1 \<sqsubset>L l2 \<Longrightarrow> l2 \<sqsubset>L l3 \<Longrightarrow> l1 \<sqsubset>L l3"
 begin
 
+
+subsection \<open>Definition and Lemmas\<close>
+
 fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> 'l) set" where
   "state (N, X, P, Y, A) =
    {(C, new) | C. C \<in> N} \<union>
@@ -99,7 +102,7 @@ lemma state_add_C_yy: "state (N, X, P, Y, A) \<union> {(C, yy)} = state (N, X, P
 lemma state_add_C_active: "state (N, X, P, Y, A) \<union> {(C, active)} = state (N, X, P, Y, A \<union> {C})"
   by auto
 
-lemma prj_activeSubset_of_state: "fst ` (active_subset (state ( N, X, P, Y, A))) = A"
+lemma prj_activeSubset_of_state: "fst ` active_subset (state (N, X, P, Y, A)) = A"
 proof -
   have "active_subset {(C, new) | C. C \<in> N} = {}"
     using labels_distinct active_subset_def by auto
@@ -116,6 +119,9 @@ proof -
   then show ?thesis
     by simp
 qed
+
+
+subsection \<open>Refinement\<close>
 
 lemma chooseN_in_GC: "state (N \<union> {C}, {}, P, {}, A) \<leadsto>GC state (N, {C}, P, {}, A)"
 proof -
@@ -197,7 +203,7 @@ proof -
   then have "C \<in> no_labels.Red_F (fst` (?\<N> \<union> ?\<M>'))"
     using c_in by auto
   then have c_x_in: "(C, xx) \<in> Red_F (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by auto
+    using no_labels_Red_F_imp_Red_F by auto
   then have "?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>')" by auto
   also have "xx \<noteq> active "
     using labels_distinct by auto
@@ -253,7 +259,7 @@ proof -
   then have "C' \<in> no_labels.Red_F (fst` (?\<N> \<union> ?\<M>'))"
     using assms by auto
   then have "(C', passive) \<in> Red_F (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by auto
+    using no_labels_Red_F_imp_Red_F by auto
   then have \<M>_in_redf: "?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>')" by auto
 
   have "new \<noteq> active "
@@ -316,7 +322,7 @@ proof -
   then have " C' \<in> no_labels.Red_F (fst` (?\<N> \<union> ?\<M>')) "
     using assms by auto
   then have " (C', active) \<in> Red_F (?\<N> \<union> ?\<M>') "
-    using lemma59point1 by auto
+    using no_labels_Red_F_imp_Red_F by auto
   then have \<M>_included: " ?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>') "
     by auto
 

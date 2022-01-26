@@ -35,6 +35,9 @@ locale discount_loop =
     order_on_labels: "active \<sqsubset>L yy \<and> yy \<sqsubset>L passive \<and> active \<sqsubset>L passive"
 begin
 
+
+subsection \<open>Definition and Lemmas\<close>
+
 abbreviation c_dot_succ :: " 'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<cdot>\<succ>" 50) where " C \<cdot>\<succ> C' \<equiv> C' \<prec>\<cdot> C"
 abbreviation sqsupset :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsupset>L" 50) where "l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
@@ -118,8 +121,11 @@ proof -
 qed
 
 lemma active_subset_of_setOfFormulasWithLabelDiffActive:
-  "(l::'l) \<noteq> active \<Longrightarrow> active_subset {(C', l)} = {}"
+  "l \<noteq> active \<Longrightarrow> active_subset {(C', l)} = {}"
   using active_subset_def labels_distinct by auto
+
+
+subsection \<open>Refinement\<close>
 
 lemma dl_choose_p_in_lgc: "state (T, P \<union> {C}, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
@@ -173,7 +179,7 @@ proof -
   then have "C \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (verit, ccfv_threshold) assms no_labels.Red_F_of_subset subset_iff)
   then have "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by simp
+    using no_labels_Red_F_imp_Red_F by simp
   then have "?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
     by simp
   moreover have "active_subset ?\<M>' = {}"
@@ -221,7 +227,7 @@ proof -
   then have "C' \<in> no_labels.Red_F_\<G> (fst` (?\<N> \<union> ?\<M>'))"
     by (smt (z3) DiffI Diff_eq_empty_iff assms empty_iff no_labels.Red_F_of_subset)
   then have \<M>_included: "?\<M> \<subseteq> Red_F_\<G> (?\<N> \<union> ?\<M>')"
-    using lemma59point1 by auto
+    using no_labels_Red_F_imp_Red_F by auto
   have "passive \<noteq> active"
     by (simp add: labels_distinct)
   then have "active_subset ?\<M>' = {}"

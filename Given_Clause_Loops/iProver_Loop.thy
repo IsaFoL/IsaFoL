@@ -34,11 +34,17 @@ locale iProver_loop =
     yy :: 'l
 begin
 
-inductive iProver_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50) where
+
+subsection \<open>Definition\<close>
+
+inductive iprover_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50) where
   ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow>
     \<M> \<leadsto>IL \<M>'"
 | replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
     state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
+
+
+subsection \<open>Refinement\<close>
 
 lemma replace_in_GC:
   assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C)"
@@ -58,13 +64,13 @@ proof -
     then have "C \<in> no_labels.Red_F (fst ` (?\<N> \<union> ?\<M>'))"
       by (metis (no_types, lifting) c_in calculation in_mono no_labels.Red_F_of_subset)
     then show "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
-      using lemma59point1 by blast
+      using no_labels_Red_F_imp_Red_F by blast
   next
     assume assm: "M = {C'} \<and> C' \<prec>\<cdot> C"
     then have "C' \<in> fst ` (?\<N> \<union> ?\<M>')"
       by simp
     then show "(C, yy) \<in> Red_F (?\<N> \<union> ?\<M>')"
-      by (metis (mono_tags, lifting) assm lemma59point2)
+      by (metis (mono_tags) assm succ_F_imp_Red_F)
   qed
 
   then have \<M>_included_in: "?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>')"
@@ -86,7 +92,7 @@ proof -
 qed
 
 theorem il_in_gc: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
-proof (induction rule: iProver_loop.induct)
+proof (induction rule: iprover_loop.induct)
   case (ol \<M> \<M>')
   then show ?case
     by (simp add: ol_in_gc)
