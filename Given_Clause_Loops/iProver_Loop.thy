@@ -37,11 +37,11 @@ begin
 inductive iProver_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50) where
   ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow>
     \<M> \<leadsto>IL \<M>'"
-| replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
+| replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
     state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
 
 lemma replace_in_GC:
-  assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C)"
+  assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C)"
   shows "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
 proof -
   let ?\<N> = "state ({}, {}, P, {}, A)"

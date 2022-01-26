@@ -39,32 +39,33 @@ abbreviation c_dot_succ :: " 'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<
 abbreviation sqsupset :: " 'l \<Rightarrow> 'l \<Rightarrow> bool " (infix "\<sqsupset>L" 50) where " l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
 fun formulas_of :: " 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> 'l) set " where
-  "formulas_of (P, Y, A) = {(C, passive) | C. C \<in> P} \<union>
-                           {(C, y) | C. C \<in> Y} \<union>
-                           {(C, active) | C. C \<in> A}"
+  "formulas_of (P, Y, A) =
+   {(C, passive) | C. C \<in> P} \<union>
+   {(C, y) | C. C \<in> Y} \<union>
+   {(C, active) | C. C \<in> A}"
 
 fun state :: " 'f inference set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set "
   where "state (T, P, Y, A) = (T, formulas_of (P, Y, A))"
 
 inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
                              ('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>DL" 50) where
-  choose_p: "state ( T, P \<union> {C}, {}, A) \<leadsto>DL state ( T, P, {C}, A)"
+  choose_p: "state (T, P \<union> {C}, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
-  state ( T, P, {C}, A) \<leadsto>DL state ( T, P, {}, A)"
+    state (T, P, {C}, A) \<leadsto>DL state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
-  state ( T, P, {C}, A) \<leadsto>DL state ( T, P, {C'}, A)"
+    state (T, P, {C}, A) \<leadsto>DL state (T, P, {C'}, A)"
 | delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
-  state ( T, P, {C}, A \<union> {C'}) \<leadsto>DL state ( T, P, {C}, A)"
+    state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P, {C}, A)"
 | simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
-  state ( T, P, {C}, A \<union> {C'}) \<leadsto>DL state ( T, P \<union> {C''}, {C}, A)"
+    state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P \<union> {C''}, {C}, A)"
 | compute_Infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-  state ( T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state ( T, P, {C}, A)"
+    state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | schedule_Infer: "T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
-  state ( T, P, {C}, A) \<leadsto>DL state ( T \<union> T', P, {}, A \<union> {C})"
+    state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
 | delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = {} \<Longrightarrow>
-  state ( T \<union> T', P, Y, A) \<leadsto>DL state ( T, P, Y, A)"
+    state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
 
-lemma labels_distinct: " y \<noteq> active \<and> passive \<noteq> active "
+lemma labels_distinct: "y \<noteq> active \<and> passive \<noteq> active"
 proof
   show "y \<noteq> active"
   proof
@@ -101,12 +102,12 @@ lemma PYA_add_active_formula [simp]:
 
 lemma prj_active_subset_of_state: "fst ` (active_subset (formulas_of (P, Y, A))) = A"
 proof -
-  have "active_subset {(C, y)|C. C \<in> Y} = {}" and
-       "active_subset {(C, passive)|C. C \<in> P} = {}"
+  have "active_subset {(C, y) | C. C \<in> Y} = {}" and
+       "active_subset {(C, passive) | C. C \<in> P} = {}"
     using active_subset_def labels_distinct by auto
-  moreover have "active_subset {(C, active)|C. C \<in> A} = {(C, active)|C. C \<in> A}"
+  moreover have "active_subset {(C, active) | C. C \<in> A} = {(C, active) | C. C \<in> A}"
     using active_subset_def by fastforce
-  ultimately have "fst ` (active_subset (formulas_of (P, Y, A))) = fst ` ({(C, active)|C. C \<in> A})"
+  ultimately have "fst ` (active_subset (formulas_of (P, Y, A))) = fst ` ({(C, active) | C. C \<in> A})"
     by simp
   then show ?thesis
     by simp
