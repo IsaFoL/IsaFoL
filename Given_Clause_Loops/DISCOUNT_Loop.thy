@@ -4,9 +4,9 @@
 
 section \<open>DISCOUNT Loop\<close>
 
-theory DL_in_LGC
+theory DISCOUNT_Loop
   imports 
-    LGC_Extension
+    More_Lazy_Given_Clause
     Saturation_Framework.Given_Clause_Architectures
 begin (* theory *)
 

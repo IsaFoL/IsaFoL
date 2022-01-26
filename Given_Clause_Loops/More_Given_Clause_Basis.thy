@@ -5,7 +5,7 @@
 section \<open>lemma 59 and 6 basic operations performed by theorem provers and 
           covered by the given_clause.process rule\<close>
 
-theory Given_Clause_Basis_Extension
+theory More_Given_Clause_Basis
   imports
     Saturation_Framework.Given_Clause_Architectures
 begin (* begin theory *)

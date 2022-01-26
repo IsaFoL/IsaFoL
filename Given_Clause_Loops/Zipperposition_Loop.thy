@@ -4,11 +4,11 @@
 
 section \<open>Zipperposition Loop\<close>
 
-theory ZL_in_LGC
+theory Zipperposition_Loop
 imports 
     Coinductive.Coinductive_List
-    LGC_Extension
-    DL_in_LGC
+    More_Lazy_Given_Clause
+    DISCOUNT_Loop
     Saturation_Framework.Given_Clause_Architectures
 begin (* begin theory *)
 

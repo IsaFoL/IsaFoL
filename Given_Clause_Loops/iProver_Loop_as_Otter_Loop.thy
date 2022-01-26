@@ -4,9 +4,9 @@
 
 section \<open>iProver Loop\<close>
 
-theory IL_in_GC_from_OL
+theory iProver_Loop_as_Otter_Loop
   imports 
-    OL_in_GC
+    Otter_Loop
     Saturation_Framework.Given_Clause_Architectures
 begin (* Theory begins*)
 

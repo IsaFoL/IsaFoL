@@ -4,9 +4,9 @@
 
 section \<open>iProver Loop\<close>
 
-theory IL_in_GC
+theory iProver_Loop
   imports 
-    OL_in_GC
+    Otter_Loop
     Saturation_Framework.Given_Clause_Architectures
 begin (* Theory begins*)
 
@@ -40,7 +40,7 @@ begin (* Locale otter_loop *)
 
   (* is sublocale of otter_loop *)
   (* for reusing proven lemmas *)
-  sublocale OL_in_GC.otter_loop
+  sublocale Otter_Loop.otter_loop
   proof unfold_locales
     show "\<forall>l::'l. l \<in> {new, x, passive, y, active}" 
       using five_labels by auto

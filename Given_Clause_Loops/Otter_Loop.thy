@@ -4,9 +4,9 @@
 
 section \<open>Otter Loop\<close>
 
-theory OL_in_GC
+theory Otter_Loop
   imports 
-    GC_Extension
+    More_Given_Clause
     Saturation_Framework.Given_Clause_Architectures
 begin (* Theory begins*)
 

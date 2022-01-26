@@ -4,10 +4,10 @@
 
 theory Given_Clause_Loops
   imports
-    OL_in_GC
-    DL_in_LGC
-    IL_in_GC
-    IL_in_GC_from_OL
-    ZL_in_LGC
+    Otter_Loop
+    DISCOUNT_Loop
+    iProver_Loop
+    iProver_Loop_as_Otter_Loop
+    Zipperposition_Loop
 begin
 end
