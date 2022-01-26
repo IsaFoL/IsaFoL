@@ -48,9 +48,9 @@ inductive
   ZL :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool"
   (infix "\<leadsto>ZL" 50)
 where
-  choose_p: "zl_state (T, P \<union> {C}, \<emptyset>, A) \<leadsto>ZL zl_state (T, P, {C}, A)"
+  choose_p: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>ZL zl_state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
-  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, \<emptyset>, A)"
+  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
   zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {C'}, A)"
 | delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
@@ -58,9 +58,9 @@ where
 | simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
   zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P \<union> {C''}, {C}, A)"
 | compute_infer: "\<iota>0 \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-  zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, \<emptyset>, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P\<union>{C}, \<emptyset>, A)"
+  zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P\<union>{C}, {}, A)"
 | schedule_infer: "zl_inferences_of T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
-  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, \<emptyset>, A \<union> {C})"
+  zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
 | delete_orphans: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>
   zl_state (T \<union> { \<iota>s }, P, Y, A) \<leadsto>ZL zl_state (T, P, Y, A)"
 
@@ -198,12 +198,12 @@ qed
 
 lemma zl_compute_infer_in_lgc:
   assumes "\<iota>0 \<in> no_labels.Red_I (A \<union> {C})"
-  shows "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, \<emptyset>, A) \<leadsto>LGC zl_state (T \<union> {\<iota>s}, P \<union> {C}, \<emptyset>, A)"
+  shows "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
 proof -
   let ?\<N> = "formulas_of (P, {}, A)"
   and ?\<M> = "{(C, passive)}"
 
-  have active_subset_of_\<M>: "active_subset ?\<M> = \<emptyset>"
+  have active_subset_of_\<M>: "active_subset ?\<M> = {}"
     using active_subset_def labels_distinct by auto
   moreover have "A \<union> {C} \<subseteq> fst ` (?\<N> \<union> ?\<M>)" by auto
   ultimately have "\<iota>0 \<in> no_labels.Red_I (fst ` (?\<N> \<union> ?\<M>))"
@@ -214,18 +214,18 @@ proof -
     by (metis active_subset_of_\<M> step.compute_infer)
   moreover have "zl_inferences_of (T \<union> {(LCons \<iota>0 \<iota>s)}) = zl_inferences_of (T \<union> {\<iota>s}) \<union> {\<iota>0}"
     by (metis Un_assoc distr_zl_inferences_of_wrt_union flatten)
-  moreover have "formulas_of (P, {}, A) \<union> {(C, passive)} = formulas_of (P \<union> {C}, \<emptyset>, A)"
+  moreover have "formulas_of (P, {}, A) \<union> {(C, passive)} = formulas_of (P \<union> {C}, {}, A)"
       using PYA_add_passive_formula by blast
-  ultimately show "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, \<emptyset>, A) \<leadsto>LGC
-             zl_state (T \<union> {\<iota>s}, P \<union> {C}, \<emptyset>, A)"
+  ultimately show "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC
+             zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
     using zl_state.simps by auto
 qed
 
 lemma zl_schedule_infer_in_lgc:
   assumes "zl_inferences_of T' = no_labels.Inf_between A {C}"
-  shows "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, \<emptyset>, A \<union> {C})"
+  shows "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, {}, A \<union> {C})"
 proof -
-  let ?\<N>= " formulas_of (P, \<emptyset>, A) "
+  let ?\<N>= " formulas_of (P, {}, A) "
   have " fst ` (active_subset ?\<N>) = A "
     by (meson prj_active_subset_of_state)
   then have "zl_inferences_of T' = (no_labels.Inf_between (fst ` (active_subset ?\<N>)) {C})"
@@ -240,12 +240,12 @@ proof -
 
   moreover have "formulas_of (P, {C}, A) = ?\<N> \<union> {(C, y)}"
     by auto
-  moreover have "formulas_of (P, \<emptyset>, A \<union> {C}) = ?\<N> \<union> {(C, active)}"
+  moreover have "formulas_of (P, {}, A \<union> {C}) = ?\<N> \<union> {(C, active)}"
     by auto
   ultimately have H0: "(zl_inferences_of T, formulas_of (P, {C}, A)) \<leadsto>LGC
-    (zl_inferences_of T \<union> zl_inferences_of T', formulas_of (P, \<emptyset>, A \<union> {C}))"
+    (zl_inferences_of T \<union> zl_inferences_of T', formulas_of (P, {}, A \<union> {C}))"
     by presburger
-  then show "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, \<emptyset>, A \<union> {C})"
+  then show "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, {}, A \<union> {C})"
     using distr_zl_inferences_of_wrt_union zl_state.simps by presburger
 qed
 
@@ -257,18 +257,18 @@ proof -
   and ?\<T>' = "lset \<iota>s"
   and ?\<T>  = "zl_inferences_of T"
 
-  have " {lnth \<iota>s n |n. enat n < llength \<iota>s} \<inter> no_labels.Inf_from A = \<emptyset>"
+  have " {lnth \<iota>s n |n. enat n < llength \<iota>s} \<inter> no_labels.Inf_from A = {}"
     using assms by auto
 
   moreover have "{lnth \<iota>s n |n. enat n < llength \<iota>s} = lset \<iota>s"
     by (simp add: lset_conv_lnth)
 
-  ultimately have \<iota>s_orphans: "?\<T>' \<inter> no_labels.Inf_from A = \<emptyset>"
+  ultimately have \<iota>s_orphans: "?\<T>' \<inter> no_labels.Inf_from A = {}"
     by auto
 
   have "fst ` (active_subset ?\<N>) = A"
     using prj_active_subset_of_state by auto
-  then have \<iota>s_orphans: "?\<T>' \<inter> no_labels.Inf_from (fst ` (active_subset ?\<N>)) = \<emptyset>"
+  then have \<iota>s_orphans: "?\<T>' \<inter> no_labels.Inf_from (fst ` (active_subset ?\<N>)) = {}"
     using assms \<iota>s_orphans by auto
 
   have thesis_before_rewriting: "(?\<T> \<union> ?\<T>', ?\<N>) \<leadsto>LGC (?\<T>, ?\<N>)"

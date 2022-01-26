@@ -41,13 +41,13 @@ inductive iProver_loop :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) s
 ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow>
   \<M> \<leadsto>IL \<M>'"
 | replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
-  state (\<emptyset>, \<emptyset>, P, {C}, A) \<leadsto>IL state (M, \<emptyset>, P, \<emptyset>, A)"
+  state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
 
 lemma replace_in_GC:
   assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = { C' } \<and> C' \<prec>\<cdot> C)"
-  shows "state (\<emptyset>, \<emptyset>, P, {C}, A) \<leadsto>GC state (M, \<emptyset>, P, \<emptyset>, A)"
+  shows "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
 proof -
-  let ?\<N> = "state (\<emptyset>, \<emptyset>, P, \<emptyset>, A)"
+  let ?\<N> = "state ({}, {}, P, {}, A)"
   and ?\<M> = "{(C, y)}"
   and ?\<M>' = "{(x, new) |x. x\<in>M}"
 
@@ -75,16 +75,16 @@ proof -
 
   have "new \<noteq> active"
     by (simp add: labels_distinct)
-  then have prj_of_active_subset_of_\<M>': "fst ` (active_subset ?\<M>') = \<emptyset>"
+  then have prj_of_active_subset_of_\<M>': "fst ` (active_subset ?\<M>') = {}"
     by (simp add: active_subset_def)
 
   have "?\<N> \<union> ?\<M> \<leadsto>GC ?\<N> \<union> ?\<M>'"
     using process[of _ "?\<N>" "?\<M>" _ "?\<M>'"] \<M>_included_in prj_of_active_subset_of_\<M>' by auto
-  moreover have "?\<N> \<union> ?\<M> = state (\<emptyset>, \<emptyset>, P, {C}, A)"
+  moreover have "?\<N> \<union> ?\<M> = state ({}, {}, P, {C}, A)"
     by simp
-  moreover have "?\<N> \<union> ?\<M>' = state (M, \<emptyset>, P, \<emptyset>, A)"
+  moreover have "?\<N> \<union> ?\<M>' = state (M, {}, P, {}, A)"
     by auto
-  ultimately show "state (\<emptyset>, \<emptyset>, P, {C}, A) \<leadsto>GC state (M, \<emptyset>, P, \<emptyset>, A)"
+  ultimately show "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
     by simp
 qed
 

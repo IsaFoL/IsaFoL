@@ -6,7 +6,7 @@
 section \<open>DISCOUNT Loop\<close>
 
 theory DISCOUNT_Loop
-  imports More_Lazy_Given_Clause
+  imports More_Given_Clause_Architectures
 begin
 
 locale discount_loop =
@@ -51,9 +51,9 @@ fun state :: " 'f inference set \<times> 'f set \<times> 'f set \<times> 'f set 
 
 inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
                              ('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>DL" 50) where
-  choose_p: "state ( T, P \<union> {C}, \<emptyset>, A) \<leadsto>DL state ( T, P, {C}, A)"
+  choose_p: "state ( T, P \<union> {C}, {}, A) \<leadsto>DL state ( T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
-  state ( T, P, {C}, A) \<leadsto>DL state ( T, P, \<emptyset>, A)"
+  state ( T, P, {C}, A) \<leadsto>DL state ( T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
   state ( T, P, {C}, A) \<leadsto>DL state ( T, P, {C'}, A)"
 | delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
@@ -61,10 +61,10 @@ inductive DL :: "('f inference set) \<times> ('f \<times> 'l) set \<Rightarrow>
 | simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
   state ( T, P, {C}, A \<union> {C'}) \<leadsto>DL state ( T, P \<union> {C''}, {C}, A)"
 | compute_Infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-  state ( T \<union> {\<iota>}, P, \<emptyset>, A) \<leadsto>DL state ( T, P, {C}, A)"
+  state ( T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state ( T, P, {C}, A)"
 | schedule_Infer: "T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
-  state ( T, P, {C}, A) \<leadsto>DL state ( T \<union> T', P, \<emptyset>, A \<union> {C})"
-| delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = \<emptyset> \<Longrightarrow>
+  state ( T, P, {C}, A) \<leadsto>DL state ( T \<union> T', P, {}, A \<union> {C})"
+| delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = {} \<Longrightarrow>
   state ( T \<union> T', P, Y, A) \<leadsto>DL state ( T, P, Y, A)"
 
 
@@ -107,8 +107,8 @@ lemma PYA_add_active_formula [simp]:
 
 lemma prj_active_subset_of_state: "fst ` (active_subset (formulas_of (P, Y, A))) = A"
 proof -
-  have "active_subset {(C, y)|C. C \<in> Y} = \<emptyset>" and
-       "active_subset {(C, passive)|C. C \<in> P} = \<emptyset>"
+  have "active_subset {(C, y)|C. C \<in> Y} = {}" and
+       "active_subset {(C, passive)|C. C \<in> P} = {}"
     using active_subset_def labels_distinct by auto
   moreover have "active_subset {(C, active)|C. C \<in> A} = {(C, active)|C. C \<in> A}"
     using active_subset_def by fastforce
@@ -119,7 +119,7 @@ proof -
 qed
 
 lemma active_subset_of_setOfFormulasWithLabelDiffActive:
-  "(l::'l) \<noteq> active \<Longrightarrow> active_subset {(C', l)} = \<emptyset>"
+  "(l::'l) \<noteq> active \<Longrightarrow> active_subset {(C', l)} = {}"
   using active_subset_def labels_distinct by auto
 
 lemma dl_choose_p_in_lgc: "state (T, P \<union> {C}, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
