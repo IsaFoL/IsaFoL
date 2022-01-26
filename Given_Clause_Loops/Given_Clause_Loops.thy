@@ -4,10 +4,8 @@
 
 theory Given_Clause_Loops
   imports
-    Otter_Loop
     DISCOUNT_Loop
     iProver_Loop
-    iProver_Loop_as_Otter_Loop
     Zipperposition_Loop
 begin
 end
