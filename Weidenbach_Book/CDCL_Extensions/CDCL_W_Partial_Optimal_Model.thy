@@ -288,9 +288,7 @@ lemma Collect_req_remove1:
 
 lemma card_remove:
   \<open>card (Set.remove a A) = (if a \<in> A then card A - 1 else card A)\<close>
-  apply (auto simp: Set.remove_def)
-  by (metis Diff_empty One_nat_def card_Diff_insert card.infinite empty_iff
-    finite_Diff_insert gr_implies_not0 neq0_conv zero_less_diff)
+  by (auto simp: Set.remove_def)
 
 lemma sorted_unadded_literals_cons_in_undef[simp]:
   \<open>undefined_lit M (lit_of K) \<Longrightarrow>

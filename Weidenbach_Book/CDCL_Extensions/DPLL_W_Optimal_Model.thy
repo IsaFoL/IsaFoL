@@ -212,7 +212,7 @@ next
   show ?case
     using cdcl_bnb_still_model[OF st 1 _ _ dist cons 3] IH
       cdcl_bnb_larger_still_larger[OF st]
-    by auto
+      order.trans by blast
 qed
 
 lemma simple_clss_entailed_by_too_heavy_in_conflicting:
@@ -334,7 +334,10 @@ proof -
     using dist cons by auto
   then have \<open>False\<close> if \<open>Found (\<rho> I) < \<rho>' (weight T)\<close>
     using ent that rtranclp_cdcl_bnb_still_model[OF st assms(2-)]
-      bnb.rtranclp_dpll\<^sub>W_bnb_clauses[OF st] by auto
+      bnb.rtranclp_dpll\<^sub>W_bnb_clauses[OF st]
+    apply simp
+    using leD by blast
+
   then show \<open>Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
     by force
 qed

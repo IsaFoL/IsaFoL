@@ -256,7 +256,6 @@ proof -
     apply (subst mset_set_Union[symmetric])
     using inter
     apply auto
-    apply (auto simp: distinct_mset_mset_set)
     done
   have B'': \<open>B'' = (Pos) ` (atm_of ` B'')\<close>
     using assms(1-3) B'' xs A'a B'' unfolding C
@@ -563,9 +562,7 @@ lemma Collect_req_remove1:
 
 lemma card_remove:
   \<open>card (Set.remove a A) = (if a \<in> A then card A - 1 else card A)\<close>
-  apply (auto simp: Set.remove_def)
-  by (metis Diff_empty One_nat_def card_Diff_insert card.infinite empty_iff
-    finite_Diff_insert gr_implies_not0 neq0_conv zero_less_diff)
+  by (auto simp: Set.remove_def)
 
 lemma isabelle_should_do_that_automatically: \<open>Suc (a - Suc 0) = a \<longleftrightarrow> a \<ge> 1\<close>
   by auto
