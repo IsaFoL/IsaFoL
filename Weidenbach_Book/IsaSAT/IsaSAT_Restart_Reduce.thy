@@ -2939,7 +2939,7 @@ proof -
 
      apply (intro ext)
      apply (clarsimp simp add: while.imonad3)
-     apply (subst order_class.eq_iff[of \<open>(_ :: _ nres)\<close>])
+     apply (subst dual_order.eq_iff[of \<open>(_ :: _ nres)\<close>])
      apply (intro conjI)
      subgoal
        by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])

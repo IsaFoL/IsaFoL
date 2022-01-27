@@ -1249,7 +1249,7 @@ proof -
        apply (rule mini[THEN ref_two_step'])
       subgoal
         using uL_D dist_D tauto_D \<L>\<^sub>i\<^sub>n_S \<L>\<^sub>i\<^sub>n_D tauto_D L_D
-        by (fastforce simp: conc_fun_chain conc_fun_RES image_iff S union_assoc insert_subset_eq_iff
+        by (auto 5 3 simp: conc_fun_chain conc_fun_RES image_iff S union_assoc insert_subset_eq_iff
             neq_Nil_conv literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset tautology_add_mset
             intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono
             dest: distinct_mset_mono not_tautology_mono

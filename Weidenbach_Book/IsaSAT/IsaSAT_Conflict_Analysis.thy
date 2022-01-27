@@ -417,7 +417,6 @@ proof -
 
   have s: \<open>size (remove1_mset L (mset (get_clauses_wl S \<propto> C)) \<union># the (get_conflict_wl S)) =
        size (the (get_conflict_wl S) \<union># mset (get_clauses_wl S \<propto> C) - {#L, - L#}) + 1\<close>
-    apply (subst (2) subset_mset.sup.commute)
     using uL_D hd nempty uL_C dist_C apply (cases \<open>get_trail_wl S\<close>; auto simp: dest!: multi_member_split)
     by (metis (no_types, opaque_lifting) \<open>remove1_mset (- L) (the (get_conflict_wl S)) \<union># remove1_mset L (mset (get_clauses_wl S \<propto> C)) = the (get_conflict_wl S) \<union># mset (get_clauses_wl S \<propto> C) - {#L, - L#}\<close> add_mset_commute add_mset_diff_bothsides add_mset_remove_trivial set_mset_mset subset_mset.sup_commute sup_union_left1)
 
@@ -438,9 +437,13 @@ proof -
     using multi_member_split[OF uL_D] L_C hd nempty n_d dist dist_C 1 \<open>0 < count_decided (get_trail_wl S)\<close> uL_C n_d
         consistent_CNot_not_tautology[OF distinct_consistent_interp[OF n_d]
            CNot_D[unfolded true_annots_true_cls]] CNot_C apply (cases \<open>get_trail_wl S\<close>;
-           auto dest!:  simp: card_max_lvl_Cons card_max_lvl_add_mset subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close> ]
-             subset_mset.sup_commute[of _ \<open>mset _\<close>] tautology_add_mset remove1_mset_union_distrib1 remove1_mset_union_distrib2)
-    by (simp add: distinct_mset_remove1_All[of \<open>mset (get_clauses_wl S \<propto> C)\<close>])
+           auto simp: card_max_lvl_Cons card_max_lvl_add_mset subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close> ]
+             subset_mset.sup_commute[of _ \<open>mset _\<close>] tautology_add_mset)
+    apply (subst card_max_lvl_Cons)
+    apply (auto simp: card_max_lvl_Cons card_max_lvl_add_mset subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close> ]
+             subset_mset.sup_commute[of _ \<open>mset _\<close>] tautology_add_mset remove1_mset_union_distrib1)
+    using K uL_D apply presburger
+    done
 
 
   have xx: \<open>out_learned (tl (get_trail_wl S)) (Some (the (get_conflict_wl S) \<union># mset (get_clauses_wl S \<propto> C) - {#L, - L#})) outl \<longleftrightarrow>
@@ -626,8 +629,8 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def merge_conflict_m_eq2_def conc_fun_SPEC lookup_conflict_remove1_pre_def
            atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def lookup_conflict_remove1_def
-           remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
-        subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+        subset_mset.sup_commute[of _ \<open>mset (_ \<propto> _)\<close>]
         simp flip: all_lits_st_alt_def[symmetric]
          intro!: mset_as_position_remove3
          intro!: ASSERT_leI)
@@ -649,7 +652,7 @@ note [[goals_limit=1]]
         by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def conc_fun_SPEC lookup_conflict_remove1_pre_def atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def
-           merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup_commute[of _ \<open>mset (_ \<propto> _)\<close>]
            remove1_mset_union_distrib1 remove1_mset_union_distrib2
          simp flip: all_lits_st_alt_def[symmetric]
          intro!: mset_as_position_remove3
@@ -730,8 +733,8 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def merge_conflict_m_eq2_def conc_fun_SPEC lookup_conflict_remove1_pre_def
            atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def lookup_conflict_remove1_def
-           remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
-           subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
+           subset_mset.sup_commute[of _ \<open>mset (_ \<propto> _)\<close>]
          simp flip: all_lits_st_alt_def
          intro!: mset_as_position_remove3
          intro!: ASSERT_leI)
@@ -753,7 +756,7 @@ note [[goals_limit=1]]
         by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def conc_fun_SPEC lookup_conflict_remove1_pre_def atms_of_def
            option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def
-           merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup_commute[of _ \<open>mset (_ \<propto> _)\<close>]
            remove1_mset_union_distrib1 remove1_mset_union_distrib2
          intro!: mset_as_position_remove3
          simp flip: all_lits_st_alt_def
@@ -897,7 +900,7 @@ note [[goals_limit=1]]
              simp flip: all_lits_st_alt_def
              intro!: tl_trailt_tr_pre)
       subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
-           valid_arena_mark_used subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
+           valid_arena_mark_used subset_mset.sup_commute[of _ \<open>remove1_mset _ _\<close>]
           tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_vmtf_tl_isa_vmtf no_dup_tlD
           counts_maximum_level_def
         simp flip: all_lits_st_alt_def)

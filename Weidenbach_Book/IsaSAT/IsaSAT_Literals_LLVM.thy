@@ -48,7 +48,7 @@ lemma case_prod_open_plain_comb[sepref_monadify_comb]:
     Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. case_prod_open$(\<lambda>\<^sub>2a b. EVAL$(fp a b))$p)"
   apply (rule eq_reflection, simp split: list.split prod.split option.split)+
   done
-
+(* TODO Needed?
 lemma hn_case_prod_open'[sepref_comb_rules]:
   assumes FR: \<open>\<Gamma> \<turnstile> hn_ctxt (prod_assn P1 P2) p' p ** \<Gamma>1\<close>
   assumes Pair: "\<And>a1 a2 a1' a2'. \<lbrakk>p'=(a1',a2')\<rbrakk>
@@ -64,7 +64,7 @@ lemma hn_case_prod_open'[sepref_comb_rules]:
   applyS (simp add: hn_ctxt_def)
   applyS simp using FR2
   by (simp add: hn_ctxt_def)
-
+*)
 
 lemma ho_prod_open_move[sepref_preproc]: \<open>case_prod_open (\<lambda>a b x. f x a b) = (\<lambda>p x. case_prod_open (f x) p)\<close>
   by (auto)

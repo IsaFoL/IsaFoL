@@ -14,7 +14,7 @@ locale pure_eo_adapter =
     and wo_set_impl :: \<open>'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai \<Rightarrow> 'oi llM\<close>
   assumes pure[safe_constraint_rules]: \<open>is_pure elem_assn\<close>
       and get_hnr: \<open>(uncurry wo_get_impl,uncurry mop_list_get) \<in> wo_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow>\<^sub>a elem_assn\<close>
-      and set_hnr: \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai,_),_). cnc_assn (\<lambda>x. x=ai) wo_assn)\<close>
+      and set_hnr: \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ (ai). cnc_assn (\<lambda>x. x=ai) wo_assn)\<close>
 begin
 
   lemmas [sepref_fr_rules] = get_hnr set_hnr

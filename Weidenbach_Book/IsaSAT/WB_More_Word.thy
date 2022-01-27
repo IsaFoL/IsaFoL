@@ -17,31 +17,7 @@ proof -
   next
     case (Suc n) note IH = this(1) and Suc = this(2)
     then show ?case
-    proof (cases n)
-      case (Suc m)
-      moreover have
-        \<open>nat (bintrunc m (bin_rest (bin_rest a) XOR bin_rest (bin_rest b)) BIT
-            ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
-             (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
-            ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b))) =
-         nat ((bintrunc m (bin_rest (bin_rest a)) XOR bintrunc m (bin_rest (bin_rest b))) BIT
-              ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
-               (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
-              ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b)))\<close>
-        (is \<open>nat (?n1 BIT ?b) = nat (?n2 BIT ?b)\<close>)
-      proof - (* Sledgehammer proof changed to use the more readable ?n1 and ?n2 *)
-        have a1:  \<open>nat ?n1 = nat ?n2\<close>
-          using IH Suc by auto
-        have f2: \<open>0 \<le> ?n2\<close>
-          by (simp add: bintr_ge0)
-        have \<open>0 \<le> ?n1\<close>
-          using bintr_ge0 by auto
-        then have \<open>?n2 = ?n1\<close>
-          using f2 a1 by presburger
-        then show ?thesis by simp
-      qed
-      ultimately show ?thesis by simp
-    qed simp
+      by (cases n) simp_all
   qed
   have \<open>nat (bintrunc LENGTH('a) (a XOR b)) = nat (bintrunc LENGTH('a) a XOR bintrunc LENGTH('a) b)\<close> for a b
     using len H[of \<open>LENGTH('a)\<close> a b] by auto
@@ -50,6 +26,7 @@ proof -
   then show ?thesis
     unfolding xor_nat_def by auto
 qed
+
 lemma bitXOR_1_if_mod_2_int: \<open>L OR 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
   apply (rule bin_rl_eqI)
   unfolding bin_rest_OR bin_last_OR

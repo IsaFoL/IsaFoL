@@ -120,7 +120,7 @@ proof -
   also have \<open>\<dots> = uint64_max\<close>
     unfolding unat_bintrunc_neg
     apply (simp add: uint64_max_def)
-    apply (subst numeral_eq_Suc; subst bintrunc_Suc_numeral; simp)+
+    apply (subst numeral_eq_Suc; subst semiring_bit_operations_class.mask_Suc_exp; simp)+
     done
   finally show ?thesis .
 qed

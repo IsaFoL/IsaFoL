@@ -948,29 +948,40 @@ proof -
       RETURN (L, the C)
     }\<close>
     using proped dec_notin k' nth_mem[OF k''] no_dup_same_annotD[OF n_d]
-    apply (subst order_class.eq_iff)
+    apply (subst dual_order.eq_iff)
     apply (rule conjI)
     subgoal
       unfolding get_the_propagation_reason_def
-      by (cases \<open>rev (get_trail_wl T) ! k'\<close>)
-        (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
+      apply (cases \<open>rev (get_trail_wl T) ! k'\<close>)
+      apply (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
             get_the_propagation_reason_def lits_of_def rev_nth
   	    RES_RETURN_RES
-          dest: split_list
-	  simp flip: k''_def
-	  intro!: le_SPEC_bindI[of _ \<open>Some (mark_of (get_trail_wl T ! k''))\<close>])
-    subgoal
+           dest: split_list
+	    simp flip: k''_def
+	    intro!: le_SPEC_bindI[of _ \<open>Some (mark_of (get_trail_wl T ! k''))\<close>])
       apply (cases \<open>rev (get_trail_wl T) ! k'\<close>) (*TODO proof*)
-      apply  (auto simp: RES_RES_RETURN_RES rev_trail_nth_def
+      apply  (auto simp: RES_RES_RETURN_RES rev_trail_nth_def RES_ASSERT_moveout
           get_the_propagation_reason_def lits_of_def rev_nth
 	  RES_RETURN_RES
         simp flip: k''_def
         dest: split_list
-        intro!: exI[of _ \<open>Some (mark_of (rev (fst T) ! k'))\<close>])
+        intro!: exI[of _ \<open>Some (mark_of (rev (get_trail_wl T) ! k'))\<close>])
 	  apply (subst RES_ASSERT_moveout)
-	  apply (auto simp: RES_RETURN_RES
-        dest: split_list)
-	done
+	    by (auto 4 3 simp: RES_RETURN_RES image_iff
+        dest: split_list
+        intro!: exI[of _ \<open>Some (mark_of ((get_trail_wl T) ! k''))\<close>])
+    subgoal
+      apply (cases \<open>rev (get_trail_wl T) ! k'\<close>) (*TODO proof*)
+      apply  (auto simp: RES_RES_RETURN_RES rev_trail_nth_def RES_ASSERT_moveout
+          get_the_propagation_reason_def lits_of_def rev_nth
+	  RES_RETURN_RES
+        simp flip: k''_def
+        dest: split_list
+        intro!: exI[of _ \<open>Some (mark_of (rev (get_trail_wl T) ! k'))\<close>])
+	  apply (subst RES_ASSERT_moveout)
+	    by (auto 4 3 simp: RES_RETURN_RES image_iff
+        dest: split_list
+        intro!: exI[of _ \<open>Some (mark_of ((get_trail_wl T) ! k''))\<close>])
     done
 
   show ?thesis
