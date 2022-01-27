@@ -304,7 +304,7 @@ lemma add_clause_correct[THEN ESPEC_trans,refine_vcg]:
           split: option.split 
           solve: asm_rl)
   subgoal by fastforce
-  subgoal by (auto; metis (no_types, hide_lams) insertCI 
+  subgoal by (auto; metis (no_types, opaque_lifting) insertCI 
                           not_Some_eq option.inject)
   done
   

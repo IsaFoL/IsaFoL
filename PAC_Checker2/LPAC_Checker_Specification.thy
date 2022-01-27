@@ -22,7 +22,7 @@ proof -
     \<exists>xa. (\<exists>k. xa = monomial (Suc 0) x + k) \<and>
          lookup (mapping_of p) (xa - monomial (Suc 0) x) \<noteq> 0 \<and>
          0 < lookup xa x\<close>
-   by (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+   by (metis (no_types, opaque_lifting) One_nat_def ab_semigroup_add_class.add.commute
      add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
      neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
   then show ?thesis

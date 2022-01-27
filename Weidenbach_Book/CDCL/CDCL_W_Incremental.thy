@@ -523,7 +523,7 @@ add_no_confl:
 
 lemma cdcl\<^sub>W_all_struct_inv_add_init_cls:
   \<open>cdcl\<^sub>W_all_struct_inv (T) \<Longrightarrow> distinct_mset C \<Longrightarrow> cdcl\<^sub>W_all_struct_inv (add_init_cls C T)\<close>
-  by (auto simp: cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def cdcl\<^sub>W_M_level_inv_def
+  by (auto 5 4 simp: cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def cdcl\<^sub>W_M_level_inv_def
     distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_learned_clause_def clauses_def
     reasons_in_clauses_def all_decomposition_implies_insert_single)
 

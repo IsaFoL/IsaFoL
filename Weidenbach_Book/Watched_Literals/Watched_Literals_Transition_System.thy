@@ -2206,7 +2206,7 @@ next
       case L'
       have L'_C: \<open>L' \<notin># watched C\<close>
         using L'_M_C \<open>- L' \<notin> lits_of_l M\<close>
-        by (metis (no_types, hide_lams) Decided_Propagated_in_iff_in_lits_of_l L' clause.simps
+        by (metis (no_types, opaque_lifting) Decided_Propagated_in_iff_in_lits_of_l L' clause.simps
             in_CNot_implies_uminus(2) insertE list.simps(15) lits_of_insert twl_clause.exhaust_sel
             uminus_not_id' uminus_of_uminus_id undef union_iff)
       moreover have ?thesis

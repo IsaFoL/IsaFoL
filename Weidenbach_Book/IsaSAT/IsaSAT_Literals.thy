@@ -135,6 +135,7 @@ begin
 abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>D\<^sub>0 \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
 
+(*TODO is that really useful here?*)
 definition length_ll_f where
   \<open>length_ll_f W L = length (W L)\<close>
 
@@ -189,6 +190,8 @@ proof -
     by blast
 qed
 
+text \<open>The following two definitions are very important in practise for the invariants for the SAT
+solver.\<close>
 definition isasat_input_bounded where
   [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint32_max)\<close>
 

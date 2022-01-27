@@ -2932,7 +2932,7 @@ lemma full_poly_input_assn_alt_def:
 proof -
   have [simp]: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
     apply (auto simp: fmap_rel_def)
-    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+    by (metis (no_types, opaque_lifting) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
   show ?thesis
     unfolding full_poly_input_assn_def
     by auto
@@ -3001,7 +3001,7 @@ proof -
 
   have 4: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
     apply (auto simp: fmap_rel_def)
-    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+    by (metis (no_types, opaque_lifting) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
   have H: \<open>full_poly_assn = (hr_comp poly_assn
     (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O fully_unsorted_poly_rel O mset_poly_rel))\<close>
     \<open>full_poly_input_assn = hr_comp polys_assn_input

@@ -1908,7 +1908,7 @@ proof -
   then have CHECK
     unfolding check_def
     using magic valid_def make_sequent_def semantics_alternative.simps main_def
-    by (metis (no_types,hide_lams))
+    by (metis (no_types,opaque_lifting))
   moreover have VALID
     using magic make_sequent_def by fastforce
   ultimately show CHECK VALID .

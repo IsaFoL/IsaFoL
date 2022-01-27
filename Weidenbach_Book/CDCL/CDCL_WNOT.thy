@@ -1078,7 +1078,7 @@ proof -
           calculation(1) calculation(2) f_j le_eq_less_or_eq neq0_conv option.sel
           size_eq_0_iff_empty upt_Suc)
     ultimately have \<open>size (the (conflicting (f (Suc l)))) = 0\<close>
-      by (metis (no_types, hide_lams) \<open>size (the (conflicting (f j))) = 0\<close> append1_eq_conv
+      by (metis (no_types, opaque_lifting) \<open>size (the (conflicting (f j))) = 0\<close> append1_eq_conv
           append_cons_eq_upt_length_i_end less_eq_nat.simps(1) list.exhaust list.set_intros(1)
           neq0_conv upt_Suc upt_eq_Cons_conv)
     then have confl_Suc_l: \<open>conflicting (f (Suc l)) = Some {#}\<close>

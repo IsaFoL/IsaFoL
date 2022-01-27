@@ -3418,7 +3418,7 @@ proof -
       apply (cases vdom; cases \<open>IsaSAT_VDom.get_aivdom vdom\<close>; use avdom in auto)
       apply (cases vdom; cases \<open>IsaSAT_VDom.get_aivdom vdom\<close>; use avdom valid in \<open>auto simp: aivdom_inv_strong_dec_alt_def
         simp del: distinct_finite_set_mset_subseteq_iff\<close>)
-      by (metis (no_types, hide_lams) UnE mset_subset_eqD set_mset_mset subsetD)
+      by (metis (no_types, opaque_lifting) UnE mset_subset_eqD set_mset_mset subsetD)
 
   obtain m where
     m: \<open>GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, Map.empty, fmempty)

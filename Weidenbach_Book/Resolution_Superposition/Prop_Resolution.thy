@@ -1001,7 +1001,7 @@ proof -
       using f1 in_diffD insert_DiffM by fastforce
 
     have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
-      by (metis (no_types, hide_lams) \<chi> \<chi>' factoring_imp_simplify)
+      by (metis (no_types, opaque_lifting) \<chi> \<chi>' factoring_imp_simplify)
     then have False using simp by auto
   }
   then show ?thesis by arith
@@ -1502,7 +1502,7 @@ lemma wf_simplified_resolution':
     \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   unfolding wf_def
    apply (simp add: resolution_always_simplified)
-  by (metis (mono_tags, hide_lams) fst_conv resolution_always_simplified)
+  by (metis (mono_tags, opaque_lifting) fst_conv resolution_always_simplified)
 
 lemma wf_resolution:
   assumes f_vars: "finite vars"
