@@ -311,7 +311,7 @@ lemma (in linordered_ab_semigroup_add) Max_add_commute2:
   shows "Max ((\<lambda>x. x + k) ` S) = Max S + k"
 proof -
   have m: "\<And>x y. max x y + k = max (x+k) (y+k)"
-    by(simp add: max_def antisym add_right_mono)
+    by (simp add: max_def  local.dual_order.antisym add_right_mono)
   have "(\<lambda>x. x + k) ` S = (\<lambda>y. y + k) ` (S)" by auto
   have "Max \<dots> = Max ( S) + k"
     using assms hom_Max_commute [of "\<lambda>y. y+k" "S", OF m, symmetric] by simp
