@@ -432,7 +432,7 @@ proof -
     obtain f where
       f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
       [simp]: \<open>\<And>i. i<length x \<Longrightarrow> x ! i = p ! (f i)\<close>
-      using px apply - apply (subst (asm)(2) eq_commute)  unfolding mset_eq_perm
+      using px apply - apply (subst (asm)(2) eq_commute)
       by (auto dest!: permutation_Ex_bij)
     let ?y = \<open>map (\<lambda>i. y ! f i) [0 ..< length x]\<close>
     have \<open>i < length y \<Longrightarrow> (p ! f i, y ! f i) \<in> term_poly_list_rel \<times>\<^sub>r int_rel\<close> for i

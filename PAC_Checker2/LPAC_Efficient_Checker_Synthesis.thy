@@ -2541,7 +2541,7 @@ declare version_def [code]
 definition uint32_of_uint64 :: \<open>uint64 \<Rightarrow> uint32\<close> where
   \<open>uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n)\<close>
 
-lemma [code]: \<open>hashcode n = uint32_of_uint64 (n AND 4294967295)\<close> for n :: uint64
+lemma [code]: \<open>hashcode n = uint32_of_uint64 (and n 4294967295)\<close> for n :: uint64
   unfolding hashcode_uint64_def uint32_of_uint64_def by auto
 
 (*TODO this is a copy paste because of the order of the merge *)

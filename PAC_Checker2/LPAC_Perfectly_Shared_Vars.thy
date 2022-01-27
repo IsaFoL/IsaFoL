@@ -277,10 +277,12 @@ definition uint64_max :: nat where
   \<open>uint64_max = 2 ^64 - 1\<close>
 
 lemma nat_of_uint64_uint64_of_nat: \<open>b \<le> uint64_max \<Longrightarrow> nat_of_uint64 (uint64_of_nat b) = b\<close>
-  unfolding uint64_of_nat_def uint64_max_def
-  apply simp
-  apply transfer
-  by (auto simp: take_bit_nat_eq_self)
+  unfolding uint64_of_nat_def uint64_max_def nat_of_uint64_def
+  apply (simp add: )
+  unfolding uint64.word_of_word
+  apply (subst le_unat_uoi[of _ 18446744073709551615])
+  by auto
+
 
 lemma length_arl_u_hnr[sepref_fr_rules]:
   \<open>(length_arl_u_code, RETURN o length_uint64_nat) \<in>
