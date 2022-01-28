@@ -621,6 +621,7 @@ qed
 abbreviation agree_on_asg :: "'u asg \<Rightarrow> 'u asg \<Rightarrow> var_sym \<Rightarrow> type_sym \<Rightarrow> bool" where
   "agree_on_asg \<phi> \<psi> x \<alpha> == (\<phi> (x, \<alpha>) = \<psi> (x, \<alpha>))"
 
+(* Corresponds to Andrew's proposition 5400 *)
 proposition prop_5400:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -682,6 +683,7 @@ definition valid_general :: "form \<Rightarrow> bool" where
 definition valid_standard :: "form \<Rightarrow> bool" where
   "valid_standard A \<equiv> \<forall>D I. standard_model D I \<longrightarrow> valid_in_model D I A"
 
+(* Corresponds to Andrew's lemma 5401 a *)
 lemma lemma_5401_a:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -706,6 +708,7 @@ proof -
     by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 b *)
 lemma lemma_5401_b_variant_1: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -723,6 +726,7 @@ proof -
     unfolding Eql_def by simp
 qed
 
+(* Corresponds to Andrew's lemma 5401 b *)
 lemma lemma_5401_b:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -730,6 +734,7 @@ lemma lemma_5401_b:
   shows "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = true \<longleftrightarrow> val D I \<phi> A = val D I \<phi> B"
   using lemma_5401_b_variant_1[OF assms] boolean_eq_true by auto
 
+(* Corresponds to Andrew's lemma 5401 b *)
 lemma lemma_5401_b_variant_2: \<comment> \<open>Just a reformulation of @{thm lemma_5401_b}'s directions\<close> (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -738,6 +743,7 @@ lemma lemma_5401_b_variant_2: \<comment> \<open>Just a reformulation of @{thm le
   shows "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = true"
   using assms(5) lemma_5401_b[OF assms(1,2,3,4)] by auto 
 
+(* Corresponds to Andrew's lemma 5401 b *)
 lemma lemma_5401_b_variant_3: \<comment> \<open>Just a reformulation of @{thm lemma_5401_b}'s directions\<close> (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -746,12 +752,14 @@ lemma lemma_5401_b_variant_3: \<comment> \<open>Just a reformulation of @{thm le
   shows "val D I \<phi> (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = false"
   using assms(5) lemma_5401_b_variant_1[OF assms(1,2,3,4)] by (simp add: boolean_def) 
 
+(* Corresponds to Andrew's lemma 5401 c *)
 lemma lemma_5401_c:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   shows "val D I \<phi> T = true"
   using assms lemma_5401_b[OF assms(1,2)] unfolding T_def by auto
 
+(* Corresponds to Andrew's lemma 5401 d *)
 lemma lemma_5401_d:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -791,10 +799,10 @@ lemma asg_into_interp_fun_upd_false: (* new_lemma *)
   shows "asg_into_interp (\<phi>((x, Tv) := false)) D I"
   using asg_into_interp_fun_upd[OF assms wff_F, of x] lemma_5401_d[OF assms] by auto
 
-thm arg_cong arg_cong2
 lemma arg_cong3: "a = b \<Longrightarrow> c = d \<Longrightarrow> e = f \<Longrightarrow> h a c e = h b d f" (* new_lemma *)
   by auto
 
+(* Corresponds to Andrew's lemma 5401 e_1 *)
 lemma lemma_5401_e_1:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -954,6 +962,7 @@ proof -
     by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 e_2 *)
 lemma lemma_5401_e_2:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1061,6 +1070,7 @@ proof -
     unfolding Con_sym_def by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 e_3 *)
 lemma lemma_5401_e_3:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1150,6 +1160,7 @@ proof -
     unfolding Con_sym_def by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 e *)
 lemma lemma_5401_e_variant_1: (* new_lemma *)
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1217,6 +1228,7 @@ proof -
     using mem_boolset by blast
 qed
 
+(* Corresponds to Andrew's lemma 5401 2 *)
 lemma lemma_5401_e_variant_2: (* new_lemma *)
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1225,6 +1237,7 @@ lemma lemma_5401_e_variant_2: (* new_lemma *)
   shows "(val D I \<phi> (A \<^bold>\<and> B)) = boolean (satisfies D I \<phi> A \<and> satisfies D I \<phi> B)"
   using assms wff_Tv_is_true_or_false[of \<phi> D I] lemma_5401_e_variant_1 unfolding Con_def by auto
 
+(* Corresponds to Andrew's lemma 5401 f_1 *)
 lemma lemma_5401_f_1:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1267,6 +1280,7 @@ proof -
     unfolding Imp_sym_def by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 f_2 *)
 lemma lemma_5401_f_2:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1304,6 +1318,7 @@ proof -
     unfolding Imp_sym_def by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 f_3 *)
 lemma lemma_5401_f_3:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1359,6 +1374,7 @@ proof -
     unfolding Imp_sym_def by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 f *)
 lemma lemma_5401_f_variant_1: (* new_lemma *)
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1397,6 +1413,7 @@ next
   qed
 qed
 
+(* Corresponds to Andrew's lemma 5401 f *)
 lemma lemma_5401_f_variant_2: (* new_lemma *)
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1406,6 +1423,7 @@ lemma lemma_5401_f_variant_2: (* new_lemma *)
   using assms unfolding Imp_def
   by (simp add: lemma_5401_f_variant_1 wff_Tv_is_true_or_false)
 
+(* Corresponds to Andrew's lemma 5401 g *)
 lemma lemma_5401_g:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1507,6 +1525,7 @@ proof -
     by auto
 qed
 
+(* Corresponds to Andrew's lemma 5401 g *)
 theorem lemma_5401_g_variant_1:
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1611,6 +1630,7 @@ proof -
     using set_theory_axioms subs_def by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for rule R *)
 theorem theorem_5402_a_rule_R:
   assumes aisb: "valid_general (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>])"
   assumes "valid_general C"
@@ -1722,7 +1742,7 @@ theorem new_lemma12312893879: (* new_lemma *)
   shows "D (Fun Tv Tv) \<subseteq>: funspace (boolset) (boolset)"
   by (metis assms(1) general_model.elims(2) wf_frame_def wf_interp.simps)
 
-
+(* Corresponds to Andrew's theorem 5402 a for axiom 1 *)
 theorem theorem_5402_a_axiom_1_variant: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1804,9 +1824,11 @@ next
     using lemma_5401_b_variant_2[OF assms(1,2)] by auto 
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 1 *)
 theorem theorem_5402_a_axiom_1: "valid_general axiom_1"
   using theorem_5402_a_axiom_1_variant unfolding valid_general_def valid_in_model_def by auto
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 2 *)
 theorem theorem_5402_a_axiom_2_variant: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1846,12 +1868,16 @@ next
     using assms lemma_5401_f_variant_2 unfolding axiom_2_def by auto
 qed                                   
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 2 *)
 theorem theorem_5402_a_axiom_2: "valid_general (axiom_2 \<alpha>)"
   using theorem_5402_a_axiom_2_variant unfolding valid_general_def valid_in_model_def by auto
 
 (* Below I have versions with "satisfies" and versions with "valid". But it's a bit inconsistent which
-   are called variants and which are not. The "satisfies" versions should be called variant *)
+   are called variants and which are not. The "satisfies" versions should be called variant
+   Actually, we should just come up with better names entirely.
+ *)
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 3 *)
 theorem theorem_5402_a_axiom_3_variant: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1914,6 +1940,7 @@ next
     unfolding boolean_def axiom_3_def by simp
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 3 *)
 theorem theorem_5402_a_axiom_3: "valid_general (axiom_3 \<alpha> \<beta>)"
   using theorem_5402_a_axiom_3_variant unfolding valid_general_def valid_in_model_def by auto
 
@@ -1926,6 +1953,7 @@ lemma new_lemma_5671289472893472: (* new_lemma *) (* mentioned on page 242 thoug
   shows "val D I \<phi> (\<^bold>[\<^bold>\<lambda>x:\<alpha>. E\<^bold>] \<^bold>\<cdot> A) = val D I \<psi> E"
   using lemma_5401_a[OF assms(1,2)] assms by auto
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_1 with a constant *)
 theorem theorem_5402_a_axiom_4_1_variant_cst: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1946,6 +1974,7 @@ proof -
     using lemma_5401_b_variant_2[OF assms(1,2)] by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_1 *)
 theorem theorem_5402_a_axiom_4_1_variant_var: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -1970,6 +1999,7 @@ proof -
     using lemma_5401_b_variant_2[OF assms(1,2)] by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_1 *)
 theorem theorem_5402_a_axiom_4_1:
   assumes "asg_into_interp \<phi> D I"
   assumes "general_model D I"
@@ -1981,6 +2011,7 @@ theorem theorem_5402_a_axiom_4_1:
     axiom_4_1_side_condition_def axiom_4_1_variant_var_def
     axiom_4_1_def by auto
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_2 *)
 theorem theorem_5402_a_axiom_4_2: 
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -2001,6 +2032,7 @@ proof -
     unfolding axiom_4_2_def by (rule lemma_5401_b_variant_2[OF assms(1,2)])
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_3 *)
 theorem theorem_5402_a_axiom_4_3: 
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -2087,6 +2119,7 @@ proof -
   then show ?thesis by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_4 *)
 theorem theorem_5402_a_axiom_4_4:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -2178,6 +2211,7 @@ proof -
     unfolding axiom_4_4_def .
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 4_5 *)
 theorem theorem_5402_a_axiom_4_5:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -2209,6 +2243,7 @@ proof -
     using lemma_5401_b[OF assms(1,2)] assms * by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a for axiom 5 *)
 theorem theorem_5402_a_axiom_5:
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
@@ -2287,6 +2322,7 @@ next
     by (smt new_lemma_65748392345674382347372649 rule_R.cases wff_Eql')
 qed
 
+(* Corresponds to Andrew's theorem 5402 a *)
 theorem theorem_5402_a_general:
   assumes "theorem A"
   shows "valid_general A"
@@ -2355,6 +2391,7 @@ next
       A_B_\<beta>_p \<gamma>_p by auto
 qed
 
+(* Corresponds to Andrew's theorem 5402 a *)
 theorem theorem_5402_a_standard:
   assumes "theorem A"
   shows "valid_standard A"
