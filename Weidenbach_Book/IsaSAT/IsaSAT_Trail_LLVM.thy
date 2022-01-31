@@ -95,9 +95,8 @@ sepref_def cons_trail_Propagated_tr_fast_code
   apply (subst (4)annot_index_of_atm)
   (*unfolding ins_idx_upcast64  *)
   supply [[goals_limit = 1]]
-  unfolding fold_tuple_optimizations
+(*   unfolding fold_tuple_optimizations *)
   by sepref
-
 
 (*
 sepref_def (in -)last_trail_fast_code
@@ -124,7 +123,6 @@ sepref_def tl_trail_tr_fast_code
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
   by sepref
-
 
 sepref_def tl_trail_proped_tr_fast_code
   is \<open>RETURN o tl_trail_propedt_tr\<close>

@@ -1073,9 +1073,9 @@ lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 experiment begin
 export_llvm
   MAX_LENGTH_SHORT_CLAUSE_impl
-mop_arena_status_impl
-(*  arena_length_impl
-arena_lit_impl
+  mop_arena_status_impl
+  arena_length_impl
+  arena_lit_impl
   arena_status_impl
   swap_lits_impl
   arena_lbd_impl
@@ -1087,7 +1087,7 @@ arena_lit_impl
   mark_unused_impl
   marked_as_used_impl
   MAX_LENGTH_SHORT_CLAUSE_impl
-  mop_arena_status_impl *)
+  mop_arena_status_impl
 end
 
 end
