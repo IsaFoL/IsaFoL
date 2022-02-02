@@ -735,7 +735,7 @@ lemma hn_id_pure:
   apply sepref_to_hoare
   apply vcg
   apply (auto simp: ENTAILS_def is_pure_conv pure_def)
-  by (smt (z3) conj_entails_mono entails_def entails_lift_extract_simps(2))
+  by (smt (z3) entails_def entails_lift_extract_simps(1) pure_true_conv sep_conj_empty')
 
 lemmas [sepref_fr_rules] =
   set_zero_wasted_stats_impl.refine[FCOMP set_zero_wasted_stats_set_zero_wasted_stats]

@@ -2,9 +2,6 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
-(* TODO: Move *)
-lemma inline_ho[llvm_inline]: \<open>doM { f \<leftarrow> return f; m f } = m f\<close> for f :: \<open>_ \<Rightarrow> _\<close> by simp
-
 abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>
 abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
@@ -48,23 +45,25 @@ lemma case_prod_open_plain_comb[sepref_monadify_comb]:
     Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. case_prod_open$(\<lambda>\<^sub>2a b. EVAL$(fp a b))$p)"
   apply (rule eq_reflection, simp split: list.split prod.split option.split)+
   done
-(* TODO Needed?
+
 lemma hn_case_prod_open'[sepref_comb_rules]:
   assumes FR: \<open>\<Gamma> \<turnstile> hn_ctxt (prod_assn P1 P2) p' p ** \<Gamma>1\<close>
   assumes Pair: "\<And>a1 a2 a1' a2'. \<lbrakk>p'=(a1',a2')\<rbrakk>
-    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 ** hn_ctxt P2 a2' a2 ** \<Gamma>1) (f a1 a2)
-          (\<Gamma>2 a1 a2 a1' a2') R (f' a1' a2')"
+    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 \<and>* hn_ctxt P2 a2' a2 \<and>* \<Gamma>1) (f a1 a2)
+          (\<Gamma>2 a1 a2 a1' a2') R (CP a1 a2) (f' a1' a2')"
   assumes FR2: \<open>\<And>a1 a2 a1' a2'. \<Gamma>2 a1 a2 a1' a2' \<turnstile> hn_ctxt P1' a1' a1 ** hn_ctxt P2' a2' a2 ** \<Gamma>1'\<close>
   shows \<open>hn_refine \<Gamma> (case_prod_open f p) (hn_ctxt (prod_assn P1' P2') p' p ** \<Gamma>1')
-                   R (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<close> (is \<open>?G \<Gamma>\<close>)
+                   R (CP_SPLIT CP p) (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<close> (is \<open>?G \<Gamma>\<close>)
+  unfolding case_prod_open_def
   unfolding autoref_tag_defs PROTECT2_def
   apply1 (rule hn_refine_cons_pre[OF FR])
   apply1 (cases p; cases p'; simp add: prod_assn_pair_conv[THEN prod_assn_ctxt])
+  unfolding CP_SPLIT_def prod.simps
   apply (rule hn_refine_cons[OF _ Pair _ entails_refl])
   applyS (simp add: hn_ctxt_def)
   applyS simp using FR2
   by (simp add: hn_ctxt_def)
-*)
+
 
 lemma ho_prod_open_move[sepref_preproc]: \<open>case_prod_open (\<lambda>a b x. f x a b) = (\<lambda>p x. case_prod_open (f x) p)\<close>
   by (auto)

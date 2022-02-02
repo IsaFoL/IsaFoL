@@ -159,7 +159,6 @@ global_interpretation LBD_it: parameterized_sort_impl_context
 
 lemmas [llvm_inline] = LBD_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta_fun_cong]
 
-print_named_simpset llvm_inline
 export_llvm
   \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>

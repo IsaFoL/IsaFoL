@@ -1,12 +1,15 @@
 theory IsaSAT_Sorting_LLVM
   imports IsaSAT_Sorting
-    Isabelle_LLVM.Sorting_Introsort
+    Isabelle_LLVM.Sorting_Ex_Array_Idxs
+    IsaSAT_Literals_LLVM 
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 declare \<alpha>_butlast[simp del]
 
+text \<open>All the weird proofs comes from the fact that, while very useful, \<^text>\<open>vcg\<close> enjoys 
+instantiating schematic variables by true, rendering proofs impossible.\<close>
 locale pure_eo_adapter =
   fixes elem_assn :: \<open>'a \<Rightarrow> 'ai::llvm_rep \<Rightarrow> assn\<close>
     and wo_assn :: \<open>'a list \<Rightarrow> 'oi::llvm_rep \<Rightarrow> assn\<close>
@@ -14,7 +17,7 @@ locale pure_eo_adapter =
     and wo_set_impl :: \<open>'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai \<Rightarrow> 'oi llM\<close>
   assumes pure[safe_constraint_rules]: \<open>is_pure elem_assn\<close>
       and get_hnr: \<open>(uncurry wo_get_impl,uncurry mop_list_get) \<in> wo_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow>\<^sub>a elem_assn\<close>
-      and set_hnr: \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ (ai). cnc_assn (\<lambda>x. x=ai) wo_assn)\<close>
+      and set_hnr: \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> [\<lambda>_.True]\<^sub>c wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow> wo_assn [\<lambda>((ai,_),_) r. r=ai]\<^sub>c\<close>
 begin
 
   lemmas [sepref_fr_rules] = get_hnr set_hnr
@@ -65,7 +68,7 @@ begin
 
   lemma set_hnr': \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a wo_assn\<close>
     apply (rule hfref_cons[OF set_hnr])
-    apply (auto simp: cnc_assn_def entails_lift_extract_simps sep_algebra_simps)
+    apply (auto simp: entails_lift_extract_simps sep_algebra_simps)
     done
 
 
@@ -75,55 +78,58 @@ begin
   begin
     lemmas eo_extract_refine_aux = eo_extract_impl.refine[FCOMP eo_extract1_refine]
 
-    lemma eo_extract_refine: "(uncurry eo_extract_impl, uncurry mop_eo_extract) \<in> eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k
-      \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ (ai,_). elem_assn \<times>\<^sub>a cnc_assn (\<lambda>x. x=ai) eo_assn)"
+    lemma eo_extract_refine: "(uncurry eo_extract_impl, uncurry mop_eo_extract) 
+      \<in> [\<lambda>_. True]\<^sub>c eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k \<rightarrow> (elem_assn \<times>\<^sub>a eo_assn) [\<lambda>(ai,_) (_,r). r=ai]\<^sub>c"
       apply (sepref_to_hnr)
       apply (rule hn_refine_nofailI)
-      unfolding cnc_assn_prod_conv
       apply (rule hnr_ceq_assnI)
-      subgoal
-        supply R = eo_extract_refine_aux[to_hnr, unfolded APP_def]
+      supply R = eo_extract_refine_aux[to_hnr, unfolded APP_def]
         apply (rule hn_refine_cons[OF _ R])
-        apply (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def)
-        done
-      subgoal
-        unfolding eo_extract_impl_def mop_eo_extract_def hn_ctxt_def eo_assn_def hr_comp_def
-        supply R = get_hnr[to_hnr, THEN hn_refineD, unfolded APP_def hn_ctxt_def]
-        thm R
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def)
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def)
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def)
+      unfolding eo_extract_impl_def mop_eo_extract_def hn_ctxt_def eo_assn_def hr_comp_def
+      apply (subst (3) sep.add_commute)
+      supply R = get_hnr[to_hnr, THEN hn_refineD, unfolded APP_def hn_ctxt_def]
+      thm R
+      apply vcg
         supply [vcg_rules] = R
-        supply [simp] = refine_pw_simps list_rel_imp_same_length
-        apply (vcg)
-        done
-      done
-
+(*         supply [simp] = refine_pw_simps list_rel_imp_same_length *)
+       apply (vcg)
+        supply [simp] = refine_pw_simps list_rel_imp_same_length 
+        apply vcg[]
+       apply (auto simp: POSTCOND_def)
+      apply (rule STATE_monoI)
+       apply assumption
+      apply (auto simp: entails_def)
+      by (simp add: pure_true_conv)
 
     lemmas eo_set_refine_aux = set_hnr'[FCOMP eo_list_set_refine]
-
-    lemma pure_part_cnc_imp_eq: \<open>pure_part (cnc_assn (\<lambda>x. x = cc) wo_assn a c) \<Longrightarrow> c=cc\<close>
-      by (auto simp: pure_part_def cnc_assn_def pred_lift_extract_simps)
 
     (* TODO: Move *)
     lemma pure_entails_empty: \<open>is_pure A \<Longrightarrow> A a c \<turnstile> \<box>\<close>
       by (auto simp: is_pure_def sep_algebra_simps entails_lift_extract_simps)
 
-
-    lemma eo_set_refine: \<open>(uncurry2 wo_set_impl, uncurry2 mop_eo_set) \<in> eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai, _), _). cnc_assn (\<lambda>x. x = ai) eo_assn)\<close>
+    lemma eo_set_refine: \<open>(uncurry2 wo_set_impl, uncurry2 mop_eo_set) \<in> [\<lambda>_. True]\<^sub>c eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>d \<rightarrow> (eo_assn) [\<lambda>((ai,_),_) r. r=ai]\<^sub>c\<close>
       apply (sepref_to_hnr)
       apply (rule hn_refine_nofailI)
       apply (rule hnr_ceq_assnI)
-      subgoal
-        supply R = eo_set_refine_aux[to_hnr, unfolded APP_def]
-        apply (rule hn_refine_cons[OF _ R])
-        apply (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def pure_entails_empty[OF pure])
-        done
-      subgoal
-        unfolding hn_ctxt_def eo_assn_def hr_comp_def
-        supply R = set_hnr[to_hnr, THEN hn_refineD, unfolded APP_def hn_ctxt_def]
-        supply [vcg_rules] = R
-        supply [simp] = refine_pw_simps list_rel_imp_same_length pure_part_cnc_imp_eq
-        apply (vcg')
-        done
-      done
+      supply R = eo_set_refine_aux[to_hnr, unfolded APP_def]
+      apply (rule hn_refine_cons[OF _ R])
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def pure_entails_empty[OF pure])
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def pure_entails_empty[OF pure])
+      subgoal by (auto simp: sep_algebra_simps entails_lift_extract_simps hn_ctxt_def pure_def invalid_assn_def pure_entails_empty[OF pure])
+      unfolding hn_ctxt_def eo_assn_def hr_comp_def
+       supply R = set_hnr[to_hnr, THEN hn_refineD, unfolded APP_def hn_ctxt_def]
+       supply [vcg_rules] = R
+       apply (vcg)
+       supply [simp] = refine_pw_simps list_rel_imp_same_length
+       apply (vcg)[]
+       apply (auto simp: POSTCOND_def)
+      apply (rule STATE_monoI)
+       apply assumption
+      apply (auto simp: entails_def)
+      by (simp add: pure_true_conv)
 
   end
 
@@ -147,8 +153,8 @@ begin
     unfolding eo_assn_def hr_comp_def
     by (auto simp: pred_lift_extract_simps sep_algebra_simps fun_eq_iff map_some_only_some_rel_iff)
 
-  lemma to_eo_conv_refine: \<open>(return, mop_to_eo_conv) \<in> wo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) eo_assn)\<close>
-    unfolding mop_to_eo_conv_def cnc_assn_def
+  lemma to_eo_conv_refine: \<open>(return, mop_to_eo_conv) \<in> [\<lambda>_. True]\<^sub>c wo_assn\<^sup>d \<rightarrow> (eo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
+    unfolding mop_to_eo_conv_def
     apply sepref_to_hoare
     apply (rewrite wo_assn_conv)
     apply vcg
@@ -157,8 +163,8 @@ begin
   lemma \<open>None \<notin> set xs \<longleftrightarrow> (\<exists>ys. xs = map Some ys)\<close>
     using None_not_in_set_conv by auto
 
-  lemma to_wo_conv_refine: \<open>(return, mop_to_wo_conv) \<in> eo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) wo_assn)\<close>
-    unfolding mop_to_wo_conv_def cnc_assn_def eo_assn_def hr_comp_def
+  lemma to_wo_conv_refine: \<open>(return, mop_to_wo_conv) \<in>  [\<lambda>_. True]\<^sub>c eo_assn\<^sup>d \<rightarrow> (wo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
+    unfolding mop_to_wo_conv_def eo_assn_def hr_comp_def
     apply sepref_to_hoare
     apply (auto simp add: refine_pw_simps map_some_only_some_rel_iff elim!: None_not_in_set_conv)
     by vcg
@@ -180,27 +186,45 @@ begin
 
 end
 
+lemma is_pureE_abs:
+  assumes "is_pure P"
+  obtains P' where "P = (\<lambda>x x'. \<up>(P' x x'))"
+  using assms unfolding is_pure_def by blast
+
+
 lemma al_pure_eo: \<open>is_pure A \<Longrightarrow> pure_eo_adapter A (al_assn A) arl_nth arl_upd\<close>
   apply unfold_locales
-  apply assumption
-  apply (rule al_nth_hnr_mop; simp)
+    apply assumption
+   apply (rule al_nth_hnr_mop; simp)
   subgoal
     apply (sepref_to_hnr)
     apply (rule hn_refine_nofailI)
     apply (rule hnr_ceq_assnI)
-    subgoal
       supply R = al_upd_hnr_mop[to_hnr, unfolded APP_def, of A]
       apply (rule hn_refine_cons[OF _ R])
-      apply (auto simp: hn_ctxt_def pure_def invalid_assn_def sep_algebra_simps entails_lift_extract_simps)
-      done
-    subgoal
-      unfolding hn_ctxt_def al_assn_def hr_comp_def pure_def in_snat_rel_conv_assn
-      apply (erule is_pureE)
-      apply (simp add: refine_pw_simps)
-      supply [simp] = list_rel_imp_same_length
-      by vcg
+    subgoal by (auto simp: hn_ctxt_def pure_def invalid_assn_def sep_algebra_simps entails_lift_extract_simps)
+    subgoal by (auto simp: hn_ctxt_def pure_def invalid_assn_def sep_algebra_simps entails_lift_extract_simps)
+    subgoal by (auto simp: hn_ctxt_def pure_def invalid_assn_def sep_algebra_simps entails_lift_extract_simps)
+    subgoal by (auto simp: hn_ctxt_def pure_def invalid_assn_def sep_algebra_simps entails_lift_extract_simps)
+    unfolding hn_ctxt_def al_assn_def hr_comp_def pure_def in_snat_rel_conv_assn
+      (*     apply (erule is_pureE) *)
+     apply (erule is_pureE)
+     apply (auto simp add: refine_pw_simps)[]
+     apply vcg
+     apply (rule wpa_monoI)
+       apply (rule arl_upd_rule[unfolded htriple_def, rule_format])
+       apply (rule STATE_monoI)
+        apply assumption
+       apply (auto simp flip: in_snat_rel_conv_assn simp: fri_basic_extract_simps
+        dr_assn_pure_asm_prefix_def entails_def pred_lift_extract_simps
+        SOLVE_AUTO_DEFER_def list_rel_imp_same_length)[]
+      apply (simp add: POSTCOND_def)
+      apply (subst(asm) sep_algebra_class.sep_conj_commute)
+      apply (subst STATE_monoI)
+        apply assumption
+       apply (rule conj_entails_mono[OF frame_rem1])
+       apply simp_all
     done
   done
-
 
 end

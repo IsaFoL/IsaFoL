@@ -332,7 +332,6 @@ sepref_def resolve_lookup_conflict_merge_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
-
 sepref_register isa_resolve_merge_conflict_gt2
 
 lemma arena_is_valid_clause_idx_le_uint64_max2:
