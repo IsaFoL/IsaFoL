@@ -391,6 +391,93 @@ lemma apply_id_true[simp]:
 definition one_elem_fun :: "'u \<Rightarrow> 'u \<Rightarrow> 'u" where
   "one_elem_fun x d = abstract d boolset (\<lambda>y. boolean (x=y))"
 
+lemma new_lemma12345667:
+  assumes "x \<in>: s"
+  assumes "f x \<in>: t"
+  assumes "abstract s t f = abstract s t g"
+  assumes "g x \<in>: t"
+  shows "f x = g x"
+proof -
+  from assms(2) have fx_in_t: "f x \<in>: t"
+    by auto (* add to shows? Or seperate lemma. *)
+
+  from assms have gx_in_t: "g x \<in>: t"
+    by auto (* add to shows? Or seperate lemma. *)
+
+  have "f x = (abstract s t f)\<langle>x\<rangle>"
+    using apply_abstract[of x s f t]
+    using fx_in_t assms by auto
+  also have "... = abstract s t g\<langle>x\<rangle>"
+    using assms by auto
+  also have "... = g x"
+    using apply_abstract[of x s g t]
+    using gx_in_t assms by auto
+  finally show ?thesis 
+    by auto
+qed
+
+lemma pair_in_apply_jfljalkfdjlkfja:
+  assumes "(a1,: a2) \<in>: f"
+  assumes "f \<in>: funspace s t"
+  shows "f\<langle>a1\<rangle> = a2"
+  using assms
+  by (smt abstract_def apply_abstract mem_product pair_inj set_theory.in_funspace_abstract set_theory.mem_sub set_theory_axioms) 
+
+lemma two_pairs_same_jakldajfdlkf:
+  assumes "f \<in>: funspace s t"
+  assumes "(a1,: a2) \<in>: f"
+  assumes "(a1,: a3) \<in>: f"
+  shows "a3 = a2"
+  using assms pair_in_apply_jfljalkfdjlkfja by blast
+
+lemma new_lemma_57623741902839035487410245298:
+  assumes "f \<in>: funspace s t"
+  assumes "g \<in>: funspace s t"
+  assumes "\<forall>x. x \<in>: s \<longrightarrow> f\<langle>x\<rangle> = g\<langle>x\<rangle>"
+  shows "f = g"
+proof -
+  have "\<And>a. a \<in>: f \<Longrightarrow> a \<in>: g"
+  proof -
+    fix a
+    assume a: "a \<in>: f"
+    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+      using assms unfolding funspace_def apply_def using relspace_def by force
+    then obtain a1 a2 where as:
+      "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+      by blast
+    then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
+      using assms(2) funspace_def by auto
+    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
+      by auto
+    then have "a3 = a2"
+      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
+    then show "a \<in>: g"
+      using as as2 by blast
+  qed
+  moreover
+  have "\<And>a. a \<in>: g \<Longrightarrow> a \<in>: f"
+  proof -
+    fix a
+    assume a: "a \<in>: g"
+    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+      using assms unfolding funspace_def apply_def using relspace_def by force
+    then obtain a1 a2 where as:
+      "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
+      by blast
+    then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
+      using assms(1) funspace_def by auto
+    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
+      by auto
+    then have "a3 = a2"
+      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
+    then show "a \<in>: f"
+      using as as2 by blast
+  qed
+  ultimately
+  show ?thesis 
+    using iffD2[OF extensional] by metis
+qed
+
 end
 
 locale model = weak_model +

@@ -109,7 +109,7 @@ next
     by (metis wff_App')
 qed
 
-lemma new_lemma_184890248048109283:
+lemma unique_type:
   "wff \<beta> A \<Longrightarrow> wff \<alpha> A \<Longrightarrow> \<alpha> = \<beta>"
 proof (induction arbitrary: \<alpha> rule: wff.induct)
   case (wff_Var \<alpha>' y)
@@ -129,7 +129,7 @@ next
     using wff_Abs_type_of by blast
 qed
 
-lemma new_lemma_65748392345674382347372649:
+lemma replacement_preserves_type:
   assumes "replacement A B C D"
   assumes "wff \<alpha> A"
   assumes "wff \<alpha> B"
@@ -138,7 +138,7 @@ lemma new_lemma_65748392345674382347372649:
   using assms proof (induction arbitrary: \<alpha> \<beta> rule: replacement.induct)
   case (replace A B)
   then show ?case
-    using new_lemma_184890248048109283 by auto
+    using unique_type by auto
 next
   case (replace_App_left A B C E D)
   then have "\<exists>\<beta>'. wff (Fun \<beta> \<beta>') C"
@@ -149,7 +149,7 @@ next
     using replace_App_left by auto
   define \<alpha>' where "\<alpha>' = Fun \<beta> \<beta>'"
   have "wff \<beta>' D"
-    using \<open>wff (Fun \<beta> \<beta>') C\<close> new_lemma_184890248048109283 replace_App_left.prems(3) by auto
+    using \<open>wff (Fun \<beta> \<beta>') C\<close> unique_type replace_App_left.prems(3) by auto
   then have "wff \<beta> (E \<^bold>\<cdot> D)"
     using e by auto
   then show ?case
@@ -161,7 +161,7 @@ next
   then obtain \<beta>' where c: "wff (Fun \<beta> \<beta>') C"
     by auto
   have e: "wff \<beta>' E"
-    using c new_lemma_184890248048109283 replace_App_right by fastforce
+    using c unique_type replace_App_right by fastforce
   define \<alpha>' where \<alpha>': "\<alpha>' = Fun \<beta> \<beta>'"
   have "wff \<beta> (C \<^bold>\<cdot> E)"
     using c e by auto
@@ -174,14 +174,14 @@ next
   then obtain \<beta>' where d: "wff \<beta>' D"
     by auto
   have \<beta>: "\<beta> = Fun \<beta>' \<alpha>'"
-    using d new_lemma_184890248048109283 replace_Abs by auto
+    using d unique_type replace_Abs by auto
   have "wff (Fun \<beta>' \<alpha>') (\<^bold>[\<^bold>\<lambda>x:\<alpha>'. D\<^bold>])"
     using d by auto
   then show ?case
     using \<beta> by auto
 qed
 
-lemma new_lemma_67125417542345674382347372649:
+lemma replacement_preserved_type:
   assumes "replacement A B C D"
   assumes "wff \<alpha> A"
   assumes "wff \<alpha> B"
@@ -190,7 +190,7 @@ lemma new_lemma_67125417542345674382347372649:
   using assms proof (induction arbitrary: \<alpha> \<beta> rule: replacement.induct)
   case (replace A B)
   then show ?case 
-    using new_lemma_184890248048109283 by auto
+    using unique_type by auto
 next
   case (replace_App_left A B C E D)
   then obtain \<gamma> where \<gamma>: "wff (Fun \<beta> \<gamma>) E \<and> wff \<gamma> D"
@@ -212,7 +212,7 @@ next
   then obtain \<gamma> where "wff \<gamma> D"
     by auto
   then show ?case
-    using new_lemma_184890248048109283 replace_Abs by auto
+    using unique_type replace_Abs by auto
 qed
 
 definition Eql :: "form \<Rightarrow> form \<Rightarrow> type_sym \<Rightarrow> form" where
@@ -224,13 +224,13 @@ abbreviation Eql' :: "form \<Rightarrow> type_sym \<Rightarrow> form \<Rightarro
 definition LHS where
   "LHS EqlAB = (case EqlAB of ((_ \<^bold>\<cdot> A) \<^bold>\<cdot> _) \<Rightarrow> A)"
 
-lemma XXXX[simp]: "LHS \<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>] = A"
+lemma LHS_def2[simp]: "LHS \<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>] = A"
   unfolding LHS_def Eql_def by auto
 
 definition RHS where
   "RHS EqlAB = (case EqlAB of (_ \<^bold>\<cdot> B ) \<Rightarrow> B)"
 
-lemma XXXXX[simp]: "RHS (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = B"
+lemma RHS_def2[simp]: "RHS (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>]) = B"
   unfolding RHS_def Eql_def by auto
 
 lemma wff_Eql[simp]:
@@ -249,7 +249,7 @@ lemma wff_T[simp]: "wff Tv T"
   by auto
 
 lemma wff_T'[simp]: "wff \<alpha> T \<longleftrightarrow> \<alpha> = Tv"
-  using new_lemma_184890248048109283 wff_T by blast
+  using unique_type wff_T by blast
 
 abbreviation F :: form where
   "F \<equiv> \<^bold>[\<^bold>[\<^bold>\<lambda> ''x'':Tv. T\<^bold>] \<^bold>=Fun Tv Tv\<^bold>= \<^bold>[\<^bold>\<lambda>''x'':Tv. Var ''x'' Tv\<^bold>]\<^bold>]"
@@ -258,7 +258,7 @@ lemma wff_F[simp]: "wff Tv F"
   by auto
 
 lemma wff_F'[simp]: "wff \<alpha> F \<longleftrightarrow> \<alpha> = Tv"
-  using new_lemma_184890248048109283 wff_F by blast
+  using unique_type wff_F by blast
 
 definition PI_Aux :: "type_sym \<Rightarrow> form" where
   "PI_Aux \<alpha> \<equiv> \<^bold>[\<^bold>\<lambda> ''x'':\<alpha>. T\<^bold>]"
@@ -287,7 +287,7 @@ lemma wff_Forall'[simp]: "wff \<beta> \<^bold>[\<^bold>\<forall>x:\<alpha>. A\<^
 proof 
   assume "wff \<beta> \<^bold>[\<^bold>\<forall>x:\<alpha>. A\<^bold>]"
   then show "wff Tv A \<and> \<beta> = Tv"
-    by (smt Forall_def new_lemma_184890248048109283 type_sym.inject wff_Abs' wff_App' wff_PI)
+    by (smt Forall_def unique_type type_sym.inject wff_Abs' wff_App' wff_PI)
 next
   assume "wff Tv A \<and> \<beta> = Tv"
   then show "wff \<beta> \<^bold>[\<^bold>\<forall>x:\<alpha>. A\<^bold>]" 
@@ -328,7 +328,7 @@ lemma wff_Con_Aux1[simp]: "wff Tv Con_Aux1"
   unfolding Con_Aux1_def by auto
 
 lemma wff_Con_Aux1'[simp]: "wff \<alpha> Con_Aux1 \<longleftrightarrow> \<alpha> = Tv"
-  using new_lemma_184890248048109283 wff_Con_Aux1 by blast
+  using unique_type wff_Con_Aux1 by blast
 
 definition Con_Aux2 :: form where
   "Con_Aux2 \<equiv> \<^bold>[\<^bold>\<lambda> ''y'':Tv. Con_Aux1\<^bold>]"
@@ -390,7 +390,7 @@ lemma wff_Imp_Aux2[simp]:
 
 lemma wff_Imp_Aux2'[simp]:
   "wff \<alpha> Imp_Aux2 \<longleftrightarrow> \<alpha> = Tv"
-  using new_lemma_184890248048109283 wff_Imp_Aux2 by blast
+  using unique_type wff_Imp_Aux2 by blast
 
 definition Imp_Aux3 :: form where
   "Imp_Aux3 \<equiv> \<^bold>[\<^bold>\<lambda> ''y'':Tv. Imp_Aux2\<^bold>]"
@@ -528,11 +528,11 @@ lemma agree_off_asg_def2:
   "agree_off_asg \<psi> \<phi> x \<alpha> \<longleftrightarrow> (\<exists>xa. \<phi>((x, \<alpha>) := xa) = \<psi>)"
   unfolding agree_off_asg_def by force
 
-lemma new_lemma_157397418923472[simp]: (* new_lemma *)
+lemma agree_off_asg_disagree_var_sym[simp]: (* new_lemma *)
   "agree_off_asg \<psi> \<phi> x \<alpha> \<Longrightarrow> x \<noteq> y \<Longrightarrow> \<psi>(y,\<beta>) = \<phi>(y,\<beta>)"
   unfolding agree_off_asg_def by auto
 
-lemma new_lemma_9574571457[simp]: (* new_lemma *)
+lemma agree_off_asg_disagree_type_sym[simp]: (* new_lemma *)
   "agree_off_asg \<psi> \<phi> x \<alpha> \<Longrightarrow> \<alpha> \<noteq> \<beta> \<Longrightarrow> \<psi>(y,\<beta>) = \<phi>(y,\<beta>)"
   unfolding agree_off_asg_def by auto
 
@@ -935,31 +935,6 @@ proof -
       by auto
   qed
   finally show ?thesis .
-qed
-
-lemma new_lemma12345667: 
-  assumes "x \<in>: s"
-  assumes "f x \<in>: t"
-  assumes "abstract s t f = abstract s t g"
-  assumes "g x \<in>: t"
-  shows "f x = g x"
-proof -
-  from assms(2) have fx_in_t: "f x \<in>: t"
-    by auto (* add to shows? Or seperate lemma. *)
-
-  from assms have gx_in_t: "g x \<in>: t"
-    by auto (* add to shows? Or seperate lemma. *)
-
-  have "f x = (abstract s t f)\<langle>x\<rangle>"
-    using apply_abstract[of x s f t]
-    using fx_in_t assms by auto
-  also have "... = abstract s t g\<langle>x\<rangle>"
-    using assms by auto
-  also have "... = g x"
-    using apply_abstract[of x s g t]
-    using gx_in_t assms by auto
-  finally show ?thesis 
-    by auto
 qed
 
 (* Corresponds to Andrew's lemma 5401 e_2 *)
@@ -1538,69 +1513,7 @@ proof -
     using assms lemma_5401_g[symmetric] unfolding boolean_def by auto
 qed
 
-lemma pair_in_apply_jfljalkfdjlkfja:
-  assumes "(a1,: a2) \<in>: f"
-  assumes "f \<in>: funspace s t"
-  shows "f\<langle>a1\<rangle> = a2"
-  using assms
-  by (smt abstract_def apply_abstract mem_product pair_inj set_theory.in_funspace_abstract set_theory.mem_sub set_theory_axioms) 
-
-lemma two_pairs_same_jakldajfdlkf:
-  assumes "f \<in>: funspace s t"
-  assumes "(a1,: a2) \<in>: f"
-  assumes "(a1,: a3) \<in>: f"
-  shows "a3 = a2"
-  using assms pair_in_apply_jfljalkfdjlkfja by blast
-
-lemma new_lemma_57623741902839035487410245298:
-  assumes "f \<in>: funspace s t"
-  assumes "g \<in>: funspace s t"
-  assumes "\<forall>x. x \<in>: s \<longrightarrow> f\<langle>x\<rangle> = g\<langle>x\<rangle>"
-  shows "f = g"
-proof -
-  have "\<And>a. a \<in>: f \<Longrightarrow> a \<in>: g"
-  proof -
-    fix a
-    assume a: "a \<in>: f"
-    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
-      using assms unfolding funspace_def apply_def using relspace_def by force
-    then obtain a1 a2 where as:
-      "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
-      by blast
-    then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
-      using assms(2) funspace_def by auto
-    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: g"
-      by auto
-    then have "a3 = a2"
-      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
-    then show "a \<in>: g"
-      using as as2 by blast
-  qed
-  moreover
-  have "\<And>a. a \<in>: g \<Longrightarrow> a \<in>: f"
-  proof -
-    fix a
-    assume a: "a \<in>: g"
-    from a have b: "\<exists>a1 a2. a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
-      using assms unfolding funspace_def apply_def using relspace_def by force
-    then obtain a1 a2 where as:
-      "a1 \<in>:s \<and> a2 \<in>: t \<and> (a1 ,: a2) = a"
-      by blast
-    then have "\<exists>a3. a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
-      using assms(1) funspace_def by auto
-    then obtain a3 where as2: "a2 \<in>: t \<and> (a1 ,: a3) \<in>: f"
-      by auto
-    then have "a3 = a2"
-      using as a assms(1) assms(2) assms(3) pair_in_apply_jfljalkfdjlkfja by auto
-    then show "a \<in>: f"
-      using as as2 by blast
-  qed
-  ultimately
-  show ?thesis 
-    using iffD2[OF extensional] by metis
-qed
-
-lemma new_lemma_98846294767493027474: (* new_lemma *)
+lemma fun_sym_asg_to_funspace: (* new_lemma *)
   assumes "asg_into_frame \<phi> D"
   assumes "general_model D I"
   shows "\<phi> (f, Fun \<alpha> \<beta>) \<in>: funspace (D \<beta>) (D \<alpha>)"
@@ -1615,7 +1528,7 @@ proof -
     by (simp add: set_theory_axioms subs_def)
 qed
 
-lemma new_lemma_67751924038688028528494: (* new_lemma *)
+lemma fun_sym_interp_to_funspace: (* new_lemma *)
   assumes "asg_into_frame \<phi> D"
   assumes "general_model D I"
   shows "I f (Fun \<alpha> \<beta>) \<in>: funspace (D \<beta>) (D \<alpha>)"
@@ -1721,7 +1634,7 @@ theorem theorem_5402_a_rule_R:
           by auto
       qed
       have "wff (type_of C) D'"
-        using new_lemma_65748392345674382347372649 replace_Abs.hyps replace_Abs.prems(2) 
+        using replacement_preserves_type replace_Abs.hyps replace_Abs.prems(2) 
           replace_Abs.prems(3) replace_Abs.prems(4) wff_Abs_type_of by blast
       then have gug2: "abstract (D \<alpha>') (D (type_of C)) (\<lambda>xa. val D I (\<phi>((x, \<alpha>') := xa)) D') =
                 abstract (D \<alpha>') (D (type_of D')) (\<lambda>z. val D I (\<phi>((x, \<alpha>') := z)) D')"
@@ -1736,7 +1649,7 @@ theorem theorem_5402_a_rule_R:
     using assms(2) DI unfolding valid_in_model_def valid_general_def by auto
 qed
 
-theorem new_lemma12312893879: (* new_lemma *)
+theorem Fun_Tv_Tv_frame_subs_funspace: (* new_lemma *)
   assumes "general_model D I"
   assumes "asg_into_interp \<phi> D I"
   shows "D (Fun Tv Tv) \<subseteq>: funspace (boolset) (boolset)"
@@ -1772,12 +1685,12 @@ proof (cases "(\<phi> (''g'',Fun Tv Tv))\<langle>true\<rangle> = true \<and> (\<
 next
   case False
   have xx: "D (Fun Tv Tv) \<subseteq>: funspace (boolset) (boolset)" 
-    using assms new_lemma12312893879 by auto
+    using assms Fun_Tv_Tv_frame_subs_funspace by auto
   have "\<phi> (''g'', Fun Tv Tv) \<in>: D (Fun Tv Tv)"
     using assms
     by (simp add: asg_into_frame_def) 
   then have 0: "\<phi> (''g'', Fun Tv Tv) \<in>: funspace (D Tv) (D Tv)"
-    using assms(1) assms(2) new_lemma_98846294767493027474 by blast
+    using assms(1) assms(2) fun_sym_asg_to_funspace by blast
 
   from False have "(\<phi> (''g'', Fun Tv Tv)\<langle>true\<rangle> \<noteq> true \<or> \<phi> (''g'', Fun Tv Tv)\<langle>false\<rangle> \<noteq> true)"
     by auto
@@ -2045,7 +1958,7 @@ proof -
   let ?E = "B \<^bold>\<cdot> C"
 
   have "val D I \<phi> (LHS (axiom_4_3 x \<alpha> B \<beta> \<gamma> C A)) = val D I ?\<psi> ?E"
-    by (metis XXXX assms(3) assms(4) assms(5) axiom_4_3_def lemma_5401_a[OF assms(1,2)] wff_App)
+    by (metis LHS_def2 assms(3) assms(4) assms(5) axiom_4_3_def lemma_5401_a[OF assms(1,2)] wff_App)
   moreover
   have "... = val D I ?\<psi> (B \<^bold>\<cdot> C)"
     by simp
@@ -2273,9 +2186,9 @@ proof -
     unfolding axiom_5_def using lemma_5401_b[OF assms(1,2)] by auto
 qed
 
-lemma theorems_are_welformed_12384919:
+lemma theorem_isa_Tv:
   assumes "theorem A"
-  shows "\<exists>\<alpha>. wff \<alpha> A"
+  shows "wff Tv A"
   using assms proof (induction)
   case (by_axiom A)
   then show ?case 
@@ -2319,7 +2232,7 @@ lemma theorems_are_welformed_12384919:
 next
   case (by_rule_R A B C)
   then show ?case
-    by (smt new_lemma_65748392345674382347372649 rule_R.cases wff_Eql')
+    by (smt replacement_preserves_type rule_R.cases wff_Eql')
 qed
 
 (* Corresponds to Andrew's theorem 5402 a *)
@@ -2374,12 +2287,11 @@ theorem theorem_5402_a_general:
   qed
 next
   case (by_rule_R C AB C')
-  then obtain \<gamma> where \<gamma>_p: "wff \<gamma> C"
-    using theorems_are_welformed_12384919
-    by metis
+  then have C_isa_Tv: "wff Tv C"
+    using theorem_isa_Tv by blast
   have "\<exists>A B \<beta>. AB = \<^bold>[A \<^bold>=\<beta>\<^bold>= B\<^bold>] \<and> wff \<beta> A \<and> wff \<beta> B"
     using by_rule_R
-    using rule_R.simps theorems_are_welformed_12384919 by fastforce
+    using rule_R.simps theorem_isa_Tv by fastforce
   then obtain A B \<beta> where A_B_\<beta>_p: "AB = \<^bold>[A \<^bold>=\<beta>\<^bold>= B\<^bold>] \<and> wff \<beta> A \<and> wff \<beta> B"
     by blast
   then have "rule_R C \<^bold>[A \<^bold>=\<beta>\<^bold>= B\<^bold>] C'"
@@ -2387,8 +2299,8 @@ next
   then have "replacement A B C C'"
     using Eql_def rule_R.cases by fastforce
   show ?case
-    using theorem_5402_a_rule_R[of A B \<beta> C C' \<gamma>] by_rule_R.IH \<open>rule_R C \<^bold>[A \<^bold>=\<beta>\<^bold>= B\<^bold>] C'\<close> 
-      A_B_\<beta>_p \<gamma>_p by auto
+    using theorem_5402_a_rule_R[of A B \<beta> C C' Tv] by_rule_R.IH \<open>rule_R C \<^bold>[A \<^bold>=\<beta>\<^bold>= B\<^bold>] C'\<close> 
+      A_B_\<beta>_p C_isa_Tv by auto
 qed
 
 (* Corresponds to Andrew's theorem 5402 a *)
