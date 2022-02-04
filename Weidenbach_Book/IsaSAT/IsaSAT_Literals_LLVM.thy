@@ -6,7 +6,7 @@ abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<cl
 abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
 abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
-
+hide_const (open) NEMonad.RETURN
 
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
@@ -159,8 +159,9 @@ abbreviation \<open>uint64_nat_assn \<equiv> unat_assn' TYPE(64)\<close>
 abbreviation \<open>sint32_nat_assn \<equiv> snat_assn' TYPE(32)\<close>
 abbreviation \<open>sint64_nat_assn \<equiv> snat_assn' TYPE(64)\<close>
 
-
-lemmas [sepref_bounds_simps] =
+text \<open>It is critical for performance of auto to calculate the power instead of letting auto do it
+every time.\<close>
+lemmas [simplified, sepref_bounds_simps] =
   uint32_max_def sint32_max_def
   uint64_max_def sint64_max_def
 

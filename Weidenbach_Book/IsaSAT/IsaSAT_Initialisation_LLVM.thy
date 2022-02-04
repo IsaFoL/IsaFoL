@@ -600,8 +600,8 @@ lemma extract_lits_sorted_hnr[sepref_fr_rules]:
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>hrr_comp isasat_atms_ext_rel
-        (\<lambda>_ _. al_assn atom_assn \<times>\<^sub>a unat_assn) (\<lambda>_. lits_with_max_rel) =
-       (\<lambda>_ _. lits_with_max_assn)\<close>
+        (\<lambda>_. al_assn atom_assn \<times>\<^sub>a unat_assn) (\<lambda>_. lits_with_max_rel) =
+       (\<lambda>_. lits_with_max_assn)\<close>
     by (auto simp: hrr_comp_def intro!: ext)
 
   have H: \<open>?c
