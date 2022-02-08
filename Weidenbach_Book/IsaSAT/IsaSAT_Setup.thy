@@ -72,28 +72,54 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 
 paragraph \<open>Definition\<close>
 
-datatype isasat = IsaSAT
-  (get_trail_wl_heur: trail_pol)
-  (get_clauses_wl_heur: arena)
-  (get_conflict_wl_heur: conflict_option_rel)
-  (literals_to_update_wl_heur: nat)
-  (get_watched_wl_heur: \<open>(nat watcher) list list\<close>)
-  (get_vmtf_heur: isa_vmtf_remove_int)
-  (get_count_max_lvls_heur: nat)
-  (get_conflict_cach: conflict_min_cach_l)
-  (get_lbd: lbd)
-  (get_outlearned_heur: out_learned)
-  (get_heur: isasat_restart_heuristics)
-  (get_stats_heur: isasat_stats)
-  (get_aivdom: isasat_aivdom)
-  (get_learned_count: clss_size)
-  (get_opts: opts)
-  (get_old_arena: arena)
 
-type_synonym isasat_int = \<open>trail_pol \<times> arena \<times>
-      conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
-      nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> isasat_stats \<times> isasat_restart_heuristics \<times>
-     isasat_aivdom \<times> clss_size \<times> opts \<times> arena\<close> 
+
+datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int = IsaSAT_int
+  (get_trail_wl_heur: 'a)
+  (get_clauses_wl_heur: 'b)
+  (get_conflict_wl_heur: 'c)
+  (literals_to_update_wl_heur: 'd)
+  (get_watched_wl_heur: 'e)
+  (get_vmtf_heur: 'f)
+  (get_count_max_lvls_heur: 'g)
+  (get_conflict_cach: 'h)
+  (get_lbd: 'i)
+  (get_outlearned_heur: 'j)
+  (get_heur: 'k)
+  (get_stats_heur: 'l)
+  (get_aivdom: 'm)
+  (get_learned_count: 'n)
+  (get_opts: 'o)
+  (get_old_arena: 'p)
+
+  type_synonym isasat = \<open>(trail_pol, arena,
+      conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
+      nat, conflict_min_cach_l, lbd, out_learned, isasat_restart_heuristics, isasat_stats, 
+     isasat_aivdom, clss_size, opts, arena) isasat_int\<close>
+abbreviation IsaSAT where
+  \<open>IsaSAT a b c d e f g h i j k l m n xo p \<equiv> IsaSAT_int a b c d e f g h i j k l m n xo p :: isasat\<close>
+(* datatype isasat = IsaSAT
+ *   (get_trail_wl_heur: trail_pol)
+ *   (get_clauses_wl_heur: arena)
+ *   (get_conflict_wl_heur: conflict_option_rel)
+ *   (literals_to_update_wl_heur: nat)
+ *   (get_watched_wl_heur: \<open>(nat watcher) list list\<close>)
+ *   (get_vmtf_heur: isa_vmtf_remove_int)
+ *   (get_count_max_lvls_heur: nat)
+ *   (get_conflict_cach: conflict_min_cach_l)
+ *   (get_lbd: lbd)
+ *   (get_outlearned_heur: out_learned)
+ *   (get_heur: isasat_restart_heuristics)
+ *   (get_stats_heur: isasat_stats)
+ *   (get_aivdom: isasat_aivdom)
+ *   (get_learned_count: clss_size)
+ *   (get_opts: opts)
+ *   (get_old_arena: arena) *)
+
+(* type_synonym isasat_int = \<open>trail_pol \<times> arena \<times>
+ *       conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
+ *       nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> isasat_stats \<times> isasat_restart_heuristics \<times>
+ *      isasat_aivdom \<times> clss_size \<times> opts \<times> arena\<close>  *)
 
 
 paragraph \<open>Accessors\<close>
@@ -197,20 +223,20 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
-definition get_opts_int :: \<open>isasat_int \<Rightarrow> opts\<close> where
-  \<open>get_opts_int = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
-
-definition get_learned_count_number_int :: \<open>isasat_int \<Rightarrow> _\<close> where
-  \<open>get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, lcount, opts). (clss_size_lcount lcount))\<close>
-
-lemma get_learned_count_number_alt_def:
-   \<open>RETURN o get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, lcount, opts). RETURN (clss_size_lcount lcount))\<close>
-  by (auto simp: get_learned_count_number_int_def intro!: ext)
-
-definition get_count_max_lvls_heur_int :: \<open>isasat_int \<Rightarrow> nat\<close> where
-  \<open>get_count_max_lvls_heur_int = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close>
+(* definition get_opts_int :: \<open>isasat_int \<Rightarrow> opts\<close> where
+ *   \<open>get_opts_int = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
+ * 
+ * definition get_learned_count_number_int :: \<open>isasat_int \<Rightarrow> _\<close> where
+ *   \<open>get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+ *        stats, _, vdom, lcount, opts). (clss_size_lcount lcount))\<close>
+ * 
+ * lemma get_learned_count_number_alt_def:
+ *    \<open>RETURN o get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+ *        stats, _, vdom, lcount, opts). RETURN (clss_size_lcount lcount))\<close>
+ *   by (auto simp: get_learned_count_number_int_def intro!: ext)
+ * 
+ * definition get_count_max_lvls_heur_int :: \<open>isasat_int \<Rightarrow> nat\<close> where
+ *   \<open>get_count_max_lvls_heur_int = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close> *)
 
 
 paragraph \<open>VMTF\<close>
@@ -478,7 +504,7 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def Let_def
-     split: option.splits isasat.splits prod.splits)
+     split: option.splits prod.splits)
 
 
 (* lemma get_conflict_wl_is_None_heur_alt_def:

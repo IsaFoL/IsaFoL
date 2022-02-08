@@ -53,24 +53,6 @@ type_synonym twl_st_wll_trail_fast =
  *   (get_opts: opts_assn)
  *   (get_old_arena: arena_assn) *)
 
-datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int = IsaSAT_int
-  (get_trail_wl_heur: 'a)
-  (get_clauses_wl_heur: 'b)
-  (get_conflict_wl_heur: 'c)
-  (literals_to_update_wl_heur: 'd)
-  (get_watched_wl_heur: 'e)
-  (get_vmtf_heur: 'f)
-  (get_count_max_lvls_heur: 'g)
-  (get_conflict_cach: 'h)
-  (get_lbd: 'i)
-  (get_outlearned_heur: 'j)
-  (get_heur: 'k)
-  (get_stats_heur: 'l)
-  (get_aivdom: 'm)
-  (get_learned_count: 'n)
-  (get_opts: 'o)
-  (get_old_arena: 'p)
-
 instantiation isasat_int ::
   (llvm_rep,llvm_rep,llvm_rep,llvm_rep,
   llvm_rep,llvm_rep,llvm_rep,llvm_rep,
@@ -292,7 +274,14 @@ fun isasat_int_assn :: \<open>
  m_assn aivdom (aivdom') \<and>* n_assn clss (clss') \<and>* o_assn opts (opts')  \<and>* p_assn arena (arena')))
   \<close>
 
-definition isasat_bounded_assn :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close> where
+type_synonym twl_st_wll_trail_fast2 =
+  \<open>(trail_pol_fast_assn, arena_assn, option_lookup_clause_assn,
+    64 word, watched_wl_uint32, vmtf_remove_assn,
+    32 word, cach_refinement_l_assn, lbd_assn, out_learned_assn, stats,
+    heur_assn,
+   aivdom_assn, (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word),
+  opts_assn, arena_assn) isasat_int\<close>
+definition isasat_bounded_assn :: \<open>_ \<Rightarrow> twl_st_wll_trail_fast2 \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn = isasat_int_assn
   trail_pol_fast_assn  arena_fast_assn
   conflict_option_rel_assn
@@ -336,37 +325,37 @@ locale isasat_state_ops =
     o_assn :: \<open>'o \<Rightarrow> 'xo \<Rightarrow> assn\<close> and
     p_assn :: \<open>'p \<Rightarrow> 'xp \<Rightarrow> assn\<close> and
     a_default :: 'a and
-    a :: \<open>unit \<Rightarrow> 'xa llM\<close> and
+    a :: \<open>'xa llM\<close> and
     b_default :: 'b and
-    b :: \<open>unit \<Rightarrow> 'xb llM\<close> and
+    b :: \<open>'xb llM\<close> and
     c_default :: 'c and
-    c :: \<open>unit \<Rightarrow> 'xc llM\<close> and
+    c :: \<open>'xc llM\<close> and
     d_default :: 'd and
-    d :: \<open>unit \<Rightarrow> 'xd llM\<close> and
+    d :: \<open>'xd llM\<close> and
     e_default :: 'e and
-    e :: \<open>unit \<Rightarrow> 'xe llM\<close> and
+    e :: \<open>'xe llM\<close> and
     f_default :: 'f and
-    f :: \<open>unit \<Rightarrow> 'xf llM\<close> and
+    f :: \<open>'xf llM\<close> and
     g_default :: 'g and
-    g :: \<open>unit \<Rightarrow> 'xg llM\<close> and
+    g :: \<open>'xg llM\<close> and
     h_default :: 'h and
-    h :: \<open>unit \<Rightarrow> 'xh llM\<close> and
+    h :: \<open>'xh llM\<close> and
     i_default :: 'i and
-    i :: \<open>unit \<Rightarrow> 'xi llM\<close> and
+    i :: \<open>'xi llM\<close> and
     j_default :: 'j and
-    j :: \<open>unit \<Rightarrow> 'xj llM\<close> and
+    j :: \<open>'xj llM\<close> and
     k_default :: 'k and
-    k :: \<open>unit \<Rightarrow> 'xk llM\<close> and
+    k :: \<open>'xk llM\<close> and
     l_default :: 'l and
-    l :: \<open>unit \<Rightarrow> 'xl llM\<close> and
+    l :: \<open>'xl llM\<close> and
     m_default :: 'm and
-    m :: \<open>unit \<Rightarrow> 'xm llM\<close> and
+    m :: \<open>'xm llM\<close> and
     n_default :: 'n and
-    n :: \<open>unit \<Rightarrow> 'xn llM\<close> and
+    n :: \<open>'xn llM\<close> and
     ko_default :: 'o and
-    ko :: \<open>unit \<Rightarrow> 'xo llM\<close> and
+    ko :: \<open>'xo llM\<close> and
     p_default :: 'p and
-    p :: \<open>unit \<Rightarrow> 'xp llM\<close>
+    p :: \<open>'xp llM\<close>
 begin
 
 definition isasat_assn :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close> where
@@ -389,7 +378,7 @@ definition remove_trail_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg
   \<open>remove_trail_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> a ();
+    a' \<leftarrow> a;
     S \<leftarrow> Mreturn (IsaSAT_int a' x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x1, S)
   })\<close>
@@ -407,7 +396,7 @@ definition remove_arena_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg
   \<open>remove_arena_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> b ();
+    a' \<leftarrow> b;
     S \<leftarrow> Mreturn (IsaSAT_int x1 a' x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x2, S)
   })\<close>
@@ -425,7 +414,7 @@ definition remove_conflict_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 
   \<open>remove_conflict_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> c ();
+    a' \<leftarrow> c;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 a' x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x3, S)
   })\<close>
@@ -443,7 +432,7 @@ definition remove_literals_to_update_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 
   \<open>remove_literals_to_update_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    d' \<leftarrow> d ();
+    d' \<leftarrow> d;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 d' x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x4, S)
   })\<close>
@@ -461,7 +450,7 @@ definition remove_watchlist_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf,
   \<open>remove_watchlist_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> e ();
+    a' \<leftarrow> e;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 a' x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x5, S)
   })\<close>
@@ -478,7 +467,7 @@ definition remove_vmtf_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg,
   \<open>remove_vmtf_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> f ();
+    a' \<leftarrow> f;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 a' x7 x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x6, S)
   })\<close>
@@ -496,7 +485,7 @@ definition remove_clvls_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg
   \<open>remove_clvls_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> g ();
+    a' \<leftarrow> g;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 a' x8 x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x7, S)
   })\<close>
@@ -513,7 +502,7 @@ definition remove_ccach_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg
   \<open>remove_ccach_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> h ();
+    a' \<leftarrow> h;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 a' x9 x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x8, S)
   })\<close>
@@ -530,7 +519,7 @@ definition remove_lbd_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg, 
   \<open>remove_lbd_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> i ();
+    a' \<leftarrow> i;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 a' x10 x11 x12 x13 x14 x15 x16);
     Mreturn (x9, S)
   })\<close>
@@ -547,7 +536,7 @@ definition remove_outl_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg,
   \<open>remove_outl_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> j ();
+    a' \<leftarrow> j;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 a' x11 x12 x13 x14 x15 x16);
     Mreturn (x10, S)
   })\<close>
@@ -564,7 +553,7 @@ definition remove_stats_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg
   \<open>remove_stats_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> k ();
+    a' \<leftarrow> k;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 a' x12 x13 x14 x15 x16);
     Mreturn (x11, S)
   })\<close>
@@ -581,7 +570,7 @@ definition remove_heur_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg,
   \<open>remove_heur_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> l ();
+    a' \<leftarrow> l;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 a' x13 x14 x15 x16);
     Mreturn (x12, S)
   })\<close>
@@ -597,7 +586,7 @@ definition remove_vdom_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg,
   \<open>remove_vdom_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> m ();
+    a' \<leftarrow> m;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 a' x14 x15 x16);
     Mreturn (x13, S)
   })\<close>
@@ -614,7 +603,7 @@ definition remove_lcount_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'x
   \<open>remove_lcount_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> n ();
+    a' \<leftarrow> n;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 a' x15 x16);
     Mreturn (x14, S)
   })\<close>
@@ -631,7 +620,7 @@ definition remove_opts_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf, 'xg,
   \<open>remove_opts_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> ko ();
+    a' \<leftarrow> ko;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 a' x16);
     Mreturn (x15, S)
   })\<close>
@@ -649,7 +638,7 @@ definition remove_old_arena_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf,
   \<open>remove_old_arena_wl_heur_int isasat_int =
     (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
      doM{
-    a' \<leftarrow> p ();
+    a' \<leftarrow> p;
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 a');
     Mreturn (x16, S)
   })\<close>
@@ -658,49 +647,113 @@ definition update_trail_wl_heur :: \<open>'a \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_trail_wl_heur x1 isasat_int = (case isasat_int of IsaSAT_int M x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_arena_wl_heur :: \<open>'b \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_arena_wl_heur x2 isasat_int = (case isasat_int of IsaSAT_int x1 M x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_conflict_wl_heur :: \<open>'c \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_conflict_wl_heur x3 isasat_int = (case isasat_int of IsaSAT_int x1 x2 M x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_literals_to_update_wl_heur :: \<open>'d \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_literals_to_update_wl_heur x4 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 M x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_watchlist_wl_heur :: \<open>'e \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_watchlist_wl_heur x5 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 M x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_vmtf_wl_heur :: \<open>'f \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_vmtf_wl_heur x6 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 M x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 definition update_clvls_wl_heur :: \<open>'g \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
   \<open>update_clvls_wl_heur x7 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 M x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
-    let _ = mop_free M in
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_ccach_wl_heur :: \<open>'h \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_ccach_wl_heur x8 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 M x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_lbd_wl_heur :: \<open>'i \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_lbd_wl_heur x9 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 M x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_outl_wl_heur :: \<open>'j \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_outl_wl_heur x10 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 M x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_stats_wl_heur :: \<open>'k \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_stats_wl_heur x11 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 M x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_heur_wl_heur :: \<open>'l \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_heur_wl_heur x12 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 M x13 x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_vdom_wl_heur :: \<open>'m \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_vdom_wl_heur x13 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 M x14 x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_lcount_wl_heur :: \<open>'n \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_lcount_wl_heur x14 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 M x15 x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_opts_wl_heur :: \<open>'o \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_opts_wl_heur x15 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 M x16 \<Rightarrow>
+    let _ = M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+
+definition update_old_arena_wl_heur :: \<open>'p \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_old_arena_wl_heur x16 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 M \<Rightarrow>
+    let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
 
 
@@ -811,56 +864,86 @@ locale isasat_state =
     o_assn :: \<open>'o \<Rightarrow> 'xo \<Rightarrow> assn\<close> and
     p_assn :: \<open>'p \<Rightarrow> 'xp \<Rightarrow> assn\<close> and
     a_default :: 'a and
-    a :: \<open>unit \<Rightarrow> 'xa llM\<close> and
+    a :: \<open>'xa llM\<close> and
     b_default :: 'b and
-    b :: \<open>unit \<Rightarrow> 'xb llM\<close> and
+    b :: \<open>'xb llM\<close> and
     c_default :: 'c and
-    c :: \<open>unit \<Rightarrow> 'xc llM\<close> and
+    c :: \<open>'xc llM\<close> and
     d_default :: 'd and
-    d :: \<open>unit \<Rightarrow> 'xd llM\<close> and
+    d :: \<open>'xd llM\<close> and
     e_default :: 'e and
-    e :: \<open>unit \<Rightarrow> 'xe llM\<close> and
+    e :: \<open>'xe llM\<close> and
     f_default :: 'f and
-    f :: \<open>unit \<Rightarrow> 'xf llM\<close> and
+    f :: \<open>'xf llM\<close> and
     g_default :: 'g and
-    g :: \<open>unit \<Rightarrow> 'xg llM\<close> and
+    g :: \<open>'xg llM\<close> and
     h_default :: 'h and
-    h :: \<open>unit \<Rightarrow> 'xh llM\<close> and
+    h :: \<open>'xh llM\<close> and
     i_default :: 'i and
-    i :: \<open>unit \<Rightarrow> 'xi llM\<close> and
+    i :: \<open>'xi llM\<close> and
     j_default :: 'j and
-    j :: \<open>unit \<Rightarrow> 'xj llM\<close> and
+    j :: \<open>'xj llM\<close> and
     k_default :: 'k and
-    k :: \<open>unit \<Rightarrow> 'xk llM\<close> and
+    k :: \<open>'xk llM\<close> and
     l_default :: 'l and
-    l :: \<open>unit \<Rightarrow> 'xl llM\<close> and
+    l :: \<open>'xl llM\<close> and
     m_default :: 'm and
-    m :: \<open>unit \<Rightarrow> 'xm llM\<close> and
+    m :: \<open>'xm llM\<close> and
     n_default :: 'n and
-    n :: \<open>unit \<Rightarrow> 'xn llM\<close> and
+    n :: \<open>'xn llM\<close> and
     ko_default :: 'o and
-    ko :: \<open>unit \<Rightarrow> 'xo llM\<close> and
+    ko :: \<open>'xo llM\<close> and
     p_default :: 'p and
-    p :: \<open>unit \<Rightarrow> 'xp llM\<close> and
-    a_free :: \<open>'xa \<Rightarrow> unit llM\<close> +
+    p :: \<open>'xp llM\<close> and
+    a_free :: \<open>'xa \<Rightarrow> unit llM\<close> and
+    b_free :: \<open>'xb \<Rightarrow> unit llM\<close> and
+    c_free :: \<open>'xc \<Rightarrow> unit llM\<close> and
+    d_free :: \<open>'xd \<Rightarrow> unit llM\<close> and
+    e_free :: \<open>'xe \<Rightarrow> unit llM\<close> and
+    f_free :: \<open>'xf \<Rightarrow> unit llM\<close> and
+    g_free :: \<open>'xg \<Rightarrow> unit llM\<close> and
+    h_free :: \<open>'xh \<Rightarrow> unit llM\<close> and
+    i_free :: \<open>'xi \<Rightarrow> unit llM\<close> and
+    j_free :: \<open>'xj \<Rightarrow> unit llM\<close> and
+    k_free :: \<open>'xk \<Rightarrow> unit llM\<close> and
+    l_free :: \<open>'xl \<Rightarrow> unit llM\<close> and
+    m_free :: \<open>'xm \<Rightarrow> unit llM\<close> and
+    n_free :: \<open>'xn \<Rightarrow> unit llM\<close> and
+    o_free :: \<open>'xo \<Rightarrow> unit llM\<close> and
+    p_free :: \<open>'xp \<Rightarrow> unit llM\<close> +
   assumes
-    a: \<open>(a, uncurry0 (RETURN a_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a a_assn\<close> and
-    b: \<open>(b, uncurry0 (RETURN b_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a b_assn\<close> and
-    c: \<open>(c, uncurry0 (RETURN c_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a c_assn\<close> and
-    d: \<open>(d, uncurry0 (RETURN d_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a d_assn\<close> and
-    e: \<open>(e, uncurry0 (RETURN e_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a e_assn\<close> and
-    f: \<open>(f, uncurry0 (RETURN f_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a f_assn\<close> and
-    g: \<open>(g, uncurry0 (RETURN g_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a g_assn\<close> and
-    h: \<open>(h, uncurry0 (RETURN h_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a h_assn\<close> and
-    i: \<open>(i, uncurry0 (RETURN i_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a i_assn\<close> and
-    j: \<open>(j, uncurry0 (RETURN j_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a j_assn\<close> and
-    k: \<open>(k, uncurry0 (RETURN k_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a k_assn\<close> and
-    l: \<open>(l, uncurry0 (RETURN l_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a l_assn\<close> and
-    m: \<open>(m, uncurry0 (RETURN m_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a m_assn\<close> and
-    n: \<open>(n, uncurry0 (RETURN n_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a n_assn\<close> and
-    o: \<open>(ko, uncurry0 (RETURN ko_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a o_assn\<close>and
-    p: \<open>(p, uncurry0 (RETURN p_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a p_assn\<close> and
-    a_free: \<open>MK_FREE a_assn a_free\<close>
+    a: \<open>(uncurry0 a, uncurry0  (RETURN a_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a a_assn\<close> and
+    b: \<open>(uncurry0 b, uncurry0  (RETURN b_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a b_assn\<close> and
+    c: \<open>(uncurry0 c, uncurry0  (RETURN c_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a c_assn\<close> and
+    d: \<open>(uncurry0 d, uncurry0  (RETURN d_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a d_assn\<close> and
+    e: \<open>(uncurry0 e, uncurry0  (RETURN e_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a e_assn\<close> and
+    f: \<open>(uncurry0 f, uncurry0  (RETURN f_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a f_assn\<close> and
+    g: \<open>(uncurry0 g, uncurry0  (RETURN g_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a g_assn\<close> and
+    h: \<open>(uncurry0 h, uncurry0  (RETURN h_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a h_assn\<close> and
+    i: \<open>(uncurry0 i, uncurry0  (RETURN i_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a i_assn\<close> and
+    j: \<open>(uncurry0 j, uncurry0  (RETURN j_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a j_assn\<close> and
+    k: \<open>(uncurry0 k, uncurry0  (RETURN k_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a k_assn\<close> and
+    l: \<open>(uncurry0 l, uncurry0  (RETURN l_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a l_assn\<close> and
+    m: \<open>(uncurry0 m, uncurry0  (RETURN m_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a m_assn\<close> and
+    n: \<open>(uncurry0 n, uncurry0  (RETURN n_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a n_assn\<close> and
+    o: \<open>(uncurry0 ko, uncurry0  (RETURN ko_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a o_assn\<close>and
+    p: \<open>(uncurry0 p, uncurry0 (RETURN p_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a p_assn\<close> and
+    a_free: \<open>MK_FREE a_assn a_free\<close> and
+    b_free: \<open>MK_FREE b_assn b_free\<close>and
+    c_free: \<open>MK_FREE c_assn c_free\<close>and
+    d_free: \<open>MK_FREE d_assn d_free\<close>and
+    e_free: \<open>MK_FREE e_assn e_free\<close>and
+    f_free: \<open>MK_FREE f_assn f_free\<close>and
+    g_free: \<open>MK_FREE g_assn g_free\<close>and
+    h_free: \<open>MK_FREE h_assn h_free\<close>and
+    i_free: \<open>MK_FREE i_assn i_free\<close>and
+    j_free: \<open>MK_FREE j_assn j_free\<close>and
+    k_free: \<open>MK_FREE k_assn k_free\<close>and
+    l_free: \<open>MK_FREE l_assn l_free\<close>and
+    m_free: \<open>MK_FREE m_assn m_free\<close>and
+    n_free: \<open>MK_FREE n_assn n_free\<close>and
+    o_free: \<open>MK_FREE o_assn o_free\<close>and
+    p_free: \<open>MK_FREE p_assn p_free\<close>
 begin
 
 lemmas [sepref_comb_rules] = hn_case_isasat_int'[of _ a_assn b_assn c_assn d_assn e_assn f_assn
@@ -872,13 +955,9 @@ lemma ex_isasat_int_iff: "(\<exists>b :: (_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)isasat
   apply auto
     apply (case_tac b)
   by force
-lemma update_trail_wl_heur_alt_def:
-  \<open>(RETURN oo update_trail_wl_heur) x1 isasat_int = (case isasat_int of IsaSAT_int M x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow> do {
-  _ \<leftarrow> mop_free M;
-  RETURN (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)})\<close>
-  by (auto split: isasat_int.splits simp: update_trail_wl_heur_def mop_free_def)
 
-lemmas [sepref_frame_free_rules] = a_free
+lemmas [sepref_frame_free_rules] = a_free b_free c_free d_free e_free f_free g_free h_free i_free
+  j_free k_free l_free m_free n_free o_free p_free
 sepref_register
   \<open>IsaSAT_int\<close>
 lemma [sepref_fr_rules]: \<open>(uncurry15 (Mreturn o\<^sub>1\<^sub>6 IsaSAT_int), uncurry15 (RETURN o\<^sub>1\<^sub>6 IsaSAT_int))
@@ -906,14 +985,125 @@ lemma [sepref_frame_match_rules]:
       apply (auto simp: pure_def pure_true_conv)
     done
 
+lemma RETURN_case_isasat_int_inverse: \<open>RETURN
+      (let _ = M
+         in ff) =
+      (do {_ \<leftarrow> mop_free M;
+         RETURN (ff)})\<close>
+    by (auto intro!: ext simp: mop_free_def split: isasat_int.splits)
+
+find_theorems  "?f (case_isasat_int _ _) = case_isasat_int _ _"
 sepref_def update_trail_wl_heur_code
   is \<open>uncurry (RETURN oo update_trail_wl_heur)\<close>
   :: \<open>a_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
   supply [[goals_limit=5]]
-  unfolding update_trail_wl_heur_alt_def
+  unfolding update_trail_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
   by sepref
 
+sepref_def update_arena_wl_heur_code
+  is \<open>uncurry (RETURN oo update_arena_wl_heur)\<close>
+  :: \<open>b_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_arena_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
 
+sepref_def update_conflict_wl_heur_code
+  is \<open>uncurry (RETURN oo update_conflict_wl_heur)\<close>
+  :: \<open>c_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_conflict_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_literals_to_update_wl_heur_code
+  is \<open>uncurry (RETURN oo update_literals_to_update_wl_heur)\<close>
+  :: \<open>d_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_literals_to_update_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_watchlist_wl_heur_code
+  is \<open>uncurry (RETURN oo update_watchlist_wl_heur)\<close>
+  :: \<open>e_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_watchlist_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_vmtf_wl_heur_code
+  is \<open>uncurry (RETURN oo update_vmtf_wl_heur)\<close>
+  :: \<open>f_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_vmtf_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_clvls_wl_heur_code
+  is \<open>uncurry (RETURN oo update_clvls_wl_heur)\<close>
+  :: \<open>g_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_clvls_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_ccach_wl_heur_code
+  is \<open>uncurry (RETURN oo update_ccach_wl_heur)\<close>
+  :: \<open>h_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_ccach_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_lbd_wl_heur_code
+  is \<open>uncurry (RETURN oo update_lbd_wl_heur)\<close>
+  :: \<open>i_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_lbd_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_outl_wl_heur_code
+  is \<open>uncurry (RETURN oo update_outl_wl_heur)\<close>
+  :: \<open>j_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_outl_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_stats_wl_heur_code
+  is \<open>uncurry (RETURN oo update_stats_wl_heur)\<close>
+  :: \<open>k_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_stats_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_heur_wl_heur_code
+  is \<open>uncurry (RETURN oo update_heur_wl_heur)\<close>
+  :: \<open>l_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_heur_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_vdom_wl_heur_code
+  is \<open>uncurry (RETURN oo update_vdom_wl_heur)\<close>
+  :: \<open>m_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_vdom_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_lcount_wl_heur_code
+  is \<open>uncurry (RETURN oo update_lcount_wl_heur)\<close>
+  :: \<open>n_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_lcount_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_opts_wl_heur_code
+  is \<open>uncurry (RETURN oo update_opts_wl_heur)\<close>
+  :: \<open>o_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_opts_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
+
+sepref_def update_old_arena_wl_heur_code
+  is \<open>uncurry (RETURN oo update_old_arena_wl_heur)\<close>
+  :: \<open>p_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_old_arena_wl_heur_def isasat_int.case_distrib comp_def RETURN_case_isasat_int_inverse
+  by sepref
 
 method stuff_pre =
     sepref_to_hoare;
@@ -1207,7 +1397,7 @@ sepref_def bottom_conflict_code
 definition bottom_decision_level :: nat where
   \<open>bottom_decision_level = 0\<close>
 
-definition extract_literals_to_update_wl_heur where
+definition extract_literals_to_update_wl_heur :: \<open>_ \<Rightarrow> _\<close> where
   \<open>extract_literals_to_update_wl_heur = isasat_state_ops.remove_literals_to_update_wl_heur bottom_decision_level\<close>
 
 sepref_def bottom_decision_level_code
@@ -1449,6 +1639,181 @@ lemma free_conflict_option_rel_assn2: \<open>MK_FREE conflict_option_rel_assn fr
   by (rule back_subst[of \<open>MK_FREE conflict_option_rel_assn\<close>, OF free_conflict_option_rel_assn])
     (auto intro!: ext)
 
+schematic_goal free_sint64_nat_assn[sepref_frame_free_rules]: \<open>MK_FREE sint64_nat_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_sint64_nat
+  is \<open>mop_free\<close>
+  :: \<open>sint64_nat_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_sint64_nat_assn_assn2: \<open>MK_FREE sint64_nat_assn free_sint64_nat\<close>
+  unfolding free_sint64_nat_def
+  by (rule back_subst[of \<open>MK_FREE sint64_nat_assn\<close>, OF free_sint64_nat_assn])
+    (auto intro!: ext)
+
+schematic_goal free_watchlist_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE watchlist_fast_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_watchlist_fast
+  is \<open>mop_free\<close>
+  :: \<open>watchlist_fast_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_watchlist_fast_assn2: \<open>MK_FREE watchlist_fast_assn free_watchlist_fast\<close>
+  unfolding free_watchlist_fast_def
+  by (rule back_subst[of \<open>MK_FREE watchlist_fast_assn\<close>, OF free_watchlist_fast_assn])
+    (auto intro!: ext)
+
+schematic_goal free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_assn ?a\<close>
+    unfolding vmtf_remove_assn_def
+    by synthesize_free
+
+sepref_def free_vmtf_remove
+  is \<open>mop_free\<close>
+  :: \<open>vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_vmtf_remove_assn2: \<open>MK_FREE vmtf_remove_assn free_vmtf_remove\<close>
+  unfolding free_vmtf_remove_def
+  by (rule back_subst[of \<open>MK_FREE vmtf_remove_assn\<close>, OF free_vmtf_remove_assn])
+    (auto intro!: ext)
+
+schematic_goal free_uint32_nat_assn[sepref_frame_free_rules]: \<open>MK_FREE uint32_nat_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_uint32_nat
+  is \<open>mop_free\<close>
+  :: \<open>uint32_nat_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_uint32_nat_assn2: \<open>MK_FREE uint32_nat_assn free_uint32_nat\<close>
+  unfolding free_uint32_nat_def
+  by (rule back_subst[of \<open>MK_FREE uint32_nat_assn\<close>, OF free_uint32_nat_assn])
+    (auto intro!: ext)
+ 
+schematic_goal free_cach_refinement_l_assn[sepref_frame_free_rules]: \<open>MK_FREE cach_refinement_l_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_cach_refinement_l
+  is \<open>mop_free\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_cach_refinement_l_assn2: \<open>MK_FREE cach_refinement_l_assn free_cach_refinement_l\<close>
+  unfolding free_cach_refinement_l_def
+  by (rule back_subst[of \<open>MK_FREE cach_refinement_l_assn\<close>, OF free_cach_refinement_l_assn])
+    (auto intro!: ext)
+ 
+schematic_goal free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_lbd
+  is \<open>mop_free\<close>
+  :: \<open>lbd_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_lbd_assn2: \<open>MK_FREE lbd_assn free_lbd\<close>
+  unfolding free_lbd_def
+  by (rule back_subst[of \<open>MK_FREE lbd_assn\<close>, OF free_lbd_assn])
+    (auto intro!: ext)
+ 
+schematic_goal free_outl_assn[sepref_frame_free_rules]: \<open>MK_FREE out_learned_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_outl
+  is \<open>mop_free\<close>
+  :: \<open>out_learned_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_outl_assn2: \<open>MK_FREE out_learned_assn free_outl\<close>
+  unfolding free_outl_def
+  by (rule back_subst[of \<open>MK_FREE out_learned_assn\<close>, OF free_outl_assn])
+    (auto intro!: ext)
+
+schematic_goal free_heur_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?a\<close>
+    unfolding heuristic_assn_def code_hider_assn_def
+    by synthesize_free
+
+sepref_def free_heur
+  is \<open>mop_free\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_heur_assn2: \<open>MK_FREE heuristic_assn free_heur\<close>
+  unfolding free_heur_def
+  by (rule back_subst[of \<open>MK_FREE heuristic_assn\<close>, OF free_heur_assn])
+    (auto intro!: ext)
+
+schematic_goal free_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE stats_assn ?a\<close>
+    unfolding stats_assn_def code_hider_assn_def
+    by synthesize_free
+
+sepref_def free_stats
+  is \<open>mop_free\<close>
+  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_stats_assn2: \<open>MK_FREE stats_assn free_stats\<close>
+  unfolding free_stats_def
+  by (rule back_subst[of \<open>MK_FREE stats_assn\<close>, OF free_stats_assn])
+    (auto intro!: ext)
+
+schematic_goal free_vdom_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?a\<close>
+    unfolding aivdom_assn_def code_hider_assn_def
+    by synthesize_free
+
+sepref_def free_vdom
+  is \<open>mop_free\<close>
+  :: \<open>aivdom_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_vdom_assn2: \<open>MK_FREE aivdom_assn free_vdom\<close>
+  unfolding free_vdom_def
+  by (rule back_subst[of \<open>MK_FREE aivdom_assn\<close>, OF free_vdom_assn])
+    (auto intro!: ext)
+
+schematic_goal free_lcount_assn[sepref_frame_free_rules]: \<open>MK_FREE lcount_assn ?a\<close>
+    unfolding lcount_assn_def code_hider_assn_def
+    by synthesize_free
+
+sepref_def free_lcount
+  is \<open>mop_free\<close>
+  :: \<open>lcount_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_lcount_assn2: \<open>MK_FREE lcount_assn free_lcount\<close>
+  unfolding free_lcount_def
+  by (rule back_subst[of \<open>MK_FREE lcount_assn\<close>, OF free_lcount_assn])
+    (auto intro!: ext)
+
+schematic_goal free_opts_assn[sepref_frame_free_rules]: \<open>MK_FREE opts_assn ?a\<close>
+    unfolding opts_assn_def code_hider_assn_def opts_rel_assn_def
+    by synthesize_free
+
+sepref_def free_opts
+  is \<open>mop_free\<close>
+  :: \<open>opts_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_opts_assn2: \<open>MK_FREE opts_assn free_opts\<close>
+  unfolding free_opts_def
+  by (rule back_subst[of \<open>MK_FREE opts_assn\<close>, OF free_opts_assn])
+    (auto intro!: ext)
+
+schematic_goal free_old_arena_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE arena_fast_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_old_arena_fast
+  is \<open>mop_free\<close>
+  :: \<open>arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_old_arena_fast_assn2: \<open>MK_FREE arena_fast_assn free_old_arena_fast\<close>
+  unfolding free_old_arena_fast_def free_arena_fast_def
+  by (rule back_subst[of \<open>MK_FREE arena_fast_assn\<close>, OF free_old_arena_fast_assn])
+    (auto intro!: ext)
+ 
 global_interpretation isasat_state where
   a_assn = trail_pol_fast_assn and
   b_assn = arena_fast_assn and
@@ -1467,38 +1832,53 @@ global_interpretation isasat_state where
   o_assn = opts_assn and
   p_assn = arena_fast_assn and
   a_default = bottom_trail and
-  a = \<open>uncurry0 bottom_trail_code\<close> and
+  a = \<open>bottom_trail_code\<close> and
   a_free = free_trail_pol_fast and
   b_default = bottom_arena and
-  b = \<open>uncurry0 bottom_arena_code\<close> and
+  b = \<open>bottom_arena_code\<close> and
+  b_free = free_arena_fast and
   c_default = bottom_conflict and
-  c = \<open>uncurry0 bottom_conflict_code\<close> and
+  c = \<open>bottom_conflict_code\<close> and
+  c_free = free_conflict_option_rel and
   d_default = \<open>bottom_decision_level\<close> and
-  d = \<open>uncurry0 (bottom_decision_level_code)\<close> and
+  d = \<open>(bottom_decision_level_code)\<close> and
+  d_free = \<open>free_sint64_nat\<close> and
   e_default = bottom_watchlist and
-  e = \<open>uncurry0 bottom_watchlist_code\<close> and
+  e = \<open>bottom_watchlist_code\<close> and
+  e_free = free_watchlist_fast and
   f_default = bottom_vmtf and
-  f = \<open>uncurry0 bottom_vmtf_code\<close> and
+  f = \<open>bottom_vmtf_code\<close> and
+  f_free = free_vmtf_remove and
   g_default = bottom_clvls and
-  g = \<open>uncurry0 bottom_clvls_code\<close>and
+  g = \<open>bottom_clvls_code\<close>and
+  g_free = free_uint32_nat and
   h_default = bottom_ccach and
-  h = \<open>uncurry0 bottom_ccach_code\<close> and
+  h = \<open>bottom_ccach_code\<close> and
+  h_free = free_cach_refinement_l and
   i_default = empty_lbd and
-  i = \<open>uncurry0 empty_lbd_code\<close>and
+  i = \<open>empty_lbd_code\<close> and
+  i_free = free_lbd and
   j_default = bottom_outl and
-  j = \<open>uncurry0 bottom_outl_code\<close> and
+  j = \<open>bottom_outl_code\<close> and
+  j_free = free_outl and
   k_default = bottom_stats and
-  k = \<open>uncurry0 bottom_stats_code\<close> and
+  k = \<open>bottom_stats_code\<close> and
+  k_free = free_stats and
   l_default = bottom_heur and
-  l = \<open>uncurry0 bottom_heur_code\<close> and
+  l = \<open>bottom_heur_code\<close> and
+  l_free = free_heur and
   m_default = bottom_vdom and
-  m = \<open>uncurry0 bottom_vdom_code\<close> and
+  m = \<open>bottom_vdom_code\<close> and
+  m_free = free_vdom and
   n_default = bottom_lcount and
-  n = \<open>uncurry0 bottom_lcount_code\<close> and
+  n = \<open>bottom_lcount_code\<close> and
+  n_free = free_lcount and
   ko_default = bottom_opts and
-  ko = \<open>uncurry0 bottom_opts_code\<close> and
+  ko = \<open>bottom_opts_code\<close> and
+  o_free = free_opts and
   p_default = bottom_old_arena and
-  p = \<open>uncurry0 bottom_old_arena_code\<close>
+  p = \<open>bottom_old_arena_code\<close> and
+  p_free = free_old_arena_fast
   rewrites
     \<open>isasat_assn \<equiv> isasat_bounded_assn\<close> and
     \<open>remove_trail_wl_heur \<equiv> extract_trail_wl_heur\<close> and
@@ -1533,6 +1913,21 @@ global_interpretation isasat_state where
   subgoal by (rule bottom_opts_code.refine)
   subgoal by (rule bottom_old_arena_code.refine)
   subgoal by (rule free_trail_pol_fast_assn2)
+  subgoal by (rule free_arena_fast_assn2)
+  subgoal by (rule free_conflict_option_rel_assn2)
+  subgoal by (rule free_sint64_nat_assn_assn2)
+  subgoal by (rule free_watchlist_fast_assn2)
+  subgoal by (rule free_vmtf_remove_assn2)
+  subgoal by (rule free_uint32_nat_assn2)
+  subgoal by (rule free_cach_refinement_l_assn2)
+  subgoal by (rule free_lbd_assn2)
+  subgoal by (rule free_outl_assn2)
+  subgoal by (rule free_stats_assn2)
+  subgoal by (rule free_heur_assn2)
+  subgoal by (rule free_vdom_assn2)
+  subgoal by (rule free_lcount_assn2)
+  subgoal by (rule free_opts_assn2)
+  subgoal by (rule free_old_arena_fast_assn2)
   subgoal unfolding isasat_bounded_assn_def isasat_state_ops.isasat_assn_def .
   subgoal unfolding extract_trail_wl_heur_def .
   subgoal unfolding extract_arena_wl_heur_def .
@@ -1552,9 +1947,21 @@ global_interpretation isasat_state where
 
 sepref_register extract_literals_to_update_wl_heur
 lemmas [sepref_fr_rules] = remove_literals_to_update_wl_heur_int
-  thm remove_literals_to_update_wl_heur_int
-    remove_literals_to_update_wl_heur_int_def
-declare remove_literals_to_update_wl_heur_int_def[llvm_code]
+  remove_arena_wl_heur_int [unfolded extract_arena_wl_heur_def[symmetric]]
+  remove_trail_wl_heur_int
+
+lemmas [llvm_code del] =
+  update_arena_wl_heur_code_def
+  update_trail_wl_heur_code_def
+lemmas [llvm_code] =
+  remove_literals_to_update_wl_heur_int_def
+  remove_arena_wl_heur_int_def
+  remove_trail_wl_heur_int_def
+  bottom_decision_level_code_def
+  bottom_arena_code_def
+  bottom_trail_code_def
+  update_arena_wl_heur_code_def[unfolded M_CONST_def,unfolded comp_def inline_node_case]
+  update_trail_wl_heur_code_def[unfolded M_CONST_def,unfolded comp_def inline_node_case]
 
 
 definition test2 where
@@ -1567,13 +1974,56 @@ sepref_def test_impl3
   unfolding test2_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+find_theorems extract_arena_wl_heur RETURN
 
-  lemma [llvm_pre_simp]: \<open>uncurry0 f () = f\<close>
-     by auto
+definition clause_not_marked_to_delete_heur :: \<open>_ \<Rightarrow> nat \<Rightarrow> (bool \<times> _) nres\<close>
+where
+  \<open>(clause_not_marked_to_delete_heur) = (\<lambda>S C. do {
+  let (N, T) = extract_arena_wl_heur S;
+  ASSERT (N = get_clauses_wl_heur S);
+  let status = arena_status N C;
+  let S = update_arena_wl_heur N T in
+  RETURN (status \<noteq> DELETED, S)})\<close>
 
-export_llvm update_trail_wl_heur_code
+sepref_def clause_not_marked_to_delete_heur_fast_code
+    is \<open>uncurry (clause_not_marked_to_delete_heur)\<close>
+  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding clause_not_marked_to_delete_heur_def
+    clause_not_marked_to_delete_heur_pre_def
+  by sepref 
+
+find_theorems extract_arena_wl_heur
+  thm extract_arena_wl_heur_def[unfolded isasat_state_ops.remove_arena_wl_heur_def]
+thm update_arena_wl_heur_code_def
+
+export_llvm clause_not_marked_to_delete_heur_fast_code
+
+term extract_trail_wl_heur
+
+ definition count_decided_st_heur :: \<open>_ \<Rightarrow> _\<close> where
+   \<open>count_decided_st_heur = (\<lambda>S. do {
+   (M, S) \<leftarrow> RETURN (extract_trail_wl_heur S);
+   r \<leftarrow> RETURN (count_decided_pol M);
+   S \<leftarrow> RETURN (update_trail_wl_heur M S);
+   RETURN (r, S)
+   })\<close>
+  
+sepref_def count_decided_st_heur_pol_fast
+  is \<open>count_decided_st_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  unfolding count_decided_st_heur_def
+  supply [[goals_limit = 1]]
+  by sepref
 
 
+    
+    term extract_literals_to_update_wl_heur
+    export_llvm test_impl3
+    export_llvm count_decided_st_heur_pol_fast
+
+
+find_theorems update_trail_wl_heur_code
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
