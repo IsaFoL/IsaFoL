@@ -262,9 +262,6 @@ lemmas [llvm_inline] =
   isasat_int.get_opts_def
   isasat_int.get_old_arena_def
 
-  term from_val
-  term uint64_nat_assn
-  term ll_bpto
 fun isasat_int_assn :: \<open>
   ('a \<Rightarrow> _ \<Rightarrow> llvm_amemory \<Rightarrow> bool) \<Rightarrow>
   ('b \<Rightarrow> _ \<Rightarrow> llvm_amemory \<Rightarrow> bool) \<Rightarrow>
@@ -295,11 +292,6 @@ fun isasat_int_assn :: \<open>
  m_assn aivdom (aivdom') \<and>* n_assn clss (clss') \<and>* o_assn opts (opts')  \<and>* p_assn arena (arena')))
   \<close>
 
-definition test where
-  \<open>test M = isasat_int.literals_to_update_wl_heur M\<close>
-
-
-
 definition isasat_bounded_assn :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn = isasat_int_assn
   trail_pol_fast_assn  arena_fast_assn
@@ -323,12 +315,6 @@ lemma [sepref_fr_rules]: \<open>(Mreturn o isasat_int.literals_to_update_wl_heur
   apply sepref_to_hoare
   apply (vcg')
   done
-sepref_def test_impl
-  is \<open>RETURN o test\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding test_def
-  by sepref
-export_llvm test_impl
 
 
 locale isasat_state_ops =
@@ -667,9 +653,125 @@ definition remove_old_arena_wl_heur_int :: \<open>('xa, 'xb, 'xc, 'xd, 'xe, 'xf,
     S \<leftarrow> Mreturn (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 a');
     Mreturn (x16, S)
   })\<close>
+
+definition update_trail_wl_heur :: \<open>'a \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_trail_wl_heur x1 isasat_int = (case isasat_int of IsaSAT_int M x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_arena_wl_heur :: \<open>'b \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_arena_wl_heur x2 isasat_int = (case isasat_int of IsaSAT_int x1 M x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_conflict_wl_heur :: \<open>'c \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_conflict_wl_heur x3 isasat_int = (case isasat_int of IsaSAT_int x1 x2 M x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_literals_to_update_wl_heur :: \<open>'d \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_literals_to_update_wl_heur x4 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 M x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_watchlist_wl_heur :: \<open>'e \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_watchlist_wl_heur x5 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 M x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_vmtf_wl_heur :: \<open>'f \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_vmtf_wl_heur x6 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 M x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+definition update_clvls_wl_heur :: \<open>'g \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int\<close> where
+  \<open>update_clvls_wl_heur x7 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 M x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+    let _ = mop_free M in
+    IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
+
+
 end
+ 
+lemma isasat_int_assn_conv[simp]: 
+  "isasat_int_assn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 (IsaSAT_int a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)
+  (IsaSAT_int a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16') =
+  (P1 a1 a1' \<and>*
+  P2 a2 a2' \<and>*
+  P3 a3 a3' \<and>*
+  P4 a4 a4' \<and>*
+  P5 a5 a5' \<and>*
+  P6 a6 a6' \<and>*
+  P7 a7 a7' \<and>*
+  P8 a8 a8' \<and>* P9 a9 a9' \<and>* P10 a10 a10' \<and>* P11 a11 a11' \<and>* P12 a12 a12' \<and>* P13 a13 a13' \<and>* P14 a14 a14' \<and>* P15 a15 a15' \<and>* P16 a16 a16')"
+  unfolding isasat_int_assn.simps by auto
+lemma isasat_int_assn_ctxt:
+  \<open>isasat_int_assn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 (IsaSAT_int a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)
+  (IsaSAT_int a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16') = z \<Longrightarrow>
+  hn_ctxt (isasat_int_assn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16) (IsaSAT_int a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)
+  (IsaSAT_int a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16')= z\<close>
+  by (simp add: hn_ctxt_def)
+
+lemma hn_case_isasat_int'[sepref_comb_rules]:
+  assumes FR: \<open>\<Gamma> \<turnstile> hn_ctxt (isasat_int_assn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16) p' p ** \<Gamma>1\<close>
+  assumes Pair: "\<And>a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16'.
+        \<lbrakk>p'=IsaSAT_int a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16'\<rbrakk>
+    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 \<and>* hn_ctxt P2 a2' a2 \<and>* hn_ctxt P3 a3' a3 \<and>* hn_ctxt P4 a4' a4 \<and>*
+       hn_ctxt P5 a5' a5 \<and>* hn_ctxt P6 a6' a6 \<and>* hn_ctxt P7 a7' a7 \<and>* hn_ctxt P8 a8' a8 \<and>*
+       hn_ctxt P9 a9' a9 \<and>* hn_ctxt P10 a10' a10 \<and>* hn_ctxt P11 a11' a11 \<and>* hn_ctxt P12 a12' a12 \<and>*
+       hn_ctxt P13 a13' a13 \<and>* hn_ctxt P14 a14' a14 \<and>* hn_ctxt P15 a15' a15 \<and>* hn_ctxt P16 a16' a16 \<and>* \<Gamma>1)
+          (f a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)
+          (\<Gamma>2 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16') R
+          (CP a1 a2  a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)
+         (f' a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16')"
+  assumes FR2: \<open>\<And>a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16'.
+       \<Gamma>2 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a1' a2' a3' a4' a5' a6' a7' a8' a9' a10' a11' a12' a13' a14' a15' a16' \<turnstile>
+       hn_ctxt P1' a1' a1 ** hn_ctxt P2' a2' a2 ** hn_ctxt P3' a3' a3 ** hn_ctxt P4' a4' a4 **
+       hn_ctxt P5' a5' a5 ** hn_ctxt P6' a6' a6 ** hn_ctxt P7' a7' a7 ** hn_ctxt P8' a8' a8 **
+       hn_ctxt P9' a9' a9 ** hn_ctxt P10' a10' a10 ** hn_ctxt P11' a11' a11 ** hn_ctxt P12' a12' a12 **
+       hn_ctxt P13' a13' a13 ** hn_ctxt P14' a14' a14 ** hn_ctxt P15' a15' a15 ** hn_ctxt P16' a16' a16 ** \<Gamma>1'\<close>
+  shows \<open>hn_refine \<Gamma> (case_isasat_int f p) (hn_ctxt (isasat_int_assn P1' P2' P3' P4' P5' P6' P7' P8' P9' P10' P11' P12' P13' P14' P15' P16') p' p ** \<Gamma>1')
+    R (case_isasat_int CP p) (case_isasat_int$(\<lambda>\<^sub>2a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16. f' a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)$p')\<close> (is \<open>?G \<Gamma>\<close>)
+  unfolding autoref_tag_defs PROTECT2_def
+  apply1 (rule hn_refine_cons_pre[OF FR])
+    apply1 (cases p; cases p'; simp add: isasat_int_assn_conv[THEN isasat_int_assn_ctxt])
+  unfolding CP_SPLIT_def prod.simps
+  apply (rule hn_refine_cons[OF _ Pair _ entails_refl])
+  applyS (simp add: hn_ctxt_def)
+  applyS simp using FR2
+  by (simp add: hn_ctxt_def)
 
 
+lemma case_isasat_int_arity[sepref_monadify_arity]:
+  \<open>case_isasat_int \<equiv> \<lambda>\<^sub>2fp p. SP case_isasat_int$(\<lambda>\<^sub>2a b. fp$a$b)$p\<close>
+  by (simp_all only: SP_def APP_def PROTECT2_def RCALL_def)
+
+lemma case_isasat_int_comb[sepref_monadify_comb]:
+  \<open>\<And>fp p. case_isasat_int$fp$p \<equiv> Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. (SP case_isasat_int$fp$p))\<close>
+  by (simp_all)
+
+lemma case_isasat_int_plain_comb[sepref_monadify_comb]:
+  "EVAL$(case_isasat_int$(\<lambda>\<^sub>2a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16. fp a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)$p) \<equiv>
+    Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. case_isasat_int$(\<lambda>\<^sub>2a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16. EVAL$(fp a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16))$p)"
+  apply (rule eq_reflection, simp split: list.split prod.split option.split isasat_int.split)+
+  done
+
+lemma ho_isasat_int_move[sepref_preproc]: \<open>case_isasat_int (\<lambda>a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 x. f x a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16) =
+  (\<lambda>p x. case_isasat_int (f x) p)\<close>
+  by (auto split: isasat_int.splits)
 
 locale isasat_state =
   isasat_state_ops a_assn b_assn c_assn d_assn e_assn
@@ -739,7 +841,8 @@ locale isasat_state =
     ko_default :: 'o and
     ko :: \<open>unit \<Rightarrow> 'xo llM\<close> and
     p_default :: 'p and
-    p :: \<open>unit \<Rightarrow> 'xp llM\<close> +
+    p :: \<open>unit \<Rightarrow> 'xp llM\<close> and
+    a_free :: \<open>'xa \<Rightarrow> unit llM\<close> +
   assumes
     a: \<open>(a, uncurry0 (RETURN a_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a a_assn\<close> and
     b: \<open>(b, uncurry0 (RETURN b_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a b_assn\<close> and
@@ -756,37 +859,60 @@ locale isasat_state =
     m: \<open>(m, uncurry0 (RETURN m_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a m_assn\<close> and
     n: \<open>(n, uncurry0 (RETURN n_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a n_assn\<close> and
     o: \<open>(ko, uncurry0 (RETURN ko_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a o_assn\<close>and
-    p: \<open>(p, uncurry0 (RETURN p_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a p_assn\<close>
+    p: \<open>(p, uncurry0 (RETURN p_default)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a p_assn\<close> and
+    a_free: \<open>MK_FREE a_assn a_free\<close>
 begin
+
+lemmas [sepref_comb_rules] = hn_case_isasat_int'[of _ a_assn b_assn c_assn d_assn e_assn f_assn
+  g_assn h_assn i_assn j_assn k_assn l_assn m_assn n_assn o_assn p_assn,
+  unfolded isasat_assn_def[symmetric]]
 
 lemma ex_isasat_int_iff: "(\<exists>b :: (_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)isasat_int. P b) \<longleftrightarrow>
   (\<exists>a b  c d e f g h i j k l m n ko p. P (IsaSAT_int a b  c d e f g h i j k l m n ko p))"
   apply auto
     apply (case_tac b)
   by force
+lemma update_trail_wl_heur_alt_def:
+  \<open>(RETURN oo update_trail_wl_heur) x1 isasat_int = (case isasat_int of IsaSAT_int M x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow> do {
+  _ \<leftarrow> mop_free M;
+  RETURN (IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)})\<close>
+  by (auto split: isasat_int.splits simp: update_trail_wl_heur_def mop_free_def)
 
-
-lemma remove_trail_wl_heur_int:
-  \<open>(remove_trail_wl_heur_int, RETURN o remove_trail_wl_heur) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a a_assn \<times>\<^sub>a isasat_assn\<close>
-  unfolding remove_trail_wl_heur_int_def remove_trail_wl_heur_def isasat_assn_def
-  supply [split] =  isasat_int.splits
+lemmas [sepref_frame_free_rules] = a_free
+sepref_register
+  \<open>IsaSAT_int\<close>
+lemma [sepref_fr_rules]: \<open>(uncurry15 (Mreturn o\<^sub>1\<^sub>6 IsaSAT_int), uncurry15 (RETURN o\<^sub>1\<^sub>6 IsaSAT_int))
+  \<in> a_assn\<^sup>d *\<^sub>a b_assn\<^sup>d *\<^sub>a c_assn\<^sup>d *\<^sub>a d_assn\<^sup>d *\<^sub>a
+  e_assn\<^sup>d *\<^sub>a f_assn\<^sup>d *\<^sub>a g_assn\<^sup>d *\<^sub>a h_assn\<^sup>d *\<^sub>a
+  i_assn\<^sup>d *\<^sub>a j_assn\<^sup>d *\<^sub>a k_assn\<^sup>d *\<^sub>a l_assn\<^sup>d *\<^sub>a
+  m_assn\<^sup>d *\<^sub>a n_assn\<^sup>d *\<^sub>a o_assn\<^sup>d *\<^sub>a p_assn\<^sup>d
+  \<rightarrow>\<^sub>a isasat_assn\<close>
+  unfolding isasat_assn_def
   apply sepref_to_hoare
-  apply (case_tac x)
   apply vcg
-  unfolding wpa_return
-  apply (subst (asm)(2) sep_algebra_class.sep_conj_empty'[symmetric])
-  apply (rule apply_htriple_rule)
-  apply assumption
-  apply (rule a[to_hnr, simplified, unfolded hn_refine_def, rule_format])
-  apply (solves auto)
-  apply (rule POSTCONDI)
-  apply (rule STATE_monoI)
-  apply assumption
-  subgoal premises p for x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x1a x2a x3a x4a x5a x6a x7a x8a x9a x10a x11a x12a x13a x14a x15a x16a asf s s' r
-    unfolding ex_isasat_int_iff entails_def
-    apply (auto simp: Exists_eq_simp ex_isasat_int_iff  entails_def entails_eq_iff pure_true_conv sep_conj_left_commute)
-    by (smt (z3) entails_def entails_eq_iff pure_true_conv sep_conj_aci(4) sep_conj_aci(5) sep_conj_left_commute )
+  unfolding ex_isasat_int_iff
+  apply vcg'
   done
+
+lemma [sepref_frame_match_rules]:
+  \<open> hn_ctxt
+     (isasat_int_assn (invalid_assn a_assn) (invalid_assn b_assn) (invalid_assn c_assn) (invalid_assn d_assn) (invalid_assn e_assn)
+    (invalid_assn f_assn) (invalid_assn g_assn) (invalid_assn h_assn) (invalid_assn i_assn) (invalid_assn j_assn) (invalid_assn k_assn)
+   (invalid_assn l_assn) (invalid_assn m_assn) (invalid_assn n_assn) (invalid_assn o_assn) (invalid_assn p_assn)) ax bx \<turnstile> hn_val UNIV ax bx\<close>
+    unfolding hn_ctxt_def invalid_assn_def isasat_assn_def entails_def
+    apply (auto split: prod.split isasat_int.splits elim: is_pureE 
+      simp: sep_algebra_simps pure_part_pure_conj_eq)
+    apply (auto simp: pure_part_def)
+      apply (auto simp: pure_def pure_true_conv)
+    done
+
+sepref_def update_trail_wl_heur_code
+  is \<open>uncurry (RETURN oo update_trail_wl_heur)\<close>
+  :: \<open>a_assn\<^sup>d *\<^sub>a isasat_assn\<^sup>d \<rightarrow>\<^sub>a isasat_assn\<close>
+  supply [[goals_limit=5]]
+  unfolding update_trail_wl_heur_alt_def
+  by sepref
+
 
 
 method stuff_pre =
@@ -805,6 +931,19 @@ method stuff_post2 =
     unfold ex_isasat_int_iff entails_def;
     auto simp: Exists_eq_simp ex_isasat_int_iff  entails_def entails_eq_iff pure_true_conv sep_conj_left_commute;
     smt (z3) entails_def entails_eq_iff pure_true_conv sep_conj_aci(4) sep_conj_aci(5) sep_conj_left_commute
+
+lemma remove_trail_wl_heur_int:
+  \<open>(remove_trail_wl_heur_int, RETURN o remove_trail_wl_heur) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a a_assn \<times>\<^sub>a isasat_assn\<close>
+  unfolding remove_trail_wl_heur_int_def remove_trail_wl_heur_def isasat_assn_def
+  supply [split] = isasat_int.splits
+  apply stuff_pre
+  apply assumption
+  apply (rule a[to_hnr, simplified, unfolded hn_refine_def, rule_format])
+  apply (solves auto)
+  apply (stuff_post1)
+  apply assumption
+  apply (stuff_post2)
+  done
 
 lemma remove_arena_wl_heur_int:
   \<open>(remove_arena_wl_heur_int, RETURN o remove_arena_wl_heur) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a b_assn \<times>\<^sub>a isasat_assn\<close>
@@ -1270,6 +1409,46 @@ sepref_def bottom_old_arena_code
   unfolding bottom_old_arena_def  al_fold_custom_empty[where 'l=64]
   by sepref
 
+schematic_goal free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?a\<close>
+    unfolding trail_pol_fast_assn_def
+    by synthesize_free
+
+sepref_def free_trail_pol_fast
+  is \<open>mop_free\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_trail_pol_fast_assn2: \<open>MK_FREE trail_pol_fast_assn free_trail_pol_fast\<close>
+  unfolding free_trail_pol_fast_def
+  by (rule back_subst[of \<open>MK_FREE trail_pol_fast_assn\<close>, OF free_trail_pol_fast_assn])
+    (auto intro!: ext)
+ 
+schematic_goal free_arena_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE arena_fast_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_arena_fast
+  is \<open>mop_free\<close>
+  :: \<open>arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_arena_fast_assn2: \<open>MK_FREE arena_fast_assn free_arena_fast\<close>
+  unfolding free_arena_fast_def
+  by (rule back_subst[of \<open>MK_FREE arena_fast_assn\<close>, OF free_arena_fast_assn])
+    (auto intro!: ext)
+
+schematic_goal free_conflict_option_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE conflict_option_rel_assn ?a\<close>
+    by synthesize_free
+
+sepref_def free_conflict_option_rel
+  is \<open>mop_free\<close>
+  :: \<open>conflict_option_rel_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+lemma free_conflict_option_rel_assn2: \<open>MK_FREE conflict_option_rel_assn free_conflict_option_rel\<close>
+  unfolding free_conflict_option_rel_def
+  by (rule back_subst[of \<open>MK_FREE conflict_option_rel_assn\<close>, OF free_conflict_option_rel_assn])
+    (auto intro!: ext)
+
 global_interpretation isasat_state where
   a_assn = trail_pol_fast_assn and
   b_assn = arena_fast_assn and
@@ -1289,6 +1468,7 @@ global_interpretation isasat_state where
   p_assn = arena_fast_assn and
   a_default = bottom_trail and
   a = \<open>uncurry0 bottom_trail_code\<close> and
+  a_free = free_trail_pol_fast and
   b_default = bottom_arena and
   b = \<open>uncurry0 bottom_arena_code\<close> and
   c_default = bottom_conflict and
@@ -1352,6 +1532,7 @@ global_interpretation isasat_state where
   subgoal by (rule bottom_lcount_code.refine)
   subgoal by (rule bottom_opts_code.refine)
   subgoal by (rule bottom_old_arena_code.refine)
+  subgoal by (rule free_trail_pol_fast_assn2)
   subgoal unfolding isasat_bounded_assn_def isasat_state_ops.isasat_assn_def .
   subgoal unfolding extract_trail_wl_heur_def .
   subgoal unfolding extract_arena_wl_heur_def .
@@ -1369,14 +1550,16 @@ global_interpretation isasat_state where
   subgoal unfolding extract_old_arena_wl_heur_def .
   done
 
+sepref_register extract_literals_to_update_wl_heur
 lemmas [sepref_fr_rules] = remove_literals_to_update_wl_heur_int
   thm remove_literals_to_update_wl_heur_int
-declare remove_literals_to_update_wl_heur_int_def[llvm_inline]
+    remove_literals_to_update_wl_heur_int_def
+declare remove_literals_to_update_wl_heur_int_def[llvm_code]
 
 
 definition test2 where
   \<open>test2 M = do {a \<leftarrow> RETURN (extract_literals_to_update_wl_heur M);  (i, M) \<leftarrow> RETURN a; ASSERT (i+1 < 100); RETURN (i+1, M)}\<close>
-sepref_register extract_literals_to_update_wl_heur
+
 sepref_def test_impl3
   is \<open>test2\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
@@ -1385,53 +1568,10 @@ sepref_def test_impl3
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-   term ll_bpto
   lemma [llvm_pre_simp]: \<open>uncurry0 f () = f\<close>
      by auto
 
-  thm remove_literals_to_update_wl_heur_int_def
-export_llvm test_impl3
-
-  sepref_def test
-    is \<open>RETURN o remove_literals_to_update_wl_heur\<close>
-    :: \<open>isasat_assn\<^sup>d \<rightarrow>\<^sub>a d_assn \<times>\<^sub>a isasat_assn\<close>
-    unfolding remove_literals_to_update_wl_heur_def
-    apply sepref
-term isasat_bounded_assn
-lemma [sepref_fr_rules]:
-  \<open>(remove_literals_to_update_wl_heur_int, RETURN o remove_literals_to_update_wl_heur_int) \<in> isasat_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn \<times>\<^sub>a isasat_id_assn\<close>
-  term aa
-  term a
-  supply [split] =  isasat_int.splits
-  unfolding remove_literals_to_update_wl_heur_int_def
-  apply sepref_to_hoare
-  apply (case_tac x)
-  apply vcg
-  done
-      find_theorems op_al_empty
-find_theorems name:empty name:al
-definition remove_literals_to_update_wl_heur where \<open>remove_literals_to_update_wl_heur = remove_literals_to_update_wl_heur_int\<close>
-
-sepref_register remove_literals_to_update_wl_heur_int remove_literals_to_update_wl_heur
-sepref_def remove_literals_to_update_wl_heur_impl
-  is \<open>RETURN o remove_literals_to_update_wl_heur\<close>
-  :: \<open>id_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn \<times>\<^sub>a id_assn\<close>
-  unfolding remove_literals_to_update_wl_heur_def
-  by sepref
-
-
-declare remove_literals_to_update_wl_heur_int_def[llvm_inline]
-export_llvm test_impl3
-term ll_pto
-find_theorems "_ :: isasat_int \<Rightarrow> assn"
-
-type_synonym twl_st_wll_trail_fast =
-  \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
-    heur_assn \<times>
-   aivdom_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
-  opts_assn \<times> arena_assn\<close>
+export_llvm update_trail_wl_heur_code
 
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
