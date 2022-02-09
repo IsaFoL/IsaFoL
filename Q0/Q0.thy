@@ -515,13 +515,13 @@ lemma theorem_def2:
   "theorem A \<longleftrightarrow> (\<exists>p. proof A p)"
   oops
 
-type_synonym 'u frame = "type_sym \<Rightarrow> 'u"
+type_synonym 's frame = "type_sym \<Rightarrow> 's"
 
-type_synonym 'u denotation = "cst_sym \<Rightarrow> type_sym \<Rightarrow> 'u"
+type_synonym 's denotation = "cst_sym \<Rightarrow> type_sym \<Rightarrow> 's"
 
-type_synonym 'u asg = "var_sym * type_sym \<Rightarrow> 'u"
+type_synonym 's asg = "var_sym * type_sym \<Rightarrow> 's"
 
-definition agree_off_asg :: "'u asg \<Rightarrow> 'u asg \<Rightarrow> var_sym \<Rightarrow> type_sym \<Rightarrow> bool" where
+definition agree_off_asg :: "'s asg \<Rightarrow> 's asg \<Rightarrow> var_sym \<Rightarrow> type_sym \<Rightarrow> bool" where
   "agree_off_asg \<phi> \<psi> x \<alpha> \<longleftrightarrow> (\<forall>y \<beta>. (y\<noteq>x \<or> \<beta> \<noteq> \<alpha>) \<longrightarrow> \<phi> (y,\<beta>) = \<psi> (y,\<beta>))"
 
 lemma agree_off_asg_def2:
@@ -536,17 +536,17 @@ lemma agree_off_asg_disagree_type_sym[simp]: (* new_lemma *)
   "agree_off_asg \<psi> \<phi> x \<alpha> \<Longrightarrow> \<alpha> \<noteq> \<beta> \<Longrightarrow> \<psi>(y,\<beta>) = \<phi>(y,\<beta>)"
   unfolding agree_off_asg_def by auto
 
-context weak_model
+context set_theory
 begin
 
-definition wf_frame :: "'u frame \<Rightarrow> bool" where
+definition wf_frame :: "'s frame \<Rightarrow> bool" where
   "wf_frame D \<longleftrightarrow> D Tv = boolset \<and> (\<forall>\<alpha> \<beta>. D (Fun \<alpha> \<beta>) \<subseteq>: funspace (D \<beta>) (D \<alpha>)) \<and> (\<forall>\<alpha>. D \<alpha> \<noteq> Ø)"
   (* the model locale has defined a cst called "indset" \<comment> arguably, I should map "Ind" to that. But that's not what Peter Andrews does... *)
 
-definition inds :: "'u frame \<Rightarrow> 'u" where
+definition inds :: "'s frame \<Rightarrow> 's" where
   "inds Fr = Fr Ind"
 
-inductive wf_interp :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> bool" where
+inductive wf_interp :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> bool" where
   "wf_frame D \<Longrightarrow>
    \<forall>c \<alpha>. I c \<alpha> \<in>: D \<alpha> \<Longrightarrow>
    \<forall>\<alpha>. I ''Q'' (Fun (Fun Tv \<alpha>) \<alpha>) = iden (D \<alpha>) \<Longrightarrow>
@@ -554,23 +554,23 @@ inductive wf_interp :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> bool"
    \<forall>\<alpha> x. x \<in>: D \<alpha> \<longrightarrow> (I ''i'' (Fun Ind (Fun Tv Ind)))\<langle>one_elem_fun x (D \<alpha>)\<rangle> = x \<Longrightarrow>
    wf_interp D I"
 
-definition asg_into_frame :: "'u asg \<Rightarrow> 'u frame \<Rightarrow> bool" where
+definition asg_into_frame :: "'s asg \<Rightarrow> 's frame \<Rightarrow> bool" where
   "asg_into_frame \<phi> D \<longleftrightarrow> (\<forall>x \<alpha>. \<phi> (x, \<alpha>) \<in>: D \<alpha>)"
 
-abbreviation(input) asg_into_interp :: "'u asg \<Rightarrow> 'u frame \<Rightarrow> 'u denotation \<Rightarrow> bool" where
+abbreviation(input) asg_into_interp :: "'s asg \<Rightarrow> 's frame \<Rightarrow> 's denotation \<Rightarrow> bool" where
   "asg_into_interp \<phi> D I \<equiv> asg_into_frame \<phi> D"
 
 (* Note that because HOL is total, val will also give values to non-wellformed formulas *)
-fun val :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> 'u asg \<Rightarrow> form \<Rightarrow> 'u" where
+fun val :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> 's asg \<Rightarrow> form \<Rightarrow> 's" where
   "val D I \<phi> (Var x \<alpha>) = \<phi> (x,\<alpha>)"
 | "val D I \<phi> (Cst c \<alpha>) = I c \<alpha>"
 | "val D I \<phi> (A \<^bold>\<cdot> B) = (val D I \<phi> A)\<langle>val D I \<phi> B\<rangle>"
 | "val D I \<phi> \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] = (abstract (D \<alpha>) (D (type_of B)) (\<lambda>z. val D I (\<phi>((x,\<alpha>):=z)) B))"
 
-fun general_model :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> bool" where
+fun general_model :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> bool" where
   "general_model D I \<longleftrightarrow> wf_interp D I \<and> (\<forall>\<phi> A \<alpha>. asg_into_interp \<phi> D I \<longrightarrow> wff \<alpha> A \<longrightarrow> val D I \<phi> A \<in>: D \<alpha>)"
 
-fun standard_model :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> bool" where
+fun standard_model :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> bool" where
   "standard_model D I \<longleftrightarrow> wf_interp D I \<and> (\<forall>\<alpha> \<beta>. D (Fun \<alpha> \<beta>) = funspace (D \<beta>) (D \<alpha>))"
 
 lemma asg_into_frame_fun_upd: (* new_lemma *)
@@ -618,7 +618,7 @@ proof -
     by auto
 qed
 
-abbreviation agree_on_asg :: "'u asg \<Rightarrow> 'u asg \<Rightarrow> var_sym \<Rightarrow> type_sym \<Rightarrow> bool" where
+abbreviation agree_on_asg :: "'s asg \<Rightarrow> 's asg \<Rightarrow> var_sym \<Rightarrow> type_sym \<Rightarrow> bool" where
   "agree_on_asg \<phi> \<psi> x \<alpha> == (\<phi> (x, \<alpha>) = \<psi> (x, \<alpha>))"
 
 (* Corresponds to Andrew's proposition 5400 *)
@@ -671,10 +671,10 @@ next
 qed
 
 (* definitions on page 239 *)
-abbreviation satisfies :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> 'u asg \<Rightarrow> form \<Rightarrow> bool" where
+abbreviation satisfies :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> 's asg \<Rightarrow> form \<Rightarrow> bool" where
   "satisfies D I \<phi> A \<equiv> (val D I \<phi> A = true)"
 
-definition valid_in_model :: "'u frame \<Rightarrow> 'u denotation \<Rightarrow> form \<Rightarrow> bool" where
+definition valid_in_model :: "'s frame \<Rightarrow> 's denotation \<Rightarrow> form \<Rightarrow> bool" where
   "valid_in_model D I A \<equiv> (\<forall>\<phi>. asg_into_interp \<phi> D I \<longrightarrow> val D I \<phi> A = true)"
 
 definition valid_general :: "form \<Rightarrow> bool" where
@@ -840,7 +840,7 @@ proof -
     by simp
   also
   have "... = (val D I (\<phi>'((''y'',Tv) :=  val D I \<phi>' T)) (Con_Aux1))"
-    by (meson \<phi>'_asg_into assms(1) lemma_5401_a[OF assms(1)] weak_model_axioms wff_Con_Aux1 wff_T)
+    by (meson \<phi>'_asg_into assms(1) lemma_5401_a[OF assms(1)] set_theory_axioms wff_Con_Aux1 wff_T)
   also
   have "... = (val D I \<phi>'' (Con_Aux1))"
     unfolding \<phi>''_def ..
@@ -879,7 +879,8 @@ proof -
       fix x
       assume "x \<in>: D (Fun (Fun Tv Tv) Tv)"
       then have "val D I (\<phi>''' x) ((Var ''g'' (Fun (Fun Tv Tv) Tv) \<^bold>\<cdot> T) \<^bold>\<cdot> T) \<in>: D Tv"
-        by (metis Con_Aux0_def Con_Aux2_def Con_sym_def Imp_Aux0_def Imp_Aux1_def \<phi>'''_def \<phi>''_def \<phi>'_def assms(1) assms(2) general_model.elims(2) type_of type_of.simps(1) type_of.simps(3) type_of.simps(4) weak_model.asg_into_frame_fun_upd weak_model_axioms wff_Abs_type_of wff_Con_Aux0 wff_Con_Aux1 wff_Imp_Aux1 wff_T)
+        using Con_Aux0_def \<phi>'''_def \<phi>''_asg_into asg_into_frame_fun_upd assms(1) general_model.elims(2) type_sym.inject wff_Abs_type_of wff_Con_Aux0 wff_T
+        by (metis wff_App wff_Var)
       then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' x) T\<rangle>\<langle>val D I (\<phi>''' x) T\<rangle> \<in>: D Tv"
         by simp
     next
@@ -898,11 +899,12 @@ proof -
       fix x
       assume x_p: "x \<in>: D (Fun (Fun Tv Tv) Tv)"
       then have "val D I (\<phi>''' x) ((Var ''g'' (Fun (Fun Tv Tv) Tv) \<^bold>\<cdot> T) \<^bold>\<cdot> T) \<in>: D Tv"
-        by (metis Con_Aux0_def Con_Aux2_def Con_sym_def Imp_Aux0_def Imp_Aux1_def \<phi>'''_def \<phi>''_def \<phi>'_def assms(1) assms(2) general_model.elims(2) type_of type_of.simps(1) type_of.simps(3) type_of.simps(4) weak_model.asg_into_frame_fun_upd weak_model_axioms wff_Abs_type_of wff_Con_Aux0 wff_Con_Aux1 wff_Imp_Aux1 wff_T)
+        using Con_Aux0_def \<phi>'''_def \<phi>''_asg_into asg_into_frame_fun_upd assms(1) general_model.elims(2) type_sym.inject wff_Abs_type_of wff_Con_Aux0 wff_T
+        by (metis wff_App wff_Var)
       then have "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>val D I (\<phi>''' x) T\<rangle>\<langle>val D I (\<phi>''' x) T\<rangle> \<in>: D Tv"
         by simp
       then show "val D I (\<phi>''' x) (Var ''g'' (Fun (Fun Tv Tv) Tv))\<langle>true\<rangle>\<langle>true\<rangle> \<in>: D Tv"
-        by (metis \<phi>'''_def \<phi>''_asg_into lemma_5401_c[OF assms(1)] weak_model.asg_into_frame_fun_upd weak_model_axioms x_p)
+        by (metis \<phi>'''_def \<phi>''_asg_into lemma_5401_c[OF assms(1)] asg_into_frame_fun_upd x_p)
     next
       fix x
       assume x_a: "x \<in>: D (Fun (Fun Tv Tv) Tv)"
@@ -948,7 +950,7 @@ proof -
      In order to prove z0 I need to express the function in the syntax of Q0 *)
   define give_x :: form where "give_x = \<^bold>[\<^bold>\<lambda>''y'':Tv. Var ''x'' Tv\<^bold>]"
   define give_fst :: form where "give_fst = \<^bold>[\<^bold>\<lambda> ''x'':Tv. give_x\<^bold>]"
-  define val_give_fst :: 'u where "val_give_fst = val D I \<phi> give_fst"
+  define val_give_fst :: 's where "val_give_fst = val D I \<phi> give_fst"
   have iii: "wff (Fun Tv Tv) give_x"
     unfolding give_x_def by auto
 
@@ -1055,7 +1057,7 @@ proof -
   (* proof adapted from lemma_5401_e_2 *)
   define give_y :: form where "give_y = (\<^bold>[\<^bold>\<lambda> ''y'':Tv. (Var ''y'' Tv)\<^bold>])"
   define give_snd :: form where "give_snd = \<^bold>[\<^bold>\<lambda> ''x'':Tv. give_y\<^bold>]"
-  define val_give_snd :: 'u where "val_give_snd = val D I \<phi> give_snd"
+  define val_give_snd :: 's where "val_give_snd = val D I \<phi> give_snd"
   have iii: "wff (Fun Tv Tv) give_y"
     unfolding give_y_def by auto
 
@@ -1226,7 +1228,7 @@ proof -
       boolean_def lemma_5401_e_variant_1 by auto 
 
   have "asg_into_frame (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) D"
-    using assms(1) assms(2) assms(3) lemma_5401_c[OF assms(1)] asg_into_interp_fun_upd asg_into_interp_fun_upd_false weak_model_axioms wff_T by metis
+    using assms(1) assms(2) assms(3) lemma_5401_c[OF assms(1)] asg_into_interp_fun_upd asg_into_interp_fun_upd_false set_theory_axioms wff_T by metis
   then
   have 2: "val D I (\<phi>((''x'', Tv) := false, (''y'', Tv) := y)) Imp_Aux2 = true"
     unfolding Imp_Aux2_def
@@ -1300,7 +1302,7 @@ lemma lemma_5401_f_3:
   shows "(val D I \<phi> Imp_sym)\<langle>true\<rangle>\<langle>false\<rangle> = false"
 proof -
   have aif: "asg_into_frame (\<phi>((''x'', Tv) := true, (''y'', Tv) := false)) D"
-    by (meson assms(1) assms(2) asg_into_interp_fun_upd_false weak_model_axioms asg_into_interp_fun_upd_true[OF assms(1,2)])
+    by (meson assms(1) assms(2) asg_into_interp_fun_upd_false set_theory_axioms asg_into_interp_fun_upd_true[OF assms(1,2)])
   moreover
   have "false = true \<or> false = false"
     unfolding boolean_def by auto
@@ -1452,7 +1454,7 @@ proof -
       using "3"  assms(1) assms(2)  asg_into_frame_fun_upd by auto
     moreover
     have "\<forall>x. x \<in>: D \<alpha> \<longrightarrow> val D I (\<phi>((''x'', \<alpha>) := x)) T \<in>: D Tv \<and> satisfies D I (\<phi>((''x'', \<alpha>) := x)) T"
-      using weak_model_axioms "3" assms(1) assms(2) lemma_5401_c[OF assms(1)] asg_into_frame_fun_upd by auto
+      using set_theory_axioms "3" assms(1) assms(2) lemma_5401_c[OF assms(1)] asg_into_frame_fun_upd by auto
     ultimately
     have "abstract (D \<alpha>) (D Tv) (\<lambda>z. val D I (\<phi>((''x'', \<alpha>) := z)) T) = abstract (D \<alpha>) (D Tv) (\<lambda>z. true)"
       using abstract_eq_78912442378904178901289321783617 by auto
@@ -1554,7 +1556,7 @@ theorem theorem_5402_a_rule_R:
   shows "valid_general C'"
   unfolding valid_general_def proof (rule, rule, rule)
   (* based on the book *)
-  fix D :: "type_sym \<Rightarrow> 'u" and I :: "char list \<Rightarrow> type_sym \<Rightarrow> 'u"
+  fix D :: "type_sym \<Rightarrow> 's" and I :: "char list \<Rightarrow> type_sym \<Rightarrow> 's"
   assume DI: "general_model D I"
   then have "valid_in_model D I (\<^bold>[A \<^bold>=\<alpha>\<^bold>= B\<^bold>])"
     using aisb unfolding valid_general_def by auto
@@ -2061,13 +2063,13 @@ proof -
       using assms(3) unfolding axiom_4_4_side_condition_def
       by (simp add: fun_upd_twist \<open>val D I \<phi> A = val D I \<phi>' A\<close> \<phi>'_def \<psi>_def) 
     have "abstract (D \<gamma>) (D (type_of B)) (\<lambda>z. val D I (\<psi>((y, \<gamma>) := z)) B)\<langle>z\<rangle> = val D I (\<psi>((y, \<gamma>) := z)) B"
-      using apply_abstract_matchable assms(1) assms(2) assms(4) assms(5) type_of weak_model.asg_into_frame_fun_upd weak_model.general_model.elims(2) weak_model_axioms z
+      using apply_abstract_matchable assms(1) assms(2) assms(4) assms(5) type_of asg_into_frame_fun_upd general_model.elims(2) set_theory_axioms z
       by (metis \<open>\<phi>'((x, \<alpha>) := val D I \<phi>' A) = \<psi>((y, \<gamma>) := z)\<close> \<phi>'_def)
     then have "(val D I \<psi> ?E)\<langle>z\<rangle> = (val D I (\<psi>((y,\<gamma>):=z)) B)"
       by auto 
     moreover
     have "... = val D I \<phi>' (\<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A)"
-      using assms(1) assms(2) assms(4) assms(5) weak_model.asg_into_frame_fun_upd lemma_5401_a weak_model_axioms z
+      using assms(1) assms(2) assms(4) assms(5) asg_into_frame_fun_upd lemma_5401_a set_theory_axioms z
       by (metis \<open>\<phi>'((x, \<alpha>) := val D I \<phi>' A) = \<psi>((y, \<gamma>) := z)\<close> \<phi>'_def) 
     moreover
     have "... = val D I \<phi> \<^bold>[\<^bold>\<lambda>y:\<gamma>. \<^bold>[\<^bold>\<lambda>x:\<alpha>. B\<^bold>] \<^bold>\<cdot> A\<^bold>]\<langle>z\<rangle>"
@@ -2082,7 +2084,7 @@ proof -
       have x7: "val D I (\<phi>((y, \<gamma>) := z)) A \<in>: D \<alpha>"
         using z assms
         unfolding \<psi>_def \<phi>'_def
-        using weak_model.asg_into_frame_fun_upd weak_model_axioms
+        using asg_into_frame_fun_upd set_theory_axioms
         using x1 \<phi>'_def by blast
       have x8: "val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := val D I (\<phi>((y, \<gamma>) := z)) A)) B \<in>: D (type_of B)"
         using asg_into_frame_fun_upd z assms
@@ -2090,7 +2092,7 @@ proof -
       have x9: "val D I (\<phi>'((x, \<alpha>) := val D I \<phi>' A)) B =
     val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := val D I (\<phi>((y, \<gamma>) := z)) A)) B"
         unfolding \<psi>_def \<phi>'_def
-        by (metis apply_abstract weak_model.asg_into_frame_fun_upd weak_model_axioms)
+        by (metis apply_abstract asg_into_frame_fun_upd set_theory_axioms)
       have x5: "val D I (\<phi>'((x, \<alpha>) := val D I \<phi>' A)) B =
     abstract (D \<alpha>) (D (type_of B))
      (\<lambda>za. val D I (\<phi>((y, \<gamma>) := z, (x, \<alpha>) := za)) B)\<langle>val D I (\<phi>((y, \<gamma>) := z)) A\<rangle>"
@@ -2315,7 +2317,7 @@ theorem theorem_5402_a_standard:
 Discussion:
 Lemmas carry many "wellformedness" assumptions such as wff, asg_into_interp and so on
 compared to a formalization of FOL.
-It is often worthwhile to make small variations of Peter Andrews lemmas.
+It is often worthwhile to make small variations of Peter Andrews's lemmas.
 
 I have fewer type annotations than Peter Andrews.
 
