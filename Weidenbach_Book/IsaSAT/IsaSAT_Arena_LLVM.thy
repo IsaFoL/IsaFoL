@@ -7,6 +7,9 @@ section \<open>Code Generation\<close>
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
+hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
+
+
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *)
 lemma protected_bind_assoc:
    \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) =

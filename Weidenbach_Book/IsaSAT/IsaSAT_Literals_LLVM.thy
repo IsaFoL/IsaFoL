@@ -6,7 +6,7 @@ abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<cl
 abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
 abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
-
+hide_const (open) NEMonad.RETURN
 
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
@@ -23,6 +23,9 @@ lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
   \<open>(RETURN o\<^sub>1\<^sub>2 f12)$a$b$c$d$e$f$g$h$i$j$k$l = RETURN$(f12$a$b$c$d$e$f$g$h$i$j$k$l)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>3 f13)$a$b$c$d$e$f$g$h$i$j$k$l$m = RETURN$(f13$a$b$c$d$e$f$g$h$i$j$k$l$m)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>4 f14)$a$b$c$d$e$f$g$h$i$j$k$l$m$n = RETURN$(f14$a$b$c$d$e$f$g$h$i$j$k$l$m$n)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>5 f15)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo = RETURN$(f15$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>6 f16)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p = RETURN$(f16$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>7 f17)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q = RETURN$(f17$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q)\<close>
   by simp_all
 
 method synthesize_free =
@@ -159,8 +162,9 @@ abbreviation \<open>uint64_nat_assn \<equiv> unat_assn' TYPE(64)\<close>
 abbreviation \<open>sint32_nat_assn \<equiv> snat_assn' TYPE(32)\<close>
 abbreviation \<open>sint64_nat_assn \<equiv> snat_assn' TYPE(64)\<close>
 
-
-lemmas [sepref_bounds_simps] =
+text \<open>It is critical for performance of auto to calculate the power instead of letting auto do it
+every time.\<close>
+lemmas [simplified, sepref_bounds_simps] =
   uint32_max_def sint32_max_def
   uint64_max_def sint64_max_def
 

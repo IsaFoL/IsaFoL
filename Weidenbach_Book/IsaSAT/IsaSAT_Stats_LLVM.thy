@@ -3,6 +3,7 @@ imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM
 begin
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+hide_const (open) NEMonad.RETURN NEMonad.ASSERT
 
 
 lemma Exists_eq_simp_sym: \<open>(\<exists>x. (P x \<and>* \<up> (b = x)) s) \<longleftrightarrow> P b s\<close>
@@ -14,7 +15,7 @@ definition code_hider_assn where
 
 
 lemma get_content_destroyed_kept[sepref_fr_rules]:
-  \<open>CONSTRAINT is_pure R \<Longrightarrow> (return o id, RETURN o get_content) \<in>  (code_hider_assn R S)\<^sup>k \<rightarrow>\<^sub>a hr_comp R S\<close>
+  \<open>CONSTRAINT is_pure R \<Longrightarrow> (Mreturn o id, RETURN o get_content) \<in>  (code_hider_assn R S)\<^sup>k \<rightarrow>\<^sub>a hr_comp R S\<close>
   unfolding code_hider_assn_def code_hider_rel_def
   apply sepref_to_hoare
   apply vcg
@@ -22,14 +23,14 @@ lemma get_content_destroyed_kept[sepref_fr_rules]:
   by (smt (z3) Sep_Algebra_Add.pure_part_pure entails_def is_pure_conv pure_app_eq pure_partI sep.mult_assoc sep_conj_def split_conj_is_pure)
 
 lemma Constructor_assn_destroyed:
-  \<open>(return o id, RETURN o Constructor) \<in> (hr_comp R S)\<^sup>d \<rightarrow>\<^sub>a code_hider_assn R S\<close>
+  \<open>(Mreturn o id, RETURN o Constructor) \<in> (hr_comp R S)\<^sup>d \<rightarrow>\<^sub>a code_hider_assn R S\<close>
   unfolding code_hider_assn_def code_hider_rel_def
   apply sepref_to_hoare
   apply vcg
   by (auto simp: br_def ENTAILS_def Exists_eq_simp Exists_eq_simp_sym hr_comp_def pure_true_conv)
 
 lemma get_content_destroyed:
-  \<open>(return o id, RETURN o get_content) \<in>  (code_hider_assn R S)\<^sup>d \<rightarrow>\<^sub>a hr_comp R S\<close>
+  \<open>(Mreturn o id, RETURN o get_content) \<in>  (code_hider_assn R S)\<^sup>d \<rightarrow>\<^sub>a hr_comp R S\<close>
   unfolding code_hider_assn_def code_hider_rel_def
   apply sepref_to_hoare
   apply vcg
@@ -102,7 +103,7 @@ lemmas [llvm_inline] =
 
 
 lemma id_unat[sepref_fr_rules]:
-  \<open>(return o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  \<open>(Mreturn o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   apply sepref_to_hoare
   apply vcg
   by (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps
@@ -731,7 +732,7 @@ sepref_def get_conflict_count_since_last_restart_stats_impl
   by sepref
   
 lemma hn_id_pure:
-  \<open>CONSTRAINT is_pure A \<Longrightarrow> (return, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
+  \<open>CONSTRAINT is_pure A \<Longrightarrow> (Mreturn, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
   apply sepref_to_hoare
   apply vcg
   apply (auto simp: ENTAILS_def is_pure_conv pure_def)

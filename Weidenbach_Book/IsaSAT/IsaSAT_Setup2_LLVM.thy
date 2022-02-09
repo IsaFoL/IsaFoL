@@ -47,12 +47,6 @@ sepref_def opts_restart_coeff2_st_fast_code
   unfolding opts_restart_coeff2_st_def isasat_bounded_assn_def
   by sepref
 
-
-lemma units_since_last_GC_st_alt_def:
-  \<open>RETURN o units_since_last_GC_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, lcount, opts, old_arena). RETURN (units_since_last_GC stats))\<close>
-  by (auto intro!: ext simp: units_since_last_GC_st_def)
-
 sepref_def units_since_last_GC_st_code
   is \<open>RETURN o units_since_last_GC_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k  \<rightarrow>\<^sub>a word_assn\<close>
@@ -60,13 +54,6 @@ sepref_def units_since_last_GC_st_code
   unfolding units_since_last_GC_st_alt_def
     isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
-
-lemma reset_units_since_last_GC_st_alt_def:
-  \<open>RETURN o reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, lcount, opts, old_arena).
-  RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
-  vdom, lcount, opts, old_arena))\<close>
-  unfolding reset_units_since_last_GC_st_def by auto
 
 sepref_register reset_units_since_last_GC
 
@@ -77,11 +64,6 @@ sepref_def reset_units_since_last_GC_st_code
   unfolding reset_units_since_last_GC_st_alt_def
     isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
-
-lemma get_GC_units_opt_alt_def:
-  \<open>RETURN o get_GC_units_opt = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>
-  by (auto intro!: ext simp: get_GC_units_opt_def)
 
 sepref_def get_GC_units_opt_code
   is \<open>RETURN o get_GC_units_opt\<close>
@@ -121,12 +103,6 @@ sepref_def get_pos_of_level_in_trail_imp_st_code
   apply (rewrite in \<open>RETURN \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
-
-lemma clause_not_marked_to_delete_heur_alt_def:
-  \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
-      RETURN (arena_status arena C \<noteq> DELETED))\<close>
-  unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
-
 sepref_def clause_not_marked_to_delete_heur_fast_code
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
   :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
@@ -134,14 +110,6 @@ sepref_def clause_not_marked_to_delete_heur_fast_code
   unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
      clause_not_marked_to_delete_heur_pre_def
   by sepref
-
-lemma mop_clause_not_marked_to_delete_heur_alt_def:
-  \<open>mop_clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C. do {
-    ASSERT(clause_not_marked_to_delete_heur_pre ((M, arena, D, oth), C));
-     RETURN (arena_status arena C \<noteq> DELETED)
-   })\<close>
-  unfolding clause_not_marked_to_delete_heur_def mop_clause_not_marked_to_delete_heur_def
-  by (auto intro!: ext)
 
 sepref_def mop_clause_not_marked_to_delete_heur_impl
   is \<open>uncurry mop_clause_not_marked_to_delete_heur\<close>
@@ -200,23 +168,11 @@ sepref_def get_global_conflict_count_impl
   unfolding get_global_conflict_count_alt_def isasat_bounded_assn_def
   by sepref
 
-lemma get_count_max_lvls_heur_def:
-   \<open>get_count_max_lvls_heur = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close>
-  by (auto intro!: ext)
-
 sepref_def get_count_max_lvls_heur_impl
   is \<open>RETURN o get_count_max_lvls_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding get_count_max_lvls_heur_def isasat_bounded_assn_def
   by sepref
-
-lemma clss_size_resetUS0_st_alt_def:
-  \<open>RETURN o clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, lcount, opts, old_arena).
-  RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-  vdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
-  unfolding clss_size_resetUS0_st_def
-  by (auto intro!: ext)
 
 sepref_def clss_size_resetUS0_st
   is \<open>RETURN o clss_size_resetUS0_st\<close>

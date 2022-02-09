@@ -6,6 +6,7 @@ imports
     LBD_LLVM
     IsaSAT_Profile_LLVM
 begin
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 sepref_register set_lookup_conflict_aa
 type_synonym lookup_clause_assn = \<open>32 word \<times> (1 word) ptr\<close>

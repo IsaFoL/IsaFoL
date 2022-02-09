@@ -107,13 +107,13 @@ lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length
 
 sepref_register update_propagation_heuristics
 sepref_def update_heuristics_stats_impl
-  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_propagation_heuristics_stats)\<close>
+  is \<open>uncurry (RETURN oo update_propagation_heuristics_stats)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   unfolding update_propagation_heuristics_stats_def heuristic_int_assn_def
   by sepref
 
 sepref_def update_heuristics_impl
-  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_propagation_heuristics)\<close>
+  is \<open>uncurry (RETURN oo update_propagation_heuristics)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding update_propagation_heuristics_def
   by sepref

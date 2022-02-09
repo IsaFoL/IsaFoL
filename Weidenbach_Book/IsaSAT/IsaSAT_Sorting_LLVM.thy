@@ -7,6 +7,7 @@ begin
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 declare \<alpha>_butlast[simp del]
+hide_const (open) NEMonad.RETURN NEMonad.ASSERT
 
 text \<open>All the weird proofs comes from the fact that, while very useful, \<^text>\<open>vcg\<close> enjoys 
 instantiating schematic variables by true, rendering proofs impossible.\<close>
@@ -34,7 +35,7 @@ begin
     by sepref
 
   lemma mop_eo_extract_aux: \<open>mop_eo_extract p i = doN { r \<leftarrow> mop_list_get p i; ASSERT (r\<noteq>None \<and> i<length p); RETURN (the r, p[i:=None]) }\<close>
-    by (auto simp: pw_eq_iff refine_pw_simps)
+    by (auto simp: pw_eq_iff refine_pw_simps assert_true_bind_conv summarize_ASSERT_conv intro!: bind_cong arg_cong[of _ _ ASSERT])
 
   lemma assign_none_only_some_list_rel:
     assumes SR[param]: \<open>(a, a') \<in> \<langle>only_some_rel\<rangle>list_rel\<close> and L: \<open>i < length a'\<close>
@@ -153,7 +154,7 @@ begin
     unfolding eo_assn_def hr_comp_def
     by (auto simp: pred_lift_extract_simps sep_algebra_simps fun_eq_iff map_some_only_some_rel_iff)
 
-  lemma to_eo_conv_refine: \<open>(return, mop_to_eo_conv) \<in> [\<lambda>_. True]\<^sub>c wo_assn\<^sup>d \<rightarrow> (eo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
+  lemma to_eo_conv_refine: \<open>(Mreturn, mop_to_eo_conv) \<in> [\<lambda>_. True]\<^sub>c wo_assn\<^sup>d \<rightarrow> (eo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
     unfolding mop_to_eo_conv_def
     apply sepref_to_hoare
     apply (rewrite wo_assn_conv)
@@ -163,14 +164,14 @@ begin
   lemma \<open>None \<notin> set xs \<longleftrightarrow> (\<exists>ys. xs = map Some ys)\<close>
     using None_not_in_set_conv by auto
 
-  lemma to_wo_conv_refine: \<open>(return, mop_to_wo_conv) \<in>  [\<lambda>_. True]\<^sub>c eo_assn\<^sup>d \<rightarrow> (wo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
+  lemma to_wo_conv_refine: \<open>(Mreturn, mop_to_wo_conv) \<in>  [\<lambda>_. True]\<^sub>c eo_assn\<^sup>d \<rightarrow> (wo_assn) [\<lambda>(ai) (r). r=ai]\<^sub>c\<close>
     unfolding mop_to_wo_conv_def eo_assn_def hr_comp_def
     apply sepref_to_hoare
     apply (auto simp add: refine_pw_simps map_some_only_some_rel_iff elim!: None_not_in_set_conv)
     by vcg
 
   lemma random_access_iterator: "random_access_iterator wo_assn eo_assn elem_assn
-    return return
+    Mreturn Mreturn
     eo_extract_impl
     wo_set_impl"
     apply unfold_locales
@@ -179,7 +180,7 @@ begin
     done
 
   sublocale random_access_iterator wo_assn eo_assn elem_assn
-    return return
+    Mreturn Mreturn
     eo_extract_impl
     wo_set_impl
     by (rule random_access_iterator)

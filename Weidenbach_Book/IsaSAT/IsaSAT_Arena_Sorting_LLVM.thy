@@ -64,7 +64,7 @@ interpretation LBD: parameterized_weak_ordering idx_cdom clause_score_less
 
 global_interpretation LBD: parameterized_sort_impl_context
   \<open>woarray_assn snat_assn\<close> \<open>eoarray_assn snat_assn\<close> snat_assn
-  return return
+  Mreturn Mreturn
   eo_extract_impl
   array_upd
   idx_cdom clause_score_less mop_clause_score_less mop_clause_score_less_impl
@@ -115,7 +115,7 @@ global_interpretation
 
 global_interpretation LBD_it: parameterized_sort_impl_context
   vdom_fast_assn \<open>LBD_it.eo_assn\<close> sint64_nat_assn
-  return return
+  Mreturn Mreturn
   LBD_it_eo_extract_impl
   arl_upd
   idx_cdom clause_score_less mop_clause_score_less mop_clause_score_less_impl
@@ -168,7 +168,7 @@ type_synonym virtual_vdom_fast_assn = \<open>64 word\<close>
 definition virtual_vdom_fast_assn :: \<open>vdom \<Rightarrow> virtual_vdom_fast_assn \<Rightarrow> _\<close> where
   \<open>virtual_vdom_fast_assn = hr_comp sint64_nat_assn {(a,b). a= 0}\<close>
 
-definition qqq where \<open>qqq xs _ = return xs\<close>
+definition qqq where \<open>qqq xs _ = Mreturn xs\<close>
 lemmas [llvm_inline] = qqq_def
 
 lemma [unfolded qqq_def, sepref_fr_rules]:
@@ -200,7 +200,7 @@ definition empty_virtual_vdom :: \<open>nat list\<close> where
 
 sepref_register empty_virtual_vdom
 lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN empty_virtual_vdom))
+  \<open>(uncurry0 (Mreturn 0), uncurry0 (RETURN empty_virtual_vdom))
   \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a virtual_vdom_fast_assn\<close>
 proof -
   have [iff]: \<open>x = snat u \<and> snat_invar u \<and> x = 0 \<longleftrightarrow> x = 0 \<and> u= 0\<close> for x u
