@@ -1332,6 +1332,42 @@ lemma remove_old_arena_wl_heur_int:
 
 end
 
+
+context isasat_state
+begin
+lemma reconstruct_isasat[sepref_frame_match_rules]:
+  \<open> hn_ctxt
+     (isasat_int_assn (a_assn) (b_assn) (c_assn) (d_assn) (e_assn)
+    (f_assn) (g_assn) (h_assn) (i_assn) (j_assn) (k_assn)
+   (l_assn) (m_assn) (n_assn) (o_assn) (p_assn)) ax bx \<turnstile> hn_ctxt isasat_assn ax bx\<close>
+    unfolding isasat_assn_def
+    apply (auto split: prod.split isasat_int.splits elim: is_pureE 
+      simp: sep_algebra_simps pure_part_pure_conj_eq)
+      done
+
+context
+  fixes x_assn and
+    trail_read_code :: \<open>'xa \<Rightarrow> 'q llM\<close> and
+    trail_read :: \<open>'a \<Rightarrow> 'r nres\<close>
+  assumes trail_read[sepref_fr_rules]: \<open>(trail_read_code, trail_read) \<in> a_assn\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+begin
+
+definition read_trail_wl_heur :: \<open>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
+  \<open>read_trail_wl_heur isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 \<Rightarrow>
+  trail_read x1)\<close>
+  
+sepref_register trail_read
+ sepref_definition read_trail_wl_heur_code
+  is read_trail_wl_heur
+  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+   unfolding read_trail_wl_heur_def
+   by sepref
+end
+
+end
+
+
 text \<open>The following constants are not useful for the initialisation for the solver, but only as temporary replacement
   for values in state.\<close>
 definition bottom_trail :: trail_pol where
@@ -2017,13 +2053,31 @@ sepref_def count_decided_st_heur_pol_fast
   by sepref
 
 
-    
     term extract_literals_to_update_wl_heur
     export_llvm test_impl3
     export_llvm count_decided_st_heur_pol_fast
 
+definition count_decided_st_heur2 where
+  \<open>count_decided_st_heur2 = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
+lemmas [unfolded count_decided_st_heur2_def[symmetric], sepref_fr_rules] =
+  read_trail_wl_heur_code.refine[OF count_decided_pol_impl.refine]
+ 
 
-find_theorems update_trail_wl_heur_code
+lemmas [llvm_code] = read_trail_wl_heur_code_def[OF count_decided_pol_impl.refine]
+
+definition test3 where
+  \<open>test3 M = do {(count_decided_st_heur2 M)}\<close>
+
+sepref_def test_impl3'
+  is \<open>count_decided_st_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding test3_def
+  by sepref
+
+export_llvm test_impl3'
+
+
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
