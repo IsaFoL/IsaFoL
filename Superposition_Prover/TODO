@@ -1,0 +1,15 @@
+search for Multiset_More bzw. _Extra in AFP
+
+grep -rIl '\<mult\>' . | grep ultiset
+
+More_Multiset.thy
+Add to ROOT
+
+JAR 2020 FO_Ordered_Resolution_Prover.thy 
+CPP 
+	Weighted_... 
+	Functional_... 
+	Executable_... 
+
+
+locale Superposition_Prover
