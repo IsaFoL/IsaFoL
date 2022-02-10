@@ -261,22 +261,20 @@ proof -
      size (learned_clss_l (fmupd C (x, True) x2c)) =
      size (learned_clss_l x2c)\<close> for x x2c
     using distinct_mset_dom[of x2c]
-    apply (cases \<open>C \<in># dom_m x2c\<close>)
-    apply (auto 6 3 dest!: multi_member_split simp: ran_m_def
+    by (cases \<open>C \<in># dom_m x2c\<close>)
+     (force dest!: multi_member_split simp: ran_m_def
       intro: filter_mset_cong2 image_mset_cong2
       intro: multiset.map_cong multiset.map_cong0
-      intro!: arg_cong[of _ _ size])
-    by (smt (verit, best) multiset.map_cong)
+      intro!: arg_cong[of _ _ size])+
   have H6: \<open>\<not>irred x2c C \<Longrightarrow> C \<in># dom_m x2c \<Longrightarrow>
     size (learned_clss_l (fmupd C (x, False) x2c)) =
     (size (learned_clss_l x2c))\<close> for x x2c
     using distinct_mset_dom[of x2c]
     apply (cases \<open>C \<in># dom_m x2c\<close>)
-    apply (auto 6 3 dest!: multi_member_split simp: ran_m_def
+    by (force dest!: multi_member_split simp: ran_m_def
       intro: filter_mset_cong2 image_mset_cong2
       intro: multiset.map_cong multiset.map_cong0
-      intro: arg_cong[of _ _ size])
-    by (smt (verit, best) multiset.map_cong)
+      intro: arg_cong[of _ _ size])+
   have H7: \<open>\<not>irred x1a C \<Longrightarrow> C \<in># dom_m x1a \<Longrightarrow>
     size (remove1_mset (the (fmlookup x1a C)) (learned_clss_l x1a)) =
     size (learned_clss_l x1a) - Suc 0 \<close> for x1a

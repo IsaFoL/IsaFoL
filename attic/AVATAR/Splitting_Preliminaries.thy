@@ -68,7 +68,7 @@ qed
 lemma entails_weaken_subclause_right:
   assumes stronger: "M \<Turnstile> N \<union> {C1}"
   shows "M \<Turnstile> N \<union> {C1 + C2}"
-by (metis (no_types, hide_lams) Un_insert_right entail_iff_each entails_subclause entails_trans
+by (metis (no_types, opaque_lifting) Un_insert_right entail_iff_each entails_subclause entails_trans
     insert_iff mset_subset_eq_add_left stronger sup_bot.right_neutral)
 
 definition entails_comp_sqcup :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<squnion>" 50) where

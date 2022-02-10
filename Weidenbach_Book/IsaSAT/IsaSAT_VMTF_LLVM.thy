@@ -191,7 +191,6 @@ global_interpretation VMTF_it: parameterized_sort_impl_context
 
 lemmas [llvm_inline] = VMTF_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta_fun_cong]
 
-print_named_simpset llvm_inline
 export_llvm
   \<open>VMTF_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>VMTF_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
@@ -295,11 +294,10 @@ lemma eq_Some_iff: \<open>x = Some b \<longleftrightarrow> (\<not>is_None x \<an
 
 lemma hfref_refine_with_pre:
   assumes \<open>\<And>x. P x \<Longrightarrow> g' x \<le> g x\<close>
-  assumes \<open>(f,g') \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R\<close>
-  shows \<open>(f,g) \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R\<close>
+  assumes \<open>(f,g') \<in> [P]\<^sub>a A \<rightarrow> R\<close>
+  shows \<open>(f,g) \<in> [P]\<^sub>a A \<rightarrow> R\<close>
   using assms(2)[THEN hfrefD] assms(1)
   by (auto intro!: hfrefI intro: hn_refine_ref)
-
 
 lemma isa_vmtf_en_dequeue_preI:
   assumes \<open>isa_vmtf_en_dequeue_pre ((M,L),(ns, m, fst_As, lst_As, next_search))\<close>

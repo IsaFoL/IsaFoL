@@ -80,7 +80,7 @@ datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT | SUBGOA
 
 fun split_clause t =
   let
-    val (fixes, horn) = funpow_yield (length (Term.strip_all_vars t)) Logic.dest_all t;
+    val (fixes, horn) = funpow_yield (length (Term.strip_all_vars t)) Logic.dest_all_global t;
     val assms = Logic.strip_imp_prems horn;
     val shows = Logic.strip_imp_concl horn;
   in (fixes, assms, shows) end;

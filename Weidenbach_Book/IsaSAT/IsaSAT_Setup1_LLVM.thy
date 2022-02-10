@@ -32,17 +32,14 @@ sepref_def polarity_st_heur_pol_fast
 
 subsection \<open>More theorems\<close>
 
-lemma count_decided_st_heur_alt_def:
-   \<open>count_decided_st_heur = (\<lambda>(M, _). count_decided_pol M)\<close>
-  by (auto simp: count_decided_st_heur_def count_decided_pol_def)
-
 sepref_def count_decided_st_heur_pol_fast
   is \<open>RETURN o count_decided_st_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding isasat_bounded_assn_def count_decided_st_heur_alt_def
+  unfolding isasat_bounded_assn_def count_decided_st_heur_alt_def fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 
+setup \<open>map_theory_claset (fn ctxt => ctxt addSbefore ("split_all_tac", split_all_tac))\<close>
 sepref_def access_lit_in_clauses_heur_fast_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
@@ -53,6 +50,8 @@ sepref_def access_lit_in_clauses_heur_fast_code
     access_lit_in_clauses_heur_pre_def
   unfolding fold_tuple_optimizations
   by sepref
+
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close>
 
 sepref_def rewatch_heur_vdom_fast_code
   is \<open>uncurry2 (rewatch_heur_vdom)\<close>
@@ -131,13 +130,6 @@ sepref_def clause_is_learned_heur_code2
 
 sepref_register clause_lbd_heur
 
-
-lemma clause_lbd_heur_alt_def:
-  \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
-     lcount) C.
-     arena_lbd N' C)\<close>
-  by (intro ext) (auto simp: clause_lbd_heur_def)
-
 sepref_def clause_lbd_heur_code2
   is \<open>uncurry (RETURN oo clause_lbd_heur)\<close>
   :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
@@ -169,7 +161,7 @@ sepref_def mark_garbage_heur_code2
   supply [[goals_limit = 1]]
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def fold_tuple_optimizations clss_size_decr_lcount_def clss_size_lcount_def
-    lcount_assn_def fold_tuple_optimizations
+    lcount_assn_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -178,7 +170,7 @@ sepref_def mop_mark_garbage_heur3_impl
   :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding mop_mark_garbage_heur3_def
+  unfolding mop_mark_garbage_heur3_def fold_tuple_optimizations
     clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def mark_garbage_heur3_def
   by sepref
 
@@ -243,17 +235,10 @@ sepref_def get_learned_count_fast_code
 
 sepref_register clss_size_lcount get_learned_count_number
 
-
-lemma get_learned_count_number_alt_def:
-   \<open>RETURN o get_learned_count_number = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, lcount, opts). RETURN (clss_size_lcount lcount))\<close>
-  by (auto simp: clss_size_lcount_def intro!: ext)
-
-
 sepref_def get_learned_count_number_fast_code
   is \<open>RETURN o get_learned_count_number\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def
+  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def fold_tuple_optimizations
   by sepref
 
 sepref_def learned_clss_count_fast_code

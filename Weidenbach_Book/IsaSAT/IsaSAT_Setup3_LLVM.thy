@@ -16,7 +16,6 @@ sepref_def wasted_bytes_st_impl
   unfolding isasat_bounded_assn_def wasted_bytes_st_def
   by sepref
 
-
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
 
 
@@ -102,13 +101,13 @@ sepref_def get_the_propagation_reason_pol_st_code
 sepref_def empty_US_heur_code
   is \<open>RETURN o empty_US_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding empty_US_heur_def isasat_bounded_assn_def
+  unfolding empty_US_heur_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def get_restart_phase_imp
   is \<open>(RETURN o get_restart_phase)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_phase_def isasat_bounded_assn_def
+  unfolding get_restart_phase_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_register mark_garbage_heur2 mark_garbage_heur4
@@ -135,7 +134,7 @@ sepref_def access_avdom_at_fast_code
   is \<open>uncurry (RETURN oo access_avdom_at)\<close>
   :: \<open>[uncurry access_avdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding access_avdom_at_alt_def access_avdom_at_pre_def isasat_bounded_assn_def
-    avdom_aivdom_at_def[symmetric]
+    avdom_aivdom_at_def[symmetric] fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 
@@ -143,7 +142,7 @@ sepref_def access_ivdom_at_fast_code
   is \<open>uncurry (RETURN oo access_ivdom_at)\<close>
   :: \<open>[uncurry access_ivdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding access_ivdom_at_alt_def access_ivdom_at_pre_def isasat_bounded_assn_def
-    ivdom_aivdom_at_def[symmetric]
+    ivdom_aivdom_at_def[symmetric] fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 
@@ -151,7 +150,7 @@ sepref_def access_tvdom_at_fast_code
   is \<open>uncurry (RETURN oo access_tvdom_at)\<close>
   :: \<open>[uncurry access_tvdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding access_tvdom_at_alt_def access_tvdom_at_pre_def isasat_bounded_assn_def
-    tvdom_aivdom_at_def[symmetric]
+    tvdom_aivdom_at_def[symmetric] fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
  
@@ -163,22 +162,19 @@ sepref_def mop_access_lit_in_clauses_heur_impl
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
+    fold_tuple_optimizations
   by sepref
-
-lemma get_opts_alt_def:
-  \<open>get_opts = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
-  by (auto intro!: ext)
 
 sepref_def get_opts_impl
   is \<open>RETURN o get_opts\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
-  unfolding get_opts_alt_def isasat_bounded_assn_def
+  unfolding get_opts_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
 sepref_def get_target_opts_impl
   is \<open>RETURN o get_target_opts\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn' TYPE(3)\<close>
-  unfolding get_target_opts_def
+  unfolding get_target_opts_def fold_tuple_optimizations
   by sepref
 
 sepref_register print_literal_of_trail

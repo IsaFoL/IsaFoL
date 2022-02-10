@@ -825,7 +825,7 @@ next
   show ?case
     using cdcl_bnb_still_model[OF st 1 _ _ dist cons 3 2] IH
       cdcl_bnb_larger_still_larger[OF st]
-    by auto
+    using dual_order.trans by blast
 qed
 
 lemma full_cdcl_bnb_stgy_larger_or_equal_weight:

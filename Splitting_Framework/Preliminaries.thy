@@ -1741,7 +1741,7 @@ proof -
          {to_V C |C. C \<in> fml_Jfin \<and> \<not> is_Pos C} \<union> N"
        using finite_sound_entail_fml_j by blast
      then have \<open>\<exists>Jfin. finite Jfin \<and> Jfin \<subseteq> total_strip J \<and> fml_ext ` Jfin = fml_Jfin\<close>
-       by (metis (no_types, hide_lams) finite_subset_image)
+       by (metis (no_types, opaque_lifting) finite_subset_image)
      then obtain Jfin where "finite Jfin" and "Jfin \<subseteq> total_strip J" and
        fml_jfin_is: "fml_ext ` Jfin = fml_Jfin"
        by blast

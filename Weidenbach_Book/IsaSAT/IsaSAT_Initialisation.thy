@@ -2304,7 +2304,7 @@ proof -
     unfolding comp_fun_idem_def comp_fun_commute_def comp_fun_idem_axioms_def
     by (auto simp: max_def[abs_def] intro!: ext)
   have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'b :: {zero,linorder}\<close>
-    by (auto simp: Max.eq_fold comp_fun_idem.fold_set_fold)
+    by (auto simp flip: Max.eq_fold Max.set_eq_fold)
   have in_N0: \<open>L \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> L  < Suc ((Max (insert 0 (set \<A>\<^sub>i\<^sub>n))))\<close>
     for L \<A>\<^sub>i\<^sub>n
     using Max_ge[of \<open>insert 0 (set \<A>\<^sub>i\<^sub>n)\<close> L]

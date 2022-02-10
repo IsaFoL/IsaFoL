@@ -175,7 +175,7 @@ next
   {
     fix A
     from IH have "\<forall>n. (A \<Turnstile> (\<xi> @ \<phi> # \<xi>') ! n) = (A \<Turnstile> (\<xi> @ \<phi>' # \<xi>') ! n)"
-      by (metis (mono_tags, hide_lams) list_update_length nth_Cons_0 nth_append_length_plus
+      by (metis (mono_tags, opaque_lifting) list_update_length nth_Cons_0 nth_append_length_plus
         nth_list_update_neq)
     then have " (A \<Turnstile> conn c (\<xi> @ \<phi> # \<xi>')) = (A \<Turnstile> conn c (\<xi> @ \<phi>' # \<xi>'))"
       by (meson consistency_decompose_into_list wf wf_conn_no_arity_change_helper

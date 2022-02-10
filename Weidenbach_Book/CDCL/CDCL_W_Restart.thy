@@ -557,7 +557,7 @@ proof
   have \<open>luby_sequence_core (2^(b+1) - 1) = 2^b\<close>
     using luby_sequence_core_two_power_minus_one[of \<open>b+1\<close>] by simp
   moreover have \<open>(2::nat)^b > b\<close>
-    by (induction b) auto
+    by (rule less_exp)
   ultimately show False using b[of \<open>2^(b+1) - 1\<close>] by linarith
 qed
 
