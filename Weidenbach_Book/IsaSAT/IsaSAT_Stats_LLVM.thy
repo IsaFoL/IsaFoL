@@ -247,7 +247,7 @@ context
   notes [fcomp_norm_unfold] = stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
 begin
 
-lemmas [sepref_fr_rules] =
+lemmas stats_refine[sepref_fr_rules] =
   add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
   get_conflict_count_stats_impl.refine[FCOMP get_conflict_count_stats_get_conflict_count]
   units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]

@@ -9,61 +9,176 @@ theory IsaSAT_Setup2_LLVM
     IsaSAT_Setup0_LLVM
 begin
 
+definition opts_restart_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>opts_restart_st_fast_code = read_opts_wl_heur_code opts_rel_restart_code\<close>
 
-sepref_def opts_restart_st_fast_code
-  is \<open>RETURN o opts_restart_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_restart_st_def isasat_bounded_assn_def
-  by sepref
+global_interpretation opts_restart: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_restart\<close> and
+  f = opts_rel_restart_code and
+  x_assn = bool1_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_restart) = RETURN o opts_restart_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_restart_code = opts_restart_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: opts_restart_st_def read_opts_wl_heur_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_restart_st_fast_code_def)
+  done
 
-sepref_def opts_reduction_st_fast_code
-  is \<open>RETURN o opts_reduction_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_reduction_st_def isasat_bounded_assn_def
-  by sepref
+definition opts_reduction_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>opts_reduction_st_fast_code = read_opts_wl_heur_code opts_rel_reduce_code\<close>
 
-sepref_def opts_unbounded_mode_st_fast_code
-  is \<open>RETURN o opts_unbounded_mode_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding opts_unbounded_mode_st_def isasat_bounded_assn_def
-  by sepref
+global_interpretation opts_reduce: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_reduce\<close> and
+  f = opts_rel_reduce_code and
+  x_assn = bool1_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_reduce) = RETURN o opts_reduction_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_reduce_code = opts_reduction_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: opts_reduction_st_fast_code_def read_opts_wl_heur_def opts_reduction_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_reduction_st_fast_code_def)
+  done
 
-sepref_def opts_minimum_between_restart_st_fast_code
-  is \<open>RETURN o opts_minimum_between_restart_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding opts_minimum_between_restart_st_def isasat_bounded_assn_def
-  by sepref
+definition opts_unbounded_mode_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>opts_unbounded_mode_st_fast_code = read_opts_wl_heur_code opts_rel_unbounded_mode_code\<close>
 
-sepref_def opts_restart_coeff1_st_fast_code
-  is \<open>RETURN o opts_restart_coeff1_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding opts_restart_coeff1_st_def isasat_bounded_assn_def
-  by sepref
+global_interpretation opts_unbounded_mode: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_unbounded_mode\<close> and
+  f = opts_rel_unbounded_mode_code and
+  x_assn = bool1_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_unbounded_mode) = RETURN o opts_unbounded_mode_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_unbounded_mode_code = opts_unbounded_mode_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: read_opts_wl_heur_def opts_unbounded_mode_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_unbounded_mode_st_fast_code_def)
+  done
 
-sepref_def opts_restart_coeff2_st_fast_code
-  is \<open>RETURN o opts_restart_coeff2_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a snat_assn' (TYPE(64))\<close>
-  unfolding opts_restart_coeff2_st_def isasat_bounded_assn_def
-  by sepref
+definition opts_minimum_between_restart_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>opts_minimum_between_restart_st_fast_code = read_opts_wl_heur_code opts_rel_miminum_between_restart_code\<close>
 
-sepref_def units_since_last_GC_st_code
-  is \<open>RETURN o units_since_last_GC_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k  \<rightarrow>\<^sub>a word_assn\<close>
-  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
-  unfolding units_since_last_GC_st_alt_def
-    isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+global_interpretation opts_minimum_between_restart: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_minimum_between_restart\<close> and
+  f = opts_rel_miminum_between_restart_code and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_minimum_between_restart) = RETURN o opts_minimum_between_restart_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_miminum_between_restart_code = opts_minimum_between_restart_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: read_opts_wl_heur_def opts_minimum_between_restart_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_minimum_between_restart_st_fast_code_def)
+  done
+
+definition opts_restart_coeff1_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>opts_restart_coeff1_st_fast_code = read_opts_wl_heur_code opts_rel_restart_coeff1_code\<close>
+
+global_interpretation opts_restart_coeff1: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_restart_coeff1\<close> and
+  f = opts_rel_restart_coeff1_code and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_restart_coeff1) = RETURN o opts_restart_coeff1_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_restart_coeff1_code = opts_restart_coeff1_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: read_opts_wl_heur_def opts_minimum_between_restart_st_def opts_restart_coeff1_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_restart_coeff1_st_fast_code_def)
+  done
+
+definition opts_restart_coeff2_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>opts_restart_coeff2_st_fast_code = read_opts_wl_heur_code opts_rel_restart_coeff2_code\<close>
+
+global_interpretation opts_restart_coeff2: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_restart_coeff2\<close> and
+  f = opts_rel_restart_coeff2_code and
+  x_assn = \<open>snat_assn' (TYPE(64))\<close> and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_restart_coeff2) = RETURN o opts_restart_coeff2_st\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_restart_coeff2_code = opts_restart_coeff2_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule opts_refine; assumption)
+  subgoal by (auto simp: read_opts_wl_heur_def opts_minimum_between_restart_st_def opts_restart_coeff2_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: opts_restart_coeff2_st_fast_code_def)
+  done
+
+definition units_since_last_GC_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>units_since_last_GC_st_code = read_stats_wl_heur_code units_since_last_GC_stats_impl\<close>
+
+global_interpretation units_since_last_GC: read_stats_param_adder0 where
+  f' = \<open>RETURN o units_since_last_GC\<close> and
+  f = units_since_last_GC_stats_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o units_since_last_GC) = RETURN o units_since_last_GC_st\<close> and
+    \<open>read_stats_wl_heur_code units_since_last_GC_stats_impl = units_since_last_GC_st_code\<close>
+  apply unfold_locales
+  apply (rule stats_refine; assumption)
+  subgoal by (auto simp: read_stats_wl_heur_def units_since_last_GC_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: units_since_last_GC_st_code_def)
+  done
+thm get_GC_units_opt_def
+find_theorems opts_GC_units_lim RETURN
+(*opts_GC_units_lim opts_rel_GC_units_lim_code*)
+lemmas [sepref_fr_rules] =
+  opts_restart.refine[unfolded]
+  opts_reduce.refine[unfolded]
+  opts_unbounded_mode.refine
+  opts_minimum_between_restart.refine
+  opts_restart_coeff1.refine
+  opts_restart_coeff2.refine
+  units_since_last_GC.refine
+  units_since_last_GC.refine
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  opts_restart_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  opts_reduction_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  opts_unbounded_mode_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  opts_minimum_between_restart_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  opts_restart_coeff1_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  opts_restart_coeff2_st_fast_code_def[unfolded read_opts_wl_heur_code_def]
+  units_since_last_GC_st_code_def[unfolded read_stats_wl_heur_def]
+
+named_theorems state_extractors \<open>Definition of all functions modifying the state\<close>
+lemmas [state_extractors] =
+  extract_stats_wl_heur_def
+  isasat_state_ops.remove_stats_wl_heur_def
+  update_stats_wl_heur_def
 
 sepref_register reset_units_since_last_GC
+
+lemma reset_units_since_last_GC_st_alt_def:
+  \<open>reset_units_since_last_GC_st S =
+  (let (stats, S) = extract_stats_wl_heur S in
+  let stats = reset_units_since_last_GC stats in
+  let S = update_stats_wl_heur stats S in S
+  )\<close>
+  by (auto simp: reset_units_since_last_GC_st_def state_extractors split: isasat_int.splits)
+
 
 sepref_def reset_units_since_last_GC_st_code
   is \<open>RETURN o reset_units_since_last_GC_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  supply [[goals_limit=1]]
   unfolding reset_units_since_last_GC_st_alt_def
-    isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
+
+
+experiment
+begin
+export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
+  opts_minimum_between_restart_st_fast_code
+end
 
 sepref_def get_GC_units_opt_code
   is \<open>RETURN o get_GC_units_opt\<close>

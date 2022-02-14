@@ -483,17 +483,6 @@ lemma mop_mark_garbage_heur_alt_def:
         isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
         split: isasat_int.splits)
 
-lemma Mreturn_comp_IsaSAT_int:
-  \<open>(Mreturn o\<^sub>1\<^sub>6 IsaSAT_int) a b c d e f g h i j k l m n ko p =
-  Mreturn (IsaSAT_int a b c d e f g h i j k l m n ko p)\<close>
-  by auto
- 
-lemmas [sepref_fr_rules] = remove_lcount_wl_heur_code.refine update_lcount_wl_heur_code.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  extract_lcount_wl_heur_def[unfolded isasat_state_ops.remove_lcount_wl_heur_def]
-  extract_vdom_wl_heur_def[unfolded isasat_state_ops.remove_vdom_wl_heur_def]
-  remove_lcount_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
-  remove_vdom_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
 
 sepref_def mop_mark_garbage_heur_impl
   is \<open>uncurry2 mop_mark_garbage_heur\<close>

@@ -1766,6 +1766,9 @@ sepref_def bottom_ccach_code
   apply (annot_snat_const \<open>TYPE(32)\<close>)
   by sepref
 
+definition extract_lbd_wl_heur where
+  \<open>extract_lbd_wl_heur = isasat_state_ops.remove_lbd_wl_heur empty_lbd\<close>
+
 definition bottom_outl :: \<open>out_learned\<close> where
   \<open>bottom_outl = []\<close>
 
@@ -2176,8 +2179,10 @@ global_interpretation isasat_state where
     \<open>remove_vmtf_wl_heur \<equiv> extract_vmtf_wl_heur\<close> and
     \<open>remove_clvls_wl_heur \<equiv> extract_clvls_wl_heur\<close> and
     \<open>remove_ccach_wl_heur \<equiv> extract_ccach_wl_heur\<close> and
+    \<open>remove_lbd_wl_heur \<equiv> extract_lbd_wl_heur\<close> and
     \<open>remove_outl_wl_heur \<equiv> extract_outl_wl_heur\<close> and
     \<open>remove_stats_wl_heur \<equiv> extract_stats_wl_heur\<close> and
+    \<open>remove_heur_wl_heur \<equiv> extract_heur_wl_heur\<close> and
     \<open>remove_vdom_wl_heur \<equiv> extract_vdom_wl_heur\<close> and
     \<open>remove_lcount_wl_heur \<equiv> extract_lcount_wl_heur\<close> and
     \<open>remove_opts_wl_heur \<equiv> extract_opts_wl_heur\<close> and
@@ -2224,8 +2229,10 @@ global_interpretation isasat_state where
   subgoal unfolding extract_vmtf_wl_heur_def .
   subgoal unfolding extract_clvls_wl_heur_def .
   subgoal unfolding extract_ccach_wl_heur_def .
+  subgoal unfolding extract_lbd_wl_heur_def .
   subgoal unfolding extract_outl_wl_heur_def .
   subgoal unfolding extract_stats_wl_heur_def .
+  subgoal unfolding extract_heur_wl_heur_def .
   subgoal unfolding extract_vdom_wl_heur_def .
   subgoal unfolding extract_lcount_wl_heur_def .
   subgoal unfolding extract_opts_wl_heur_def .
@@ -2528,5 +2535,37 @@ locale read_old_arena_param_adder0 =
 begin
 lemmas refine = read_old_arena_wl_heur_code_refine[OF not_deleted_code_refine]
 end
+
+
+lemma Mreturn_comp_IsaSAT_int:
+  \<open>(Mreturn o\<^sub>1\<^sub>6 IsaSAT_int) a b c d e f g h i j k l m n ko p =
+  Mreturn (IsaSAT_int a b c d e f g h i j k l m n ko p)\<close>
+  by auto
+
+lemmas [sepref_fr_rules] = remove_lcount_wl_heur_code.refine update_lcount_wl_heur_code.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  extract_lcount_wl_heur_def[unfolded isasat_state_ops.remove_lcount_wl_heur_def]
+  extract_vdom_wl_heur_def[unfolded isasat_state_ops.remove_vdom_wl_heur_def]
+  remove_lcount_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
+  remove_vdom_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
+
+sepref_register remove_heur_wl_heur
+lemmas [sepref_fr_rules] =
+  remove_trail_wl_heur_code.refine
+  remove_arena_wl_heur_code.refine
+  remove_conflict_wl_heur_code.refine
+  remove_literals_to_update_wl_heur_code.refine
+  remove_vmtf_wl_heur_code.refine
+  remove_clvls_wl_heur_code.refine
+  remove_ccach_wl_heur_code.refine
+
+  remove_vdom_wl_heur_code.refine
+  remove_lcount_wl_heur_code.refine
+  remove_outl_wl_heur_code.refine
+  remove_stats_wl_heur_code.refine
+  remove_opts_wl_heur_code.refine
+  remove_old_arena_wl_heur_code.refine
+  remove_lbd_wl_heur_code.refine
+  remove_old_arena_wl_heur_code.refine
 
 end
