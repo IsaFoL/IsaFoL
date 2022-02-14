@@ -396,23 +396,59 @@ lemmas [sepref_fr_rules] = get_the_propagation_reason_heur.refine[unfolded lambd
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_the_propagation_reason_heur_fast_code_def[unfolded read_trail_wl_heur_code_def]
 
+thm clause_is_learned_heur_def
+definition is_learned where
+  \<open>is_learned N C = (arena_status N C = LEARNED)\<close>
+
+sepref_definition is_learned_impl
+  is \<open>uncurry (RETURN oo is_learned)\<close>
+  :: \<open>[uncurry arena_is_valid_clause_vdom]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow> bool1_assn\<close>
+  unfolding is_learned_def
+  by sepref
+
+definition clause_is_learned_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>clause_is_learned_heur_code2 N C = read_arena_wl_heur_code (\<lambda>Ca. is_learned_impl Ca C) N\<close>
+
+lemma clause_is_learned_heur_alt_def: \<open>RETURN oo clause_is_learned_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N)\<close>
+  by (auto simp: clause_is_learned_heur_def read_arena_wl_heur_def is_learned_def
+    intro!: ext split: isasat_int.splits)
+
+global_interpretation arena_is_learned: read_arena_param_adder where
+  R = \<open>(snat_rel' TYPE(64))\<close> and
+  f' = \<open>\<lambda>N C. (RETURN oo is_learned) C N\<close> and
+  f = \<open>(\<lambda>N C. is_learned_impl C N)\<close> and
+  x_assn = bool1_assn and
+  P = \<open>\<lambda>C N. arena_is_valid_clause_vdom N C\<close>
+  rewrites
+    \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. is_learned_impl Ca C) N) = clause_is_learned_heur_code2\<close> and
+   \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N) = RETURN oo clause_is_learned_heur\<close>
+
+  apply unfold_locales
+  apply (rule remove_pure_parameter2[where f = \<open>(\<lambda>C N. is_learned_impl C N)\<close> and f' =  \<open>\<lambda>C N. (RETURN oo is_learned) C N\<close>])
+  apply (rule is_learned_impl.refine)
+  apply assumption
+  subgoal by (auto simp: clause_is_learned_heur_code2_def intro!: ext)
+  subgoal by (subst clause_is_learned_heur_alt_def, rule refl)
+  done
+
+
+lemmas [sepref_fr_rules] = arena_is_learned.refine
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  clause_is_learned_heur_code2_def[unfolded read_arena_wl_heur_code_def]
+  is_learned_impl_def
+
+thm arena_is_learned.refine
+
 export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
   clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
   length_avdom_fast_code length_tvdom_fast_code get_the_propagation_reason_heur_fast_code
+  clause_is_learned_heur_code2
 
 sepref_register get_the_propagation_reason_heur
 
 subsection \<open>More theorems\<close>
 
-
-
-sepref_def clause_is_learned_heur_code2
-  is \<open>uncurry (RETURN oo clause_is_learned_heur)\<close>
-  :: \<open>[\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
-  supply [[goals_limit = 1]]
-  unfolding clause_is_learned_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
 
 sepref_register clause_lbd_heur
 

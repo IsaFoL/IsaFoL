@@ -556,7 +556,7 @@ sepref_register swap_avdom_aivdom take_avdom_aivdom add_init_clause_aivdom_stron
 lemma vdom_fast_assn_alt_def: \<open>vdom_fast_assn = hr_comp LBD_it.arr_assn (\<langle>nat_rel\<rangle>list_rel)\<close>
   by auto
 
-lemmas [sepref_fr_rules] =
+lemmas vdom_ref[sepref_fr_rules] =
   length_avdom_aivdom_impl.refine[FCOMP length_avdom_aivdom_int]
   length_ivdom_aivdom_impl.refine[FCOMP length_ivdom_aivdom_int]
   length_tvdom_aivdom_impl.refine[FCOMP length_tvdom_aivdom_int]
