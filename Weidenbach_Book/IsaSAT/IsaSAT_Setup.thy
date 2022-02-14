@@ -85,8 +85,8 @@ datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat
   (get_conflict_cach: 'h)
   (get_lbd: 'i)
   (get_outlearned_heur: 'j)
-  (get_heur: 'k)
-  (get_stats_heur: 'l)
+  (get_stats_heur: 'k)
+  (get_heur: 'l)
   (get_aivdom: 'm)
   (get_learned_count: 'n)
   (get_opts: 'o)
@@ -94,33 +94,10 @@ datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat
 
   type_synonym isasat = \<open>(trail_pol, arena,
       conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
-      nat, conflict_min_cach_l, lbd, out_learned, isasat_restart_heuristics, isasat_stats, 
+      nat, conflict_min_cach_l, lbd, out_learned, isasat_stats, isasat_restart_heuristics, 
      isasat_aivdom, clss_size, opts, arena) isasat_int\<close>
 abbreviation IsaSAT where
   \<open>IsaSAT a b c d e f g h i j k l m n xo p \<equiv> IsaSAT_int a b c d e f g h i j k l m n xo p :: isasat\<close>
-(* datatype isasat = IsaSAT
- *   (get_trail_wl_heur: trail_pol)
- *   (get_clauses_wl_heur: arena)
- *   (get_conflict_wl_heur: conflict_option_rel)
- *   (literals_to_update_wl_heur: nat)
- *   (get_watched_wl_heur: \<open>(nat watcher) list list\<close>)
- *   (get_vmtf_heur: isa_vmtf_remove_int)
- *   (get_count_max_lvls_heur: nat)
- *   (get_conflict_cach: conflict_min_cach_l)
- *   (get_lbd: lbd)
- *   (get_outlearned_heur: out_learned)
- *   (get_heur: isasat_restart_heuristics)
- *   (get_stats_heur: isasat_stats)
- *   (get_aivdom: isasat_aivdom)
- *   (get_learned_count: clss_size)
- *   (get_opts: opts)
- *   (get_old_arena: arena) *)
-
-(* type_synonym isasat_int = \<open>trail_pol \<times> arena \<times>
- *       conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
- *       nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> isasat_stats \<times> isasat_restart_heuristics \<times>
- *      isasat_aivdom \<times> clss_size \<times> opts \<times> arena\<close>  *)
-
 
 paragraph \<open>Accessors\<close>
 
@@ -158,10 +135,10 @@ fun set_outl_wl_heur :: \<open>out_learned \<Rightarrow> isasat \<Rightarrow> is
   \<open>set_outl_wl_heur outl (IsaSAT M N D i W ivmtf icount ccach lbd _ heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
 fun set_heur_wl_heur :: \<open>isasat_restart_heuristics \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_heur_wl_heur heur (IsaSAT M N D i W ivmtf icount ccach lbd outl _ stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+  \<open>set_heur_wl_heur heur (IsaSAT M N D i W ivmtf icount ccach lbd outl stats _ aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
 
 fun set_stats_wl_heur :: \<open>isasat_stats \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_stats_wl_heur stats (IsaSAT M N D i W ivmtf icount ccach lbd outl heur _ aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+  \<open>set_stats_wl_heur stats (IsaSAT M N D i W ivmtf icount ccach lbd outl _ heur aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
 
 fun set_aivdom_wl_heur :: \<open>isasat_aivdom \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>set_aivdom_wl_heur aivdom (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats _ clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
@@ -588,24 +565,20 @@ lemma valid_arena_DECISION_REASON:
   using arena_lifting[of arena NU vdom DECISION_REASON]
   by (auto simp: DECISION_REASON_def SHIFTS_def)
 
-(* definition count_decided_st_heur :: \<open>_ \<Rightarrow> _\<close> where
- *   \<open>count_decided_st_heur = (\<lambda>((_,_,_,_,n, _), _). n)\<close>
- * 
- * lemma count_decided_st_heur_alt_def:
- *    \<open>count_decided_st_heur = (\<lambda>(M, _). count_decided_pol M)\<close>
- *   by (auto simp: count_decided_st_heur_def count_decided_pol_def)
- * 
- * lemma twl_st_heur_count_decided_st_alt_def:
- *   fixes S :: isasat
- *   shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
- *   unfolding count_decided_st_def twl_st_heur_def trail_pol_def
- *   by (cases S) (auto simp: count_decided_st_heur_def)
- * 
- * lemma twl_st_heur_isa_length_trail_get_trail_wl:
- *   fixes S :: twl_st_wl_heur
- *   shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
- *   unfolding isa_length_trail_def twl_st_heur_def trail_pol_def
- *   by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of) *)
+definition count_decided_st_heur :: \<open>isasat \<Rightarrow> _\<close> where
+   \<open>count_decided_st_heur S = count_decided_pol (get_trail_wl_heur S)\<close>
+
+lemma twl_st_heur_count_decided_st_alt_def:
+  fixes S :: isasat
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto simp: count_decided_st_heur_def count_decided_pol_def)
+
+lemma twl_st_heur_isa_length_trail_get_trail_wl:
+  fixes S :: isasat
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
+  unfolding isa_length_trail_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
 
 lemma trail_pol_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> trail_pol \<A> \<Longrightarrow> L \<in> trail_pol \<B>\<close>
