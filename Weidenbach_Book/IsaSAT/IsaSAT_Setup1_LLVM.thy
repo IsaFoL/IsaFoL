@@ -362,22 +362,48 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 
 sepref_register length_avdom length_ivdom length_tvdom
 
+lemma get_the_propagation_reason_heur_alt_def:
+  \<open>get_the_propagation_reason_heur = (\<lambda>N C'. read_trail_wl_heur (\<lambda>L. get_the_propagation_reason_pol L C') N)\<close>
+  by (auto simp: get_the_propagation_reason_heur_def read_trail_wl_heur_def get_the_propagation_reason_pol_def
+    split: isasat_int.splits intro!: ext)
+
+definition get_the_propagation_reason_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_the_propagation_reason_heur_fast_code N C = read_trail_wl_heur_code (\<lambda>L. get_the_propagation_reason_fast_code L C) N\<close>
+
+global_interpretation get_the_propagation_reason_heur: read_trail_param_adder where
+  f = \<open>\<lambda>S L. get_the_propagation_reason_fast_code L S\<close> and
+  f' = \<open>\<lambda>S L. get_the_propagation_reason_pol L S\<close> and
+  x_assn = \<open>snat_option_assn' TYPE(64)\<close> and
+  P = \<open>\<lambda>S _. True\<close> and
+  R = \<open>unat_lit_rel\<close>
+  rewrites \<open>(\<lambda>N C'. read_trail_wl_heur (\<lambda>L. get_the_propagation_reason_pol L C') N) = get_the_propagation_reason_heur\<close> and
+  \<open>(\<lambda>N C. read_trail_wl_heur_code (\<lambda>L. get_the_propagation_reason_fast_code L C) N) = get_the_propagation_reason_heur_fast_code\<close>
+  apply unfold_locales
+  apply (rule remove_pure_parameter2[where f = get_the_propagation_reason_fast_code and f' = get_the_propagation_reason_pol])
+  apply (subst lambda_comp_true)
+  apply (rule get_the_propagation_reason_fast_code.refine)
+  apply assumption
+  subgoal
+    by (auto simp: get_the_propagation_reason_heur_alt_def)
+  subgoal
+    by (auto simp: get_the_propagation_reason_heur_fast_code_def intro!: ext)
+  done
+
+
+
+lemmas [sepref_fr_rules] = get_the_propagation_reason_heur.refine[unfolded lambda_comp_true]
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_the_propagation_reason_heur_fast_code_def[unfolded read_trail_wl_heur_code_def]
+
 export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
   clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
-  length_avdom_fast_code length_tvdom_fast_code
+  length_avdom_fast_code length_tvdom_fast_code get_the_propagation_reason_heur_fast_code
+
+sepref_register get_the_propagation_reason_heur
 
 subsection \<open>More theorems\<close>
 
- 
-sepref_register get_the_propagation_reason_heur
-
-sepref_def get_the_propagation_reason_heur_fast_code
-  is \<open>uncurry get_the_propagation_reason_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(64)\<close>
-  unfolding get_the_propagation_reason_heur_alt_def
-     isasat_bounded_assn_def fold_tuple_optimizations
-  supply [[goals_limit = 1]]
-  by sepref
 
 
 sepref_def clause_is_learned_heur_code2
