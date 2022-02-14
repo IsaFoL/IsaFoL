@@ -3,7 +3,6 @@ theory IsaSAT_Setup1_LLVM
     IsaSAT_Setup0_LLVM
 begin
 
-
 context
   fixes C :: \<open>64 word\<close> and C' :: nat
 begin
@@ -98,10 +97,6 @@ lemmas [sepref_fr_rules] = conflict_is_None.refine[unfolded get_conflict_wl_is_N
 lemmas [llvm_code] = conflict_is_None_code_def
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_fast_code_def[unfolded read_conflict_wl_heur_code_def]
-
-llvm_deps get_conflict_wl_is_None_fast_code
-export_llvm get_conflict_wl_is_None_fast_code
-
 
 lemma count_decided_st_heur_alt_def:
   \<open>RETURN o count_decided_st_heur = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
@@ -432,72 +427,145 @@ global_interpretation arena_is_learned: read_arena_param_adder where
   done
 
 
-lemmas [sepref_fr_rules] = arena_is_learned.refine
+definition clause_lbd_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>clause_lbd_heur_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_lbd_impl Ca C) N)\<close>
+
+lemma clause_lbd_heur_alt_def:
+  \<open>RETURN \<circ>\<circ> clause_lbd_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N)\<close>
+  by (auto simp: clause_lbd_heur_def read_arena_wl_heur_def arena_lbd_def split: isasat_int.splits intro!: ext)
+
+global_interpretation arena_get_lbd: read_arena_param_adder where
+  R = \<open>(snat_rel' TYPE(64))\<close> and
+  f' = \<open>\<lambda>N C. (RETURN oo arena_lbd) C N\<close> and
+  f = \<open>(\<lambda>N C. arena_lbd_impl C N)\<close> and
+  x_assn = uint32_nat_assn and
+  P = \<open>\<lambda>C N. get_clause_LBD_pre N C\<close>
+  rewrites
+    \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_lbd_impl Ca C) N) = clause_lbd_heur_code2\<close> and
+   \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N) = RETURN oo clause_lbd_heur\<close>
+  apply unfold_locales
+  apply (rule remove_pure_parameter2[where f = \<open>(\<lambda>C N. arena_lbd_impl C N)\<close> and f' =  \<open>\<lambda>C N. (RETURN oo arena_lbd) C N\<close>])
+  apply (rule arena_lbd_impl.refine)
+  apply assumption
+  subgoal by (auto simp: clause_lbd_heur_code2_def intro!: ext)
+  subgoal by (subst clause_lbd_heur_alt_def, rule refl)
+  done
+
+lemmas [sepref_fr_rules] = arena_get_lbd.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  clause_lbd_heur_code2_def[unfolded read_arena_wl_heur_code_def]
   clause_is_learned_heur_code2_def[unfolded read_arena_wl_heur_code_def]
   is_learned_impl_def
 
-thm arena_is_learned.refine
-
-export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
-  clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
-  length_avdom_fast_code length_tvdom_fast_code get_the_propagation_reason_heur_fast_code
-  clause_is_learned_heur_code2
-
-sepref_register get_the_propagation_reason_heur
-
-subsection \<open>More theorems\<close>
+thm arena_get_lbd.refine
 
 
 sepref_register clause_lbd_heur
 
-sepref_def clause_lbd_heur_code2
-  is \<open>uncurry (RETURN oo clause_lbd_heur)\<close>
-  :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding isasat_bounded_assn_def clause_lbd_heur_alt_def fold_tuple_optimizations
-  supply [[goals_limit = 1]]
-  by sepref
-
-
 
 sepref_register mark_garbage_heur
+lemma mop_mark_garbage_heur_alt_def:
+  \<open>mop_mark_garbage_heur C i = (\<lambda>S\<^sub>0. do {
+  ASSERT(mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C) \<and> clss_size_lcount (get_learned_count S\<^sub>0) \<ge> 1 \<and> i < length (get_avdom S\<^sub>0));
+     let (N, S) = extract_arena_wl_heur S\<^sub>0;
+    ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+    let N' = extra_information_mark_to_delete N C;
+    let S = update_arena_wl_heur N' S;
+    let (lcount, S) = extract_lcount_wl_heur S;
+    ASSERT (lcount = get_learned_count S\<^sub>0);
+    let lcount = clss_size_decr_lcount (lcount);
+    RETURN (update_lcount_wl_heur lcount S)
+      })\<close>
+      unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def
+        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def
+        isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
+        split: isasat_int.splits)
+
+lemma Mreturn_comp_IsaSAT_int:
+  \<open>(Mreturn o\<^sub>1\<^sub>6 IsaSAT_int) a b c d e f g h i j k l m n ko p =
+  Mreturn (IsaSAT_int a b c d e f g h i j k l m n ko p)\<close>
+  by auto
+ 
+lemmas [sepref_fr_rules] = remove_lcount_wl_heur_code.refine update_lcount_wl_heur_code.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  extract_lcount_wl_heur_def[unfolded isasat_state_ops.remove_lcount_wl_heur_def]
+  extract_vdom_wl_heur_def[unfolded isasat_state_ops.remove_vdom_wl_heur_def]
+  remove_lcount_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
+  remove_vdom_wl_heur_code_def[unfolded Mreturn_comp_IsaSAT_int]
 
 sepref_def mop_mark_garbage_heur_impl
   is \<open>uncurry2 mop_mark_garbage_heur\<close>
   :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding mop_mark_garbage_heur_alt_def
-    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
-    get_clauses_wl_heur.simps
-  apply (rewrite in \<open>RETURN \<hole>\<close> fold_tuple_optimizations)
+  unfolding mop_mark_garbage_heur_alt_def clause_not_marked_to_delete_heur_pre_def
   by sepref
 
+lemma mark_garbage_heur_alt_def: \<open>RETURN ooo mark_garbage_heur =
+  (\<lambda>C i S\<^sub>0. do {
+    let (N, S) = extract_arena_wl_heur S\<^sub>0;
+    ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+    let N' = extra_information_mark_to_delete N C;
+    let S = update_arena_wl_heur N' S;
+    let (lcount, S) = extract_lcount_wl_heur S;
+    ASSERT (lcount = get_learned_count S\<^sub>0);
+    let lcount = clss_size_decr_lcount (lcount);
+    RETURN (update_lcount_wl_heur lcount S)})\<close>
+      unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def
+        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def
+        isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
+        split: isasat_int.splits)
+  
 sepref_def mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S \<and>
          clss_size_lcount (get_learned_count S) \<ge> 1]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
-    length_avdom_def fold_tuple_optimizations clss_size_decr_lcount_def clss_size_lcount_def
-    lcount_assn_def
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  unfolding mark_garbage_heur_alt_def
   by sepref
+
+lemma mop_mark_garbage_heur3_alt_def:
+  \<open>mop_mark_garbage_heur3 C i = (\<lambda>S\<^sub>0. do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C) \<and> clss_size_lcount (get_learned_count S\<^sub>0) \<ge> 1  \<and> i < length (get_tvdom S\<^sub>0));
+    let (N, S) = extract_arena_wl_heur S\<^sub>0;
+    ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+    let N' = extra_information_mark_to_delete N C;
+    let S = update_arena_wl_heur N' S;
+    let (vdom, S) = extract_vdom_wl_heur S;
+    ASSERT (vdom = get_aivdom S\<^sub>0);
+    let vdom = remove_inactive_aivdom_tvdom i vdom;
+    let S = update_vdom_wl_heur vdom S;
+    RETURN S
+   })\<close>
+      unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
+   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def extract_vdom_wl_heur_def
+        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def isasat_state_ops.remove_vdom_wl_heur_def
+     isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
+     update_vdom_wl_heur_def
+        split: isasat_int.splits)
 
 sepref_def mop_mark_garbage_heur3_impl
   is \<open>uncurry2 mop_mark_garbage_heur3\<close>
   :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding mop_mark_garbage_heur3_def fold_tuple_optimizations
-    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def mark_garbage_heur3_def
+  unfolding mop_mark_garbage_heur3_alt_def
   by sepref
 
-sepref_register delete_index_vdom_heur
 
+lemma delete_index_vdom_heur_alt_def: \<open>RETURN oo delete_index_vdom_heur = (\<lambda>i S\<^sub>0. do {
+  let (vdom, S) = extract_vdom_wl_heur S\<^sub>0;
+  ASSERT (vdom = get_aivdom S\<^sub>0);
+  let vdom = remove_inactive_aivdom_tvdom i vdom;
+  RETURN (update_vdom_wl_heur vdom S)
+    })\<close>
+  by (auto simp: delete_index_vdom_heur_def extract_vdom_wl_heur_def
+    isasat_state_ops.remove_vdom_wl_heur_def update_vdom_wl_heur_def
+    intro!: ext split: isasat_int.splits)
 
 sepref_def delete_index_vdom_heur_fast_code2
   is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
@@ -505,63 +573,157 @@ sepref_def delete_index_vdom_heur_fast_code2
         sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   supply [simp] = length_tvdom_def
-  unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
-    length_avdom_def fold_tuple_optimizations
+  unfolding delete_index_vdom_heur_alt_def
   by sepref
 
-sepref_register access_length_heur
+lemma access_length_heur_alt_def:
+  \<open>RETURN oo access_length_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (arena_length N C')) N)\<close>
+  by (auto intro!: ext simp: read_arena_wl_heur_def access_length_heur_def
+    split: isasat_int.splits)
 
-sepref_def access_length_heur_fast_code2
-  is \<open>uncurry (RETURN oo access_length_heur)\<close>
-  :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
-  supply [[goals_limit = 1]]
-  unfolding access_length_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+definition access_length_heur_fast_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>access_length_heur_fast_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C) N)\<close>
 
-sepref_register marked_as_used_st
+global_interpretation arena_length: read_arena_param_adder where
+  R = \<open>snat_rel' TYPE(64)\<close> and
+  f' = \<open>\<lambda>C N. RETURN (arena_length N C)\<close> and
+  f = \<open>(\<lambda>C' N. arena_length_impl N C')\<close> and
+  x_assn = \<open>snat_assn' TYPE(64)\<close> and
+  P = \<open>(\<lambda>C S. arena_is_valid_clause_idx S C)\<close>
+  rewrites
+  \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (arena_length N C')) N) = RETURN oo access_length_heur\<close> and
+  \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C) N) = access_length_heur_fast_code2\<close>
+  apply unfold_locales
+  apply (rule remove_pure_parameter2[where f' = \<open>\<lambda>N C. RETURN (arena_length N C)\<close> and f = \<open>(\<lambda>N C'. arena_length_impl N C')\<close>])
+  apply (rule arena_length_impl.refine[unfolded comp_def], assumption)
+  subgoal by (auto simp: access_length_heur_alt_def)
+  subgoal by (auto simp: access_length_heur_fast_code2_def)
+  done
 
-sepref_def marked_as_used_st_fast_code
-  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
-  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_assn' TYPE(2)\<close>
-  supply [[goals_limit = 1]]
-  unfolding marked_as_used_st_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+lemmas [sepref_fr_rules] = arena_length.refine
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  access_length_heur_fast_code2_def[unfolded read_arena_wl_heur_code_def]
+
+lemma get_slow_ema_heur_alt_def:
+    \<open>RETURN o get_slow_ema_heur = read_heur_wl_heur (RETURN o slow_ema_of)\<close> and
+  get_fast_ema_heur_alt_def:
+    \<open>RETURN o get_fast_ema_heur = read_heur_wl_heur (RETURN o fast_ema_of)\<close> 
+  by (auto simp: read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+
+definition get_slow_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_slow_ema_heur_fast_code = read_heur_wl_heur_code slow_ema_of_stats_impl\<close>
+
+global_interpretation slow_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o slow_ema_of\<close> and
+  f = slow_ema_of_stats_impl and
+  x_assn = \<open>ema_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_heur_wl_heur (RETURN o slow_ema_of) = RETURN o get_slow_ema_heur\<close> and
+    \<open>read_heur_wl_heur_code slow_ema_of_stats_impl = get_slow_ema_heur_fast_code\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: get_slow_ema_heur_alt_def)
+  subgoal by (auto simp: get_slow_ema_heur_fast_code_def)
+  done
+
+definition get_fast_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_fast_ema_heur_fast_code = read_heur_wl_heur_code fast_ema_of_stats_impl\<close>
+
+global_interpretation fast_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o fast_ema_of\<close> and
+  f = fast_ema_of_stats_impl and
+  x_assn = \<open>ema_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_heur_wl_heur (RETURN o fast_ema_of) = RETURN o get_fast_ema_heur\<close> and
+    \<open>read_heur_wl_heur_code fast_ema_of_stats_impl = get_fast_ema_heur_fast_code\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: get_fast_ema_heur_alt_def)
+  subgoal by (auto simp: get_fast_ema_heur_fast_code_def)
+  done
+
+ thm get_conflict_count_since_last_restart_heur.simps
+find_theorems get_conflict_count_since_last_restart RETURN
+
+lemma get_conflict_count_since_last_restart_heur_alt_def:
+  \<open>RETURN o get_conflict_count_since_last_restart_heur =
+  read_heur_wl_heur (RETURN \<circ> get_conflict_count_since_last_restart)\<close>
+  by (auto simp: read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+
+definition get_conflict_count_since_last_restart_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_conflict_count_since_last_restart_heur_fast_code = read_heur_wl_heur_code get_conflict_count_since_last_restart_stats_impl\<close>
+
+global_interpretation get_conflict_count_since_last_restart: read_heur_param_adder0 where
+  f' = \<open>RETURN o get_conflict_count_since_last_restart\<close> and
+  f = get_conflict_count_since_last_restart_stats_impl and
+  x_assn = \<open>word64_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_heur_wl_heur (RETURN o get_conflict_count_since_last_restart) = RETURN o get_conflict_count_since_last_restart_heur\<close> and
+    \<open>read_heur_wl_heur_code get_conflict_count_since_last_restart_stats_impl = get_conflict_count_since_last_restart_heur_fast_code\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: get_conflict_count_since_last_restart_heur_alt_def)
+  subgoal by (auto simp: get_conflict_count_since_last_restart_heur_fast_code_def)
+  done
 
 
+lemma id_lcount_assn: \<open>(Mreturn, RETURN) \<in> (lcount_assn)\<^sup>k \<rightarrow>\<^sub>a lcount_assn\<close>
+  unfolding lcount_assn_def
+  by sepref_to_hoare vcg
 
-sepref_def get_slow_ema_heur_fast_code
-  is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+lemma get_learned_count_alt_def: \<open>RETURN o get_learned_count = read_lcount_wl_heur RETURN\<close>
+  by (auto simp: read_lcount_wl_heur_def intro!: ext split: isasat_int.splits)
 
-sepref_def get_fast_ema_heur_fast_code
-  is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+definition get_learned_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_learned_count_fast_code = read_lcount_wl_heur_code Mreturn\<close>
 
-sepref_def get_conflict_count_since_last_restart_heur_fast_code
-  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding get_conflict_count_since_last_restart_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+global_interpretation get_lcount: read_lcount_param_adder0 where
+  f' = \<open>RETURN\<close> and
+  f = \<open>Mreturn\<close> and
+  x_assn = \<open>lcount_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_lcount_wl_heur (RETURN) = RETURN o get_learned_count\<close> and
+    \<open>read_lcount_wl_heur_code Mreturn = get_learned_count_fast_code\<close>
+  apply unfold_locales
+  apply (rule id_lcount_assn)
+  subgoal by (auto simp: get_learned_count_alt_def)
+  subgoal by (auto simp: get_learned_count_fast_code_def)
+  done
 
-sepref_def get_learned_count_fast_code
-  is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a lcount_assn\<close>
-  unfolding get_learned_count_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+definition get_learned_count_number_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_learned_count_number_fast_code = read_lcount_wl_heur_code clss_size_lcount_fast_code\<close>
 
-sepref_register clss_size_lcount get_learned_count_number
+global_interpretation get_learned_count_number: read_lcount_param_adder0 where
+  f' = \<open>RETURN o clss_size_lcount\<close> and
+  f = \<open>clss_size_lcount_fast_code\<close> and
+  x_assn = \<open>uint64_nat_assn\<close> and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_lcount_wl_heur (RETURN o clss_size_lcount) = RETURN o get_learned_count_number\<close> and
+    \<open>read_lcount_wl_heur_code clss_size_lcount_fast_code = get_learned_count_number_fast_code\<close>
+  apply unfold_locales
+  apply (rule clss_size_lcount_fast_code.refine)
+  subgoal by (auto simp: read_lcount_wl_heur_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: get_learned_count_number_fast_code_def)
+  done
 
-sepref_def get_learned_count_number_fast_code
-  is \<open>RETURN o get_learned_count_number\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def fold_tuple_optimizations
-  by sepref
+lemmas [sepref_fr_rules] =
+  slow_ema.refine[unfolded lambda_comp_true] fast_ema.refine[unfolded lambda_comp_true]
+  get_conflict_count_since_last_restart.refine[unfolded lambda_comp_true]
+  get_lcount.refine[unfolded lambda_comp_true]
+  get_learned_count_number.refine[unfolded lambda_comp_true]
+  
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_slow_ema_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
+  get_fast_ema_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
+  get_conflict_count_since_last_restart_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
+  get_learned_count_fast_code_def[unfolded read_lcount_wl_heur_code_def]
+  get_learned_count_number_fast_code_def[unfolded read_lcount_wl_heur_code_def]
 
 sepref_def learned_clss_count_fast_code
   is \<open>RETURN o learned_clss_count\<close>
@@ -569,4 +731,42 @@ sepref_def learned_clss_count_fast_code
   unfolding clss_size_allcount_alt_def learned_clss_count_def fold_tuple_optimizations
   by sepref
 
+definition marked_as_used_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>marked_as_used_st_fast_code = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. marked_as_used_impl N C) N)\<close>
+global_interpretation marked_used: read_arena_param_adder where
+  R = \<open>snat_rel' TYPE(64)\<close> and
+  f' = \<open>\<lambda>C N. RETURN (marked_as_used N C)\<close> and
+  f = \<open>(\<lambda>C' N. marked_as_used_impl N C')\<close> and
+  x_assn = \<open>unat_assn' TYPE(2)\<close> and
+  P = \<open>(\<lambda>C S. marked_as_used_pre S C)\<close>
+  rewrites
+  \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (marked_as_used N C')) N) = RETURN oo marked_as_used_st\<close> and
+  \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. marked_as_used_impl N C) N) = marked_as_used_st_fast_code\<close>
+  apply unfold_locales
+  apply (rule remove_pure_parameter2[where f' = \<open>\<lambda>N C. RETURN (marked_as_used N C)\<close> and f = \<open>(\<lambda>N C'. marked_as_used_impl N C')\<close>])
+  apply (rule marked_as_used_impl.refine[unfolded comp_def], assumption)
+  subgoal by (auto simp: marked_as_used_st_def read_arena_wl_heur_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: marked_as_used_st_fast_code_def)
+  done
+
+lemmas [sepref_fr_rules] = marked_used.refine
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  marked_as_used_st_fast_code_def[unfolded read_arena_wl_heur_code_def]
+
+
+sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_length_heur marked_as_used_st
+
+experiment
+begin
+
+export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
+  clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
+  length_avdom_fast_code length_tvdom_fast_code get_the_propagation_reason_heur_fast_code
+  clause_is_learned_heur_code2 clause_lbd_heur_code2 mop_mark_garbage_heur_impl mark_garbage_heur_code2
+  mop_mark_garbage_heur3_impl delete_index_vdom_heur_fast_code2 access_length_heur_fast_code2
+  get_fast_ema_heur_fast_code get_slow_ema_heur_fast_code get_conflict_count_since_last_restart_heur_fast_code
+  get_learned_count_fast_code
+
+end
 end
