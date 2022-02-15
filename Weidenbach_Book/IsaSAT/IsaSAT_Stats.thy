@@ -602,30 +602,6 @@ lemma print_trail_print_trail2_rel:
   \<open>(print_trail, print_trail2) \<in> Id \<rightarrow>\<^sub>f \<langle>unit_rel\<rangle>nres_rel\<close>
   using print_trail_print_trail2 by (fastforce intro: frefI nres_relI)
 
-
-definition print_trail_st where
-  \<open>print_trail_st = (\<lambda>(M, _). print_trail M)\<close>
-
-definition print_trail_st2 where
-  \<open>print_trail_st2 _ = ()\<close>
-
-lemma print_trail_st_print_trail_st2:
-  \<open>print_trail_st S \<le> \<Down>unit_rel (RETURN (print_trail_st2 S))\<close>
-  unfolding print_trail_st2_def print_trail_st_def
-    print_trail_def
-  apply (refine_vcg WHILET_rule[where
-       R = \<open>measure (\<lambda>i. Suc (length (fst (fst S))) - i)\<close> and
-       I = \<open>\<lambda>i. i \<le> length (fst (fst S))\<close>])
-  subgoal by auto
-  subgoal by auto
-  subgoal unfolding print_literal_of_trail_def by auto
-  subgoal unfolding print_literal_of_trail_def by auto
-  done
-
-lemma print_trail_st_print_trail_st2_rel:
-  \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
-  using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
-
 definition clss_size_corr :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> clss_size \<Rightarrow> bool\<close> where
   \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 c \<longleftrightarrow> c = clss_size N NE UE NEk UEk NS US N0 U0\<close>
 

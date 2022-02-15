@@ -1098,8 +1098,9 @@ definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasa
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>S. do{
-    let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C;
+    let N' = get_clauses_wl_heur S;
     let st = arena_status N' C = IRRED;
+    let N' = extra_information_mark_to_delete N' C;
     let lcount = get_learned_count S;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     let lcount = (if st then lcount else clss_size_decr_lcount lcount);
@@ -1107,7 +1108,8 @@ definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
 
 definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>mark_garbage_heur3 C i = (\<lambda>S.
-    let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C in
+    let N' = get_clauses_wl_heur S in
+    let N' = extra_information_mark_to_delete (N') C in
     let lcount = get_learned_count S in
     let vdom = get_aivdom S in
     let vdom = remove_inactive_aivdom_tvdom i vdom in
@@ -1118,8 +1120,9 @@ definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> isas
 
 definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur4 C = (\<lambda>S. do{
-    let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C;
+    let N' = get_clauses_wl_heur S;
     let st = arena_status N' C = IRRED;
+    let N' = extra_information_mark_to_delete (N') C;
     let lcount = get_learned_count S;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     let lcount = (if st then lcount else clss_size_incr_lcountUEk (clss_size_decr_lcount lcount));
@@ -1163,7 +1166,7 @@ definition mop_mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>mark_unused_st_heur C = (\<lambda>S.
-    let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C in
+    let N' = mark_unused (get_clauses_wl_heur S) C in
     let S = set_clauses_wl_heur N' S in
     S)\<close>
 
@@ -1329,7 +1332,7 @@ definition mop_arena_lbd_st where
  *   unfolding mop_arena_lbd_st_def mop_arena_lbd_def
  *   by (auto intro!: ext) *)
 
-definition mop_arena_status_st where
+definition mop_arena_status_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>mop_arena_status_st S =
     mop_arena_status (get_clauses_wl_heur S)\<close>
 
@@ -1382,11 +1385,12 @@ lemma twl_st_heur_get_clauses_access_lit[simp]:
     for S T C i
     by (cases S; cases T)
       (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
-definition length_clauses_heur where
-  \<open>length_clauses_heur S = length (get_clauses_wl_heur S)\<close>
 
-(* lemma length_clauses_heur_alt_def: \<open>length_clauses_heur = (\<lambda>(M, N, _). length N)\<close>
- *   by (auto intro!: ext simp: length_clauses_heur_def) *)
+
+abbreviation length_clauses_heur where
+  \<open>length_clauses_heur \<equiv> full_arena_length_st\<close>
+
+lemmas length_clauses_heur_def = full_arena_length_st_def
 
 text \<open>In an attempt to avoid using @{thm ac_simps} everywhere.\<close>
 lemma all_lits_simps[simp]:
@@ -1619,4 +1623,28 @@ definition is_fully_propagated_heur_st :: \<open>isasat \<Rightarrow> bool\<clos
  *   unfolding clause_not_marked_to_delete_heur_def mop_clause_not_marked_to_delete_heur_def
  *   by (auto intro!: ext) *)
 
+
+
+definition print_trail_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>print_trail_st = (\<lambda>S. print_trail (get_trail_wl_heur S))\<close>
+
+definition print_trail_st2 where
+  \<open>print_trail_st2 _ = ()\<close>
+
+lemma print_trail_st_print_trail_st2:
+  \<open>print_trail_st S \<le> \<Down>unit_rel (RETURN (print_trail_st2 S))\<close>
+  unfolding print_trail_st2_def print_trail_st_def
+    print_trail_def
+  apply (refine_vcg WHILET_rule[where
+       R = \<open>measure (\<lambda>i. Suc (length (fst (get_trail_wl_heur S))) - i)\<close> and
+       I = \<open>\<lambda>i. i \<le> length (fst (get_trail_wl_heur S))\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  subgoal unfolding print_literal_of_trail_def by auto
+  done
+
+lemma print_trail_st_print_trail_st2_rel:
+  \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
+  using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
 end

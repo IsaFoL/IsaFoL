@@ -2321,11 +2321,79 @@ lemma remove_pure_parameter2_twoargs:
   apply (auto simp: pure_true_conv)
   done
 
-locale read_trail_param_adder0 =
-  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+(*TODO Move*)
+lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
+  by (auto simp: nofail_def ASSERT_eq iASSERT_def)
+
+lemma refine_ASSERT_move_to_pre:
+  assumes \<open>(uncurry g, uncurry h) \<in> [uncurry P]\<^sub>a A *\<^sub>a B \<rightarrow> x_assn\<close>
+  shows
+  \<open>(uncurry g, uncurry (\<lambda>N C. do {ASSERT (P N C); h N C}))
+    \<in> A *\<^sub>a B \<rightarrow>\<^sub>a x_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (auto simp: nofail_ASSERT_bind)
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+  apply auto
+  done
+
+lemma refine_ASSERT_move_to_pre0:
+  assumes \<open>(g, h) \<in> [P]\<^sub>a A  \<rightarrow> x_assn\<close>
+  shows
+  \<open>(g, (\<lambda>N. do {ASSERT (P N); h N}))
+    \<in> A \<rightarrow>\<^sub>a x_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (auto simp: nofail_ASSERT_bind)
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+  apply auto
+  done
+
+lemma refine_ASSERT_move_to_pre2:
+  assumes \<open>(uncurry2 g, uncurry2 h) \<in> [uncurry2 P]\<^sub>a A *\<^sub>a B *\<^sub>a C \<rightarrow> x_assn\<close>
+  shows
+  \<open>(uncurry2 g, uncurry2 (\<lambda>N C D. do {ASSERT (P N C D); h N C D}))
+    \<in> A *\<^sub>a B *\<^sub>a C \<rightarrow>\<^sub>a x_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (auto simp: nofail_ASSERT_bind)
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+  apply auto
+  done
+
+locale read_trail_param_adder0_ops =
+  fixes P :: \<open>trail_pol \<Rightarrow> bool\<close> and f' :: \<open>trail_pol \<Rightarrow> 'r nres\<close>
+begin
+
+definition mop where
+  \<open>mop N = do {
+    ASSERT (P (get_trail_wl_heur N));
+    read_trail_wl_heur (f') N
+   }\<close>
+
+end
+
+locale read_trail_param_adder0 = read_trail_param_adder0_ops P f'
+  for P :: \<open> trail_pol \<Rightarrow> bool\<close> and f' :: \<open>trail_pol \<Rightarrow> 'r nres\<close> +
+  fixes f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
   assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
 begin
 lemmas refine = read_trail_wl_heur_code_refine[OF not_deleted_code_refine]
+
+
+lemma mop_refine:
+  \<open>((read_trail_wl_heur_code f), mop) \<in> isasat_bounded_assn\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  unfolding mop_def
+  apply (rule refine_ASSERT_move_to_pre0)
+  apply (rule refine[unfolded comp_def])
+  done
+
 end
 
 
@@ -2363,24 +2431,6 @@ locale read_arena_param_adder0 =
 begin
 lemmas refine = read_arena_wl_heur_code_refine[OF not_deleted_code_refine]
 end
-
-(*TODO Move*)
-lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
-  by (auto simp: nofail_def ASSERT_eq iASSERT_def)
-
-lemma refine_ASSERT_move_to_pre:
-  assumes \<open>(uncurry g, uncurry h) \<in> [uncurry P]\<^sub>a A *\<^sub>a B \<rightarrow> x_assn\<close>
-  shows
-  \<open>(uncurry g, uncurry (\<lambda>N C. do {ASSERT (P N C); h N C}))
-    \<in> A *\<^sub>a B \<rightarrow>\<^sub>a x_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (auto simp: nofail_ASSERT_bind)
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
-  apply auto
-  done
 
 
 locale read_arena_param_adder_ops =
@@ -2448,10 +2498,28 @@ lemma refine:
   done
 end
 
-locale read_arena_param_adder2_twoargs' =
-  fixes R and R' and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+locale read_arena_param_adder2_twoargs'_ops =
+  fixes
+    f' :: \<open>arena_el list \<Rightarrow> 'b \<Rightarrow> 'd \<Rightarrow> 'r nres\<close> and
+    P :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena_el list \<Rightarrow> bool\<close>
+begin
+definition mop where
+  \<open>mop N C C' = do {
+     ASSERT (P C C' (get_clauses_wl_heur N));
+     read_arena_wl_heur (\<lambda>N. f' N C C') N
+  }\<close>
+end
+
+locale read_arena_param_adder2_twoargs' = read_arena_param_adder2_twoargs'_ops f' P
+  for
+    f' :: \<open>arena_el list \<Rightarrow> 'b \<Rightarrow> 'd \<Rightarrow> 'r nres\<close> and
+    P :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena_el list \<Rightarrow> bool\<close> +
+  fixes R :: \<open>('a \<times> 'b) set\<close> and R' :: \<open>('c \<times> 'd) set\<close> and
+    f :: \<open>64 word \<times> 64 word \<times> 32 word ptr \<Rightarrow> 'a \<Rightarrow> 'c \<Rightarrow> 'q llM\<close> and
+    x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
   assumes not_deleted_code_refine: \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow> (D, D') \<in> R' \<Longrightarrow> (\<lambda>S. f S C D, \<lambda>S. f' S C' D') \<in> [P C' D']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma refine:
   \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f N C D) N),
     uncurry2 (\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. f' N C' D) N))
@@ -2459,6 +2527,13 @@ lemma refine:
   apply (rule add_pure_parameter2_twoargs)
   apply (rule read_arena_wl_heur_code_refine[OF not_deleted_code_refine])
   apply assumption+
+  done
+
+lemma mop_refine:
+  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f N C D) N), uncurry2 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  unfolding mop_def
+  apply (rule refine_ASSERT_move_to_pre2)
+  apply (rule refine[unfolded comp_def])
   done
 end
 
@@ -2566,6 +2641,22 @@ begin
 lemmas refine = read_vdom_wl_heur_code_refine[OF not_deleted_code_refine]
 end
 
+locale read_vdom_param_adder =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and C and C'
+  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a aivdom_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+lemma refine:
+  \<open>(uncurry (\<lambda>N C. read_vdom_wl_heur_code (f C) N),
+    uncurry (\<lambda>N C'. read_vdom_wl_heur (f' C') N))
+  \<in> [uncurry (\<lambda>S C. P C (get_aivdom S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (rule read_vdom_wl_heur_code_refine[OF not_deleted_code_refine, unfolded comp_def])
+  apply assumption
+  done
+
+end
+
+
 locale read_lcount_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a lcount_assn\<^sup>k \<rightarrow> x_assn\<close>
@@ -2621,6 +2712,31 @@ lemmas [sepref_fr_rules] =
   remove_old_arena_wl_heur_code.refine
 
 
-lemma lambda_comp_true: \<open>(\<lambda>S. True) \<circ> f = (\<lambda>_. True)\<close> \<open>uncurry (\<lambda>a b. True) = (\<lambda>_. True)\<close>
+lemma lambda_comp_true: \<open>(\<lambda>S. True) \<circ> f = (\<lambda>_. True)\<close> \<open>uncurry (\<lambda>a b. True) = (\<lambda>_. True)\<close>  \<open>uncurry2 (\<lambda>a b c. True) = (\<lambda>_. True)\<close>
   by auto
+
+named_theorems state_extractors \<open>Definition of all functions modifying the state\<close>
+lemmas [state_extractors] =
+  extract_trail_wl_heur_def
+  extract_arena_wl_heur_def
+  extract_conflict_wl_heur_def
+  extract_watchlist_wl_heur_def
+  extract_stats_wl_heur_def
+  extract_heur_wl_heur_def
+  extract_lcount_wl_heur_def
+  isasat_state_ops.remove_trail_wl_heur_def
+  isasat_state_ops.remove_arena_wl_heur_def
+  isasat_state_ops.remove_conflict_wl_heur_def
+  isasat_state_ops.remove_watchlist_wl_heur_def
+  isasat_state_ops.remove_stats_wl_heur_def
+  isasat_state_ops.remove_heur_wl_heur_def
+  isasat_state_ops.remove_lcount_wl_heur_def
+  update_trail_wl_heur_def
+  update_arena_wl_heur_def
+  update_conflict_wl_heur_def
+  update_watchlist_wl_heur_def
+  update_stats_wl_heur_def
+  update_heur_wl_heur_def
+  update_lcount_wl_heur_def
+
 end

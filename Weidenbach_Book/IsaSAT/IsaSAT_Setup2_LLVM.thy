@@ -145,6 +145,33 @@ global_interpretation opts_GC_units_lim: read_opts_param_adder0 where
   subgoal by (auto simp: get_GC_units_opt_code_def)
   done
 
+definition get_target_opts_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_target_opts_impl = read_opts_wl_heur_code opts_rel_target_code\<close>
+
+global_interpretation get_target_opts: read_opts_param_adder0 where
+  f' = \<open>RETURN o opts_target\<close> and
+  f = opts_rel_target_code and
+  x_assn = \<open>word_assn' TYPE(3)\<close> and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_opts_wl_heur (RETURN o opts_target) = RETURN o get_target_opts\<close> and
+    \<open>read_opts_wl_heur_code opts_rel_target_code = get_target_opts_impl\<close>
+  apply unfold_locales
+  apply (rule opts_refine)
+  subgoal by (auto simp: get_target_opts_def read_opts_wl_heur_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_target_opts_impl_def)
+  done
+thm get_target_opts_def
+  find_theorems opts_target RETURN
+(*
+sepref_def get_opts_impl
+  is \<open>RETURN o get_opts\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
+  unfolding get_opts_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+*)
+
+
 definition isasat_length_trail_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_length_trail_st_code = read_trail_wl_heur_code isa_length_trail_fast_code\<close>
 
@@ -225,6 +252,7 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
   trail_length.refine
   pos_of_level_in_trail.refine
   stats_conflict.refine
+  get_target_opts.refine
 
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
     opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
@@ -242,30 +270,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   isasat_length_trail_st_code_def[unfolded read_trail_wl_heur_code_def]
   get_pos_of_level_in_trail_imp_st_code_def[unfolded read_trail_wl_heur_code_def]
   get_global_conflict_count_impl_def[unfolded read_stats_wl_heur_code_def]
-
-named_theorems state_extractors \<open>Definition of all functions modifying the state\<close>
-lemmas [state_extractors] =
-  extract_trail_wl_heur_def
-  extract_arena_wl_heur_def
-  extract_conflict_wl_heur_def
-  extract_watchlist_wl_heur_def
-  extract_stats_wl_heur_def
-  extract_heur_wl_heur_def
-  extract_lcount_wl_heur_def
-  isasat_state_ops.remove_trail_wl_heur_def
-  isasat_state_ops.remove_arena_wl_heur_def
-  isasat_state_ops.remove_conflict_wl_heur_def
-  isasat_state_ops.remove_watchlist_wl_heur_def
-  isasat_state_ops.remove_stats_wl_heur_def
-  isasat_state_ops.remove_heur_wl_heur_def
-  isasat_state_ops.remove_lcount_wl_heur_def
-  update_trail_wl_heur_def
-  update_arena_wl_heur_def
-  update_conflict_wl_heur_def
-  update_watchlist_wl_heur_def
-  update_stats_wl_heur_def
-  update_heur_wl_heur_def
-  update_lcount_wl_heur_def
+  get_target_opts_impl_def[unfolded read_opts_wl_heur_code_def]
 
 sepref_register reset_units_since_last_GC
 
