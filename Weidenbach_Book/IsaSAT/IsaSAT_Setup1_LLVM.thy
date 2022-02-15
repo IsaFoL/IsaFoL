@@ -233,6 +233,63 @@ global_interpretation access_arena: read_arena_param_adder2_twoargs' where
   apply (rule access_lit_in_clauses_heur_pre)
   done
 
+
+lemma refine_ASSERT_move_to_pre2':
+  \<open>(uncurry2 g, uncurry2 h) \<in> [uncurry2 (\<lambda>a b c. P a b c \<and> Q a b c)]\<^sub>a A *\<^sub>a B *\<^sub>a C \<rightarrow> x_assn \<longleftrightarrow> (uncurry2 g, uncurry2 (\<lambda>N C D. do {ASSERT (P N C D); h N C D}))
+    \<in> [uncurry2 Q]\<^sub>a A *\<^sub>a B *\<^sub>a C \<rightarrow> x_assn\<close>
+  apply (rule iffI)
+  subgoal premises p
+    apply sepref_to_hoare
+    apply vcg
+    apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+    apply (auto simp: nofail_ASSERT_bind hn_ctxt_def )
+    apply (rule p[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+    apply auto
+    done
+  subgoal premises p
+    apply sepref_to_hoare
+    apply vcg
+    subgoal for b bi ba bia a ai asf s
+      apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+      using p[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+        sep_conj_empty' pure_true_conv sep.add_assoc, rule_format, of a ba b]
+      apply auto
+      done
+    done
+  done
+
+lemma arena_lit_arena_lit_read_arena_wl_heur_arena_lit:
+  \<open>RETURN (arena_lit (get_clauses_wl_heur N) (C + C')) = read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C + C'))) N\<close>
+  by (auto intro!: ext simp: read_arena_wl_heur_def access_lit_in_clauses_heur_def split: isasat_int.splits)
+
+sepref_register mop_access_lit_in_clauses_heur
+lemma mop_access_lit_in_clauses_heur_refine[sepref_fr_rules]:
+  \<open>(uncurry2 access_lit_in_clauses_heur_fast_code, uncurry2 mop_access_lit_in_clauses_heur)
+    \<in> [uncurry2 (\<lambda>S i j. length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using access_arena.mop_refine[unfolded access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric, where Q = \<open>\<lambda>_ _ _. True\<close>, unfolded simp_thms lambda_comp_true]]
+  unfolding mop_access_lit_in_clauses_heur_def mop_access_lit_in_clauses_heur_def mop_arena_lit2_def Let_def
+    access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric] access_lit_in_clauses_heur_alt_def
+    arena_lit_arena_lit_read_arena_wl_heur_arena_lit[symmetric]
+  by auto
+
+lemma al_assn_boundD2: \<open>al_assn arena_el_impl_assn x2 (d:: 'a :: len2 word \<times> 'a word \<times> 32 word ptr) c \<Longrightarrow> length x2 < max_snat LENGTH('a)\<close>
+  using al_assn_boundD[unfolded rdomp_def, of arena_el_impl_assn \<open>x2\<close>, where 'l = 'a]
+  by (cases d) auto
+
+lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> sint64_max\<close> apply -
+  unfolding rdomp_def
+  apply normalize_goal+
+  by (cases a, case_tac xa)
+   (auto simp: isasat_bounded_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int.splits
+    dest!: al_assn_boundD2 mod_starD)
+
+sepref_def mop_access_lit_in_clauses_heur_impl
+  is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  supply [dest] = isasat_bounded_assn_length_arenaD
+  by sepref
+
 lemmas [sepref_fr_rules] = access_arena.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =

@@ -267,9 +267,9 @@ proof -
 qed
 
 definition isa_find_unwatched_wl_st_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
-\<open>isa_find_unwatched_wl_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
-    isa_find_unwatched (\<lambda>L. polarity_pol M L \<noteq> Some False) M N i
+  :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
+\<open>isa_find_unwatched_wl_st_heur = (\<lambda>S i. do {
+    isa_find_unwatched (\<lambda>L. polarity_pol (get_trail_wl_heur S) L \<noteq> Some False) (get_trail_wl_heur S) (get_clauses_wl_heur S) i
   })\<close>
 
 
@@ -479,14 +479,15 @@ proof -
     done
 qed
 
-definition isa_save_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+definition isa_save_pos :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
-  \<open>isa_save_pos C i = (\<lambda>(M, N, oth). do {
-      ASSERT(arena_is_valid_clause_idx N C);
-      if arena_length N C > MAX_LENGTH_SHORT_CLAUSE then do {
-        ASSERT(isa_update_pos_pre ((C, i), N));
-        RETURN (M, arena_update_pos C i N, oth)
-      } else RETURN (M, N, oth)
+  \<open>isa_save_pos C i = (\<lambda>S. do {
+      ASSERT(arena_is_valid_clause_idx (get_clauses_wl_heur S) C);
+      if arena_length (get_clauses_wl_heur S) C > MAX_LENGTH_SHORT_CLAUSE then do {
+        ASSERT(isa_update_pos_pre ((C, i), get_clauses_wl_heur S));
+        let N = arena_update_pos C i  (get_clauses_wl_heur S);
+        RETURN (set_clauses_wl_heur N S)
+      } else RETURN S
     })
   \<close>
 
@@ -523,15 +524,25 @@ definition set_conflict_wl_heur_pre where
      (\<lambda>(C, S). True)\<close>
 
 definition set_conflict_wl_heur
-  :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+  :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
-  \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
+  \<open>set_conflict_wl_heur = (\<lambda>C S. do {
     let n = 0;
+    let M = get_trail_wl_heur S;
+    let N = get_clauses_wl_heur S;
+    let D = get_conflict_wl_heur S;
+    let outl = get_outlearned_heur S;
+    let stats = get_stats_heur S;
     ASSERT(curry5 isa_set_lookup_conflict_aa_pre M N C D n outl);
     (D, clvls, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n outl;
     j \<leftarrow> mop_isa_length_trail M;
-    RETURN (M, N, D, j, W, vmtf, clvls, cach, lbd, outl,
-      incr_conflict stats, fema, sema)})\<close>
+    let S = IsaSAT_Setup.set_conflict_wl_heur D S;
+    let stats = incr_conflict stats;
+    let S = set_stats_wl_heur stats S;
+    let S = set_outl_wl_heur outl S;
+    let S = set_count_max_wl_heur clvls S;
+    let S = set_literals_to_update_wl_heur j S;
+    RETURN S})\<close>
 
 
 definition update_clause_wl_code_pre where
@@ -539,17 +550,21 @@ definition update_clause_wl_code_pre where
       w < length (get_watched_wl_heur S ! nat_of_lit L) )\<close>
 
 definition update_clause_wl_heur
-   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow>
-    (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
+   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow>
+    (nat \<times> nat \<times> isasat) nres\<close>
 where
-  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f (M, N, D, Q, W, vm). do {
-     K' \<leftarrow> mop_arena_lit2' (set (get_vdom (M, N, D, Q, W, vm))) N C f;
+  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f S. do {
+     let N = get_clauses_wl_heur S;
+     let W = get_watched_wl_heur S;
+     K' \<leftarrow> mop_arena_lit2' (set (get_vdom S)) N C f;
      ASSERT(w < length N);
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
-     RETURN (j, w+1, (M, N', D, Q, W, vm))
+     let S = set_watched_wl_heur W S;
+     let S = set_clauses_wl_heur N' S;
+     RETURN (j, w+1, S)
   })\<close>
 
 definition update_clause_wl_pre where
@@ -613,13 +628,14 @@ lemma all_atms_st_simps[simp]:
   by (cases S; auto simp: all_atms_st_def all_atms_def ran_m_clause_upd
     image_mset_remove1_mset_if simp del: all_atms_def[symmetric]; fail)+
 
+
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry7 update_clause_wl_heur, uncurry7 (update_clause_wl)) \<in>
    [update_clause_wl_pre K r]\<^sub>f
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount\<rangle>nres_rel\<close>
   unfolding update_clause_wl_heur_def update_clause_wl_alt_def uncurry_def
-    update_clause_wl_pre_def all_lits_of_all_atms_of all_lits_of_all_atms_of
+    update_clause_wl_pre_def all_lits_of_all_atms_of all_lits_of_all_atms_of Let_def
   apply (intro frefI nres_relI, case_tac x, case_tac y)
   apply (refine_rcg)
   apply (rule mop_arena_lit2')
@@ -658,15 +674,10 @@ lemma update_clause_wl_heur_update_clause_wl:
       twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def map_fun_rel_def2
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
-  subgoal for ax y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia _ _ _ _ _ _ _ _
-       _ _ _ _
-       ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
-    x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x
-    x2m x1n x2n x1o x1p
-       x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y
-       x2y x1z x2z K' K'a N' K'a'
-    by (auto dest!: length_watched_le2[of _ _ _ _ x2u \<D> r lcount K'])
-      (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def2 ac_simps)
+  subgoal for x y a b aa ba c d e f g h i j k l m n x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
+    x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x1t x1u x1v x1w x1x x1y x2s x2t x2u x2v x2w x2x x2y K' K'a N' N'a
+    by (auto dest!: length_watched_le2[of _ _ _ _ \<open>b\<close> \<D> r lcount K'a])
+      (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def2)
   subgoal
     by
      (clarsimp simp: twl_st_heur_def Let_def
@@ -681,17 +692,23 @@ definition propagate_lit_wl_heur_pre where
      (\<lambda>((L, C), S). C \<noteq> DECISION_REASON)\<close>
 
 definition propagate_lit_wl_heur
-  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-    heur, sema). do {
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i S. do {
+      let M = get_trail_wl_heur S;
+      let N = get_clauses_wl_heur S;
+      let heur = get_heur S;
+      let stats = get_stats_heur S;
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       N' \<leftarrow> mop_arena_swap C 0 (1 - i) N;
       let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
-      RETURN (M, N', D, Q, W, vm, clvls, cach, lbd, outl,
-         stats, heur, sema)
+      let S = set_trail_wl_heur M S;
+      let S = set_clauses_wl_heur N' S;
+      let S = set_heur_wl_heur heur S;
+      let S = set_stats_wl_heur stats S;
+      RETURN S
   })\<close>
 
 definition propagate_lit_wl_pre where
@@ -763,7 +780,7 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
     by (cases x; cases y; hypsubst)
      (clarsimp simp add: twl_st_heur_def twl_st_heur'_def isa_vmtf_consD2
       op_clauses_swap_def ac_simps)
-  done
+   done
 
 definition propagate_lit_wl_bin_pre where
   \<open>propagate_lit_wl_bin_pre = (\<lambda>(((L, C), i), S).
@@ -771,15 +788,19 @@ definition propagate_lit_wl_bin_pre where
      C \<in># dom_m (get_clauses_wl S) \<and> L \<in># all_lits_st S)\<close>
 
 definition propagate_lit_wl_bin_heur
-  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
-  \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-    heur, sema). do {
+  \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C S. do {
+      let M = get_trail_wl_heur S;
+      let heur = get_heur S;
+      let stats = get_stats_heur S;
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset (incr_units_since_last_GC stats) else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
-      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl,
-         stats, heur, sema)
+      let S = set_trail_wl_heur M S;
+      let S = set_heur_wl_heur heur S;
+      let S = set_stats_wl_heur stats S;
+      RETURN S
   })\<close>
 
 lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:

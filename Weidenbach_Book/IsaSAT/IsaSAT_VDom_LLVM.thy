@@ -399,7 +399,7 @@ proof -
 qed
 
 
-theorem [sepref_fr_rules]:
+theorem avdom_aivdom_at_impl_refine[sepref_fr_rules]:
   \<open>(uncurry avdom_aivdom_at_impl, uncurry (RETURN \<circ>\<circ> avdom_aivdom_at))
 \<in> [\<lambda>(ai, C). C < (length (get_avdom_aivdom ai)) ]\<^sub>a aivdom_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -423,7 +423,7 @@ proof -
 qed
 
 
-theorem [sepref_fr_rules]:
+theorem ivdom_aivdom_at_impl_refine[sepref_fr_rules]:
   \<open>(uncurry ivdom_aivdom_at_impl, uncurry (RETURN \<circ>\<circ> ivdom_aivdom_at))
 \<in> [\<lambda>(ai, C). C < (length (get_ivdom_aivdom ai)) ]\<^sub>a aivdom_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -447,7 +447,7 @@ proof -
 qed
 
 
-theorem [sepref_fr_rules]:
+theorem tvdom_aivdom_at_impl_refine[sepref_fr_rules]:
   \<open>(uncurry tvdom_aivdom_at_impl, uncurry (RETURN \<circ>\<circ> tvdom_aivdom_at))
 \<in> [\<lambda>(ai, C). C < (length (get_tvdom_aivdom ai)) ]\<^sub>a aivdom_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -493,7 +493,7 @@ proof -
 qed
 
 
-theorem [sepref_fr_rules]:
+theorem push_tvdom_impl_refine[sepref_fr_rules]:
   \<open>(uncurry push_tvdom_impl, uncurry (RETURN \<circ>\<circ> push_to_tvdom))
 \<in> [\<lambda>(C, ai). Suc (length (get_tvdom_aivdom ai)) < max_snat 64]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a aivdom_assn\<^sup>d \<rightarrow> aivdom_assn\<close>
   (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
@@ -514,7 +514,7 @@ proof -
     by blast
 qed
 
-theorem [sepref_fr_rules]:
+theorem swap_avdom_aivdom_impl_refine[sepref_fr_rules]:
   \<open>(uncurry2 swap_avdom_aivdom_impl, uncurry2 (RETURN ooo swap_avdom_aivdom))
   \<in> [\<lambda>((ai, i), j). i < length (get_avdom_aivdom ai) \<and> j < length (get_avdom_aivdom ai)]\<^sub>a
   aivdom_assn\<^sup>d   *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> aivdom_assn\<close>

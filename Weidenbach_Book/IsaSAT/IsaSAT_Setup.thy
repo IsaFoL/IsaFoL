@@ -1647,4 +1647,324 @@ lemma print_trail_st_print_trail_st2:
 lemma print_trail_st_print_trail_st2_rel:
   \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
   using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
+named_theorems isasat_state_simp \<open>Theoremes about the setters/getters of isasat_int\<close>
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_trail_wl_heur M S) = M\<close>
+  \<open>get_clauses_wl_heur (set_trail_wl_heur M S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_trail_wl_heur M S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_trail_wl_heur M S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_trail_wl_heur M S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_trail_wl_heur M S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_trail_wl_heur M S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_trail_wl_heur M S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_trail_wl_heur M S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_trail_wl_heur M S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_trail_wl_heur M S) = get_stats_heur S\<close>
+  \<open>get_heur (set_trail_wl_heur M S) = get_heur S\<close>
+  \<open>get_aivdom (set_trail_wl_heur M S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_trail_wl_heur M S) = get_learned_count S\<close>
+  \<open>get_opts (set_trail_wl_heur M S) = get_opts S\<close>
+  \<open>get_learned_count (set_trail_wl_heur M S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_trail_wl_heur M S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_clauses_wl_heur N S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_clauses_wl_heur N S) = N\<close>
+  \<open>get_conflict_wl_heur (set_clauses_wl_heur N S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_clauses_wl_heur N S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_clauses_wl_heur N S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_clauses_wl_heur N S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_clauses_wl_heur N S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_clauses_wl_heur N S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_clauses_wl_heur N S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_clauses_wl_heur N S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_clauses_wl_heur N S) = get_stats_heur S\<close>
+  \<open>get_heur (set_clauses_wl_heur N S) = get_heur S\<close>
+  \<open>get_aivdom (set_clauses_wl_heur N S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_clauses_wl_heur N S) = get_learned_count S\<close>
+  \<open>get_opts (set_clauses_wl_heur N S) = get_opts S\<close>
+  \<open>get_learned_count (set_clauses_wl_heur N S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_clauses_wl_heur N S) = get_old_arena S\<close>
+
+  \<open>get_trail_wl_heur (set_conflict_wl_heur D S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_conflict_wl_heur D S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_conflict_wl_heur D S) = D\<close>
+  \<open>literals_to_update_wl_heur (set_conflict_wl_heur D S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_conflict_wl_heur D S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_conflict_wl_heur D S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_conflict_wl_heur D S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_conflict_wl_heur D S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_conflict_wl_heur D S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_conflict_wl_heur D S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_conflict_wl_heur D S) = get_stats_heur S\<close>
+  \<open>get_heur (set_conflict_wl_heur D S) = get_heur S\<close>
+  \<open>get_aivdom (set_conflict_wl_heur D S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_conflict_wl_heur D S) = get_learned_count S\<close>
+  \<open>get_opts (set_conflict_wl_heur D S) = get_opts S\<close>
+  \<open>get_learned_count (set_conflict_wl_heur D S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_conflict_wl_heur D S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_literals_to_update_wl_heur j S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_literals_to_update_wl_heur j S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_literals_to_update_wl_heur j S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_literals_to_update_wl_heur j S) = j\<close>
+  \<open>get_watched_wl_heur (set_literals_to_update_wl_heur j S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_literals_to_update_wl_heur j S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_literals_to_update_wl_heur j S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_literals_to_update_wl_heur j S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_literals_to_update_wl_heur j S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_literals_to_update_wl_heur j S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_literals_to_update_wl_heur j S) = get_stats_heur S\<close>
+  \<open>get_heur (set_literals_to_update_wl_heur j S) = get_heur S\<close>
+  \<open>get_aivdom (set_literals_to_update_wl_heur j S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_literals_to_update_wl_heur j S) = get_learned_count S\<close>
+  \<open>get_opts (set_literals_to_update_wl_heur j S) = get_opts S\<close>
+  \<open>get_learned_count (set_literals_to_update_wl_heur j S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_literals_to_update_wl_heur j S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_watched_wl_heur W S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_watched_wl_heur W S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_watched_wl_heur W S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_watched_wl_heur W S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_watched_wl_heur W S) = W\<close>
+  \<open>get_vmtf_heur (set_watched_wl_heur W S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_watched_wl_heur W S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_watched_wl_heur W S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_watched_wl_heur W S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_watched_wl_heur W S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_watched_wl_heur W S) = get_stats_heur S\<close>
+  \<open>get_heur (set_watched_wl_heur W S) = get_heur S\<close>
+  \<open>get_aivdom (set_watched_wl_heur W S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_watched_wl_heur W S) = get_learned_count S\<close>
+  \<open>get_opts (set_watched_wl_heur W S) = get_opts S\<close>
+  \<open>get_learned_count (set_watched_wl_heur W S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_watched_wl_heur W S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_vmtf_wl_heur vmtf' S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_vmtf_wl_heur vmtf' S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_vmtf_wl_heur vmtf' S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_vmtf_wl_heur vmtf' S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_vmtf_wl_heur vmtf' S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_vmtf_wl_heur vmtf' S) = vmtf'\<close>
+  \<open>get_count_max_lvls_heur (set_vmtf_wl_heur vmtf' S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_vmtf_wl_heur vmtf' S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_vmtf_wl_heur vmtf' S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_vmtf_wl_heur vmtf' S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_vmtf_wl_heur vmtf' S) = get_stats_heur S\<close>
+  \<open>get_heur (set_vmtf_wl_heur vmtf' S) = get_heur S\<close>
+  \<open>get_aivdom (set_vmtf_wl_heur vmtf' S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_vmtf_wl_heur vmtf' S) = get_learned_count S\<close>
+  \<open>get_opts (set_vmtf_wl_heur vmtf' S) = get_opts S\<close>
+  \<open>get_learned_count (set_vmtf_wl_heur vmtf' S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_vmtf_wl_heur vmtf' S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_count_max_wl_heur count' S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_count_max_wl_heur count' S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_count_max_wl_heur count' S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_count_max_wl_heur count' S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_count_max_wl_heur count' S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_count_max_wl_heur count' S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_count_max_wl_heur count' S) = count'\<close>
+  \<open>get_conflict_cach (set_count_max_wl_heur count' S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_count_max_wl_heur count' S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_count_max_wl_heur count' S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_count_max_wl_heur count' S) = get_stats_heur S\<close>
+  \<open>get_heur (set_count_max_wl_heur count' S) = get_heur S\<close>
+  \<open>get_aivdom (set_count_max_wl_heur count' S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_count_max_wl_heur count' S) = get_learned_count S\<close>
+  \<open>get_opts (set_count_max_wl_heur count' S) = get_opts S\<close>
+  \<open>get_learned_count (set_count_max_wl_heur count' S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_count_max_wl_heur count' S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_ccach_max_wl_heur ccach S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_ccach_max_wl_heur ccach S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_ccach_max_wl_heur ccach S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_ccach_max_wl_heur ccach S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_ccach_max_wl_heur ccach S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_ccach_max_wl_heur ccach S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_ccach_max_wl_heur ccach S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_ccach_max_wl_heur ccach S) = ccach\<close>
+  \<open>get_lbd (set_ccach_max_wl_heur ccach S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_ccach_max_wl_heur ccach S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_ccach_max_wl_heur ccach S) = get_stats_heur S\<close>
+  \<open>get_heur (set_ccach_max_wl_heur ccach S) = get_heur S\<close>
+  \<open>get_aivdom (set_ccach_max_wl_heur ccach S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_ccach_max_wl_heur ccach S) = get_learned_count S\<close>
+  \<open>get_opts (set_ccach_max_wl_heur ccach S) = get_opts S\<close>
+  \<open>get_learned_count (set_ccach_max_wl_heur ccach S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_ccach_max_wl_heur ccach S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_lbd_wl_heur lbd S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_lbd_wl_heur lbd S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_lbd_wl_heur lbd S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_lbd_wl_heur lbd S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_lbd_wl_heur lbd S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_lbd_wl_heur lbd S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_lbd_wl_heur lbd S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_lbd_wl_heur lbd S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_lbd_wl_heur lbd S) = lbd\<close>
+  \<open>get_outlearned_heur (set_lbd_wl_heur lbd S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_lbd_wl_heur lbd S) = get_stats_heur S\<close>
+  \<open>get_heur (set_lbd_wl_heur lbd S) = get_heur S\<close>
+  \<open>get_aivdom (set_lbd_wl_heur lbd S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_lbd_wl_heur lbd S) = get_learned_count S\<close>
+  \<open>get_opts (set_lbd_wl_heur lbd S) = get_opts S\<close>
+  \<open>get_learned_count (set_lbd_wl_heur lbd S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_lbd_wl_heur lbd S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_outl_wl_heur outl S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_outl_wl_heur outl S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_outl_wl_heur outl S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_outl_wl_heur outl S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_outl_wl_heur outl S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_outl_wl_heur outl S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_outl_wl_heur outl S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_outl_wl_heur outl S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_outl_wl_heur outl S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_outl_wl_heur outl S) = outl\<close>
+  \<open>get_stats_heur (set_outl_wl_heur outl S) = get_stats_heur S\<close>
+  \<open>get_heur (set_outl_wl_heur outl S) = get_heur S\<close>
+  \<open>get_aivdom (set_outl_wl_heur outl S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_outl_wl_heur outl S) = get_learned_count S\<close>
+  \<open>get_opts (set_outl_wl_heur outl S) = get_opts S\<close>
+  \<open>get_learned_count (set_outl_wl_heur outl S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_outl_wl_heur outl S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_heur_wl_heur heur S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_heur_wl_heur heur S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_heur_wl_heur heur S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_heur_wl_heur heur S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_heur_wl_heur heur S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_heur_wl_heur heur S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_heur_wl_heur heur S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_heur_wl_heur heur S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_heur_wl_heur heur S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_heur_wl_heur heur S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_heur_wl_heur heur S) = get_stats_heur S\<close>
+  \<open>get_heur (set_heur_wl_heur heur S) = heur\<close>
+  \<open>get_aivdom (set_heur_wl_heur heur S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_heur_wl_heur heur S) = get_learned_count S\<close>
+  \<open>get_opts (set_heur_wl_heur heur S) = get_opts S\<close>
+  \<open>get_learned_count (set_heur_wl_heur heur S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_heur_wl_heur heur S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_stats_wl_heur stats S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_stats_wl_heur stats S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_stats_wl_heur stats S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_stats_wl_heur stats S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_stats_wl_heur stats S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_stats_wl_heur stats S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_stats_wl_heur stats S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_stats_wl_heur stats S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_stats_wl_heur stats S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_stats_wl_heur stats S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_stats_wl_heur stats S) = stats\<close>
+  \<open>get_heur (set_stats_wl_heur stats S) = get_heur S\<close>
+  \<open>get_aivdom (set_stats_wl_heur stats S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_stats_wl_heur stats S) = get_learned_count S\<close>
+  \<open>get_opts (set_stats_wl_heur stats S) = get_opts S\<close>
+  \<open>get_learned_count (set_stats_wl_heur stats S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_stats_wl_heur stats S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_aivdom_wl_heur aivdom S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_aivdom_wl_heur aivdom S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_aivdom_wl_heur aivdom S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_aivdom_wl_heur aivdom S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_aivdom_wl_heur aivdom S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_aivdom_wl_heur aivdom S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_aivdom_wl_heur aivdom S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_aivdom_wl_heur aivdom S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_aivdom_wl_heur aivdom S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_aivdom_wl_heur aivdom S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_aivdom_wl_heur aivdom S) = get_stats_heur S\<close>
+  \<open>get_heur (set_aivdom_wl_heur aivdom S) = get_heur S\<close>
+  \<open>get_aivdom (set_aivdom_wl_heur aivdom S) = aivdom\<close>
+  \<open>get_learned_count (set_aivdom_wl_heur aivdom S) = get_learned_count S\<close>
+  \<open>get_opts (set_aivdom_wl_heur aivdom S) = get_opts S\<close>
+  \<open>get_learned_count (set_aivdom_wl_heur aivdom S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_aivdom_wl_heur aivdom S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_learned_count_wl_heur lcount S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_learned_count_wl_heur lcount S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_learned_count_wl_heur lcount S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_learned_count_wl_heur lcount S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_learned_count_wl_heur lcount S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_learned_count_wl_heur lcount S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_learned_count_wl_heur lcount S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_learned_count_wl_heur lcount S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_learned_count_wl_heur lcount S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_learned_count_wl_heur lcount S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_learned_count_wl_heur lcount S) = get_stats_heur S\<close>
+  \<open>get_heur (set_learned_count_wl_heur lcount S) = get_heur S\<close>
+  \<open>get_aivdom (set_learned_count_wl_heur lcount S) = get_aivdom S\<close>
+  \<open>get_opts (set_learned_count_wl_heur lcount S) = get_opts S\<close>
+  \<open>get_learned_count (set_learned_count_wl_heur lcount S) = lcount\<close>
+  \<open>get_old_arena (set_learned_count_wl_heur lcount S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_opts_wl_heur lcount S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_opts_wl_heur lcount S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_opts_wl_heur lcount S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_opts_wl_heur lcount S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_opts_wl_heur lcount S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_opts_wl_heur lcount S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_opts_wl_heur lcount S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_opts_wl_heur lcount S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_opts_wl_heur lcount S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_opts_wl_heur lcount S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_opts_wl_heur lcount S) = get_stats_heur S\<close>
+  \<open>get_heur (set_opts_wl_heur lcount S) = get_heur S\<close>
+  \<open>get_aivdom (set_opts_wl_heur lcount S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_opts_wl_heur lcount S) = get_learned_count S\<close>
+  \<open>get_opts (set_opts_wl_heur lcount S) = lcount\<close>
+  \<open>get_learned_count (set_opts_wl_heur lcount S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_opts_wl_heur lcount S) = get_old_arena S\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemma [isasat_state_simp]:
+  \<open>get_trail_wl_heur (set_old_arena_wl_heur old_arena S) = get_trail_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (set_old_arena_wl_heur old_arena S) = get_clauses_wl_heur S\<close>
+  \<open>get_conflict_wl_heur (set_old_arena_wl_heur old_arena S) = get_conflict_wl_heur S\<close>
+  \<open>literals_to_update_wl_heur (set_old_arena_wl_heur old_arena S) = literals_to_update_wl_heur S\<close>
+  \<open>get_watched_wl_heur (set_old_arena_wl_heur old_arena S) = get_watched_wl_heur S\<close>
+  \<open>get_vmtf_heur (set_old_arena_wl_heur old_arena S) = get_vmtf_heur S\<close>
+  \<open>get_count_max_lvls_heur (set_old_arena_wl_heur old_arena S) = get_count_max_lvls_heur S\<close>
+  \<open>get_conflict_cach (set_old_arena_wl_heur old_arena S) = get_conflict_cach S\<close>
+  \<open>get_lbd (set_old_arena_wl_heur old_arena S) = get_lbd S\<close>
+  \<open>get_outlearned_heur (set_old_arena_wl_heur old_arena S) = get_outlearned_heur S\<close>
+  \<open>get_stats_heur (set_old_arena_wl_heur old_arena S) = get_stats_heur S\<close>
+  \<open>get_heur (set_old_arena_wl_heur old_arena S) = get_heur S\<close>
+  \<open>get_aivdom (set_old_arena_wl_heur old_arena S) = get_aivdom S\<close>
+  \<open>get_learned_count (set_old_arena_wl_heur old_arena S) = get_learned_count S\<close>
+  \<open>get_opts (set_old_arena_wl_heur old_arena S) = get_opts S\<close>
+  \<open>get_learned_count (set_old_arena_wl_heur old_arena S) = get_learned_count S\<close>
+  \<open>get_old_arena (set_old_arena_wl_heur old_arena S) = old_arena\<close>
+  by (solves \<open>cases S; auto\<close>)+
+
+lemmas [simp] = isasat_state_simp
+
 end

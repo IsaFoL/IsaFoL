@@ -2642,7 +2642,7 @@ lemmas refine = read_vdom_wl_heur_code_refine[OF not_deleted_code_refine]
 end
 
 locale read_vdom_param_adder =
-  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and C and C'
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and C and C' and R
   assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a aivdom_assn\<^sup>k \<rightarrow> x_assn\<close>
 begin
 lemma refine:
