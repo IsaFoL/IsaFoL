@@ -56,13 +56,21 @@ sepref_register clause_not_marked_to_delete_heur
 lemmas [sepref_fr_rules] = arena_is_valid.refine
 lemmas [llvm_code] = clause_not_marked_to_delete_heur_code_def[unfolded read_arena_wl_heur_code_def not_deleted_code_def]
 
+
+sepref_def mop_clause_not_marked_to_delete_heur_impl
+  is \<open>uncurry mop_clause_not_marked_to_delete_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding mop_clause_not_marked_to_delete_heur_def
+    clause_not_marked_to_delete_heur_pre_def prod.case
+  by sepref
+
 definition conflict_is_None  :: \<open>conflict_option_rel \<Rightarrow> bool nres\<close> where
   \<open>conflict_is_None =(\<lambda>N. do {let (b, _) = N;  RETURN b})\<close>
 definition \<open>conflict_is_None_code :: option_lookup_clause_assn \<Rightarrow> 1 word llM \<equiv>
 \<lambda>(a, _). do\<^sub>M {
   return\<^sub>M (a)
   }\<close>
-lemma conflict_is_None_code_refine[sepref_fr_rules] :
+lemma conflict_is_None_code_refine[sepref_fr_rules]:
   \<open>(conflict_is_None_code, conflict_is_None) \<in> conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding conflict_is_None_code_def conflict_is_None_def Let_def conflict_option_rel_assn_def
   apply sepref_to_hoare
@@ -108,8 +116,6 @@ definition count_decided_st_heur_impl where
 
 sepref_register extract_trail_wl_heur count_decided_pol update_trail_wl_heur count_decided_st_heur
 
-lemma lambda_comp_true: \<open>(\<lambda>S. True) \<circ> f = (\<lambda>_. True)\<close> \<open>uncurry (\<lambda>a b. True) = (\<lambda>_. True)\<close>
-  by auto
 
 lemmas [llvm_code] =
   read_trail_wl_heur_code_def
@@ -458,7 +464,12 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   clause_is_learned_heur_code2_def[unfolded read_arena_wl_heur_code_def]
   is_learned_impl_def
 
-thm arena_get_lbd.refine
+sepref_def mop_arena_lbd_st_impl
+  is \<open>uncurry mop_arena_lbd_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_lbd_def mop_arena_lbd_st_def clause_lbd_heur_def[symmetric]
+  by sepref
 
 
 sepref_register clause_lbd_heur
@@ -742,6 +753,13 @@ lemmas [sepref_fr_rules] = marked_used.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   marked_as_used_st_fast_code_def[unfolded read_arena_wl_heur_code_def]
+
+lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.mop\<close>
+  by (auto intro!: ext split: isasat_int.splits simp: mop_marked_as_used_st_def marked_used.mop_def
+    mop_marked_as_used_def read_arena_wl_heur_def)
+
+lemmas [sepref_fr_rules] =
+  marked_used.mop_refine[unfolded mop_marked_as_used_st_alt_def[symmetric]]
 
 
 sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_length_heur marked_as_used_st

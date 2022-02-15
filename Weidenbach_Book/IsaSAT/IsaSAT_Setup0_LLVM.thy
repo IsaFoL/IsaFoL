@@ -1319,13 +1319,14 @@ definition \<open>read_clvls_wl_heur_code \<equiv>
 \<lambda>xi. case xi of IsaSAT_int a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 \<Rightarrow> clvls_read_code a7\<close>
 
 context
-  assumes clvls_read[sepref_fr_rules]: \<open>(clvls_read_code, clvls_read) \<in> g_assn\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  fixes P
+  assumes clvls_read[sepref_fr_rules]: \<open>(clvls_read_code, clvls_read) \<in> [P]\<^sub>a g_assn\<^sup>k \<rightarrow> x_assn\<close>
   notes [[sepref_register_adhoc clvls_read]]
 begin
 
 sepref_definition read_clvls_wl_heur_code_tmp
   is read_clvls_wl_heur
-  :: \<open>isasat_assn\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  :: \<open>[P o get_count_max_lvls_heur]\<^sub>a isasat_assn\<^sup>k \<rightarrow> x_assn\<close>
    unfolding read_clvls_wl_heur_def
    by sepref
 
@@ -2358,15 +2359,48 @@ end
 
 locale read_arena_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a arena_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
 begin
-lemmas refine = read_arena_wl_heur_code_refine
+lemmas refine = read_arena_wl_heur_code_refine[OF not_deleted_code_refine]
 end
 
-locale read_arena_param_adder =
-  fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+(*TODO Move*)
+lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
+  by (auto simp: nofail_def ASSERT_eq iASSERT_def)
+
+lemma refine_ASSERT_move_to_pre:
+  assumes \<open>(uncurry g, uncurry h) \<in> [uncurry P]\<^sub>a A *\<^sub>a B \<rightarrow> x_assn\<close>
+  shows
+  \<open>(uncurry g, uncurry (\<lambda>N C. do {ASSERT (P N C); h N C}))
+    \<in> A *\<^sub>a B \<rightarrow>\<^sub>a x_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (auto simp: nofail_ASSERT_bind)
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+  apply auto
+  done
+
+
+locale read_arena_param_adder_ops =
+  fixes P :: \<open>'b \<Rightarrow> arena \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> arena_el list \<Rightarrow> 'r nres\<close>
+begin
+
+definition mop where
+  \<open>mop N C = do {
+    ASSERT (P C (get_clauses_wl_heur N));
+    read_arena_wl_heur (f' C) N
+   }\<close>
+
+end
+
+locale read_arena_param_adder = read_arena_param_adder_ops P f'
+  for P :: \<open>'b \<Rightarrow> arena \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> arena_el list \<Rightarrow> 'r nres\<close> +
+  fixes R :: \<open>('a \<times> 'b) set\<close> and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
   assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma refine:
   \<open>(uncurry (\<lambda>N C. read_arena_wl_heur_code (f C) N),
     uncurry (\<lambda>N C'. read_arena_wl_heur (f' C') N))
@@ -2375,6 +2409,16 @@ lemma refine:
   apply (rule read_arena_wl_heur_code_refine[OF not_deleted_code_refine])
   apply assumption
   done
+
+lemma mop_refine:
+  \<open>(uncurry (\<lambda>N C. read_arena_wl_heur_code (f C) N),
+    uncurry mop)
+  \<in> isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  unfolding mop_def
+  apply (rule refine_ASSERT_move_to_pre)
+  apply (rule refine)
+  done
+
 end
 
 
@@ -2480,6 +2524,13 @@ begin
 lemmas refine = read_ccach_wl_heur_code_refine[OF not_deleted_code_refine]
 end
 
+locale read_clvls_param_adder0 =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+lemmas refine = read_clvls_wl_heur_code_refine[OF not_deleted_code_refine]
+end
+
 locale read_lbd_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a lbd_assn\<^sup>k \<rightarrow> x_assn\<close>
@@ -2562,10 +2613,14 @@ lemmas [sepref_fr_rules] =
   remove_vdom_wl_heur_code.refine
   remove_lcount_wl_heur_code.refine
   remove_outl_wl_heur_code.refine
+  remove_heur_wl_heur_code.refine
   remove_stats_wl_heur_code.refine
   remove_opts_wl_heur_code.refine
   remove_old_arena_wl_heur_code.refine
   remove_lbd_wl_heur_code.refine
   remove_old_arena_wl_heur_code.refine
 
+
+lemma lambda_comp_true: \<open>(\<lambda>S. True) \<circ> f = (\<lambda>_. True)\<close> \<open>uncurry (\<lambda>a b. True) = (\<lambda>_. True)\<close>
+  by auto
 end
