@@ -283,7 +283,9 @@ lemma twl_st_heur_state_simp:
   shows
      \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
      twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
-       watched_by_int S C = watched_by S' C\<close> and
+       watched_by_int S C = watched_by S' C\<close>
+      \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
+       get_watched_wl_heur S ! (nat_of_lit C) =  get_watched_wl S' C\<close>and
      \<open>literals_to_update_wl S' =
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
      twl_st_heur_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>

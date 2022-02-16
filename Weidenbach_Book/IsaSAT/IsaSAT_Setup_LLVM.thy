@@ -10,6 +10,11 @@ begin
 subsubsection \<open>Lift Operations to State\<close>
 
 experiment begin
+lemma from_bool1: "from_bool True = 1"
+  by auto
+lemmas [llvm_pre_simp] = from_bool1
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  remove_watchlist_wl_heur_code_def[unfolded isasat_state.remove_watchlist_wl_heur_code_def]
 
 export_llvm
   ema_update_impl
@@ -20,7 +25,7 @@ export_llvm
   get_conflict_wl_is_None_fast_code
   isa_count_decided_st_fast_code
   polarity_st_heur_pol_fast
-  count_decided_st_heur_pol_fast
+  isa_count_decided_st_fast_code
   access_lit_in_clauses_heur_fast_code
   rewatch_heur_fast_code
   rewatch_heur_st_fast_code
