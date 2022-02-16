@@ -5,28 +5,96 @@ begin
 
 sepref_register isa_save_pos
 
+lemma isa_save_pos_alt_def:
+  \<open>isa_save_pos C i = (\<lambda>S\<^sub>0. do {
+      ASSERT(arena_is_valid_clause_idx (get_clauses_wl_heur S\<^sub>0) C);
+      if arena_length (get_clauses_wl_heur S\<^sub>0) C > MAX_LENGTH_SHORT_CLAUSE then do {
+        let (N, S) = extract_arena_wl_heur S\<^sub>0;
+        ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+        ASSERT(isa_update_pos_pre ((C, i), N));
+        let N = arena_update_pos C i N;
+        RETURN (update_arena_wl_heur N S)
+      } else RETURN S\<^sub>0
+    })
+  \<close>
+  by (auto simp: isa_save_pos_def state_extractors
+    split: isasat_int.splits intro!: ext)
+
 sepref_def isa_save_pos_fast_code
   is \<open>uncurry2 isa_save_pos\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply
     [[goals_limit=1]]
     if_splits[split]
-  unfolding isa_save_pos_def PR_CONST_def isasat_bounded_assn_def
+  unfolding isa_save_pos_alt_def PR_CONST_def access_length_heur_def[symmetric]
   by sepref
 
 
 lemma [def_pat_rules]: \<open>nth_rll \<equiv> op_list_list_idx\<close>
  by (auto simp: nth_rll_def intro!: ext eq_reflection)
 
-sepref_def watched_by_app_heur_fast_code
-  is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
-  :: \<open>[watched_by_app_heur_pre]\<^sub>a
-        isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> watcher_fast_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding watched_by_app_heur_alt_def isasat_bounded_assn_def nth_rll_def[symmetric]
-   watched_by_app_heur_pre_def
+
+definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (not_deleted_code C') S\<close>
+thm watched_by_app_heur_def
+definition access_watchlist :: \<open>(nat \<times> nat literal \<times> bool) list list \<Rightarrow> _\<close> where
+  \<open>access_watchlist N C C' = nth_rll N (nat_of_lit C) C'\<close>
+
+sepref_def access_watchlist_impl
+  is \<open>uncurry2 (RETURN ooo access_watchlist)\<close>
+  :: \<open>[uncurry2 (\<lambda>S L K. nat_of_lit L < length S \<and>
+          K < length (S ! nat_of_lit L))]\<^sub>a
+        watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> watcher_fast_assn\<close>
+  unfolding access_watchlist_def
   by sepref
 
+  term watcher_fast_assn
+lemma watched_by_app_helper:
+  \<open>uncurry (\<lambda>NC D. uncurry (\<lambda>N C. access_watchlist_impl N C D) NC) = uncurry2 access_watchlist_impl\<close>
+  \<open>uncurry (\<lambda>NC D'. uncurry (\<lambda>N C'. (RETURN \<circ>\<circ>\<circ> access_watchlist) N C' D') NC) = uncurry2 (RETURN ooo access_watchlist)\<close>
+  \<open>uncurry (\<lambda>a b. uncurry (\<lambda>a c. nat_of_lit c < length a \<and> b < length (a ! nat_of_lit c)) a)=
+  uncurry2 (\<lambda>S L K. nat_of_lit L < length S \<and> K < length (S ! nat_of_lit L))\<close>
+  by (auto)
+
+definition watched_by_app_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>watched_by_app_heur_fast_code = (\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N)\<close>
+
+global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
+  R = \<open>unat_lit_rel\<close> and
+  R' = \<open>snat_rel' TYPE(64)\<close> and
+  f = \<open>\<lambda>C C' N. access_watchlist_impl N C C'\<close> and
+  f' = \<open>\<lambda>C C' N. (RETURN ooo access_watchlist) N C C'\<close> and
+  x_assn = watcher_fast_assn and
+  P = \<open>(\<lambda>L K S. nat_of_lit L < length S \<and>
+          K < length (S ! nat_of_lit L))\<close>
+  rewrites
+    \<open>(\<lambda>N C' D'. read_watchlist_wl_heur (\<lambda>N. (RETURN \<circ>\<circ>\<circ> access_watchlist) N C' D') N) = RETURN ooo watched_by_app_heur\<close> and
+    \<open>(\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N) = watched_by_app_heur_fast_code\<close> and
+  \<open>uncurry2 (\<lambda>S C D. nat_of_lit C < length (get_watched_wl_heur S) \<and> D < length (get_watched_wl_heur S ! nat_of_lit C)) = watched_by_app_heur_pre\<close>
+  apply unfold_locales
+  subgoal for C C' D D'
+  apply (rule remove_pure_parameter2[where f =  \<open>(\<lambda>N C. access_watchlist_impl N C D)\<close> and
+    f' =  \<open>(\<lambda>N C'. (RETURN ooo access_watchlist) N C' D')\<close> and
+    R = unat_lit_rel])
+  apply (rule remove_pure_parameter2[where
+    f = \<open>\<lambda>NC D. uncurry (\<lambda>N C. access_watchlist_impl N C D) NC\<close> and
+    f' =  \<open>\<lambda>NC D'. uncurry (\<lambda>N C'. (RETURN ooo access_watchlist) N C' D') NC\<close> and
+    R = \<open>snat_rel' TYPE(64)\<close>])
+  unfolding watched_by_app_helper
+  apply (rule access_watchlist_impl.refine)
+  by assumption+
+  subgoal
+    by (auto intro!: ext split: isasat_int.split
+      simp: read_watchlist_wl_heur_def watched_by_app_heur_def access_watchlist_def
+      nth_rll_def)
+  subgoal by (auto simp: watched_by_app_heur_fast_code_def)
+  subgoal by (auto simp: watched_by_app_heur_pre_def)
+  done
+
+lemmas [sepref_fr_rules] =
+  watched_by_app.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  watched_by_app_heur_fast_code_def[unfolded read_watchlist_wl_heur_code_def]
 
 (* TODO most of the unfolding should move to the definition *)
 sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_find_unset_lit
@@ -64,7 +132,7 @@ sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
 
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
-  :: \<open>[(\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a
+  :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
@@ -86,6 +154,22 @@ lemma other_watched_wl_heur_alt_def:
     arena_other_watched_def
     mop_access_lit_in_clauses_heur_def
   by auto argo
+thm other_watched_wl_heur_def
+definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
+  \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (not_deleted_code C') S\<close>
+
+global_interpretation other_watched: read_arena_param_adder where
+  R = \<open>snat_rel' TYPE(64)\<close> and
+  f = \<open>\<lambda>C N. (not_deleted_code C) N\<close> and
+  f' = \<open>(\<lambda>C' N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)})\<close> and
+  x_assn = bool1_assn and
+  P = \<open>(\<lambda>C S. arena_is_valid_clause_vdom S C)\<close>
+  rewrites \<open>(\<lambda>S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S) = RETURN oo clause_not_marked_to_delete_heur\<close> and
+  \<open>(\<lambda>S C'. read_arena_wl_heur_code (not_deleted_code C') S) = clause_not_marked_to_delete_heur_code\<close>
+  apply unfold_locales
+  apply (rule not_deleted_code_refine; assumption)
+  unfolding clause_not_marked_to_delete_heur_alt_def clause_not_marked_to_delete_heur_code_def
+  by (solves \<open>rule refl\<close>)+
 
 lemma other_watched_wl_heur_alt_def2:
   \<open>other_watched_wl_heur = (\<lambda>(_, N, _). arena_other_watched N)\<close>

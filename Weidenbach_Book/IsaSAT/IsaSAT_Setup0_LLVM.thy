@@ -2578,6 +2578,45 @@ begin
 lemmas refine = read_watchlist_wl_heur_code_refine[OF not_deleted_code_refine]
 end
 
+locale read_watchlist_param_adder =
+  fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine:
+    \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a watchlist_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemma refine:
+  \<open>(uncurry (\<lambda>N C. read_watchlist_wl_heur_code (f C) N),
+    uncurry (\<lambda>N C'. read_watchlist_wl_heur (f' C') N))
+  \<in> [uncurry (\<lambda>S C. P C (get_watched_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (rule read_watchlist_wl_heur_code_refine[OF not_deleted_code_refine,
+    unfolded comp_def])
+  apply assumption
+  done
+
+end
+
+
+locale read_watchlist_param_adder_twoargs =
+  fixes R and R' and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine:
+    \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow>  (D, D') \<in> R' \<Longrightarrow>
+       (f C D, f' C' D') \<in> [P C' D']\<^sub>a watchlist_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemma refine:
+  \<open>(uncurry2 (\<lambda>N C D. read_watchlist_wl_heur_code (f C D) N),
+    uncurry2 (\<lambda>N C' D'. read_watchlist_wl_heur (f' C' D') N))
+  \<in> [uncurry2 (\<lambda>S C D. P C D (get_watched_wl_heur S))]\<^sub>a
+    isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k  *\<^sub>a (pure R')\<^sup>k\<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2_twoargs)
+  apply (rule read_watchlist_wl_heur_code_refine[OF not_deleted_code_refine,
+    unfolded comp_def])
+  apply assumption+
+  done
+
+end
+
 locale read_vmtf_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow> x_assn\<close>
