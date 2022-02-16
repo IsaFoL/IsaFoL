@@ -22,7 +22,7 @@ global_interpretation wasted_of: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code wasted_of_stats_impl = wasted_bytes_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: wasted_bytes_st_def read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: wasted_bytes_st_def read_all_wl_heur_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: wasted_bytes_st_impl_def)
   done
 
@@ -39,7 +39,7 @@ global_interpretation current_restart_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code current_restart_phase_impl = get_restart_phase_imp\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: get_restart_phase_def read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: get_restart_phase_def read_all_wl_heur_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: get_restart_phase_imp_def)
   done
 
@@ -48,8 +48,8 @@ lemmas [sepref_fr_rules] =
   current_restart_phase.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  wasted_bytes_st_impl_def[unfolded read_heur_wl_heur_code_def]
-  get_restart_phase_imp_def[unfolded read_heur_wl_heur_code_def]
+  wasted_bytes_st_impl_def[unfolded read_all_wl_heur_code_def]
+  get_restart_phase_imp_def[unfolded read_all_wl_heur_code_def]
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
 
@@ -79,7 +79,7 @@ global_interpretation trail_nth: read_trail_param_adder where
   apply (subst lambda_comp_true)
   apply (rule isa_trail_nth_impl.refine)
   apply assumption
-  subgoal by (auto simp: isasat_trail_nth_st_def read_trail_wl_heur_def isasat_length_trail_st_def
+  subgoal by (auto simp: isasat_trail_nth_st_def read_all_wl_heur_def isasat_length_trail_st_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: isasat_trail_nth_st_code_def)
   done
@@ -100,7 +100,7 @@ global_interpretation last_trail: read_trail_param_adder0 where
   apply unfold_locales
   apply (subst trail_nth_precond_simp)
   apply (rule lit_of_last_trail_fast_code.refine)
-  subgoal by (auto simp: lit_of_hd_trail_st_heur_def lit_of_last_trail_pol_def read_trail_wl_heur_def read_trail_param_adder0_ops.mop_def
+  subgoal by (auto simp: lit_of_hd_trail_st_heur_def lit_of_last_trail_pol_def read_all_wl_heur_def read_trail_param_adder0_ops.mop_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: lit_of_hd_trail_st_heur_fast_code_def)
   done
@@ -122,7 +122,7 @@ global_interpretation propagation_reason: read_trail_param_adder where
   apply (subst lambda_comp_true)
   apply (rule get_the_propagation_reason_fast_code.refine)
   apply assumption
-  subgoal by (auto simp: get_the_propagation_reason_pol_st_def lit_of_last_trail_pol_def read_trail_wl_heur_def read_trail_param_adder0_ops.mop_def
+  subgoal by (auto simp: get_the_propagation_reason_pol_st_def lit_of_last_trail_pol_def read_all_wl_heur_def read_trail_param_adder0_ops.mop_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: get_the_propagation_reason_pol_st_code_def)
   done
@@ -140,7 +140,7 @@ global_interpretation is_fully_proped: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code is_fully_propagated_heur_stats_impl = is_fully_propagated_heur_st_code\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: is_fully_propagated_heur_def is_fully_propagated_heur_st_def read_heur_wl_heur_def
+  subgoal by (auto simp: is_fully_propagated_heur_def is_fully_propagated_heur_st_def read_all_wl_heur_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: is_fully_propagated_heur_st_code_def)
   done
@@ -158,7 +158,7 @@ global_interpretation heuristic_reluctant_triggered2: read_heur_param_adder0 whe
     \<open>read_heur_wl_heur_code heuristic_reluctant_triggered2_stats_impl = heuristic_reluctant_triggered2_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: read_heur_wl_heur_def heuristic_reluctant_triggered2_st_def heuristic_reluctant_triggered2_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: read_all_wl_heur_def heuristic_reluctant_triggered2_st_def heuristic_reluctant_triggered2_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: heuristic_reluctant_triggered2_st_impl_def)
   done
 
@@ -185,11 +185,11 @@ lemmas [sepref_fr_rules] =
   heuristic_reluctant_triggered2.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  isasat_trail_nth_st_code_def[unfolded read_trail_wl_heur_code_def]
-  lit_of_hd_trail_st_heur_fast_code_def[unfolded read_trail_wl_heur_code_def]
-  is_fully_propagated_heur_st_code_def[unfolded read_heur_wl_heur_code_def]
-  get_the_propagation_reason_pol_st_code_def[unfolded read_trail_wl_heur_code_def]
-  heuristic_reluctant_triggered2_st_impl_def[unfolded read_heur_wl_heur_code_def]
+  isasat_trail_nth_st_code_def[unfolded read_all_wl_heur_code_def]
+  lit_of_hd_trail_st_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+  is_fully_propagated_heur_st_code_def[unfolded read_all_wl_heur_code_def]
+  get_the_propagation_reason_pol_st_code_def[unfolded read_all_wl_heur_code_def]
+  heuristic_reluctant_triggered2_st_impl_def[unfolded read_all_wl_heur_code_def]
 
 
 
@@ -353,7 +353,7 @@ global_interpretation avdom_aivdom_at: read_vdom_param_adder where
   apply (subst (3) uncurry_def)
   apply (rule avdom_aivdom_at_impl_refine)
   apply assumption
-  subgoal by (auto simp: access_avdom_at_def read_vdom_wl_heur_def avdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_avdom_at_def read_all_wl_heur_def avdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_avdom_at_fast_code_def)
   subgoal by (auto simp :access_avdom_at_pre_def split: isasat_int.splits intro!: ext)
   done
@@ -376,7 +376,7 @@ global_interpretation ivdom_aivdom_at: read_vdom_param_adder where
   apply (subst (3) uncurry_def)
   apply (rule ivdom_aivdom_at_impl_refine)
   apply assumption
-  subgoal by (auto simp: access_ivdom_at_def read_vdom_wl_heur_def ivdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_ivdom_at_def read_all_wl_heur_def ivdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_ivdom_at_fast_code_def)
   subgoal by (auto simp :access_ivdom_at_pre_def split: isasat_int.splits intro!: ext)
   done
@@ -399,7 +399,7 @@ global_interpretation tvdom_aivdom_at: read_vdom_param_adder where
   apply (subst (3) uncurry_def)
   apply (rule tvdom_aivdom_at_impl_refine)
   apply assumption
-  subgoal by (auto simp: access_tvdom_at_def read_vdom_wl_heur_def tvdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_tvdom_at_def read_all_wl_heur_def tvdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_tvdom_at_fast_code_def)
   subgoal by (auto simp :access_tvdom_at_pre_def split: isasat_int.splits intro!: ext)
   done
@@ -410,9 +410,9 @@ lemmas [sepref_fr_rules] =
   ivdom_aivdom_at.refine
   tvdom_aivdom_at.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  access_avdom_at_fast_code_def[unfolded read_vdom_wl_heur_code_def]
-  access_ivdom_at_fast_code_def[unfolded read_vdom_wl_heur_code_def]
-  access_tvdom_at_fast_code_def[unfolded read_vdom_wl_heur_code_def]
+  access_avdom_at_fast_code_def[unfolded read_all_wl_heur_code_def]
+  access_ivdom_at_fast_code_def[unfolded read_all_wl_heur_code_def]
+  access_tvdom_at_fast_code_def[unfolded read_all_wl_heur_code_def]
 
  
 sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
@@ -458,7 +458,7 @@ global_interpretation print_trail: read_trail_param_adder0 where
     \<open>read_trail_wl_heur_code print_trail_code = print_trail_st_code\<close>
   apply unfold_locales
   apply (rule print_trail_code.refine)
-  subgoal by (auto simp: print_trail_st_def read_trail_wl_heur_def print_trail_def
+  subgoal by (auto simp: print_trail_st_def read_all_wl_heur_def print_trail_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: print_trail_st_code_def)
   done
@@ -467,7 +467,7 @@ lemmas [sepref_fr_rules] =
   print_trail.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  print_trail_st_code_def[unfolded read_trail_wl_heur_code_def]
+  print_trail_st_code_def[unfolded read_all_wl_heur_code_def]
 sepref_register is_fully_propagated_heur_st
 
 

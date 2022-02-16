@@ -33,7 +33,7 @@ end
 
 lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda> S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S)\<close>
-  by (auto intro!: ext simp: clause_not_marked_to_delete_heur_def read_arena_wl_heur_def
+  by (auto intro!: ext simp: clause_not_marked_to_delete_heur_def read_all_wl_heur_def
     split: isasat_int.splits)
 
 definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
@@ -54,7 +54,7 @@ global_interpretation arena_is_valid: read_arena_param_adder where
 
 sepref_register clause_not_marked_to_delete_heur
 lemmas [sepref_fr_rules] = arena_is_valid.refine
-lemmas [llvm_code] = clause_not_marked_to_delete_heur_code_def[unfolded read_arena_wl_heur_code_def not_deleted_code_def]
+lemmas [llvm_code] = clause_not_marked_to_delete_heur_code_def[unfolded read_all_wl_heur_code_def not_deleted_code_def]
 
 
 sepref_def mop_clause_not_marked_to_delete_heur_impl
@@ -78,7 +78,7 @@ lemma conflict_is_None_code_refine[sepref_fr_rules]:
   done
 
 lemma get_conflict_wl_is_None_heur_alt_def: \<open>read_conflict_wl_heur conflict_is_None = RETURN \<circ> get_conflict_wl_is_None_heur\<close>
-  by (auto simp: read_conflict_wl_heur_def get_conflict_wl_is_None_heur_def conflict_is_None_def
+  by (auto simp: read_all_wl_heur_def get_conflict_wl_is_None_heur_def conflict_is_None_def
     intro!: ext split: isasat_int.splits)
 
 definition get_conflict_wl_is_None_heur2 where
@@ -99,17 +99,16 @@ global_interpretation conflict_is_None: read_conflict_param_adder0 where
   apply (rule conflict_is_None_code_refine; assumption)
   unfolding get_conflict_wl_is_None_heur2_def get_conflict_wl_is_None_fast_code_def
   by (solves \<open>rule get_conflict_wl_is_None_heur_alt_def refl\<close>)+
-thm inline_return_node_case
 
 lemmas [sepref_fr_rules] = conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def]
 lemmas [llvm_code] = conflict_is_None_code_def
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_conflict_wl_is_None_fast_code_def[unfolded read_conflict_wl_heur_code_def]
+  get_conflict_wl_is_None_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 lemma count_decided_st_heur_alt_def:
   \<open>RETURN o count_decided_st_heur = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
   by (auto intro!: ext simp: count_decided_st_heur_def count_decided_pol_def
-    read_trail_wl_heur_def split: isasat_int.splits)
+    read_all_wl_heur_def split: isasat_int.splits)
 
 definition count_decided_st_heur_impl where
   \<open>count_decided_st_heur_impl = read_trail_wl_heur_code count_decided_pol_impl\<close>
@@ -117,15 +116,8 @@ definition count_decided_st_heur_impl where
 sepref_register extract_trail_wl_heur count_decided_pol update_trail_wl_heur count_decided_st_heur
 
 
-lemmas [llvm_code] =
-  read_trail_wl_heur_code_def
-
 definition isa_count_decided_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isa_count_decided_st_fast_code = read_trail_wl_heur_code count_decided_pol_impl\<close>
-
-lemmas [sepref_fr_rules] =
-  read_trail_wl_heur_code_refine[OF count_decided_pol_impl.refine, unfolded count_decided_st_heur_alt_def[symmetric]
-  lambda_comp_true isa_count_decided_st_fast_code_def[symmetric]]
 
 
 global_interpretation count_decided: read_trail_param_adder0 where
@@ -138,7 +130,7 @@ global_interpretation count_decided: read_trail_param_adder0 where
   apply unfold_locales
   apply (rule count_decided_pol_impl.refine)
   subgoal
-    by (auto simp: read_trail_wl_heur_def isa_count_decided_st_def intro!: ext
+    by (auto simp: read_all_wl_heur_def isa_count_decided_st_def intro!: ext
       split: isasat_int.splits)
   subgoal
     by (auto simp: isa_count_decided_st_fast_code_def)
@@ -146,7 +138,7 @@ global_interpretation count_decided: read_trail_param_adder0 where
 
 lemmas [sepref_fr_rules] = count_decided.refine[unfolded lambda_comp_true]
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  isa_count_decided_st_fast_code_def[unfolded read_trail_wl_heur_code_def]
+  isa_count_decided_st_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 definition polarity_st_heur_pol_fast ::  \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close>  where
   \<open>polarity_st_heur_pol_fast = (\<lambda>S C. read_trail_wl_heur_code (\<lambda>L. polarity_pol_fast L C) S)\<close>
@@ -167,13 +159,13 @@ global_interpretation mop_count_decided: read_trail_param_adder where
   subgoal
     by (auto simp: polarity_st_heur_pol_fast_def)
   subgoal
-    by (auto simp: mop_polarity_st_heur_def read_trail_wl_heur_def
+    by (auto simp: mop_polarity_st_heur_def read_all_wl_heur_def
       split: isasat_int.splits intro!: ext)
   done
 
 lemmas [sepref_fr_rules] = mop_count_decided.refine[unfolded lambda_comp_true]
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  polarity_st_heur_pol_fast_def[unfolded read_trail_wl_heur_code_def]
+  polarity_st_heur_pol_fast_def[unfolded read_all_wl_heur_code_def]
 
 definition arena_lit2 where \<open>arena_lit2 N i j = arena_lit N (i+j)\<close>
 
@@ -201,7 +193,7 @@ qed
 
 lemma access_lit_in_clauses_heur_alt_def:
   \<open>RETURN ooo access_lit_in_clauses_heur = (\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C' + D))) N)\<close>
-  by (auto intro!: ext simp: read_arena_wl_heur_def access_lit_in_clauses_heur_def split: isasat_int.splits)
+  by (auto intro!: ext simp: read_all_wl_heur_def access_lit_in_clauses_heur_def split: isasat_int.splits)
 
 lemma access_lit_in_clauses_heur_pre:
   \<open>uncurry2
@@ -261,7 +253,7 @@ lemma refine_ASSERT_move_to_pre2':
 
 lemma arena_lit_arena_lit_read_arena_wl_heur_arena_lit:
   \<open>RETURN (arena_lit (get_clauses_wl_heur N) (C + C')) = read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C + C'))) N\<close>
-  by (auto intro!: ext simp: read_arena_wl_heur_def access_lit_in_clauses_heur_def split: isasat_int.splits)
+  by (auto intro!: ext simp: read_all_wl_heur_def access_lit_in_clauses_heur_def split: isasat_int.splits)
 
 sepref_register mop_access_lit_in_clauses_heur
 lemma mop_access_lit_in_clauses_heur_refine[sepref_fr_rules]:
@@ -293,7 +285,7 @@ sepref_def mop_access_lit_in_clauses_heur_impl
 lemmas [sepref_fr_rules] = access_arena.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  access_lit_in_clauses_heur_fast_code_def[unfolded read_arena_wl_heur_code_def]
+  access_lit_in_clauses_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 
 
@@ -363,7 +355,7 @@ global_interpretation length_ivdom_aivdom: read_vdom_param_adder0 where
   apply unfold_locales
   apply (rule vdom_ref)
   subgoal
-    by (auto simp: read_vdom_wl_heur_def length_ivdom_aivdom_def length_ivdom_def intro!: ext
+    by (auto simp: read_all_wl_heur_def length_ivdom_aivdom_def length_ivdom_def intro!: ext
       split: isasat_int.splits)
   subgoal
     by (auto simp: length_ivdom_fast_code_def)
@@ -382,7 +374,7 @@ global_interpretation length_avdom_aivdom: read_vdom_param_adder0 where
   apply unfold_locales
   apply (rule vdom_ref)
   subgoal
-    by (auto simp: read_vdom_wl_heur_def length_avdom_aivdom_def length_avdom_def intro!: ext
+    by (auto simp: read_all_wl_heur_def length_avdom_aivdom_def length_avdom_def intro!: ext
       split: isasat_int.splits)
   subgoal
     by (auto simp: length_avdom_fast_code_def)
@@ -402,7 +394,7 @@ global_interpretation length_tvdom_aivdom: read_vdom_param_adder0 where
   apply unfold_locales
   apply (rule vdom_ref)
   subgoal
-    by (auto simp: read_vdom_wl_heur_def length_tvdom_aivdom_def length_tvdom_def intro!: ext
+    by (auto simp: read_all_wl_heur_def length_tvdom_aivdom_def length_tvdom_def intro!: ext
       split: isasat_int.splits)
   subgoal
     by (auto simp: length_tvdom_fast_code_def)
@@ -414,9 +406,9 @@ lemmas [sepref_fr_rules] = length_ivdom_aivdom.refine[unfolded lambda_comp_true]
   length_tvdom_aivdom.refine[unfolded lambda_comp_true]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  length_ivdom_fast_code_def[unfolded read_vdom_wl_heur_code_def]
-  length_avdom_fast_code_def[unfolded read_vdom_wl_heur_code_def]
-  length_tvdom_fast_code_def[unfolded read_vdom_wl_heur_code_def]
+  length_ivdom_fast_code_def[unfolded read_all_wl_heur_code_def]
+  length_avdom_fast_code_def[unfolded read_all_wl_heur_code_def]
+  length_tvdom_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 sepref_register length_avdom length_ivdom length_tvdom
 
@@ -433,7 +425,7 @@ definition clause_is_learned_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Right
   \<open>clause_is_learned_heur_code2 N C = read_arena_wl_heur_code (\<lambda>Ca. is_learned_impl Ca C) N\<close>
 
 lemma clause_is_learned_heur_alt_def: \<open>RETURN oo clause_is_learned_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N)\<close>
-  by (auto simp: clause_is_learned_heur_def read_arena_wl_heur_def is_learned_def
+  by (auto simp: clause_is_learned_heur_def read_all_wl_heur_def is_learned_def
     intro!: ext split: isasat_int.splits)
 
 global_interpretation arena_is_learned: read_arena_param_adder where
@@ -460,7 +452,7 @@ definition clause_lbd_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> 
 
 lemma clause_lbd_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_lbd_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N)\<close>
-  by (auto simp: clause_lbd_heur_def read_arena_wl_heur_def arena_lbd_def split: isasat_int.splits intro!: ext)
+  by (auto simp: clause_lbd_heur_def read_all_wl_heur_def arena_lbd_def split: isasat_int.splits intro!: ext)
 
 global_interpretation arena_get_lbd: read_arena_param_adder where
   R = \<open>(snat_rel' TYPE(64))\<close> and
@@ -482,8 +474,8 @@ global_interpretation arena_get_lbd: read_arena_param_adder where
 lemmas [sepref_fr_rules] = arena_get_lbd.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  clause_lbd_heur_code2_def[unfolded read_arena_wl_heur_code_def]
-  clause_is_learned_heur_code2_def[unfolded read_arena_wl_heur_code_def]
+  clause_lbd_heur_code2_def[unfolded read_all_wl_heur_code_def]
+  clause_is_learned_heur_code2_def[unfolded read_all_wl_heur_code_def]
   is_learned_impl_def
 
 sepref_def mop_arena_lbd_st_impl
@@ -600,7 +592,7 @@ sepref_def delete_index_vdom_heur_fast_code2
 
 lemma access_length_heur_alt_def:
   \<open>RETURN oo access_length_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (arena_length N C')) N)\<close>
-  by (auto intro!: ext simp: read_arena_wl_heur_def access_length_heur_def
+  by (auto intro!: ext simp: read_all_wl_heur_def access_length_heur_def
     split: isasat_int.splits)
 
 definition access_length_heur_fast_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
@@ -625,13 +617,13 @@ global_interpretation arena_length: read_arena_param_adder where
 lemmas [sepref_fr_rules] = arena_length.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  access_length_heur_fast_code2_def[unfolded read_arena_wl_heur_code_def]
+  access_length_heur_fast_code2_def[unfolded read_all_wl_heur_code_def]
 
 lemma get_slow_ema_heur_alt_def:
     \<open>RETURN o get_slow_ema_heur = read_heur_wl_heur (RETURN o slow_ema_of)\<close> and
   get_fast_ema_heur_alt_def:
     \<open>RETURN o get_fast_ema_heur = read_heur_wl_heur (RETURN o fast_ema_of)\<close> 
-  by (auto simp: read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_wl_heur_def intro!: ext split: isasat_int.splits)
 
 definition get_slow_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_slow_ema_heur_fast_code = read_heur_wl_heur_code slow_ema_of_stats_impl\<close>
@@ -673,7 +665,7 @@ find_theorems get_conflict_count_since_last_restart RETURN
 lemma get_conflict_count_since_last_restart_heur_alt_def:
   \<open>RETURN o get_conflict_count_since_last_restart_heur =
   read_heur_wl_heur (RETURN \<circ> get_conflict_count_since_last_restart)\<close>
-  by (auto simp: read_heur_wl_heur_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_wl_heur_def intro!: ext split: isasat_int.splits)
 
 definition get_conflict_count_since_last_restart_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_conflict_count_since_last_restart_heur_fast_code = read_heur_wl_heur_code get_conflict_count_since_last_restart_stats_impl\<close>
@@ -698,7 +690,7 @@ lemma id_lcount_assn: \<open>(Mreturn, RETURN) \<in> (lcount_assn)\<^sup>k \<rig
   by sepref_to_hoare vcg
 
 lemma get_learned_count_alt_def: \<open>RETURN o get_learned_count = read_lcount_wl_heur RETURN\<close>
-  by (auto simp: read_lcount_wl_heur_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_wl_heur_def intro!: ext split: isasat_int.splits)
 
 definition get_learned_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_learned_count_fast_code = read_lcount_wl_heur_code Mreturn\<close>
@@ -730,7 +722,7 @@ global_interpretation get_learned_count_number: read_lcount_param_adder0 where
     \<open>read_lcount_wl_heur_code clss_size_lcount_fast_code = get_learned_count_number_fast_code\<close>
   apply unfold_locales
   apply (rule clss_size_lcount_fast_code.refine)
-  subgoal by (auto simp: read_lcount_wl_heur_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: read_all_wl_heur_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: get_learned_count_number_fast_code_def)
   done
 
@@ -741,11 +733,11 @@ lemmas [sepref_fr_rules] =
   get_learned_count_number.refine[unfolded lambda_comp_true]
   
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_slow_ema_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
-  get_fast_ema_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
-  get_conflict_count_since_last_restart_heur_fast_code_def[unfolded read_heur_wl_heur_code_def]
-  get_learned_count_fast_code_def[unfolded read_lcount_wl_heur_code_def]
-  get_learned_count_number_fast_code_def[unfolded read_lcount_wl_heur_code_def]
+  get_slow_ema_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+  get_fast_ema_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+  get_conflict_count_since_last_restart_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+  get_learned_count_fast_code_def[unfolded read_all_wl_heur_code_def]
+  get_learned_count_number_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 sepref_def learned_clss_count_fast_code
   is \<open>RETURN o learned_clss_count\<close>
@@ -767,18 +759,18 @@ global_interpretation marked_used: read_arena_param_adder where
   apply unfold_locales
   apply (rule remove_pure_parameter2[where f' = \<open>\<lambda>N C. RETURN (marked_as_used N C)\<close> and f = \<open>(\<lambda>N C'. marked_as_used_impl N C')\<close>])
   apply (rule marked_as_used_impl.refine[unfolded comp_def], assumption)
-  subgoal by (auto simp: marked_as_used_st_def read_arena_wl_heur_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: marked_as_used_st_def read_all_wl_heur_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: marked_as_used_st_fast_code_def)
   done
 
 lemmas [sepref_fr_rules] = marked_used.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  marked_as_used_st_fast_code_def[unfolded read_arena_wl_heur_code_def]
+  marked_as_used_st_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.mop\<close>
   by (auto intro!: ext split: isasat_int.splits simp: mop_marked_as_used_st_def marked_used.mop_def
-    mop_marked_as_used_def read_arena_wl_heur_def)
+    mop_marked_as_used_def read_all_wl_heur_def)
 
 lemmas [sepref_fr_rules] =
   marked_used.mop_refine[unfolded mop_marked_as_used_st_alt_def[symmetric]]
