@@ -443,6 +443,45 @@ sepref_def clss_size_resetUS0_st
   unfolding clss_size_resetUS0_st_alt_def
   by sepref
 
+lemma length_ll[def_pat_rules]: \<open>length_ll$xs$i \<equiv> op_list_list_llen$xs$i\<close>
+  by (auto simp: op_list_list_llen_def length_ll_def)
+
+sepref_def length_watchlist_impl
+   is \<open>uncurry (RETURN oo length_watchlist)\<close>
+  :: \<open>[uncurry (\<lambda>S L. nat_of_lit L < length S)]\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding length_watchlist_def
+  by sepref
+
+definition length_ll_fs_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>length_ll_fs_heur_fast_code = (\<lambda>N C. read_watchlist_wl_heur_code (\<lambda>N. length_watchlist_impl N C) N)\<close>
+global_interpretation watched_by_app: read_watchlist_param_adder where
+  R = \<open>unat_lit_rel\<close> and
+  f = \<open>\<lambda>C N. length_watchlist_impl N C\<close> and
+  f' = \<open>\<lambda>C N. (RETURN oo length_watchlist) N C\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>(\<lambda>L S. nat_of_lit L < length (S))\<close>
+  rewrites
+    \<open>(\<lambda>N C'. read_watchlist_wl_heur (\<lambda>N. (RETURN \<circ>\<circ> length_watchlist) N C') N) = RETURN oo length_ll_fs_heur\<close> and
+    \<open>(\<lambda>N C. read_watchlist_wl_heur_code (\<lambda>N. length_watchlist_impl N C) N) = length_ll_fs_heur_fast_code\<close> and
+    \<open>watched_by_app.XX.mop = mop_length_watched_by_int\<close>
+  apply unfold_locales
+  apply (rule length_watchlist_impl.refine)
+  subgoal
+     by (auto intro!: ext simp: length_ll_fs_heur_def read_all_wl_heur_def  get_watched_wl_heur_def length_watchlist_def
+         length_ll_def
+       split: isasat_int.splits)
+  subgoal by (auto simp: length_ll_fs_heur_fast_code_def)
+  subgoal
+    by (auto simp: mop_length_watched_by_int_def read_all_param_adder_ops.mop_def read_all_wl_heur_def
+      get_watched_wl_heur_def length_watchlist_def length_ll_def split: isasat_int.splits
+      intro!: ext)
+  done
+thm watched_by_app.XX.mop_refine
+lemmas [sepref_fr_rules] = watched_by_app.refine watched_by_app.XX.mop_refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  length_ll_fs_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+
+
 experiment
 begin
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code

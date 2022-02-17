@@ -389,6 +389,8 @@ sepref_def keep_watch_heur_fast_code
   by sepref
 
 
+sepref_register unit_propagation_inner_loop_body_wl_heur
+
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 
 lemma set_conflict_wl_heur_alt_def:
@@ -462,8 +464,6 @@ sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
-
-sepref_register unit_propagation_inner_loop_body_wl_heur
 
 lemmas [llvm_inline] =
   other_watched_wl_heur_impl_def

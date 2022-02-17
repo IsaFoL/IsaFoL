@@ -1969,4 +1969,15 @@ lemma [isasat_state_simp]:
 
 lemmas [simp] = isasat_state_simp
 
+(*TODO Move*)
+definition length_ll_fs_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>length_ll_fs_heur_fast_code = (\<lambda>N C. read_watchlist_wl_heur_code (\<lambda>N. length_watchlist_impl N C) N)\<close>
+
+definition mop_length_watched_by_int :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
+  \<open>mop_length_watched_by_int S L = do {
+     ASSERT(nat_of_lit L < length (get_watched_wl_heur S));
+     RETURN (length (watched_by_int S L))
+}\<close>
+
+
 end
