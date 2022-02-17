@@ -24,14 +24,17 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   x_assn = bool1_assn and
   P = \<open>(\<lambda>C S. arena_is_valid_clause_vdom S C)\<close>
   rewrites \<open>(\<lambda>S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S) = RETURN oo clause_not_marked_to_delete_heur\<close> and
-  \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S) = clause_not_marked_to_delete_heur_code\<close>
+  \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S) = clause_not_marked_to_delete_heur_code\<close> and
+  \<open>(\<lambda>S. arena_is_valid_clause_vdom (get_clauses_wl_heur S)) = curry clause_not_marked_to_delete_heur_pre\<close>
   apply unfold_locales
   apply (rule not_deleted_code.refine)
   unfolding clause_not_marked_to_delete_heur_alt_def clause_not_marked_to_delete_heur_code_def
-  by (solves \<open>rule refl\<close>)+
+  apply (solves \<open>rule refl\<close>)+
+  subgoal by (auto simp: clause_not_marked_to_delete_heur_pre_def)
+  done
 
 sepref_register clause_not_marked_to_delete_heur
-lemmas [sepref_fr_rules] = arena_is_valid.refine
+lemmas [sepref_fr_rules] = arena_is_valid.refine[unfolded uncurry_curry_id]
 lemmas [llvm_code] = clause_not_marked_to_delete_heur_code_def[unfolded read_all_wl_heur_code_def not_deleted_code_def]
 
 
@@ -39,7 +42,7 @@ sepref_def mop_clause_not_marked_to_delete_heur_impl
   is \<open>uncurry mop_clause_not_marked_to_delete_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding mop_clause_not_marked_to_delete_heur_def
-    clause_not_marked_to_delete_heur_pre_def prod.case
+    prod.case clause_not_marked_to_delete_heur_pre_def[symmetric]
   by sepref
 
 definition conflict_is_None  :: \<open>conflict_option_rel \<Rightarrow> bool nres\<close> where
@@ -182,6 +185,9 @@ lemma access_lit_in_clauses_heur_pre:
 definition access_lit_in_clauses_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>access_lit_in_clauses_heur_fast_code = (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. arena_lit2_impl N C D) N)\<close>
 
+definition mop_arena_lit2_st where
+  \<open>mop_arena_lit2_st S = mop_arena_lit2 (get_clauses_wl_heur S)\<close>
+
 global_interpretation access_arena: read_arena_param_adder2_twoargs where
   R = \<open>(snat_rel' TYPE(64))\<close> and
   R' = \<open>snat_rel' TYPE(64)\<close> and
@@ -193,7 +199,7 @@ global_interpretation access_arena: read_arena_param_adder2_twoargs where
      \<open>(\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C' + D))) N) = RETURN ooo access_lit_in_clauses_heur\<close> and
     \<open>(\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. arena_lit2_impl N C D) N) = access_lit_in_clauses_heur_fast_code\<close> and
   \<open>uncurry2 (\<lambda>S C D. arena_lit_pre (get_clauses_wl_heur S) (C + D) \<and> length (get_clauses_wl_heur S) \<le> sint64_max) =
-    uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
+  uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close> 
   apply unfold_locales
   apply (rule arena_lit2_impl.refine[unfolded comp_def arena_lit2_def])
   apply (subst access_lit_in_clauses_heur_alt_def; rule refl)
@@ -435,26 +441,48 @@ global_interpretation arena_get_lbd: read_arena_param_adder where
   P = \<open>\<lambda>C N. get_clause_LBD_pre N C\<close>
   rewrites
     \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_lbd_impl Ca C) N) = clause_lbd_heur_code2\<close> and
-   \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N) = RETURN oo clause_lbd_heur\<close>
+  \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N) = RETURN oo clause_lbd_heur\<close> and
+  \<open>arena_get_lbd.mop = mop_arena_lbd_st\<close>
   apply unfold_locales
   apply (rule arena_lbd_impl.refine)
   subgoal by (auto simp: clause_lbd_heur_code2_def intro!: ext)
   subgoal by (subst clause_lbd_heur_alt_def, rule refl)
+  subgoal by (auto simp: mop_arena_lbd_st_def mop_arena_lbd_def read_arena_param_adder_ops.mop_def
+    read_all_wl_heur_def split: isasat_int.splits
+    intro!: ext)
   done
 
-lemmas [sepref_fr_rules] = arena_get_lbd.refine
+definition clause_pos_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>clause_pos_heur_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_pos_impl Ca C) N)\<close>
+
+definition mop_arena_pos_st :: \<open>_\<close> where
+  \<open>mop_arena_pos_st S = mop_arena_pos (get_clauses_wl_heur S)\<close>
+
+global_interpretation arena_get_pos: read_arena_param_adder where
+  R = \<open>(snat_rel' TYPE(64))\<close> and
+  f' = \<open>\<lambda>N C. (RETURN oo arena_pos) C N\<close> and
+  f = \<open>(\<lambda>N C. arena_pos_impl C N)\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>\<lambda>C N. get_saved_pos_pre N C\<close>
+  rewrites
+    \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_pos_impl Ca C) N) = clause_pos_heur_code2\<close> and
+    \<open>arena_get_pos.mop = mop_arena_pos_st\<close>
+  apply unfold_locales
+  apply (rule arena_pos_impl.refine)
+  subgoal by (subst clause_pos_heur_code2_def, rule refl)
+  subgoal by (auto simp: mop_arena_pos_st_def mop_arena_pos_def read_arena_param_adder_ops.mop_def
+    read_all_wl_heur_def split: isasat_int.splits
+    intro!: ext)
+  done
+
+lemmas [sepref_fr_rules] = arena_get_lbd.refine arena_get_pos.mop_refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   clause_lbd_heur_code2_def[unfolded read_all_wl_heur_code_def]
   clause_is_learned_heur_code2_def[unfolded read_all_wl_heur_code_def]
+  clause_pos_heur_code2_def[unfolded read_all_wl_heur_code_def]
   is_learned_impl_def
 
-sepref_def mop_arena_lbd_st_impl
-  is \<open>uncurry mop_arena_lbd_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mop_arena_lbd_def mop_arena_lbd_st_def clause_lbd_heur_def[symmetric]
-  by sepref
 
 
 sepref_register clause_lbd_heur

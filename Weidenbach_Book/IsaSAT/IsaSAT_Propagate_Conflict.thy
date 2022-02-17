@@ -10,18 +10,8 @@ section \<open>Unit Propagation, Inner Loop\<close>
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, W) L. length (W L))\<close>
 
-definition (in -) length_ll_fs_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
+definition (in -) length_ll_fs_heur :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs_heur S L = length (watched_by_int S L)\<close>
-
-lemma length_ll_fs_heur_alt_def:
-  \<open>length_ll_fs_heur = (\<lambda>(M, N, D, Q, W, _) L. length (W ! nat_of_lit L))\<close>
-  unfolding length_ll_fs_heur_def
-  apply (intro ext)
-  apply (case_tac S)
-  by auto
-
-lemma (in -) get_watched_wl_heur_def: \<open>get_watched_wl_heur = (\<lambda>(M, N, D, Q, W, _). W)\<close>
-  by (intro ext, rename_tac x, case_tac x) auto
 
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
@@ -51,11 +41,12 @@ section \<open>Unit propagation, Outer Loop\<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
   \<open>select_and_remove_from_literals_to_update_wl_heur =
-   (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount). do {
-      ASSERT(j < length (fst M'));
+   (\<lambda>S. do {
+      let j = literals_to_update_wl_heur S;
+      ASSERT(j < length (fst (get_trail_wl_heur S)));
       ASSERT(j + 1 \<le> uint32_max);
-      L \<leftarrow> isa_trail_nth M' j;
-      RETURN ((M', N', D', j+1, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount), -L)
+      L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) j;
+      RETURN (set_literals_to_update_wl_heur (j+1) S, -L)
      })
     \<close>
   unfolding select_and_remove_from_literals_to_update_wl_heur_def
@@ -63,16 +54,10 @@ lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
   apply (rename_tac S; case_tac S)
   by (auto intro!: ext simp: rev_trail_nth_def Let_def)
 
-definition  literals_to_update_wl_literals_to_update_wl_empty :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition  literals_to_update_wl_literals_to_update_wl_empty :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>literals_to_update_wl_literals_to_update_wl_empty S \<longleftrightarrow>
     literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S)\<close>
 
-
-lemma literals_to_update_wl_literals_to_update_wl_empty_alt_def:
-  \<open>literals_to_update_wl_literals_to_update_wl_empty =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount). j < isa_length_trail M')\<close>
-  unfolding literals_to_update_wl_literals_to_update_wl_empty_def isa_length_trail_def
-  by (auto intro!: ext split: prod.splits)
 
 lemma unit_propagation_outer_loop_wl_D_invI:
   \<open>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 S \<Longrightarrow>

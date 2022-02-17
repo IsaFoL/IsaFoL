@@ -319,7 +319,8 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   P = \<open>(\<lambda>C S. arena_is_valid_clause_vdom S C)\<close>
   rewrites \<open>(\<lambda>S C'. read_arena_wl_heur (\<lambda>N.  (RETURN oo arena_status) N C') S) = RETURN oo arena_status_st\<close> and
   \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. arena_status_impl N C') S) = arena_status_st_impl\<close> and
-  \<open>arena_is_valid.mop = mop_arena_status_st\<close>
+  \<open>arena_is_valid.mop = mop_arena_status_st\<close> and
+  \<open>(\<lambda>S. arena_is_valid_clause_vdom (get_clauses_wl_heur S)) = curry clause_not_marked_to_delete_heur_pre\<close>
   apply unfold_locales
   apply (rule arena_status_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_wl_heur_def arena_status_st_def
@@ -327,9 +328,10 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   subgoal by (auto simp: arena_status_st_impl_def)
   subgoal by (auto simp: read_arena_param_adder_ops.mop_def mop_arena_status_st_def mop_arena_status_def read_all_wl_heur_def arena_status_st_def
     intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: clause_not_marked_to_delete_heur_pre_def)
   done
 
-lemmas [sepref_fr_rules] = arena_is_valid.mop_refine
+lemmas [sepref_fr_rules] = arena_is_valid.mop_refine arena_is_valid.refine[unfolded uncurry_curry_id]
 
 sepref_def mop_arena_status_st_impl
   is \<open>uncurry mop_arena_status_st\<close>
