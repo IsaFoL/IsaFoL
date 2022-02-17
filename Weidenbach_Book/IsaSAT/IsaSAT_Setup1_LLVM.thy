@@ -3,33 +3,11 @@ theory IsaSAT_Setup1_LLVM
     IsaSAT_Setup0_LLVM
 begin
 
-context
-  fixes C :: \<open>64 word\<close> and C' :: nat
-begin
-
-definition not_deleted_code where
-  \<open>not_deleted_code xi = do\<^sub>M {
-  x \<leftarrow> arena_status_impl xi C;
-  status_neq_impl x 3
-  }\<close>
-
-
-context
-  assumes [sepref_import_param]: \<open>(C, C') \<in> snat_rel' TYPE(64)\<close>
-  notes [[sepref_register_adhoc C']]
-begin
-
 sepref_register arena_status DELETED
-qualified sepref_definition not_deleted_code_tmp
-  is \<open>(\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)})\<close>
-  :: \<open>[\<lambda>N. arena_is_valid_clause_vdom N C']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+sepref_definition not_deleted_code
+  is \<open>(uncurry (\<lambda>N C'. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}))\<close>
+  :: \<open>[uncurry (\<lambda>N C'. arena_is_valid_clause_vdom N C')]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   by sepref
-
-lemmas not_deleted_code_refine =
-  not_deleted_code_tmp.refine[unfolded not_deleted_code_tmp_def
-    not_deleted_code_def[symmetric]]
-end
-end
 
 lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda> S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S)\<close>
@@ -37,18 +15,18 @@ lemma clause_not_marked_to_delete_heur_alt_def:
     split: isasat_int.splits)
 
 definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
-  \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (not_deleted_code C') S\<close>
+  \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S\<close>
 
 global_interpretation arena_is_valid: read_arena_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
-  f = \<open>\<lambda>C N. (not_deleted_code C) N\<close> and
+  f = \<open>\<lambda>C N. not_deleted_code N C\<close> and
   f' = \<open>(\<lambda>C' N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)})\<close> and
   x_assn = bool1_assn and
   P = \<open>(\<lambda>C S. arena_is_valid_clause_vdom S C)\<close>
   rewrites \<open>(\<lambda>S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S) = RETURN oo clause_not_marked_to_delete_heur\<close> and
-  \<open>(\<lambda>S C'. read_arena_wl_heur_code (not_deleted_code C') S) = clause_not_marked_to_delete_heur_code\<close>
+  \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S) = clause_not_marked_to_delete_heur_code\<close>
   apply unfold_locales
-  apply (rule not_deleted_code_refine; assumption)
+  apply (rule not_deleted_code.refine)
   unfolding clause_not_marked_to_delete_heur_alt_def clause_not_marked_to_delete_heur_code_def
   by (solves \<open>rule refl\<close>)+
 
@@ -152,10 +130,8 @@ global_interpretation mop_count_decided: read_trail_param_adder where
   rewrites \<open>(\<lambda>S C. read_trail_wl_heur_code (\<lambda>L. polarity_pol_fast L C) S) = polarity_st_heur_pol_fast\<close> and
   \<open>(\<lambda>S C'. read_trail_wl_heur (\<lambda>L. mop_polarity_pol L C') S) = mop_polarity_st_heur\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = polarity_pol_fast and f' = mop_polarity_pol])
   apply (subst lambda_comp_true)
   apply (rule polarity_pol_fast.refine)
-  apply assumption
   subgoal
     by (auto simp: polarity_st_heur_pol_fast_def)
   subgoal
@@ -206,11 +182,11 @@ lemma access_lit_in_clauses_heur_pre:
 definition access_lit_in_clauses_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>access_lit_in_clauses_heur_fast_code = (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. arena_lit2_impl N C D) N)\<close>
 
-global_interpretation access_arena: read_arena_param_adder2_twoargs' where
+global_interpretation access_arena: read_arena_param_adder2_twoargs where
   R = \<open>(snat_rel' TYPE(64))\<close> and
   R' = \<open>snat_rel' TYPE(64)\<close> and
-  f' = \<open>\<lambda>N i j. RETURN (arena_lit N (i+j))\<close> and
-  f = \<open>arena_lit2_impl\<close> and
+  f' = \<open>\<lambda>i j N. RETURN (arena_lit N (i+j))\<close> and
+  f = \<open>\<lambda>i j N. arena_lit2_impl N i j\<close> and
   x_assn = unat_lit_assn and
   P = \<open>(\<lambda>i j S. arena_lit_pre (S) (i+j) \<and> length S \<le> sint64_max)\<close>
   rewrites
@@ -219,12 +195,11 @@ global_interpretation access_arena: read_arena_param_adder2_twoargs' where
   \<open>uncurry2 (\<lambda>S C D. arena_lit_pre (get_clauses_wl_heur S) (C + D) \<and> length (get_clauses_wl_heur S) \<le> sint64_max) =
     uncurry2 (\<lambda>S i j. access_lit_in_clauses_heur_pre ((S, i), j) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
   apply unfold_locales
-  apply (rule arena_lit2_impl_arena_lit; assumption)
+  apply (rule arena_lit2_impl.refine[unfolded comp_def arena_lit2_def])
   apply (subst access_lit_in_clauses_heur_alt_def; rule refl)
   apply (subst access_lit_in_clauses_heur_fast_code_def; rule refl)
   apply (rule access_lit_in_clauses_heur_pre)
   done
-
 
 lemma refine_ASSERT_move_to_pre2':
   \<open>(uncurry2 g, uncurry2 h) \<in> [uncurry2 (\<lambda>a b c. P a b c \<and> Q a b c)]\<^sub>a A *\<^sub>a B *\<^sub>a C \<rightarrow> x_assn \<longleftrightarrow> (uncurry2 g, uncurry2 (\<lambda>N C D. do {ASSERT (P N C D); h N C D}))
@@ -439,9 +414,7 @@ global_interpretation arena_is_learned: read_arena_param_adder where
    \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N) = RETURN oo clause_is_learned_heur\<close>
 
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = \<open>(\<lambda>C N. is_learned_impl C N)\<close> and f' =  \<open>\<lambda>C N. (RETURN oo is_learned) C N\<close>])
   apply (rule is_learned_impl.refine)
-  apply assumption
   subgoal by (auto simp: clause_is_learned_heur_code2_def intro!: ext)
   subgoal by (subst clause_is_learned_heur_alt_def, rule refl)
   done
@@ -464,9 +437,7 @@ global_interpretation arena_get_lbd: read_arena_param_adder where
     \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_lbd_impl Ca C) N) = clause_lbd_heur_code2\<close> and
    \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N) = RETURN oo clause_lbd_heur\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = \<open>(\<lambda>C N. arena_lbd_impl C N)\<close> and f' =  \<open>\<lambda>C N. (RETURN oo arena_lbd) C N\<close>])
   apply (rule arena_lbd_impl.refine)
-  apply assumption
   subgoal by (auto simp: clause_lbd_heur_code2_def intro!: ext)
   subgoal by (subst clause_lbd_heur_alt_def, rule refl)
   done
@@ -608,8 +579,7 @@ global_interpretation arena_length: read_arena_param_adder where
   \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (arena_length N C')) N) = RETURN oo access_length_heur\<close> and
   \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C) N) = access_length_heur_fast_code2\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f' = \<open>\<lambda>N C. RETURN (arena_length N C)\<close> and f = \<open>(\<lambda>N C'. arena_length_impl N C')\<close>])
-  apply (rule arena_length_impl.refine[unfolded comp_def], assumption)
+  apply (rule arena_length_impl.refine[unfolded comp_def])
   subgoal by (auto simp: access_length_heur_alt_def)
   subgoal by (auto simp: access_length_heur_fast_code2_def)
   done
@@ -757,8 +727,7 @@ global_interpretation marked_used: read_arena_param_adder where
   \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (marked_as_used N C')) N) = RETURN oo marked_as_used_st\<close> and
   \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. marked_as_used_impl N C) N) = marked_as_used_st_fast_code\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f' = \<open>\<lambda>N C. RETURN (marked_as_used N C)\<close> and f = \<open>(\<lambda>N C'. marked_as_used_impl N C')\<close>])
-  apply (rule marked_as_used_impl.refine[unfolded comp_def], assumption)
+  apply (rule marked_as_used_impl.refine[unfolded comp_def])
   subgoal by (auto simp: marked_as_used_st_def read_all_wl_heur_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: marked_as_used_st_fast_code_def)
   done

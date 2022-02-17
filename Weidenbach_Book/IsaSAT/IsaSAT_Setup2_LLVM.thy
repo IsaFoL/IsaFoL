@@ -214,9 +214,8 @@ global_interpretation pos_of_level_in_trail: read_trail_param_adder where
   rewrites  \<open>(\<lambda>N C'. read_trail_wl_heur (\<lambda>c. get_pos_of_level_in_trail_imp c C') N) = get_pos_of_level_in_trail_imp_st\<close> and
     \<open>(\<lambda>N C. read_trail_wl_heur_code (\<lambda>c. get_pos_of_level_in_trail_imp_code c C) N) = get_pos_of_level_in_trail_imp_st_code\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f' =  \<open>get_pos_of_level_in_trail_imp\<close> and f =  \<open>get_pos_of_level_in_trail_imp_code\<close>])
   apply (subst lambda_comp_true)+
-  apply (rule get_pos_of_level_in_trail_imp_code.refine, assumption)
+  apply (rule get_pos_of_level_in_trail_imp_code.refine)
   subgoal by (auto simp: get_pos_of_level_in_trail_imp_st_def read_all_wl_heur_def
     intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: get_pos_of_level_in_trail_imp_st_code_def)
@@ -322,8 +321,7 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. arena_status_impl N C') S) = arena_status_st_impl\<close> and
   \<open>arena_is_valid.mop = mop_arena_status_st\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f =  \<open> \<lambda>N. arena_status_impl N\<close> and f' =  \<open>\<lambda>N C. (RETURN oo arena_status) N C\<close>])
-  apply (rule arena_status_impl.refine, assumption)
+  apply (rule arena_status_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_wl_heur_def arena_status_st_def
     intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: arena_status_st_impl_def)
@@ -352,8 +350,7 @@ global_interpretation arena_length_clause: read_arena_param_adder where
   \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C') S) = arena_length_st_impl\<close> and
   \<open>arena_length_clause.mop = mop_arena_length_st\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f =  \<open> \<lambda>N. arena_length_impl N\<close> and f' =  \<open>\<lambda>N C. (RETURN oo arena_length) N C\<close>])
-  apply (rule arena_length_impl.refine, assumption)
+  apply (rule arena_length_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_wl_heur_def arena_status_st_def
     intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: arena_length_st_impl_def)

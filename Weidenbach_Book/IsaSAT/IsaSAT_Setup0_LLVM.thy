@@ -1833,6 +1833,12 @@ lemma remove_pure_parameter2:
   apply (auto simp: pure_true_conv)
   done
 
+lemma remove_pure_parameter2':
+  assumes  \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry P]\<^sub>a A *\<^sub>a (pure R)\<^sup>k \<rightarrow> b\<close> \<open>(C, C') \<in> R\<close>
+  shows \<open>(f C, f' C') \<in> [\<lambda>S. P S C']\<^sub>a A \<rightarrow> b\<close>
+  by (rule remove_pure_parameter2)
+    (rule assms)+
+
 lemma remove_pure_parameter2_twoargs:
   assumes  \<open>(uncurry2 f, uncurry2 f') \<in> [uncurry2 P]\<^sub>a A *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> b\<close> \<open>(C, C') \<in> R\<close> \<open>(D,D')\<in>R'\<close>
   shows \<open>(\<lambda>S. f S C D, \<lambda>S. f' S C' D') \<in> [\<lambda>S. P  S C' D']\<^sub>a A \<rightarrow> b\<close>
@@ -1937,8 +1943,51 @@ lemma remove_component_middle:
   apply auto
   done
 
+
 lemma (in -)hfref_cong: \<open>(a, b) \<in> [P]\<^sub>a A \<rightarrow> B \<Longrightarrow> a = a' \<Longrightarrow> b = b' \<Longrightarrow> P = P' \<Longrightarrow> (a',b')\<in> [P']\<^sub>a A \<rightarrow> B\<close>
   by auto
+
+lemma split_snd_pure_arg:
+  assumes \<open>(uncurry (\<lambda>N C. f C N), uncurry (\<lambda>N C'.  f' C' N))
+    \<in> [uncurry (\<lambda>S C. P S C)]\<^sub>a K\<^sup>k *\<^sub>a (pure (R \<times>\<^sub>f R'))\<^sup>k \<rightarrow> x_assn\<close>
+  shows \<open>(uncurry2 (\<lambda>N C D. f (C,D) N), uncurry2 (\<lambda>N C' D'.  f' (C',D') N))
+    \<in> [uncurry2 (\<lambda>S C D. P S (C, D))]\<^sub>a K\<^sup>k *\<^sub>a (pure(R))\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  using assms unfolding hfref_def
+  by (auto simp flip: prod_assn_pure_conv)
+
+lemma add_pure_parameter2_twoargs:
+  assumes \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow>  (D, D') \<in> R' \<Longrightarrow> (\<lambda>S. f S C D, \<lambda>S. f' S C' D') \<in> [\<lambda>S. P S C' D']\<^sub>a A \<rightarrow> b\<close>
+  shows \<open>(uncurry2 f, uncurry2 f') \<in> [uncurry2 P]\<^sub>a A *\<^sub>a (pure R)\<^sup>k*\<^sub>a (pure R')\<^sup>k \<rightarrow> b\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply auto
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv, rule_format])
+  apply auto
+  done
+
+lemma remove_unused_unit_parameter:
+  assumes \<open>(uncurry (\<lambda>S _. f S), uncurry (\<lambda>S _. f' S)) \<in> [uncurry (\<lambda>S _. P S)]\<^sub>a A *\<^sub>a (pure unit_rel)\<^sup>k \<rightarrow> b\<close>
+  shows \<open>(f, f') \<in> [P]\<^sub>a A \<rightarrow> b\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv, rule_format])
+  apply auto
+  done
+
+lemma add_pure_parameter_unit:
+  assumes \<open>(\<lambda>S. f S (), \<lambda>S. f' S ()) \<in> [\<lambda>S. P S]\<^sub>a A \<rightarrow> b\<close>
+  shows \<open>(f (), f' ()) \<in> [P]\<^sub>a A \<rightarrow> b\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv, rule_format])
+  apply auto
+  done
 
 
 abbreviation read_trail_wl_heur_code :: \<open>_\<close> where
@@ -1991,64 +2040,120 @@ lemma mop_refine:
 end
 
 
-locale read_trail_param_adder =
+locale read_all_param_adder =
   fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine:
+    \<open>(uncurry16 (\<lambda>a b c d e kf g h i j k l m n ko p C. f C a b c d e kf g h i j k l m n ko p),
+    uncurry16 (\<lambda>a b c d e kf g h i j k l m n ko p C. f' C a b c d e kf g h i j k l m n ko p))
+    \<in> [uncurry16  (\<lambda>a b c d e kf g h i j k l m n ko p C. P C a b c d e kf g h i j k l m n ko p)]\<^sub>a
+    trail_pol_fast_assn\<^sup>k *\<^sub>a
+    arena_fast_assn\<^sup>k *\<^sub>a
+  conflict_option_rel_assn\<^sup>k *\<^sub>a
+  sint64_nat_assn\<^sup>k *\<^sub>a
+  watchlist_fast_assn\<^sup>k *\<^sub>a
+  vmtf_remove_assn\<^sup>k *\<^sub>a
+  uint32_nat_assn\<^sup>k *\<^sub>a
+  cach_refinement_l_assn\<^sup>k *\<^sub>a
+  lbd_assn\<^sup>k *\<^sub>a
+  out_learned_assn\<^sup>k *\<^sub>a
+  stats_assn\<^sup>k *\<^sub>a
+  heuristic_assn\<^sup>k *\<^sub>a
+  aivdom_assn\<^sup>k *\<^sub>a
+  lcount_assn\<^sup>k *\<^sub>a
+  opts_assn\<^sup>k *\<^sub>a
+  arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
-lemma not_deleted_code_refine':
-  \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
-   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
-  watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
-  lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (drule not_deleted_code_refine)
-  apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (drule remove_component_right[where X = conflict_option_rel_assn])
-  apply (drule remove_component_right[where X = sint64_nat_assn])
-  apply (drule remove_component_right[where X = watchlist_fast_assn])
-  apply (drule remove_component_right[where X = vmtf_remove_assn])
-  apply (drule remove_component_right[where X = uint32_nat_assn])
-  apply (drule remove_component_right[where X = cach_refinement_l_assn])
-  apply (drule remove_component_right[where X = lbd_assn])
-  apply (drule remove_component_right[where X = out_learned_assn])
-  apply (drule remove_component_right[where X = stats_assn])
-  apply (drule remove_component_right[where X = heuristic_assn])
-  apply (drule remove_component_right[where X = aivdom_assn])
-  apply (drule remove_component_right[where X = lcount_assn])
-  apply (drule remove_component_right[where X = opts_assn])
-  apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
+context
+begin
+lemma not_deleted_code_refine_tmp:
+  \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (uncurry15 (f C), uncurry15 (f' C')) \<in> [uncurry15 (P C')]\<^sub>a
+    trail_pol_fast_assn\<^sup>k *\<^sub>a
+    arena_fast_assn\<^sup>k *\<^sub>a
+  conflict_option_rel_assn\<^sup>k *\<^sub>a
+  sint64_nat_assn\<^sup>k *\<^sub>a
+  watchlist_fast_assn\<^sup>k *\<^sub>a
+  vmtf_remove_assn\<^sup>k *\<^sub>a
+  uint32_nat_assn\<^sup>k *\<^sub>a
+  cach_refinement_l_assn\<^sup>k *\<^sub>a
+  lbd_assn\<^sup>k *\<^sub>a
+  out_learned_assn\<^sup>k *\<^sub>a
+  stats_assn\<^sup>k *\<^sub>a
+  heuristic_assn\<^sup>k *\<^sub>a
+  aivdom_assn\<^sup>k *\<^sub>a
+  lcount_assn\<^sup>k *\<^sub>a
+  opts_assn\<^sup>k *\<^sub>a
+  arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule remove_pure_parameter2'[where R=R])
+  apply (rule hfref_cong[OF not_deleted_code_refine])
   apply (auto simp add: uncurry_def)
   done
+end
+
+lemma (in -) case_isasat_int_split_getter: \<open>P (get_trail_wl_heur S) 
+  (get_clauses_wl_heur S)
+  (get_conflict_wl_heur S)
+  (literals_to_update_wl_heur S)
+  (get_watched_wl_heur S)
+  (get_vmtf_heur S)
+  (get_count_max_lvls_heur S)
+  (get_conflict_cach S)
+  (get_lbd S)
+  (get_outlearned_heur S)
+  (get_stats_heur S)
+  (get_heur S)
+  (get_aivdom S)
+  (get_learned_count S)
+  (get_opts S)
+  (get_old_arena S) = case_isasat_int P S\<close>
+  by (auto split: isasat_int.splits)
 
 lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_trail_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_trail_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_trail_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
+  \<open>(uncurry (\<lambda>N C. read_all_wl_heur_code (f C) N),
+    uncurry (\<lambda>N C'. read_all_wl_heur (f' C') N))
+  \<in> [uncurry (\<lambda>S C. P C (get_trail_wl_heur S) 
+  (get_clauses_wl_heur S)
+  (get_conflict_wl_heur S)
+  (literals_to_update_wl_heur S)
+  (get_watched_wl_heur S)
+  (get_vmtf_heur S)
+  (get_count_max_lvls_heur S)
+  (get_conflict_cach S)
+  (get_lbd S)
+  (get_outlearned_heur S)
+  (get_stats_heur S)
+  (get_heur S)
+  (get_aivdom S)
+  (get_learned_count S)
+  (get_opts S)
+  (get_old_arena S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
   apply (rule add_pure_parameter2)
-  unfolding get_trail_wl_heur_def isasat_int.case_distrib
+  unfolding isasat_int.case_distrib case_isasat_int_split_getter
   apply (rule read_all_wl_heur_code_refine)
-  apply (rule not_deleted_code_refine')
+  apply (rule not_deleted_code_refine_tmp)
   apply assumption
   done
-end
 
-locale read_arena_param_adder0 =
-  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+end
+ 
+locale read_trail_param_adder =
+  fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
+lemma (in -) isablle_keep_stuff_readable_come_on:
+  "(\<lambda>(a,b). (case a of (x, y) \<Rightarrow> P a x y b)) = (\<lambda>((x,y), b). P (x,y) x y b)"
+  by auto
 
 lemma not_deleted_code_refine':
-  \<open>(uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f M), uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' M)) \<in>
-  [uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. P M)]\<^sub>a
+  \<open>(uncurry16 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine)
-  apply (drule remove_component_left[where X = trail_pol_fast_assn])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
+  apply (drule remove_component_right[where X = arena_fast_assn])
   apply (drule remove_component_right[where X = conflict_option_rel_assn])
   apply (drule remove_component_right[where X = sint64_nat_assn])
   apply (drule remove_component_right[where X = watchlist_fast_assn])
@@ -2063,20 +2168,18 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(read_all_wl_heur_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f M),
-    read_all_wl_heur (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' M))
-  \<in> [(\<lambda>S. P (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> x_assn\<close>
-  unfolding get_clauses_wl_heur_def isasat_int.case_distrib
-  apply (rule read_all_wl_heur_code_refine)
-  apply (rule not_deleted_code_refine')
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
 
+lemmas refine = XX.refine
 end
+
 
 
 locale read_arena_param_adder_ops =
@@ -2094,18 +2197,18 @@ end
 locale read_arena_param_adder = read_arena_param_adder_ops P f'
   for P :: \<open>'b \<Rightarrow> arena \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> arena_el list \<Rightarrow> 'r nres\<close> +
   fixes R :: \<open>('a \<times> 'b) set\<close> and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  \<open>(C, C') \<in> R \<Longrightarrow>
-  (uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  \<open>(uncurry16 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (drule not_deleted_code_refine)
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_right[where X = conflict_option_rel_assn])
   apply (drule remove_component_right[where X = sint64_nat_assn])
@@ -2121,20 +2224,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_all_wl_heur_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M) N),
-    uncurry (\<lambda>N C. read_all_wl_heur (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C M) N))
-  \<in> [uncurry (\<lambda>S C. P C (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
-  unfolding get_clauses_wl_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine)
-  apply (rule not_deleted_code_refine')
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C _ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C _ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 
 lemma mop_refine:
   \<open>(uncurry (\<lambda>N C. read_all_wl_heur_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M) N),
@@ -2147,126 +2246,85 @@ lemma mop_refine:
 
 end
 
+locale read_arena_param_adder0 =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
 
-lemma add_pure_parameter2_twoargs:
-  assumes \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow>  (D, D') \<in> R' \<Longrightarrow> (\<lambda>S. f S C D, \<lambda>S. f' S C' D') \<in> [\<lambda>S. P S C' D']\<^sub>a A \<rightarrow> b\<close>
-  shows \<open>(uncurry2 f, uncurry2 f') \<in> [uncurry2 P]\<^sub>a A *\<^sub>a (pure R)\<^sup>k*\<^sub>a (pure R')\<^sup>k \<rightarrow> b\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply auto
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv, rule_format])
-  apply auto
-  done
+interpretation XX: read_arena_param_adder where
+  f = \<open>\<lambda>_ N. f N\<close> and
+  f' = \<open>\<lambda>_ N. f' N\<close> and
+  P = \<open>\<lambda>_. P\<close> and
+  R = \<open>unit_rel\<close>
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
+
+lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
+
+end
+
+lemma merge_second_pure_argument:
+  \<open>(uncurry2 (\<lambda>S C D. f C D S), uncurry2 (\<lambda>S C' D'. f' C' D' S))
+  \<in> [uncurry2
+   (\<lambda>S C' D'.
+    P C' D' S)]\<^sub>a A *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn \<Longrightarrow>
+  (uncurry (\<lambda>S C. (case C of (C, D) \<Rightarrow> f C D) S),
+  uncurry (\<lambda>S C'. (case C' of (C, D) \<Rightarrow> f' C D) S))
+    \<in> [uncurry
+     (\<lambda>S C. (case C of (C, D) \<Rightarrow> P C D)
+  S)]\<^sub>a A *\<^sub>a (pure (R \<times>\<^sub>f R'))\<^sup>k \<rightarrow> x_assn\<close>
+  unfolding hfref_def 
+  by (auto simp flip: prod_assn_pure_conv)
 
 abbreviation read_arena_wl_heur_code :: \<open>_\<close> where
   \<open>read_arena_wl_heur_code f \<equiv> read_all_wl_heur_code  (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f M)\<close>
 abbreviation read_arena_wl_heur :: \<open>_\<close> where
   \<open>read_arena_wl_heur f \<equiv> read_all_wl_heur  (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f M)\<close>
 
+locale read_arena_param_adder2_twoargs_ops =
+  fixes
+    f' :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena \<Rightarrow> 'r nres\<close> and
+    P :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena \<Rightarrow> bool\<close>
+begin
+definition mop where
+  \<open>mop N C C' = do {
+     ASSERT (P C C' (get_clauses_wl_heur N));
+     read_arena_wl_heur (\<lambda>N. f' C C' N) N
+  }\<close>
+end
+
+
 locale read_arena_param_adder2_twoargs =
-  fixes R and R' and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow> (D, D') \<in> R' \<Longrightarrow> (f C D, f' C' D') \<in> [P C' D']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+  read_arena_param_adder2_twoargs_ops f' P
+  for f' :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena \<Rightarrow> 'r nres\<close> and P +
+  fixes R and R' and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
+  assumes not_deleted_code_refine:
+    \<open>(uncurry2 (\<lambda>S C D. f C D S), uncurry2 (\<lambda>S C' D'. f' C' D' S)) \<in>
+    [uncurry2 (\<lambda>S C' D'. P C' D' S)]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
-lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close> \<open>(D, D') \<in> R'\<close>
-  shows \<open>
-  (uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D M), uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C' D' M)) \<in>
-  [uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. P C' D' M)]\<^sub>a
-   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
-  watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
-  lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
-  apply (drule remove_component_left[where X = trail_pol_fast_assn])
-  apply (drule remove_component_right[where X = conflict_option_rel_assn])
-  apply (drule remove_component_right[where X = sint64_nat_assn])
-  apply (drule remove_component_right[where X = watchlist_fast_assn])
-  apply (drule remove_component_right[where X = vmtf_remove_assn])
-  apply (drule remove_component_right[where X = uint32_nat_assn])
-  apply (drule remove_component_right[where X = cach_refinement_l_assn])
-  apply (drule remove_component_right[where X = lbd_assn])
-  apply (drule remove_component_right[where X = out_learned_assn])
-  apply (drule remove_component_right[where X = stats_assn])
-  apply (drule remove_component_right[where X = heuristic_assn])
-  apply (drule remove_component_right[where X = aivdom_assn])
-  apply (drule remove_component_right[where X = lcount_assn])
-  apply (drule remove_component_right[where X = opts_assn])
-  apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+interpretation XX: read_arena_param_adder where
+  f = \<open>\<lambda>(C,D) N. f C D N\<close> and
+  f' = \<open>\<lambda>(C,D) N. f' C D N\<close> and
+  P = \<open>\<lambda>(C,D) N. P C D N\<close> and
+  R = \<open>R \<times>\<^sub>f R'\<close>
+  apply unfold_locales
+  using not_deleted_code_refine[THEN merge_second_pure_argument] .
 
 lemma refine:
   \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (f C D) N),
     uncurry2 (\<lambda>N C' D. read_arena_wl_heur (f' C' D) N))
   \<in> [uncurry2 (\<lambda>S C D. P C D (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
-  unfolding get_clauses_wl_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2_twoargs)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption+
-  done
-end
-
-locale read_arena_param_adder2_twoargs'_ops =
-  fixes
-    f' :: \<open>arena_el list \<Rightarrow> 'b \<Rightarrow> 'd \<Rightarrow> 'r nres\<close> and
-    P :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena_el list \<Rightarrow> bool\<close>
-begin
-definition mop where
-  \<open>mop N C C' = do {
-     ASSERT (P C C' (get_clauses_wl_heur N));
-     read_arena_wl_heur (\<lambda>N. f' N C C') N
-  }\<close>
-end
-
-
-lemma split_snd_pure_arg:
-  assumes \<open>(uncurry (\<lambda>N C. f C N), uncurry (\<lambda>N C'.  f' C' N))
-    \<in> [uncurry (\<lambda>S C. P S C)]\<^sub>a K\<^sup>k *\<^sub>a (pure (R \<times>\<^sub>f R'))\<^sup>k \<rightarrow> x_assn\<close>
-  shows \<open>(uncurry2 (\<lambda>N C D. f (C,D) N), uncurry2 (\<lambda>N C' D'.  f' (C',D') N))
-    \<in> [uncurry2 (\<lambda>S C D. P S (C, D))]\<^sub>a K\<^sup>k *\<^sub>a (pure(R))\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
-  using assms unfolding hfref_def
-  by (auto simp flip: prod_assn_pure_conv)
-
-
-locale read_arena_param_adder2_twoargs' = read_arena_param_adder2_twoargs'_ops f' P
-  for
-    f' :: \<open>arena_el list \<Rightarrow> 'b \<Rightarrow> 'd \<Rightarrow> 'r nres\<close> and
-    P :: \<open>'b \<Rightarrow> 'd \<Rightarrow> arena_el list \<Rightarrow> bool\<close> +
-  fixes R :: \<open>('a \<times> 'b) set\<close> and R' :: \<open>('c \<times> 'd) set\<close> and
-    f :: \<open>64 word \<times> 64 word \<times> 32 word ptr \<Rightarrow> 'a \<Rightarrow> 'c \<Rightarrow> 'q llM\<close> and
-    x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
-  assumes not_deleted_code_refine: \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow> (D, D') \<in> R' \<Longrightarrow> (\<lambda>S. f S C D, \<lambda>S. f' S C' D') \<in> [P C' D']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-begin
-
-interpretation XX: read_arena_param_adder where
-  f = \<open>\<lambda>(C,D) N. f N C D\<close> and
-  f' = \<open>\<lambda>(C,D) N. f' N C D\<close> and
-  P = \<open>\<lambda>(C,D) N. P C D N\<close> and
-  R = \<open>R \<times>\<^sub>f R'\<close>
-  apply unfold_locales
-  subgoal for C C'
-    using not_deleted_code_refine[of \<open>fst C\<close> \<open>fst C'\<close> \<open>snd C\<close> \<open>snd C'\<close>]
-    by (auto split: prod.splits)
-  done
-
-lemma refine:
-  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f N C D) N),
-    uncurry2 (\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. f' N C' D) N))
-  \<in> [uncurry2 (\<lambda>S C D. P C D (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
   by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
 
 lemma mop_refine:
-  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f N C D) N), uncurry2 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f C D N) N), uncurry2 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre2)
   apply (rule refine[unfolded comp_def])
   done
-end
 
+end
 
 abbreviation read_conflict_wl_heur_code :: \<open>_\<close> where
   \<open>read_conflict_wl_heur_code f \<equiv> read_all_wl_heur_code  (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. f M)\<close>
@@ -2276,19 +2334,19 @@ abbreviation read_conflict_wl_heur :: \<open>_\<close> where
 
 locale read_conflict_param_adder =
   fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a conflict_option_rel_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a conflict_option_rel_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_right[where X = sint64_nat_assn])
@@ -2304,43 +2362,17 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_conflict_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_conflict_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_conflict_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_conflict_wl_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C _ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C _ _ M _ _ _ _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
-
-
-lemma remove_unused_unit_parameter:
-  assumes \<open>(uncurry (\<lambda>S _. f S), uncurry (\<lambda>S _. f' S)) \<in> [uncurry (\<lambda>S _. P S)]\<^sub>a A *\<^sub>a (pure unit_rel)\<^sup>k \<rightarrow> b\<close>
-  shows \<open>(f, f') \<in> [P]\<^sub>a A \<rightarrow> b\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv, rule_format])
-  apply auto
-  done
-
-lemma add_pure_parameter_unit:
-  assumes \<open>(\<lambda>S. f S (), \<lambda>S. f' S ()) \<in> [\<lambda>S. P S]\<^sub>a A \<rightarrow> b\<close>
-  shows \<open>(f (), f' ()) \<in> [P]\<^sub>a A \<rightarrow> b\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv, rule_format])
-  apply auto
-  done
 
 locale read_conflict_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
@@ -2351,8 +2383,8 @@ interpretation XX: read_conflict_param_adder where
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close> and
   R = unit_rel
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2365,19 +2397,19 @@ abbreviation read_literals_to_update_wl_heur :: \<open>_\<close> where
 
 locale read_literals_to_update_param_adder =
   fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ M _ _ _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2393,19 +2425,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_literals_to_update_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_literals_to_update_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (literals_to_update_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding literals_to_update_wl_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C _ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C _ _ _ M _ _ _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 
@@ -2417,8 +2446,8 @@ interpretation XX: read_literals_to_update_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2432,19 +2461,19 @@ abbreviation read_watchlist_wl_heur :: \<open>_\<close> where
 locale read_watchlist_param_adder =
   fixes R and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine:
-    \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a watchlist_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+    \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a watchlist_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ M _ _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2460,21 +2489,18 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_watchlist_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_watchlist_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_watched_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_watched_wl_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C _ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C _ _ _ _ M _ _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
 
+lemmas refine = XX.refine
 end
+
 
 locale read_watchlist_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
@@ -2485,8 +2511,8 @@ interpretation XX: read_watchlist_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 
@@ -2496,8 +2522,8 @@ end
 locale read_watchlist_param_adder_twoargs =
   fixes R and R' and f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine:
-    \<open>\<And>C C' D D'. (C, C') \<in> R \<Longrightarrow>  (D, D') \<in> R' \<Longrightarrow>
-       (f C D, f' C' D') \<in> [P C' D']\<^sub>a watchlist_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+    \<open>(uncurry2 (\<lambda>S C D. f C D S), uncurry2 (\<lambda>S C' D'. f' C' D' S)) \<in>
+    [uncurry2 (\<lambda>S C' D'. P C' D' S)]\<^sub>a watchlist_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 interpretation XX: read_watchlist_param_adder where
@@ -2506,10 +2532,7 @@ interpretation XX: read_watchlist_param_adder where
   P = \<open>\<lambda>(C,D). P C D\<close> and
   R = \<open>R \<times>\<^sub>f R'\<close>
   apply unfold_locales
-  subgoal for C C'
-    using not_deleted_code_refine[of \<open>fst C\<close> \<open>fst C'\<close> \<open>snd C\<close> \<open>snd C'\<close>]
-    by (auto split: prod.splits)
-  done
+  using not_deleted_code_refine[THEN merge_second_pure_argument] .
 
 
 lemma refine:
@@ -2530,19 +2553,19 @@ abbreviation read_vmtf_wl_heur :: \<open>_\<close> where
 
 locale read_vmtf_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ M _ _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k  \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2558,20 +2581,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_vmtf_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_vmtf_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_vmtf_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_vmtf_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f = \<open>(\<lambda>C _ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P = \<open>(\<lambda>C _ _ _ _ _ M _ _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
 
+lemmas refine = XX.refine
 end
 
 
@@ -2584,8 +2603,8 @@ interpretation XX: read_vmtf_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 
@@ -2600,19 +2619,19 @@ abbreviation read_ccount_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> 
 
 locale read_ccount_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ M _ _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k  \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2628,19 +2647,17 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption)
+    (auto intro!: ext)
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_ccount_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_ccount_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_count_max_lvls_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_count_max_lvls_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ M _ _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_ccount_param_adder0 =
@@ -2652,8 +2669,8 @@ interpretation XX: read_ccount_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2666,19 +2683,19 @@ abbreviation read_ccach_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _
 
 locale read_ccach_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C , f' C') \<in> [P C']\<^sub>a cach_refinement_l_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ M _ _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2694,19 +2711,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_ccach_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_ccach_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_conflict_cach S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_conflict_cach_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ M _ _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 
@@ -2717,19 +2731,19 @@ abbreviation read_lbd_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\<
 
 locale read_lbd_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C')\<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a lbd_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a lbd_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ M _ _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2745,19 +2759,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_lbd_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_lbd_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_lbd S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_lbd_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ M _ _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_lbd_param_adder0 =
@@ -2768,8 +2779,8 @@ interpretation XX: read_lbd_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2781,19 +2792,19 @@ abbreviation read_outl_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\
 
 locale read_outl_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C')\<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a out_learned_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a out_learned_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ M _ _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2809,19 +2820,17 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_outl_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_outl_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_outlearned_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_outlearned_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ M _ _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
+
 end
 
 locale read_outl_param_adder0 =
@@ -2833,8 +2842,8 @@ interpretation XX: read_outl_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2847,19 +2856,19 @@ abbreviation read_stats_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _
 
 locale read_stats_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a stats_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a stats_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ M _ _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2875,19 +2884,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_stats_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_stats_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_stats_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_stats_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ M _ _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_stats_param_adder0 =
@@ -2898,8 +2904,8 @@ interpretation XX: read_stats_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2912,18 +2918,19 @@ abbreviation read_heur_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\
 
 locale read_heur_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a heuristic_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a heuristic_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ M _ _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -2939,19 +2946,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_heur_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_heur_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_heur_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ M _ _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_heur_param_adder0 =
@@ -2962,8 +2966,8 @@ interpretation XX: read_heur_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -2976,19 +2980,19 @@ abbreviation read_vdom_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\
 
 locale read_vdom_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a aivdom_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a aivdom_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -3004,19 +3008,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_right[where X = lcount_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_vdom_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_vdom_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_aivdom S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_aivdom_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_vdom_param_adder0 =
@@ -3028,8 +3029,8 @@ interpretation XX: read_vdom_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -3044,18 +3045,19 @@ abbreviation read_lcount_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> 
 
 locale read_lcount_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a lcount_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a lcount_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -3071,20 +3073,18 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_middle[where X = aivdom_assn])
   apply (drule remove_component_right[where X = opts_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_lcount_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_lcount_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_learned_count S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_learned_count_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ M _ _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
+
 locale read_lcount_param_adder0 =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine: \<open>(f, f') \<in> [P]\<^sub>a lcount_assn\<^sup>k \<rightarrow> x_assn\<close>
@@ -3093,8 +3093,8 @@ interpretation XX: read_lcount_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -3108,18 +3108,19 @@ abbreviation read_opts_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\
 
 locale read_opts_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C')\<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a opts_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a opts_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _ C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _ C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ M _ C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -3135,19 +3136,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_middle[where X = aivdom_assn])
   apply (drule remove_component_middle[where X = lcount_assn])
   apply (drule remove_component_right[where X = arena_fast_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_opts_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_opts_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_opts S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_opts_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ M _. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
 end
 
 locale read_opts_param_adder0 =
@@ -3159,8 +3157,8 @@ interpretation XX: read_opts_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
@@ -3174,18 +3172,19 @@ abbreviation read_old_arena_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarro
 
 locale read_old_arena_param_adder =
   fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
-  assumes not_deleted_code_refine: \<open>\<And>C C'. (C,C')\<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 lemma not_deleted_code_refine':
-  assumes \<open>(C, C') \<in> R\<close>
   shows \<open>
-  (uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. f C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. f' C' M)) \<in>
-  [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. P C' M)]\<^sub>a
+  (uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M C. f C M), uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M C'. f' C' M)) \<in>
+  [uncurry16 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M C'. P C' M)]\<^sub>a
    trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
   watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
   lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
-  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow> x_assn\<close>
-  apply (insert not_deleted_code_refine[OF assms])
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =f and f'=f', OF not_deleted_code_refine])
   apply (drule remove_component_left[where X = trail_pol_fast_assn])
   apply (drule remove_component_middle[where X = arena_fast_assn])
   apply (drule remove_component_middle[where X = conflict_option_rel_assn])
@@ -3201,20 +3200,16 @@ lemma not_deleted_code_refine':
   apply (drule remove_component_middle[where X = aivdom_assn])
   apply (drule remove_component_middle[where X = lcount_assn])
   apply (drule remove_component_middle[where X = opts_assn])
-  apply (rule hfref_cong, assumption)
-  apply (auto simp add: uncurry_def)
-  done
+  by (rule hfref_cong, assumption) auto
 
-lemma refine:
-  \<open>(uncurry (\<lambda>N C. read_old_arena_wl_heur_code (f C) N),
-    uncurry (\<lambda>N C'. read_old_arena_wl_heur (f' C') N))
-  \<in> [uncurry (\<lambda>S C. P C (get_old_arena S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
-  unfolding get_old_arena_def isasat_int.case_distrib
-  apply (rule add_pure_parameter2)
-  apply (rule read_all_wl_heur_code_refine[OF not_deleted_code_refine'])
-  apply assumption
-  done
+interpretation XX : read_all_param_adder where
+  f =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. f C M)\<close> and
+  f' = \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. f' C M)\<close> and
+  P =  \<open>(\<lambda>C _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. P C M)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
 
+lemmas refine = XX.refine
 end
 
 
@@ -3227,8 +3222,8 @@ interpretation XX: read_old_arena_param_adder where
   f = \<open>\<lambda>_. f\<close> and
   f' = \<open>\<lambda>_. f'\<close> and
   P = \<open>\<lambda>_. P\<close>
-  by unfold_locales
-   (rule not_deleted_code_refine)
+  apply unfold_locales
+  using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end

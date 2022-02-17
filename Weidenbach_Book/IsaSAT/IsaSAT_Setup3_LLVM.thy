@@ -75,10 +75,8 @@ global_interpretation trail_nth: read_trail_param_adder where
     \<open>(\<lambda>N C'. read_trail_wl_heur (\<lambda>M. isa_trail_nth M C') N) = isasat_trail_nth_st\<close> and
     \<open>(\<lambda>N C. read_trail_wl_heur_code (\<lambda>M. isa_trail_nth_impl M C) N) = isasat_trail_nth_st_code\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = isa_trail_nth_impl and f' = isa_trail_nth])
   apply (subst lambda_comp_true)
   apply (rule isa_trail_nth_impl.refine)
-  apply assumption
   subgoal by (auto simp: isasat_trail_nth_st_def read_all_wl_heur_def isasat_length_trail_st_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: isasat_trail_nth_st_code_def)
@@ -118,10 +116,8 @@ global_interpretation propagation_reason: read_trail_param_adder where
     \<open>(\<lambda>M C. read_trail_wl_heur (\<lambda>M. get_the_propagation_reason_pol M C) M)  = get_the_propagation_reason_pol_st\<close> and
     \<open>(\<lambda>N C. read_trail_wl_heur_code (\<lambda>M. get_the_propagation_reason_fast_code M C) N) = get_the_propagation_reason_pol_st_code\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = get_the_propagation_reason_fast_code and f' = get_the_propagation_reason_pol])
   apply (subst lambda_comp_true)
   apply (rule get_the_propagation_reason_fast_code.refine)
-  apply assumption
   subgoal by (auto simp: get_the_propagation_reason_pol_st_def lit_of_last_trail_pol_def read_all_wl_heur_def read_trail_param_adder0_ops.mop_def
       intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: get_the_propagation_reason_pol_st_code_def)
@@ -349,10 +345,8 @@ global_interpretation avdom_aivdom_at: read_vdom_param_adder where
     \<open>(\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. avdom_aivdom_at_impl N C) N) = access_avdom_at_fast_code\<close> and
     \<open>(\<lambda>S C. C < length (get_avdom_aivdom (isasat_int.get_aivdom S))) = access_avdom_at_pre\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = avdom_aivdom_at_impl and f' = \<open>(RETURN oo avdom_aivdom_at)\<close>])
   apply (subst (3) uncurry_def)
   apply (rule avdom_aivdom_at_impl_refine)
-  apply assumption
   subgoal by (auto simp: access_avdom_at_def read_all_wl_heur_def avdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_avdom_at_fast_code_def)
   subgoal by (auto simp :access_avdom_at_pre_def split: isasat_int.splits intro!: ext)
@@ -372,10 +366,8 @@ global_interpretation ivdom_aivdom_at: read_vdom_param_adder where
     \<open>(\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. ivdom_aivdom_at_impl N C) N) = access_ivdom_at_fast_code\<close> and
     \<open>(\<lambda>S C. C < length (get_ivdom_aivdom (isasat_int.get_aivdom S))) = access_ivdom_at_pre\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = ivdom_aivdom_at_impl and f' = \<open>(RETURN oo ivdom_aivdom_at)\<close>])
   apply (subst (3) uncurry_def)
   apply (rule ivdom_aivdom_at_impl_refine)
-  apply assumption
   subgoal by (auto simp: access_ivdom_at_def read_all_wl_heur_def ivdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_ivdom_at_fast_code_def)
   subgoal by (auto simp :access_ivdom_at_pre_def split: isasat_int.splits intro!: ext)
@@ -395,10 +387,8 @@ global_interpretation tvdom_aivdom_at: read_vdom_param_adder where
     \<open>(\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. tvdom_aivdom_at_impl N C) N) = access_tvdom_at_fast_code\<close> and
     \<open>(\<lambda>S C. C < length (get_tvdom_aivdom (isasat_int.get_aivdom S))) = access_tvdom_at_pre\<close>
   apply unfold_locales
-  apply (rule remove_pure_parameter2[where f = tvdom_aivdom_at_impl and f' = \<open>(RETURN oo tvdom_aivdom_at)\<close>])
   apply (subst (3) uncurry_def)
   apply (rule tvdom_aivdom_at_impl_refine)
-  apply assumption
   subgoal by (auto simp: access_tvdom_at_def read_all_wl_heur_def tvdom_aivdom_at_def split: isasat_int.splits intro!: ext)
   subgoal by (auto simp: access_tvdom_at_fast_code_def)
   subgoal by (auto simp :access_tvdom_at_pre_def split: isasat_int.splits intro!: ext)
@@ -469,6 +459,5 @@ lemmas [sepref_fr_rules] =
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   print_trail_st_code_def[unfolded read_all_wl_heur_code_def]
 sepref_register is_fully_propagated_heur_st
-
 
 end

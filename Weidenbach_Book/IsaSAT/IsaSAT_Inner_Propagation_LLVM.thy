@@ -72,20 +72,11 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
     \<open>(\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N) = watched_by_app_heur_fast_code\<close> and
   \<open>uncurry2 (\<lambda>S C D. nat_of_lit C < length (get_watched_wl_heur S) \<and> D < length (get_watched_wl_heur S ! nat_of_lit C)) = watched_by_app_heur_pre\<close>
   apply unfold_locales
-  subgoal for C C' D D'
-  apply (rule remove_pure_parameter2[where f =  \<open>(\<lambda>N C. access_watchlist_impl N C D)\<close> and
-    f' =  \<open>(\<lambda>N C'. (RETURN ooo access_watchlist) N C' D')\<close> and
-    R = unat_lit_rel])
-  apply (rule remove_pure_parameter2[where
-    f = \<open>\<lambda>NC D. uncurry (\<lambda>N C. access_watchlist_impl N C D) NC\<close> and
-    f' =  \<open>\<lambda>NC D'. uncurry (\<lambda>N C'. (RETURN ooo access_watchlist) N C' D') NC\<close> and
-    R = \<open>snat_rel' TYPE(64)\<close>])
   unfolding watched_by_app_helper
   apply (rule access_watchlist_impl.refine)
-  by assumption+
   subgoal
     by (auto intro!: ext split: isasat_int.split
-      simp: read_watchlist_wl_heur_def watched_by_app_heur_def access_watchlist_def
+      simp: read_all_wl_heur_def watched_by_app_heur_def access_watchlist_def
       nth_rll_def)
   subgoal by (auto simp: watched_by_app_heur_fast_code_def)
   subgoal by (auto simp: watched_by_app_heur_pre_def)
@@ -94,7 +85,7 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
 lemmas [sepref_fr_rules] =
   watched_by_app.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  watched_by_app_heur_fast_code_def[unfolded read_watchlist_wl_heur_code_def]
+  watched_by_app_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
 
 (* TODO most of the unfolding should move to the definition *)
 sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_find_unset_lit
@@ -117,6 +108,11 @@ sepref_def isa_find_unwatched_between_fast_code
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
+definition isa_find_unset_lit_st where
+  \<open>isa_find_unset_lit_st S = isa_find_unset_lit (get_trail_wl_heur S) (get_clauses_wl_heur S)\<close>
+
+thm read_all_wl_heur_code_refine
+
 sepref_register mop_arena_pos mop_arena_lit2
 sepref_def mop_arena_pos_impl
   is \<open>uncurry mop_arena_pos\<close>
@@ -130,16 +126,19 @@ sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
   unfolding gen_swap
   by sepref
 
+find_theorems mop_arena_pos get_clauses_wl_heur
+ thm mop_arena_length_st_def
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
   :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
-    find_unwatched_def fmap_rll_def[symmetric] isasat_bounded_assn_def
+    find_unwatched_def fmap_rll_def[symmetric]
     length_uint32_nat_def[symmetric] isa_find_unwatched_def
     case_tri_bool_If find_unwatched_wl_st_heur_pre_def
     fmap_rll_u64_def[symmetric]
+    mop_arena_length_st_def[symmetric]
   apply (subst isa_find_unset_lit_def[symmetric])
   apply (subst isa_find_unset_lit_def[symmetric])
   apply (subst isa_find_unset_lit_def[symmetric])
