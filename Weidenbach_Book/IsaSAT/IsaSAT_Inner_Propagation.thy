@@ -1497,11 +1497,6 @@ definition unit_propagation_inner_loop_wl_loop_D_heur_inv where
         L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0') \<and>
         length (get_clauses_wl_heur S\<^sub>0) = length (get_clauses_wl_heur S'))\<close>
 
-definition mop_length_watched_by_int :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
-  \<open>mop_length_watched_by_int S L = do {
-     ASSERT(nat_of_lit L < length (get_watched_wl_heur S));
-     RETURN (length (watched_by_int S L))
-}\<close>
 
 definition unit_propagation_inner_loop_wl_loop_D_heur
   :: \<open>nat literal \<Rightarrow> isasat \<Rightarrow> (nat \<times> nat \<times> isasat) nres\<close>
