@@ -1,0 +1,6 @@
+session Simple_Clause_Learning = HOL +
+  options [document = pdf, document_output = "output"]
+  theories
+    Simple_Clause_Learning
+  document_files
+    "root.tex"
