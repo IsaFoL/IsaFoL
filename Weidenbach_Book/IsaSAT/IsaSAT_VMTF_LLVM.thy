@@ -8,7 +8,7 @@ imports Watched_Literals.WB_Sort IsaSAT_VMTF
    IsaSAT_Clauses_LLVM
    IsaSAT_Lookup_Conflict_LLVM
 begin
-
+hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 (* TODO: Mathias! Only import the refinement stuff over a single point,
   and at this point, do all necessary adaptations.
 
@@ -88,7 +88,7 @@ interpretation VMTF: parameterized_weak_ordering valid_atoms VMTF_score_less
 
 global_interpretation VMTF: parameterized_sort_impl_context
   \<open>woarray_assn atom_assn\<close> \<open>eoarray_assn atom_assn\<close> atom_assn
-  return return
+  Mreturn Mreturn
   eo_extract_impl
   array_upd
   valid_atoms VMTF_score_less mop_VMTF_score_less mop_VMTF_score_less_impl
@@ -122,7 +122,6 @@ global_interpretation VMTF: parameterized_sort_impl_context
       and VMTF_introsort_aux_impl = VMTF.introsort_aux_param_impl
       and VMTF_introsort_impl        = VMTF.introsort_param_impl
       and VMTF_move_median_to_first_impl = VMTF.move_median_to_first_param_impl
-
   apply unfold_locales
   apply (rule eo_hnr_dep)+
   unfolding GEN_ALGO_def refines_param_relp_def (* TODO: thm gen_refines_param_relpI *)
@@ -141,18 +140,18 @@ global_interpretation
 
 global_interpretation VMTF_it: parameterized_sort_impl_context
   where
-    wo_assn = \<open>arl64_assn atom_assn\<close>
-    and eo_assn = VMTF_it.eo_assn
-    and elem_assn = atom_assn
-    and to_eo_impl = return
-    and to_wo_impl = return
-    and extract_impl = VMTF_it_eo_extract_impl
-    and set_impl = arl_upd
-    and cdom = valid_atoms
-    and pless = VMTF_score_less
-    and pcmp = mop_VMTF_score_less
-    and pcmp_impl = mop_VMTF_score_less_impl
-    and cparam_assn = \<open>array_assn vmtf_node_assn\<close>
+    wo_assn = \<open>arl64_assn atom_assn\<close> and
+    eo_assn = VMTF_it.eo_assn and
+    elem_assn = atom_assn and
+    to_eo_impl = Mreturn and
+    to_wo_impl = Mreturn and
+    extract_impl = VMTF_it_eo_extract_impl and
+    set_impl = arl_upd and
+    cdom = valid_atoms and
+    pless = VMTF_score_less and
+    pcmp = mop_VMTF_score_less and
+    pcmp_impl = mop_VMTF_score_less_impl and
+    cparam_assn = \<open>array_assn vmtf_node_assn\<close>
   defines
           VMTF_it_is_guarded_insert_impl = VMTF_it.is_guarded_param_insert_impl
       and VMTF_it_is_unguarded_insert_impl = VMTF_it.is_unguarded_param_insert_impl
@@ -272,10 +271,6 @@ lemma case_option_split:
   \<open>(case a of None \<Rightarrow> x | Some y \<Rightarrow> f y) =
    (if is_None a then x else let y = the a in f y)\<close>
   by (auto split: option.splits)
-(*lemma is_pure_snat_option[safe_constraint_rules]: \<open>CONSTRAINT is_pure snat.option_assn\<close>
-  using snat.A_pure snat.option_assn_pure unfolding CONSTRAINT_def by blast
-*)
-
 
 sepref_def ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
@@ -309,9 +304,6 @@ lemma isa_vmtf_en_dequeue_preI:
   unfolding isa_vmtf_en_dequeue_pre_def vmtf_dequeue_pre_def
   apply (auto simp: max_unat_def uint64_max_def sint64_max_def)
   done
-
-
-find_theorems \<open>_ \<noteq> None \<longleftrightarrow> _\<close>
 
 lemma isa_vmtf_en_dequeue_alt_def2:
    \<open>isa_vmtf_en_dequeue_pre x \<Longrightarrow> uncurry2 (\<lambda>M L vm.

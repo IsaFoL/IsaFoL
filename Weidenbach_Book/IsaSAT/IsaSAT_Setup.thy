@@ -331,11 +331,14 @@ definition twl_st_heur_loop :: \<open>(isasat \<times> nat twl_st_wl) set\<close
     heuristic_rel (all_atms_st T) heur
   }\<close>
 
+abbreviation learned_clss_count_lcount :: \<open>_\<close> where
+  \<open>learned_clss_count_lcount S \<equiv> clss_size_lcount (S) +
+  clss_size_lcountUE (S) + clss_size_lcountUEk (S) +
+  clss_size_lcountUS (S) +
+    clss_size_lcountU0 (S)\<close>
+
 definition learned_clss_count :: \<open>isasat \<Rightarrow> nat\<close> where
-  \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
-  clss_size_lcountUE (get_learned_count S) + clss_size_lcountUEk (get_learned_count S) +
-  clss_size_lcountUS (get_learned_count S) +
-    clss_size_lcountU0 (get_learned_count S)\<close>
+  \<open>learned_clss_count S = learned_clss_count_lcount (get_learned_count S)\<close>
 
 lemma get_learned_count_learned_clss_countD:
   \<open>get_learned_count S = clss_size_resetUS (get_learned_count T) \<Longrightarrow>
@@ -1668,7 +1671,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_trail_wl_heur M S) = get_opts S\<close>
   \<open>get_learned_count (set_trail_wl_heur M S) = get_learned_count S\<close>
   \<open>get_old_arena (set_trail_wl_heur M S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_trail_wl_heur M S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_clauses_wl_heur N S) = get_trail_wl_heur S\<close>
@@ -1688,6 +1692,7 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_clauses_wl_heur N S) = get_opts S\<close>
   \<open>get_learned_count (set_clauses_wl_heur N S) = get_learned_count S\<close>
   \<open>get_old_arena (set_clauses_wl_heur N S) = get_old_arena S\<close>
+  \<open>learned_clss_count (set_clauses_wl_heur N S) = learned_clss_count S\<close>
 
   \<open>get_trail_wl_heur (set_conflict_wl_heur D S) = get_trail_wl_heur S\<close>
   \<open>get_clauses_wl_heur (set_conflict_wl_heur D S) = get_clauses_wl_heur S\<close>
@@ -1706,7 +1711,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_conflict_wl_heur D S) = get_opts S\<close>
   \<open>get_learned_count (set_conflict_wl_heur D S) = get_learned_count S\<close>
   \<open>get_old_arena (set_conflict_wl_heur D S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_conflict_wl_heur D S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_literals_to_update_wl_heur j S) = get_trail_wl_heur S\<close>
@@ -1726,7 +1732,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_literals_to_update_wl_heur j S) = get_opts S\<close>
   \<open>get_learned_count (set_literals_to_update_wl_heur j S) = get_learned_count S\<close>
   \<open>get_old_arena (set_literals_to_update_wl_heur j S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_literals_to_update_wl_heur j S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_watched_wl_heur W S) = get_trail_wl_heur S\<close>
@@ -1746,7 +1753,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_watched_wl_heur W S) = get_opts S\<close>
   \<open>get_learned_count (set_watched_wl_heur W S) = get_learned_count S\<close>
   \<open>get_old_arena (set_watched_wl_heur W S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_watched_wl_heur W S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_vmtf_wl_heur vmtf' S) = get_trail_wl_heur S\<close>
@@ -1766,7 +1774,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_vmtf_wl_heur vmtf' S) = get_opts S\<close>
   \<open>get_learned_count (set_vmtf_wl_heur vmtf' S) = get_learned_count S\<close>
   \<open>get_old_arena (set_vmtf_wl_heur vmtf' S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_vmtf_wl_heur vmtf' S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_count_max_wl_heur count' S) = get_trail_wl_heur S\<close>
@@ -1786,7 +1795,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_count_max_wl_heur count' S) = get_opts S\<close>
   \<open>get_learned_count (set_count_max_wl_heur count' S) = get_learned_count S\<close>
   \<open>get_old_arena (set_count_max_wl_heur count' S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_count_max_wl_heur count' S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_ccach_max_wl_heur ccach S) = get_trail_wl_heur S\<close>
@@ -1806,7 +1816,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_ccach_max_wl_heur ccach S) = get_opts S\<close>
   \<open>get_learned_count (set_ccach_max_wl_heur ccach S) = get_learned_count S\<close>
   \<open>get_old_arena (set_ccach_max_wl_heur ccach S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_ccach_max_wl_heur ccach S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_lbd_wl_heur lbd S) = get_trail_wl_heur S\<close>
@@ -1826,7 +1837,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_lbd_wl_heur lbd S) = get_opts S\<close>
   \<open>get_learned_count (set_lbd_wl_heur lbd S) = get_learned_count S\<close>
   \<open>get_old_arena (set_lbd_wl_heur lbd S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_lbd_wl_heur lbd S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_outl_wl_heur outl S) = get_trail_wl_heur S\<close>
@@ -1846,7 +1858,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_outl_wl_heur outl S) = get_opts S\<close>
   \<open>get_learned_count (set_outl_wl_heur outl S) = get_learned_count S\<close>
   \<open>get_old_arena (set_outl_wl_heur outl S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_outl_wl_heur outl S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_heur_wl_heur heur S) = get_trail_wl_heur S\<close>
@@ -1866,7 +1879,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_heur_wl_heur heur S) = get_opts S\<close>
   \<open>get_learned_count (set_heur_wl_heur heur S) = get_learned_count S\<close>
   \<open>get_old_arena (set_heur_wl_heur heur S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_heur_wl_heur heur S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_stats_wl_heur stats S) = get_trail_wl_heur S\<close>
@@ -1886,7 +1900,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_stats_wl_heur stats S) = get_opts S\<close>
   \<open>get_learned_count (set_stats_wl_heur stats S) = get_learned_count S\<close>
   \<open>get_old_arena (set_stats_wl_heur stats S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_stats_wl_heur stats S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_aivdom_wl_heur aivdom S) = get_trail_wl_heur S\<close>
@@ -1906,7 +1921,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_aivdom_wl_heur aivdom S) = get_opts S\<close>
   \<open>get_learned_count (set_aivdom_wl_heur aivdom S) = get_learned_count S\<close>
   \<open>get_old_arena (set_aivdom_wl_heur aivdom S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_aivdom_wl_heur aivdom S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_learned_count_wl_heur lcount S) = get_trail_wl_heur S\<close>
@@ -1925,7 +1941,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_learned_count_wl_heur lcount S) = get_opts S\<close>
   \<open>get_learned_count (set_learned_count_wl_heur lcount S) = lcount\<close>
   \<open>get_old_arena (set_learned_count_wl_heur lcount S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_learned_count_wl_heur lcount S) = learned_clss_count_lcount lcount\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_opts_wl_heur lcount S) = get_trail_wl_heur S\<close>
@@ -1945,7 +1962,8 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_opts_wl_heur lcount S) = lcount\<close>
   \<open>get_learned_count (set_opts_wl_heur lcount S) = get_learned_count S\<close>
   \<open>get_old_arena (set_opts_wl_heur lcount S) = get_old_arena S\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_opts_wl_heur lcount S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemma [isasat_state_simp]:
   \<open>get_trail_wl_heur (set_old_arena_wl_heur old_arena S) = get_trail_wl_heur S\<close>
@@ -1965,9 +1983,11 @@ lemma [isasat_state_simp]:
   \<open>get_opts (set_old_arena_wl_heur old_arena S) = get_opts S\<close>
   \<open>get_learned_count (set_old_arena_wl_heur old_arena S) = get_learned_count S\<close>
   \<open>get_old_arena (set_old_arena_wl_heur old_arena S) = old_arena\<close>
-  by (solves \<open>cases S; auto\<close>)+
+  \<open>learned_clss_count (set_old_arena_wl_heur old_arena S) = learned_clss_count S\<close>
+  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemmas [simp] = isasat_state_simp
+
 
 (*TODO Move*)
 definition (in -) length_ll_fs_heur :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat\<close> where

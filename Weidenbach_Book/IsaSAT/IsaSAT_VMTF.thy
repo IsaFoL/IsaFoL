@@ -1325,12 +1325,14 @@ definition (in -) find_decomp_wl_st :: \<open>nat literal \<Rightarrow> nat twl_
     RETURN (M', N, D, oth)
   })\<close>
 
-definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>find_decomp_wl_st_int = (\<lambda>highest (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). do{
+definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>find_decomp_wl_st_int = (\<lambda>highest S. do{
+     let M = get_trail_wl_heur S;
+     let vm = get_vmtf_heur S;
      (M', vm) \<leftarrow> isa_find_decomp_wl_imp M highest vm;
-     RETURN (M', N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena)
+     let S = set_trail_wl_heur M' S;
+     let S = set_vmtf_wl_heur vm S;
+     RETURN S
   })\<close>
 
 lemma

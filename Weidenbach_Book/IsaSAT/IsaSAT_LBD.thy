@@ -122,7 +122,7 @@ lemma mop_arena_mark_used2_valid:
     intro!: ASSERT_leI valid_arena_mark_used2)
 
 abbreviation twl_st_heur_conflict_ana'
-  :: \<open>nat \<Rightarrow> clss_size \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+  :: \<open>nat \<Rightarrow> clss_size \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close>
 where
   \<open>twl_st_heur_conflict_ana' r lcount \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
      length (get_clauses_wl_heur S) = r \<and> get_learned_count S = lcount}\<close>
@@ -201,12 +201,10 @@ definition mark_lbd_from_list_heur :: \<open>trail_pol \<Rightarrow> nat clause_
        RETURN (if lev = 0 then lbd else lbd_write lbd lev)})
     lbd}\<close>
 
-definition mark_lbd_from_conflict :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>mark_lbd_from_conflict = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
-        lcount). do{
-     lbd \<leftarrow> mark_lbd_from_list_heur M outl lbd;
-     RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-         heur, vdom, avdom, lcount)
+definition mark_lbd_from_conflict :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>mark_lbd_from_conflict = (\<lambda>S. do{
+     lbd \<leftarrow> mark_lbd_from_list_heur (get_trail_wl_heur S) (get_outlearned_heur S) (get_lbd S);
+     RETURN (set_lbd_wl_heur lbd S)
     })\<close>
 
 

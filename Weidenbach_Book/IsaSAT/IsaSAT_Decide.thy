@@ -59,15 +59,20 @@ definition get_saved_phase_heur_pre :: \<open>nat option \<Rightarrow> restart_h
        L \<noteq> None \<longrightarrow> get_next_phase_heur_pre_stats True (the L) heur)\<close>
 
 definition find_unassigned_lit_wl_D_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
+  :: \<open>isasat \<Rightarrow> (isasat \<times> nat literal option) nres\<close>
 where
-  \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). do {
+  \<open>find_unassigned_lit_wl_D_heur = (\<lambda>S. do {
+      let M = get_trail_wl_heur S;
+      let vm = get_vmtf_heur S;
+      let heur = get_heur S;
+      let heur = set_fully_propagated_heur heur;
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
       ASSERT(get_saved_phase_heur_pre (L) (get_content heur));
-      L \<leftarrow> lit_of_found_atm heur L;
-      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
-       vdom, lcount, opts, old_arena), L)
+        L \<leftarrow> lit_of_found_atm heur L;
+      let S = set_trail_wl_heur M S;
+      let S = set_vmtf_wl_heur vm S;
+      let S = set_heur_wl_heur heur S;
+      RETURN (S, L)
     })\<close>
 
 lemma lit_of_found_atm_D_pre:
@@ -143,8 +148,8 @@ proof -
   by (cases S) auto
 
   have isa_vmtf_find_next_undef_upd:
-    \<open>isa_vmtf_find_next_undef_upd (a, aa, ab, ac, ad, b)
-       ((aj, ak, al, am, bb), an, bc)
+    \<open>isa_vmtf_find_next_undef_upd (get_trail_wl_heur S)
+       (get_vmtf_heur S)
       \<le> \<Down> {(((M, vm), A), L). A = map_option atm_of L \<and>
               unassigned_atm (bt, bu, bv, bw, bx, by, bz, baa, bab) L \<and>
              vm \<in> isa_vmtf (all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)) bt \<and>
@@ -154,29 +159,25 @@ proof -
 	  (is \<open>_ \<le> \<Down> ?find _\<close>)
     if
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
-      T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 stats, heur, bo, bp, bq),
+      T: \<open>(S,
 	bt, bu, bv, bw, bx, by, bz, baa, bab)
        \<in> twl_st_heur\<close> and
       \<open>r =
        length
 	(get_clauses_wl_heur
-	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	   stats, heur, bo, bp, bq))\<close>
+	  S)\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
 	 au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-	 bw bx "by" bz heur baa bab stats
+	 bw bx "by" bz heur baa bab stats S
   proof -
     let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close>
     have pol:
-      \<open>((a, aa, ab, ac, ad, b), bt) \<in> trail_pol ?\<A>\<close>
+      \<open>(get_trail_wl_heur S, bt) \<in> trail_pol ?\<A>\<close>
       using that by (cases bz; auto simp: twl_st_heur_def)
     obtain vm0 where
-      vm0: \<open>((an, bc), vm0) \<in> distinct_atoms_rel ?\<A>\<close> and
-      vm: \<open>((aj, ak, al, am, bb), vm0) \<in> vmtf ?\<A> bt\<close>
-      using T by (cases bz; auto simp: twl_st_heur_def isa_vmtf_def)
+       vm0: \<open>(snd (get_vmtf_heur S), vm0) \<in> distinct_atoms_rel ?\<A>\<close> and
+       vm: \<open>((fst (get_vmtf_heur S)), vm0) \<in> vmtf ?\<A> bt\<close>
+      using T by (cases bz; cases \<open>get_vmtf_heur S\<close>; auto simp: twl_st_heur_def isa_vmtf_def)
     have [intro]:
        \<open>Multiset.Ball (\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>) (defined_lit bt) \<Longrightarrow>
 	 atm_of L' \<in># ?\<A> \<Longrightarrow>
@@ -191,13 +192,13 @@ proof -
     show ?thesis
       apply (rule order.trans)
       apply (rule isa_vmtf_find_next_undef_vmtf_find_next_undef[of ?\<A>, THEN fref_to_Down_curry,
-	 of _ _ bt \<open>((aj, ak, al, am, bb), vm0)\<close>])
+	 of _ _ bt \<open>(fst (get_vmtf_heur S), vm0)\<close>])
       subgoal by fast
       subgoal
-	 using pol vm0 by (auto simp: twl_st_heur_def all_atms_def[symmetric])
+	 using pol vm0 by (cases \<open>get_vmtf_heur S\<close>) (auto simp: twl_st_heur_def all_atms_def[symmetric])
       apply (rule order.trans)
       apply (rule ref_two_step')
-      apply (rule vmtf_find_next_undef_upd[THEN fref_to_Down_curry, of ?\<A> bt \<open>((aj, ak, al, am, bb), vm0)\<close>])
+      apply (rule vmtf_find_next_undef_upd[THEN fref_to_Down_curry, of ?\<A> bt \<open>(fst (get_vmtf_heur S), vm0)\<close>])
       subgoal using vm by (auto simp: all_atms_def)
       subgoal by auto
       subgoal using vm vm0 pre
@@ -218,23 +219,14 @@ proof -
 	   (RES {L, map_option uminus L})\<close>
     if
       \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
-      \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 stats, heur, bo, bp, bq),
-	bt, bu, bv, bw, bx, by, bz, baa, bab)
-       \<in> twl_st_heur\<close> and
-      \<open>r =
-       length
-	(get_clauses_wl_heur
-	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	   stats, heur, bo, bp, bq))\<close> and
+      \<open>(S, bt, bu, bv, bw, bx, by, bz, baa, bab) \<in> twl_st_heur\<close> and
+      \<open>r = length (get_clauses_wl_heur S)\<close> and
       \<open>(x, L) \<in> ?find bt bu bv bw bx by bz baa bab\<close> and
       \<open>x1 = (x1a, x2)\<close> and
       \<open>x = (x1, x2a)\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx "by" bz x L x1 x1a x2 x2a heur baa bab ao' stats
+       bw bx "by" bz x L x1 x1a x2 x2a heur baa bab ao' stats S
   proof -
     show ?thesis
       using that unfolding lit_of_found_atm_def
@@ -245,7 +237,7 @@ proof -
     unfolding find_unassigned_lit_wl_D_heur_pre_def by auto
   show ?thesis
     unfolding find_unassigned_lit_wl_D_heur_def find_unassigned_lit_wl_D_alt_def find_undefined_atm_def
-      ID_R
+      ID_R Let_def
     apply (intro frefI nres_relI)
     apply clarify
     apply refine_vcg
@@ -256,10 +248,8 @@ proof -
         mset_take_mset_drop_mset' all_atms_def[symmetric] unassigned_atm_def
           simp del: twl_st_of_wl.simps dest!: intro!: RETURN_RES_refine)
     apply (rule lit_of_found_atm; assumption)
-    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
-       as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       x L x1 x1a x2 x2a La Lb
-      by (cases L)
+    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao L L'
+      by (cases am)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
          all_lits_st_alt_def[symmetric]
         simp del: twl_st_of_wl.simps dest!: intro!: RETURN_RES_refine;
@@ -297,22 +287,24 @@ lemma lit_of_found_atm_D_lit_of_found_atm:
   by (auto split: option.splits if_splits simp: pw_le_iff refine_pw_simps lit_of_found_atm_D_pre_def
     nofail_get_next_phase get_saved_phase_heur_pre_def  nofail_get_next_phase)
 
-definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
+definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>decide_lit_wl_heur = (\<lambda>L' S. do {
+      let M = get_trail_wl_heur S;
+      let stats = get_stats_heur S;
       ASSERT(isa_length_trail_pre M);
       let j = isa_length_trail M;
+      let S = set_literals_to_update_wl_heur j S;
       ASSERT(cons_trail_Decided_tr_pre (L', M));
-      RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, clvls, cach, lbd, outl, incr_decision stats,
-         fema, sema)})\<close>
+      let M = cons_trail_Decided_tr L' M;
+      let S = set_trail_wl_heur M S;
+      let S = set_stats_wl_heur stats S;
+      RETURN S})\<close>
 
-definition mop_get_saved_phase_heur_st :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool nres\<close> where
-   \<open>mop_get_saved_phase_heur_st =
-     (\<lambda>L (M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount, opts,
-       old_arena).
-      mop_get_saved_phase_heur L heur)\<close>
+definition mop_get_saved_phase_heur_st :: \<open>nat \<Rightarrow> isasat \<Rightarrow> bool nres\<close> where
+   \<open>mop_get_saved_phase_heur_st = (\<lambda>L S. mop_get_saved_phase_heur L (get_heur S))\<close>
 
 definition decide_wl_or_skip_D_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+  :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close>
 where
   \<open>decide_wl_or_skip_D_heur S = (do {
     (S, L) \<leftarrow> find_unassigned_lit_wl_D_heur S;
@@ -372,7 +364,6 @@ proof -
     show ?thesis
       unfolding decide_lit_wl_heur_def
         decide_lit_wl_def
-      apply (cases x1a)
       apply refine_vcg
       subgoal
         by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
@@ -383,7 +374,7 @@ proof -
           all_lits_st_alt_def[symmetric]\<close>)
       subgoal
         using that(2) unfolding cons_trail_Decided_def[symmetric] st
-        apply (auto simp: twl_st_heur_def)[]
+        apply (clarsimp simp: twl_st_heur_def)[]
         apply (clarsimp simp add: twl_st_heur_def all_atms_def[symmetric]
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
           all_lits_st_alt_def[symmetric] all_atms_st_cons_trail_empty_Q
@@ -439,23 +430,17 @@ do {
 }\<close>
   by (intro bind_cong) auto
 
-definition get_next_phase_st :: \<open>bool \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool) nres\<close> where
-  \<open>get_next_phase_st = (\<lambda>b L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena).
-     (get_next_phase_heur b L heur))\<close>
+definition get_next_phase_st :: \<open>bool \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> (bool) nres\<close> where
+  \<open>get_next_phase_st = (\<lambda>b L S.
+     (get_next_phase_heur b L (get_heur S)))\<close>
 
 definition find_unassigned_lit_wl_D_heur2
-  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat option) nres\<close>
+  :: \<open>isasat \<Rightarrow> (isasat \<times> nat option) nres\<close>
 where
-  \<open>find_unassigned_lit_wl_D_heur2 = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). do {
-      ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
-      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, set_fully_propagated_heur heur,
-       vdom, lcount, opts, old_arena), L)
+  \<open>find_unassigned_lit_wl_D_heur2 = (\<lambda>S. do {
+      ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd (get_trail_wl_heur S) (get_vmtf_heur S);
+      RETURN (set_heur_wl_heur (set_fully_propagated_heur (get_heur S)) (set_trail_wl_heur M (set_vmtf_wl_heur vm S)), L)
     })\<close>
-
-fun get_heur :: \<open>twl_st_wl_heur \<Rightarrow> _\<close> where
-  \<open>get_heur (_, _, _, _, _, _, _, _, _, _, _, heur, _) = heur\<close>
 
 definition decide_wl_or_skip_D_heur' where
   \<open>decide_wl_or_skip_D_heur' = (\<lambda>S. do {
@@ -492,20 +477,22 @@ proof -
   have K: \<open>RES {Some (Pos x2), Some (Neg x2)} \<le> \<Down> {(x, y). x = Some y} (RES {Pos x2, Neg x2})\<close>
     \<open>RES {(Pos x2), (Neg x2)} \<le> \<Down> {(y, x). x = Some y} (RES {Some (Pos x2), Some (Neg x2)})\<close>  for x2
     by (auto intro!: RES_refine)
-  have S: \<open>S = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p) \<Longrightarrow>
-       decide_wl_or_skip_D_heur S =
+  have [simp]: \<open>IsaSAT_Decide.get_saved_phase_heur_pre a (get_restart_heuristics (set_fully_propagated_heur (S))) =
+    IsaSAT_Decide.get_saved_phase_heur_pre a (get_restart_heuristics (S))\<close> for S a
+    by (cases S)(auto simp: IsaSAT_Decide.get_saved_phase_heur_pre_def get_next_phase_heur_pre_stats_def
+      get_next_phase_pre_def set_fully_propagated_heur_def set_fully_propagated_heur_stats_def)
+  have S: \<open>decide_wl_or_skip_D_heur S =
        (do {
-                   ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd a f;
-                   ASSERT (IsaSAT_Decide.get_saved_phase_heur_pre L (get_restart_heuristics l));
-                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p))
+                   ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd (get_trail_wl_heur S) (get_vmtf_heur S);
+                   ASSERT (IsaSAT_Decide.get_saved_phase_heur_pre L (get_restart_heuristics (get_heur S)));
+                   case L of None \<Rightarrow> RETURN (True, set_heur_wl_heur (set_fully_propagated_heur (get_heur S)) (set_vmtf_wl_heur vm (set_trail_wl_heur M S)))
                      | Some L \<Rightarrow> do {
                        _ \<leftarrow> SPEC (\<lambda>_::bool. True);
                        L \<leftarrow>RES {Pos L, Neg L};
-                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, set_fully_propagated_heur l, m, n, p);
+                      T \<leftarrow> decide_lit_wl_heur L (set_heur_wl_heur (set_fully_propagated_heur (get_heur S)) (set_vmtf_wl_heur vm (set_trail_wl_heur M S)));
                       RETURN (False, T)
                      }})\<close> for S a b c d e f g h i  j k l m n p q r
-     unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
-     apply (simp only: prod.simps)
+     unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def Let_def
      apply (auto intro!: bind_cong[OF refl] simp: lit_of_found_atm_def split: option.splits)
      apply (rule H)
      subgoal

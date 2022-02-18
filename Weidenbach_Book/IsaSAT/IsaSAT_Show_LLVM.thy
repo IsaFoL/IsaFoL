@@ -54,13 +54,23 @@ lemmas [sepref_fr_rules] =
   isasat_current_information_impl.refine[FCOMP isasat_current_information_stats_isasat_current_information,
   unfolded stats_assn_alt_def[symmetric]]
 
+lemma isasat_current_status_alt_def:
+\<open>isasat_current_status =
+   (\<lambda>S.
+  let
+      (heur, S) = extract_heur_wl_heur S;
+      (stats, S) = extract_stats_wl_heur S;
+      (lcount, S) = extract_lcount_wl_heur S;
+       curr_phase = current_restart_phase (heur);
+        stats = (isasat_current_information curr_phase stats lcount)
+     in RETURN (update_stats_wl_heur stats (update_heur_wl_heur heur (update_lcount_wl_heur lcount S))))\<close>
+  by (auto simp: isasat_current_status_def state_extractors split: isasat_int.splits intro!: ext)
 
 sepref_def isasat_current_status_fast_code
   is \<open>isasat_current_status\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def isasat_current_status_def
-  unfolding fold_tuple_optimizations
+  unfolding isasat_current_status_alt_def
   by sepref
 
 sepref_def isasat_print_progress_impl
@@ -77,13 +87,5 @@ lemma isasat_print_progress_stats_isasat_print_progress:
 lemmas [sepref_fr_rules] =
   isasat_print_progress_impl.refine[FCOMP isasat_print_progress_stats_isasat_print_progress,
   unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def isasat_current_progress_impl
-  is \<open>uncurry isasat_current_progress\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def isasat_current_progress_def
-  unfolding fold_tuple_optimizations
-  by sepref
 
 end

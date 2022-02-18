@@ -3045,6 +3045,26 @@ lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
 
 
+locale read_heur_param_adder2 =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R and R'
+  assumes not_deleted_code_refine: \<open>(uncurry2 (\<lambda>S C D. f C D S), uncurry2 (\<lambda>S C' D'. f' C' D' S)) \<in> [uncurry2 (\<lambda>S C D. P C D S)]\<^sub>a heuristic_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k*\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+begin
+sublocale XX: read_heur_param_adder where
+  f = \<open>\<lambda>(C,D) N. f C D N\<close> and
+  f' = \<open>\<lambda>(C,D) N. f' C D N\<close> and
+  P = \<open>\<lambda>(C,D) N. P C D N\<close> and
+  R = \<open>R \<times>\<^sub>f R'\<close>
+  apply unfold_locales
+  using not_deleted_code_refine[THEN merge_second_pure_argument] .
+
+lemma refine:
+  \<open>(uncurry2 (\<lambda>N C D. read_heur_wl_heur_code (f C D) N),
+    uncurry2 (\<lambda>N C' D. read_heur_wl_heur (f' C' D) N))
+  \<in> [uncurry2 (\<lambda>S C D. P C D (get_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
+
+end
+
 abbreviation read_vdom_wl_heur_code :: \<open>_ \<Rightarrow> twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>read_vdom_wl_heur_code f \<equiv> read_all_wl_heur_code  (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ _. f M)\<close>
 abbreviation read_vdom_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\<close> where
@@ -3514,23 +3534,47 @@ lemmas [state_extractors] =
   extract_arena_wl_heur_def
   extract_conflict_wl_heur_def
   extract_watchlist_wl_heur_def
+  extract_vmtf_wl_heur_def
+  extract_ccach_wl_heur_def
+  extract_clvls_wl_heur_def
+  extract_lbd_wl_heur_def
+  extract_outl_wl_heur_def
   extract_stats_wl_heur_def
   extract_heur_wl_heur_def
+  extract_vdom_wl_heur_def
   extract_lcount_wl_heur_def
+  extract_opts_wl_heur_def
+  extract_literals_to_update_wl_heur_def
   isasat_state_ops.remove_trail_wl_heur_def
   isasat_state_ops.remove_arena_wl_heur_def
   isasat_state_ops.remove_conflict_wl_heur_def
   isasat_state_ops.remove_watchlist_wl_heur_def
+  isasat_state_ops.remove_vmtf_wl_heur_def
+  isasat_state_ops.remove_clvls_wl_heur_def
+  isasat_state_ops.remove_ccach_wl_heur_def
+  isasat_state_ops.remove_lbd_wl_heur_def
+  isasat_state_ops.remove_outl_wl_heur_def
   isasat_state_ops.remove_stats_wl_heur_def
   isasat_state_ops.remove_heur_wl_heur_def
+  isasat_state_ops.remove_vdom_wl_heur_def
   isasat_state_ops.remove_lcount_wl_heur_def
+  isasat_state_ops.remove_opts_wl_heur_def
+  isasat_state_ops.remove_literals_to_update_wl_heur_def
   update_trail_wl_heur_def
   update_arena_wl_heur_def
   update_conflict_wl_heur_def
   update_watchlist_wl_heur_def
+  update_vmtf_wl_heur_def
+  update_clvls_wl_heur_def
+  update_ccach_wl_heur_def
+  update_lbd_wl_heur_def
+  update_outl_wl_heur_def
   update_stats_wl_heur_def
   update_heur_wl_heur_def
+  update_vdom_wl_heur_def
   update_lcount_wl_heur_def
+  update_opts_wl_heur_def
+  update_literals_to_update_wl_heur_def
 
 lemmas [llvm_inline] =
   DEFAULT_INIT_PHASE_def
