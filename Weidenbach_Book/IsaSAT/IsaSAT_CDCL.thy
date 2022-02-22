@@ -7,7 +7,7 @@ begin
 paragraph \<open>Combining Together: Full Strategy\<close>
 
 definition  cdcl_twl_stgy_prog_wl_D_heur
-   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+   :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_wl_D_heur S\<^sub>0 =
   do {
@@ -53,7 +53,7 @@ proof -
 qed
 
 
-definition cdcl_twl_stgy_prog_break_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+definition cdcl_twl_stgy_prog_break_wl_D_heur :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_break_wl_D_heur S\<^sub>0 =
   do {
@@ -75,7 +75,7 @@ where
   }\<close>
 
 
-definition cdcl_twl_stgy_prog_bounded_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+definition cdcl_twl_stgy_prog_bounded_wl_heur :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close>
 where
   \<open>cdcl_twl_stgy_prog_bounded_wl_heur S\<^sub>0 =
   do {

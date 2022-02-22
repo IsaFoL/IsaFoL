@@ -1099,7 +1099,8 @@ definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasa
   \<open>mark_garbage_heur C i = (\<lambda>S.
     let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C in
     let lcount = clss_size_decr_lcount (get_learned_count S) in
-    set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))\<close>
+    let vdom = remove_inactive_aivdom i (get_aivdom S) in
+    set_aivdom_wl_heur vdom (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S)))\<close>
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>S. do{
@@ -1114,10 +1115,11 @@ definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
 definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>mark_garbage_heur3 C i = (\<lambda>S.
     let N' = get_clauses_wl_heur S in
-    let N' = extra_information_mark_to_delete (N') C in
+    let N' = extra_information_mark_to_delete N' C in
     let lcount = get_learned_count S in
     let vdom = get_aivdom S in
     let vdom = remove_inactive_aivdom_tvdom i vdom in
+    let lcount = clss_size_decr_lcount lcount in
     let S = set_clauses_wl_heur N' S in
     let S = set_learned_count_wl_heur lcount S in
     let S = set_aivdom_wl_heur vdom S in
