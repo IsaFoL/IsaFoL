@@ -123,40 +123,195 @@ lemma isasat_fast_countD_tmp:
   \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUEk (get_learned_count S) < uint64_max\<close>
   by (auto simp: isasat_fast_def learned_clss_count_def)
 
-sepref_register cons_trail_Propagated_tr
+lemma propagate_unit_bt_wl_D_int_alt_def:
+    \<open>propagate_unit_bt_wl_D_int = (\<lambda>L S\<^sub>0. do {
+      let (M, S) = extract_trail_wl_heur S\<^sub>0;
+      let (N, S) = extract_arena_wl_heur S;
+      ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+      let (lcount, S) = extract_lcount_wl_heur S;
+      ASSERT (lcount = get_learned_count S\<^sub>0);
+      let (heur, S) = extract_heur_wl_heur S;
+      let (stats, S) = extract_stats_wl_heur S;
+      let (lbd, S) = extract_lbd_wl_heur S;
+      let (vm0, S) = extract_vmtf_wl_heur S;
+      vm \<leftarrow> isa_vmtf_flush_int M vm0;
+      glue \<leftarrow> get_LBD lbd;
+      lbd \<leftarrow> lbd_empty lbd;
+      j \<leftarrow> mop_isa_length_trail M;
+      ASSERT(0 \<noteq> DECISION_REASON);
+      ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
+      M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
+      let stats = incr_units_since_last_GC (incr_uset stats);
+      let S = update_stats_wl_heur stats S;
+      let S = update_trail_wl_heur M S;
+      let S = update_lbd_wl_heur lbd S;
+      let S = update_literals_to_update_wl_heur j S;
+      let S = update_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
+      let S = update_lcount_wl_heur (clss_size_incr_lcountUEk lcount) S;
+      let S = update_arena_wl_heur N S;
+      let S = update_vmtf_wl_heur vm S;
+        RETURN S})\<close>
+  by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors intro!: ext split: isasat_int.splits)
+
+sepref_register cons_trail_Propagated_tr update_heur_wl_heur
 sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
   :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
+  supply [[goals_limit = 1]]
     isasat_fast_countD[dest] isasat_fast_countD_tmp[dest]
-  unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
+  unfolding propagate_unit_bt_wl_D_int_alt_def
     PR_CONST_def
-  unfolding fold_tuple_optimizations
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+
+definition propagate_bt_wl_D_heur_extract where
+  \<open>propagate_bt_wl_D_heur_extract = (\<lambda>S\<^sub>0. do {
+      let (M,S) = extract_trail_wl_heur S\<^sub>0;
+      let (vdom, S) = extract_vdom_wl_heur S;
+      let (N0, S) = extract_arena_wl_heur S;
+      let (W0, S) = extract_watchlist_wl_heur S;
+      let (lcount, S) = extract_lcount_wl_heur S;
+      let (heur, S) = extract_heur_wl_heur S;
+      let (stats, S) = extract_stats_wl_heur S;
+      let (lbd, S) = extract_lbd_wl_heur S;
+      let (vm0, S) = extract_vmtf_wl_heur S;
+      RETURN (M, vdom, N0, W0, lcount, heur, stats, lbd, vm0, S)})\<close>
+
+sepref_def propagate_bt_wl_D_heur_extract_impl
+  is \<open>propagate_bt_wl_D_heur_extract\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn \<times>\<^sub>a aivdom_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a heuristic_assn \<times>\<^sub>a stats_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a
+  vmtf_remove_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  unfolding propagate_bt_wl_D_heur_extract_def
+  by sepref
+
+definition propagate_bt_wl_D_heur_update where
+  \<open>propagate_bt_wl_D_heur_update = (\<lambda>S\<^sub>0 M vdom N0 W0 lcount heur stats lbd vm0 j. do {
+      let (S) = update_trail_wl_heur M S\<^sub>0;
+      let (S) = update_vdom_wl_heur vdom S;
+      let (S) = update_arena_wl_heur N0 S;
+      let (S) = update_watchlist_wl_heur W0 S;
+      let (S) = update_lcount_wl_heur lcount S;
+      let (S) = update_heur_wl_heur heur S;
+      let (S) = update_stats_wl_heur stats S;
+      let S = update_lbd_wl_heur lbd S;
+      let (S) = update_vmtf_wl_heur vm0 S;
+      let S = update_clvls_wl_heur 0 S;
+      let S = update_literals_to_update_wl_heur j S;
+      RETURN (S)})\<close>
+
+sepref_def propagate_bt_wl_D_heur_update_impl
+  is \<open>uncurry10 propagate_bt_wl_D_heur_update\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a
+  watchlist_fast_assn\<^sup>d *\<^sub>a lcount_assn\<^sup>d *\<^sub>a heuristic_assn\<^sup>d *\<^sub>a stats_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>d *\<^sub>a
+  vmtf_remove_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a  isasat_bounded_assn\<close>
+  unfolding propagate_bt_wl_D_heur_update_def
+  apply (rewrite at \<open>update_clvls_wl_heur \<hole> _\<close> unat_const_fold[where 'a=32])
+  by sepref
+
+thm isasat_bounded_assn_def
+  (* trail_pol_fast_assn  arena_fast_assn
+  conflict_option_rel_assn
+  sint64_nat_assn
+  watchlist_fast_assn
+  vmtf_remove_assn
+  uint32_nat_assn
+  cach_refinement_l_assn
+  lbd_assn
+  out_learned_assn
+  stats_assn
+  heuristic_assn
+  aivdom_assn
+  lcount_assn
+  opts_assn  arena_fast_assn*)
+lemma propagate_bt_wl_D_heur_alt_def:
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C S\<^sub>0. do {
+      (M, vdom, N0, W0, lcount, heur, stats, lbd, vm0, S) \<leftarrow> propagate_bt_wl_D_heur_extract S\<^sub>0;
+      ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
+      ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
+      ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
+      ASSERT(length C > 1);
+      let L' = C!1;
+      ASSERT(length C \<le> uint32_max div 2 + 1);
+      vm \<leftarrow> isa_vmtf_rescore C M vm0;
+      glue \<leftarrow> get_LBD lbd;
+      let b = False;
+      let b' = (length C = 2);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
+      (N, i) \<leftarrow> fm_add_new b C N0;
+      ASSERT(update_lbd_pre ((i, glue), N));
+      let N = update_lbd i glue N;
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
+      lbd \<leftarrow> lbd_empty lbd;
+      j \<leftarrow> mop_isa_length_trail M;
+      ASSERT(i \<noteq> DECISION_REASON);
+      ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
+      M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
+      vm \<leftarrow> isa_vmtf_flush_int M vm;
+        heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
+      S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
+          W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
+      RETURN (S)
+        })\<close>
+  unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
+          propagate_bt_wl_D_heur_extract_def nres_monad3
+  by (auto simp: propagate_bt_wl_D_heur_def Let_def state_extractors propagate_bt_wl_D_heur_update_def
+          propagate_bt_wl_D_heur_extract_def intro!: ext bind_cong[OF refl]
+          split: isasat_int.splits)
+thm sepref_bounds_simps
+sepref_register propagate_bt_wl_D_heur_update propagate_bt_wl_D_heur_extract
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
-    propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
-    propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
-    isasat_fast_countD[dest]
+  supply [[goals_limit = 1]] (* append_ll_def[simp] isasat_fast_length_leD[dest]
+     * propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
+     * propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
+     * isasat_fast_countD[dest] *)
   unfolding propagate_bt_wl_D_heur_alt_def
-    isasat_bounded_assn_def
+    fm_add_new_fast_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     PR_CONST_def save_phase_def
-  apply (rewrite at \<open>RETURN (_, _, _, _, _, _, \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-  unfolding fold_tuple_optimizations
-  apply (rewrite in \<open>isasat_fast \<hole>\<close> fold_tuple_optimizations[symmetric])+
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+  apply (tactic \<open>REPEAT_DETERM_N 10 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+  apply (tactic \<open>REPEAT_DETERM_N 25 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+  apply (tactic \<open>REPEAT_DETERM_N 5 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+  apply (tactic \<open>REPEAT_DETERM_N 5 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+  apply (tactic \<open>REPEAT_DETERM_N 2 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+  apply (tactic \<open>REPEAT_DETERM_N 1 (HEADGOAL (Sepref_Translate.trans_step_tac @{context}))\<close>)
+    subgoal premises p
+    oops
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve_cp
+  apply sepref_dbg_constraints
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+subgoal premises p
+  find_in_thms fm_add_new_fast in sepref_fr_rules
+  oops
   by sepref
 
 lemma extract_shorter_conflict_list_heur_st_alt_def:
-    \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (bD), Q', W', vm, clvls, cach, lbd, outl,
-       stats, ccont, vdom). do {
+    \<open>extract_shorter_conflict_list_heur_st = (\<lambda>S\<^sub>0. do {
+     let (M,S) = extract_trail_wl_heur S\<^sub>0;
+     let (N0, S) = extract_arena_wl_heur S;
+     let (lbd, S) = extract_lbd_wl_heur S;
+     let (vm0, S) = extract_vmtf_wl_heur S;
      lbd \<leftarrow> mark_lbd_from_list_heur M outl lbd;
      let D =  the_lookup_conflict bD;
      ASSERT(fst M \<noteq> []);
@@ -171,10 +326,16 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
      let cach = empty_cach_ref cach;
      ASSERT(outl \<noteq> [] \<and> length outl \<le> uint32_max);
      (D, C, n) \<leftarrow> isa_empty_conflict_and_extract_clause_heur M D outl;
+      let S = update_trail_wl_heur M S;
+      let S = update_arena_wl_heur N S;
+      let S = update_vmtf_wl_heur vm S;
+      let S = update_lbd_wl_heur lbd S;
+      let S = update_outl_wl_heur (take 1 outl) S;
      RETURN ((M, N, D, Q', W', vm, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
   })\<close>
   unfolding extract_shorter_conflict_list_heur_st_def
-  by (auto simp: the_lookup_conflict_def Let_def intro!: ext)
+  by (auto simp: the_lookup_conflict_def Let_def state_extractors intro!: ext
+    split: isasat_int.splits)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
     empty_conflict_and_extract_clause_heur
