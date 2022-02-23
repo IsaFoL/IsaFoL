@@ -40,14 +40,60 @@ sepref_def set_conflict_to_false_code
   supply [[goals_limit=1]]
   by sepref
 
+lemma isa_simplify_clause_with_unit_st2_alt_def:
+  \<open>isa_simplify_clause_with_unit_st2 =  (\<lambda>C S\<^sub>0. do {
+  let (lcount, S) = extract_lcount_wl_heur S\<^sub>0; let (N, S) = extract_arena_wl_heur S; let (M, S) = extract_trail_wl_heur S;
+  ASSERT (N = get_clauses_wl_heur S\<^sub>0 \<and> lcount = get_learned_count S\<^sub>0 \<and> M = get_trail_wl_heur S\<^sub>0);
+  E \<leftarrow> mop_arena_status N C;
+   ASSERT(E = LEARNED \<longrightarrow> 1 \<le> clss_size_lcount lcount);
+  (unc, N, L, b, i) \<leftarrow> isa_simplify_clause_with_unit2 C M N;
+   if unc then RETURN (update_arena_wl_heur N (update_trail_wl_heur M (update_lcount_wl_heur lcount S)))
+   else if b then
+   let (stats, S) = extract_stats_wl_heur S in
+   RETURN  (update_trail_wl_heur M
+     (update_arena_wl_heur N
+     (update_stats_wl_heur (if E=LEARNED then stats else decr_irred_clss (stats))
+     (update_lcount_wl_heur (if E = LEARNED then clss_size_decr_lcount (lcount) else lcount)
+     S))))
+   else if i = 1
+   then do {
+     M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+    let (stats, S) = extract_stats_wl_heur S;
+     RETURN (update_arena_wl_heur N
+     (update_trail_wl_heur M
+     (update_stats_wl_heur (if E=LEARNED then stats else decr_irred_clss stats)
+     (update_lcount_wl_heur (if E = LEARNED then clss_size_decr_lcount (clss_size_incr_lcountUEk lcount) else lcount)
+     S)))) }
+   else if i = 0
+   then do {
+     j \<leftarrow> mop_isa_length_trail M;
+     let (stats, S) = extract_stats_wl_heur S; let (confl, S) = extract_conflict_wl_heur S;
+     RETURN (update_trail_wl_heur M
+     (update_arena_wl_heur N
+     (update_conflict_wl_heur (set_conflict_to_false confl)
+     (update_clvls_wl_heur 0
+     (update_literals_to_update_wl_heur j
+     (update_stats_wl_heur (if E=LEARNED then stats else decr_irred_clss stats)
+     (update_lcount_wl_heur (if E = LEARNED then clss_size_decr_lcount lcount else lcount)
+     S)))))))
+   }
+   else
+     RETURN (update_trail_wl_heur M
+     (update_lcount_wl_heur lcount
+     (update_arena_wl_heur N
+     S)))
+     })\<close>
+     unfolding isa_simplify_clause_with_unit_st2_def
+     by (auto simp: state_extractors  split: isasat_int.splits intro!: ext bind_cong[OF refl])
+
 sepref_def isa_simplify_clause_with_unit_st2_code
   is \<open>uncurry isa_simplify_clause_with_unit_st2\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [simp] = learned_clss_count_def
-  unfolding isa_simplify_clause_with_unit_st2_def
+  unfolding isa_simplify_clause_with_unit_st2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
-    mop_arena_status_st_def[symmetric] isasat_bounded_assn_def
+    mop_arena_status_st_def[symmetric]
     fold_tuple_optimizations
   apply (rewrite at \<open>(cons_trail_Propagated_tr _ \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const \<open>TYPE(32)\<close>)
