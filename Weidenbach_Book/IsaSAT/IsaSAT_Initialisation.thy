@@ -2101,7 +2101,7 @@ qed
 text \<open>TODO Move\<close>
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
-definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> isasat nres\<close> where
   \<open>finalise_init_code opts =
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
        lbd, vdom, ivdom, _, lcount, mark). do {
@@ -2112,9 +2112,9 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let ccount = restart_info_init;
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False));
      let vdoms = AIvdom_init vdom [] ivdom;
-    RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
-       clvls, cach, lbd, take 1 (replicate 160 (Pos 0)), init_stats,
-       heur, vdoms, lcount, opts, [])
+    RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)
+       clvls cach lbd (take 1 (replicate 160 (Pos 0))) init_stats
+       heur vdoms lcount opts [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)

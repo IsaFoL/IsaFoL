@@ -44,29 +44,9 @@ definition conclusive_CDCL_run :: \<open>'v clauses \<Rightarrow> 'v prag_st \<R
        (pget_conflict U \<noteq> None \<longrightarrow> (CS \<noteq> {#} \<and> count_decided (pget_trail U) = 0 \<and>
           unsatisfiable (set_mset CS)))\<close>
 
-lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longrightarrow>
-  twl_stgy_invs S \<Longrightarrow>
-  clauses_to_update S = {#} \<Longrightarrow>
-  get_conflict S = None \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
-  apply (rule order_trans)
-  apply (rule cdcl_twl_stgy_restart_prog_spec; assumption?)
-  unfolding conclusive_TWL_run_def twl_restart_def
-  apply (rule SPEC_rule)
-  apply normalize_goal+
-  by fast
+lemmas cdcl_twl_stgy_restart_restart_prog_spec = cdcl_twl_stgy_restart_prog_spec
 
-
-lemma cdcl_twl_stgy_restart_prog_bounded_spec: \<open>twl_struct_invs S \<Longrightarrow>
-  twl_stgy_invs S \<Longrightarrow>
-  clauses_to_update S = {#} \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  get_conflict S = None \<Longrightarrow>
-  cdcl_twl_stgy_restart_prog_bounded S \<le> conclusive_TWL_run_bounded S\<close>
-  apply (rule order_trans)
-  apply (rule cdcl_twl_stgy_prog_bounded_spec; assumption?)
-  by auto
+lemmas cdcl_twl_stgy_restart_prog_bounded_spec = cdcl_twl_stgy_prog_bounded_spec
 
 lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
@@ -1806,23 +1786,20 @@ proof -
     using 1 2 by simp
 qed
 
-definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_model_of_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
-     (False, (fst (get_trail_wl_heur U)),
-       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). get_content stat) U)\<close>
+     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U))\<close>
 
 lemma extract_model_of_state_stat_alt_def:
   \<open>extract_model_of_state_stat U =
      (let _ = print_trail_st2 U in
-     (False, (fst (get_trail_wl_heur U)),
-  (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). get_content stat) U))\<close>
+     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U)))\<close>
   unfolding extract_model_of_state_stat_def print_trail_st2_def
   by auto
 
-definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_state_stat U =
-     (True, [],
-      (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, stat, _, _). get_content stat) U)\<close>
+     (True, [], get_content (get_stats_heur U))\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
@@ -1868,7 +1845,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur True CS (S, []);
-	T \<leftarrow> rewatch_heur_st T;
+	      T \<leftarrow> rewatch_heur_st T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
@@ -3191,8 +3168,8 @@ proof -
            apply (rule struct_invs; fail)
           apply (rule stgy_invs; fail)
          apply (rule clss_to_upd; fail)
-         apply (rule init[unfolded state\<^sub>W_of_def[symmetric]]; fail)
-       apply (use confl in \<open>simp add: twl_st_init\<close>; fail)
+        apply (use confl in \<open>simp add: twl_st_init\<close>; fail)
+       apply (rule init[unfolded state\<^sub>W_of_def[symmetric]]; fail)
       apply (rule conclusive_le)
       done
   qed
