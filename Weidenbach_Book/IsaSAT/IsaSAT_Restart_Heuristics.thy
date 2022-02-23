@@ -3,7 +3,7 @@ imports
   IsaSAT_Restart_Reduce IsaSAT_Restart_Inprocessing
 begin
 
-definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
+definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
   \<open>restart_required_heur S last_GC last_Restart n = do {
     ASSERT(learned_clss_count S \<ge> last_Restart);
     ASSERT(learned_clss_count S \<ge> last_GC);

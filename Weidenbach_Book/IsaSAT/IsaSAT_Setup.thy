@@ -177,20 +177,20 @@ fun get_slow_ema_heur :: \<open>isasat \<Rightarrow> ema\<close> where
 fun get_conflict_count_heur :: \<open>isasat \<Rightarrow> restart_info\<close> where
   \<open>get_conflict_count_heur S = restart_info_of (get_heur S)\<close>
 
-fun get_vdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_vdom S = get_vdom_aivdom (get_aivdom S)\<close>
+abbreviation get_vdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_vdom S \<equiv> get_vdom_aivdom (get_aivdom S)\<close>
 
-fun get_avdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_avdom S = get_avdom_aivdom (get_aivdom S)\<close>
+abbreviation get_avdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_avdom S \<equiv> get_avdom_aivdom (get_aivdom S)\<close>
 
-fun get_ivdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_ivdom S = get_ivdom_aivdom (get_aivdom S)\<close>
+abbreviation get_ivdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_ivdom S \<equiv> get_ivdom_aivdom (get_aivdom S)\<close>
 
-fun get_tvdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_tvdom S = get_tvdom_aivdom (get_aivdom S)\<close>
+abbreviation get_tvdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_tvdom S \<equiv> get_tvdom_aivdom (get_aivdom S)\<close>
 
-fun get_learned_count_number :: \<open>isasat \<Rightarrow> nat\<close> where
-  \<open>get_learned_count_number S = clss_size_lcount (get_learned_count S)\<close>
+abbreviation get_learned_count_number :: \<open>isasat \<Rightarrow> nat\<close> where
+  \<open>get_learned_count_number S \<equiv> clss_size_lcount (get_learned_count S)\<close>
 
 definition get_restart_phase :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_restart_phase = (\<lambda>S.
@@ -1460,6 +1460,7 @@ lemma restart_info_of_stats_simp [simp]: \<open>restart_info_of_stats (incr_wast
 
   by (cases heur; auto; fail)+
 lemma incr_wasted_st_twl_st[simp]:
+  \<open>get_aivdom (incr_wasted_st b T) = get_aivdom T\<close>
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
   \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
   \<open>get_ivdom (incr_wasted_st w T) = get_ivdom T\<close>
@@ -1469,7 +1470,18 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
   \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
-  by (cases T; auto simp: incr_wasted_st_def incr_wasted_st_def incr_wasted_def restart_info_of_def; fail)+
+  \<open>literals_to_update_wl_heur (incr_wasted_st C T) = literals_to_update_wl_heur T\<close>
+  \<open>get_watched_wl_heur (incr_wasted_st C T) = get_watched_wl_heur T\<close>
+  \<open>get_vmtf_heur (incr_wasted_st C T) = get_vmtf_heur T\<close>
+  \<open>get_count_max_lvls_heur (incr_wasted_st C T) = get_count_max_lvls_heur T\<close>
+  \<open>get_conflict_cach (incr_wasted_st C T) = get_conflict_cach T\<close>
+  \<open>get_lbd (incr_wasted_st C T) = get_lbd T\<close>
+  \<open>get_outlearned_heur (incr_wasted_st C T) = get_outlearned_heur T\<close>
+  \<open>get_aivdom (incr_wasted_st C T) = get_aivdom T\<close>
+  \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
+  \<open>get_opts (incr_wasted_st C T) = get_opts T\<close>
+  \<open>get_old_arena (incr_wasted_st C T) = get_old_arena T\<close>
+  by (cases T; auto simp: incr_wasted_st_def incr_wasted_def restart_info_of_def; fail)+
 
 definition heuristic_reluctant_triggered2_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>heuristic_reluctant_triggered2_st S = heuristic_reluctant_triggered2 (get_heur S)\<close>

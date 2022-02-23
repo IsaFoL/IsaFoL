@@ -821,37 +821,39 @@ definition set_conflict_to_false :: \<open>conflict_option_rel \<Rightarrow> con
   \<open>set_conflict_to_false = (\<lambda>(b, n, xs). (False, 0, xs))\<close>
 
 text \<open>We butcher our statistics here, but the clauses are deleted later anyway.\<close>
-definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>isa_simplify_clause_with_unit_st2 =  (\<lambda>C (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, lcount, opts, old_arena). do {
+definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>isa_simplify_clause_with_unit_st2 =  (\<lambda>C S. do {
+  let lcount = get_learned_count S; let N = get_clauses_wl_heur S; let M = get_trail_wl_heur S;
   E \<leftarrow> mop_arena_status N C;
    ASSERT(E = LEARNED \<longrightarrow> 1 \<le> clss_size_lcount lcount);
   (unc, N, L, b, i) \<leftarrow> isa_simplify_clause_with_unit2 C M N;
-   if unc then RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur,
-      vdom, lcount, opts, old_arena)
+   if unc then RETURN (set_clauses_wl_heur N S)
    else if b then
-   RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur, vdom,
-     if E = LEARNED then clss_size_decr_lcount (lcount) else lcount,
-     opts, old_arena)
+   RETURN  (set_clauses_wl_heur N  
+     (set_stats_wl_heur (if E=LEARNED then get_stats_heur S else decr_irred_clss (get_stats_heur S))
+     (set_learned_count_wl_heur (if E = LEARNED then clss_size_decr_lcount (lcount) else lcount)
+     S)))
    else if i = 1
    then do {
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, if E=LEARNED then (incr_uset stats) else decr_irred_clss (incr_uset stats), heur,
-     vdom, if E = LEARNED
-       then clss_size_decr_lcount (clss_size_incr_lcountUEk (lcount))
-       else lcount, opts, old_arena)}
+     RETURN (set_clauses_wl_heur N  
+     (set_trail_wl_heur M
+     (set_stats_wl_heur (if E=LEARNED then get_stats_heur S else decr_irred_clss (get_stats_heur S))
+     (set_learned_count_wl_heur (if E = LEARNED then clss_size_decr_lcount (clss_size_incr_lcountUEk lcount) else lcount)
+     S)))) }
    else if i = 0
    then do {
      j \<leftarrow> mop_isa_length_trail M;
-     RETURN  (M, N, set_conflict_to_false D, j, W, vm, 0, cach, lbd, outl, if E=LEARNED then stats else decr_irred_clss stats, heur,
-     vdom,
-     if E = LEARNED
-     then clss_size_decr_lcount ((lcount)) else lcount,
-     opts, old_arena)
+     M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+     RETURN (set_clauses_wl_heur N  
+     (set_literals_to_update_wl_heur j
+     (set_trail_wl_heur M
+     (set_stats_wl_heur (if E=LEARNED then get_stats_heur S else decr_irred_clss (get_stats_heur S))
+     (set_learned_count_wl_heur (if E = LEARNED then clss_size_decr_lcount lcount else lcount)
+     S)))))
    }
    else
-     RETURN  (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, heur, vdom,
-           lcount, opts, old_arena)
+     RETURN (set_clauses_wl_heur N S)
      })\<close>
 
 lemma literals_are_in_mm_clauses:
