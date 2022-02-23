@@ -499,13 +499,13 @@ lemma mop_mark_garbage_heur_alt_def:
     let (lcount, S) = extract_lcount_wl_heur S;
     ASSERT (lcount = get_learned_count S\<^sub>0);
     let lcount = clss_size_decr_lcount (lcount);
+    let (vdom, S) = extract_vdom_wl_heur S;
+    ASSERT (vdom = get_aivdom S\<^sub>0);
+    let S = update_vdom_wl_heur (remove_inactive_aivdom i vdom) S;
     RETURN (update_lcount_wl_heur lcount S)
       })\<close>
       unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
-   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def
-        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def
-        isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
-        split: isasat_int.splits)
+   by (auto intro!: ext simp: state_extractors split: isasat_int.splits)
 
 
 sepref_def mop_mark_garbage_heur_impl
@@ -525,11 +525,12 @@ lemma mark_garbage_heur_alt_def: \<open>RETURN ooo mark_garbage_heur =
     let (lcount, S) = extract_lcount_wl_heur S;
     ASSERT (lcount = get_learned_count S\<^sub>0);
     let lcount = clss_size_decr_lcount (lcount);
+    let (vdom, S) = extract_vdom_wl_heur S;
+    ASSERT (vdom = get_aivdom S\<^sub>0);
+    let S = update_vdom_wl_heur (remove_inactive_aivdom i vdom) S;
     RETURN (update_lcount_wl_heur lcount S)})\<close>
       unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
-   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def
-        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def
-        isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
+   by (auto intro!: ext simp: state_extractors
         split: isasat_int.splits)
   
 sepref_def mark_garbage_heur_code2
@@ -538,7 +539,7 @@ sepref_def mark_garbage_heur_code2
          clss_size_lcount (get_learned_count S) \<ge> 1]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding mark_garbage_heur_alt_def
+  unfolding mark_garbage_heur_alt_def length_avdom_def
   by sepref
 
 lemma mop_mark_garbage_heur3_alt_def:
@@ -552,13 +553,14 @@ lemma mop_mark_garbage_heur3_alt_def:
     ASSERT (vdom = get_aivdom S\<^sub>0);
     let vdom = remove_inactive_aivdom_tvdom i vdom;
     let S = update_vdom_wl_heur vdom S;
+    let (lcount, S) = extract_lcount_wl_heur S;
+    ASSERT (lcount = get_learned_count S\<^sub>0);
+    let lcount = clss_size_decr_lcount lcount;
+    let S = update_lcount_wl_heur lcount S;
     RETURN S
    })\<close>
       unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
-   by (auto intro!: ext simp: update_arena_wl_heur_def extract_arena_wl_heur_def extract_vdom_wl_heur_def
-        isasat_state_ops.remove_arena_wl_heur_def extract_lcount_wl_heur_def isasat_state_ops.remove_vdom_wl_heur_def
-     isasat_state_ops.remove_lcount_wl_heur_def Let_def update_lcount_wl_heur_def
-     update_vdom_wl_heur_def
+   by (auto intro!: ext simp: state_extractors
         split: isasat_int.splits)
 
 sepref_def mop_mark_garbage_heur3_impl
@@ -724,11 +726,17 @@ global_interpretation get_learned_count_number: read_lcount_param_adder0 where
   subgoal by (auto simp: get_learned_count_number_fast_code_def)
   done
 
+definition get_learned_count_number' :: \<open>isasat \<Rightarrow> nat\<close> where
+  \<open>get_learned_count_number' S \<equiv> get_learned_count_number S\<close>
+
+lemma [def_pat_rules]: \<open>get_learned_count_number$S\<equiv>get_learned_count_number'$S\<close>
+  by (auto simp: get_learned_count_number'_def)
+
 lemmas [sepref_fr_rules] =
   slow_ema.refine[unfolded lambda_comp_true] fast_ema.refine[unfolded lambda_comp_true]
   get_conflict_count_since_last_restart.refine[unfolded lambda_comp_true]
   get_lcount.refine[unfolded lambda_comp_true]
-  get_learned_count_number.refine[unfolded lambda_comp_true]
+  get_learned_count_number.refine[unfolded lambda_comp_true get_learned_count_number'_def[symmetric]]
   
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_slow_ema_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
@@ -740,7 +748,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 sepref_def learned_clss_count_fast_code
   is \<open>RETURN o learned_clss_count\<close>
   :: \<open>[\<lambda>S. learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
-  unfolding clss_size_allcount_alt_def learned_clss_count_def fold_tuple_optimizations
+  unfolding clss_size_allcount_alt_def learned_clss_count_def
   by sepref
 
 definition marked_as_used_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
