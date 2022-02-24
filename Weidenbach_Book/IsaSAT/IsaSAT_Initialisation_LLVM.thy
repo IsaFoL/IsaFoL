@@ -2,6 +2,7 @@ theory IsaSAT_Initialisation_LLVM
   imports  IsaSAT_VMTF_LLVM Watched_Literals.Watched_Literals_Watch_List_Initialisation
   Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Initialisation IsaSAT_Setup_LLVM IsaSAT_Mark_LLVM
+    Tuple15
 begin
 
 
@@ -42,29 +43,26 @@ sepref_def distinct_atms_empty_code
 lemmas [sepref_fr_rules] = distinct_atms_empty_code.refine atoms_hash_empty_code.refine
 
 type_synonym (in -)twl_st_wll_trail_init =
-  \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> vdom_fast_assn \<times> 1 word \<times> 
-  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn\<close>
+  \<open>(trail_pol_fast_assn, arena_assn, option_lookup_clause_assn,
+    64 word, watched_wl_uint32, vmtf_remove_assn_option_fst_As, phase_saver_assn,
+    32 word, cach_refinement_l_assn, lbd_assn, vdom_fast_assn, vdom_fast_assn, 1 word,
+  (64 word \<times> 64 word \<times> 64 word \<times> 64 word), mark_assn) tuple15\<close>
 
 definition isasat_init_assn
-  :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-       64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
-  32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> vdom_fast_assn \<times> 1 word \<times>
-  (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> mark_assn \<Rightarrow> assn\<close>
+  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
-\<open>isasat_init_assn =
-  trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
-  conflict_option_rel_assn \<times>\<^sub>a
-  sint64_nat_assn \<times>\<^sub>a
-  watchlist_fast_assn \<times>\<^sub>a
-  vmtf_remove_conc_option_fst_As \<times>\<^sub>a phase_saver_assn \<times>\<^sub>a
-  uint32_nat_assn \<times>\<^sub>a
-  cach_refinement_l_assn \<times>\<^sub>a
-  lbd_assn \<times>\<^sub>a
-  vdom_fast_assn \<times>\<^sub>a
-  vdom_fast_assn \<times>\<^sub>a
-  bool1_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a
+\<open>isasat_init_assn = tuple15_assn
+  trail_pol_fast_assn arena_fast_assn
+  conflict_option_rel_assn
+  sint64_nat_assn
+  watchlist_fast_assn
+  vmtf_remove_conc_option_fst_As phase_saver_assn
+  uint32_nat_assn
+  cach_refinement_l_assn
+  lbd_assn
+  vdom_fast_assn
+  vdom_fast_assn
+  bool1_assn lcount_assn
   marked_struct_assn\<close>
 
 sepref_def initialise_VMTF_code
