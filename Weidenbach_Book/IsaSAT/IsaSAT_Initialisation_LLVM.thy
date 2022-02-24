@@ -439,7 +439,7 @@ lemma [sepref_fr_rules]:
     atom_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
   [unfolded convert_fref op_set_insert_def[symmetric]]])
-
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 lemma while_nfoldli:
   "do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
@@ -647,7 +647,7 @@ lemma atom_of_value_simp_hnr:
 
 
 lemma atom_of_value_hnr[sepref_fr_rules]:
-   \<open>(return o (\<lambda>x. x), RETURN o atom_of_value) \<in> [\<lambda>n. n < 2 ^31]\<^sub>a (uint32_nat_assn)\<^sup>d \<rightarrow> atom_assn\<close>
+   \<open>(Mreturn o (\<lambda>x. x), RETURN o atom_of_value) \<in> [\<lambda>n. n < 2 ^31]\<^sub>a (uint32_nat_assn)\<^sup>d \<rightarrow> atom_assn\<close>
   apply sepref_to_hoare
   apply vcg'
   apply (auto simp: unat_rel_def atom_rel_def unat.rel_def br_def ENTAILS_def
@@ -685,6 +685,15 @@ sepref_def empty_heuristics_stats_impl
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   by sepref
 
+(*TODO duplicate with IsaSAT_Garbage_Collect*)
+definition recombine_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
+  \<open>recombine_vmtf = (\<lambda>x. x)\<close>
+sepref_def recombine_vmtf_impl
+   is \<open>RETURN o recombine_vmtf\<close>
+   :: \<open>(vmtf_assn \<times>\<^sub>a distinct_atoms_assn)\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
+   unfolding vmtf_remove_assn_def recombine_vmtf_def
+  by sepref
+
 lemma finalise_init_code_alt_def:
   \<open>finalise_init_code opts =
   (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
@@ -694,11 +703,12 @@ lemma finalise_init_code_alt_def:
     of_nat (length ivdom)::64 word, ema_fast_init);
   let heur = empty_heuristics_stats opts \<phi>;
   mop_free mark;
-  RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
-    clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-    Restart_Heuristics heur, AIvdom_init vdom [] ivdom, lcount, opts, [])
+  let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
+  RETURN (IsaSAT_int M' N' D' Q' W' vm
+    clvls cach lbd (take 1(replicate 160 (Pos 0))) init_stats
+    (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [])
     })\<close>
-    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def by (auto simp: Let_def)
+    unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def by (auto simp: Let_def recombine_vmtf_def)
 
 lemma stats_int_assn_alt_def: \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
   by auto
@@ -717,14 +727,14 @@ sepref_def finalise_init_code'
   supply [sepref_fr_rules] = hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel,
     unfolded stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
     stats_int_assn_alt_def[symmetric]]
-  unfolding finalise_init_code_alt_def isasat_init_assn_def isasat_bounded_assn_def
+  unfolding finalise_init_code_alt_def isasat_init_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
      phase_heur_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>AIvdom_init _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>IsaSAT _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \<hole>\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   by sepref
 
@@ -810,7 +820,7 @@ declare init_state_wl_D'_code.refine[sepref_fr_rules]
 
 
 lemma to_init_state_code_hnr:
-  \<open>(return o to_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  \<open>(Mreturn o to_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding to_init_state_code_def
   by sepref_to_hoare vcg'
 

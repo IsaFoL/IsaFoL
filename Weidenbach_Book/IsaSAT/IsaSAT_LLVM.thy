@@ -59,21 +59,32 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
 definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
+definition split_trail where \<open>split_trail x =x\<close>
+
+sepref_def split_trail_impl
+  is \<open>RETURN o split_trail\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
+    larray64_assn uint32_nat_assn \<times>\<^sub>a
+    larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
+  arl64_assn uint32_nat_assn\<close>
+  unfolding trail_pol_fast_assn_def split_trail_def
+  by sepref
+
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((MM'), N', D', j, W', vm, clvls, cach, lbd,
-    outl, stats,
-    heur, vdom, lcount, opts, old_arena).
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case S of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
+    outl stats
+    heur vdom lcount opts old_arena \<Rightarrow>
     do {_ \<leftarrow> print_trail2 (MM');
-        (M,M') \<leftarrow> RETURN MM';
+        (M,M') \<leftarrow> RETURN (split_trail MM');
         mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
-         mop_free old_arena;
+         mop_free old_arena; mop_free lcount;
         RETURN (False, M, get_content stats)
      })\<close>
-  by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def
-    intro!: ext)
+  by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def
+    intro!: ext split: isasat_int.splits)
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?fr\<close>
   unfolding aivdom_assn_def code_hider_assn_def by synthesize_free+
@@ -82,21 +93,21 @@ sepref_def extract_model_of_state_stat
   is \<open>RETURN o extract_model_of_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]]
-  unfolding extract_model_of_state_stat_alt_def isasat_bounded_assn_def
+  unfolding extract_model_of_state_stat_alt_def
     trail_pol_fast_assn_def
   by sepref
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, vdom, lcount, opts, old_arena).
+  \<open>RETURN o extract_state_stat = (\<lambda>S. case S of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
+       heur vdom lcount opts old_arena \<Rightarrow>
      do {
         mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
-         mop_free old_arena;
+         mop_free old_arena; mop_free lcount;
         RETURN (True, [], get_content stats)})\<close>
-  by (auto simp: extract_state_stat_def mop_free_def intro!: ext)
+  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits intro!: ext)
 
 sepref_def extract_state_stat
   is \<open>RETURN o extract_state_stat\<close>
@@ -216,7 +227,7 @@ lemmas [sepref_fr_rules] = is_failed_heur_init_impl.refine
 
 definition ghost_assn where \<open>ghost_assn = hr_comp unit_assn virtual_copy_rel\<close>
 
-lemma [sepref_fr_rules]: \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> lits_with_max_assn\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
+lemma [sepref_fr_rules]: \<open>(Mreturn o (\<lambda>_. ()), RETURN o virtual_copy) \<in> lits_with_max_assn\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
 proof -
   have [simp]: \<open>(\<lambda>s. (\<exists>xa. (\<up>(xa = x)) s)) = (\<up>True)\<close> for s :: \<open>'b::sep_algebra\<close> and x :: 'a
     by (auto simp: pred_lift_extract_simps)
@@ -251,7 +262,7 @@ schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost
   by synthesize_free
 
 lemma convert_state_hnr:
-  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
+  \<open>(uncurry (Mreturn oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
      isasat_init_assn\<close>
   unfolding convert_state_def
@@ -436,6 +447,9 @@ begin
     NORMAL_PHASE_def DEFAULT_INIT_PHASE_def QUIET_PHASE_def
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [llvm_code del] = units_since_last_GC_st_code_def
 
   export_llvm
     llvm_version is \<open>STRING_VERSION llvm_version()\<close>
