@@ -2289,13 +2289,33 @@ term "uncurry15 id"
 fun to_tuple where
   \<open>to_tuple (Tuple15 a b c d e f g h i j k l m n ko) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, ko)\<close>
 
+definition tuple15_rel where tuple15_rel_internal_def:
+  \<open>tuple15_rel A B C D E F G H I J K L M N KO = {(S,T).
+  (case (S, T) of
+  (Tuple15 a b c d e f g h i j k l m n ko,
+  Tuple15 a' b' c' d' e' f' g' h' i' j' k' l' m' n' ko') \<Rightarrow>
+  (a, a') \<in> A \<and> (b,b') \<in> B \<and> (c,c') \<in> C \<and> (d,d')\<in>D \<and> (e,e')\<in>E \<and>
+  (f,f')\<in>F \<and> (g,g') \<in> G \<and> (h,h')\<in>H \<and> (i,i')\<in>I \<and> (j,j') \<in> J \<and> (k,k')\<in>K \<and> 
+  (l,l')\<in>L \<and> (m,m')\<in>M \<and> (n,n')\<in>N \<and> (ko,ko')\<in>KO)}\<close>
+
+lemma tuple15_rel_def:
+  \<open>\<langle>A,B,C,D,E,F,G,H,I,J,K,L,M,N,KO\<rangle>tuple15_rel \<equiv> {(a,b). case (a,b) of
+  (Tuple15 a b c d e f g h i j k l m n ko,
+  Tuple15 a' b' c' d' e' f' g' h' i' j' k' l' m' n' ko') \<Rightarrow>
+  (a, a') \<in> A \<and> (b,b') \<in> B \<and> (c,c') \<in> C \<and> (d,d')\<in>D \<and> (e,e')\<in>E \<and>
+  (f,f')\<in>F \<and> (g,g') \<in> G \<and> (h,h')\<in>H \<and> (i,i')\<in>I \<and> (j,j') \<in> J \<and> (k,k')\<in>K \<and> 
+  (l,l')\<in>L \<and> (m,m')\<in>M \<and> (n,n')\<in>N \<and> (ko,ko')\<in>KO}\<close>
+  by (simp add: tuple15_rel_internal_def relAPP_def)
+
+lemma to_tuple_eq_iff[iff]: \<open>to_tuple S = to_tuple T \<longleftrightarrow> S = T\<close>
+  by (cases S; cases T) auto
+ 
 lemma init_state_wl_D0:
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
-      \<langle>{(S, T). (to_tuple S, to_tuple T) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r
-         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id}\<rangle>nres_rel\<close>
+      \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
+           Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
   (is \<open>?C \<in> [?Pre]\<^sub>f ?arg \<rightarrow> \<langle>?im\<rangle>nres_rel\<close>)
 proof -
   have init_state_wl_heur_alt_def: \<open>init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
@@ -2479,31 +2499,22 @@ proof -
       apply assumption
     apply (rule refl)
     subgoal by (auto simp: P_def init_rll_def option_lookup_clause_rel_def
-          lookup_clause_rel_def lits_with_max_rel_def
+          lookup_clause_rel_def lits_with_max_rel_def tuple15_rel_def
           simp del: replicate.simps
           intro!: mset_as_position.intros K)
     done
   done
 qed
 
-definition tuple15_rel where
-  \<open>tuple15_rel A B C D E F G H I J K L M N KO S T =
-  (case (S, T) of
-  (Tuple15 a b c d e f g h i j k l m n ko,
-  Tuple15 a' b' c' d' e' f' g' h' i' j' k' l' m' n' ko') \<Rightarrow>
-  (a, a') \<in> A \<and> (b,b') \<in> B \<and> (c,c') \<in> C \<and> (d,d')\<in>D \<and> (e,e')\<in>E \<and>
-  (f,f')\<in>F)\<close>
-
 lemma init_state_wl_D':
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>\<A>\<^sub>i\<^sub>n. distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
-      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r
-         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+      \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
+           Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
   apply -
   apply (intro frefI nres_relI)
-  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans]) auto
+  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans])  auto
 
 lemma init_state_wl_heur_init_state_wl':
   \<open>(init_state_wl_heur, RETURN o (\<lambda>_. init_state_wl))
@@ -2565,14 +2576,14 @@ lemma init_dt_wl'_init_dt:
 
 definition isasat_init_fast_slow :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
   \<open>isasat_init_fast_slow =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed).
-      RETURN (trail_pol_slow_of_fast M', N', D', j, convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, vdom, failed))\<close>
+    (\<lambda>S::twl_st_wl_heur_init. case S of Tuple15 M' N' D' j W' vm \<phi> clvls cach lbd vdom failed x y z \<Rightarrow>
+      RETURN (Tuple15 (trail_pol_slow_of_fast M') N' D' j (convert_wlists_to_nat_conv W') vm \<phi>
+        clvls cach lbd vdom failed x y z))\<close>
 
 lemma isasat_init_fast_slow_alt_def:
   \<open>isasat_init_fast_slow S = RETURN S\<close>
   unfolding isasat_init_fast_slow_def trail_pol_slow_of_fast_alt_def
     convert_wlists_to_nat_conv_def
-  by auto
+  by (cases S) auto
 
 end
