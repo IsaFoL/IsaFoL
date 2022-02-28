@@ -2925,9 +2925,6 @@ definition isasat_GC_clauses_prog_wl :: \<open>isasat \<Rightarrow> isasat nres\
     let S = set_vmtf_wl_heur ((ns, st, fst_As, lst_As, nxt), to_remove) S;
     let S = set_stats_wl_heur (incr_GC (get_stats_heur S)) S;
     let S = set_aivdom_wl_heur vdom S;
-    let heur = get_heur S;
-    let heur = heuristic_reluctant_untrigger (set_zero_wasted heur);
-    let S = set_heur_wl_heur heur S;
     RETURN S
   })\<close>
 
