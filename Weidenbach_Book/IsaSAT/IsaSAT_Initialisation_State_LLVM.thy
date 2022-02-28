@@ -562,7 +562,7 @@ context
   fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
   assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. kf C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a a_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
-lemma not_deleted_code_refine':
+private lemma not_deleted_code_refine':
   \<open>(uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C. kf C M), uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in> [uncurry15 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ C. P C M)]\<^sub>a
    a_assn\<^sup>k *\<^sub>a b_assn\<^sup>k *\<^sub>a c_assn\<^sup>k *\<^sub>a d_assn\<^sup>k *\<^sub>a
   e_assn\<^sup>k *\<^sub>a f_assn\<^sup>k *\<^sub>a g_assn\<^sup>k  *\<^sub>a h_assn\<^sup>k *\<^sub>a i_assn\<^sup>k *\<^sub>a
@@ -588,8 +588,209 @@ lemma not_deleted_code_refine':
   done
 
 lemmas read_trail_refine = read_all_refine[OF not_deleted_code_refine']
-lemmas mop_refine_refine = read_all_mop_refine[OF not_deleted_code_refine']
+lemmas mop_read_trail_refine = read_all_mop_refine[OF not_deleted_code_refine']
 end
 
+
+abbreviation read_conflict_wl_heur_code :: \<open>_\<close> where
+  \<open>read_conflict_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_wl_heur_code  (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+abbreviation read_conflict_wl_heur :: \<open>_\<close> where
+  \<open>read_conflict_wl_heur kf \<equiv> IsaSAT_Init.read_all_wl_heur (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. kf C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a c_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+begin
+private lemma not_deleted_code_refine_conflict:
+  \<open>(uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ C. kf C M), uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in> [uncurry15 (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _ C. P C M)]\<^sub>a
+   a_assn\<^sup>k *\<^sub>a b_assn\<^sup>k *\<^sub>a c_assn\<^sup>k *\<^sub>a d_assn\<^sup>k *\<^sub>a
+  e_assn\<^sup>k *\<^sub>a f_assn\<^sup>k *\<^sub>a g_assn\<^sup>k  *\<^sub>a h_assn\<^sup>k *\<^sub>a i_assn\<^sup>k *\<^sub>a
+  j_assn\<^sup>k *\<^sub>a k_assn\<^sup>k *\<^sub>a l_assn\<^sup>k *\<^sub>a m_assn\<^sup>k *\<^sub>a
+  n_assn\<^sup>k *\<^sub>a o_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =kf and f'=f', OF not_deleted_code_refine])
+  apply (drule remove_component_left[where X = a_assn])
+  apply (drule remove_component_middle[where X = b_assn])
+  apply (drule remove_component_right[where X = d_assn])
+  apply (drule remove_component_right[where X = e_assn])
+  apply (drule remove_component_right[where X = f_assn])
+  apply (drule remove_component_right[where X = g_assn])
+  apply (drule remove_component_right[where X = h_assn])
+  apply (drule remove_component_right[where X = i_assn])
+  apply (drule remove_component_right[where X = j_assn])
+  apply (drule remove_component_right[where X = k_assn])
+  apply (drule remove_component_right[where X = l_assn])
+  apply (drule remove_component_right[where X = m_assn])
+  apply (drule remove_component_right[where X = n_assn])
+  apply (drule remove_component_right[where X = o_assn])
+  apply (rule hfref_cong, assumption)
+  apply (auto simp add: uncurry_def)
+  done
+
+lemmas read_conflict_refine = read_all_refine[OF not_deleted_code_refine_conflict]
+lemmas mop_read_conflict_refine = read_all_mop_refine[OF not_deleted_code_refine_conflict]
+end
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>((\<lambda>S. kf S), (\<lambda>S. f' S)) \<in> [(\<lambda>S. P S)]\<^sub>a c_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemmas read_conflict_refine0 = read_conflict_refine[OF not_deleted_code_refine[THEN remove_component_right],
+  THEN remove_unused_unit_parameter]
+lemmas mop_read_conflict_refine0 = mop_read_conflict_refine[OF not_deleted_code_refine[THEN remove_component_right]]
+
+end
+
+
+
+abbreviation read_b_wl_heur_code :: \<open>_\<close> where
+  \<open>read_b_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_wl_heur_code  (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+abbreviation read_b_wl_heur :: \<open>_\<close> where
+  \<open>read_b_wl_heur kf \<equiv> IsaSAT_Init.read_all_wl_heur (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. kf C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a b_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+begin
+private lemma not_deleted_code_refine_b:
+  \<open>(uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ C. kf C M), uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ C'. f' C' M)) \<in> [uncurry15 (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ C. P C M)]\<^sub>a
+   a_assn\<^sup>k *\<^sub>a b_assn\<^sup>k *\<^sub>a c_assn\<^sup>k *\<^sub>a d_assn\<^sup>k *\<^sub>a
+  e_assn\<^sup>k *\<^sub>a f_assn\<^sup>k *\<^sub>a g_assn\<^sup>k  *\<^sub>a h_assn\<^sup>k *\<^sub>a i_assn\<^sup>k *\<^sub>a
+  j_assn\<^sup>k *\<^sub>a k_assn\<^sup>k *\<^sub>a l_assn\<^sup>k *\<^sub>a m_assn\<^sup>k *\<^sub>a
+  n_assn\<^sup>k *\<^sub>a o_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =kf and f'=f', OF not_deleted_code_refine])
+  apply (drule remove_component_left[where X = a_assn])
+  apply (drule remove_component_right[where X = c_assn])
+  apply (drule remove_component_right[where X = d_assn])
+  apply (drule remove_component_right[where X = e_assn])
+  apply (drule remove_component_right[where X = f_assn])
+  apply (drule remove_component_right[where X = g_assn])
+  apply (drule remove_component_right[where X = h_assn])
+  apply (drule remove_component_right[where X = i_assn])
+  apply (drule remove_component_right[where X = j_assn])
+  apply (drule remove_component_right[where X = k_assn])
+  apply (drule remove_component_right[where X = l_assn])
+  apply (drule remove_component_right[where X = m_assn])
+  apply (drule remove_component_right[where X = n_assn])
+  apply (drule remove_component_right[where X = o_assn])
+  apply (rule hfref_cong, assumption)
+  apply (auto simp add: uncurry_def)
+  done
+
+lemmas read_b_refine = read_all_refine[OF not_deleted_code_refine_b]
+lemmas mop_read_b_refine = read_all_mop_refine[OF not_deleted_code_refine_b]
+end
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>((\<lambda>S. kf S), (\<lambda>S. f' S)) \<in> [(\<lambda>S. P S)]\<^sub>a b_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemmas read_b_refine0 = read_b_refine[OF not_deleted_code_refine[THEN remove_component_right],
+  THEN remove_unused_unit_parameter]
+lemmas mop_read_b_refine0 = mop_read_b_refine[OF not_deleted_code_refine[THEN remove_component_right]]
+
+end
+
+  
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. kf C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a n_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+begin
+private lemma not_deleted_code_refine_n:
+  \<open>(uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ C. kf C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ C'. f' C' M)) \<in> [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _ C. P C M)]\<^sub>a
+   a_assn\<^sup>k *\<^sub>a b_assn\<^sup>k *\<^sub>a c_assn\<^sup>k *\<^sub>a d_assn\<^sup>k *\<^sub>a
+  e_assn\<^sup>k *\<^sub>a f_assn\<^sup>k *\<^sub>a g_assn\<^sup>k  *\<^sub>a h_assn\<^sup>k *\<^sub>a i_assn\<^sup>k *\<^sub>a
+  j_assn\<^sup>k *\<^sub>a k_assn\<^sup>k *\<^sub>a l_assn\<^sup>k *\<^sub>a m_assn\<^sup>k *\<^sub>a
+  n_assn\<^sup>k *\<^sub>a o_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =kf and f'=f', OF not_deleted_code_refine])
+  apply (drule remove_component_left[where X = a_assn])
+  apply (drule remove_component_middle[where X = b_assn])
+  apply (drule remove_component_middle[where X = c_assn])
+  apply (drule remove_component_middle[where X = d_assn])
+  apply (drule remove_component_middle[where X = e_assn])
+  apply (drule remove_component_middle[where X = f_assn])
+  apply (drule remove_component_middle[where X = g_assn])
+  apply (drule remove_component_middle[where X = h_assn])
+  apply (drule remove_component_middle[where X = i_assn])
+  apply (drule remove_component_middle[where X = j_assn])
+  apply (drule remove_component_middle[where X = k_assn])
+  apply (drule remove_component_middle[where X = l_assn])
+  apply (drule remove_component_middle[where X = m_assn])
+  apply (drule remove_component_right[where X = o_assn])
+  apply (rule hfref_cong, assumption)
+  apply (auto simp add: uncurry_def)
+  done
+
+lemmas read_n_refine = read_all_refine[OF not_deleted_code_refine_n]
+lemmas mop_read_n_refine = read_all_mop_refine[OF not_deleted_code_refine_n]
+end
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>((\<lambda>S. kf S), (\<lambda>S. f' S)) \<in> [(\<lambda>S. P S)]\<^sub>a n_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemmas read_n_refine0 = read_n_refine[OF not_deleted_code_refine[THEN remove_component_right],
+  THEN remove_unused_unit_parameter]
+lemmas mop_read_n_refine0 = mop_read_n_refine[OF not_deleted_code_refine[THEN remove_component_right]]
+
+end
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. kf C S), uncurry (\<lambda>S C. f' C S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a m_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+begin
+private lemma not_deleted_code_refine_m:
+  \<open>(uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ C. kf C M), uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ C'. f' C' M)) \<in> [uncurry15 (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _ C. P C M)]\<^sub>a
+   a_assn\<^sup>k *\<^sub>a b_assn\<^sup>k *\<^sub>a c_assn\<^sup>k *\<^sub>a d_assn\<^sup>k *\<^sub>a
+  e_assn\<^sup>k *\<^sub>a f_assn\<^sup>k *\<^sub>a g_assn\<^sup>k  *\<^sub>a h_assn\<^sup>k *\<^sub>a i_assn\<^sup>k *\<^sub>a
+  j_assn\<^sup>k *\<^sub>a k_assn\<^sup>k *\<^sub>a l_assn\<^sup>k *\<^sub>a m_assn\<^sup>k *\<^sub>a
+  n_assn\<^sup>k *\<^sub>a o_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[where f =kf and f'=f', OF not_deleted_code_refine])
+  apply (drule remove_component_left[where X = a_assn])
+  apply (drule remove_component_middle[where X = b_assn])
+  apply (drule remove_component_middle[where X = c_assn])
+  apply (drule remove_component_middle[where X = d_assn])
+  apply (drule remove_component_middle[where X = e_assn])
+  apply (drule remove_component_middle[where X = f_assn])
+  apply (drule remove_component_middle[where X = g_assn])
+  apply (drule remove_component_middle[where X = h_assn])
+  apply (drule remove_component_middle[where X = i_assn])
+  apply (drule remove_component_middle[where X = j_assn])
+  apply (drule remove_component_middle[where X = k_assn])
+  apply (drule remove_component_middle[where X = l_assn])
+  apply (drule remove_component_right[where X = n_assn])
+  apply (drule remove_component_right[where X = o_assn])
+  apply (rule hfref_cong, assumption)
+  apply (auto simp add: uncurry_def)
+  done
+
+lemmas read_m_refine = read_all_refine[OF not_deleted_code_refine_m]
+lemmas mop_read_m_refine = read_all_mop_refine[OF not_deleted_code_refine_m]
+end
+
+
+context
+  fixes R and kf and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>((\<lambda>S. kf S), (\<lambda>S. f' S)) \<in> [(\<lambda>S. P S)]\<^sub>a m_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemmas read_m_refine0 = read_m_refine[OF not_deleted_code_refine[THEN remove_component_right],
+  THEN remove_unused_unit_parameter]
+lemmas mop_read_m_refine0 = mop_read_m_refine[OF not_deleted_code_refine[THEN remove_component_right]]
+
+end
 end
 end
