@@ -48,11 +48,11 @@ AFP2021=$(ISABELLE2021)/../afp-2021
 AFP2021_version=$(shell (cd $(AFP2021) && hg id --id))
 
 AFP20211=$(ISABELLE2021-1)/../afp-2021-1
-AFP20211_version=$(shell (cd $(AFP2021-1) && hg id --id))
+AFP20211_version=$(shell (cd $(AFP20211) && hg id --id))
 
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
-	echo "AFP: $(AFP_version)"
+	echo "AFP: $(AFP20211_version)"
 	echo "IsaFoL: $(ISAFOL_version)"
 
 HOL:
@@ -86,7 +86,7 @@ doc:
 	cp -R $(ISABELLE20211_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE20211_HOME)/PAC_Checker $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
-	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2021-1" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2021_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2021-1" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP20211_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
