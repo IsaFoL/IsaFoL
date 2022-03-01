@@ -1,13 +1,29 @@
 theory Simple_Clause_Learning
   imports
     Main
-    "Saturation_Framework.Calculus"
-    "Saturation_Framework_Extensions.Clausal_Calculus"
-    "Ordered_Resolution_Prover.Clausal_Logic"
-    "Ordered_Resolution_Prover.Abstract_Substitution"
-    "Ordered_Resolution_Prover.Herbrand_Interpretation"
+    Saturation_Framework.Calculus
+    Saturation_Framework_Extensions.Clausal_Calculus
+    Ordered_Resolution_Prover.Clausal_Logic
+    Ordered_Resolution_Prover.Abstract_Substitution
+    Ordered_Resolution_Prover.Herbrand_Interpretation
+    (* First_Order_Terms.Unification *)
 begin
 
+(* lemma "x \<noteq> y \<Longrightarrow> unify [(Fun P [Var x], Fun P [Var y])] [] = Some [(x, Var y)]"
+  by (simp add: decompose_def zip_option.simps subst_list_def)
+
+lemma "x \<noteq> y \<Longrightarrow> unify [(Fun P [Var y], Fun P [Var x])] [] = Some [(y, Var x)]"
+  by (simp add: decompose_def zip_option.simps subst_list_def)
+
+
+lemma "x \<noteq> y \<Longrightarrow> y \<noteq> z \<Longrightarrow> x \<noteq> z \<Longrightarrow>
+  unify [(Fun P [Var x, Var y], Fun P [Fun a [], Var z])] [] = Some [(y, Var z), (x, Fun a [])]"
+  by (simp add: decompose_def zip_option.simps subst_list_def subst_def)
+
+lemma "x \<noteq> y \<Longrightarrow> y \<noteq> z \<Longrightarrow> x \<noteq> z \<Longrightarrow>
+  unify [(Fun P [Fun a [], Var z], Fun P [Var x, Var y])] [] = Some [(z, Var y), (x, Fun a [])]"
+  by (simp add: decompose_def zip_option.simps subst_list_def subst_def)
+ *)
 
 section \<open>List_Extra\<close>
 
@@ -36,6 +52,12 @@ section \<open>Clausal_Calculus_Extra\<close>
 lemma (in substitution) true_cls_thick_substI: "I \<TTurnstile>s N \<cdot>cs \<eta> \<Longrightarrow> D \<in> N \<Longrightarrow> I \<TTurnstile> D \<cdot> \<eta>"
   by (simp add: substitution_ops.subst_clss_def true_clss_def)
 
+lemma (in substitution) grounding_of_clss_empty[simp]: "grounding_of_clss {} = {}"
+  by (simp add: grounding_of_clss_def)
+
+lemma (in substitution) grounding_of_clss_singleton[simp]:
+  "grounding_of_clss {C} = grounding_of_cls C"
+  by (simp add: grounding_of_clss_def)
 
 section \<open>Substitution_Extra\<close>
 
@@ -55,6 +77,16 @@ proof (intro allI impI)
     apply (rule exI[where x = \<tau>])
     by (metis Suc_less_eq nth_Cons_Suc)
 qed
+
+lemma (in substitution) is_unifiers_insert[simp]:
+  "is_unifiers \<sigma> (insert AA AAA) \<longleftrightarrow> is_unifier \<sigma> AA \<and> is_unifiers \<sigma> AAA"
+  unfolding is_unifiers_def by simp
+
+lemma (in substitution) is_unifier_singleton[simp]: "is_unifier \<sigma> {x}"
+  unfolding is_unifier_def by simp
+
+lemma (in substitution) is_unifiers_image_singleton[simp]: "is_unifiers \<sigma> ((\<lambda>x. {f x}) ` AA)"
+  unfolding is_unifiers_def by simp
 
 
 section \<open>SCL State\<close>
@@ -183,15 +215,25 @@ section \<open>SCL Calculus\<close>
 
 locale scl =
   \<comment> \<open>Fiori and Weidenbach (CADE 2019) do not specify whether their mgu is idempotent.\<close>
-  imgu subst_atm id_subst comp_subst renamings_apart atm_of_atms imgu
+  minimal_imgu subst_atm id_subst comp_subst renamings_apart atm_of_atms imgu
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
     id_subst :: "'s" and
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a clause list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
-    imgu :: "'a set set \<Rightarrow> 's option"
+    imgu :: "'a set set \<Rightarrow> 's option" +
+  fixes rename_clause :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a clause"
+  assumes
+    rename_clause_is_renamed: "rename_clause N C = C' \<Longrightarrow> \<exists>\<sigma>. is_renaming \<sigma> \<and> C' \<cdot> \<sigma> = C" and
+    rename_clause_disjoint_vars_set:
+      "disjoint_vars_set N \<Longrightarrow> disjoint_vars_set (insert (rename_clause N C) N)" and
+    mgu_preserves_disjoint_vars:
+      "finite AAA \<Longrightarrow> \<forall>AA\<in>AAA. finite AA \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> C \<in> N \<Longrightarrow>
+      \<Union> AAA \<subseteq> atms_of C \<Longrightarrow> imgu AAA = Some \<mu> \<Longrightarrow> disjoint_vars_set ((N - {C}) \<union> {C \<cdot> \<mu>})"
 begin
+
+thm mgu_disjoint_vars_set_subst_clss_ident[no_vars]
 
 inductive scl :: "'a clause set \<Rightarrow> ('a, 's) state => ('a, 's) state \<Rightarrow> bool" for N where
   propagate: "C + {#L#} \<in> N \<union> U \<Longrightarrow> is_ground_cls (C + {#L#} \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<Longrightarrow>
@@ -201,13 +243,15 @@ inductive scl :: "'a clause set \<Rightarrow> ('a, 's) state => ('a, 's) state \
   decide: "is_ground_lit L \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
     scl N (\<Gamma>, U, k, None) (trail_decide \<Gamma> L, U, Suc k, None)" |
 
-  conflict: "D \<in> N \<union> U \<Longrightarrow> is_ground_cls (D \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (D \<cdot> \<sigma>) \<Longrightarrow>
-    scl N (\<Gamma>, U, k, None) (\<Gamma>, U, Suc k, Some (D, \<sigma>))" |
+  conflict: "D \<in> N \<union> U \<Longrightarrow> D' = rename_clause (N \<union> U) D \<Longrightarrow> is_ground_cls (D' \<cdot> \<sigma>) \<Longrightarrow>
+    trail_false_cls \<Gamma> (D' \<cdot> \<sigma>) \<Longrightarrow>
+    scl N (\<Gamma>, U, k, None) (\<Gamma>, U, Suc k, Some (D', \<sigma>))" |
 
   skip: "-(L \<cdot>l \<delta>) \<notin># D \<cdot> \<sigma> \<Longrightarrow>
     scl N (trail_propagate \<Gamma> (L \<cdot>l \<delta>) (C + {#L#}, \<delta>), U, k, Some (D, \<sigma>)) (\<Gamma>, U, k, Some (D, \<sigma>))" |
 
-  factorize: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> imgu {{atm_of L, atm_of L'}} = Some \<eta> \<Longrightarrow>
+  factorize: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow>
+    imgu (insert {atm_of L, atm_of L'} ((\<lambda>x. {atm_of x}) ` set_mset D)) = Some \<eta> \<Longrightarrow>
     scl N (\<Gamma>, U, k, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, k, Some ((D + {#L#}) \<cdot> \<eta>, \<sigma>))" |
 
   resolve: "\<Gamma> = trail_propagate \<Gamma>' (L \<cdot>l \<delta>) (C + {#L#}, \<delta>) \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = k \<Longrightarrow>
@@ -270,20 +314,24 @@ text \<open>In contrast to Fiori and Weidenbach (CADE 2019), I lifting the entai
 and @{term \<open>N \<TTurnstile>e {C}\<close>} from ground to non-ground with a ground substitution @{term \<eta>};
 the conjunction becomes an implication.\<close>
 
+abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
+  "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
+
 definition sound_state :: "'a clause set \<Rightarrow> ('a, 's) state \<Rightarrow> bool" where
   "sound_state N S \<longleftrightarrow> (\<exists>\<Gamma> U k u.
     S = (\<Gamma>, U, k, u) \<and>
+    disjoint_vars_set (N \<union> U \<union> (case u of Some (C, _) \<Rightarrow> {C} | None \<Rightarrow> {})) \<and>
     (\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L) \<and>
     sound_trail N U \<Gamma> \<and>
-    (\<forall>\<eta>. is_ground_subst \<eta> \<longrightarrow> (N \<cdot>cs \<eta>) \<TTurnstile>e (U \<cdot>cs \<eta>)) \<and>
+    N \<TTurnstile>\<G>e U \<and>
     (case u of None \<Rightarrow> True
-    | Some (C, \<sigma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> (\<forall>\<eta>. is_ground_subst \<eta> \<longrightarrow> (N \<cdot>cs \<eta>) \<TTurnstile>e {C \<cdot> \<eta>})))"
+    | Some (C, \<sigma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> N \<TTurnstile>\<G>e {C}))"
 
 abbreviation initial_state :: "('a, 's) state" where
   "initial_state \<equiv> ([], {}, 0, None)"
 
-lemma sound_initial_state[simp]: "sound_state N initial_state"
-  by (auto simp: sound_state_def intro: ex_ground_subst)
+lemma sound_initial_state[simp]: "disjoint_vars_set N \<Longrightarrow> sound_state N initial_state"
+  by (simp add: sound_state_def)
 
 lemma ball_trail_propagate_is_ground_lit:
   assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit (L \<cdot>l \<sigma>)"
@@ -305,6 +353,15 @@ lemma entails_clss_insert: "N \<TTurnstile>e insert C U \<longleftrightarrow> N 
 lemma subst_clss_insert[simp]: "insert C U \<cdot>cs \<eta> = insert (C \<cdot> \<eta>) (U \<cdot>cs \<eta>)"
   by (simp add: subst_clss_def)
 
+lemma ball_singleton: "(\<forall>x \<in> {y}. P x) \<longleftrightarrow> P y" by simp
+
+lemma valid_grounding_of_renaming:
+  assumes "is_renaming \<rho>"
+  shows "I \<TTurnstile>s grounding_of_cls (D' \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls D'"
+  using assms
+  by (metis is_renaming_def subset_antisym subst_cls_comp_subst
+      subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst)
+
 theorem scl_sound_state: "scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: scl.induct)
   case (propagate C L U \<sigma> \<Gamma> k)
@@ -321,22 +378,77 @@ next
     using sound_trail_decide ball_trail_decide_is_ground_lit
     by fastforce
 next
-  case (conflict D U \<sigma> \<Gamma> k)
-  then show ?case
+  case (conflict D U D' \<sigma> \<Gamma> k)
+  from conflict.prems have
+    disj_N_U: "disjoint_vars_set (N \<union> U)" and
+    ball_\<Gamma>_ground: "\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
+    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
+    N_entails_U: "N \<TTurnstile>\<G>e U"
+    unfolding sound_state_def by auto
+
+  from conflict.hyps have D_in: "D \<in> N \<union> U" by simp
+  from conflict.hyps have D'_def: "D' = rename_clause (N \<union> U) D" by simp
+  from conflict.hyps have tr_false_D': "trail_false_cls \<Gamma> (D' \<cdot> \<sigma>)" by simp
+
+  from disj_N_U and D'_def have disj_N_U_D': "disjoint_vars_set (N \<union> U \<union> {D'})"
+    using rename_clause_disjoint_vars_set by simp
+
+  from D'_def obtain \<rho> where "is_renaming \<rho>" and "D' \<cdot> \<rho> = D"
+      using rename_clause_is_renamed by auto
+
+  have N_entails_D': "N \<TTurnstile>\<G>e {D'}"
+  proof (intro allI impI)
+    fix I assume valid_N: "I \<TTurnstile>s grounding_of_clss N"
+    show "I \<TTurnstile>s grounding_of_clss {D'}"
+      using D_in
+    proof (rule Set.UnE)
+      assume "D \<in> N"
+      with valid_N have "I \<TTurnstile>s grounding_of_cls D"
+        unfolding grounding_of_clss_def by simp
+      then show ?thesis
+        using \<open>is_renaming \<rho>\<close> \<open>D' \<cdot> \<rho> = D\<close>[symmetric]
+        by (simp add: valid_grounding_of_renaming)
+    next
+      assume "D \<in> U"
+      moreover from N_entails_U valid_N have "I \<TTurnstile>s grounding_of_clss U" by blast
+      ultimately have "I \<TTurnstile>s grounding_of_cls D" by (simp add: grounding_of_clss_def)
+      then show ?thesis
+        using \<open>is_renaming \<rho>\<close> \<open>D' \<cdot> \<rho> = D\<close>[symmetric]
+        by (simp add: valid_grounding_of_renaming)
+    qed
+  qed
+
+  show ?case
     unfolding sound_state_def
-    by (auto intro: true_cls_thick_substI)
+    using disj_N_U_D' ball_\<Gamma>_ground sound_\<Gamma> N_entails_U tr_false_D' N_entails_D'
+    by simp
 next
   case (skip L \<delta> D \<sigma> \<Gamma> C U k)
   from skip show ?case
     unfolding sound_state_def
     by (auto simp: trail_propagate_def elim: sound_trail.cases dest!: trail_false_cls_ConsD)
 next
-  case (factorize L \<sigma> L' \<eta> \<Gamma> U k D)
-  from factorize.hyps have unifiers_\<sigma>: "is_unifiers \<sigma> {{atm_of L, atm_of L'}}"
+  case (factorize L \<sigma> L' D \<eta> \<Gamma> U k)
+
+  from factorize.prems have
+    disj_N_U_D_L_L': "disjoint_vars_set (N \<union> U \<union> {D + {#L, L'#}})" and
+    ball_\<Gamma>_ground:"\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
+    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
+    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
+    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L, L'#}}"
+    unfolding sound_state_def by simp_all
+
+  from factorize.hyps have
+    imgu: "imgu (insert {atm_of L, atm_of L'} ((\<lambda>x. {atm_of x}) ` set_mset D)) = Some \<eta>" by simp
+
+  from factorize.hyps have unifier_\<sigma>: "is_unifier \<sigma> {atm_of L, atm_of L'}"
     apply (simp add: is_unifiers_def is_unifier_def subst_lit_def)
     by (metis atm_of_subst_lit card_1_singleton_iff factorize.hyps(1) image_insert insert_absorb2
         le_Suc_eq subst_atms_single substitution_ops.subst_atms_def)
-  from factorize.hyps have imgu_\<eta>: "is_imgu \<eta> {{atm_of L, atm_of L'}}"
+  hence unifiers_\<sigma>: "is_unifiers \<sigma> (insert {atm_of L, atm_of L'} ((\<lambda>x. {atm_of x}) ` set_mset D))" by simp
+  from factorize.hyps have imgu_\<eta>:
+    "is_imgu \<eta> (insert {atm_of L, atm_of L'} ((\<lambda>x. {atm_of x}) ` set_mset D))"
     by (auto intro: mgu_is_imgu)
   hence unif_\<mu>: "is_unifier \<eta> {atm_of L, atm_of L'}"
     using is_unifiers_is_unifier is_mgu_is_unifiers by blast
@@ -346,39 +458,32 @@ next
     by (cases L; cases L'; simp add: subst_lit_def)
   
   obtain \<gamma> where \<sigma>_def: "\<sigma> = \<eta> \<odot> \<gamma>"
-    using is_mgu_is_most_general[OF is_imgu_is_mgu[OF imgu_\<eta>] unifiers_\<sigma>] by blast
+    using is_mgu_is_most_general[OF is_imgu_is_mgu[OF imgu_\<eta>] unifiers_\<sigma>]
+    by blast
 
-  from factorize.prems have
-    ball_\<Gamma>_is_ground_lit:"\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "\<And>\<eta>. is_ground_subst \<eta> \<Longrightarrow> N \<cdot>cs \<eta> \<TTurnstile>e U \<cdot>cs \<eta>" and
-    tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
-    N_entails_D_plus_L_L': "\<And>\<eta>. is_ground_subst \<eta> \<Longrightarrow> N \<cdot>cs \<eta> \<TTurnstile>e {(D + {#L, L'#}) \<cdot> \<eta>}"
-    unfolding sound_state_def by simp_all
+  have "N \<union> U - {add_mset L (add_mset L' D)} = N \<union> U"
+    sorry
+
+  have "(\<Union>x\<in>set_mset D. {atm_of x}) \<subseteq> insert (atm_of L) (insert (atm_of L') (atms_of D))"
+    using atm_of_lit_in_atms_of by fastforce
+
+  then have disj_N_U_D_L: "disjoint_vars_set (N \<union> U \<union> {(D + {#L#}) \<cdot> \<eta>})"
+    using mgu_preserves_disjoint_vars[OF _ _ disj_N_U_D_L_L' _ _ imgu, of "D + {#L, L'#}", simplified]
+    apply (simp add: disjoint_vars_set_insert)
+    using disj_N_U_D_L_L'
+    find_theorems "disjoint_vars_set (insert _ _)"
+    sorry
+
+  moreover have N_entails_D': "N \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<eta>}" sorry
 
   moreover have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<eta> \<cdot> \<sigma>)"
     using imgu_\<eta> tr_false_cls
     by (simp add: \<sigma>_def trail_false_cls_def \<open>L \<cdot>l \<eta> = L' \<cdot>l \<eta>\<close>)
 
-  moreover have "N \<cdot>cs \<sigma> \<TTurnstile>e {(D + {#L#}) \<cdot> \<eta> \<cdot> \<sigma>}"
-    if gr_\<sigma>: "is_ground_subst \<sigma>" and var_disjoint_N: "\<And>Ns. set Ns = N \<Longrightarrow> var_disjoint Ns"
-    for \<sigma>
-  proof -
-    from gr_\<sigma> and imgu_\<eta> have "is_ground_subst (\<eta> \<odot> \<sigma>)"
-      by force
-    hence "N \<cdot>cs \<eta> \<cdot>cs \<sigma> \<TTurnstile>e {(D \<cdot> \<eta> \<cdot> \<sigma> + {#L \<cdot>l \<eta> \<cdot>l \<sigma>, L'\<cdot>l \<eta> \<cdot>l \<sigma>#})}"
-      using N_entails_D_plus_L_L'[of "\<eta> \<odot> \<sigma>"] by simp
-    hence "N \<cdot>cs \<eta> \<cdot>cs \<sigma> \<TTurnstile>e {(D \<cdot> \<eta> \<cdot> \<sigma> + {#L \<cdot>l \<eta> \<cdot>l \<sigma>#})}"
-      unfolding \<open>L \<cdot>l \<eta> = L' \<cdot>l \<eta>\<close> by simp
-    hence "N \<cdot>cs \<sigma> \<TTurnstile>e {(D \<cdot> \<eta> \<cdot> \<sigma> + {#L \<cdot>l \<eta> \<cdot>l \<sigma>#})}"
-      using var_disjoint_N
-      sorry
-    thus "N \<cdot>cs \<sigma> \<TTurnstile>e {(D + {#L#}) \<cdot> \<eta> \<cdot> \<sigma>}"
-      by simp
-  qed
-
   ultimately show ?case
-    unfolding sound_state_def by simp
+    unfolding sound_state_def
+    using ball_\<Gamma>_ground sound_\<Gamma> N_entails_U
+    by simp
 next
   case (resolve \<Gamma> \<Gamma>' L \<delta> C D \<sigma> k L' \<eta> U)
   from resolve.hyps have imgu_\<eta>: "is_imgu \<eta> {{atm_of L, atm_of L'}}"
