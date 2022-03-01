@@ -460,8 +460,8 @@ proof -
     apply (auto 1 5 simp add: image_iff)
     by (metis atm_of_uminus literal.sel(2))
   moreover have tot: "total_over_m ?I' (A \<union> {B})"
-    by (smt Un_iff in_atms_of_s_decomp mem_Collect_eq tot total_over_m_empty total_over_m_insert
-        total_over_m_union total_over_set_def total_union)
+    by (smt (verit) UnCI UnE Un_insert_right atms_of_ms_insert in_atms_of_s_decomp mem_Collect_eq
+        sup_bot.right_neutral tot total_over_m_def total_over_set_def)
   moreover have "?I' \<Turnstile>s A"
     using I_A by auto
   ultimately have 2: "?I' \<Turnstile> B"
