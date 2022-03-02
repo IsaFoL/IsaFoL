@@ -6,24 +6,10 @@ theory Simple_Clause_Learning
     Ordered_Resolution_Prover.Clausal_Logic
     Ordered_Resolution_Prover.Abstract_Substitution
     Ordered_Resolution_Prover.Herbrand_Interpretation
-    (* First_Order_Terms.Unification *)
+    First_Order_Terms.Unification
+    Functional_Ordered_Resolution_Prover.IsaFoR_Term
 begin
 
-(* lemma "x \<noteq> y \<Longrightarrow> unify [(Fun P [Var x], Fun P [Var y])] [] = Some [(x, Var y)]"
-  by (simp add: decompose_def zip_option.simps subst_list_def)
-
-lemma "x \<noteq> y \<Longrightarrow> unify [(Fun P [Var y], Fun P [Var x])] [] = Some [(y, Var x)]"
-  by (simp add: decompose_def zip_option.simps subst_list_def)
-
-
-lemma "x \<noteq> y \<Longrightarrow> y \<noteq> z \<Longrightarrow> x \<noteq> z \<Longrightarrow>
-  unify [(Fun P [Var x, Var y], Fun P [Fun a [], Var z])] [] = Some [(y, Var z), (x, Fun a [])]"
-  by (simp add: decompose_def zip_option.simps subst_list_def subst_def)
-
-lemma "x \<noteq> y \<Longrightarrow> y \<noteq> z \<Longrightarrow> x \<noteq> z \<Longrightarrow>
-  unify [(Fun P [Fun a [], Var z], Fun P [Var x, Var y])] [] = Some [(z, Var y), (x, Fun a [])]"
-  by (simp add: decompose_def zip_option.simps subst_list_def subst_def)
- *)
 
 section \<open>List_Extra\<close>
 
@@ -89,36 +75,179 @@ lemma (in substitution) is_unifiers_image_singleton[simp]: "is_unifiers \<sigma>
   unfolding is_unifiers_def by simp
 
 
+section \<open>First_Order_Terms Extra\<close>
+
+no_notation subst_apply_term (infixl "\<cdot>" 67)
+no_notation subst_apply_literal  (infixl "\<cdot>lit" 60)
+no_notation subst_apply_clause  (infixl "\<cdot>cls" 60)
+no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
+
+(* notation subst_apply_term (infixl "\<cdot>a" 67) *)
+notation subst_atm_abbrev (infixl "\<cdot>a" 67)
+notation subst_atm_list (infixl "\<cdot>al" 67)
+notation subst_lit (infixl "\<cdot>l" 67)
+notation subst_cls (infixl "\<cdot>" 67)
+notation subst_clss (infixl "\<cdot>cs" 67)
+notation subst_cls_list (infixl "\<cdot>cl" 67)
+notation subst_cls_lists (infixl "\<cdot>\<cdot>cl" 67)
+notation subst_compose (infixl "\<odot>" 67)
+
+
+section \<open>Abstract Concept of Variable Renaming\<close>
+
+locale renaming =
+  fixes renaming :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a"
+  assumes
+    renaming_correct: "finite V \<Longrightarrow> renaming V x \<notin> V" and
+    renaming_inj: "finite V \<Longrightarrow> inj (renaming V)"
+
+definition renaming_nats where
+  "renaming_nats V = (let m = Max V in (\<lambda>x. Suc (x + m)))"
+
+subsubsection \<open>Interpretation to Prove That Assumptions Are Consistent\<close>
+
+global_interpretation renaming_nats: renaming renaming_nats
+proof unfold_locales
+  show "\<And>V x. finite V \<Longrightarrow> renaming_nats V x \<notin> V"
+    unfolding renaming_nats_def Let_def by (meson Max.coboundedI Suc_le_lessD not_add_less2)
+next
+  show "\<And>V. finite V \<Longrightarrow> inj (renaming_nats V)"
+    unfolding renaming_nats_def Let_def by (rule injI) simp
+qed
+
+
+subsubsection \<open>Extras Related to First-order Terms\<close>
+
+context renaming begin
+
+lemma Term_is_renaming_Var_renaming: "finite V \<Longrightarrow> Term.is_renaming (Var \<circ> renaming V)"
+  unfolding Term.is_renaming_def
+  apply simp
+  by (meson comp_inj_on injI inj_on_subset renaming_inj term.inject(1) top_greatest)
+
+lemma is_renaming_Var_renaming: "finite V \<Longrightarrow> is_renaming (Var \<circ> renaming V)"
+  unfolding is_renaming_def
+  using renaming_inj
+  term surj
+  term range
+  oops
+
+lemma vars_term_subst_renaming_disj:
+  assumes fin_V: "finite V"
+  shows "vars_term (t \<cdot>a (Var \<circ> renaming V)) \<inter> V = {}"
+  using Term_is_renaming_Var_renaming[OF fin_V] renaming_correct[OF fin_V]
+  by (induction t) auto
+
+lemma vars_lit_subst_renaming_disj:
+  assumes fin_V: "finite V"
+  shows "vars_lit (L \<cdot>l (Var \<circ> renaming V)) \<inter> V = {}"
+  using vars_term_subst_renaming_disj[OF fin_V] by auto
+
+lemma vars_cls_subst_renaming_disj:
+  assumes fin_V: "finite V"
+  shows "vars_clause (C \<cdot> (Var \<circ> renaming V)) \<inter> V = {}"
+  unfolding vars_clause_def
+  apply simp
+  using vars_lit_subst_renaming_disj[OF fin_V]
+  by (smt (verit, best) UN_iff UN_simps(10) disjoint_iff multiset.set_map subst_cls_def)
+
+definition rename_clause ::
+  "('f, 'a) term clause set \<Rightarrow> ('f, 'a) term clause \<Rightarrow> ('f, 'a) term clause" where
+  "rename_clause N C = C \<cdot> (Var \<circ> renaming (\<Union> (vars_clause ` N)))"
+
+lemma disjoint_vars_set_insert_rename_clause:
+  assumes fin_N: "finite N" and disj_N: "disjoint_vars_set N"
+  shows "disjoint_vars_set (insert (rename_clause N C) N)"
+  unfolding disjoint_vars_set_def
+proof (intro ballI impI)
+  fix D E
+  assume D_in: "D \<in> insert (rename_clause N C) N" and E_in: "E \<in> insert (rename_clause N C) N" and
+    D_neq_E: "D \<noteq> E"
+  from fin_N have fin_vars_N: "finite (\<Union> (vars_clause ` N))" by simp
+  show "disjoint_vars D E"
+    using D_in E_in D_neq_E
+    apply simp
+    apply safe
+    unfolding rename_clause_def disjoint_vars_conv
+    using vars_cls_subst_renaming_disj[OF fin_vars_N]
+    using disj_N[unfolded disjoint_vars_set_def disjoint_vars_conv, rule_format]
+    by auto
+qed
+
+definition renamings_apart :: "('f, 'a) term clause list \<Rightarrow> ('f, 'a) subst list" where
+  "renamings_apart Cs = replicate (length Cs) (Var \<circ> renaming (\<Union> (vars_clause ` set Cs)))"
+
+lemma renamings_apart_length: "length (renamings_apart Cs) = length Cs"
+  unfolding renamings_apart_def by simp
+
+lemma renamings_apart_renaming: "\<rho> \<in> set (renamings_apart Cs) \<Longrightarrow> is_renaming \<rho>"
+  unfolding renamings_apart_def
+  apply simp
+  using Term_is_renaming_Var_renaming Term_is_renaming_if_is_renaming
+  find_theorems "is_renaming _ = Term.is_renaming _"
+  oops
+
+lemma renamings_apart_disjoint_vars_set:
+  fixes Cs :: "('f, 'a) term clause list"
+  shows "disjoint_vars_set (set (Cs \<cdot>\<cdot>cl (renamings_apart Cs)))"
+proof (induction Cs)
+  case Nil
+  show ?case
+    by (simp add: renamings_apart_def disjoint_vars_set_def)
+next
+  case (Cons C Cs)
+
+  define \<rho> :: "('f, 'a) subst" where
+    "\<rho> = Var \<circ> renaming (vars_clause C \<union> \<Union> (vars_clause ` set Cs))"
+  have ren_C_Cs_conv: "renamings_apart (C # Cs) = \<rho> # replicate (length Cs) \<rho>"
+    unfolding renamings_apart_def \<rho>_def by simp
+  hence FOO: "(C # Cs) \<cdot>\<cdot>cl renamings_apart (C # Cs) = C \<cdot> \<rho> # Cs \<cdot>\<cdot>cl replicate (length Cs) \<rho>"
+    by (simp add: subst_cls_lists_def)
+
+  have fin_vars_C_Cs: "finite (vars_clause C \<union> \<Union> (vars_clause ` set Cs))"
+    by simp
+
+  show ?case
+    unfolding FOO
+    unfolding disjoint_vars_set_def
+    apply (intro ballI)
+    apply simp
+    apply safe
+    oops
+
+end
+
+
 section \<open>SCL State\<close>
 
-type_synonym ('a, 's) closure = "'a clause \<times> 's"
-type_synonym ('a, 's) trail = "('a literal \<times> ('a, 's) closure option) list"
-type_synonym ('a, 's) state =
-  "('a, 's) trail \<times> 'a clause set \<times> nat \<times> ('a, 's) closure option"
+type_synonym ('f, 'v) closure = "('f, 'v) term clause \<times> ('f, 'v) subst"
+type_synonym ('f, 'v) trail = "(('f, 'v) term literal \<times> ('f, 'v) closure option) list"
+type_synonym ('f, 'v) state =
+  "('f, 'v) trail \<times> ('f, 'v) term clause set \<times> nat \<times> ('f, 'v) closure option"
 
-definition trail_propagate :: "('a, 's) trail \<Rightarrow> 'a literal \<Rightarrow> ('a, 's) closure \<Rightarrow> ('a, 's) trail"
-  where
+definition trail_propagate ::
+  "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) closure \<Rightarrow> ('f, 'v) trail" where
   "trail_propagate \<Gamma> L Cl = (L, Some Cl) # \<Gamma>"
 
-definition trail_decide :: "('a, 's) trail \<Rightarrow> 'a literal \<Rightarrow> ('a, 's) trail" where
+definition trail_decide :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) trail" where
   "trail_decide \<Gamma> L = (L, None) # \<Gamma>"
 
-definition is_decision_lit :: "'a literal \<times> ('a, 's) closure option \<Rightarrow> bool" where
+definition is_decision_lit :: "('f, 'v) term literal \<times> ('f, 'v) closure option \<Rightarrow> bool" where
   "is_decision_lit Ln \<longleftrightarrow> snd Ln = None"
 
-primrec trail_level where
+primrec trail_level :: "('f, 'v) trail \<Rightarrow> nat" where
   "trail_level [] = 0" |
   "trail_level (Ln # \<Gamma>) = (if is_decision_lit Ln then Suc else id) (trail_level \<Gamma>)"
 
-primrec trail_level_lit where
+primrec trail_level_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> nat" where
   "trail_level_lit [] _ = 0" |
   "trail_level_lit (Ln # \<Gamma>) L =
     (if fst Ln = L \<or> fst Ln = -L then trail_level (Ln # \<Gamma>) else trail_level_lit \<Gamma> L)"
 
-definition trail_level_cls :: "('a, 's) trail \<Rightarrow> 'a clause \<Rightarrow> nat" where
+definition trail_level_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> nat" where
   "trail_level_cls \<Gamma> C = Max_mset {#trail_level_lit \<Gamma> L. L \<in># C#}"
 
-primrec trail_backtrack where
+primrec trail_backtrack :: "('f, 'v) trail \<Rightarrow> nat \<Rightarrow> ('f, 'v) trail" where
   "trail_backtrack [] _ = []" |
   "trail_backtrack (Lc # \<Gamma>) level =
     (if is_decision_lit Lc \<and> trail_level (Lc # \<Gamma>) = level then
@@ -155,29 +284,29 @@ lemma trail_backtrack_level:
   "trail_level (trail_backtrack \<Gamma> level) = 0 \<or> trail_level (trail_backtrack \<Gamma> level) = level"
   by (induction \<Gamma>) simp_all
 
-definition trail_interp :: "('a, 's) trail \<Rightarrow> 'a interp" where
+definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
 
-definition trail_true_lit :: "('a, 's) trail \<Rightarrow> 'a literal \<Rightarrow> bool" where
+definition trail_true_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_true_lit \<Gamma> L \<longleftrightarrow> trail_interp \<Gamma> \<TTurnstile>l L"
 
-definition trail_false_lit :: "('a, 's) trail \<Rightarrow> 'a literal \<Rightarrow> bool" where
+definition trail_false_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_false_lit \<Gamma> L \<longleftrightarrow> trail_interp \<Gamma> \<TTurnstile>l -L"
 
-definition trail_true_cls :: "('a, 's) trail \<Rightarrow> 'a clause \<Rightarrow> bool" where
+definition trail_true_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> bool" where
   "trail_true_cls \<Gamma> C \<longleftrightarrow> (\<exists>L \<in># C. trail_true_lit \<Gamma> L)"
 
-definition trail_false_cls :: "('a, 's) trail \<Rightarrow> 'a clause \<Rightarrow> bool" where
+definition trail_false_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> bool" where
   "trail_false_cls \<Gamma> C \<longleftrightarrow> (\<forall>L \<in># C. trail_false_lit \<Gamma> L)"
 
-definition trail_defined_lit :: "('a, 's) trail \<Rightarrow> 'a literal \<Rightarrow> bool" where
+definition trail_defined_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_defined_lit \<Gamma> L \<longleftrightarrow> (trail_true_lit \<Gamma> L \<or> trail_false_lit \<Gamma> L)"
 
 
 
-lemma ball_trail_backtrack_is_ground_litI:
-  assumes "\<forall>x \<in> set \<Gamma>. is_ground_lit (fst x)"
-  shows "\<forall>x \<in> set (trail_backtrack \<Gamma> i). is_ground_lit (fst x)"
+lemma ball_trail_backtrackI:
+  assumes "\<forall>x \<in> set \<Gamma>. P (fst x)"
+  shows "\<forall>x \<in> set (trail_backtrack \<Gamma> i). P (fst x)"
   using assms trail_backtrack_suffix[THEN set_mono_suffix]
   by blast
 
@@ -213,8 +342,9 @@ qed
 
 section \<open>SCL Calculus\<close>
 
-locale scl =
-  \<comment> \<open>Fiori and Weidenbach (CADE 2019) do not specify whether their mgu is idempotent.\<close>
+locale scl = renaming renaming_vars
+  for renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
+  (* \<comment> \<open>Fiori and Weidenbach (CADE 2019) do not specify whether their mgu is idempotent.\<close>
   minimal_imgu subst_atm id_subst comp_subst renamings_apart atm_of_atms imgu
   for
     subst_atm :: "'a \<Rightarrow> 's \<Rightarrow> 'a" and
@@ -222,22 +352,22 @@ locale scl =
     comp_subst :: "'s \<Rightarrow> 's \<Rightarrow> 's" and
     renamings_apart :: "'a clause list \<Rightarrow> 's list" and
     atm_of_atms :: "'a list \<Rightarrow> 'a" and
-    imgu :: "'a set set \<Rightarrow> 's option" +
-  fixes rename_clause :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a clause"
-  assumes
+    imgu :: "'a set set \<Rightarrow> 's option" + *)
+  (* fixes rename_clause :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term clause \<Rightarrow> ('f, 'v) term clause" *)
+(*   assumes
     rename_clause_is_renamed: "rename_clause N C = C' \<Longrightarrow> \<exists>\<sigma>. is_renaming \<sigma> \<and> C' \<cdot> \<sigma> = C" and
     rename_clause_disjoint_vars_set:
       "disjoint_vars_set N \<Longrightarrow> disjoint_vars_set (insert (rename_clause N C) N)" and
     mgu_preserves_disjoint_vars:
       "finite AAA \<Longrightarrow> \<forall>AA\<in>AAA. finite AA \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> C \<in> N \<Longrightarrow>
-      \<Union> AAA \<subseteq> atms_of C \<Longrightarrow> imgu AAA = Some \<mu> \<Longrightarrow> disjoint_vars_set ((N - {C}) \<union> {C \<cdot> \<mu>})"
+      \<Union> AAA \<subseteq> atms_of C \<Longrightarrow> imgu AAA = Some \<mu> \<Longrightarrow> disjoint_vars_set ((N - {C}) \<union> {C \<cdot> \<mu>})" *)
 begin
 
-thm mgu_disjoint_vars_set_subst_clss_ident[no_vars]
+(* thm mgu_disjoint_vars_set_subst_clss_ident[no_vars] *)
 
-inductive scl :: "'a clause set \<Rightarrow> ('a, 's) state => ('a, 's) state \<Rightarrow> bool" for N where
-  propagate: "C + {#L#} \<in> N \<union> U \<Longrightarrow> is_ground_cls (C + {#L#} \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>) \<Longrightarrow>
+inductive scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state => ('f, 'v) state \<Rightarrow> bool" for N where
+  propagate: "C + {#L#} \<in> N \<union> U \<Longrightarrow> is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<Longrightarrow>
+    trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>) \<Longrightarrow>
     scl N (\<Gamma>, U, k, None) (trail_propagate \<Gamma> (L \<cdot>l \<sigma>) (C + {#L#}, \<sigma>), U, k, None)" |
 
   decide: "is_ground_lit L \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
@@ -250,12 +380,11 @@ inductive scl :: "'a clause set \<Rightarrow> ('a, 's) state => ('a, 's) state \
   skip: "-(L \<cdot>l \<delta>) \<notin># D \<cdot> \<sigma> \<Longrightarrow>
     scl N (trail_propagate \<Gamma> (L \<cdot>l \<delta>) (C + {#L#}, \<delta>), U, k, Some (D, \<sigma>)) (\<Gamma>, U, k, Some (D, \<sigma>))" |
 
-  factorize: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow>
-    imgu (insert {atm_of L, atm_of L'} ((\<lambda>x. {atm_of x}) ` set_mset D)) = Some \<eta> \<Longrightarrow>
+  factorize: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<eta> \<Longrightarrow>
     scl N (\<Gamma>, U, k, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, k, Some ((D + {#L#}) \<cdot> \<eta>, \<sigma>))" |
 
   resolve: "\<Gamma> = trail_propagate \<Gamma>' (L \<cdot>l \<delta>) (C + {#L#}, \<delta>) \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = k \<Longrightarrow>
-    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> imgu {{atm_of L, atm_of (-L')}} = Some \<eta> \<Longrightarrow>
+    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of (-L')) = Some \<eta> \<Longrightarrow>
     scl N (\<Gamma>, U, k, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, k, Some ((D + C) \<cdot> \<eta>, \<sigma> \<odot> \<delta>))" |
 
   backtrack: "trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = k \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = i \<Longrightarrow>
@@ -317,7 +446,7 @@ the conjunction becomes an implication.\<close>
 abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
   "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
 
-definition sound_state :: "'a clause set \<Rightarrow> ('a, 's) state \<Rightarrow> bool" where
+definition sound_state :: "('f, 'v) Term.term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N S \<longleftrightarrow> (\<exists>\<Gamma> U k u.
     S = (\<Gamma>, U, k, u) \<and>
     disjoint_vars_set (N \<union> U \<union> (case u of Some (C, _) \<Rightarrow> {C} | None \<Rightarrow> {})) \<and>
@@ -327,11 +456,14 @@ definition sound_state :: "'a clause set \<Rightarrow> ('a, 's) state \<Rightarr
     (case u of None \<Rightarrow> True
     | Some (C, \<sigma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> N \<TTurnstile>\<G>e {C}))"
 
-abbreviation initial_state :: "('a, 's) state" where
+abbreviation initial_state :: "('f, 'v) state" where
   "initial_state \<equiv> ([], {}, 0, None)"
 
 lemma sound_initial_state[simp]: "disjoint_vars_set N \<Longrightarrow> sound_state N initial_state"
-  by (simp add: sound_state_def)
+  apply (simp add: sound_state_def)
+  apply (intro allI impI)
+  unfolding grounding_of_clss_def
+  by force
 
 lemma ball_trail_propagate_is_ground_lit:
   assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit (L \<cdot>l \<sigma>)"
@@ -357,10 +489,30 @@ lemma ball_singleton: "(\<forall>x \<in> {y}. P x) \<longleftrightarrow> P y" by
 
 lemma valid_grounding_of_renaming:
   assumes "is_renaming \<rho>"
-  shows "I \<TTurnstile>s grounding_of_cls (D' \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls D'"
-  using assms
-  by (metis is_renaming_def subset_antisym subst_cls_comp_subst
-      subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst)
+  shows "I \<TTurnstile>s grounding_of_cls (C \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls C"
+proof -
+  have "grounding_of_cls (C \<cdot> \<rho>) = grounding_of_cls C" (is "?lhs = ?rhs")
+  proof (rule Set.equalityI)
+    show "?lhs \<subseteq> ?rhs"
+      using subst_cls_eq_grounding_of_cls_subset_eq
+    using assms unfolding is_renaming_def
+  using subset_antisym subst_cls_comp_subst
+      subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst
+      sorry
+  next
+    show "?rhs \<subseteq> ?lhs" sorry
+  qed
+  thus ?thesis
+    by simp
+    unfolding true_clss_def
+    apply (rule ballI)
+    apply (rule \<open>?lhs\<close>[unfolded true_clss_def, rule_format])
+    using assms unfolding is_renaming_def
+  using subset_antisym subst_cls_comp_subst
+      subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst
+  sledgehammer
+  (* by (metis is_renaming_def subset_antisym subst_cls_comp_subst
+      subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst) *)
 
 theorem scl_sound_state: "scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: scl.induct)
