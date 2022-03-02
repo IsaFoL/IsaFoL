@@ -13,7 +13,9 @@ text \<open> In this theory we define a refinement relation to represent pointer
   pointer does not exist. On the LLVM side, it is a real pointer.
 
   We define a \<open>read\<close> and a \<open>write\<close> function that reads/writes the content of the pointer. We hope
-  that LLVM will be able to optimize the code in particular when changing the value.
+  that LLVM will be able to optimize the code in particular when changing the value. The writing
+  function comes in two flavours: \<open>write\<close> that also returns a value vs \<open>update\<close> that only update the
+  value of the pointer.
 
 
   Because of the way the refinement framework works, extracting the value of a pointer means
@@ -68,7 +70,7 @@ lemma no_fail_ptr_read_iff: \<open>nofail (ptr_read f' x) \<longleftrightarrow> 
 lemma exists_eq_star_conv': "(\<lambda>s. (\<exists>x. (\<up>(x = k) \<and>* F x) s)) = F k"
   by (auto simp: sep_algebra_simps sep_conj_def pred_lift_extract_simps)
 
-context
+locale ptr_read_loc =
   fixes f ::  "'a::llvm_rep \<Rightarrow> _" and f' and ptr_assn and b_assn and R and P
   assumes H: \<open>(f, f') \<in> [P]\<^sub>a (R)\<^sup>k \<rightarrow> b_assn\<close>
   notes [[sepref_register_adhoc f']]
@@ -105,31 +107,27 @@ end
 
 
 context
-  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and  R P and f' and b_assn
+  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and  R P and f' and b_assn and S
   assumes writer_rule: \<open>P x \<Longrightarrow>
-  nofail (f' x) \<Longrightarrow> llvm_htriple (R x xi) (f xi) (\<lambda>r. (\<lambda>s. \<exists>xa. (R xa r \<and>* \<up>(RETURN xa \<le> f' x)) s) \<and>* \<box>)\<close>
+  nofail (f' x) \<Longrightarrow> llvm_htriple (R x xi) (f xi) (\<lambda>r. (\<lambda>s. \<exists>xa xb. (R xa (fst r) \<and>* S xb (snd r) \<and>* \<up>(RETURN (xa, xb) \<le> f' x)) s) \<and>* \<box>)\<close>
 begin
 
 definition ptr_write where
   \<open>ptr_write a = f' a\<close>
 
 
-definition ptr_write_code :: "'a::llvm_rep ptr \<Rightarrow> _" where
+definition ptr_write_code :: "'a::llvm_rep ptr \<Rightarrow> ('a ptr \<times> 'e) llM" where
   \<open>ptr_write_code a = doM {
     b \<leftarrow> ll_load a;
-    c \<leftarrow> f (b);
+    (c, d) \<leftarrow> f (b);
     ll_store c a;
-    Mreturn a
+    Mreturn (a, d)
   }\<close>
-
-lemma "nofail (f' ys) \<Longrightarrow>
-    P ys \<Longrightarrow> RETURN xa \<le> f' ys \<Longrightarrow> \<upharpoonleft>ll_bpto r p \<and>* R xa r \<turnstile> (\<lambda>s. \<exists>xa. ((\<lambda>s. \<exists>x. (R xa x \<and>* \<upharpoonleft>ll_bpto x p) s) \<and>* \<up>(RETURN xa \<le> f' ys)) s)"
-  by (smt (verit,del_insts) entails_def pure_true_conv sep.add.right_neutral sep_conj_commute sep_conj_sep_true)
 
 lemma bpto_ptr_write_code2: "nofail (f' ys) \<Longrightarrow> llvm_htriple
   (pointer_assn R ys p \<and>* \<up>\<^sub>d (P ys))
   (ptr_write_code p)
-  (\<lambda>r. (\<lambda>s. \<exists>xa. (pointer_assn R xa r \<and>* \<up>(RETURN xa \<le> ptr_write ys)) s) \<and>* \<box>)"
+  (\<lambda>r. (\<lambda>s. \<exists>xa xb. (pointer_assn R xa (fst r) \<and>* S xb (snd r) \<and>* \<up>(RETURN (xa, xb) \<le> ptr_write ys)) s) \<and>* \<box>)"
   supply [vcg_rules] = writer_rule
   unfolding ptr_write_code_def pointer_assn_def assn_comp_def ptr_write_def
   apply vcg
@@ -139,9 +137,10 @@ end
 
 lemma [simp]: \<open>nofail (ptr_write f' x) \<longleftrightarrow> nofail (f' x)\<close>
   by (auto simp: ptr_write_def)
-context
-  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and f' and ptr_assn and b_assn and R and P
-  assumes H: \<open>(f, f') \<in> [P]\<^sub>a (R)\<^sup>d \<rightarrow> R\<close>
+
+locale ptr_write_loc =
+  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and f' and ptr_assn and b_assn and R and P and S
+  assumes H: \<open>(f, f') \<in> [P]\<^sub>a (R)\<^sup>d \<rightarrow> R \<times>\<^sub>a S\<close>
   notes [[sepref_register_adhoc f']]
   notes [fcomp_norm_unfold] = pointer_assn_def[symmetric]
 begin
@@ -149,7 +148,7 @@ begin
 lemma ptr_write_code_rule:
   assumes \<open>nofail (f' ys)\<close>
   shows "llvm_htriple (pointer_assn R ys p \<and>* \<up>\<^sub>dP ys) (ptr_write_code f p)
-    (\<lambda>r. (\<lambda>s. \<exists>xa. (pointer_assn R xa r \<and>* \<up>(RETURN xa \<le> ptr_write f' ys)) s) \<and>* \<box>)"
+    (\<lambda>r. (\<lambda>s. \<exists>xa xb. (pointer_assn R xa (fst r) \<and>*  S xb (snd r) \<and>* \<up>(RETURN (xa, xb) \<le> ptr_write f' ys)) s) \<and>* \<box>)"
   (*supply [vcg_rules] = bpto_ptr_write_code2 does not work it looses track of dependencies between variables*)
   apply vcg
   apply (subst POSTCOND_def)
@@ -171,11 +170,86 @@ defer
   apply assumption
   by (simp add: STATE_extract(2) invalid_assn_def pure_true_conv)
 
-lemma ptr_write_code: \<open>(ptr_write_code f, ptr_write f') \<in> [P]\<^sub>a (pointer_assn R)\<^sup>d \<rightarrow> pointer_assn R\<close>
+lemma ptr_write_code: \<open>(ptr_write_code f, ptr_write f') \<in> [P]\<^sub>a (pointer_assn R)\<^sup>d \<rightarrow> pointer_assn R \<times>\<^sub>a S\<close>
   supply [vcg_rules] = ptr_write_code_rule
   apply sepref_to_hoare
   apply vcg
   done
 
 end
+
+
+
+context
+  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and  R P and f' and b_assn and S
+  assumes updater_rule: \<open>P x \<Longrightarrow>
+  nofail (f' x) \<Longrightarrow> llvm_htriple (R x xi) (f xi) (\<lambda>r. (\<lambda>s. \<exists>xa xb. (R xa r \<and>* \<up>(RETURN (xa) \<le> f' x)) s) \<and>* \<box>)\<close>
+begin
+
+definition ptr_update where
+  \<open>ptr_update a = f' a\<close>
+
+
+definition ptr_update_code :: "'a::llvm_rep ptr \<Rightarrow> ('a ptr) llM" where
+  \<open>ptr_update_code a = doM {
+    b \<leftarrow> ll_load a;
+    c \<leftarrow> f (b);
+    ll_store c a;
+    Mreturn (a)
+  }\<close>
+
+lemma bpto_ptr_update_code2: "nofail (f' ys) \<Longrightarrow> llvm_htriple
+  (pointer_assn R ys p \<and>* \<up>\<^sub>d (P ys))
+  (ptr_update_code p)
+  (\<lambda>r. (\<lambda>s. \<exists>xa xb. (pointer_assn R xa r \<and>* \<up>(RETURN (xa) \<le> ptr_update ys)) s) \<and>* \<box>)"
+  supply [vcg_rules] = updater_rule
+  unfolding ptr_update_code_def pointer_assn_def assn_comp_def ptr_update_def
+  apply vcg
+  done
+
+end
+
+lemma [simp]: \<open>nofail (ptr_update f' x) \<longleftrightarrow> nofail (f' x)\<close>
+  by (auto simp: ptr_update_def)
+
+
+locale ptr_update_loc =
+  fixes f ::  "'a::llvm_rep \<Rightarrow> _" and f' and ptr_assn and b_assn and R and P and S
+  assumes H: \<open>(f, f') \<in> [P]\<^sub>a (R)\<^sup>d \<rightarrow> R\<close>
+  notes [fcomp_norm_unfold] = pointer_assn_def[symmetric]
+begin
+
+lemma ptr_update_code_rule:
+  assumes \<open>nofail (f' ys)\<close>
+  shows "llvm_htriple (pointer_assn R ys p \<and>* \<up>\<^sub>dP ys) (ptr_update_code f p)
+    (\<lambda>r. (\<lambda>s. \<exists>xa xb. (pointer_assn R xa r \<and>*  \<up>(RETURN xa \<le> ptr_update f' ys)) s) \<and>* \<box>)"
+  (*supply [vcg_rules] = bpto_ptr_update_code2 does not work it looses track of dependencies between variables*)
+  apply vcg
+  apply (subst POSTCOND_def)
+  apply (rule bpto_ptr_update_code2[simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format, where P=P])
+defer
+ apply (rule assms)
+ apply (auto simp: pure_def exists_eq_star_conv' assms SOLVE_AUTO_DEFER_def
+     pure_true_conv)[]
+
+  apply (rule wpa_monoI)
+  apply (rule H[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
+  apply assumption back
+  apply assumption
+  apply assumption
+  apply (auto simp: pure_def exists_eq_star_conv' assms)
+  apply (rule STATE_monoI)
+  apply assumption
+  by (simp add: STATE_extract(2) invalid_assn_def pure_true_conv)
+
+lemma ptr_update_hnr: \<open>(ptr_update_code f, ptr_update f') \<in> [P]\<^sub>a (pointer_assn R)\<^sup>d \<rightarrow> pointer_assn R\<close>
+  supply [vcg_rules] = ptr_update_code_rule
+  apply sepref_to_hoare
+  apply vcg
+  done
+
+end
+
 end
