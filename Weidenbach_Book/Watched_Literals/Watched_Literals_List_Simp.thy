@@ -115,12 +115,18 @@ definition cdcl_twl_full_restart_l_prog where
   RETURN T
   }\<close>
 
+definition mark_duplicated_binary_clauses_as_garbage_l2 where
+  \<open>mark_duplicated_binary_clauses_as_garbage_l2 T = do {
+    if get_conflict_l T \<noteq> None then RETURN T
+    else mark_duplicated_binary_clauses_as_garbage T}\<close>
+
 definition cdcl_twl_full_restart_inprocess_l where
   \<open>cdcl_twl_full_restart_inprocess_l S = do {
   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
   S' \<leftarrow> simplify_clauses_with_units_st S';
+  S' \<leftarrow> mark_duplicated_binary_clauses_as_garbage S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
     RETURN S'
@@ -753,21 +759,22 @@ proof -
     S' \<leftarrow> SPEC (?f1 S);
     T \<leftarrow> SPEC (?f2 S');
     T \<leftarrow> SPEC (?finp T);
-    if(get_conflict_l T \<noteq> None) then
-      RETURN T
+    U \<leftarrow> SPEC (?finp T);
+    if(get_conflict_l U \<noteq> None) then
+      RETURN U
     else do {
-        U \<leftarrow> SPEC (?f3 T);
+        U \<leftarrow> SPEC (?f3 U);
         V \<leftarrow> SPEC (\<lambda>V. ?f3 U V);
         RETURN V
       }
     }\<close>
     unfolding RETURN_def RES_RES_RETURN_RES apply -
     apply refine_vcg
-    apply (metis (no_types, opaque_lifting) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp empty_iff insert_iff)
+    apply (metis (no_types, lifting) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp rtranclp_trans singletonD)
     apply simp
       apply (elim UN_E)+
       unfolding mem_Collect_eq
-      apply (smt (z3) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp rtranclp.rtrancl_into_rtrancl singletonD)
+      apply (smt (z3) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp rtranclp.rtrancl_into_rtrancl rtranclp_trans singletonD)
       apply (elim UN_E)+
       unfolding mem_Collect_eq
       apply (metis (no_types, opaque_lifting) singletonD)
@@ -822,12 +829,13 @@ proof -
     if
       \<open>T' \<in> Collect (?f1 S)\<close> and
       \<open>U' \<in> Collect (?f2 T')\<close> and
-      \<open>V' \<in> Collect (?finp U')\<close> and
+      \<open>V\<^sub>0' \<in> Collect (?finp U')\<close> and
+      \<open>V' \<in> Collect (?finp V\<^sub>0')\<close> and
       confl_U': \<open>\<not>get_conflict_l V' \<noteq> None\<close> and
       \<open>(V, V') \<in> Id\<close> and
       \<open>(T, T') \<in> Id\<close> and
       \<open>(U, U') \<in> Id\<close>
-    for T T' U U' V V' W W' X X'
+    for T T' U U' V V' W W' X X' U\<^sub>0 U\<^sub>0' V\<^sub>0'
   proof -
     have \<open>T = T'\<close> \<open>U=U'\<close> \<open>V'=V\<close> and \<open>?f S T \<or> S = T\<close> and
       count_0: \<open>count_decided (get_trail_l T) = 0\<close> and
@@ -1012,6 +1020,95 @@ proof -
         simplify_clauses_with_unit_st_inv_def simp flip: \<open>U=U'\<close>\<close>)
       done
   qed
+
+
+  have mark_duplicated_binary_clauses_as_garbage:
+    \<open>mark_duplicated_binary_clauses_as_garbage V \<le> SPEC (?finp V')\<close>
+    if 
+      pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
+      \<open>T' \<in> Collect (?f1 S)\<close>
+      \<open>U' \<in> Collect (?f2 T')\<close> 
+      \<open>V' \<in> Collect (?finp U')\<close>and
+      \<open>(T, T') \<in> Id\<close> and
+      \<open>(U, U') \<in> Id\<close>and
+      \<open>(V, V') \<in> Id\<close>
+    for T T' U U' V V'
+  proof -
+    have st: \<open>T = T'\<close> \<open>U=U'\<close>  \<open>V'=V\<close> and \<open>?f S T \<or> S = T\<close> and
+      count_0: \<open>count_decided (get_trail_l T) = 0\<close> and
+      T'U': \<open>cdcl_twl_restart_l T' U'\<close> and
+      mark: \<open>\<forall>L\<in>set (get_trail_l U'). mark_of L = 0\<close> and
+      lev0: \<open>count_decided (get_trail_l T) = 0\<close> and
+      UV': \<open>cdcl_twl_restart_l_inp\<^sup>*\<^sup>* U' V'\<close> and
+      count_dec: \<open>count_decided (get_trail_l V') = 0\<close> and
+      annot_V: \<open>set (get_all_mark_of_propagated (get_trail_l V')) \<subseteq> {0}\<close>
+      using that by auto
+    have confl: \<open>get_conflict_l T = None\<close>
+      using \<open>?f S T \<or> S = T\<close> confl
+      by (auto simp: cdcl_twl_restart_l.simps)
+    obtain T'' where
+      TT': \<open>(T', T'') \<in> twl_st_l None\<close> and
+      list_invs: \<open>twl_list_invs T'\<close> and
+      struct_invs: \<open>twl_struct_invs T''\<close> and
+      clss_upd: \<open>clauses_to_update_l T' = {#}\<close> and
+      \<open>cdcl_twl_restart S' T'' \<or> S' = T''\<close>
+      using cdcl_twl_restart_l_invs[OF assms(1-3), of T] assms
+        \<open>?f S T \<or> S = T\<close> unfolding  \<open>T = T'\<close>
+      by blast
+
+    have ent: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T'')\<close>
+      using \<open>cdcl_twl_restart S' T'' \<or> S' = T''\<close> abs_pre cdcl_twl_inp.intros(5)
+        cdcl_twl_inp_invs(3) restart_prog_pre_def by blast
+
+    obtain U'' where
+      UU'': \<open>(U', U'') \<in> twl_st_l None\<close> and
+      list_invs: \<open>twl_list_invs U'\<close> and
+      clss: \<open>clauses_to_update_l U' = {#}\<close> and
+      T''U'': \<open>cdcl_twl_restart T'' U''\<close> and
+      struct_invs: \<open>twl_struct_invs U''\<close>
+      using cdcl_twl_restart_l_invs[OF TT' list_invs struct_invs T'U'] unfolding \<open>U=U'\<close>
+      by blast
+    have ent_U'': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of U'')\<close>
+      by (metis T''U'' cdcl_twl_restart_entailed_init ent state\<^sub>W_of_def)
+    then obtain V'' where
+      VV'': \<open>(V', V'') \<in> twl_st_l None\<close> and
+      U''V'': \<open>cdcl_twl_inp\<^sup>*\<^sup>* U'' V''\<close>
+      using  rtranclp_cdcl_twl_restart_l_inp_cdcl_twl_restart_inp[OF UV' UU'' list_invs struct_invs]
+      by blast
+    then have
+      list_invs: \<open>twl_list_invs V'\<close>  and
+      clss_upd: \<open>clauses_to_update_l V' = {#}\<close> and
+      struct_invs: \<open>twl_struct_invs V''\<close>
+      using T'U' ent UV' \<open>V' = V\<close> list_invs rtranclp_cdcl_twl_restart_l_inp_twl_list_invs
+        \<open>cdcl_twl_inp\<^sup>*\<^sup>* U'' V''\<close> ent \<open>clauses_to_update_l U' = {#}\<close> struct_invs
+        rtranclp_cdcl_twl_restart_l_inp_clauses_to_update_l[OF UV']
+        rtranclp_cdcl_twl_inp_invs[OF U''V''] ent_U''
+        unfolding \<open>V' = V\<close>
+      by (blast intro: rtranclp_cdcl_twl_restart_l_inp_twl_list_invs
+        rtranclp_cdcl_twl_inp_invs)+
+
+    have ent_V'': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V'')\<close>
+      using ent_U'' U''V'' rtranclp_cdcl_twl_inp_entailed_init struct_invs
+      using T''U'' \<open>cdcl_twl_restart S' T'' \<or> S' = T''\<close> assms(3) cdcl_twl_restart_twl_struct_invs by blast
+    have pre: \<open>mark_duplicated_binary_clauses_as_garbage_pre V\<close>
+      using annot_V count_dec ent_V'' apply -
+      unfolding mark_duplicated_binary_clauses_as_garbage_pre_def \<open>V' = V\<close>[symmetric]
+      by (rule exI[of _ V''])
+       (auto simp: VV'' clss_upd list_invs struct_invs)
+
+    show ?thesis
+      apply (rule mark_duplicated_binary_clauses_as_garbage[THEN order_trans])
+      apply (rule pre)
+      subgoal
+        apply simp
+        apply standard
+        apply simp
+        by (metis Un_absorb1 mark_duplicated_binary_clauses_as_garbage_pre_def pre
+          rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp rtranclp_cdcl_twl_inprocessing_l_count_decided
+          rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated st(3))
+     done
+  qed
+
   show ?thesis
     unfolding cdcl_twl_full_restart_inprocess_l_def
     apply (rule order_trans)
@@ -1028,11 +1125,13 @@ proof -
       by (rule 1)
     subgoal for  T T' U U'
       by (rule simplify_clauses_with_unit_st)
+    subgoal
+      by (rule mark_duplicated_binary_clauses_as_garbage)
     subgoal by auto
     subgoal
       by (auto 5 3 dest: cdcl_twl_restart_l_inp.intros)
-    subgoal for T T' U U' V V'
-      by (rule mark_to_delete_clauses_l_pre)
+    subgoal for T T' U U' V\<^sub>0 V\<^sub>0' V V'
+      by (rule mark_to_delete_clauses_l_pre[where V\<^sub>0'6 = V\<^sub>0' and V'6 = V'])
     subgoal for U U'
       by (rule 2)
     subgoal for U U' V V' W W'

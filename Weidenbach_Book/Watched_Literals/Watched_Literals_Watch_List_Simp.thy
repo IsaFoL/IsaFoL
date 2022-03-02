@@ -45,13 +45,13 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
     by (auto dest!: cdcl_twl_restart_l_inp.intros(1))
   done
 
-
 definition cdcl_twl_full_restart_inprocess_wl_prog where
   \<open>cdcl_twl_full_restart_inprocess_wl_prog S = do {
   ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
   T \<leftarrow> simplify_clauses_with_units_st_wl S';
+  T \<leftarrow> mark_duplicated_binary_clauses_as_garbage_wl T;
   if get_conflict_wl T \<noteq> None then do {
     ASSERT(cdcl_twl_full_restart_wl_GC_prog_post_confl S T);
     RETURN T

@@ -828,13 +828,14 @@ proof -
     using distinct_mset_dom[of x2] distinct_mset_dom[of b]
     apply (subgoal_tac \<open>{#mset (fst x). x \<in># filter_mset snd {#the (fmlookup b x). x \<in># remove1_mset j (dom_m b)#}#} =
       {#mset (fst x). x \<in># filter_mset snd {#the (fmlookup x2 x). x \<in># remove1_mset j (dom_m x2)#} #}\<close>)
-
-    apply (auto 5 3 simp: ran_m_def all_lits_of_mm_add_mset
+    apply (auto 5 2 simp: ran_m_def all_lits_of_mm_add_mset
       dest!: multi_member_split[of _ \<open>dom_m _\<close>]
       dest: all_lits_of_m_mono
       intro!: image_mset_cong2 filter_mset_cong2)
+    apply (metis all_lits_of_m_union mset_subset_eq_exists_conv union_iff)
     apply (metis fmdrop_eq_update_eq fmupd_lookup union_single_eq_member)
-    by (metis add_mset_remove_trivial dom_m_fmdrop)
+    apply (metis add_mset_remove_trivial dom_m_fmdrop)
+    done
   have [simp]: \<open>mset a \<subseteq># mset b \<Longrightarrow> length a= 1 \<Longrightarrow> a ! 0 \<in> set b\<close> for a b
      by (cases a, auto)
    have K1: \<open>\<forall>L\<in>#all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f + h).
@@ -1331,7 +1332,7 @@ definition mark_duplicated_binary_clauses_as_garbage_wl :: \<open>_ \<Rightarrow
   }\<close>
 
 
-lemma
+lemma mark_duplicated_binary_clauses_as_garbage_wl:
   assumes  \<open>(S, S') \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
   shows \<open>mark_duplicated_binary_clauses_as_garbage_wl S \<le>
     \<Down> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S}
@@ -1513,34 +1514,7 @@ definition subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> 'v subsumption \
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   })\<close>
 
-(*
-definition forward_subsumption_one_wl_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_one_wl_pre = (\<lambda>binary_only k S xs.
-  (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_pre (xs!k) S' \<and> k < length xs \<and>
-    (binary_only \<longrightarrow> (\<forall>C \<in> set xs. C \<in># dom_m (get_clauses_wl S) \<longrightarrow> length (get_clauses_wl S \<propto> C) = 2))))\<close>
 
-
-definition forward_subsumption_one_wl :: \<open>bool \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
-  \<open>forward_subsumption_one_wl binary_only = (\<lambda>k xs S . do {
-  ASSERT (forward_subsumption_one_wl_pre binary_only k S xs);
-  let C = xs!k;
-  let ys = take k xs;
-  (xs, s) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_one_wl_inv C S ys \<^esup> (\<lambda>(i, s). i < k \<and> s = NONE)
-    (\<lambda>(i, s). do {
-      let C' = xs ! i;
-      if C' \<notin># dom_m (get_clauses_wl S)
-      then RETURN (i+1, s)
-      else do  {
-        s \<leftarrow> subsume_clauses_match C' C (get_clauses_wl S);
-       RETURN (i+1, s)
-      }
-    })
-    (0, NONE);
-  S \<leftarrow> subsume_or_strengthen_wl C s S;
-  RETURN (S, s \<noteq> NONE)
-  })\<close>
-*)
 definition strengthen_clause_pre :: \<open>_\<close> where
   \<open>strengthen_clause_pre xs C s t S \<longleftrightarrow>
      distinct xs \<and> C \<in># dom_m (get_clauses_wl S) \<close>
@@ -1618,6 +1592,38 @@ lemma subsume_or_strengthen_wl_subsume_or_strengthen:
     split: subsumption.splits)
   done
 
+
+definition forward_subsumption_one_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat list \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_one_wl_pre = (\<lambda>k S xs.
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_pre (xs!k) S' \<and> k < length xs))\<close>
+
+definition forward_subsumption_one_wl_inv :: \<open>nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat \<times> 'v subsumption \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_one_wl_inv = (\<lambda>k ys S (i, x).
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_inv k S' (mset (take i ys), x)))\<close>
+
+term forward_subsumption_one_inv
+definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
+  \<open>forward_subsumption_one_wl = (\<lambda>k xs S . do {
+  ASSERT (forward_subsumption_one_wl_pre k S xs);
+  let C = xs!k;
+  let ys = take k xs;
+  (xs, s) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> forward_subsumption_one_wl_inv C ys S \<^esup> (\<lambda>(i, s). i < k \<and> s = NONE)
+    (\<lambda>(i, s). do {
+      let C' = xs ! i;
+      if C' \<notin># dom_m (get_clauses_wl S)
+      then RETURN (i+1, s)
+      else do  {
+        s \<leftarrow> subsume_clauses_match C' C (get_clauses_wl S);
+       RETURN (i+1, s)
+      }
+    })
+    (0, NONE);
+  S \<leftarrow> subsume_or_strengthen_wl C s S;
+  RETURN (S, s \<noteq> NONE)
+  })\<close>
+
+thm forward_subsumption_all_def forward_subsumption_one_def
 (*
 lemma forward_subsumption_one_wl:
   assumes

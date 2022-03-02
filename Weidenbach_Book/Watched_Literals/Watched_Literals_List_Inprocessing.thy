@@ -3257,6 +3257,32 @@ proof -
     done
 qed
 
+
+
+definition forward_subsumption_one_round_inv :: \<open>nat \<Rightarrow> 'v twl_st_l \<times> nat \<times> bool \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_one_round_inv = (\<lambda>C (S, xs, s).
+  (\<exists>S' . (S, S') \<in> twl_st_l None \<and>
+      twl_struct_invs S' \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+    clauses_to_update_l S = {#} \<and> twl_list_invs S \<and> twl_struct_invs S' \<and>
+   set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S')))\<close>
+
+definition forward_subsumption_one_round where
+  \<open>forward_subsumption_one_round = (\<lambda>C S . do {
+    ASSERT(forward_subsumption_one_pre C S);
+    n \<leftarrow> SPEC (\<lambda>_ :: nat. True);
+    (S, _, s) \<leftarrow>
+      WHILE\<^sub>T\<^bsup> forward_subsumption_one_round_inv C \<^esup> (\<lambda>(S, i, s). i < n \<and> s)
+      (\<lambda>(S, i, s). do {
+        (S, s) \<leftarrow> forward_subsumption_one C S;
+        RETURN (S, i+1, s)
+      })
+      (S, 0, False);
+    RETURN (S, s)
+  }
+)\<close>
+
 definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_pre = (\<lambda>S.
   \<exists>T.
