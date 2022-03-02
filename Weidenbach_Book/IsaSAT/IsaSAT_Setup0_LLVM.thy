@@ -32,10 +32,6 @@ with \<^text>\<open>exctr\<close>
 starts with \<^text>\<open>read\<close>
 
 \<close>
-(* setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close> *)
-term ll_bpto
-term ll_load
-  term ll_ref
 (*TODO Move*)
 
 paragraph \<open>Options\<close>

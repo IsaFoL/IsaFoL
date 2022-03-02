@@ -1,6 +1,6 @@
 CLANG = clang
 
-CFLAGS = -std=c11 #-ftlo
+CFLAGS = -std=c11 -flto
 
 all: isallvm
 
