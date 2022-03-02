@@ -231,7 +231,7 @@ lemma wf_conn_no_T_F_symb_iff[simp]:
           using wf_conn_list(1) apply fastforce
          using wf_conn_list(2) apply fastforce
         using wf_conn_list(3) apply fastforce
-       apply (metis (no_types, hide_lams) conn_inj connective.distinct(5,17))
+       apply (metis (no_types, opaque_lifting) conn_inj connective.distinct(5,17))
       using conn_inj apply blast+
   done
 
@@ -1173,7 +1173,7 @@ proof -
         obtain a b where ab: "[a, b] = (\<xi> @ \<phi> # \<xi>')"
           using corr c list_length2_decomp wf_conn_bin_list_length by metis
         then have "\<xi> @ \<phi>' # \<xi>' = [a, \<phi>'] \<or> (\<xi> @ \<phi>' # \<xi>') = [\<phi>', b]"
-          using ab by (metis (no_types, hide_lams) append_Cons append_Nil append_Nil2
+          using ab by (metis (no_types, opaque_lifting) append_Cons append_Nil append_Nil2
             append_is_Nil_conv butlast.simps(2) butlast_append list.sel(3) tl_append2)
         moreover
         {
@@ -1325,7 +1325,7 @@ lemma only_c_inside_symb_decomp_not[simp]:
 lemma only_c_inside_decomp_not[simp]:
   assumes c: "c \<noteq> CNot"
   shows "only_c_inside c (FNot \<psi>) \<longleftrightarrow> simple \<psi>"
-  by (metis (no_types, hide_lams) all_subformula_st_def all_subformula_st_test_symb_true_phi c
+  by (metis (no_types, opaque_lifting) all_subformula_st_def all_subformula_st_test_symb_true_phi c
     only_c_inside_def only_c_inside_symb_decomp_not simple_only_c_inside
     subformula_conn_decomp_simple)
 
@@ -1690,7 +1690,7 @@ next
     then have "only_c_inside c \<phi>1 \<and> only_c_inside c \<phi>2"
       using c_in_c'_symb_c_implies_only_c_inside c c' c_in_c'_only list.set_intros(1)
         wf_conn_helper_facts(5,6)  no_equiv no_imp simpleN last_ConsL last_ConsR last_in_set
-        list.distinct(1) by (metis (no_types, hide_lams) cc')
+        list.distinct(1) by (metis (no_types, opaque_lifting) cc')
     then have "only_c_inside c (conn c [\<phi>1, \<phi>2])"
       unfolding only_c_inside_def using \<phi>
       by (simp add: only_c_inside_into_only_c_inside all_subformula_st_decomp)
@@ -1941,7 +1941,7 @@ next
 
     then have \<phi>': "no_T_F \<phi>'" using ab IH \<phi> by auto
     have l': "\<xi> @ \<phi>' # \<xi>' = [\<phi>', b] \<or> \<xi> @ \<phi>' # \<xi>' = [a, \<phi>']"
-      by (metis (no_types, hide_lams) ab append_Cons append_Nil append_Nil2 butlast.simps(2)
+      by (metis (no_types, opaque_lifting) ab append_Cons append_Nil append_Nil2 butlast.simps(2)
         butlast_append list.distinct(1) list.sel(3))
     then have "\<forall>\<zeta> \<in> set (\<xi> @ \<phi>' # \<xi>'). no_T_F \<zeta>" using \<zeta> \<phi>' ab by fastforce
     moreover
@@ -2051,7 +2051,7 @@ next
     then have \<phi>': "no_T_F \<phi>'"
       using ab IH \<phi> corr no_T_F no_T_F_def all_subformula_st_decomp_explicit by auto
     have \<chi>: "\<xi> @ \<phi>' # \<xi>' = [\<phi>', b] \<or> \<xi> @ \<phi>' # \<xi>' = [a, \<phi>']"
-      by (metis (no_types, hide_lams) ab append_Cons append_Nil append_Nil2 butlast.simps(2)
+      by (metis (no_types, opaque_lifting) ab append_Cons append_Nil append_Nil2 butlast.simps(2)
         butlast_append list.distinct(1) list.sel(3))
     then have "\<forall>\<zeta>\<in> set (\<xi> @ \<phi>' # \<xi>'). no_T_F \<zeta>" using \<zeta> \<phi>' ab by fastforce
     moreover

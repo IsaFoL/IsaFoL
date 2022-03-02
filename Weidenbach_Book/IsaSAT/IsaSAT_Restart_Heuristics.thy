@@ -3,7 +3,7 @@ imports
   IsaSAT_Restart_Reduce IsaSAT_Restart_Inprocessing
 begin
 
-definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
+definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
   \<open>restart_required_heur S last_GC last_Restart n = do {
     ASSERT(learned_clss_count S \<ge> last_Restart);
     ASSERT(learned_clss_count S \<ge> last_GC);
@@ -299,7 +299,7 @@ text \<open>We need the plus one if we derive the empty conflict...
 
   TODO: we don't care about that case and can live with an overflow!\<close>
 abbreviation twl_st_heur''''u'
-   :: \<open>nat \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+   :: \<open>nat \<Rightarrow> nat \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur''''u' r u \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and>
            length (get_clauses_wl_heur S) = r \<and>
@@ -385,7 +385,7 @@ proof -
 qed
 
 definition restart_prog_wl_D_heur
-  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat \<times> nat \<times> nat) nres\<close>
+  :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (isasat \<times> nat \<times> nat \<times> nat) nres\<close>
 where
   \<open>restart_prog_wl_D_heur S last_GC last_Restart n brk = do {
    if brk then RETURN (S, last_GC, last_Restart, n)
@@ -433,17 +433,18 @@ lemma restart_required_heur_restart_required_wl0:
       by
        (auto simp add: twl_st_heur_def get_learned_clss_wl_def clss_size_lcountU0_def
         clss_size_def clss_size_lcount_def clss_size_lcountUE_def clss_size_corr_def
-        clss_size_lcountUS_def clss_size_lcountUEk_def)
+        clss_size_lcountUS_def clss_size_lcountUEk_def get_unit_learned_clss_wl_alt_def)
     subgoal
       by
        (auto simp add: twl_st_heur_def get_learned_clss_wl_def clss_size_lcountU0_def
         clss_size_def clss_size_lcount_def clss_size_lcountUE_def clss_size_corr_def
-        clss_size_lcountUS_def clss_size_lcountUEk_def)
+        clss_size_lcountUS_def clss_size_lcountUEk_def get_unit_learned_clss_wl_alt_def)
     subgoal
       by (clarsimp split: if_splits simp add: twl_st_heur_def RETURN_RES_refine_iff)
         (clarsimp simp add: twl_st_heur_def get_learned_clss_wl_def clss_size_corr_def
           clss_size_def clss_size_lcount_def clss_size_lcountUE_def RETURN_RES_refine_iff
-         clss_size_lcountUS_def clss_size_lcountU0_def clss_size_lcountUEk_def ac_simps)
+         clss_size_lcountUS_def clss_size_lcountU0_def clss_size_lcountUEk_def ac_simps
+        get_unit_learned_clss_wl_alt_def)
    done
 
 lemma restart_prog_wl_D_heur_alt_def:

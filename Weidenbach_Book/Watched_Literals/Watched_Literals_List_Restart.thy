@@ -1667,7 +1667,7 @@ next
     using rtranclp_remove_one_annot_true_clause_clauses_to_update_l[OF st] upd
     by auto
   have \<open>twl_struct_invs U'\<close>
-      by (metis (no_types, hide_lams) \<open>cdcl_twl_restart\<^sup>*\<^sup>* S' U'\<close>
+      by (metis (no_types, opaque_lifting) \<open>cdcl_twl_restart\<^sup>*\<^sup>* S' U'\<close>
           cdcl_twl_restart_twl_struct_invs n_d(2) rtranclp_induct)
   have \<open>cdcl_twl_restart_l U V\<close>
     apply (rule remove_one_annot_true_clause_cdcl_twl_restart_l2[of _ _ U'])

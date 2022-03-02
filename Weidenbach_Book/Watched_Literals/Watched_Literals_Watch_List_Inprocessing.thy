@@ -131,7 +131,11 @@ proof -
     using distinct_mset_dom[of x2] distinct_mset_dom[of b]
     apply (subgoal_tac \<open>{#mset (fst x). x \<in># filter_mset snd {#the (fmlookup b x). x \<in># remove1_mset j (dom_m b)#}#} =
       {#mset (fst x). x \<in># filter_mset snd {#the (fmlookup x2 x). x \<in># remove1_mset j (dom_m x2)#} #}\<close>)
-
+    (*TODO fix, broke during update to 2021-1*)
+    apply (auto simp: ran_m_def all_lits_of_mm_add_mset
+      dest!: multi_member_split[of _ \<open>dom_m _\<close>]
+      dest: all_lits_of_m_mono
+      intro!: image_mset_cong2 filter_mset_cong2)
     apply (auto 5 3 simp: ran_m_def all_lits_of_mm_add_mset
       dest!: multi_member_split[of _ \<open>dom_m _\<close>]
       dest: all_lits_of_m_mono

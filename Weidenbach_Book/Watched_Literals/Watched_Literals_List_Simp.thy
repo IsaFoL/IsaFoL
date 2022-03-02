@@ -763,14 +763,14 @@ proof -
     }\<close>
     unfolding RETURN_def RES_RES_RETURN_RES apply -
     apply refine_vcg
-    apply (metis (no_types, hide_lams) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp empty_iff insert_iff)
+    apply (metis (no_types, opaque_lifting) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp empty_iff insert_iff)
     apply simp
       apply (elim UN_E)+
       unfolding mem_Collect_eq
       apply (smt (z3) cdcl_twl_restart_l_inp.intros(1) converse_rtranclp_into_rtranclp rtranclp.rtrancl_into_rtrancl singletonD)
       apply (elim UN_E)+
       unfolding mem_Collect_eq
-      apply (metis (no_types, hide_lams) singletonD)
+      apply (metis (no_types, opaque_lifting) singletonD)
     done
 
   have 1: \<open>remove_one_annot_true_clause_imp T \<le> SPEC (?f2 T')\<close>

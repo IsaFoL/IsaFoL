@@ -1751,7 +1751,7 @@ proof -
       have ns_T_T: \<open>\<not>cdcl_twl_o\<^sup>+\<^sup>+ T T\<close>
         using wf_not_refl[OF tranclp_wf_cdcl_twl_o, of T] by auto
       have \<open>T = U\<close>
-        by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
+        by (metis (no_types, opaque_lifting) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
             rtranclp_cdcl_twl_o_stgyD rtranclp_tranclp_tranclp rtranclp_unfold)
       show ?thesis
         using assms \<open>literals_to_update U = {#}\<close> unfolding V that[symmetric] \<open>T = U\<close>[symmetric]

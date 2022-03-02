@@ -18,6 +18,10 @@ lemma cdcl_twl_o_prog_wl_D_heurI:
   using get_learned_count_learned_clss_countD2[of xc x]
   by auto
 
+(*TODO Copy paste*)
+lemma [def_pat_rules]: \<open>count_decided_st_heur$S \<equiv> isa_count_decided_st$S\<close>
+  by (auto simp: isa_count_decided_st_def count_decided_st_heur_def)
+
 sepref_def cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a

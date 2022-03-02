@@ -1,5 +1,6 @@
 theory WB_List_More
-  imports Nested_Multisets_Ordinals.Multiset_More "HOL-Library.Finite_Map"
+  imports "HOL-Library.Finite_Map"
+    Nested_Multisets_Ordinals.Duplicate_Free_Multiset
     "HOL-Eisbach.Eisbach"
     "HOL-Eisbach.Eisbach_Tools"
     "HOL-Library.FuncSet"
@@ -912,7 +913,7 @@ lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<c
   using count_remdups_mset_eq_1 unfolding distinct_mset_def by metis
 
 lemma remdups_mset_idem: \<open>remdups_mset (remdups_mset a) = remdups_mset a\<close>
-  using distinct_mset_remdups_mset distinct_mset_remdups_mset_id by blast
+  using distinct_mset_remdups_mset distinct_mset_remdups_mset_id by fast
 
 
 subsection \<open>Set of Distinct Multisets\<close>
@@ -1401,7 +1402,8 @@ lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow
 lemma mset_set_subset_iff:
   \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
   by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
-    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
+    set_mset_mono subset_imp_msubset_mset_set subset_mset.dual_order.trans subset_mset.max_bot
+    subset_mset.max_def)
 
 lemma distinct_subseteq_iff:
   assumes dist: \<open>distinct_mset M\<close>
@@ -1756,7 +1758,7 @@ lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset
 
 lemma distinct_mset_iff:
   \<open>\<not>distinct_mset C \<longleftrightarrow> (\<exists>a C'. C = add_mset a (add_mset a C'))\<close>
-  by (metis (no_types, hide_lams) One_nat_def
+  by (metis (no_types, opaque_lifting) One_nat_def
       count_add_mset distinct_mset_add_mset distinct_mset_def
       member_add_mset mset_add not_in_iff)
 
@@ -2033,9 +2035,25 @@ lemma remove1_mset_ge_Max_some: \<open>a > Max_dom b \<Longrightarrow> remove1_m
       dest!: multi_member_split)
 
 lemma Max_dom_fmupd_irrel:
-   \<open>(a :: 'a :: {zero,linorder}) > Max_dom M \<Longrightarrow> Max_dom (fmupd a C M) = max a (Max_dom M)\<close>
-  by (cases \<open>dom_m M\<close>)
-     (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
+  assumes
+    \<open>(a :: 'a :: {zero,linorder}) > Max_dom M\<close>
+  shows \<open>Max_dom (fmupd a C M) = max a (Max_dom M)\<close>
+proof -
+  have [simp]: \<open>max 0 (max a A) = max a A\<close> for A
+    using assms
+    by (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps
+      Max.insert_remove split: if_splits)
+  have [iff]: "max a A = a \<longleftrightarrow> (A \<le> a)" for A
+    by (auto split: if_splits simp: max_def)
+
+  show ?thesis
+    using assms
+    apply (cases \<open>dom_m M\<close>)
+    apply (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)[]
+    apply (auto simp: Max_dom_def remove1_mset_ge_Max_some ac_simps)
+    using order_less_imp_le apply blast
+      by (meson in_diffD less_le_not_le)
+qed
 
 lemma Max_dom_alt_def: \<open>Max_dom b = Max (insert 0 (set_mset (dom_m b)))\<close>
   unfolding Max_dom_def by auto
@@ -2197,7 +2215,8 @@ proof -
   proof -
     have "finite {x. (if x \<in># A then h x else 0) > 0}"
       by (rule finite_subset[of _ "set_mset A"]) (use that in auto)
-    thus ?thesis by (simp add: multiset_def g_def)
+    thus ?thesis
+      using g_def by auto
   qed
 
   have f: "f B \<in> (\<Pi>\<^sub>E x\<in>set_mset A. {0..count A x})" if "B \<subseteq># A" for B

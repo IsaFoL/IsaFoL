@@ -183,9 +183,11 @@ proof -
       H'[of 23] H'[of 22] H'[of 21] H'[of 20] H'[of 19] H'[of 18] H'[of 17] H'[of 16] H'[of 15]
       H'[of 14] H'[of 13] H'[of 12] H'[of 11] H'[of 10] H'[of 9] H'[of 8] H'[of 7] H'[of 6]
       H'[of 5] H'[of 4] H'[of 3] H'[of 2] H'[of 1]
-      unfolding unat_def word_size H'' test_bit_bl
+      unfolding unat_def word_size H''
       apply (simp only: H'')
-      by (clarsimp simp add: word_size bl_word_and word_add_rbl)
+      unfolding test_bit_bl
+      by (clarsimp simp add: word_size bl_word_and word_add_rbl
+            simp del: test_bit_bl)
   qed
 qed
 
@@ -196,10 +198,12 @@ lemma word_nat_of_uint32_Rep_inject[simp]: \<open>nat_of_uint32 ai = nat_of_uint
   by transfer simp
 
 lemma nat_of_uint32_012[simp]: \<open>nat_of_uint32 0 = 0\<close> \<open>nat_of_uint32 2 = 2\<close> \<open>nat_of_uint32 1 = 1\<close>
-  by (transfer, auto)+
+  unfolding nat_of_uint32.rep_eq
+  by (auto simp: one_uint32.rep_eq zero_uint32.rep_eq)
 
 lemma nat_of_uint32_3: \<open>nat_of_uint32 3 = 3\<close>
-  by (transfer, auto)+
+  unfolding nat_of_uint32.rep_eq
+  by (auto simp: one_uint32.rep_eq zero_uint32.rep_eq)
 
 lemma nat_of_uint32_Suc03_iff:
  \<open>nat_of_uint32 a = Suc 0 \<longleftrightarrow> a = 1\<close>
@@ -269,10 +273,49 @@ lemma nat_of_uint32_ao:
   subgoal apply (transfer, unfold unat_def, transfer, unfold nat_bin_trunc_ao) ..
   done
 
+lemma nat_of_uint32_mult: \<open>nat_of_uint32 (a * b) = nat_of_uint32 a * nat_of_uint32 b mod 2 ^ 32\<close>
+  by (simp add: nat_of_uint32_def uint32.word_of_mult unat_word_ariths)
+
+lemma nat_of_uint32_le:
+  \<open>nat_of_uint32 n < 2^32\<close>
+  using unat_lt2p[of \<open>Rep_uint32 n\<close>] unfolding nat_of_uint32_def
+  by auto
+
+lemma even_even_mod_2power_iff: \<open>k> 1 \<Longrightarrow> even (n mod 2^k) \<longleftrightarrow> even n\<close>
+  apply (induction k)
+  apply auto
+  apply (metis div_mult_mod_eq dvd_add_left_iff dvd_triv_left even_mult_iff)
+  by (metis div_mult_mod_eq dvd_triv_left even_add even_mult_iff)
+ 
+lemma even_nat_of_uint32_iff[simp]: \<open>even (nat_of_uint32 n) = even n\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then obtain k where n: \<open>nat_of_uint32 n = 2 * k\<close>
+    by (auto simp: dvd_def)
+  then have [simp]: \<open>nat_of_uint32 (uint32_of_nat k) = k\<close>
+    apply (auto simp: nat_of_uint32_def uint32_of_nat_def uint32.word_of_word
+      unat_of_nat_eq)
+    by (metis Suc_1 Suc_mult_cancel1 \<open>even (nat_of_uint32 n)\<close> dvd_mult_div_cancel n uno_simps(2))
+  have [simp]: \<open>k < 2147483648\<close>
+    using n nat_of_uint32_le[of n] by auto
+  have \<open>n = 2 * uint32_of_nat k\<close>
+    using n
+    by (subst word_nat_of_uint32_Rep_inject[symmetric])
+     (simp add: uint32.word_of_mult nat_of_uint32_mult eq_mod_iff mod_less)
+  then show ?B
+    unfolding dvd_def by fast
+next
+  assume ?B
+  then obtain k where n: \<open>n = 2 * k\<close>
+    by (auto simp: dvd_def)
+  then show ?A
+    using even_even_mod_2power_iff[of 32 \<open>2 * nat_of_uint32 k\<close>]
+    by (auto simp: nat_of_uint32_mult)
+qed
+
 lemma nat_of_uint32_mod_2:
   \<open>nat_of_uint32 L mod 2 = nat_of_uint32 (L mod 2)\<close>
-  by transfer
-    (simp del: nat_uint_eq add: unat_def nat_mod_distrib uint_mod)
+  by (simp del: nat_uint_eq add: mod2_eq_if unat_def nat_mod_distrib uint_mod)
 
 lemmas bitAND_1_mod_2_uint32 = and_one_eq[of \<open>L::uint32\<close> for L]
 
@@ -291,31 +334,7 @@ proof -
   next
     case (Suc n) note IH = this(1) and Suc = this(2)
     then show ?case
-    proof (cases n)
-      case (Suc m)
-      moreover have
-        \<open>nat (bintrunc m (bin_rest (bin_rest a) XOR bin_rest (bin_rest b)) BIT
-            ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
-             (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
-            ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b))) =
-         nat ((bintrunc m (bin_rest (bin_rest a)) XOR bintrunc m (bin_rest (bin_rest b))) BIT
-              ((bin_last (bin_rest a) \<or> bin_last (bin_rest b)) \<and>
-               (bin_last (bin_rest a) \<longrightarrow> \<not> bin_last (bin_rest b))) BIT
-              ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b)))\<close>
-        (is \<open>nat (?n1 BIT ?b) = nat (?n2 BIT ?b)\<close>)
-      proof - (* Sledgehammer proof changed to use the more readable ?n1 and ?n2 *)
-        have a1:  "nat ?n1 = nat ?n2"
-          using IH Suc by auto
-        have f2: "0 \<le> ?n2"
-          by (simp add: bintr_ge0)
-        have "0 \<le> ?n1"
-          using bintr_ge0 by auto
-        then have "?n2 = ?n1"
-          using f2 a1 by presburger
-        then show ?thesis by simp
-      qed
-      ultimately show ?thesis by simp
-    qed simp
+      by (cases n) simp_all
   qed
   have \<open>nat (bintrunc LENGTH('a) (a XOR b)) = nat (bintrunc LENGTH('a) a XOR bintrunc LENGTH('a) b)\<close> for a b
     using len H[of \<open>LENGTH('a)\<close> a b] by auto
@@ -353,11 +372,10 @@ lemma nat_of_uint32_notle_minus:
     (auto simp: unat_def uint_nonnegative nat_diff_distrib word_le_def[symmetric] intro: leI
     simp del: nat_uint_eq)
 
+lemmas [simp] = uint32.word_of_word
 lemma nat_of_uint32_uint32_of_nat_id: \<open>n \<le> uint32_max \<Longrightarrow> nat_of_uint32 (uint32_of_nat n) = n\<close>
-  unfolding uint32_of_nat_def uint32_max_def
-  apply simp
-  apply transfer
-  by (auto simp: unat_def take_bit_nat_eq_self_iff simp del: nat_uint_eq)
+  unfolding uint32_of_nat_def uint32_max_def nat_of_uint32_def
+  by (simp add: unat_of_nat_eq)
 
 
 lemma uint32_less_than_0[iff]: \<open>(a::uint32) \<le> 0 \<longleftrightarrow> a = 0\<close>
@@ -411,12 +429,8 @@ proof -
   have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
     by (metis unsigned_0 word_less_iff_unsigned word_neq_0_conv)
   show ?thesis
-    using assms unfolding uint32_max_def
-    apply (case_tac \<open>xi = 0\<close>)
-    subgoal by auto
-    subgoal by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult H
-      simp del: nat_uint_eq)
-    done
+    using assms unfolding uint32_max_def nat_of_uint32_def
+    by (simp add: uint32.word_of_mult unat_word_ariths)
 qed
 
 lemma nat_of_uint32_distrib_mult2_plus1:
@@ -430,8 +444,8 @@ proof -
   have [simp]: \<open>xi \<noteq> (0::32 Word.word) \<Longrightarrow> (0::int) < uint xi\<close> for xi
     by (metis not_less of_int_0 uint_le_0_iff word_of_int_uint)
   show ?thesis
-    using assms by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
-      mod_is_id nat_mod_distrib nat_add_distrib uint32_max_def simp del: nat_uint_eq)
+    using assms unfolding uint32_max_def nat_of_uint32_def
+    by (simp add: uint32.word_of_mult uint32.word_of_add unat_word_ariths one_uint32.rep_eq)
 qed
 
 
@@ -473,7 +487,8 @@ lemma word_of_int_int_unat[simp]: \<open>word_of_int (int (unat x)) = x\<close>
 
 lemma uint32_of_nat_nat_of_uint32[simp]: \<open>uint32_of_nat (nat_of_uint32 x) = x\<close>
   unfolding uint32_of_nat_def
-  by transfer auto
+  by simp
+    (metis Rep_uint32_inverse nat_of_uint32.abs_eq word_unat.Rep_inverse)
 
 
 definition sum_mod_uint32_max where
@@ -568,26 +583,30 @@ lemma uint32_mod_232_eq:
   shows \<open>xi = xi mod 2^32\<close>
 proof -
   have H: \<open>nat_of_uint32 (xi mod 2 ^ 32) = nat_of_uint32 xi\<close>
-    supply transferred = transfer_pow_uint32
-    apply transfer
-    subgoal for xi
-      using uint_word_ariths(1)[of xi 0]
-      supply [[show_types]]
-      apply auto
-      apply (rule word_uint_eq_iff[THEN iffD2])
-      apply (subst uint_mod_alt)
-      by auto
-    done
-
+    unfolding nat_of_uint32_def
+    by (simp add: modulo_uint32.rep_eq word_mod_by_0)
   show ?thesis
     by (rule word_nat_of_uint32_Rep_inject[THEN iffD1, OF H[symmetric]])
 qed
 
 lemma nat_of_uint32_numeral_mod_232:
   \<open>nat_of_uint32 (numeral n) = numeral n mod 2^32\<close>
-  apply transfer
-  apply (subst unat_numeral)
-  by auto
+  apply (induction "n" rule: num.induct)
+  subgoal by simp
+  subgoal
+    apply (subst numeral.numeral_Bit0)
+    apply (subst numeral.numeral_Bit0)
+    apply (subst nat_of_uint32_plus)
+    apply (simp del: semiring_numeral_class.power_numeral add: uint32_max_def push_mods)
+    done
+  subgoal
+    apply (subst numeral.numeral_Bit1)
+    apply (subst numeral.numeral_Bit1)
+    apply (subst nat_of_uint32_plus)+
+    by (simp del: semiring_numeral_class.power_numeral
+      add: numeral_add numeral_1_eq_Suc_0 uint32_max_def mod_Suc_eq push_mods
+      del: numeral_add[symmetric] )
+  done
 
 lemma int_of_uint32_alt_def: \<open>int_of_uint32 n = int (nat_of_uint32 n)\<close>
   by (simp add: int_of_uint32.rep_eq nat_of_uint32.rep_eq unat_def del: nat_uint_eq)
@@ -659,7 +678,9 @@ instance uint64 :: semiring_numeral
   by standard
 
 lemma nat_of_uint64_012[simp]: \<open>nat_of_uint64 0 = 0\<close> \<open>nat_of_uint64 2 = 2\<close> \<open>nat_of_uint64 1 = 1\<close>
-  by (transfer, auto)+
+  unfolding nat_of_uint64.rep_eq
+  by (auto simp: one_uint64.rep_eq zero_uint64.rep_eq)
+
 
 definition zero_uint64_nat where
   [simp]: \<open>zero_uint64_nat = (0 :: nat)\<close>
@@ -674,16 +695,11 @@ lemma [code]: \<open>uint64_max' = 18446744073709551615\<close>
   by (auto simp: uint64_max_def)
 
 lemma nat_of_uint64_uint64_of_nat_id: \<open>n \<le> uint64_max \<Longrightarrow> nat_of_uint64 (uint64_of_nat n) = n\<close>
-  unfolding uint64_of_nat_def uint64_max_def
-  apply simp
-  apply transfer
-  by (auto simp: unat_def take_bit_nat_eq_self_iff)
-
-lemma nat_of_uint64_add:
-  \<open>nat_of_uint64 ai + nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
-    nat_of_uint64 (ai + bi) = nat_of_uint64 ai + nat_of_uint64 bi\<close>
-  by transfer (auto simp: unat_def uint_plus_if' nat_add_distrib uint64_max_def
-    simp del: nat_uint_eq)
+  unfolding uint64_of_nat_def uint64_max_def nat_of_uint64_def
+  apply (simp add: )
+  unfolding uint64.word_of_word
+  apply (subst le_unat_uoi[of _ 18446744073709551615])
+  by auto
 
 
 definition one_uint64_nat where
@@ -702,24 +718,15 @@ lemma nat_of_uint64_less_iff: \<open>nat_of_uint64 a < nat_of_uint64 b \<longlef
 lemma nat_of_uint64_distrib_mult2:
   assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
   shows \<open>nat_of_uint64 (2 * xi) = 2 * nat_of_uint64 xi\<close>
-proof -
-  show ?thesis
-    using assms unfolding uint64_max_def
-    apply (case_tac \<open>xi = 0\<close>)
-    subgoal by auto
-    subgoal by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
-      simp del: nat_uint_eq)
-    done
-qed
+  using assms unfolding uint64_max_def nat_of_uint64_def
+  by (simp add: uint64.word_of_mult unat_word_ariths)
 
 lemma (in -)nat_of_uint64_distrib_mult2_plus1:
   assumes \<open>nat_of_uint64 xi \<le> uint64_max div 2\<close>
   shows \<open>nat_of_uint64 (2 * xi + 1) = 2 * nat_of_uint64 xi + 1\<close>
-proof -
-  show ?thesis
-    using assms by transfer (auto simp: unat_def uint_word_ariths nat_mult_distrib mult_mod_mod_mult
-      nat_mod_distrib nat_add_distrib uint64_max_def simp del: nat_uint_eq)
-qed
+  using assms unfolding uint64_max_def nat_of_uint64_def
+  by (simp add: uint64.word_of_mult unat_word_ariths plus_uint64.rep_eq
+    one_uint64.rep_eq)
 
 lemma nat_of_uint64_numeral[simp]:
   \<open>numeral n \<le> ((2 ^ 64 - 1)::nat) \<Longrightarrow> nat_of_uint64 (numeral n) = numeral n\<close>
@@ -804,9 +811,9 @@ lemma transfer_pow_uint64: \<open>Transfer.Rel (rel_fun cr_uint64 (rel_fun (=) c
       (auto simp: one_uint64.rep_eq times_uint64.rep_eq)
   done
 
+(*TODO replace*)
 lemma shiftl_t2n_uint64: \<open>n << m = n * 2 ^ m\<close> for n :: uint64
-  supply transfer_pow_uint64[transferred]
-  by transfer (auto simp: shiftl_t2n push_bit_eq_mult)
+  unfolding shiftl_eq_mult ..
 
 lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>
   by (auto simp: bin_last_def)
@@ -843,8 +850,7 @@ proof -
   also have \<open>\<dots> = uint64_max\<close>
     unfolding unat_bintrunc_neg
     apply (simp add: uint64_max_def)
-    apply (subst numeral_eq_Suc; subst bintrunc_Suc_numeral; simp)+
-    done
+    by (subst numeral_eq_Suc; subst semiring_bit_operations_class.mask_Suc_exp; simp)+
   finally show ?thesis .
 qed
 
@@ -855,6 +861,44 @@ lemma nat_of_uint64_le_uint64_max: \<open>nat_of_uint64 x \<le> uint64_max\<clos
     unfolding uint64_max_def[symmetric] uint64_max_uint_def
     by auto
   done
+
+lemma nat_of_uint64_le:
+  \<open>nat_of_uint64 n < 2^64\<close>
+  using unat_lt2p[of \<open>Rep_uint64 n\<close>] unfolding nat_of_uint64_def
+  by auto
+
+lemma nat_of_uint64_mult: \<open>nat_of_uint64 (a * b) = nat_of_uint64 a * nat_of_uint64 b mod 2 ^ 64\<close>
+  by (simp add: nat_of_uint64_def uint64.word_of_mult unat_word_ariths)
+
+lemma nat_of_uint64_add: \<open>nat_of_uint64 (a + b) = (nat_of_uint64 a + nat_of_uint64 b) mod 2 ^ 64\<close>
+  by (simp add: nat_of_uint64_def uint64.word_of_add unat_word_ariths)
+
+lemma even_nat_of_uint64_iff[simp]: \<open>even (nat_of_uint64 n) = even n\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof
+  assume ?A
+  then obtain k where n: \<open>nat_of_uint64 n = 2 * k\<close>
+    by (auto simp: dvd_def)
+  then have [simp]: \<open>nat_of_uint64 (uint64_of_nat k) = k\<close>
+    apply (auto simp: nat_of_uint64_def uint64_of_nat_def uint64.word_of_word
+      unat_of_nat_eq)
+    by (metis Suc_1 Suc_mult_cancel1 \<open>even (nat_of_uint64 n)\<close> dvd_mult_div_cancel n uno_simps(2))
+  have [simp]: \<open>k < 9223372036854775808\<close>
+    using n nat_of_uint64_le[of n] by auto
+  have \<open>n = 2 * uint64_of_nat k\<close>
+    using n
+    by (subst word_nat_of_uint64_Rep_inject[symmetric])
+     (simp add: uint64.word_of_mult nat_of_uint64_mult eq_mod_iff mod_less)
+  then show ?B
+    unfolding dvd_def by fast
+next
+  assume ?B
+  then obtain k where n: \<open>n = 2 * k\<close>
+    by (auto simp: dvd_def)
+  then show ?A
+    using even_even_mod_2power_iff[of 64 \<open>2 * nat_of_uint64 k\<close>]
+    by (auto simp: nat_of_uint64_mult)
+qed
+
 
 lemma bitOR_1_if_mod_2_uint64: \<open>L OR 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: uint64
 proof -
@@ -868,14 +912,14 @@ proof -
         word_or_def simp del: nat_uint_eq)
     done
   have K: \<open>L mod 2 = 0 \<longleftrightarrow> nat_of_uint64 L mod 2 = 0\<close>
-    apply transfer
-    subgoal for L
-      using unat_mod[of L 2, symmetric] by (auto simp: unat_eq_0)
-    done
+    by (auto simp: mod2_bin_last simp flip: even_iff_mod_2_eq_zero)
   have L: \<open>nat_of_uint64 (if L mod 2 = 0 then L + 1 else L) =
       (if nat_of_uint64 L mod 2 = 0 then nat_of_uint64 L + 1 else nat_of_uint64 L)\<close>
     using nat_of_uint64_le_uint64_max[of L]
-    by (auto simp: K nat_of_uint64_add uint64_max_def)
+    apply (auto simp: K uint64_max_def nat_of_uint64_add unat_of_nat_eq mod_less)
+    apply (subst mod_less)
+    apply auto
+    by (metis K even_iff_mod_2_eq_zero linorder_not_le odd_numeral order_antisym)
 
   show ?thesis
     apply (subst H)
@@ -953,7 +997,7 @@ proof -
   also have \<open>\<dots> = uint32_max\<close>
     unfolding unat_bintrunc_neg
     apply (simp add: uint32_max_def)
-    apply (subst numeral_eq_Suc; subst bintrunc_Suc_numeral; simp)+
+    apply (subst numeral_eq_Suc; subst semiring_bit_operations_class.mask_Suc_exp; simp)+
     done
   finally show ?thesis by (simp add: nat_of_uint32_def uint32_max_uint32_def)
 qed
@@ -1008,6 +1052,7 @@ lemma nat_of_uint64_ao:
   \<open>nat_of_uint64 m AND nat_of_uint64 n = nat_of_uint64 (m AND n)\<close>
   \<open>nat_of_uint64 m OR nat_of_uint64 n = nat_of_uint64 (m OR n)\<close>
   by (simp_all add: nat_of_uint64_and nat_of_uint64_or nat_of_uint64_le_uint64_max)
+
 
 subsubsection \<open>Conversions\<close>
 

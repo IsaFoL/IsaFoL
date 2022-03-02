@@ -345,7 +345,7 @@ lemma trail_reduce_trail_to_length_le:
   assumes "length F > length (trail S)"
   shows "trail (reduce_trail_to F S) = []"
   using assms apply (induction F S rule: reduce_trail_to.induct)
-  by (metis (no_types, hide_lams) length_tl less_imp_diff_less less_irrefl trail_tl_trail
+  by (metis (no_types, opaque_lifting) length_tl less_imp_diff_less less_irrefl trail_tl_trail
     reduce_trail_to.simps)
 
 lemma trail_reduce_trail_to_Nil[simp]:
@@ -4392,7 +4392,7 @@ lemma no_smaller_propa_tl:
     \<open>clauses U = clauses S\<close>
   shows
     \<open>no_smaller_propa U\<close>
-  using assms by (cases \<open>trail S\<close>) (auto simp: no_smaller_propa_def)
+  using assms unfolding no_smaller_propa_def by (cases \<open>trail S\<close>) (auto simp del: state_simp)
 
 lemmas rulesE =
   skipE resolveE backtrackE propagateE conflictE decideE restartE forgetE backtrackgE

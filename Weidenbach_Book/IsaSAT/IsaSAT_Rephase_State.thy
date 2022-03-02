@@ -25,15 +25,15 @@ lemma rephase_heur_spec:
   apply (auto simp: heuristic_rel_def heuristic_rel_stats_def)
   done
 
-definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>rephase_heur_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). do {
+definition rephase_heur_st :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>rephase_heur_st = (\<lambda>S. do {
+      let heur = get_heur S;
+      let stats = get_stats_heur S;
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur b heur;
       let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
-                  b stats lcount;
-      RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena)
+                  b stats (get_learned_count S);
+      RETURN (set_heur_wl_heur heur S)
    })\<close>
 
 lemma rephase_heur_st_spec:
@@ -66,14 +66,14 @@ lemma save_phase_heur_spec:
   done
 
 
-definition save_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>save_phase_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). do {
+definition save_phase_st :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>save_phase_st = (\<lambda>S. do {
+      let M' = get_trail_wl_heur S;
+      let heur = get_heur S;
       ASSERT(isa_length_trail_pre M');
       let n = isa_length_trail M';
       heur \<leftarrow> save_rephase_heur n heur;
-      RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena)
+      RETURN (set_trail_wl_heur M' (set_heur_wl_heur heur S))
    })\<close>
 
 lemma save_phase_st_spec:

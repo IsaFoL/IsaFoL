@@ -1,7 +1,7 @@
 theory IsaSAT_Initialisation
   imports Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Setup IsaSAT_VMTF WB_More_Word
-    IsaSAT_Mark
+    IsaSAT_Mark Tuple15
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
 
@@ -91,6 +91,9 @@ lemma isa_vmtf_init_consD:
   \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf_init \<A> M \<Longrightarrow>
      ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf_init \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_init_def vmtf_init_def dest: vmtf_consD)
+lemma isa_vmtf_init_consD':
+  \<open>vm \<in> isa_vmtf_init \<A> M \<Longrightarrow> vm \<in> isa_vmtf_init \<A> (L # M)\<close>
+  by (auto simp: isa_vmtf_init_def vmtf_init_def dest: vmtf_consD)
 
 lemma vmtf_init_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf_init \<A> M \<Longrightarrow> L \<in> vmtf_init \<B> M\<close>
@@ -106,14 +109,104 @@ lemma isa_vmtf_init_cong:
 
 
 type_synonym (in -) twl_st_wl_heur_init =
-  \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
-    (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> vdom \<times> bool \<times> clss_size \<times> lookup_clause_rel\<close>
+  \<open>(trail_pol, arena, conflict_option_rel, nat,
+    (nat \<times> nat literal \<times> bool) list list, isa_vmtf_remove_int_option_fst_As, bool list,
+    nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
 
 type_synonym (in -) twl_st_wl_heur_init_full =
-  \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
-    (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> vdom \<times> bool \<times> clss_size \<times> lookup_clause_rel\<close>
+  \<open>(trail_pol, arena, conflict_option_rel, nat,
+    (nat \<times> nat literal \<times> bool) list list, isa_vmtf_remove_int_option_fst_As, bool list,
+    nat, conflict_min_cach_l, lbd, vdom, vdom, bool, clss_size, lookup_clause_rel) tuple15\<close>
+
+abbreviation get_trail_init_wl_heur :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol\<close> where
+  \<open>get_trail_init_wl_heur \<equiv> Tuple15_a\<close>
+
+abbreviation set_trail_init_wl_heur :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur_init\<close> where
+  \<open>set_trail_init_wl_heur \<equiv> Tuple15.set_a\<close>
+
+abbreviation get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> arena\<close> where
+  \<open>get_clauses_wl_heur_init \<equiv> Tuple15_b\<close>
+
+abbreviation set_clauses_wl_heur_init :: \<open>arena \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur_init\<close> where
+  \<open>set_clauses_wl_heur_init \<equiv> Tuple15.set_b\<close>
+
+abbreviation get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> conflict_option_rel\<close> where
+  \<open>get_conflict_wl_heur_init \<equiv> Tuple15_c\<close>
+
+abbreviation set_conflict_wl_heur_init :: \<open>conflict_option_rel \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur_init\<close> where
+  \<open>set_conflict_wl_heur_init \<equiv> Tuple15.set_c\<close>
+
+abbreviation get_literals_to_update_wl_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat\<close> where
+  \<open>get_literals_to_update_wl_init \<equiv> Tuple15_d\<close>
+
+abbreviation set_literals_to_update_wl_init :: \<open>nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close> where
+  \<open>set_literals_to_update_wl_init \<equiv> Tuple15.set_d\<close>
+
+abbreviation get_watchlist_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> (nat \<times> nat literal \<times> bool) list list\<close> where
+  \<open>get_watchlist_wl_heur_init \<equiv> Tuple15_e\<close>
+
+abbreviation set_watchlist_wl_heur_init :: \<open>(nat \<times> nat literal \<times> bool) list list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init\<close> where
+  \<open>set_watchlist_wl_heur_init \<equiv> Tuple15.set_e\<close>
+
+abbreviation get_vmtf_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> isa_vmtf_remove_int_option_fst_As\<close> where
+  \<open>get_vmtf_wl_heur_init \<equiv> Tuple15_f\<close>
+
+abbreviation set_vmtf_wl_heur_init :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_vmtf_wl_heur_init \<equiv> Tuple15.set_f\<close>
+
+abbreviation get_phases_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool list\<close> where
+  \<open>get_phases_wl_heur_init \<equiv> Tuple15_g\<close>
+
+abbreviation set_phases_wl_heur_init :: \<open>bool list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_phases_wl_heur_init \<equiv> Tuple15.set_g\<close>
+
+abbreviation get_clvls_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat\<close> where
+  \<open>get_clvls_wl_heur_init \<equiv> Tuple15_h\<close>
+
+abbreviation set_clvls_wl_heur_init :: \<open>nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_clvls_wl_heur_init \<equiv> Tuple15.set_h\<close>
+
+abbreviation get_cach_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> conflict_min_cach_l\<close> where
+  \<open>get_cach_wl_heur_init \<equiv> Tuple15_i\<close>
+
+abbreviation set_cach_wl_heur_init :: \<open>conflict_min_cach_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_cach_wl_heur_init \<equiv> Tuple15.set_i\<close>
+
+abbreviation get_lbd_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> lbd\<close> where
+  \<open>get_lbd_wl_heur_init \<equiv> Tuple15_j\<close>
+
+abbreviation set_lbd_wl_heur_init :: \<open>lbd \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_lbd_wl_heur_init \<equiv> Tuple15.set_j\<close>
+
+abbreviation get_vdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> vdom\<close> where
+  \<open>get_vdom_heur_init \<equiv> Tuple15_k\<close>
+
+abbreviation set_vdom_heur_init :: \<open>vdom \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_vdom_heur_init \<equiv> Tuple15.set_k\<close>
+
+abbreviation get_ivdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> vdom\<close> where
+  \<open>get_ivdom_heur_init \<equiv> Tuple15_l\<close>
+
+abbreviation set_ivdom_heur_init :: \<open>vdom \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_ivdom_heur_init \<equiv> Tuple15.set_l\<close>
+
+abbreviation is_failed_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
+  \<open>is_failed_heur_init \<equiv> Tuple15_m\<close>
+
+abbreviation set_failed_heur_init :: \<open>bool \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_failed_heur_init \<equiv> Tuple15.set_m\<close>
+
+abbreviation get_learned_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> clss_size\<close> where
+  \<open>get_learned_count_init \<equiv> Tuple15_n\<close>
+
+abbreviation set_learned_count_init :: \<open>clss_size \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_learned_count_init \<equiv> Tuple15.set_n\<close>
+
+abbreviation get_mark_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> lookup_clause_rel\<close> where
+  \<open>get_mark_wl_heur_init \<equiv> Tuple15_o\<close>
+
+abbreviation set_mark_wl_heur_init :: \<open>lookup_clause_rel \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> _\<close> where
+  \<open>set_mark_wl_heur_init \<equiv> Tuple15.set_o\<close>
 
 
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
@@ -128,12 +221,19 @@ text \<open>KILL duplicates below, but difference:
   watch list vs no WL
   OC vs non-OC
   \<close>
+(*(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark)*)
 definition twl_st_heur_parsing_no_WL
   :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init \<times> nat twl_st_wl_init) set\<close>
 where
-\<open>twl_st_heur_parsing_no_WL \<A> unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark),
+[unfolded Let_def]: \<open>twl_st_heur_parsing_no_WL \<A> unbdd =
+  {(S,
     ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)).
+  let M' = get_trail_init_wl_heur S; N' = get_clauses_wl_heur_init S; failed = is_failed_heur_init S;
+    vdom = get_vdom_heur_init S; ivdom = get_ivdom_heur_init S; D' = get_conflict_wl_heur_init S; vm = get_vmtf_wl_heur_init S;
+    mark = get_mark_wl_heur_init S; lcount = get_learned_count_init S; W' = get_watchlist_wl_heur_init S;
+    \<phi> = get_phases_wl_heur_init S; cach = get_cach_wl_heur_init S; lbd = get_lbd_wl_heur_init S;
+    j = get_literals_to_update_wl_init S
+    in
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
      (valid_arena N' N (set vdom) \<and>
@@ -160,9 +260,15 @@ where
 definition twl_st_heur_parsing
   :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init \<times> (nat twl_st_wl \<times> nat clauses)) set\<close>
 where
-\<open>twl_st_heur_parsing \<A>  unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark),
+[unfolded Let_def]: \<open>twl_st_heur_parsing \<A>  unbdd =
+  {(S,
   ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,Q, W), OC)).
+  let M' = get_trail_init_wl_heur S; N' = get_clauses_wl_heur_init S; failed = is_failed_heur_init S;
+    vdom = get_vdom_heur_init S; ivdom = get_ivdom_heur_init S; D' = get_conflict_wl_heur_init S; vm = get_vmtf_wl_heur_init S;
+    mark = get_mark_wl_heur_init S; lcount = get_learned_count_init S; W' = get_watchlist_wl_heur_init S;
+    \<phi> = get_phases_wl_heur_init S; cach = get_cach_wl_heur_init S; lbd = get_lbd_wl_heur_init S;
+    j = get_literals_to_update_wl_init S
+    in
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
     ((M', M) \<in> trail_pol \<A> \<and>
@@ -190,8 +296,14 @@ where
 
 definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (_ \<times> nat twl_st_wl_init') set\<close> where
 \<open>twl_st_heur_parsing_no_WL_wl \<A>  unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark),
+  {(S,
   (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,Q)).
+  let M' = get_trail_init_wl_heur S; N' = get_clauses_wl_heur_init S; failed = is_failed_heur_init S;
+    vdom = get_vdom_heur_init S; ivdom = get_ivdom_heur_init S; D' = get_conflict_wl_heur_init S; vm = get_vmtf_wl_heur_init S;
+    mark = get_mark_wl_heur_init S; lcount = get_learned_count_init S; W' = get_watchlist_wl_heur_init S;
+    \<phi> = get_phases_wl_heur_init S; cach = get_cach_wl_heur_init S; lbd = get_lbd_wl_heur_init S;
+    j = get_literals_to_update_wl_init S
+    in
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
       (valid_arena N' N (set vdom) \<and> set_mset (dom_m N) \<subseteq> set vdom)) \<and>
@@ -214,8 +326,14 @@ definition twl_st_heur_parsing_no_WL_wl :: \<open>nat multiset \<Rightarrow> boo
 
 definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur_init_full \<times> nat twl_st_wl_init) set\<close> where
 \<open>twl_st_heur_parsing_no_WL_wl_no_watched \<A> unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark),
+  {(S,
     ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0,Q), OC)).
+  let M' = get_trail_init_wl_heur S; N' = get_clauses_wl_heur_init S; failed = is_failed_heur_init S;
+    vdom = get_vdom_heur_init S; ivdom = get_ivdom_heur_init S; D' = get_conflict_wl_heur_init S; vm = get_vmtf_wl_heur_init S;
+    mark = get_mark_wl_heur_init S; lcount = get_learned_count_init S; W' = get_watchlist_wl_heur_init S;
+    \<phi> = get_phases_wl_heur_init S; cach = get_cach_wl_heur_init S; lbd = get_lbd_wl_heur_init S;
+    j = get_literals_to_update_wl_init S
+    in
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
       (valid_arena N' N (set vdom) \<and> set_mset (dom_m N) \<subseteq> set vdom) \<and> ivdom = vdom) \<and> (M', M) \<in> trail_pol \<A> \<and>
@@ -237,8 +355,14 @@ definition twl_st_heur_parsing_no_WL_wl_no_watched :: \<open>nat multiset \<Righ
 
 definition twl_st_heur_post_parsing_wl :: \<open>bool \<Rightarrow> (twl_st_wl_heur_init_full \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_post_parsing_wl unbdd =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark),
+  {(S,
     (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)).
+  let M' = get_trail_init_wl_heur S; N' = get_clauses_wl_heur_init S; failed = is_failed_heur_init S;
+    vdom = get_vdom_heur_init S; ivdom = get_ivdom_heur_init S; D' = get_conflict_wl_heur_init S; vm = get_vmtf_wl_heur_init S;
+    mark = get_mark_wl_heur_init S; lcount = get_learned_count_init S; W' = get_watchlist_wl_heur_init S;
+    \<phi> = get_phases_wl_heur_init S; cach = get_cach_wl_heur_init S; lbd = get_lbd_wl_heur_init S;
+    j = get_literals_to_update_wl_init S
+    in
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
      ((M', M) \<in> trail_pol (all_atms N ((NE+NEk) + (UE+UEk) + NS + US + N0 + U0)) \<and>
@@ -452,27 +576,6 @@ qed
 
 subsection \<open>Parsing\<close>
 
-fun (in -)get_conflict_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> conflict_option_rel\<close> where
-  \<open>get_conflict_wl_heur_init (_, _, D, _) = D\<close>
-
-fun (in -)get_clauses_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> arena\<close> where
-  \<open>get_clauses_wl_heur_init (_, N, _) = N\<close>
-
-fun (in -) get_trail_wl_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol\<close> where
-  \<open>get_trail_wl_heur_init (M, _, _, _, _, _, _) = M\<close>
-
-fun (in -) get_vdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list\<close> where
-  \<open>get_vdom_heur_init (_, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
-
-fun (in -) get_ivdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat list\<close> where
-  \<open>get_ivdom_heur_init (_, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
-
-fun (in -) is_failed_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>is_failed_heur_init (_, _, _, _, _, _, _, _, _, _, _, _, failed, _) = failed\<close>
-
-fun (in -) get_learned_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> clss_size\<close> where
-  \<open>get_learned_count_init (_, _, _, _, _, _, _, _, _, _, _, _, failed, lcount, _) = lcount\<close>
-
 definition propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
@@ -482,10 +585,10 @@ where
 definition propagate_unit_cls_heur
  :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>propagate_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
+  \<open>propagate_unit_cls_heur = (\<lambda>unbdd L S.
      do {
-        M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount)
+        M \<leftarrow> cons_trail_Propagated_tr L 0 (get_trail_init_wl_heur S);
+       RETURN (set_trail_init_wl_heur M S)
      })\<close>
 
 fun get_unit_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clauses\<close> where
@@ -523,7 +626,7 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
   apply (refine_rcg cons_trail_Propagated_tr2[where \<A> = \<A>])
   subgoal by auto
   subgoal by auto
-  subgoal by  (auto intro!: isa_vmtf_init_consD
+  subgoal by  (auto intro!: isa_vmtf_init_consD'
     simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
   done
 
@@ -536,8 +639,8 @@ where
 definition already_propagated_unit_cls_heur
    :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed).
-     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed))\<close>
+  \<open>already_propagated_unit_cls_heur = (\<lambda>unbdd L S.
+     RETURN S)\<close>
 
 lemma already_propagated_unit_cls_heur_already_propagated_unit_cls:
   \<open>(uncurry (already_propagated_unit_cls_heur unbdd), uncurry (RETURN oo already_propagated_unit_init_wl)) \<in>
@@ -572,12 +675,13 @@ where
 definition conflict_propagated_unit_cls_heur
   :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>conflict_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). 
+  \<open>conflict_propagated_unit_cls_heur = (\<lambda>unbdd L S. 
      do {
-       ASSERT(atm_of L < length (snd (snd D)));
-       D \<leftarrow> set_conflict_unit_heur L D;
-       ASSERT(isa_length_trail_pre M);
-       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount)
+       ASSERT(atm_of L < length (snd (snd (get_conflict_wl_heur_init S))));
+       D \<leftarrow> set_conflict_unit_heur L (get_conflict_wl_heur_init S);
+       ASSERT(isa_length_trail_pre (get_trail_init_wl_heur S));
+       let j = isa_length_trail (get_trail_init_wl_heur S);
+       RETURN (set_literals_to_update_wl_init j (set_conflict_wl_heur_init D S))
    })\<close>
 
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
@@ -640,16 +744,22 @@ qed
 
 definition add_init_cls_heur
   :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>  where
-  \<open>add_init_cls_heur unbdd = (\<lambda>C (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark). do {
+  \<open>add_init_cls_heur unbdd = (\<lambda>C S. do {
      let C = C;
      ASSERT(length C \<le> uint32_max + 2);
      ASSERT(length C \<ge> 2);
+     let N = get_clauses_wl_heur_init S;
+     let failed = is_failed_heur_init S;
      if unbdd \<or> (length N \<le> sint64_max - length C - 5 \<and> \<not>failed)
      then do {
+       let vdom = get_vdom_heur_init S;
+       let ivdom = get_ivdom_heur_init S;
        ASSERT(length vdom \<le> length N \<and> vdom = ivdom);
        (N, i) \<leftarrow> fm_add_new True C N;
-       RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom @ [i], ivdom @ [i], failed, lcount, mark)
-     } else RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, True, lcount, mark)})\<close>
+       let vdom = vdom @ [i];
+       let ivdom = ivdom @ [i];
+       RETURN (set_clauses_wl_heur_init N (set_vdom_heur_init vdom (set_ivdom_heur_init ivdom S)))
+     } else RETURN (set_failed_heur_init True S)})\<close>
 
 definition add_init_cls_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>add_init_cls_heur_unb = add_init_cls_heur True\<close>
@@ -709,20 +819,6 @@ context
       \<open>ua = (N0, ub)\<close>
       \<open>ub = (U0, Q)\<close>
       \<open>CT = (C', T)\<close>
-      \<open>T = (M', m)\<close>
-      \<open>m = (N', p)\<close>
-      \<open>p = (D', q)\<close>
-      \<open>q = (j', r)\<close>
-      \<open>r = (W', s)\<close>
-      \<open>s = (vm, t)\<close>
-      \<open>t = (\<phi>, u)\<close>
-      \<open>u = (clvls, v)\<close>
-      \<open>v = (cach, w)\<close>
-      \<open>w = (lbd, x)\<close>
-      \<open>x = (vdom, y')\<close>
-      \<open>y' = (ivdom, y)\<close>
-    \<open>y = (failed, z)\<close>
-    \<open>z = (lcount, mark)\<close>
 begin
 
 lemma add_init_pre1: \<open>length C' \<le> uint32_max + 2\<close>
@@ -734,32 +830,32 @@ lemma add_init_pre2: \<open>2 \<le> length C'\<close>
 
 private lemma
     x1g_x1: \<open>C' = C\<close> and
-    \<open>(M', M) \<in> trail_pol \<A>\<close> and
-   valid: \<open>valid_arena N' N (set vdom)\<close> and
-    \<open>(D', D) \<in> option_lookup_clause_rel \<A>\<close> and
-    \<open>j' \<le> length M\<close> and
-    Q: \<open>Q = {#- lit_of x. x \<in># mset (drop j' (rev M))#}\<close> and
-    \<open>vm \<in> isa_vmtf_init \<A> M\<close> and
-    \<open>phase_saving \<A> \<phi>\<close> and
+    \<open>(get_trail_init_wl_heur T, M) \<in> trail_pol \<A>\<close> and
+   valid: \<open>valid_arena (get_clauses_wl_heur_init T) N (set (get_vdom_heur_init T))\<close> and
+    \<open>(get_conflict_wl_heur_init T, D) \<in> option_lookup_clause_rel \<A>\<close> and
+    \<open>get_literals_to_update_wl_init T \<le> length M\<close> and
+    Q: \<open>Q = {#- lit_of x. x \<in># mset (drop (get_literals_to_update_wl_init T) (rev M))#}\<close> and
+    \<open>get_vmtf_wl_heur_init T \<in> isa_vmtf_init \<A> M\<close> and
+    \<open>phase_saving \<A> (get_phases_wl_heur_init T)\<close> and
     \<open>no_dup M\<close> and
-    \<open>cach_refinement_empty \<A> cach\<close> and
-    vdom: \<open>mset vdom = dom_m N\<close> and
-    ivdom: \<open>ivdom = vdom\<close> and
+    \<open>cach_refinement_empty \<A> (get_cach_wl_heur_init T)\<close> and
+    vdom: \<open>mset (get_vdom_heur_init T) = dom_m N\<close> and
+    ivdom: \<open>(get_ivdom_heur_init T) = (get_vdom_heur_init T)\<close> and
     var_incl:
      \<open>set_mset (all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE+NEk) + NS + (UE+UEk) + US + N0 + U0))
        \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close> and
-    watched: \<open>(W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
+    watched: \<open>(get_watchlist_wl_heur_init T, empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close> and
-    dcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount\<close>
-    if \<open>\<not>failed  \<or> unbdd\<close>
+    dcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 (get_learned_count_init T)\<close>
+    if \<open>\<not>(is_failed_heur_init T)  \<or> unbdd\<close>
   using that xy unfolding st twl_st_heur_parsing_no_WL_def
   by (auto simp: ac_simps)
 
 lemma init_fm_add_new:
-  \<open>\<not>failed  \<or> unbdd \<Longrightarrow> fm_add_new True C' N'
-       \<le> \<Down>  {((arena, i), (N'', i')). valid_arena arena N'' (insert i (set vdom)) \<and> i = i' \<and>
-              i \<notin># dom_m N \<and> i = length N' + header_size C \<and>
-	      i \<notin> set vdom}
+  \<open>\<not>is_failed_heur_init T  \<or> unbdd \<Longrightarrow> fm_add_new True C' (get_clauses_wl_heur_init T)
+       \<le> \<Down>  {((arena, i), (N'', i')). valid_arena arena N'' (insert i (set (get_vdom_heur_init T))) \<and> i = i' \<and>
+              i \<notin># dom_m N \<and> i = length (get_clauses_wl_heur_init T) + header_size C \<and>
+	      i \<notin> set (get_vdom_heur_init T)}
           (SPEC
             (\<lambda>(N', ia).
                 0 < ia \<and> ia \<notin># dom_m N \<and> N' = fmupd ia (C, True) N))\<close>
@@ -779,14 +875,14 @@ lemma add_init_cls_final_rel:
     k :: \<open>nat\<close> and nN' :: \<open>arena_el list\<close> and
     k' :: \<open>nat\<close>
   assumes
-    \<open>(nN'j', nNj) \<in> {((arena, i), (N'', i')). valid_arena arena N'' (insert i (set vdom)) \<and> i = i' \<and>
-              i \<notin># dom_m N \<and> i = length N' + header_size C \<and>
-	      i \<notin> set vdom}\<close> and
+    \<open>(nN'j', nNj) \<in> {((arena, i), (N'', i')). valid_arena arena N'' (insert i (set (get_vdom_heur_init T))) \<and> i = i' \<and>
+              i \<notin># dom_m N \<and> i = length (get_clauses_wl_heur_init T) + header_size C \<and>
+	      i \<notin> set (get_vdom_heur_init T)}\<close> and
     \<open>nNj \<in> Collect  (\<lambda>(N', ia).
                 0 < ia \<and> ia \<notin># dom_m N \<and> N' = fmupd ia (C, True) N)\<close>
     \<open>nN'j' = (nN', k')\<close> and
     \<open>nNj = (nN, k)\<close>
-  shows \<open>((M', nN', D', j', W', vm, \<phi>, clvls, cach, lbd, vdom @ [k'], ivdom @ [k'],failed, lcount, mark),
+  shows \<open>((set_clauses_wl_heur_init nN' (set_vdom_heur_init (get_vdom_heur_init T @ [k']) (set_ivdom_heur_init (get_ivdom_heur_init T @ [k']) T))),
           (M, nN, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)
          \<in> twl_st_heur_parsing_no_WL \<A> unbdd\<close>
 proof -
@@ -878,12 +974,16 @@ proof -
     subgoal by auto
     subgoal by (rule add_init_cls_final_rel)
     subgoal for x y x1 x2 x1a x1b x2a x1c x2b x1d x2c x1e x2d x1f x2e x1g x2f x1h x2g
-       x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
-      x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u
+       x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       unfolding RES_RES2_RETURN_RES RETURN_def
       apply simp
        unfolding RETURN_def apply (rule RES_refine)
-      by (auto simp: twl_st_heur_parsing_no_WL_def clss_size_new_irredI RETURN_def intro!: RES_refine)
+      apply (auto simp: twl_st_heur_parsing_no_WL_def clss_size_new_irredI RETURN_def intro!: RES_refine)
+      apply (meson \<open>\<And>x1c. (\<forall>b. b = 0 \<or> b \<in># x1c) = False\<close> clss_size_corr_simp(4))
+      apply (metis (no_types, opaque_lifting) \<open>\<And>x1c. \<exists>b>0. b \<notin># x1c\<close> clss_size_corr_simp(4))
+      apply (meson \<open>\<And>x1c. (\<forall>b. b = 0 \<or> b \<in># x1c) = False\<close> clss_size_corr_simp(4))
+      apply (metis (no_types, opaque_lifting) \<open>\<And>x1c. \<exists>b>0. b \<notin># x1c\<close> clss_size_corr_simp(4))
+      done
     done
 qed
 
@@ -896,9 +996,9 @@ where
 definition already_propagated_unit_cls_conflict_heur
   :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>unbdd L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount). do {
-     ASSERT (isa_length_trail_pre M);
-     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount)
+  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>unbdd L S. do {
+     ASSERT (isa_length_trail_pre (get_trail_init_wl_heur S));
+     RETURN (set_literals_to_update_wl_init (isa_length_trail (get_trail_init_wl_heur S)) S)
   })\<close>
 
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
@@ -928,9 +1028,12 @@ lemma lookup_set_conflict_empty_set_conflict_empty:
 
 definition set_empty_clause_as_conflict_heur
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>set_empty_clause_as_conflict_heur = (\<lambda>(M, N', (_, (n, xs)), j, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount). do {
+  \<open>set_empty_clause_as_conflict_heur = (\<lambda>S. do {
+     let M = get_trail_init_wl_heur S;
+     let (_, (n, xs)) = get_conflict_wl_heur_init S;
      ASSERT(isa_length_trail_pre M);
-     RETURN (M, N', (False, (n, xs)), isa_length_trail M, W', vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount)
+     let j = isa_length_trail M;
+     RETURN (set_conflict_wl_heur_init ((False, (n, xs))) (set_literals_to_update_wl_init j S))
   })\<close>
 
 lemma set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict:
@@ -938,7 +1041,7 @@ lemma set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict:
   [\<lambda>S. get_conflict_init_wl S = None]\<^sub>f
   twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
   unfolding set_empty_clause_as_conflict_heur_def add_empty_conflict_init_wl_def
-      twl_st_heur_parsing_no_WL_def
+      twl_st_heur_parsing_no_WL_def Let_def
   by (intro frefI nres_relI)
    (auto simp: set_empty_clause_as_conflict_heur_def add_empty_conflict_init_wl_def
       twl_st_heur_parsing_no_WL_def set_conflict_empty_def option_lookup_clause_rel_def
@@ -949,8 +1052,7 @@ lemma set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict:
 
 definition (in -) add_clause_to_others_heur
    :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur = (\<lambda> _ (M, N, D, Q, NE, UE, NEk, UEk, NS, US, N0, U0, WS).
-      RETURN (M, N, D, Q, NE, UE, NEk, UEk, NS, US, N0, U0, WS))\<close>
+  \<open>add_clause_to_others_heur = (\<lambda> _ S. RETURN S)\<close>
 
 lemma add_clause_to_others_heur_add_clause_to_others:
   \<open>(uncurry add_clause_to_others_heur, uncurry (RETURN oo add_to_other_init)) \<in>
@@ -961,8 +1063,7 @@ lemma add_clause_to_others_heur_add_clause_to_others:
 
 definition (in -) add_tautology_to_clauses
   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_tautology_to_clauses = (\<lambda> _ (M, N, D, Q, NE, UE, NEk, UEk, NS, US, N0, U0, WS).
-  RETURN (M, N, D, Q, NE, UE, NEk, UEk, NS, US, N0, U0, WS))\<close>
+  \<open>add_tautology_to_clauses = (\<lambda> _ S. RETURN S)\<close>
 
 lemma add_tautology_to_clauses_add_tautology_init_wl:
   \<open>(uncurry add_tautology_to_clauses, uncurry (RETURN oo add_to_tautology_init_wl)) \<in>
@@ -984,14 +1085,14 @@ definition (in -)list_length_1_code where
 
 
 definition (in -) get_conflict_wl_is_None_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, _). b)\<close>
+  \<open>get_conflict_wl_is_None_heur_init = (\<lambda>S. fst (get_conflict_wl_heur_init S))\<close>
 
 definition pre_simplify_clause_lookup_st
   :: \<open>nat clause_l \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (bool \<times> _ \<times> twl_st_wl_heur_init) nres\<close>
   where
-  \<open>pre_simplify_clause_lookup_st = (\<lambda>C E (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark). do {
-  (tauto, C, mark) \<leftarrow> pre_simplify_clause_lookup C E mark; 
-  RETURN (tauto, C, (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, failed, lcount, mark))
+  \<open>pre_simplify_clause_lookup_st = (\<lambda>C E S. do {
+  (tauto, C, mark) \<leftarrow> pre_simplify_clause_lookup C E (get_mark_wl_heur_init S); 
+  RETURN (tauto, C, (set_mark_wl_heur_init mark S))
   })\<close>
 
 definition init_dt_step_wl_heur
@@ -1010,8 +1111,8 @@ where
         then do {
           ASSERT (C \<noteq> []);
           let L = C ! 0;
-          ASSERT(polarity_pol_pre (get_trail_wl_heur_init S) L);
-          let val_L = polarity_pol (get_trail_wl_heur_init S) L;
+          ASSERT(polarity_pol_pre (get_trail_init_wl_heur S) L);
+          let val_L = polarity_pol (get_trail_init_wl_heur S) L;
           if val_L = None
         then do {T \<leftarrow> propagate_unit_cls_heur unbdd L S; RETURN (T, take 0 C)}
           else
@@ -1043,8 +1144,8 @@ lemma init_dt_step_wl_heur_alt_def:
      then do {
        ASSERT (C \<noteq> []);
        let L = C ! 0;
-       ASSERT(polarity_pol_pre (get_trail_wl_heur_init S) L);
-       let val_L = polarity_pol (get_trail_wl_heur_init S) L;
+       ASSERT(polarity_pol_pre (get_trail_init_wl_heur S) L);
+       let val_L = polarity_pol (get_trail_init_wl_heur S) L;
        if val_L = None
      then do {T \<leftarrow> propagate_unit_cls_heur unbdd L S; RETURN (T, take 0 C)}
        else
@@ -1065,7 +1166,7 @@ lemma init_dt_step_wl_heur_alt_def:
 named_theorems twl_st_heur_parsing_no_WL
 lemma [twl_st_heur_parsing_no_WL]:
   assumes \<open>(S, T) \<in>  twl_st_heur_parsing_no_WL \<A> unbdd\<close>
-  shows \<open>(get_trail_wl_heur_init S, get_trail_init_wl T) \<in> trail_pol \<A>\<close>
+  shows \<open>(get_trail_init_wl_heur S, get_trail_init_wl T) \<in> trail_pol \<A>\<close>
   using assms
   by (cases S; auto simp: twl_st_heur_parsing_no_WL_def; fail)+
 
@@ -1229,7 +1330,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal for x y x1 T x1a x2a x1b x2b x' x1c x1d x2d S'' D Ca
-      by (rule polarity_pol_pre[of \<open>get_trail_wl_heur_init S''\<close> \<open>get_trail_init_wl T\<close> \<A> \<open>D!0\<close>])
+      by (rule polarity_pol_pre[of \<open>get_trail_init_wl_heur S''\<close> \<open>get_trail_init_wl T\<close> \<A> \<open>D!0\<close>])
        (auto simp: pre_simplify_clause_lookup_st_rel_def twl_st_heur_parsing_no_WL
           literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset dest!: split_list
         split: list.splits)
@@ -1276,18 +1377,6 @@ proof -
      subgoal by auto
      done
 qed
-
-lemma (in -) get_conflict_wl_is_None_heur_init_alt_def:
-  \<open>RETURN o get_conflict_wl_is_None_heur_init = (\<lambda>(M, N, (b, _), Q, W, _). RETURN b)\<close>
-  by (auto simp: get_conflict_wl_is_None_heur_init_def intro!: ext)
-
-definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _ \<Rightarrow> bool option\<close> where
-  \<open>polarity_st_heur_init = (\<lambda>(M, _) L. polarity_pol M L)\<close>
-
-lemma polarity_st_heur_init_alt_def:
-  \<open>polarity_st_heur_init S L = polarity_pol (get_trail_wl_heur_init S) L\<close>
-  by (cases S) (auto simp: polarity_st_heur_init_def)
-
 
 definition polarity_st_init :: \<open>'v twl_st_wl_init \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st_init S = polarity (get_trail_init_wl S)\<close>
@@ -1752,7 +1841,7 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     let vdom = [];
     let ivdom = [];
     let lcount = (0,0,0,0,0);
-    RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, ivdom, False, lcount, mark)}\<close>
+    RETURN (Tuple15 M [] D 0 W vm \<phi> 0 cach lbd vdom ivdom False lcount mark)}\<close>
 
 definition init_state_wl_heur_fast where
   \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
@@ -1832,83 +1921,6 @@ proof -
     done
 qed
 
-definition rewatch_heur_st
- :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
-where
-\<open>rewatch_heur_st = (\<lambda>(M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed). do {
-    ASSERT(length vdom \<le> length N');
-    W \<leftarrow> rewatch_heur vdom N' W;
-    RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed)
-  })\<close>
-
-lemma rewatch_heur_st_correct_watching:
-  assumes
-    \<open>(S, T) \<in> twl_st_heur_parsing_no_WL \<A> unbdd\<close> and failed: \<open>\<not>is_failed_heur_init S\<close>
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf (get_clauses_init_wl T))\<close> and
-    \<open>\<And>x. x \<in># dom_m (get_clauses_init_wl T) \<Longrightarrow> distinct (get_clauses_init_wl T \<propto> x) \<and>
-        2 \<le> length (get_clauses_init_wl T \<propto> x)\<close>
-  shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_parsing \<A> unbdd)
-    (SPEC (\<lambda>((M,N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W), OC). T = ((M,N,D,NE,UE,NEk, UEk, NS, US, N0, U0, Q), OC)\<and>
-       correct_watching (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)))\<close>
-proof -
-  obtain M N D NE UE NEk UEk NS US N0 U0 Q OC where
-    T: \<open>T = ((M,N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q), OC)\<close>
-    by (cases T) auto
-
-  obtain M' N' D' j W vm \<phi> clvls cach lbd vdom ivdom lcount where
-    S: \<open>S = (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, ivdom, False, lcount)\<close>
-    using failed by (cases S) auto
-
-  have valid: \<open>valid_arena N' N (set vdom)\<close> and
-    dist: \<open>distinct vdom\<close> and
-    dom_m_vdom: \<open>set_mset (dom_m N) \<subseteq> set vdom\<close> and
-    W: \<open>(W, empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
-    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close>
-    using assms distinct_mset_dom[of N] apply (auto simp: twl_st_heur_parsing_no_WL_def S T
-      simp flip: distinct_mset_mset_distinct)
-    by (metis distinct_mset_set_mset_ident set_mset_mset subset_mset.eq_iff)+
-  have H: \<open>RES ({(W, W').
-          (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}\<inverse> ``
-         {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
-              (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)})
-    \<le> RES ({(W, W').
-          (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}\<inverse> ``
-         {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
-              (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)})\<close>
-    for W'
-    by (rule order.refl)
-  have eq: \<open>Watched_Literals_Watch_List_Initialisation.correct_watching_init
-        (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, xa) \<Longrightarrow>
-       vdom_m \<A> xa N = set_mset (dom_m N)\<close> for xa
-    by (auto 5 5 simp: Watched_Literals_Watch_List_Initialisation.correct_watching_init.simps
-      vdom_m_def)
-  show ?thesis
-    supply [[goals_limit=1]]
-    using assms
-    unfolding rewatch_heur_st_def T S
-    apply clarify
-    apply (rule ASSERT_leI)
-    subgoal by (auto dest: valid_arena_vdom_subset simp: twl_st_heur_parsing_no_WL_def)
-      apply (rule bind_refine_res)
-      prefer 2
-      apply (rule order.trans)
-      apply (rule rewatch_heur_rewatch[OF valid _ dist dom_m_vdom W lits])
-      apply (solves simp)
-      apply (solves simp)
-      apply (rule order_trans[OF ref_two_step'])
-      apply (rule rewatch_correctness)
-      apply (rule empty_watched_def)
-      subgoal
-        using assms
-        by (auto simp: twl_st_heur_parsing_no_WL_def)
-      apply (subst conc_fun_RES)
-      apply (rule H) apply (rule RETURN_RES_refine)
-      apply (auto simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def all_atms_def[symmetric]
-        intro!: exI[of _ N] exI[of _ D]  exI[of _ M]
-        intro!: )
-      apply (rule_tac x=W' in exI; auto simp: eq correct_watching_init_correct_watching dist ac_simps)+
-      done
-qed
 
 
 subsubsection \<open>Full Initialisation\<close>
@@ -1921,13 +1933,22 @@ definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
      ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> sint64_max)\<close>
 
+definition rewatch_heur_st_init
+ :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+where
+\<open>rewatch_heur_st_init = (\<lambda>S. do {
+  ASSERT(length ((get_vdom_heur_init S)) \<le> length (get_clauses_wl_heur_init S));
+  W \<leftarrow> rewatch_heur ((get_vdom_heur_init S)) (get_clauses_wl_heur_init S) (get_watchlist_wl_heur_init S);
+  RETURN (set_watchlist_wl_heur_init W S)
+  })\<close>
+
 definition init_dt_wl_heur_full
   :: \<open>bool \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
 \<open>init_dt_wl_heur_full unb CS S = do {
     (S, C) \<leftarrow> init_dt_wl_heur unb CS (S, []);
     ASSERT(\<not>is_failed_heur_init S);
-    rewatch_heur_st S
+    rewatch_heur_st_init S
   }\<close>
 
 definition init_dt_wl_heur_full_unb
@@ -1943,8 +1964,9 @@ lemma init_dt_wl_heur_full_init_dt_wl_full:
   shows \<open>init_dt_wl_heur_full True CS S
          \<le> \<Down> (twl_st_heur_parsing \<A> True) (init_dt_wl_full CS T)\<close>
 proof -
-  have H: \<open>valid_arena x1g x1b (set x1p)\<close> \<open>set x1p \<subseteq> set x1p\<close> \<open>set_mset (dom_m x1b) \<subseteq> set x1p\<close>
-    \<open>distinct x1p\<close> \<open>(x1j, \<lambda>_. []) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+  have H: \<open>valid_arena (get_clauses_wl_heur_init x) x1b (set (get_vdom_heur_init x))\<close>
+    \<open>set (get_vdom_heur_init x) \<subseteq> set (get_vdom_heur_init x)\<close> \<open>set_mset (dom_m x1b) \<subseteq> set (get_vdom_heur_init x)\<close>
+    \<open>distinct (get_vdom_heur_init x)\<close> \<open>(get_watchlist_wl_heur_init x, \<lambda>_. []) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
     if
       xx': \<open>(xa, x') \<in> {((S, C), T). C = [] \<and>  (S,T) \<in> twl_st_heur_parsing_no_WL \<A> True}\<close> and
       st: \<open>xa = (x, a)\<close>
@@ -1954,29 +1976,19 @@ proof -
         \<open>x2 = (x1b, x2a)\<close>
         \<open>x1 = (x1a, x2)\<close>
         \<open>x' = (x1, x2e)\<close>
-        \<open>x2o = (x1p, x2p)\<close>
-        \<open>x2n = (x1o, x2o)\<close>
-        \<open>x2m = (x1n, x2n)\<close>
-        \<open>x2l = (x1m, x2m)\<close>
-        \<open>x2k = (x1l, x2l)\<close>
-        \<open>x2j = (x1k, x2k)\<close>
-        \<open>x2i = (x1j, x2j)\<close>
-        \<open>x2h = (x1i, x2i)\<close>
-        \<open>x2g = (x1h, x2h)\<close>
-        \<open>x2f = (x1g, x2g)\<close>
-        \<open>x = (x1f, x2f)\<close>
     for x x' x1 x1a x2 x1b x2a x1c x2b x1d x2c x1e x2d x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p xa a
   proof -
-    show \<open>valid_arena x1g x1b (set x1p)\<close> \<open>set x1p \<subseteq> set x1p\<close> \<open>set_mset (dom_m x1b) \<subseteq> set x1p\<close>
-      \<open>distinct x1p\<close> \<open>(x1j, \<lambda>_. []) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+    show \<open>valid_arena (get_clauses_wl_heur_init x) x1b (set (get_vdom_heur_init x))\<close>
+    \<open>set (get_vdom_heur_init x) \<subseteq> set (get_vdom_heur_init x)\<close> \<open>set_mset (dom_m x1b) \<subseteq> set (get_vdom_heur_init x)\<close>
+    \<open>distinct (get_vdom_heur_init x)\<close> \<open>(get_watchlist_wl_heur_init x, \<lambda>_. []) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
     using xx' distinct_mset_dom[of x1b] unfolding st
       by (auto simp: twl_st_heur_parsing_no_WL_def empty_watched_def
         simp flip: set_mset_mset distinct_mset_mset_distinct)
   qed
 
   show ?thesis
-    unfolding init_dt_wl_heur_full_def init_dt_wl_full_def rewatch_heur_st_def
+    unfolding init_dt_wl_heur_full_def init_dt_wl_full_def rewatch_heur_st_init_def
     apply (refine_rcg rewatch_heur_rewatch[of _ _ _ _ _ _ \<A>]
       init_dt_wl_heur_init_dt_wl[of True \<A>, THEN fref_to_Down_curry])
     subgoal using assms by fast
@@ -2101,10 +2113,10 @@ qed
 text \<open>TODO Move\<close>
 
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
-definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> isasat nres\<close> where
   \<open>finalise_init_code opts =
-    (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
-       lbd, vdom, ivdom, _, lcount, mark). do {
+    (\<lambda>S. case S of Tuple15 M' N' D' Q' W' ((ns, m, fst_As, lst_As, next_search), to_remove) \<phi> clvls cach
+       lbd vdom ivdom _ lcount mark \<Rightarrow> do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = Constructor (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,(of_nat (length ivdom))::64 word, ema_fast_init);
      let fema = ema_init (opts_fema opts);
@@ -2112,9 +2124,9 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let ccount = restart_info_init;
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False));
      let vdoms = AIvdom_init vdom [] ivdom;
-    RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
-       clvls, cach, lbd, take 1 (replicate 160 (Pos 0)), init_stats,
-       heur, vdoms, lcount, opts, [])
+    RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)
+       clvls cach lbd (take 1 (replicate 160 (Pos 0))) init_stats
+       heur vdoms lcount opts [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -2142,13 +2154,19 @@ lemma finalise_init_finalise_init_full:
   aivdom_inv_strong_dec (get_aivdom S') (dom_m (get_clauses_wl T')) \<and>
      get_learned_count_init T = get_learned_count S'} (RETURN (finalise_init S))\<close>
   apply (cases S; cases T)
-  apply (simp add: finalise_init_code_def aivdom_inv_strong_dec_def2)
+  apply (simp add: finalise_init_code_def aivdom_inv_strong_dec_def2 split:prod.splits)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
-      twl_st_heur_post_parsing_wl_def all_atms_st_def ac_simps aivdom_inv_dec_def
+      twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
-    dest: isa_vmtf_init_nemptyD)
+    intro: isa_vmtf_init_nemptyD)
+  apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
+    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
+      finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric]
+      twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def ac_simps
+    intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
+    intro: isa_vmtf_init_nemptyD)
   done
 
 lemma finalise_init_finalise_init:
@@ -2205,7 +2223,7 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (twl_
      let vdom = [];
      let ivdom = [];
      let lcount = (0, 0, 0, 0, 0);
-     RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, ivdom, False, lcount, mark)
+     RETURN (Tuple15 M N D 0 WS vm \<phi> 0 cach lbd vdom ivdom False lcount mark)
   })\<close>
 
 lemma init_trail_D_ref:
@@ -2267,14 +2285,37 @@ proof -
     subgoal by auto
     done
 qed
+term "uncurry15 id"
+fun to_tuple where
+  \<open>to_tuple (Tuple15 a b c d e f g h i j k l m n ko) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, ko)\<close>
 
+definition tuple15_rel where tuple15_rel_internal_def:
+  \<open>tuple15_rel A B C D E F G H I J K L M N KO = {(S,T).
+  (case (S, T) of
+  (Tuple15 a b c d e f g h i j k l m n ko,
+  Tuple15 a' b' c' d' e' f' g' h' i' j' k' l' m' n' ko') \<Rightarrow>
+  (a, a') \<in> A \<and> (b,b') \<in> B \<and> (c,c') \<in> C \<and> (d,d')\<in>D \<and> (e,e')\<in>E \<and>
+  (f,f')\<in>F \<and> (g,g') \<in> G \<and> (h,h')\<in>H \<and> (i,i')\<in>I \<and> (j,j') \<in> J \<and> (k,k')\<in>K \<and> 
+  (l,l')\<in>L \<and> (m,m')\<in>M \<and> (n,n')\<in>N \<and> (ko,ko')\<in>KO)}\<close>
+
+lemma tuple15_rel_def:
+  \<open>\<langle>A,B,C,D,E,F,G,H,I,J,K,L,M,N,KO\<rangle>tuple15_rel \<equiv> {(a,b). case (a,b) of
+  (Tuple15 a b c d e f g h i j k l m n ko,
+  Tuple15 a' b' c' d' e' f' g' h' i' j' k' l' m' n' ko') \<Rightarrow>
+  (a, a') \<in> A \<and> (b,b') \<in> B \<and> (c,c') \<in> C \<and> (d,d')\<in>D \<and> (e,e')\<in>E \<and>
+  (f,f')\<in>F \<and> (g,g') \<in> G \<and> (h,h')\<in>H \<and> (i,i')\<in>I \<and> (j,j') \<in> J \<and> (k,k')\<in>K \<and> 
+  (l,l')\<in>L \<and> (m,m')\<in>M \<and> (n,n')\<in>N \<and> (ko,ko')\<in>KO}\<close>
+  by (simp add: tuple15_rel_internal_def relAPP_def)
+
+lemma to_tuple_eq_iff[iff]: \<open>to_tuple S = to_tuple T \<longleftrightarrow> S = T\<close>
+  by (cases S; cases T) auto
+ 
 lemma init_state_wl_D0:
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
-      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r
-         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+      \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
+           Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
   (is \<open>?C \<in> [?Pre]\<^sub>f ?arg \<rightarrow> \<langle>?im\<rangle>nres_rel\<close>)
 proof -
   have init_state_wl_heur_alt_def: \<open>init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
@@ -2290,7 +2331,7 @@ proof -
     let vdom = [];
     let ivdom = [];
     let lcount = (0, 0, 0, 0, 0);
-    RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, ivdom, False, lcount, mark)}\<close> for \<A>\<^sub>i\<^sub>n
+    RETURN (Tuple15 M N D 0 W vm \<phi> 0 cach lbd vdom ivdom False lcount mark)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding init_state_wl_heur_def Let_def by auto
 
   have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow>
@@ -2304,7 +2345,7 @@ proof -
     unfolding comp_fun_idem_def comp_fun_commute_def comp_fun_idem_axioms_def
     by (auto simp: max_def[abs_def] intro!: ext)
   have [simp]: \<open>fold max x a = Max (insert a (set x))\<close> for x and a :: \<open>'b :: {zero,linorder}\<close>
-    by (auto simp: Max.eq_fold comp_fun_idem.fold_set_fold)
+    by (auto simp flip: Max.eq_fold Max.set_eq_fold)
   have in_N0: \<open>L \<in> set \<A>\<^sub>i\<^sub>n \<Longrightarrow> L  < Suc ((Max (insert 0 (set \<A>\<^sub>i\<^sub>n))))\<close>
     for L \<A>\<^sub>i\<^sub>n
     using Max_ge[of \<open>insert 0 (set \<A>\<^sub>i\<^sub>n)\<close> L]
@@ -2458,24 +2499,22 @@ proof -
       apply assumption
     apply (rule refl)
     subgoal by (auto simp: P_def init_rll_def option_lookup_clause_rel_def
-          lookup_clause_rel_def lits_with_max_rel_def
+          lookup_clause_rel_def lits_with_max_rel_def tuple15_rel_def
           simp del: replicate.simps
           intro!: mset_as_position.intros K)
     done
   done
 qed
 
-
 lemma init_state_wl_D':
   \<open>(init_state_wl_D', init_state_wl_heur) \<in>
     [\<lambda>\<A>\<^sub>i\<^sub>n. distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
       lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
-      \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r
-         Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+      \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
+           Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
   apply -
   apply (intro frefI nres_relI)
-  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans]) auto
+  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans])  auto
 
 lemma init_state_wl_heur_init_state_wl':
   \<open>(init_state_wl_heur, RETURN o (\<lambda>_. init_state_wl))
@@ -2537,14 +2576,14 @@ lemma init_dt_wl'_init_dt:
 
 definition isasat_init_fast_slow :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
   \<open>isasat_init_fast_slow =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed).
-      RETURN (trail_pol_slow_of_fast M', N', D', j, convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, vdom, failed))\<close>
+    (\<lambda>S::twl_st_wl_heur_init. case S of Tuple15 M' N' D' j W' vm \<phi> clvls cach lbd vdom failed x y z \<Rightarrow>
+      RETURN (Tuple15 (trail_pol_slow_of_fast M') N' D' j (convert_wlists_to_nat_conv W') vm \<phi>
+        clvls cach lbd vdom failed x y z))\<close>
 
 lemma isasat_init_fast_slow_alt_def:
   \<open>isasat_init_fast_slow S = RETURN S\<close>
   unfolding isasat_init_fast_slow_def trail_pol_slow_of_fast_alt_def
     convert_wlists_to_nat_conv_def
-  by auto
+  by (cases S) auto
 
 end

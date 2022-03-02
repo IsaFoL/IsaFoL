@@ -88,14 +88,12 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> isasat_sta
 
 
 
-definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition isasat_current_status :: \<open>isasat \<Rightarrow> isasat nres\<close> where
 \<open>isasat_current_status =
-   (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur,        vdom, lcount, opts, old_arena).
-     let curr_phase = current_restart_phase heur;
-        stats = (isasat_current_information curr_phase stats lcount)
-     in RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur, vdom, lcount, opts, old_arena))\<close>
+   (\<lambda>S.
+     let curr_phase = current_restart_phase (get_heur S);
+        stats = (isasat_current_information curr_phase (get_stats_heur S) (get_learned_count S))
+     in RETURN (set_stats_wl_heur stats S))\<close>
 
 lemma isasat_current_status_id:
   \<open>(isasat_current_status, RETURN o id) \<in>
@@ -130,13 +128,12 @@ definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \
 definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> clss_size \<Rightarrow> unit\<close>  where
   \<open>isasat_print_progress c curr_phase stats lcount = isasat_print_progress_stats c curr_phase (get_content stats) lcount\<close>
 
-definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> unit nres\<close> where
+definition isasat_current_progress :: \<open>64 word \<Rightarrow> isasat \<Rightarrow> unit nres\<close> where
 \<open>isasat_current_progress =
-   (\<lambda>c (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
-       heur,        vdom, lcount, opts, old_arena).
+   (\<lambda>c S.
      let
-       curr_phase = current_restart_phase heur;
-       _ = isasat_print_progress c curr_phase stats lcount
+       curr_phase = current_restart_phase (get_heur S);
+       _ = isasat_print_progress c curr_phase (get_stats_heur S) (get_learned_count S)
      in RETURN ())\<close>
 
 

@@ -4,7 +4,7 @@ begin
 chapter \<open>Combining Together: the Other Rules\<close>
 
 definition cdcl_twl_o_prog_wl_D_heur
- :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+ :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close>
 where
   \<open>cdcl_twl_o_prog_wl_D_heur S =
     do {

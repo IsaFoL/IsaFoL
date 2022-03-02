@@ -1001,7 +1001,7 @@ proof -
       using f1 in_diffD insert_DiffM by fastforce
 
     have "\<exists>\<psi>'. simplify \<psi> \<psi>'"
-      by (metis (no_types, hide_lams) \<chi> \<chi>' factoring_imp_simplify)
+      by (metis (no_types, opaque_lifting) \<chi> \<chi>' factoring_imp_simplify)
     then have False using simp by auto
   }
   then show ?thesis by arith
@@ -1502,7 +1502,7 @@ lemma wf_simplified_resolution':
     \<and> finite (snd x) \<and> finite (fst x) \<and> already_used_all_simple (snd x) vars) \<and> resolution x y}"
   unfolding wf_def
    apply (simp add: resolution_always_simplified)
-  by (metis (mono_tags, hide_lams) fst_conv resolution_always_simplified)
+  by (metis (mono_tags, opaque_lifting) fst_conv resolution_always_simplified)
 
 lemma wf_resolution:
   assumes f_vars: "finite vars"
@@ -1653,21 +1653,20 @@ next
   ultimately show ?case using IH finite_subset by fastforce
 qed
 
-
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding_on.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
   folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
-  "folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
+  "folding_on.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
     folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
-  show "folding.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
+  show "folding_on.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 

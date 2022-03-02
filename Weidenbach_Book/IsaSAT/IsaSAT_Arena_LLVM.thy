@@ -7,6 +7,9 @@ section \<open>Code Generation\<close>
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
+hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
+
+
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *)
 lemma protected_bind_assoc:
    \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) =
@@ -148,7 +151,7 @@ lemma bang_eq_nat:
   fixes x :: "nat"
   shows "(x = y) = (\<forall>n. x !! n = y !! n)"
   unfolding int_int_eq[symmetric] bang_eq_int
-by (simp add: bit_of_nat_iff_bit test_bit_eq_bit)
+  by (simp add: bit_of_nat_iff_bit)
 
 lemma sum_bitAND_shift_pow2:
   \<open>(a + (b << (n + m))) AND (2^n - 1) = a AND (2^n - 1)\<close> for a b n :: nat
@@ -158,7 +161,7 @@ lemma sum_bitAND_shift_pow2:
 
 lemma and_bang_nat: \<open>(x AND y) !! n = (x !! n \<and> y !! n)\<close> for x y n :: nat
   unfolding and_nat_def
-  by (metis and_nat_def bit_and_iff test_bit_eq_bit)
+  by (metis and_nat_def bit_and_iff)
 
 lemma AND_12_AND_15_AND_12: \<open>a AND 12 = (a AND 15) AND 12\<close> for a :: nat
 proof -
@@ -348,7 +351,7 @@ lemma nat_shiftr_numeral [simp]:
   "(numeral (num.Bit0 w) :: nat) >> numeral w' = numeral w >> pred_numeral w'"
   "(numeral (num.Bit1 w) :: nat) >> numeral w' = numeral w >> pred_numeral w'"
   unfolding shiftr_nat_alt_def
-  by auto
+  by (auto simp: shiftr_def)
 
 lemma nat_shiftr_numeral_Suc0 [simp]:
   "(1 :: nat) >> Suc 0 = 0"
@@ -1072,6 +1075,8 @@ lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
 experiment begin
 export_llvm
+  MAX_LENGTH_SHORT_CLAUSE_impl
+  mop_arena_status_impl
   arena_length_impl
   arena_lit_impl
   arena_status_impl

@@ -6,6 +6,7 @@ imports
     LBD_LLVM
     IsaSAT_Profile_LLVM
 begin
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
 sepref_register set_lookup_conflict_aa
 type_synonym lookup_clause_assn = \<open>32 word \<times> (1 word) ptr\<close>
@@ -331,7 +332,6 @@ sepref_def resolve_lookup_conflict_merge_fast_code
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
   by sepref
-
 
 sepref_register isa_resolve_merge_conflict_gt2
 

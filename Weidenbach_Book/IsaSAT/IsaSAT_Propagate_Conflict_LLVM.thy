@@ -4,28 +4,6 @@ begin
 
 (*TODO Move*)
 
-lemma length_ll[def_pat_rules]: \<open>length_ll$xs$i \<equiv> op_list_list_llen$xs$i\<close>
-  by (auto simp: op_list_list_llen_def length_ll_def)
-
-sepref_def length_ll_fs_heur_fast_code
-  is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
-  :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
-  unfolding length_ll_fs_heur_alt_def get_watched_wl_heur_def isasat_bounded_assn_def
-    length_ll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-sepref_def mop_length_watched_by_int_impl [llvm_inline]
-  is \<open>uncurry mop_length_watched_by_int\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding mop_length_watched_by_int_alt_def isasat_bounded_assn_def
-    length_ll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-sepref_register unit_propagation_inner_loop_body_wl_heur
-
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
   \<open>length (get_clauses_wl_heur b) \<le> sint64_max \<Longrightarrow>
@@ -56,7 +34,9 @@ definition cut_watch_list_heur2_inv where
   \<open>cut_watch_list_heur2_inv L n = (\<lambda>(j, w, W). j \<le> w \<and> w \<le> n \<and> nat_of_lit L < length W)\<close>
 
 lemma cut_watch_list_heur2_alt_def:
-\<open>cut_watch_list_heur2 = (\<lambda>j w L (M, N, D, Q, W, oth). do {
+\<open>cut_watch_list_heur2 = (\<lambda>j w L S\<^sub>0. do {
+  let (W, S) = extract_watchlist_wl_heur S\<^sub>0;
+  ASSERT (W = get_watched_wl_heur S\<^sub>0);
   ASSERT(j \<le> length (W ! nat_of_lit L) \<and> j \<le> w \<and> nat_of_lit L < length W \<and>
      w \<le> length (W ! (nat_of_lit L)));
   let n = length (W!(nat_of_lit L));
@@ -69,10 +49,10 @@ lemma cut_watch_list_heur2_alt_def:
     (j, w, W);
   ASSERT(j \<le> length (W ! nat_of_lit L) \<and> nat_of_lit L < length W);
   let W = W[nat_of_lit L := take j (W ! nat_of_lit L)];
-  RETURN (M, N, D, Q, W, oth)
+  RETURN (update_watchlist_wl_heur W S)
 })\<close>
   unfolding cut_watch_list_heur2_inv_def  cut_watch_list_heur2_def
-  by auto
+  by (auto simp: state_extractors Let_def intro!: ext split: isasat_int.splits)
 
 lemma cut_watch_list_heur2I:
   \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
@@ -100,11 +80,10 @@ sepref_def cut_watch_list_heur2_fast_code
      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] cut_watch_list_heur2I[intro] length_ll_def[simp]
-  unfolding cut_watch_list_heur2_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
-    nth_rll_def[symmetric]
+  unfolding cut_watch_list_heur2_alt_def length_ll_def[symmetric]
+    nth_rll_def[symmetric] watched_by_alt_def
     op_list_list_take_alt_def[symmetric]
     op_list_list_upd_alt_def[symmetric]
-  unfolding fold_tuple_optimizations
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
@@ -117,12 +96,22 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
 
+lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
+\<open>select_and_remove_from_literals_to_update_wl_heur S = do {
+    ASSERT(literals_to_update_wl_heur S < length (fst (get_trail_wl_heur S)));
+    ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
+    L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) (literals_to_update_wl_heur S);
+    RETURN (update_literals_to_update_wl_heur (literals_to_update_wl_heur S + 1) S, -L)
+  }\<close>
+  by (cases S) (auto simp: select_and_remove_from_literals_to_update_wl_heur_def state_extractors update_literals_to_update_wl_heur_def
+    intro!: ext split: isasat_int.splits)
+
 
 sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn \<times>\<^sub>a unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_bounded_assn_def
+  unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_trail_nth_st_def[symmetric]
   unfolding fold_tuple_optimizations
   supply [[goals_limit = 1]]
   apply (annot_snat_const \<open>TYPE (64)\<close>)
@@ -132,8 +121,8 @@ sepref_def select_and_remove_from_literals_to_update_wlfast_code
 sepref_def literals_to_update_wl_literals_to_update_wl_empty_fast_code
   is \<open>RETURN o literals_to_update_wl_literals_to_update_wl_empty\<close>
   :: \<open>[\<lambda>S. isa_length_trail_pre (get_trail_wl_heur S)]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
-  unfolding literals_to_update_wl_literals_to_update_wl_empty_alt_def
-    isasat_bounded_assn_def
+  unfolding literals_to_update_wl_literals_to_update_wl_empty_def
+    isasat_length_trail_st_def[symmetric]
   by sepref
 
 

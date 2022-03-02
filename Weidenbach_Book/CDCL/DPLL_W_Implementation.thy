@@ -241,7 +241,7 @@ proof (induct Ms N arbitrary: Ms' N' rule: DPLL_ci.induct)
 
     moreover have "dpll\<^sub>W (toS Ms N) (toS S\<^sub>1 N)"
       by (metis DPLL_step_is_a_dpll\<^sub>W_step S \<open>(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)\<close> prod.sel(2) snd_DPLL_step)
-    ultimately have ?case by (metis (mono_tags, hide_lams) IH S \<open>(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)\<close>
+    ultimately have ?case by (metis (mono_tags, opaque_lifting) IH S \<open>(S\<^sub>1, S\<^sub>2) \<noteq> (Ms, N)\<close>
       \<open>DPLL_ci Ms N = DPLL_ci S\<^sub>1 N\<close> \<open>dpll\<^sub>W_all_inv (toS Ms N)\<close> converse_rtranclp_into_rtranclp
       local.step)
   }

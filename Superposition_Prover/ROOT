@@ -1,0 +1,8 @@
+session Superposition_Prover = Saturation_Framework_Extensions +
+  options [quick_and_dirty]
+  sessions
+    Saturation_Framework
+    Saturation_Framework_Extensions
+    SuperCalc
+  theories
+    Prover

@@ -2541,7 +2541,7 @@ declare version_def [code]
 definition uint32_of_uint64 :: \<open>uint64 \<Rightarrow> uint32\<close> where
   \<open>uint32_of_uint64 n = uint32_of_nat (nat_of_uint64 n)\<close>
 
-lemma [code]: \<open>hashcode n = uint32_of_uint64 (n AND 4294967295)\<close> for n :: uint64
+lemma [code]: \<open>hashcode n = uint32_of_uint64 (and n 4294967295)\<close> for n :: uint64
   unfolding hashcode_uint64_def uint32_of_uint64_def by auto
 
 (*TODO this is a copy paste because of the order of the merge *)
@@ -2932,7 +2932,7 @@ lemma full_poly_input_assn_alt_def:
 proof -
   have [simp]: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
     apply (auto simp: fmap_rel_def)
-    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+    by (metis (no_types, opaque_lifting) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
   show ?thesis
     unfolding full_poly_input_assn_def
     by auto
@@ -3001,7 +3001,7 @@ proof -
 
   have 4: \<open>\<langle>nat_rel, Id\<rangle>fmap_rel = Id\<close>
     apply (auto simp: fmap_rel_def)
-    by (metis (no_types, hide_lams) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
+    by (metis (no_types, opaque_lifting) fmap_ext_fmdom fmlookup_dom_iff fset_eqI option.sel)
   have H: \<open>full_poly_assn = (hr_comp poly_assn
     (\<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O fully_unsorted_poly_rel O mset_poly_rel))\<close>
     \<open>full_poly_input_assn = hr_comp polys_assn_input

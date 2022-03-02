@@ -259,7 +259,7 @@ proof -
         true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[of NU \<open>-x\<close> \<open>D + C\<close> D]
       by auto
     then have \<open>NU \<Turnstile>p D + C\<close>
-      by (metis add.comm_neutral diff_add_zero sup_subset_mset_def true_clss_cls_sup_iff_add)
+      by (smt (verit) total_over_m_sum total_over_m_union true_cls_union true_clss_cls_def)
     from IH[OF this] entailed show ?case by auto
   qed
 qed
@@ -813,9 +813,9 @@ proof -
       using inv_J unfolding lit_redundant_rec_loop_inv_def prod.case s
       apply (subst distinct_subseteq_iff[symmetric])
       using conflict_min_analysis_stack_neg[OF ana']  no_dup_distinct[OF n_d] dist
-      by (force simp: comp_def entails_CNot_negate_ann_lits negate_ann_lits_def
-        analysis ana'
-       simp flip: distinct_mset_image_mset)+
+      by (auto simp: comp_def entails_CNot_negate_ann_lits negate_ann_lits_def
+        analysis ana' rev_image_eqI
+       simp flip: distinct_mset_image_mset)
   qed
   have all_removed_R:
       \<open>((cach(atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True), s) \<in> R\<close>
@@ -1274,7 +1274,7 @@ proof (intro allI impI)
       using True by simp
     have 2: \<open>N+U \<Turnstile>pm add_mset (-L) (filter_to_poslev M K D')\<close>
       using filter_to_poslev_mono_entailement_add_mset[OF H] NU_uLD
-      by (metis (no_types, hide_lams) D NU_uLD filter_to_poslev_add_mset
+      by (metis (no_types, opaque_lifting) D NU_uLD filter_to_poslev_add_mset
           order_less_irrefl)
     show ?thesis
       using true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or[OF 2 1]

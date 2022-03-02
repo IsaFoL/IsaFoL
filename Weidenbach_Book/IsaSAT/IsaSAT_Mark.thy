@@ -337,7 +337,7 @@ proof -
     with mset have xs: \<open>xs ! atm_of L = Some (is_pos L)\<close> \<open>xs ! atm_of L \<noteq> None\<close>
       by (auto dest: mset_as_position_nth)
     moreover have \<open>{#L#} \<union># C = C\<close>
-      using True by (simp add: subset_mset.sup.absorb2)
+      using True by (metis mset_contains_eq union_mset_def)
     ultimately show ?thesis
       using n mset atm True
       by (auto simp: lookup_clause_rel_def add_to_lookup_conflict_def xs[symmetric])

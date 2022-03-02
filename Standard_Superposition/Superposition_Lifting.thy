@@ -398,7 +398,7 @@ lemma mult_max:
   assumes \<open>\<forall>x \<in># N. (x, y) \<in> ord\<close>
   assumes \<open>y \<in># M\<close>
   shows \<open>(N, M) \<in> mult ord\<close>
-  by (metis (no_types, hide_lams) add.left_neutral assms empty_iff mult_def one_step_implies_mult set_mset_empty)
+  by (metis (no_types, opaque_lifting) add.left_neutral assms empty_iff mult_def one_step_implies_mult set_mset_empty)
 
 lemma max_in_mset: \<open>trans R \<Longrightarrow> total_on (set_mset M) R \<Longrightarrow> M \<noteq> {#} \<Longrightarrow> (\<exists>y \<in># M. \<forall>x \<in># M. x = y \<or> (x, y) \<in> R)\<close>
 proof -
@@ -2685,7 +2685,7 @@ proof -
                 obtain L where L_elem: \<open>L \<in># Rep_ground_clause C\<close>
                            and L_max: \<open>\<forall>L' \<in># Rep_ground_clause C. L' \<preceq>L L\<close>
                   using ex_max_literal [of \<open>Rep_ground_clause C\<close>] assms(2) C_elem Rep_ground_clause [of C]
-                  by (metis (no_types, hide_lams) Rep_ground_clause_inverse add.left_neutral ground_subclause)
+                  by (metis (no_types, opaque_lifting) Rep_ground_clause_inverse add.left_neutral ground_subclause)
                 then show ?thesis
                 proof (cases L)
                   case (Pos s t)

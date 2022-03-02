@@ -382,7 +382,12 @@ proof -
       x_dom: \<open>x \<in># dom_m N\<close> and
       x_max: \<open>\<And>a. a \<in> set xs \<Longrightarrow> x > a\<close> and
       xs_N: \<open>set xs \<subseteq> set_mset (dom_m N)\<close>
-      by (auto simp: sorted_append order.order_iff_strict dest!: bspec)
+         apply (clarsimp_all simp: sorted_append order.order_iff_strict sorted_wrt_append)
+      apply (metis (full_types) insert_subset order_less_le subsetI)
+      apply (metis (full_types) insert_subset order_less_le subsetI)
+      apply (meson distinct_sorted_append snoc.prems(2) snoc.prems(3))
+      apply blast
+      done
     have x_ge: \<open>header_size (N \<propto> x) \<le> x\<close>
       using assms \<open>x \<in># dom_m N\<close> arena_lifting(1) by blast
     have diff: \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) + header_size (N \<propto> x) \<le> x\<close>

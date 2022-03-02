@@ -710,7 +710,6 @@ proof -
         dest!: multi_member_split dest: in_lits_of_l_defined_litD split: )
         apply (case_tac \<open>L = -La\<close>)
         apply (auto dest: in_lits_of_l_defined_litD)[]
-        apply simp
         apply (subst (asm) remove1_mset_add_mset_If)
         apply (case_tac \<open>L = La\<close>)
         apply (auto dest: in_lits_of_l_defined_litD)[]
@@ -752,7 +751,7 @@ proof -
         apply (auto simp add: mset_subset_eqD add_mset_eq_add_mset
             true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
           dest: no_dup_consistentD dest!: multi_member_split[of _ C] intro!: bexI[of _ C'])
-        by (metis (no_types, hide_lams) in_multiset_minus_notin_snd insert_DiffM member_add_mset
+        by (metis (no_types, opaque_lifting) in_multiset_minus_notin_snd insert_DiffM member_add_mset
           mset_subset_eqD multi_self_add_other_not_self zero_diff)+
      qed
   qed
@@ -1211,7 +1210,7 @@ lemma rtranclp_pcdcl_clauses0_inv:
 lemma rtranclp_pcdcl_core_stgy_pcdcl: \<open>pcdcl_core_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl\<^sup>*\<^sup>* S T\<close>
   apply (induction rule: rtranclp_induct)
   apply (simp add: pcdcl_core_stgy_pcdcl)
-  by (metis (no_types, hide_lams) converse_rtranclp_into_rtranclp pcdcl.intros(1)
+  by (metis (no_types, opaque_lifting) converse_rtranclp_into_rtranclp pcdcl.intros(1)
     pcdcl_core_stgy_pcdcl r_into_rtranclp rtranclp_idemp)
 
 lemma rtranclp_pcdcl_core_stgy_is_cdcl_stgy:
@@ -2104,7 +2103,7 @@ lemma pcdcl_tcore_stgy_no_smaller_propa:
 lemma rtranclp_pcdcl_tcore_stgy_no_smaller_propa:
    \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of S) \<Longrightarrow>
    cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of T)\<close>
-  by (metis (no_types, hide_lams) mono_rtranclp pcdcl_tcore_stgy_pcdcl_stgy rtranclp_idemp
+  by (metis (no_types, opaque_lifting) mono_rtranclp pcdcl_tcore_stgy_pcdcl_stgy rtranclp_idemp
     rtranclp_pcdcl_stgy_no_smaller_propa tranclp_into_rtranclp)
 
 lemma pcdcl_stgy_stgy_invariant:

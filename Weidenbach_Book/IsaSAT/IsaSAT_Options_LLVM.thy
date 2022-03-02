@@ -74,7 +74,7 @@ sepref_def opts_rel_GC_units_lim_code
 definition opts_assn :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close> where
   \<open>opts_assn = hr_comp opts_rel_assn opts_rel\<close>
 
-lemmas [sepref_fr_rules] =
+lemmas opts_refine[sepref_fr_rules] =
   opts_rel_restart_code.refine[FCOMP opts_rel_restart, unfolded opts_assn_def[symmetric]]
   opts_rel_reduce_code.refine[FCOMP opts_rel_reduce, unfolded opts_assn_def[symmetric]]
   opts_rel_unbounded_mode_code.refine[FCOMP opts_rel_unbounded_mode, unfolded opts_assn_def[symmetric]]

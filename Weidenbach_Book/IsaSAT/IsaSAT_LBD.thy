@@ -47,14 +47,18 @@ lemma mark_lbd_from_clause_heur_correctness:
 definition calculate_LBD_st :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clauses_l nres\<close> where
   \<open>calculate_LBD_st = (\<lambda>M N C. RETURN N)\<close>
 
+abbreviation TIER_TWO_MAXIMUM where
+  \<open>TIER_TWO_MAXIMUM \<equiv> 6\<close>
+
 abbreviation TIER_ONE_MAXIMUM where
   \<open>TIER_ONE_MAXIMUM \<equiv> 6\<close>
+
 definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> lbd \<Rightarrow> nat \<Rightarrow> (arena \<times> lbd) nres\<close> where
   \<open>calculate_LBD_heur_st = (\<lambda>M N lbd C. do{
      old_glue \<leftarrow> mop_arena_lbd N C;
      st \<leftarrow> mop_arena_status N C;
      if st = IRRED then RETURN (N, lbd)
-     else if old_glue < TIER_ONE_MAXIMUM then do {
+     else if old_glue < TIER_TWO_MAXIMUM then do {
        N \<leftarrow> mop_arena_mark_used2 N C;
        RETURN (N, lbd)
      }
@@ -63,7 +67,7 @@ definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> l
        glue \<leftarrow> get_LBD lbd;
        lbd \<leftarrow> lbd_empty lbd;
        N \<leftarrow> (if glue < old_glue then mop_arena_update_lbd C glue N else RETURN N);
-       N \<leftarrow> (if glue < TIER_ONE_MAXIMUM \<or> old_glue < TIER_ONE_MAXIMUM then mop_arena_mark_used2 N C else mop_arena_mark_used N C);
+       N \<leftarrow> (if glue < TIER_TWO_MAXIMUM \<or> old_glue < TIER_TWO_MAXIMUM then mop_arena_mark_used2 N C else mop_arena_mark_used N C);
        RETURN (N, lbd)
     }})\<close>
 
@@ -118,7 +122,7 @@ lemma mop_arena_mark_used2_valid:
     intro!: ASSERT_leI valid_arena_mark_used2)
 
 abbreviation twl_st_heur_conflict_ana'
-  :: \<open>nat \<Rightarrow> clss_size \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+  :: \<open>nat \<Rightarrow> clss_size \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close>
 where
   \<open>twl_st_heur_conflict_ana' r lcount \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
      length (get_clauses_wl_heur S) = r \<and> get_learned_count S = lcount}\<close>
@@ -197,12 +201,10 @@ definition mark_lbd_from_list_heur :: \<open>trail_pol \<Rightarrow> nat clause_
        RETURN (if lev = 0 then lbd else lbd_write lbd lev)})
     lbd}\<close>
 
-definition mark_lbd_from_conflict :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>mark_lbd_from_conflict = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
-        lcount). do{
-     lbd \<leftarrow> mark_lbd_from_list_heur M outl lbd;
-     RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-         heur, vdom, avdom, lcount)
+definition mark_lbd_from_conflict :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>mark_lbd_from_conflict = (\<lambda>S. do{
+     lbd \<leftarrow> mark_lbd_from_list_heur (get_trail_wl_heur S) (get_outlearned_heur S) (get_lbd S);
+     RETURN (set_lbd_wl_heur lbd S)
     })\<close>
 
 

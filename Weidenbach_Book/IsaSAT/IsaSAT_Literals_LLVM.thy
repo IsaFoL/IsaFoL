@@ -2,14 +2,11 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
-(* TODO: Move *)
-lemma inline_ho[llvm_inline]: \<open>doM { f \<leftarrow> return f; m f } = m f\<close> for f :: \<open>_ \<Rightarrow> _\<close> by simp
-
 abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>
 abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
 abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
-
+hide_const (open) NEMonad.RETURN
 
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
@@ -26,6 +23,9 @@ lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
   \<open>(RETURN o\<^sub>1\<^sub>2 f12)$a$b$c$d$e$f$g$h$i$j$k$l = RETURN$(f12$a$b$c$d$e$f$g$h$i$j$k$l)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>3 f13)$a$b$c$d$e$f$g$h$i$j$k$l$m = RETURN$(f13$a$b$c$d$e$f$g$h$i$j$k$l$m)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>4 f14)$a$b$c$d$e$f$g$h$i$j$k$l$m$n = RETURN$(f14$a$b$c$d$e$f$g$h$i$j$k$l$m$n)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>5 f15)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo = RETURN$(f15$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>6 f16)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p = RETURN$(f16$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>7 f17)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q = RETURN$(f17$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q)\<close>
   by simp_all
 
 method synthesize_free =
@@ -52,14 +52,16 @@ lemma case_prod_open_plain_comb[sepref_monadify_comb]:
 lemma hn_case_prod_open'[sepref_comb_rules]:
   assumes FR: \<open>\<Gamma> \<turnstile> hn_ctxt (prod_assn P1 P2) p' p ** \<Gamma>1\<close>
   assumes Pair: "\<And>a1 a2 a1' a2'. \<lbrakk>p'=(a1',a2')\<rbrakk>
-    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 ** hn_ctxt P2 a2' a2 ** \<Gamma>1) (f a1 a2)
-          (\<Gamma>2 a1 a2 a1' a2') R (f' a1' a2')"
+    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 \<and>* hn_ctxt P2 a2' a2 \<and>* \<Gamma>1) (f a1 a2)
+          (\<Gamma>2 a1 a2 a1' a2') R (CP a1 a2) (f' a1' a2')"
   assumes FR2: \<open>\<And>a1 a2 a1' a2'. \<Gamma>2 a1 a2 a1' a2' \<turnstile> hn_ctxt P1' a1' a1 ** hn_ctxt P2' a2' a2 ** \<Gamma>1'\<close>
   shows \<open>hn_refine \<Gamma> (case_prod_open f p) (hn_ctxt (prod_assn P1' P2') p' p ** \<Gamma>1')
-                   R (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<close> (is \<open>?G \<Gamma>\<close>)
+                   R (CP_SPLIT CP p) (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<close> (is \<open>?G \<Gamma>\<close>)
+  unfolding case_prod_open_def
   unfolding autoref_tag_defs PROTECT2_def
   apply1 (rule hn_refine_cons_pre[OF FR])
   apply1 (cases p; cases p'; simp add: prod_assn_pair_conv[THEN prod_assn_ctxt])
+  unfolding CP_SPLIT_def prod.simps
   apply (rule hn_refine_cons[OF _ Pair _ entails_refl])
   applyS (simp add: hn_ctxt_def)
   applyS simp using FR2
@@ -160,8 +162,9 @@ abbreviation \<open>uint64_nat_assn \<equiv> unat_assn' TYPE(64)\<close>
 abbreviation \<open>sint32_nat_assn \<equiv> snat_assn' TYPE(32)\<close>
 abbreviation \<open>sint64_nat_assn \<equiv> snat_assn' TYPE(64)\<close>
 
-
-lemmas [sepref_bounds_simps] =
+text \<open>It is critical for performance of auto to calculate the power instead of letting auto do it
+every time.\<close>
+lemmas [simplified, sepref_bounds_simps] =
   uint32_max_def sint32_max_def
   uint64_max_def sint64_max_def
 

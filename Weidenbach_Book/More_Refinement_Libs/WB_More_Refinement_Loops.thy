@@ -452,7 +452,7 @@ lemma Down_itself_via_SPEC:
 lemma RES_ASSERT_moveout:
   "(\<And>a. a \<in> P \<Longrightarrow> Q a) \<Longrightarrow> do {a \<leftarrow> RES P; ASSERT(Q a); (f a)} =
    do {a\<leftarrow> RES P; (f a)}"
-  apply (subst order_class.eq_iff)
+  apply (subst dual_order.eq_iff)
   apply (rule conjI)
   subgoal
     by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
@@ -782,7 +782,7 @@ lemma while_upt_while_direct:
     RETURN \<sigma>
   }"
   using while_upt_while_direct1[of a b] while_upt_while_direct2[of a b]
-  unfolding order_class.eq_iff by fast
+  unfolding dual_order.eq_iff by fast
 
 
 lemma while_nfoldli:

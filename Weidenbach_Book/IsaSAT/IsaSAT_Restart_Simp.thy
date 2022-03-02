@@ -15,7 +15,7 @@ definition cdcl_twl_stgy_restart_abs_wl_heur_inv2 where
       (\<not>brk\<longrightarrow>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' (brk, T', last_GC, last_Rephase))))\<close>
 
 (*TODO FIX rephasing probably does not work after GC*)
-definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur) nres\<close> where
+definition update_all_phases :: \<open>isasat \<Rightarrow> (isasat) nres\<close> where
   \<open>update_all_phases = (\<lambda>S. do {
      let lcount = get_global_conflict_count S;
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
@@ -25,7 +25,7 @@ definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_h
   })\<close>
 
 definition cdcl_twl_stgy_restart_prog_wl_heur
-   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+   :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_wl_heur S\<^sub>0 = do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0\<^esup>
@@ -37,7 +37,7 @@ where
         (T, last_GC, last_Rephase, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Rephase n brk;
         RETURN (brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Rephase, n)
       })
-      (False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
+      (False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN T
   }\<close>
 
@@ -60,13 +60,13 @@ lemma update_all_phases_Pair:
      update_all_phases S \<le> \<Down> ({(T, T'). (T,T')\<in>twl_st_heur_loop''''uu r u \<and> T' = S'}) (RETURN (id S'))\<close>
 proof -
   have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
-    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
-    unfolding update_all_phases_def update_restart_phases_def
+    for S :: isasat and S' :: \<open>nat twl_st_wl\<close>
+    unfolding update_all_phases_def update_restart_phases_def Let_def
     by (auto simp: twl_st_heur'_def twl_st_heur_loop_def learned_clss_count_def
         intro!: rephase_heur_st_spec[THEN order_trans]
         simp del: incr_restart_phase_end_stats.simps incr_restart_phase_stats.simps)
   have [refine0]: \<open>(S, S') \<in> twl_st_heur_loop''''uu r u \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur_loop''''uu r u)\<close>
-    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
+    for S :: isasat and S' :: \<open>nat twl_st_wl\<close>
     unfolding update_all_phases_def rephase_heur_st_def
     apply (cases S')
     apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
@@ -82,7 +82,6 @@ proof -
     apply (subst (1) Let_def)
     apply (subst (1) Let_def)
     apply (intro frefI nres_relI)
-    apply (case_tac x rule:prod.exhaust)
     apply (simp only: uncurry_def prod.case comp_def)
     apply refine_vcg
     subgoal by simp
@@ -99,8 +98,6 @@ proof -
     apply (subst (1) bind_to_let_conv)
     apply (subst (1) Let_def)
     apply (subst (1) Let_def)
-    apply (case_tac S rule:prod.exhaust)
-    apply (simp only: uncurry_def prod.case comp_def)
     apply refine_vcg
     subgoal by simp
     apply assumption
@@ -172,10 +169,10 @@ qed
 definition fast_number_of_iterations :: \<open>_ \<Rightarrow> bool\<close> where
 \<open>fast_number_of_iterations n \<longleftrightarrow> n < uint64_max >> 1\<close>
 
-definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition isasat_fast_slow :: \<open>isasat \<Rightarrow> isasat nres\<close> where
    [simp]: \<open>isasat_fast_slow S = RETURN S\<close>
 
-definition convert_to_full_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+definition convert_to_full_state_wl_heur :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   [simp]: \<open>convert_to_full_state_wl_heur S = RETURN S\<close>
 definition convert_to_full_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   [simp]: \<open>convert_to_full_state_wl S = RETURN S\<close>
@@ -189,7 +186,7 @@ lemma convert_to_full_state_wl_heur:
   by (auto intro!: nres_relI frefI twl_st_heur_loop_twl_st_heurD simp: twl_st_heur'_def)
 
 definition cdcl_twl_stgy_restart_prog_early_wl_heur
-   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
+   :: \<open>isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_early_wl_heur S\<^sub>0 = do {
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
@@ -211,7 +208,7 @@ where
 	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, n)
       })
-      (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
+      (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
     ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
         get_old_arena T = []);
     if \<not>brk then do {
@@ -253,7 +250,7 @@ lemma cdcl_twl_stgy_restart_prog_early_wl_heur_alt_def:
 	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, n)
       })
-      (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
+      (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0,  0);
     ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
         get_old_arena T = []);
     if \<not>brk then do {
@@ -525,22 +522,14 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> ((the D) = C)\<close>
   by auto
 
-lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, lcount, opts, old_arena). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1) \<and>
-     clss_size_allcount lcount < uint64_max))\<close>
-  unfolding isasat_fast_def
-  by (auto intro!: ext simp: learned_clss_count_def clss_size_allcount_def clss_size_lcount_def
-    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcountU0_def clss_size_lcountUEk_def)
-
-definition isasat_fast_relaxed :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
 
-definition isasat_fast_relaxed2 :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool\<close> where
+definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
 
 definition cdcl_twl_stgy_restart_prog_bounded_wl_heur
-   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+   :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur S\<^sub>0 = do {
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
@@ -560,10 +549,10 @@ where
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
         T \<leftarrow> update_all_phases T;
         ASSERT(isasat_fast_relaxed T);
-	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
+	      ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
       })
-      (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN (ebrk, T)
   }\<close>
 
@@ -596,7 +585,7 @@ lemma cdcl_twl_stgy_restart_prog_bounded_wl_heur_alt_def:
 	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk \<or> \<not>get_conflict_wl_is_None_heur T, T, last_GC, last_Restart, n)
       })
-      (ebrk, False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0::isasat, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN (ebrk, T)
   }\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def bind_to_let_conv Let_def

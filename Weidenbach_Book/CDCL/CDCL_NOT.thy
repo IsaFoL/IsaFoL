@@ -2224,7 +2224,7 @@ next
     proof -
       have \<open>C \<in> simple_clss (atms_of_ms A)\<close>
         using C'
-        by (metis (no_types, hide_lams) Un_subset_iff simple_clss_mono
+        by (metis (no_types, opaque_lifting) Un_subset_iff simple_clss_mono
           contra_subsetD dist distinct_mset_not_tautology_implies_in_simple_clss
           dual_order.trans atms_C atms_clss atms_trail tauto)
       moreover have \<open>conflicting_bj_clss S \<subseteq> simple_clss (atms_of_ms A)\<close>
@@ -2391,7 +2391,7 @@ lemma rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_card_simple_clauses_bound:
   using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] finite
 proof -
   have \<open>\<And>x. x \<in># clauses\<^sub>N\<^sub>O\<^sub>T T \<Longrightarrow> \<not> tautology x \<Longrightarrow> distinct_mset x \<Longrightarrow> x \<in> simple_clss A\<close>
-    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, hide_lams) Un_iff NA
+    using rtranclp_cdcl\<^sub>N\<^sub>O\<^sub>T_clauses_bound[OF assms] by (metis (no_types, opaque_lifting) Un_iff NA
       atms_of_atms_of_ms_mono simple_clss_mono contra_subsetD subset_trans
       distinct_mset_not_tautology_implies_in_simple_clss)
   then have \<open>set_mset (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq> ?S \<union> simple_clss A\<close>

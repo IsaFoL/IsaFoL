@@ -1,0 +1,6 @@
+session "Given_Clause_Loops" = Saturation_Framework +
+  options [timeout=300]
+  sessions
+    "HOL-Library"
+  theories
+    Given_Clause_Loops
