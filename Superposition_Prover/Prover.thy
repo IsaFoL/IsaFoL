@@ -40,9 +40,9 @@ next
     by (induction xs ys rule: list.rel_induct) auto
 qed
 
-lemma list_all2_conjD:
-  "list_all2 (\<lambda>x y. P x \<and> Q x y) xs ys \<longleftrightarrow> list_all P xs \<and> list_all2 (\<lambda>x y. Q x y) xs ys"
-  "list_all2 (\<lambda>x y. P y \<and> Q x y) xs ys \<longleftrightarrow> list_all P ys \<and> list_all2 (\<lambda>x y. Q x y) xs ys"
+lemma list_all2_conj_unary_iff:
+  "list_all2 (\<lambda>x y. P1 x \<and> Q x y) xs ys \<longleftrightarrow> list_all P1 xs \<and> list_all2 (\<lambda>x y. Q x y) xs ys"
+  "list_all2 (\<lambda>x y. P2 y \<and> Q x y) xs ys \<longleftrightarrow> list_all P2 ys \<and> list_all2 (\<lambda>x y. Q x y) xs ys"
   by (auto simp: list_all2_conv_all_nth list_all_length)
 
 lemma list_all_member_iff_subset: "list_all (\<lambda>x. x \<in> N) xs \<longleftrightarrow> set xs \<subseteq> N"
@@ -152,6 +152,10 @@ lemma uncurry_comp_curry[simp]: "uncurry o curry = id"
 
 
 subsection \<open>Generic lemmas about SuperCalc\<close>
+
+lemma subst_cl_conv: "subst_cl C \<sigma> = (\<lambda>L. equational_clausal_logic.subst_lit L \<sigma>) ` C"
+  unfolding subst_cl.simps
+  by auto
 
 lemma validate_clause_set_union:
   "validate_clause_set I (S1 \<union> S2) \<longleftrightarrow> validate_clause_set I S1 \<and> validate_clause_set I S2"
@@ -1019,7 +1023,8 @@ lemma cl_ecl_comp_to_SuperCalc_ecl_conv[simp]: "cl_ecl \<circ> to_SuperCalc_ecl 
 
 sledgehammer_params
 
-locale superposition_prover = substitution subst_equation "[]" Unification.comp renamings_apart
+locale superposition_prover =
+    substitution_renamings subst_equation "[]" Unification.comp renamings_apart
   for
     renamings_apart :: "'a equation Clausal_Logic.clause list \<Rightarrow> 'a subst list" +
   fixes
@@ -1590,9 +1595,7 @@ proof (intro allI impI)
          apply simp
         unfolding  G_SuperCalc.cl_ord_def
          apply simp
-      sorry
-    done
-qed
+        oops
 
 interpretation G: statically_complete_calculus "{{#}}" "G_Inf M" "(\<TTurnstile>e)" "G.Red_I M" G.Red_F
 proof unfold_locales
@@ -1974,11 +1977,40 @@ proof -
     apply simp
     oops
 
+lemma finite_vars_of_to_SuperCalc_cl: "finite (vars_of_cl (to_SuperCalc_cl C))"
+  using finite_to_SuperCalc_cl set_of_variables_is_finite_cl by blast
+
 lemma is_renaming_imp_renaming:
   fixes \<sigma> :: "('a \<times> 'a trm) list" and S :: "'a set"
   shows "is_renaming \<sigma> \<Longrightarrow> renaming \<sigma> S"
   unfolding is_renaming_def
   by (auto elim: comp.elims)
+
+lemma ex_eq_map2_if_ball_set_eq:
+  assumes "\<forall>x \<in> set xs. \<exists>y z. x = f y z \<and> P y z"
+  shows "\<exists>ys zs. xs = map2 f ys zs \<and> length ys = length zs \<and> list_all2 P ys zs"
+  using assms
+proof (induction xs)
+  case Nil
+  show ?case
+    by (rule exI[where x = "[]"], rule exI[where x = "[]"]) simp
+next
+  case (Cons x xs)
+  then obtain ys zs where
+    "length ys = length zs" and "xs = Map2.map2 f ys zs" and "list_all2 P ys zs"
+    by auto
+  moreover from Cons.prems obtain y z where "x = f y z" and "P y z"
+    by auto
+  ultimately show ?case
+    apply -
+    by (rule exI[where x = "y # ys"], rule exI[where x = "z # zs"]) simp
+qed
+
+
+lemma "finite C \<Longrightarrow> from_SuperCalc_cl (subst_cl C \<sigma>) = subst_cls (from_SuperCalc_cl C) \<sigma>"
+  unfolding subst_cl_conv from_SuperCalc_cl_def
+  apply simp
+  oops
 
 sublocale statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>e)" F.Red_I_\<G> F.Red_F_\<G>
 proof unfold_locales
@@ -1999,7 +2031,9 @@ next
   \<comment> \<open>We cannot use @{const is_renaming} because we would need
   @{term "\<And>\<sigma> S. is_renaming \<sigma> \<longleftrightarrow> renaming \<sigma> S"} but only the forward direction holds.\<close>
   define N' :: "'a equation Clausal_Logic.clause set" where
-    "N' \<equiv> { subst_cls C \<sigma> | C \<sigma>. C \<in> N \<and> renaming \<sigma> (vars_of_cl (to_SuperCalc_cl C))}"
+    "N' \<equiv> {subst_cls C \<sigma> | C \<sigma>. C \<in> N \<and> renaming \<sigma> (vars_of_cl (to_SuperCalc_cl C))}"
+
+  find_theorems "renaming _ _ \<Longrightarrow> _"
 
   have "N \<subseteq> N'"
   proof (rule Set.subsetI)
@@ -2024,22 +2058,72 @@ next
   proof (rule Set.subsetI)
     fix \<iota>' :: "'a equation Clausal_Logic.clause inference"
     assume "\<iota>' \<in> F.Inf_from N'"
-    hence \<iota>'_in: "\<iota>' \<in> F_Inf" and prems_\<iota>_subset: "set (prems_of \<iota>') \<subseteq> N'"
+    hence \<iota>'_in: "\<iota>' \<in> F_Inf" and prems_\<iota>'_subset: "set (prems_of \<iota>') \<subseteq> N'"
       unfolding F.Inf_from_def Set.mem_Collect_eq by simp_all
 
-    have "\<And>M. \<G>_I M \<iota>' \<subseteq> G.Red_I M (\<Union> (\<G>_F ` N'))"
+    from \<iota>'_in obtain C \<sigma>\<^sub>C C' where
+      "concl_of \<iota>' = from_SuperCalc_cl (subst_cl C' \<sigma>\<^sub>C)" and
+      deriv_prems_\<iota>': "derivable_list C
+        (map to_SuperCalc_ecl (map2 subst_cls (prems_of \<iota>') (renamings_apart (prems_of \<iota>'))))
+        \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
+      unfolding F_Inf_def mem_Collect_eq by force
+
+    from prems_\<iota>'_subset obtain Ps \<rho>s where
+      prems_\<iota>'_def: "prems_of \<iota>' = Map2.map2 subst_cls Ps \<rho>s" and "length Ps = length \<rho>s" and
+      FOO: "list_all2 (\<lambda>C \<sigma>. C \<in> N \<and> renaming \<sigma> (vars_of_cl (to_SuperCalc_cl C))) Ps \<rho>s"
+      unfolding N'_def Ball_Collect[symmetric]
+      by (auto dest: ex_eq_map2_if_ball_set_eq)
+
+    from deriv_prems_\<iota>' obtain D D' \<sigma>\<^sub>D where
+      deriv_Ps: "derivable_list D (map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps)))
+        \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
+      sorry
+
+    obtain \<rho> where concl_\<iota>'_def: "concl_of \<iota>' = from_SuperCalc_cl (subst_cl (subst_cl D' \<sigma>\<^sub>D) \<rho>)"
+      sorry
+
+    define \<iota> where "\<iota> = Infer Ps (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D))"
+
+    have \<iota>_in: "\<iota> \<in> F_Inf"
+      unfolding \<iota>_def F_Inf_def mem_Collect_eq using deriv_Ps by blast
+
+    have prems_\<iota>_in_subset: "set (prems_of \<iota>) \<subseteq> N"
+      using FOO by (simp add: \<iota>_def list_all2_conj_unary_iff list_all_member_iff_subset)
+
+    from sat_N_alt[OF \<iota>_in prems_\<iota>_in_subset]
+    have \<G>_subset_Red_\<iota>: "\<And>q. \<G>_I q \<iota> \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N))"
+      unfolding F.Red_I_\<G>_def F.Red_I_\<G>_q_def by simp
+
+    have "finite D'"
+      by (rule derivable_list_finite_conclusion[OF _ deriv_Ps]) simp
+
+    have "\<G>_I q \<iota>' \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N'))" for q
     proof (rule subsetI)
-      fix M g\<iota>'
-      assume "g\<iota>' \<in> \<G>_I M \<iota>'"
-      then show "g\<iota>' \<in> G.Red_I M (\<Union> (\<G>_F ` N'))"
-        unfolding \<G>_I_def mem_Collect_eq
-        using sat_N_alt \<iota>'_in prems_\<iota>_subset
+      fix \<iota>g
+      assume "\<iota>g \<in> \<G>_I q \<iota>'"
+      hence "\<iota>g \<in> \<G>_I q \<iota>"
+        unfolding \<G>_I_def mem_Collect_eq \<iota>_def inference.sel
+        apply simp
+        apply (elim conjE)
+        apply (rule conjI)
+         apply (metis prems_\<iota>'_def subst_cls_lists_comp_substs subst_cls_lists_def)
+        apply (elim exE)
+        unfolding concl_\<iota>'_def
+        find_theorems "from_SuperCalc_cl (subst_cl _ _) = subst_cls (from_SuperCalc_cl _) _"
+        sorry
+      show "\<iota>g \<in> G.Red_I q (\<Union> (\<G>_F ` N'))"
+        using grounding_of_inferences_are_grounded_inferences
+        using \<G>_subset_Red_\<iota>[THEN subsetD]
+        
         sorry
     qed
-    with \<iota>'_in show "\<iota>' \<in> F.Red_I_\<G> N'"
-      unfolding F.Red_I_\<G>_def
-      unfolding F.Red_I_\<G>_q_def
-      by simp
+
+    then have "\<iota>' \<in> F.Red_I_\<G>_q q N'" for q
+      unfolding F.Red_I_\<G>_q_def mem_Collect_eq
+      using \<iota>'_in by simp
+
+    thus "\<iota>' \<in> F.Red_I_\<G> N'"
+      unfolding F.Red_I_\<G>_def by simp
   qed
 
   have gr_inf_satur_N': "SuperCalc.ground_inference_saturated (to_SuperCalc_ecl ` N')"
@@ -2074,32 +2158,32 @@ next
     unfolding I_def
     using SuperCalc.same_values_fo_int SuperCalc.trm_rep_compatible_with_structure by blast
 
-have "\<exists>B \<in> {{#}}. B \<in> N'"
-proof (rule contrapos_pp[OF \<open>N' \<TTurnstile>e {{#}}\<close>])
-  assume "\<not> (\<exists>B \<in> {{#}}. B \<in> N')"
-  hence ball_N_not_empty: "\<forall>C \<in> N'. to_SuperCalc_cl C \<noteq> {}"
-    by (metis insertI1 set_mset_eq_empty_iff to_SuperCalc_cl_empty_mset to_SuperCalc_cl_eq_conv)
-
-  have val_I_N': "validate_clause_set I (to_SuperCalc_cl ` N')"
-    unfolding validate_clause_set.simps validate_clause.simps
-  proof (intro allI impI)
-    fix C \<sigma>
-    assume "C \<in> to_SuperCalc_cl ` N'" and "ground_clause (subst_cl C \<sigma>)"
-    thus "validate_ground_clause I (subst_cl C \<sigma>)"
-      using int_clset_is_a_model'[OF ball_N_not_empty, of "Ecl C {}", simplified] by blast
+  have "\<exists>B \<in> {{#}}. B \<in> N'"
+  proof (rule contrapos_pp[OF \<open>N' \<TTurnstile>e {{#}}\<close>])
+    assume "\<not> (\<exists>B \<in> {{#}}. B \<in> N')"
+    hence ball_N_not_empty: "\<forall>C \<in> N'. to_SuperCalc_cl C \<noteq> {}"
+      by (metis insertI1 set_mset_eq_empty_iff to_SuperCalc_cl_empty_mset to_SuperCalc_cl_eq_conv)
+  
+    have val_I_N': "validate_clause_set I (to_SuperCalc_cl ` N')"
+      unfolding validate_clause_set.simps validate_clause.simps
+    proof (intro allI impI)
+      fix C \<sigma>
+      assume "C \<in> to_SuperCalc_cl ` N'" and "ground_clause (subst_cl C \<sigma>)"
+      thus "validate_ground_clause I (subst_cl C \<sigma>)"
+        using int_clset_is_a_model'[OF ball_N_not_empty, of "Ecl C {}", simplified] by blast
+    qed
+  
+    show "\<not> N' \<TTurnstile>e {{#}}"
+    proof (rule notI)
+      assume "N' \<TTurnstile>e {{#}}"
+      hence "validate_ground_clause I {}"
+        using fo_int_I val_I_N' by (simp add: entails_def set_entails_set_def)
+      thus False
+        by (simp add: validate_ground_clause.simps)
+    qed
   qed
-
-  show "\<not> N' \<TTurnstile>e {{#}}"
-  proof (rule notI)
-    assume "N' \<TTurnstile>e {{#}}"
-    hence "validate_ground_clause I {}"
-      using fo_int_I val_I_N' by (simp add: entails_def set_entails_set_def)
-    thus False
-      by (simp add: validate_ground_clause.simps)
-  qed
-qed
-thus "\<exists>B \<in> {{#}}. B \<in> N"
-  by (simp add: N'_def)
+  thus "\<exists>B \<in> {{#}}. B \<in> N"
+    by (simp add: N'_def)
 qed
 
 end
