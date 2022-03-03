@@ -80,12 +80,22 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
     simplify_clauses_with_units_st_wl_simplify_clause_with_units_st
     mark_to_delete_clauses_wl_mark_to_delete_clauses_l2[THEN fref_to_Down]
     cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down]
+    mark_duplicated_binary_clauses_as_garbage_wl
     )
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'')
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal
+    apply auto
+      thm correct_watching'_leaking_bin.simps
+        no_lost_clause_in_WL_def
+    find_theorems mark_duplicated_binary_clauses_as_garbage_wl
+      no_lost_clause_in_WL
+      mark_duplicated_binary_clauses_as_garbage
+      sorry
+      oops
   subgoal by auto
   subgoal for x y S' S'a T Ta U Ua
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Ua U]

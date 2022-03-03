@@ -3146,13 +3146,12 @@ definition simplify_clauses_with_units_st_pre where
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)) \<and>
     set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
     clauses_to_update_l S = {#} \<and>
-    get_conflict_l S = None \<and>
     count_decided (get_trail_l S) = 0)\<close>
 
 definition simplify_clauses_with_units_st where
   \<open>simplify_clauses_with_units_st S = do {
     ASSERT(simplify_clauses_with_units_st_pre S);
-    new_units \<leftarrow> SPEC (\<lambda>_. True);
+    new_units \<leftarrow> SPEC (\<lambda>b. b \<longrightarrow> get_conflict_l S = None);
     if new_units
     then simplify_clauses_with_unit_st S
     else RETURN S}\<close>
@@ -3160,7 +3159,6 @@ definition simplify_clauses_with_units_st where
 
 lemma simplify_clauses_with_units_st_spec:
   assumes \<open>count_decided (get_trail_l S) = 0\<close>
-    \<open>get_conflict_l S = None\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     st_invs: \<open>twl_struct_invs T\<close> and
@@ -3172,6 +3170,7 @@ lemma simplify_clauses_with_units_st_spec:
   using assms unfolding simplify_clauses_with_units_st_def
   apply (refine_vcg simplify_clauses_with_unit_st_spec[THEN order_trans])
   subgoal unfolding simplify_clauses_with_units_st_pre_def by blast
+  subgoal by auto
   apply assumption+
   subgoal by auto
   subgoal by auto

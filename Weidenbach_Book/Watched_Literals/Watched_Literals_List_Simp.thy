@@ -125,8 +125,8 @@ definition cdcl_twl_full_restart_inprocess_l where
   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
-  S' \<leftarrow> simplify_clauses_with_units_st S';
   S' \<leftarrow> mark_duplicated_binary_clauses_as_garbage S';
+  S' \<leftarrow> simplify_clauses_with_units_st S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
     RETURN S'
@@ -959,8 +959,8 @@ proof -
     apply (rule exI[of _ S'])
     by auto
 
-  have simplify_clauses_with_unit_st:
-    \<open>simplify_clauses_with_units_st U \<le> SPEC (?finp U')\<close>
+  have  mark_duplicated_binary_clauses_as_garbage:
+    \<open>mark_duplicated_binary_clauses_as_garbage U \<le> SPEC (?finp U')\<close>
     if 
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -1010,20 +1010,30 @@ proof -
       using upd UU'' clss T'U'
       by (auto simp add: cdcl_twl_full_restart_l_GC_prog_pre_def
         cdcl_twl_restart_l.simps st twl_st_l_def)
-
+    have pre: \<open>mark_duplicated_binary_clauses_as_garbage_pre U\<close>
+      using ent clss lev0 mark apply -
+      unfolding mark_duplicated_binary_clauses_as_garbage_pre_def \<open>U= U'\<close>[symmetric]
+      by (rule exI[of _ U''])
+       (auto 4 3 simp: UU'' clss_upd list_invs struct_invs
+        cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail)
     show ?thesis
-      apply (rule simplify_clauses_with_units_st_spec[THEN order_trans, of _ U''])
-      apply (use lev0 UU'' struct_invs list_invs confl clss ent in auto)[8]
-      apply (use mark in \<open>auto 4 4 dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
-        rtranclp_cdcl_twl_inprocessing_l_count_dec 
-        simp: st lev0 get_all_mark_of_propagated_alt_def
-        simplify_clauses_with_unit_st_inv_def simp flip: \<open>U=U'\<close>\<close>)
+      apply (rule mark_duplicated_binary_clauses_as_garbage[THEN order_trans])
+      apply (rule pre)
+      subgoal
+        apply simp
+        apply standard
+        apply simp
+          by (metis Un_absorb1 mark_duplicated_binary_clauses_as_garbage_pre_def pre
+            rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
+            rtranclp_cdcl_twl_inprocessing_l_count_decided
+            rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated st(2))
       done
   qed
 
 
-  have mark_duplicated_binary_clauses_as_garbage:
-    \<open>mark_duplicated_binary_clauses_as_garbage V \<le> SPEC (?finp V')\<close>
+  have simplify_clauses_with_unit_st:
+    \<open>simplify_clauses_with_units_st V \<le> SPEC (?finp V')\<close>
+ (*   \<open>mark_duplicated_binary_clauses_as_garbage V \<le> SPEC (?finp V')\<close> *)
     if 
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -1097,16 +1107,14 @@ proof -
        (auto simp: VV'' clss_upd list_invs struct_invs)
 
     show ?thesis
-      apply (rule mark_duplicated_binary_clauses_as_garbage[THEN order_trans])
-      apply (rule pre)
-      subgoal
-        apply simp
-        apply standard
-        apply simp
-        by (metis Un_absorb1 mark_duplicated_binary_clauses_as_garbage_pre_def pre
-          rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp rtranclp_cdcl_twl_inprocessing_l_count_decided
-          rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated st(3))
-     done
+      apply (rule simplify_clauses_with_units_st_spec[THEN order_trans, of _ V''])
+      apply (use lev0 UU'' struct_invs list_invs confl clss ent  annot_V count_dec ent_V''
+           \<open>V' = V\<close>[symmetric] clss_upd VV''
+        in auto)[7]
+      by (use mark count_dec annot_V in \<open>auto 4 4 dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
+        rtranclp_cdcl_twl_inprocessing_l_count_dec
+        simp: st lev0 get_all_mark_of_propagated_alt_def
+        simplify_clauses_with_unit_st_inv_def simp flip: \<open>U=U'\<close>  \<open>V' = V\<close>\<close>)
   qed
 
   show ?thesis
@@ -1123,10 +1131,10 @@ proof -
         auto
     subgoal for T T'
       by (rule 1)
-    subgoal for  T T' U U'
-      by (rule simplify_clauses_with_unit_st)
     subgoal
       by (rule mark_duplicated_binary_clauses_as_garbage)
+    subgoal for  T T' U U'
+      by (rule simplify_clauses_with_unit_st)
     subgoal by auto
     subgoal
       by (auto 5 3 dest: cdcl_twl_restart_l_inp.intros)
