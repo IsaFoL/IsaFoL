@@ -708,7 +708,7 @@ inductive sound_trail for N U where
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
     (case u of
       None \<Rightarrow> True |
-      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
         (\<exists>D \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)) \<Longrightarrow>
     sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U ((L, u) # \<Gamma>)"
 
@@ -729,7 +729,7 @@ next
       "case u of
         None \<Rightarrow> True
       | Some (C, L', \<gamma>) \<Rightarrow>
-        L = L' \<cdot>l \<gamma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+        L = L' \<cdot>l \<gamma> \<and> is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
         (\<exists>D \<in> NN \<union> UU. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)"
     proof (cases u)
       case None
@@ -739,6 +739,7 @@ next
       from Cons.hyps Some obtain C L' \<gamma> where
         Cl_def: "Cl = (C, L', \<gamma>)" and
         L_def: "L = L' \<cdot>l \<gamma>" and
+        gr_L_L'_\<gamma>: "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" and
         tr_false: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)" and
         C_renaing: "\<exists>D \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>"
         by fastforce
@@ -747,6 +748,8 @@ next
         unfolding Some Cl_def option.case prod.case
       proof (intro conjI)
         show "L = L' \<cdot>l \<gamma>" by (rule L_def)
+      next
+        show "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" by (rule gr_L_L'_\<gamma>)
       next
         show "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)" by (rule tr_false)
       next
@@ -764,6 +767,7 @@ lemma sound_trail_propagate:
   assumes
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     not_tr_def_\<Gamma>_L_\<sigma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)" and
+    gr_C_L_\<sigma>: "is_ground_cls ((C + {#L#}) \<cdot> \<sigma>)" and
     tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
     ex_renaming: "\<exists>D\<in>N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = D \<cdot> \<rho>"
   shows "sound_trail N U (trail_propagate \<Gamma> (L \<cdot>l \<sigma>) (C, L, \<sigma>))"
@@ -775,9 +779,9 @@ next
   show "sound_trail N U \<Gamma>"
     by (rule sound_\<Gamma>)
 next
-  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and>
+  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and>
     (\<exists>D\<in>N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = D \<cdot> \<rho>)"
-    using tr_false_\<Gamma>_C_\<sigma> ex_renaming by auto
+    using gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> ex_renaming by auto
 qed
 
 lemma sound_trail_decide:
@@ -1069,7 +1073,12 @@ next
           rule_format, of "C + {#L#}"])
     by (simp add: \<Gamma>_def)
 
-  have gr_C_L_\<delta>: "is_ground_cls ((C + {#L#}) \<cdot> \<delta>)" sorry
+  from sound_\<Gamma> have
+    gr_C_L_\<delta>: "is_ground_cls ((C + {#L#}) \<cdot> \<delta>)" and
+    tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" and
+    ex_renamed_in_N_U: "\<exists>CC \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = CC \<cdot> \<rho>"
+    unfolding \<Gamma>_def trail_propagate_def
+    by (auto elim: sound_trail.cases)
 
   have is_imgu_\<mu>_full:
     "Unifiers.is_imgu \<mu> (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset (C + D)))"
@@ -1213,10 +1222,8 @@ next
 
   moreover have "N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
   proof -
-    obtain CC' \<rho>\<^sub>C\<^sub>C where
+    from ex_renamed_in_N_U obtain CC' \<rho>\<^sub>C\<^sub>C where
       CC'_in: "CC' \<in> N \<union> U" and ren_\<rho>\<^sub>C\<^sub>C: "is_renaming \<rho>\<^sub>C\<^sub>C" and CC'_conv: "C + {#L#} = CC' \<cdot> \<rho>\<^sub>C\<^sub>C"
-      using sound_\<Gamma> unfolding sound_trail.simps[of _ _ \<Gamma>]
-      unfolding \<Gamma>_def trail_propagate_def
       by auto
 
     have "N \<TTurnstile>\<G>e {CC'}"
