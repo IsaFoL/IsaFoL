@@ -1708,6 +1708,101 @@ lemma derivable_list_concl_conv:
   by (auto simp: SuperCalc.reflexion_def SuperCalc.factorization_def
       SuperCalc.superposition_def)
 
+lemma assumes "finite (cl_ecl C)" "renaming_cl C D" shows "renaming_cl D C"
+proof -
+  from \<open>renaming_cl C D\<close> obtain \<rho> where
+    ren_\<rho>: "renaming \<rho> (vars_of_cl (cl_ecl C))" and
+    "D = subst_ecl C \<rho>"
+    unfolding renaming_cl_def by blast
+
+  from \<open>finite (cl_ecl C)\<close> have "finite (vars_of_cl (cl_ecl C))"
+    using set_of_variables_is_finite_cl by blast
+
+  with ren_\<rho> obtain \<rho>_inv where
+    \<rho>_\<rho>_inv_ident: "\<forall>x\<in>vars_of_cl (cl_ecl C). Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
+    "\<forall>x. x \<notin> subst_codomain \<rho> (vars_of_cl (cl_ecl C)) \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x"
+    using renamings_admit_inverse by blast
+
+  show ?thesis
+    unfolding renaming_cl_def
+  proof (intro exI conjI)
+    show "C = subst_ecl D \<rho>_inv"
+      unfolding \<open>D = subst_ecl C \<rho>\<close>
+      unfolding SuperCalc.subst_ecl_subst_ecl
+      apply (rule SuperCalc.subst_ecl_ident[symmetric])
+      unfolding Un_iff
+      apply (erule disjE)
+      subgoal for x t
+        apply (drule \<rho>_\<rho>_inv_ident[rule_format])
+  
+
+lemma
+  fixes \<sigma>
+  assumes
+    refl: "SuperCalc.reflexion P1 C \<sigma>\<^sub>C k C'" and
+    ren: "renaming_cl P1 P1'" and
+    fin_P1: "finite (cl_ecl P1)"
+  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D k D' \<and> renaming_cl C D"
+proof -
+  from refl obtain L1 t s Cl_P Cl_C trms_C where
+    "SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C" and
+    "L1 \<in> cl_ecl P1" and
+    "Cl_C = cl_ecl C" and
+    "Cl_P = cl_ecl P1" and
+    "SuperCalc.orient_lit_inst L1 t s neg \<sigma>\<^sub>C" and
+    "SuperCalc.ck_unifier t s \<sigma>\<^sub>C k" and
+    "C = Ecl Cl_C trms_C" and
+    "trms_C = SuperCalc.get_trms Cl_C
+      (SuperCalc.dom_trms Cl_C (subst_set (trms_ecl P1 \<union> {t}) \<sigma>\<^sub>C)) k" and
+    "Cl_C = subst_cl C' \<sigma>\<^sub>C \<and> C' = Cl_P - {L1}"
+    unfolding SuperCalc.reflexion_def by blast
+
+  from ren obtain \<rho> where
+    ren_\<rho>: "renaming \<rho> (vars_of_cl (cl_ecl P1))" and
+    "P1' = subst_ecl P1 \<rho>"
+    unfolding renaming_cl_def by blast
+
+  from fin_P1 have "finite (vars_of_cl (cl_ecl P1))"
+    using set_of_variables_is_finite_cl by blast
+
+  with ren_\<rho> obtain \<rho>_inv where
+    "\<forall>x\<in>vars_of_cl (cl_ecl P1). Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
+    "\<forall>x. x \<notin> subst_codomain \<rho> (vars_of_cl (cl_ecl P1)) \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x"
+    using renamings_admit_inverse by blast
+
+  define D' where
+    "D' = cl_ecl (subst_ecl P1' \<rho>) - {equational_clausal_logic.subst_lit L1 \<rho>}"
+  
+  define \<sigma>\<^sub>D where
+    "\<sigma>\<^sub>D = \<sigma>\<^sub>C \<lozenge> \<rho>_inv"
+
+  define D where
+    "D = (let Cl_D = subst_cl D' \<sigma>\<^sub>D in
+      Ecl Cl_D (SuperCalc.get_trms Cl_D
+        (SuperCalc.dom_trms Cl_D (subst_set (trms_ecl P1' \<union> {t}) \<sigma>\<^sub>D)) k))"
+
+  show ?thesis
+  proof (intro exI conjI)
+    show "SuperCalc.reflexion P1' D \<sigma>\<^sub>D k D'"
+      unfolding \<open>P1' = subst_ecl P1 \<rho>\<close>
+      unfolding SuperCalc.reflexion_def
+      sorry
+  next
+    show "renaming_cl C D"
+      find_theorems name: SuperCalc "renaming_cl _ _"
+      unfolding renaming_cl_def
+      unfolding \<open>C = Ecl Cl_C trms_C\<close> subst_ecl.simps
+      unfolding D_def Let_def
+      unfolding D'_def
+      apply simp
+
+lemma
+  assumes deriv: "derivable_list C Ps \<sigma> k C'" and renam: "list_all2 renaming_cl Ps Ps'"
+  shows "\<exists>D \<sigma>\<^sub>D D'. derivable_list D Ps' \<sigma>\<^sub>D k D' \<and> renaming_cl C D"
+  using deriv unfolding derivable_list_def
+proof (elim disjE exE conjE)
+  
+
 subsubsection \<open>First-Order Calculus\<close>
 
 text \<open>
@@ -1720,7 +1815,7 @@ If it ever cause a problem, change the structure to have access to @{type Clausa
 \<close>
 
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
-  "F_Inf \<equiv> {Infer Ps (from_SuperCalc_cl (subst_cl C' \<sigma>)) | Ps C \<sigma> C'.
+  "F_Inf \<equiv> {Infer Ps (subst_cls (from_SuperCalc_cl C') \<sigma>) | Ps C \<sigma> C'.
     derivable_list C (map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps))) \<sigma>
       SuperCalc.FirstOrder C'}"
 
@@ -2062,7 +2157,7 @@ next
       unfolding F.Inf_from_def Set.mem_Collect_eq by simp_all
 
     from \<iota>'_in obtain C \<sigma>\<^sub>C C' where
-      "concl_of \<iota>' = from_SuperCalc_cl (subst_cl C' \<sigma>\<^sub>C)" and
+      "concl_of \<iota>' = subst_cls (from_SuperCalc_cl C') \<sigma>\<^sub>C" and
       deriv_prems_\<iota>': "derivable_list C
         (map to_SuperCalc_ecl (map2 subst_cls (prems_of \<iota>') (renamings_apart (prems_of \<iota>'))))
         \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
@@ -2079,10 +2174,10 @@ next
         \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
       sorry
 
-    obtain \<rho> where concl_\<iota>'_def: "concl_of \<iota>' = from_SuperCalc_cl (subst_cl (subst_cl D' \<sigma>\<^sub>D) \<rho>)"
+    obtain \<rho> where concl_\<iota>'_def: "concl_of \<iota>' = subst_cls (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D) \<rho>"
       sorry
 
-    define \<iota> where "\<iota> = Infer Ps (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D))"
+    define \<iota> where "\<iota> = Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D)"
 
     have \<iota>_in: "\<iota> \<in> F_Inf"
       unfolding \<iota>_def F_Inf_def mem_Collect_eq using deriv_Ps by blast
@@ -2109,19 +2204,16 @@ next
          apply (metis prems_\<iota>'_def subst_cls_lists_comp_substs subst_cls_lists_def)
         apply (elim exE)
         unfolding concl_\<iota>'_def
-        find_theorems "from_SuperCalc_cl (subst_cl _ _) = subst_cls (from_SuperCalc_cl _) _"
-        sorry
-      show "\<iota>g \<in> G.Red_I q (\<Union> (\<G>_F ` N'))"
-        using grounding_of_inferences_are_grounded_inferences
-        using \<G>_subset_Red_\<iota>[THEN subsetD]
-        
-        sorry
+        by (metis subst_cls_comp_subst)
+      moreover have "G.Red_I q (\<Union> (\<G>_F ` N)) \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N'))"
+        by (simp add: G.Red_I_of_subset UN_mono \<open>N \<subseteq> N'\<close>)
+      ultimately show "\<iota>g \<in> G.Red_I q (\<Union> (\<G>_F ` N'))"
+        using \<G>_subset_Red_\<iota>[THEN subsetD] by auto
     qed
 
     then have "\<iota>' \<in> F.Red_I_\<G>_q q N'" for q
       unfolding F.Red_I_\<G>_q_def mem_Collect_eq
       using \<iota>'_in by simp
-
     thus "\<iota>' \<in> F.Red_I_\<G> N'"
       unfolding F.Red_I_\<G>_def by simp
   qed
