@@ -820,8 +820,8 @@ begin
 
 inductive scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state => ('f, 'v) state \<Rightarrow> bool" for N where
   propagate: "C \<in> N \<union> U \<Longrightarrow> C' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C \<Longrightarrow> C' = C'' + {#L#} \<Longrightarrow>
-    is_ground_cls ((C'' + {#L#}) \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (C'' \<cdot> \<sigma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>) \<Longrightarrow>
+    subst_domain \<sigma> \<subseteq> vars_cls C'' \<union> vars_lit L \<Longrightarrow> is_ground_cls ((C'' + {#L#}) \<cdot> \<sigma>) \<Longrightarrow>
+    trail_false_cls \<Gamma> (C'' \<cdot> \<sigma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>) \<Longrightarrow>
     scl N (\<Gamma>, U, k, None) (trail_propagate \<Gamma> (L \<cdot>l \<sigma>) (C'', L, \<sigma>), U, k, None)" |
 
   decide: "is_ground_lit L \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
@@ -840,26 +840,12 @@ inductive scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state => ('f, 
 
   resolve: "\<Gamma> = trail_propagate \<Gamma>' (L \<cdot>l \<delta>) (C, L, \<delta>) \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = k \<Longrightarrow>
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
-    \<rho>_inv = inv_renaming' \<rho> \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
-    \<sigma>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
-    \<delta>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<delta> \<Longrightarrow>
-    scl N (\<Gamma>, U, k, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, k,
-      Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>, restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma> \<odot> \<delta>)))" |
+    scl N (\<Gamma>, U, k, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, k, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
+      restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))" |
 
   backtrack: "trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = k \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = i \<Longrightarrow>
     scl N (\<Gamma>, U, k, Some (D + {#L#}, \<sigma>)) (trail_backtrack \<Gamma> i, U \<union> {D + {#L#}}, k, None)"
-
-(*
-resolve: "\<Gamma> = trail_propagate \<Gamma>' (L \<cdot>l \<delta>) (C, L, \<delta>) \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = k \<Longrightarrow>
-    \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
-    \<rho>_inv = inv_renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
-    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
-    \<sigma>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
-    \<delta>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<delta> \<Longrightarrow>
-    scl N (\<Gamma>, U, k, Some (D + {#L'#}, \<sigma>))
-      (\<Gamma>, U, k, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>, restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma>' \<odot> \<delta>')))"
-*)
 
 text \<open>Note that, in contrast to Fiori and Weidenbach (CADE 2019), the set of clauses @{term N} is a
 parameter of the relation instead of being repeated twice in the state. This is to highlight the
@@ -873,7 +859,8 @@ inductive sound_trail for N U where
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
     (case u of
       None \<Rightarrow> True |
-      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
+        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
         (\<exists>D \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)) \<Longrightarrow>
     sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U ((L, u) # \<Gamma>)"
 
@@ -894,7 +881,8 @@ next
       "case u of
         None \<Rightarrow> True
       | Some (C, L', \<gamma>) \<Rightarrow>
-        L = L' \<cdot>l \<gamma> \<and> is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+        L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
+        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
         (\<exists>D \<in> NN \<union> UU. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)"
     proof (cases u)
       case None
@@ -904,6 +892,7 @@ next
       from Cons.hyps Some obtain C L' \<gamma> where
         Cl_def: "Cl = (C, L', \<gamma>)" and
         L_def: "L = L' \<cdot>l \<gamma>" and
+        domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L'" and
         gr_L_L'_\<gamma>: "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" and
         tr_false: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)" and
         C_renaing: "\<exists>D \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>"
@@ -913,6 +902,8 @@ next
         unfolding Some Cl_def option.case prod.case
       proof (intro conjI)
         show "L = L' \<cdot>l \<gamma>" by (rule L_def)
+      next
+        show "subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L'" by (rule domain_\<gamma>)
       next
         show "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" by (rule gr_L_L'_\<gamma>)
       next
@@ -932,6 +923,7 @@ lemma sound_trail_propagate:
   assumes
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     not_tr_def_\<Gamma>_L_\<sigma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)" and
+    domain_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls C \<union> vars_lit L" and
     gr_C_L_\<sigma>: "is_ground_cls ((C + {#L#}) \<cdot> \<sigma>)" and
     tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
     ex_renaming: "\<exists>D\<in>N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = D \<cdot> \<rho>"
@@ -944,9 +936,9 @@ next
   show "sound_trail N U \<Gamma>"
     by (rule sound_\<Gamma>)
 next
-  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and>
+  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> subst_domain \<sigma> \<subseteq> vars_cls C \<union> vars_lit L \<and> is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and>
     (\<exists>D\<in>N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = D \<cdot> \<rho>)"
-    using gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> ex_renaming by auto
+    using domain_\<sigma> gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> ex_renaming by auto
 qed
 
 lemma sound_trail_decide:
@@ -1029,6 +1021,7 @@ proof (induction S S' rule: scl.induct)
   from propagate.hyps have
     C_in: "C \<in> N \<union> U" and
     rename_C: "C'' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C" and
+    domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C'' \<union> vars_lit L" and
     gr_C''_L_\<gamma>: "is_ground_cls ((C'' + {#L#}) \<cdot> \<gamma>)"
     by simp_all
 
@@ -1224,7 +1217,7 @@ next
     using fin_N fin_U disj_N_U ball_\<Gamma>_ground sound_\<Gamma> N_entails_U
     by simp
 next
-  case (resolve \<Gamma> \<Gamma>' L \<delta> C D \<sigma> k \<rho> U L' \<rho>_inv \<mu> \<sigma>' \<delta>')
+  case (resolve \<Gamma> \<Gamma>' L \<delta> C D \<sigma> k \<rho> U L' \<mu>)
   from resolve.prems have
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
@@ -1244,16 +1237,12 @@ next
   from resolve.hyps fin have is_renaming_\<rho>: "is_renaming \<rho>"
     using is_renaming_renaming_wrt
     by (metis finite.emptyI finite.insertI finite_UnI finite_clss_of_trail)
-  from resolve.hyps have \<sigma>'_def: "\<sigma>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<sigma>" by simp
-  from resolve.hyps have \<delta>'_def: "\<delta>' = restrict_subst (vars_cls ((D + C) \<cdot> \<mu>)) \<delta>" by simp
 
   have "C + {#L#} \<in> clss_of_trail \<Gamma>"
     unfolding \<Gamma>_def by simp
 
   from sound_\<Gamma> \<Gamma>_def have tr_undef_\<Gamma>'_L_\<delta>: "\<not> trail_defined_lit \<Gamma>' (L \<cdot>l \<delta>)"
     by (auto simp: trail_propagate_def elim: sound_trail.cases)
-
-  have dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (C + {#L#})" sorry
 
   have vars_D_L'_vars_C_L_disj: "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
     apply(rule disj_N_U_\<Gamma>_D_L_L'[unfolded disjoint_vars_iff_inter_empty,
@@ -1263,9 +1252,11 @@ next
   from sound_\<Gamma> have
     gr_C_L_\<delta>: "is_ground_cls ((C + {#L#}) \<cdot> \<delta>)" and
     tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" and
-    ex_renamed_in_N_U: "\<exists>CC \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = CC \<cdot> \<rho>"
+    ex_renamed_in_N_U: "\<exists>CC \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L#} = CC \<cdot> \<rho>" and
+    dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (C + {#L#})"
+    unfolding sound_trail.simps[of _ _ \<Gamma>]
     unfolding \<Gamma>_def trail_propagate_def
-    by (auto elim: sound_trail.cases)
+    by auto
 
   have is_imgu_\<mu>_full:
     "Unifiers.is_imgu \<mu> (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset (C + D)))"
@@ -1317,12 +1308,13 @@ next
   qed
 
   moreover have
-    "subst_domain (restrict_subst (vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma> \<odot> \<delta>))
-      \<subseteq> vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>)"
+    "subst_domain (restrict_subst (vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>))
+      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)) \<subseteq> vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>)"
     by (meson subst_domain_restrict_subst)
 
   moreover have
-    "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma> \<odot> \<delta>))"
+    "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
+      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
   proof -
     have "is_ground_cls (D \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming' \<rho> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming' \<rho> \<cdot> \<sigma> \<cdot> \<delta>)"
       unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>] is_ground_cls_union
@@ -1346,11 +1338,11 @@ next
         by (metis is_ground_cls_union subst_cls_union)
     qed
     thus ?thesis
-      by (simp add: subst_cls_restrict_subst_idem resolve.hyps(4))
+      by (simp add: subst_cls_restrict_subst_idem)
   qed
 
   moreover have "trail_false_cls \<Gamma>
-    ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma> \<odot> \<delta>))"
+    ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
       unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
   proof -
     have "trail_false_cls \<Gamma> (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
@@ -1421,9 +1413,9 @@ next
         qed
       qed
     qed
-    thus "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (\<rho>_inv \<odot> \<sigma> \<odot> \<delta>))"
+    thus "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
+      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
       apply (simp add: subst_cls_restrict_subst_idem)
-      unfolding resolve.hyps(4)
       unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
       by assumption
   qed
