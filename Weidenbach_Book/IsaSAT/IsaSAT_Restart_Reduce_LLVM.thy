@@ -22,29 +22,55 @@ sepref_def find_local_restart_target_level_fast_code
   by sepref
 
 
-sepref_def find_local_restart_target_level_st_fast_code
-  is \<open>find_local_restart_target_level_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_st_alt_def isasat_bounded_assn_def PR_CONST_def
-    fold_tuple_optimizations
-  by sepref
+definition find_local_restart_target_level_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>find_local_restart_target_level_st_fast_code = (read_all_wl_heur_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N))\<close>
+
+global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
+  P = \<open>\<lambda>_ _. True\<close> and
+  f' = \<open>find_local_restart_target_level_int\<close> and
+  f = \<open>find_local_restart_target_level_fast_code\<close> and
+  x_assn = \<open>uint32_nat_assn\<close>
+  rewrites
+    \<open>(read_all_wl_heur (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_int M N)) = find_local_restart_target_level_st\<close> and
+    \<open>(read_all_wl_heur_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N)) = find_local_restart_target_level_st_fast_code\<close>
+  apply unfold_locales
+  apply (subst lambda_comp_true)
+  apply (rule find_local_restart_target_level_fast_code.refine)
+  subgoal by (auto simp: read_all_wl_heur_def find_local_restart_target_level_st_def
+    intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: find_local_restart_target_level_st_fast_code_def)
+  done
+
+lemmas [sepref_fr_rules] = find_restart_lvl.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = find_local_restart_target_level_st_fast_code_def[unfolded read_all_wl_heur_code_def]
+
+lemma empty_Q_alt_def:
+  \<open>empty_Q = (\<lambda>S. do{
+  let (M, S) = extract_trail_wl_heur S;
+  let (heur, S) = extract_heur_wl_heur S;
+  j \<leftarrow> mop_isa_length_trail M;
+  RETURN (update_heur_wl_heur (restart_info_restart_done_heur heur) (update_literals_to_update_wl_heur j (update_trail_wl_heur M S)))
+    })\<close>
+  by (auto simp: state_extractors empty_Q_def intro!: ext split: isasat_int.splits)
 
 sepref_def empty_Q_fast_code
   is \<open>empty_Q\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding empty_Q_def isasat_bounded_assn_def fold_tuple_optimizations
+  unfolding empty_Q_alt_def
   by sepref
 
 sepref_register cdcl_twl_local_restart_wl_D_heur
     empty_Q find_decomp_wl_st_int
 
+(*TODO: deduplicate*)
+lemma [def_pat_rules]: \<open>count_decided_st_heur$S \<equiv> isa_count_decided_st$S\<close>
+  by (auto simp: isa_count_decided_st_def count_decided_st_heur_def)
+
 sepref_def cdcl_twl_local_restart_wl_D_heur_fast_code
   is \<open>cdcl_twl_local_restart_wl_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_local_restart_wl_D_heur_def PR_CONST_def
-    fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 
@@ -206,12 +232,31 @@ qed
 
 end
 
+lemma sort_vdom_heur_alt_def:
+  \<open>sort_vdom_heur = (\<lambda>S\<^sub>0. do {
+    let (vdom, S) = extract_vdom_wl_heur S\<^sub>0;
+    ASSERT (vdom = get_aivdom S\<^sub>0);
+    let (M', S) = extract_trail_wl_heur S;
+    ASSERT (M' = get_trail_wl_heur S\<^sub>0);
+    let (arena, S) = extract_arena_wl_heur S;
+    ASSERT (arena = get_clauses_wl_heur S\<^sub>0);
+    ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
+    ASSERT(length (get_vdom_aivdom vdom) \<le> length arena);
+    (arena', vdom) \<leftarrow> isa_remove_deleted_clauses_from_avdom M' arena vdom;
+    ASSERT(valid_sort_clause_score_pre arena (get_vdom_aivdom vdom));
+    ASSERT(EQ (length arena) (length arena'));
+    ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
+    vdom \<leftarrow> sort_clauses_by_score arena' vdom;
+    RETURN (update_arena_wl_heur arena' (update_vdom_wl_heur vdom (update_trail_wl_heur M' S)))
+    })\<close>
+   by (auto intro!: ext split: isasat_int.splits simp: sort_vdom_heur_def state_extractors)
+
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply sort_clauses_by_score_invI[intro]
     [[goals_limit=1]]
-  unfolding sort_vdom_heur_def isasat_bounded_assn_def EQ_def
+  unfolding sort_vdom_heur_alt_def EQ_def
   by sepref
 
 

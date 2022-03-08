@@ -53,7 +53,7 @@ lemma end_of_restart_phase_stats_end_of_restart_phase:
   \<open>(end_of_restart_phase_stats, end_of_restart_phase) \<in> heur_rel \<rightarrow> word_rel\<close>
   by (auto simp: end_of_restart_phase_def code_hider_rel_def)
 
-lemmas [sepref_fr_rules] =
+lemmas end_of_restart_phase_impl_refine[sepref_fr_rules] =
   end_of_restart_phase_impl.refine[FCOMP end_of_restart_phase_stats_end_of_restart_phase,
     unfolded heuristic_assn_alt_def[symmetric]]
 
@@ -105,7 +105,7 @@ lemma get_restart_count_stats_get_restart_count:
   \<open>(get_restart_count_stats, get_restart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
   by (auto simp: code_hider_rel_def get_restart_count_def)
 
-lemmas [sepref_fr_rules] =
+lemmas get_restart_count_impl_refine[sepref_fr_rules] =
   get_restart_count_impl.refine[FCOMP get_restart_count_stats_get_restart_count,
   unfolded stats_assn_alt_def[symmetric]]
 
@@ -119,41 +119,181 @@ lemma get_lrestart_count_stats_get_lrestart_count:
   \<open>(get_lrestart_count_stats, get_lrestart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
   by (auto simp: code_hider_rel_def get_lrestart_count_def)
 
-lemmas [sepref_fr_rules] =
+lemmas get_lrestart_count_impl_refine[sepref_fr_rules] =
   get_lrestart_count_impl.refine[FCOMP get_lrestart_count_stats_get_lrestart_count,
   unfolded stats_assn_alt_def[symmetric]]
 
-(*END Move*)
+  (*END Move*)
+definition end_of_restart_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>end_of_restart_phase_st_impl = read_heur_wl_heur_code end_of_restart_phase_impl\<close>
 
-sepref_def end_of_restart_phase_st_impl
-  is \<open>RETURN o end_of_restart_phase_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding end_of_restart_phase_st_def isasat_bounded_assn_def
-  by sepref
+global_interpretation end_of_restart_phase: read_heur_param_adder0 where
+  f' = \<open>RETURN o end_of_restart_phase\<close> and
+  f = end_of_restart_phase_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o end_of_restart_phase) = RETURN o end_of_restart_phase_st\<close> and
+    \<open>read_heur_wl_heur_code end_of_restart_phase_impl = end_of_restart_phase_st_impl\<close>
+  apply unfold_locales
+  apply (rule end_of_restart_phase_impl_refine)
+  subgoal by (auto simp: read_all_wl_heur_def end_of_restart_phase_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: end_of_restart_phase_st_impl_def)
+  done
+ 
+definition end_of_rephasing_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>end_of_rephasing_phase_st_impl = read_heur_wl_heur_code end_of_rephasing_phase_heur_stats_impl\<close>
 
-sepref_def end_of_rephasing_phase_st_impl
-  is \<open>RETURN o end_of_rephasing_phase_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding end_of_rephasing_phase_st_def isasat_bounded_assn_def
-  by sepref
+global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
+  f' = \<open>RETURN o end_of_rephasing_phase_heur\<close> and
+  f = end_of_rephasing_phase_heur_stats_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o end_of_rephasing_phase_heur) = RETURN o end_of_rephasing_phase_st\<close> and
+    \<open>read_heur_wl_heur_code end_of_rephasing_phase_heur_stats_impl = end_of_rephasing_phase_st_impl\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: read_all_wl_heur_def end_of_rephasing_phase_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: end_of_rephasing_phase_st_impl_def)
+  done
+
+
+lemmas [sepref_fr_rules] = end_of_restart_phase.refine end_of_rephasing_phase.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  end_of_restart_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
+  end_of_rephasing_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_phases
 
+lemma update_restart_phases_alt_def:
+  \<open>update_restart_phases = (\<lambda>S. do {
+     let (heur, S) = extract_heur_wl_heur S;
+     heur \<leftarrow> RETURN (incr_restart_phase heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     RETURN (update_heur_wl_heur heur S)
+  })\<close>
+  by (auto simp: update_restart_phases_def state_extractors split: isasat_int.splits intro!: ext)
+
 sepref_def update_restart_phases_impl
   is \<open>update_restart_phases\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding update_restart_phases_def isasat_bounded_assn_def
-    fold_tuple_optimizations
+  unfolding update_restart_phases_alt_def
   by sepref
 
 sepref_register upper_restart_bound_not_reached
 
+definition get_restart_count_st where
+  \<open>get_restart_count_st S = get_restart_count (get_stats_heur S)\<close>
+
+definition get_restart_count_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_restart_count_st_impl = read_stats_wl_heur_code get_restart_count_impl\<close>
+
+global_interpretation restart_count: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_restart_count\<close> and
+  f = get_restart_count_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_restart_count) = RETURN o get_restart_count_st\<close> and
+    \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_restart_count_impl_refine; assumption)
+  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_restart_count_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_restart_count_st_impl_def)
+  done
+
+definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_lrestart_count_impl\<close>
+
+(*TODO check if this is the right statistics to read!*)
+global_interpretation reduction_count: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_lrestart_count\<close> and
+  f = get_lrestart_count_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_lrestart_count) = RETURN o get_reductions_count\<close> and
+    \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
+  apply unfold_locales
+  apply (rule get_lrestart_count_impl_refine)
+  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_reductions_count_fast_code_def)
+  done
+
+definition get_slow_ema_heur_full where
+  \<open>get_slow_ema_heur_full S = ema_get_value (slow_ema_of S)\<close>
+definition get_fast_ema_heur_full where
+  \<open>get_fast_ema_heur_full S = ema_get_value (fast_ema_of S)\<close>
+
+sepref_def get_slow_ema_heur_full_impl
+  is \<open>RETURN o get_slow_ema_heur_full\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_slow_ema_heur_full_def
+  by sepref
+
+sepref_def get_fast_ema_heur_full_impl
+  is \<open>RETURN o get_fast_ema_heur_full\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_fast_ema_heur_full_def
+  by sepref
+
+definition get_slow_ema_heur_st where
+  \<open>get_slow_ema_heur_st S = ema_get_value (get_slow_ema_heur S)\<close>
+definition get_fast_ema_heur_st where
+  \<open>get_fast_ema_heur_st S = ema_get_value (get_fast_ema_heur S)\<close>
+
+definition get_slow_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_slow_ema_heur_st_impl = read_heur_wl_heur_code get_slow_ema_heur_full_impl\<close>
+
+definition get_fast_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_fast_ema_heur_st_impl = read_heur_wl_heur_code get_fast_ema_heur_full_impl\<close>
+
+global_interpretation slow_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o get_slow_ema_heur_full\<close> and
+  f = get_slow_ema_heur_full_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o get_slow_ema_heur_full) = RETURN o get_slow_ema_heur_st\<close> and
+    \<open>read_heur_wl_heur_code get_slow_ema_heur_full_impl = get_slow_ema_heur_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_slow_ema_heur_full_impl.refine)
+  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_slow_ema_heur_st_def
+      get_slow_ema_heur_full_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
+  done
+
+global_interpretation fast_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o get_fast_ema_heur_full\<close> and
+  f = get_fast_ema_heur_full_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o get_fast_ema_heur_full) = RETURN o get_fast_ema_heur_st\<close> and
+    \<open>read_heur_wl_heur_code get_fast_ema_heur_full_impl = get_fast_ema_heur_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_fast_ema_heur_full_impl.refine)
+  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_fast_ema_heur_st_def
+      get_fast_ema_heur_full_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
+  done
+
+lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_restart_count_st_impl_def[unfolded read_all_wl_heur_code_def]
+  get_reductions_count_fast_code_def[unfolded read_all_wl_heur_code_def]
+  get_fast_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
+  get_slow_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
+
+find_theorems get_restart_count RETURN
 sepref_def upper_restart_bound_not_reached_fast_impl
   is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
-    fold_tuple_optimizations
+  unfolding upper_restart_bound_not_reached_def PR_CONST_def
+    fold_tuple_optimizations get_restart_count_st_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -161,8 +301,9 @@ sepref_register lower_restart_bound_not_reached
 sepref_def lower_restart_bound_not_reached_impl
   is \<open>(RETURN o lower_restart_bound_not_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
-    fold_tuple_optimizations
+  unfolding lower_restart_bound_not_reached_def PR_CONST_def
+    get_restart_count_st_def[symmetric] opts_reduction_st_def[symmetric]
+    opts_restart_st_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -180,15 +321,6 @@ sepref_def uint32_nat_assn_impl
   unfolding max_restart_decision_lvl_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
-
-sepref_def get_reductions_count_fast_code
-  is \<open>RETURN o get_reductions_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_reduction_count_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_register get_reductions_count
-
 
 sepref_def GC_required_heur_fast_code
   is \<open>uncurry GC_required_heur\<close>
@@ -213,21 +345,40 @@ sepref_def restart_required_heur_fast_code
      uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
   supply [[goals_limit=1]] isasat_fast_def[simp] clss_size_allcount_alt_def[simp]
     learned_clss_count_def[simp]
-  unfolding restart_required_heur_def
+  unfolding restart_required_heur_def get_slow_ema_heur_st_def[symmetric]
+    get_fast_ema_heur_st_def[symmetric]
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+(*TODO Move to trail*)
+sepref_def replace_reason_in_trail_code
+  is \<open>uncurry2 replace_reason_in_trail\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (sint64_nat_assn)\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding trail_pol_fast_assn_def replace_reason_in_trail_def trail_update_reason_at_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
+  by sepref
+
+(*END Move*)
+lemma isasat_replace_annot_in_trail_alt_def:
+  \<open>isasat_replace_annot_in_trail L C = (\<lambda>S. do {
+    let (lcount, S) = extract_lcount_wl_heur S;
+    let (M, S) = extract_trail_wl_heur S;
+    let lcount = clss_size_resetUS0 lcount;
+    M \<leftarrow> replace_reason_in_trail L C M;
+    RETURN (update_trail_wl_heur M (update_lcount_wl_heur lcount S))
+  })\<close>
+  by (auto simp: isasat_replace_annot_in_trail_def state_extractors
+        intro!: ext split: isasat_int.splits)
 sepref_register isasat_replace_annot_in_trail
 sepref_def isasat_replace_annot_in_trail_code
   is \<open>uncurry2 isasat_replace_annot_in_trail\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (sint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_replace_annot_in_trail_def isasat_bounded_assn_def
-    trail_pol_fast_assn_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
+  unfolding isasat_replace_annot_in_trail_alt_def
   by sepref
 
 sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
@@ -274,7 +425,7 @@ sepref_register number_clss_to_keep
 
 
 lemma [sepref_fr_rules]:
-  \<open>(return o id, RETURN o unat) \<in> word64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  \<open>(Mreturn o id, RETURN o unat) \<in> word64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
 proof -
   have [simp]: \<open>(\<lambda>s. \<exists>xa. (\<up>(xa = unat x) \<and>* \<up>(xa = unat x)) s) = \<up>True\<close>
     by (intro ext)
@@ -287,12 +438,16 @@ proof -
     done
 qed
 
+lemma number_clss_to_keep_impl_alt_def:
+  \<open>number_clss_to_keep_impl = (\<lambda>S.
+    RETURN (length_tvdom S >> 1))\<close>
+  by (auto intro!: ext simp: length_tvdom_def length_tvdom_aivdom_def number_clss_to_keep_impl_def)
+
 sepref_def number_clss_to_keep_fast_code
   is \<open>number_clss_to_keep_impl\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding number_clss_to_keep_impl_def isasat_bounded_assn_def
-    fold_tuple_optimizations
+  unfolding number_clss_to_keep_impl_alt_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -306,10 +461,12 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
     number_clss_to_keep_impl_number_clss_to_keep, simplified]
   by auto
 
+(*TODO Move to IsaSAT_Setup2*)
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [llvm_code del] = units_since_last_GC_st_code_def
 experiment
 begin
-  export_llvm restart_required_heur_fast_code
-    access_avdom_at_fast_code
+  export_llvm restart_required_heur_fast_code access_avdom_at_fast_code
 end
 
 end

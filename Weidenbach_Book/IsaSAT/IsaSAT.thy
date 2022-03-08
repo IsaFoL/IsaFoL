@@ -44,29 +44,9 @@ definition conclusive_CDCL_run :: \<open>'v clauses \<Rightarrow> 'v prag_st \<R
        (pget_conflict U \<noteq> None \<longrightarrow> (CS \<noteq> {#} \<and> count_decided (pget_trail U) = 0 \<and>
           unsatisfiable (set_mset CS)))\<close>
 
-lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longrightarrow>
-  twl_stgy_invs S \<Longrightarrow>
-  clauses_to_update S = {#} \<Longrightarrow>
-  get_conflict S = None \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
-  apply (rule order_trans)
-  apply (rule cdcl_twl_stgy_restart_prog_spec; assumption?)
-  unfolding conclusive_TWL_run_def twl_restart_def
-  apply (rule SPEC_rule)
-  apply normalize_goal+
-  by fast
+lemmas cdcl_twl_stgy_restart_restart_prog_spec = cdcl_twl_stgy_restart_prog_spec
 
-
-lemma cdcl_twl_stgy_restart_prog_bounded_spec: \<open>twl_struct_invs S \<Longrightarrow>
-  twl_stgy_invs S \<Longrightarrow>
-  clauses_to_update S = {#} \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S) \<Longrightarrow>
-  get_conflict S = None \<Longrightarrow>
-  cdcl_twl_stgy_restart_prog_bounded S \<le> conclusive_TWL_run_bounded S\<close>
-  apply (rule order_trans)
-  apply (rule cdcl_twl_stgy_prog_bounded_spec; assumption?)
-  by auto
+lemmas cdcl_twl_stgy_restart_prog_bounded_spec = cdcl_twl_stgy_prog_bounded_spec
 
 lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
@@ -1806,23 +1786,20 @@ proof -
     using 1 2 by simp
 qed
 
-definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_model_of_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
-     (False, (fst (get_trail_wl_heur U)),
-       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). get_content stat) U)\<close>
+     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U))\<close>
 
 lemma extract_model_of_state_stat_alt_def:
   \<open>extract_model_of_state_stat U =
      (let _ = print_trail_st2 U in
-     (False, (fst (get_trail_wl_heur U)),
-  (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). get_content stat) U))\<close>
+     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U)))\<close>
   unfolding extract_model_of_state_stat_def print_trail_st2_def
   by auto
 
-definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_state_stat U =
-     (True, [],
-      (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, stat, _, _). get_content stat) U)\<close>
+     (True, [], get_content (get_stats_heur U))\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
@@ -1868,7 +1845,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur True CS (S, []);
-	T \<leftarrow> rewatch_heur_st T;
+	T \<leftarrow> rewatch_heur_st_init T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
@@ -1877,8 +1854,8 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
            _ \<leftarrow> isasat_information_banner T;
-           ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-             lst_As \<noteq> None) T);
+           ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+             lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -1894,7 +1871,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
           S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
           (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur True CS (S, []);
           let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
-          T \<leftarrow> rewatch_heur_st T;
+          T \<leftarrow> rewatch_heur_st_init T;
           if \<not>get_conflict_wl_is_None_heur_init T
           then RETURN (empty_init_code)
           else if CS = [] then empty_conflict_code
@@ -1902,8 +1879,8 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
            _ \<leftarrow> isasat_information_banner T;
-           ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-             lst_As \<noteq> None) T);
+           ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+             lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -1919,10 +1896,10 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
              ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
              ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
              _ \<leftarrow> isasat_information_banner T;
-             ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-               lst_As \<noteq> None) T);
+             ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+               lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
              ASSERT(rewatch_heur_st_fast_pre T);
-             T \<leftarrow> rewatch_heur_st_fast T;
+             T \<leftarrow> rewatch_heur_st_init T;
              ASSERT(isasat_fast_init T);
              T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
              ASSERT(isasat_fast T);
@@ -2000,7 +1977,7 @@ lemma IsaSAT_heur_alt_def:
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init, _) \<leftarrow>  init_dt_wl_heur True CS (S, []);
-        T \<leftarrow> rewatch_heur_st T;
+        T \<leftarrow> rewatch_heur_st_init T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
@@ -2008,8 +1985,8 @@ lemma IsaSAT_heur_alt_def:
         else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-             lst_As \<noteq> None) T);
+           ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+               lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -2023,7 +2000,7 @@ lemma IsaSAT_heur_alt_def:
         if failed then do {
            S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
           (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur True CS (S, []);
-          T \<leftarrow> rewatch_heur_st T;
+          T \<leftarrow> rewatch_heur_st_init T;
           let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
           if \<not>get_conflict_wl_is_None_heur_init T
           then RETURN (empty_init_code)
@@ -2031,8 +2008,8 @@ lemma IsaSAT_heur_alt_def:
           else do {
            ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
            ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-           ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-             lst_As \<noteq> None) T);
+            ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+               lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
@@ -2047,10 +2024,10 @@ lemma IsaSAT_heur_alt_def:
           else do {
              ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
              ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
-             ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-               lst_As \<noteq> None) T);
+             ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+               lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
              ASSERT(rewatch_heur_st_fast_pre T);
-             T \<leftarrow> rewatch_heur_st_fast T;
+             T \<leftarrow> rewatch_heur_st_init T;
              ASSERT(isasat_fast_init T);
              T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
              ASSERT(isasat_fast T);
@@ -2091,7 +2068,7 @@ lemma rewatch_heur_st_rewatch_st:
     \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) True O
     {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}}\<close> and
     \<open>x = (U, C)\<close>
-  shows \<open>rewatch_heur_st U \<le>
+  shows \<open>rewatch_heur_st_init U \<le>
     \<Down>(rewatch_heur_st_rewatch_st_rel CS U V)
            (rewatch_st (from_init_state V))\<close>
 proof -
@@ -2101,31 +2078,34 @@ proof -
            {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close>
     using assms(1) unfolding assms(2) by simp
   obtain M' arena D' j W' vm \<phi> clvls cach lbd vdom M N D NE UE NS US Q W OC failed N0 U0 NEk UEk where
-    U: \<open>U = ((M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed))\<close> and
+    (* U: \<open>U = ((M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed))\<close> and *)
     V: \<open>V = ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W), OC)\<close>
-    by (cases U; cases V) auto
-  have valid: \<open>valid_arena arena N (set vdom)\<close> and
-    dist: \<open>distinct vdom\<close> and
-    vdom_N: \<open>mset vdom = dom_m N\<close> and
-    watched: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 ?\<A>)\<close> and
+    by (cases V) auto
+  let ?vdom = \<open>(get_vdom_heur_init U)\<close>
+  let ?W' = \<open>get_watchlist_wl_heur_init U\<close>
+  let ?arena = \<open>get_clauses_wl_heur_init U\<close>
+  have valid: \<open>valid_arena ?arena N (set ?vdom)\<close> and
+    dist: \<open>distinct ?vdom\<close> and
+    vdom_N: \<open>mset ?vdom = dom_m N\<close> and
+    watched: \<open>(?W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 ?\<A>)\<close> and
     lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm ?\<A> (mset `# ran_mf N)\<close> and
     vdom: \<open>vdom_m ?\<A> W N \<subseteq> set_mset (dom_m N)\<close>
-    using UV by (auto simp: twl_st_heur_parsing_no_WL_def U V distinct_mset_dom
+    using UV by (auto simp: twl_st_heur_parsing_no_WL_def V distinct_mset_dom
       empty_watched_def vdom_m_def literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def
       all_lits_of_mm_union
       simp flip: distinct_mset_mset_distinct)
 
   show ?thesis
     using UV
-    unfolding rewatch_heur_st_def rewatch_st_def
-    apply (simp only: prod.simps from_init_state_def fst_conv nres_monad1 U V)
+    unfolding rewatch_heur_st_def rewatch_st_def rewatch_heur_st_init_def
+    apply (simp only: prod.simps from_init_state_def fst_conv nres_monad1 V)
     apply refine_vcg
     subgoal by (auto simp: twl_st_heur_parsing_no_WL_def dest: valid_arena_vdom_subset)
     apply (rule rewatch_heur_rewatch[OF valid _ dist _ watched lall])
     subgoal by simp
     subgoal using vdom_N[symmetric] by simp
     subgoal  by (auto simp: vdom_m_def)
-    subgoal by (auto simp: U V twl_st_heur_parsing_def Collect_eq_comp'
+    subgoal by (auto simp: V twl_st_heur_parsing_def Collect_eq_comp'
       twl_st_heur_parsing_no_WL_def ac_simps)
     done
 qed
@@ -2135,7 +2115,7 @@ lemma rewatch_heur_st_rewatch_st2:
     T: \<open>(U, V)
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) True O
        {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close>
-  shows \<open>rewatch_heur_st_fast
+  shows \<open>rewatch_heur_st_init
           (convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) U)
          \<le> \<Down> ({(S,T). (S, T) \<in> twl_st_heur_parsing (mset_set (extract_atms_clss CS {})) True \<and>
          get_clauses_wl_heur_init S = get_clauses_wl_heur_init U \<and>
@@ -2165,7 +2145,7 @@ lemma rewatch_heur_st_rewatch_st3:
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) False O
        {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close> and
      failed: \<open>\<not>is_failed_heur_init U\<close>
-  shows \<open>rewatch_heur_st_fast
+  shows \<open>rewatch_heur_st_init
           (convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) U)
          \<le> \<Down> (rewatch_heur_st_rewatch_st_rel CS U V)
             (rewatch_st (from_init_state V))\<close>
@@ -2286,7 +2266,7 @@ proof -
   let ?TT = \<open>rewatch_heur_st_rewatch_st_rel CS\<close>
   have get_conflict_wl_is_None_heur_init: \<open>(Tb, Tc) \<in> ?TT U V \<Longrightarrow>
     (\<not> get_conflict_wl_is_None_heur_init Tb) = (get_conflict_wl Tc \<noteq> None)\<close> for Tb Tc U V
-    by (cases V) (auto simp: twl_st_heur_parsing_def Collect_eq_comp'
+    by (cases V; cases \<open>get_conflict_wl_heur_init U\<close>) (auto simp: twl_st_heur_parsing_def Collect_eq_comp'
       get_conflict_wl_is_None_heur_init_def
       option_lookup_clause_rel_def)
   have get_conflict_wl_is_None_heur_init3: \<open>(TC, Ta)
@@ -2299,38 +2279,27 @@ proof -
     by (cases T; cases Ta) (auto simp: twl_st_heur_parsing_no_WL_def
       get_conflict_wl_is_None_heur_init_def
       option_lookup_clause_rel_def)
-  have finalise_init_nempty: \<open>x1i \<noteq> None\<close> \<open>x1j \<noteq> None\<close>
+  have finalise_init_nempty: \<open>x1c \<noteq> None\<close> \<open>x1d \<noteq> None\<close>
     if
       T: \<open>(Tb, Tc)  \<in> ?TT U V\<close> and
       nempty: \<open>extract_atms_clss CS {} \<noteq> {}\<close> and
-      st:
-        \<open>x2g = (x1j, x2h)\<close>
-	\<open>x2f = (x1i, x2g)\<close>
-	\<open>x2e = (x1h, x2f)\<close>
-	\<open>x1f = (x1g, x2e)\<close>
-	\<open>x1e = (x1f, x2i)\<close>
-	\<open>x2j = (x1k, x2k)\<close>
-	\<open>x2d = (x1e, x2j)\<close>
-	\<open>x2c = (x1d, x2d)\<close>
-	\<open>x2b = (x1c, x2c)\<close>
-	\<open>x2a = (x1b, x2b)\<close>
-	\<open>x2 = (x1a, x2a)\<close> and
-      conv: \<open>convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) Tb =
-       (x1, x2)\<close>
+      st: \<open>x1 = (x1a, x2)\<close>
+        \<open>x2 = (x1b, x2b)\<close>
+        \<open>x2b = (x1c, x2c)\<close>
+        \<open>x2c = (x1d, x2d)\<close> and
+     conv: \<open>get_vmtf_wl_heur_init (convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) Tb) = (x1, x2h)\<close>
     for ba S T Ta Tb Tc uu x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x1f
       x1g x2e x1h x2f x1i x2g x1j x2h x2i x2j x1k x2k U V
   proof -
-    show \<open>x1i \<noteq> None\<close>
+    show \<open>x1c \<noteq> None\<close>
       using T conv nempty
       unfolding st
-      by (cases x1i)
-       (auto simp: convert_state_def twl_st_heur_parsing_def
+      by (auto simp: convert_state_def twl_st_heur_parsing_def
         isa_vmtf_init_def vmtf_init_def mset_set_empty_iff)
-    show \<open>x1j \<noteq> None\<close>
+    show \<open>x1d \<noteq> None\<close>
       using T conv nempty
       unfolding st
-      by (cases x1i)
-       (auto simp: convert_state_def twl_st_heur_parsing_def
+      by (auto simp: convert_state_def twl_st_heur_parsing_def
         isa_vmtf_init_def vmtf_init_def mset_set_empty_iff)
   qed
 
@@ -2410,42 +2379,33 @@ proof -
       get_conflict_wl_is_None_heur_init_def twl_st_heur_parsing_no_WL_def
       option_lookup_clause_rel_def convert_state_def from_init_state_def)
 
-  have finalise_init2:  \<open>x1i \<noteq> None\<close> \<open>x1j \<noteq> None\<close>
+  have finalise_init2: \<open>x1c \<noteq> None\<close> \<open>x1d \<noteq> None\<close>
     if
       T: \<open>(TC, Ta)
        \<in> {((T, _), Ta). (T, Ta) \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) b O
 	 {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}}\<close> and
       nempty: \<open>extract_atms_clss CS {} \<noteq> {}\<close> and
       st:
-        \<open>x2g = (x1j, x2h)\<close>
-	\<open>x2f = (x1i, x2g)\<close>
-	\<open>x2e = (x1h, x2f)\<close>
-	\<open>x1f = (x1g, x2e)\<close>
-	\<open>x1e = (x1f, x2i)\<close>
-	\<open>x2j = (x1k, x2k)\<close>
-	\<open>x2d = (x1e, x2j)\<close>
-	\<open>x2c = (x1d, x2d)\<close>
-	\<open>x2b = (x1c, x2c)\<close>
-	\<open>x2a = (x1b, x2b)\<close>
-	\<open>x2 = (x1a, x2a)\<close>
-        \<open>TC = (T, C)\<close> and
-      conv: \<open>convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T =
-       (x1, x2)\<close>
+        \<open>TC = (T, C)\<close> 
+        \<open>x1 = (x1a, x2)\<close>
+        \<open>x2 = (x1b, x2b)\<close>
+        \<open>x2b = (x1c, x2c)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+      and
+     conv: \<open>get_vmtf_wl_heur_init (convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T) = (x1, x2h)\<close>
      for uu ba S T Ta baa uua uub x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x1f
        x1g x2e x1h x2f x1i x2g x1j x2h x2i x2j x1k x2k b TC C
-  proof -
-      show \<open>x1i \<noteq> None\<close>
-      using T conv nempty
+   proof -
+      show \<open>x1c \<noteq> None\<close>
+      using T nempty conv
       unfolding st
-      by (cases x1i)
-       (auto simp: convert_state_def twl_st_heur_parsing_def
+      by (auto simp: convert_state_def twl_st_heur_parsing_def
          twl_st_heur_parsing_no_WL_def
         isa_vmtf_init_def vmtf_init_def mset_set_empty_iff)
-    show \<open>x1j \<noteq> None\<close>
-      using T conv nempty
+    show \<open>x1d \<noteq> None\<close>
+      using T nempty conv
       unfolding st
-      by (cases x1i)
-       (auto simp: convert_state_def twl_st_heur_parsing_def
+      by (auto simp: convert_state_def twl_st_heur_parsing_def
          twl_st_heur_parsing_no_WL_def
         isa_vmtf_init_def vmtf_init_def mset_set_empty_iff)
   qed
@@ -2507,15 +2467,9 @@ proof -
     \<open>virtual_copy (mset_set (extract_atms_clss CS {})) \<noteq> {#}\<close> and
     \<open>isasat_input_bounded_nempty
       (virtual_copy (mset_set (extract_atms_clss CS {})))\<close> and
-    \<open>case convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T of
-     (M', N', D', Q', W', xa, xb) \<Rightarrow>
-       (case xa of
-        (x, xa) \<Rightarrow>
-          (case x of
-           (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
-             \<lambda>to_remove (\<phi>, clvls). fst_As \<noteq> None \<and> lst_As \<noteq> None)
-           xa)
-        xb\<close> and
+    \<open>(\<lambda>x. case x of
+           ((ns, m, fst_As, lst_As, next_search), to_remove) \<Rightarrow> fst_As \<noteq> None \<and> lst_As \<noteq> None)
+           (get_vmtf_wl_heur_init (convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T))\<close> and
     T: \<open>(Tb, Tc) \<in> ?TT T Ta\<close> and
     failed: \<open>\<not>is_failed_heur_init T\<close> and
     TC: \<open>TC = (T, C)\<close>
@@ -2690,6 +2644,7 @@ proof -
       learned_clss_count_init_def)
     apply (rule finalise_init_code2; assumption?)
     subgoal by clarsimp
+    subgoal by clarsimp
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps
       learned_clss_count_init_def learned_clss_count_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Tc)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
@@ -2711,11 +2666,6 @@ qed
 
 definition length_get_clauses_wl_heur_init where
   \<open>length_get_clauses_wl_heur_init S = length (get_clauses_wl_heur_init S)\<close>
-
-lemma length_get_clauses_wl_heur_init_alt_def:
-  \<open>RETURN o length_get_clauses_wl_heur_init = (\<lambda>(_, N,_). RETURN (length N))\<close>
-  unfolding length_get_clauses_wl_heur_init_def
-  by auto
 
 definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>model_if_satisfiable CS = SPEC (\<lambda>M.
@@ -3191,8 +3141,8 @@ proof -
            apply (rule struct_invs; fail)
           apply (rule stgy_invs; fail)
          apply (rule clss_to_upd; fail)
-         apply (rule init[unfolded state\<^sub>W_of_def[symmetric]]; fail)
-       apply (use confl in \<open>simp add: twl_st_init\<close>; fail)
+        apply (use confl in \<open>simp add: twl_st_init\<close>; fail)
+       apply (rule init[unfolded state\<^sub>W_of_def[symmetric]]; fail)
       apply (rule conclusive_le)
       done
   qed
@@ -3856,10 +3806,10 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
         ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
         _ \<leftarrow> isasat_information_banner T;
-        ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-          lst_As \<noteq> None) T);
+        ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+          lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
         ASSERT(rewatch_heur_st_fast_pre T);
-        T \<leftarrow> rewatch_heur_st_fast T;
+        T \<leftarrow> rewatch_heur_st_init T;
         ASSERT(isasat_fast_init T);
         T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
         _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
@@ -3900,10 +3850,10 @@ lemma IsaSAT_bounded_heur_alt_def:
       else do {
          ASSERT(\<A>\<^sub>i\<^sub>n' \<noteq> {#});
          ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n');
-         ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
-           lst_As \<noteq> None) T);
+        ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+          lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
          ASSERT(rewatch_heur_st_fast_pre T);
-         T \<leftarrow> rewatch_heur_st_fast T;
+         T \<leftarrow> rewatch_heur_st_init T;
          ASSERT(isasat_fast_init T);
          T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
          ASSERT(isasat_fast T);
@@ -4019,7 +3969,7 @@ proof -
 	 get_conflict_wl (fst T) = get_conflict_wl (fst V) \<and>
 	 get_unit_clauses_wl (fst T) = get_unit_clauses_wl (fst V)} O {(S, T). S = (T, {#})}) \<Longrightarrow>
     (\<not> get_conflict_wl_is_None_heur_init Tb) = (get_conflict_wl Tc \<noteq> None)\<close> for Tb Tc U V
-    by (cases V) (auto simp: twl_st_heur_parsing_def Collect_eq_comp'
+    by (cases V; cases \<open>get_conflict_wl_heur_init U\<close>) (auto simp: twl_st_heur_parsing_def Collect_eq_comp'
       get_conflict_wl_is_None_heur_init_def
       option_lookup_clause_rel_def)
   have get_conflict_wl_is_None_heur_init3: \<open>(T, Ta)
@@ -4043,16 +3993,9 @@ proof -
         \<open>x2g = (x1j, x2h)\<close>
 	\<open>x2f = (x1i, x2g)\<close>
 	\<open>x2e = (x1h, x2f)\<close>
-	\<open>x1f = (x1g, x2e)\<close>
-	\<open>x1e = (x1f, x2i)\<close>
-	\<open>x2j = (x1k, x2k)\<close>
-	\<open>x2d = (x1e, x2j)\<close>
-	\<open>x2c = (x1d, x2d)\<close>
-	\<open>x2b = (x1c, x2c)\<close>
-	\<open>x2a = (x1b, x2b)\<close>
-	\<open>x2 = (x1a, x2a)\<close> and
-      conv: \<open>convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) Tb =
-       (x1, x2)\<close>
+	\<open>x1f = (x1g, x2e)\<close>and
+      conv: \<open>get_vmtf_wl_heur_init(convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) Tb) =
+       (x1f, x2)\<close>
     for ba S T Ta Tb Tc uu x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x1f
       x1g x2e x1h x2f x1i x2g x1j x2h x2i x2j x1k x2k U V
   proof -
@@ -4151,16 +4094,9 @@ proof -
         \<open>x2g = (x1j, x2h)\<close>
 	\<open>x2f = (x1i, x2g)\<close>
 	\<open>x2e = (x1h, x2f)\<close>
-	\<open>x1f = (x1g, x2e)\<close>
-	\<open>x1e = (x1f, x2i)\<close>
-	\<open>x2j = (x1k, x2k)\<close>
-	\<open>x2d = (x1e, x2j)\<close>
-	\<open>x2c = (x1d, x2d)\<close>
-	\<open>x2b = (x1c, x2c)\<close>
-	\<open>x2a = (x1b, x2b)\<close>
-	\<open>x2 = (x1a, x2a)\<close> and
-      conv: \<open>convert_state ((mset_set (extract_atms_clss CS {}))) T =
-       (x1, x2)\<close>
+	\<open>x1f = (x1g, x2e)\<close> and
+      conv: \<open>get_vmtf_wl_heur_init (convert_state ((mset_set (extract_atms_clss CS {}))) T) =
+       (x1f, x2)\<close>
      for uu ba S T Ta baa uua uub x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x1f
        x1g x2e x1h x2f x1i x2g x1j x2h x2i x2j x1k x2k b
   proof -
@@ -4237,15 +4173,8 @@ proof -
     \<open>virtual_copy (mset_set (extract_atms_clss CS {})) \<noteq> {#}\<close> and
     \<open>isasat_input_bounded_nempty
       (virtual_copy (mset_set (extract_atms_clss CS {})))\<close> and
-    \<open>case convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T of
-     (M', N', D', Q', W', xa, xb) \<Rightarrow>
-       (case xa of
-        (x, xa) \<Rightarrow>
-          (case x of
-           (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
-             \<lambda>to_remove (\<phi>, clvls). fst_As \<noteq> None \<and> lst_As \<noteq> None)
-           xa)
-        xb\<close> and
+    \<open>case get_vmtf_wl_heur_init(convert_state (virtual_copy (mset_set (extract_atms_clss CS {}))) T) of
+       ((ns, m, fst_As, lst_As, next_search),to_remove) \<Rightarrow> fst_As \<noteq> None \<and> lst_As \<noteq> None\<close> and
     T: \<open>(Tb, Tc) \<in> ?TT T Ta\<close> and
     failed: \<open>\<not>is_failed_heur_init T\<close>
     for uu ba S T Ta baa uua uub V W b Tb Tc
@@ -4341,11 +4270,12 @@ proof -
     subgoal by (rule distinct_mset_mset_set)
     apply (rule init_dt_wl_heur_b[of \<open>mset_set (extract_atms_clss CS {})\<close>])
     subgoal by (auto simp: lits_C)
-    subgoal by(auto simp: twl_st_heur_parsing_no_WL_wl_def
+    subgoal by (clarsimp simp: twl_st_heur_parsing_no_WL_wl_def
        twl_st_heur_parsing_no_WL_def to_init_state_def
        init_state_wl_def init_state_wl_heur_def
        inres_def RES_RES_RETURN_RES
-       RES_RETURN_RES ac_simps)
+       RES_RETURN_RES)
+      (auto simp add: ac_simps)
     subgoal by auto
     subgoal by (simp add: empty_conflict_code_def model_stat_rel_def
       empty_init_code_def)

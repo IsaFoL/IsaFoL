@@ -1653,21 +1653,20 @@ next
   ultimately show ?case using IH finite_subset by fastforce
 qed
 
-
 definition sum_count_ge_2 :: "'a multiset set \<Rightarrow> nat" ("\<Xi>") where
-"sum_count_ge_2 \<equiv> folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
+"sum_count_ge_2 \<equiv> folding_on.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0"
 
 
 interpretation sum_count_ge_2:
   folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0
 rewrites
-  "folding.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
+  "folding_on.F (\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})) 0 = sum_count_ge_2"
 proof -
   show "folding (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#})))"
     by standard auto
   then interpret sum_count_ge_2:
     folding "\<lambda>\<phi>. (+)(sum_mset {#count \<phi> L |L \<in># \<phi>. 2 \<le> count \<phi> L#})" 0 .
-  show "folding.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
+  show "folding_on.F (\<lambda>\<phi>. (+) (sum_mset (image_mset (count \<phi>) {# L \<in># \<phi>. 2 \<le> count \<phi> L#}))) 0
     = sum_count_ge_2" by (auto simp add: sum_count_ge_2_def)
 qed
 

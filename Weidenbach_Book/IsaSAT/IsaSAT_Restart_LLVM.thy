@@ -16,6 +16,16 @@ sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_register delete_index_and_swap mop_mark_garbage_heur mop_mark_garbage_heur3
   mop_access_lit_in_clauses_heur
 
+(*TODO deduplicate*)
+lemma [def_pat_rules]: \<open>get_the_propagation_reason_heur \<equiv> get_the_propagation_reason_pol_st\<close>
+proof -
+  have \<open>get_the_propagation_reason_heur = get_the_propagation_reason_pol_st\<close>
+    by (auto intro!: ext simp: get_the_propagation_reason_pol_st_def
+      get_the_propagation_reason_heur_def)
+  then show  \<open>get_the_propagation_reason_heur \<equiv> get_the_propagation_reason_pol_st\<close>
+   by auto
+qed 
+
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

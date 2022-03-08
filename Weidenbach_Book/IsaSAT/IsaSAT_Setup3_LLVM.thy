@@ -196,6 +196,9 @@ lemma incr_restart_stat_alt_def:
      let (heur, S) = extract_heur_wl_heur S;
      let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
      let S = update_heur_wl_heur heur S;
+     let (stats, S) = extract_stats_wl_heur S;
+     let stats = incr_restart stats;
+     let S = update_stats_wl_heur stats S;
      RETURN S
   })\<close>
   by (auto simp: incr_restart_stat_def state_extractors split: isasat_int.splits

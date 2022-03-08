@@ -98,31 +98,89 @@ sepref_def isasat_GC_clauses_prog_wl2_code
   apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
+definition split_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
+  \<open>split_vmtf = (\<lambda>x. x)\<close>
+
+sepref_def split_vmtf_impl
+  is \<open>RETURN o split_vmtf\<close>
+  :: \<open>vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
+  unfolding vmtf_remove_assn_def split_vmtf_def
+  by sepref
+
+definition recombine_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
+  \<open>recombine_vmtf = (\<lambda>x. x)\<close>
+
+sepref_def recombine_vmtf_impl
+  is \<open>RETURN o recombine_vmtf\<close>
+  :: \<open>(vmtf_assn \<times>\<^sub>a distinct_atoms_assn)\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
+  unfolding vmtf_remove_assn_def recombine_vmtf_def
+  by sepref
+
+term vmtf_remove_assn
+lemma isasat_GC_clauses_prog_wl_alt_def:
+  \<open>isasat_GC_clauses_prog_wl = (\<lambda>S\<^sub>0. do {
+     let (vm, S) = extract_vmtf_wl_heur S\<^sub>0;
+    let ((ns, st, fst_As, lst_As, nxt), to_remove) = split_vmtf vm;
+    let (N', S) = extract_arena_wl_heur S;
+    ASSERT (N' = get_clauses_wl_heur S\<^sub>0);
+    let (W', S) = extract_watchlist_wl_heur S;
+    let (vdom, S) = extract_vdom_wl_heur S;
+    let (old_arena, S) = extract_old_arena_wl_heur S;
+    ASSERT(old_arena = []);
+    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As)
+        (N', (old_arena, empty_aivdom vdom), W');
+    let S = update_watchlist_wl_heur WS S;
+    let S = update_arena_wl_heur N' S;
+    let S = update_old_arena_wl_heur (take 0 N) S;
+    let vm = recombine_vmtf ((ns, st, fst_As, lst_As, nxt), to_remove);
+    let S = update_vmtf_wl_heur vm S;
+    let (stats, S) = extract_stats_wl_heur S;
+    let S = update_stats_wl_heur (incr_GC stats) S;
+    let S = update_vdom_wl_heur vdom S;
+    RETURN S
+      })\<close>
+      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors update_old_arena_wl_heur_def recombine_vmtf_def split_vmtf_def
+        extract_old_arena_wl_heur_def Let_def isasat_state_ops.remove_old_arena_wl_heur_def intro!: ext bind_cong[OF refl]
+        split: isasat_int.splits)
+
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
 sepref_def isasat_GC_clauses_prog_wl_code
   is \<open>isasat_GC_clauses_prog_wl\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-     isasat_GC_clauses_prog_wl2'_def[symmetric] vmtf_remove_assn_def
-    atom.fold_option fold_tuple_optimizations
+  unfolding isasat_GC_clauses_prog_wl_alt_def
+     isasat_GC_clauses_prog_wl2'_def[symmetric]
+    atom.fold_option
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma rewatch_heur_st_pre_alt_def:
   \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i \<in> set (get_tvdom S). i \<le> sint64_max)\<close>
   by (auto simp: rewatch_heur_st_pre_def all_set_conv_nth)
+lemma rewatch_heur_st_alt_def:
+  \<open>rewatch_heur_st = (\<lambda>S\<^sub>0. do {
+  let (vdom, S) = extract_vdom_wl_heur S\<^sub>0;
+  ASSERT (vdom = get_aivdom S\<^sub>0);
+  let (N, S) = extract_arena_wl_heur S;
+  ASSERT (N = get_clauses_wl_heur S\<^sub>0);
+  let (W, S) = extract_watchlist_wl_heur S;
+  ASSERT(length (get_tvdom_aivdom vdom) \<le> length N);
+  W \<leftarrow> rewatch_heur (get_tvdom_aivdom vdom) N W;
+  RETURN (update_watchlist_wl_heur W (update_arena_wl_heur N (update_vdom_wl_heur vdom S)))
+  })\<close>
+  by (auto simp: rewatch_heur_st_def state_extractors split: isasat_int.splits intro!: ext)
 
 sepref_def rewatch_heur_st_code
   is \<open>rewatch_heur_st\<close>
   :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  append_ll_def[simp]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-    rewatch_heur_st_def Let_def rewatch_heur_st_pre_alt_def rewatch_heur_vdom_def[symmetric]
+  unfolding isasat_GC_clauses_prog_wl_def
+    rewatch_heur_st_alt_def rewatch_heur_st_pre_alt_def rewatch_heur_vdom_def[symmetric]
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
 
+(*TODO Move*)
 lemma get_clauses_wl_heur_empty_US[simp]:
     \<open>get_clauses_wl_heur (empty_US_heur xc) = get_clauses_wl_heur xc\<close> and
   get_vdom_empty_US[simp]:

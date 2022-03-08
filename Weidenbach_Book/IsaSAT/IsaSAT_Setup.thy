@@ -177,20 +177,20 @@ fun get_slow_ema_heur :: \<open>isasat \<Rightarrow> ema\<close> where
 fun get_conflict_count_heur :: \<open>isasat \<Rightarrow> restart_info\<close> where
   \<open>get_conflict_count_heur S = restart_info_of (get_heur S)\<close>
 
-fun get_vdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_vdom S = get_vdom_aivdom (get_aivdom S)\<close>
+abbreviation get_vdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_vdom S \<equiv> get_vdom_aivdom (get_aivdom S)\<close>
 
-fun get_avdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_avdom S = get_avdom_aivdom (get_aivdom S)\<close>
+abbreviation get_avdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_avdom S \<equiv> get_avdom_aivdom (get_aivdom S)\<close>
 
-fun get_ivdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_ivdom S = get_ivdom_aivdom (get_aivdom S)\<close>
+abbreviation get_ivdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_ivdom S \<equiv> get_ivdom_aivdom (get_aivdom S)\<close>
 
-fun get_tvdom :: \<open>isasat \<Rightarrow> nat list\<close> where
-  \<open>get_tvdom S = get_tvdom_aivdom (get_aivdom S)\<close>
+abbreviation get_tvdom :: \<open>isasat \<Rightarrow> nat list\<close> where
+  \<open>get_tvdom S \<equiv> get_tvdom_aivdom (get_aivdom S)\<close>
 
-fun get_learned_count_number :: \<open>isasat \<Rightarrow> nat\<close> where
-  \<open>get_learned_count_number S = clss_size_lcount (get_learned_count S)\<close>
+abbreviation get_learned_count_number :: \<open>isasat \<Rightarrow> nat\<close> where
+  \<open>get_learned_count_number S \<equiv> clss_size_lcount (get_learned_count S)\<close>
 
 definition get_restart_phase :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_restart_phase = (\<lambda>S.
@@ -1099,7 +1099,8 @@ definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasa
   \<open>mark_garbage_heur C i = (\<lambda>S.
     let N' = extra_information_mark_to_delete (get_clauses_wl_heur S) C in
     let lcount = clss_size_decr_lcount (get_learned_count S) in
-    set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))\<close>
+    let vdom = remove_inactive_aivdom i (get_aivdom S) in
+    set_aivdom_wl_heur vdom (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S)))\<close>
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>S. do{
@@ -1114,10 +1115,11 @@ definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
 definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>mark_garbage_heur3 C i = (\<lambda>S.
     let N' = get_clauses_wl_heur S in
-    let N' = extra_information_mark_to_delete (N') C in
+    let N' = extra_information_mark_to_delete N' C in
     let lcount = get_learned_count S in
     let vdom = get_aivdom S in
     let vdom = remove_inactive_aivdom_tvdom i vdom in
+    let lcount = clss_size_decr_lcount lcount in
     let S = set_clauses_wl_heur N' S in
     let S = set_learned_count_wl_heur lcount S in
     let S = set_aivdom_wl_heur vdom S in
@@ -1244,6 +1246,8 @@ definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> 
      let heur = get_heur S;
      let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
      let S = set_heur_wl_heur heur S;
+     let stats = get_stats_heur S;
+     let S = set_stats_wl_heur (incr_restart stats) S;
      RETURN S
   })\<close>
 
@@ -1458,6 +1462,7 @@ lemma restart_info_of_stats_simp [simp]: \<open>restart_info_of_stats (incr_wast
 
   by (cases heur; auto; fail)+
 lemma incr_wasted_st_twl_st[simp]:
+  \<open>get_aivdom (incr_wasted_st b T) = get_aivdom T\<close>
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
   \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
   \<open>get_ivdom (incr_wasted_st w T) = get_ivdom T\<close>
@@ -1467,7 +1472,18 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
   \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
-  by (cases T; auto simp: incr_wasted_st_def incr_wasted_st_def incr_wasted_def restart_info_of_def; fail)+
+  \<open>literals_to_update_wl_heur (incr_wasted_st C T) = literals_to_update_wl_heur T\<close>
+  \<open>get_watched_wl_heur (incr_wasted_st C T) = get_watched_wl_heur T\<close>
+  \<open>get_vmtf_heur (incr_wasted_st C T) = get_vmtf_heur T\<close>
+  \<open>get_count_max_lvls_heur (incr_wasted_st C T) = get_count_max_lvls_heur T\<close>
+  \<open>get_conflict_cach (incr_wasted_st C T) = get_conflict_cach T\<close>
+  \<open>get_lbd (incr_wasted_st C T) = get_lbd T\<close>
+  \<open>get_outlearned_heur (incr_wasted_st C T) = get_outlearned_heur T\<close>
+  \<open>get_aivdom (incr_wasted_st C T) = get_aivdom T\<close>
+  \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
+  \<open>get_opts (incr_wasted_st C T) = get_opts T\<close>
+  \<open>get_old_arena (incr_wasted_st C T) = get_old_arena T\<close>
+  by (cases T; auto simp: incr_wasted_st_def incr_wasted_def restart_info_of_def; fail)+
 
 definition heuristic_reluctant_triggered2_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>heuristic_reluctant_triggered2_st S = heuristic_reluctant_triggered2 (get_heur S)\<close>

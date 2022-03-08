@@ -1,7 +1,6 @@
 theory IsaSAT_CDCL_LLVM
   imports IsaSAT_CDCL IsaSAT_Propagate_Conflict_LLVM IsaSAT_Other_LLVM
 begin
-term mset_rel
 
 sepref_def cdcl_twl_stgy_prog_wl_D_code
   is \<open>cdcl_twl_stgy_prog_bounded_wl_heur\<close>

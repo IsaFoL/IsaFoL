@@ -32,10 +32,6 @@ with \<^text>\<open>exctr\<close>
 starts with \<^text>\<open>read\<close>
 
 \<close>
-(* setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper ("split_all_tac"))\<close> *)
-term ll_bpto
-term ll_load
-  term ll_ref
 (*TODO Move*)
 
 paragraph \<open>Options\<close>
@@ -3488,6 +3484,72 @@ lemma mop_refine:
   apply (rule refine_ASSERT_move_to_pre3)
   apply (rule refine)
   done
+end
+
+
+locale read_trail_vmtf_param_adder =
+  fixes P :: \<open>'b \<Rightarrow> _ \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> bool\<close> and f' :: \<open>'b \<Rightarrow> trail_pol \<Rightarrow> _ \<Rightarrow> 'r nres\<close> and
+     R :: \<open>('a \<times> 'b) set\<close> and f and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close>
+  assumes not_deleted_code_refine: \<open>(uncurry2 (\<lambda>S T C. f C S T), uncurry2 (\<lambda>S T C'. f' C' S T)) \<in> [uncurry2 (\<lambda>S T C. P C S T)]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+lemma not_deleted_code_refine':
+  \<open>(uncurry16 (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ C. f C M N), uncurry16 (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ C'. f' C' M N)) \<in>
+  [uncurry16 (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ C'. P C' M N)]\<^sub>a
+   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+  watchlist_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a
+  lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k *\<^sub>a
+  aivdom_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k *\<^sub>a opts_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
+  apply (rule add_pure_parameter2)
+  apply (drule remove_pure_parameter2'[OF not_deleted_code_refine])
+  apply (drule remove_component_middle[where X = arena_fast_assn])
+  apply (drule remove_component_middle[where X = conflict_option_rel_assn])
+  apply (drule remove_component_middle[where X = sint64_nat_assn])
+  apply (drule remove_component_middle[where X = watchlist_fast_assn])
+  apply (drule remove_component_right[where X = uint32_nat_assn])
+  apply (drule remove_component_right[where X = cach_refinement_l_assn])
+  apply (drule remove_component_right[where X = lbd_assn])
+  apply (drule remove_component_right[where X = out_learned_assn])
+  apply (drule remove_component_right[where X = stats_assn])
+  apply (drule remove_component_right[where X = heuristic_assn])
+  apply (drule remove_component_right[where X = aivdom_assn])
+  apply (drule remove_component_right[where X = lcount_assn])
+  apply (drule remove_component_right[where X = opts_assn])
+  apply (drule remove_component_right[where X = arena_fast_assn])
+  by (rule hfref_cong, assumption) auto
+
+sublocale XX : read_all_param_adder where
+  f = \<open>(\<lambda>C M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ . f C M N)\<close> and
+  f' = \<open>(\<lambda>C M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ . f' C M N)\<close> and
+  P = \<open>(\<lambda>C M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ . P C M N)\<close>
+  by unfold_locales
+   (rule not_deleted_code_refine')
+
+lemmas refine = XX.refine
+end
+
+lemma hn_refine_frame''': "hn_refine (F**G) c (F'**G') R CP m \<Longrightarrow> hn_refine (F**G**H) c (F'**G'**H) R CP m"
+  by (metis hn_refine_frame_mid'' sep.mult_commute)
+
+locale read_trail_vmtf_param_adder0 =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S T. f S T), uncurry (\<lambda>S T. f' S T)) \<in> [uncurry (\<lambda>S T. P S T)]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+sublocale XX: read_trail_vmtf_param_adder where
+  f = \<open>\<lambda>_::unit. f\<close> and
+  f' = \<open>\<lambda>_::unit. f'\<close> and
+  P = \<open>\<lambda>_::unit. P\<close> and 
+  R = \<open>unit_rel\<close>
+  apply unfold_locales
+  using not_deleted_code_refine apply -
+  unfolding hfref_def
+  apply clarsimp
+  apply (rule hn_refine_frame''')
+  apply auto
+  done
+
+lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
 
 
