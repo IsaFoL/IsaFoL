@@ -1225,109 +1225,99 @@ next
   moreover have
     "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
       (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
-  proof -
-    have "is_ground_cls (D \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming' \<rho> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming' \<rho> \<cdot> \<sigma> \<cdot> \<delta>)"
-      unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>] is_ground_cls_union
-    proof (rule conjI)
-      from gr_D_L'_\<sigma> have "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<delta>)"
-        by (metis is_ground_subst_cls)
-      hence "is_ground_cls ((D + {#L'#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-        by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif is_imgu_\<mu>_full
-            subst_cls_comp_subst)
-      thus "is_ground_cls (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-        by (metis is_ground_cls_union subst_cls_union)
-    next
-      from gr_C_L_\<delta> have "is_ground_cls ((C + {#L#}) \<cdot> \<sigma> \<cdot> \<delta>)"
-        using subst_cls_idem_if_disj_vars[of \<sigma> C]
-        using dom_\<sigma> vars_D_L'_vars_C_L_disj
-        by (smt (verit, best) Int_assoc inf.orderE inf_bot_right subst_cls_idem_if_disj_vars)
-      hence "is_ground_cls ((C + {#L#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-        by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif is_imgu_\<mu>_full
-            subst_cls_comp_subst)
-      thus "is_ground_cls (C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-        by (metis is_ground_cls_union subst_cls_union)
-    qed
-    thus ?thesis
-      by (simp add: subst_cls_restrict_subst_idem)
+    unfolding subst_cls_restrict_subst_idem[OF subset_refl]
+    unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
+    unfolding subst_cls_union is_ground_cls_union
+  proof (rule conjI)
+    from gr_D_L'_\<sigma> have "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<delta>)"
+      by (metis is_ground_subst_cls)
+    hence "is_ground_cls ((D + {#L'#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
+      by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif is_imgu_\<mu>_full
+          subst_cls_comp_subst)
+    thus "is_ground_cls (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
+      by (metis is_ground_cls_union subst_cls_union)
+  next
+    from gr_C_L_\<delta> have "is_ground_cls ((C + {#L#}) \<cdot> \<sigma> \<cdot> \<delta>)"
+      using subst_cls_idem_if_disj_vars[of \<sigma> C]
+      using dom_\<sigma> vars_D_L'_vars_C_L_disj
+      by (smt (verit, best) Int_assoc inf.orderE inf_bot_right subst_cls_idem_if_disj_vars)
+    hence "is_ground_cls ((C + {#L#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
+      by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif is_imgu_\<mu>_full
+          subst_cls_comp_subst)
+    thus "is_ground_cls (C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
+      by (metis is_ground_cls_union subst_cls_union)
   qed
 
   moreover have "trail_false_cls \<Gamma>
     ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
-      unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
-  proof -
-    have "trail_false_cls \<Gamma> (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      unfolding trail_false_cls_def
-    proof (rule ballI)
-      fix K
-      assume "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
-      thus "trail_false_lit \<Gamma> K"
-        unfolding union_iff
-      proof (elim disjE)
-        assume K_in: "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
-        hence "K \<in># D \<cdot> \<sigma> \<cdot> \<delta>"
-          using is_imgu_\<mu>_full[unfolded Unifiers.is_imgu_def, THEN conjunct2, rule_format,
-              OF \<sigma>_\<delta>_in_unif]
-          by (metis subst_cls_comp_subst)
-        hence "K \<in># D \<cdot> \<sigma>"
-          using gr_D_L'_\<sigma> is_ground_subst_cls by (metis is_ground_cls_union subst_cls_union)
-        then show ?thesis
-          by (auto intro!: tr_false_cls[unfolded trail_false_cls_def, rule_format])
-      next
-        have tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
-          using sound_\<Gamma>
-          unfolding sound_trail.simps[of _ _ \<Gamma>]
-          unfolding \<Gamma>_def trail_propagate_def
-          by simp
+    unfolding subst_cls_restrict_subst_idem[OF subset_refl]
+    unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
+    unfolding subst_cls_union trail_false_cls_def
+  proof (rule ballI)
+    fix K
+    assume "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> + C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
+    thus "trail_false_lit \<Gamma> K"
+      unfolding union_iff
+    proof (elim disjE)
+      assume K_in: "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
+      hence "K \<in># D \<cdot> \<sigma> \<cdot> \<delta>"
+        using is_imgu_\<mu>_full[unfolded Unifiers.is_imgu_def, THEN conjunct2, rule_format,
+            OF \<sigma>_\<delta>_in_unif]
+        by (metis subst_cls_comp_subst)
+      hence "K \<in># D \<cdot> \<sigma>"
+        using gr_D_L'_\<sigma> is_ground_subst_cls by (metis is_ground_cls_union subst_cls_union)
+      then show ?thesis
+        by (auto intro!: tr_false_cls[unfolded trail_false_cls_def, rule_format])
+    next
+      have tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
+        using sound_\<Gamma>
+        unfolding sound_trail.simps[of _ _ \<Gamma>]
+        unfolding \<Gamma>_def trail_propagate_def
+        by simp
 
-        assume "K \<in># C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
-        hence "K \<in># C \<cdot> \<sigma> \<cdot> \<delta>"
-          using is_imgu_\<mu>_full[unfolded Unifiers.is_imgu_def, THEN conjunct2, rule_format,
-              OF \<sigma>_\<delta>_in_unif]
-          by (metis subst_cls_comp_subst)
-        have "K \<in># C \<cdot> \<delta>"
-        proof -
-          have "subst_domain \<sigma> \<inter> vars_cls C = {}"
-            using dom_\<sigma> vars_D_L'_vars_C_L_disj
-            by auto
-          thus ?thesis
-            using \<open>K \<in># C \<cdot> \<sigma> \<cdot> \<delta>\<close> subst_cls_idem_if_disj_vars[of \<sigma> C] by simp
-        qed
-        hence tr_false_\<Gamma>'_K:"trail_false_lit \<Gamma>' K"
-          using tr_false_cls_C[unfolded trail_false_cls_def, rule_format, of K] by simp
+      assume "K \<in># C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
+      hence "K \<in># C \<cdot> \<sigma> \<cdot> \<delta>"
+        using is_imgu_\<mu>_full[unfolded Unifiers.is_imgu_def, THEN conjunct2, rule_format,
+            OF \<sigma>_\<delta>_in_unif]
+        by (metis subst_cls_comp_subst)
+      have "K \<in># C \<cdot> \<delta>"
+      proof -
+        have "subst_domain \<sigma> \<inter> vars_cls C = {}"
+          using dom_\<sigma> vars_D_L'_vars_C_L_disj
+          by auto
+        thus ?thesis
+          using \<open>K \<in># C \<cdot> \<sigma> \<cdot> \<delta>\<close> subst_cls_idem_if_disj_vars[of \<sigma> C] by simp
+      qed
+      hence tr_false_\<Gamma>'_K:"trail_false_lit \<Gamma>' K"
+        using tr_false_cls_C[unfolded trail_false_cls_def, rule_format, of K] by simp
+      show ?thesis
+      proof (cases "L \<cdot>l \<delta>")
+        case L_Pos: (Pos t)
         show ?thesis
-        proof (cases "L \<cdot>l \<delta>")
-          case L_Pos: (Pos t)
-          show ?thesis
-          proof (cases K)
-            case K_Pos: (Pos u)
-            then show ?thesis
-              using L_Pos tr_false_\<Gamma>'_K tr_undef_\<Gamma>'_L_\<delta>
-              unfolding \<Gamma>_def trail_false_lit_def trail_propagate_def trail_defined_lit_def
-                trail_true_lit_def trail_interp_Cons'
-              by simp
-          next
-            case (Neg u)
-            then show ?thesis
-              using L_Pos tr_false_\<Gamma>'_K
-              unfolding \<Gamma>_def trail_false_lit_def trail_propagate_def
-              unfolding trail_interp_Cons' prod.sel
-              by simp
-          qed
-        next
-          case (Neg t)
+        proof (cases K)
+          case K_Pos: (Pos u)
           then show ?thesis
-            using tr_false_\<Gamma>'_K
+            using L_Pos tr_false_\<Gamma>'_K tr_undef_\<Gamma>'_L_\<delta>
+            unfolding \<Gamma>_def trail_false_lit_def trail_propagate_def trail_defined_lit_def
+              trail_true_lit_def trail_interp_Cons'
+            by simp
+        next
+          case (Neg u)
+          then show ?thesis
+            using L_Pos tr_false_\<Gamma>'_K
             unfolding \<Gamma>_def trail_false_lit_def trail_propagate_def
             unfolding trail_interp_Cons' prod.sel
             by simp
         qed
+      next
+        case (Neg t)
+        then show ?thesis
+          using tr_false_\<Gamma>'_K
+          unfolding \<Gamma>_def trail_false_lit_def trail_propagate_def
+          unfolding trail_interp_Cons' prod.sel
+          by simp
       qed
     qed
-    thus "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
-      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
-      apply (simp add: subst_cls_restrict_subst_idem)
-      unfolding subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
-      by assumption
   qed
 
   moreover have "N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
