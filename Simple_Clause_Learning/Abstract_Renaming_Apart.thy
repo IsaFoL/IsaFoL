@@ -17,13 +17,15 @@ locale renaming_apart =
 
 subsubsection \<open>Interpretation to Prove That Assumptions Are Consistent\<close>
 
+experiment begin
+
 definition renaming_apart_nats where
   "renaming_apart_nats V = (let m = Max V in (\<lambda>x. Suc (x + m)))"
 
 definition inv_renaming_apart_nats where
   "inv_renaming_apart_nats V = (let m = Max V in (\<lambda>x. if x \<in> V then x else x - m - 1))"
 
-global_interpretation renaming_apart_nats: renaming_apart renaming_apart_nats
+interpretation renaming_apart_nats: renaming_apart renaming_apart_nats
   inv_renaming_apart_nats
 proof unfold_locales
   show "\<And>V x. finite V \<Longrightarrow> renaming_apart_nats V x \<notin> V"
@@ -42,5 +44,7 @@ next
     unfolding inv_renaming_apart_nats_def
     by (simp add: Let_def)
 qed
+
+end
 
 end

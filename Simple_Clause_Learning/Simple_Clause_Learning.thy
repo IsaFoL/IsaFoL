@@ -8,25 +8,23 @@ theory Simple_Clause_Learning
     Ordered_Resolution_Prover.Herbrand_Interpretation
     First_Order_Terms.Unification
     First_Order_Terms.Subsumption
-    (* Functional_Ordered_Resolution_Prover.IsaFoR_Term *)
     Abstract_Renaming_Apart
 begin
 
 
 section \<open>List_Extra\<close>
 
-primrec find_map where
-  "find_map f [] = None" |
-  "find_map f (x # xs) = (case f x of None \<Rightarrow> find_map f xs | Some y \<Rightarrow> Some y)"
-
-lemma find_map_conv: "find_map f xs = Option.bind (find (\<lambda>x. f x \<noteq> None) xs) f"
-  by (induction xs) auto
+lemma list_map_idI: "(\<And>x. x \<in> set xs \<Longrightarrow> f x = x) \<Longrightarrow> map f xs = xs"
+  by (fact list.map_cong0[of _ _ "\<lambda>x. x", unfolded list.map_ident])
 
 
 section \<open>Multiset_Extra\<close>
 
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
   by auto
+
+lemma multiset_image_mset_idI: "(\<And>x. x \<in># M \<Longrightarrow> f x = x) \<Longrightarrow> image_mset f M = M"
+  by (fact multiset.map_cong0[of _ _ "\<lambda>x. x", unfolded multiset.map_ident])
 
 
 section \<open>Calculus_Extra\<close>
@@ -42,6 +40,9 @@ lemma true_cls_iff_set_mset_eq: "set_mset C = set_mset D \<Longrightarrow> I \<T
 
 lemma true_clss_if_set_mset_eq: "(\<forall>D \<in> \<D>. \<exists>C \<in> \<C>. set_mset D = set_mset C) \<Longrightarrow> I \<TTurnstile>s \<C> \<Longrightarrow> I \<TTurnstile>s \<D>"
   using true_cls_iff_set_mset_eq by (metis true_clss_def)
+
+lemma entails_clss_insert: "N \<TTurnstile>e insert C U \<longleftrightarrow> N \<TTurnstile>e {C} \<and> N \<TTurnstile>e U"
+  by auto
 
 
 section \<open>Abstract_Substitution_Extra\<close>
@@ -513,6 +514,20 @@ lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) \<s
 lemma subst_cls_restrict_subst_idem: "vars_cls C \<subseteq> V \<Longrightarrow> C \<cdot> restrict_subst V \<sigma> = C \<cdot> \<sigma>"
   by (simp add: restrict_subst_def same_on_vars_clause subsetD)
 
+lemma subst_clss_insert[simp]: "insert C U \<cdot>cs \<eta> = insert (C \<cdot> \<eta>) (U \<cdot>cs \<eta>)"
+  by (simp add: subst_clss_def)
+
+lemma valid_grounding_of_renaming:
+  assumes "is_renaming \<rho>"
+  shows "I \<TTurnstile>s grounding_of_cls (C \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls C"
+proof -
+  have "grounding_of_cls (C \<cdot> \<rho>) = grounding_of_cls C" (is "?lhs = ?rhs")
+    by (metis (no_types, lifting) assms subset_antisym subst_cls_comp_subst
+        subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst substitution_ops.is_renaming_def)
+  thus ?thesis
+    by simp
+qed
+
 
 subsubsection \<open>Renaming Extra\<close>
 
@@ -549,44 +564,6 @@ abbreviation renaming_wrt where
 
 abbreviation inv_renaming_wrt where
   "inv_renaming_wrt N \<equiv> Var \<circ> inv_renaming (\<Union> (vars_cls ` N))"
-
-lemma image_mset_idem:
-  assumes "\<And>x. x \<in># M \<Longrightarrow> f x = x"
-  shows "image_mset f M = M"
-  using assms
-proof (induction M rule: multiset_induct)
-  case empty
-  then show ?case by simp
-next
-  case (add x M)
-  then show ?case by simp
-qed
-
-lemma inv_renaming_wrt_idem:
-  assumes fin_N: "finite N" and x_in: "x \<in> vars_clss N"
-  shows "inv_renaming_wrt N x = Var x"
-proof -
-  from fin_N have fin_vars_N: "finite (\<Union> (vars_cls ` N))"
-    by simp
-  show ?thesis
-    using inv_renaming_idem[OF fin_vars_N] x_in
-    by (simp add: vars_clss_def)
-qed
-
-lemma subst_cls_inv_renaming_wrt_idem:
-  assumes fin_N: "finite N" and C_in: "C \<in> N"
-  shows "C \<cdot> inv_renaming_wrt N = C"
-proof -
-  from fin_N have fin_vars_N: "finite (\<Union> (vars_cls ` N))"
-    by simp
-  show ?thesis
-    unfolding subst_cls_def
-    apply (rule image_mset_idem)
-    using inv_renaming_idem[OF fin_vars_N] C_in
-    by (smt (verit, del_insts) Sup_insert UnI1 comp_apply disjoint_iff image_insert insert_Diff
-        insert_DiffM mem_Collect_eq subst_domain_def subst_lit_idem_if_disj_vars vars_cls_add_mset)
-qed
-
 
 definition inv_renaming' :: "('v \<Rightarrow> ('f, 'v) Term.term) \<Rightarrow> 'v \<Rightarrow> ('f, 'v) Term.term" where
   "inv_renaming' \<rho> \<equiv> Var \<circ> inv (the_Var \<circ> \<rho>)"
@@ -811,6 +788,20 @@ proof (rule ballI)
     by (cases L; cases M) (simp_all add: trail_interp_def trail_false_lit_def)
 qed
 
+lemma ball_trail_propagate_is_ground_lit:
+  assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit (L \<cdot>l \<sigma>)"
+  shows "\<forall>x\<in>set (trail_propagate \<Gamma> (L \<cdot>l \<sigma>) (C, L, \<sigma>)). is_ground_lit (fst x)"
+  unfolding trail_propagate_def
+  using assms
+  by simp
+
+lemma ball_trail_decide_is_ground_lit:
+  assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit L"
+  shows "\<forall>x\<in>set (trail_decide \<Gamma> L). is_ground_lit (fst x)"
+  unfolding trail_decide_def
+  using assms
+  by simp
+
 
 section \<open>SCL Calculus\<close>
 
@@ -946,10 +937,6 @@ lemma sound_trail_decide:
   unfolding trail_decide_def
   by (auto intro: sound_trail.Cons)
 
-text \<open>In contrast to Fiori and Weidenbach (CADE 2019), I lifting the entailments @{term \<open>N \<TTurnstile>e U\<close>}
-and @{term \<open>N \<TTurnstile>e {C}\<close>} from ground to non-ground with a ground substitution @{term \<eta>};
-the conjunction becomes an implication.\<close>
-
 abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
   "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
 
@@ -971,39 +958,6 @@ abbreviation initial_state :: "('f, 'v) state" where
 
 lemma sound_initial_state[simp]: "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N initial_state"
   by (simp add: sound_state_def)
-
-lemma ball_trail_propagate_is_ground_lit:
-  assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit (L \<cdot>l \<sigma>)"
-  shows "\<forall>x\<in>set (trail_propagate \<Gamma> (L \<cdot>l \<sigma>) (C, L, \<sigma>)). is_ground_lit (fst x)"
-  unfolding trail_propagate_def
-  using assms
-  by simp
-
-lemma ball_trail_decide_is_ground_lit:
-  assumes "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)" and "is_ground_lit L"
-  shows "\<forall>x\<in>set (trail_decide \<Gamma> L). is_ground_lit (fst x)"
-  unfolding trail_decide_def
-  using assms
-  by simp
-
-lemma entails_clss_insert: "N \<TTurnstile>e insert C U \<longleftrightarrow> N \<TTurnstile>e {C} \<and> N \<TTurnstile>e U"
-  by auto
-
-lemma subst_clss_insert[simp]: "insert C U \<cdot>cs \<eta> = insert (C \<cdot> \<eta>) (U \<cdot>cs \<eta>)"
-  by (simp add: subst_clss_def)
-
-lemma ball_singleton: "(\<forall>x \<in> {y}. P x) \<longleftrightarrow> P y" by simp
-
-lemma valid_grounding_of_renaming:
-  assumes "is_renaming \<rho>"
-  shows "I \<TTurnstile>s grounding_of_cls (C \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls C"
-proof -
-  have "grounding_of_cls (C \<cdot> \<rho>) = grounding_of_cls C" (is "?lhs = ?rhs")
-    by (metis (no_types, lifting) assms subset_antisym subst_cls_comp_subst
-        subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst substitution_ops.is_renaming_def)
-  thus ?thesis
-    by simp
-qed
 
 theorem scl_sound_state:
   fixes N :: "('f, 'v) Term.term clause set"
