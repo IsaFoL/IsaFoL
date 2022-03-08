@@ -847,7 +847,7 @@ section \<open>Soundness\<close>
 
 inductive sound_trail for N U where
   Nil[simp]: "sound_trail N U []" |
-  Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
+  Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
     (case u of
       None \<Rightarrow> True |
       Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
@@ -864,6 +864,8 @@ next
   show ?case
   proof (rule sound_trail.Cons)
     from Cons.hyps show "\<not> trail_defined_lit \<Gamma> L" by simp
+  next
+    from Cons.hyps show "is_ground_lit L" by simp
   next
     from Cons.prems show "sound_trail NN UU \<Gamma>"
       by (rule Cons.IH)
@@ -924,6 +926,10 @@ proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
   show "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)"
     by (rule not_tr_def_\<Gamma>_L_\<sigma>)
 next
+  show "is_ground_lit (L \<cdot>l \<sigma>)"
+    using gr_C_L_\<sigma>
+    by (metis Melem_subst_cls is_ground_cls_def mset_subset_eq_add_right single_subset_iff)
+next
   show "sound_trail N U \<Gamma>"
     by (rule sound_\<Gamma>)
 next
@@ -933,7 +939,8 @@ next
 qed
 
 lemma sound_trail_decide:
-  "sound_trail N U \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> sound_trail N U (trail_decide \<Gamma> L)"
+  "sound_trail N U \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
+  sound_trail N U (trail_decide \<Gamma> L)"
   unfolding trail_decide_def
   by (auto intro: sound_trail.Cons)
 
@@ -946,7 +953,6 @@ definition sound_state :: "('f, 'v) Term.term clause set \<Rightarrow> ('f, 'v) 
     finite N \<and> finite U \<and>
     disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>) \<and>
     (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> N \<union> U  \<union> clss_of_trail \<Gamma>. disjoint_vars C D) \<and>
-    (\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L) \<and>
     sound_trail N U \<Gamma> \<and>
     N \<TTurnstile>\<G>e U \<and>
     (case u of None \<Rightarrow> True
@@ -967,7 +973,6 @@ proof (induction S S' rule: scl.induct)
   from propagate.prems have
     fin: "finite N" "finite U" and
     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    ball_\<Gamma>_ground: "\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U"
     unfolding sound_state_def by auto
@@ -982,15 +987,6 @@ proof (induction S S' rule: scl.induct)
   have "disjoint_vars_set (N \<union> U \<union> clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<gamma>) (C'', L, \<gamma>)))"
     using fin disj_N_U_\<Gamma> C_in rename_C
     by (auto intro: disjoint_vars_set_insert_rename_clause)
-
-  moreover have "\<forall>x\<in>set (trail_propagate \<Gamma> (L \<cdot>l \<gamma>) (C'', L, \<gamma>)). is_ground_lit (fst x)"
-  proof (rule ball_trail_propagate_is_ground_lit)
-    show "\<forall>x\<in>set \<Gamma>. is_ground_lit (fst x)"
-      by (rule ball_\<Gamma>_ground)
-  next
-    show "is_ground_lit (L \<cdot>l \<gamma>)"
-      by (rule gr_C''_L_\<gamma>[unfolded is_ground_cls_def, rule_format]) simp
-  qed
 
   moreover have "sound_trail N U (trail_propagate \<Gamma> (L \<cdot>l \<gamma>) (C'', L, \<gamma>))"
   proof (rule sound_trail_propagate)
@@ -1008,7 +1004,6 @@ next
   from decide.prems have
     fin: "finite N" "finite U" and
     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    ball_\<Gamma>_ground: "\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U"
     unfolding sound_state_def by auto
@@ -1022,7 +1017,6 @@ next
     fin_N: "finite N" and
     fin_U: "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    ball_\<Gamma>_ground: "\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U"
     unfolding sound_state_def by auto
@@ -1054,7 +1048,7 @@ next
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin_N fin_U disj_N_U disj_N_U_D' ball_\<Gamma>_ground sound_\<Gamma> N_entails_U conflict.hyps
+    using fin_N fin_U disj_N_U disj_N_U_D' sound_\<Gamma> N_entails_U conflict.hyps
     by simp
 next
   case (skip L \<delta> D \<sigma> \<Gamma> C U k)
@@ -1068,7 +1062,6 @@ next
     fin_N: "finite N" and fin_U: "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     disj_N_U_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L, L'#}) C" and
-    ball_\<Gamma>_ground:"\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L, L'#})" and
@@ -1168,7 +1161,7 @@ next
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin_N fin_U disj_N_U ball_\<Gamma>_ground sound_\<Gamma> N_entails_U
+    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U
     by simp
 next
   case (resolve \<Gamma> \<Gamma>' L \<delta> C D \<sigma> k \<rho> U L' \<mu>)
@@ -1176,7 +1169,6 @@ next
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L'#}) C" and
-    ball_\<Gamma>_ground:"\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
@@ -1442,7 +1434,7 @@ next
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin disj_N_U ball_\<Gamma>_ground sound_\<Gamma> N_entails_U
+    using fin disj_N_U sound_\<Gamma> N_entails_U
     by simp
 next
   case (backtrack \<Gamma> L \<sigma> k D i U)
@@ -1450,7 +1442,6 @@ next
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L#}) C" and
-    ball_\<Gamma>_ground:"\<forall>L \<in> set \<Gamma>. is_ground_lit (fst L)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     N_entails_U: "N \<TTurnstile>\<G>e U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
@@ -1476,9 +1467,6 @@ next
       using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
       using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym by blast
   qed
-
-  moreover have "\<forall>L \<in> set (trail_backtrack \<Gamma> i). is_ground_lit (fst L)"
-    by (rule ball_set_trail_backtrackI[OF ball_\<Gamma>_ground])
 
   moreover have "sound_trail N (insert (add_mset L D) U) (trail_backtrack \<Gamma> i)"
     using backtrack
