@@ -862,51 +862,15 @@ proof (induction \<Gamma> rule: sound_trail.induct)
 next
   case (Cons \<Gamma> L u)
   show ?case
-  proof (rule sound_trail.Cons)
-    from Cons.hyps show "\<not> trail_defined_lit \<Gamma> L" by simp
-  next
-    from Cons.hyps show "is_ground_lit L" by simp
-  next
-    from Cons.prems show "sound_trail NN UU \<Gamma>"
-      by (rule Cons.IH)
-  next
-    show
+  proof (intro sound_trail.Cons)
+    from Cons show
       "case u of
         None \<Rightarrow> True
-      | Some (C, L', \<gamma>) \<Rightarrow>
-        L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
-        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
-        (\<exists>D \<in> NN \<union> UU. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)"
-    proof (cases u)
-      case None
-      thus ?thesis by simp
-    next
-      case (Some Cl)
-      from Cons.hyps Some obtain C L' \<gamma> where
-        Cl_def: "Cl = (C, L', \<gamma>)" and
-        L_def: "L = L' \<cdot>l \<gamma>" and
-        domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L'" and
-        gr_L_L'_\<gamma>: "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" and
-        tr_false: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)" and
-        C_renaing: "\<exists>D \<in> N \<union> U. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>"
-        by fastforce
-
-      show ?thesis
-        unfolding Some Cl_def option.case prod.case
-      proof (intro conjI)
-        show "L = L' \<cdot>l \<gamma>" by (rule L_def)
-      next
-        show "subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L'" by (rule domain_\<gamma>)
-      next
-        show "is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>)" by (rule gr_L_L'_\<gamma>)
-      next
-        show "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)" by (rule tr_false)
-      next
-        show "\<exists>D\<in>NN \<union> UU. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>"
-          using Cons.prems C_renaing by fast
-      qed
-    qed
-  qed
+      | Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
+          is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+          (\<exists>D \<in> NN \<union> UU. \<exists>\<rho>. is_renaming \<rho> \<and> C + {#L'#} = D \<cdot> \<rho>)"
+      by (cases u) auto
+  qed (use Cons in simp_all)
 qed
 
 lemma sound_trail_backtrackI: "sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U (trail_backtrack \<Gamma> level)"
