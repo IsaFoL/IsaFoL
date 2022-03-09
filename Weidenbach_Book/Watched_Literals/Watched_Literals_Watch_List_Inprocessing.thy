@@ -274,7 +274,7 @@ lemma [twl_st_wl, simp]:
 
 lemma simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st:
   assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and
-    point: \<open>correct_watching'' S\<close> and
+    point: \<open>correct_watching'_nobin S\<close> and
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
     \<open>simplify_clauses_with_unit_st_wl S \<le> \<Down> {(S',T). (S',T) \<in> state_wl_l None \<and>
@@ -296,7 +296,7 @@ proof -
     no_lost_clause_in_WL S' \<and>
     get_watched_wl S = get_watched_wl S'}\<close>
     if \<open>simplify_clauses_with_unit_st_pre T\<close>
-    using assms correct_watching''_clauses_pointed_to0[OF ST] that
+    using assms that correct_watching'_nobin_clauses_pointed_to0[OF ST]
     unfolding simplify_clauses_with_unit_st_inv_def
       simplify_clauses_with_unit_st_pre_def
     by auto
@@ -346,20 +346,19 @@ qed
 
 definition simplify_clauses_with_units_st_wl_pre where
   \<open>simplify_clauses_with_units_st_wl_pre S \<longleftrightarrow>
-  (\<exists>T. (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition simplify_clauses_with_units_st_wl where
   \<open>simplify_clauses_with_units_st_wl S = do {
     ASSERT(simplify_clauses_with_units_st_wl_pre S);
-    new_units \<leftarrow> SPEC (\<lambda>_. True);
+    new_units \<leftarrow> SPEC (\<lambda>b. b \<longrightarrow> get_conflict_wl S = None);
     if new_units
     then simplify_clauses_with_unit_st_wl S
     else RETURN S}\<close>
 
 lemma simplify_clauses_with_units_st_wl_simplify_clause_with_units_st:
   assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and
-    point: \<open>correct_watching'' S\<close> and
+    point: \<open>correct_watching'_nobin S\<close> and
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
     \<open>simplify_clauses_with_units_st_wl S \<le> \<Down> {(S',T). (S',T) \<in> state_wl_l None \<and>
@@ -369,12 +368,13 @@ lemma simplify_clauses_with_units_st_wl_simplify_clause_with_units_st:
   unfolding simplify_clauses_with_units_st_wl_def simplify_clauses_with_units_st_def
   apply (refine_vcg simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st)
   subgoal using assms unfolding simplify_clauses_with_units_st_wl_pre_def by fast
-  subgoal by auto
+  subgoal using ST by auto
+  subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms by auto
   subgoal using assms unfolding simplify_clauses_with_units_st_pre_def
-    by (fast intro!: correct_watching''_clauses_pointed_to0(2))
+    by (fast intro!: correct_watching'_nobin_clauses_pointed_to0(2))
   done
 
 
@@ -1252,7 +1252,6 @@ proof -
         rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[of S' x2b]
       by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_def st blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
   qed
-    find_theorems "WHILEIT _ _ _ _ \<le>\<Down>  _ _"
   show ?thesis
     supply [[goals_limit=1]]
     using assms unfolding deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_def
@@ -1335,7 +1334,7 @@ definition mark_duplicated_binary_clauses_as_garbage_wl :: \<open>_ \<Rightarrow
 lemma mark_duplicated_binary_clauses_as_garbage_wl:
   assumes  \<open>(S, S') \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
   shows \<open>mark_duplicated_binary_clauses_as_garbage_wl S \<le>
-    \<Down> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S}
+    \<Down> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}
     (mark_duplicated_binary_clauses_as_garbage S')\<close>
 proof -
   let ?R = \<open>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>f Id\<close>
