@@ -284,6 +284,14 @@ lemma mset_as_position_remove2:
   by (smt add_mset_commute add_mset_diff_bothsides atm_of_uminus insert_DiffM
    literal.exhaust_sel minus_notin_trivial2 remove_1_mset_id_iff_notin uminus_not_id')
 
+lemma mset_as_position_remove3:
+  \<open>mset_as_position xs (D - {#L#}) \<Longrightarrow> atm_of L < length xs \<Longrightarrow> distinct_mset D \<Longrightarrow>
+   mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
+  using mset_as_position_remove2[of xs \<open>D - {#L#}\<close> \<open>L\<close>] mset_as_position_tautology[of xs \<open>remove1_mset L D\<close>]
+    mset_as_position_distinct_mset[of xs \<open>remove1_mset L D\<close>]
+  by (cases \<open>L \<in># D\<close>; cases \<open>-L \<in># D\<close>)
+    (auto dest!: multi_member_split simp: minus_notin_trivial ac_simps add_mset_eq_add_mset tautology_add_mset)
+
 definition (in -) delete_from_lookup_conflict
    :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel nres\<close> where
   \<open>delete_from_lookup_conflict = (\<lambda>L (n, xs). do {

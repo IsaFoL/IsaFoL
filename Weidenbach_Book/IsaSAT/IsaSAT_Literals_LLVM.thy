@@ -2,12 +2,26 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
     More_Sepref.WB_More_Sepref_LLVM
 begin
+(*TODO: should move out to More_Sepref.WB_More_Sepref_LLVM*)
 
+hide_const (open) NEMonad.RETURN
+
+lemma aal_assn_boundsD':
+  assumes A: \<open>rdomp (aal_assn' TYPE('l::len2) TYPE('ll::len2) A) xss\<close> and \<open>i < length xss\<close>
+  shows \<open>length (xss ! i) < max_snat LENGTH('ll)\<close>
+  using aal_assn_boundsD_aux1[OF A] assms
+  by auto
+(**)
 abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>
 abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
 abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
-hide_const (open) NEMonad.RETURN
+
+abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>snat64_assn \<equiv> snat_assn\<close>
+abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
+abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>
+
+abbreviation unat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>unat32_assn \<equiv> unat_assn\<close>
 
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
@@ -27,6 +41,8 @@ lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
   \<open>(RETURN o\<^sub>1\<^sub>5 f15)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo = RETURN$(f15$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>6 f16)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p = RETURN$(f16$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p)\<close>
   \<open>(RETURN o\<^sub>1\<^sub>7 f17)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q = RETURN$(f17$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>8 f18)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q$r = RETURN$(f18$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q$r)\<close>
+  \<open>(RETURN o\<^sub>1\<^sub>9 f19)$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q$r$s = RETURN$(f19$a$b$c$d$e$f$g$h$i$j$k$l$m$n$xo$p$q$r$s)\<close>
   by simp_all
 
 method synthesize_free =
@@ -72,6 +88,8 @@ lemma hn_case_prod_open'[sepref_comb_rules]:
 lemma ho_prod_open_move[sepref_preproc]: \<open>case_prod_open (\<lambda>a b x. f x a b) = (\<lambda>p x. case_prod_open (f x) p)\<close>
   by (auto)
 
+lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
+  unfolding op_list_list_upd_def by auto
 
 definition \<open>tuple4 a b c d \<equiv> (a,b,c,d)\<close>
 definition \<open>tuple7 a b c d e f g \<equiv> tuple4 a b c (tuple4 d e f g)\<close>
@@ -97,27 +115,6 @@ sepref_def tuple13_impl [llvm_inline] is \<open>uncurry12 (RETURN o\<^sub>1\<^su
 lemmas fold_tuple_optimizations = fold_tuples fold_case_prod_open
 
 
-
-(*
-(* TODO: Also for max_unat, and move to default simpset of Sepref! *)
-lemma max_snat_numeral[simp]:
-  \<open>0 < max_snat n\<close>
-  \<open>1 < max_snat n \<longleftrightarrow> n>1\<close>
-  \<open>numeral x < max_snat n \<longleftrightarrow> (numeral x ::nat) < 2^(n-1)\<close>
-  subgoal by (auto simp: max_snat_def) []
-  subgoal unfolding max_snat_def by (metis nat_neq_iff nat_power_eq_Suc_0_iff nat_zero_less_power_iff not_less_eq numerals(2) power_0 zero_less_Suc zero_less_diff)
-  subgoal by (auto simp: max_snat_def) []
-  done
-
-lemma max_unat_numeral[simp]:
-  \<open>0 < max_unat n\<close>
-  \<open>1 < max_unat n \<longleftrightarrow> n>0\<close>
-  \<open>numeral x < max_unat n \<longleftrightarrow> (numeral x ::nat) < 2^n\<close>
-  subgoal by (auto simp: max_unat_def) []
-  subgoal unfolding max_unat_def by (metis nat_neq_iff nat_power_eq_Suc_0_iff nat_zero_less_power_iff not_less_eq numerals(2) power_0 zero_less_Suc)
-  subgoal by (auto simp: max_unat_def) []
-  done
-*)
 
 (* TODO: Move!
   TODO: General max functions!
@@ -258,11 +255,6 @@ sepref_def Neg_impl is [] \<open>RETURN o (\<lambda>x. 2*x+1)\<close> :: \<open>
   unfolding atom_rel_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
-
-(*sepref_definition Neg_impl is \<open>RETURN o (\<lambda>x. 2*x+1)\<close> :: \<open>[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
-  by sepref
-*)
 
 lemmas [sepref_fr_rules] =
   Pos_impl.refine[FCOMP Pos_refine_aux]

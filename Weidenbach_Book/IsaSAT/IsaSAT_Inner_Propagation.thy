@@ -718,13 +718,6 @@ definition propagate_lit_wl_pre where
     1 - i < length (get_clauses_wl S \<propto> C) \<and>
     0 < length (get_clauses_wl S \<propto> C))\<close>
 
-(*TODO Move*)
-lemma isa_vmtf_consD:
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> M\<close>
-  shows \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
-  using vmtf_consD[of ns m fst_As lst_As next_search _ \<A> M L] assms
-  by (auto simp: isa_vmtf_def)
-
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (propagate_lit_wl)) \<in>
   [\<lambda>_. True]\<^sub>f

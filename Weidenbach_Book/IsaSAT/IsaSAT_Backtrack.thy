@@ -912,24 +912,6 @@ qed
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-(*TODO MOVE to IsaSAT_Stats*)
-lemma [simp]:
-  \<open>clss_size_lcount (clss_size_incr_lcountUEk c) = clss_size_lcount c\<close>
-  \<open>clss_size_lcountUE (clss_size_incr_lcountUEk c) = clss_size_lcountUE c\<close>
-  \<open>clss_size_lcountUEk (clss_size_incr_lcountUEk c) = clss_size_lcountUEk c+1\<close>
-  \<open>clss_size_lcountU0 (clss_size_incr_lcountUEk c) = clss_size_lcountU0 c\<close>
-  \<open>clss_size_lcountUS (clss_size_incr_lcountUEk c) = clss_size_lcountUS c\<close>
-  by (auto simp: clss_size_lcountUE_def clss_size_lcount_def clss_size_incr_lcountUEk_def
-    clss_size_lcountUEk_def clss_size_lcountU0_def clss_size_lcountUS_def
-    split: prod.splits)
-
-lemma get_aivdom_add_learned_clause_aivdom[simp]:
-  \<open>get_vdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_vdom_aivdom vdom @ [x2]\<close>
-  \<open>get_avdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_avdom_aivdom vdom @ [x2]\<close>
-  \<open>get_ivdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_ivdom_aivdom vdom\<close>
-  by (cases vdom; auto simp: add_learned_clause_aivdom_def add_learned_clause_aivdom_int_def; fail)+
-(*END Move*)
-
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r \<and>
@@ -2777,48 +2759,6 @@ section \<open>Backtrack with direct extraction of literal if highest level\<clo
 
 lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
   by (auto simp: uint32_max_def sint64_max_def)
-
-
-(* lemma propagate_bt_wl_D_heur_alt_def:
- *   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
- *          vdom, lcount, opts). do {
- *       ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
- *       ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
- *       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
- *       ASSERT(length C > 1);
- *       let L' = C!1;
- *       ASSERT(length C \<le> uint32_max div 2 + 1);
- *       vm \<leftarrow> isa_vmtf_rescore C M vm0;
- *       glue \<leftarrow> get_LBD lbd;
- *       let b = False;
- *       let b' = (length C = 2);
- *       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
- *          vdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
- *       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
- *          vdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
- *       (N, i) \<leftarrow> fm_add_new_fast b C N0;
- *       ASSERT(update_lbd_pre ((i, glue), N));
- *       let N = update_lbd i glue N;
- *       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
- *          vdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
- *       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
- *       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
- *          vdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
- *       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
- *       lbd \<leftarrow> lbd_empty lbd;
- *       j \<leftarrow> mop_isa_length_trail M;
- *       ASSERT(i \<noteq> DECISION_REASON);
- *       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
- *       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
- *       vm \<leftarrow> isa_vmtf_flush_int M vm;
- *       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
- *       RETURN (M, N, D, j, W, vm, 0,
- *         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_propagation_heuristics glue heur),
- *         add_learned_clause_aivdom i vdom,
- *           clss_size_incr_lcount lcount, opts)
- *     })\<close>
- *   unfolding propagate_bt_wl_D_heur_def Let_def by (auto intro!: ext) *)
-
 
 lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
        a < length (get_clauses_wl_heur b) \<Longrightarrow> a \<le> sint64_max\<close>

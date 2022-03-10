@@ -2,6 +2,19 @@ theory IsaSAT_Conflict_Analysis
   imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_LBD
 begin
 
+(*TODO Move*)
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
+  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
+    all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
+
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_ran_m[simp]:
+  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (all_atms_st (x1a, x1b, y))
+      {#mset (fst x). x \<in># ran_m x1b#}\<close>
+  by (cases y; auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_def all_lits_of_mm_union
+    simp flip: all_lits_st_alt_def)
+(*END Move*)
+
 paragraph \<open>Skip and resolve\<close>
 
 definition maximum_level_removed_eq_count_dec where
@@ -496,30 +509,6 @@ lemma (in -)out_learned_tl_Some_notin:
     out_learned M (Some C) outl \<longleftrightarrow> out_learned (tl M) (Some C) outl\<close>
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
-
-(*TODO Move*)
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
-  by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
-    all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
-
-(*TODO Move*)
-lemma mset_as_position_remove3:
-  \<open>mset_as_position xs (D - {#L#}) \<Longrightarrow> atm_of L < length xs \<Longrightarrow> distinct_mset D \<Longrightarrow>
-   mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
-  using mset_as_position_remove2[of xs \<open>D - {#L#}\<close> \<open>L\<close>] mset_as_position_tautology[of xs \<open>remove1_mset L D\<close>]
-    mset_as_position_distinct_mset[of xs \<open>remove1_mset L D\<close>]
-  by (cases \<open>L \<in># D\<close>; cases \<open>-L \<in># D\<close>)
-    (auto dest!: multi_member_split simp: minus_notin_trivial ac_simps add_mset_eq_add_mset tautology_add_mset)
-
-lemma imply_itself: \<open>P \<Longrightarrow> P\<close>
-  by auto
-
-lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_ran_m[simp]:
-  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm  (all_atms_st (x1a, x1b, y))
-      {#mset (fst x). x \<in># ran_m x1b#}\<close>
-  by (cases y; auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_lits_st_def all_lits_def all_lits_of_mm_union
-    simp flip: all_lits_st_alt_def)
 
 
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:

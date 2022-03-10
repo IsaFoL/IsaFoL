@@ -327,10 +327,6 @@ sepref_def propagate_lit_wl_bin_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
-(*TODO Move*)
-lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
-  unfolding op_list_list_upd_def by auto
-
 lemma update_blit_wl_heur_alt_def:
   \<open>update_blit_wl_heur = (\<lambda>(L::nat literal) C b j w K S\<^sub>0. do {
      let (W, S) = extract_watchlist_wl_heur S\<^sub>0;

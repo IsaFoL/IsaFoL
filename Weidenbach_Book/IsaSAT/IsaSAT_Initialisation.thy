@@ -684,6 +684,9 @@ where
        RETURN (set_literals_to_update_wl_init j (set_conflict_wl_heur_init D S))
    })\<close>
 
+definition conflict_propagated_unit_cls_heur_b :: \<open>_\<close> where
+  \<open>conflict_propagated_unit_cls_heur_b = conflict_propagated_unit_cls_heur False\<close>
+
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
   \<open>(uncurry (conflict_propagated_unit_cls_heur unbdd), uncurry (RETURN oo set_conflict_init_wl)) \<in>
    [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> get_conflict_init_wl S = None]\<^sub>f

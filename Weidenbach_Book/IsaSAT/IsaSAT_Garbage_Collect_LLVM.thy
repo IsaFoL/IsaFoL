@@ -98,25 +98,6 @@ sepref_def isasat_GC_clauses_prog_wl2_code
   apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
-definition split_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
-  \<open>split_vmtf = (\<lambda>x. x)\<close>
-
-sepref_def split_vmtf_impl
-  is \<open>RETURN o split_vmtf\<close>
-  :: \<open>vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
-  unfolding vmtf_remove_assn_def split_vmtf_def
-  by sepref
-
-definition recombine_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
-  \<open>recombine_vmtf = (\<lambda>x. x)\<close>
-
-sepref_def recombine_vmtf_impl
-  is \<open>RETURN o recombine_vmtf\<close>
-  :: \<open>(vmtf_assn \<times>\<^sub>a distinct_atoms_assn)\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
-  unfolding vmtf_remove_assn_def recombine_vmtf_def
-  by sepref
-
-term vmtf_remove_assn
 lemma isasat_GC_clauses_prog_wl_alt_def:
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>S\<^sub>0. do {
      let (vm, S) = extract_vmtf_wl_heur S\<^sub>0;
@@ -179,16 +160,6 @@ sepref_def rewatch_heur_st_code
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
-
-(*TODO Move*)
-lemma get_clauses_wl_heur_empty_US[simp]:
-    \<open>get_clauses_wl_heur (empty_US_heur xc) = get_clauses_wl_heur xc\<close> and
-  get_vdom_empty_US[simp]:
-    \<open>get_vdom (empty_US_heur xc) = get_vdom xc\<close>
-    \<open>get_avdom (empty_US_heur xc) = get_avdom xc\<close>
-    \<open>get_ivdom (empty_US_heur xc) = get_ivdom xc\<close>
-    \<open>get_tvdom (empty_US_heur xc) = get_tvdom xc\<close>
-  by (cases xc; auto simp: empty_US_heur_def; fail)+
 
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>isasat_GC_clauses_wl_D\<close>

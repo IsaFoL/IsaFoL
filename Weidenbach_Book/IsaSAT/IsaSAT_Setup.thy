@@ -365,6 +365,11 @@ where
            length (get_clauses_wl_heur S) = r \<and>
            learned_clss_count S \<le> u}\<close>
 
+lemma twl_st_heur'''_twl_st_heur''''uD:
+  \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
+  (x, y) \<in> twl_st_heur''''u r (learned_clss_count x)\<close>
+  by auto
+
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (isasat \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
 
@@ -1448,6 +1453,15 @@ definition empty_US_heur :: \<open>isasat \<Rightarrow> isasat\<close> where
   let lcount = clss_size_resetUS0 lcount in
   let S = set_learned_count_wl_heur lcount S in S
   )\<close>
+
+lemma get_clauses_wl_heur_empty_US[simp]:
+    \<open>get_clauses_wl_heur (empty_US_heur xc) = get_clauses_wl_heur xc\<close> and
+  get_vdom_empty_US[simp]:
+    \<open>get_vdom (empty_US_heur xc) = get_vdom xc\<close>
+    \<open>get_avdom (empty_US_heur xc) = get_avdom xc\<close>
+    \<open>get_ivdom (empty_US_heur xc) = get_ivdom xc\<close>
+    \<open>get_tvdom (empty_US_heur xc) = get_tvdom xc\<close>
+  by (cases xc; auto simp: empty_US_heur_def; fail)+
 
 definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
 \<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, _, W). (M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, {#}, W))\<close>

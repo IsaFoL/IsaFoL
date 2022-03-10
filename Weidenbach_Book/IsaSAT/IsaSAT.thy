@@ -36,9 +36,8 @@ text \<open>
   skip the part on the calculus and simply use the conclusive part (no conflict and model, 
   conflict and unsat), but this version is nicer on paper to highlight the refinement approach.
 \<close>
-(*TODO rename to conclusive_state *)
-definition conclusive_CDCL_run :: \<open>'v clauses \<Rightarrow> 'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
-  \<open>conclusive_CDCL_run CS T U \<longleftrightarrow>
+definition conclusive_CDCL_state :: \<open>'v clauses \<Rightarrow> 'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>conclusive_CDCL_state CS T U \<longleftrightarrow>
        (pget_conflict U = None \<longrightarrow> (consistent_interp (lits_of_l (pget_trail U)) \<and> 
              pget_trail U \<Turnstile>as (set_mset CS))) \<and>
        (pget_conflict U \<noteq> None \<longrightarrow> (CS \<noteq> {#} \<and> count_decided (pget_trail U) = 0 \<and>
@@ -76,7 +75,7 @@ lemma pcdcl_tcore_is_cdclD:
       cdcl_backtrack_unit_is_CDCL_backtrack)
 
 fun pinit_state :: \<open>'v clauses \<Rightarrow> 'v prag_st\<close> where
-"pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#}, {#}, {#})"
+\<open>pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#}, {#}, {#})\<close>
 
 lemma get_all_clss_alt_def:
   \<open>get_all_clss S = get_all_init_clss S + get_all_learned_clss S\<close>
@@ -211,10 +210,6 @@ lemma pcdcl_core_same_init_vars:
    (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
     cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
 
-    (*TODO: del*)
-lemmas pcdcl_same_init_vars = pcdcl_pget_all_init_clss
-lemmas rtranclp_pcdcl_same_init_vars = rtranclp_pcdcl_pget_all_init_clss
-
 lemma pcdcl_restart_same_init_vars:
   \<open>pcdcl_restart S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: pcdcl_restart.induct) auto
@@ -230,7 +225,7 @@ lemma rtranclp_pcdcl_entailed_iff:
   apply (induction rule: rtranclp_induct)
   subgoal by auto
   subgoal for T U
-    using rtranclp_pcdcl_same_init_vars[of S T] pcdcl_same_init_vars[of T U]
+    using rtranclp_pcdcl_pget_all_init_clss[of S T] pcdcl_pget_all_init_clss[of T U]
       Pragmatic_CDCL.rtranclp_pcdcl_entailed_by_init[of S T]
       rtranclp_pcdcl_all_struct_invs[of S T]
     by (auto dest!: pcdcl_entailed_iff[of _ _ M] simp del: atms_of_ms_union)
@@ -278,9 +273,9 @@ lemma pcdcl_stgy_restart_same_init_vars:
   subgoal
     by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-      simp: rtranclp_pcdcl_same_init_vars)
+      simp: rtranclp_pcdcl_pget_all_init_clss)
   subgoal for U
-    apply (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_same_init_vars
+    apply (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_pget_all_init_clss
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy')
     using rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss apply blast
       by (smt pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss)
@@ -298,7 +293,7 @@ lemma rtranclp_pcdcl_stgy_restart_same_init_vars:
   subgoal
     by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
       dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-      rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_same_init_vars)
+      rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_pget_all_init_clss)
   subgoal
     by (auto dest: rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs
       pcdcl_stgy_restart_same_init_vars)
@@ -339,7 +334,7 @@ lemma empty_entails_novars_iff: \<open>atms_of_mm S = {} \<Longrightarrow> {} \<
   unfolding true_clss_clss_def
   by (cases S) (auto simp: satisfiable_def total_over_m_def intro: Ex_consistent_interp)
 
-lemma conclusive_TWL_run_conclusive_CDCL_run:
+lemma conclusive_TWL_run_conclusive_CDCL_state:
   assumes
     struct: \<open>twl_struct_invs S\<close> and
     stgy: \<open>twl_stgy_invs S\<close> and
@@ -347,7 +342,7 @@ lemma conclusive_TWL_run_conclusive_CDCL_run:
   shows \<open>conclusive_TWL_run S
     \<le> \<Down> (br pstate\<^sub>W_of (\<lambda>_. True))
        (SPEC
-         (conclusive_CDCL_run (get_all_init_clss S) (pstate\<^sub>W_of S)))\<close>
+         (conclusive_CDCL_state (get_all_init_clss S) (pstate\<^sub>W_of S)))\<close>
   unfolding conclusive_TWL_run_def
 proof (rule RES_refine)
   fix s
@@ -465,11 +460,11 @@ proof (rule RES_refine)
       by (auto simp: get_all_clss_alt_def true_annots_true_cls)
   qed
 
-  show \<open>\<exists>s'\<in>Collect (conclusive_CDCL_run (get_all_init_clss S) (pstate\<^sub>W_of S)).
+  show \<open>\<exists>s'\<in>Collect (conclusive_CDCL_state (get_all_init_clss S) (pstate\<^sub>W_of S)).
     (s, s') \<in> (br pstate\<^sub>W_of (\<lambda>_. True))\<close>
     apply (rule_tac x = \<open>pstate\<^sub>W_of s\<close> in bexI)
     apply (solves \<open>auto simp: br_def\<close>)
-    unfolding conclusive_CDCL_run_def mem_Collect_eq
+    unfolding conclusive_CDCL_state_def mem_Collect_eq
     apply (cases \<open>count_decided (get_trail s) = 0\<close>)
     apply (use H1 H2 H3 H4 H5 in force)+
     done
@@ -498,7 +493,7 @@ text \<open>This is the specification of the SAT solver:\<close>
 definition SAT :: \<open>nat clauses \<Rightarrow> nat prag_st nres\<close> where
   \<open>SAT CS = do{
     let T = pinit_state CS;
-    SPEC (conclusive_CDCL_run CS T)
+    SPEC (conclusive_CDCL_state CS T)
   }\<close>
 
 
@@ -626,7 +621,7 @@ lemma SAT0_SAT:
 proof -
   have conflict_during_init: \<open>RETURN (fst T)
 	\<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
-	   (SPEC (conclusive_CDCL_run (mset `# mset CS)
+	   (SPEC (conclusive_CDCL_state (mset `# mset CS)
 	       (pinit_state (mset `# mset CS))))\<close>
     if
       spec: \<open>T \<in> Collect (init_dt_spec0 CS (to_init_state0 init_state0))\<close> and
@@ -698,7 +693,7 @@ proof -
     then have [simp]: \<open>CS \<noteq> []\<close>
       by (auto simp del: unsat)
     show ?thesis
-      unfolding conclusive_CDCL_run_def
+      unfolding conclusive_CDCL_state_def
       apply (rule RETURN_SPEC_refine)
       apply (rule exI[of _ \<open>pstate\<^sub>W_of (fst T)\<close>])
       apply (intro conjI)
@@ -715,7 +710,7 @@ proof -
   have empty_clauses: \<open>RETURN (fst init_state0)
 	\<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
 	   (SPEC
-	     (conclusive_CDCL_run (mset `# mset CS)
+	     (conclusive_CDCL_state (mset `# mset CS)
 	       (pinit_state (mset `# mset CS))))\<close>
     if
       \<open>T \<in> Collect (init_dt_spec0 CS (to_init_state0 init_state0))\<close> and
@@ -730,7 +725,7 @@ proof -
 	cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step init_state.simps)
     show ?thesis
       by (rule RETURN_RES_refine)
-        (use that in \<open>auto simp: conclusive_CDCL_run_def init_state0_def\<close>)
+        (use that in \<open>auto simp: conclusive_CDCL_state_def init_state0_def\<close>)
   qed
 
   have extract_atms_clss_nempty: \<open>extract_atms_clss CS {} \<noteq> {}\<close>
@@ -750,12 +745,12 @@ proof -
   have cdcl_twl_stgy_restart_prog: \<open>cdcl_twl_stgy_restart_prog (fst T)
 	\<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
 	   (SPEC
-	     (conclusive_CDCL_run (mset `# mset CS)
+	     (conclusive_CDCL_state (mset `# mset CS)
 	       (pinit_state (mset `# mset CS))))\<close> (is ?G1) and
       cdcl_twl_stgy_restart_prog_early: \<open>cdcl_twl_stgy_restart_prog_early (fst T)
 	\<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
 	   (SPEC
-	     (conclusive_CDCL_run (mset `# mset CS)
+	     (conclusive_CDCL_state (mset `# mset CS)
 	       (pinit_state (mset `# mset CS))))\<close> (is ?G2)
     if
       spec: \<open>T \<in> Collect (init_dt_spec0 CS (to_init_state0 init_state0))\<close> and
@@ -823,14 +818,14 @@ proof -
     have conclusive_le: \<open>conclusive_TWL_run (fst T)
     \<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
        (SPEC
-      (conclusive_CDCL_run (mset `# mset CS) (pinit_state (mset `# mset CS))))\<close>
+      (conclusive_CDCL_state (mset `# mset CS) (pinit_state (mset `# mset CS))))\<close>
       using satisfiable_remdups_iff[of \<open>set CS\<close>]
       apply -
-      apply (rule order_trans[OF conclusive_TWL_run_conclusive_CDCL_run[of \<open>fst T\<close>]])
-      using conclusive_TWL_run_conclusive_CDCL_run[of \<open>fst T\<close>] clss oth
+      apply (rule order_trans[OF conclusive_TWL_run_conclusive_CDCL_state[of \<open>fst T\<close>]])
+      using conclusive_TWL_run_conclusive_CDCL_state[of \<open>fst T\<close>] clss oth
       apply (cases \<open>other_clauses_init T = {#}\<close>)
       apply (auto simp: br_def struct_invs stgy_invs init get_all_init_clss_alt_init_def
-        to_init_state0_def init_state0_def conclusive_CDCL_run_def CS' true_clss_def
+        to_init_state0_def init_state0_def conclusive_CDCL_state_def CS' true_clss_def
         image_image  true_annots_remdups_mset[of _ \<open>mset ` set CS\<close>, symmetric]
         intro!: ref_two_step'')
       done
@@ -2698,17 +2693,17 @@ proof -
     if
       [simp]: \<open>CS' = CS\<close> and
       s: \<open>s \<in> (\<lambda>T. if pget_conflict T = None then Some (map lit_of (pget_trail T)) else None) `
-          Collect (conclusive_CDCL_run CS' (pinit_state CS'))\<close>
+          Collect (conclusive_CDCL_state CS' (pinit_state CS'))\<close>
     for s :: \<open>nat literal list option\<close> and CS CS'
   proof -
     obtain T where
        s: \<open>(s = Some (map lit_of (pget_trail T)) \<and> pget_conflict T = None) \<or>
               (s = None \<and> pget_conflict T \<noteq> None)\<close> and
-       conc: \<open>conclusive_CDCL_run CS' ([], CS', {#}, None, {#}, {#}, {#}, {#}, {#}, {#}) T\<close>
+       conc: \<open>conclusive_CDCL_state CS' ([], CS', {#}, None, {#}, {#}, {#}, {#}, {#}, {#}) T\<close>
       using s by auto force
     then show ?thesis
       using conc
-      by (auto simp: conclusive_CDCL_run_def true_annots_true_cls lits_of_def)
+      by (auto simp: conclusive_CDCL_state_def true_annots_true_cls lits_of_def)
   qed
   show ?thesis
     unfolding SAT'_def model_if_satisfiable_def SAT_def Let_def
@@ -2855,7 +2850,7 @@ definition SAT_bounded :: \<open>nat clauses \<Rightarrow> (bool \<times> nat pr
     if \<not>finished then
       RETURN (True, T)
     else
-      SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_run CS T U)
+      SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_state CS T U)
   }\<close>
 
 definition  SAT0_bounded :: \<open>nat clause_l list \<Rightarrow> (bool \<times> nat twl_st) nres\<close> where
@@ -2888,7 +2883,7 @@ proof -
   have conflict_during_init:
     \<open>RETURN (False, fst T)
         \<le> \<Down> {((b, S), b', T). b = b' \<and> (\<not>b \<longrightarrow> T = pstate\<^sub>W_of S)}
-           (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_run (mset `# mset CS) S U))\<close>
+           (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_state (mset `# mset CS) S U))\<close>
     if
       TS: \<open>(T, S)
        \<in> {(S, T).
@@ -2965,7 +2960,7 @@ proof -
     then have [simp]: \<open>CS \<noteq> []\<close>
       by (auto simp del: unsat)
     show ?thesis
-      unfolding conclusive_CDCL_run_def
+      unfolding conclusive_CDCL_state_def
       apply (rule RETURN_SPEC_refine)
       apply (rule exI[of _ \<open>(False, pstate\<^sub>W_of (fst T))\<close>])
       apply (intro conjI)
@@ -2980,7 +2975,7 @@ proof -
   have empty_clauses: \<open>RETURN (False, fst init_state0)
 	\<le> \<Down> ?A
 	   (SPEC
-	     (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_run (mset `# mset CS) S U))\<close>
+	     (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_state (mset `# mset CS) S U))\<close>
     if
       TS: \<open>(T, S)
        \<in> {(S, T).
@@ -2997,7 +2992,7 @@ proof -
 	cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step init_state.simps)
     show ?thesis
       by (rule RETURN_RES_refine, rule exI[of _ \<open>(False, pinit_state {#})\<close>])
-        (use that in \<open>auto simp: conclusive_CDCL_run_def init_state0_def\<close>)
+        (use that in \<open>auto simp: conclusive_CDCL_state_def init_state0_def\<close>)
   qed
 
   have extract_atms_clss_nempty: \<open>extract_atms_clss CS {} \<noteq> {}\<close>
@@ -3020,7 +3015,7 @@ proof -
 
   have cdcl_twl_stgy_restart_prog: \<open>cdcl_twl_stgy_restart_prog_bounded (fst T)
     \<le> \<Down> {((b, S), b', T). b = b' \<and> (\<not>b \<longrightarrow> T = pstate\<^sub>W_of S)}
-       (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_run (mset `# mset CS) S U))\<close> (is ?G1)
+       (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_state (mset `# mset CS) S U))\<close> (is ?G1)
     if
      bT_bS: \<open>(T, S)
        \<in> {(S, T).
@@ -3091,12 +3086,12 @@ proof -
       by (cases T)
         (auto simp: 
         to_init_state0_def init_state0_def get_all_init_clss_alt_init_def
-        conclusive_CDCL_run_def
+        conclusive_CDCL_state_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
 
     have conclusive_le: \<open>conclusive_TWL_run_bounded (fst T)
     \<le> \<Down> {((b, S), b', T). b = b' \<and> (\<not>b \<longrightarrow> T = pstate\<^sub>W_of S)}
-      (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_run (mset `# mset CS) S U))\<close>
+      (SPEC (\<lambda>(b, U). \<not>b \<longrightarrow> conclusive_CDCL_state (mset `# mset CS) S U))\<close>
       apply (rule order_trans[of _
         \<open>do {
         b \<leftarrow> SPEC (\<lambda>_ :: bool. True);
@@ -3125,15 +3120,15 @@ proof -
           apply -
           unfolding conc_fun_RES
           apply (rule RETURN_le_RES_no_return)
-          apply (rule conclusive_TWL_run_conclusive_CDCL_run[THEN order_trans])
+          apply (rule conclusive_TWL_run_conclusive_CDCL_state[THEN order_trans])
           using clss arg_cong[OF clss, of set_mset, simplified] bT_bS confl oth init
           by (auto simp: br_def conc_fun_RES struct_invs stgy_invs
               to_init_state0_def init_state0_def get_all_init_clss_alt_init_def
-              conclusive_CDCL_run_def image_image
+              conclusive_CDCL_state_def image_image
               true_annots_remdups_mset[symmetric, of _ \<open>mset ` set CS\<close>])
         subgoal
           by (intro RETURN_RES_refine)
-            (auto simp: conclusive_CDCL_run_def)
+            (auto simp: conclusive_CDCL_state_def)
         done
       done
     show ?G1
@@ -3605,17 +3600,17 @@ proof -
     if
       [simp]: \<open>CS' = CS\<close> and
       s: \<open>s \<in> (\<lambda>T. if pget_conflict T = None then Some (map lit_of (pget_trail T)) else None) `
-          Collect (conclusive_CDCL_run CS' (pinit_state (remdups_mset `# CS')))\<close>
+          Collect (conclusive_CDCL_state CS' (pinit_state (remdups_mset `# CS')))\<close>
     for s :: \<open>nat literal list option\<close> and CS CS'
   proof -
     obtain T where
        s: \<open>(s = Some (map lit_of (pget_trail T)) \<and> pget_conflict T = None) \<or>
               (s = None \<and> pget_conflict T \<noteq> None)\<close> and
-       conc: \<open>conclusive_CDCL_run CS' ([], remdups_mset `# CS', {#}, None, {#}, {#}, {#}, {#}, {#}, {#}) T\<close>
+       conc: \<open>conclusive_CDCL_state CS' ([], remdups_mset `# CS', {#}, None, {#}, {#}, {#}, {#}, {#}, {#}) T\<close>
       using s by auto force
     show ?thesis
       using s conc
-      by (auto simp: conclusive_CDCL_run_def lits_of_def true_annots_true_cls)
+      by (auto simp: conclusive_CDCL_state_def lits_of_def true_annots_true_cls)
   qed
 
   have H: \<open>\<exists>s'\<in>{(b, M).
@@ -3631,7 +3626,7 @@ proof -
             (\<lambda>b T. (b, if pget_conflict T = None
                        then Some (map lit_of (pget_trail T)) else None)) `
            (if \<not> xb then {(True, xa)}
-            else {(b, U). \<not> b \<longrightarrow> conclusive_CDCL_run CS' xa U})\<close>
+            else {(b, U). \<not> b \<longrightarrow> conclusive_CDCL_state CS' xa U})\<close>
     for s :: \<open>bool \<times> nat literal list option\<close> and
        CS CS' :: \<open>nat literal multiset multiset\<close> and xa and xb :: bool
   proof -
@@ -3639,14 +3634,14 @@ proof -
      s: \<open>s = (b, T)\<close> by (cases s)
    have
      b: \<open>\<not>b \<longrightarrow> T \<in>  (\<lambda>T. if pget_conflict T = None then Some (map lit_of (pget_trail T)) else None) `
-  Collect (conclusive_CDCL_run CS (pinit_state (remdups_mset `# CS)))\<close>
+  Collect (conclusive_CDCL_state CS (pinit_state (remdups_mset `# CS)))\<close>
      using that(2-4)
      by (force simp add: image_iff s that split: if_splits)
    show ?thesis
    proof (cases b)
      case False
      then have T: \<open>T \<in>  (\<lambda>T. if pget_conflict T = None then Some (map lit_of (pget_trail T)) else None) `
-       Collect (conclusive_CDCL_run CS' (pinit_state (remdups_mset `# CS')))\<close>
+       Collect (conclusive_CDCL_state CS' (pinit_state (remdups_mset `# CS')))\<close>
        using b unfolding that(1) by fast
      show ?thesis
        using H[OF that(1) T]
