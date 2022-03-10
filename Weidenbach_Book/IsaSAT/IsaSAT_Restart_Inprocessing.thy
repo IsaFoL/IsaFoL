@@ -1291,7 +1291,7 @@ definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
 
 definition simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> SPEC(\<lambda>b::bool. True);
+  b \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> get_conflict_wl S =None);
   if b then simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1302,7 +1302,7 @@ lemma simplify_clauses_with_units_st_wl2_simplify_clauses_with_units_st_wl:
 
 definition isa_simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> RETURN True;
+  b \<leftarrow> RETURN (get_conflict_wl_is_None_heur S);
   if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1312,6 +1312,33 @@ lemma isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2:
     \<Down>(twl_st_heur_restart_ana' r u) (simplify_clauses_with_units_st_wl2 S')\<close>
   unfolding isa_simplify_clauses_with_units_st_wl2_def simplify_clauses_with_units_st_wl2_def
   by (refine_vcg isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2)
-    (use assms in auto)
+   (use assms in \<open>auto simp: get_conflict_wl_is_None_def
+      get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id]\<close>)
+
+(*This obvdiously does nothing, but we use as a placeholder while developing it!*)
+definition isa_deduplicate_binary_clauses :: \<open>_\<close> where
+  \<open>isa_deduplicate_binary_clauses S = RETURN S\<close>
+
+lemma isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_deduplicate_binary_clauses S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (mark_duplicated_binary_clauses_as_garbage_wl S')\<close>
+proof -
+  have isa_deduplicate_binary_clauses_alt_def:
+    \<open>isa_deduplicate_binary_clauses S = do {
+      let (_ :: nat multiset) = {#};
+      S \<leftarrow> WHILE\<^sub>T (\<lambda>_. False) (\<lambda>S. RETURN S) S;
+      RETURN S
+    }\<close> for S
+    unfolding isa_deduplicate_binary_clauses_def
+    apply (subst WHILET_unfold)
+    apply simp
+    done
+
+  show ?thesis
+    unfolding isa_deduplicate_binary_clauses_alt_def mark_duplicated_binary_clauses_as_garbage_wl_def
+    by refine_vcg
+     (use assms in auto)
+qed
 
 end

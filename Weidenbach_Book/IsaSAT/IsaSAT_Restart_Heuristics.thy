@@ -251,6 +251,9 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_deduplicate_binary_clauses T;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
@@ -278,6 +281,9 @@ lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
     ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count S \<le> learned_clss_count S0);
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_deduplicate_binary_clauses T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
@@ -350,12 +356,16 @@ proof -
       remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D[where r=r, THEN fref_to_Down]
       mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D[where r=r, THEN fref_to_Down]
       isasat_GC_clauses_wl_D[where r=r, THEN fref_to_Down]
-      isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[where r=r])
+      isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[where r=r]
+      isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl[where r=r])
     apply (rule H2; assumption)
     subgoal
       unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def
         cdcl_twl_full_restart_l_GC_prog_pre_def
       by normalize_goal+ auto
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    apply (assumption)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     apply (assumption)
@@ -376,8 +386,8 @@ proof -
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     apply (rule UUa; assumption)
-    subgoal for x y S S' T T' U U' V V' W W'
-      using learned_clss_count_clss_size_resetUS0_st_le[of W]
+    subgoal for x y S S' T T' U U' V V' W W' X X'
+      using learned_clss_count_clss_size_resetUS0_st_le[of X]
       unfolding mem_Collect_eq prod.case
       apply (intro conjI )
       by (auto intro: twl_st_heur_twl_st_heur_loopD intro!: cdcl_twl_full_restart_wl_D_GC_prog_post_heur)
