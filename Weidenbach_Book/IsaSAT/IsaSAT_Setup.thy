@@ -2032,5 +2032,10 @@ definition mop_length_watched_by_int :: \<open>isasat \<Rightarrow> nat literal 
      RETURN (length (watched_by_int S L))
 }\<close>
 
+definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>end_of_rephasing_phase_st = (\<lambda>S. end_of_rephasing_phase_heur (get_heur S))\<close>
+
+definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+ \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
 end

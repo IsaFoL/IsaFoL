@@ -1629,6 +1629,14 @@ definition arena_is_packed :: \<open>arena \<Rightarrow> nat clauses_l \<Rightar
 lemma arena_is_packed_empty[simp]: \<open>arena_is_packed [] fmempty\<close>
   by (auto simp: arena_is_packed_def)
 
+lemma arena_is_packed_append:
+  assumes \<open>arena_is_packed (arena) N\<close> and
+    [simp]: \<open>length C = length (fst C') + header_size (fst C')\<close> and
+    [simp]: \<open>a \<notin># dom_m N\<close>
+  shows \<open>arena_is_packed (arena @ C) (fmupd a C' N)\<close>
+  using assms(1) by (auto simp: arena_is_packed_def
+    intro!: sum_mset_cong)
+
 lemma arena_is_packed_append_valid:
   assumes
     in_dom: \<open>fst C \<in># dom_m x1a\<close> and
@@ -1859,8 +1867,5 @@ lemma isasat_GC_clauses_wl_D_rewatch_pre:
   using assms
   unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
   by auto
-
-lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint32_max_def)
 
 end
