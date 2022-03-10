@@ -32,14 +32,8 @@ with \<^text>\<open>exctr\<close>
 starts with \<^text>\<open>read\<close>
 
 \<close>
-(*TODO Move*)
 
-paragraph \<open>Options\<close>
 sepref_register mop_arena_length
-
-(* TODO: Move *)
-type_synonym arena_assn = \<open>(32 word, 64) array_list\<close>
-
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
@@ -48,24 +42,6 @@ type_synonym twl_st_wll_trail_fast =
     heur_assn \<times>
    aivdom_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
   opts_assn \<times> arena_assn\<close>
-
-(* datatype isasat_int = IsaSAT_int
- *   (get_trail_wl_heur: trail_pol_fast_assn)
- *   (get_clauses_wl_heur: arena_assn)
- *   (get_conflict_wl_heur: option_lookup_clause_assn)
- *   (literals_to_update_wl_heur: \<open>64 word\<close>)
- *   (get_watched_wl_heur: \<open>watched_wl_uint32\<close>)
- *   (get_vmtf_heur: vmtf_remove_assn)
- *   (get_count_max_lvls_heur: \<open>32 word\<close>)
- *   (get_conflict_cach: cach_refinement_l_assn)
- *   (get_lbd: lbd_assn)
- *   (get_outlearned_heur: out_learned_assn)
- *   (get_heur: heur_assn)
- *   (get_stats_heur: stats)
- *   (get_aivdom: aivdom_assn)
- *   (get_learned_count: \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>)
- *   (get_opts: opts_assn)
- *   (get_old_arena: arena_assn) *)
 
 instantiation isasat_int ::
   (llvm_rep,llvm_rep,llvm_rep,llvm_rep,
@@ -1846,51 +1822,6 @@ lemma remove_pure_parameter2_twoargs:
   apply (auto simp: pure_true_conv)
   done
 
-(*TODO Move*)
-lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
-  by (auto simp: nofail_def ASSERT_eq iASSERT_def)
-
-lemma refine_ASSERT_move_to_pre:
-  assumes \<open>(uncurry g, uncurry h) \<in> [uncurry P]\<^sub>a A *\<^sub>a B \<rightarrow> x_assn\<close>
-  shows
-  \<open>(uncurry g, uncurry (\<lambda>N C. do {ASSERT (P N C); h N C}))
-    \<in> A *\<^sub>a B \<rightarrow>\<^sub>a x_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (auto simp: nofail_ASSERT_bind)
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
-  apply auto
-  done
-
-lemma refine_ASSERT_move_to_pre0:
-  assumes \<open>(g, h) \<in> [P]\<^sub>a A  \<rightarrow> x_assn\<close>
-  shows
-  \<open>(g, (\<lambda>N. do {ASSERT (P N); h N}))
-    \<in> A \<rightarrow>\<^sub>a x_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (auto simp: nofail_ASSERT_bind)
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
-  apply auto
-  done
-
-lemma refine_ASSERT_move_to_pre2:
-  assumes \<open>(uncurry2 g, uncurry2 h) \<in> [uncurry2 P]\<^sub>a A *\<^sub>a B *\<^sub>a C \<rightarrow> x_assn\<close>
-  shows
-  \<open>(uncurry2 g, uncurry2 (\<lambda>N C D. do {ASSERT (P N C D); h N C D}))
-    \<in> A *\<^sub>a B *\<^sub>a C \<rightarrow>\<^sub>a x_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (auto simp: nofail_ASSERT_bind)
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
-    sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
-  apply auto
-  done
 
 locale read_trail_param_adder0_ops =
   fixes P :: \<open>trail_pol \<Rightarrow> bool\<close> and f' :: \<open>trail_pol \<Rightarrow> 'r nres\<close>
