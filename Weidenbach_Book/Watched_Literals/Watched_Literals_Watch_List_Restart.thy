@@ -128,19 +128,20 @@ fun correct_watching' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
           clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
 
-fun correct_watching'' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching'' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
+(*TODO duplicate of leaking bin*)
+fun correct_watching'_nobin :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>correct_watching'_nobin (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_init_lits_of_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
-             i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+             i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> correctly_marked_as_binary N (i, K, b)) \<and>
         filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) =
           clause_to_update L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, {#}))\<close>
 
-lemma correct_watching'_correct_watching'': \<open>correct_watching' S \<Longrightarrow> correct_watching'' S\<close>
+lemma correct_watching'_correct_watching': \<open>correct_watching' S \<Longrightarrow> correct_watching' S\<close>
   by (cases S) auto
 
-declare correct_watching'.simps[simp del] correct_watching''.simps[simp del]
+declare correct_watching'_nobin.simps[simp del] correct_watching'.simps[simp del]
 
 text \<open>Now comes a weaker version of the invariants on watch lists: instead of knowing that
   the watch lists are correct, we only know that the clauses appear somewhere in the watch lists.
@@ -273,10 +274,10 @@ proof -
     ..
 qed
 
-lemma correct_watching''_clauses_pointed_to0:
+lemma correct_watching'_nobin_clauses_pointed_to0:
   assumes
     xa_xb: \<open>(xa, xb) \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching'' xa\<close> and
+    corr: \<open>correct_watching'_nobin xa\<close> and
     L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close> and
     xb_x: \<open>(xb, x) \<in> twl_st_l None\<close> and
     struct_invs: \<open>twl_struct_invs x\<close>
@@ -329,7 +330,7 @@ proof -
       have \<open>{#i \<in># fst `# mset (W (N \<propto> C ! 0)). i \<in># dom_m N#} =
              add_mset C {#Ca \<in># remove1_mset C (dom_m N). N \<propto> C ! 0 \<in> set (watched_l (N \<propto> Ca))#}\<close>
         using corr H C le unfolding xa
-        by (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+        by (auto simp: clauses_pointed_to_def correct_watching'_nobin.simps xa
           simp flip: all_init_atms_def all_init_lits_def all_init_atms_alt_def
             all_init_lits_alt_def
           simp: clause_to_update_def
@@ -337,13 +338,13 @@ proof -
           dest!: multi_member_split)
       from arg_cong[OF this, of set_mset] have \<open>C \<in> fst ` set (W (N \<propto> C ! 0))\<close>
         using corr H C le unfolding xa
-        by (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+        by (auto simp: clauses_pointed_to_def correct_watching'.simps xa
           simp: all_init_atms_def all_init_lits_def clause_to_update_def
           simp del: all_init_atms_def[symmetric]
           dest!: multi_member_split) }
     ultimately show \<open>C \<in> ?A\<close>
       by (cases \<open>N \<propto> C ! 0\<close>)
-        (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+        (auto simp: clauses_pointed_to_def correct_watching'.simps xa
           simp flip: all_init_lits_def all_init_atms_alt_def
             all_init_lits_alt_def 
           simp: clause_to_update_def all_init_atms_st_def all_init_lits_of_wl_def all_init_atms_def
@@ -362,7 +363,7 @@ proof -
     if \<open>L \<in># all_init_atms_st xa\<close> for L
     using that corr
     by (cases xa;
-        auto simp: correct_watching''.simps all_init_lits_of_wl_def all_init_atms_def
+        auto simp: correct_watching'_nobin.simps all_init_lits_of_wl_def all_init_atms_def
         all_lits_of_mm_union all_init_lits_def all_init_atms_st_def literal.atm_of_def
         in_all_lits_of_mm_uminus_iff[symmetric, of \<open>Pos _\<close>]
         simp del: all_init_atms_def[symmetric]
@@ -372,10 +373,10 @@ proof -
     by (auto simp del: all_init_atms_def[symmetric]) 
 qed
 
-lemma correct_watching''_clauses_pointed_to2:
+lemma correct_watching'_clauses_pointed_to2:
   assumes
     xa_xb: \<open>(xa, xb) \<in> state_wl_l None\<close> and
-    corr: \<open>correct_watching'' xa\<close> and
+    corr: \<open>correct_watching'_nobin xa\<close> and
     pre: \<open>mark_to_delete_clauses_l_pre xb\<close> and
     L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close>
   shows \<open>set_mset (dom_m (get_clauses_wl xa))
@@ -385,7 +386,7 @@ lemma correct_watching''_clauses_pointed_to2:
             (get_watched_wl xa)\<close>
         (is ?G1 is \<open>_ \<subseteq> ?A\<close>) and
     \<open>no_lost_clause_in_WL xa\<close> (is ?G2)
-  using correct_watching''_clauses_pointed_to0[OF xa_xb corr L] pre
+  using correct_watching'_nobin_clauses_pointed_to0[OF xa_xb corr L] pre
   unfolding mark_to_delete_clauses_l_pre_def
   by fast+
 
@@ -496,7 +497,7 @@ definition cdcl_twl_full_restart_wl_GC_prog_post_confl :: \<open>'v twl_st_wl \<
 definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
     (\<exists>S' last_GC last_Restart. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' last_GC last_Restart brk
-      \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+      \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
@@ -548,7 +549,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_empty:
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, {#}, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
    by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
-     correct_watching'.simps correct_watching''.simps clause_to_update_def all_init_lits_of_wl_def
+     correct_watching'.simps correct_watching'.simps clause_to_update_def all_init_lits_of_wl_def
      all_learned_lits_of_wl_def)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_decompD:
@@ -556,7 +557,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_decompD:
   literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j', x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q) \<Longrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h', x1p, x1j, x1k, b, NEk, UEk, x', x2l, N0, U0, x2m, Q)\<close>
   by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
-     correct_watching'.simps correct_watching''.simps clause_to_update_def all_init_lits_of_wl_def
+     correct_watching'.simps correct_watching'.simps clause_to_update_def all_init_lits_of_wl_def
      all_learned_lits_of_wl_def
      dest!: get_all_ann_decomposition_exists_prepend)
 
@@ -580,21 +581,21 @@ lemma in_all_learned_lits_of_wl_addUS:
   by (auto simp: all_learned_lits_of_wl_def all_lits_of_mm_union)
 
 lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
-  \<open>(x, y) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<Longrightarrow>
+  \<open>(x, y) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<Longrightarrow>
           cdcl_twl_local_restart_wl_spec0 x
-          \<le> \<Down> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}
+          \<le> \<Down> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}
 	    (cdcl_twl_local_restart_l_spec0 y)\<close>
   unfolding cdcl_twl_local_restart_wl_spec0_def cdcl_twl_local_restart_l_spec0_def curry_def
   apply refine_vcg
   subgoal unfolding restart_abs_wl_pre2_def by (rule exI[of _ y]) fast
   subgoal
     by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_empty
-        state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
+        state_wl_l_def image_iff correct_watching'.simps clause_to_update_def
       conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0
       intro: literals_are_\<L>\<^sub>i\<^sub>n'_decompD literals_are_\<L>\<^sub>i\<^sub>n'_empty(4))
   subgoal
     by (auto 4 3 simp add: literals_are_\<L>\<^sub>i\<^sub>n'_empty
-        state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
+        state_wl_l_def image_iff correct_watching'.simps clause_to_update_def
       conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0 
       literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_learned_lits_simps_Q blits_in_\<L>\<^sub>i\<^sub>n'_def
       dest: all_init_lits_of_wl_keepUSD

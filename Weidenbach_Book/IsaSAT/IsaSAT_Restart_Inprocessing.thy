@@ -141,7 +141,7 @@ proof -
         (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
        (irred N C = irred N' C) \<and>
         (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-       (unc \<longrightarrow> N = N'));
+       (unc \<longrightarrow> N = N' \<and> \<not>b));
     RETURN (unc, b, N')
     })\<close> (is \<open>_ = (\<lambda>C M N. do {
     (_, _, _) \<leftarrow> SPEC (?P C M N);
@@ -234,7 +234,6 @@ proof -
     \<open>drop n xs = drop n ys \<Longrightarrow> n < length xs \<Longrightarrow> xs ! n \<in> set ys\<close> for n xs ys
     by (metis in_set_dropD in_set_dropI le_cases)
 
-  term \<open>?P C M N (unc, b, N'')\<close>
   let ?Q = \<open>\<lambda>(i::nat, j::nat, N', del, is_true) (unc, b, N'').
     (let P = (if is_true
       then N'(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
@@ -318,8 +317,8 @@ proof -
     by (metis fmupd_lookup option.sel)
   have [simp]: \<open>(\<forall>a. a) \<longleftrightarrow> False\<close>
     by blast
-  define simp_work_around where \<open>simp_work_around unc b \<equiv> unc \<longrightarrow> N = b\<close> for unc b
-  have simp_work_around_simp[simp]: \<open>simp_work_around True b \<longleftrightarrow> b = N\<close> for b
+  define simp_work_around where \<open>simp_work_around unc b b' \<equiv> unc \<longrightarrow> N = b \<and> \<not>b'\<close> for unc b b'
+  have simp_work_around_simp[simp]: \<open>simp_work_around True b b' \<longleftrightarrow> b = N \<and> \<not>b'\<close> for b b'
     unfolding simp_work_around_def by auto
     term  \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>
   have hd_nth_take: \<open>length C > 0 \<Longrightarrow> [C!0] = take (Suc 0) C\<close> for C
@@ -1292,7 +1291,7 @@ definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
 
 definition simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> SPEC(\<lambda>b::bool. True);
+  b \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> get_conflict_wl S =None);
   if b then simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1303,7 +1302,7 @@ lemma simplify_clauses_with_units_st_wl2_simplify_clauses_with_units_st_wl:
 
 definition isa_simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> RETURN True;
+  b \<leftarrow> RETURN (get_conflict_wl_is_None_heur S);
   if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1313,6 +1312,33 @@ lemma isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2:
     \<Down>(twl_st_heur_restart_ana' r u) (simplify_clauses_with_units_st_wl2 S')\<close>
   unfolding isa_simplify_clauses_with_units_st_wl2_def simplify_clauses_with_units_st_wl2_def
   by (refine_vcg isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2)
-    (use assms in auto)
+   (use assms in \<open>auto simp: get_conflict_wl_is_None_def
+      get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id]\<close>)
+
+(*This obvdiously does nothing, but we use as a placeholder while developing it!*)
+definition isa_deduplicate_binary_clauses :: \<open>_\<close> where
+  \<open>isa_deduplicate_binary_clauses S = RETURN S\<close>
+
+lemma isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_deduplicate_binary_clauses S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (mark_duplicated_binary_clauses_as_garbage_wl S')\<close>
+proof -
+  have isa_deduplicate_binary_clauses_alt_def:
+    \<open>isa_deduplicate_binary_clauses S = do {
+      let (_ :: nat multiset) = {#};
+      S \<leftarrow> WHILE\<^sub>T (\<lambda>_. False) (\<lambda>S. RETURN S) S;
+      RETURN S
+    }\<close> for S
+    unfolding isa_deduplicate_binary_clauses_def
+    apply (subst WHILET_unfold)
+    apply simp
+    done
+
+  show ?thesis
+    unfolding isa_deduplicate_binary_clauses_alt_def mark_duplicated_binary_clauses_as_garbage_wl_def
+    by refine_vcg
+     (use assms in auto)
+qed
 
 end

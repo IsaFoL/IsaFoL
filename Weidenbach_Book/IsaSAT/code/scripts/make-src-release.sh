@@ -25,6 +25,8 @@ cat >$dir/scripts/get-git-id.sh <<EOF
 echo "$fullgitid"
 EOF
 chmod 755 $dir/scripts/*.sh
+mkdir -p /tmp/$name/binary
+cp ./src/isasat /tmp/$name/binary/
 cd /tmp
 rm -rf /tmp/$name/.git /tmp/$name/ML
 tar cJf $tar $name

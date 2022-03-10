@@ -10,6 +10,8 @@ no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
 
+type_synonym arena_assn = \<open>(32 word, 64) array_list\<close>
+
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *)
 lemma protected_bind_assoc:
    \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) =
@@ -687,7 +689,7 @@ lemma update_posI:
 
 lemma update_posI2:
   assumes \<open>isa_update_pos_pre ((b, pos), a)\<close>
-  assumes \<open>rdomp (al_assn arena_el_impl_assn :: _ \<Rightarrow> (32 word, 64) array_list \<Rightarrow> assn) a\<close>
+  assumes \<open>rdomp (al_assn arena_el_impl_assn :: _ \<Rightarrow> arena_assn \<Rightarrow> assn) a\<close>
   shows \<open>pos - 2 < max_unat 32\<close>
 proof -
   obtain N vdom where

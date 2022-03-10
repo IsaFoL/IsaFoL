@@ -1,5 +1,6 @@
 theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
+    More_Sepref.WB_More_Sepref_LLVM
 begin
 
 abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>

@@ -122,6 +122,12 @@ definition all_learned_lits_of_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause
   \<open>all_learned_lits_of_wl S' \<equiv> all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S') + get_unit_learned_clss_wl S' +
           get_subsumed_learned_clauses_wl S' + get_learned_clauses0_wl S')\<close>
 
+lemma all_lits_st_alt_def:
+  \<open>Watched_Literals_Watch_List.all_lits_st S = all_init_lits_of_wl S + all_learned_lits_of_wl S\<close>
+  apply (auto simp: all_lits_st_def all_init_lits_of_wl_def all_learned_lits_of_wl_def
+    ac_simps all_lits_def all_lits_of_mm_union)
+   by (metis all_clss_l_ran_m all_lits_of_mm_union get_unit_clauses_wl_alt_def image_mset_union union_assoc) 
+
 lemma all_init_lits_of_wl_all_lits_st:
   \<open>set_mset (all_init_lits_of_wl S) \<subseteq> set_mset (all_lits_st S)\<close>
   unfolding all_lits_st_def all_init_lits_of_wl_def all_lits_def
@@ -188,6 +194,44 @@ text \<open>
   definition of \<^term>\<open>all_lits_of_mm\<close> can be changed to \<open>all_lits_of_mm Ls = \<Sum><^sub># Ls\<close>.
 
   In this definition \<^term>\<open>K\<close> is the blocking literal.
+
+
+  We have several different version of the watch-list invariants, either because we need a different
+  version or to simplify proofs.
+
+  \<^enum> CDCL: This is the invariant that is the most important.
+     \<^item> binary clauses cannot be deleted
+     \<^item> blocking literals are in the clause
+     \<^item> the watched literals belong to the clause and are at the beginning.
+     \<^item> the set of all literals is the set of all literals (irred+red)
+
+  \<^enum> Inprocessing, deduplicating binary clauses
+     \<^item> binary clauses can be deleted
+     \<^item> blocking literals still are in the clause
+     \<^item> the watched literals belong to the clause and are at the beginning.
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+  \<^enum> Inprocessing, removing true/false literals
+     \<^item> all clauses appear in the watch list
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+(We also have the version for all literals)
+
+
+  \<^enum> Reduction
+     \<^item> all clauses appear in the watch list
+     \<^item> the set of all literals is the set of all irredundant literals (irred)
+
+   We use the set of irredundant literals because it is easier to handle removing literals --
+   deleting a clause does not change the set of all irredundant literals. We then rely on the
+   invariants to go back to the set of all literals.
+
+
+  One additional constraint is that the watch lists do not contain duplicates. This might seem like
+  a consequence from the fact that we are correctly watching. However, the invariant talks only
+  about non-deleted clauses. Technically we would not need the distinctiveness at this level, but
+  during refinement we need it in order to bound the length of the watch lists.
+
 \<close>
 fun correctly_marked_as_binary where
   \<open>correctly_marked_as_binary N (i, K, b) \<longleftrightarrow> (b \<longleftrightarrow> (length (N \<propto> i) = 2))\<close>

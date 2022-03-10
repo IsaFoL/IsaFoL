@@ -77,6 +77,11 @@ text \<open>
 
   We don't support (yet) generation of the empty clause. This is very tricky because we entirely
   leave the CDCL calculus.
+
+ The condition \<^term>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close> is not necessary from the point of view of CDCL,
+ but it makes it much easier to fulfill the conditions of the watched literals. It should be possible
+ to do so, but we would need to add conditions on it. However, this makes the inprocessing harder to
+ do.
 \<close>
 inductive cdcl_twl_subresolution :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
 twl_subresolution_II_nonunit:
@@ -86,7 +91,7 @@ twl_subresolution_II_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close> \<open>struct_wf_twl_cls E\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
 twl_subresolution_II_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
@@ -104,7 +109,7 @@ twl_subresolution_LL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close> |
 twl_subresolution_LL_unit:
   \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, None, NE, UE, NS, US, N0, U0, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, None, NE, add_mset {#K#} UE, NS,
@@ -122,7 +127,7 @@ twl_subresolution_LI_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close>\<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close> \<open>size (watched E) = 2\<close> \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
 twl_subresolution_LI_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, None, NE, UE, NS, US, N0, U0, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, None, NE, add_mset {#K#} UE, NS,

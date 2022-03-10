@@ -271,24 +271,6 @@ lemma convert_state_hnr:
   unfolding convert_state_def
   by sepref_to_hoare vcg
 declare convert_state_hnr[sepref_fr_rules]
-thm free_thms
-
-lemma tuple15_free[sepref_frame_free_rules]:
-  assumes
-  \<open>MK_FREE A freea\<close> \<open>MK_FREE B freeb\<close> \<open>MK_FREE C freec\<close> \<open>MK_FREE D freed\<close>
-  \<open>MK_FREE E freee\<close> \<open>MK_FREE F freef\<close> \<open>MK_FREE G freeg\<close> \<open>MK_FREE H freeh\<close>
-  \<open>MK_FREE I freei\<close> \<open>MK_FREE J freej\<close> \<open>MK_FREE K freek\<close> \<open>MK_FREE L freel\<close>
-  \<open>MK_FREE M freem\<close> \<open>MK_FREE N freen\<close> \<open>MK_FREE KO freeko\<close>
-  shows
-  \<open>
-  MK_FREE (tuple15_assn A B C D E F G H I J K L M N KO) (\<lambda>S. case S of Tuple15 a b c d e f g h i j k l m n ko \<Rightarrow> do\<^sub>M {
-  freea a; freeb b; freec c; freed d; freee e; freef f; freeg g; freeh h; freei i; freej j;
-  freek k; freel l; freem m; freen n; freeko ko
-  })\<close>
-  supply [vcg_rules] = assms[THEN MK_FREED]
-  apply (rule)+
-  apply (clarsimp split: tuple15.splits)
-  by vcg'
 
 schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
   unfolding isasat_init_assn_def
