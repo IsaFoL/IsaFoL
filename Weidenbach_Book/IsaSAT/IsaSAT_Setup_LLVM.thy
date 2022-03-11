@@ -14,7 +14,7 @@ lemma from_bool1: "from_bool True = 1"
   by auto
 lemmas [llvm_pre_simp] = from_bool1
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  remove_watchlist_wl_heur_code_def[unfolded isasat_state.remove_watchlist_wl_heur_code_def]
+  remove_d_code_def[unfolded isasat_state.remove_d_code_def]
 
 export_llvm
   ema_update_impl

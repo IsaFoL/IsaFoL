@@ -457,7 +457,7 @@ begin
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
 
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 
   export_llvm

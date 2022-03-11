@@ -1,5 +1,6 @@
 theory IsaSAT_Setup
   imports
+    Tuple16
     Watched_Literals_VMTF
     Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Lookup_Conflict
@@ -13,6 +14,8 @@ theory IsaSAT_Setup
 begin
 
 chapter \<open>Complete state\<close>
+
+hide_const (open) IsaSAT_VDom.get_aivdom
 
 text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
   deterministic code.
@@ -46,7 +49,6 @@ lemma get_unit_learned_clss_wl_alt_def:
   \<open>get_unit_learned_clss_wl T = get_unkept_unit_learned_clss_wl T + get_kept_unit_learned_clss_wl T\<close>
   by (cases T) auto
 
-
 section \<open>VMTF\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
@@ -74,83 +76,112 @@ paragraph \<open>Definition\<close>
 
 
 
-datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int = IsaSAT_int
-  (get_trail_wl_heur: 'a)
-  (get_clauses_wl_heur: 'b)
-  (get_conflict_wl_heur: 'c)
-  (literals_to_update_wl_heur: 'd)
-  (get_watched_wl_heur: 'e)
-  (get_vmtf_heur: 'f)
-  (get_count_max_lvls_heur: 'g)
-  (get_conflict_cach: 'h)
-  (get_lbd: 'i)
-  (get_outlearned_heur: 'j)
-  (get_stats_heur: 'k)
-  (get_heur: 'l)
-  (get_aivdom: 'm)
-  (get_learned_count: 'n)
-  (get_opts: 'o)
-  (get_old_arena: 'p)
-
-  type_synonym isasat = \<open>(trail_pol, arena,
+type_synonym isasat = \<open>(trail_pol, arena,
       conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
       nat, conflict_min_cach_l, lbd, out_learned, isasat_stats, isasat_restart_heuristics, 
      isasat_aivdom, clss_size, opts, arena) isasat_int\<close>
+
 abbreviation IsaSAT where
   \<open>IsaSAT a b c d e f g h i j k l m n xo p \<equiv> IsaSAT_int a b c d e f g h i j k l m n xo p :: isasat\<close>
 
-paragraph \<open>Accessors\<close>
+abbreviation get_trail_wl_heur :: \<open>isasat \<Rightarrow> trail_pol\<close> where
+  \<open>get_trail_wl_heur \<equiv> Tuple16_get_a\<close>
+
+abbreviation get_clauses_wl_heur :: \<open>isasat \<Rightarrow> arena\<close> where
+  \<open>get_clauses_wl_heur \<equiv> Tuple16_get_b\<close>
+
+abbreviation get_conflict_wl_heur :: \<open>isasat \<Rightarrow> conflict_option_rel\<close> where
+  \<open>get_conflict_wl_heur \<equiv> Tuple16_get_c\<close>
+
+abbreviation literals_to_update_wl_heur :: \<open>isasat \<Rightarrow> nat\<close> where
+  \<open>literals_to_update_wl_heur \<equiv> Tuple16_get_d\<close>
+
+abbreviation get_watched_wl_heur :: \<open>isasat \<Rightarrow> (nat watcher) list list\<close> where
+  \<open>get_watched_wl_heur \<equiv> Tuple16_get_e\<close>
+
+abbreviation get_vmtf_heur :: \<open>isasat \<Rightarrow> isa_vmtf_remove_int\<close> where
+  \<open>get_vmtf_heur \<equiv> Tuple16_get_f\<close>
+
+abbreviation get_count_max_lvls_heur :: \<open>isasat \<Rightarrow> nat\<close> where
+  \<open>get_count_max_lvls_heur \<equiv> Tuple16_get_g\<close>
+
+abbreviation get_conflict_cach :: \<open>isasat \<Rightarrow> conflict_min_cach_l\<close> where
+  \<open>get_conflict_cach \<equiv> Tuple16_get_h\<close>
+
+abbreviation get_lbd :: \<open>isasat \<Rightarrow> lbd\<close> where
+  \<open>get_lbd \<equiv> Tuple16_get_i\<close>
+
+abbreviation get_outlearned_heur :: \<open>isasat \<Rightarrow> out_learned\<close> where
+  \<open>get_outlearned_heur \<equiv> Tuple16_get_j\<close>
+
+abbreviation get_stats_heur :: \<open>isasat \<Rightarrow> isasat_stats\<close> where
+  \<open>get_stats_heur \<equiv> Tuple16_get_k\<close>
+
+abbreviation get_heur :: \<open>isasat \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>get_heur \<equiv> Tuple16_get_l\<close>
+
+abbreviation get_aivdom :: \<open>isasat \<Rightarrow> isasat_aivdom\<close> where
+  \<open>get_aivdom \<equiv> Tuple16_get_m\<close>
+
+abbreviation get_learned_count :: \<open>isasat \<Rightarrow> clss_size\<close> where
+  \<open>get_learned_count \<equiv> Tuple16_get_n\<close>
+
+abbreviation get_opts :: \<open>isasat \<Rightarrow> opts\<close> where
+  \<open>get_opts \<equiv> Tuple16_get_o\<close>
+
+abbreviation get_old_arena :: \<open>isasat \<Rightarrow> arena\<close> where
+  \<open>get_old_arena \<equiv> Tuple16_get_p\<close>
+
+abbreviation set_trail_wl_heur :: \<open>trail_pol \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_trail_wl_heur \<equiv> Tuple16.set_a\<close>
+
+abbreviation set_clauses_wl_heur :: \<open>arena \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_clauses_wl_heur \<equiv> Tuple16.set_b\<close>
+
+abbreviation set_conflict_wl_heur :: \<open>conflict_option_rel \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_conflict_wl_heur \<equiv> Tuple16.set_c\<close>
+
+abbreviation set_literals_to_update_wl_heur :: \<open>nat \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_literals_to_update_wl_heur \<equiv> Tuple16.set_d\<close>
+
+abbreviation set_watched_wl_heur :: \<open>nat watcher list list \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_watched_wl_heur \<equiv> Tuple16.set_e\<close>
+
+abbreviation set_vmtf_wl_heur :: \<open>isa_vmtf_remove_int \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_vmtf_wl_heur \<equiv> Tuple16.set_f\<close>
+
+abbreviation set_count_max_wl_heur :: \<open>nat \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_count_max_wl_heur \<equiv> Tuple16.set_g\<close>
+
+abbreviation set_ccach_max_wl_heur :: \<open>conflict_min_cach_l \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_ccach_max_wl_heur \<equiv> Tuple16.set_h\<close>
+
+abbreviation set_lbd_wl_heur :: \<open>lbd \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_lbd_wl_heur \<equiv> Tuple16.set_i\<close>
+
+abbreviation set_outl_wl_heur :: \<open>out_learned \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_outl_wl_heur \<equiv> Tuple16.set_j\<close>
+
+abbreviation set_stats_wl_heur :: \<open>isasat_stats \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
+  \<open>set_stats_wl_heur \<equiv> Tuple16.set_k\<close>
+
+abbreviation set_heur_wl_heur :: \<open>isasat_restart_heuristics \<Rightarrow>isasat \<Rightarrow> isasat\<close> where
+  \<open>set_heur_wl_heur \<equiv> Tuple16.set_l\<close>
+
+abbreviation set_aivdom_wl_heur :: \<open>isasat_aivdom \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_aivdom_wl_heur \<equiv> Tuple16.set_m\<close>
+
+abbreviation set_learned_count_wl_heur :: \<open>clss_size \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_learned_count_wl_heur \<equiv> Tuple16.set_n\<close>
+
+abbreviation set_opts_wl_heur :: \<open>opts \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_opts_wl_heur \<equiv> Tuple16.set_o\<close>
+
+abbreviation set_old_arena_wl_heur :: \<open>arena \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_old_arena_wl_heur \<equiv> Tuple16.set_p\<close>
 
 fun watched_by_int :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat watched\<close> where
   \<open>watched_by_int S L = get_watched_wl_heur S ! nat_of_lit L\<close>
-
-fun set_trail_wl_heur :: \<open>trail_pol \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_trail_wl_heur M (IsaSAT _ N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_clauses_wl_heur :: \<open>arena \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_clauses_wl_heur N (IsaSAT M _ D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_conflict_wl_heur :: \<open>conflict_option_rel \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_conflict_wl_heur D (IsaSAT M N _ i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_literals_to_update_wl_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_literals_to_update_wl_heur i (IsaSAT M N D _ W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_watched_wl_heur :: \<open>nat watcher list list \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_watched_wl_heur W (IsaSAT M N D i _ ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_vmtf_wl_heur :: \<open>isa_vmtf_remove_int \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_vmtf_wl_heur ivmtf (IsaSAT M N D i W _ icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_count_max_wl_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_count_max_wl_heur icount (IsaSAT M N D i W ivmtf _ ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_ccach_max_wl_heur :: \<open>conflict_min_cach_l \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_ccach_max_wl_heur ccach (IsaSAT M N D i W ivmtf icount _ lbd outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_lbd_wl_heur :: \<open>lbd \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_lbd_wl_heur lbd (IsaSAT M N D i W ivmtf icount ccach _ outl heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_outl_wl_heur :: \<open>out_learned \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_outl_wl_heur outl (IsaSAT M N D i W ivmtf icount ccach lbd _ heur stats aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_heur_wl_heur :: \<open>isasat_restart_heuristics \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_heur_wl_heur heur (IsaSAT M N D i W ivmtf icount ccach lbd outl stats _ aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
-
-fun set_stats_wl_heur :: \<open>isasat_stats \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_stats_wl_heur stats (IsaSAT M N D i W ivmtf icount ccach lbd outl _ heur aivdom clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
-
-fun set_aivdom_wl_heur :: \<open>isasat_aivdom \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_aivdom_wl_heur aivdom (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats _ clss opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_learned_count_wl_heur :: \<open>clss_size \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_learned_count_wl_heur clss (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom _ opts arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_opts_wl_heur :: \<open>opts \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_opts_wl_heur opts (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss _ arena) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
-
-fun set_old_arena_wl_heur :: \<open>arena \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>set_old_arena_wl_heur arena (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts _) = (IsaSAT M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
 definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
@@ -200,22 +231,6 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
-(* definition get_opts_int :: \<open>isasat_int \<Rightarrow> opts\<close> where
- *   \<open>get_opts_int = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
- * 
- * definition get_learned_count_number_int :: \<open>isasat_int \<Rightarrow> _\<close> where
- *   \<open>get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
- *        stats, _, vdom, lcount, opts). (clss_size_lcount lcount))\<close>
- * 
- * lemma get_learned_count_number_alt_def:
- *    \<open>RETURN o get_learned_count_number_int = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
- *        stats, _, vdom, lcount, opts). RETURN (clss_size_lcount lcount))\<close>
- *   by (auto simp: get_learned_count_number_int_def intro!: ext)
- * 
- * definition get_count_max_lvls_heur_int :: \<open>isasat_int \<Rightarrow> nat\<close> where
- *   \<open>get_count_max_lvls_heur_int = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close> *)
-
-
 paragraph \<open>VMTF\<close>
 
 definition isa_vmtf where
@@ -241,7 +256,7 @@ lemma isa_vmtf_consD2:
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
 state. \<^term>\<open>avdom\<close> includes the active clauses.
 \<close>
-term get_vmtf_heur
+
 definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> where
 [unfolded Let_def]: \<open>twl_st_heur =
   {(S, T).
@@ -493,12 +508,6 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
       option_lookup_clause_rel_def Let_def
      split: option.splits prod.splits)
 
-
-(* lemma get_conflict_wl_is_None_heur_alt_def:
- *     \<open>RETURN o get_conflict_wl_is_None_heur = (\<lambda>(M, N, (b, _), Q, W, _). RETURN b)\<close>
- *   unfolding get_conflict_wl_is_None_heur_def
- *   by auto *)
-
 definition count_decided_st :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
 
@@ -516,7 +525,6 @@ lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_t
   unfolding count_decided_st_def
   by (cases S) auto
 
-
 definition (in -) is_in_conflict_st :: \<open>nat literal \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>is_in_conflict_st L S \<longleftrightarrow> is_in_conflict L (get_conflict_wl S)\<close>
 
@@ -531,7 +539,6 @@ lemma atm_is_in_conflict_st_heur_alt_def:
 
 (*TODO remove*)
 lemmas atm_of_in_atms_of_iff = atm_of_in_atms_of
-
 
 lemma all_lits_st_alt_def: \<open>set_mset (all_lits_st S) =  set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
   by (auto simp: all_lits_st_def all_lits_def all_lits_of_mm_union
@@ -705,16 +712,8 @@ definition (in -) access_lit_in_clauses_heur_pre where
 definition (in -) access_lit_in_clauses_heur where
   \<open>access_lit_in_clauses_heur S i j = arena_lit (get_clauses_wl_heur S) (i + j)\<close>
 
-(* lemma access_lit_in_clauses_heur_alt_def:
- *   \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. arena_lit N (i + j))\<close>
- *   by (auto simp: access_lit_in_clauses_heur_def intro!: ext) *)
-
 definition (in -) mop_access_lit_in_clauses_heur where
   \<open>mop_access_lit_in_clauses_heur S i j = mop_arena_lit2 (get_clauses_wl_heur S) i j\<close>
-
-(* lemma mop_access_lit_in_clauses_heur_alt_def:
- *   \<open>mop_access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. mop_arena_lit2 N i j)\<close>
- *   by (auto simp: mop_access_lit_in_clauses_heur_def intro!: ext) *)
 
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
@@ -965,11 +964,6 @@ definition mop_polarity_st_heur :: \<open>isasat \<Rightarrow> nat literal \<Rig
     mop_polarity_pol (get_trail_wl_heur S) L
   }\<close>
 
-(* lemma mop_polarity_st_heur_alt_def: \<open>mop_polarity_st_heur = (\<lambda>(M, _) L. do {
- *     mop_polarity_pol M L
- *   })\<close>
- *   by (auto simp: mop_polarity_st_heur_def intro!: ext) *)
-
 lemma mop_polarity_st_heur_mop_polarity_wl:
    \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
    [\<lambda>_. True]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
@@ -995,100 +989,41 @@ lemma [simp,iff]: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<l
 definition length_avdom :: \<open>isasat \<Rightarrow> nat\<close> where
   \<open>length_avdom S = length (get_avdom S)\<close>
 
-(* lemma length_avdom_alt_def:
- *   \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *     vdom, lcount). length (get_avdom_aivdom vdom))\<close>
- *   by (intro ext) (auto simp: length_avdom_def) *)
-
-
 definition length_ivdom :: \<open>isasat \<Rightarrow> nat\<close> where
   \<open>length_ivdom S = length (get_ivdom S)\<close>
-
-(* lemma length_ivdom_alt_def:
- *   \<open>length_ivdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *     vdom, lcount, _, _). length (get_ivdom_aivdom vdom))\<close>
- *   by (intro ext) (auto simp: length_ivdom_def) *)
 
 definition length_tvdom :: \<open>isasat \<Rightarrow> nat\<close> where
   \<open>length_tvdom S = length (get_tvdom S)\<close>
 
-(* lemma length_tvdom_alt_def:
- *   \<open>length_tvdom = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *     vdom, lcount, _, _). length (get_tvdom_aivdom vdom))\<close>
- *   by (intro ext) (auto simp: length_tvdom_def) *)
-
 definition clause_is_learned_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close>
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
-
-(* lemma clause_is_learned_heur_alt_def:
- *   \<open>clause_is_learned_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
- *      heur, vdom, lcount) C . arena_status N' C = LEARNED)\<close>
- *   by (intro ext) (auto simp: clause_is_learned_heur_def) *)
 
 definition get_the_propagation_reason_heur
  :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
 where
   \<open>get_the_propagation_reason_heur S = get_the_propagation_reason_pol (get_trail_wl_heur S)\<close>
 
-(* lemma get_the_propagation_reason_heur_alt_def:
- *   \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
- *      heur, vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
- *   by (intro ext) (auto simp: get_the_propagation_reason_heur_def) *)
-
-
-
 (* TODO deduplicate arena_lbd = get_clause_LBD *)
 definition clause_lbd_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat\<close>
 where
   \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
 
-(* lemma clause_lbd_heur_alt_def:
- *   \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
- *      lcount) C.
- *      arena_lbd N' C)\<close>
- *   by (intro ext) (auto simp: clause_lbd_heur_def) *)
-
 definition (in -) access_length_heur where
   \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
-
-(* lemma access_length_heur_alt_def:
- *   \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
- *     lcount) C. arena_length N' C)\<close>
- *   by (intro ext) (auto simp: access_length_heur_def arena_lbd_def) *)
-
 
 definition marked_as_used_st where
   \<open>marked_as_used_st T C =
     marked_as_used (get_clauses_wl_heur T) C\<close>
 
-(* lemma marked_as_used_st_alt_def:
- *   \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
- *       lcount) C.
- *      marked_as_used N' C)\<close>
- *   by (intro ext) (auto simp: marked_as_used_st_def) *)
-
-
 definition access_avdom_at :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_avdom_at S i = get_avdom S ! i\<close>
-
-(* lemma access_avdom_at_alt_def:
- *   \<open>access_avdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_avdom_aivdom vdom ! i)\<close>
- *   by (intro ext) (auto simp: access_avdom_at_def) *)
 
 definition access_ivdom_at :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_ivdom_at S i = get_ivdom S ! i\<close>
 
-(* lemma access_ivdom_at_alt_def:
- *   \<open>access_ivdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_ivdom_aivdom vdom ! i)\<close>
- *   by (intro ext) (auto simp: access_ivdom_at_def) *)
-
 definition access_tvdom_at :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_tvdom_at S i = get_tvdom S ! i\<close>
-
-(* lemma access_tvdom_at_alt_def:
- *   \<open>access_tvdom_at = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, lcount) i. get_tvdom_aivdom vdom ! i)\<close>
- *   by (intro ext) (auto simp: access_tvdom_at_def) *)
 
 definition access_avdom_at_pre where
   \<open>access_avdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
@@ -1131,7 +1066,7 @@ definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> isas
     S)\<close>
 
 definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
-  \<open>mark_garbage_heur4 C = (\<lambda>S. do{
+  \<open>mark_garbage_heur4 C S = (do{
     let N' = get_clauses_wl_heur S;
     let st = arena_status N' C = IRRED;
     let N' = extra_information_mark_to_delete (N') C;
@@ -1143,7 +1078,6 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
     let S = set_clauses_wl_heur N' S;
     let S = set_learned_count_wl_heur lcount S;
     let S = set_stats_wl_heur stats S;
-    let st = arena_status N' C = IRRED;
     RETURN S
    })\<close>
 
@@ -1189,18 +1123,6 @@ definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> isasat \<Rightarr
      RETURN (mark_unused_st_heur C T)
   }\<close>
 
-(* lemma mop_mark_garbage_heur_alt_def:
- *   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *        vdom,lcount, opts, old_arena). do {
- *     ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
- *        stats, heur, vdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length (get_avdom_aivdom vdom));
- *     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl,
- *       stats, heur,
- *        remove_inactive_aivdom i vdom, clss_size_decr_lcount lcount, opts, old_arena)
- *    })\<close>
- *   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
- *   by (auto intro!: ext) *)
-
 lemma mark_unused_st_heur_simp[simp]:
   \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
   \<open>get_vdom (mark_unused_st_heur C T) = get_vdom T\<close>
@@ -1208,39 +1130,11 @@ lemma mark_unused_st_heur_simp[simp]:
   \<open>get_tvdom (mark_unused_st_heur C T) = get_tvdom T\<close>
   by (cases T; auto simp: mark_unused_st_heur_def; fail)+
 
-
-(* lemma get_slow_ema_heur_alt_def:
- *    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
- *        stats, heur, lcount). RETURN (slow_ema_of heur))\<close>
- *   by auto
- * 
- * lemma get_fast_ema_heur_alt_def:
- *    \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
- *        stats, heur, lcount). RETURN (fast_ema_of heur))\<close>
- *   by auto *)
-
-
 fun get_conflict_count_since_last_restart_heur :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart_heur S = get_conflict_count_since_last_restart (get_heur S)\<close>
 
-(* lemma (in -) get_conflict_count_since_last_restart_heur_alt_def:
- *    \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
- *        outl, stats, heur, lcount). RETURN (get_conflict_count_since_last_restart heur))\<close>
- *   by auto
- * 
- * lemma get_learned_count_alt_def:
- *    \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
- *        stats, _, vdom, lcount, opts). RETURN lcount)\<close>
- *   by auto *)
-
 definition get_global_conflict_count where
   \<open>get_global_conflict_count S = stats_conflicts (get_stats_heur S)\<close>
-
-(* lemma (in -) get_global_conflict_count_alt_def:
- *    \<open>RETURN o get_global_conflict_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
- *        outl, (stats), _, lcount). RETURN (stats_conflicts stats))\<close>
- *   by (auto simp: get_global_conflict_count_def) *)
-
 
 text \<open>
   I also played with \<^term>\<open>ema_reinit fast_ema\<close> and \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
@@ -1300,31 +1194,14 @@ definition opts_restart_coeff2_st :: \<open>isasat \<Rightarrow> nat\<close> whe
 definition isasat_length_trail_st :: \<open>isasat \<Rightarrow> nat\<close> where
   \<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
 
-(* lemma isasat_length_trail_st_alt_def:
- *   \<open>isasat_length_trail_st = (\<lambda>(M, _). isa_length_trail M)\<close>
- *   by (auto simp: isasat_length_trail_st_def intro!: ext) *)
-
 definition mop_isasat_length_trail_st :: \<open>isasat \<Rightarrow> nat nres\<close> where
   \<open>mop_isasat_length_trail_st S = do {
     ASSERT(isa_length_trail_pre (get_trail_wl_heur S));
     RETURN (isa_length_trail (get_trail_wl_heur S))
   }\<close>
 
-(* lemma mop_isasat_length_trail_st_alt_def:
- *   \<open>mop_isasat_length_trail_st = (\<lambda>(M, _). do {
- *     ASSERT(isa_length_trail_pre M);
- *     RETURN (isa_length_trail M)
- *   })\<close>
- *   by (auto simp: mop_isasat_length_trail_st_def intro!: ext) *)
-
-
 definition get_pos_of_level_in_trail_imp_st :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
 \<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
-
-(* lemma get_pos_of_level_in_trail_imp_alt_def:
- *   \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _) L.  do {k \<leftarrow> get_pos_of_level_in_trail_imp M L; RETURN k})\<close>
- *   by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext) *)
-
 
 definition mop_clause_not_marked_to_delete_heur :: \<open>_ \<Rightarrow> nat \<Rightarrow> bool nres\<close>
 where
@@ -1337,54 +1214,17 @@ definition mop_arena_lbd_st where
   \<open>mop_arena_lbd_st S =
     mop_arena_lbd (get_clauses_wl_heur S)\<close>
 
-(* lemma mop_arena_lbd_st_alt_def:
- *   \<open>mop_arena_lbd_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *        vdom, lcount, opts, old_arena) C. do {
- *        ASSERT(get_clause_LBD_pre arena C);
- *       RETURN(arena_lbd arena C)
- *    })\<close>
- *   unfolding mop_arena_lbd_st_def mop_arena_lbd_def
- *   by (auto intro!: ext) *)
-
 definition mop_arena_status_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>mop_arena_status_st S =
     mop_arena_status (get_clauses_wl_heur S)\<close>
-
-(* lemma mop_arena_status_st_alt_def:
- *   \<open>mop_arena_status_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *        vdom, lcount, opts, old_arena) C. do {
- *        ASSERT(arena_is_valid_clause_vdom arena C);
- *       RETURN(arena_status arena C)
- *    })\<close>
- *   unfolding mop_arena_status_st_def mop_arena_status_def
- *   by (auto intro!: ext) *)
-
 
 definition mop_marked_as_used_st :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>mop_marked_as_used_st S =
     mop_marked_as_used (get_clauses_wl_heur S)\<close>
 
-(* lemma mop_marked_as_used_st_alt_def:
- *   \<open>mop_marked_as_used_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *        vdom, lcount, opts, old_arena) C. do {
- *        ASSERT(marked_as_used_pre arena C);
- *       RETURN(marked_as_used arena C)
- *    })\<close>
- *   unfolding mop_marked_as_used_st_def mop_marked_as_used_def
- *   by (auto intro!: ext) *)
-
 definition mop_arena_length_st :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>mop_arena_length_st S =
     mop_arena_length (get_clauses_wl_heur S)\<close>
-
-(* lemma mop_arena_length_st_alt_def:
- *   \<open>mop_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *        vdom, lcount, opts, old_arena) C. do {
- *       ASSERT(arena_is_valid_clause_idx arena C);
- *       RETURN (arena_length arena C)
- *    })\<close>
- *   unfolding mop_arena_length_st_def mop_arena_length_def
- *   by (auto intro!: ext) *)
 
 definition full_arena_length_st :: \<open>isasat \<Rightarrow> nat\<close> where
   \<open>full_arena_length_st S = length (get_clauses_wl_heur S)\<close>
@@ -1412,11 +1252,6 @@ lemma all_lits_simps[simp]:
   \<open>all_atms N ((NE + UE) + (NS + US)) = all_atms N (NE + UE + NS + US)\<close>
   by (auto simp: ac_simps)
 
-(* lemma clause_not_marked_to_delete_heur_alt_def:
- *   \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
- *      RETURN (arena_status arena C \<noteq> DELETED))\<close>
- *   unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext) *)
-
 lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrightarrow>
                       learned_clss_count T=
                       size (get_learned_clss_wl Ta) +
@@ -1436,16 +1271,8 @@ lemma clss_size_allcount_alt_def:
 definition isasat_trail_nth_st :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
 
-(* lemma isasat_trail_nth_st_alt_def:
- *   \<open>isasat_trail_nth_st = (\<lambda>(M, _) i.  isa_trail_nth M i)\<close>
- *   by (auto simp: isasat_trail_nth_st_def intro!: ext) *)
-
 definition get_the_propagation_reason_pol_st :: \<open>isasat\<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
 \<open>get_the_propagation_reason_pol_st S i = get_the_propagation_reason_pol (get_trail_wl_heur S) i\<close>
-
-(* lemma get_the_propagation_reason_pol_st_alt_def:
- *   \<open>get_the_propagation_reason_pol_st = (\<lambda>(M, _) i.  get_the_propagation_reason_pol M i)\<close>
- *   by (auto simp: get_the_propagation_reason_pol_st_def intro!: ext) *)
 
 definition empty_US_heur :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>empty_US_heur S =
@@ -1473,8 +1300,8 @@ definition empty_US_heur_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<
 \<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). (M', N, D, NE, UE, NEk, UEk, NS, {#}, N0, {#}, Q, W))\<close>
 
 lemma restart_info_of_stats_simp [simp]: \<open>restart_info_of_stats (incr_wasted_stats C heur) = restart_info_of_stats heur\<close>
-
   by (cases heur; auto; fail)+
+
 lemma incr_wasted_st_twl_st[simp]:
   \<open>get_aivdom (incr_wasted_st b T) = get_aivdom T\<close>
   \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
@@ -1591,11 +1418,6 @@ definition (in -) lit_of_hd_trail_st_heur :: \<open>isasat \<Rightarrow> nat lit
      RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))
   }\<close>
 
-(* lemma lit_of_hd_trail_st_heur_alt_def:
- *   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
- *   by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext) *)
-
-
 subsection \<open>Lifting of Options\<close>
 
 definition get_target_opts :: \<open>isasat \<Rightarrow> opts_target\<close> where
@@ -1625,41 +1447,6 @@ definition clss_size_resetUS0_st :: \<open>isasat \<Rightarrow> isasat\<close> w
 definition is_fully_propagated_heur_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>is_fully_propagated_heur_st S = is_fully_propagated_heur (get_heur S)\<close>
 
-(* lemma clss_size_resetUS0_st_alt_def:
- *   \<open>RETURN o clss_size_resetUS0_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *   vdom, lcount, opts, old_arena).
- *   RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *   vdom, clss_size_resetUS0 lcount, opts, old_arena))\<close>
- *   unfolding clss_size_resetUS0_st_def
- *   by (auto intro!: ext) *)
-
-(* lemma units_since_last_GC_st_alt_def:
- *   \<open>RETURN o units_since_last_GC_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *   vdom, lcount, opts, old_arena). RETURN (units_since_last_GC stats))\<close>
- *   by (auto intro!: ext simp: units_since_last_GC_st_def)
- *
- * lemma reset_units_since_last_GC_st_alt_def:
- *   \<open>RETURN o reset_units_since_last_GC_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *   vdom, lcount, opts, old_arena).
- *   RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, reset_units_since_last_GC stats, heur,
- *   vdom, lcount, opts, old_arena))\<close>
- *   unfolding reset_units_since_last_GC_st_def by auto
- *
- * lemma get_GC_units_opt_alt_def:
- *   \<open>RETURN o get_GC_units_opt = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
- *   vdom, lcount, opts, old_arena). RETURN (opts_GC_units_lim opts))\<close>
- *   by (auto intro!: ext simp: get_GC_units_opt_def)
- *
- * lemma mop_clause_not_marked_to_delete_heur_alt_def:
- *   \<open>mop_clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C. do {
- *     ASSERT(clause_not_marked_to_delete_heur_pre ((M, arena, D, oth), C));
- *      RETURN (arena_status arena C \<noteq> DELETED)
- *    })\<close>
- *   unfolding clause_not_marked_to_delete_heur_def mop_clause_not_marked_to_delete_heur_def
- *   by (auto intro!: ext) *)
-
-
-
 definition print_trail_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>print_trail_st = (\<lambda>S. print_trail (get_trail_wl_heur S))\<close>
 
@@ -1682,279 +1469,26 @@ lemma print_trail_st_print_trail_st2:
 lemma print_trail_st_print_trail_st2_rel:
   \<open>(print_trail_st, RETURN o print_trail_st2) \<in> Id \<rightarrow>\<^sub>f (\<langle>unit_rel\<rangle>nres_rel)\<close>
   using print_trail_st_print_trail_st2 by (force intro!: frefI nres_relI)
-named_theorems isasat_state_simp \<open>Theoremes about the setters/getters of isasat_int\<close>
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_trail_wl_heur M S) = M\<close>
-  \<open>get_clauses_wl_heur (set_trail_wl_heur M S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_trail_wl_heur M S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_trail_wl_heur M S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_trail_wl_heur M S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_trail_wl_heur M S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_trail_wl_heur M S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_trail_wl_heur M S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_trail_wl_heur M S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_trail_wl_heur M S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_trail_wl_heur M S) = get_stats_heur S\<close>
-  \<open>get_heur (set_trail_wl_heur M S) = get_heur S\<close>
-  \<open>get_aivdom (set_trail_wl_heur M S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_trail_wl_heur M S) = get_learned_count S\<close>
-  \<open>get_opts (set_trail_wl_heur M S) = get_opts S\<close>
-  \<open>get_learned_count (set_trail_wl_heur M S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_trail_wl_heur M S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_trail_wl_heur M S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
+
+named_theorems isasat_state_simp
 
 lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_clauses_wl_heur N S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_clauses_wl_heur N S) = N\<close>
-  \<open>get_conflict_wl_heur (set_clauses_wl_heur N S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_clauses_wl_heur N S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_clauses_wl_heur N S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_clauses_wl_heur N S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_clauses_wl_heur N S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_clauses_wl_heur N S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_clauses_wl_heur N S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_clauses_wl_heur N S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_clauses_wl_heur N S) = get_stats_heur S\<close>
-  \<open>get_heur (set_clauses_wl_heur N S) = get_heur S\<close>
-  \<open>get_aivdom (set_clauses_wl_heur N S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_clauses_wl_heur N S) = get_learned_count S\<close>
-  \<open>get_opts (set_clauses_wl_heur N S) = get_opts S\<close>
-  \<open>get_learned_count (set_clauses_wl_heur N S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_clauses_wl_heur N S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_clauses_wl_heur N S) = learned_clss_count S\<close>
-
-  \<open>get_trail_wl_heur (set_conflict_wl_heur D S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_conflict_wl_heur D S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_conflict_wl_heur D S) = D\<close>
-  \<open>literals_to_update_wl_heur (set_conflict_wl_heur D S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_conflict_wl_heur D S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_conflict_wl_heur D S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_conflict_wl_heur D S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_conflict_wl_heur D S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_conflict_wl_heur D S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_conflict_wl_heur D S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_conflict_wl_heur D S) = get_stats_heur S\<close>
-  \<open>get_heur (set_conflict_wl_heur D S) = get_heur S\<close>
-  \<open>get_aivdom (set_conflict_wl_heur D S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_conflict_wl_heur D S) = get_learned_count S\<close>
-  \<open>get_opts (set_conflict_wl_heur D S) = get_opts S\<close>
-  \<open>get_learned_count (set_conflict_wl_heur D S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_conflict_wl_heur D S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_conflict_wl_heur D S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_literals_to_update_wl_heur j S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_literals_to_update_wl_heur j S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_literals_to_update_wl_heur j S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_literals_to_update_wl_heur j S) = j\<close>
-  \<open>get_watched_wl_heur (set_literals_to_update_wl_heur j S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_literals_to_update_wl_heur j S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_literals_to_update_wl_heur j S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_literals_to_update_wl_heur j S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_literals_to_update_wl_heur j S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_literals_to_update_wl_heur j S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_literals_to_update_wl_heur j S) = get_stats_heur S\<close>
-  \<open>get_heur (set_literals_to_update_wl_heur j S) = get_heur S\<close>
-  \<open>get_aivdom (set_literals_to_update_wl_heur j S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_literals_to_update_wl_heur j S) = get_learned_count S\<close>
-  \<open>get_opts (set_literals_to_update_wl_heur j S) = get_opts S\<close>
-  \<open>get_learned_count (set_literals_to_update_wl_heur j S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_literals_to_update_wl_heur j S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_literals_to_update_wl_heur j S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_watched_wl_heur W S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_watched_wl_heur W S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_watched_wl_heur W S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_watched_wl_heur W S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_watched_wl_heur W S) = W\<close>
-  \<open>get_vmtf_heur (set_watched_wl_heur W S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_watched_wl_heur W S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_watched_wl_heur W S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_watched_wl_heur W S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_watched_wl_heur W S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_watched_wl_heur W S) = get_stats_heur S\<close>
-  \<open>get_heur (set_watched_wl_heur W S) = get_heur S\<close>
-  \<open>get_aivdom (set_watched_wl_heur W S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_watched_wl_heur W S) = get_learned_count S\<close>
-  \<open>get_opts (set_watched_wl_heur W S) = get_opts S\<close>
-  \<open>get_learned_count (set_watched_wl_heur W S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_watched_wl_heur W S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_watched_wl_heur W S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_vmtf_wl_heur vmtf' S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_vmtf_wl_heur vmtf' S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_vmtf_wl_heur vmtf' S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_vmtf_wl_heur vmtf' S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_vmtf_wl_heur vmtf' S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_vmtf_wl_heur vmtf' S) = vmtf'\<close>
-  \<open>get_count_max_lvls_heur (set_vmtf_wl_heur vmtf' S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_vmtf_wl_heur vmtf' S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_vmtf_wl_heur vmtf' S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_vmtf_wl_heur vmtf' S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_vmtf_wl_heur vmtf' S) = get_stats_heur S\<close>
-  \<open>get_heur (set_vmtf_wl_heur vmtf' S) = get_heur S\<close>
-  \<open>get_aivdom (set_vmtf_wl_heur vmtf' S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_vmtf_wl_heur vmtf' S) = get_learned_count S\<close>
-  \<open>get_opts (set_vmtf_wl_heur vmtf' S) = get_opts S\<close>
-  \<open>get_learned_count (set_vmtf_wl_heur vmtf' S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_vmtf_wl_heur vmtf' S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_vmtf_wl_heur vmtf' S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_count_max_wl_heur count' S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_count_max_wl_heur count' S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_count_max_wl_heur count' S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_count_max_wl_heur count' S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_count_max_wl_heur count' S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_count_max_wl_heur count' S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_count_max_wl_heur count' S) = count'\<close>
-  \<open>get_conflict_cach (set_count_max_wl_heur count' S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_count_max_wl_heur count' S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_count_max_wl_heur count' S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_count_max_wl_heur count' S) = get_stats_heur S\<close>
-  \<open>get_heur (set_count_max_wl_heur count' S) = get_heur S\<close>
-  \<open>get_aivdom (set_count_max_wl_heur count' S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_count_max_wl_heur count' S) = get_learned_count S\<close>
-  \<open>get_opts (set_count_max_wl_heur count' S) = get_opts S\<close>
-  \<open>get_learned_count (set_count_max_wl_heur count' S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_count_max_wl_heur count' S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_count_max_wl_heur count' S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_ccach_max_wl_heur ccach S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_ccach_max_wl_heur ccach S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_ccach_max_wl_heur ccach S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_ccach_max_wl_heur ccach S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_ccach_max_wl_heur ccach S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_ccach_max_wl_heur ccach S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_ccach_max_wl_heur ccach S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_ccach_max_wl_heur ccach S) = ccach\<close>
-  \<open>get_lbd (set_ccach_max_wl_heur ccach S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_ccach_max_wl_heur ccach S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_ccach_max_wl_heur ccach S) = get_stats_heur S\<close>
-  \<open>get_heur (set_ccach_max_wl_heur ccach S) = get_heur S\<close>
-  \<open>get_aivdom (set_ccach_max_wl_heur ccach S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_ccach_max_wl_heur ccach S) = get_learned_count S\<close>
-  \<open>get_opts (set_ccach_max_wl_heur ccach S) = get_opts S\<close>
-  \<open>get_learned_count (set_ccach_max_wl_heur ccach S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_ccach_max_wl_heur ccach S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_ccach_max_wl_heur ccach S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_lbd_wl_heur lbd S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_lbd_wl_heur lbd S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_lbd_wl_heur lbd S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_lbd_wl_heur lbd S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_lbd_wl_heur lbd S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_lbd_wl_heur lbd S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_lbd_wl_heur lbd S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_lbd_wl_heur lbd S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_lbd_wl_heur lbd S) = lbd\<close>
-  \<open>get_outlearned_heur (set_lbd_wl_heur lbd S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_lbd_wl_heur lbd S) = get_stats_heur S\<close>
-  \<open>get_heur (set_lbd_wl_heur lbd S) = get_heur S\<close>
-  \<open>get_aivdom (set_lbd_wl_heur lbd S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_lbd_wl_heur lbd S) = get_learned_count S\<close>
-  \<open>get_opts (set_lbd_wl_heur lbd S) = get_opts S\<close>
-  \<open>get_learned_count (set_lbd_wl_heur lbd S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_lbd_wl_heur lbd S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_lbd_wl_heur lbd S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_outl_wl_heur outl S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_outl_wl_heur outl S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_outl_wl_heur outl S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_outl_wl_heur outl S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_outl_wl_heur outl S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_outl_wl_heur outl S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_outl_wl_heur outl S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_outl_wl_heur outl S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_outl_wl_heur outl S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_outl_wl_heur outl S) = outl\<close>
-  \<open>get_stats_heur (set_outl_wl_heur outl S) = get_stats_heur S\<close>
-  \<open>get_heur (set_outl_wl_heur outl S) = get_heur S\<close>
-  \<open>get_aivdom (set_outl_wl_heur outl S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_outl_wl_heur outl S) = get_learned_count S\<close>
-  \<open>get_opts (set_outl_wl_heur outl S) = get_opts S\<close>
-  \<open>get_learned_count (set_outl_wl_heur outl S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_outl_wl_heur outl S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_outl_wl_heur outl S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_heur_wl_heur heur S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_heur_wl_heur heur S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_heur_wl_heur heur S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_heur_wl_heur heur S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_heur_wl_heur heur S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_heur_wl_heur heur S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_heur_wl_heur heur S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_heur_wl_heur heur S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_heur_wl_heur heur S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_heur_wl_heur heur S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_heur_wl_heur heur S) = get_stats_heur S\<close>
-  \<open>get_heur (set_heur_wl_heur heur S) = heur\<close>
-  \<open>get_aivdom (set_heur_wl_heur heur S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_heur_wl_heur heur S) = get_learned_count S\<close>
-  \<open>get_opts (set_heur_wl_heur heur S) = get_opts S\<close>
-  \<open>get_learned_count (set_heur_wl_heur heur S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_heur_wl_heur heur S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_heur_wl_heur heur S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_stats_wl_heur stats S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_stats_wl_heur stats S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_stats_wl_heur stats S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_stats_wl_heur stats S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_stats_wl_heur stats S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_stats_wl_heur stats S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_stats_wl_heur stats S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_stats_wl_heur stats S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_stats_wl_heur stats S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_stats_wl_heur stats S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_stats_wl_heur stats S) = stats\<close>
-  \<open>get_heur (set_stats_wl_heur stats S) = get_heur S\<close>
-  \<open>get_aivdom (set_stats_wl_heur stats S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_stats_wl_heur stats S) = get_learned_count S\<close>
-  \<open>get_opts (set_stats_wl_heur stats S) = get_opts S\<close>
-  \<open>get_learned_count (set_stats_wl_heur stats S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_stats_wl_heur stats S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_stats_wl_heur stats S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_aivdom_wl_heur aivdom S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_aivdom_wl_heur aivdom S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_aivdom_wl_heur aivdom S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_aivdom_wl_heur aivdom S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_aivdom_wl_heur aivdom S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_aivdom_wl_heur aivdom S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_aivdom_wl_heur aivdom S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_aivdom_wl_heur aivdom S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_aivdom_wl_heur aivdom S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_aivdom_wl_heur aivdom S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_aivdom_wl_heur aivdom S) = get_stats_heur S\<close>
-  \<open>get_heur (set_aivdom_wl_heur aivdom S) = get_heur S\<close>
-  \<open>get_aivdom (set_aivdom_wl_heur aivdom S) = aivdom\<close>
-  \<open>get_learned_count (set_aivdom_wl_heur aivdom S) = get_learned_count S\<close>
-  \<open>get_opts (set_aivdom_wl_heur aivdom S) = get_opts S\<close>
-  \<open>get_learned_count (set_aivdom_wl_heur aivdom S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_aivdom_wl_heur aivdom S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_aivdom_wl_heur aivdom S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
+  \<open>learned_clss_count (Tuple16.set_p old_arena S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_o opts S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_n lcount S) = learned_clss_count_lcount lcount\<close>
+  \<open>learned_clss_count (Tuple16.set_m aivdom S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_l heur S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_k stats S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_j outl S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_i lbd S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_h ccach S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_g count' S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_f vmtf' S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_e W S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_d j S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_c D S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_b N S) = learned_clss_count S\<close>
+  \<open>learned_clss_count (Tuple16.set_a M S) = learned_clss_count S\<close>
   \<open>get_trail_wl_heur (set_learned_count_wl_heur lcount S) = get_trail_wl_heur S\<close>
   \<open>get_clauses_wl_heur (set_learned_count_wl_heur lcount S) = get_clauses_wl_heur S\<close>
   \<open>get_conflict_wl_heur (set_learned_count_wl_heur lcount S) = get_conflict_wl_heur S\<close>
@@ -1966,56 +1500,14 @@ lemma [isasat_state_simp]:
   \<open>get_lbd (set_learned_count_wl_heur lcount S) = get_lbd S\<close>
   \<open>get_outlearned_heur (set_learned_count_wl_heur lcount S) = get_outlearned_heur S\<close>
   \<open>get_stats_heur (set_learned_count_wl_heur lcount S) = get_stats_heur S\<close>
-  \<open>get_heur (set_learned_count_wl_heur lcount S) = get_heur S\<close>
   \<open>get_aivdom (set_learned_count_wl_heur lcount S) = get_aivdom S\<close>
-  \<open>get_opts (set_learned_count_wl_heur lcount S) = get_opts S\<close>
+  \<open>get_heur (set_learned_count_wl_heur lcount S) = get_heur S\<close>
   \<open>get_learned_count (set_learned_count_wl_heur lcount S) = lcount\<close>
+  \<open>get_opts (set_learned_count_wl_heur lcount S) = get_opts S\<close>
   \<open>get_old_arena (set_learned_count_wl_heur lcount S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_learned_count_wl_heur lcount S) = learned_clss_count_lcount lcount\<close>
   by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_opts_wl_heur lcount S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_opts_wl_heur lcount S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_opts_wl_heur lcount S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_opts_wl_heur lcount S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_opts_wl_heur lcount S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_opts_wl_heur lcount S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_opts_wl_heur lcount S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_opts_wl_heur lcount S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_opts_wl_heur lcount S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_opts_wl_heur lcount S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_opts_wl_heur lcount S) = get_stats_heur S\<close>
-  \<open>get_heur (set_opts_wl_heur lcount S) = get_heur S\<close>
-  \<open>get_aivdom (set_opts_wl_heur lcount S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_opts_wl_heur lcount S) = get_learned_count S\<close>
-  \<open>get_opts (set_opts_wl_heur lcount S) = lcount\<close>
-  \<open>get_learned_count (set_opts_wl_heur lcount S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_opts_wl_heur lcount S) = get_old_arena S\<close>
-  \<open>learned_clss_count (set_opts_wl_heur lcount S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
-lemma [isasat_state_simp]:
-  \<open>get_trail_wl_heur (set_old_arena_wl_heur old_arena S) = get_trail_wl_heur S\<close>
-  \<open>get_clauses_wl_heur (set_old_arena_wl_heur old_arena S) = get_clauses_wl_heur S\<close>
-  \<open>get_conflict_wl_heur (set_old_arena_wl_heur old_arena S) = get_conflict_wl_heur S\<close>
-  \<open>literals_to_update_wl_heur (set_old_arena_wl_heur old_arena S) = literals_to_update_wl_heur S\<close>
-  \<open>get_watched_wl_heur (set_old_arena_wl_heur old_arena S) = get_watched_wl_heur S\<close>
-  \<open>get_vmtf_heur (set_old_arena_wl_heur old_arena S) = get_vmtf_heur S\<close>
-  \<open>get_count_max_lvls_heur (set_old_arena_wl_heur old_arena S) = get_count_max_lvls_heur S\<close>
-  \<open>get_conflict_cach (set_old_arena_wl_heur old_arena S) = get_conflict_cach S\<close>
-  \<open>get_lbd (set_old_arena_wl_heur old_arena S) = get_lbd S\<close>
-  \<open>get_outlearned_heur (set_old_arena_wl_heur old_arena S) = get_outlearned_heur S\<close>
-  \<open>get_stats_heur (set_old_arena_wl_heur old_arena S) = get_stats_heur S\<close>
-  \<open>get_heur (set_old_arena_wl_heur old_arena S) = get_heur S\<close>
-  \<open>get_aivdom (set_old_arena_wl_heur old_arena S) = get_aivdom S\<close>
-  \<open>get_learned_count (set_old_arena_wl_heur old_arena S) = get_learned_count S\<close>
-  \<open>get_opts (set_old_arena_wl_heur old_arena S) = get_opts S\<close>
-  \<open>get_learned_count (set_old_arena_wl_heur old_arena S) = get_learned_count S\<close>
-  \<open>get_old_arena (set_old_arena_wl_heur old_arena S) = old_arena\<close>
-  \<open>learned_clss_count (set_old_arena_wl_heur old_arena S) = learned_clss_count S\<close>
-  by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
-
+lemmas [isasat_state_simp] = tuple16_state_simp
 lemmas [simp] = isasat_state_simp
 
 

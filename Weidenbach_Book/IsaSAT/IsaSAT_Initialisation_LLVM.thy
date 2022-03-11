@@ -18,12 +18,12 @@ definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<
   \<open>polarity_st_heur_init S L = polarity_pol (Tuple15_a S) L\<close>
 
 definition polarity_st_heur_init_code :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>polarity_st_heur_init_code N C = IsaSAT_Init.read_all_wl_heur_code (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. polarity_pol_fast_code M C) N\<close>
+  \<open>polarity_st_heur_init_code N C = IsaSAT_Init.read_all_st_code (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. polarity_pol_fast_code M C) N\<close>
 
 lemma polarity_st_heur_init_alt_def:
-  \<open>(\<lambda>N C'. IsaSAT_Init.read_all_wl_heur (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. (RETURN \<circ>\<circ> polarity_pol) M C') N) =
+  \<open>(\<lambda>N C'. IsaSAT_Init.read_all_st (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. (RETURN \<circ>\<circ> polarity_pol) M C') N) =
   RETURN oo polarity_st_heur_init\<close>
-  by (auto simp: IsaSAT_Init.read_all_wl_heur_def polarity_st_heur_init_def intro!: ext
+  by (auto simp: IsaSAT_Init.read_all_st_def polarity_st_heur_init_def intro!: ext
     split: tuple15.splits)
 
 lemmas polarity_st_heur_init_code_refine [sepref_fr_rules] =
@@ -32,11 +32,11 @@ lemmas polarity_st_heur_init_code_refine [sepref_fr_rules] =
 
 
 definition get_conflict_wl_is_None_init_code :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>get_conflict_wl_is_None_init_code = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _. conflict_is_None_code M)\<close>
+  \<open>get_conflict_wl_is_None_init_code = IsaSAT_Init.read_all_st_code (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _. conflict_is_None_code M)\<close>
 
 lemma get_conflict_wl_is_None_heur_init_alt_def:
-  \<open>RETURN o get_conflict_wl_is_None_heur_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _. conflict_is_None M)\<close>
-  by (auto simp: IsaSAT_Init.read_all_wl_heur_def polarity_st_heur_init_def get_conflict_wl_is_None_heur_init_def
+  \<open>RETURN o get_conflict_wl_is_None_heur_init = IsaSAT_Init.read_all_st (\<lambda>_ _ M _ _ _ _ _ _ _ _ _ _ _ _. conflict_is_None M)\<close>
+  by (auto simp: IsaSAT_Init.read_all_st_def polarity_st_heur_init_def get_conflict_wl_is_None_heur_init_def
     conflict_is_None_def
     intro!: ext
     split: tuple15.splits)
@@ -49,73 +49,73 @@ definition full_arena_length_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow>
   \<open>full_arena_length_st_init S = length (get_clauses_wl_heur_init S)\<close>
 
 lemma full_arena_length_st_init_alt_def:
-  \<open>RETURN o full_arena_length_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. (RETURN \<circ> length) M)\<close>
-  by (auto simp: full_arena_length_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o full_arena_length_st_init = IsaSAT_Init.read_all_st (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. (RETURN \<circ> length) M)\<close>
+  by (auto simp: full_arena_length_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition full_arena_length_st_init_code :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>full_arena_length_st_init_code = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. arena_full_length_impl M)\<close>
+  \<open>full_arena_length_st_init_code = IsaSAT_Init.read_all_st_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. arena_full_length_impl M)\<close>
 
 definition clss_size_lcount_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>clss_size_lcount_st_init S = clss_size_lcount (get_learned_count_init S)\<close>
 
 lemma clss_size_lcount_st_init_alt_def:
-  \<open>RETURN o clss_size_lcount_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcount) M)\<close>
-  by (auto simp: clss_size_lcount_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o clss_size_lcount_st_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcount) M)\<close>
+  by (auto simp: clss_size_lcount_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition clss_size_lcount_st_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>clss_size_lcount_st_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcount_fast_code M)\<close>
+  \<open>clss_size_lcount_st_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcount_fast_code M)\<close>
 
 definition clss_size_lcountUE_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>clss_size_lcountUE_st_init S = clss_size_lcountUE (get_learned_count_init S)\<close>
 
 lemma clss_size_lcountUE_st_init_alt_def:
-  \<open>RETURN o clss_size_lcountUE_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUE) M)\<close>
-  by (auto simp: clss_size_lcountUE_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o clss_size_lcountUE_st_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUE) M)\<close>
+  by (auto simp: clss_size_lcountUE_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition clss_size_lcountUE_st_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>clss_size_lcountUE_st_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUE_fast_code M)\<close>
+  \<open>clss_size_lcountUE_st_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUE_fast_code M)\<close>
 
 definition clss_size_lcountUEk_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>clss_size_lcountUEk_st_init S = clss_size_lcountUEk (get_learned_count_init S)\<close>
 
 lemma clss_size_lcountUEk_st_init_alt_def:
-  \<open>RETURN o clss_size_lcountUEk_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUEk) M)\<close>
-  by (auto simp: clss_size_lcountUEk_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o clss_size_lcountUEk_st_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUEk) M)\<close>
+  by (auto simp: clss_size_lcountUEk_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition clss_size_lcountUEk_st_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>clss_size_lcountUEk_st_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUEk_fast_code M)\<close>
+  \<open>clss_size_lcountUEk_st_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUEk_fast_code M)\<close>
 
 definition clss_size_lcountUS_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>clss_size_lcountUS_st_init S = clss_size_lcountUS (get_learned_count_init S)\<close>
 
 lemma clss_size_lcountUS_st_init_alt_def:
-  \<open>RETURN o clss_size_lcountUS_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUS) M)\<close>
-  by (auto simp: clss_size_lcountUS_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o clss_size_lcountUS_st_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountUS) M)\<close>
+  by (auto simp: clss_size_lcountUS_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition clss_size_lcountUS_st_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>clss_size_lcountUS_st_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUSt_fast_code M)\<close>
+  \<open>clss_size_lcountUS_st_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountUSt_fast_code M)\<close>
 
 definition clss_size_lcountU0_st_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where
   \<open>clss_size_lcountU0_st_init S = clss_size_lcountU0 (get_learned_count_init S)\<close>
 
 lemma clss_size_lcountU0_st_init_alt_def:
-  \<open>RETURN o clss_size_lcountU0_st_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountU0) M)\<close>
-  by (auto simp: clss_size_lcountU0_st_init_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o clss_size_lcountU0_st_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. (RETURN \<circ> clss_size_lcountU0) M)\<close>
+  by (auto simp: clss_size_lcountU0_st_init_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 
 definition clss_size_lcountU0_st_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>clss_size_lcountU0_st_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountU0_fast_code M)\<close>
+  \<open>clss_size_lcountU0_st_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ M _. clss_size_lcountU0_fast_code M)\<close>
 
 
 definition is_failed_loc :: \<open>bool \<Rightarrow> bool\<close> where
@@ -128,12 +128,12 @@ sepref_def is_failed_loc_impl
   by sepref
 
 lemma is_failed_heur_init_alt_def:
-  \<open>RETURN o is_failed_heur_init = IsaSAT_Init.read_all_wl_heur (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _. (RETURN o is_failed_loc) M)\<close>
-  by (auto simp: is_failed_loc_def IsaSAT_Init.read_all_wl_heur_def
+  \<open>RETURN o is_failed_heur_init = IsaSAT_Init.read_all_st (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _. (RETURN o is_failed_loc) M)\<close>
+  by (auto simp: is_failed_loc_def IsaSAT_Init.read_all_st_def
     intro!: ext
     split: tuple15.splits)
 definition is_failed_heur_init_impl :: \<open>twl_st_wll_trail_init \<Rightarrow> _\<close> where
-  \<open>is_failed_heur_init_impl = IsaSAT_Init.read_all_wl_heur_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _. is_failed_loc_impl M)\<close>
+  \<open>is_failed_heur_init_impl = IsaSAT_Init.read_all_st_code (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ M _ _. is_failed_loc_impl M)\<close>
 
 lemmas [sepref_fr_rules] =
   IsaSAT_Init.read_b_refine0[OF arena_full_length_impl.refine,
@@ -152,14 +152,14 @@ lemmas [sepref_fr_rules] =
     unfolded is_failed_heur_init_impl_def[symmetric] is_failed_heur_init_alt_def[symmetric]]
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
-  polarity_st_heur_init_code_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  full_arena_length_st_init_code_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  clss_size_lcount_st_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  clss_size_lcountUE_st_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  clss_size_lcountUEk_st_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  clss_size_lcountUS_st_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  clss_size_lcountU0_st_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
-  is_failed_heur_init_impl_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
+  polarity_st_heur_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  full_arena_length_st_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  clss_size_lcount_st_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  clss_size_lcountUE_st_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  clss_size_lcountUEk_st_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  clss_size_lcountUS_st_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  clss_size_lcountU0_st_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
+  is_failed_heur_init_impl_def[unfolded IsaSAT_Init.read_all_st_code_def]
 
 sepref_register atoms_hash_empty
 sepref_def (in -) atoms_hash_empty_code
@@ -1030,14 +1030,14 @@ abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
-  get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
+  get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
 
 (*TODO check why this is actually needed*)
 lemmas [llvm_code] =
    init_state_wl_D'_code_def[unfolded comp_def]
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
-  get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_wl_heur_code_def]
+  get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
 experiment
 begin
 

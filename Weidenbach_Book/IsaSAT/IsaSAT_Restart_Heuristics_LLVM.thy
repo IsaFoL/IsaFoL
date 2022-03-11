@@ -54,7 +54,7 @@ global_interpretation end_of_restart_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code end_of_restart_phase_impl = end_of_restart_phase_st_impl\<close>
   apply unfold_locales
   apply (rule end_of_restart_phase_impl_refine)
-  subgoal by (auto simp: read_all_wl_heur_def end_of_restart_phase_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def end_of_restart_phase_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: end_of_restart_phase_st_impl_def)
   done
@@ -71,7 +71,7 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code end_of_rephasing_phase_heur_stats_impl = end_of_rephasing_phase_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: read_all_wl_heur_def end_of_rephasing_phase_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def end_of_rephasing_phase_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: end_of_rephasing_phase_st_impl_def)
   done
@@ -79,8 +79,8 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
 
 lemmas [sepref_fr_rules] = end_of_restart_phase.refine end_of_rephasing_phase.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  end_of_restart_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
-  end_of_rephasing_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
+  end_of_restart_phase_st_impl_def[unfolded read_all_st_code_def]
+  end_of_rephasing_phase_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_phases
@@ -118,7 +118,7 @@ global_interpretation restart_count: read_stats_param_adder0 where
     \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
   apply unfold_locales
   apply (rule get_restart_count_impl_refine; assumption)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_restart_count_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_restart_count_st_impl_def)
   done
@@ -136,7 +136,7 @@ global_interpretation reduction_count: read_stats_param_adder0 where
     \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
   apply unfold_locales
   apply (rule get_lrestart_count_impl_refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def intro!: ext
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_reductions_count_fast_code_def)
   done
@@ -178,7 +178,7 @@ global_interpretation slow_ema: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code get_slow_ema_heur_full_impl = get_slow_ema_heur_st_impl\<close>
   apply unfold_locales
   apply (rule get_slow_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_slow_ema_heur_st_def
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_slow_ema_heur_st_def
       get_slow_ema_heur_full_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
@@ -193,7 +193,7 @@ global_interpretation fast_ema: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code get_fast_ema_heur_full_impl = get_fast_ema_heur_st_impl\<close>
   apply unfold_locales
   apply (rule get_fast_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_fast_ema_heur_st_def
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_fast_ema_heur_st_def
       get_fast_ema_heur_full_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
@@ -201,10 +201,10 @@ global_interpretation fast_ema: read_heur_param_adder0 where
 
 lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_restart_count_st_impl_def[unfolded read_all_wl_heur_code_def]
-  get_reductions_count_fast_code_def[unfolded read_all_wl_heur_code_def]
-  get_fast_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
-  get_slow_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
+  get_restart_count_st_impl_def[unfolded read_all_st_code_def]
+  get_reductions_count_fast_code_def[unfolded read_all_st_code_def]
+  get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
+  get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
 
 find_theorems get_restart_count RETURN
 sepref_def upper_restart_bound_not_reached_fast_impl
@@ -380,7 +380,7 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
   by auto
 
 (*TODO Move to IsaSAT_Setup2*)
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 experiment
 begin

@@ -995,7 +995,7 @@ proof -
     let ?cach = \<open>get_conflict_cach S'\<close>
     let ?outl = \<open>get_outlearned_heur S'\<close>
     let ?lcount = \<open>get_learned_count S'\<close>
-    let ?aivdom = \<open>isasat_int.get_aivdom S'\<close>
+    let ?aivdom = \<open>get_aivdom S'\<close>
     let ?b = \<open>fst ?bD'\<close>
     let ?D' = \<open>snd ?bD'\<close>
 
@@ -1636,7 +1636,7 @@ proof -
     let ?cach = \<open>get_conflict_cach T\<close>
     let ?outl = \<open>get_outlearned_heur T\<close>
     let ?lcount = \<open>get_learned_count T\<close>
-    let ?aivdom = \<open>isasat_int.get_aivdom T\<close>
+    let ?aivdom = \<open>get_aivdom T\<close>
 
     let ?vdom = \<open>set (get_vdom_aivdom ?aivdom)\<close>
     (* obtain M' W' vm clvls cach lbd outl stats arena D' Q' heur vdom lcount opts old_arena where
@@ -1874,7 +1874,7 @@ proof -
     let ?lcount = \<open>get_learned_count U\<close>
     let ?heur = \<open>get_heur U\<close>
     let ?lbd = \<open>get_lbd U\<close>
-    let ?aivdom = \<open>isasat_int.get_aivdom U\<close>
+    let ?aivdom = \<open>get_aivdom U\<close>
 
     let ?vdom = \<open>set (get_vdom_aivdom ?aivdom)\<close>
     (* obtain M1' vm' W' clvls cach lbd outl stats heur vdom lcount arena D'
@@ -1936,7 +1936,7 @@ thm propagate_bt_wl_D_heur_def
     have propagate_bt_wl_D_heur_alt_def:
       \<open>propagate_bt_wl_D_heur = (\<lambda>L C S. do {
           let M = get_trail_wl_heur S;
-          let vdom = isasat_int.get_aivdom S;
+          let vdom = get_aivdom S;
           let N0 = get_clauses_wl_heur S;
           let W0 = get_watched_wl_heur S;
           let lcount = get_learned_count S;
@@ -2424,7 +2424,7 @@ thm propagate_bt_wl_D_heur_def
     let ?lcount = \<open>get_learned_count U\<close>
     let ?heur = \<open>get_heur U\<close>
     let ?lbd = \<open>get_lbd U\<close>
-    let ?aivdom = \<open>isasat_int.get_aivdom U\<close>
+    let ?aivdom = \<open>get_aivdom U\<close>
     have
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
             \<open>get_learned_count U = get_learned_count S\<close>

@@ -1189,7 +1189,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur3_def mop_mark_unused_st_heur_def
       incr_wasted_st_twl_st
-    by (auto intro!: ext simp: get_clauses_wl_heur_def)
+    by (auto intro!: ext)
 
 lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_GC_wl_D_heur  = (\<lambda>S0. do {
@@ -1256,8 +1256,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur3_def mop_mark_unused_st_heur_def
       incr_wasted_st_twl_st
-    by (auto intro!: ext simp: get_clauses_wl_heur_def
-      intro!: bind_cong[OF refl])
+    by (auto intro!: ext intro!: bind_cong[OF refl])
 
 lemma learned_clss_count_mark_garbage_heur3:
   \<open>clss_size_lcount (get_learned_count xs) \<ge> Suc 0 \<Longrightarrow> learned_clss_count (mark_garbage_heur3 C i xs) = (learned_clss_count xs) - 1\<close> and

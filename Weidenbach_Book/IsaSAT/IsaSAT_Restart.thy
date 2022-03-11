@@ -152,7 +152,7 @@ lemma [twl_st_heur_restart]:
   assumes \<open>(S, T) \<in> twl_st_heur_restart\<close>
   shows \<open>(get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
   using assms by (cases S; cases T)
-   (simp only: twl_st_heur_restart_def get_trail_wl_heur_def get_trail_wl.simps
+   (simp only: twl_st_heur_restart_def get_trail_wl.simps
     mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
     all_init_atms_def get_init_clauses0_wl.simps isasat_int.inject get_unkept_unit_init_clss_wl.simps
     get_kept_unit_init_clss_wl.simps

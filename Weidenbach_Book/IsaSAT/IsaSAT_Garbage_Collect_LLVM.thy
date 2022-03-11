@@ -120,8 +120,8 @@ lemma isasat_GC_clauses_prog_wl_alt_def:
     let S = update_vdom_wl_heur vdom S;
     RETURN S
       })\<close>
-      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors update_old_arena_wl_heur_def recombine_vmtf_def split_vmtf_def
-        extract_old_arena_wl_heur_def Let_def isasat_state_ops.remove_old_arena_wl_heur_def intro!: ext bind_cong[OF refl]
+      by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors recombine_vmtf_def split_vmtf_def
+         Let_def intro!: ext bind_cong[OF refl]
         split: isasat_int.splits)
 
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st

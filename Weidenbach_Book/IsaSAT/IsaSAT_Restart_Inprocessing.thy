@@ -1033,17 +1033,16 @@ proof -
    subgoal by (auto simp: DECISION_REASON_def)
    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
      x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v
-      apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
+     by (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
          prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def
         clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono
         clss_size_decr_lcount_def)
-      apply (auto split: if_splits intro: aivdom_inv_dec_mono simp:
+       (auto split: if_splits intro: aivdom_inv_dec_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
         clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
-     done
    subgoal by simp
    subgoal by simp
    subgoal by (auto simp add: twl_st_heur_restart_def all_init_atms_st_def)

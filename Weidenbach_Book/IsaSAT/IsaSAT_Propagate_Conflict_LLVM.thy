@@ -95,17 +95,25 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
+lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [split] =  isasat_int.splits
+  unfolding isasat_bounded_assn_def
+  apply sepref_to_hoare
+  apply (vcg')
+  done
+
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
     ASSERT(literals_to_update_wl_heur S < length (fst (get_trail_wl_heur S)));
     ASSERT(literals_to_update_wl_heur S + 1 \<le> uint32_max);
-    L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) (literals_to_update_wl_heur S);
-    RETURN (update_literals_to_update_wl_heur (literals_to_update_wl_heur S + 1) S, -L)
+    let (j, T) = extract_literals_to_update_wl_heur S;
+    ASSERT (j = literals_to_update_wl_heur S);
+    L \<leftarrow> isa_trail_nth (get_trail_wl_heur T) j;
+    RETURN (update_literals_to_update_wl_heur (j + 1) T, -L)
   }\<close>
-  by (cases S) (auto simp: select_and_remove_from_literals_to_update_wl_heur_def state_extractors update_literals_to_update_wl_heur_def
+  by (cases S) (auto simp: select_and_remove_from_literals_to_update_wl_heur_def state_extractors
     intro!: ext split: isasat_int.splits)
-
 
 sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
