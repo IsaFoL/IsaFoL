@@ -42,9 +42,6 @@ sepref_def FLAG_Inprocess_restart_impl
   unfolding FLAG_Inprocess_restart_def
   by sepref
 
-(*TODO Move to IsaSAT_Stats_LLVM*)
-
-  (*END Move*)
 definition end_of_restart_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>end_of_restart_phase_st_impl = read_heur_wl_heur_code end_of_restart_phase_impl\<close>
 

@@ -782,7 +782,7 @@ lemma clss_size_corr_restart_simp3:
   by (auto simp: clss_size_corr_restart_def clss_size_incr_lcountUEk_def clss_size_def
     split: prod.splits)
 
-subsection \<open>Lifting tclss_size_corr_restarto heuristic level\<close>
+subsection \<open>Lifting to heuristic level\<close>
 definition get_next_phase_heur_pre_stats :: \<open>bool \<Rightarrow> nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
   \<open>get_next_phase_heur_pre_stats = (\<lambda>b L (_, _, _, _, rephase, _).
   get_next_phase_pre b L rephase)\<close>
@@ -799,8 +799,8 @@ definition get_next_phase_heur :: \<open>bool \<Rightarrow> nat \<Rightarrow> is
 definition end_of_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
     end_of_phase)\<close>
+
 definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>end_of_restart_phase = end_of_restart_phase_stats o get_content\<close>
-
 
 end
