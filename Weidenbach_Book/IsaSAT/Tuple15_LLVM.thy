@@ -1050,14 +1050,14 @@ context
     read_all :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rightarrow> 'e \<Rightarrow> 'f \<Rightarrow> 'g \<Rightarrow> 'h \<Rightarrow> 'i \<Rightarrow> 'j \<Rightarrow> 'k \<Rightarrow> 'l \<Rightarrow> 'm \<Rightarrow> 'n \<Rightarrow> 'o \<Rightarrow> 'r nres\<close>
 begin
 
-definition read_all_wl_heur_code :: \<open>_\<close> where
-  \<open>read_all_wl_heur_code xi = (case xi of
+definition read_all_st_code :: \<open>_\<close> where
+  \<open>read_all_st_code xi = (case xi of
   Tuple15 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 \<Rightarrow>
     read_all_code a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15)\<close>
 
-definition read_all_wl_heur :: \<open>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+definition read_all_st :: \<open>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o) tuple15 \<Rightarrow> _\<close> where
-  \<open>read_all_wl_heur tuple15 = (case tuple15 of Tuple15 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15a16 \<Rightarrow>
+  \<open>read_all_st tuple15 = (case tuple15 of Tuple15 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15a16 \<Rightarrow>
   read_all a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15a16)\<close>
 
 context
@@ -1068,15 +1068,15 @@ context
           m_assn\<^sup>k *\<^sub>a n_assn\<^sup>k *\<^sub>a o_assn\<^sup>k \<rightarrow> x_assn\<close>
   notes [[sepref_register_adhoc read_all]]
 begin
-sepref_definition read_all_wl_heur_code_tmp
-  is read_all_wl_heur
+sepref_definition read_all_st_code_tmp
+  is read_all_st
   :: \<open>[case_tuple15 P]\<^sub>a tuple15_int_assn\<^sup>k \<rightarrow> x_assn\<close>
-   unfolding read_all_wl_heur_def
+   unfolding read_all_st_def
    by sepref
 
-lemmas read_all_wl_heur_code_refine =
-  read_all_wl_heur_code_tmp.refine[unfolded read_all_wl_heur_code_tmp_def
-    read_all_wl_heur_code_def[symmetric]]
+lemmas read_all_st_code_refine =
+  read_all_st_code_tmp.refine[unfolded read_all_st_code_tmp_def
+    read_all_st_code_def[symmetric]]
 end
 
 end
@@ -1087,4 +1087,22 @@ lemma Mreturn_comp_Tuple15:
   \<open>(Mreturn o\<^sub>1\<^sub>5 Tuple15) a b c d e f g h i j k l m n ko =
   Mreturn (Tuple15 a b c d e f g h i j k l m n ko)\<close>
   by auto
+
+lemma tuple15_free[sepref_frame_free_rules]:
+  assumes
+  \<open>MK_FREE A freea\<close> \<open>MK_FREE B freeb\<close> \<open>MK_FREE C freec\<close> \<open>MK_FREE D freed\<close>
+  \<open>MK_FREE E freee\<close> \<open>MK_FREE F freef\<close> \<open>MK_FREE G freeg\<close> \<open>MK_FREE H freeh\<close>
+  \<open>MK_FREE I freei\<close> \<open>MK_FREE J freej\<close> \<open>MK_FREE K freek\<close> \<open>MK_FREE L freel\<close>
+  \<open>MK_FREE M freem\<close> \<open>MK_FREE N freen\<close> \<open>MK_FREE KO freeko\<close>
+  shows
+  \<open>
+  MK_FREE (tuple15_assn A B C D E F G H I J K L M N KO) (\<lambda>S. case S of Tuple15 a b c d e f g h i j k l m n ko \<Rightarrow> do\<^sub>M {
+  freea a; freeb b; freec c; freed d; freee e; freef f; freeg g; freeh h; freei i; freej j;
+  freek k; freel l; freem m; freen n; freeko ko
+  })\<close>
+  supply [vcg_rules] = assms[THEN MK_FREED]
+  apply (rule)+
+  apply (clarsimp split: tuple15.splits)
+  by vcg'
+
 end

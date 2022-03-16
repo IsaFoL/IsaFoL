@@ -32,7 +32,7 @@ global_interpretation is_decided_hd: read_trail_param_adder0 where
   apply unfold_locales
   apply (rule is_decided_trail_impl.refine)
   subgoal
-    by (auto simp: read_all_wl_heur_def is_decided_hd_trail_wl_heur_def is_decided_trail_def last_trail_pol_def Let_def
+    by (auto simp: read_all_st_def is_decided_hd_trail_wl_heur_def is_decided_trail_def last_trail_pol_def Let_def
       intro!: ext
       split: isasat_int.splits)
   subgoal
@@ -67,7 +67,7 @@ global_interpretation lit_and_of_proped_lit: read_trail_param_adder0 where
   apply unfold_locales
   apply (rule lit_and_ann_of_propagated_trail_heur_impl.refine)
   subgoal
-    by (auto simp: read_all_wl_heur_def lit_and_ann_of_propagated_st_heur_def lit_and_ann_of_propagated_trail_heur_def last_trail_pol_def Let_def
+    by (auto simp: read_all_st_def lit_and_ann_of_propagated_st_heur_def lit_and_ann_of_propagated_trail_heur_def last_trail_pol_def Let_def
       intro!: ext
       split: isasat_int.splits)
   subgoal
@@ -105,7 +105,7 @@ global_interpretation atm_in_conflict: read_conflict_param_adder where
   apply (subst lambda_comp_true,
      rule atm_is_in_conflict_confl_heur_impl.refine)
   subgoal
-    by (auto simp: read_all_wl_heur_def atm_is_in_conflict_st_heur'_def atm_is_in_conflict_confl_heur_def Let_def
+    by (auto simp: read_all_st_def atm_is_in_conflict_st_heur'_def atm_is_in_conflict_confl_heur_def Let_def
       intro!: ext
       split: isasat_int.splits)
   subgoal
@@ -114,9 +114,9 @@ global_interpretation atm_in_conflict: read_conflict_param_adder where
 
 lemmas [unfolded lambda_comp_true, sepref_fr_rules] = is_decided_hd.refine lit_and_of_proped_lit.refine atm_in_conflict.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  is_decided_hd_trail_wl_fast_code_def[unfolded read_all_wl_heur_code_def]
-  lit_and_ann_of_propagated_st_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
-  atm_is_in_conflict_st_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
+  is_decided_hd_trail_wl_fast_code_def[unfolded read_all_st_code_def]
+  lit_and_ann_of_propagated_st_heur_fast_code_def[unfolded read_all_st_code_def]
+  atm_is_in_conflict_st_heur_fast_code_def[unfolded read_all_st_code_def]
 
 sepref_def atm_is_in_conflict_st_heur_fast2_code
   is \<open>uncurry (atm_is_in_conflict_st_heur)\<close>

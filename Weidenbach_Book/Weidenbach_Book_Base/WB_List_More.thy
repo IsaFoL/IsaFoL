@@ -1701,6 +1701,10 @@ lemma filter_mset_mono_subset:
 lemma mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
   by (induction xc) auto
 
+lemma sum_mset_cong:
+  \<open>(\<And>A. A \<in># M \<Longrightarrow> f A = g A) \<Longrightarrow> (\<Sum> A \<in># M. f A) = (\<Sum> A \<in># M. g A)\<close>
+  by (induction M) auto
+
 lemma sum_mset_mset_set_sum_set:
   \<open>(\<Sum>A \<in># mset_set As. f A) = (\<Sum>A \<in> As. f A)\<close>
   apply (cases \<open>finite As\<close>)

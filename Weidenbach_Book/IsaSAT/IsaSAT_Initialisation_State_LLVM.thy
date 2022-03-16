@@ -487,7 +487,7 @@ definition mop where
   (Tuple15_m S)
   (Tuple15_n S)
   (Tuple15_o S));
-   read_all_wl_heur (f' C) S
+   read_all_st (f' C) S
   }\<close>
 
 context
@@ -516,8 +516,8 @@ lemma not_deleted_code_refine_tmp:
   done
 end
 lemma read_all_refine:
-  \<open>(uncurry (\<lambda>N C. read_all_wl_heur_code (kf C) N),
-    uncurry (\<lambda>N C'. read_all_wl_heur (f' C') N))
+  \<open>(uncurry (\<lambda>N C. read_all_st_code (kf C) N),
+    uncurry (\<lambda>N C'. read_all_st (f' C') N))
   \<in> [uncurry (\<lambda>S C. P C
   (Tuple15_a S)
   (Tuple15_b S)
@@ -536,13 +536,13 @@ lemma read_all_refine:
   (Tuple15_o S))]\<^sub>a tuple15_int_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
   apply (rule add_pure_parameter2)
   unfolding isasat_int.case_distrib case_isasat_int_split_getter
-  apply (rule read_all_wl_heur_code_refine)
+  apply (rule read_all_st_code_refine)
   apply (rule not_deleted_code_refine_tmp)
   apply assumption
   done
 
 lemma read_all_mop_refine:
-  \<open>(uncurry (\<lambda>N C. read_all_wl_heur_code (kf C) N),
+  \<open>(uncurry (\<lambda>N C. read_all_st_code (kf C) N),
     uncurry mop)
   \<in> tuple15_int_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
@@ -553,9 +553,9 @@ end
 end
 
 abbreviation read_trail_wl_heur_code :: \<open>_\<close> where
-  \<open>read_trail_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_wl_heur_code  (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_trail_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_st_code  (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 abbreviation read_trail_wl_heur :: \<open>_\<close> where
-  \<open>read_trail_wl_heur kf \<equiv> IsaSAT_Init.read_all_wl_heur (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_trail_wl_heur kf \<equiv> IsaSAT_Init.read_all_st (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 
 
 context
@@ -593,9 +593,9 @@ end
 
 
 abbreviation read_conflict_wl_heur_code :: \<open>_\<close> where
-  \<open>read_conflict_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_wl_heur_code  (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_conflict_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_st_code  (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 abbreviation read_conflict_wl_heur :: \<open>_\<close> where
-  \<open>read_conflict_wl_heur kf \<equiv> IsaSAT_Init.read_all_wl_heur (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_conflict_wl_heur kf \<equiv> IsaSAT_Init.read_all_st (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 
 
 context
@@ -646,9 +646,9 @@ end
 
 
 abbreviation read_b_wl_heur_code :: \<open>_\<close> where
-  \<open>read_b_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_wl_heur_code  (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_b_wl_heur_code kf \<equiv> IsaSAT_Init.read_all_st_code  (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 abbreviation read_b_wl_heur :: \<open>_\<close> where
-  \<open>read_b_wl_heur kf \<equiv> IsaSAT_Init.read_all_wl_heur (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
+  \<open>read_b_wl_heur kf \<equiv> IsaSAT_Init.read_all_st (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _. kf M)\<close>
 
 
 

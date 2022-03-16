@@ -89,13 +89,13 @@ global_interpretation get_next_phase: read_heur_param_adder2 where
   apply unfold_locales
   apply (rule get_next_phase_heur_stats_impl'.refine[unfolded get_next_phase_heur_stats_impl'_def])
   subgoal by (auto simp: get_next_phase_st'_impl_def)
-  subgoal by (auto simp: read_all_wl_heur_def get_next_phase_st_def get_next_phase_st'_def split: isasat_int.splits
+  subgoal by (auto simp: read_all_st_def get_next_phase_st_def get_next_phase_st'_def split: isasat_int.splits
     intro!: ext)
   done
 
 lemmas [sepref_fr_rules] = get_next_phase.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_next_phase_st'_impl_def[unfolded read_all_wl_heur_code_def]
+  get_next_phase_st'_impl_def[unfolded read_all_st_code_def]
 
 sepref_def get_next_phase_st_impl
   is \<open>uncurry2 get_next_phase_st\<close>
@@ -111,6 +111,7 @@ sepref_def decide_wl_or_skip_D_fast_code
   unfolding decide_wl_or_skip_D_heur'_def option.case_eq_if atom.fold_option
   by sepref
 
+term get_next_phase_st'_impl
 experiment begin
 
 export_llvm

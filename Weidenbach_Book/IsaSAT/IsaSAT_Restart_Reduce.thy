@@ -1189,7 +1189,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur3_def mop_mark_unused_st_heur_def
       incr_wasted_st_twl_st
-    by (auto intro!: ext simp: get_clauses_wl_heur_def)
+    by (auto intro!: ext)
 
 lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_GC_wl_D_heur  = (\<lambda>S0. do {
@@ -1256,8 +1256,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur3_def mop_mark_unused_st_heur_def
       incr_wasted_st_twl_st
-    by (auto intro!: ext simp: get_clauses_wl_heur_def
-      intro!: bind_cong[OF refl])
+    by (auto intro!: ext intro!: bind_cong[OF refl])
 
 lemma learned_clss_count_mark_garbage_heur3:
   \<open>clss_size_lcount (get_learned_count xs) \<ge> Suc 0 \<Longrightarrow> learned_clss_count (mark_garbage_heur3 C i xs) = (learned_clss_count xs) - 1\<close> and
@@ -2931,18 +2930,18 @@ definition isasat_GC_clauses_prog_wl :: \<open>isasat \<Rightarrow> isasat nres\
 lemma length_watched_le'':
   assumes
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_restart\<close> and
-    prop_inv: \<open>correct_watching'' x1\<close>
+    prop_inv: \<open>correct_watching'_nobin x1\<close>
   shows \<open>\<forall>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1). length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a)\<close>
 proof
   fix x2
   assume x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
-  have \<open>correct_watching'' x1\<close>
+  have \<open>correct_watching'_nobin x1\<close>
     using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
       unit_propagation_outer_loop_wl_inv_def
     by auto
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using x2
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms correct_watching''.simps
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms correct_watching'_nobin.simps
       simp flip: all_init_lits_def all_init_lits_alt_def)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a
@@ -3310,7 +3309,7 @@ proof -
     apply (rule order_trans[OF cdcl_GC_clauses_prog_wl2_st])
     apply assumption
     subgoal for xa
-      using assms(2) by (simp add: correct_watching''_clauses_pointed_to
+      using assms(2) by (simp add: correct_watching'_nobin_clauses_pointed_to
         cdcl_GC_clauses_pre_wl_def)
     apply (rule refl)
     subgoal by (auto simp: cdcl_remap_st_def conc_fun_RES split: prod.splits)

@@ -392,4 +392,7 @@ lemma fref_to_Down_unRET_Id_uncurry:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma (in -) nofail_ASSERT_bind: \<open>nofail (do {ASSERT(P); (\<Phi> :: 'a nres)}) \<longleftrightarrow> P \<and> nofail \<Phi>\<close>
+  by (auto simp: nofail_def ASSERT_eq iASSERT_def)
+
 end

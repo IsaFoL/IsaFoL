@@ -2,7 +2,7 @@ theory IsaSAT_Literals
   imports More_Sepref.WB_More_Refinement "Word_Lib.Many_More"
      Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
-     Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
+     Isabelle_LLVM.Bits_Natural
 begin
 
 chapter \<open>Refinement of Literals\<close>
@@ -111,7 +111,9 @@ definition sint32_max :: nat where
 
 definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
-  
+
+lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint32_max_def)
 
 lemma uint64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
 proof -

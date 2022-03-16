@@ -152,7 +152,7 @@ lemma [twl_st_heur_restart]:
   assumes \<open>(S, T) \<in> twl_st_heur_restart\<close>
   shows \<open>(get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
   using assms by (cases S; cases T)
-   (simp only: twl_st_heur_restart_def get_trail_wl_heur_def get_trail_wl.simps
+   (simp only: twl_st_heur_restart_def get_trail_wl.simps
     mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
     all_init_atms_def get_init_clauses0_wl.simps isasat_int.inject get_unkept_unit_init_clss_wl.simps
     get_kept_unit_init_clss_wl.simps
@@ -199,12 +199,6 @@ definition minimum_number_between_restarts :: \<open>64 word\<close> where
 
 definition five_uint64 :: \<open>64 word\<close> where
   \<open>five_uint64 = 5\<close>
-
-(*TODO Move*)
-definition get_restart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_restart_count_stats = (\<lambda>(props, decs, confl, restarts, _). restarts)\<close>
-definition get_restart_count where \<open>get_restart_count = get_restart_count_stats o get_content\<close>
-definition get_lrestart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_lrestart_count_stats = (\<lambda>(props, decs, confl, restarts, lres, _). lres)\<close>
-definition get_lrestart_count where \<open>get_lrestart_count = get_lrestart_count_stats o get_content\<close>
 
 definition upper_restart_bound_not_reached :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>S.
@@ -742,10 +736,6 @@ lemma equality_except_conflict_wl_get_clauses_wl:
     \<open>equality_except_trail_empty_US_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
  by (cases S; cases Y; solves auto)+
 
-   (*TODO: we don't need to reset the value here*)
-
-
-
 lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
   \<open>(((L, C), S), ((L', C'), S')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_restart_ana' r u \<Longrightarrow>
   isasat_replace_annot_in_trail L C S \<le>
@@ -1033,11 +1023,6 @@ lemma cdcl_twl_local_restart_wl_spec0_alt_def:
       dest: get_all_ann_decomposition_exists_prepend)
 
 
-(*TODO Move*)
-lemma [simp]: \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (restart_info_restart_done_heur heur)\<close>
-  by (auto simp: heuristic_rel_def heuristic_rel_stats_def restart_info_restart_done_heur_def
-    restart_info_restart_done_heur_stats_def)
-   
 lemma cdcl_twl_local_restart_wl_spec0:
   assumes Sy:  \<open>(S, y) \<in> twl_st_heur_restart_ana' r u\<close> and
     \<open>get_conflict_wl y = None\<close>
@@ -1239,14 +1224,6 @@ next
     unfolding M
     by auto
 qed
-(*TODO Move*)
-lemma clss_size_simps3[simp]:
-  \<open>clss_size_lcountUE (clss_size baa da ea NEk UEk fa x N0 U0) = size ea\<close>
-  \<open>clss_size_lcountUEk (clss_size baa da ea NEk UEk fa x N0 U0) = size UEk\<close>
-  \<open>clss_size_lcountUS (clss_size baa da ea NEk UEk fa x N0 U0) = size x\<close>
-  \<open>clss_size_lcountU0 (clss_size baa da ea NEk UEk fa x N0 U0) = size U0\<close>
-  by (auto simp: clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def clss_size_def
-    clss_size_lcountUEk_def)
 
 lemma remove_all_learned_subsumed_clauses_wl_id:
   \<open>(x2a, x2) \<in> twl_st_heur_restart_ana' r u \<Longrightarrow>
@@ -1257,23 +1234,6 @@ lemma remove_all_learned_subsumed_clauses_wl_id:
     (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def learned_clss_count_def
      remove_all_learned_subsumed_clauses_wl_def empty_US_heur_def
      intro: clss_size_corr_simp)
-
-lemma clss_size_corr_restart_simp3:
-  \<open>clss_size_corr_restart N NE UE NEk (add_mset E UEk) NS US N0 U0 (clss_size_incr_lcountUEk c) \<longleftrightarrow>
-  clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 c\<close>
-  by (auto simp: clss_size_corr_restart_def clss_size_incr_lcountUEk_def clss_size_def
-    split: prod.splits)
-
-lemma clss_size_lcount_simp[simp]:
-  \<open>clss_size_lcount (clss_size_incr_lcountUEk c) = clss_size_lcount c\<close>
-  \<open>clss_size_lcountUE (clss_size_incr_lcountUEk c) = clss_size_lcountUE c\<close>
-  \<open>clss_size_lcountUEk (clss_size_incr_lcountUEk c) = clss_size_lcountUEk c + 1\<close>
-  \<open>clss_size_lcountUS (clss_size_incr_lcountUEk c) = clss_size_lcountUS c\<close>
-  \<open>clss_size_lcountU0 (clss_size_incr_lcountUEk c) = clss_size_lcountU0 c\<close>
-  by (auto simp: clss_size_incr_lcountUEk_def clss_size_lcountUE_def
-    clss_size_lcountUS_def clss_size_lcountU0_def clss_size_lcount_def
-    clss_size_lcountUEk_def
-    split: prod.splits)
 
 lemma mark_garbage_heur4_remove_and_add_cls_l:
   \<open>(S, T) \<in> {(S, T). (S, T) \<in> twl_st_heur_restart_ana r \<and> learned_clss_count S \<le> u} \<Longrightarrow> (C, C') \<in> Id \<Longrightarrow>
@@ -1669,21 +1629,13 @@ definition arena_is_packed :: \<open>arena \<Rightarrow> nat clauses_l \<Rightar
 lemma arena_is_packed_empty[simp]: \<open>arena_is_packed [] fmempty\<close>
   by (auto simp: arena_is_packed_def)
 
-(*TODO Move *)
-lemma sum_mset_cong:
-  \<open>(\<And>A. A \<in># M \<Longrightarrow> f A = g A) \<Longrightarrow> (\<Sum> A \<in># M. f A) = (\<Sum> A \<in># M. g A)\<close>
-  by (induction M) auto
 lemma arena_is_packed_append:
   assumes \<open>arena_is_packed (arena) N\<close> and
     [simp]: \<open>length C = length (fst C') + header_size (fst C')\<close> and
     [simp]: \<open>a \<notin># dom_m N\<close>
   shows \<open>arena_is_packed (arena @ C) (fmupd a C' N)\<close>
-proof -
-  show ?thesis
-    using assms(1) by (auto simp: arena_is_packed_def
-     intro!: sum_mset_cong)
-qed
-(*END Move*)
+  using assms(1) by (auto simp: arena_is_packed_def
+    intro!: sum_mset_cong)
 
 lemma arena_is_packed_append_valid:
   assumes
@@ -1889,34 +1841,6 @@ proof -
     done
 qed
 
-  (*TODO Move + romove dup*)
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
-  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
-  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms ..
-
-definition end_of_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>end_of_restart_phase_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
-    end_of_phase)\<close>
-definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>end_of_restart_phase = end_of_restart_phase_stats o get_content\<close>
-
-
-definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
-  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
-
-
-definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
-  \<open>end_of_rephasing_phase_st = (\<lambda>S. end_of_rephasing_phase_heur (get_heur S))\<close>
-
-
-text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
-fun incr_restart_phase_end_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted) =
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
-
-definition incr_restart_phase_end :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
-  \<open>incr_restart_phase_end = Restart_Heuristics o incr_restart_phase_end_stats o get_content\<close>
-
 definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>update_restart_phases = (\<lambda>S. do {
      let heur = get_heur S;
@@ -1931,19 +1855,6 @@ lemma heuristic_rel_incr_restartI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
 
-    (*TOD MOve*)
-lemma [intro!]:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
-  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def)
-
-    (*TODO Move*)
-lemma twl_st_heur'''_twl_st_heur''''uD:
-  \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
-  (x, y) \<in> twl_st_heur''''u r (learned_clss_count x)\<close>
-  by auto
-
-
-
 definition rewatch_heur_st_pre :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
 
@@ -1956,8 +1867,5 @@ lemma isasat_GC_clauses_wl_D_rewatch_pre:
   using assms
   unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
   by auto
-
-lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint32_max_def)
 
 end

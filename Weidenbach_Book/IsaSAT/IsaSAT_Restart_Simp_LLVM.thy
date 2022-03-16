@@ -86,7 +86,7 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   by sepref
 
 (*TODO Move to IsaSAT_Setup2*)
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 (**)
 experiment

@@ -568,6 +568,23 @@ schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE
   unfolding vmtf_remove_assn_def
   by synthesize_free
 
+definition recombine_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
+  \<open>recombine_vmtf = (\<lambda>x. x)\<close>
+sepref_def recombine_vmtf_impl
+   is \<open>RETURN o recombine_vmtf\<close>
+   :: \<open>(vmtf_assn \<times>\<^sub>a distinct_atoms_assn)\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
+   unfolding vmtf_remove_assn_def recombine_vmtf_def
+  by sepref
+
+definition split_vmtf :: \<open>isa_vmtf_remove_int \<Rightarrow> _\<close> where
+  \<open>split_vmtf = (\<lambda>x. x)\<close>
+
+sepref_def split_vmtf_impl
+  is \<open>RETURN o split_vmtf\<close>
+  :: \<open>vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
+  unfolding vmtf_remove_assn_def split_vmtf_def
+  by sepref
+
 experiment begin
 
 export_llvm

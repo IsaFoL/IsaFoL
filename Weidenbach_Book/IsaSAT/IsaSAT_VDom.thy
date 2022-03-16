@@ -497,4 +497,10 @@ fun empty_tvdom_int where
 definition empty_tvdom where
   \<open>empty_tvdom = AIvdom o empty_tvdom_int o get_content\<close>
 
+lemma get_aivdom_add_learned_clause_aivdom[simp]:
+  \<open>get_vdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_vdom_aivdom vdom @ [x2]\<close>
+  \<open>get_avdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_avdom_aivdom vdom @ [x2]\<close>
+  \<open>get_ivdom_aivdom (add_learned_clause_aivdom x2 vdom) = get_ivdom_aivdom vdom\<close>
+  by (cases vdom; auto simp: add_learned_clause_aivdom_def add_learned_clause_aivdom_int_def; fail)+
+
 end

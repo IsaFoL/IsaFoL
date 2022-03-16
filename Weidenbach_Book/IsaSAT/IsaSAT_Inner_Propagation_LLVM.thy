@@ -73,7 +73,7 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
   apply (rule access_watchlist_impl.refine)
   subgoal
     by (auto intro!: ext split: isasat_int.split
-      simp: read_all_wl_heur_def watched_by_app_heur_def access_watchlist_def
+      simp: read_all_st_def watched_by_app_heur_def access_watchlist_def
       nth_rll_def)
   subgoal by (auto simp: watched_by_app_heur_fast_code_def)
   subgoal by (auto simp: watched_by_app_heur_pre_def)
@@ -81,7 +81,7 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
 
 lemma mop_watched_by_app_heur_alt_def: \<open>mop_watched_by_app_heur = (\<lambda>N C' D'. watched_by_app.XX.XX.mop N (C', D'))\<close>
    by (auto simp: mop_watched_by_app_heur_def read_all_param_adder_ops.mop_def summarize_ASSERT_conv
-    read_all_wl_heur_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int.splits)
+    read_all_st_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int.splits)
 definition mop_watched_by_app_heur_fast_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>mop_watched_by_app_heur_fast_impl = (\<lambda>N C D. read_watchlist_wl_heur_code (case (C, D) of (C, D) \<Rightarrow> \<lambda>N. access_watchlist_impl N C D) N) \<close>
 lemma split_snd_pure_arg':
@@ -97,8 +97,8 @@ lemmas [sepref_fr_rules] =
   watched_by_app.mop_refine[THEN split_snd_pure_arg', unfolded mop_watched_by_app_heur_alt_def[symmetric] mop_watched_by_app_heur_fast_impl_def[symmetric]]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  watched_by_app_heur_fast_code_def[unfolded read_all_wl_heur_code_def]
-  mop_watched_by_app_heur_fast_impl_def[unfolded read_all_wl_heur_code_def prod.case]
+  watched_by_app_heur_fast_code_def[unfolded read_all_st_code_def]
+  mop_watched_by_app_heur_fast_impl_def[unfolded read_all_st_code_def prod.case]
 
 (* TODO most of the unfolding should move to the definition *)
 sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_find_unset_lit
@@ -126,7 +126,7 @@ definition isa_find_unset_lit_st where
 
 definition isasat_find_unset_lit_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_find_unset_lit_st_impl = (\<lambda>N C D E.
-     read_all_wl_heur_code
+     read_all_st_code
       (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N)\<close>
 
 global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs where
@@ -139,20 +139,20 @@ global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs wh
   P = \<open>\<lambda>C C' C'' M N. length N \<le> sint64_max\<close>
   rewrites
   \<open>(\<lambda>N C D E.
-  read_all_wl_heur (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unset_lit M N C D E) N) = isa_find_unset_lit_st\<close> and
+  read_all_st (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unset_lit M N C D E) N) = isa_find_unset_lit_st\<close> and
   \<open>(\<lambda>N C D E.
-     read_all_wl_heur_code
+     read_all_st_code
       (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N) = isasat_find_unset_lit_st_impl\<close>
   apply (unfold_locales)
   apply (subst (9) uncurry_def)+
   apply (rule isa_find_unwatched_between_fast_code.refine)
-  subgoal by (auto simp: read_all_wl_heur_def isa_find_unset_lit_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: read_all_st_def isa_find_unset_lit_st_def intro!: ext split: isasat_int.splits)
   subgoal by (auto simp: isasat_find_unset_lit_st_impl_def)
   done
 
 lemmas [sepref_fr_rules] = find_unset_lit.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  isasat_find_unset_lit_st_impl_def[unfolded read_all_wl_heur_code_def]
+  isasat_find_unset_lit_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
@@ -274,8 +274,7 @@ lemma propagate_lit_wl_heur_alt_def:
       let S = update_stats_wl_heur stats S;
       RETURN S
   })\<close>
-        by (auto intro!: ext simp: state_extractors update_trail_wl_heur_def
-          update_heur_wl_heur_def update_stats_wl_heur_def propagate_lit_wl_heur_def
+        by (auto intro!: ext simp: state_extractors propagate_lit_wl_heur_def
           split: isasat_int.splits)
       
 sepref_def propagate_lit_wl_fast_code
@@ -326,10 +325,6 @@ sepref_def propagate_lit_wl_bin_fast_code
   apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
   unfolding fold_tuple_optimizations
   by sepref
-
-(*TODO Move*)
-lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
-  unfolding op_list_list_upd_def by auto
 
 lemma update_blit_wl_heur_alt_def:
   \<open>update_blit_wl_heur = (\<lambda>(L::nat literal) C b j w K S\<^sub>0. do {
@@ -413,9 +408,7 @@ lemma set_conflict_wl_heur_alt_def:
     let S = update_trail_wl_heur M S;
     let S = update_arena_wl_heur N S;
     RETURN S})\<close>
-      by (auto intro!: ext simp: state_extractors set_conflict_wl_heur_def Let_def update_outl_wl_heur_def
-        update_clvls_wl_heur_def update_literals_to_update_wl_heur_def extract_outl_wl_heur_def
-        isasat_state_ops.remove_outl_wl_heur_def
+  by (auto intro!: ext simp: state_extractors set_conflict_wl_heur_def Let_def
     split: isasat_int.splits)
 
 sepref_def set_conflict_wl_heur_fast_code

@@ -201,12 +201,6 @@ definition propagate_bt_wl_D_heur_update where
       let S = update_literals_to_update_wl_heur j S;
       RETURN (S)})\<close>
 
-lemmas [sepref_fr_rules] =
-  update_literals_to_update_wl_heur_code.refine
-lemmas [llvm_code] =
-  update_literals_to_update_wl_heur_code_def[unfolded M_CONST_def,unfolded comp_def inline_node_case]
-sepref_register update_literals_to_update_wl_heur
-
 sepref_def propagate_bt_wl_D_heur_update_impl
   is \<open>uncurry10 propagate_bt_wl_D_heur_update\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a

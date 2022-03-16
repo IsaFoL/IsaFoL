@@ -42,88 +42,6 @@ sepref_def FLAG_Inprocess_restart_impl
   unfolding FLAG_Inprocess_restart_def
   by sepref
 
-(*TODO Move to IsaSAT_Stats_LLVM*)
-sepref_def end_of_restart_phase_impl
-  is \<open>RETURN o end_of_restart_phase_stats\<close>
-  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding end_of_restart_phase_stats_def heuristic_int_assn_def
-  by sepref
-
-lemma end_of_restart_phase_stats_end_of_restart_phase:
-  \<open>(end_of_restart_phase_stats, end_of_restart_phase) \<in> heur_rel \<rightarrow> word_rel\<close>
-  by (auto simp: end_of_restart_phase_def code_hider_rel_def)
-
-lemmas end_of_restart_phase_impl_refine[sepref_fr_rules] =
-  end_of_restart_phase_impl.refine[FCOMP end_of_restart_phase_stats_end_of_restart_phase,
-    unfolded heuristic_assn_alt_def[symmetric]]
-
-lemma incr_restart_phase_end_stats_alt_def:
-  \<open>incr_restart_phase_end_stats = (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted).
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted))\<close>
-  by auto
-
-sepref_def incr_restart_phase_end_stats_impl [llvm_inline]
-  is \<open>RETURN o incr_restart_phase_end_stats\<close>
-  :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
-  supply[[goals_limit=1]]
-  unfolding heuristic_int_assn_def incr_restart_phase_end_stats_alt_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  by sepref
-
-sepref_def incr_restart_phase_end_impl
-  is \<open>RETURN o incr_restart_phase_end\<close>
-  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
-  supply[[goals_limit=1]]
-  unfolding incr_restart_phase_end_def
-  by sepref
-
-lemma incr_restart_phase_stats_alt_def:
-  \<open>incr_restart_phase_stats =
-  (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>).
-  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase), wasted, \<phi>))\<close>
-  by (auto)
-
-sepref_def incr_restart_phase_stats_impl
-  is \<open>RETURN o incr_restart_phase_stats\<close>
-  :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
-  unfolding heuristic_int_assn_def incr_restart_phase_stats_alt_def
-  by sepref
-
-sepref_def incr_restart_phase_impl
-  is \<open>RETURN o incr_restart_phase\<close>
-  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
-  unfolding incr_restart_phase_def
-  by sepref
-
-sepref_def get_restart_count_impl
-  is \<open>RETURN o get_restart_count_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_count_stats_def
-  by sepref
-
-lemma get_restart_count_stats_get_restart_count:
-  \<open>(get_restart_count_stats, get_restart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_restart_count_def)
-
-lemmas get_restart_count_impl_refine[sepref_fr_rules] =
-  get_restart_count_impl.refine[FCOMP get_restart_count_stats_get_restart_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def get_lrestart_count_impl
-  is \<open>RETURN o get_lrestart_count_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_lrestart_count_stats_def
-  by sepref
-
-lemma get_lrestart_count_stats_get_lrestart_count:
-  \<open>(get_lrestart_count_stats, get_lrestart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_lrestart_count_def)
-
-lemmas get_lrestart_count_impl_refine[sepref_fr_rules] =
-  get_lrestart_count_impl.refine[FCOMP get_lrestart_count_stats_get_lrestart_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-  (*END Move*)
 definition end_of_restart_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>end_of_restart_phase_st_impl = read_heur_wl_heur_code end_of_restart_phase_impl\<close>
 
@@ -136,7 +54,7 @@ global_interpretation end_of_restart_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code end_of_restart_phase_impl = end_of_restart_phase_st_impl\<close>
   apply unfold_locales
   apply (rule end_of_restart_phase_impl_refine)
-  subgoal by (auto simp: read_all_wl_heur_def end_of_restart_phase_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def end_of_restart_phase_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: end_of_restart_phase_st_impl_def)
   done
@@ -153,7 +71,7 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code end_of_rephasing_phase_heur_stats_impl = end_of_rephasing_phase_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: read_all_wl_heur_def end_of_rephasing_phase_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def end_of_rephasing_phase_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: end_of_rephasing_phase_st_impl_def)
   done
@@ -161,8 +79,8 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
 
 lemmas [sepref_fr_rules] = end_of_restart_phase.refine end_of_rephasing_phase.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  end_of_restart_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
-  end_of_rephasing_phase_st_impl_def[unfolded read_all_wl_heur_code_def]
+  end_of_restart_phase_st_impl_def[unfolded read_all_st_code_def]
+  end_of_rephasing_phase_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_phases
@@ -200,7 +118,7 @@ global_interpretation restart_count: read_stats_param_adder0 where
     \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
   apply unfold_locales
   apply (rule get_restart_count_impl_refine; assumption)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_restart_count_st_def intro!: ext
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_restart_count_st_impl_def)
   done
@@ -218,7 +136,7 @@ global_interpretation reduction_count: read_stats_param_adder0 where
     \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
   apply unfold_locales
   apply (rule get_lrestart_count_impl_refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def intro!: ext
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_reductions_count_fast_code_def)
   done
@@ -260,7 +178,7 @@ global_interpretation slow_ema: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code get_slow_ema_heur_full_impl = get_slow_ema_heur_st_impl\<close>
   apply unfold_locales
   apply (rule get_slow_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_slow_ema_heur_st_def
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_slow_ema_heur_st_def
       get_slow_ema_heur_full_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
@@ -275,7 +193,7 @@ global_interpretation fast_ema: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code get_fast_ema_heur_full_impl = get_fast_ema_heur_st_impl\<close>
   apply unfold_locales
   apply (rule get_fast_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_wl_heur_def stats_conflicts_def get_fast_ema_heur_st_def
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_fast_ema_heur_st_def
       get_fast_ema_heur_full_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
@@ -283,10 +201,10 @@ global_interpretation fast_ema: read_heur_param_adder0 where
 
 lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_restart_count_st_impl_def[unfolded read_all_wl_heur_code_def]
-  get_reductions_count_fast_code_def[unfolded read_all_wl_heur_code_def]
-  get_fast_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
-  get_slow_ema_heur_st_impl_def[unfolded read_all_wl_heur_code_def]
+  get_restart_count_st_impl_def[unfolded read_all_st_code_def]
+  get_reductions_count_fast_code_def[unfolded read_all_st_code_def]
+  get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
+  get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
 
 find_theorems get_restart_count RETURN
 sepref_def upper_restart_bound_not_reached_fast_impl
@@ -462,7 +380,7 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
   by auto
 
 (*TODO Move to IsaSAT_Setup2*)
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_wl_heur_code_def]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 experiment
 begin

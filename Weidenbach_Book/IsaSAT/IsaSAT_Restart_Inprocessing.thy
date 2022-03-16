@@ -141,7 +141,7 @@ proof -
         (\<forall>L \<in># mset (N \<propto> C) - mset (N' \<propto> C). defined_lit M L) \<and>
        (irred N C = irred N' C) \<and>
         (b \<longleftrightarrow> (\<exists>L. L \<in># mset (N \<propto> C) \<and> L \<in> lits_of_l M)) \<and>
-       (unc \<longrightarrow> N = N'));
+       (unc \<longrightarrow> N = N' \<and> \<not>b));
     RETURN (unc, b, N')
     })\<close> (is \<open>_ = (\<lambda>C M N. do {
     (_, _, _) \<leftarrow> SPEC (?P C M N);
@@ -234,7 +234,6 @@ proof -
     \<open>drop n xs = drop n ys \<Longrightarrow> n < length xs \<Longrightarrow> xs ! n \<in> set ys\<close> for n xs ys
     by (metis in_set_dropD in_set_dropI le_cases)
 
-  term \<open>?P C M N (unc, b, N'')\<close>
   let ?Q = \<open>\<lambda>(i::nat, j::nat, N', del, is_true) (unc, b, N'').
     (let P = (if is_true
       then N'(C \<hookrightarrow> filter (Not o defined_lit M) (N \<propto> C))
@@ -318,8 +317,8 @@ proof -
     by (metis fmupd_lookup option.sel)
   have [simp]: \<open>(\<forall>a. a) \<longleftrightarrow> False\<close>
     by blast
-  define simp_work_around where \<open>simp_work_around unc b \<equiv> unc \<longrightarrow> N = b\<close> for unc b
-  have simp_work_around_simp[simp]: \<open>simp_work_around True b \<longleftrightarrow> b = N\<close> for b
+  define simp_work_around where \<open>simp_work_around unc b b' \<equiv> unc \<longrightarrow> N = b \<and> \<not>b'\<close> for unc b b'
+  have simp_work_around_simp[simp]: \<open>simp_work_around True b b' \<longleftrightarrow> b = N \<and> \<not>b'\<close> for b b'
     unfolding simp_work_around_def by auto
     term  \<open>{(a, b). I a \<and> ?Q a (b) \<and>  (fst b \<longleftrightarrow>  ((snd o snd o snd o snd) a))}\<close>
   have hd_nth_take: \<open>length C > 0 \<Longrightarrow> [C!0] = take (Suc 0) C\<close> for C
@@ -1034,17 +1033,16 @@ proof -
    subgoal by (auto simp: DECISION_REASON_def)
    subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
      x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v
-      apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
+     by (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
          prod_rel_iff TrueI refl accessors_def
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def
         clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono
         clss_size_decr_lcount_def)
-      apply (auto split: if_splits intro: aivdom_inv_dec_mono simp:
+       (auto split: if_splits intro: aivdom_inv_dec_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
         clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
-     done
    subgoal by simp
    subgoal by simp
    subgoal by (auto simp add: twl_st_heur_restart_def all_init_atms_st_def)
@@ -1292,7 +1290,7 @@ definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
 
 definition simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> SPEC(\<lambda>b::bool. True);
+  b \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> get_conflict_wl S =None);
   if b then simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1303,7 +1301,7 @@ lemma simplify_clauses_with_units_st_wl2_simplify_clauses_with_units_st_wl:
 
 definition isa_simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> RETURN True;
+  b \<leftarrow> RETURN (get_conflict_wl_is_None_heur S);
   if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
@@ -1313,6 +1311,33 @@ lemma isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2:
     \<Down>(twl_st_heur_restart_ana' r u) (simplify_clauses_with_units_st_wl2 S')\<close>
   unfolding isa_simplify_clauses_with_units_st_wl2_def simplify_clauses_with_units_st_wl2_def
   by (refine_vcg isa_simplify_clauses_with_unit_st2_simplify_clauses_with_unit_st2)
-    (use assms in auto)
+   (use assms in \<open>auto simp: get_conflict_wl_is_None_def
+      get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id]\<close>)
+
+(*This obvdiously does nothing, but we use as a placeholder while developing it!*)
+definition isa_deduplicate_binary_clauses :: \<open>_\<close> where
+  \<open>isa_deduplicate_binary_clauses S = RETURN S\<close>
+
+lemma isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_deduplicate_binary_clauses S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (mark_duplicated_binary_clauses_as_garbage_wl S')\<close>
+proof -
+  have isa_deduplicate_binary_clauses_alt_def:
+    \<open>isa_deduplicate_binary_clauses S = do {
+      let (_ :: nat multiset) = {#};
+      S \<leftarrow> WHILE\<^sub>T (\<lambda>_. False) (\<lambda>S. RETURN S) S;
+      RETURN S
+    }\<close> for S
+    unfolding isa_deduplicate_binary_clauses_def
+    apply (subst WHILET_unfold)
+    apply simp
+    done
+
+  show ?thesis
+    unfolding isa_deduplicate_binary_clauses_alt_def mark_duplicated_binary_clauses_as_garbage_wl_def
+    by refine_vcg
+     (use assms in auto)
+qed
 
 end

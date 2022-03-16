@@ -109,7 +109,6 @@ definition units_since_last_GC :: \<open>isasat_stats \<Rightarrow> 64 word\<clo
 definition incr_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_units_since_last_GC = Stats o incr_units_since_last_GC_stats o get_stats\<close>
 
-
 definition reset_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>reset_units_since_last_GC = Stats o reset_units_since_last_GC_stats o get_stats\<close>
 
@@ -124,6 +123,12 @@ definition get_conflict_count_stats :: \<open>stats \<Rightarrow> 64 word\<close
 
 definition get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count =  get_conflict_count_stats o get_stats\<close>
+
+definition get_restart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_restart_count_stats = (\<lambda>(props, decs, confl, restarts, _). restarts)\<close>
+definition get_restart_count where \<open>get_restart_count = get_restart_count_stats o get_content\<close>
+definition get_lrestart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_lrestart_count_stats = (\<lambda>(props, decs, confl, restarts, lres, _). lres)\<close>
+definition get_lrestart_count where \<open>get_lrestart_count = get_lrestart_count_stats o get_content\<close>
+
 
 section \<open>Information related to restarts\<close>
 
@@ -419,6 +424,26 @@ lemma save_phase_heur_preI:
   by (auto simp: heuristic_rel_def phase_saving_def save_phase_heur_pre_def save_phase_heur_pre_statsI
      phase_save_heur_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
+text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
+fun incr_restart_phase_end_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase_end_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted) =
+  (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
+
+definition incr_restart_phase_end :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>incr_restart_phase_end = Restart_Heuristics o incr_restart_phase_end_stats o get_content\<close>
+
+lemma heuristic_rel_incr_restartI[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
+
+lemma [intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def)
+
+lemma [simp]: \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (restart_info_restart_done_heur heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_rel_stats_def restart_info_restart_done_heur_def
+    restart_info_restart_done_heur_stats_def)
+
 
 subsection \<open>Number of clauses\<close>
 
@@ -568,6 +593,58 @@ lemma [simp]:
       clss_size_incr_lcountUS_def clss_size_incr_lcountU0_def
     split: prod.splits)
 
+lemma [simp]:
+  \<open>clss_size_lcount (clss_size_incr_lcountUEk c) = clss_size_lcount c\<close>
+  \<open>clss_size_lcountUE (clss_size_incr_lcountUEk c) = clss_size_lcountUE c\<close>
+  \<open>clss_size_lcountUEk (clss_size_incr_lcountUEk c) = clss_size_lcountUEk c+1\<close>
+  \<open>clss_size_lcountU0 (clss_size_incr_lcountUEk c) = clss_size_lcountU0 c\<close>
+  \<open>clss_size_lcountUS (clss_size_incr_lcountUEk c) = clss_size_lcountUS c\<close>
+  by (auto simp: clss_size_lcountUE_def clss_size_lcount_def clss_size_incr_lcountUEk_def
+    clss_size_lcountUEk_def clss_size_lcountU0_def clss_size_lcountUS_def
+    split: prod.splits)
+
+lemma clss_size_simps3[simp]:
+  \<open>clss_size_lcountUE (clss_size baa da ea NEk UEk fa x N0 U0) = size ea\<close>
+  \<open>clss_size_lcountUEk (clss_size baa da ea NEk UEk fa x N0 U0) = size UEk\<close>
+  \<open>clss_size_lcountUS (clss_size baa da ea NEk UEk fa x N0 U0) = size x\<close>
+  \<open>clss_size_lcountU0 (clss_size baa da ea NEk UEk fa x N0 U0) = size U0\<close>
+  by (auto simp: clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def clss_size_def
+    clss_size_lcountUEk_def)
+
+(*TODO Move inside this file*)
+lemma clss_size_lcount_incr_lcount_simps[simp]:
+  \<open>clss_size_lcount (clss_size_incr_lcount S) = Suc (clss_size_lcount S)\<close>
+  \<open>clss_size_lcountUE (clss_size_incr_lcount S) = (clss_size_lcountUE S)\<close>
+  \<open>clss_size_lcountUEk (clss_size_incr_lcount S) = (clss_size_lcountUEk S)\<close>
+  \<open>clss_size_lcountUS (clss_size_incr_lcount S) = (clss_size_lcountUS S)\<close>
+  \<open>clss_size_lcountU0 (clss_size_incr_lcount (S)) = clss_size_lcountU0 ( (S))\<close>
+  by (cases S; auto simp: clss_size_incr_lcount_def
+      clss_size_lcount_def clss_size_def clss_size_lcountUEk_def
+    clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def; fail)+
+
+lemma [simp]:
+  \<open>clss_size_lcount (clss_size_resetU0 c) = clss_size_lcount c\<close>
+  \<open>clss_size_lcount (clss_size_resetUE c) = clss_size_lcount c\<close>
+  \<open>clss_size_lcount (clss_size_resetUEk c) = clss_size_lcount c\<close>
+  \<open>clss_size_lcountUE (clss_size_resetU0 c) = clss_size_lcountUE c\<close>
+  \<open>clss_size_lcountUE (clss_size_resetUEk c) = clss_size_lcountUE c\<close>
+  \<open>clss_size_lcountU0 (clss_size_resetUE c) = clss_size_lcountU0 c\<close>
+  \<open>clss_size_lcountU0 (clss_size_resetUEk c) = clss_size_lcountU0 c\<close>
+  \<open>clss_size_lcountU0 (clss_size_resetU0 c) = 0\<close>
+ \<open>clss_size_lcountU0 (clss_size_decr_lcount c) = clss_size_lcountU0 c\<close>
+  \<open>clss_size_lcountUEk (clss_size_resetUE c) = clss_size_lcountUEk c\<close>
+  \<open>clss_size_lcountUEk (clss_size_resetUS c) = clss_size_lcountUEk c\<close>
+  \<open>clss_size_lcountUEk (clss_size_resetU0 c) = clss_size_lcountUEk c\<close>
+  \<open>clss_size_lcountUEk (clss_size_resetUEk c) = 0\<close>
+ \<open>clss_size_lcountUEk (clss_size_decr_lcount c) = clss_size_lcountUEk c\<close>
+  \<open>clss_size_lcountUE (clss_size_resetUE c) = 0\<close>
+  \<open>clss_size_lcountUS (clss_size_resetUE c) = clss_size_lcountUS c\<close>
+  \<open>clss_size_lcountUS (clss_size_resetUEk c) = clss_size_lcountUS c\<close>
+  by (auto simp: clss_size_resetU0_def clss_size_lcount_def clss_size_lcountU0_def
+    clss_size_lcountUS_def clss_size_decr_lcount_def
+    clss_size_resetUE_def clss_size_resetUEk_def clss_size_lcountUE_def clss_size_lcountUEk_def
+    clss_size_resetUS_def split: prod.splits)
+
 definition print_literal_of_trail where
   \<open>print_literal_of_trail _ = RETURN ()\<close>
 
@@ -699,43 +776,11 @@ lemma clss_size_corr_restart_rew:
     clss_size_resetUE_def
       size_remove1_mset_If clss_size_resetUS_def clss_size_corr_restart_def; fail)+
 
-(*TODO Move inside this file*)
-lemma clss_size_lcount_incr_lcount_simps[simp]:
-  \<open>clss_size_lcount (clss_size_incr_lcount S) = Suc (clss_size_lcount S)\<close>
-  \<open>clss_size_lcountUE (clss_size_incr_lcount S) = (clss_size_lcountUE S)\<close>
-  \<open>clss_size_lcountUEk (clss_size_incr_lcount S) = (clss_size_lcountUEk S)\<close>
-  \<open>clss_size_lcountUS (clss_size_incr_lcount S) = (clss_size_lcountUS S)\<close>
-  \<open>clss_size_lcountU0 (clss_size_incr_lcount (S)) = clss_size_lcountU0 ( (S))\<close>
-  by (cases S; auto simp: clss_size_lcount_def clss_size_incr_lcount_def
-      clss_size_corr_def clss_size_lcount_def clss_size_def clss_size_lcountUEk_def
-    clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountU0_def; fail)+
-
-lemma [simp]:
-  \<open>clss_size_lcount (clss_size_resetU0 c) = clss_size_lcount c\<close>
-  \<open>clss_size_lcount (clss_size_resetUE c) = clss_size_lcount c\<close>
-  \<open>clss_size_lcount (clss_size_resetUEk c) = clss_size_lcount c\<close>
-  \<open>clss_size_lcountUE (clss_size_resetU0 c) = clss_size_lcountUE c\<close>
-  \<open>clss_size_lcountUE (clss_size_resetUEk c) = clss_size_lcountUE c\<close>
- \<open>clss_size_lcountUE (clss_size_decr_lcount c) = clss_size_lcountUE c\<close>
-  \<open>clss_size_lcountU0 (clss_size_resetUE c) = clss_size_lcountU0 c\<close>
-  \<open>clss_size_lcountU0 (clss_size_resetUEk c) = clss_size_lcountU0 c\<close>
-  \<open>clss_size_lcountU0 (clss_size_resetU0 c) = 0\<close>
- \<open>clss_size_lcountU0 (clss_size_decr_lcount c) = clss_size_lcountU0 c\<close>
-  \<open>clss_size_lcountUEk (clss_size_resetUE c) = clss_size_lcountUEk c\<close>
-  \<open>clss_size_lcountUEk (clss_size_resetUS c) = clss_size_lcountUEk c\<close>
-  \<open>clss_size_lcountUEk (clss_size_resetU0 c) = clss_size_lcountUEk c\<close>
-  \<open>clss_size_lcountUEk (clss_size_resetUEk c) = 0\<close>
- \<open>clss_size_lcountUEk (clss_size_decr_lcount c) = clss_size_lcountUEk c\<close>
-  \<open>clss_size_lcountUE (clss_size_resetUE c) = 0\<close>
-  \<open>clss_size_lcountUS (clss_size_resetUE c) = clss_size_lcountUS c\<close>
-  \<open>clss_size_lcountUS (clss_size_resetUEk c) = clss_size_lcountUS c\<close>
-  \<open>clss_size_lcountUS (clss_size_resetUS c) = 0\<close>
- \<open>clss_size_lcountUS (clss_size_decr_lcount c) = clss_size_lcountUS c\<close>
-  by (auto simp: clss_size_resetU0_def clss_size_lcount_def clss_size_lcountU0_def
-    clss_size_lcountUS_def clss_size_decr_lcount_def
-    clss_size_resetUE_def clss_size_resetUEk_def clss_size_lcountUE_def clss_size_lcountUEk_def
-    clss_size_resetUS_def split: prod.splits)
-
+lemma clss_size_corr_restart_simp3:
+  \<open>clss_size_corr_restart N NE UE NEk (add_mset E UEk) NS US N0 U0 (clss_size_incr_lcountUEk c) \<longleftrightarrow>
+  clss_size_corr_restart N NE UE NEk UEk NS US N0 U0 c\<close>
+  by (auto simp: clss_size_corr_restart_def clss_size_incr_lcountUEk_def clss_size_def
+    split: prod.splits)
 
 subsection \<open>Lifting to heuristic level\<close>
 definition get_next_phase_heur_pre_stats :: \<open>bool \<Rightarrow> nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
@@ -750,5 +795,12 @@ definition get_next_phase_heur :: \<open>bool \<Rightarrow> nat \<Rightarrow> is
   \<open>get_next_phase_heur = (\<lambda>b L heur.
   let heur = get_restart_heuristics heur in
   get_next_phase_heur_stats b L heur)\<close>
+
+definition end_of_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>end_of_restart_phase_stats = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
+    end_of_phase)\<close>
+
+definition end_of_restart_phase :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>end_of_restart_phase = end_of_restart_phase_stats o get_content\<close>
 
 end
