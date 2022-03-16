@@ -426,7 +426,7 @@ lemma vars_subst_cls_subset_weak: "vars_cls (C \<cdot> \<sigma>) \<subseteq> var
   unfolding vars_cls_def subst_cls_def
   apply simp
   using vars_subst_lit_subset_weak
-  by fastforce 
+  by fastforce
 
 lemma vars_cls_plus[simp]: "vars_cls (C + D) = vars_cls C \<union> vars_cls D"
   unfolding vars_cls_def by simp
@@ -1244,7 +1244,7 @@ proof (induction S S' rule: resolve.induct)
 
   have is_imgu_\<mu>_full:
     "Unifiers.is_imgu \<mu> (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset (C + D)))"
-    using mgu_sound[OF mgu_L_L'] 
+    using mgu_sound[OF mgu_L_L']
     by (smt (verit, best) Unifiers.is_imgu_def imageE insert_iff mem_Collect_eq prod.sel singletonD
         unifiers_def)
 
@@ -1255,14 +1255,14 @@ proof (induction S S' rule: resolve.induct)
         inf_sup_aci(2) is_ground_cls_union is_ground_subst_cls subst_cls_single subst_cls_union
         sup_bot.right_neutral vars_D_L'_vars_C_L_disj vars_cls_add_mset vars_cls_empty
         vars_cls_plus_iff)
-    
+
   hence \<sigma>_\<delta>_in_unif:"\<sigma> \<odot> \<delta> \<in> unifiers
     (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset (C + D)))"
     unfolding unifiers_def mem_Collect_eq
     by (auto intro: subst_atm_of_eq_compI[of _ "\<sigma> \<odot> \<delta>", simplified])
 
   have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E" if E_in: "E \<in> N \<union> U \<union> clss_of_trail \<Gamma>" for E
-  proof - 
+  proof -
     have
       inter_D_E: "vars_cls D \<inter> vars_cls E = {}" and
       inter_L'_E: "vars_cls {#L'#} \<inter> vars_cls E = {}"
@@ -1493,7 +1493,7 @@ proof (induction S S' rule: backtrack.induct)
       using clss_of_trail_trail_decide_subset by blast
     from E_in have E_in': "E \<in> N \<union> U \<union> clss_of_trail \<Gamma> \<or> E = D + {#L#}"
       using clss_of_trail_trail_decide_subset by blast
-    
+
     from C_in' E_in' C_neq_E show "disjoint_vars C E"
       using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
       using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym by blast
@@ -1552,28 +1552,25 @@ definition redundant where
 
 section \<open>Trail Induced Ordering\<close>
 
-definition trail_greater_id_id where
-  "trail_greater_id_id Ls L K \<longleftrightarrow>
-    (\<exists>i < length Ls. \<exists>j < length Ls. i < j \<and> L = Ls ! i \<and> K = Ls ! j)"
+definition trail_less_id_id where
+  "trail_less_id_id Ls L K \<longleftrightarrow>
+    (\<exists>i < length Ls. \<exists>j < length Ls. i > j \<and> L = Ls ! i \<and> K = Ls ! j)"
 
-definition trail_greater_comp_id where
-  "trail_greater_comp_id Ls L K \<longleftrightarrow>
-    (\<exists>i < length Ls. \<exists>j < length Ls. i \<le> j \<and> L = - (Ls ! i) \<and> K = Ls ! j)"
+definition trail_less_comp_id where
+  "trail_less_comp_id Ls L K \<longleftrightarrow>
+    (\<exists>i < length Ls. \<exists>j < length Ls. i > j \<and> L = - (Ls ! i) \<and> K = Ls ! j)"
 
-definition trail_greater_id_comp where
-  "trail_greater_id_comp Ls L K \<longleftrightarrow>
-    (\<exists>i < length Ls. \<exists>j < length Ls. i < j \<and> L = Ls ! i \<and> K = - (Ls ! j))"
+definition trail_less_id_comp where
+  "trail_less_id_comp Ls L K \<longleftrightarrow>
+    (\<exists>i < length Ls. \<exists>j < length Ls. i \<ge> j \<and> L = Ls ! i \<and> K = - (Ls ! j))"
 
-definition trail_greater_comp_comp where
-  "trail_greater_comp_comp Ls L K \<longleftrightarrow>
-    (\<exists>i < length Ls. \<exists>j < length Ls. i < j \<and> L = - (Ls ! i) \<and> K = - (Ls ! j))"
+definition trail_less_comp_comp where
+  "trail_less_comp_comp Ls L K \<longleftrightarrow>
+    (\<exists>i < length Ls. \<exists>j < length Ls. i > j \<and> L = - (Ls ! i) \<and> K = - (Ls ! j))"
 
-definition trail_greater where
-  "trail_greater Ls L K \<longleftrightarrow> trail_greater_id_id Ls L K \<or> trail_greater_comp_id Ls L K \<or>
-    trail_greater_id_comp Ls L K \<or> trail_greater_comp_comp Ls L K"
-
-abbreviation trail_less where
-  "trail_less Ls L K \<equiv> trail_greater Ls K L"
+definition trail_less where
+  "trail_less Ls L K \<longleftrightarrow> trail_less_id_id Ls L K \<or> trail_less_comp_id Ls L K \<or>
+    trail_less_id_comp Ls L K \<or> trail_less_comp_comp Ls L K"
 
 
 subsection \<open>Examples\<close>
@@ -1582,56 +1579,56 @@ context
   fixes L0 L1 L2 :: "'a :: uminus"
 begin
 
-lemma "trail_greater_comp_id [L2, L1, L0] (- L2) L2"
-  unfolding trail_greater_comp_id_def
+lemma "trail_less_id_comp [L2, L1, L0] L2 (- L2)"
+  unfolding trail_less_id_comp_def
 proof (intro exI conjI)
   show "(0 :: nat) \<le> 0" by presburger
 qed simp_all
 
-lemma "trail_greater_id_comp [L2, L1, L0] L2 (- L1)"
-  unfolding trail_greater_id_comp_def
+lemma "trail_less_comp_id [L2, L1, L0] (- L1) L2"
+  unfolding trail_less_comp_id_def
 proof (intro exI conjI)
   show "(0 :: nat) < 1" by presburger
 qed simp_all
 
-lemma "trail_greater_comp_id [L2, L1, L0] (- L1) L1"
-  unfolding trail_greater_comp_id_def
+lemma "trail_less_id_comp [L2, L1, L0] L1 (- L1)"
+  unfolding trail_less_id_comp_def
 proof (intro exI conjI)
   show "(1 :: nat) \<le> 1" by presburger
 qed simp_all
 
-lemma "trail_greater_id_comp [L2, L1, L0] L1 (- L0)"
-  unfolding trail_greater_id_comp_def
+lemma "trail_less_comp_id [L2, L1, L0] (- L0) L1"
+  unfolding trail_less_comp_id_def
 proof (intro exI conjI)
   show "(1 :: nat) < 2" by presburger
 qed simp_all
 
-lemma "trail_greater_comp_id [L2, L1, L0] (- L0) L0"
-  unfolding trail_greater_comp_id_def
+lemma "trail_less_id_comp [L2, L1, L0] L0 (- L0)"
+  unfolding trail_less_id_comp_def
 proof (intro exI conjI)
   show "(2 :: nat) \<le> 2" by presburger
 qed simp_all
 
-lemma "trail_greater_id_id [L2, L1, L0] L2 L1"
-  unfolding trail_greater_id_id_def
+lemma "trail_less_id_id [L2, L1, L0] L1 L2"
+  unfolding trail_less_id_id_def
 proof (intro exI conjI)
   show "(0 :: nat) < 1" by presburger
 qed simp_all
 
-lemma "trail_greater_id_id [L2, L1, L0] L1 L0"
-  unfolding trail_greater_id_id_def
+lemma "trail_less_id_id [L2, L1, L0] L0 L1"
+  unfolding trail_less_id_id_def
 proof (intro exI conjI)
   show "(1 :: nat) < 2" by presburger
 qed simp_all
 
-lemma "trail_greater_comp_comp [L2, L1, L0] (- L2) (- L1)"
-  unfolding trail_greater_comp_comp_def
+lemma "trail_less_comp_comp [L2, L1, L0] (- L1) (- L2)"
+  unfolding trail_less_comp_comp_def
 proof (intro exI conjI)
   show "(0 :: nat) < 1" by presburger
 qed simp_all
 
-lemma "trail_greater_comp_comp [L2, L1, L0] (- L1) (- L0)"
-  unfolding trail_greater_comp_comp_def
+lemma "trail_less_comp_comp [L2, L1, L0] (- L0) (- L1)"
+  unfolding trail_less_comp_comp_def
 proof (intro exI conjI)
   show "(1 :: nat) < 2" by presburger
 qed simp_all
@@ -1641,9 +1638,9 @@ end
 
 subsection \<open>Miscellaneous Lemmas\<close>
 
-lemma not_trail_greater_Nil: "\<not> trail_greater [] L K"
-  unfolding trail_greater_def trail_greater_id_id_def trail_greater_comp_id_def
-    trail_greater_id_comp_def trail_greater_comp_comp_def
+lemma not_trail_less_Nil: "\<not> trail_less [] L K"
+  unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def
+    trail_less_id_comp_def trail_less_comp_comp_def
   by simp
 
 lemma pairwise_distinct_if_sound_trail:
@@ -1689,143 +1686,143 @@ qed
 
 subsection \<open>Well-Defined\<close>
 
-lemma trail_greater_id_id_well_defined:
+lemma trail_less_id_id_well_defined:
   assumes
     pairwise_distinct: "\<forall>x \<in> set Ls. \<forall>y \<in> set Ls. x \<noteq> - y" and
-    L_le_K: "trail_greater_id_id Ls L K"
+    L_le_K: "trail_less_id_id Ls L K"
   shows
-    "\<not> trail_greater_id_comp Ls L K"
-    "\<not> trail_greater_comp_id Ls L K"
-    "\<not> trail_greater_comp_comp Ls L K"
+    "\<not> trail_less_id_comp Ls L K"
+    "\<not> trail_less_comp_id Ls L K"
+    "\<not> trail_less_comp_comp Ls L K"
   using L_le_K
-  unfolding trail_greater_id_id_def trail_greater_comp_id_def trail_greater_id_comp_def
-    trail_greater_comp_comp_def
+  unfolding trail_less_id_id_def trail_less_comp_id_def trail_less_id_comp_def
+    trail_less_comp_comp_def
   using pairwise_distinct[rule_format, OF nth_mem nth_mem]
   by metis+
 
-lemma trail_greater_id_comp_well_defined:
+lemma trail_less_id_comp_well_defined:
   assumes
     pairwise_distinct: "\<forall>x \<in> set Ls. \<forall>y \<in> set Ls. x \<noteq> - y" and
-    L_le_K: "trail_greater_id_comp Ls L K"
+    L_le_K: "trail_less_id_comp Ls L K"
   shows
-    "\<not> trail_greater_id_id Ls L K"
-    "\<not> trail_greater_comp_id Ls L K"
-    "\<not> trail_greater_comp_comp Ls L K"
+    "\<not> trail_less_id_id Ls L K"
+    "\<not> trail_less_comp_id Ls L K"
+    "\<not> trail_less_comp_comp Ls L K"
   using L_le_K
-  unfolding trail_greater_id_id_def trail_greater_comp_id_def trail_greater_id_comp_def
-    trail_greater_comp_comp_def
+  unfolding trail_less_id_id_def trail_less_comp_id_def trail_less_id_comp_def
+    trail_less_comp_comp_def
   using pairwise_distinct[rule_format, OF nth_mem nth_mem]
   by metis+
 
-lemma trail_greater_comp_id_well_defined:
+lemma trail_less_comp_id_well_defined:
   assumes
     pairwise_distinct: "\<forall>x \<in> set Ls. \<forall>y \<in> set Ls. x \<noteq> - y" and
-    L_le_K: "trail_greater_comp_id Ls L K"
+    L_le_K: "trail_less_comp_id Ls L K"
   shows
-    "\<not> trail_greater_id_id Ls L K"
-    "\<not> trail_greater_id_comp Ls L K"
-    "\<not> trail_greater_comp_comp Ls L K"
+    "\<not> trail_less_id_id Ls L K"
+    "\<not> trail_less_id_comp Ls L K"
+    "\<not> trail_less_comp_comp Ls L K"
   using L_le_K
-  unfolding trail_greater_id_id_def trail_greater_comp_id_def trail_greater_id_comp_def
-    trail_greater_comp_comp_def
+  unfolding trail_less_id_id_def trail_less_comp_id_def trail_less_id_comp_def
+    trail_less_comp_comp_def
   using pairwise_distinct[rule_format, OF nth_mem nth_mem]
   by metis+
 
-lemma trail_greater_comp_comp_well_defined:
+lemma trail_less_comp_comp_well_defined:
   assumes
     pairwise_distinct: "\<forall>x \<in> set Ls. \<forall>y \<in> set Ls. x \<noteq> - y" and
-    L_le_K: "trail_greater_comp_comp Ls L K"
+    L_le_K: "trail_less_comp_comp Ls L K"
   shows
-    "\<not> trail_greater_id_id Ls L K"
-    "\<not> trail_greater_id_comp Ls L K"
-    "\<not> trail_greater_comp_id Ls L K"
+    "\<not> trail_less_id_id Ls L K"
+    "\<not> trail_less_id_comp Ls L K"
+    "\<not> trail_less_comp_id Ls L K"
   using L_le_K
-  unfolding trail_greater_id_id_def trail_greater_comp_id_def trail_greater_id_comp_def
-    trail_greater_comp_comp_def
+  unfolding trail_less_id_id_def trail_less_comp_id_def trail_less_id_comp_def
+    trail_less_comp_comp_def
   using pairwise_distinct[rule_format, OF nth_mem nth_mem]
   by metis+
 
 
 subsection \<open>Strict Partial Order\<close>
 
-lemma irreflp_trail_greater:
+lemma irreflp_trail_less:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
     pairwise_distinct:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
-  shows "irreflp (trail_greater Ls)"
+  shows "irreflp (trail_less Ls)"
 proof (rule irreflpI, rule notI)
   fix L :: 'a
-  assume "trail_greater Ls L L"
+  assume "trail_less Ls L L"
   then show False
-    unfolding trail_greater_def
+    unfolding trail_less_def
   proof (elim disjE)
-    show "trail_greater_id_id Ls L L \<Longrightarrow> False"
-      unfolding trail_greater_id_id_def
+    show "trail_less_id_id Ls L L \<Longrightarrow> False"
+      unfolding trail_less_id_id_def
       using pairwise_distinct by fastforce
   next
-    show "trail_greater_comp_id Ls L L \<Longrightarrow> False"
-      unfolding trail_greater_comp_id_def
+    show "trail_less_comp_id Ls L L \<Longrightarrow> False"
+      unfolding trail_less_comp_id_def
       by (metis pairwise_distinct uminus_not_id)
   next
-    show "trail_greater_id_comp Ls L L \<Longrightarrow> False"
-      unfolding trail_greater_id_comp_def
+    show "trail_less_id_comp Ls L L \<Longrightarrow> False"
+      unfolding trail_less_id_comp_def
       by (metis pairwise_distinct uminus_not_id)
   next
-    show "trail_greater_comp_comp Ls L L \<Longrightarrow> False"
-      unfolding trail_greater_comp_comp_def
+    show "trail_less_comp_comp Ls L L \<Longrightarrow> False"
+      unfolding trail_less_comp_comp_def
       by (metis pairwise_distinct uminus_uminus_id nat_less_le)
   qed
 qed
 
-lemma irreflp_trail_greater_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> irreflp (trail_greater (map fst \<Gamma>))"
-  using irreflp_trail_greater[OF
+lemma irreflp_trail_less_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> irreflp (trail_less (map fst \<Gamma>))"
+  using irreflp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
       pairwise_distinct_if_sound_trail]
   by assumption
 
-lemma transp_trail_greater:
+lemma transp_trail_less:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
     pairwise_distinct:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
-  shows "transp (trail_greater Ls)"
+  shows "transp (trail_less Ls)"
 proof (rule transpI)
   fix L K H :: 'a
-  show "trail_greater Ls L K \<Longrightarrow> trail_greater Ls K H \<Longrightarrow> trail_greater Ls L H"
+  show "trail_less Ls L K \<Longrightarrow> trail_less Ls K H \<Longrightarrow> trail_less Ls L H"
     using pairwise_distinct[rule_format] uminus_not_id uminus_uminus_id
-    unfolding trail_greater_def trail_greater_id_id_def trail_greater_comp_id_def
-      trail_greater_id_comp_def trail_greater_comp_comp_def
+    unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def
+      trail_less_id_comp_def trail_less_comp_comp_def
     (* Approximately 3 seconds on AMD Ryzen 7 PRO 5850U CPU. *)
     by (smt (verit, best) le_eq_less_or_eq order.strict_trans)
 qed
 
-lemma transp_trail_greater_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> transp (trail_greater (map fst \<Gamma>))"
-  using transp_trail_greater[OF
+lemma transp_trail_less_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> transp (trail_less (map fst \<Gamma>))"
+  using transp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
       pairwise_distinct_if_sound_trail]
   by assumption
 
-lemma asymp_trail_greater:
+lemma asymp_trail_less:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
     pairwise_distinct:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
-  shows "asymp (trail_greater Ls)"
-  using irreflp_trail_greater[OF assms] transp_trail_greater[OF assms]
+  shows "asymp (trail_less Ls)"
+  using irreflp_trail_less[OF assms] transp_trail_less[OF assms]
   using asymp_if_irreflp_and_transp
   by auto
 
-lemma asymp_trail_greater_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> asymp (trail_greater (map fst \<Gamma>))"
-  using asymp_trail_greater[OF
+lemma asymp_trail_less_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> asymp (trail_less (map fst \<Gamma>))"
+  using asymp_trail_less[OF
       Clausal_Logic.uminus_not_id'
       Clausal_Logic.uminus_of_uminus_id
       pairwise_distinct_if_sound_trail]
@@ -1834,46 +1831,46 @@ lemma asymp_trail_greater_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> 
 
 subsection \<open>Strict Total (w.r.t. Elements in Trail) Order\<close>
 
-lemma total_on_trail_greater:
-  "Restricted_Predicates.total_on (trail_greater Ls) (set Ls \<union> uminus ` set Ls)"
+lemma total_on_trail_less:
+  "Restricted_Predicates.total_on (trail_less Ls) (set Ls \<union> uminus ` set Ls)"
 proof (rule Restricted_Predicates.total_onI, unfold Un_iff, elim disjE)
   fix L K
   assume "L \<in> set Ls" and "K \<in> set Ls"
   then obtain i j where "i < length Ls" "Ls ! i = L" "j < length Ls" "Ls ! j = K"
     unfolding in_set_conv_nth by auto
-  thus "L = K \<or> trail_greater Ls L K \<or> trail_greater Ls K L"
+  thus "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
     using less_linear[of i j]
-    by (meson trail_greater_def trail_greater_id_id_def)
+    by (meson trail_less_def trail_less_id_id_def)
 next
   fix L K
   assume "L \<in> set Ls" and "K \<in> uminus ` set Ls"
   then obtain i j where "i < length Ls" "Ls ! i = L" "j < length Ls" "- (Ls ! j) = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_greater Ls L K \<or> trail_greater Ls K L"
+  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
     using less_linear[of i j]
-    by (metis le_eq_less_or_eq trail_greater_comp_id_def trail_greater_def trail_greater_id_comp_def)
+    by (metis le_eq_less_or_eq trail_less_comp_id_def trail_less_def trail_less_id_comp_def)
 next
   fix L K
   assume "L \<in> uminus ` set Ls" and "K \<in> set Ls"
   then obtain i j where "i < length Ls" "- (Ls ! i) = L" "j < length Ls" "Ls ! j = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_greater Ls L K \<or> trail_greater Ls K L"
+  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
     using less_linear[of i j]
-    by (metis le_eq_less_or_eq trail_greater_comp_id_def trail_greater_def trail_greater_id_comp_def)
+    by (metis le_eq_less_or_eq trail_less_comp_id_def trail_less_def trail_less_id_comp_def)
 next
   fix L K
   assume "L \<in> uminus ` set Ls" and "K \<in> uminus ` set Ls"
   then obtain i j where "i < length Ls" "- (Ls ! i) = L" "j < length Ls" "- (Ls ! j) = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_greater Ls L K \<or> trail_greater Ls K L"
+  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
     using less_linear[of i j]
-    by (metis trail_greater_comp_comp_def trail_greater_def)
+    by (metis trail_less_comp_comp_def trail_less_def)
 qed
 
 
 subsection \<open>Well-Founded\<close>
 
-lemma not_trail_greater_Cons_id_comp:
+lemma not_trail_less_Cons_id_comp:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
@@ -1881,73 +1878,73 @@ lemma not_trail_greater_Cons_id_comp:
     pairwise_distinct:
       "\<forall>i < length (L # Ls). \<forall>j < length (L # Ls). i \<noteq> j \<longrightarrow>
         (L # Ls) ! i \<noteq> (L # Ls) ! j \<and> (L # Ls) ! i \<noteq> - ((L # Ls) ! j)"
-  shows "\<not> trail_greater (L # Ls) L (- L)"
-proof (rule notI, unfold trail_greater_def, elim disjE)
-  show "trail_greater_id_id (L # Ls) L (- L) \<Longrightarrow> False"
-    unfolding trail_greater_id_id_def
+  shows "\<not> trail_less (L # Ls) (- L) L"
+proof (rule notI, unfold trail_less_def, elim disjE)
+  show "trail_less_id_id (L # Ls) (- L) L \<Longrightarrow> False"
+    unfolding trail_less_id_id_def
     using pairwise_distinct uminus_not_id by metis
 next
-  show "trail_greater_comp_id (L # Ls) L (- L) \<Longrightarrow> False"
-    unfolding trail_greater_comp_id_def
-    using pairwise_distinct uminus_not_id
-    by (metis length_greater_0_conv list.simps(3) nth_Cons_0)
-next
-  show "trail_greater_id_comp (L # Ls) L (- L) \<Longrightarrow> False"
-    unfolding trail_greater_id_comp_def
+  show "trail_less_comp_id (L # Ls) (- L) L \<Longrightarrow> False"
+    unfolding trail_less_comp_id_def
     using pairwise_distinct uminus_uminus_id
-    by (metis order_less_irrefl)
+    by (metis less_not_refl)
 next
-  show "trail_greater_comp_comp (L # Ls) L (- L) \<Longrightarrow> False"
-    unfolding trail_greater_comp_comp_def
+  show "trail_less_id_comp (L # Ls) (- L) L \<Longrightarrow> False"
+    unfolding trail_less_id_comp_def
+    using pairwise_distinct uminus_not_id
+    by (metis length_pos_if_in_set nth_Cons_0 nth_mem)
+next
+  show "trail_less_comp_comp (L # Ls) (- L) L \<Longrightarrow> False"
+    unfolding trail_less_comp_comp_def
     using pairwise_distinct uminus_not_id uminus_uminus_id by metis
 qed
 
-lemma not_trail_greater_if_undefined:
+lemma not_trail_less_if_undefined:
   fixes L :: "'a :: uminus"
   assumes
     undefined: "L \<notin> set Ls" "- L \<notin> set Ls" and
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
-  shows "\<not> trail_greater Ls L K" "\<not> trail_greater Ls K L"
+  shows "\<not> trail_less Ls L K" "\<not> trail_less Ls K L"
   using undefined[unfolded in_set_conv_nth] uminus_uminus_id
-  unfolding trail_greater_def trail_greater_id_id_def trail_greater_comp_id_def
-    trail_greater_id_comp_def trail_greater_comp_comp_def
-  by auto
+  unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def
+    trail_less_id_comp_def trail_less_comp_comp_def
+  by (smt (verit))+
 
-lemma trail_greater_ConsD:
+lemma trail_less_ConsD:
   fixes L H K :: "'a :: uminus"
-  assumes "L \<noteq> H" "L \<noteq> - H" and
-    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
-    greater_Cons: "trail_greater (L # Ls) H K"
-  shows "trail_greater Ls H K"
-  using greater_Cons[unfolded trail_greater_def]
+  assumes uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    L_neq_K: "L \<noteq> K" and L_neq_minus_K: "L \<noteq> - K" and
+    less_Cons: "trail_less (L # Ls) H K"
+  shows "trail_less Ls H K"
+  using less_Cons[unfolded trail_less_def]
 proof (elim disjE)
-  assume "trail_greater_id_id (L # Ls) H K"
-  hence "trail_greater_id_id Ls H K"
-    unfolding trail_greater_id_id_def
-    using assms(1) less_Suc_eq_0_disj by fastforce
+  assume "trail_less_id_id (L # Ls) H K"
+  hence "trail_less_id_id Ls H K"
+    unfolding trail_less_id_id_def
+    using L_neq_K less_Suc_eq_0_disj by fastforce
   thus ?thesis
-    unfolding trail_greater_def by simp
+    unfolding trail_less_def by simp
 next
-  assume "trail_greater_comp_id (L # Ls) H K"
-  hence "trail_greater_comp_id Ls H K"
-    unfolding trail_greater_comp_id_def
-    using assms(2) uminus_uminus_id less_Suc_eq_0_disj by fastforce
+  assume "trail_less_comp_id (L # Ls) H K"
+  hence "trail_less_comp_id Ls H K"
+    unfolding trail_less_comp_id_def
+    using L_neq_K less_Suc_eq_0_disj by fastforce
   thus ?thesis
-    unfolding trail_greater_def by simp
+    unfolding trail_less_def by simp
 next
-  assume "trail_greater_id_comp (L # Ls) H K"
-  hence "trail_greater_id_comp Ls H K"
-    unfolding trail_greater_id_comp_def
-    using assms(1) less_Suc_eq_0_disj by fastforce
+  assume "trail_less_id_comp (L # Ls) H K"
+  hence "trail_less_id_comp Ls H K"
+    unfolding trail_less_id_comp_def
+    using L_neq_minus_K uminus_uminus_id less_Suc_eq_0_disj by fastforce
   thus ?thesis
-    unfolding trail_greater_def by simp
+    unfolding trail_less_def by simp
 next
-  assume "trail_greater_comp_comp (L # Ls) H K"
-  hence "trail_greater_comp_comp Ls H K"
-    unfolding trail_greater_comp_comp_def
-    using assms(2) uminus_uminus_id less_Suc_eq_0_disj by fastforce
+  assume "trail_less_comp_comp (L # Ls) H K"
+  hence "trail_less_comp_comp Ls H K"
+    unfolding trail_less_comp_comp_def
+    using L_neq_minus_K uminus_uminus_id less_Suc_eq_0_disj by fastforce
   thus ?thesis
-    unfolding trail_greater_def by simp
+    unfolding trail_less_def by simp
 qed
 
 lemma trail_subset_empty_or_ex_smallest:
@@ -1957,7 +1954,7 @@ lemma trail_subset_empty_or_ex_smallest:
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
     pairwise_distinct:
       "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
-  shows "Q \<subseteq> set Ls \<union> uminus ` set Ls \<Longrightarrow> Q = {} \<or> (\<exists>z \<in> Q. \<forall>y. trail_greater Ls z y \<longrightarrow> y \<notin> Q)"
+  shows "Q \<subseteq> set Ls \<union> uminus ` set Ls \<Longrightarrow> Q = {} \<or> (\<exists>z \<in> Q. \<forall>y. trail_less Ls y z \<longrightarrow> y \<notin> Q)"
   using pairwise_distinct
 proof (induction Ls arbitrary: Q)
   case Nil
@@ -1969,7 +1966,7 @@ next
       (L # Ls) ! i \<noteq> (L # Ls) ! j \<and> (L # Ls) ! i \<noteq> - (L # Ls) ! j"
     by simp
   hence pairwise_distinct_Ls:
-    "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)" 
+    "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)"
     by (metis distinct.simps(2) distinct_conv_nth length_Cons not_less_eq nth_Cons_Suc)
   show ?case
   proof (cases "Q = {}")
@@ -1979,10 +1976,10 @@ next
     case Q_neq_empty: False
     have Q_minus_subset: "Q - {L, - L} \<subseteq> set Ls \<union> uminus ` set Ls" using Cons_ind.prems(1) by auto
 
-    have irreflp_gt_L_Ls: "irreflp (trail_greater (L # Ls))"
-      by (rule irreflp_trail_greater[OF uminus_not_id uminus_uminus_id pairwise_distinct_L_Ls])
+    have irreflp_gt_L_Ls: "irreflp (trail_less (L # Ls))"
+      by (rule irreflp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct_L_Ls])
 
-    have "\<exists>z\<in>Q. \<forall>y. trail_greater (L # Ls) z y \<longrightarrow> y \<notin> Q"
+    have "\<exists>z\<in>Q. \<forall>y. trail_less (L # Ls) y z \<longrightarrow> y \<notin> Q"
       using Cons_ind.IH[OF Q_minus_subset pairwise_distinct_Ls]
     proof (elim disjE bexE)
       assume "Q - {L, -L} = {}"
@@ -1993,9 +1990,9 @@ next
         apply (drule set_rev_mp[OF _ \<open>Q \<subseteq> {L, -L}\<close>])
         apply simp
         using irreflp_gt_L_Ls[THEN irreflpD, of L]
-        using not_trail_greater_Cons_id_comp[OF uminus_not_id uminus_uminus_id
+        using not_trail_less_Cons_id_comp[OF uminus_not_id uminus_uminus_id
             pairwise_distinct_L_Ls]
-        by safe
+        by fastforce
       moreover have ?thesis if "L \<notin> Q"
       proof -
         from \<open>L \<notin> Q\<close> have "Q = {- L}"
@@ -2006,7 +2003,7 @@ next
       ultimately show ?thesis by metis
     next
       fix K
-      assume K_in_Q_minus: "K \<in> Q - {L, -L}" "\<forall>y. trail_greater Ls K y \<longrightarrow> y \<notin> Q - {L, -L}"
+      assume K_in_Q_minus: "K \<in> Q - {L, -L}" and "\<forall>y. trail_less Ls y K \<longrightarrow> y \<notin> Q - {L, -L}"
       from K_in_Q_minus have "L \<noteq> K" "- L \<noteq> K" by auto
       from K_in_Q_minus have "L \<noteq> - K" using \<open>- L \<noteq> K\<close> uminus_uminus_id by blast
       show ?thesis
@@ -2015,15 +2012,15 @@ next
           using K_in_Q_minus by simp
       next
         fix H
-        assume "trail_greater (L # Ls) K H"
-        hence "trail_greater Ls K H"
-          by (rule trail_greater_ConsD[of L K Ls H, OF \<open>L \<noteq> K\<close> \<open>L \<noteq> - K\<close> uminus_uminus_id, rule_format])
+        assume "trail_less (L # Ls) H K"
+        hence "trail_less Ls H K"
+          by (rule trail_less_ConsD[OF uminus_uminus_id \<open>L \<noteq> K\<close> \<open>L \<noteq> - K\<close>])
         hence "H \<notin> Q - {L, -L}"
-          using \<open>\<forall>y. trail_greater Ls K y \<longrightarrow> y \<notin> Q - {L, -L}\<close> by simp
+          using \<open>\<forall>y. trail_less Ls y K \<longrightarrow> y \<notin> Q - {L, -L}\<close> by simp
         moreover have "H \<noteq> L \<and>  H \<noteq> - L"
-          using uminus_uminus_id pairwise_distinct_L_Ls \<open>trail_greater Ls K H\<close>
+          using uminus_uminus_id pairwise_distinct_L_Ls \<open>trail_less Ls H K\<close>
           by (metis (no_types, lifting) distinct.simps(2) distinct_conv_nth in_set_conv_nth
-              list.set_intros(1,2) not_trail_greater_if_undefined(2))
+              list.set_intros(1,2) not_trail_less_if_undefined(1))
         ultimately show "H \<notin> Q"
           by simp
       qed
@@ -2044,7 +2041,7 @@ lemma wfP_trail_less:
 proof (intro allI impI)
   fix M :: "'a set" and L :: 'a
   assume "L \<in> M"
-  show "\<exists>z \<in> M. \<forall>y. trail_greater Ls z y \<longrightarrow> y \<notin> M"
+  show "\<exists>z \<in> M. \<forall>y. trail_less Ls y z \<longrightarrow> y \<notin> M"
   proof (cases "M \<inter> (set Ls \<union> uminus ` set Ls) = {}")
     case True
     with \<open>L \<in> M\<close> have L_not_in_Ls: "L \<notin> set Ls \<and> - L \<notin> set Ls"
@@ -2052,9 +2049,9 @@ proof (intro allI impI)
     then show ?thesis
     proof (intro bexI[OF _ \<open>L \<in> M\<close>] allI impI)
       fix K
-      assume "trail_greater Ls L K"
+      assume "trail_less Ls K L"
       hence False
-        using L_not_in_Ls not_trail_greater_if_undefined[OF _ _ uminus_uminus_id] by simp
+        using L_not_in_Ls not_trail_less_if_undefined[OF _ _ uminus_uminus_id] by simp
       thus "K \<notin> M" ..
     qed
   next
@@ -2063,16 +2060,16 @@ proof (intro allI impI)
       by simp
     with False obtain H where
       H_in: "H \<in> M \<inter> (set Ls \<union> uminus ` set Ls)" and
-      all_lt_H_no_in: "\<forall>y. trail_greater Ls H y \<longrightarrow> y \<notin> M \<inter> (set Ls \<union> uminus ` set Ls)"
+      all_lt_H_no_in: "\<forall>y. trail_less Ls y H \<longrightarrow> y \<notin> M \<inter> (set Ls \<union> uminus ` set Ls)"
       using trail_subset_empty_or_ex_smallest[OF uminus_not_id uminus_uminus_id pairwise_distinct]
       by meson
     show ?thesis
     proof (rule bexI)
       show "H \<in> M" using H_in by simp
     next
-      show "\<forall>y. trail_greater Ls H y \<longrightarrow> y \<notin> M"
-        using all_lt_H_no_in
-        by (metis Int_iff Un_iff image_eqI not_trail_greater_if_undefined(2) uminus_uminus_id)
+      show "\<forall>y. trail_less Ls y H \<longrightarrow> y \<notin> M"
+        using all_lt_H_no_in uminus_uminus_id
+        by (metis Int_iff Un_iff image_eqI not_trail_less_if_undefined(1))
     qed
   qed
 qed
