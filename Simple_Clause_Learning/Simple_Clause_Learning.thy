@@ -737,8 +737,17 @@ primrec trail_level_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \
   "trail_level_lit (Ln # \<Gamma>) L =
     (if fst Ln = L \<or> fst Ln = -L then trail_level (Ln # \<Gamma>) else trail_level_lit \<Gamma> L)"
 
+lemma trail_level_lit_le: "trail_level_lit \<Gamma> L \<le> trail_level \<Gamma>"
+  by (induction \<Gamma>) simp_all
+
 definition trail_level_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> nat" where
-  "trail_level_cls \<Gamma> C = Max_mset {#trail_level_lit \<Gamma> L. L \<in># C#}"
+  "trail_level_cls \<Gamma> C = (if C = {#} then 0 else Max_mset {#trail_level_lit \<Gamma> L. L \<in># C#})"
+
+lemma trail_level_cls_le: "trail_level_cls \<Gamma> C \<le> trail_level \<Gamma>"
+  unfolding trail_level_cls_def
+  using all_lt_Max_imp_lt_mset[of "image_mset (trail_level_lit \<Gamma>) C", simplified]
+  using trail_level_lit_le
+  by auto
 
 primrec trail_backtrack :: "('f, 'v) trail \<Rightarrow> nat \<Rightarrow> ('f, 'v) trail" where
   "trail_backtrack [] _ = []" |
@@ -785,6 +794,10 @@ lemma trail_backtrack_level:
   "trail_level (trail_backtrack \<Gamma> level) = 0 \<or> trail_level (trail_backtrack \<Gamma> level) = level"
   by (induction \<Gamma>) simp_all
 
+lemma trail_backtrack_level_eq:
+  "level \<le> trail_level \<Gamma> \<Longrightarrow> trail_level (trail_backtrack \<Gamma> level) = level"
+  by (induction \<Gamma>) auto
+
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
 
@@ -799,6 +812,9 @@ definition trail_true_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause 
 
 definition trail_false_cls :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause \<Rightarrow> bool" where
   "trail_false_cls \<Gamma> C \<longleftrightarrow> (\<forall>L \<in># C. trail_false_lit \<Gamma> L)"
+
+definition trail_true_clss :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause set \<Rightarrow> bool" where
+  "trail_true_clss \<Gamma> N \<longleftrightarrow> (\<forall>C \<in> N. trail_true_cls \<Gamma> C)"
 
 definition trail_defined_lit :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" where
   "trail_defined_lit \<Gamma> L \<longleftrightarrow> (L \<in> fst ` set \<Gamma> \<or> - L \<in> fst ` set \<Gamma>)"
@@ -873,7 +889,7 @@ inductive decide for N where
 inductive conflict for N where
   conflictI: "D \<in> N \<union> U \<Longrightarrow> D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D \<Longrightarrow>
     subst_domain \<sigma> \<subseteq> vars_cls D' \<Longrightarrow> is_ground_cls (D' \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (D' \<cdot> \<sigma>) \<Longrightarrow>
-    conflict N (\<Gamma>, U, k, None) (\<Gamma>, U, Suc k, Some (D', \<sigma>))"
+    conflict N (\<Gamma>, U, k, None) (\<Gamma>, U, k, Some (D', \<sigma>))"
 
 inductive skip for N where
   skipI: "-(L \<cdot>l \<delta>) \<notin># D \<cdot> \<sigma> \<Longrightarrow>
@@ -893,7 +909,7 @@ inductive resolve for N where
 
 inductive backtrack for N where
   backtrackI: "trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = k \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = i \<Longrightarrow>
-    backtrack N (\<Gamma>, U, k, Some (D + {#L#}, \<sigma>)) (trail_backtrack \<Gamma> i, U \<union> {D + {#L#}}, k, None)"
+    backtrack N (\<Gamma>, U, k, Some (D + {#L#}, \<sigma>)) (trail_backtrack \<Gamma> i, U \<union> {D + {#L#}}, i, None)"
 
 definition scl where
   "scl N S S' \<longleftrightarrow> propagate N S S' \<or> decide N S S' \<or> conflict N S S' \<or> skip N S S' \<or>
@@ -982,13 +998,22 @@ definition sound_state :: "('f, 'v) Term.term clause set \<Rightarrow> ('f, 'v) 
     N \<TTurnstile>\<G>e U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
-      trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C}))"
+      trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C}) \<and>
+    trail_level \<Gamma> = k)"
 
 abbreviation initial_state :: "('f, 'v) state" where
   "initial_state \<equiv> ([], {}, 0, None)"
 
 lemma sound_initial_state[simp]: "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N initial_state"
   by (simp add: sound_state_def)
+
+lemma trail_level_propagate[simp]:
+  "trail_level (trail_propagate \<Gamma> L C \<gamma>) = trail_level \<Gamma>"
+  by (simp add: trail_propagate_def is_decision_lit_def)
+
+lemma trail_level_decide[simp]:
+  "trail_level (trail_decide \<Gamma> L) = Suc (trail_level \<Gamma>)"
+  by (simp add: trail_decide_def is_decision_lit_def)
 
 lemma propagate_sound_state: "propagate N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: propagate.induct)
@@ -997,7 +1022,8 @@ proof (induction S S' rule: propagate.induct)
     fin: "finite N" "finite U" and
     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by auto
 
   from propagateI.hyps have
@@ -1020,7 +1046,7 @@ proof (induction S S' rule: propagate.induct)
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin N_entails_U
+    using fin N_entails_U \<open>trail_level \<Gamma> = k\<close>
     by simp
 qed
 
@@ -1031,7 +1057,8 @@ proof (induction S S' rule: decide.induct)
     fin: "finite N" "finite U" and
     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by auto
   with decideI.hyps show ?case
     unfolding sound_state_def
@@ -1047,7 +1074,8 @@ proof (induction S S' rule: conflict.induct)
     fin_U: "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by auto
 
   from conflictI.hyps have D_in: "D \<in> N \<union> U" by simp
@@ -1078,6 +1106,7 @@ proof (induction S S' rule: conflict.induct)
   ultimately show ?case
     unfolding sound_state_def
     using fin_N fin_U disj_N_U disj_N_U_D' sound_\<Gamma> N_entails_U conflictI.hyps
+    using \<open>trail_level \<Gamma> = k\<close>
     by simp
 qed
 
@@ -1086,7 +1115,7 @@ proof (induction S S' rule: skip.induct)
   case (skipI L \<delta> D \<sigma> \<Gamma> C U k)
   thus ?case
     unfolding sound_state_def
-    by (auto simp: trail_propagate_def clss_of_trail_Cons[of _ \<Gamma>]
+    by (auto simp: trail_propagate_def clss_of_trail_Cons[of _ \<Gamma>] is_decision_lit_def
         elim: sound_trail.cases dest!: trail_false_cls_ConsD)
 qed
 
@@ -1102,7 +1131,8 @@ proof (induction S S' rule: factorize.induct)
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L, L'#})" and
     gr_D_L_L'_\<sigma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
-    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L, L'#}}"
+    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L, L'#}}" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by simp_all
 
   from factorizeI.hyps have mgu_L_L': "Unification.mgu (atm_of L) (atm_of L') = Some \<mu>" by simp
@@ -1196,7 +1226,7 @@ proof (induction S S' rule: factorize.induct)
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U
+    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U \<open>trail_level \<Gamma> = k\<close>
     by simp
 qed
 
@@ -1212,7 +1242,8 @@ proof (induction S S' rule: resolve.induct)
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
     gr_D_L'_\<sigma>: "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
-    N_entails_D_L': "N \<TTurnstile>\<G>e {D + {#L'#}}"
+    N_entails_D_L': "N \<TTurnstile>\<G>e {D + {#L'#}}" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by simp_all
 
   from resolveI.hyps have L_eq_comp_L': "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" by simp
@@ -1462,7 +1493,7 @@ proof (induction S S' rule: resolve.induct)
 
   ultimately show ?case
     unfolding sound_state_def
-    using fin disj_N_U sound_\<Gamma> N_entails_U
+    using fin disj_N_U sound_\<Gamma> N_entails_U \<open>trail_level \<Gamma> = k\<close>
     by simp
 qed
 
@@ -1478,7 +1509,8 @@ proof (induction S S' rule: backtrack.induct)
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
     gr_D_L_\<sigma>: "is_ground_cls ((D + {#L#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<sigma>)" and
-    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L#}}"
+    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L#}}" and
+    "trail_level \<Gamma> = k"
     unfolding sound_state_def by simp_all
 
   have "disjoint_vars_set (N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> i) \<union> {D + {#L#}})"
@@ -1505,6 +1537,11 @@ proof (induction S S' rule: backtrack.induct)
 
   moreover have "N \<TTurnstile>\<G>e (U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
+
+  moreover have "trail_level (trail_backtrack \<Gamma> i) = i"
+    apply (rule trail_backtrack_level_eq)
+    using \<open>trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = i\<close> trail_level_cls_le
+    by blast
 
   ultimately show ?case
     unfolding sound_state_def
