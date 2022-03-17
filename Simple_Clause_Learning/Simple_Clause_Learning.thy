@@ -1541,8 +1541,6 @@ lemma "regular_scl N S S' \<Longrightarrow> (reasonable_scl N)\<^sup>+\<^sup>+ S
 
 section \<open>Clause Redundancy\<close>
 
-find_consts "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool"
-
 definition ground_redundant where
   "ground_redundant lt N C \<longleftrightarrow> {D \<in> N. lt\<^sup>=\<^sup>= D C} \<TTurnstile>e {C}"
 
@@ -1682,6 +1680,31 @@ next
     qed
   qed
 qed
+
+lemma defined_if_trail_less:
+  assumes "trail_less Ls L K"
+  shows "L \<in> set Ls \<union> uminus ` set Ls" "L \<in> set Ls \<union> uminus ` set Ls"
+   apply (atomize (full))
+  using assms unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def
+    trail_less_id_comp_def trail_less_comp_comp_def
+  by (elim disjE exE conjE) simp_all
+
+lemma not_less_if_undefined:
+  fixes L :: "'a :: uminus"
+  assumes
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    "L \<notin> set Ls" "- L \<notin> set Ls"
+  shows "\<not> trail_less Ls L K" "\<not> trail_less Ls K L"
+  using assms
+  unfolding trail_less_def trail_less_id_id_def trail_less_comp_id_def trail_less_id_comp_def
+    trail_less_comp_comp_def
+  by auto
+
+lemma defined_conv:
+  fixes L :: "'a :: uminus"
+  assumes uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
+  shows "L \<in> set Ls \<union> uminus ` set Ls \<longleftrightarrow> L \<in> set Ls \<or> - L \<in> set Ls"
+  by (auto simp: rev_image_eqI uminus_uminus_id)
 
 
 subsection \<open>Well-Defined\<close>
@@ -2071,6 +2094,110 @@ proof (intro allI impI)
         using all_lt_H_no_in uminus_uminus_id
         by (metis Int_iff Un_iff image_eqI not_trail_less_if_undefined(1))
     qed
+  qed
+qed
+
+
+subsection \<open>Extension on All Literals\<close>
+
+definition trail_less_ex where
+  "trail_less_ex lt Ls L K \<longleftrightarrow>
+    (if L \<in> set Ls \<or> - L \<in> set Ls then
+      if K \<in> set Ls \<or> - K \<in> set Ls then
+        trail_less Ls L K
+      else
+        True
+    else
+      if K \<in> set Ls \<or> - K \<in> set Ls then
+        False
+      else
+        lt L K)"
+
+lemma trail_less_ex_if_trail_less:
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
+  shows "trail_less Ls L K \<Longrightarrow> trail_less_ex lt Ls L K"
+  unfolding trail_less_ex_def
+  using defined_if_trail_less[THEN defined_conv[OF uminus_uminus_id, THEN iffD1]]
+  by auto
+
+lemma irreflp_trail_ex_less:
+  fixes Ls :: "('a :: uminus) list" and lt :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes
+    uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    pairwise_distinct:
+      "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)" and
+    irreflp_lt: "irreflp lt"
+  shows "irreflp (trail_less_ex lt Ls)"
+  unfolding trail_less_ex_def
+  using irreflp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] irreflp_lt
+  by (simp add: irreflpD irreflpI)
+
+lemma transp_trail_ex_less:
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    pairwise_distinct:
+      "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)" and
+    transp_lt: "transp lt"
+  shows "transp (trail_less_ex lt Ls)"
+  unfolding trail_less_ex_def
+  using transp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] transp_lt
+  by (smt (verit, ccfv_SIG) transp_def)
+
+lemma asymp_trail_less_ex:
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    pairwise_distinct:
+      "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)" and
+    asymp_lt: "asymp lt"
+  shows "asymp (trail_less_ex lt Ls)"
+  unfolding trail_less_ex_def
+  using asymp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] asymp_lt
+  by (simp add: asymp.simps)
+
+lemma total_on_trail_less_ex:
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    total_on_lt: "Restricted_Predicates.total_on lt S"
+  shows "Restricted_Predicates.total_on (trail_less_ex lt Ls) S"
+  using total_on_trail_less[of Ls, unfolded Restricted_Predicates.total_on_def]
+  using total_on_lt
+  unfolding trail_less_ex_def
+  by (smt (verit, ccfv_threshold) Restricted_Predicates.total_on_def defined_conv
+      uminus_uminus_id)
+
+lemma wfP_trail_less_ex:
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
+    pairwise_distinct:
+      "\<forall>i < length Ls. \<forall>j < length Ls. i \<noteq> j \<longrightarrow> Ls ! i \<noteq> Ls ! j \<and> Ls ! i \<noteq> - (Ls ! j)" and
+    wfP_lt: "wfP lt"
+  shows "wfP (trail_less_ex lt Ls)"
+  unfolding wfP_eq_minimal
+proof (intro allI impI)
+  fix Q :: "'a set" and x :: 'a
+  assume "x \<in> Q"
+  show "\<exists>z\<in>Q. \<forall>y. trail_less_ex lt Ls y z \<longrightarrow> y \<notin> Q "
+  proof (cases "Q \<inter> (set Ls \<union> uminus ` set Ls) = {}")
+    case True
+    then show ?thesis
+      using wfP_lt[unfolded wfP_eq_minimal, rule_format, OF \<open>x \<in> Q\<close>]
+      by (metis (no_types, lifting) defined_conv disjoint_iff trail_less_ex_def uminus_uminus_id)
+  next
+    case False
+    then show ?thesis
+      using trail_subset_empty_or_ex_smallest[OF uminus_not_id uminus_uminus_id pairwise_distinct,
+        unfolded wfP_eq_minimal, of "Q \<inter> (set Ls \<union> uminus ` set Ls)", simplified]
+      by (metis (no_types, lifting) IntD1 IntD2 UnE defined_conv trail_less_ex_def uminus_uminus_id)
   qed
 qed
 
