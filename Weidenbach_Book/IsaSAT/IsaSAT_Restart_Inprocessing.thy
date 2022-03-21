@@ -1457,7 +1457,7 @@ definition isa_clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> isa
     let N' = extra_information_mark_to_delete (N') C;
     let lcount = get_learned_count S;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
-    let lcount = (if st then lcount else clss_size_incr_lcountUS (clss_size_decr_lcount lcount));
+    let lcount = (if st then lcount else (clss_size_decr_lcount lcount));
     let stats = get_stats_heur S;
     let stats = (if st then decr_irred_clss stats else stats);
     let S = set_clauses_wl_heur N' S;
@@ -1466,21 +1466,29 @@ definition isa_clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> isa
     RETURN S
    })\<close>
 
+      term get_learned_count_number
+
 lemma isa_clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause_wl:
-  \<open>(uncurry isa_clause_remove_duplicate_clause_wl, uncurry clause_remove_duplicate_clause_wl) \<in> [\<lambda>(C, S). C \<in># dom_m (get_clauses_wl S)]\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  unfolding isa_clause_remove_duplicate_clause_wl_def clause_remove_duplicate_clause_wl_def uncurry_def
-  apply (intro frefI nres_relI)
-  apply refine_vcg
-  subgoal
-    by (auto simp: clause_remove_duplicate_clause_wl_pre_def clause_remove_duplicate_clause_pre_def state_wl_l_def red_in_dom_number_of_learned_ge1
-    twl_st_heur_def clss_size_corr_in_dom_red_clss_size_lcount_ge0 arena_lifting)
-  subgoal by (auto simp: twl_st_heur_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause arena_lifting
-    dest!: in_vdom_m_fmdropD)
-  done
+  \<open>(uncurry isa_clause_remove_duplicate_clause_wl, uncurry clause_remove_duplicate_clause_wl) \<in> [\<lambda>(C, S). C \<in># dom_m (get_clauses_wl S)]\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_restart_ana' r u \<rightarrow> \<langle>twl_st_heur_restart_ana' r u\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding isa_clause_remove_duplicate_clause_wl_def clause_remove_duplicate_clause_wl_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply refine_vcg
+    subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k
+      x2k x1l x2l x1m x2m
+      by (auto simp: clause_remove_duplicate_clause_wl_pre_def clause_remove_duplicate_clause_pre_def state_wl_l_def red_in_dom_number_of_learned_ge1
+        twl_st_heur_restart_def twl_st_heur_restart_ana_def clss_size_corr_in_dom_red_clss_size_lcount_ge0 arena_lifting clss_size_corr_restart_def)
+    subgoal
+       by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause arena_lifting
+         all_init_atms_fmdrop_add_mset_unit learned_clss_count_def
+      dest!: in_vdom_m_fmdropD)
+    done
+qed
 
 definition isa_binary_clause_subres_lits_wl_pre :: \<open>_\<close> where
   \<open>isa_binary_clause_subres_lits_wl_pre C L L' S \<longleftrightarrow>
-    (\<exists>T. (S, T)\<in> twl_st_heur \<and>  binary_clause_subres_lits_wl_pre C L L' T)\<close>
+    (\<exists>T r u. (S, T)\<in> twl_st_heur_restart_ana' r u \<and>  binary_clause_subres_lits_wl_pre C L L' T)\<close>
 
 definition isa_binary_clause_subres_wl :: \<open>_\<close> where
   \<open>isa_binary_clause_subres_wl C L L' S = do {
@@ -1492,7 +1500,7 @@ definition isa_binary_clause_subres_wl :: \<open>_\<close> where
       let st = arena_status N' C = IRRED;
       let N' = extra_information_mark_to_delete (N') C;
       ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
-      let lcount = (if st then lcount else clss_size_incr_lcountUS (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
+      let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let stats = get_stats_heur S;
       let stats = (if st then decr_irred_clss stats else stats);
       let S = set_trail_wl_heur M S;
@@ -1506,12 +1514,13 @@ definition isa_binary_clause_subres_wl :: \<open>_\<close> where
 lemma [simp]: \<open>(S, x) \<in> state_wl_l None \<Longrightarrow>
     defined_lit (get_trail_l x) L \<longleftrightarrow> defined_lit (get_trail_wl S) L\<close>
   by (auto simp: state_wl_l_def)
-
+(*END Move*)
+ 
 lemma binary_clause_subres_wl_alt_def:
   \<open>binary_clause_subres_wl C L L' = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
    ASSERT (binary_clause_subres_lits_wl_pre C L L' (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
-   ASSERT (L' \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)));
-   ASSERT (L \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)));
+   ASSERT (L' \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)));
+   ASSERT (L \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)));
    ASSERT (get_conflict_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = None \<and> undefined_lit M L \<and> C \<in># dom_m N);
    M' \<leftarrow> cons_trail_propagate_l L 0 M;
    ASSERT (M' = Propagated L 0 # M);
@@ -1519,20 +1528,28 @@ lemma binary_clause_subres_wl_alt_def:
       (if irred N C then add_mset {#L#} else id) NEk, (if irred N C then id else add_mset {#L#}) UEk,
       (if irred N C then add_mset (mset (N \<propto> C)) else id) NS, (if irred N C then id else add_mset (mset (N \<propto> C))) US,
        N0, U0, add_mset (-L) Q, W);
-   ASSERT (set_mset (all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) = set_mset (all_atms_st S));
+   ASSERT (set_mset (all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)) = set_mset (all_init_atms_st S));
    RETURN S
  })\<close> (is \<open>?A = ?B\<close>)
-proof -
-  thm cons_trail_Propagated_tr
-  have H: \<open>binary_clause_subres_lits_wl_pre C L L' S \<longleftrightarrow> binary_clause_subres_lits_wl_pre C L L' S \<and> L' \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> L \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
+ proof -
+  have H: \<open>binary_clause_subres_lits_wl_pre C L L' S \<Longrightarrow> set_mset (all_atms_st S) = set_mset (all_init_atms_st S)\<close> for S
+    unfolding binary_clause_subres_lits_wl_pre_def binary_clause_subres_lits_pre_def
+    apply normalize_goal+
+    using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3) by fast
+  have H: \<open>binary_clause_subres_lits_wl_pre C L L' S \<longleftrightarrow> binary_clause_subres_lits_wl_pre C L L' S \<and> L' \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) \<and> L \<in>#  \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) \<and>
     undefined_lit (get_trail_wl S) L \<and> get_conflict_wl S = None \<and> C \<in># dom_m (get_clauses_wl S)\<close> for S
     apply (rule iffI)
     apply simp_all
+    apply (frule \<L>\<^sub>a\<^sub>l\<^sub>l_cong[OF H, symmetric])
     unfolding binary_clause_subres_lits_wl_pre_def binary_clause_subres_lits_pre_def binary_clause_subres_lits_pre_def
     apply normalize_goal+
-    apply simp
+    apply (simp add: )
     by (cases S; auto simp: all_atms_st_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_def ran_m_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
       dest!: multi_member_split)
+  have [simp]: \<open>L \<in># all_init_lits x1a (x1c + x1e + x1g + x1i) \<Longrightarrow>
+    set_mset (all_init_atms x1a (add_mset {#L#} (x1c + x1e + x1g + x1i))) = set_mset (all_init_atms x1a ((x1c + x1e + x1g + x1i)))\<close> for x1a x1c x1e x1g x1i
+    by (auto simp: all_init_atms_def all_init_lits_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
+      simp del: all_init_atms_def[symmetric])
   have \<open>?A S \<le> \<Down>Id (?B S)\<close> for S
     unfolding binary_clause_subres_wl_def summarize_ASSERT_conv cons_trail_propagate_l_def nres_monad3 Let_def bind_to_let_conv
     apply (subst (2) H)
@@ -1540,29 +1557,67 @@ proof -
   moreover have \<open>?B S \<le> \<Down>Id (?A S)\<close> for S
     unfolding binary_clause_subres_wl_def summarize_ASSERT_conv cons_trail_propagate_l_def nres_monad3 Let_def bind_to_let_conv
     apply (subst (2) H)
-    by refine_vcg auto
+    by refine_vcg
+     (auto simp: all_init_atms_st_def all_init_atms_fmdrop_add_mset_unit \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
   ultimately show ?thesis
     unfolding Down_id_eq
     by (intro ext, rule antisym)
 qed
 
-thm D\<^sub>0_cong
 lemma D\<^sub>0_cong': \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> x \<in> D\<^sub>0 \<A> \<Longrightarrow> x \<in> D\<^sub>0 \<B>\<close>
   by (subst (asm) D\<^sub>0_cong, assumption)
 lemma map_fun_rel_D\<^sub>0_cong: \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>x \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<Longrightarrow> x \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<B>)\<close>
   by (subst (asm) D\<^sub>0_cong, assumption)
-thm vdom_m_cong
+
 lemma vdom_m_cong': "set_mset \<A> = set_mset \<B> \<Longrightarrow> x \<in> vdom_m \<A> a b \<Longrightarrow> x \<in> vdom_m \<B> a b"
   by (subst (asm) vdom_m_cong, assumption)
 lemma vdom_m_cong'': "set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> a b \<subseteq> A \<Longrightarrow> vdom_m \<B> a b \<subseteq> A"
   by (subst (asm) vdom_m_cong, assumption)
 lemma cach_refinement_empty_cong': "set_mset \<A> = set_mset \<B> \<Longrightarrow> cach_refinement_empty \<A> x \<Longrightarrow> cach_refinement_empty \<B> x"
   by (subst (asm) cach_refinement_empty_cong, assumption)
+thm twl_st_heur_restart_alt_def
+lemma twl_st_heur_restart_alt_def2:
+  \<open>twl_st_heur_restart =
+  {(S,T).
+  let M' = get_trail_wl_heur S; N' = get_clauses_wl_heur S; D' = get_conflict_wl_heur S;
+    W' = get_watched_wl_heur S; j = literals_to_update_wl_heur S; outl = get_outlearned_heur S;
+    cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
+    vm = get_vmtf_heur S;
+    vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
+    lcount = get_learned_count S in
+    let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
+      Q = literals_to_update_wl T;
+      W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
+      NS = get_subsumed_init_clauses_wl T; US = get_subsumed_learned_clauses_wl T;
+      NEk = get_kept_unit_init_clss_wl T; UEk = get_kept_unit_learned_clss_wl T;
+      NE = get_unkept_unit_init_clss_wl T; UE = get_unkept_unit_learned_clss_wl T in
+    (M', M) \<in> trail_pol (all_init_atms_st T) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_init_atms_st T) \<and>
+    (D = None \<longrightarrow> j \<le> length M) \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T)) \<and>
+    vm \<in> isa_vmtf (all_init_atms_st T) M \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty (all_init_atms_st T) cach \<and>
+    out_learned M D outl \<and>
+    clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
+    vdom_m (all_init_atms_st T) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
+    isasat_input_bounded (all_init_atms_st T) \<and>
+    isasat_input_nempty (all_init_atms_st T) \<and>
+    old_arena = [] \<and>
+    heuristic_rel (all_init_atms_st T) heur
+  }\<close>
+  unfolding twl_st_heur_restart_def Let_def
+  by (auto simp: all_init_atms_st_def )
 
 lemma isa_binary_clause_subres_isa_binary_clause_subres_wl:
-  \<open>(uncurry3 isa_binary_clause_subres_wl, uncurry3 binary_clause_subres_wl) \<in> [\<lambda>(((C, L), L'), S). True]\<^sub>f nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(uncurry3 isa_binary_clause_subres_wl, uncurry3 binary_clause_subres_wl)
+  \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart_ana' r u\<rangle>nres_rel\<close>
 proof -
-  have A: \<open>A \<in> twl_st_heur \<Longrightarrow> A \<in> twl_st_heur\<close> for A
+  have A: \<open>A \<in> twl_st_heur_restart_ana' r u \<Longrightarrow> A \<in> twl_st_heur_restart_ana' r u\<close> for A
     by auto
   note cong = trail_pol_cong option_lookup_clause_rel_cong map_fun_rel_D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
     cach_refinement_empty_cong' vdom_m_cong' vdom_m_cong'' isasat_input_bounded_cong[THEN iffD1] isasat_input_nempty_cong[THEN iffD1]
@@ -1571,28 +1626,31 @@ proof -
     unfolding isa_binary_clause_subres_wl_def binary_clause_subres_wl_alt_def uncurry_def Let_def
     apply (intro frefI nres_relI)
     subgoal for S T
-    apply (refine_vcg cons_trail_Propagated_tr[of \<open>all_atms_st (snd T)\<close>, THEN fref_to_Down_curry2])
-    subgoal unfolding isa_binary_clause_subres_lits_wl_pre_def by force
+    apply (refine_vcg cons_trail_Propagated_tr[of \<open>all_init_atms_st (snd T)\<close>, THEN fref_to_Down_curry2])
+    subgoal unfolding isa_binary_clause_subres_lits_wl_pre_def twl_st_heur_restart_ana_def  by force
     subgoal by auto
     subgoal by (auto simp: DECISION_REASON_def)
-    subgoal by (auto simp: twl_st_heur_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def all_init_atms_st_def)
     subgoal
       by (auto simp: clause_remove_duplicate_clause_wl_pre_def clause_remove_duplicate_clause_pre_def state_wl_l_def red_in_dom_number_of_learned_ge1
-        twl_st_heur_def clss_size_corr_in_dom_red_clss_size_lcount_ge0 arena_lifting)
+        twl_st_heur_restart_def twl_st_heur_restart_ana_def clss_size_corr_in_dom_red_clss_size_lcount_ge0 arena_lifting
+        clss_size_corr_restart_def)
     apply (rule A)
     subgoal premises p
       using p
-      apply (simp only:  twl_st_heur_def in_pair_collect_simp prod.simps prod_rel_fst_snd_iff get_trail_wl.simps fst_conv snd_conv)
+      apply (simp only:  twl_st_heur_restart_alt_def2 Let_def twl_st_heur_restart_ana_def in_pair_collect_simp prod.simps prod_rel_fst_snd_iff get_trail_wl.simps fst_conv snd_conv)
       apply normalize_goal+
       apply (drule cong[OF p(28)])+
-      apply (solves \<open>auto simp: twl_st_heur_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause arena_lifting isa_vmtf_consD2
-      dest!: in_vdom_m_fmdropD\<close>)
+      apply (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause
+        arena_lifting isa_vmtf_consD2 all_init_atms_st_def
+      dest!: in_vdom_m_fmdropD)
+      apply (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def valid_arena_extra_information_mark_to_delete' aivdom_inv_dec_remove_clause
+        arena_lifting isa_vmtf_consD2 clss_size_corr_restart_def clss_size_def learned_clss_count_def
+      dest!: in_vdom_m_fmdropD)
       done
      done
   done
 qed
-
-thm binary_clause_subres_wl_def
 
 definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
 \<open>isa_deduplicate_binary_clauses_wl L S = do {
@@ -1607,11 +1665,11 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
          if st = DELETED \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
-           let L' = L';
-            val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
+            val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L';
            if val \<noteq> UNSET then do {
              S \<leftarrow> isa_simplify_clause_with_unit_st2 C S;
-             RETURN (True, i+1, CS, S)
+             val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
+             RETURN (val \<noteq> UNSET, i+1, CS, S)
            }
            else do {
              st \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
@@ -1642,6 +1700,7 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
 lemma deduplicate_binary_clauses_wl_alt_def:
 \<open>deduplicate_binary_clauses_wl L S = do {
     ASSERT (deduplicate_binary_clauses_pre_wl L S);
+    ASSERT (L  \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S));
     let CS = (\<lambda>_. None);
     let l = length (watched_by S L);
     let val = polarity (get_trail_wl S) L;
@@ -1649,13 +1708,15 @@ lemma deduplicate_binary_clauses_wl_alt_def:
       (\<lambda>(abort, i, CS, S).
       do {
          let (C,L', b) = (watched_by S L ! i);
+         ASSERT (L'  \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S));
          let st = C \<in># dom_m (get_clauses_wl S);
          if \<not>st \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
-           let L' = L';
+           let _ = polarity (get_trail_wl S) L';
            if defined_lit (get_trail_wl S) L' then do {
              S \<leftarrow> simplify_clause_with_unit_st_wl C S;
+             let _ = polarity (get_trail_wl S) L;
              RETURN (defined_lit (get_trail_wl S) L, i+1, CS, S)
            }
            else if CS L' \<noteq> None \<and> (\<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C)then do {
@@ -1671,9 +1732,54 @@ lemma deduplicate_binary_clauses_wl_alt_def:
       })
       (defined_lit (get_trail_wl S) L, 0, CS, S);
    RETURN S
-}\<close>
-  by (auto simp: deduplicate_binary_clauses_wl_def)
-thm deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def
+}\<close> (is \<open>?A = ?B\<close>)
+proof -
+  have H: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> \<open>x =y \<Longrightarrow> x \<le> \<Down>Id y\<close> for a b x y
+    by auto
+  have \<open>?A \<le> \<Down> Id ?B\<close>
+    unfolding Let_def deduplicate_binary_clauses_wl_def
+    by (refine_vcg H(1); (rule H)?; simp_all)
+
+  moreover have \<open>?B \<le> \<Down>Id ?A\<close>
+    unfolding Let_def deduplicate_binary_clauses_wl_def
+    apply (refine_vcg H(1); (rule H)?)
+    subgoal
+      unfolding deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def
+      apply normalize_goal+
+      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_of_wl_def all_init_lits_def
+        IsaSAT_Setup.get_unit_init_clss_wl_alt_def ac_simps \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
+      unfolding deduplicate_binary_clauses_inv_wl_def deduplicate_binary_clauses_inv_alt_def case_prod_beta
+      apply normalize_goal+
+      apply simp
+      subgoal for xa xb xc xd xe xf xg xh
+      apply - unfolding mem_Collect_eq prod.simps deduplicate_binary_clauses_inv_def
+      apply normalize_goal+
+      using rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l[of xa xc]
+        rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[of xa xc]
+      by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_def  blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms dest!: multi_member_split nth_mem)
+      done
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  ultimately show ?thesis unfolding Down_id_eq by (rule antisym)
+qed
+
 
 lemma deduplicate_binary_clauses_pre_wl_in_all_atmsD:
   \<open>deduplicate_binary_clauses_pre_wl L S \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)\<close>
@@ -1772,24 +1878,43 @@ proof -
     ({(S, T). (S,T)\<in> twl_st_heur_restart_ana' r u \<and> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S'))})\<close>
     for CS val
     using assms by (auto simp: polarity_def)
-
+  have [refine0]: \<open>isa_simplify_clause_with_unit_st2 C S
+    \<le> \<Down> {(a, b). (a, b) \<in> twl_st_heur_restart \<and> get_avdom a = get_avdom S \<and>
+  get_vdom a = get_vdom S \<and>
+  get_ivdom a = get_ivdom S \<and>
+  length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u \<and> learned_clss_count a \<le> learned_clss_count S}
+    (simplify_clause_with_unit_st_wl C' T)\<close>
+    if \<open>(S,T) \<in> {(a, b).
+    (a, b) \<in> twl_st_heur_restart \<and>
+    get_avdom a = get_avdom S \<and>
+      get_vdom a = get_vdom S \<and>  get_ivdom a = get_ivdom S \<and> length (get_clauses_wl_heur a) = r \<and> learned_clss_count a \<le> u}\<close>
+      \<open>(C,C') \<in> Id\<close>
+      for S T C C'
+    apply (rule isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2[THEN order_trans])
+    apply (rule that)
+    apply (rule that)
+    apply (rule ref_two_step'')
+    defer
+    apply (rule simplify_clause_with_unit_st2_simplify_clause_with_unit_st[THEN order_trans, of _ C' T T])
+    apply auto
+    done
+  have KK: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S')) \<longleftrightarrow>
+    set_mset ((all_init_atms_st T)) = set_mset ((all_init_atms_st S'))\<close> for S' T
+    apply (auto simp:  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2))
+    apply (metis \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_cong_set_mset)
+    apply (metis \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_cong_set_mset)
+    apply (metis \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) \<L>\<^sub>a\<^sub>l\<^sub>l_cong)+
+    done
   show ?thesis
       using assms
     unfolding isa_deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_wl_alt_def mop_polarity_pol_def nres_monad3
     apply (refine_rcg polarity_pol_polarity[of \<open>all_init_atms_st S'\<close>, THEN fref_to_Down_unRET_uncurry]
       mop_arena_status_vdom twl_st_heur_restart_ana_watchlist_in_vdom[where L=L])
     subgoal
-      apply (rule polarity_pol_pre)
-      apply (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def\<close>)[]
-      unfolding deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def
-      apply normalize_goal+
-      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_of_wl_def all_init_lits_def
-        IsaSAT_Setup.get_unit_init_clss_wl_alt_def ac_simps \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
+      by (rule polarity_pol_pre)
+       (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def\<close>)[2]
    subgoal
-      unfolding deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def
-      apply normalize_goal+
-      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_of_wl_def all_init_lits_def all_lits_def
-        ac_simps all_atms_st_def IsaSAT_Setup.get_unit_init_clss_wl_alt_def all_init_atms_st_def)
+      by auto
    subgoal
      by (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def\<close>)
     subgoal for CS val
@@ -1815,6 +1940,40 @@ proof -
     subgoal
       by auto
     subgoal
+      apply (rule polarity_pol_pre)
+      apply (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def\<close>)[]
+      apply (clarsimp simp add: watched_by_alt_def twl_st_heur_restart_ana_state_simp)
+      done
+    subgoal for CS val x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i st x1j x2j
+      by simp
+    subgoal
+      unfolding prod_rel_iff
+      apply (intro conjI impI)
+      subgoal
+        unfolding twl_st_heur_restart_alt_def2 twl_st_heur_restart_ana_def Let_def KK
+        apply (simp only: in_pair_collect_simp prod_rel_iff)
+        apply normalize_goal+
+        apply (rule trail_pol_cong, assumption, assumption)
+        done
+      subgoal
+        by (clarsimp simp: watched_by_alt_def twl_st_heur_restart_ana_state_simp dest: trail_pol_cong)
+      done
+    subgoal
+      by (auto simp: polarity_def)
+    subgoal
+      by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (clarsimp simp add: watched_by_alt_def twl_st_heur_restart_ana_state_simp)
+    subgoal
+      apply (rule polarity_pol_pre)
+      apply (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def\<close>)[]
+      apply (clarsimp simp add: watched_by_alt_def twl_st_heur_restart_ana_state_simp)
+      sorry
+    subgoal by (clarsimp simp add: twl_st_heur_restart_ana_def)
+    subgoal
+        thm isa_simplify_clause_with_unit_st2_simplify_clause_with_unit_st2
+          simplify_clause_with_unit_st2_simplify_clause_with_unit_st
+find_theorems isa_simplify_clause_with_unit_st2 simplify_clause_with_unit_st2
+find_theorems simplify_clause_with_unit_st2 simplify_clause_with_unit_st_wl
 oops
 
 lemma isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl:
