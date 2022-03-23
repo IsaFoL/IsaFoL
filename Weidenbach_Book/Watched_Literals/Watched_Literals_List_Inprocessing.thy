@@ -2350,8 +2350,9 @@ definition deduplicate_binary_clauses :: \<open>'v literal \<Rightarrow> 'v twl_
          else do {
            L' \<leftarrow> SPEC (\<lambda>L'. mset (get_clauses_l S \<propto> C) = {#L, L'#});
            if defined_lit (get_trail_l S) L' then do {
-             S \<leftarrow> simplify_clause_with_unit_st C S;
-             RETURN (defined_lit (get_trail_l S) L, xs - {#C#}, CS, S)
+             U \<leftarrow> simplify_clause_with_unit_st C S;
+             ASSERT (cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U);
+             RETURN (defined_lit (get_trail_l U) L, xs - {#C#}, CS, U)
            }
            else if CS L' \<noteq> None \<and> (\<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_l S) C)then do {
              S \<leftarrow> clause_remove_duplicate_clause C S;
@@ -2629,6 +2630,9 @@ proof -
       apply standard
       apply simp
       apply normalize_goal+
+      apply (intro ASSERT_leI)
+      apply (metis cdcl_twl_inprocessing_l.intros(1,2) r_into_rtranclp rtranclp.rtrancl_refl)
+      apply simp
       apply (elim disjE; intro conjI; subst (asm) eq_commute[of \<open>dom_m _\<close>])
       apply (subst deduplicate_binary_clauses_inv_alt_def2, assumption)
       apply (subst (asm)deduplicate_binary_clauses_inv_alt_def2, assumption)
@@ -2654,7 +2658,7 @@ proof -
     subgoal
       by (auto dest!: multi_member_split)
     subgoal by (rule binary_clause_subres_lits_pre)
-    subgoal 
+    subgoal
       by (subst deduplicate_binary_clauses_inv_alt_def2, assumption,
           subst (asm)deduplicate_binary_clauses_inv_alt_def2, assumption)
       (auto simp: )

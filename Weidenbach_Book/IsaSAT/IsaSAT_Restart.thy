@@ -1398,10 +1398,10 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
   done
   done
 
-definition iterate_over_VMTF where
-  \<open>iterate_over_VMTF \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (ns :: (nat, nat) vmtf_node list, n) x. do {
+definition iterate_over_VMTFC where
+  \<open>iterate_over_VMTFC = (\<lambda>f (I :: 'a \<Rightarrow> bool) P (ns :: (nat, nat) vmtf_node list, n) x. do {
       (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). I x\<^esup>
-        (\<lambda>(n, _). n \<noteq> None)
+        (\<lambda>(n, x). n \<noteq> None \<and> P x)
         (\<lambda>(n, x). do {
           ASSERT(n \<noteq> None);
           let A = the n;
@@ -1414,11 +1414,17 @@ definition iterate_over_VMTF where
       RETURN x
     })\<close>
 
-definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
-  \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>f \<A>\<^sub>0 I x. do {
+definition iterate_over_VMTF :: \<open>_\<close> where
+  iterate_over_VMTF_alt_def: \<open>iterate_over_VMTF f I  = iterate_over_VMTFC f I (\<lambda>_. True)\<close>
+
+lemmas iterate_over_VMTF_def =
+  iterate_over_VMTF_alt_def[unfolded iterate_over_VMTFC_def simp_thms]
+
+definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC where
+  \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC = (\<lambda>f \<A>\<^sub>0 I P x. do {
     \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>\<^sub>0 \<and> distinct_mset \<A>);
-    (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, x). I x\<^esup>
-      (\<lambda>(\<B>, _). \<B> \<noteq> {#})
+    (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(\<A>, x). I \<A> x\<^esup>
+      (\<lambda>(\<B>, x). \<B> \<noteq> {#} \<and> P x)
       (\<lambda>(\<B>, x). do {
         ASSERT(\<B> \<noteq> {#});
         A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
@@ -1429,11 +1435,20 @@ definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
     RETURN x
   })\<close>
 
-lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
+definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>_\<close> where
+  iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def: \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I  = iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC f \<A> I (\<lambda>_. True)\<close>
+
+lemmas iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def =
+  iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def[unfolded iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC_def simp_thms]
+
+
+lemma iterate_over_VMTFC_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC:
   fixes x :: 'a
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
-    nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close>
-  shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
+    nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> and
+    II': \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close> and
+    \<open>\<And>x. I x \<Longrightarrow> P x = Q x\<close>
+  shows \<open>iterate_over_VMTFC f I P (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC f \<A> I' Q x)\<close>
 proof -
   obtain xs' ys' where
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
@@ -1472,7 +1487,7 @@ proof -
     \<open>iterate_over_VMTF2 \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (vm :: (nat, nat) vmtf_node list, n) x. do {
       let _ = remdups_mset \<A>;
       (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
-        (\<lambda>(n, _, _). n \<noteq> None)
+        (\<lambda>(n, _, x). n \<noteq> None \<and> P x)
         (\<lambda>(n, m, x). do {
           ASSERT(n \<noteq> None);
           let A = the n;
@@ -1487,7 +1502,7 @@ proof -
   have iterate_over_VMTF2_alt_def:
     \<open>iterate_over_VMTF2 \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (vm :: (nat, nat) vmtf_node list, n) x. do {
       (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
-        (\<lambda>(n, _, _). n \<noteq> None)
+        (\<lambda>(n, _, x). n \<noteq> None \<and> P x)
         (\<lambda>(n, m, x). do {
           ASSERT(n \<noteq> None);
           let A = the n;
@@ -1500,23 +1515,25 @@ proof -
       RETURN x
     })\<close>
     unfolding iterate_over_VMTF2_def by force
-  have nempty_iff: \<open>(x1 \<noteq> None) = (x1b \<noteq> {#})\<close>
+  have nempty_iff: \<open>(x1 \<noteq> None \<and> P x2a) = (x1b \<noteq> {#} \<and> Q xb)\<close> (is \<open>?A = ?B\<close>)
   if
     \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
     H: \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
     \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
-    \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+    \<open>case x' of (\<A>', x) \<Rightarrow> I' \<A>' x\<close> and
     st[simp]:
       \<open>x2 = (x1a, x2a)\<close>
       \<open>x = (x1, x2)\<close>
       \<open>x' = (x1b, xb)\<close>
     for \<A>' x x' x1 x2 x1a x2a x1b xb
   proof
-    show \<open>x1b \<noteq> {#}\<close> if \<open>x1 \<noteq> None\<close>
-      using that H
+    have KK: \<open>P x2a = Q xb\<close>
+      by (subst assms) (use that in auto)
+    show ?A if ?B
+      using that H unfolding KK
       by (auto simp: is_lasts_def)
-    show \<open>x1 \<noteq> None\<close> if  \<open>x1b \<noteq> {#}\<close>
-      using that H
+    show ?B if ?A
+      using that H unfolding KK
       by (auto simp: is_lasts_def)
   qed
   have IH: \<open>((get_next (ns ! the x1a), Suc x1b, xa), remove1_mset A x1, xb)
@@ -1524,10 +1541,10 @@ proof -
      if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       H: \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
-      \<open>case x of (n, uu_, uua_) \<Rightarrow> n \<noteq> None\<close> and
-      nempty: \<open>case x' of (\<B>, uu_) \<Rightarrow> \<B> \<noteq> {#}\<close> and
+      \<open>case x of (n, uu_, x) \<Rightarrow> n \<noteq> None \<and> P x\<close> and
+      nempty: \<open>case x' of (\<B>, x) \<Rightarrow> \<B> \<noteq> {#} \<and> Q x\<close> and
       \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
-      \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+      \<open>case x' of (\<A>', x) \<Rightarrow> I' \<A>' x\<close> and
       st:
         \<open>x' = (x1, x2)\<close>
         \<open>x2a = (x1b, x2b)\<close>
@@ -1571,10 +1588,10 @@ proof -
     if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
-      \<open>case x of (n, uu_, uua_) \<Rightarrow> n \<noteq> None\<close> and
-      \<open>case x' of (\<B>, uu_) \<Rightarrow> \<B> \<noteq> {#}\<close> and
+      \<open>case x of (n, uu_, x) \<Rightarrow> n \<noteq> None \<and> P x\<close> and
+      \<open>case x' of (\<B>, x) \<Rightarrow> \<B> \<noteq> {#} \<and> Q x\<close> and
       \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
-      \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+      \<open>case x' of (\<A>', x) \<Rightarrow> I' \<A>' x\<close> and
       \<open>x' = (x1, x2)\<close> and
       \<open>x2a = (x1b, xb)\<close> and
       \<open>x = (x1a, x2a)\<close> and
@@ -1590,8 +1607,8 @@ proof -
     then show ?thesis
       using nempty by (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
   qed
-  have  \<open>iterate_over_VMTF2 f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
-    unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
+  have  \<open>iterate_over_VMTF2 f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC f \<A> I' Q x)\<close>
+    unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC_def prod.case
     apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)).
         is_lasts \<A>' n m \<and> x = y}\<close>])
     subgoal by simp
@@ -1600,7 +1617,7 @@ proof -
       using card_\<A> fst_As nempty nempty' hd_conv_nth[OF nempty'] hd_zs_le unfolding zs_def[symmetric]
         is_lasts_def
       by (simp_all add:  eq_commute[of \<open>remdups_mset _\<close>])
-    subgoal by auto
+    subgoal for \<A>' x x' x1 x2 x1a xaa using II'[of \<open>_\<close> xaa] unfolding is_lasts_def by auto
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
       by (rule nempty_iff)
     subgoal by auto
@@ -1614,13 +1631,23 @@ proof -
       by (rule IH)
     subgoal by auto
     done
-  moreover have \<open>iterate_over_VMTF f I (ns, Some fst_As) x  \<le> \<Down> Id (iterate_over_VMTF2 f I (ns, Some fst_As) x)\<close>
-    unfolding iterate_over_VMTF2_alt_def iterate_over_VMTF_def prod.case
+  moreover have \<open>iterate_over_VMTFC f I P (ns, Some fst_As) x  \<le> \<Down> Id (iterate_over_VMTF2 f I (ns, Some fst_As) x)\<close>
+    unfolding iterate_over_VMTF2_alt_def iterate_over_VMTFC_def prod.case
     by (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, x::'a), (n' :: nat option, m'::nat, x'::'a)).
         n = n' \<and> x = x'}\<close>]) auto
   ultimately show ?thesis
     by simp
 qed
+
+
+lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  fixes x :: 'a
+  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+    nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close> \<open>\<And>x \<B>. set_mset \<B> \<subseteq> set_mset \<A> \<Longrightarrow> I' \<B> x \<Longrightarrow> I x\<close>
+  shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I' x)\<close>
+  unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
+  apply (rule iterate_over_VMTFC_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC[OF assms])
+  by auto
 
 
 definition arena_is_packed :: \<open>arena \<Rightarrow> nat clauses_l \<Rightarrow> bool\<close> where
