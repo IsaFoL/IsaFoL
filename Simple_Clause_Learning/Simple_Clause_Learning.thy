@@ -108,6 +108,9 @@ lemma (in substitution_ops) subst_atm_of_eq_compI:
 
 subsection \<open>First_Order_Terms Extra\<close>
 
+
+subsubsection \<open>First_Order_Terms Only\<close>
+
 lemma mgu_ball_codom_is_Var:
   assumes mgu_\<mu>: "is_mgu \<mu> E"
   shows "\<forall>x \<in> - (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e)). is_Var (\<mu> x)"
@@ -168,6 +171,102 @@ proof (rule inj_onI)
     using ComplD[OF x_in] ComplD[OF y_in] \<open>\<mu> x = \<mu> y\<close>
     by (metis (no_types, lifting) \<tau>_def subst_compose_def term.inject(1))
 qed
+
+lemma inv_renaming_sound:
+  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
+  shows "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv (the_Var \<circ> \<sigma>))) = Var"
+proof -
+  define \<sigma>' where "\<sigma>' = the_Var \<circ> \<sigma>"
+  have \<sigma>_def: "\<sigma> = Var \<circ> \<sigma>'"
+    unfolding \<sigma>'_def using is_var_\<sigma> by auto
+
+  from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
+    unfolding inj_on_def \<sigma>_def comp_def by fast
+  hence "inv \<sigma>' \<circ> \<sigma>' = id"
+    using inv_o_cancel[of \<sigma>'] by simp
+  hence "Var \<circ> (inv \<sigma>' \<circ> \<sigma>') = Var"
+    by simp
+  hence "\<forall>x. (Var \<circ> (inv \<sigma>' \<circ> \<sigma>')) x = Var x"
+    by metis
+  hence "\<forall>x. ((Var \<circ> \<sigma>') \<circ>\<^sub>s (Var \<circ> (inv \<sigma>'))) x = Var x"
+    unfolding subst_compose_def by auto
+  thus "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>')) = Var"
+    using \<sigma>_def by auto
+qed
+
+lemma ex_inv_subst:
+  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
+  shows "\<exists>\<tau>. \<sigma> \<circ>\<^sub>s \<tau> = Var"
+  using inv_renaming_sound[OF assms] by blast
+
+lemma vars_subst_term_subset_weak: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
+proof (induction t)
+  case (Var x)
+  show ?case
+    apply (simp add: range_vars_def subst_domain_def)
+    by force
+next
+  case (Fun f xs)
+  thus ?case by auto
+qed
+
+lemma vars_subst_term_subset: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t - subst_domain \<sigma> \<union> range_vars \<sigma>"
+proof (induction t)
+  case (Var x)
+  show ?case
+    apply (simp add: range_vars_def subst_domain_def)
+    by (smt (verit, best) SUP_upper Term.term.simps(17) empty_Diff insert_Diff_if le_supI1
+        mem_Collect_eq sup_bot_left sup_ge2)
+next
+  case (Fun f xs)
+  thus ?case by auto
+qed
+
+lemma vars_subst_term_eq:
+  "vars_term (t \<cdot> \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"
+proof (induction t)
+  case (Var x)
+  show ?case
+    by (simp add: insert_Diff_if subst_domain_def)
+next
+  case (Fun f xs)
+  thus ?case
+    apply simp by blast
+qed
+
+lemma mgu_subst_range_vars:
+  assumes "Unification.mgu s t = Some \<sigma>"
+  shows "range_vars \<sigma> \<subseteq> vars_term s \<union> vars_term t"
+proof -
+  obtain xs where *: "unify [(s, t)] [] = Some xs" and [simp]: "subst_of xs = \<sigma>"
+    using assms by (simp split: option.splits)
+  from unify_Some_UNIF [OF *] obtain ss
+    where "compose ss = \<sigma>" and "UNIF ss {#(s, t)#} {#}" by auto
+  with UNIF_range_vars_subset [of ss "{#(s, t)#}" "{#}"]
+  show ?thesis using vars_mset_singleton by force
+qed
+
+lemma subst_term_eq_if_mgu:
+  assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
+  shows "t \<cdot> \<mu> = u \<cdot> \<mu>"
+  using mgu_sound[OF mgu_t_u]
+  unfolding Unifiers.is_imgu_def unifiers_def mem_Collect_eq
+  by simp
+
+lemma unify_subst_domain:
+  assumes "unify E [] = Some xs"
+  shows "subst_domain (subst_of xs) \<subseteq> (\<Union>e \<in> set E. vars_term (fst e) \<union> vars_term (snd e))"
+proof -
+  from unify_Some_UNIF[OF \<open>unify E [] = Some xs\<close>] obtain xs' where
+    "subst_of xs = compose xs'" and "UNIF xs' (mset E) {#}"
+    by auto
+  thus ?thesis
+    using UNIF_subst_domain_subset
+    by (metis (mono_tags, lifting) multiset.set_map set_mset_mset vars_mset_def)
+qed
+
+
+subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 no_notation subst_apply_term (infixl "\<cdot>" 67)
 no_notation subst_compose (infixl "\<circ>\<^sub>s" 75)
@@ -347,33 +446,6 @@ definition disjoint_vars_set where
 lemma disjoint_vars_set_substetI[intro]: "disjoint_vars_set N \<Longrightarrow> M \<subseteq> N \<Longrightarrow> disjoint_vars_set M"
   unfolding disjoint_vars_set_def by auto
 
-lemma inv_renaming_sound:
-  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
-  shows "\<sigma> \<odot> (Var \<circ> (inv (the_Var \<circ> \<sigma>))) = Var"
-proof -
-  define \<sigma>' where "\<sigma>' = the_Var \<circ> \<sigma>"
-  have \<sigma>_def: "\<sigma> = Var \<circ> \<sigma>'"
-    unfolding \<sigma>'_def using is_var_\<sigma> by auto
-
-  from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
-    unfolding inj_on_def \<sigma>_def comp_def by fast
-  hence "inv \<sigma>' \<circ> \<sigma>' = id"
-    using inv_o_cancel[of \<sigma>'] by simp
-  hence "Var \<circ> (inv \<sigma>' \<circ> \<sigma>') = Var"
-    by simp
-  hence "\<forall>x. (Var \<circ> (inv \<sigma>' \<circ> \<sigma>')) x = Var x"
-    by metis
-  hence "\<forall>x. ((Var \<circ> \<sigma>') \<odot> (Var \<circ> (inv \<sigma>'))) x = Var x"
-    unfolding subst_compose_def by auto
-  thus "\<sigma> \<odot> (Var \<circ> (inv \<sigma>')) = Var"
-    using \<sigma>_def by auto
-qed
-
-lemma ex_inv_subst:
-  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
-  shows "\<exists>\<tau>. \<sigma> \<odot> \<tau> = Var"
-  using inv_renaming_sound[OF assms] by blast
-
 lemma is_renaming_iff: "is_renaming \<rho> \<longleftrightarrow> (\<forall>x. is_Var (\<rho> x)) \<and> inj \<rho>"
   (is "?lhs \<longleftrightarrow> ?rhs")
 proof (rule iffI)
@@ -385,30 +457,6 @@ proof (rule iffI)
 next
   show "?rhs \<Longrightarrow> ?lhs"
     by (auto simp: is_renaming_def intro: ex_inv_subst)
-qed
-
-lemma mgu_subst_range_vars:
-  assumes "Unification.mgu s t = Some \<sigma>"
-  shows "range_vars \<sigma> \<subseteq> vars_term s \<union> vars_term t"
-proof -
-  obtain xs where *: "unify [(s, t)] [] = Some xs" and [simp]: "subst_of xs = \<sigma>"
-    using assms by (simp split: option.splits)
-  from unify_Some_UNIF [OF *] obtain ss
-    where "compose ss = \<sigma>" and "UNIF ss {#(s, t)#} {#}" by auto
-  with UNIF_range_vars_subset [of ss "{#(s, t)#}" "{#}"]
-  show ?thesis using vars_mset_singleton by force
-qed
-
-lemma vars_subst_term_eq:
-  "vars_term (t \<cdot>a \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"
-proof (induction t)
-  case (Var x)
-  show ?case
-    by (simp add: insert_Diff_if subst_domain_def)
-next
-  case (Fun f xs)
-  thus ?case
-    apply simp by blast
 qed
 
 lemma vars_subst_lit_eq:
@@ -448,18 +496,6 @@ proof -
     using f7 f6 f5 f3 f2 by simp
 qed
 
-lemma vars_subst_term_subset: "vars_term (t \<cdot>a \<sigma>) \<subseteq> vars_term t - subst_domain \<sigma> \<union> range_vars \<sigma>"
-proof (induction t)
-  case (Var x)
-  show ?case
-    apply (simp add: range_vars_def subst_domain_def)
-    by (smt (verit, best) SUP_upper Term.term.simps(17) empty_Diff insert_Diff_if le_supI1
-        mem_Collect_eq sup_bot_left sup_ge2)
-next
-  case (Fun f xs)
-  thus ?case by auto
-qed
-
 lemma vars_subst_lit_subset: "vars_lit (L \<cdot>l \<sigma>) \<subseteq> vars_lit L - subst_domain \<sigma> \<union> range_vars \<sigma>"
   using vars_subst_term_subset[of "atm_of L"] by simp
 
@@ -468,17 +504,6 @@ lemma vars_subst_cls_subset: "vars_cls (C \<cdot> \<sigma>) \<subseteq> vars_cls
   apply simp
   using vars_subst_lit_subset
   by fastforce
-
-lemma vars_subst_term_subset_weak: "vars_term (t \<cdot>a \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
-proof (induction t)
-  case (Var x)
-  show ?case
-    apply (simp add: range_vars_def subst_domain_def)
-    by force
-next
-  case (Fun f xs)
-  thus ?case by auto
-qed
 
 lemma vars_subst_lit_subset_weak: "vars_lit (L \<cdot>l \<sigma>) \<subseteq> vars_lit L \<union> range_vars \<sigma>"
   using vars_subst_term_subset_weak[of "atm_of L"] by simp
@@ -566,13 +591,6 @@ lemma disjoint_vars_set_minus_empty_vars:
   shows "disjoint_vars_set (N - {C}) \<longleftrightarrow> disjoint_vars_set N"
   using assms unfolding disjoint_vars_set_def disjoint_vars_iff_inter_empty by blast
 
-lemma subst_term_eq_if_mgu:
-  assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
-  shows "t \<cdot>a \<mu> = u \<cdot>a \<mu>"
-  using mgu_sound[OF mgu_t_u]
-  unfolding Unifiers.is_imgu_def unifiers_def mem_Collect_eq
-  by simp
-
 lemma grounding_of_subst_cls_subset:
   shows "grounding_of_cls (C \<cdot> \<mu>) \<subseteq> grounding_of_cls C"
     (is "?lhs \<subseteq> ?rhs")
@@ -595,18 +613,6 @@ lemma subst_cls_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_cls C = 
 
 lemma subst_lit_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_lit L = {} \<Longrightarrow> L \<cdot>l \<sigma> = L"
   by (rule subst_cls_idem_if_disj_vars[of _ "{#L#}", simplified])
-
-lemma unify_subst_domain:
-  assumes "unify E [] = Some xs"
-  shows "subst_domain (subst_of xs) \<subseteq> (\<Union>e \<in> set E. vars_term (fst e) \<union> vars_term (snd e))"
-proof -
-  from unify_Some_UNIF[OF \<open>unify E [] = Some xs\<close>] obtain xs' where
-    "subst_of xs = compose xs'" and "UNIF xs' (mset E) {#}"
-    by auto
-  thus ?thesis
-    using UNIF_subst_domain_subset
-    by (metis (mono_tags, lifting) multiset.set_map set_mset_mset vars_mset_def)
-qed
 
 definition restrict_subst where
   "restrict_subst V \<sigma> x \<equiv> (if x \<in> V then \<sigma> x else Var x)"
