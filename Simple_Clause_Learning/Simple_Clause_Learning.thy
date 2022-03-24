@@ -1794,15 +1794,41 @@ section \<open>Reasonable And Regular Runs\<close>
 definition reasonable_scl where
   "reasonable_scl N S S' \<longleftrightarrow> scl N S S' \<and> (decide N S S' \<longrightarrow> \<not>(\<exists>S''. conflict N S' S''))"
 
-lemma "reasonable_scl N S S' \<Longrightarrow> scl N S S'"
+lemma scl_if_reasonable: "reasonable_scl N S S' \<Longrightarrow> scl N S S'"
   unfolding reasonable_scl_def scl_def by simp
 
 definition regular_scl where
-  "regular_scl N S S' \<longleftrightarrow>
-    (reasonable_scl N)\<^sup>+\<^sup>+ S S' \<and> ((conflict N OO resolve N) S S' \<or> \<not> conflict N S S')"
+  "regular_scl N S S' \<longleftrightarrow> conflict N S S' \<or> \<not> conflict N S S' \<and> reasonable_scl N S S'"
 
-lemma "regular_scl N S S' \<Longrightarrow> (reasonable_scl N)\<^sup>+\<^sup>+ S S'"
-  unfolding regular_scl_def by simp
+lemma reasonable_if_regular:
+  "regular_scl N S S' \<Longrightarrow> reasonable_scl N S S'"
+  unfolding regular_scl_def (* reasonable_scl_def scl_def *)
+proof (elim disjE conjE)
+  assume "conflict N S S'"
+  hence "scl N S S'"
+    by (simp add: scl_def)
+  moreover have "decide N S S' \<longrightarrow> \<not>(\<exists>S''. conflict N S' S'')"
+    by (smt (verit, best) \<open>conflict N S S'\<close> conflict.cases option.distinct(1) snd_conv)
+  ultimately show "reasonable_scl N S S'"
+    by (simp add: reasonable_scl_def)
+next
+  assume "\<not> conflict N S S'" and "reasonable_scl N S S'"
+  thus ?thesis by simp
+qed
+
+lemma reasonable_scl_sound_state: "reasonable_scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  using scl_sound_state reasonable_scl_def by blast
+
+lemma regular_scl_sound_state: "regular_scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  by (rule reasonable_scl_sound_state[OF reasonable_if_regular])
+
+lemma reasonable_run_sound_state:
+  "(reasonable_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  by (smt (verit, best) reasonable_scl_sound_state rtranclp_induct)
+
+lemma regular_run_sound_state:
+  "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
 
 (* lemma "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> \<nexists>S''. regular_scl N S' S'' \<Longrightarrow>
   state_conflict S' = Some ({#}, \<gamma>) \<and> \<not> satisfiable (grounding_of_clss N)" *)
