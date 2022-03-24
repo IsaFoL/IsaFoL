@@ -64,10 +64,63 @@ proof -
 qed
 
 
+subsection \<open>Restricted_Predicates_Extra\<close>
+
+lemma total_on_conv:
+  shows "Restricted_Predicates.total_on R S \<longleftrightarrow> (\<forall>x \<in> S. \<forall>y \<in> S. x \<noteq> y \<longrightarrow> R x y \<or> R y x)"
+  by (metis Restricted_Predicates.total_on_def)
+
+
 subsection \<open>Multiset_Extra\<close>
 
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
   by auto
+
+lemma multiset_is_empty_or_bex_greatest_element_if_trans_and_total:
+  assumes
+    transp_R: "Restricted_Predicates.transp_on R (set_mset M)" and
+    total_on_R: "Restricted_Predicates.total_on R (set_mset M)"
+  shows "M = {#} \<or> (\<exists>x \<in># M. \<forall>y \<in># M. x \<noteq> y \<longrightarrow> R y x)"
+  using transp_R total_on_R
+proof (induction M rule: multiset_induct)
+  case empty
+  thus ?case by simp
+next
+  case (add x M)
+  from add.prems have transp_on_x_M_raw: "\<forall>y\<in>#M. \<forall>z\<in>#M. R x y \<and> R y z \<longrightarrow> R x z"
+    by (metis transp_on_def insert_iff set_mset_add_mset_insert)
+
+  from add.prems have transp_on_R_M: "Restricted_Predicates.transp_on R (set_mset M)"
+    by (simp add: Restricted_Predicates.transp_on_subset[OF subset_insertI])
+
+  from add.prems have
+    total_on_x_M_raw: "\<forall>y \<in># M. x \<noteq> y \<longrightarrow> R x y \<or> R y x" and
+    total_on_R_M: "Restricted_Predicates.total_on R (set_mset M)"
+    by (simp_all add: total_on_conv)
+
+  from add.IH[OF transp_on_R_M total_on_R_M] have "M = {#} \<or> (\<exists>x\<in>#M. \<forall>y\<in>#M. x \<noteq> y \<longrightarrow> R y x)"
+    by simp
+  hence "\<exists>xa\<in>#add_mset x M. \<forall>y\<in>#add_mset x M. xa \<noteq> y \<longrightarrow> R y xa"
+  proof (elim disjE bexE)
+    assume "M = {#}"
+    thus ?thesis by simp
+  next
+    fix y
+    assume "y \<in># M" and y_greatest: "\<forall>z\<in>#M. y \<noteq> z \<longrightarrow> R z y"
+    show ?thesis
+    proof (cases "x = y")
+      case True
+      thus ?thesis
+        using y_greatest by auto
+    next
+      case False
+      with \<open>y \<in># M\<close> show ?thesis
+        using y_greatest
+        by (metis total_on_x_M_raw transp_on_x_M_raw insert_iff set_mset_add_mset_insert)
+    qed
+  qed
+  thus ?case by simp
+qed
 
 
 subsubsection \<open>Calculus_Extra\<close>
