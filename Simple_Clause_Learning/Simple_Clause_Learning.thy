@@ -158,6 +158,14 @@ lemma (in substitution_ops) subst_atm_of_eq_compI:
   "L \<cdot>l \<sigma> = - (L' \<cdot>l \<sigma>) \<Longrightarrow> atm_of L \<cdot>a \<sigma> = atm_of L' \<cdot>a \<sigma>"
   by (cases L; cases L') (simp_all add: uminus_literal_def subst_lit_def)
 
+lemma (in substitution) is_ground_clss_grounding_of_clss[simp]:
+  "is_ground_clss (grounding_of_clss N)"
+  using grounding_of_clss_def union_grounding_of_cls_ground by presburger
+
+lemma (in substitution) is_ground_cls_if_in_grounding_of_cls:
+  "C' \<in> grounding_of_cls C \<Longrightarrow> is_ground_cls C'"
+  using grounding_ground grounding_of_clss_singleton by blast
+
 
 subsection \<open>First_Order_Terms Extra\<close>
 
@@ -809,8 +817,20 @@ state. It would be redundant because it can always be computed from the trail.\<
 definition state_trail :: "('f, 'v) state \<Rightarrow> ('f, 'v) trail" where
   "state_trail S = fst S"
 
+lemma state_trail_simp[simp]: "state_trail (\<Gamma>, U, u) = \<Gamma>"
+  by (simp add: state_trail_def)
+
+definition state_learned :: "('f, 'v) state \<Rightarrow> ('f, 'v) term clause set" where
+  "state_learned S = fst (snd S)"
+
+lemma state_learned_simp[simp]: "state_learned (\<Gamma>, U, u) = U"
+  by (simp add: state_learned_def)
+
 definition state_conflict :: "('f, 'v) state \<Rightarrow> ('f, 'v) closure option" where
   "state_conflict S = snd (snd S)"
+
+lemma state_conflict_simp[simp]: "state_conflict (\<Gamma>, U, u) = u"
+  by (simp add: state_conflict_def)
 
 definition clss_of_trail :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause set" where
   "clss_of_trail \<Gamma> = (\<Union>Ln \<in> set \<Gamma>. case snd Ln of None \<Rightarrow> {} | Some (C, L, _) \<Rightarrow> {C + {#L#}})"
