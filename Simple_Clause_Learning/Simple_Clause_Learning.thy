@@ -1064,6 +1064,107 @@ parameter of the relation instead of being repeated twice in the state. This is 
 fact that it is a constant.\<close>
 
 
+subsection \<open>Well-Defined\<close>
+
+lemma propagate_well_defined:
+  assumes "propagate N S S'"
+  shows
+    "\<not> decide N S S'"
+    "\<not> conflict N S S'"
+    "\<not> skip N S S'"
+    "\<not> factorize N S S'"
+    "\<not> resolve N S S'"
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma decide_well_defined:
+  assumes "decide N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> conflict N S S'"
+    "\<not> skip N S S'"
+    "\<not> factorize N S S'"
+    "\<not> resolve N S S'"
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma conflict_well_defined:
+  assumes "conflict N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> decide N S S'"
+    "\<not> skip N S S'"
+    "\<not> factorize N S S'"
+    "\<not> resolve N S S'"
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma skip_well_defined:
+  assumes "skip N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> decide N S S'"
+    "\<not> conflict N S S'"
+    "\<not> factorize N S S'"
+    "\<not> resolve N S S'"
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma factorize_well_defined:
+  assumes "factorize N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> decide N S S'"
+    "\<not> conflict N S S'"
+    "\<not> skip N S S'"
+    (* "\<not> resolve N S S'" *)
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma resolve_well_defined:
+  assumes "resolve N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> decide N S S'"
+    "\<not> conflict N S S'"
+    "\<not> skip N S S'"
+    (* "\<not> factorize N S S'" *)
+    "\<not> backtrack N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+lemma backtrack_well_defined:
+  assumes "backtrack N S S'"
+  shows
+    "\<not> propagate N S S'"
+    "\<not> decide N S S'"
+    "\<not> conflict N S S'"
+    "\<not> skip N S S'"
+    "\<not> factorize N S S'"
+    "\<not> resolve N S S'"
+  using assms
+  by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases backtrack.cases
+        simp: trail_decide_def trail_propagate_def)
+
+
 section \<open>Soundness\<close>
 
 inductive sound_trail for N U where
