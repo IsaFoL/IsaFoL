@@ -457,4 +457,75 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   print_trail_st_code_def[unfolded read_all_st_code_def]
 sepref_register is_fully_propagated_heur_st
 
+
+lemma [def_pat_rules]: \<open>nth_rll \<equiv> op_list_list_idx\<close>
+ by (auto simp: nth_rll_def intro!: ext eq_reflection)
+
+
+definition access_watchlist :: \<open>(nat \<times> nat literal \<times> bool) list list \<Rightarrow> _\<close> where
+  \<open>access_watchlist N C C' = nth_rll N (nat_of_lit C) C'\<close>
+
+sepref_def access_watchlist_impl
+  is \<open>uncurry2 (RETURN ooo access_watchlist)\<close>
+  :: \<open>[uncurry2 (\<lambda>S L K. nat_of_lit L < length S \<and>
+          K < length (S ! nat_of_lit L))]\<^sub>a
+        watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> watcher_fast_assn\<close>
+  unfolding access_watchlist_def
+  by sepref
+
+lemma watched_by_app_helper:
+  \<open>uncurry (\<lambda>NC D. uncurry (\<lambda>N C. access_watchlist_impl N C D) NC) = uncurry2 access_watchlist_impl\<close>
+  \<open>uncurry (\<lambda>NC D'. uncurry (\<lambda>N C'. (RETURN \<circ>\<circ>\<circ> access_watchlist) N C' D') NC) = uncurry2 (RETURN ooo access_watchlist)\<close>
+  \<open>uncurry (\<lambda>a b. uncurry (\<lambda>a c. nat_of_lit c < length a \<and> b < length (a ! nat_of_lit c)) a)=
+  uncurry2 (\<lambda>S L K. nat_of_lit L < length S \<and> K < length (S ! nat_of_lit L))\<close>
+  by (auto)
+
+definition watched_by_app_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>watched_by_app_heur_fast_code = (\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N)\<close>
+
+global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
+  R = \<open>unat_lit_rel\<close> and
+  R' = \<open>snat_rel' TYPE(64)\<close> and
+  f = \<open>\<lambda>C C' N. access_watchlist_impl N C C'\<close> and
+  f' = \<open>\<lambda>C C' N. (RETURN ooo access_watchlist) N C C'\<close> and
+  x_assn = watcher_fast_assn and
+  P = \<open>(\<lambda>L K S. nat_of_lit L < length S \<and>
+          K < length (S ! nat_of_lit L))\<close>
+  rewrites
+    \<open>(\<lambda>N C' D'. read_watchlist_wl_heur (\<lambda>N. (RETURN \<circ>\<circ>\<circ> access_watchlist) N C' D') N) = RETURN ooo watched_by_app_heur\<close> and
+    \<open>(\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N) = watched_by_app_heur_fast_code\<close> and
+  \<open>uncurry2 (\<lambda>S C D. nat_of_lit C < length (get_watched_wl_heur S) \<and> D < length (get_watched_wl_heur S ! nat_of_lit C)) = watched_by_app_heur_pre\<close>
+
+  apply unfold_locales
+  unfolding watched_by_app_helper
+  apply (rule access_watchlist_impl.refine)
+  subgoal
+    by (auto intro!: ext split: isasat_int.split
+      simp: read_all_st_def watched_by_app_heur_def access_watchlist_def
+      nth_rll_def)
+  subgoal by (auto simp: watched_by_app_heur_fast_code_def)
+  subgoal by (auto simp: watched_by_app_heur_pre_def)
+  done
+
+lemma mop_watched_by_app_heur_alt_def: \<open>mop_watched_by_app_heur = (\<lambda>N C' D'. watched_by_app.XX.XX.mop N (C', D'))\<close>
+   by (auto simp: mop_watched_by_app_heur_def read_all_param_adder_ops.mop_def summarize_ASSERT_conv
+    read_all_st_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int.splits)
+definition mop_watched_by_app_heur_fast_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>mop_watched_by_app_heur_fast_impl = (\<lambda>N C D. read_watchlist_wl_heur_code (case (C, D) of (C, D) \<Rightarrow> \<lambda>N. access_watchlist_impl N C D) N) \<close>
+lemma split_snd_pure_arg':
+  assumes \<open>(uncurry (\<lambda>N C. f C N), uncurry (\<lambda>N C'.  f' C' N))
+    \<in> [\<lambda>_. True]\<^sub>a K\<^sup>k *\<^sub>a (pure (R \<times>\<^sub>f R'))\<^sup>k \<rightarrow> x_assn\<close>
+  shows \<open>(uncurry2 (\<lambda>N C D. f (C,D) N), uncurry2 (\<lambda>N C' D'.  f' (C',D') N))
+    \<in> [\<lambda>_. True]\<^sub>a K\<^sup>k *\<^sub>a (pure(R))\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  using assms unfolding hfref_def
+  by (auto simp flip: prod_assn_pure_conv)
+
+lemmas [sepref_fr_rules] =
+  watched_by_app.refine
+  watched_by_app.mop_refine[THEN split_snd_pure_arg', unfolded mop_watched_by_app_heur_alt_def[symmetric] mop_watched_by_app_heur_fast_impl_def[symmetric]]
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  watched_by_app_heur_fast_code_def[unfolded read_all_st_code_def]
+  mop_watched_by_app_heur_fast_impl_def[unfolded read_all_st_code_def prod.case]
+
 end

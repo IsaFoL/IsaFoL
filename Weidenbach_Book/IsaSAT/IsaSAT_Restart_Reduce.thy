@@ -2845,7 +2845,9 @@ proof -
     by (auto simp: aivdom_inv_dec_alt_def)
   show ?thesis
     unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric] old
-    apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded]])
+    apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded, 
+      where I' = \<open>\<lambda>_ x. length (fst x) = length (fst (arena\<^sub>o, ([], empty_aivdom aivdom), W))\<close>]])
+    subgoal by auto
     unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
     apply (refine_vcg WHILEIT_refine_with_invariant_and_break[where R = ?R]
             isasat_GC_clauses_prog_single_wl)

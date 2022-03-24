@@ -1319,7 +1319,7 @@ lemma isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2:
 definition isa_deduplicate_binary_clauses :: \<open>_\<close> where
   \<open>isa_deduplicate_binary_clauses S = RETURN S\<close>
 
-definition array_hash_map_rel :: \<open>('a :: zero \<times> 'b :: zero) set \<Rightarrow> _\<close> where
+definition array_hash_map_rel :: \<open>('a :: zero \<times> 'b) set \<Rightarrow> _\<close> where
   \<open>array_hash_map_rel R = {(xs, (ys, m)). m = length xs \<and>
      (\<forall>L. nat_of_lit L < m \<longrightarrow> (ys L = None \<longleftrightarrow> xs ! nat_of_lit L = 0)) \<and>
      (\<forall>L. nat_of_lit L < m \<longrightarrow> (\<forall>a. ys L = Some a \<longrightarrow> xs ! nat_of_lit L \<noteq> 0 \<and> (xs ! nat_of_lit L, a) \<in> R))}\<close>
@@ -1411,9 +1411,8 @@ definition ahm_create :: \<open>nat \<Rightarrow> _\<close> where
 
 
 lemma ahm_create_create:
-   \<open>(ahm_create, create) \<in> nat_rel \<rightarrow>\<^sub>f \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
+   \<open>(ahm_create, create) \<in> nat_rel \<rightarrow> \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
   unfolding ahm_create_def create_def uncurry_def
-  apply (intro frefI nres_relI)
   by refine_vcg
     (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
     intro!: ASSERT_leI)[]
@@ -1657,14 +1656,19 @@ proof -
 qed
 
 definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
-\<open>isa_deduplicate_binary_clauses_wl L S = do {
-    CS \<leftarrow> create (length (get_watched_wl_heur S));
-    let l = length (get_watched_wl_heur S ! nat_of_lit L);
-    val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
+\<open>isa_deduplicate_binary_clauses_wl L S\<^sub>0 = do {
+    CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
+    l \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
+    ASSERT (l \<le> length (get_clauses_wl_heur S\<^sub>0) - 2);
+    val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S\<^sub>0) L;
     (_, _, _, S) \<leftarrow> WHILE\<^sub>T(\<lambda>(abort, i, CS, S). \<not>abort \<and> i < l \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(abort, i, CS, S).
       do {
-         (C,L', b) \<leftarrow> RETURN ((get_watched_wl_heur S) ! nat_of_lit L ! i);
+         ASSERT (i < l);
+         ASSERT (length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S\<^sub>0));
+         ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
+         (C,L', b) \<leftarrow> mop_watched_by_app_heur S L i;
+         ASSERT (C > 0 \<and> C < length (get_clauses_wl_heur S));
          st \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
          if st = DELETED \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
@@ -1678,7 +1682,7 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
            else do {
              st \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
              m \<leftarrow> is_marked CS (L');
-             n \<leftarrow> (if m then get_marked CS L' else RETURN (0, True));
+             n \<leftarrow> (if m then get_marked CS L' else RETURN (1, True));
              if m \<and> (\<not>snd n \<longrightarrow> st = LEARNED) then do {
                S \<leftarrow> isa_clause_remove_duplicate_clause_wl C S;
                RETURN (abort, i+1, CS, S)
@@ -1696,7 +1700,7 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
           }
         }
       })
-      (val \<noteq> UNSET, 0, CS, S);
+      (val \<noteq> UNSET, 0, CS, S\<^sub>0);
    RETURN S
 }\<close>
 
@@ -1731,6 +1735,20 @@ lemma deduplicate_binary_clauses_inv_wl_strengthen_def2:
     using \<L>\<^sub>a\<^sub>l\<^sub>l_cong apply blast+
   done
 
+definition mop_watched_by_at_init :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> 'v watcher nres\<close> where
+\<open>mop_watched_by_at_init = (\<lambda>S L w. do {
+   ASSERT(L \<in># all_init_lits_of_wl S);
+   ASSERT(w < length (watched_by S L));
+  RETURN (watched_by S L ! w)
+})\<close>
+lemma mop_watched_by_app_heur_mop_watched_by_at_init_ana:
+   \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at_init) \<in>
+    twl_st_heur_restart_ana u \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding mop_watched_by_app_heur_def mop_watched_by_at_init_def uncurry_def all_lits_def[symmetric]
+    all_lits_alt_def[symmetric] twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 Let_def
+  by (intro frefI nres_relI, refine_rcg)
+  (simp_all add: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) watched_by_alt_def)
+
 lemma deduplicate_binary_clauses_wl_alt_def:
 \<open>deduplicate_binary_clauses_wl L S = do {
     ASSERT (deduplicate_binary_clauses_pre_wl L S);
@@ -1741,7 +1759,7 @@ lemma deduplicate_binary_clauses_wl_alt_def:
     (_, _, _, S) \<leftarrow> WHILE\<^sub>T\<^bsup>deduplicate_binary_clauses_inv_wl S L\<^esup> (\<lambda>(abort, i, CS, S). \<not>abort \<and> i < l \<and> get_conflict_wl S = None)
       (\<lambda>(abort, i, CS, S).
       do {
-         (C,L', b) \<leftarrow> RETURN (watched_by S L ! i);
+         (C,L', b) \<leftarrow> mop_watched_by_at_init S L i;
          ASSERT (L'  \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S));
          let st = C \<in># dom_m (get_clauses_wl S);
          if \<not>st \<or> \<not>b then
@@ -1782,10 +1800,12 @@ proof -
   have H: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> \<open>x =y \<Longrightarrow> x \<le> \<Down>Id y\<close> for a b x y
     by auto
   have \<open>?A \<le> \<Down> Id ?B\<close>
-    unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv
+    unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv mop_watched_by_at_init_def
+      nres_monad3
     by (refine_vcg H(1); (rule H)?; simp_all)
   moreover have \<open>?B \<le> \<Down>Id ?A\<close>
-    unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv
+    unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv mop_watched_by_at_init_def
+      nres_monad3
     apply (refine_vcg H(1); (rule H)?)
     subgoal
       unfolding deduplicate_binary_clauses_pre_wl_def deduplicate_binary_clauses_pre_def
@@ -1795,6 +1815,31 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
+      apply (subst (asm) deduplicate_binary_clauses_inv_wl_def)
+      unfolding  deduplicate_binary_clauses_inv_alt_def case_prod_beta
+      apply normalize_goal+
+      apply simp
+      subgoal for xa xb xc xd
+      apply - unfolding mem_Collect_eq prod.simps
+      apply normalize_goal+
+      using rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l[of xa xb]
+        rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[of xa xb]
+      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(4))
+      done
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
+      apply (subst (asm) deduplicate_binary_clauses_inv_wl_def)
+      unfolding  deduplicate_binary_clauses_inv_alt_def case_prod_beta
+      apply normalize_goal+
+      apply simp
+      subgoal for xa xb xc xd
+      apply - unfolding mem_Collect_eq prod.simps
+      apply normalize_goal+
+      using rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l[of xa xb]
+        rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[of xa xb]
+      by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_def  blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms dest!: multi_member_split nth_mem)
+      done
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
       apply (subst (asm) deduplicate_binary_clauses_inv_wl_def)
       unfolding  deduplicate_binary_clauses_inv_alt_def case_prod_beta
@@ -1906,6 +1951,58 @@ lemma twl_st_heur_restart_ana_watchlist_in_vdom:
     all_init_atms_alt_def
     dest!: multi_member_split)
 
+lemma length_watched_le_ana:
+  assumes
+    prop_inv: \<open>correct_watching'_leaking_bin x1\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_restart_ana r\<close> and
+    x2': \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
+  shows \<open>length (watched_by x1 x2) \<le> r - MIN_HEADER_SIZE\<close>
+proof -
+  have x2: \<open>x2 \<in># all_init_lits_of_wl x1\<close>
+    using \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) x2' by blast
+  have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using prop_inv x2 unfolding all_atms_def all_lits_def
+    by (cases x1; auto simp: correct_watching'_leaking_bin.simps ac_simps all_lits_st_alt_def[symmetric])
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using xb_x'a
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def twl_st_heur'_def aivdom_inv_dec_alt_def Let_def)
+
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
+    using xb_x'a unfolding all_atms_def all_lits_def
+    by (cases x1)
+     (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def Let_def)
+
+  have \<open>vdom_m (all_init_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 ac_simps Let_def)
+
+  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
+    using x2' unfolding vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms
+    by (cases x1)
+      (force simp: twl_st_heur'_def twl_st_heur_def
+        dest!: multi_member_split)
+  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
+    by (rule distinct_subseteq_iff[THEN iffD1])
+      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
+         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur x1a)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - MIN_HEADER_SIZE\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  then show ?thesis
+    using size_mset_mono[OF watched_incl] xb_x'a
+    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>]
+      simp: twl_st_heur_restart_ana_def)
+qed
+
 lemma isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana'' r u ns\<close> \<open>(L,L')\<in> nat_lit_lit_rel\<close>
   shows \<open>isa_deduplicate_binary_clauses_wl L S \<le>
@@ -1926,7 +2023,7 @@ proof -
     (val, polarity (get_trail_wl S') L') \<in> \<langle>bool_rel\<rangle>option_rel \<Longrightarrow>
     deduplicate_binary_clauses_inv_wl S' L' (defined_lit (get_trail_wl S') L', 0, Map.empty, S') \<Longrightarrow>
     ((val \<noteq> UNSET, 0, CS, S), defined_lit (get_trail_wl S') L', 0, Map.empty, S') \<in> bool_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r ?CS \<times>\<^sub>r
-    ({(S, T). (S,T)\<in> twl_st_heur_restart_ana'' r u ns})\<close> (is \<open>_ \<Longrightarrow> _ \<Longrightarrow> _\<Longrightarrow> _ \<in> ?loop\<close>)
+    ({(a, b). (a,b)\<in> twl_st_heur_restart_ana'' r u ns \<and> learned_clss_count a \<le> learned_clss_count S})\<close> (is \<open>_ \<Longrightarrow> _ \<Longrightarrow> _\<Longrightarrow> _ \<in> ?loop\<close>)
     for CS val
     using assms by (auto simp: polarity_def)
   have [refine0]: \<open>isa_simplify_clause_with_unit_st2 C S
@@ -1960,10 +2057,11 @@ proof -
     apply (metis \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) \<L>\<^sub>a\<^sub>l\<^sub>l_cong)+
     done
 
-  have get_watched_wl_heur: \<open>(get_watched_wl_heur x2e ! nat_of_lit L ! x1d, watched_by x2b L' ! x1a)
-    \<in> {(a,b). a = b \<and> a = get_watched_wl_heur x2e ! nat_of_lit L ! x1d \<and> b = watched_by x2b L' ! x1a \<and>
-        fst a \<in> set (get_vdom x2e)}\<close>
-    (is \<open>_ \<in> ?watched\<close>)
+
+  have get_watched_wl_heur: \<open>mop_watched_by_app_heur x2e L x1d \<le> \<Down>
+    {(a,b). a = b \<and> a = get_watched_wl_heur x2e ! nat_of_lit L ! x1d \<and> b = watched_by x2b L' ! x1a \<and>
+        fst a \<in> set (get_vdom x2e)} (mop_watched_by_at_init x2b L' x1a)\<close>
+    (is \<open>_ \<le>\<Down> ?watched _\<close>)
   if 
     \<open>(S, S') \<in> twl_st_heur_restart_ana'' r u ns\<close> and
     \<open>(L, L') \<in> nat_lit_lit_rel\<close> and
@@ -1975,7 +2073,7 @@ proof -
     \<open>inres (RETURN (polarity_pol (get_trail_wl_heur S) L)) val\<close> and
     \<open>(val, polarity (get_trail_wl S') L') \<in> \<langle>bool_rel\<rangle>option_rel\<close> and
     \<open>(x, x') \<in> ?loop\<close> and
-    \<open>case x of (abort, i, CS, Sa) \<Rightarrow> \<not> abort \<and> i < length (get_watched_wl_heur S ! nat_of_lit L) \<and> get_conflict_wl_is_None_heur Sa\<close> and
+    \<open>case x of (abort, i, CS, Sa) \<Rightarrow> \<not> abort \<and> i < l \<and> get_conflict_wl_is_None_heur Sa\<close> and
     \<open>case x' of (abort, i, CS, S) \<Rightarrow> \<not> abort \<and> i < length (watched_by S' L') \<and> get_conflict_wl S = None\<close> and
     \<open>case x' of
   (abort, i, a, T) \<Rightarrow>
@@ -1987,15 +2085,23 @@ proof -
     \<open>x' = (x1, x2)\<close> and
     \<open>x2d = (x1e, x2e)\<close> and
     \<open>x2c = (x1d, x2d)\<close> and
-    \<open>x = (x1c, x2c)\<close>
-    for CS val x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
+    \<open>x = (x1c, x2c)\<close> and
+    \<open>(l, length (watched_by S' L')) \<in> {(l, l'). (l, l') \<in> nat_rel \<and> l' = length (watched_by S' L')}\<close>
+    for CS val x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e l
   proof -
     show ?thesis
+      apply (rule order_trans)
+      apply (rule mop_watched_by_app_heur_mop_watched_by_at_init_ana[of r, THEN fref_to_Down_curry2,
+        of _ _ _ x2b L' x1a])
+      subgoal by fast
+      subgoal using that by auto
+      unfolding Down_id_eq mop_watched_by_at_init_def
+      apply (refine_rcg)
       using that twl_st_heur_restart_ana_watchlist_in_vdom[where L=L and x2e=x2e and x2f=x2b and x1d = x1d
         and a=\<open>fst (get_watched_wl_heur x2e ! nat_of_lit L ! x1d)\<close> and b=\<open>snd(get_watched_wl_heur x2e ! nat_of_lit L ! x1d)\<close>
         and r=r]
       by (auto simp: twl_st_heur_restart_ana_state_simp watched_by_alt_def
-        deduplicate_binary_clauses_inv_wl_def)
+        deduplicate_binary_clauses_inv_wl_def mop_watched_by_at_init_def)
   qed
   have watched_in_vdom:
     \<open>x1h \<in> set (get_vdom x2e)\<close> \<open>(x1h, x1f) \<in> nat_rel\<close>
@@ -2022,7 +2128,7 @@ proof -
   have is_markedI: \<open>(x1e, x1e') \<in> ?CS \<Longrightarrow> (x1i, x1i') \<in> nat_lit_lit_rel \<Longrightarrow> x1i' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
     is_marked x1e x1i \<le> SPEC (\<lambda>c. (c, x1e' x1i') \<in> {(a,b). a \<longleftrightarrow> b\<noteq>None})\<close>
     \<open>(x1e, x1e') \<in> ?CS \<Longrightarrow> (x1i, x1i') \<in> nat_lit_lit_rel \<Longrightarrow> (m, x1e' x1i') \<in> {(a,b). a \<longleftrightarrow> b\<noteq>None} \<Longrightarrow>x1i' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
-    (if m then get_marked x1e x1i else RETURN (0, True))
+    (if m then get_marked x1e x1i else RETURN (1, True))
     \<le> SPEC
     (\<lambda>c. (c, x1e' x1i') \<in> {(a,b). b \<noteq> None \<longrightarrow> a = the b})\<close>
     \<open>(x1e, x1e') \<in> ?CS \<Longrightarrow> (x1i, x1i') \<in> nat_lit_lit_rel \<Longrightarrow> x1i' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow> (x, x') \<in> Id \<Longrightarrow>
@@ -2032,14 +2138,28 @@ proof -
     unfolding is_marked_def get_marked_def set_marked_def
     by (auto intro!: ASSERT_leI simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
       map_fun_rel_def)
+  have length_watchlist:
+    \<open>(S, S') \<in> twl_st_heur_restart_ana'' r u ns \<Longrightarrow>
+      (L, L') \<in> nat_lit_lit_rel \<Longrightarrow>
+      L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+      mop_length_watched_by_int S L \<le> SPEC (\<lambda>c. (c, length (watched_by S' L')) \<in> {(l,l'). (l,l') \<in> nat_rel \<and> l' = length (watched_by S' L')})\<close>
+    by (auto simp: mop_length_watched_by_int_def twl_st_heur_restart_ana_def
+      twl_st_heur_restart_def map_fun_rel_def watched_by_alt_def intro!: ASSERT_leI)
   show ?thesis
     supply [[goals_limit=1]]
     using assms
     unfolding isa_deduplicate_binary_clauses_wl_def deduplicate_binary_clauses_wl_alt_def mop_polarity_pol_def nres_monad3
     apply (subst deduplicate_binary_clauses_inv_wl_strengthen_def2)
     apply (refine_rcg polarity_pol_polarity[of \<open>all_init_atms_st S'\<close>, THEN fref_to_Down_unRET_uncurry]
-      mop_arena_status_vdom isa_clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause_wl[of r u ns, THEN fref_to_Down_curry]
-      isa_binary_clause_subres_isa_binary_clause_subres_wl[of r u ns, THEN fref_to_Down_curry3])
+      mop_arena_status_vdom isa_clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause_wl[of r  \<open>learned_clss_count S\<close> ns for S,
+          THEN fref_to_Down_curry, of _ _ _ S S for S]
+      isa_binary_clause_subres_isa_binary_clause_subres_wl[of r \<open>learned_clss_count S\<close> ns for S, THEN fref_to_Down_curry3, of _ _ _ S _ _ _ _ S for S]
+      length_watchlist)
+    subgoal
+      using length_watched_le_ana[of S' S \<open>length (get_clauses_wl_heur S)\<close> L]
+      by (auto simp add: deduplicate_binary_clauses_pre_wl_def watched_by_alt_def
+        deduplicate_binary_clauses_pre_wl_in_all_atmsD  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2)
+        twl_st_heur_restart_ana_state_simp twl_st_heur_restart_ana_def)
     subgoal
       by (rule polarity_pol_pre)
        (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def\<close>)[2]
@@ -2047,12 +2167,19 @@ proof -
       by auto
    subgoal
      by (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def\<close>)
-    subgoal
-      by auto
+    subgoal by auto
     subgoal for CS val
       by (auto simp: watched_by_alt_def deduplicate_binary_clauses_pre_wl_in_all_atmsD get_conflict_wl_is_None_def
         twl_st_heur_restart_ana_state_simp get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
+    subgoal by auto
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     apply (rule get_watched_wl_heur; assumption)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+       (metis (no_types, lifting) arena_dom_status_iff(3) bot_nat_0.extremum gr0I le_antisym numeral_le_iff semiring_norm(69))+
+
+    subgoal by  (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+      intro!: valid_arena_in_vdom_le_arena)
     apply (solves auto)
     subgoal for CS val x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       by auto

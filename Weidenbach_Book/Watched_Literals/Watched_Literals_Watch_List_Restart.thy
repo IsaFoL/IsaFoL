@@ -634,7 +634,7 @@ proof -
     using assms by (auto simp: cdcl_twl_full_restart_wl_GC_prog_post_def)
 qed
 
-(*TODO move within this file, seems to be Watched_Literals_Watch_List_Restart.ℒ\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1)*)
+(*TODO move within this file, seems to be Watched_Literals_Watch_List_Restart.\<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1)*)
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms ..
