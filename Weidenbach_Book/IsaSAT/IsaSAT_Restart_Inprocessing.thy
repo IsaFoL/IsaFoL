@@ -2287,11 +2287,6 @@ definition mark_duplicated_binary_clauses_as_garbage_pre_wl_heur :: \<open>isasa
   (\<exists>S' r u. (S, S') \<in> twl_st_heur_restart_ana' r u \<and>
     mark_duplicated_binary_clauses_as_garbage_pre_wl S')\<close>
 
-definition get_vmtf_heur_array where
-  \<open>get_vmtf_heur_array S = fst (fst (get_vmtf_heur S))\<close>
-definition get_vmtf_heur_fst where
-  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (get_vmtf_heur S))\<close>
-
 definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<Rightarrow> _ nres\<close> where
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S\<^sub>0 = (do {
      let ns = (get_vmtf_heur_array S\<^sub>0);
