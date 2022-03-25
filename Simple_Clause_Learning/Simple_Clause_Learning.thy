@@ -1837,8 +1837,14 @@ lemma regular_run_sound_state:
   "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
 
-(* lemma "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> \<nexists>S''. regular_scl N S' S'' \<Longrightarrow>
-  state_conflict S' = Some ({#}, \<gamma>) \<and> \<not> satisfiable (grounding_of_clss N)" *)
+lemma not_satisfiable_if_sound_state_conflict_bottom:
+  assumes sound_S: "sound_state N S" and conflict_S: "state_conflict S = Some ({#}, \<gamma>)"
+  shows "\<not> satisfiable (grounding_of_clss N)"
+proof -
+  from sound_S conflict_S have "N \<TTurnstile>\<G>e {{#}}"
+    unfolding sound_state_def state_conflict_def by auto
+  thus ?thesis by simp
+qed
 
 
 section \<open>Clause Redundancy\<close>
