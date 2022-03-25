@@ -1019,38 +1019,45 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
   for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
-inductive propagate for N where
+inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   propagateI: "C \<in> N \<union> U \<Longrightarrow> C'' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C \<Longrightarrow>
     subst_domain \<gamma> \<subseteq> vars_cls C'' \<union> vars_lit L \<Longrightarrow> is_ground_cls ((C'' + {#L#}) \<cdot> \<gamma>) \<Longrightarrow>
     trail_false_cls \<Gamma> (C'' \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     propagate N (\<Gamma>, U, None) (trail_propagate \<Gamma> L C'' \<gamma>, U, None)"
 
-inductive decide for N where
+inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   decideI: "is_ground_lit L \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow>
     decide N (\<Gamma>, U, None) (trail_decide \<Gamma> L, U, None)"
 
-inductive conflict for N where
+inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   conflictI: "D \<in> N \<union> U \<Longrightarrow> D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D \<Longrightarrow>
     subst_domain \<sigma> \<subseteq> vars_cls D' \<Longrightarrow> is_ground_cls (D' \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (D' \<cdot> \<sigma>) \<Longrightarrow>
     conflict N (\<Gamma>, U, None) (\<Gamma>, U, Some (D', \<sigma>))"
 
-inductive skip for N where
+inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   skipI: "-(L \<cdot>l \<delta>) \<notin># D \<cdot> \<sigma> \<Longrightarrow>
     skip N (trail_propagate \<Gamma> L C \<delta>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
-inductive factorize for N where
+inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
     \<sigma>' = restrict_subst (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
     factorize N (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
 
-inductive resolve for N where
+inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
     resolve N (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
-inductive backtrack for N where
+inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
+  for N where
   backtrackI: "trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
     backtrack N (\<Gamma>, U, Some (D + {#L#}, \<sigma>))
       (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)), U \<union> {D + {#L#}}, None)"
