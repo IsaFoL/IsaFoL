@@ -1856,7 +1856,7 @@ definition redundant where
   "redundant lt N C \<longleftrightarrow> (\<forall>C' \<in> grounding_of_cls C. ground_redundant lt (grounding_of_clss N) C')"
 
 
-section \<open>Trail Induced Ordering\<close>
+section \<open>Trail-Induced Ordering\<close>
 
 definition trail_less_id_id where
   "trail_less_id_id Ls L K \<longleftrightarrow>
@@ -2443,7 +2443,7 @@ lemma irreflp_trail_ex_less:
   using irreflp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] irreflp_lt
   by (simp add: irreflpD irreflpI)
 
-lemma transp_trail_ex_less:
+lemma transp_trail_less_ex:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_not_id: "\<And>x :: 'a. - x \<noteq> x" and
@@ -2455,6 +2455,13 @@ lemma transp_trail_ex_less:
   unfolding trail_less_ex_def
   using transp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] transp_lt
   by (smt (verit, ccfv_SIG) transp_def)
+
+lemma transp_trail_less_ex_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> transp lt \<Longrightarrow> transp (trail_less_ex lt (map fst \<Gamma>))"
+  using transp_trail_less_ex[OF
+      Clausal_Logic.uminus_not_id'
+      Clausal_Logic.uminus_of_uminus_id
+      pairwise_distinct_if_sound_trail]
+  by assumption
 
 lemma asymp_trail_less_ex:
   fixes Ls :: "('a :: uminus) list"
@@ -2468,6 +2475,14 @@ lemma asymp_trail_less_ex:
   unfolding trail_less_ex_def
   using asymp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] asymp_lt
   by (simp add: asymp.simps)
+
+lemma asymp_trail_less_ex_if_sound:
+  "sound_trail N U \<Gamma> \<Longrightarrow> asymp lt \<Longrightarrow> asymp (trail_less_ex lt (map fst \<Gamma>))"
+  using asymp_trail_less_ex[OF
+      Clausal_Logic.uminus_not_id'
+      Clausal_Logic.uminus_of_uminus_id
+      pairwise_distinct_if_sound_trail]
+  by assumption
 
 lemma total_on_trail_less_ex:
   fixes Ls :: "('a :: uminus) list"
