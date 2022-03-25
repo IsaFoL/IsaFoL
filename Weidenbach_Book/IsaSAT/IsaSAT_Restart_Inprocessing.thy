@@ -1315,10 +1315,6 @@ lemma isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2:
    (use assms in \<open>auto simp: get_conflict_wl_is_None_def
       get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id]\<close>)
 
-(*This obvdiously does nothing, but we use as a placeholder while developing it!*)
-definition isa_deduplicate_binary_clauses :: \<open>_\<close> where
-  \<open>isa_deduplicate_binary_clauses S = RETURN S\<close>
-
 definition array_hash_map_rel :: \<open>('a :: zero \<times> 'b) set \<Rightarrow> _\<close> where
   \<open>array_hash_map_rel R = {(xs, (ys, m)). m = length xs \<and>
      (\<forall>L. nat_of_lit L < m \<longrightarrow> (ys L = None \<longleftrightarrow> xs ! nat_of_lit L = 0)) \<and>
@@ -1519,6 +1515,7 @@ definition isa_binary_clause_subres_wl :: \<open>_\<close> where
       let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let stats = get_stats_heur S;
       let stats = (if st then decr_irred_clss stats else stats);
+      let stats = incr_units_since_last_GC (incr_uset stats);
       let S = set_trail_wl_heur M S;
       let S = set_clauses_wl_heur N' S;
       let S = set_learned_count_wl_heur lcount S;
