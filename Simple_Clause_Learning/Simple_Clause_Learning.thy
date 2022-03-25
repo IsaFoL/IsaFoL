@@ -1850,7 +1850,7 @@ qed
 section \<open>Clause Redundancy\<close>
 
 definition ground_redundant where
-  "ground_redundant lt N C \<longleftrightarrow> {D \<in> N. lt\<^sup>=\<^sup>= D C} \<TTurnstile>e {C}"
+  "ground_redundant lt N C \<longleftrightarrow> is_ground_clss N \<and> is_ground_cls C \<and> {D \<in> N. lt\<^sup>=\<^sup>= D C} \<TTurnstile>e {C}"
 
 definition redundant where
   "redundant lt N C \<longleftrightarrow> (\<forall>C' \<in> grounding_of_cls C. ground_redundant lt (grounding_of_clss N) C')"
