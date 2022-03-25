@@ -171,7 +171,7 @@ sepref_def ahm_create_code
   by sepref
 
 definition encoded_irred_indices where
-  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int sint64_max \<and> -a \<le> int sint64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a)}\<close>
+  \<open>encoded_irred_indices = {(a, b::nat \<times> bool). a \<le> int sint64_max \<and> -a \<le> int sint64_max \<and> (snd b \<longleftrightarrow> a > 0) \<and> fst b = (if a < 0 then nat (-a) else nat a) \<and> fst b \<noteq> 0}\<close>
 
 sepref_def ahm_is_marked_code
   is \<open>uncurry ahm_is_marked\<close>
@@ -315,14 +315,51 @@ lemma [sepref_fr_rules]:
   done
 
 sepref_register "uminus :: int \<Rightarrow> int" int
+lemma encoded_irred_index_set_int_alt_def:
+  \<open>encoded_irred_index_set_int a b = do { (if b then RETURN (int a) else RETURN (0 - int a))}\<close>
+  by (auto simp: encoded_irred_index_set_int_def)
+
 sepref_def encoded_irred_index_set_int_impl
   is \<open>uncurry encoded_irred_index_set_int\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow>\<^sub>a (sint_assn' TYPE(64))\<close>
-  unfolding encoded_irred_index_set_int_def
+  unfolding encoded_irred_index_set_int_alt_def
+  apply (annot_sint_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemmas [sepref_fr_rules] =
   encoded_irred_index_set_int_impl.refine[FCOMP encoded_irred_index_set]
+
+sepref_register is_marked set_marked
+
+term ahm_set_marked
+sepref_def ahm_set_marked_code
+  is \<open>uncurry2 ahm_set_marked\<close>
+  :: \<open>(larray64_assn (sint_assn' TYPE(64)))\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow>\<^sub>a (larray64_assn (sint_assn' TYPE(64)))\<close>
+  unfolding ahm_set_marked_def
+  by sepref
+
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+
+lemma ahm_set_marked_set_marked:
+ \<open>(uncurry2 ahm_set_marked, uncurry2 set_marked)
+    \<in>  (array_hash_map_rel encoded_irred_indices) \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f encoded_irred_indices \<rightarrow> \<langle>array_hash_map_rel encoded_irred_indices\<rangle>nres_rel\<close>
+proof -
+  have H: \<open>(0, a) \<notin> encoded_irred_indices\<close> for a
+    by (auto simp: encoded_irred_indices_def)
+  show ?thesis
+    unfolding fref_param1
+    apply (rule ahm_set_marked_set_marked[unfolded convert_fref])
+    apply (rule H)
+    done
+qed
+
+thm ahm_set_marked_set_marked
+lemmas [sepref_fr_rules] =
+  ahm_create_code.refine[FCOMP ahm_create_create, where R11 = encoded_irred_indices]
+  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked2[where R = encoded_irred_indices]]
+  ahm_get_marked_code.refine[FCOMP ahm_get_marked_get_marked[where R = encoded_irred_indices]]
+  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked]
 
 definition length_watchlist_raw where
   \<open>length_watchlist_raw S = length (get_watched_wl_heur S)\<close>
@@ -355,6 +392,72 @@ sepref_register create encoded_irred_index_set encoded_irred_index_get
 sepref_register uminus_lit:  "uminus :: nat literal \<Rightarrow> _"
 find_theorems isa_clause_remove_duplicate_clause_wl
 thm isa_clause_remove_duplicate_clause_wl_def
+
+lemma isa_clause_remove_duplicate_clause_wl_alt_def:
+  \<open>isa_clause_remove_duplicate_clause_wl C S = (do{
+    let (N', S) = extract_arena_wl_heur S;
+    st \<leftarrow> mop_arena_status N' C;
+    let st = st = IRRED;
+    ASSERT (mark_garbage_pre (N', C) \<and> arena_is_valid_clause_vdom (N') C);
+    let N' = extra_information_mark_to_delete (N') C;
+    let (lcount, S) = extract_lcount_wl_heur S;
+    ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
+    let lcount = (if st then lcount else (clss_size_decr_lcount lcount));
+    let (stats, S) = extract_stats_wl_heur S;
+    let stats = (if st then decr_irred_clss stats else stats);
+    let S = update_arena_wl_heur N' S;
+    let S = update_lcount_wl_heur lcount S;
+    let S = update_stats_wl_heur stats S;
+    RETURN S
+   })\<close>
+    by (auto simp: isa_clause_remove_duplicate_clause_wl_def
+        state_extractors split: isasat_int.splits)
+
+
+sepref_def isa_clause_remove_duplicate_clause_wl_impl
+  is \<open>uncurry isa_clause_remove_duplicate_clause_wl\<close>
+  :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isa_clause_remove_duplicate_clause_wl_alt_def
+  by sepref
+sepref_register isa_binary_clause_subres_wl
+
+
+lemma isa_binary_clause_subres_wl_alt_def:
+  \<open>isa_binary_clause_subres_wl C L L' S\<^sub>0 = do {
+      ASSERT (isa_binary_clause_subres_lits_wl_pre C L L' S\<^sub>0);
+      let (M, S) = extract_trail_wl_heur S\<^sub>0;
+      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+      let (lcount, S) = extract_lcount_wl_heur S;
+      ASSERT (lcount = get_learned_count S\<^sub>0);
+      let (N', S) = extract_arena_wl_heur S;
+      st \<leftarrow> mop_arena_status N' C;
+      let st = st = IRRED;
+      ASSERT (mark_garbage_pre (N', C) \<and> arena_is_valid_clause_vdom (N') C);
+      let N' = extra_information_mark_to_delete (N') C;
+      ASSERT(\<not>st \<longrightarrow> (clss_size_lcount lcount \<ge> 1 \<and> clss_size_lcountUEk (clss_size_decr_lcount lcount) < learned_clss_count S\<^sub>0));
+      let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
+      let (stats, S) = extract_stats_wl_heur S;
+      let stats = (if st then decr_irred_clss stats else stats);
+      let S = update_trail_wl_heur M S;
+      let S = update_arena_wl_heur N' S;
+      let S = update_lcount_wl_heur lcount S;
+      let S = update_stats_wl_heur stats S;
+      RETURN S
+  }\<close>
+  by (auto simp: isa_binary_clause_subres_wl_def learned_clss_count_def
+        state_extractors split: isasat_int.splits)
+
+sepref_def isa_binary_clause_subres_wl_impl
+  is \<open>uncurry3 isa_binary_clause_subres_wl\<close>
+  :: \<open>[\<lambda>(((C,L), L'), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+  sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isa_binary_clause_subres_wl_alt_def[abs_def]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 sepref_def isa_deduplicate_binary_clauses_wl_code
   is \<open>uncurry isa_deduplicate_binary_clauses_wl\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -369,28 +472,102 @@ sepref_def isa_deduplicate_binary_clauses_wl_code
     encoded_irred_index_set_def[symmetric]
     encoded_irred_index_irred_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-   apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-subgoal
-  apply sepref_dbg_side_keep
-    apply auto
+  by sepref
 
-oops
+definition vmtf_heur_fst where
+  \<open>vmtf_heur_fst = (\<lambda>((_, _, a, _),_). a)\<close>
+
+sepref_def vmtf_heur_fst_code
+  is \<open>RETURN o vmtf_heur_fst\<close>
+  :: \<open>vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn\<close>
+  unfolding vmtf_heur_fst_def vmtf_remove_assn_def
+  by sepref
+
+definition get_vmtf_heur_fst_impl where
+  \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (vmtf_heur_fst_code)\<close>
+
+global_interpretation vmtf_fst: read_vmtf_param_adder0 where
+  f' = \<open>RETURN o vmtf_heur_fst\<close> and
+  f = \<open>vmtf_heur_fst_code\<close> and
+  x_assn = atom_assn and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_vmtf_wl_heur (RETURN \<circ> vmtf_heur_fst) = RETURN o get_vmtf_heur_fst\<close> and
+    \<open>read_vmtf_wl_heur_code (vmtf_heur_fst_code) = get_vmtf_heur_fst_impl\<close>
+  apply unfold_locales
+  apply (rule vmtf_heur_fst_code.refine)
+  subgoal
+     by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
+       split: isasat_int.splits)
+  subgoal by (auto simp: get_vmtf_heur_fst_impl_def)
+  done
+
+definition vmtf_heur_array_nth where
+  \<open>vmtf_heur_array_nth = (\<lambda>((ns, _, _, _),_) i. RETURN (ns ! i))\<close>
+
+sepref_def vmtf_heur_array_nth_code
+  is \<open>uncurry (vmtf_heur_array_nth)\<close>
+  :: \<open>[\<lambda>(vm, n). n < length (fst (fst vm))]\<^sub>a vmtf_remove_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> vmtf_node_assn\<close>
+  supply [[eta_contract = false, goals_limit=1]]
+  supply [sepref_fr_rules] = al_nth_hnr array_get_hnr
+  supply [sepref_fr_rules del] = wo_array_get_hnrs
+  unfolding vmtf_heur_array_nth_def vmtf_remove_assn_def
+  apply (rewrite at \<open>(!) _ \<hole>\<close> value_of_atm_def[symmetric])
+  unfolding  index_of_atm_def[symmetric]
+  by sepref
+
+definition get_vmtf_heur_array_nth where
+  \<open>get_vmtf_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>
+definition get_vmtf_heur_array_nth_impl where
+  \<open>get_vmtf_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N\<close>
+
+global_interpretation vmtf_array_nth: read_vmtf_param_adder where
+  f' = \<open>\<lambda>a b. vmtf_heur_array_nth b a\<close> and
+  f = \<open>\<lambda>a b. vmtf_heur_array_nth_code b a\<close> and
+  x_assn = vmtf_node_assn and
+  P = \<open>(\<lambda>n S. n < length (fst (fst S)))\<close> and
+  R = atom_rel
+ rewrites
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur (\<lambda>M. vmtf_heur_array_nth M C') N) = RETURN oo get_vmtf_heur_array_nth\<close>  and
+    \<open>(\<lambda>N C'. read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N) = get_vmtf_heur_array_nth_impl\<close>
+  apply unfold_locales
+  apply (subst (3)uncurry_def)
+  apply (rule vmtf_heur_array_nth_code.refine)
+  subgoal
+    by (auto intro!: ext simp: get_vmtf_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
+        get_vmtf_heur_array_def
+       split: isasat_int.splits)
+  subgoal by (auto simp: get_vmtf_heur_array_nth_impl_def[abs_def])
+  done
+
+lemmas [sepref_fr_rules] = vmtf_fst.refine
+  vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def]]
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]
+  get_vmtf_heur_array_nth_impl_def[unfolded read_all_st_code_def]
+
+sepref_register get_vmtf_heur_array_nth get_vmtf_heur_fst
+  isa_deduplicate_binary_clauses_wl
+
 sepref_def isa_deduplicate_binary_clauses_code
   is isa_mark_duplicated_binary_clauses_as_garbage_wl2
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_def
+    get_vmtf_heur_array_nth_def[symmetric] atom.fold_option nres_monad3
+  apply (rewrite at \<open>let _ = get_vmtf_heur_array _ in _\<close> Let_def)
+  apply (rewrite at \<open>let _ = False in _\<close> Let_def)
+  unfolding if_False nres_monad3
   supply [[goals_limit=1]]
-oops
   by sepref
 
 experiment
 begin
-  export_llvm isa_simplify_clauses_with_unit_st2_code
+ export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_unit_st_wl2_code
     isa_simplify_clauses_with_units_st_wl2_code
+    isa_deduplicate_binary_clauses_code
 end
 
 end

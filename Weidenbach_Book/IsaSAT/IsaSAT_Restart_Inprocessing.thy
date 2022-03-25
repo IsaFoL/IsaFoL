@@ -1453,7 +1453,9 @@ lemma clss_size_corr_in_dom_red_clss_size_lcount_ge0:
 definition isa_clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>isa_clause_remove_duplicate_clause_wl C S = (do{
     let N' = get_clauses_wl_heur S;
-    let st = arena_status N' C = IRRED;
+    st \<leftarrow> mop_arena_status N' C;
+    let st = st = IRRED;
+    ASSERT (mark_garbage_pre (N', C) \<and> arena_is_valid_clause_vdom (N') C);
     let N' = extra_information_mark_to_delete (N') C;
     let lcount = get_learned_count S;
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
@@ -1476,8 +1478,17 @@ lemma isa_clause_remove_duplicate_clause_wl_clause_remove_duplicate_clause_wl:
 proof -
   show ?thesis
     unfolding isa_clause_remove_duplicate_clause_wl_def clause_remove_duplicate_clause_wl_def uncurry_def
+      mop_arena_status_def nres_monad3
     apply (intro frefI nres_relI)
     apply refine_vcg
+    subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k a b c d e
+      unfolding arena_is_valid_clause_vdom_def
+      apply (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom e)\<close>])
+      by (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k a b c d e
+      unfolding mark_garbage_pre_def arena_is_valid_clause_idx_def prod.simps
+      apply (rule exI[of _ \<open>get_clauses_wl x2\<close>], rule exI[of _ \<open>set (get_vdom e)\<close>])
+      by (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k
       x2k x1l x2l x1m x2m
       by (auto simp: clause_remove_duplicate_clause_wl_pre_def clause_remove_duplicate_clause_pre_def state_wl_l_def red_in_dom_number_of_learned_ge1
@@ -1500,9 +1511,11 @@ definition isa_binary_clause_subres_wl :: \<open>_\<close> where
       M \<leftarrow> cons_trail_Propagated_tr L 0 M;
       let lcount = get_learned_count S;
       let N' = get_clauses_wl_heur S;
-      let st = arena_status N' C = IRRED;
+      st \<leftarrow> mop_arena_status N' C;
+      let st = st = IRRED;
+      ASSERT (mark_garbage_pre (N', C) \<and> arena_is_valid_clause_vdom (N') C);
       let N' = extra_information_mark_to_delete (N') C;
-      ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
+      ASSERT(\<not>st \<longrightarrow> (clss_size_lcount lcount \<ge> 1 \<and> clss_size_lcountUEk (clss_size_decr_lcount lcount) < learned_clss_count S));
       let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let stats = get_stats_heur S;
       let stats = (if st then decr_irred_clss stats else stats);
@@ -1627,6 +1640,7 @@ proof -
     heuristic_rel_cong
   show ?thesis
     unfolding isa_binary_clause_subres_wl_def binary_clause_subres_wl_alt_def uncurry_def Let_def
+      mop_arena_status_def nres_monad3
     apply (intro frefI nres_relI)
     subgoal for S T
     apply (refine_vcg cons_trail_Propagated_tr[of \<open>all_init_atms_st (snd T)\<close>, THEN fref_to_Down_curry2])
@@ -1634,10 +1648,21 @@ proof -
     subgoal by auto
     subgoal by (auto simp: DECISION_REASON_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def all_init_atms_st_def)
-    subgoal
+    subgoal for x1 x1a x1b x2 x2a x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
+    x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x2o x2p x2q M M'
+      unfolding arena_is_valid_clause_vdom_def
+      apply (rule exI[of _ \<open>get_clauses_wl x2b\<close>], rule exI[of _ \<open>set (get_vdom x2q)\<close>])
+      by (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    subgoal for x1 x1a x1b x2 x2a x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i
+    x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x2o x2p x2q M M'
+      unfolding mark_garbage_pre_def arena_is_valid_clause_idx_def prod.simps
+      by (rule exI[of _ \<open>get_clauses_wl x2b\<close>], rule exI[of _ \<open>set (get_vdom x2q)\<close>])
+        (simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    subgoal H
       by (auto simp: clause_remove_duplicate_clause_wl_pre_def clause_remove_duplicate_clause_pre_def state_wl_l_def red_in_dom_number_of_learned_ge1
         twl_st_heur_restart_def twl_st_heur_restart_ana_def clss_size_corr_in_dom_red_clss_size_lcount_ge0 arena_lifting
         clss_size_corr_restart_def)
+    subgoal by (frule H; assumption?) (auto simp: learned_clss_count_def)
     apply (rule A)
     subgoal premises p
       using p
@@ -2271,9 +2296,9 @@ definition get_vmtf_heur_fst where
   \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (get_vmtf_heur S))\<close>
 
 definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<Rightarrow> _ nres\<close> where
-  \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S = (do {
-     let ns = (get_vmtf_heur_array S);
-     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S);
+  \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S\<^sub>0 = (do {
+     let ns = (get_vmtf_heur_array S\<^sub>0);
+     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
      (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,S). ns = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, S). do {
         ASSERT (n \<noteq> None);
@@ -2284,14 +2309,16 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
         let skip = False;
         if skip then RETURN (S)
         else do {
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) S;
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Neg A) S;
           ASSERT (ns = (get_vmtf_heur_array S));
           RETURN (S)
         }};
         RETURN (get_next (ns ! A), S)
      })
-     (Some (get_vmtf_heur_fst S), S);
+     (Some (get_vmtf_heur_fst S\<^sub>0), S\<^sub>0);
     RETURN S
   })\<close>
 
@@ -2303,7 +2330,9 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def:
         let skip = False;
         if skip then RETURN (S)
         else do {
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) S;
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Neg A) S;
           ASSERT (get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S));
           RETURN (S)
@@ -2472,11 +2501,12 @@ proof -
      unfolding isa_vmtf_def
      by auto
    have init: \<open>(x2a, x2) \<in> \<langle>nat_rel\<rangle>option_rel \<Longrightarrow>
-     ((x2a, S), x2, S') \<in> \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r {(a,b). (a,b)\<in> twl_st_heur_restart_ana'' r u (get_vmtf_heur S) \<and>
+     ((x2a, S), x2, S') \<in> \<langle>nat_rel\<rangle>option_rel \<times>\<^sub>r {(a,b). (a,b)\<in> twl_st_heur_restart_ana'' (length (get_clauses_wl_heur S))
+        (learned_clss_count S) (get_vmtf_heur S) \<and>
      ns = get_vmtf_heur_array S}\<close>
     for x2a x2
     using vm assms
-    by (auto simp: get_vmtf_heur_array_def)
+    by (auto simp: get_vmtf_heur_array_def twl_st_heur_restart_ana_def)
   have [refine0]: \<open>RETURN False \<le> \<Down> {(a,b). a = b \<and> \<not>b} (RES UNIV)\<close>
     by (auto intro!: RETURN_RES_refine)
   have last_step: \<open>do {
@@ -2487,7 +2517,9 @@ proof -
        let skip = False;
        if skip then RETURN Sa
        else do {
+        ASSERT (length (get_clauses_wl_heur Sa) \<le> length (get_clauses_wl_heur S) \<and> learned_clss_count Sa \<le> learned_clss_count S);
         Sa \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) Sa;
+        ASSERT (length (get_clauses_wl_heur Sa) \<le> length (get_clauses_wl_heur S) \<and> learned_clss_count Sa \<le> learned_clss_count S);
         Sa \<leftarrow> isa_deduplicate_binary_clauses_wl (Neg A) Sa;
         _ \<leftarrow> ASSERT
           (get_vmtf_heur_array S = get_vmtf_heur_array Sa);
@@ -2516,7 +2548,7 @@ proof -
     })\<close>
     unfolding iterate_over_VMTFC_def
     apply (refine_vcg
-      isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl[where r=r and u=u and
+      isa_deduplicate_binary_clauses_mark_duplicated_binary_clauses_as_garbage_wl[where r=\<open>length (get_clauses_wl_heur S)\<close> and u=\<open>learned_clss_count S\<close> and
       ns = \<open>get_vmtf_heur S\<close>])
     subgoal using assms unfolding mark_duplicated_binary_clauses_as_garbage_pre_wl_heur_def
       by fast
@@ -2531,14 +2563,18 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by simp
+    subgoal by (simp add: twl_st_heur_restart_ana_def)
+    subgoal by simp
     subgoal by auto
     subgoal by auto
+    subgoal by (simp add: twl_st_heur_restart_ana_def)
+    subgoal by simp
     subgoal by auto
     subgoal premises p
-      using p(24) unfolding get_vmtf_heur_array_def by simp
+      using p(26) unfolding get_vmtf_heur_array_def by simp
     apply assumption
     subgoal by auto
-    subgoal by auto
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     done
 
   show ?thesis
@@ -2586,7 +2622,9 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
         let skip = False;
         if skip then RETURN (S)
         else do {
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) S;
+          ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           S \<leftarrow> isa_deduplicate_binary_clauses_wl (Neg A) S;
           ASSERT (ns = get_vmtf_heur_array S);
           RETURN (S)
@@ -2620,7 +2658,11 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
     apply (rule H)
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     apply (rule H)
     subgoal by auto
