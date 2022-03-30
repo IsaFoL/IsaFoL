@@ -4,6 +4,24 @@ theory IsaSAT_Setup1_LLVM
     IsaSAT_Setup0_LLVM
 begin
 thm update_b_code.refine
+lemmas [unfolded ptr_write_inplace_code_def ptr_write_inplace_def, sepref_fr_rules] =
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_a_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_b_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_c_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_d_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_e_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_f_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_g_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_h_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_i_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_j_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_k_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_l_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_m_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_n_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_o_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_p_code.refine, unfolded ptr_write_inplace_def]
+
 sepref_register arena_status DELETED
 sepref_definition not_deleted_code
   is \<open>(uncurry (\<lambda>N C'. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}))\<close>
@@ -46,14 +64,15 @@ global_interpretation arena_is_valid: read_arena_param_adder where
 sepref_register clause_not_marked_to_delete_heur mop_clause_not_marked_to_delete_heur
 
 definition ptr_clause_not_marked_to_delete_heur_code :: \<open>_\<close> where
-  \<open>ptr_clause_not_marked_to_delete_heur_code = ptr_read_code_param clause_not_marked_to_delete_heur_code\<close>
+  \<open>ptr_clause_not_marked_to_delete_heur_code = ptr_read_code clause_not_marked_to_delete_heur_code\<close>
 
 lemmas [sepref_fr_rules] = arena_is_valid.refine[unfolded uncurry_curry_id] arena_is_valid.mop_refine
   ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.refine[unfolded uncurry_curry_id],
-  unfolded ptr_read_param_def ptr_clause_not_marked_to_delete_heur_code_def[symmetric]]
+  unfolded ptr_read_def ptr_clause_not_marked_to_delete_heur_code_def[symmetric]]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   clause_not_marked_to_delete_heur_code_def[unfolded read_all_st_code_def not_deleted_code_def]
-  ptr_clause_not_marked_to_delete_heur_code_def[unfolded ptr_read_code_param_def,
+  ptr_clause_not_marked_to_delete_heur_code_def[unfolded ptr_read_code_def,
   unfolded clause_not_marked_to_delete_heur_code_def read_all_st_code_def not_deleted_code_def]
 
 definition conflict_is_None  :: \<open>conflict_option_rel \<Rightarrow> bool nres\<close> where
@@ -95,11 +114,11 @@ global_interpretation conflict_is_None: read_conflict_param_adder0 where
   by (solves \<open>rule get_conflict_wl_is_None_heur_alt_def refl\<close>)+
 
 definition get_conflict_wl_is_None_ptr_code :: \<open>_\<close> where
-  \<open>get_conflict_wl_is_None_ptr_code = ptr_read_code get_conflict_wl_is_None_fast_code\<close>
+  \<open>get_conflict_wl_is_None_ptr_code = ptr_read0_code get_conflict_wl_is_None_fast_code\<close>
 
 lemmas [sepref_fr_rules] = conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def]
-  ptr_read_loc0.ptr_read_code[unfolded ptr_read_loc0_def, OF conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def],
-  unfolded get_conflict_wl_is_None_ptr_code_def[symmetric] ptr_read_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def],
+  unfolded get_conflict_wl_is_None_ptr_code_def[symmetric] ptr_read0_def]
 
 lemmas [llvm_code] = conflict_is_None_code_def
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
@@ -138,11 +157,11 @@ global_interpretation count_decided: read_trail_param_adder0 where
   done
 
 definition ptr_isa_count_decided_st_fast_code :: \<open>_\<close> where
-  \<open>ptr_isa_count_decided_st_fast_code = ptr_read_code isa_count_decided_st_fast_code\<close>
+  \<open>ptr_isa_count_decided_st_fast_code = ptr_read0_code isa_count_decided_st_fast_code\<close>
 
 lemmas [sepref_fr_rules] = count_decided.refine[unfolded lambda_comp_true]
-  ptr_read_loc0.ptr_read_code[unfolded ptr_read_loc0_def, OF count_decided.refine[unfolded lambda_comp_true],
-  unfolded ptr_isa_count_decided_st_fast_code_def[symmetric] ptr_read_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF count_decided.refine[unfolded lambda_comp_true],
+  unfolded ptr_isa_count_decided_st_fast_code_def[symmetric] ptr_read0_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   isa_count_decided_st_fast_code_def[unfolded read_all_st_code_def]
@@ -170,11 +189,11 @@ global_interpretation mop_count_decided: read_trail_param_adder where
   done
 
 definition ptr_mop_count_decided where
-  \<open>ptr_mop_count_decided = ptr_read_code_param polarity_st_heur_pol_fast\<close>
+  \<open>ptr_mop_count_decided = ptr_read_code polarity_st_heur_pol_fast\<close>
 
 lemmas [sepref_fr_rules] = mop_count_decided.refine[unfolded lambda_comp_true]
   ptr_read_loc.refine[unfolded ptr_read_loc_def, OF  mop_count_decided.refine[unfolded lambda_comp_true],
-  unfolded ptr_mop_count_decided_def[symmetric] ptr_read_param_def]
+  unfolded ptr_mop_count_decided_def[symmetric] ptr_read_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   polarity_st_heur_pol_fast_def[unfolded read_all_st_code_def]
@@ -298,17 +317,15 @@ sepref_def mop_access_lit_in_clauses_heur_impl
   by sepref
 
 definition ptr_access_lit_in_clauses_heur where
-  \<open>ptr_access_lit_in_clauses_heur = ptr_read_code_param2 access_lit_in_clauses_heur_fast_code\<close>
+  \<open>ptr_access_lit_in_clauses_heur = ptr_read2_code access_lit_in_clauses_heur_fast_code\<close>
 
 lemmas [sepref_fr_rules] = access_arena.refine
-  ptr_read_loc2.refine[unfolded ptr_read_loc2_def, OF access_arena.refine[unfolded lambda_comp_true],
-  unfolded ptr_access_lit_in_clauses_heur_def[symmetric] ptr_read_param2_def]
+  ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF access_arena.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_lit_in_clauses_heur_def[symmetric] ptr_read2_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   access_lit_in_clauses_heur_fast_code_def[unfolded read_all_st_code_def]
-  ptr_access_lit_in_clauses_heur_def[unfolded ptr_read_code_param2_def]
-
-
+  ptr_access_lit_in_clauses_heur_def[unfolded ptr_read_code2_def]
 
 sepref_register mop_arena_lit2 mop_arena_length mop_append_ll
 sepref_def rewatch_heur_vdom_fast_code

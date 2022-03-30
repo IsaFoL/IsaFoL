@@ -2616,91 +2616,92 @@ abbreviation update_old_arena_wl_heur :: \<open>arena \<Rightarrow>isasat \<Righ
 abbreviation isasat_bounded_assn where
   \<open>isasat_bounded_assn \<equiv> pointer_assn isasat_bounded_raw_assn\<close>
 
+
 definition remove_a_ptr_code :: \<open>_\<close> where
-  \<open>remove_a_ptr_code = ptr_write_code remove_a_code\<close>
+  \<open>remove_a_ptr_code = ptr_write_code0 remove_a_code\<close>
 
 definition remove_b_ptr_code :: \<open>_\<close> where
-  \<open>remove_b_ptr_code = ptr_write_code remove_b_code\<close>
+  \<open>remove_b_ptr_code = ptr_write_code0 remove_b_code\<close>
 
 definition remove_c_ptr_code :: \<open>_\<close> where
-  \<open>remove_c_ptr_code = ptr_write_code remove_c_code\<close>
+  \<open>remove_c_ptr_code = ptr_write_code0 remove_c_code\<close>
 
 definition remove_d_ptr_code :: \<open>_\<close> where
-  \<open>remove_d_ptr_code = ptr_write_code remove_d_code\<close>
+  \<open>remove_d_ptr_code = ptr_write_code0 remove_d_code\<close>
 
 definition remove_e_ptr_code :: \<open>_\<close> where
-  \<open>remove_e_ptr_code = ptr_write_code remove_e_code\<close>
+  \<open>remove_e_ptr_code = ptr_write_code0 remove_e_code\<close>
 
 definition remove_f_ptr_code :: \<open>_\<close> where
-  \<open>remove_f_ptr_code = ptr_write_code remove_f_code\<close>
+  \<open>remove_f_ptr_code = ptr_write_code0 remove_f_code\<close>
 
 definition remove_g_ptr_code :: \<open>_\<close> where
-  \<open>remove_g_ptr_code = ptr_write_code remove_g_code\<close>
+  \<open>remove_g_ptr_code = ptr_write_code0 remove_g_code\<close>
 
 definition remove_h_ptr_code :: \<open>_\<close> where
-  \<open>remove_h_ptr_code = ptr_write_code remove_h_code\<close>
+  \<open>remove_h_ptr_code = ptr_write_code0 remove_h_code\<close>
 
 definition remove_i_ptr_code :: \<open>_\<close> where
-  \<open>remove_i_ptr_code = ptr_write_code remove_i_code\<close>
+  \<open>remove_i_ptr_code = ptr_write_code0 remove_i_code\<close>
 
 definition remove_j_ptr_code :: \<open>_\<close> where
-  \<open>remove_j_ptr_code = ptr_write_code remove_j_code\<close>
+  \<open>remove_j_ptr_code = ptr_write_code0 remove_j_code\<close>
 
 definition remove_k_ptr_code :: \<open>_\<close> where
-  \<open>remove_k_ptr_code = ptr_write_code remove_k_code\<close>
+  \<open>remove_k_ptr_code = ptr_write_code0 remove_k_code\<close>
 
 definition remove_l_ptr_code :: \<open>_\<close> where
-  \<open>remove_l_ptr_code = ptr_write_code remove_l_code\<close>
+  \<open>remove_l_ptr_code = ptr_write_code0 remove_l_code\<close>
 
 definition remove_m_ptr_code :: \<open>_\<close> where
-  \<open>remove_m_ptr_code = ptr_write_code remove_m_code\<close>
+  \<open>remove_m_ptr_code = ptr_write_code0 remove_m_code\<close>
 
 definition remove_n_ptr_code :: \<open>_\<close> where
-  \<open>remove_n_ptr_code = ptr_write_code remove_n_code\<close>
+  \<open>remove_n_ptr_code = ptr_write_code0 remove_n_code\<close>
 
 definition remove_o_ptr_code :: \<open>_\<close> where
-  \<open>remove_o_ptr_code = ptr_write_code remove_o_code\<close>
+  \<open>remove_o_ptr_code = ptr_write_code0 remove_o_code\<close>
 
 definition remove_p_ptr_code :: \<open>_\<close> where
-  \<open>remove_p_ptr_code = ptr_write_code remove_p_code\<close>
+  \<open>remove_p_ptr_code = ptr_write_code0 remove_p_code\<close>
 
 lemmas [sepref_fr_rules] =
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_a_code.refine,
-    unfolded remove_a_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_b_code.refine,
-    unfolded remove_b_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_c_code.refine,
-    unfolded remove_c_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_d_code.refine,
-    unfolded remove_d_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_e_code.refine,
-    unfolded remove_e_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_f_code.refine,
-    unfolded remove_f_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_g_code.refine,
-    unfolded remove_g_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_h_code.refine,
-    unfolded remove_h_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_i_code.refine,
-    unfolded remove_i_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_j_code.refine,
-    unfolded remove_j_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_k_code.refine,
-    unfolded remove_k_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_l_code.refine,
-    unfolded remove_l_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_l_code.refine,
-    unfolded remove_m_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_m_code.refine,
-    unfolded remove_n_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_n_code.refine,
-    unfolded remove_m_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_o_code.refine,
-    unfolded remove_o_ptr_code_def[symmetric] ptr_write_def]
-  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_p_code.refine,
-    unfolded remove_p_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_a_code.refine,
+    unfolded remove_a_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_b_code.refine,
+    unfolded remove_b_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_c_code.refine,
+    unfolded remove_c_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_d_code.refine,
+    unfolded remove_d_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_e_code.refine,
+    unfolded remove_e_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_f_code.refine,
+    unfolded remove_f_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_g_code.refine,
+    unfolded remove_g_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_h_code.refine,
+    unfolded remove_h_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_i_code.refine,
+    unfolded remove_i_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_j_code.refine,
+    unfolded remove_j_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_k_code.refine,
+    unfolded remove_k_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_l_code.refine,
+    unfolded remove_l_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_l_code.refine,
+    unfolded remove_m_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_m_code.refine,
+    unfolded remove_n_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_n_code.refine,
+    unfolded remove_m_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_o_code.refine,
+    unfolded remove_o_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_p_code.refine,
+    unfolded remove_p_ptr_code_def[symmetric] ptr_write0_def]
 
-lemmas [unfolded ptr_write_code_def inline_direct_return_node_case comp_def, llvm_code] =
+lemmas [unfolded ptr_write_code0_def inline_direct_return_node_case comp_def, llvm_code] =
   remove_a_ptr_code_def
   remove_b_ptr_code_def
   remove_c_ptr_code_def
