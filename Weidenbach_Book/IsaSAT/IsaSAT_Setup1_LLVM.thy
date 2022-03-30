@@ -3,7 +3,7 @@ theory IsaSAT_Setup1_LLVM
     IsaSAT_Setup
     IsaSAT_Setup0_LLVM
 begin
-
+thm update_b_code.refine
 sepref_register arena_status DELETED
 sepref_definition not_deleted_code
   is \<open>(uncurry (\<lambda>N C'. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}))\<close>
@@ -26,28 +26,40 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   P = \<open>(\<lambda>C S. arena_is_valid_clause_vdom S C)\<close>
   rewrites \<open>(\<lambda>S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S) = RETURN oo clause_not_marked_to_delete_heur\<close> and
   \<open>(\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S) = clause_not_marked_to_delete_heur_code\<close> and
-  \<open>(\<lambda>S. arena_is_valid_clause_vdom (get_clauses_wl_heur S)) = curry clause_not_marked_to_delete_heur_pre\<close>
+  \<open>(\<lambda>S. arena_is_valid_clause_vdom (get_clauses_wl_heur S)) = curry clause_not_marked_to_delete_heur_pre\<close> and
+  \<open>(read_arena_param_adder_ops.mop (\<lambda>C S. arena_is_valid_clause_vdom S C)
+    (\<lambda>C' N. do {
+    status \<leftarrow> RETURN (arena_status N C');
+    RETURN (status \<noteq> DELETED)
+     })) = mop_clause_not_marked_to_delete_heur\<close>
   apply unfold_locales
   apply (rule not_deleted_code.refine)
   unfolding clause_not_marked_to_delete_heur_alt_def clause_not_marked_to_delete_heur_code_def
   apply (solves \<open>rule refl\<close>)+
   subgoal by (auto simp: clause_not_marked_to_delete_heur_pre_def)
+  subgoal by (auto simp: read_arena_param_adder_ops.mop_def mop_clause_not_marked_to_delete_heur_def
+    clause_not_marked_to_delete_heur_pre_def read_all_st_def
+    clause_not_marked_to_delete_heur_def split: isasat_int.splits
+    intro!: ext)
   done
 
-sepref_register clause_not_marked_to_delete_heur
-lemmas [sepref_fr_rules] = arena_is_valid.refine[unfolded uncurry_curry_id]
-lemmas [llvm_code] = clause_not_marked_to_delete_heur_code_def[unfolded read_all_st_code_def not_deleted_code_def]
+sepref_register clause_not_marked_to_delete_heur mop_clause_not_marked_to_delete_heur
 
+definition ptr_clause_not_marked_to_delete_heur_code :: \<open>_\<close> where
+  \<open>ptr_clause_not_marked_to_delete_heur_code = ptr_read_code_param clause_not_marked_to_delete_heur_code\<close>
 
-sepref_def mop_clause_not_marked_to_delete_heur_impl
-  is \<open>uncurry mop_clause_not_marked_to_delete_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding mop_clause_not_marked_to_delete_heur_def
-    prod.case clause_not_marked_to_delete_heur_pre_def[symmetric]
-  by sepref
+lemmas [sepref_fr_rules] = arena_is_valid.refine[unfolded uncurry_curry_id] arena_is_valid.mop_refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.refine[unfolded uncurry_curry_id],
+  unfolded ptr_read_param_def ptr_clause_not_marked_to_delete_heur_code_def[symmetric]]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  clause_not_marked_to_delete_heur_code_def[unfolded read_all_st_code_def not_deleted_code_def]
+  ptr_clause_not_marked_to_delete_heur_code_def[unfolded ptr_read_code_param_def,
+  unfolded clause_not_marked_to_delete_heur_code_def read_all_st_code_def not_deleted_code_def]
 
 definition conflict_is_None  :: \<open>conflict_option_rel \<Rightarrow> bool nres\<close> where
   \<open>conflict_is_None =(\<lambda>N. do {let (b, _) = N;  RETURN b})\<close>
+
+
 definition \<open>conflict_is_None_code :: option_lookup_clause_assn \<Rightarrow> 1 word llM \<equiv>
 \<lambda>(a, _). do\<^sub>M {
   return\<^sub>M (a)
@@ -82,10 +94,17 @@ global_interpretation conflict_is_None: read_conflict_param_adder0 where
   unfolding get_conflict_wl_is_None_heur2_def get_conflict_wl_is_None_fast_code_def
   by (solves \<open>rule get_conflict_wl_is_None_heur_alt_def refl\<close>)+
 
+definition get_conflict_wl_is_None_ptr_code :: \<open>_\<close> where
+  \<open>get_conflict_wl_is_None_ptr_code = ptr_read_code get_conflict_wl_is_None_fast_code\<close>
+
 lemmas [sepref_fr_rules] = conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def]
+  ptr_read_loc0.ptr_read_code[unfolded ptr_read_loc0_def, OF conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def],
+  unfolded get_conflict_wl_is_None_ptr_code_def[symmetric] ptr_read_def]
+
 lemmas [llvm_code] = conflict_is_None_code_def
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_fast_code_def[unfolded read_all_st_code_def]
+  get_conflict_wl_is_None_ptr_code_def[unfolded ptr_read_code_def get_conflict_wl_is_None_fast_code_def read_all_st_code_def]
 
 lemma count_decided_st_heur_alt_def:
   \<open>RETURN o count_decided_st_heur = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
@@ -118,9 +137,16 @@ global_interpretation count_decided: read_trail_param_adder0 where
     by (auto simp: isa_count_decided_st_fast_code_def)
   done
 
+definition ptr_isa_count_decided_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_isa_count_decided_st_fast_code = ptr_read_code isa_count_decided_st_fast_code\<close>
+
 lemmas [sepref_fr_rules] = count_decided.refine[unfolded lambda_comp_true]
+  ptr_read_loc0.ptr_read_code[unfolded ptr_read_loc0_def, OF count_decided.refine[unfolded lambda_comp_true],
+  unfolded ptr_isa_count_decided_st_fast_code_def[symmetric] ptr_read_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   isa_count_decided_st_fast_code_def[unfolded read_all_st_code_def]
+  ptr_isa_count_decided_st_fast_code_def[unfolded ptr_read_code_def]
 
 definition polarity_st_heur_pol_fast ::  \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close>  where
   \<open>polarity_st_heur_pol_fast = (\<lambda>S C. read_trail_wl_heur_code (\<lambda>L. polarity_pol_fast L C) S)\<close>
@@ -143,9 +169,16 @@ global_interpretation mop_count_decided: read_trail_param_adder where
       split: isasat_int.splits intro!: ext)
   done
 
+definition ptr_mop_count_decided where
+  \<open>ptr_mop_count_decided = ptr_read_code_param polarity_st_heur_pol_fast\<close>
+
 lemmas [sepref_fr_rules] = mop_count_decided.refine[unfolded lambda_comp_true]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF  mop_count_decided.refine[unfolded lambda_comp_true],
+  unfolded ptr_mop_count_decided_def[symmetric] ptr_read_param_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   polarity_st_heur_pol_fast_def[unfolded read_all_st_code_def]
+  ptr_mop_count_decided_def[unfolded ptr_mop_count_decided_def]
 
 definition arena_lit2 where \<open>arena_lit2 N i j = arena_lit N (i+j)\<close>
 
@@ -240,7 +273,7 @@ lemma arena_lit_arena_lit_read_arena_wl_heur_arena_lit:
 sepref_register mop_access_lit_in_clauses_heur
 lemma mop_access_lit_in_clauses_heur_refine[sepref_fr_rules]:
   \<open>(uncurry2 access_lit_in_clauses_heur_fast_code, uncurry2 mop_access_lit_in_clauses_heur)
-    \<in> [uncurry2 (\<lambda>S i j. length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+    \<in> [uncurry2 (\<lambda>S i j. length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a isasat_bounded_raw_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   using access_arena.mop_refine[unfolded access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric, where Q = \<open>\<lambda>_ _ _. True\<close>, unfolded simp_thms lambda_comp_true]]
   unfolding mop_access_lit_in_clauses_heur_def mop_access_lit_in_clauses_heur_def mop_arena_lit2_def Let_def
     access_arena.mop_def  refine_ASSERT_move_to_pre2'[symmetric] access_lit_in_clauses_heur_alt_def
@@ -251,23 +284,29 @@ lemma al_assn_boundD2: \<open>al_assn arena_el_impl_assn x2 (d:: 'a :: len2 word
   using al_assn_boundD[unfolded rdomp_def, of arena_el_impl_assn \<open>x2\<close>, where 'l = 'a]
   by (cases d) auto
 
-lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> sint64_max\<close> apply -
+lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_raw_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> sint64_max\<close> apply -
   unfolding rdomp_def
   apply normalize_goal+
   by (cases a, case_tac xa)
-   (auto simp: isasat_bounded_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int.splits
+   (auto simp: isasat_bounded_raw_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int.splits
     dest!: al_assn_boundD2 mod_starD)
 
 sepref_def mop_access_lit_in_clauses_heur_impl
   is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  :: \<open>isasat_bounded_raw_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   supply [dest] = isasat_bounded_assn_length_arenaD
   by sepref
 
+definition ptr_access_lit_in_clauses_heur where
+  \<open>ptr_access_lit_in_clauses_heur = ptr_read_code_param2 access_lit_in_clauses_heur_fast_code\<close>
+
 lemmas [sepref_fr_rules] = access_arena.refine
+  ptr_read_loc2.refine[unfolded ptr_read_loc2_def, OF access_arena.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_lit_in_clauses_heur_def[symmetric] ptr_read_param2_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   access_lit_in_clauses_heur_fast_code_def[unfolded read_all_st_code_def]
+  ptr_access_lit_in_clauses_heur_def[unfolded ptr_read_code_param2_def]
 
 
 
@@ -309,12 +348,18 @@ lemma rewatch_heur_st_fast_alt_def:
     split: isasat_int.splits
     intro!: ext)
 
+
 sepref_def rewatch_heur_st_fast_code
   is \<open>(rewatch_heur_st_fast)\<close>
   :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding rewatch_heur_st_fast_alt_def rewatch_heur_st_def rewatch_heur_vdom_def[symmetric] rewatch_heur_st_fast_pre_def
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+oops
   by sepref
 
 definition length_ivdom_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where

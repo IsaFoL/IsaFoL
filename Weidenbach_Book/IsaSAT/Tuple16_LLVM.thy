@@ -6,6 +6,43 @@ no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN
 
+text \<open>
+This is the setup for accessing and modifying the state. The construction is kept generic 
+(even if still targetting only our state). There is a lot of copy-paste that would be nice to automate
+at some point.
+
+
+We define 3 sort of operations:
+
+  \<^enum> extracting an element, replacing it by an default element. Modifies the state. The name starts 
+with \<^text>\<open>exctr\<close>
+
+  \<^enum> reinserting an element, freeing the current one. Modifies the state. The name starts with
+ \<^text>\<open>update\<close>
+
+  \<^enum> in-place reading a value, possibly with pure parameters. Does not modify the state. The name
+starts with \<^text>\<open>read\<close>
+
+\<close>
+(*TODO Move*)
+
+(* datatype isasat_int = IsaSAT_int
+ *   (get_trail_wl_heur: trail_pol_fast_assn)
+ *   (get_clauses_wl_heur: arena_assn)
+ *   (get_conflict_wl_heur: option_lookup_clause_assn)
+ *   (literals_to_update_wl_heur: \<open>64 word\<close>)
+ *   (get_watched_wl_heur: \<open>watched_wl_uint32\<close>)
+ *   (get_vmtf_heur: vmtf_remove_assn)
+ *   (get_count_max_lvls_heur: \<open>32 word\<close>)
+ *   (get_conflict_cach: cach_refinement_l_assn)
+ *   (get_lbd: lbd_assn)
+ *   (get_outlearned_heur: out_learned_assn)
+ *   (get_heur: heur_assn)
+ *   (get_stats_heur: stats)
+ *   (get_aivdom: aivdom_assn)
+ *   (get_learned_count: \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>)
+ *   (get_opts: opts_assn)
+ *   (get_old_arena: arena_assn) *)
 
 instantiation isasat_int ::
   (llvm_rep,llvm_rep,llvm_rep,llvm_rep,
@@ -250,7 +287,6 @@ fun isasat_int_assn :: \<open>
  i_assn lbd (lbd') \<and>* j_assn outl (outl') \<and>* k_assn heur (heur')  \<and>* l_assn stats (stats') \<and>*
  m_assn aivdom (aivdom') \<and>* n_assn clss (clss') \<and>* o_assn opts (opts')  \<and>* p_assn arena (arena')))
   \<close>
-
 
 locale isasat_state_ops =
   fixes
@@ -511,7 +547,6 @@ definition update_o :: \<open>'o \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 
   \<open>update_o x15 isasat_int = (case isasat_int of IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 M x16 \<Rightarrow>
     let _ = M in
     IsaSAT_int x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16)\<close>
-
 
 definition update_p :: \<open>'p \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
@@ -1041,6 +1076,7 @@ sepref_definition read_all_code_tmp
 lemmas read_all_code_refine =
   read_all_code_tmp.refine[unfolded read_all_code_tmp_def
     read_all_st_code_def[symmetric]]
+
 end
 
 end

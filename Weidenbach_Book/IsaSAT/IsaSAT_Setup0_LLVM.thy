@@ -8,6 +8,7 @@ theory IsaSAT_Setup0_LLVM
     IsaSAT_Stats_LLVM
     IsaSAT_VDom_LLVM
     Isabelle_LLVM.LLVM_DS_Block_Alloc
+    Pointer_LLVM
     Tuple16_LLVM
 begin
 
@@ -34,6 +35,40 @@ starts with \<^text>\<open>read\<close>
 
 \<close>
 
+paragraph \<open>Options\<close>
+sepref_register mop_arena_length
+
+(* TODO: Move *)
+type_synonym arena_assn = \<open>(32 word, 64) array_list\<close>
+
+
+type_synonym twl_st_wll_trail_fast_int =
+  \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
+    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
+    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
+    heur_assn \<times>
+   aivdom_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
+  opts_assn \<times> arena_assn\<close>
+
+type_synonym twl_st_wll_trail_fast_ptr =
+  \<open>twl_st_wll_trail_fast_int ptr\<close>
+(* datatype isasat_int = IsaSAT_int
+ *   (get_trail_wl_heur: trail_pol_fast_assn)
+ *   (get_clauses_wl_heur: arena_assn)
+ *   (get_conflict_wl_heur: option_lookup_clause_assn)
+ *   (literals_to_update_wl_heur: \<open>64 word\<close>)
+ *   (get_watched_wl_heur: \<open>watched_wl_uint32\<close>)
+ *   (get_vmtf_heur: vmtf_remove_assn)
+ *   (get_count_max_lvls_heur: \<open>32 word\<close>)
+ *   (get_conflict_cach: cach_refinement_l_assn)
+ *   (get_lbd: lbd_assn)
+ *   (get_outlearned_heur: out_learned_assn)
+ *   (get_heur: heur_assn)
+ *   (get_stats_heur: stats)
+ *   (get_aivdom: aivdom_assn)
+ *   (get_learned_count: \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>)
+ *   (get_opts: opts_assn)
+ *   (get_old_arena: arena_assn) *)
 
 type_synonym twl_st_wll_trail_fast2 =
   \<open>(trail_pol_fast_assn, arena_assn, option_lookup_clause_assn,
@@ -42,33 +77,6 @@ type_synonym twl_st_wll_trail_fast2 =
     stats, heur_assn,
    aivdom_assn, (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word),
   opts_assn, arena_assn) isasat_int\<close>
-definition isasat_bounded_assn :: \<open>isasat \<Rightarrow> twl_st_wll_trail_fast2 \<Rightarrow> assn\<close> where
-\<open>isasat_bounded_assn = isasat_int_assn
-  trail_pol_fast_assn  arena_fast_assn
-  conflict_option_rel_assn
-  sint64_nat_assn
-  watchlist_fast_assn
-  vmtf_remove_assn
-  uint32_nat_assn
-  cach_refinement_l_assn
-  lbd_assn
-  out_learned_assn
-  stats_assn
-  heuristic_assn
-  aivdom_assn
-  lcount_assn
-  opts_assn  arena_fast_assn\<close>
-
-sepref_register mop_arena_length
-
-type_synonym twl_st_wll_trail_fast =
-  \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
-    heur_assn \<times>
-   aivdom_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
-  opts_assn \<times> arena_assn\<close>
-
 
 text \<open>The following constants are not useful for the initialisation for the solver, but only as temporary replacement
   for values in state.\<close>
@@ -555,6 +563,23 @@ lemma free_old_arena_fast_assn2: \<open>MK_FREE arena_fast_assn free_old_arena_f
   by (rule back_subst[of \<open>MK_FREE arena_fast_assn\<close>, OF free_old_arena_fast_assn])
     (auto intro!: ext)
 
+definition isasat_bounded_raw_assn :: \<open>isasat \<Rightarrow> twl_st_wll_trail_fast2 \<Rightarrow> assn\<close> where
+\<open>isasat_bounded_raw_assn = isasat_int_assn
+  trail_pol_fast_assn  arena_fast_assn
+  conflict_option_rel_assn
+  sint64_nat_assn
+  watchlist_fast_assn
+  vmtf_remove_assn
+  uint32_nat_assn
+  cach_refinement_l_assn
+  lbd_assn
+  out_learned_assn
+  stats_assn
+  heuristic_assn
+  aivdom_assn
+  lcount_assn
+  opts_assn  arena_fast_assn\<close>
+
 global_interpretation isasat_state where
   a_assn = trail_pol_fast_assn and
   b_assn = arena_fast_assn and
@@ -621,7 +646,7 @@ global_interpretation isasat_state where
   p = \<open>bottom_old_arena_code\<close> and
   p_free = free_old_arena_fast
   rewrites
-    \<open>isasat_assn \<equiv> isasat_bounded_assn\<close> and
+    \<open>isasat_assn \<equiv> isasat_bounded_raw_assn\<close> and
     \<open>remove_a \<equiv> extract_trail_wl_heur\<close> and
     \<open>remove_b \<equiv> extract_arena_wl_heur\<close> and
     \<open>remove_c \<equiv> extract_conflict_wl_heur\<close> and
@@ -671,7 +696,7 @@ global_interpretation isasat_state where
   subgoal by (rule free_lcount_assn2)
   subgoal by (rule free_opts_assn2)
   subgoal by (rule free_old_arena_fast_assn2)
-  subgoal unfolding isasat_bounded_assn_def isasat_state_ops.isasat_assn_def .
+  subgoal unfolding isasat_bounded_raw_assn_def isasat_state_ops.isasat_assn_def .
   subgoal unfolding extract_trail_wl_heur_def .
   subgoal unfolding extract_arena_wl_heur_def .
   subgoal unfolding extract_conflict_wl_heur_def .
@@ -935,7 +960,7 @@ lemma not_deleted_code_refine':
 lemmas refine = read_all_code_refine[OF not_deleted_code_refine']
 
 lemma mop_refine:
-  \<open>(read_trail_wl_heur_code f, mop) \<in> isasat_bounded_assn\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  \<open>(read_trail_wl_heur_code f, mop) \<in> isasat_bounded_raw_assn\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre0)
   apply (rule hfref_cong[OF refine])
@@ -1071,7 +1096,7 @@ lemma refine:
   (get_aivdom S)
   (get_learned_count S)
   (get_opts S)
-  (get_old_arena S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
+  (get_old_arena S))]\<^sub>a isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
   apply (rule add_pure_parameter2)
   unfolding isasat_int.case_distrib case_isasat_int_split_getter
   apply (rule read_all_code_refine)
@@ -1082,7 +1107,7 @@ lemma refine:
 lemma mop_refine:
   \<open>(uncurry (\<lambda>N C. read_all_st_code (f C) N),
     uncurry mop)
-  \<in> isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  \<in> isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre)
   apply (rule refine)
@@ -1186,7 +1211,7 @@ lemmas refine = XX.refine
 lemma mop_refine:
   \<open>(uncurry (\<lambda>N C. read_all_st_code (\<lambda>_ M _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M) N),
     uncurry mop)
-  \<in> isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  \<in> isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre)
   apply (rule refine)
@@ -1284,11 +1309,11 @@ sublocale XX: read_arena_param_adder where
 lemma refine:
   \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (f C D) N),
     uncurry2 (\<lambda>N C' D. read_arena_wl_heur (f' C' D) N))
-  \<in> [uncurry2 (\<lambda>S C D. P C D (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  \<in> [uncurry2 (\<lambda>S C D. P C D (get_clauses_wl_heur S))]\<^sub>a isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
   by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
 
 lemma mop_refine:
-  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f C D N) N), uncurry2 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  \<open>(uncurry2 (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. f C D N) N), uncurry2 mop) \<in> isasat_bounded_raw_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre2)
   apply (rule refine[unfolded comp_def])
@@ -1510,7 +1535,7 @@ lemma refine:
   \<open>(uncurry2 (\<lambda>N C D. read_watchlist_wl_heur_code (f C D) N),
     uncurry2 (\<lambda>N C' D'. read_watchlist_wl_heur (f' C' D') N))
   \<in> [uncurry2 (\<lambda>S C D. P C D (get_watched_wl_heur S))]\<^sub>a
-    isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k  *\<^sub>a (pure R')\<^sup>k\<rightarrow> x_assn\<close>
+    isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k  *\<^sub>a (pure R')\<^sup>k\<rightarrow> x_assn\<close>
   by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
 
 lemmas mop_refine = XX.XX.mop_refine
@@ -1960,7 +1985,7 @@ sublocale XX: read_heur_param_adder where
 lemma refine:
   \<open>(uncurry2 (\<lambda>N C D. read_heur_wl_heur_code (f C D) N),
     uncurry2 (\<lambda>N C' D. read_heur_wl_heur (f' C' D) N))
-  \<in> [uncurry2 (\<lambda>S C D. P C D (get_heur S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  \<in> [uncurry2 (\<lambda>S C D. P C D (get_heur S))]\<^sub>a isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
   by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
 
 end
@@ -2277,7 +2302,7 @@ lemmas refine = XX.refine
 lemma mop_refine:
   \<open>(uncurry (\<lambda>N C. read_all_st_code (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C M N) N),
     uncurry mop)
-  \<in> isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
+  \<in> isasat_bounded_raw_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre)
   apply (rule refine)
@@ -2318,7 +2343,7 @@ lemmas refine = XX.refine[unfolded case_isasat_int_split_getter]
 
 lemma mop_refine:
   \<open>(uncurry2 (\<lambda>N C D. read_all_st_code
-        (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D M N) N), uncurry2 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+        (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D M N) N), uncurry2 mop) \<in> isasat_bounded_raw_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre2)
   apply (rule refine[THEN split_snd_pure_arg, unfolded prod.case])
@@ -2360,6 +2385,7 @@ locale read_trail_arena_param_adder2_threeargs =
     \<open>(uncurry4 (\<lambda>S T C D E. f C D E S T), uncurry4 (\<lambda>S T C' D' E'. f' C' D' E' S T)) \<in>
     [uncurry4 (\<lambda>S T C' D' E'. P C' D' E' S T)]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k*\<^sub>a (pure R'')\<^sup>k \<rightarrow> x_assn\<close>
 begin
+
 sublocale XX: read_trail_arena_param_adder where
   f = \<open>\<lambda>(C,D,E) N. f C D E N\<close> and
   f' = \<open>\<lambda>(C,D,E) N. f' C D E N\<close> and
@@ -2378,12 +2404,12 @@ lemma refine:
   \<open>(uncurry3 (\<lambda>N C D E. read_all_st_code (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D E M N) N),
   uncurry3 (\<lambda>N C D E. read_all_st (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f' C D E M N) N))
   \<in> [uncurry3 (\<lambda>S C' D' E'. P C' D' E' (get_trail_wl_heur S) (get_clauses_wl_heur S))]\<^sub>a
-  isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k *\<^sub>a (pure R'')\<^sup>k \<rightarrow> x_assn\<close>
+  isasat_bounded_raw_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k *\<^sub>a (pure R'')\<^sup>k \<rightarrow> x_assn\<close>
   using XX.refine[THEN split_snd_pure_arg, unfolded prod.case] unfolding hfref_def
   by (auto simp flip: prod_assn_pure_conv)
 lemma mop_refine:
   \<open>(uncurry3 (\<lambda>N C D E. read_all_st_code
-        (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D E M N) N), uncurry3 mop) \<in> isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k *\<^sub>a (pure R'')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+        (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. f C D E M N) N), uncurry3 mop) \<in> isasat_bounded_raw_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k *\<^sub>a (pure R'')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
   unfolding mop_def
   apply (rule refine_ASSERT_move_to_pre3)
   apply (rule refine)
@@ -2586,5 +2612,117 @@ abbreviation update_opts_wl_heur :: \<open>opts \<Rightarrow>isasat \<Rightarrow
 
 abbreviation update_old_arena_wl_heur :: \<open>arena \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>update_old_arena_wl_heur \<equiv> update_p\<close>
+
+abbreviation isasat_bounded_assn where
+  \<open>isasat_bounded_assn \<equiv> pointer_assn isasat_bounded_raw_assn\<close>
+
+definition remove_a_ptr_code :: \<open>_\<close> where
+  \<open>remove_a_ptr_code = ptr_write_code remove_a_code\<close>
+
+definition remove_b_ptr_code :: \<open>_\<close> where
+  \<open>remove_b_ptr_code = ptr_write_code remove_b_code\<close>
+
+definition remove_c_ptr_code :: \<open>_\<close> where
+  \<open>remove_c_ptr_code = ptr_write_code remove_c_code\<close>
+
+definition remove_d_ptr_code :: \<open>_\<close> where
+  \<open>remove_d_ptr_code = ptr_write_code remove_d_code\<close>
+
+definition remove_e_ptr_code :: \<open>_\<close> where
+  \<open>remove_e_ptr_code = ptr_write_code remove_e_code\<close>
+
+definition remove_f_ptr_code :: \<open>_\<close> where
+  \<open>remove_f_ptr_code = ptr_write_code remove_f_code\<close>
+
+definition remove_g_ptr_code :: \<open>_\<close> where
+  \<open>remove_g_ptr_code = ptr_write_code remove_g_code\<close>
+
+definition remove_h_ptr_code :: \<open>_\<close> where
+  \<open>remove_h_ptr_code = ptr_write_code remove_h_code\<close>
+
+definition remove_i_ptr_code :: \<open>_\<close> where
+  \<open>remove_i_ptr_code = ptr_write_code remove_i_code\<close>
+
+definition remove_j_ptr_code :: \<open>_\<close> where
+  \<open>remove_j_ptr_code = ptr_write_code remove_j_code\<close>
+
+definition remove_k_ptr_code :: \<open>_\<close> where
+  \<open>remove_k_ptr_code = ptr_write_code remove_k_code\<close>
+
+definition remove_l_ptr_code :: \<open>_\<close> where
+  \<open>remove_l_ptr_code = ptr_write_code remove_l_code\<close>
+
+definition remove_m_ptr_code :: \<open>_\<close> where
+  \<open>remove_m_ptr_code = ptr_write_code remove_m_code\<close>
+
+definition remove_n_ptr_code :: \<open>_\<close> where
+  \<open>remove_n_ptr_code = ptr_write_code remove_n_code\<close>
+
+definition remove_o_ptr_code :: \<open>_\<close> where
+  \<open>remove_o_ptr_code = ptr_write_code remove_o_code\<close>
+
+definition remove_p_ptr_code :: \<open>_\<close> where
+  \<open>remove_p_ptr_code = ptr_write_code remove_p_code\<close>
+
+lemmas [sepref_fr_rules] =
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_a_code.refine,
+    unfolded remove_a_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_b_code.refine,
+    unfolded remove_b_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_c_code.refine,
+    unfolded remove_c_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_d_code.refine,
+    unfolded remove_d_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_e_code.refine,
+    unfolded remove_e_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_f_code.refine,
+    unfolded remove_f_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_g_code.refine,
+    unfolded remove_g_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_h_code.refine,
+    unfolded remove_h_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_i_code.refine,
+    unfolded remove_i_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_j_code.refine,
+    unfolded remove_j_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_k_code.refine,
+    unfolded remove_k_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_l_code.refine,
+    unfolded remove_l_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_l_code.refine,
+    unfolded remove_m_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_m_code.refine,
+    unfolded remove_n_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_n_code.refine,
+    unfolded remove_m_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_o_code.refine,
+    unfolded remove_o_ptr_code_def[symmetric] ptr_write_def]
+  ptr_write_loc.ptr_write_code[unfolded ptr_write_loc_def, OF remove_p_code.refine,
+    unfolded remove_p_ptr_code_def[symmetric] ptr_write_def]
+
+lemmas [unfolded ptr_write_code_def inline_direct_return_node_case comp_def, llvm_code] =
+  remove_a_ptr_code_def
+  remove_b_ptr_code_def
+  remove_c_ptr_code_def
+  remove_d_ptr_code_def
+  remove_e_ptr_code_def
+  remove_f_ptr_code_def
+  remove_g_ptr_code_def
+  remove_h_ptr_code_def
+  remove_i_ptr_code_def
+  remove_j_ptr_code_def
+  remove_k_ptr_code_def
+  remove_l_ptr_code_def
+  remove_m_ptr_code_def
+  remove_n_ptr_code_def
+  remove_p_ptr_code_def
+  remove_p_ptr_code_def
+
+lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o Tuple16_get_d) \<in> isasat_bounded_raw_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [split] = isasat_int.splits
+  unfolding isasat_bounded_raw_assn_def
+  apply sepref_to_hoare
+  apply (vcg')
+  done
 
 end

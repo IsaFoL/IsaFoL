@@ -11,6 +11,7 @@ theory IsaSAT_Setup
     IsaSAT_Stats
     IsaSAT_Profile
     IsaSAT_VDom
+    Tuple16
 begin
 
 chapter \<open>Complete state\<close>
@@ -73,8 +74,6 @@ section \<open>Full state\<close>
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 
 paragraph \<open>Definition\<close>
-
-
 
 type_synonym isasat = \<open>(trail_pol, arena,
       conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
