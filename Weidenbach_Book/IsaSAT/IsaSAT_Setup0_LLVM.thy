@@ -2726,4 +2726,22 @@ lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o Tuple16_get_d
   apply (vcg')
   done
 
+lemmas [unfolded ptr_write_inplace_code_def ptr_write_inplace_def, sepref_fr_rules] =
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_a_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_b_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_c_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_d_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_e_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_f_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_g_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_h_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_i_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_j_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_k_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_l_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_m_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_n_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_o_code.refine, unfolded ptr_write_inplace_def]
+  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_p_code.refine, unfolded ptr_write_inplace_def]
+
 end

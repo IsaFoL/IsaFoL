@@ -4,23 +4,6 @@ theory IsaSAT_Setup1_LLVM
     IsaSAT_Setup0_LLVM
 begin
 thm update_b_code.refine
-lemmas [unfolded ptr_write_inplace_code_def ptr_write_inplace_def, sepref_fr_rules] =
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_a_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_b_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_c_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_d_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_e_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_f_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_g_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_h_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_i_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_j_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_k_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_l_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_m_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_n_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_o_code.refine, unfolded ptr_write_inplace_def]
-  ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_p_code.refine, unfolded ptr_write_inplace_def]
 
 sepref_register arena_status DELETED
 sepref_definition not_deleted_code
@@ -325,7 +308,7 @@ lemmas [sepref_fr_rules] = access_arena.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   access_lit_in_clauses_heur_fast_code_def[unfolded read_all_st_code_def]
-  ptr_access_lit_in_clauses_heur_def[unfolded ptr_read_code2_def]
+  ptr_access_lit_in_clauses_heur_def[unfolded ptr_read2_code_def]
 
 sepref_register mop_arena_lit2 mop_arena_length mop_append_ll
 sepref_def rewatch_heur_vdom_fast_code
@@ -372,11 +355,6 @@ sepref_def rewatch_heur_st_fast_code
        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding rewatch_heur_st_fast_alt_def rewatch_heur_st_def rewatch_heur_vdom_def[symmetric] rewatch_heur_st_fast_pre_def
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-oops
   by sepref
 
 definition length_ivdom_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
@@ -416,9 +394,14 @@ global_interpretation length_avdom_aivdom: read_vdom_param_adder0 where
     by (auto simp: length_avdom_fast_code_def)
   done
 
+definition ptr_length_avdom_fast_code :: \<open>_ \<Rightarrow> _\<close> where
+  \<open>ptr_length_avdom_fast_code = ptr_read0_code length_avdom_fast_code\<close>
 
 definition length_tvdom_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>length_tvdom_fast_code = read_vdom_wl_heur_code length_tvdom_aivdom_impl\<close>
+
+definition ptr_length_tvdom_fast_code :: \<open>_ \<Rightarrow> _\<close> where
+  \<open>ptr_length_tvdom_fast_code = ptr_read0_code length_tvdom_fast_code\<close>
 
 global_interpretation length_tvdom_aivdom: read_vdom_param_adder0 where
   f = \<open>length_tvdom_aivdom_impl\<close> and
@@ -440,11 +423,16 @@ global_interpretation length_tvdom_aivdom: read_vdom_param_adder0 where
 lemmas [sepref_fr_rules] = length_ivdom_aivdom.refine[unfolded lambda_comp_true]
   length_avdom_aivdom.refine[unfolded lambda_comp_true]
   length_tvdom_aivdom.refine[unfolded lambda_comp_true]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF length_avdom_aivdom.refine[unfolded lambda_comp_true],
+  unfolded ptr_length_avdom_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF length_tvdom_aivdom.refine[unfolded lambda_comp_true],
+  unfolded ptr_length_tvdom_fast_code_def[symmetric] ptr_read0_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ivdom_fast_code_def[unfolded read_all_st_code_def]
   length_avdom_fast_code_def[unfolded read_all_st_code_def]
   length_tvdom_fast_code_def[unfolded read_all_st_code_def]
+  ptr_length_avdom_fast_code_def[unfolded ptr_read0_code_def]
 
 sepref_register length_avdom length_ivdom length_tvdom
 
