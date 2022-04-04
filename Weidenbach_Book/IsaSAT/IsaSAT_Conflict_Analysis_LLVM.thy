@@ -21,6 +21,9 @@ sepref_def is_decided_trail_impl
 
 definition is_decided_hd_trail_wl_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>is_decided_hd_trail_wl_fast_code = read_trail_wl_heur_code is_decided_trail_impl\<close>
+definition ptr_is_decided_hd_trail_wl_fast_code where
+  \<open>ptr_is_decided_hd_trail_wl_fast_code = ptr_read0_code is_decided_hd_trail_wl_fast_code\<close>
+
 global_interpretation is_decided_hd: read_trail_param_adder0 where
   f = \<open>is_decided_trail_impl\<close> and
   f' = \<open>is_decided_trail\<close> and
@@ -56,6 +59,8 @@ sepref_def lit_and_ann_of_propagated_trail_heur_impl
 
 definition lit_and_ann_of_propagated_st_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>lit_and_ann_of_propagated_st_heur_fast_code = read_trail_wl_heur_code lit_and_ann_of_propagated_trail_heur_impl\<close>
+definition ptr_lit_and_ann_of_propagated_st_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_lit_and_ann_of_propagated_st_heur_fast_code = ptr_read0_code lit_and_ann_of_propagated_st_heur_fast_code\<close>
 
 global_interpretation lit_and_of_proped_lit: read_trail_param_adder0 where
   f = \<open>lit_and_ann_of_propagated_trail_heur_impl\<close> and
@@ -87,6 +92,8 @@ sepref_def atm_is_in_conflict_confl_heur_impl
 
 definition atm_is_in_conflict_st_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>atm_is_in_conflict_st_heur_fast_code = (\<lambda>N C. read_conflict_wl_heur_code (\<lambda>M. atm_is_in_conflict_confl_heur_impl M C) N)\<close>
+definition ptr_atm_is_in_conflict_st_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_atm_is_in_conflict_st_heur_fast_code = ptr_read_code atm_is_in_conflict_st_heur_fast_code\<close>
 
 
 definition atm_is_in_conflict_st_heur' :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> bool nres\<close> where
@@ -112,11 +119,23 @@ global_interpretation atm_in_conflict: read_conflict_param_adder where
     by (auto simp: atm_is_in_conflict_st_heur_fast_code_def)
   done
 
-lemmas [unfolded lambda_comp_true, sepref_fr_rules] = is_decided_hd.refine lit_and_of_proped_lit.refine atm_in_conflict.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
+  is_decided_hd.refine lit_and_of_proped_lit.refine atm_in_conflict.refine
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF is_decided_hd.refine[unfolded lambda_comp_true],
+  unfolded ptr_is_decided_hd_trail_wl_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF lit_and_of_proped_lit.refine[unfolded lambda_comp_true],
+  unfolded ptr_lit_and_ann_of_propagated_st_heur_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF atm_in_conflict.refine[unfolded lambda_comp_true],
+  unfolded ptr_atm_is_in_conflict_st_heur_fast_code_def[symmetric] ptr_read_def]
+
+lemmas [unfolded inline_direct_return_node_case ptr_read_code_def ptr_read0_code_def, llvm_code] =
   is_decided_hd_trail_wl_fast_code_def[unfolded read_all_st_code_def]
   lit_and_ann_of_propagated_st_heur_fast_code_def[unfolded read_all_st_code_def]
   atm_is_in_conflict_st_heur_fast_code_def[unfolded read_all_st_code_def]
+  ptr_atm_is_in_conflict_st_heur_fast_code_def
+  ptr_lit_and_ann_of_propagated_st_heur_fast_code_def
+  ptr_is_decided_hd_trail_wl_fast_code_def
+
 
 sepref_def atm_is_in_conflict_st_heur_fast2_code
   is \<open>uncurry (atm_is_in_conflict_st_heur)\<close>
@@ -216,8 +235,6 @@ sepref_def update_confl_tl_wl_fast_code
   apply (rewrite at \<open>If (_ = \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const \<open>TYPE (32)\<close>)
   by sepref
-
-declare update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
 
 sepref_register is_in_conflict_st atm_is_in_conflict_st_heur
 sepref_def skip_and_resolve_loop_wl_D_fast

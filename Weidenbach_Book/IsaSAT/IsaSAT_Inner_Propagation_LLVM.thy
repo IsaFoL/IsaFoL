@@ -59,6 +59,46 @@ definition isasat_find_unset_lit_st_impl :: \<open>twl_st_wll_trail_fast2 \<Righ
      read_all_st_code
       (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N)\<close>
 
+(*TODO Move*)
+
+
+definition ptr_read4 where
+  \<open>ptr_read4 f' a b c d e = f' a b c d e\<close>
+
+
+definition ptr_read4_code :: "_ \<Rightarrow> 'a::llvm_rep ptr \<Rightarrow> _" where
+  \<open>ptr_read4_code f a c d e g = doM {
+    b \<leftarrow> ll_load a;
+    f (b) c d e g
+  }\<close>
+
+locale ptr_read4_loc =
+  fixes f ::  "'a::llvm_rep \<Rightarrow> _ :: llvm_rep \<Rightarrow>_ :: llvm_rep \<Rightarrow> _ :: llvm_rep \<Rightarrow> _ :: llvm_rep \<Rightarrow>  _" and f' and
+    ptr_assn and b_assn and R and P and S and T and U
+  assumes H: \<open>(uncurry4 f, uncurry4 f') \<in> [P]\<^sub>a (R)\<^sup>k *\<^sub>a S\<^sup>k *\<^sub>a T\<^sup>k *\<^sub>a U\<^sup>k *\<^sub>a V\<^sup>k \<rightarrow> b_assn\<close>
+  notes [[sepref_register_adhoc f']]
+  notes [fcomp_norm_unfold] = pointer_assn_def[symmetric]
+begin
+
+sublocale XX: ptr_read_loc where
+  f = \<open>\<lambda>a (b,c,d,e). f a b c d e\<close> and
+  f' = \<open>\<lambda>a (b,c,d, e). f' a b c d e\<close> and
+  P = \<open>\<lambda>(a, (b,c,d, e)). P ((((a,b), c), d), e)\<close> and
+  S = \<open>S \<times>\<^sub>a T \<times>\<^sub>a U \<times>\<^sub>a V\<close>
+  by unfold_locales
+   (use H in \<open>simp add: hfref_def\<close>)
+
+lemma refine: \<open>(uncurry4 (ptr_read4_code f), uncurry4 (ptr_read4 f'))
+  \<in> [P]\<^sub>a (pointer_assn R)\<^sup>k *\<^sub>a S\<^sup>k *\<^sub>a T\<^sup>k*\<^sub>a U\<^sup>k *\<^sub>a V\<^sup>k \<rightarrow> b_assn\<close>
+  by (use XX.refine in \<open>simp add: hfref_def ptr_read_code_def ptr_read4_code_def
+    ptr_read_def ptr_read4_def\<close>)
+
+end
+(*END MOve*)
+
+definition ptr_isasat_find_unset_lit_st_impl :: \<open>_\<close> where
+  \<open>ptr_isasat_find_unset_lit_st_impl = ptr_read3_code isasat_find_unset_lit_st_impl\<close>
+
 global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs where
   R = \<open>snat_rel' (TYPE(64))\<close> and
   R' = \<open>snat_rel' (TYPE(64))\<close> and
@@ -81,8 +121,11 @@ global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs wh
   done
 
 lemmas [sepref_fr_rules] = find_unset_lit.refine
+  ptr_read3_loc.refine[unfolded ptr_read3_loc_def, OF find_unset_lit.refine[unfolded lambda_comp_true],
+  unfolded ptr_isasat_find_unset_lit_st_impl_def[symmetric] ptr_read3_def]
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   isasat_find_unset_lit_st_impl_def[unfolded read_all_st_code_def]
+  ptr_isasat_find_unset_lit_st_impl_def[unfolded ptr_read3_code_def]
 
 sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
@@ -119,12 +162,23 @@ lemma other_watched_wl_heur_alt_def:
 
 definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S\<close>
+definition ptr_clause_not_marked_to_delete_heur_code :: \<open>_\<close> where
+  \<open>ptr_clause_not_marked_to_delete_heur_code = ptr_read_code clause_not_marked_to_delete_heur_code\<close>
+
 (*mop_arena_lit2 \<longleftrightarrow> mop_access_lit_in_clauses_heur*)
+
+lemma rdomp_isasat_bounded_assn_raw:
+  \<open>rdomp isasat_bounded_assn a \<Longrightarrow> rdomp isasat_bounded_raw_assn a\<close>
+  by (auto simp: rdomp_def pointer_assn_def assn_comp_def sep_conj_def)
+
+lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_clauses_wl_heur a) \<le> sint64_max\<close>
+  by (drule rdomp_isasat_bounded_assn_raw, rule isasat_bounded_assn_length_arenaD)
 
 sepref_def other_watched_wl_heur_impl
   is \<open>uncurry3 other_watched_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-    unat_lit_assn\<close>
+  unat_lit_assn\<close>
+  supply [dest] = isasat_bounded_assn_length_arenaD
   supply [[goals_limit=1]]
   unfolding other_watched_wl_heur_alt_def
     arena_other_watched_def
@@ -206,7 +260,7 @@ lemma propagate_lit_wl_heur_alt_def:
   })\<close>
         by (auto intro!: ext simp: state_extractors propagate_lit_wl_heur_def
           split: isasat_int.splits)
-      
+
 sepref_def propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
   :: \<open>[\<lambda>(((L, C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -371,6 +425,7 @@ sepref_def pos_of_watched_heur_impl
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding pos_of_watched_heur_def
+  supply [dest] = isasat_bounded_assn_length_arenaD
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
@@ -395,8 +450,13 @@ lemmas [llvm_inline] =
   keep_watch_heur_fast_code_def
   nat_of_lit_rel_impl_def
 
-experiment begin
+lemmas [llvm_code] =
+  ptr_clause_pos_heur_code2_def[unfolded ptr_read_code_def]
 
+lemmas [llvm_code del] =
+  ptr_clause_pos_heur_code2_def
+
+experiment begin
 export_llvm
   isa_save_pos_fast_code
   watched_by_app_heur_fast_code

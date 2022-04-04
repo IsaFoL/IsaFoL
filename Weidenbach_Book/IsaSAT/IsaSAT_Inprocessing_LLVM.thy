@@ -13,7 +13,7 @@ sepref_def isa_simplify_clause_with_unit2_code
   bool1_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a  bool1_assn \<times>\<^sub>a uint32_nat_assn\<close>
   unfolding isa_simplify_clause_with_unit2_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
-    mop_arena_status_st_def[symmetric] isasat_bounded_assn_def
+    mop_arena_status_st_def[symmetric]
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
     tri_bool_eq_def[symmetric]
   apply (rewrite at \<open>(\<hole>, _, _)\<close> unat_const_fold[where 'a=32])
@@ -367,6 +367,9 @@ definition length_watchlist_raw where
 definition length_watchlist_raw_code where
   \<open>length_watchlist_raw_code = read_watchlist_wl_heur_code (length_watchlist_full_impl)\<close>
 
+definition ptr_length_watchlist_raw_code :: \<open>_\<close> where
+  \<open>ptr_length_watchlist_raw_code = ptr_read0_code length_watchlist_raw_code\<close>
+
 global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
   f' = \<open>RETURN o length\<close> and
   f = \<open>length_watchlist_full_impl\<close> and
@@ -385,13 +388,16 @@ global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
   done
 
 lemmas [sepref_fr_rules] = watchlist_length_raw.refine
+   ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF watchlist_length_raw.refine,
+  unfolded ptr_length_watchlist_raw_code_def[symmetric] ptr_read0_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_watchlist_raw_code_def[unfolded read_all_st_code_def]
+  ptr_length_watchlist_raw_code_def[unfolded ptr_read0_code_def]
+
 
 sepref_register create encoded_irred_index_set encoded_irred_index_get
 sepref_register uminus_lit:  "uminus :: nat literal \<Rightarrow> _"
-find_theorems isa_clause_remove_duplicate_clause_wl
-thm isa_clause_remove_duplicate_clause_wl_def
 
 lemma isa_clause_remove_duplicate_clause_wl_alt_def:
   \<open>isa_clause_remove_duplicate_clause_wl C S = (do{

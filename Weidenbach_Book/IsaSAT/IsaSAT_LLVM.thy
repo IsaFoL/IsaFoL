@@ -74,8 +74,10 @@ sepref_def split_trail_impl
   unfolding trail_pol_fast_assn_def split_trail_def
   by sepref
 
+sepref_register free_pointer
+
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case S of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case (free_pointer S) of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
     outl stats
     heur vdom lcount opts old_arena \<Rightarrow>
     do {_ \<leftarrow> print_trail2 (MM');
@@ -87,7 +89,7 @@ lemma extract_model_of_state_stat_alt_def:
          mop_free old_arena; mop_free lcount;
         RETURN (False, M, get_content stats)
      })\<close>
-  by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def
+  by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def free_pointer_def
     intro!: ext split: isasat_int.splits)
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?fr\<close>
@@ -102,7 +104,7 @@ sepref_def extract_model_of_state_stat
   by sepref
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>S. case S of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
+  \<open>RETURN o extract_state_stat = (\<lambda>S. case (free_pointer S) of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
        heur vdom lcount opts old_arena \<Rightarrow>
      do {
         mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
@@ -111,7 +113,7 @@ lemma extract_state_stat_alt_def:
          mop_free vdom; mop_free opts;
          mop_free old_arena; mop_free lcount;
         RETURN (True, [], get_content stats)})\<close>
-  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits intro!: ext)
+  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits free_pointer_def intro!: ext)
 
 sepref_def extract_state_stat
   is \<open>RETURN o extract_state_stat\<close>
@@ -449,7 +451,7 @@ sepref_definition llvm_version
 
 experiment
 begin
-  lemmas [llvm_code] = llvm_version_def
+  lemmas [llvm_code] = llvm_version_def free_pointer_def
 
   lemmas [llvm_inline] =
     unit_propagation_inner_loop_body_wl_fast_heur_code_def

@@ -9,42 +9,6 @@ imports Watched_Literals.WB_Sort IsaSAT_VMTF
    IsaSAT_Lookup_Conflict_LLVM
 begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
-(* TODO: Mathias! Only import the refinement stuff over a single point,
-  and at this point, do all necessary adaptations.
-
-  Currently, this point is Refine_Monadic_Thin
-
-*)
-(*declare is_None_def[simp del] *)
-
-
-(*
-lemma VMTF_Node_ref[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo VMTF_Node), uncurry2 (RETURN ooo VMTF_Node)) \<in>
-    uint64_nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
-    vmtf_node_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: vmtf_node_rel_def uint32_nat_rel_def br_def option_assn_alt_def
-     split: option.splits)
-
-lemma stamp_ref[sepref_fr_rules]:
-  \<open>(return o stamp, RETURN o stamp) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (auto simp: ex_assn_move_out(2)[symmetric] return_cons_rule ent_ex_up_swap vmtf_node_rel_def
-      simp del: ex_assn_move_out)
-
-lemma get_next_ref[sepref_fr_rules]:
-  \<open>(return o get_next, RETURN o get_next) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
-
-lemma get_prev_ref[sepref_fr_rules]:
-  \<open>(return o get_prev, RETURN o get_prev) \<in> vmtf_node_assn\<^sup>k \<rightarrow>\<^sub>a
-   option_assn uint32_nat_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
-*)
 
 
 definition valid_atoms :: \<open>nat_vmtf_node list \<Rightarrow> nat set\<close> where
@@ -398,18 +362,8 @@ sepref_def vmtf_rescale_code
 
 sepref_register partition_between_ref
 
-(*lemma partition_between_ref_vmtf_code_aux:
-  \<open>\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64\<close>
-  apply sepref_bounds
-  apply (drule in_snat_rel_imp_less_max')+
-  by auto
-*)
 sepref_register isa_vmtf_enqueue
 
-(*
-lemma uint64_nal_rel_le_uint64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrightarrow> b \<le> uint64_max\<close>
-  by (auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_uint64_max)
-*)
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
 
@@ -468,18 +422,6 @@ lemma isa_vmtf_mark_to_rescore_and_unsetI:  \<open>
      atms_hash_insert_pre ak (ad, ba) \<Longrightarrow>
        isa_vmtf_mark_to_rescore_pre ak ((a, aa, ab, ac, Some ak'), ad, ba)\<close>
   by (auto simp: isa_vmtf_mark_to_rescore_pre_def)
-(*
-sepref_def vmtf_mark_to_rescore_and_unset_code
-  is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore_and_unset)\<close>
-  :: \<open>[isa_vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
-      atom_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
-  supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
-    if_splits[split] isa_vmtf_unset_def[simp] isa_vmtf_mark_to_rescore_and_unsetI[intro!]
-  supply [[goals_limit=1]]
-  unfolding isa_vmtf_mark_to_rescore_and_unset_def isa_vmtf_mark_to_rescore_and_unset_pre_def
-    save_phase_def isa_vmtf_mark_to_rescore_and_unset_pre_def
-  by sepref
-*)
 
 sepref_def find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>

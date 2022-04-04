@@ -874,16 +874,18 @@ lemma finalise_init_code_alt_def:
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
-  RETURN (IsaSAT_int M' N' D' Q' W' vm
+  RETURN (create_pointer (IsaSAT_int M' N' D' Q' W' vm
     clvls cach lbd (take 1(replicate 160 (Pos 0))) init_stats
-    (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [])
+    (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts []))
     })\<close>
     unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def split_vmtf2_def
+      create_pointer_def
     by (auto simp: Let_def recombine_vmtf_def split: prod.splits tuple15.splits intro!: ext)
 
 lemma stats_int_assn_alt_def: \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
   by auto
 
+sepref_register create_pointer
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
@@ -1035,6 +1037,7 @@ lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
 (*TODO check why this is actually needed*)
 lemmas [llvm_code] =
    init_state_wl_D'_code_def[unfolded comp_def]
+   create_pointer_code_def
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]

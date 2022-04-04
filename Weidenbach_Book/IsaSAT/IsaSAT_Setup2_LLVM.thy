@@ -6,6 +6,9 @@ begin
 definition opts_restart_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>opts_restart_st_fast_code = read_opts_wl_heur_code opts_rel_restart_code\<close>
 
+definition ptr_opts_restart_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_restart_st_fast_code = ptr_read0_code opts_restart_st_fast_code\<close>
+
 global_interpretation opts_restart: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_restart\<close> and
   f = opts_rel_restart_code and
@@ -22,6 +25,9 @@ global_interpretation opts_restart: read_opts_param_adder0 where
 
 definition opts_reduction_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>opts_reduction_st_fast_code = read_opts_wl_heur_code opts_rel_reduce_code\<close>
+
+definition ptr_opts_reduction_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_reduction_st_fast_code = ptr_read0_code opts_reduction_st_fast_code\<close>
 
 global_interpretation opts_reduce: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_reduce\<close> and
@@ -40,6 +46,9 @@ global_interpretation opts_reduce: read_opts_param_adder0 where
 definition opts_unbounded_mode_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_unbounded_mode_st_fast_code = read_opts_wl_heur_code opts_rel_unbounded_mode_code\<close>
 
+definition ptr_opts_unbounded_mode_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_unbounded_mode_st_fast_code = ptr_read0_code opts_unbounded_mode_st_fast_code\<close>
+
 global_interpretation opts_unbounded_mode: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_unbounded_mode\<close> and
   f = opts_rel_unbounded_mode_code and
@@ -56,6 +65,9 @@ global_interpretation opts_unbounded_mode: read_opts_param_adder0 where
 
 definition opts_minimum_between_restart_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_minimum_between_restart_st_fast_code = read_opts_wl_heur_code opts_rel_miminum_between_restart_code\<close>
+
+definition ptr_opts_minimum_between_restart_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_minimum_between_restart_st_fast_code = ptr_read0_code opts_minimum_between_restart_st_fast_code\<close>
 
 global_interpretation opts_minimum_between_restart: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_minimum_between_restart\<close> and
@@ -74,6 +86,9 @@ global_interpretation opts_minimum_between_restart: read_opts_param_adder0 where
 definition opts_restart_coeff1_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_restart_coeff1_st_fast_code = read_opts_wl_heur_code opts_rel_restart_coeff1_code\<close>
 
+definition ptr_opts_restart_coeff1_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_restart_coeff1_st_fast_code = ptr_read0_code opts_restart_coeff1_st_fast_code\<close>
+
 global_interpretation opts_restart_coeff1: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_restart_coeff1\<close> and
   f = opts_rel_restart_coeff1_code and
@@ -90,6 +105,9 @@ global_interpretation opts_restart_coeff1: read_opts_param_adder0 where
 
 definition opts_restart_coeff2_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>opts_restart_coeff2_st_fast_code = read_opts_wl_heur_code opts_rel_restart_coeff2_code\<close>
+
+definition ptr_opts_restart_coeff2_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_opts_restart_coeff2_st_fast_code = ptr_read0_code opts_restart_coeff2_st_fast_code\<close>
 
 global_interpretation opts_restart_coeff2: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_restart_coeff2\<close> and
@@ -108,6 +126,9 @@ global_interpretation opts_restart_coeff2: read_opts_param_adder0 where
 definition units_since_last_GC_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>units_since_last_GC_st_code = read_stats_wl_heur_code units_since_last_GC_stats_impl\<close>
 
+definition ptr_units_since_last_GC_st_code :: \<open>_\<close> where
+  \<open>ptr_units_since_last_GC_st_code = ptr_read0_code units_since_last_GC_st_code\<close>
+
 global_interpretation units_since_last_GC: read_stats_param_adder0 where
   f' = \<open>RETURN o units_since_last_GC\<close> and
   f = units_since_last_GC_stats_impl and
@@ -124,6 +145,9 @@ global_interpretation units_since_last_GC: read_stats_param_adder0 where
 
 definition get_GC_units_opt_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_GC_units_opt_code = read_opts_wl_heur_code opts_rel_GC_units_lim_code\<close>
+
+definition ptr_get_GC_units_opt_code :: \<open>_\<close> where
+  \<open>ptr_get_GC_units_opt_code = ptr_read0_code get_GC_units_opt_code\<close>
 
 global_interpretation opts_GC_units_lim: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_GC_units_lim\<close> and
@@ -142,6 +166,9 @@ global_interpretation opts_GC_units_lim: read_opts_param_adder0 where
 definition get_target_opts_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_target_opts_impl = read_opts_wl_heur_code opts_rel_target_code\<close>
 
+definition ptr_get_target_opts_impl :: \<open>_\<close> where
+  \<open>ptr_get_target_opts_impl = ptr_read0_code get_target_opts_impl\<close>
+
 global_interpretation get_target_opts: read_opts_param_adder0 where
   f' = \<open>RETURN o opts_target\<close> and
   f = opts_rel_target_code and
@@ -155,19 +182,12 @@ global_interpretation get_target_opts: read_opts_param_adder0 where
     split: isasat_int.splits)
   subgoal by (auto simp: get_target_opts_impl_def)
   done
-thm get_target_opts_def
-  find_theorems opts_target RETURN
-(*
-sepref_def get_opts_impl
-  is \<open>RETURN o get_opts\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
-  unfolding get_opts_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
-*)
-
 
 definition isasat_length_trail_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_length_trail_st_code = read_trail_wl_heur_code isa_length_trail_fast_code\<close>
+
+definition ptr_isasat_length_trail_st_code :: \<open>_\<close> where
+  \<open>ptr_isasat_length_trail_st_code = ptr_read0_code isasat_length_trail_st_code\<close>
 
 global_interpretation trail_length: read_trail_param_adder0 where
   f' = \<open>RETURN o isa_length_trail\<close> and
@@ -199,6 +219,9 @@ sepref_def get_pos_of_level_in_trail_imp_code
 definition get_pos_of_level_in_trail_imp_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_pos_of_level_in_trail_imp_st_code = (\<lambda>N C. read_trail_wl_heur_code (\<lambda>c. get_pos_of_level_in_trail_imp_code c C) N)\<close>
 
+definition ptr_get_pos_of_level_in_trail_imp_st_code :: \<open>_\<close> where
+  \<open>ptr_get_pos_of_level_in_trail_imp_st_code = ptr_read_code get_pos_of_level_in_trail_imp_st_code\<close>
+
 global_interpretation pos_of_level_in_trail: read_trail_param_adder where
   R = \<open>unat_rel' TYPE(32)\<close> and
   f' = \<open>\<lambda>M c. get_pos_of_level_in_trail_imp c M\<close> and
@@ -217,6 +240,9 @@ global_interpretation pos_of_level_in_trail: read_trail_param_adder where
 
 definition get_global_conflict_count_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
    \<open>get_global_conflict_count_impl = read_stats_wl_heur_code stats_conflicts_stats_impl\<close>
+
+definition ptr_get_global_conflict_count_impl :: \<open>_\<close> where
+  \<open>ptr_get_global_conflict_count_impl = ptr_read0_code get_global_conflict_count_impl\<close>
 
 global_interpretation stats_conflict: read_stats_param_adder0 where
   f' = \<open>RETURN o stats_conflicts\<close> and
@@ -245,6 +271,28 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
   pos_of_level_in_trail.refine
   stats_conflict.refine
   get_target_opts.refine
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_restart.refine,
+  unfolded ptr_opts_restart_st_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_reduce.refine,
+  unfolded ptr_opts_reduction_st_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_unbounded_mode.refine,
+  unfolded ptr_opts_unbounded_mode_st_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_restart_coeff1.refine,
+  unfolded ptr_opts_restart_coeff1_st_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_restart_coeff2.refine,
+  unfolded ptr_opts_restart_coeff2_st_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF units_since_last_GC.refine,
+  unfolded ptr_units_since_last_GC_st_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_GC_units_lim.refine,
+  unfolded ptr_get_GC_units_opt_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF trail_length.refine[unfolded lambda_comp_true],
+  unfolded ptr_isasat_length_trail_st_code_def[symmetric] ptr_read0_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF pos_of_level_in_trail.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_pos_of_level_in_trail_imp_st_code_def[symmetric] ptr_read_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF stats_conflict.refine,
+  unfolded ptr_get_global_conflict_count_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF get_target_opts.refine,
+  unfolded ptr_get_target_opts_impl_def[symmetric] ptr_read0_def]
 
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
     opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
@@ -263,6 +311,20 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_pos_of_level_in_trail_imp_st_code_def[unfolded read_all_st_code_def]
   get_global_conflict_count_impl_def[unfolded read_all_st_code_def]
   get_target_opts_impl_def[unfolded read_all_st_code_def]
+
+lemmas [unfolded ptr_read0_code_def ptr_read_code_def, llvm_code] =
+  ptr_opts_restart_st_fast_code_def
+  ptr_opts_reduction_st_fast_code_def
+  ptr_opts_unbounded_mode_st_fast_code_def
+  ptr_opts_minimum_between_restart_st_fast_code_def
+  ptr_opts_restart_coeff1_st_fast_code_def
+  ptr_opts_restart_coeff2_st_fast_code_def
+  ptr_units_since_last_GC_st_code_def
+  ptr_get_GC_units_opt_code_def
+  ptr_isasat_length_trail_st_code_def
+  ptr_get_pos_of_level_in_trail_imp_st_code_def
+  ptr_get_global_conflict_count_impl_def
+  ptr_get_target_opts_impl_def
 
 sepref_register reset_units_since_last_GC
 
@@ -305,6 +367,9 @@ definition arena_status_st where
 definition arena_status_st_impl where
   \<open>arena_status_st_impl = (\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. arena_status_impl N C') S)\<close>
 
+definition ptr_arena_status_st_impl :: \<open>_\<close> where
+  \<open>ptr_arena_status_st_impl = ptr_read_code arena_status_st_impl\<close>
+
 global_interpretation arena_is_valid: read_arena_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
   f = \<open>\<lambda>C N. arena_status_impl N C\<close> and
@@ -326,6 +391,10 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   done
 
 lemmas [sepref_fr_rules] = arena_is_valid.mop_refine arena_is_valid.refine[unfolded uncurry_curry_id]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.mop_refine,
+  unfolded ptr_arena_status_st_impl_def[symmetric] ptr_read_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.refine[unfolded uncurry_curry_id],
+  unfolded ptr_arena_status_st_impl_def[symmetric] ptr_read_def]
 
 sepref_def mop_arena_status_st_impl
   is \<open>uncurry mop_arena_status_st\<close>
@@ -335,6 +404,9 @@ sepref_def mop_arena_status_st_impl
 
 definition arena_length_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>arena_length_st_impl = (\<lambda>S C'. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C') S)\<close>
+
+definition ptr_arena_length_st_impl :: \<open>_\<close> where
+  \<open>ptr_arena_length_st_impl = ptr_read_code arena_length_st_impl\<close>
 
 global_interpretation arena_length_clause: read_arena_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
@@ -356,8 +428,14 @@ global_interpretation arena_length_clause: read_arena_param_adder where
   done
 
 lemmas [sepref_fr_rules] = arena_length_clause.mop_refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_length_clause.mop_refine[unfolded uncurry_curry_id],
+  unfolded ptr_arena_length_st_impl_def[symmetric] ptr_read_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = arena_length_st_impl_def[unfolded read_all_st_code_def]
   arena_status_st_impl_def[unfolded read_all_st_code_def]
+  ptr_arena_length_st_impl_def[unfolded ptr_read_code_def]
+  ptr_arena_status_st_impl_def[unfolded ptr_read_code_def]
+
 
 sepref_definition arena_full_length_impl
   is \<open>RETURN o length\<close>
@@ -366,6 +444,9 @@ sepref_definition arena_full_length_impl
 
 definition full_arena_length_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>full_arena_length_st_impl = read_arena_wl_heur_code  (arena_full_length_impl)\<close>
+
+definition ptr_full_arena_length_st_impl :: \<open>_\<close> where
+  \<open>ptr_full_arena_length_st_impl = ptr_read0_code full_arena_length_st_impl\<close>
 
 global_interpretation arena_full_length: read_arena_param_adder0 where
   f = \<open>arena_full_length_impl\<close> and
@@ -402,6 +483,9 @@ lemma id_clvls_assn: \<open>(Mreturn, RETURN) \<in> (uint32_nat_assn)\<^sup>k \<
 definition get_count_max_lvls_heur_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_count_max_lvls_heur_impl = read_ccount_wl_heur_code  (Mreturn)\<close>
 
+definition ptr_get_count_max_lvls_heur_impl :: \<open>_\<close> where
+  \<open>ptr_get_count_max_lvls_heur_impl = ptr_read0_code get_count_max_lvls_heur_impl\<close>
+
 global_interpretation get_count_max_lvls: read_ccount_param_adder0 where
   f = \<open>Mreturn\<close> and
   f' = \<open>(RETURN)\<close> and
@@ -418,9 +502,16 @@ global_interpretation get_count_max_lvls: read_ccount_param_adder0 where
 
 
 lemmas [sepref_fr_rules] = arena_full_length.refine get_count_max_lvls.refine
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF arena_full_length.refine[unfolded uncurry_curry_id],
+  unfolded ptr_full_arena_length_st_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF get_count_max_lvls.refine[unfolded uncurry_curry_id],
+  unfolded ptr_get_count_max_lvls_heur_impl_def[symmetric] ptr_read0_def]
+
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = full_arena_length_st_impl_def[unfolded read_all_st_code_def]
-  arena_full_length_impl_def
-   get_count_max_lvls_heur_impl_def[unfolded read_all_st_code_def]
+  get_count_max_lvls_heur_impl_def[unfolded read_all_st_code_def]
+  ptr_full_arena_length_st_impl_def[unfolded ptr_read0_code_def]
+  ptr_get_count_max_lvls_heur_impl_def[unfolded ptr_read0_code_def]
 
 lemma clss_size_resetUS0_st_alt_def:
   \<open>clss_size_resetUS0_st S =
@@ -448,6 +539,10 @@ sepref_def length_watchlist_impl
 
 definition length_ll_fs_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>length_ll_fs_heur_fast_code = (\<lambda>N C. read_watchlist_wl_heur_code (\<lambda>N. length_watchlist_impl N C) N)\<close>
+
+definition ptr_length_ll_fs_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_length_ll_fs_heur_fast_code = ptr_read_code length_ll_fs_heur_fast_code\<close>
+
 global_interpretation watched_by_app: read_watchlist_param_adder where
   R = \<open>unat_lit_rel\<close> and
   f = \<open>\<lambda>C N. length_watchlist_impl N C\<close> and
@@ -472,8 +567,14 @@ global_interpretation watched_by_app: read_watchlist_param_adder where
   done
 
 lemmas [sepref_fr_rules] = watched_by_app.refine watched_by_app.XX.mop_refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF watched_by_app.refine[unfolded uncurry_curry_id],
+  unfolded ptr_length_ll_fs_heur_fast_code_def[symmetric] ptr_read_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF watched_by_app.XX.mop_refine[unfolded uncurry_curry_id],
+  unfolded ptr_length_ll_fs_heur_fast_code_def[symmetric] ptr_read_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ll_fs_heur_fast_code_def[unfolded read_all_st_code_def]
+  ptr_length_ll_fs_heur_fast_code_def[unfolded ptr_read_code_def]
 
 
 definition vmtf_heur_fst where
@@ -487,6 +588,8 @@ sepref_def vmtf_heur_fst_code
 
 definition get_vmtf_heur_fst_impl where
   \<open>get_vmtf_heur_fst_impl = read_vmtf_wl_heur_code (vmtf_heur_fst_code)\<close>
+definition ptr_get_vmtf_heur_fst_impl :: \<open>_\<close> where
+  \<open>ptr_get_vmtf_heur_fst_impl = ptr_read0_code get_vmtf_heur_fst_impl\<close>
 
 global_interpretation vmtf_fst: read_vmtf_param_adder0 where
   f' = \<open>RETURN o vmtf_heur_fst\<close> and
@@ -522,6 +625,8 @@ definition get_vmtf_heur_array_nth where
   \<open>get_vmtf_heur_array_nth S i = get_vmtf_heur_array S ! i\<close>
 definition get_vmtf_heur_array_nth_impl where
   \<open>get_vmtf_heur_array_nth_impl N C' = read_vmtf_wl_heur_code (\<lambda>M. vmtf_heur_array_nth_code M C') N\<close>
+definition ptr_get_vmtf_heur_array_nth_impl :: \<open>_\<close> where
+  \<open>ptr_get_vmtf_heur_array_nth_impl = ptr_read_code get_vmtf_heur_array_nth_impl\<close>
 
 global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   f' = \<open>\<lambda>a b. vmtf_heur_array_nth b a\<close> and
@@ -544,16 +649,25 @@ global_interpretation vmtf_array_nth: read_vmtf_param_adder where
 
 lemmas [sepref_fr_rules] = vmtf_fst.refine
   vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def]]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF vmtf_fst.refine[unfolded uncurry_curry_id],
+  unfolded ptr_get_vmtf_heur_fst_impl_def[symmetric] ptr_read0_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF vmtf_array_nth.refine[unfolded get_vmtf_heur_array_def[symmetric, unfolded comp_def]],
+  unfolded ptr_get_vmtf_heur_array_nth_impl_def[symmetric] ptr_read_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]
   get_vmtf_heur_array_nth_impl_def[unfolded read_all_st_code_def]
+  mop_arena_status_st_impl_def
+  arena_full_length_impl_def
 
 experiment
 begin
+
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
   opts_minimum_between_restart_st_fast_code mop_arena_status_st_impl full_arena_length_st_impl
-  get_global_conflict_count_impl get_count_max_lvls_heur_impl clss_size_resetUS0_st
+  ptr_get_global_conflict_count_impl ptr_get_count_max_lvls_heur_impl clss_size_resetUS0_st
+  ptr_opts_restart_st_fast_code ptr_get_GC_units_opt_code ptr_get_target_opts_impl
+  ptr_isasat_length_trail_st_code
 end
 
 

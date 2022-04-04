@@ -6,6 +6,9 @@ begin
 definition wasted_bytes_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
 \<open>wasted_bytes_st_impl= read_heur_wl_heur_code wasted_of_stats_impl\<close>
 
+definition ptr_wasted_bytes_st_impl :: \<open>_\<close> where
+  \<open>ptr_wasted_bytes_st_impl = ptr_read0_code wasted_bytes_st_impl\<close>
+
 global_interpretation wasted_of: read_heur_param_adder0 where
   f' = \<open>RETURN o wasted_of\<close> and
   f = wasted_of_stats_impl and
@@ -22,6 +25,9 @@ global_interpretation wasted_of: read_heur_param_adder0 where
 
 definition get_restart_phase_imp :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_restart_phase_imp = read_heur_wl_heur_code current_restart_phase_impl\<close>
+
+definition ptr_get_restart_phase_imp :: \<open>_\<close> where
+  \<open>ptr_get_restart_phase_imp = ptr_read0_code get_restart_phase_imp\<close>
 
 global_interpretation current_restart_phase: read_heur_param_adder0 where
   f' = \<open>RETURN o current_restart_phase\<close> and
@@ -40,10 +46,16 @@ global_interpretation current_restart_phase: read_heur_param_adder0 where
 lemmas [sepref_fr_rules] =
   wasted_of.refine
   current_restart_phase.refine
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF wasted_of.refine,
+  unfolded ptr_wasted_bytes_st_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF current_restart_phase.refine,
+  unfolded ptr_get_restart_phase_imp_def[symmetric] ptr_read0_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   wasted_bytes_st_impl_def[unfolded read_all_st_code_def]
   get_restart_phase_imp_def[unfolded read_all_st_code_def]
+  ptr_wasted_bytes_st_impl_def[unfolded ptr_read0_code_def]
+  ptr_get_restart_phase_imp_def[unfolded ptr_read0_code_def]
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
 
@@ -58,6 +70,8 @@ sepref_def isa_trail_nth_impl
 
 definition isasat_trail_nth_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_trail_nth_st_code = (\<lambda>N C. read_trail_wl_heur_code (\<lambda>M. isa_trail_nth_impl M C) N)\<close>
+definition ptr_isasat_trail_nth_st_code :: \<open>_\<close> where
+  \<open>ptr_isasat_trail_nth_st_code = ptr_read_code isasat_trail_nth_st_code\<close>
 
 global_interpretation trail_nth: read_trail_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
@@ -80,6 +94,8 @@ lemma trail_nth_precond_simp: \<open>(\<lambda>M. fst M \<noteq> []) = (\<lambda
   by auto
 definition lit_of_hd_trail_st_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>lit_of_hd_trail_st_heur_fast_code = read_trail_wl_heur_code lit_of_last_trail_fast_code\<close>
+definition ptr_lit_of_hd_trail_st_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_lit_of_hd_trail_st_heur_fast_code = ptr_read0_code lit_of_hd_trail_st_heur_fast_code\<close>
 
 global_interpretation last_trail: read_trail_param_adder0 where
   f' = \<open>RETURN o lit_of_last_trail_pol\<close> and
@@ -99,6 +115,8 @@ global_interpretation last_trail: read_trail_param_adder0 where
 
 definition get_the_propagation_reason_pol_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_the_propagation_reason_pol_st_code = (\<lambda>N C. read_trail_wl_heur_code (\<lambda>M. get_the_propagation_reason_fast_code M C) N)\<close>
+definition ptr_get_the_propagation_reason_pol_st_code :: \<open>_\<close> where
+  \<open>ptr_get_the_propagation_reason_pol_st_code = ptr_read_code get_the_propagation_reason_pol_st_code\<close>
 
 global_interpretation propagation_reason: read_trail_param_adder where
   R = unat_lit_rel and
@@ -119,6 +137,8 @@ global_interpretation propagation_reason: read_trail_param_adder where
 
 definition is_fully_propagated_heur_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>is_fully_propagated_heur_st_code = read_heur_wl_heur_code is_fully_propagated_heur_stats_impl\<close>
+definition ptr_is_fully_propagated_heur_st_code :: \<open>_\<close> where
+  \<open>ptr_is_fully_propagated_heur_st_code = ptr_read0_code is_fully_propagated_heur_st_code\<close>
 
 global_interpretation is_fully_proped: read_heur_param_adder0 where
   f' = \<open>RETURN o is_fully_propagated_heur\<close> and
@@ -137,6 +157,8 @@ global_interpretation is_fully_proped: read_heur_param_adder0 where
 
 definition heuristic_reluctant_triggered2_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
 \<open>heuristic_reluctant_triggered2_st_impl = read_heur_wl_heur_code heuristic_reluctant_triggered2_stats_impl\<close>
+definition ptr_heuristic_reluctant_triggered2_st_impl :: \<open>_\<close> where
+  \<open>ptr_heuristic_reluctant_triggered2_st_impl = ptr_read0_code heuristic_reluctant_triggered2_st_impl\<close>
 
 global_interpretation heuristic_reluctant_triggered2: read_heur_param_adder0 where
   f' = \<open>RETURN o heuristic_reluctant_triggered2\<close> and
@@ -173,13 +195,28 @@ lemmas [sepref_fr_rules] =
   is_fully_proped.refine
   propagation_reason.refine
   heuristic_reluctant_triggered2.refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF trail_nth.refine[unfolded lambda_comp_true],
+    unfolded ptr_isasat_trail_nth_st_code_def[symmetric] ptr_read_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF last_trail.mop_refine[unfolded lambda_comp_true],
+    unfolded ptr_lit_of_hd_trail_st_heur_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF is_fully_proped.refine,
+    unfolded ptr_is_fully_propagated_heur_st_code_def[symmetric] ptr_read0_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF propagation_reason.refine,
+    unfolded ptr_get_the_propagation_reason_pol_st_code_def[symmetric] ptr_read_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF heuristic_reluctant_triggered2.refine,
+    unfolded ptr_heuristic_reluctant_triggered2_st_impl_def[symmetric] ptr_read0_def]
 
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+lemmas [unfolded inline_direct_return_node_case ptr_read_code_def ptr_read0_code_def, llvm_code] =
   isasat_trail_nth_st_code_def[unfolded read_all_st_code_def]
   lit_of_hd_trail_st_heur_fast_code_def[unfolded read_all_st_code_def]
   is_fully_propagated_heur_st_code_def[unfolded read_all_st_code_def]
   get_the_propagation_reason_pol_st_code_def[unfolded read_all_st_code_def]
   heuristic_reluctant_triggered2_st_impl_def[unfolded read_all_st_code_def]
+  ptr_heuristic_reluctant_triggered2_st_impl_def
+  ptr_get_the_propagation_reason_pol_st_code_def
+  ptr_is_fully_propagated_heur_st_code_def
+  ptr_lit_of_hd_trail_st_heur_fast_code_def
+  ptr_isasat_trail_nth_st_code_def
 
 
 
@@ -330,6 +367,8 @@ sepref_definition access_avdom_aivdom_at_impl
 
 definition access_avdom_at_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>access_avdom_at_fast_code = (\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. avdom_aivdom_at_impl N C) N)\<close>
+definition ptr_access_avdom_at_fast_code :: \<open>_\<close> where
+  \<open>ptr_access_avdom_at_fast_code = ptr_read_code access_avdom_at_fast_code\<close>
 
 global_interpretation avdom_aivdom_at: read_vdom_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
@@ -351,6 +390,8 @@ global_interpretation avdom_aivdom_at: read_vdom_param_adder where
 
 definition access_ivdom_at_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>access_ivdom_at_fast_code = (\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. ivdom_aivdom_at_impl N C) N)\<close>
+definition ptr_access_ivdom_at_fast_code :: \<open>_\<close> where
+  \<open>ptr_access_ivdom_at_fast_code = ptr_read_code access_ivdom_at_fast_code\<close>
 
 global_interpretation ivdom_aivdom_at: read_vdom_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
@@ -372,6 +413,8 @@ global_interpretation ivdom_aivdom_at: read_vdom_param_adder where
 
 definition access_tvdom_at_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>access_tvdom_at_fast_code = (\<lambda>N C. read_vdom_wl_heur_code (\<lambda>N. tvdom_aivdom_at_impl N C) N)\<close>
+definition ptr_access_tvdom_at_fast_code :: \<open>_\<close> where
+  \<open>ptr_access_tvdom_at_fast_code = ptr_read_code access_tvdom_at_fast_code\<close>
 
 global_interpretation tvdom_aivdom_at: read_vdom_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
@@ -396,12 +439,21 @@ lemmas [sepref_fr_rules] =
   avdom_aivdom_at.refine
   ivdom_aivdom_at.refine
   tvdom_aivdom_at.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF avdom_aivdom_at.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_avdom_at_fast_code_def[symmetric] ptr_read_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF ivdom_aivdom_at.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_ivdom_at_fast_code_def[symmetric] ptr_read_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF tvdom_aivdom_at.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_tvdom_at_fast_code_def[symmetric] ptr_read_def]
+
+lemmas [unfolded inline_direct_return_node_case ptr_read0_code_def ptr_read_code_def, llvm_code] =
   access_avdom_at_fast_code_def[unfolded read_all_st_code_def]
   access_ivdom_at_fast_code_def[unfolded read_all_st_code_def]
   access_tvdom_at_fast_code_def[unfolded read_all_st_code_def]
+  ptr_access_avdom_at_fast_code_def
+  ptr_access_ivdom_at_fast_code_def
+  ptr_access_tvdom_at_fast_code_def
 
- 
 sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
   get_target_opts get_opts
 
@@ -434,6 +486,8 @@ lemmas print_trail[sepref_fr_rules] =
 
 definition print_trail_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>print_trail_st_code = read_trail_wl_heur_code print_trail_code\<close>
+definition ptr_print_trail_st_code :: \<open>_\<close> where
+  \<open>ptr_print_trail_st_code = ptr_read0_code print_trail_st_code\<close>
 
 global_interpretation print_trail: read_trail_param_adder0 where
   f' = print_trail and
@@ -452,9 +506,13 @@ global_interpretation print_trail: read_trail_param_adder0 where
 
 lemmas [sepref_fr_rules] =
   print_trail.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF print_trail.refine[FCOMP print_trail_st_print_trail_st2_rel[unfolded convert_fref]],
+  unfolded ptr_print_trail_st_code_def[symmetric] ptr_read0_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   print_trail_st_code_def[unfolded read_all_st_code_def]
+  ptr_print_trail_st_code_def[unfolded ptr_read0_code_def]
+
 sepref_register is_fully_propagated_heur_st
 
 
@@ -482,6 +540,8 @@ lemma watched_by_app_helper:
 
 definition watched_by_app_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>watched_by_app_heur_fast_code = (\<lambda>N C D. read_watchlist_wl_heur_code (\<lambda>N. access_watchlist_impl N C D) N)\<close>
+definition ptr_watched_by_app_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_watched_by_app_heur_fast_code = ptr_read2_code watched_by_app_heur_fast_code\<close>
 
 global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
   R = \<open>unat_lit_rel\<close> and
@@ -511,7 +571,11 @@ lemma mop_watched_by_app_heur_alt_def: \<open>mop_watched_by_app_heur = (\<lambd
    by (auto simp: mop_watched_by_app_heur_def read_all_param_adder_ops.mop_def summarize_ASSERT_conv
     read_all_st_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int.splits)
 definition mop_watched_by_app_heur_fast_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>mop_watched_by_app_heur_fast_impl = (\<lambda>N C D. read_watchlist_wl_heur_code (case (C, D) of (C, D) \<Rightarrow> \<lambda>N. access_watchlist_impl N C D) N) \<close>
+  \<open>mop_watched_by_app_heur_fast_impl = (\<lambda>N C D. read_watchlist_wl_heur_code (case (C, D) of (C, D) \<Rightarrow> \<lambda>N. access_watchlist_impl N C D) N)\<close>
+definition ptr_mop_watched_by_app_heur_fast_impl :: \<open>_\<close> where
+  \<open>ptr_mop_watched_by_app_heur_fast_impl = ptr_read2_code mop_watched_by_app_heur_fast_impl\<close>
+
+
 lemma split_snd_pure_arg':
   assumes \<open>(uncurry (\<lambda>N C. f C N), uncurry (\<lambda>N C'.  f' C' N))
     \<in> [\<lambda>_. True]\<^sub>a K\<^sup>k *\<^sub>a (pure (R \<times>\<^sub>f R'))\<^sup>k \<rightarrow> x_assn\<close>
@@ -523,9 +587,37 @@ lemma split_snd_pure_arg':
 lemmas [sepref_fr_rules] =
   watched_by_app.refine
   watched_by_app.mop_refine[THEN split_snd_pure_arg', unfolded mop_watched_by_app_heur_alt_def[symmetric] mop_watched_by_app_heur_fast_impl_def[symmetric]]
+  ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF watched_by_app.refine[unfolded lambda_comp_true],
+  unfolded ptr_watched_by_app_heur_fast_code_def[symmetric] ptr_read2_def]
+  ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF watched_by_app.mop_refine[THEN split_snd_pure_arg', unfolded mop_watched_by_app_heur_alt_def[symmetric] mop_watched_by_app_heur_fast_impl_def[symmetric]],
+  unfolded ptr_mop_watched_by_app_heur_fast_impl_def[symmetric] ptr_read2_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   watched_by_app_heur_fast_code_def[unfolded read_all_st_code_def]
   mop_watched_by_app_heur_fast_impl_def[unfolded read_all_st_code_def prod.case]
+  ptr_watched_by_app_heur_fast_code_def[unfolded ptr_read2_code_def]
+  ptr_mop_watched_by_app_heur_fast_impl_def[unfolded ptr_read2_code_def]
 
+experiment
+begin
+
+export_llvm
+  ptr_wasted_bytes_st_impl
+  ptr_get_restart_phase_imp
+  ptr_isasat_trail_nth_st_code
+  ptr_lit_of_hd_trail_st_heur_fast_code
+  ptr_get_the_propagation_reason_pol_st_code
+  ptr_is_fully_propagated_heur_st_code
+  ptr_heuristic_reluctant_triggered2_st_impl
+  ptr_access_avdom_at_fast_code
+  ptr_access_ivdom_at_fast_code
+  ptr_access_tvdom_at_fast_code
+  ptr_print_trail_st_code
+  ptr_watched_by_app_heur_fast_code
+  ptr_mop_watched_by_app_heur_fast_impl
+  access_watchlist_impl
+  mark_garbage_heur2_code
+  mark_garbage_heur4_code
+
+end
 end

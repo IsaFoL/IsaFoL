@@ -46,8 +46,11 @@ global_interpretation arena_is_valid: read_arena_param_adder where
 
 sepref_register clause_not_marked_to_delete_heur mop_clause_not_marked_to_delete_heur
 
-definition ptr_clause_not_marked_to_delete_heur_code :: \<open>_\<close> where
-  \<open>ptr_clause_not_marked_to_delete_heur_code = ptr_read_code clause_not_marked_to_delete_heur_code\<close>
+synth_definition ptr_clause_not_marked_to_delete_heur_code
+  is \<open>(uncurry \<hole>, uncurry (RETURN oo clause_not_marked_to_delete_heur)) \<in>
+  [clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  by (rule ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.refine[unfolded uncurry_curry_id],
+  unfolded ptr_read_def])
 
 lemmas [sepref_fr_rules] = arena_is_valid.refine[unfolded uncurry_curry_id] arena_is_valid.mop_refine
   ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_is_valid.refine[unfolded uncurry_curry_id],
@@ -96,17 +99,17 @@ global_interpretation conflict_is_None: read_conflict_param_adder0 where
   unfolding get_conflict_wl_is_None_heur2_def get_conflict_wl_is_None_fast_code_def
   by (solves \<open>rule get_conflict_wl_is_None_heur_alt_def refl\<close>)+
 
-definition get_conflict_wl_is_None_ptr_code :: \<open>_\<close> where
-  \<open>get_conflict_wl_is_None_ptr_code = ptr_read0_code get_conflict_wl_is_None_fast_code\<close>
+definition ptr_get_conflict_wl_is_None_code :: \<open>_\<close> where
+  \<open>ptr_get_conflict_wl_is_None_code = ptr_read0_code get_conflict_wl_is_None_fast_code\<close>
 
 lemmas [sepref_fr_rules] = conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def]
   ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF conflict_is_None.refine[unfolded get_conflict_wl_is_None_heur2_def],
-  unfolded get_conflict_wl_is_None_ptr_code_def[symmetric] ptr_read0_def]
+  unfolded ptr_get_conflict_wl_is_None_code_def[symmetric] ptr_read0_def]
 
 lemmas [llvm_code] = conflict_is_None_code_def
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_fast_code_def[unfolded read_all_st_code_def]
-  get_conflict_wl_is_None_ptr_code_def[unfolded ptr_read_code_def get_conflict_wl_is_None_fast_code_def read_all_st_code_def]
+  ptr_get_conflict_wl_is_None_code_def[unfolded ptr_read0_code_def get_conflict_wl_is_None_fast_code_def read_all_st_code_def]
 
 lemma count_decided_st_heur_alt_def:
   \<open>RETURN o count_decided_st_heur = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
@@ -148,7 +151,7 @@ lemmas [sepref_fr_rules] = count_decided.refine[unfolded lambda_comp_true]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   isa_count_decided_st_fast_code_def[unfolded read_all_st_code_def]
-  ptr_isa_count_decided_st_fast_code_def[unfolded ptr_read_code_def]
+  ptr_isa_count_decided_st_fast_code_def[unfolded ptr_read0_code_def]
 
 definition polarity_st_heur_pol_fast ::  \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close>  where
   \<open>polarity_st_heur_pol_fast = (\<lambda>S C. read_trail_wl_heur_code (\<lambda>L. polarity_pol_fast L C) S)\<close>
@@ -171,16 +174,16 @@ global_interpretation mop_count_decided: read_trail_param_adder where
       split: isasat_int.splits intro!: ext)
   done
 
-definition ptr_mop_count_decided where
-  \<open>ptr_mop_count_decided = ptr_read_code polarity_st_heur_pol_fast\<close>
+definition ptr_polarity_st_heur_pol_fast where
+  \<open>ptr_polarity_st_heur_pol_fast = ptr_read_code polarity_st_heur_pol_fast\<close>
 
 lemmas [sepref_fr_rules] = mop_count_decided.refine[unfolded lambda_comp_true]
   ptr_read_loc.refine[unfolded ptr_read_loc_def, OF  mop_count_decided.refine[unfolded lambda_comp_true],
-  unfolded ptr_mop_count_decided_def[symmetric] ptr_read_def]
+  unfolded ptr_polarity_st_heur_pol_fast_def[symmetric] ptr_read_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   polarity_st_heur_pol_fast_def[unfolded read_all_st_code_def]
-  ptr_mop_count_decided_def[unfolded ptr_mop_count_decided_def]
+  ptr_polarity_st_heur_pol_fast_def[unfolded ptr_polarity_st_heur_pol_fast_def]
 
 definition arena_lit2 where \<open>arena_lit2 N i j = arena_lit N (i+j)\<close>
 
@@ -220,6 +223,9 @@ lemma access_lit_in_clauses_heur_pre:
 
 definition access_lit_in_clauses_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>access_lit_in_clauses_heur_fast_code = (\<lambda>N C D. read_arena_wl_heur_code (\<lambda>N. arena_lit2_impl N C D) N)\<close>
+
+definition ptr_access_lit_in_clauses_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_access_lit_in_clauses_heur_fast_code = ptr_read2_code access_lit_in_clauses_heur_fast_code\<close>
 
 definition mop_arena_lit2_st where
   \<open>mop_arena_lit2_st S = mop_arena_lit2 (get_clauses_wl_heur S)\<close>
@@ -305,6 +311,8 @@ definition ptr_access_lit_in_clauses_heur where
 lemmas [sepref_fr_rules] = access_arena.refine
   ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF access_arena.refine[unfolded lambda_comp_true],
   unfolded ptr_access_lit_in_clauses_heur_def[symmetric] ptr_read2_def]
+  ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF mop_access_lit_in_clauses_heur_refine,
+  unfolded ptr_access_lit_in_clauses_heur_def[symmetric] ptr_read2_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   access_lit_in_clauses_heur_fast_code_def[unfolded read_all_st_code_def]
@@ -359,6 +367,10 @@ sepref_def rewatch_heur_st_fast_code
 
 definition length_ivdom_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>length_ivdom_fast_code = read_vdom_wl_heur_code length_ivdom_aivdom_impl\<close>
+
+definition ptr_length_ivdom_fast_code :: \<open>_ \<Rightarrow> _\<close> where
+  \<open>ptr_length_ivdom_fast_code = ptr_read0_code length_ivdom_fast_code\<close>
+
 global_interpretation length_ivdom_aivdom: read_vdom_param_adder0 where
   f = \<open>length_ivdom_aivdom_impl\<close> and
   f' = \<open>RETURN o length_ivdom_aivdom\<close> and
@@ -425,6 +437,8 @@ lemmas [sepref_fr_rules] = length_ivdom_aivdom.refine[unfolded lambda_comp_true]
   length_tvdom_aivdom.refine[unfolded lambda_comp_true]
   ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF length_avdom_aivdom.refine[unfolded lambda_comp_true],
   unfolded ptr_length_avdom_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF length_ivdom_aivdom.refine[unfolded lambda_comp_true],
+  unfolded ptr_length_ivdom_fast_code_def[symmetric] ptr_read0_def]
   ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF length_tvdom_aivdom.refine[unfolded lambda_comp_true],
   unfolded ptr_length_tvdom_fast_code_def[symmetric] ptr_read0_def]
 
@@ -432,7 +446,9 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_ivdom_fast_code_def[unfolded read_all_st_code_def]
   length_avdom_fast_code_def[unfolded read_all_st_code_def]
   length_tvdom_fast_code_def[unfolded read_all_st_code_def]
+  ptr_length_ivdom_fast_code_def[unfolded ptr_read0_code_def]
   ptr_length_avdom_fast_code_def[unfolded ptr_read0_code_def]
+  ptr_length_tvdom_fast_code_def[unfolded ptr_read0_code_def]
 
 sepref_register length_avdom length_ivdom length_tvdom
 
@@ -448,6 +464,9 @@ sepref_definition is_learned_impl
 definition clause_is_learned_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>clause_is_learned_heur_code2 N C = read_arena_wl_heur_code (\<lambda>Ca. is_learned_impl Ca C) N\<close>
 
+definition ptr_clause_is_learned_heur_code2 where
+  \<open>ptr_clause_is_learned_heur_code2 = ptr_read_code clause_is_learned_heur_code2\<close>
+
 lemma clause_is_learned_heur_alt_def: \<open>RETURN oo clause_is_learned_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N)\<close>
   by (auto simp: clause_is_learned_heur_def read_all_st_def is_learned_def
     intro!: ext split: isasat_int.splits)
@@ -461,7 +480,6 @@ global_interpretation arena_is_learned: read_arena_param_adder where
   rewrites
     \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. is_learned_impl Ca C) N) = clause_is_learned_heur_code2\<close> and
    \<open>(\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N) = RETURN oo clause_is_learned_heur\<close>
-
   apply unfold_locales
   apply (rule is_learned_impl.refine)
   subgoal by (auto simp: clause_is_learned_heur_code2_def intro!: ext)
@@ -471,6 +489,9 @@ global_interpretation arena_is_learned: read_arena_param_adder where
 
 definition clause_lbd_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>clause_lbd_heur_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_lbd_impl Ca C) N)\<close>
+
+definition ptr_clause_lbd_heur_code2 :: \<open>_\<close> where
+  \<open>ptr_clause_lbd_heur_code2 = ptr_read_code clause_lbd_heur_code2\<close>
 
 lemma clause_lbd_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_lbd_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N)\<close>
@@ -498,6 +519,9 @@ global_interpretation arena_get_lbd: read_arena_param_adder where
 definition clause_pos_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>clause_pos_heur_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>Ca. arena_pos_impl Ca C) N)\<close>
 
+definition ptr_clause_pos_heur_code2 :: \<open>_\<close> where
+  \<open>ptr_clause_pos_heur_code2 = ptr_read_code clause_pos_heur_code2\<close>
+
 definition mop_arena_pos_st :: \<open>_\<close> where
   \<open>mop_arena_pos_st S = mop_arena_pos (get_clauses_wl_heur S)\<close>
 
@@ -520,22 +544,29 @@ global_interpretation arena_get_pos: read_arena_param_adder where
 
 lemmas [sepref_fr_rules] = arena_get_lbd.refine arena_get_pos.mop_refine
 
+thm arena_get_pos.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   clause_lbd_heur_code2_def[unfolded read_all_st_code_def]
   clause_is_learned_heur_code2_def[unfolded read_all_st_code_def]
   clause_pos_heur_code2_def[unfolded read_all_st_code_def]
   is_learned_impl_def
+  ptr_clause_lbd_heur_code2_def[unfolded ptr_read_code_def]
+  ptr_clause_pos_heur_code2_def[unfolded ptr_read_code_def]
 
-
+lemmas [sepref_fr_rules] =
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_get_pos.mop_refine[unfolded lambda_comp_true],
+  unfolded ptr_clause_pos_heur_code2_def[symmetric] ptr_read_def]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_get_lbd.refine[unfolded lambda_comp_true],
+  unfolded ptr_clause_lbd_heur_code2_def[symmetric] ptr_read_def]
 
 sepref_register clause_lbd_heur
 
-
 sepref_register mark_garbage_heur
+
 lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>S\<^sub>0. do {
-  ASSERT(mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C) \<and> clss_size_lcount (get_learned_count S\<^sub>0) \<ge> 1 \<and> i < length (get_avdom S\<^sub>0));
-     let (N, S) = extract_arena_wl_heur S\<^sub>0;
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C) \<and> clss_size_lcount (get_learned_count S\<^sub>0) \<ge> 1 \<and> i < length (get_avdom S\<^sub>0));
+    let (N, S) = extract_arena_wl_heur S\<^sub>0;
     ASSERT (N = get_clauses_wl_heur S\<^sub>0);
     let N' = extra_information_mark_to_delete N C;
     let S = update_arena_wl_heur N' S;
@@ -546,8 +577,8 @@ lemma mop_mark_garbage_heur_alt_def:
     ASSERT (vdom = get_aivdom S\<^sub>0);
     let S = update_vdom_wl_heur (remove_inactive_aivdom i vdom) S;
     RETURN (update_lcount_wl_heur lcount S)
-      })\<close>
-      unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+ })\<close>
+   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
    by (auto intro!: ext simp: state_extractors split: isasat_int.splits)
 
 
@@ -641,6 +672,9 @@ lemma access_length_heur_alt_def:
 definition access_length_heur_fast_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>access_length_heur_fast_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C) N)\<close>
 
+definition ptr_access_length_heur_fast_code2 :: \<open>_\<close> where
+  \<open>ptr_access_length_heur_fast_code2 = ptr_read_code access_length_heur_fast_code2\<close>
+
 global_interpretation arena_length: read_arena_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
   f' = \<open>\<lambda>C N. RETURN (arena_length N C)\<close> and
@@ -657,9 +691,12 @@ global_interpretation arena_length: read_arena_param_adder where
   done
 
 lemmas [sepref_fr_rules] = arena_length.refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF arena_length.refine[unfolded lambda_comp_true],
+  unfolded ptr_access_length_heur_fast_code2_def[symmetric] ptr_read_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   access_length_heur_fast_code2_def[unfolded read_all_st_code_def]
+  ptr_access_length_heur_fast_code2_def[unfolded ptr_read_code_def]
 
 lemma get_slow_ema_heur_alt_def:
     \<open>RETURN o get_slow_ema_heur = read_heur_wl_heur (RETURN o slow_ema_of)\<close> and
@@ -669,6 +706,9 @@ lemma get_slow_ema_heur_alt_def:
 
 definition get_slow_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_slow_ema_heur_fast_code = read_heur_wl_heur_code slow_ema_of_stats_impl\<close>
+
+definition ptr_get_slow_ema_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_slow_ema_heur_fast_code = ptr_read0_code get_slow_ema_heur_fast_code\<close>
 
 global_interpretation slow_ema: read_heur_param_adder0 where
   f' = \<open>RETURN o slow_ema_of\<close> and
@@ -687,6 +727,9 @@ global_interpretation slow_ema: read_heur_param_adder0 where
 definition get_fast_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_fast_ema_heur_fast_code = read_heur_wl_heur_code fast_ema_of_stats_impl\<close>
 
+definition ptr_get_fast_ema_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_fast_ema_heur_fast_code = ptr_read0_code get_fast_ema_heur_fast_code\<close>
+
 global_interpretation fast_ema: read_heur_param_adder0 where
   f' = \<open>RETURN o fast_ema_of\<close> and
   f = fast_ema_of_stats_impl and
@@ -701,9 +744,6 @@ global_interpretation fast_ema: read_heur_param_adder0 where
   subgoal by (auto simp: get_fast_ema_heur_fast_code_def)
   done
 
- thm get_conflict_count_since_last_restart_heur.simps
-find_theorems get_conflict_count_since_last_restart RETURN
-
 lemma get_conflict_count_since_last_restart_heur_alt_def:
   \<open>RETURN o get_conflict_count_since_last_restart_heur =
   read_heur_wl_heur (RETURN \<circ> get_conflict_count_since_last_restart)\<close>
@@ -711,6 +751,9 @@ lemma get_conflict_count_since_last_restart_heur_alt_def:
 
 definition get_conflict_count_since_last_restart_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_conflict_count_since_last_restart_heur_fast_code = read_heur_wl_heur_code get_conflict_count_since_last_restart_stats_impl\<close>
+
+definition ptr_get_conflict_count_since_last_restart_heur_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_conflict_count_since_last_restart_heur_fast_code = ptr_read0_code get_conflict_count_since_last_restart_heur_fast_code\<close>
 
 global_interpretation get_conflict_count_since_last_restart: read_heur_param_adder0 where
   f' = \<open>RETURN o get_conflict_count_since_last_restart\<close> and
@@ -737,6 +780,9 @@ lemma get_learned_count_alt_def: \<open>RETURN o get_learned_count = read_lcount
 definition get_learned_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_learned_count_fast_code = read_lcount_wl_heur_code Mreturn\<close>
 
+definition ptr_get_learned_count_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_learned_count_fast_code = ptr_read0_code get_learned_count_fast_code\<close>
+
 global_interpretation get_lcount: read_lcount_param_adder0 where
   f' = \<open>RETURN\<close> and
   f = \<open>Mreturn\<close> and
@@ -753,6 +799,9 @@ global_interpretation get_lcount: read_lcount_param_adder0 where
 
 definition get_learned_count_number_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_learned_count_number_fast_code = read_lcount_wl_heur_code clss_size_lcount_fast_code\<close>
+
+definition ptr_get_learned_count_number_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_learned_count_number_fast_code = ptr_read0_code get_learned_count_number_fast_code\<close>
 
 global_interpretation get_learned_count_number: read_lcount_param_adder0 where
   f' = \<open>RETURN o clss_size_lcount\<close> and
@@ -779,13 +828,28 @@ lemmas [sepref_fr_rules] =
   get_conflict_count_since_last_restart.refine[unfolded lambda_comp_true]
   get_lcount.refine[unfolded lambda_comp_true]
   get_learned_count_number.refine[unfolded lambda_comp_true get_learned_count_number'_def[symmetric]]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF slow_ema.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_slow_ema_heur_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF fast_ema.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_fast_ema_heur_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF get_learned_count_number.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_learned_count_number_fast_code_def[symmetric] ptr_read0_def get_learned_count_number'_def[symmetric]]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF get_lcount.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_learned_count_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF get_conflict_count_since_last_restart.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_conflict_count_since_last_restart_heur_fast_code_def[symmetric] ptr_read0_def]
   
+term get_conflict_count_since_last_restart
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_slow_ema_heur_fast_code_def[unfolded read_all_st_code_def]
   get_fast_ema_heur_fast_code_def[unfolded read_all_st_code_def]
   get_conflict_count_since_last_restart_heur_fast_code_def[unfolded read_all_st_code_def]
   get_learned_count_fast_code_def[unfolded read_all_st_code_def]
   get_learned_count_number_fast_code_def[unfolded read_all_st_code_def]
+  ptr_get_conflict_count_since_last_restart_heur_fast_code_def[unfolded ptr_read0_code_def]
+  ptr_get_learned_count_fast_code_def[unfolded ptr_read0_code_def]
+  ptr_get_fast_ema_heur_fast_code_def[unfolded ptr_read0_code_def]
+  ptr_get_slow_ema_heur_fast_code_def[unfolded ptr_read0_code_def]
 
 sepref_def learned_clss_count_fast_code
   is \<open>RETURN o learned_clss_count\<close>
@@ -795,6 +859,10 @@ sepref_def learned_clss_count_fast_code
 
 definition marked_as_used_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>marked_as_used_st_fast_code = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. marked_as_used_impl N C) N)\<close>
+
+definition ptr_marked_as_used_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_marked_as_used_st_fast_code = ptr_read_code marked_as_used_st_fast_code\<close>
+
 global_interpretation marked_used: read_arena_param_adder where
   R = \<open>snat_rel' TYPE(64)\<close> and
   f' = \<open>\<lambda>C N. RETURN (marked_as_used N C)\<close> and
@@ -811,9 +879,12 @@ global_interpretation marked_used: read_arena_param_adder where
   done
 
 lemmas [sepref_fr_rules] = marked_used.refine
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF marked_used.refine[unfolded lambda_comp_true],
+  unfolded ptr_marked_as_used_st_fast_code_def[symmetric] ptr_read_def]
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   marked_as_used_st_fast_code_def[unfolded read_all_st_code_def]
+  ptr_marked_as_used_st_fast_code_def[unfolded ptr_read_code_def]
 
 lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.mop\<close>
   by (auto intro!: ext split: isasat_int.splits simp: mop_marked_as_used_st_def marked_used.mop_def
@@ -821,20 +892,27 @@ lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.
 
 lemmas [sepref_fr_rules] =
   marked_used.mop_refine[unfolded mop_marked_as_used_st_alt_def[symmetric]]
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF marked_used.mop_refine[unfolded mop_marked_as_used_st_alt_def[symmetric]],
+  unfolded ptr_marked_as_used_st_fast_code_def[symmetric] ptr_read_def]
 
 
 sepref_register get_the_propagation_reason_heur delete_index_vdom_heur access_length_heur marked_as_used_st
 
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  ptr_polarity_st_heur_pol_fast_def[unfolded ptr_read_code_def]
+  ptr_access_lit_in_clauses_heur_fast_code_def[unfolded ptr_read2_code_def]
+  ptr_clause_is_learned_heur_code2_def[unfolded ptr_read_code_def]
+
 experiment
 begin
 
-export_llvm polarity_st_heur_pol_fast isa_count_decided_st_fast_code get_conflict_wl_is_None_fast_code
-  clause_not_marked_to_delete_heur_code access_lit_in_clauses_heur_fast_code length_ivdom_fast_code
-  length_avdom_fast_code length_tvdom_fast_code
-  clause_is_learned_heur_code2 clause_lbd_heur_code2 mop_mark_garbage_heur_impl mark_garbage_heur_code2
-  mop_mark_garbage_heur3_impl delete_index_vdom_heur_fast_code2 access_length_heur_fast_code2
-  get_fast_ema_heur_fast_code get_slow_ema_heur_fast_code get_conflict_count_since_last_restart_heur_fast_code
-  get_learned_count_fast_code
+export_llvm ptr_polarity_st_heur_pol_fast ptr_isa_count_decided_st_fast_code ptr_get_conflict_wl_is_None_code
+  ptr_clause_not_marked_to_delete_heur_code ptr_access_lit_in_clauses_heur_fast_code ptr_length_ivdom_fast_code
+  ptr_length_avdom_fast_code ptr_length_tvdom_fast_code
+  ptr_clause_is_learned_heur_code2 ptr_clause_lbd_heur_code2 mop_mark_garbage_heur_impl mark_garbage_heur_code2
+  mop_mark_garbage_heur3_impl delete_index_vdom_heur_fast_code2 ptr_access_length_heur_fast_code2
+  ptr_get_fast_ema_heur_fast_code ptr_get_slow_ema_heur_fast_code ptr_get_conflict_count_since_last_restart_heur_fast_code
+  ptr_get_learned_count_fast_code
 
 end
 end

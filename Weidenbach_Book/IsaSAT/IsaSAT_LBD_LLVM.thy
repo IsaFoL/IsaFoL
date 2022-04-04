@@ -18,8 +18,7 @@ sepref_def calculate_LBD_heur_st_impl
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
      arena_fast_assn \<times>\<^sub>a lbd_assn\<close>
   supply [[goals_limit=1]]
-  unfolding calculate_LBD_heur_st_def isasat_bounded_assn_def
-    fold_tuple_optimizations
+  unfolding calculate_LBD_heur_st_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 

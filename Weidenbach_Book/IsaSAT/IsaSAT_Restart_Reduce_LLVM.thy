@@ -25,6 +25,9 @@ sepref_def find_local_restart_target_level_fast_code
 definition find_local_restart_target_level_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>find_local_restart_target_level_st_fast_code = (read_all_st_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N))\<close>
 
+definition ptr_find_local_restart_target_level_st_fast_code :: \<open>_\<close> where
+  \<open>ptr_find_local_restart_target_level_st_fast_code = ptr_read0_code find_local_restart_target_level_st_fast_code\<close>
+
 global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
   P = \<open>\<lambda>_ _. True\<close> and
   f' = \<open>find_local_restart_target_level_int\<close> and
@@ -42,7 +45,12 @@ global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
   done
 
 lemmas [sepref_fr_rules] = find_restart_lvl.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = find_local_restart_target_level_st_fast_code_def[unfolded read_all_st_code_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF find_restart_lvl.refine,
+  unfolded ptr_find_local_restart_target_level_st_fast_code_def[symmetric] ptr_read0_def]
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  find_local_restart_target_level_st_fast_code_def[unfolded read_all_st_code_def]
+  ptr_find_local_restart_target_level_st_fast_code_def[unfolded ptr_read0_code_def]
 
 lemma empty_Q_alt_def:
   \<open>empty_Q = (\<lambda>S. do{

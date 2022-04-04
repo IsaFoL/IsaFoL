@@ -95,13 +95,24 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
-lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+
+lemma literals_to_update_wl_heur[sepref_fr_rules]:
+  \<open>(Mreturn o Tuple16_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_raw_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [split] =  isasat_int.splits
-  unfolding isasat_bounded_assn_def
+  unfolding isasat_bounded_raw_assn_def
   apply sepref_to_hoare
   apply (vcg')
   done
 
+definition ptr_literals_to_update :: \<open>twl_st_wll_trail_fast2 ptr \<Rightarrow> _\<close> where
+  \<open>ptr_literals_to_update = ptr_read0_code (Mreturn \<circ> Tuple16_get_d)\<close>
+
+lemmas [sepref_fr_rules] = 
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF literals_to_update_wl_heur,
+  unfolded ptr_literals_to_update_def[symmetric] ptr_read0_def]
+
+lemmas [unfolded inline_direct_return_node_case comp_def, llvm_code] =
+  ptr_literals_to_update_def[unfolded ptr_read0_code_def]
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {

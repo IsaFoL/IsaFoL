@@ -2677,7 +2677,7 @@ lemmas [sepref_fr_rules] =
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_e_code.refine,
     unfolded remove_e_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_f_code.refine,
-    unfolded remove_f_code_def[symmetric] ptr_write0_def]
+    unfolded remove_f_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_g_code.refine,
     unfolded remove_g_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_h_code.refine,
@@ -2690,12 +2690,10 @@ lemmas [sepref_fr_rules] =
     unfolded remove_k_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_l_code.refine,
     unfolded remove_l_ptr_code_def[symmetric] ptr_write0_def]
-  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_l_code.refine,
-    unfolded remove_m_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_m_code.refine,
-    unfolded remove_n_ptr_code_def[symmetric] ptr_write0_def]
-  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_n_code.refine,
     unfolded remove_m_ptr_code_def[symmetric] ptr_write0_def]
+  ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_n_code.refine,
+    unfolded remove_n_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_o_code.refine,
     unfolded remove_o_ptr_code_def[symmetric] ptr_write0_def]
   ptr_write_loc0.refine[unfolded ptr_write_loc0_def, OF remove_p_code.refine,
@@ -2716,7 +2714,7 @@ lemmas [unfolded ptr_write_code0_def inline_direct_return_node_case comp_def, ll
   remove_l_ptr_code_def
   remove_m_ptr_code_def
   remove_n_ptr_code_def
-  remove_p_ptr_code_def
+  remove_o_ptr_code_def
   remove_p_ptr_code_def
 
 lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o Tuple16_get_d) \<in> isasat_bounded_raw_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>

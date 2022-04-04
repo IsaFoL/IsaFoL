@@ -3,6 +3,7 @@ theory Pointer_LLVM
     Isabelle_LLVM.LLVM_DS_Block_Alloc
     Isabelle_LLVM.Sorting_Ex_Array_Idxs
     More_Sepref.WB_More_Refinement
+    Watched_Literals.WB_More_IICF_LLVM
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
@@ -699,5 +700,37 @@ lemma ptr_update_hnr: \<open>(uncurry (ptr_update_code f), uncurry (ptr_update f
   done
 
 end
+
+definition create_pointer where
+  \<open>create_pointer a = a\<close>
+definition create_pointer_code :: \<open>'a :: llvm_rep \<Rightarrow> _\<close> where
+  \<open>create_pointer_code v = doM {
+    (a :: 'a ptr) \<leftarrow> ll_balloc;
+    ll_store v a;
+    Mreturn a
+  }\<close>
+
+lemma [sepref_fr_rules]: \<open>(create_pointer_code, RETURN o create_pointer) \<in> R\<^sup>d \<rightarrow>\<^sub>a pointer_assn R\<close>
+  supply [vcg_rules] = ll_balloc_rule
+  unfolding create_pointer_code_def create_pointer_def pointer_assn_def assn_comp_def
+  apply sepref_to_hoare
+  apply vcg
+  done
+
+definition free_pointer where
+  \<open>free_pointer a = a\<close>
+definition free_pointer_code :: \<open>'a :: llvm_rep ptr \<Rightarrow> _\<close> where
+  \<open>free_pointer_code a = doM {
+    v \<leftarrow> ll_load a;
+    ll_free a;
+    Mreturn v
+  }\<close>
+
+lemma [sepref_fr_rules]: \<open>(free_pointer_code, RETURN o free_pointer) \<in> (pointer_assn R)\<^sup>d \<rightarrow>\<^sub>a R\<close>
+  supply [vcg_rules] = ll_free_bpto_rule ll_load_bpto_rule
+  unfolding free_pointer_code_def free_pointer_def pointer_assn_def assn_comp_def
+  apply sepref_to_hoare
+  apply vcg
+  done
 
 end

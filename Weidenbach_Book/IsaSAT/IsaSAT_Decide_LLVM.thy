@@ -43,9 +43,9 @@ sepref_def update_next_search_code is
   by sepref
 
 sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur get_next_phase_st
-sepref_def isa_vmtf_find_next_undef_upd_code is
-  \<open>uncurry isa_vmtf_find_next_undef_upd\<close>
-    :: \<open>trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn\<close>
+sepref_def isa_vmtf_find_next_undef_upd_code
+  is \<open>uncurry isa_vmtf_find_next_undef_upd\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn\<close>
   unfolding isa_vmtf_find_next_undef_upd_def
   by sepref
 
@@ -73,6 +73,9 @@ sepref_definition get_next_phase_heur_stats_impl'
 definition get_next_phase_st'_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_next_phase_st'_impl = (\<lambda>N C D. read_heur_wl_heur_code (get_next_phase_heur_stats_impl C D) N)\<close>
 
+definition ptr_get_next_phase_st'_impl :: \<open>_\<close> where
+  \<open>ptr_get_next_phase_st'_impl = ptr_read2_code get_next_phase_st'_impl\<close>
+
 definition get_next_phase_st' :: \<open>_\<close> where
   \<open>get_next_phase_st' N C D = (get_next_phase_st C D N)\<close>
 
@@ -94,8 +97,12 @@ global_interpretation get_next_phase: read_heur_param_adder2 where
   done
 
 lemmas [sepref_fr_rules] = get_next_phase.refine
+    ptr_read2_loc.refine[unfolded ptr_read2_loc_def, OF get_next_phase.refine[unfolded lambda_comp_true],
+  unfolded ptr_get_next_phase_st'_impl_def[symmetric] ptr_read2_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_next_phase_st'_impl_def[unfolded read_all_st_code_def]
+  ptr_get_next_phase_st'_impl_def[unfolded ptr_read2_code_def]
 
 sepref_def get_next_phase_st_impl
   is \<open>uncurry2 get_next_phase_st\<close>
@@ -122,6 +129,5 @@ export_llvm
   decide_wl_or_skip_D_fast_code
 
 end
-
 
 end
