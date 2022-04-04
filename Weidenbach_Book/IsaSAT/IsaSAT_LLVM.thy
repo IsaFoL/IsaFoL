@@ -12,7 +12,7 @@ hide_const (open)IICF_Multiset.mset_rel
 
 chapter \<open>Code of Full IsaSAT\<close>
 
-abbreviation  model_stat_assn where
+abbreviation model_stat_assn where
   \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
 
 abbreviation model_stat_assn\<^sub>0 ::
@@ -77,7 +77,7 @@ sepref_def split_trail_impl
 sepref_register free_pointer
 
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case (free_pointer S) of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. let S = free_pointer S in case S of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
     outl stats
     heur vdom lcount opts old_arena \<Rightarrow>
     do {_ \<leftarrow> print_trail2 (MM');
@@ -95,6 +95,25 @@ lemma extract_model_of_state_stat_alt_def:
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?fr\<close>
   unfolding aivdom_assn_def code_hider_assn_def by synthesize_free+
 
+(*TODO Move*)
+lemma IsaSAT_int_free[sepref_frame_free_rules]:
+  assumes
+  \<open>MK_FREE A freea\<close> \<open>MK_FREE B freeb\<close> \<open>MK_FREE C freec\<close> \<open>MK_FREE D freed\<close>
+  \<open>MK_FREE E freee\<close> \<open>MK_FREE F freef\<close> \<open>MK_FREE G freeg\<close> \<open>MK_FREE H freeh\<close>
+  \<open>MK_FREE I freei\<close> \<open>MK_FREE J freej\<close> \<open>MK_FREE K freek\<close> \<open>MK_FREE L freel\<close>
+  \<open>MK_FREE M freem\<close> \<open>MK_FREE N freen\<close> \<open>MK_FREE KO freeko\<close> \<open>MK_FREE P freep\<close>
+  shows
+  \<open>
+  MK_FREE (isasat_int_assn A B C D E F G H I J K L M N KO P) (\<lambda>S. case S of IsaSAT_int a b c d e f g h i j k l m n ko p \<Rightarrow> do\<^sub>M {
+  freea a; freeb b; freec c; freed d; freee e; freef f; freeg g; freeh h; freei i; freej j;
+  freek k; freel l; freem m; freen n; freeko ko; freep p
+  })\<close>
+  supply [vcg_rules] = assms[THEN MK_FREED]
+  apply (rule)+
+  apply (clarsimp split: isasat_int.splits)
+  apply vcg'
+  done
+
 sepref_def extract_model_of_state_stat
   is \<open>RETURN o extract_model_of_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -104,7 +123,7 @@ sepref_def extract_model_of_state_stat
   by sepref
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>S. case (free_pointer S) of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
+  \<open>RETURN o extract_state_stat = (\<lambda>S. let S = free_pointer S in case S of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
        heur vdom lcount opts old_arena \<Rightarrow>
      do {
         mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
@@ -113,13 +132,14 @@ lemma extract_state_stat_alt_def:
          mop_free vdom; mop_free opts;
          mop_free old_arena; mop_free lcount;
         RETURN (True, [], get_content stats)})\<close>
-  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits free_pointer_def intro!: ext)
+  by (auto simp: extract_state_stat_def mop_free_def free_pointer_def
+    split: isasat_int.splits intro!: ext)
 
 sepref_def extract_state_stat
   is \<open>RETURN o extract_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]]
-  unfolding extract_state_stat_alt_def isasat_bounded_assn_def
+  unfolding extract_state_stat_alt_def isasat_bounded_raw_assn_def
     al_fold_custom_empty[where 'l=64]
   by sepref
 
@@ -137,9 +157,7 @@ sepref_def empty_conflict_code'
   apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl64_assn unat_lit_assn\<close>])
   by sepref
 
-declare empty_conflict_code'.refine[sepref_fr_rules]
-
-sepref_def  empty_init_code'
+sepref_def empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_init_code_def al_fold_custom_empty[where 'l=64]
@@ -171,7 +189,7 @@ lemma isasat_fast_init_alt_def:
      if \<not>(n \<le> isasat_fast_bound \<and> lcount < c - lcountUE) then RETURN False
      else do {
         ASSERT(lcount + lcountUE \<in> unats LENGTH(64));
-        a  \<leftarrow> RETURN (lcount + lcountUE);
+        a \<leftarrow> RETURN (lcount + lcountUE);
         if \<not>a < c - lcountUS then RETURN False
         else do {
           ASSERT(a +  lcountUS \<in> unats LENGTH(64));
@@ -273,11 +291,6 @@ lemma convert_state_hnr:
   unfolding convert_state_def
   by sepref_to_hoare vcg
 declare convert_state_hnr[sepref_fr_rules]
-
-schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
-  unfolding isasat_init_assn_def
-  apply (rule tuple15_free)
-  by synthesize_free+
 
 
 sepref_def IsaSAT_code

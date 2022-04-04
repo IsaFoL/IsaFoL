@@ -44,6 +44,8 @@ sepref_def FLAG_Inprocess_restart_impl
 
 definition end_of_restart_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>end_of_restart_phase_st_impl = read_heur_wl_heur_code end_of_restart_phase_impl\<close>
+definition ptr_end_of_restart_phase_st_impl :: \<open>_\<close> where
+  \<open>ptr_end_of_restart_phase_st_impl = ptr_read0_code end_of_restart_phase_st_impl\<close>
 
 global_interpretation end_of_restart_phase: read_heur_param_adder0 where
   f' = \<open>RETURN o end_of_restart_phase\<close> and
@@ -61,6 +63,8 @@ global_interpretation end_of_restart_phase: read_heur_param_adder0 where
  
 definition end_of_rephasing_phase_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>end_of_rephasing_phase_st_impl = read_heur_wl_heur_code end_of_rephasing_phase_heur_stats_impl\<close>
+definition ptr_end_of_rephasing_phase_st_impl :: \<open>_\<close> where
+  \<open>ptr_end_of_rephasing_phase_st_impl = ptr_read0_code end_of_rephasing_phase_st_impl\<close>
 
 global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
   f' = \<open>RETURN o end_of_rephasing_phase_heur\<close> and
@@ -78,9 +82,16 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
 
 
 lemmas [sepref_fr_rules] = end_of_restart_phase.refine end_of_rephasing_phase.refine
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF end_of_restart_phase.refine,
+    unfolded ptr_end_of_restart_phase_st_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF end_of_rephasing_phase.refine,
+    unfolded ptr_end_of_rephasing_phase_st_impl_def[symmetric] ptr_read0_def]
+
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   end_of_restart_phase_st_impl_def[unfolded read_all_st_code_def]
   end_of_rephasing_phase_st_impl_def[unfolded read_all_st_code_def]
+  ptr_end_of_rephasing_phase_st_impl_def[unfolded ptr_read0_code_def]
+  ptr_end_of_restart_phase_st_impl_def[unfolded ptr_read0_code_def]
 
 sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_phases
@@ -108,6 +119,8 @@ definition get_restart_count_st where
 
 definition get_restart_count_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_restart_count_st_impl = read_stats_wl_heur_code get_restart_count_impl\<close>
+definition ptr_get_restart_count_st_impl :: \<open>_\<close> where
+  \<open>ptr_get_restart_count_st_impl = ptr_read0_code get_restart_count_st_impl\<close>
 
 global_interpretation restart_count: read_stats_param_adder0 where
   f' = \<open>RETURN o get_restart_count\<close> and
@@ -125,6 +138,8 @@ global_interpretation restart_count: read_stats_param_adder0 where
 
 definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_lrestart_count_impl\<close>
+definition ptr_get_reductions_count_fast_code :: \<open>_\<close> where
+  \<open>ptr_get_reductions_count_fast_code = ptr_read0_code get_reductions_count_fast_code\<close>
 
 (*TODO check if this is the right statistics to read!*)
 global_interpretation reduction_count: read_stats_param_adder0 where
@@ -169,6 +184,12 @@ definition get_slow_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarr
 definition get_fast_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_fast_ema_heur_st_impl = read_heur_wl_heur_code get_fast_ema_heur_full_impl\<close>
 
+definition ptr_get_slow_ema_heur_st_impl :: \<open>_\<close> where
+  \<open>ptr_get_slow_ema_heur_st_impl = ptr_read0_code get_slow_ema_heur_st_impl\<close>
+
+definition ptr_get_fast_ema_heur_st_impl :: \<open>_\<close> where
+  \<open>ptr_get_fast_ema_heur_st_impl = ptr_read0_code get_fast_ema_heur_st_impl\<close>
+
 global_interpretation slow_ema: read_heur_param_adder0 where
   f' = \<open>RETURN o get_slow_ema_heur_full\<close> and
   f = get_slow_ema_heur_full_impl and
@@ -200,11 +221,24 @@ global_interpretation fast_ema: read_heur_param_adder0 where
   done
 
 lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF fast_ema.refine,
+  unfolded ptr_get_fast_ema_heur_st_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF slow_ema.refine,
+  unfolded ptr_get_slow_ema_heur_st_impl_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF reduction_count.refine,
+  unfolded ptr_get_reductions_count_fast_code_def[symmetric] ptr_read0_def]
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF restart_count.refine,
+  unfolded ptr_get_restart_count_st_impl_def[symmetric] ptr_read0_def]
+
+lemmas [unfolded inline_direct_return_node_case ptr_read0_code_def ptr_read0_code_def ptr_read_code_def, llvm_code] =
   get_restart_count_st_impl_def[unfolded read_all_st_code_def]
   get_reductions_count_fast_code_def[unfolded read_all_st_code_def]
   get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
   get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
+  ptr_get_slow_ema_heur_st_impl_def
+  ptr_get_fast_ema_heur_st_impl_def
+  ptr_get_reductions_count_fast_code_def
+  ptr_get_restart_count_st_impl_def
 
 find_theorems get_restart_count RETURN
 sepref_def upper_restart_bound_not_reached_fast_impl
@@ -255,8 +289,14 @@ sepref_def GC_units_required_heur_fast_code
   unfolding GC_units_required_def
   by sepref
 
-sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
+sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur opts_minimum_between_restart_st
+(*TODO Move*)
+lemmas [sepref_fr_rules] =
+  ptr_read0_loc.refine[unfolded ptr_read0_loc_def, OF opts_minimum_between_restart.refine,
+  unfolded ptr_opts_minimum_between_restart_st_fast_code_def[symmetric] ptr_read0_def]
+(*END Move*)
 
+find_theorems opts_minimum_between_restart_st 
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry3 restart_required_heur\<close>
   :: \<open>[\<lambda>(((S, _), _), _). learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a
@@ -381,7 +421,10 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
 
 (*TODO Move to IsaSAT_Setup2*)
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
-lemmas [llvm_code del] = units_since_last_GC_st_code_def
+
+lemmas [llvm_code del] = units_since_last_GC_st_code_def ptr_get_fast_ema_heur_st_impl_def
+  ptr_get_slow_ema_heur_st_impl_def
+
 experiment
 begin
   export_llvm restart_required_heur_fast_code access_avdom_at_fast_code

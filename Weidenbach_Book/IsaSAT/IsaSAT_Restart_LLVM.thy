@@ -26,6 +26,15 @@ proof -
    by auto
 qed 
 
+(*TODO Move*)
+lemmas [sepref_fr_rules del] =
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF IsaSAT_Setup1_LLVM.arena_is_valid.mop_refine[unfolded uncurry_curry_id],
+  unfolded ptr_read_def]
+lemmas [sepref_fr_rules] =
+  ptr_read_loc.refine[unfolded ptr_read_loc_def, OF IsaSAT_Setup1_LLVM.arena_is_valid.mop_refine[unfolded uncurry_curry_id],
+  unfolded ptr_read_def IsaSAT_Setup1_LLVM.ptr_clause_not_marked_to_delete_heur_code_def[symmetric]]
+term ptr_clause_not_marked_to_delete_heur_code
+find_theorems ptr_read_code IsaSAT_Setup1_LLVM.clause_not_marked_to_delete_heur_code
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

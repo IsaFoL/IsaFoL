@@ -87,10 +87,13 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
 
 (*TODO Move to IsaSAT_Setup2*)
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
+  ptr_clause_not_marked_to_delete_heur_code_def[unfolded ptr_read_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
-(**)
+  ptr_clause_not_marked_to_delete_heur_code_def
+
 experiment
 begin
+
    export_llvm opts_reduction_st_fast_code
     opts_restart_st_fast_code
     get_conflict_count_since_last_restart_heur_fast_code

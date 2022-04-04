@@ -497,8 +497,14 @@ sepref_def isa_deduplicate_binary_clauses_code
   supply [[goals_limit=1]]
   by sepref
 
+(*TODO Move*)
+lemmas [llvm_code] =
+  ptr_get_vmtf_heur_array_nth_impl_def[unfolded ptr_read_code_def]
+  ptr_get_vmtf_heur_fst_impl_def[unfolded ptr_read0_code_def]
+
 experiment
 begin
+
  export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_unit_st_wl2_code
     isa_simplify_clauses_with_units_st_wl2_code
