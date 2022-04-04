@@ -292,12 +292,58 @@ lemma convert_state_hnr:
   by sepref_to_hoare vcg
 declare convert_state_hnr[sepref_fr_rules]
 
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
+  unfolding isasat_init_assn_def
+  apply (rule tuple15_free)
+  by synthesize_free+
+
+lemma IsaSAT_bounded_heur_alt_def:
+  \<open>IsaSAT_bounded_heur opts CS = do{
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
+    ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
+    let b = opts_unbounded_mode opts;
+    S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
+    (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
+    let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+    if isasat_fast_init T \<and> \<not>is_failed_heur_init T
+    then do {
+      if \<not>get_conflict_wl_is_None_heur_init T
+      then do {mop_free T; RETURN (False, empty_init_code)}
+      else if CS = [] then do {stat \<leftarrow> empty_conflict_code; RETURN (False, stat)}
+      else do {
+        _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
+        ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
+        ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
+        _ \<leftarrow> isasat_information_banner T;
+        ASSERT((\<lambda>((ns, m, fst_As, lst_As, next_search), to_remove). fst_As \<noteq> None \<and>
+          lst_As \<noteq> None) (get_vmtf_wl_heur_init T));
+        ASSERT(rewatch_heur_st_fast_pre T);
+        T \<leftarrow> rewatch_heur_st_init T;
+        ASSERT(isasat_fast_init T);
+        T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
+        _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
+        ASSERT(isasat_fast T);
+        (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
+        RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then IsaSAT.extract_model_of_state_stat U
+      else IsaSAT.extract_state_stat U)
+      }
+    }
+    else do {mop_free T; RETURN (True, empty_init_code)}
+  }\<close>
+  unfolding IsaSAT_bounded_heur_def mop_free_def
+  by (auto cong: if_cong)
 
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
-  unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
+  unfolding IsaSAT_bounded_heur_alt_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric] init_dt_wl_heur_b_def[symmetric]
     length_get_clauses_wl_heur_init_def[symmetric]
@@ -473,6 +519,7 @@ begin
     update_clause_wl_fast_code_def
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
+  free_pointer_code_def
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 
   export_llvm

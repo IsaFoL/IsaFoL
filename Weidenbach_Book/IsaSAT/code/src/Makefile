@@ -2,7 +2,7 @@ CLANG = clang
 
 # higher inlining level is necessary since moving to
 # the new state
-CFLAGS = -std=c11 -flto -mllvm -inline-threshold=5000
+CFLAGS = -std=c11 -flto -mllvm -inline-threshold=5000 -march=native
 
 all: isallvm
 
