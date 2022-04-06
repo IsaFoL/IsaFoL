@@ -829,7 +829,7 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> isasat 
    if unc then RETURN (set_clauses_wl_heur N S)
    else if b then
    RETURN  (set_clauses_wl_heur N  
-     (set_stats_wl_heur (if E=LEARNED then get_stats_heur S else decr_irred_clss (get_stats_heur S))
+     (set_stats_wl_heur (if E=LEARNED then (get_stats_heur S) else (decr_irred_clss (get_stats_heur S)))
      (set_learned_count_wl_heur (if E = LEARNED then clss_size_decr_lcount (lcount) else lcount)
      S)))
    else if i = 1
@@ -837,7 +837,7 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> isasat 
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
      RETURN (set_clauses_wl_heur N  
      (set_trail_wl_heur M
-     (set_stats_wl_heur (if E=LEARNED then get_stats_heur S else decr_irred_clss (get_stats_heur S))
+     (set_stats_wl_heur (if E=LEARNED then incr_uset (get_stats_heur S) else incr_uset (decr_irred_clss (get_stats_heur S)))
      (set_learned_count_wl_heur (if E = LEARNED then clss_size_decr_lcount (clss_size_incr_lcountUEk lcount) else lcount)
      S)))) }
    else if i = 0

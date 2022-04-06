@@ -61,7 +61,7 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
     let (stats, S) = extract_stats_wl_heur S;
      RETURN (update_arena_wl_heur N
      (update_trail_wl_heur M
-     (update_stats_wl_heur (if E=LEARNED then stats else decr_irred_clss stats)
+     (update_stats_wl_heur (if E=LEARNED then incr_uset stats else incr_uset (decr_irred_clss stats))
      (update_lcount_wl_heur (if E = LEARNED then clss_size_decr_lcount (clss_size_incr_lcountUEk lcount) else lcount)
      S)))) }
    else if i = 0
