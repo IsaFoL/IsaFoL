@@ -254,22 +254,22 @@ fun isasat_int_assn :: \<open>
 
 locale isasat_state_ops =
   fixes
-    a_assn :: \<open>'a \<Rightarrow> 'xa \<Rightarrow> assn\<close> and
-    b_assn :: \<open>'b \<Rightarrow> 'xb \<Rightarrow> assn\<close> and
-    c_assn :: \<open>'c \<Rightarrow> 'xc \<Rightarrow> assn\<close> and
-    d_assn :: \<open>'d \<Rightarrow> 'xd \<Rightarrow> assn\<close> and
-    e_assn :: \<open>'e \<Rightarrow> 'xe \<Rightarrow> assn\<close> and
-    f_assn :: \<open>'f \<Rightarrow> 'xf \<Rightarrow> assn\<close> and
-    g_assn :: \<open>'g \<Rightarrow> 'xg \<Rightarrow> assn\<close> and
-    h_assn :: \<open>'h \<Rightarrow> 'xh \<Rightarrow> assn\<close> and
-    i_assn :: \<open>'i \<Rightarrow> 'xi \<Rightarrow> assn\<close> and
-    j_assn :: \<open>'j \<Rightarrow> 'xj \<Rightarrow> assn\<close> and
-    k_assn :: \<open>'k \<Rightarrow> 'xk \<Rightarrow> assn\<close> and
-    l_assn :: \<open>'l \<Rightarrow> 'xl \<Rightarrow> assn\<close> and
-    m_assn :: \<open>'m \<Rightarrow> 'xm \<Rightarrow> assn\<close> and
-    n_assn :: \<open>'n \<Rightarrow> 'xn \<Rightarrow> assn\<close> and
-    o_assn :: \<open>'o \<Rightarrow> 'xo \<Rightarrow> assn\<close> and
-    p_assn :: \<open>'p \<Rightarrow> 'xp \<Rightarrow> assn\<close> and
+    a_assn :: \<open>'a \<Rightarrow> 'xa :: llvm_rep \<Rightarrow> assn\<close> and
+    b_assn :: \<open>'b \<Rightarrow> 'xb:: llvm_rep \<Rightarrow> assn\<close> and
+    c_assn :: \<open>'c \<Rightarrow> 'xc:: llvm_rep \<Rightarrow> assn\<close> and
+    d_assn :: \<open>'d \<Rightarrow> 'xd:: llvm_rep \<Rightarrow> assn\<close> and
+    e_assn :: \<open>'e \<Rightarrow> 'xe:: llvm_rep \<Rightarrow> assn\<close> and
+    f_assn :: \<open>'f \<Rightarrow> 'xf:: llvm_rep \<Rightarrow> assn\<close> and
+    g_assn :: \<open>'g \<Rightarrow> 'xg:: llvm_rep \<Rightarrow> assn\<close> and
+    h_assn :: \<open>'h \<Rightarrow> 'xh:: llvm_rep \<Rightarrow> assn\<close> and
+    i_assn :: \<open>'i \<Rightarrow> 'xi:: llvm_rep \<Rightarrow> assn\<close> and
+    j_assn :: \<open>'j \<Rightarrow> 'xj:: llvm_rep \<Rightarrow> assn\<close> and
+    k_assn :: \<open>'k \<Rightarrow> 'xk:: llvm_rep \<Rightarrow> assn\<close> and
+    l_assn :: \<open>'l \<Rightarrow> 'xl:: llvm_rep \<Rightarrow> assn\<close> and
+    m_assn :: \<open>'m \<Rightarrow> 'xm:: llvm_rep \<Rightarrow> assn\<close> and
+    n_assn :: \<open>'n \<Rightarrow> 'xn:: llvm_rep \<Rightarrow> assn\<close> and
+    o_assn :: \<open>'o \<Rightarrow> 'xo:: llvm_rep \<Rightarrow> assn\<close> and
+    p_assn :: \<open>'p \<Rightarrow> 'xp:: llvm_rep \<Rightarrow> assn\<close> and
     a_default :: 'a and
     a :: \<open>'xa llM\<close> and
     b_default :: 'b and
@@ -611,22 +611,22 @@ locale isasat_state =
   ko_default ko
   p_default p
   for
-    a_assn :: \<open>'a \<Rightarrow> 'xa \<Rightarrow> assn\<close> and
-    b_assn :: \<open>'b \<Rightarrow> 'xb \<Rightarrow> assn\<close> and
-    c_assn :: \<open>'c \<Rightarrow> 'xc \<Rightarrow> assn\<close> and
-    d_assn :: \<open>'d \<Rightarrow> 'xd \<Rightarrow> assn\<close> and
-    e_assn :: \<open>'e \<Rightarrow> 'xe \<Rightarrow> assn\<close> and
-    f_assn :: \<open>'f \<Rightarrow> 'xf \<Rightarrow> assn\<close> and
-    g_assn :: \<open>'g \<Rightarrow> 'xg \<Rightarrow> assn\<close> and
-    h_assn :: \<open>'h \<Rightarrow> 'xh \<Rightarrow> assn\<close> and
-    i_assn :: \<open>'i \<Rightarrow> 'xi \<Rightarrow> assn\<close> and
-    j_assn :: \<open>'j \<Rightarrow> 'xj \<Rightarrow> assn\<close> and
-    k_assn :: \<open>'k \<Rightarrow> 'xk \<Rightarrow> assn\<close> and
-    l_assn :: \<open>'l \<Rightarrow> 'xl \<Rightarrow> assn\<close> and
-    m_assn :: \<open>'m \<Rightarrow> 'xm \<Rightarrow> assn\<close> and
-    n_assn :: \<open>'n \<Rightarrow> 'xn \<Rightarrow> assn\<close> and
-    o_assn :: \<open>'o \<Rightarrow> 'xo \<Rightarrow> assn\<close> and
-    p_assn :: \<open>'p \<Rightarrow> 'xp \<Rightarrow> assn\<close> and
+    a_assn :: \<open>'a \<Rightarrow> 'xa:: llvm_rep \<Rightarrow> assn\<close> and
+    b_assn :: \<open>'b \<Rightarrow> 'xb:: llvm_rep \<Rightarrow> assn\<close> and
+    c_assn :: \<open>'c \<Rightarrow> 'xc:: llvm_rep \<Rightarrow> assn\<close> and
+    d_assn :: \<open>'d \<Rightarrow> 'xd:: llvm_rep \<Rightarrow> assn\<close> and
+    e_assn :: \<open>'e \<Rightarrow> 'xe:: llvm_rep \<Rightarrow> assn\<close> and
+    f_assn :: \<open>'f \<Rightarrow> 'xf:: llvm_rep \<Rightarrow> assn\<close> and
+    g_assn :: \<open>'g \<Rightarrow> 'xg:: llvm_rep \<Rightarrow> assn\<close> and
+    h_assn :: \<open>'h \<Rightarrow> 'xh:: llvm_rep \<Rightarrow> assn\<close> and
+    i_assn :: \<open>'i \<Rightarrow> 'xi:: llvm_rep \<Rightarrow> assn\<close> and
+    j_assn :: \<open>'j \<Rightarrow> 'xj:: llvm_rep \<Rightarrow> assn\<close> and
+    k_assn :: \<open>'k \<Rightarrow> 'xk:: llvm_rep \<Rightarrow> assn\<close> and
+    l_assn :: \<open>'l \<Rightarrow> 'xl:: llvm_rep \<Rightarrow> assn\<close> and
+    m_assn :: \<open>'m \<Rightarrow> 'xm:: llvm_rep \<Rightarrow> assn\<close> and
+    n_assn :: \<open>'n \<Rightarrow> 'xn:: llvm_rep \<Rightarrow> assn\<close> and
+    o_assn :: \<open>'o \<Rightarrow> 'xo:: llvm_rep \<Rightarrow> assn\<close> and
+    p_assn :: \<open>'p \<Rightarrow> 'xp:: llvm_rep \<Rightarrow> assn\<close> and
     a_default :: 'a and
     a :: \<open>'xa llM\<close> and
     b_default :: 'b and
@@ -992,6 +992,205 @@ sepref_definition remove_p_code
   :: \<open> isasat_assn\<^sup>d \<rightarrow>\<^sub>a p_assn \<times>\<^sub>a isasat_assn\<close>
   unfolding remove_p_def RETURN_case_isasat_int_invers
   by sepref
+
+
+lemma remove_a_code_alt_def: \<open>remove_a_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 0;
+              x \<leftarrow> a;
+              x \<leftarrow> ll_insert_value xi x 0;
+              return\<^sub>M (M, x)
+  }\<close> and
+  remove_b_code_alt_def: \<open>remove_b_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 1;
+              x \<leftarrow> b;
+              x \<leftarrow> ll_insert_value xi x 1;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_c_code_alt_def: \<open>remove_c_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 2;
+              x \<leftarrow> c;
+              x \<leftarrow> ll_insert_value xi x 2;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_d_code_alt_def: \<open>remove_d_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 3;
+              x \<leftarrow> d;
+              x \<leftarrow> ll_insert_value xi x 3;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_e_code_alt_def: \<open>remove_e_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 4;
+              x \<leftarrow> e;
+              x \<leftarrow> ll_insert_value xi x 4;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_f_code_alt_def: \<open>remove_f_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 5;
+              x \<leftarrow> f;
+              x \<leftarrow> ll_insert_value xi x 5;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_g_code_alt_def: \<open>remove_g_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 6;
+              x \<leftarrow> g;
+              x \<leftarrow> ll_insert_value xi x 6;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_h_code_alt_def: \<open>remove_h_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 7;
+              x \<leftarrow> h;
+              x \<leftarrow> ll_insert_value xi x 7;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_i_code_alt_def: \<open>remove_i_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 8;
+              x \<leftarrow> i;
+              x \<leftarrow> ll_insert_value xi x 8;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_j_code_alt_def: \<open>remove_j_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 9;
+              x \<leftarrow> j;
+              x \<leftarrow> ll_insert_value xi x 9;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_k_code_alt_def: \<open>remove_k_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 10;
+              x \<leftarrow> k;
+              x \<leftarrow> ll_insert_value xi x 10;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_l_code_alt_def: \<open>remove_l_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 11;
+              x \<leftarrow> l;
+              x \<leftarrow> ll_insert_value xi x 11;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_m_code_alt_def: \<open>remove_m_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 12;
+              x \<leftarrow> m;
+              x \<leftarrow> ll_insert_value xi x 12;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_n_code_alt_def: \<open>remove_n_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 13;
+              x \<leftarrow> n;
+              x \<leftarrow> ll_insert_value xi x 13;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_o_code_alt_def: \<open>remove_o_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 14;
+              x \<leftarrow> ko;
+              x \<leftarrow> ll_insert_value xi x 14;
+              return\<^sub>M (M, x)
+  }\<close>and
+  remove_p_code_alt_def: \<open>remove_p_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 15;
+              x \<leftarrow> p;
+              x \<leftarrow> ll_insert_value xi x 15;
+              return\<^sub>M (M, x)
+  }\<close>
+  supply [simp] = llvm_extract_value_def
+    ll_extract_value_def to_val_isasat_int_def
+    checked_from_val_def ll_insert_value_def
+    llvm_insert_value_def
+  unfolding remove_a_code_def remove_b_code_def inline_direct_return_node_case
+    remove_c_code_def remove_d_code_def remove_e_code_def remove_f_code_def remove_g_code_def
+    remove_h_code_def remove_i_code_def remove_j_code_def remove_k_code_def remove_l_code_def
+    remove_m_code_def remove_n_code_def remove_o_code_def remove_p_code_def
+  by (solves \<open>cases xi, rewrite in \<open>Mreturn (_, \<hole>)\<close> llvm_rep_class.from_to_id'[symmetric],
+    simp flip: from_val_isasat_int_def\<close>)+
+
+lemma update_a_code_alt_def: \<open>\<And>x. update_a_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 0; a_free M;
+              x \<leftarrow> ll_insert_value xi x 0;
+              return\<^sub>M (x)
+  }\<close> and
+  update_b_code_alt_def: \<open>\<And>x. update_b_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 1; b_free M;
+              x \<leftarrow> ll_insert_value xi x 1;
+              return\<^sub>M (x)
+  }\<close>and
+  update_c_code_alt_def: \<open>\<And>x. update_c_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 2; c_free M;
+              x \<leftarrow> ll_insert_value xi x 2;
+              return\<^sub>M (x)
+  }\<close>and
+  update_d_code_alt_def: \<open>\<And>x. update_d_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 3; d_free M;
+              x \<leftarrow> ll_insert_value xi x 3;
+              return\<^sub>M (x)
+  }\<close>and
+  update_e_code_alt_def: \<open>\<And>x. update_e_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 4; e_free M;
+              x \<leftarrow> ll_insert_value xi x 4;
+              return\<^sub>M (x)
+  }\<close>and
+  update_f_code_alt_def: \<open>\<And>x. update_f_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 5; f_free M;
+              x \<leftarrow> ll_insert_value xi x 5;
+              return\<^sub>M (x)
+  }\<close>and
+  update_g_code_alt_def: \<open>\<And>x. update_g_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 6; g_free M;
+              x \<leftarrow> ll_insert_value xi x 6;
+              return\<^sub>M (x)
+  }\<close>and
+  update_h_code_alt_def: \<open>\<And>x. update_h_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 7; h_free M;
+              x \<leftarrow> ll_insert_value xi x 7;
+              return\<^sub>M (x)
+  }\<close>and
+  update_i_code_alt_def: \<open>\<And>x. update_i_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 8; i_free M;
+              x \<leftarrow> ll_insert_value xi x 8;
+              return\<^sub>M (x)
+  }\<close>and
+  update_j_code_alt_def: \<open>\<And>x. update_j_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 9; j_free M;
+              x \<leftarrow> ll_insert_value xi x 9;
+              return\<^sub>M (x)
+  }\<close>and
+  update_k_code_alt_def: \<open>\<And>x. update_k_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 10; k_free M;
+              x \<leftarrow> ll_insert_value xi x 10;
+              return\<^sub>M (x)
+  }\<close>and
+  update_l_code_alt_def: \<open>\<And>x. update_l_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 11; l_free M;
+              x \<leftarrow> ll_insert_value xi x 11;
+              return\<^sub>M (x)
+  }\<close>and
+  update_m_code_alt_def: \<open>\<And>x. update_m_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 12; m_free M;
+              x \<leftarrow> ll_insert_value xi x 12;
+              return\<^sub>M (x)
+  }\<close>and
+  update_n_code_alt_def: \<open>\<And>x. update_n_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 13; n_free M;
+              x \<leftarrow> ll_insert_value xi x 13;
+              return\<^sub>M (x)
+  }\<close>and
+  update_o_code_alt_def: \<open>\<And>x. update_o_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 14; o_free M;
+              x \<leftarrow> ll_insert_value xi x 14;
+              return\<^sub>M (x)
+  }\<close>and
+  update_p_code_alt_def: \<open>\<And>x. update_p_code x xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 15; p_free M;
+              x \<leftarrow> ll_insert_value xi x 15;
+              return\<^sub>M (x)
+  }\<close>
+  supply [simp] = llvm_extract_value_def
+    ll_extract_value_def to_val_isasat_int_def
+    checked_from_val_def ll_insert_value_def
+    llvm_insert_value_def
+  unfolding update_a_code_def update_b_code_def inline_direct_return_node_case
+    update_c_code_def update_d_code_def update_e_code_def update_f_code_def update_g_code_def
+    update_h_code_def update_i_code_def update_j_code_def update_k_code_def update_l_code_def
+    update_m_code_def update_n_code_def update_o_code_def update_p_code_def comp_def
+  by (solves \<open>cases xi, rewrite in \<open>Mreturn (\<hole>)\<close> llvm_rep_class.from_to_id'[symmetric],
+    simp flip: from_val_isasat_int_def\<close>)+
 
 end
 

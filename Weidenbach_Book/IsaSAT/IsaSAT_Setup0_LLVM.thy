@@ -715,27 +715,27 @@ lemmas [llvm_code del] =
   update_p_code_def
 
 lemmas [unfolded comp_def inline_node_case, llvm_code] =
-  remove_d_code_def
-  remove_b_code_def
-  remove_a_code_def
+  remove_d_code_alt_def
+  remove_b_code_alt_def
+  remove_a_code_alt_def
   bottom_decision_level_code_def
   bottom_arena_code_def
   bottom_trail_code_def
-  update_a_code_def
-  update_b_code_def
-  update_c_code_def
-  update_d_code_def
-  update_e_code_def
-  update_f_code_def
-  update_h_code_def
-  update_i_code_def
-  update_j_code_def
-  update_k_code_def
-  update_l_code_def
-  update_m_code_def
-  update_n_code_def
-  update_o_code_def
-  update_p_code_def
+  update_a_code_alt_def
+  update_b_code_alt_def
+  update_c_code_alt_def
+  update_d_code_alt_def
+  update_e_code_alt_def
+  update_f_code_alt_def
+  update_h_code_alt_def
+  update_i_code_alt_def
+  update_j_code_alt_def
+  update_k_code_alt_def
+  update_l_code_alt_def
+  update_m_code_alt_def
+  update_n_code_alt_def
+  update_o_code_alt_def
+  update_p_code_alt_def
 
 lemma add_pure_parameter:
   assumes \<open>\<And>C C'. (C, C') \<in> R \<Longrightarrow> (f C, f' C') \<in> [P C']\<^sub>a A \<rightarrow> b\<close>
@@ -2522,22 +2522,22 @@ lemma from_bool1: "from_bool True = 1"
 lemmas [llvm_pre_simp] = from_bool1
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  remove_a_code_def[unfolded isasat_state.remove_a_code_def Mreturn_comp_IsaSAT_int]
-  remove_b_code_def[unfolded isasat_state.remove_b_code_def Mreturn_comp_IsaSAT_int]
-  remove_c_code_def[unfolded isasat_state.remove_c_code_def Mreturn_comp_IsaSAT_int]
-  remove_d_code_def[unfolded isasat_state.remove_d_code_def Mreturn_comp_IsaSAT_int]
-  remove_e_code_def[unfolded isasat_state.remove_e_code_def Mreturn_comp_IsaSAT_int]
-  remove_f_code_def[unfolded isasat_state.remove_f_code_def Mreturn_comp_IsaSAT_int]
-  remove_g_code_def[unfolded isasat_state.remove_g_code_def Mreturn_comp_IsaSAT_int]
-  remove_h_code_def[unfolded isasat_state.remove_h_code_def Mreturn_comp_IsaSAT_int]
-  remove_i_code_def[unfolded isasat_state.remove_i_code_def Mreturn_comp_IsaSAT_int]
-  remove_j_code_def[unfolded isasat_state.remove_j_code_def Mreturn_comp_IsaSAT_int]
-  remove_k_code_def[unfolded isasat_state.remove_k_code_def Mreturn_comp_IsaSAT_int]
-  remove_l_code_def[unfolded isasat_state.remove_l_code_def Mreturn_comp_IsaSAT_int]
-  remove_m_code_def[unfolded isasat_state.remove_m_code_def Mreturn_comp_IsaSAT_int]
-  remove_n_code_def[unfolded isasat_state.remove_n_code_def Mreturn_comp_IsaSAT_int]
-  remove_o_code_def[unfolded isasat_state.remove_o_code_def Mreturn_comp_IsaSAT_int]
-  remove_p_code_def[unfolded isasat_state.remove_p_code_def Mreturn_comp_IsaSAT_int]
+  remove_a_code_alt_def[unfolded isasat_state.remove_a_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_b_code_alt_def[unfolded isasat_state.remove_b_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_c_code_alt_def[unfolded isasat_state.remove_c_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_d_code_alt_def[unfolded isasat_state.remove_d_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_e_code_alt_def[unfolded isasat_state.remove_e_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_f_code_alt_def[unfolded isasat_state.remove_f_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_g_code_alt_def[unfolded isasat_state.remove_g_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_h_code_alt_def[unfolded isasat_state.remove_h_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_i_code_alt_def[unfolded isasat_state.remove_i_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_j_code_alt_def[unfolded isasat_state.remove_j_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_k_code_alt_def[unfolded isasat_state.remove_k_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_l_code_alt_def[unfolded isasat_state.remove_l_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_m_code_alt_def[unfolded isasat_state.remove_m_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_n_code_alt_def[unfolded isasat_state.remove_n_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_o_code_alt_def[unfolded isasat_state.remove_o_code_alt_def Mreturn_comp_IsaSAT_int]
+  remove_p_code_alt_def[unfolded isasat_state.remove_p_code_alt_def Mreturn_comp_IsaSAT_int]
 
 abbreviation update_trail_wl_heur :: \<open>trail_pol \<Rightarrow> isasat \<Rightarrow> _\<close> where
   \<open>update_trail_wl_heur \<equiv> update_a\<close>
