@@ -2742,4 +2742,103 @@ lemmas [unfolded ptr_write_inplace_code_def ptr_write_inplace_def, sepref_fr_rul
   ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_o_code.refine, unfolded ptr_write_inplace_def]
   ptr_write_loc_inplace.refine[unfolded ptr_write_loc_inplace_def, OF update_p_code.refine, unfolded ptr_write_inplace_def]
 
+lemma remove_useless_extract:
+  \<open>doM {(a::'a) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 0; f} = f\<close>
+  \<open>doM {(a::'b) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 1; f} = f\<close>
+  \<open>doM {(a::'c) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 2; f} = f\<close>
+  \<open>doM {(a::'d) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 3; f} = f\<close>
+  \<open>doM {(a::'e) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 4; f} = f\<close>
+  \<open>doM {(a::'f) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 5; f} = f\<close>
+  \<open>doM {(a::'g) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 6; f} = f\<close>
+  \<open>doM {(a::'h) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 7; f} = f\<close>
+  \<open>doM {(a::'i) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 8; f} = f\<close>
+  \<open>doM {(a::'j) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 9; f} = f\<close>
+
+  \<open>doM {(a::'k) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 10; f} = f\<close>
+  \<open>doM {(a::'l) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 11; f} = f\<close>
+  \<open>doM {(a::'m) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 12; f} = f\<close>
+  \<open>doM {(a::'n) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 13; f} = f\<close>
+  \<open>doM {(a::'o) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 14; f} = f\<close>
+  \<open>doM {(a::'p) \<leftarrow> ll_extract_value (S :: ('a::llvm_rep,'b::llvm_rep,'c::llvm_rep,'d::llvm_rep,'e::llvm_rep,'f::llvm_rep,'g::llvm_rep,'h::llvm_rep,'i::llvm_rep,'j::llvm_rep,'k::llvm_rep,'l::llvm_rep,'m::llvm_rep,'n::llvm_rep,'o::llvm_rep,'p::llvm_rep)isasat_int) 15; f} = f\<close>
+apply (solves \<open>cases S; auto simp: ll_extract_value_def llvm_extract_value_def
+  to_val_isasat_int_def checked_from_val_def\<close>)+
+done
+
+lemmas [llvm_code del] =
+  remove_a_code_def[unfolded isasat_state.remove_a_code_def Mreturn_comp_IsaSAT_int
+  inline_direct_return_node_case]
+
+  update_a_code_def[unfolded comp_def inline_node_case]
+
+lemma [llvm_code]: \<open>remove_a_code xi = do\<^sub>M {
+              M \<leftarrow> ll_extract_value xi 0;
+              x \<leftarrow> bottom_trail_code;
+              x \<leftarrow> ll_insert_value xi x 0;
+              return\<^sub>M (M, x)
+            }\<close>
+  apply (cases xi)
+  unfolding remove_a_code_def inline_direct_return_node_case
+  apply (rewrite in \<open>Mreturn (_, \<hole>)\<close> llvm_rep_class.from_to_id'[symmetric])
+  apply (simp add:  llvm_extract_value_def
+    ll_extract_value_def to_val_isasat_int_def
+    checked_from_val_def ll_insert_value_def
+    llvm_insert_value_def
+    flip: from_val_isasat_int_def)
+  done
+thm update_a_code_def
+lemma update_a_code_alt_def: \<open>update_a_code  = (\<lambda>M xi. do\<^sub>M {
+              M' \<leftarrow> ll_extract_value xi 0;
+              free_trail_pol_fast M';
+              ll_insert_value xi M 0
+            })\<close>
+  apply (intro ext)
+  apply (case_tac xi)
+  unfolding update_a_code_def inline_direct_return_node_case comp_def
+  apply (rewrite in \<open>Mreturn (\<hole>)\<close> llvm_rep_class.from_to_id'[symmetric])
+  apply (simp add:  llvm_extract_value_def
+    ll_extract_value_def to_val_isasat_int_def
+    checked_from_val_def ll_insert_value_def
+    llvm_insert_value_def
+    flip: from_val_isasat_int_def)
+  done
+
+sepref_register update_a_code
+lemmas [llvm_code] = update_a_code_alt_def
+thm llvm_code_raw(456-)
+llvm_deps remove_a_ptr_code
+definition test where [llvm_code]: "test a b = update_a_code a b"
+export_llvm remove_a_ptr_code
+
+thm remove_a_ptr_code_def[unfolded ptr_write_code0_def remove_a_ptr_code_def
+  remove_a_code_def[unfolded ptr_write_code0_def inline_direct_return_node_case comp_def]]
+(*
+
+    b \<leftarrow> bottom_trail_code;
+    ll_store b a;
+*)
+  term llvmt_ofs_ptr
+lemma fail_assing_is_fail: \<open>doM {x \<leftarrow> Mfail; f x} = Mfail\<close>
+  by (simp add: M_eq_iff pw_Mbind1 pw_basic(3) run_Mfail)
+
+
+term "ll_extract_value (S :: (_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_) isasat_int) 1"
+lemma \<open>remove_a_ptr_code S = doM {
+    a \<leftarrow> llvm_ofs_ptr (to_val S) (to_val (1 :: 64 word));
+    M \<leftarrow> ll_load (from_val a);
+    n \<leftarrow> bottom_trail_code;
+    Mreturn (from_val a, S)
+  }\<close>
+  apply (cases S)
+  apply (cases \<open>the_raw_ptr S\<close>)
+  apply (auto simp: remove_a_ptr_code_def remove_a_code_def comp_def ptr_write_code0_def
+    llvm_ofs_ptr_def ll_load_def llvm_extract_ptr_def llvm_load_def
+    llvmt_load_def llvm_inline_bind_laws fail_assing_is_fail Massert_def
+    llvm_extract_sint_def to_val_word_def Let_def llvmt_check_ptr_def
+    llvm_prim_mem_setup.from_val_LL_PTR
+    llvm_extract_addr_def to_val_ptr_def llvmt_ofs_ptr_def M_bind_fail
+    intro!: ext split: isasat_int.splits addr.splits)
+  sorry
+    term PTR_ADDR
+find_theorems Mvalid_addr
+  term to_val_ptr def
 end
