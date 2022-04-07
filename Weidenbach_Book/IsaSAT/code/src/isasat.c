@@ -21,7 +21,7 @@ MODEL model;
 
 /*the parser is based on the code from lingeling*/
 
-static char * inputname;
+static char * inputname = NULL;
 static FILE * inputfile;
 
 static int lineno;
@@ -406,7 +406,32 @@ void print_uint32(uint32_t u) {
   //  printf("LBD: %d -", u);
 }
 
+FILE *proof = NULL;
 
+void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
+  if (!proof)
+    return;
+  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
+  fprintf(proof, "%d ", ilit);
+}
+
+void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t) {
+  if (!proof)
+    return;
+  fprintf(proof, "0 \n");
+}
+
+void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t ) {
+  if (!proof)
+    return;
+}
+
+void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t) {
+  if (!proof)
+    return;
+  fprintf(proof, "d ");
+}
+  
 
 struct PROFILE {
     long double start;
@@ -539,11 +564,13 @@ int main(int argc, char *argv[]) {
   OPTIONu64 fema = 128849010;
   OPTIONu64 sema = 429450;
   OPTIONu64 unitinterval = 1000;
+  char *proof_path = NULL;
 
-#ifndef NOOPTIONS
-  for(int i = 1; i < argc - 1; ++i) {
+  for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
+    printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
+#ifndef NOOPTIONS    
     if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
@@ -570,16 +597,34 @@ int main(int argc, char *argv[]) {
       unitinterval = (uint64_t)n;
       ++i;
     }
-    else {
+    else if (opt[0] == '-') {
       printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+    } else
+#endif
+      if (inputname) {
+      proof_path = opt;
+      printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      ++i;
+    } else if (proof_path) {
+      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      ++i;
+    } else {
+      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      inputname = opt;
     }
   }
-#endif
-  inputname = argv[argc-1];
-  if(has_suffix(inputname, "version\0")) {
+  if(!inputname || has_suffix(inputname, "version\0")) {
     print_version();
     printf("\n");
     return 0;
+  }
+
+  if (proof_path) {
+    proof = fopen (proof_path, "w");
+    if (!proof) {
+      printf ("cannot open proof file, aborting");
+      return 0;
+    }
   }
 
 
