@@ -51,6 +51,13 @@ sepref_def log_del_clause_heur_impl
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register log_del_clause_heur log_new_clause_heur_impl
+sepref_register log_del_clause_heur log_new_clause_heur_impl log_unit_clause
+
+sepref_def log_unit_clause_impl
+  is \<open>RETURN o log_unit_clause\<close>
+  :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding log_unit_clause_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 end

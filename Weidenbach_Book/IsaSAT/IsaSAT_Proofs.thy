@@ -128,4 +128,11 @@ lemma log_new_clause_heur_log_clause:
     apply (rule log_clause2_log_clause[THEN fref_to_Down_curry])
     using assms by auto
 
+definition log_unit_clause where
+  \<open>log_unit_clause L =
+    (let _ = log_start_new_clause 0;
+      _ = log_literal L;
+      _ = log_end_clause 0 in
+     ()
+  )\<close>
 end
