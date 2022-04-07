@@ -150,7 +150,7 @@ lemma propagate_unit_bt_wl_D_int_alt_def:
       let S = update_lcount_wl_heur (clss_size_incr_lcountUEk lcount) S;
       let S = update_arena_wl_heur N S;
       let S = update_vmtf_wl_heur vm S;
-      let _ = log_unit_clause L;
+      let _ = log_unit_clause (-L);
         RETURN S})\<close>
   by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors log_unit_clause_def intro!: ext split: isasat_int.splits)
 
