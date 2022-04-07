@@ -54,6 +54,9 @@ declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_end_code(i32)\
 declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)/g' \
 	    isasat_restart.ll
+	#we now due to sepref that array do not alias (we cannot even express that due to seperation logic)
+	echo "using noalias"
+	sed -i "s|define\(.*\*\) %|define\1 noalias %|g" isasat_restart.ll
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
