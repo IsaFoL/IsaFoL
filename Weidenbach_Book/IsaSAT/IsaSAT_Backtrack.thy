@@ -1,5 +1,6 @@
 theory IsaSAT_Backtrack
   imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase_State IsaSAT_LBD
+     IsaSAT_Proofs
 begin
 
 
@@ -704,16 +705,16 @@ lemma heuristic_rel_update_heuristics[intro!]:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C S. do {
-      let M = get_trail_wl_heur S;
-      let vdom = get_aivdom S;
-      let N0 = get_clauses_wl_heur S;
-      let W0 = get_watched_wl_heur S;
-      let lcount = get_learned_count S;
-      let heur = get_heur S;
-      let stats = get_stats_heur S;
-      let lbd = get_lbd S;
-      let vm0 = get_vmtf_heur S;
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C S\<^sub>0. do {
+      let M = get_trail_wl_heur S\<^sub>0;
+      let vdom = get_aivdom S\<^sub>0;
+      let N0 = get_clauses_wl_heur S\<^sub>0;
+      let W0 = get_watched_wl_heur S\<^sub>0;
+      let lcount = get_learned_count S\<^sub>0;
+      let heur = get_heur S\<^sub>0;
+      let stats = get_stats_heur S\<^sub>0;
+      let lbd = get_lbd S\<^sub>0;
+      let vm0 = get_vmtf_heur S\<^sub>0;
       ASSERT(length (get_vdom_aivdom vdom) \<le> length N0);
       ASSERT(length (get_avdom_aivdom vdom) \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -724,14 +725,14 @@ definition propagate_bt_wl_D_heur
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast S \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast S \<longrightarrow> clss_size_lcount lcount < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast S \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast S \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       j \<leftarrow> mop_isa_length_trail M;
@@ -740,7 +741,7 @@ definition propagate_bt_wl_D_heur
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
-      let S = set_watched_wl_heur W S;
+      let S = set_watched_wl_heur W S\<^sub>0;
       let S = set_learned_count_wl_heur (clss_size_incr_lcount lcount) S;
       let S = set_aivdom_wl_heur (add_learned_clause_aivdom i vdom) S;
       let S = set_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
@@ -751,6 +752,7 @@ definition propagate_bt_wl_D_heur
       let S = set_count_max_wl_heur 0 S;
       let S = set_vmtf_wl_heur vm S;
       let S = set_lbd_wl_heur lbd S;
+      _ \<leftarrow> log_new_clause_heur S i;
       RETURN (S)
     })\<close>
 
@@ -1979,7 +1981,8 @@ thm propagate_bt_wl_D_heur_def
             S = set_clauses_wl_heur N S; S = set_literals_to_update_wl_heur j S;
             S = set_count_max_wl_heur 0 S; S = set_vmtf_wl_heur vm S;
             S = set_lbd_wl_heur lbd S in
-          RETURN S
+          do {_ \<leftarrow> log_new_clause_heur S i;
+          RETURN S}
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by (auto intro!: ext bind_cong[OF refl])
@@ -2017,6 +2020,10 @@ thm propagate_bt_wl_D_heur_def
 	     M2 \<leftarrow> cons_trail_propagate_l (- LK') i M1;
             _ \<leftarrow> RETURN (); \<^cancel>\<open>vmtf_flush\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>heur\<close>
+            _ \<leftarrow> RETURN (log_clause (M2,
+                N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#LK'#},
+                W(- LK' := W (- LK') @ [(i, L', length D'' = 2)],
+                  L' := W L' @ [(i, - LK', length D'' = 2)])) i);
             RETURN
               (M2,
                 N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#LK'#},
@@ -2284,8 +2291,19 @@ thm propagate_bt_wl_D_heur_def
       apply (rewrite at  \<open>let _ = get_learned_count _ in _ \<close> Let_def)
       apply (rewrite at  \<open>let _ = get_heur _ in _ \<close> Let_def)
       apply (rewrite at  \<open>let _ = get_stats_heur _ in _ \<close> Let_def)
-
-      apply (refine_rcg cons_trail_Propagated_tr2[of _ _ _ _ _ _ \<open>all_atms_st U'\<close>])
+      apply (rewrite at  \<open>let _ = set_learned_count_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_aivdom_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_heur_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_stats_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_literals_to_update_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_count_max_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_vmtf_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_lbd_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_clauses_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_trail_wl_heur _ _ in _ \<close> Let_def)
+      apply (rewrite at  \<open>let _ = set_watched_wl_heur _ _ in _ \<close> Let_def)
+      apply (refine_rcg cons_trail_Propagated_tr2[of _ _ _ _ _ _ \<open>all_atms_st U'\<close>]
+         )
       subgoal using valid by (auto dest!: valid_arena_vdom_subset)
       subgoal  using valid size_mset_mono[OF avdom] by (auto dest!: valid_arena_vdom_subset)
       subgoal using \<open>nat_of_lit (C ! Suc 0) < length ?W'\<close> by simp
@@ -2324,7 +2342,31 @@ thm propagate_bt_wl_D_heur_def
             dest: valid_arena_one_notin_vdomD
             intro!: vm)
       apply assumption
-      subgoal
+      apply (rule log_new_clause_heur_log_clause)
+      subgoal final_rel
+        supply All_atms_rew[simp]
+        unfolding twl_st_heur_def
+        using D' C_1_neq_hd vmtf avdom aivdom M1'_M1 bounded nempty r r' arena_le
+          set_mset_mono[OF ivdom]
+        by (clarsimp_all simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
+            Let_def T' U' rescore_clause_def S' map_fun_rel_def
+            list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
+            get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
+            RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
+            all_atms_def[symmetric] All_atms_rew learned_clss_count_def all_atms_st_def
+            aivdom_inv_dec_intro_add_mset valid_arena_update_lbd old clss_size_corr_intro(2)
+            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+            simp del: isasat_input_bounded_def isasat_input_nempty_def
+          dest: valid_arena_one_notin_vdomD
+            get_learned_count_learned_clss_countD)
+          (auto
+          intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+          simp: vdom_m_simps5
+            simp del: isasat_input_bounded_def isasat_input_nempty_def
+           dest: valid_arena_one_notin_vdomD)
+      subgoal by auto
+      subgoal by auto
+      subgoal final_rel
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom aivdom M1'_M1 bounded nempty r r' arena_le

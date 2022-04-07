@@ -1,7 +1,7 @@
 theory IsaSAT_Restart
   imports
     Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Simp IsaSAT_Rephase_State
-    IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting
+    IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting IsaSAT_Proofs
 begin
 
 chapter \<open>Restarts\<close>
@@ -785,6 +785,7 @@ where
       else do {
         ASSERT(C \<noteq> None);
         S \<leftarrow> isasat_replace_annot_in_trail L (the C) S\<^sub>0;
+        log_del_clause_heur S (the C);
 	ASSERT(mark_garbage_pre (get_clauses_wl_heur S, the C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) (the C) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
         S \<leftarrow> mark_garbage_heur4 (the C) S;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;\<close>\<close>
@@ -1292,18 +1293,73 @@ proof -
     by (auto simp add: trail_pol_alt_def)
 qed
 
+lemma remove_one_annot_true_clause_one_imp_wl_alt_def:
+\<open>remove_one_annot_true_clause_one_imp_wl = (\<lambda>i S. do {
+      ASSERT(remove_one_annot_true_clause_one_imp_wl_pre i S);
+      ASSERT(is_proped (rev (get_trail_wl S) ! i));
+      (L, C) \<leftarrow> SPEC(\<lambda>(L, C). (rev (get_trail_wl S))!i = Propagated L C);
+      ASSERT(Propagated L C \<in> set (get_trail_wl S));
+      ASSERT(L \<in># all_init_lits_of_wl S);
+      if C = 0 then RETURN (i+1, S)
+      else do {
+        ASSERT(C \<in># dom_m (get_clauses_wl S));
+	S \<leftarrow> replace_annot_wl L C S;
+        _ \<leftarrow> RETURN (log_clause S C);
+	S \<leftarrow> remove_and_add_cls_wl C S;
+        RETURN (i+1, S)
+      }
+  })\<close>
+  by (auto simp: remove_one_annot_true_clause_one_imp_wl_def log_clause_def cong: if_cong)
+
+
+lemma log_clause_heur_log_clause2_ana:
+  assumes \<open>(S,T) \<in> twl_st_heur_restart_ana' r u\<close> \<open>(C,C') \<in> nat_rel\<close>
+  shows \<open>log_clause_heur S C \<le>\<Down>unit_rel (log_clause2 T C')\<close>
+proof -
+  have [refine0]: \<open>(0,0)\<in>nat_rel\<close>
+    by auto
+  have length: \<open>\<Down> nat_rel ((RETURN \<circ> (\<lambda>c. length (get_clauses_wl T \<propto> c))) C') \<le> SPEC (\<lambda>c. (c, length (get_clauses_wl T \<propto> C')) \<in> {(a,b). a=b \<and> a = length (get_clauses_wl T \<propto> C)})\<close>
+    by (use assms in auto)
+  show ?thesis
+    unfolding log_clause_heur_def log_clause2_def comp_def uncurry_def mop_arena_length_st_def
+      mop_access_lit_in_clauses_heur_def
+    apply (refine_vcg mop_arena_lit[where vdom = \<open>set (get_vdom S)\<close> and N = \<open>get_clauses_wl T\<close>, THEN order_trans] 
+      mop_arena_length[where vdom = \<open>set (get_vdom S)\<close>, THEN fref_to_Down_curry, THEN order_trans, unfolded prod.simps])
+    apply assumption
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    apply (rule length)
+    subgoal by (use assms in \<open>auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: arena_lifting(10)\<close>)
+    subgoal by auto
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    apply assumption
+    subgoal by (use assms in auto)
+    apply (rule refl)
+    subgoal by auto
+    by auto
+qed
+
+lemma log_del_clause_heur_log_clause:
+  assumes \<open>(S,T) \<in> twl_st_heur_restart_ana' r u\<close> \<open>(C,C') \<in> nat_rel\<close> \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  shows \<open>log_del_clause_heur S C \<le> SPEC (\<lambda>c. (c, log_clause T C') \<in> unit_rel)\<close>
+    unfolding log_del_clause_heur_alt_def
+    apply (rule log_clause_heur_log_clause2_ana[THEN order_trans, OF assms(1,2)])
+    apply (rule order_trans)
+    apply (rule ref_two_step')
+    apply (rule log_clause2_log_clause[THEN fref_to_Down_curry])
+    using assms by auto
+
 lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_clause_one_imp_wl_D:
   \<open>(uncurry remove_one_annot_true_clause_one_imp_wl_D_heur,
     uncurry remove_one_annot_true_clause_one_imp_wl) \<in>
     nat_rel \<times>\<^sub>f twl_st_heur_restart_ana' r u \<rightarrow>\<^sub>f
     \<langle>nat_rel \<times>\<^sub>f twl_st_heur_restart_ana' r u\<rangle>nres_rel\<close>
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
-    remove_one_annot_true_clause_one_imp_wl_def case_prod_beta uncurry_def
+    remove_one_annot_true_clause_one_imp_wl_alt_def case_prod_beta uncurry_def
   apply (intro frefI nres_relI)
   subgoal for x y
   apply (refine_rcg get_literal_and_reason[where r=r]
     isasat_replace_annot_in_trail_replace_annot_in_trail_spec
-      [where r=r and u=u]
+      [where r=r and u=u] log_del_clause_heur_log_clause
     mark_garbage_heur4_remove_and_add_cls_l[where r=r and u=u])
   subgoal
     by (auto simp: prod_rel_fst_snd_iff)
@@ -1322,8 +1378,17 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
   subgoal for p pa
     by (cases pa; cases p; cases x; cases y)
       (auto simp: all_init_atms_def learned_clss_count_def simp del: all_init_atms_def[symmetric])
-
+  apply (solves auto)
+  subgoal by auto
+  subgoal in_dom_m for p pa S Sa
+    unfolding mark_garbage_pre_def
+      arena_is_valid_clause_idx_def
+      prod.case
+    apply (case_tac Sa; cases y)
+    apply (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+    done
   subgoal for p pa S Sa
+    using in_dom_m
     unfolding mark_garbage_pre_def
       arena_is_valid_clause_idx_def
       prod.case

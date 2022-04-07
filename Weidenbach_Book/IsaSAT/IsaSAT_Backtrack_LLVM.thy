@@ -1,6 +1,6 @@
 theory IsaSAT_Backtrack_LLVM
   imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
-    IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM
+    IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM IsaSAT_Proofs_LLVM
 begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
@@ -245,6 +245,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
+      _ \<leftarrow> log_new_clause_heur S i;
       RETURN (S)
         })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
