@@ -297,6 +297,7 @@ definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> isasat \<Right
       ASSERT(cons_trail_Decided_tr_pre (L', M));
       let M = cons_trail_Decided_tr L' M;
       let S = set_trail_wl_heur M S;
+      let stats = incr_decision stats;
       let S = set_stats_wl_heur stats S;
       RETURN S})\<close>
 

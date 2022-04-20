@@ -10,6 +10,7 @@ lemma decide_lit_wl_heur_alt_def:
       let S = update_literals_to_update_wl_heur j S;
       ASSERT(cons_trail_Decided_tr_pre (L', M));
       let M = cons_trail_Decided_tr L' M;
+      let stats = incr_decision stats;
       let S = update_trail_wl_heur M S;
       let S = update_stats_wl_heur stats S;
         RETURN S})\<close>
@@ -111,7 +112,6 @@ sepref_def decide_wl_or_skip_D_fast_code
   unfolding decide_wl_or_skip_D_heur'_def option.case_eq_if atom.fold_option
   by sepref
 
-term get_next_phase_st'_impl
 experiment begin
 
 export_llvm

@@ -1,6 +1,6 @@
 theory IsaSAT_Backtrack_LLVM
   imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
-    IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM
+    IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM IsaSAT_Proofs_LLVM
 begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
@@ -150,8 +150,9 @@ lemma propagate_unit_bt_wl_D_int_alt_def:
       let S = update_lcount_wl_heur (clss_size_incr_lcountUEk lcount) S;
       let S = update_arena_wl_heur N S;
       let S = update_vmtf_wl_heur vm S;
+      let _ = log_unit_clause L;
         RETURN S})\<close>
-  by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors intro!: ext split: isasat_int.splits)
+  by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors log_unit_clause_def intro!: ext split: isasat_int.splits)
 
 sepref_register cons_trail_Propagated_tr update_heur_wl_heur
 sepref_def propagate_unit_bt_wl_D_fast_code
@@ -245,6 +246,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
+      _ \<leftarrow> log_new_clause_heur S i;
       RETURN (S)
         })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
@@ -260,7 +262,7 @@ lemmas [sepref_bounds_simps] =
 definition two_sint64 :: nat where [simp]: \<open>two_sint64 = 2\<close>
 lemma [sepref_fr_rules]:
    \<open>(uncurry0 (Mreturn 2), uncurry0 (RETURN two_sint64)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  apply sepref_to_hoare 
+  apply sepref_to_hoare
   apply (vcg, auto simp: snat_rel_def snat.rel_def br_def snat_invar_def ENTAILS_def
       snat_numeral max_snat_def exists_eq_star_conv Exists_eq_simp
       sep_conj_commute pure_true_conv)

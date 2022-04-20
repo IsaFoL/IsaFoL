@@ -1530,4 +1530,10 @@ definition end_of_rephasing_phase_st :: \<open>isasat \<Rightarrow> 64 word\<clo
 definition end_of_restart_phase_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
  \<open>end_of_restart_phase_st = (\<lambda>S. end_of_restart_phase (get_heur S))\<close>
 
+
+definition get_vmtf_heur_array where
+  \<open>get_vmtf_heur_array S = fst (fst (get_vmtf_heur S))\<close>
+definition get_vmtf_heur_fst where
+  \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (get_vmtf_heur S))\<close>
+
 end

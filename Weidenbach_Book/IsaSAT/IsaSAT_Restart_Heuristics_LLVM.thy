@@ -4,6 +4,7 @@ theory IsaSAT_Restart_Heuristics_LLVM
      IsaSAT_Arena_Sorting_LLVM
      IsaSAT_Restart_Reduce_LLVM
      IsaSAT_Inprocessing_LLVM
+     IsaSAT_Proofs_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI
@@ -306,6 +307,7 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heurI:
        learned_clss_count xb \<le> learned_clss_count b \<Longrightarrow>
         learned_clss_count xb \<le> uint64_max\<close>
  by (auto simp: isasat_fast_def)
+
 
 sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>

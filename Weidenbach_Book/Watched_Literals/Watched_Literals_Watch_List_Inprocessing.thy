@@ -697,8 +697,9 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
          else do {
            let L' = L';
            if defined_lit (get_trail_wl S) L' then do {
-             S \<leftarrow> simplify_clause_with_unit_st_wl C S;
-             RETURN (defined_lit (get_trail_wl S) L, i+1, CS, S)
+             U \<leftarrow> simplify_clause_with_unit_st_wl C S;
+             ASSERT (set_mset (all_init_atms_st U) = set_mset (all_init_atms_st S));
+             RETURN (defined_lit (get_trail_wl U) L, i+1, CS, U)
            }
            else if CS L' \<noteq> None \<and> (\<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C)then do {
              S \<leftarrow> clause_remove_duplicate_clause_wl C S;
@@ -1278,6 +1279,9 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal
+      by (clarsimp dest!: rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l
+        simp: all_init_atms_st_alt_def)
     subgoal by (auto simp flip: Cons_nth_drop_Suc simp: watched_by_alt_def
       dest: deduplicate_binary_clauses_inv_wl_literals_are_in)
     subgoal by auto

@@ -118,6 +118,9 @@ lemma isasat_GC_clauses_prog_wl_alt_def:
     let (stats, S) = extract_stats_wl_heur S;
     let S = update_stats_wl_heur (incr_GC stats) S;
     let S = update_vdom_wl_heur vdom S;
+    let (heur, S) = extract_heur_wl_heur S;
+    let heur = heuristic_reluctant_untrigger (set_zero_wasted heur);
+    let S = update_heur_wl_heur heur S;
     RETURN S
       })\<close>
       by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors recombine_vmtf_def split_vmtf_def

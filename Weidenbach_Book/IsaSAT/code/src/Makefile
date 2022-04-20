@@ -1,6 +1,8 @@
 CLANG = clang
 
-CFLAGS = -std=c11 -flto
+# higher inlining level is necessary since moving to
+# the new state
+CFLAGS = -std=c11 -flto -mllvm -inline-threshold=4000 -Omarch=native
 
 all: isallvm
 
@@ -30,7 +32,10 @@ remove-print:
 	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_code/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_end_code/,/}/d' isasat_restart.ll
 	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code/,/}/d' isasat_restart.ll
-
+	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_literal_impl/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_end_clause_impl/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_start_new_clause_impl/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_start_del_clause_impl/,/}/d' isasat_restart.ll
 
 	sed -i -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
 declare void @IsaSAT_Show_LLVM_print_c_impl(i64)\
@@ -50,8 +55,15 @@ declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_end_code(i32)\
+declare void @IsaSAT_Proofs_LLVM_log_end_clause_impl(i64)\
+declare void @IsaSAT_Proofs_LLVM_log_literal_impl(i32)\
+declare void @IsaSAT_Proofs_LLVM_log_start_new_clause_impl(i64)\
+declare void @IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i64)\
 declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)/g' \
 	    isasat_restart.ll
+	#we now due to sepref that array do not alias (we cannot even express that due to seperation logic)
+	echo "using noalias"
+	sed -i "s|define\(.*\*\) %|define\1 noalias %|g" isasat_restart.ll
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
