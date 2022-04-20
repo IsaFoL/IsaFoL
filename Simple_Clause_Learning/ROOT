@@ -1,5 +1,9 @@
-session Simple_Clause_Learning = HOL +
+session Simple_Clause_Learning = First_Order_Terms +
   options [document = pdf, document_output = "output"]
+  sessions
+    First_Order_Terms
+    Saturation_Framework
+    Ordered_Resolution_Prover
   theories
     Simple_Clause_Learning
   document_files
