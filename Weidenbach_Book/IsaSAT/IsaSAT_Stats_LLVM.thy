@@ -486,13 +486,14 @@ sepref_def ema_extract_value_impl
 
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn \<times> 1 word)\<close>
+  (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
+  reluctant_rel_assn \<times> 1 word \<times> phase_saver_assn)\<close>
 
 definition heuristic_int_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_int_assn = ema_assn \<times>\<^sub>a
   ema_assn \<times>\<^sub>a
   restart_info_assn \<times>\<^sub>a
-  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn\<close>
+  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a phase_saver_assn\<close>
 
 abbreviation heur_int_rel :: \<open>(restart_heuristics \<times> restart_heuristics) set\<close> where
   \<open>heur_int_rel \<equiv> Id\<close>

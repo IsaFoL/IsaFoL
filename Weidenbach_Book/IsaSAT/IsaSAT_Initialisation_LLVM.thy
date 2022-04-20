@@ -848,7 +848,7 @@ definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> rest
   let fema = ema_init (opts_fema opts) in
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False))\<close>
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>
@@ -859,6 +859,8 @@ sepref_def empty_heuristics_stats_impl
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
   apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
+  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver_assn])
+  apply (rewrite in \<open>replicate _ False\<close> larray_fold_custom_replicate)
   apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   by sepref

@@ -686,9 +686,9 @@ lemma the_option_lookup_clause_assn:
     (auto simp: option_lookup_clause_rel_def)
 
 definition update_propagation_heuristics_stats where
-  \<open>update_propagation_heuristics_stats = (\<lambda>glue (fema, sema, res_info, wasted, phasing, reluctant, fullyproped).
+  \<open>update_propagation_heuristics_stats = (\<lambda>glue (fema, sema, res_info, wasted, phasing, reluctant, fullyproped, s).
      (ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info, wasted,phasing, reluctant, False))\<close>
+          incr_conflict_count_since_last_restart res_info, wasted,phasing, reluctant, False, s))\<close>
 
 lemma heuristic_rel_stats_update_heuristics_stats[intro!]:
   \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (update_propagation_heuristics_stats glue heur)\<close>

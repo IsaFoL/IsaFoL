@@ -253,7 +253,7 @@ definition bottom_heur_int :: \<open> restart_heuristics\<close> where
   let fema = ema_init (0) in
   let sema = ema_init (0) in let ccount = restart_info_init in
   let n = 0  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False))
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate 0 False))
 \<close>
 sepref_def bottom_heur_int_code
   is \<open>uncurry0 (RETURN bottom_heur_int)\<close>
