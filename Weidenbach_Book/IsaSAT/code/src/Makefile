@@ -12,32 +12,32 @@ all: isallvm
 # and remove the empty definitions from the ll file
 remove-print:
 	echo "fix printing functions"
-	sed -i -e '/define void @IsaSAT_LLVM_print_gc_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_irred_clss_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_dec_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_confl_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_LLVM_print_propa_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Show_LLVM_print_c_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Show_LLVM_print_char_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Show_LLVM_print_uint64_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Show_LLVM_print_open_colour_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Show_LLVM_print_close_colour_impl/,/}/d' isasat_restart.ll
-#	sed -i -e '/define void @IsaSAT_Show_LLVM_print /,/}/d' isasat_restart.ll
-#	sed -i -e '/define void @IsaSAT_LLVM_print /,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Profile_LLVM_start_profile/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Profile_LLVM_stop_profile/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_code/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_end_code/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_literal_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_end_clause_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_start_new_clause_impl/,/}/d' isasat_restart.ll
-	sed -i -e '/define void @IsaSAT_Proofs_LLVM_log_start_del_clause_impl/,/}/d' isasat_restart.ll
-
-	sed -i -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
+	sed -i -e '/define void @IsaSAT_LLVM_print_gc_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_irred_clss_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_dec_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_confl_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_propa_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Show_LLVM_print_c_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Show_LLVM_print_char_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Show_LLVM_print_uint64_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Show_LLVM_print_open_colour_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Show_LLVM_print_close_colour_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Profile_LLVM_start_profile/,/}/d' \
+	  -e '/define void @IsaSAT_Profile_LLVM_stop_profile/,/}/d' \
+	  -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_code/,/}/d' \
+	  -e '/define void @IsaSAT_Setup3_LLVM_print_encoded_lit_end_code/,/}/d' \
+	  -e '/define void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_log_literal_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_log_end_clause_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_log_start_new_clause_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_log_start_del_clause_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl/,/}/d' \
+	  -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
 declare void @IsaSAT_Show_LLVM_print_c_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_char_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)\
@@ -59,9 +59,13 @@ declare void @IsaSAT_Proofs_LLVM_log_end_clause_impl(i64)\
 declare void @IsaSAT_Proofs_LLVM_log_literal_impl(i32)\
 declare void @IsaSAT_Proofs_LLVM_log_start_new_clause_impl(i64)\
 declare void @IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i64)\
-declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)/g' \
+declare void @IsaSAT_Setup3_LLVM_print_literal_of_trail_code(i32)\
+declare void @IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(i32)\
+declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(i64)\
+declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(i64)\
+/g' \
 	    isasat_restart.ll
-	#we now due to sepref that array do not alias (we cannot even express that due to seperation logic)
+	# now due to sepref that array do not alias (we cannot even express that due to seperation logic)
 	echo "using noalias"
 	sed -i "s|define\(.*\*\) %|define\1 noalias %|g" isasat_restart.ll
 

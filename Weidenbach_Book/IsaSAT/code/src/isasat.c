@@ -77,12 +77,16 @@ static CLAUSE copy_clause(CLAUSE *cl0) {
   return cl;
 }
 
-static void append_lit(int32_t lit, CLAUSE * cl) {
-  uint32_t ulit = (uint32_t)(lit < 0 ? 2 * (-lit - 1) +1 : 2 * (lit - 1) + 0);
+static void append_raw_lit(uint32_t ulit, CLAUSE * cl) {
   if(cl->used + 1 >= cl->size)
     make_room(cl);
   cl->clause[cl->used] = ulit;
   cl->used++;
+}
+
+static void append_lit(int32_t lit, CLAUSE * cl) {
+  uint32_t ulit = (uint32_t)(lit < 0 ? 2 * (-lit - 1) +1 : 2 * (lit - 1) + 0);
+  append_raw_lit(ulit, cl);
 }
 
 static void free_clause (CLAUSE *cl) {
@@ -407,6 +411,7 @@ void print_uint32(uint32_t u) {
 }
 
 FILE *proof = NULL;
+CLAUSE *proof_clause;
 
 void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
   if (!proof)
@@ -431,7 +436,37 @@ void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t) {
     return;
   fprintf(proof, "d ");
 }
-  
+/*
+declare void @IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(i32)\
+declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(i64)\
+declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(i64)\
+*/
+void IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(uint32_t lit)
+{
+  if (!proof)
+    return;
+  append_raw_lit (lit, proof_clause);
+}
+
+void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(uint64_t i)
+{
+  if (!proof)
+    return;
+  fprintf(proof, "0\n c CHEATING starting unit deletion\n");
+  IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i);
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
+    IsaSAT_Proofs_LLVM_log_literal_impl(*lit);
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(i);
+  proof_clause->used = 0;
+}
+
+void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(uint64_t i)
+{
+  if (!proof)
+    return;
+  proof_clause->used = 0;
+}
 
 struct PROFILE {
     long double start;
@@ -661,6 +696,9 @@ READ_FILE:
 
   CLAUSES clauses = parse();
 
+  CLAUSE pc = new_clause();
+  proof_clause = &pc;
+
   fclose(inputfile);
   stop_profile(&parsing_prof);
 
@@ -720,9 +758,13 @@ READ_FILE:
   printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
 #endif
+
   if (interrupted)
     return 0;
   else if (satisfiable)
     return 20;
-  else return 10;
+  else {
+    IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
+    return 10;
+  }
 }
