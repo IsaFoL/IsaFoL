@@ -856,7 +856,7 @@ definition isa_simplify_clause_with_unit_st2 :: \<open>nat \<Rightarrow> isasat 
    }
    else do {
        let S = (set_clauses_wl_heur N S);
-       _ \<leftarrow> log_clause_heur S C;
+       _ \<leftarrow> log_new_clause_heur S C;
        RETURN S
      }
    })\<close>
@@ -1041,7 +1041,8 @@ proof -
     set_mset (all_init_atms_st a) = set_mset (all_init_atms_st b)\<close> for a b
     by (metis \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) \<L>\<^sub>a\<^sub>l\<^sub>l_cong atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_cong_set_mset)
   have log_clause[refine0]: \<open>y' \<in># dom_m (get_clauses_wl x') \<Longrightarrow> (x, x')\<in> ?A \<Longrightarrow> (y,y')\<in> nat_rel \<Longrightarrow>
-    log_clause_heur x y \<le> SPEC(\<lambda>c. (c, log_clause x' y') \<in> unit_rel)\<close> for x x' y y'
+    log_new_clause_heur x y \<le> SPEC(\<lambda>c. (c, log_clause x' y') \<in> unit_rel)\<close> for x x' y y'
+    unfolding log_new_clause_heur_alt_def
     apply (rule log_clause_heur_log_clause2_ana[THEN order_trans])
     apply (auto simp add: twl_st_heur_restart_ana_def)
   by (rule log_clause2_log_clause[THEN fref_to_Down_curry, unfolded prod.simps, THEN order_trans])

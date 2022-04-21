@@ -123,8 +123,7 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
      (update_lcount_wl_heur lcount
      (update_arena_wl_heur N
      S)));
-     let _ = log_end_clause 0;
-     _ \<leftarrow> log_clause_heur S C;
+     _ \<leftarrow> log_new_clause_heur S C;
      let _ = mark_clause_for_unit_as_changed 0;
      RETURN S
    }
@@ -152,7 +151,6 @@ sepref_def isa_simplify_clause_with_unit_st2_code
   apply (rewrite at \<open>(cons_trail_Propagated_tr _ \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(mark_clause_for_unit_as_changed \<hole>)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>(mark_clause_for_unit_as_unchanged \<hole>)\<close> unat_const_fold[where 'a=64])+
-  apply (rewrite at \<open>(log_end_clause \<hole>)\<close> unat_const_fold[where 'a=64])+
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   supply [[goals_limit=1]]
   by sepref

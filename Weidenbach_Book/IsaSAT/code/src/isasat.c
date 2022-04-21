@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 2
+#include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -411,7 +412,7 @@ void print_uint32(uint32_t u) {
 }
 
 FILE *proof = NULL;
-int binary_proof = 0;
+int binary_proof = 1;
 CLAUSE *proof_clause;
 
 static inline int
@@ -422,12 +423,13 @@ isasat_putc (int ch)
 #else
   int res = putc (ch, proof);
 #endif
-  return ch;
+  return res;
 }
 
 static void
-IsaSAT_Proofs_LLVM_log_literal_impl_binary (uint32_t x)
+isasat_print_binary_lit (uint32_t x)
 {
+  x = x>0 ? 2*x : -2*x+1;
   unsigned char ch;
   while (x & ~0x7f)
     {
@@ -439,23 +441,45 @@ IsaSAT_Proofs_LLVM_log_literal_impl_binary (uint32_t x)
 }
 
 static void
-IsaSAT_Proofs_LLVM_log_literal_impl_nonbinary (uint32_t ilit)
+isasat_print_ascii_lit (uint32_t ilit)
 {
   fprintf(proof, "%d ", ilit);
+}
+
+static void isasat_print_binary_clause ()
+{
+
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
+    isasat_print_binary_lit(*lit);
+}
+
+
+static void isasat_print_ascii_clause ()
+{
+
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit) {
+    isasat_print_ascii_lit(*lit);
+  }
+}
+
+static void isasat_print_literal (uint32_t lit)
+{
+  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
+  if (binary_proof)
+    isasat_print_binary_lit (ilit);
+  else
+    isasat_print_ascii_lit(ilit);
 }
 
 void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
   if (!proof)
     return;
-  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
- 
-  if (binary_proof)
-    IsaSAT_Proofs_LLVM_log_literal_impl_binary(ilit);
-  else
-    IsaSAT_Proofs_LLVM_log_literal_impl_nonbinary(ilit);
+  isasat_print_literal (lit);
 }
 
-void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t) {
+void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t _w) {
   if (!proof)
     return;
   isasat_putc('0');
@@ -463,14 +487,17 @@ void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t) {
     isasat_putc('\n');
 }
 
-void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t ) {
+void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t _w) {
   if (!proof)
     return;
+
   if (binary_proof)
     isasat_putc ('a');
+  // tmp
+  // isasat_putc (' ');
 }
 
-void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t) {
+void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t _w) {
   if (!proof)
     return;
   isasat_putc ('d');
@@ -489,7 +516,6 @@ void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(uint64_t i)
 {
   if (!proof)
     return;
-  fprintf(proof, "0\nc starting unit deletion\n");
   IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i);
   const uint32_t *end = proof_clause->clause + proof_clause->used;
   for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
@@ -804,13 +830,17 @@ READ_FILE:
   if (interrupted)
     res = 0;
   else if (unsatisfiable) {
-    IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
+    // add missing false clause
+    proof_clause->used = 0;
+    printf("c closing proof\n");
+    isasat_putc('a');
+    isasat_putc('0');
     res = 20;
   }
   else {
     res = 10;
   }
   if (proof)
-    fclose(proof);
+    fflush(proof), fclose(proof);
   return res;
 }
