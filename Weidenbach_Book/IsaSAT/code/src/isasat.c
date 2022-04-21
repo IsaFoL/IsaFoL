@@ -411,36 +411,73 @@ void print_uint32(uint32_t u) {
 }
 
 FILE *proof = NULL;
+int binary_proof = 0;
 CLAUSE *proof_clause;
+
+static inline int
+isasat_putc (int ch)
+{
+#ifdef _POSIX_C_SOURCE
+  int res = putc_unlocked (ch, proof);
+#else
+  int res = putc (ch, proof);
+#endif
+  return ch;
+}
+
+static void
+IsaSAT_Proofs_LLVM_log_literal_impl_binary (uint32_t x)
+{
+  unsigned char ch;
+  while (x & ~0x7f)
+    {
+      ch = (x & 0x7f) | 0x80;
+      isasat_putc (ch);
+      x >>= 7;
+    }
+  isasat_putc ((unsigned char) x);
+}
+
+static void
+IsaSAT_Proofs_LLVM_log_literal_impl_nonbinary (uint32_t ilit)
+{
+  fprintf(proof, "%d ", ilit);
+}
 
 void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
   if (!proof)
     return;
   const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
-  fprintf(proof, "%d ", ilit);
+ 
+  if (binary_proof)
+    IsaSAT_Proofs_LLVM_log_literal_impl_binary(ilit);
+  else
+    IsaSAT_Proofs_LLVM_log_literal_impl_nonbinary(ilit);
 }
 
 void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t) {
   if (!proof)
     return;
-  fprintf(proof, "0 \n");
+  isasat_putc('0');
+  if (!binary_proof)
+    isasat_putc('\n');
 }
 
 void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t ) {
   if (!proof)
     return;
+  if (binary_proof)
+    isasat_putc ('a');
 }
 
 void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t) {
   if (!proof)
     return;
-  fprintf(proof, "d ");
+  isasat_putc ('d');
+  if (!binary_proof)
+    isasat_putc (' ');
 }
-/*
-declare void @IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(i32)\
-declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(i64)\
-declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(i64)\
-*/
+
 void IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(uint32_t lit)
 {
   if (!proof)
@@ -452,7 +489,7 @@ void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(uint64_t i)
 {
   if (!proof)
     return;
-  fprintf(proof, "0\n c CHEATING starting unit deletion\n");
+  fprintf(proof, "0\nc starting unit deletion\n");
   IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i);
   const uint32_t *end = proof_clause->clause + proof_clause->used;
   for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
@@ -467,6 +504,7 @@ void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(uint64_t i)
     return;
   proof_clause->used = 0;
 }
+
 
 struct PROFILE {
     long double start;
@@ -605,8 +643,10 @@ int main(int argc, char *argv[]) {
     char * opt = argv[i];
     int n;
     printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
-#ifndef NOOPTIONS    
-    if(strcmp(opt, "--notarget\0") == 0)
+#ifndef NOOPTIONS
+    if(strcmp(opt, "--ascii\0") == 0)
+      binary_proof = 0;
+    else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -716,10 +756,10 @@ READ_FILE:
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
-  _Bool satisfiable = t & 1;
+  _Bool unsatisfiable = t & 1;
   if(interrupted)
     printf("s UNKNOWN\n");
-  else if (satisfiable)
+  else if (unsatisfiable)
     printf("s UNSATISFIABLE\n");
   else {
     printf("s SATISFIABLE\n");
@@ -744,6 +784,7 @@ READ_FILE:
   }
   free(model.model);
 
+
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
     init_prof.total;
@@ -759,12 +800,17 @@ READ_FILE:
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
 #endif
 
+  char res = -1;
   if (interrupted)
-    return 0;
-  else if (satisfiable)
-    return 20;
-  else {
+    res = 0;
+  else if (unsatisfiable) {
     IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
-    return 10;
+    res = 20;
   }
+  else {
+    res = 10;
+  }
+  if (proof)
+    fclose(proof);
+  return res;
 }
