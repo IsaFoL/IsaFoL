@@ -679,12 +679,16 @@ int main(int argc, char *argv[]) {
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
 
+  int print_version_only = 0;
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
-    printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
 #ifndef NOOPTIONS
-    if(strcmp(opt, "--ascii\0") == 0)
+    if(strcmp(opt, "--version\0") == 0){
+      print_version_only = 1;
+      break;
+    }
+    else if(strcmp(opt, "--ascii\0") == 0)
       binary_proof = 0;
     else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
@@ -728,7 +732,7 @@ int main(int argc, char *argv[]) {
       inputname = opt;
     }
   }
-  if(!inputname || has_suffix(inputname, "version\0")) {
+  if(!inputname || print_version_only) {
     print_version();
     printf("\n");
     return 0;
