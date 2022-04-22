@@ -426,6 +426,28 @@ isasat_putc (int ch)
   return res;
 }
 
+void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t _w) {
+  if (!proof)
+    return;
+
+  if (binary_proof)
+    isasat_putc ('a');
+  // tmp
+  // isasat_putc (' ');
+}
+
+void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t _w) {
+  if (!proof)
+    return;
+  if(!binary_proof) {
+    isasat_putc('0');
+    isasat_putc('\n');
+  }
+  else
+    isasat_putc(0);
+}
+
+
 static void
 isasat_print_binary_lit (uint32_t x)
 {
@@ -452,6 +474,7 @@ static void isasat_print_binary_clause ()
   const uint32_t *end = proof_clause->clause + proof_clause->used;
   for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
     isasat_print_binary_lit(*lit);
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
 }
 
 
@@ -462,6 +485,15 @@ static void isasat_print_ascii_clause ()
   for (uint32_t *lit = proof_clause->clause; lit != end; ++lit) {
     isasat_print_ascii_lit(*lit);
   }
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
+}
+
+static void isasat_print_clause ()
+{
+  if (binary_proof)
+    isasat_print_binary_clause();
+  else
+    isasat_print_ascii_clause();
 }
 
 static void isasat_print_literal (uint32_t lit)
@@ -477,24 +509,6 @@ void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
   if (!proof)
     return;
   isasat_print_literal (lit);
-}
-
-void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t _w) {
-  if (!proof)
-    return;
-  isasat_putc('0');
-  if (!binary_proof)
-    isasat_putc('\n');
-}
-
-void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t _w) {
-  if (!proof)
-    return;
-
-  if (binary_proof)
-    isasat_putc ('a');
-  // tmp
-  // isasat_putc (' ');
 }
 
 void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t _w) {
@@ -831,10 +845,11 @@ READ_FILE:
     res = 0;
   else if (unsatisfiable) {
     // add missing false clause
-    proof_clause->used = 0;
-    printf("c closing proof\n");
-    isasat_putc('a');
-    isasat_putc('0');
+    if (proof) {
+      proof_clause->used = 0;
+      IsaSAT_Proofs_LLVM_log_start_new_clause_impl (0);
+      isasat_print_ascii_clause ();
+    }
     res = 20;
   }
   else {
