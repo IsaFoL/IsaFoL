@@ -565,13 +565,16 @@ int main(int argc, char *argv[]) {
   OPTIONu64 sema = 429450;
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
+  int versionOnly = 0;
 
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
-    printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
+    //printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
 #ifndef NOOPTIONS    
-    if(strcmp(opt, "--notarget\0") == 0)
+    if(strcmp(opt, "--version\0") == 0)
+      versionOnly = 1;
+    else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -598,7 +601,7 @@ int main(int argc, char *argv[]) {
       ++i;
     }
     else if (opt[0] == '-') {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
       if (inputname) {
@@ -613,7 +616,7 @@ int main(int argc, char *argv[]) {
       inputname = opt;
     }
   }
-  if(!inputname || has_suffix(inputname, "version\0")) {
+  if(versionOnly || !inputname || has_suffix(inputname, "version\0")) {
     print_version();
     printf("\n");
     return 0;

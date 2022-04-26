@@ -23,6 +23,7 @@ rm -rf $dir
 echo "mkdir"
 mkdir $dir
 mkdir $dir/bin
+cp ./src/isasat $dir/bin/
 mkdir $dir/build
 mkdir $dir/archives
 printf "cp to archives $tar\n"
@@ -31,9 +32,11 @@ cp -a $tar $dir/archives
 echo "build script"
 cat <<EOF >$dir/build/build.sh
 #!/bin/sh
-tar xf ../archives/isasat*
-mv isasat* isasat
-cd isasat/src
+# compilation flag
+# tar xf ../archives/isasat*
+# mv isasat* isasat
+# cd isasat/src
+# make
 install -s isasat ../../../bin/
 EOF
 chmod 755 $dir/build/build.sh
@@ -41,7 +44,8 @@ echo "starexec_build script"
 cat <<EOF >$dir/starexec_build
 #!/bin/sh
 cd build
-exec ./build.sh
+# ignored for starexec
+# exec ./build.sh
 EOF
 chmod 755 $dir/starexec_build
 echo "run script"
