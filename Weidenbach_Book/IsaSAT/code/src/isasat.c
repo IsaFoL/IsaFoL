@@ -571,10 +571,11 @@ int main(int argc, char *argv[]) {
     char * opt = argv[i];
     int n;
     //printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
-#ifndef NOOPTIONS    
     if(strcmp(opt, "--version\0") == 0)
       versionOnly = 1;
-    else if(strcmp(opt, "--notarget\0") == 0)
+    else
+#ifndef NOOPTIONS    
+      if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -606,13 +607,13 @@ int main(int argc, char *argv[]) {
 #endif
       if (inputname) {
       proof_path = opt;
-      printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else {
-      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
@@ -634,7 +635,7 @@ int main(int argc, char *argv[]) {
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
 #ifdef PRINTSTATS
-    printf("c compressed file\n");
+    //printf("c compressed file\n");
 #endif
     if (!inputfile) goto READ_FILE;
   } else if (has_suffix (inputname, ".lzma")) {
@@ -651,9 +652,6 @@ int main(int argc, char *argv[]) {
     if (!inputfile) goto READ_FILE;
   } else {
 READ_FILE:
-#ifdef PRINTSTATS
-    printf("c not compressed file\n");
-#endif
     inputfile = fopen (inputname, "r");
   }
 
@@ -697,15 +695,15 @@ READ_FILE:
         printf("v"), c = 1;
       tmp = model.model[i++];
       char str[20];
-      sprintf(str, " %d", tmp);
+      sprintf (str, " %d", tmp);
       int l = strlen(str);
       if (c + l > 78)
-        printf("\nv"), c = 1;
-      printf("%s", str);
+        puts ("\nv"), c = 1;
+      puts (str);
       c += l;
     } while (tmp);
     if (c)
-      printf("\n");
+      puts("\n");
   }
   free(model.model);
 
