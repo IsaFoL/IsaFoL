@@ -711,7 +711,9 @@ int main(int argc, char *argv[]) {
       versionOnly = 1;
     else
 #ifndef NOOPTIONS
-      if(strcmp(opt, "--notarget\0") == 0)
+       if(strcmp(opt, "--ascii\0") == 0)
+      binary_proof = 0;
+    else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -743,18 +745,18 @@ int main(int argc, char *argv[]) {
 #endif
       if (inputname) {
       proof_path = opt;
-      //printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else {
-      //printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
   if(versionOnly || !inputname || has_suffix(inputname, "version\0")) {
-o    print_version();
+    print_version();
     printf("\n");
     return 0;
   }

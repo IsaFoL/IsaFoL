@@ -25,6 +25,8 @@ mkdir $dir
 mkdir $dir/bin
 cp ./src/isasat $dir/bin/
 mkdir $dir/build
+# cp ~/Documents/repos/cadical/build/cadical $dir/build/isasat
+cp src/isasat $dir/build
 mkdir $dir/archives
 printf "cp to archives $tar\n"
 printf "cp to archives $dir\n"
@@ -37,7 +39,7 @@ cat <<EOF >$dir/build/build.sh
 # mv isasat* isasat
 # cd isasat/src
 # make
-install -s isasat ../../../bin/
+install -s isasat ../bin/
 EOF
 chmod 755 $dir/build/build.sh
 echo "starexec_build script"
@@ -51,7 +53,7 @@ chmod 755 $dir/starexec_build
 echo "run script"
 cat <<EOF >$dir/bin/starexec_run_default
 #!/bin/sh
-exec ./isasat \$1
+exec ./isasat \$1 \$2/proof.out
 EOF
 chmod 755 $dir/bin/starexec_run_default
 description=$dir/starexec_description.txt
