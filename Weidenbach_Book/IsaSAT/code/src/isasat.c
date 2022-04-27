@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/time.h>
@@ -389,9 +390,31 @@ char * find (const char * prg) {
   return res;
 }
 
+CBOOL file_match_extension (const char *path, const int *sig)
+{
+  assert (path);
+  FILE * tmp = fopen (path, "r");
+  if (!tmp) {
+    printf ("failed to open file %s", path);
+    abort();
+  }
+
+  CBOOL res = 1;
+  for (const int *p = sig; res && (*p != EOF); p++)
+    res = (getc(tmp) == *p);
+  fclose (tmp);
+  if (!res) {
+#ifdef PRINTSTATS
+    printf ("file type signature check for '%s' failed\n", path);
+#endif
+ }
+  return res;
+}
 FILE * read_pipe (const char * fmt,
                         const int * sig,
                         const char * path) {
+  if (sig && !file_match_extension (path, sig))
+    return 0;
   return open_pipe (fmt, path, "r");
 }
 
@@ -678,19 +701,17 @@ int main(int argc, char *argv[]) {
   OPTIONu64 sema = 429450;
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
+  int versionOnly = 0;
 
-  int print_version_only = 0;
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
-#ifndef NOOPTIONS
-    if(strcmp(opt, "--version\0") == 0){
-      print_version_only = 1;
-      break;
-    }
-    else if(strcmp(opt, "--ascii\0") == 0)
-      binary_proof = 0;
-    else if(strcmp(opt, "--notarget\0") == 0)
+    //printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
+    if(strcmp(opt, "--version\0") == 0)
+      versionOnly = 1;
+    else
+#ifndef NOOPTIONS    
+      if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -717,23 +738,23 @@ int main(int argc, char *argv[]) {
       ++i;
     }
     else if (opt[0] == '-') {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
       if (inputname) {
       proof_path = opt;
-      printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else {
-      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
-  if(!inputname || print_version_only) {
-    print_version();
+  if(versionOnly || !inputname || has_suffix(inputname, "version\0")) {
+o    print_version();
     printf("\n");
     return 0;
   }
@@ -750,7 +771,7 @@ int main(int argc, char *argv[]) {
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
 #ifdef PRINTSTATS
-    printf("c compressed file\n");
+    //printf("c compressed file\n");
 #endif
     if (!inputfile) goto READ_FILE;
   } else if (has_suffix (inputname, ".lzma")) {
@@ -767,9 +788,6 @@ int main(int argc, char *argv[]) {
     if (!inputfile) goto READ_FILE;
   } else {
 READ_FILE:
-#ifdef PRINTSTATS
-    printf("c not compressed file\n");
-#endif
     inputfile = fopen (inputname, "r");
   }
 
@@ -816,15 +834,17 @@ READ_FILE:
         printf("v"), c = 1;
       tmp = model.model[i++];
       char str[20];
-      sprintf(str, " %d", tmp);
+      sprintf (str, " %d", tmp);
       int l = strlen(str);
-      if (c + l > 78)
-        printf("\nv"), c = 1;
-      printf("%s", str);
+      if (c + l > 78) {
+        fputs ("\nv", stdout);
+	c = 1;
+      }
+      fputs (str, stdout);
       c += l;
     } while (tmp);
     if (c)
-      printf("\n");
+      fputs("\n", stdout);
   }
   free(model.model);
 

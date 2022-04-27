@@ -9,6 +9,7 @@ locale renaming_apart =
     renaming :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a" and
     inv_renaming :: "'a set \<Rightarrow> 'a \<Rightarrow> 'a"
   assumes
+    renaming_all: "finite V \<Longrightarrow> renaming V x \<noteq> x" and
     renaming_correct: "finite V \<Longrightarrow> renaming V x \<notin> V" and
     inj_renaming: "finite V \<Longrightarrow> inj (renaming V)" and
     inv_renaming_correct: "finite V \<Longrightarrow> inv_renaming V (renaming V x) = x" and
@@ -28,6 +29,9 @@ definition inv_renaming_apart_nats where
 interpretation renaming_apart_nats: renaming_apart renaming_apart_nats
   inv_renaming_apart_nats
 proof unfold_locales
+  show "\<And>V x. finite V \<Longrightarrow> renaming_apart_nats V x \<noteq> x"
+    by (simp add: renaming_apart_nats_def)
+next
   show "\<And>V x. finite V \<Longrightarrow> renaming_apart_nats V x \<notin> V"
     unfolding renaming_apart_nats_def Let_def by (meson Max.coboundedI Suc_le_lessD not_add_less2)
 next
