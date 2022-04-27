@@ -161,7 +161,7 @@ HEADER:
 
   num_lits = ch - '0';
   while (isdigit (ch = next ())) num_lits = 10*num_lits + ch - '0';
- 
+
   ch = next ();
   num_clss = ch - '0';
   while (isdigit (ch = next ())) num_clss = 10*num_clss + ch - '0';
@@ -710,7 +710,7 @@ int main(int argc, char *argv[]) {
     if(strcmp(opt, "--version\0") == 0)
       versionOnly = 1;
     else
-#ifndef NOOPTIONS    
+#ifndef NOOPTIONS
       if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
@@ -810,7 +810,7 @@ READ_FILE:
 #ifdef PRINTSTATS
   printf("c    propagations                       redundant                 reductions                  level-0                       LBDS                    not-mem-reasons\n"
 	 "c                     conflicts                      irred                      lrestarts                       GCs                       unit-subsumed               subsumed\n");
-  //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0 
+  //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
