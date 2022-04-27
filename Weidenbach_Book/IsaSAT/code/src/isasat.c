@@ -683,11 +683,11 @@ int main(int argc, char *argv[]) {
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
-#ifndef NOOPTIONS
     if(strcmp(opt, "--version\0") == 0){
       print_version_only = 1;
       break;
     }
+#ifndef NOOPTIONS
     else if(strcmp(opt, "--ascii\0") == 0)
       binary_proof = 0;
     else if(strcmp(opt, "--notarget\0") == 0)
@@ -722,13 +722,13 @@ int main(int argc, char *argv[]) {
 #endif
       if (inputname) {
       proof_path = opt;
-      printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else {
-      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
