@@ -578,7 +578,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> uint32_max div 2);
-        if skip then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
+        if \<not>skip then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
@@ -596,7 +596,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
    apply (simp add: case_prod_beta cong: if_cong)
    unfolding bind_to_let_conv Let_def prod.simps
    apply (subst Massign_split[of \<open>isa_deduplicate_binary_clauses_wl (Pos _) _ _\<close>])
-  unfolding prod.simps nres_monad3
+   unfolding prod.simps nres_monad3
    apply (subst (2) Massign_split[of \<open>_ :: (_ \<times> isasat) nres\<close>])
    unfolding prod.simps nres_monad3
    apply (auto intro!: bind_cong[OF refl] cong: if_cong)

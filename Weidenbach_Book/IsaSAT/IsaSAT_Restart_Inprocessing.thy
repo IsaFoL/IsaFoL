@@ -2430,7 +2430,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
         ASSERT (A < length ns);
         ASSERT (A \<le> uint32_max div 2);
         S \<leftarrow> do {ASSERT (ns = (get_vmtf_heur_array S));
-        let skip = skip;
+        let skip = \<not>skip;
         if skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
@@ -2456,7 +2456,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def:
   CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
   (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, S). do {ASSERT (get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S));
-        let skip = skip;
+        let skip = \<not>skip;
         if skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
@@ -2726,10 +2726,7 @@ proof -
     \<open>the x1c \<le> uint32_max div 2\<close> and
     \<open>x2c = (x1d, x2d)\<close> and
     \<open>get_vmtf_heur_array S = get_vmtf_heur_array x2d\<close> and
-    \<open>(skip, skipa) \<in> bool_rel\<close> and
-    \<open>the x1b \<in># atm_of `# all_init_lits_of_wl x2b\<close> and
-    skip and
-    skipa
+    \<open>the x1b \<in># atm_of `# all_init_lits_of_wl x2b\<close>
   for skip CS x1 x2 x1a x2a x x' x1b x2b x1c x2c x1d x2d skipa
     using that by auto
   have binary_deduplicate_required: \<open>binary_deduplicate_required S \<le> SPEC (\<lambda>c. (c, True) \<in> UNIV)\<close> and
@@ -2742,7 +2739,7 @@ proof -
     (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, Sa). do {
        _ \<leftarrow> ASSERT (get_vmtf_heur_array S = get_vmtf_heur_array Sa);
-       let skip = skip;
+       let skip = \<not>skip;
        if skip then RETURN (CS, Sa)
        else do {
         ASSERT (length (get_clauses_wl_heur Sa) \<le> length (get_clauses_wl_heur S) \<and> learned_clss_count Sa \<le> learned_clss_count S);
@@ -2858,7 +2855,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl2 S\<^sub>0 = (do {
     let ns = get_vmtf_heur_array S\<^sub>0;
     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
-    skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
+    dedup \<leftarrow> binary_deduplicate_required S\<^sub>0;
     CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
     (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {
@@ -2867,7 +2864,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> uint32_max div 2);
         (CS, S) \<leftarrow> do {
-        let skip = skip;
+        let skip = \<not>dedup;
         if skip then RETURN (CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
