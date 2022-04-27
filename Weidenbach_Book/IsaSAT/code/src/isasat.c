@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/time.h>
@@ -384,9 +385,31 @@ char * find (const char * prg) {
   return res;
 }
 
+CBOOL file_match_extension (const char *path, const int *sig)
+{
+  assert (path);
+  FILE * tmp = fopen (path, "r");
+  if (!tmp) {
+    printf ("failed to open file %s", path);
+    abort();
+  }
+
+  CBOOL res = 1;
+  for (const int *p = sig; res && (*p != EOF); p++)
+    res = (getc(tmp) == *p);
+  fclose (tmp);
+  if (!res) {
+#ifdef PRINTSTATS
+    printf ("file type signature check for '%s' failed\n", path);
+#endif
+ }
+  return res;
+}
 FILE * read_pipe (const char * fmt,
                         const int * sig,
                         const char * path) {
+  if (sig && !file_match_extension (path, sig))
+    return 0;
   return open_pipe (fmt, path, "r");
 }
 
@@ -697,13 +720,15 @@ READ_FILE:
       char str[20];
       sprintf (str, " %d", tmp);
       int l = strlen(str);
-      if (c + l > 78)
-        puts ("\nv"), c = 1;
-      puts (str);
+      if (c + l > 78) {
+        fputs ("\nv", stdout);
+	c = 1;
+      }
+      fputs (str, stdout);
       c += l;
     } while (tmp);
     if (c)
-      puts("\n");
+      fputs("\n", stdout);
   }
   free(model.model);
 
