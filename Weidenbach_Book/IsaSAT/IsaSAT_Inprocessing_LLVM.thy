@@ -535,6 +535,15 @@ sepref_def isa_binary_clause_subres_wl_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_register binary_deduplicate_required
+sepref_def binary_deduplicate_required_fast_code
+  is \<open>binary_deduplicate_required\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  unfolding binary_deduplicate_required_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 sepref_def isa_deduplicate_binary_clauses_wl_code
   is \<open>uncurry2 isa_deduplicate_binary_clauses_wl\<close>
   :: \<open>[\<lambda>((L, CS), S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -557,11 +566,11 @@ sepref_register get_vmtf_heur_array_nth get_vmtf_heur_fst
 lemma Massign_split: \<open>do{ x \<leftarrow> (M :: _ nres); f x} = do{(a,b) \<leftarrow> M; f (a,b)}\<close>
   by auto
 
-
 lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl2 S\<^sub>0 = (do {
      let ns = get_vmtf_heur_array S\<^sub>0;
     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
+    skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
     CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
     (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {
@@ -569,7 +578,6 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> uint32_max div 2);
-        let skip = False;
         if skip then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
@@ -583,12 +591,15 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
      (Some (get_vmtf_heur_fst S\<^sub>0), CS, S\<^sub>0);
     RETURN S
           })\<close>
-   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_def
-   apply (simp add: case_prod_beta)
-   apply (subst Massign_split[of \<open>_ :: (_ \<times> isasat) nres\<close>])
+    unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_def bind_to_let_conv
+      nres_monad3
+   apply (simp add: case_prod_beta cong: if_cong)
+   unfolding bind_to_let_conv Let_def prod.simps
+   apply (subst Massign_split[of \<open>isa_deduplicate_binary_clauses_wl (Pos _) _ _\<close>])
+  unfolding prod.simps nres_monad3
    apply (subst (2) Massign_split[of \<open>_ :: (_ \<times> isasat) nres\<close>])
-   unfolding prod.simps
-   apply simp
+   unfolding prod.simps nres_monad3
+   apply (auto intro!: bind_cong[OF refl] cong: if_cong)
    done
 
 sepref_def isa_deduplicate_binary_clauses_code
@@ -600,7 +611,6 @@ sepref_def isa_deduplicate_binary_clauses_code
     length_watchlist_def[unfolded length_ll_def, symmetric]
     length_watchlist_raw_def[symmetric]
   apply (rewrite at \<open>let _ = get_vmtf_heur_array _ in _\<close> Let_def)
-  apply (rewrite at \<open>let _ = False in _\<close> Let_def)
   unfolding if_False nres_monad3
   supply [[goals_limit=1]]
   by sepref
