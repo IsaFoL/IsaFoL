@@ -241,6 +241,39 @@ definition reset_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> res
     (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, replicate (length lits_st) False))\<close>
 
 
+definition reset_added_heur_stats2 :: \<open>restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
+  \<open>reset_added_heur_stats2 = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0).
+  do {
+  (_, lits_st) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, lits_st). (\<forall>k < i. \<not>lits_st ! k) \<and> i \<le> length lits_st \<and> length lits_st = length lits_st\<^sub>0\<^esup> (\<lambda>(i, lits_st). i < length lits_st)
+    (\<lambda>(i, lits_st). do {ASSERT (i < length lits_st); RETURN (i+1, lits_st[i := False])})
+    (0, lits_st\<^sub>0);
+  RETURN  (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st)
+  })\<close>
+
+lemma reset_added_heur_stats2_reset_added_heur_stats:
+  \<open>reset_added_heur_stats2 heur \<le>\<Down>Id (RETURN (reset_added_heur_stats heur))\<close>
+proof -
+  obtain fast_ema slow_ema res_info wasted \<phi> reluctant fully_proped lits_st\<^sub>0 where
+    heur: \<open>heur = (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0)\<close>
+    by (cases heur)
+  have [refine0]: \<open>wf (measure (\<lambda>(i, lits_st). length lits_st\<^sub>0 - i))\<close>
+    by auto
+  show ?thesis
+    unfolding reset_added_heur_stats2_def reset_added_heur_stats_def heur
+       prod.simps
+    apply (refine_vcg)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto split: if_splits)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (simp add: list_eq_iff_nth_eq)
+    done
+qed
+
 definition is_marked_added_heur_stats :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
 \<open>is_marked_added_heur_stats L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st).
      lits_st ! L)\<close>
