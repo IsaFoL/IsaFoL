@@ -948,14 +948,15 @@ lemma reset_added_heur_stats2_reset_added_heur_stats:
 lemmas reset_added_heur_stats_impl_refine[sepref_fr_rules] =
   reset_added_heur_stats2_impl.refine[FCOMP reset_added_heur_stats2_reset_added_heur_stats]
 
-sepref_register reset_added_heur mop_reset_added_heur
+sepref_register reset_added_heur mop_reset_added_heur is_marked_added_heur
 
 sepref_def is_marked_added_heur_stats_impl
   is \<open>uncurry (mop_is_marked_added_heur_stats)\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>heuristic_int_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k  \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[eta_contract=false]]
   unfolding is_marked_added_heur_stats_def is_marked_added_heur_pre_stats_def
-    heuristic_int_assn_def mop_is_marked_added_heur_stats_def
-  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
+    heuristic_int_assn_def mop_is_marked_added_heur_stats_def case_prod_app
+  apply (rewrite at \<open>_ ! _\<close> annot_index_of_atm)
   by sepref
 
 lemma mop_mark_added_heur_stats_alt_def:
@@ -973,17 +974,30 @@ sepref_def mop_mark_added_heur_stats_impl
   apply (rewrite at \<open>_[_ := _]\<close> annot_index_of_atm)
   by sepref
 
+lemma mop_is_marked_added_heur_stats_alt_def:
+\<open>mop_is_marked_added_heur_stats =(\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st) L. do {
+   ASSERT(is_marked_added_heur_pre_stats (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st) L);
+   RETURN (is_marked_added_heur_stats (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st) L)
+  })\<close>
+  by (auto simp: mop_is_marked_added_heur_stats_def intro!: ext)
+
+sepref_def mop_is_marked_added_heur_stats_impl
+  is \<open>uncurry mop_is_marked_added_heur_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_int_assn_def mop_is_marked_added_heur_stats_alt_def
+    is_marked_added_heur_stats_def prod.simps is_marked_added_heur_pre_stats_def
+  apply (rewrite at \<open>_ ! _\<close> annot_index_of_atm)
+  by sepref
+
+
 context
   notes [fcomp_norm_unfold] = heuristic_assn_def[symmetric] heuristic_assn_alt_def[symmetric]
 begin
 
-definition is_marked_added_heur :: \<open>nat \<Rightarrow> isasat_restart_heuristics \<Rightarrow> bool\<close> where
-  \<open>is_marked_added_heur L = is_marked_added_heur_stats L o get_restart_heuristics\<close>
-
 lemma reset_added_heur_stats_reset_added_heur:
   \<open>(reset_added_heur_stats, reset_added_heur) \<in> heur_rel \<rightarrow> heur_rel\<close> and
   is_marked_added_heur_stats_is_marked_added_heur:
-  \<open>(is_marked_added_heur_stats, is_marked_added_heur) \<in> nat_rel \<rightarrow> heur_rel \<rightarrow> bool_rel\<close>
+  \<open>(is_marked_added_heur_stats, is_marked_added_heur) \<in> heur_rel \<rightarrow> nat_rel \<rightarrow> bool_rel\<close>
   by (auto simp: reset_added_heur_def code_hider_rel_def is_marked_added_heur_def
     mop_is_marked_added_heur_stats_def)
 
@@ -992,15 +1006,21 @@ lemmas reset_added_heur_refine[sepref_fr_rules] =
 
 lemma mop_is_marked_added_heur_stats_is_marked_added_heur:
   \<open>(uncurry mop_is_marked_added_heur_stats, uncurry (RETURN oo is_marked_added_heur)) \<in>
-  [\<lambda>(l, S). is_marked_added_heur_pre_stats l (get_restart_heuristics S)]\<^sub>f
-  nat_rel \<times>\<^sub>f heur_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close> and
+  [\<lambda>(S, l). is_marked_added_heur_pre_stats (get_restart_heuristics S) l]\<^sub>f
+  heur_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close> and
   mop_mark_added_heur_stats_mop_mark_added_heur:
   \<open>(uncurry2 mop_mark_added_heur_stats, uncurry2 (RETURN ooo mark_added_heur)) \<in>
-  [\<lambda>((l,b), S). mark_added_heur_pre_stats l b (get_restart_heuristics S)]\<^sub>f
-  nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f heur_rel \<rightarrow> \<langle>heur_rel\<rangle>nres_rel\<close>
+  [\<lambda>((l,b), S). mark_added_heur_pre l b S]\<^sub>f
+  nat_rel \<times>\<^sub>fbool_rel \<times>\<^sub>f heur_rel \<rightarrow> \<langle>heur_rel\<rangle>nres_rel\<close> and
+  mop_is_marked_added_heur_stats_mop_is_marked_added_heur:
+  \<open>(uncurry mop_is_marked_added_heur_stats, uncurry (RETURN oo is_marked_added_heur)) \<in>
+  [\<lambda>(l, S). is_marked_added_heur_pre l S]\<^sub>f
+   heur_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI
     simp: reset_added_heur_def code_hider_rel_def is_marked_added_heur_def
-    mop_is_marked_added_heur_stats_def mop_is_marked_added_heur_stats_def
+    mop_mark_added_heur_stats_def mop_is_marked_added_heur_stats_def
+    mop_is_marked_added_heur_stats_def is_marked_added_heur_pre_def
+    mark_added_heur_pre_def
     mop_mark_added_heur_stats_def mark_added_heur_def)
 
 lemmas is_marked_added_heur_stats_impl_refine[refine] =
@@ -1008,6 +1028,9 @@ lemmas is_marked_added_heur_stats_impl_refine[refine] =
 
 lemmas mark_added_heur_impl_refine[refine] =
   mop_mark_added_heur_stats_impl.refine[FCOMP mop_mark_added_heur_stats_mop_mark_added_heur]
+
+lemmas is_marked_added_heur_refine[refine] =
+  mop_is_marked_added_heur_stats_impl.refine[FCOMP mop_is_marked_added_heur_stats_mop_is_marked_added_heur]
 end
 
 

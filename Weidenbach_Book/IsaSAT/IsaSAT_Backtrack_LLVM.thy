@@ -1,7 +1,40 @@
 theory IsaSAT_Backtrack_LLVM
   imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
     IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM IsaSAT_Proofs_LLVM
+    IsaSAT_Stats_LLVM
 begin
+
+lemma mop_mark_added_heur_st_alt_def:
+  \<open>mop_mark_added_heur_st L S = do {
+  let (heur, S) = extract_heur_wl_heur S;
+  heur \<leftarrow> mop_mark_added_heur L True heur;
+  RETURN (update_heur_wl_heur heur S)
+  }\<close>
+  unfolding mop_mark_added_heur_st_def
+  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int.splits
+    intro!: ext)
+
+sepref_def mop_mark_added_heur_iml
+  is \<open>uncurry2 mop_mark_added_heur\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply [sepref_fr_rules] = mark_added_heur_impl_refine
+  unfolding mop_mark_added_heur_def
+  by sepref
+
+sepref_register mop_mark_added_heur mop_mark_added_heur_st mark_added_clause_heur2
+
+sepref_def mop_mark_added_heur_st_impl
+  is \<open>uncurry mop_mark_added_heur_st\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mop_mark_added_heur_st_alt_def
+  by sepref
+
+sepref_def mark_added_clause_heur2_impl
+  is \<open>uncurry mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mark_added_clause_heur2_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
@@ -246,7 +279,8 @@ lemma propagate_bt_wl_D_heur_alt_def:
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
-      _ \<leftarrow> log_new_clause_heur S i;
+        _ \<leftarrow> log_new_clause_heur S i;
+      S \<leftarrow> mark_added_clause_heur2 S i;
       RETURN (S)
         })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
@@ -384,20 +418,8 @@ begin
      vmtf_rescore_fast_code
      append_and_length_fast_code
      update_lbd_impl
-
-thm propagate_bt_wl_D_fast_codeXX_def
-
-  export_llvm
-    (* empty_conflict_and_extract_clause_heur_fast_code
-  * empty_cach_code *)
-  reluctant_tick_impl
-  propagate_bt_wl_D_fast_codeXX
-  (* propagate_unit_bt_wl_D_fast_code *)
-    (* propagate_bt_wl_D_fast_codeXX
-     * extract_shorter_conflict_list_heur_st_fast
-     * lit_of_hd_trail_st_heur_fast_code
-     * backtrack_wl_D_fast_code *)
-
+     reluctant_tick_impl
+     propagate_bt_wl_D_fast_codeXX
 end
 
 

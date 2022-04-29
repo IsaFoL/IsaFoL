@@ -2702,8 +2702,8 @@ definition mark_duplicated_binary_clauses_as_garbage :: \<open>_ \<Rightarrow> '
      (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_duplicated_binary_clauses_as_garbage_inv Ls S\<^esup>(\<lambda>(S, Ls). Ls \<noteq> {#} \<and> get_conflict_l S = None)
       (\<lambda>(S, Ls). do {
         L \<leftarrow> SPEC (\<lambda>L. L \<in># Ls);
-        skip \<leftarrow> RES (UNIV :: bool set);
         ASSERT (L \<in># atm_of `# all_init_lits_of_l S);
+        skip \<leftarrow> RES (UNIV :: bool set);
         if skip then RETURN (S, remove1_mset L Ls)
         else do {
           S \<leftarrow> deduplicate_binary_clauses (Pos L) S;

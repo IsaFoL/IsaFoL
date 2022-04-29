@@ -528,4 +528,34 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   watched_by_app_heur_fast_code_def[unfolded read_all_st_code_def]
   mop_watched_by_app_heur_fast_impl_def[unfolded read_all_st_code_def prod.case]
 
+definition mop_is_marked_added_heur_stats_st_impl where
+  \<open>mop_is_marked_added_heur_stats_st_impl =
+    (\<lambda>N A. read_heur_wl_heur_code (\<lambda>S. mop_is_marked_added_heur_stats_impl S A) N)\<close>
+
+global_interpretation is_marked_added: read_heur_param_adder where
+  R = atom_rel and
+  f' = \<open> \<lambda>S A. RETURN (is_marked_added_heur A S)\<close> and
+  f = \<open> \<lambda>S A. mop_is_marked_added_heur_stats_impl A S\<close> and
+  x_assn = \<open>bool1_assn\<close> and
+  P = \<open>(\<lambda>S A. is_marked_added_heur_pre A S)\<close>
+  rewrites
+  \<open>(\<lambda>N A. read_heur_wl_heur_code (\<lambda>S. mop_is_marked_added_heur_stats_impl S A) N) = mop_is_marked_added_heur_stats_st_impl\<close>
+  apply unfold_locales
+  unfolding lambda_comp_true
+  apply (unfold uncurry_def, rule is_marked_added_heur_refine[unfolded comp_def uncurry_def])
+  apply (subst mop_is_marked_added_heur_stats_st_impl_def, rule refl)
+  done
+
+lemma mop_is_marked_added_heur_st_alt_def:
+  \<open>is_marked_added.XX.mop = mop_is_marked_added_heur_st\<close>
+  unfolding is_marked_added.XX.mop_def mop_is_marked_added_heur_st_def
+    mop_is_marked_added_heur_def
+  apply (intro ext, case_tac S)
+  apply (auto simp: read_all_st_def intro!: ext)
+  done
+
+lemmas [sepref_fr_rules] = is_marked_added.XX.mop_refine[unfolded mop_is_marked_added_heur_st_alt_def]
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  mop_is_marked_added_heur_stats_st_impl_def[unfolded  read_all_st_code_def]
+
 end

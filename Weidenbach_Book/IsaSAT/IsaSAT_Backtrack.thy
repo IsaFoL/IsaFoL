@@ -753,6 +753,7 @@ definition propagate_bt_wl_D_heur
       let S = set_vmtf_wl_heur vm S;
       let S = set_lbd_wl_heur lbd S;
       _ \<leftarrow> log_new_clause_heur S i;
+      S \<leftarrow> mark_added_clause_heur2 S i;
       RETURN (S)
     })\<close>
 
@@ -1934,7 +1935,7 @@ proof -
           simp: intro_spec_iff bind_RES)
       ultimately show ?thesis by auto
     qed
-thm propagate_bt_wl_D_heur_def
+
     have propagate_bt_wl_D_heur_alt_def:
       \<open>propagate_bt_wl_D_heur = (\<lambda>L C S. do {
           let M = get_trail_wl_heur S;
@@ -1981,7 +1982,8 @@ thm propagate_bt_wl_D_heur_def
             S = set_clauses_wl_heur N S; S = set_literals_to_update_wl_heur j S;
             S = set_count_max_wl_heur 0 S; S = set_vmtf_wl_heur vm S;
             S = set_lbd_wl_heur lbd S in
-          do {_ \<leftarrow> log_new_clause_heur S i;
+           do {_ \<leftarrow> log_new_clause_heur S i;
+           S \<leftarrow> mark_added_clause_heur2 S i;
           RETURN S}
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2024,11 +2026,11 @@ thm propagate_bt_wl_D_heur_def
                 N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#LK'#},
                 W(- LK' := W (- LK') @ [(i, L', length D'' = 2)],
                   L' := W L' @ [(i, - LK', length D'' = 2)])) i);
-            RETURN
-              (M2,
+            let S = (M2,
                 N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#LK'#},
                 W(- LK' := W (- LK') @ [(i, L', length D'' = 2)],
-                  L' := W L' @ [(i, - LK', length D'' = 2)]))
+                  L' := W L' @ [(i, - LK', length D'' = 2)]));
+            RETURN S
           }\<close>
       unfolding propagate_bt_wl_def Let_def find_new_alt nres_monad3
         U' H get_fresh_index_wl_def prod.case
@@ -2366,7 +2368,13 @@ thm propagate_bt_wl_D_heur_def
            dest: valid_arena_one_notin_vdomD)
       subgoal by auto
       subgoal by auto
-      subgoal final_rel
+      apply (rule mark_added_clause_heur2_id[unfolded conc_fun_RETURN])
+      subgoal
+        apply (drule final_rel)
+        apply assumption+
+        done
+      subgoal by auto
+      subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom aivdom M1'_M1 bounded nempty r r' arena_le
@@ -2382,11 +2390,6 @@ thm propagate_bt_wl_D_heur_def
             simp del: isasat_input_bounded_def isasat_input_nempty_def
           dest: valid_arena_one_notin_vdomD
             get_learned_count_learned_clss_countD)
-          (auto
-          intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
-          simp: vdom_m_simps5
-            simp del: isasat_input_bounded_def isasat_input_nempty_def
-           dest: valid_arena_one_notin_vdomD)
       done
   qed
 

@@ -274,14 +274,14 @@ proof -
     done
 qed
 
-definition is_marked_added_heur_stats :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>is_marked_added_heur_stats L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st).
+definition is_marked_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>is_marked_added_heur_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st) L.
      lits_st ! L)\<close>
 
-definition is_marked_added_heur_pre_stats :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>is_marked_added_heur_pre_stats L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st). L < length lits_st)\<close>
+definition is_marked_added_heur_pre_stats :: \<open>restart_heuristics \<Rightarrow>nat \<Rightarrow> bool\<close> where
+\<open>is_marked_added_heur_pre_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st) L. L < length lits_st)\<close>
 
-definition mop_is_marked_added_heur_stats :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool nres\<close> where
+definition mop_is_marked_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
 \<open>mop_is_marked_added_heur_stats L heur = do {
    ASSERT(is_marked_added_heur_pre_stats L heur);
    RETURN (is_marked_added_heur_stats L heur)
@@ -429,6 +429,18 @@ definition reset_added_heur :: \<open>isasat_restart_heuristics \<Rightarrow> is
 definition mop_reset_added_heur :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics nres\<close> where
 \<open>mop_reset_added_heur heur = do {
    RETURN (reset_added_heur heur)
+}\<close>
+
+definition is_marked_added_heur :: \<open>isasat_restart_heuristics \<Rightarrow> nat \<Rightarrow> bool\<close> where
+\<open>is_marked_added_heur = is_marked_added_heur_stats o get_restart_heuristics\<close>
+
+definition is_marked_added_heur_pre :: \<open>isasat_restart_heuristics \<Rightarrow>  nat \<Rightarrow> bool\<close> where
+\<open>is_marked_added_heur_pre = is_marked_added_heur_pre_stats o get_restart_heuristics\<close>
+
+definition mop_is_marked_added_heur :: \<open>isasat_restart_heuristics \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+\<open>mop_is_marked_added_heur L heur = do {
+   ASSERT(is_marked_added_heur_pre L heur);
+   RETURN (is_marked_added_heur L heur)
 }\<close>
 
 definition get_saved_phase_heur_pre :: \<open>nat \<Rightarrow> isasat_restart_heuristics \<Rightarrow> bool\<close> where

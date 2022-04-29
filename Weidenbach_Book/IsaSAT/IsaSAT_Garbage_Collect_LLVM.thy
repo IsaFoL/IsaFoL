@@ -164,6 +164,18 @@ sepref_def rewatch_heur_st_code
 
 sepref_register isasat_GC_clauses_wl_D
 
+lemma reset_added_heur_st_alt_def:
+  \<open>reset_added_heur_st S =
+  (let (heur, S) = extract_heur_wl_heur S in update_heur_wl_heur (reset_added_heur heur) S)\<close>
+  by (auto simp: reset_added_heur_st_def state_extractors split: isasat_int.splits
+    intro!: ext)
+
+sepref_def reset_added_heur_st_impl
+  is \<open>RETURN o reset_added_heur_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding reset_added_heur_st_alt_def
+  by sepref
+
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>isasat_GC_clauses_wl_D\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a

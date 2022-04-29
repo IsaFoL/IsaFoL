@@ -45,7 +45,7 @@ definition log_clause2 :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> u
         })
       0;
     RETURN ()
-}\<close>
+   }\<close>
 
 definition log_clause :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> unit\<close> where \<open>log_clause S _ = ()\<close>
 

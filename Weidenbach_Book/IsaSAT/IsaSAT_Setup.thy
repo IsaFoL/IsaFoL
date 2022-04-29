@@ -1583,7 +1583,8 @@ definition mark_added_clause2 where
 
 lemma mop_mark_added_heur_st_it:
   assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>A \<in># all_atms_st T\<close>
-  shows \<open>mop_mark_added_heur_st A S \<le> SPEC (\<lambda>c. (c, T) \<in> twl_st_heur)\<close>
+  shows \<open>mop_mark_added_heur_st A S \<le> SPEC (\<lambda>c. (c, T) \<in> {(U, V). (U, V) \<in> twl_st_heur \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S})\<close>
 proof -
   have heur: \<open>heuristic_rel (all_atms_st T) (get_heur S)\<close>
     using assms(1)
@@ -1604,7 +1605,9 @@ qed
 
 lemma mark_added_clause_heur2_id:
   assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>C \<in># dom_m (get_clauses_wl T)\<close>
-  shows \<open>mark_added_clause_heur2 S C \<le> \<Down>twl_st_heur (RETURN T)\<close>
+  shows \<open>mark_added_clause_heur2 S C
+     \<le> \<Down>{(U, V). (U, V) \<in> twl_st_heur \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S} (RETURN T)\<close> (is \<open>_ \<le>\<Down>?R _\<close>)
 proof -
   have 1: \<open>mark_added_clause2 T C \<le> \<Down>Id (RETURN T)\<close>
     unfolding mark_added_clause2_def mop_clauses_at_def nres_monad3
@@ -1628,9 +1631,9 @@ proof -
     apply assumption
     apply assumption
     by auto
-  have [refine]: \<open>((0, S), 0, T) \<in> nat_rel \<times>\<^sub>r twl_st_heur\<close>
+  have [refine]: \<open>((0, S), 0, T) \<in> nat_rel \<times>\<^sub>r ?R\<close>
     using assms by auto
-  have 2: \<open>mark_added_clause_heur2 S C \<le> \<Down>twl_st_heur (mark_added_clause2 T C)\<close>
+  have 2: \<open>mark_added_clause_heur2 S C \<le> \<Down>?R (mark_added_clause2 T C)\<close>
     unfolding mark_added_clause_heur2_def mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
       mark_added_clause2_def
     apply (refine_vcg mop_mark_added_heur_st_it)
@@ -1657,5 +1660,26 @@ proof -
     apply (rule 1[unfolded Down_id_eq])
     done
 qed
+
+definition mop_is_marked_added_heur_st where
+  \<open>mop_is_marked_added_heur_st S = mop_is_marked_added_heur (get_heur S)\<close>
+
+lemma is_marked_added_heur_st_it:
+  assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>A \<in># all_atms_st T\<close>
+  shows \<open>mop_is_marked_added_heur_st S A \<le> SPEC(\<lambda>c. (c, d) \<in> (UNIV :: (bool \<times> bool) set))\<close>
+proof -
+  have heur: \<open>heuristic_rel (all_atms_st T) (get_heur S)\<close>
+    using assms(1)
+    by (auto simp: twl_st_heur_def)
+  then have \<open>is_marked_added_heur_pre (get_heur S) A\<close>
+    using assms
+    unfolding is_marked_added_heur_pre_def
+    by (auto simp: heuristic_rel_def is_marked_added_heur_pre_stats_def
+      heuristic_rel_stats_def phase_saving_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+  then show ?thesis
+    unfolding mop_is_marked_added_heur_st_def mop_is_marked_added_heur_def
+    by auto
+qed
+
 
 end
