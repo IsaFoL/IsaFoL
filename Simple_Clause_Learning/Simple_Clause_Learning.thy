@@ -1090,6 +1090,22 @@ lemma grounding_of_cls_rename_clause:
   by (smt (verit, ccfv_threshold) Collect_mono_iff grounding_of_cls_def mem_Collect_eq
       subst_cls_eq_grounding_of_cls_subset_eq)
 
+lemma subst_domain_renaming_wrt:
+  fixes N
+  shows "finite N \<Longrightarrow> subst_domain (renaming_wrt N) = UNIV"
+  unfolding subst_domain_def
+  using renaming_all by force
+
+lemma vars_cls_rename_clause_eq_empty:
+  fixes N C
+  shows "finite N \<Longrightarrow> vars_cls (rename_clause N C) = {} \<longleftrightarrow> vars_cls C = {}"
+  by (simp add: rename_clause_def vars_subst_cls_eq subst_domain_renaming_wrt)
+
+lemma is_ground_cls_rename_clause[simp]:
+  fixes N C
+  shows "finite N \<Longrightarrow> is_ground_cls (rename_clause N C) \<longleftrightarrow> is_ground_cls C"
+  by (simp add: is_ground_cls_iff_vars_empty vars_cls_rename_clause_eq_empty)
+
 end
 
 
@@ -1362,6 +1378,29 @@ proof (rule ballI)
   qed
 qed
 
+lemma trail_defined_lit_iff_defined_uminus: "trail_defined_lit \<Gamma> L \<longleftrightarrow> trail_defined_lit \<Gamma> (-L)"
+  by (auto simp add: trail_defined_lit_def)
+
+lemma not_trail_backtrack_defined_if_not_defined:
+  assumes not_\<Gamma>_defined_L:  "\<not> trail_defined_lit \<Gamma> L"
+  shows "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
+proof -
+  have "suffix (trail_backtrack \<Gamma> level) \<Gamma>"
+    by (rule trail_backtrack_suffix)
+  hence "set (trail_backtrack \<Gamma> level) \<subseteq> set \<Gamma>"
+    by (rule set_mono_suffix)
+  with not_\<Gamma>_defined_L show ?thesis
+    unfolding trail_defined_lit_def by fast
+qed
+
+lemma trail_level_propagate[simp]:
+  "trail_level (trail_propagate \<Gamma> L C \<gamma>) = trail_level \<Gamma>"
+  by (simp add: trail_propagate_def is_decision_lit_def)
+
+lemma trail_level_decide[simp]:
+  "trail_level (trail_decide \<Gamma> L) = Suc (trail_level \<Gamma>)"
+  by (simp add: trail_decide_def is_decision_lit_def)
+
 
 section \<open>SCL Calculus\<close>
 
@@ -1408,7 +1447,8 @@ inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Ri
 
 inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
-  backtrackI: "trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
+  backtrackI: "trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level \<Gamma> \<Longrightarrow>
+    trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
     backtrack N (\<Gamma>, U, Some (D + {#L#}, \<sigma>))
       (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)), U \<union> {D + {#L#}}, None)"
 
@@ -1611,19 +1651,67 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state
     | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
       trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C}))"
 
+
+subsection \<open>Miscellaneous Lemmas\<close>
+
+lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
+  assumes sound_\<Gamma>: "sound_trail N U \<Gamma>"
+  shows "level < trail_level \<Gamma> \<Longrightarrow> level < trail_level_lit \<Gamma> L \<Longrightarrow>
+  \<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
+  using sound_\<Gamma>
+proof (induction \<Gamma> rule: sound_trail.induct)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons \<Gamma> K u)
+  from Cons.hyps have not_\<Gamma>_defined_K: "\<not> trail_defined_lit \<Gamma> K" by simp
+  show ?case
+  proof (cases "is_decision_lit (K, u)")
+    case True
+    hence "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
+      by (smt (verit, best) Cons.IH Cons.prems(1) Cons.prems(2) fst_conv less_Suc_eq not_\<Gamma>_defined_K
+          not_trail_backtrack_defined_if_not_defined trail_defined_lit_iff_defined_uminus
+          trail_level.simps(2) trail_level_lit.simps(2) trail_level_lit_le verit_comp_simplify1(3))
+    thus ?thesis
+      using Cons.prems(1) by simp
+  next
+    case not_decision_K: False
+
+    moreover have "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
+    proof (cases "K = L \<or> K = - L")
+      case True
+      then show ?thesis
+        using not_\<Gamma>_defined_K not_trail_backtrack_defined_if_not_defined
+          trail_defined_lit_iff_defined_uminus
+        by blast
+    next
+      case False
+      show ?thesis
+      proof (rule Cons.IH)
+        from Cons.prems(1) show "level < trail_level \<Gamma>"
+          using not_decision_K by simp
+      next
+        from Cons.prems(2) show "level < trail_level_lit \<Gamma> L"
+          using False by simp
+      qed
+    qed
+
+    ultimately show ?thesis
+      by simp
+  qed
+qed
+
+
+subsection \<open>Initial State Is Sound\<close>
+
 abbreviation initial_state :: "('f, 'v) state" where
   "initial_state \<equiv> ([], {}, None)"
 
 lemma sound_initial_state[simp]: "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N initial_state"
   by (simp add: sound_state_def)
 
-lemma trail_level_propagate[simp]:
-  "trail_level (trail_propagate \<Gamma> L C \<gamma>) = trail_level \<Gamma>"
-  by (simp add: trail_propagate_def is_decision_lit_def)
 
-lemma trail_level_decide[simp]:
-  "trail_level (trail_decide \<Gamma> L) = Suc (trail_level \<Gamma>)"
-  by (simp add: trail_decide_def is_decision_lit_def)
+subsection \<open>SCL Rules Preserve Soundness\<close>
 
 lemma propagate_sound_state: "propagate N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: propagate.induct)
@@ -2074,7 +2162,7 @@ qed
 
 lemma backtrack_sound_state: "backtrack N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: backtrack.induct)
-  case (backtrackI \<Gamma> L \<sigma> U D)
+  case (backtrackI \<Gamma> D \<sigma> L U)
   from backtrackI.prems have
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
@@ -2156,11 +2244,6 @@ proof -
       show "backtrack N (\<Gamma>, U, Some (D'' + {#L#}, \<sigma>))
         (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D'' \<cdot> \<sigma>)), U \<union> {D'' + {#L#}}, None)"
         apply (rule backtrackI)
-        
-        sorry
-    qed
-    thus ?thesis ..
-  qed
   oops
 
 
@@ -2379,7 +2462,7 @@ proof (unfold regular_scl_def, rule disjI1)
 qed
 
 
-definition S7 :: "('f, 'v) state" where
+private definition S7 :: "('f, 'v) state" where
   "S7 = ([
     (Pos d, Some ({#Neg b#}, Pos d, Var)),
     (Pos c, Some ({#Neg a#}, Pos c, Var)),
@@ -2429,7 +2512,7 @@ next
 qed
 
 
-definition S8 :: "('f, 'v) state" where
+private definition S8 :: "('f, 'v) state" where
   "S8 = ([
     (Pos c, Some ({#Neg a#}, Pos c, Var)),
     (Pos b, Some ({#Neg a#}, Pos b, Var)),
@@ -2455,7 +2538,7 @@ next
 qed
 
 
-definition S9 :: "('f, 'v) state" where
+private definition S9 :: "('f, 'v) state" where
   "S9 = ([
     (Pos c, Some ({#Neg a#}, Pos c, Var)),
     (Pos b, Some ({#Neg a#}, Pos b, Var)),
@@ -2499,7 +2582,7 @@ next
 qed
 
 
-definition S10 :: "('f, 'v) state" where
+private definition S10 :: "('f, 'v) state" where
   "S10 = ([
     (Pos b, Some ({#Neg a#}, Pos b, Var)),
     (Pos e, None),
@@ -2524,7 +2607,7 @@ next
 qed
 
 
-definition S11 :: "('f, 'v) state" where
+private definition S11 :: "('f, 'v) state" where
   "S11 = ([(Pos a, None)], {{#Neg a, Neg b#}}, None)"
 
 lemma "regular_scl N S10 S11"
@@ -2537,10 +2620,10 @@ next
     unfolding S10_def S11_def
     unfolding backtrack.simps
     apply (rule exI[of _ "state_trail S3"])
-    apply (rule exI[of _ "Neg b"])
-    apply (rule exI[of _ Var])
-    apply (rule exI[of _ "{}"])
     apply (rule exI[of _ "{#Neg a#}"])
+    apply (rule exI[of _ Var])
+    apply (rule exI[of _ "Neg b"])
+    apply (rule exI[of _ "{}"])
     using distinct_terms
     by (auto simp add: S3_def is_decision_lit_def trail_level_cls_def)
   hence "scl N S10 S11"
@@ -2550,6 +2633,31 @@ next
   ultimately show "reasonable_scl N S10 S11"
     unfolding reasonable_scl_def by simp
 qed
+
+
+private definition S12 :: "('f, 'v) state" where
+  "S12 =
+    (let \<Gamma> = [(Pos a, None)]; U = {{#Neg a, Neg b#}} in
+    (\<Gamma>, U, Some (rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) {#Neg a, Neg b#}, Var)))"
+
+lemma "regular_scl N S11 S12"
+proof (unfold regular_scl_def, rule disjI1)
+  have "is_ground_cls {#Neg a, Neg b#}"
+    using ball_is_ground_cls unfolding N_def C1_def
+    by (metis insertCI is_ground_cls_iff_vars_empty literal.sel(1) literal.sel(2) vars_cls_add_mset)
+  show "conflict N S11 S12"
+    unfolding S11_def S12_def
+    unfolding conflict.simps
+    apply (rule exI[of _ "{#Neg a, Neg b#}"])
+    apply (simp add: Let_def)
+    apply (rule conjI)
+     apply (metis (no_types, lifting) C1_def N_def ball_is_ground_cls insertCI
+        is_ground_cls_iff_vars_empty literal.sel(1) literal.sel(2) rename_clause_ident_if_ground
+        vars_cls_add_mset)
+    using \<open>is_ground_cls {#Neg a, Neg b#}\<close>
+    apply simp
+    apply (simp add: trail_false_cls_def trail_false_lit_def)
+    oops
 
 end
 
@@ -2605,11 +2713,6 @@ proof (cases N S S' rule: conflict.cases)
       hence "{#} \<in> N \<union> U" 
         using local.conflictI(3) by force
       then show ?thesis
-        sorry
-    next
-      case (add x N)
-      then show ?thesis sorry
-    qed
     oops
 
 lemma
@@ -2674,10 +2777,7 @@ next
     assume "backtrack N S S''"
     then have False
       apply (elim backtrack.cases)
-      sorry
-    thus ?thesis ..
-  qed
-qed
+      oops
 
 lemma
   assumes "(regular_scl N)\<^sup>*\<^sup>* initial_state S" and "conflict N S S'"
@@ -2722,11 +2822,6 @@ next
       apply (simp add: skip.simps trail_propagate_def resolve.simps)
       unfolding backtrack.simps
       apply (simp add: is_decision_lit_def)
-      sorry
-  next
-    case (Some a)
-    then show ?thesis sorry
-  qed
   oops
 
 lemma ball_trail_defined_lit_if:
@@ -3282,6 +3377,12 @@ qed
 definition trail_no_conflict where
   "trail_no_conflict N \<Gamma> \<longleftrightarrow> (\<nexists>C \<gamma>. C \<in> N \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>))"
 
+lemma "trail_no_conflict (N \<union> U) \<Gamma> \<Longrightarrow> \<nexists>C \<gamma>. conflict N (\<Gamma>, U, None) (\<Gamma>, U, Some (C, \<gamma>))"
+  apply (rule notI)
+  apply (elim exE conflict.cases)
+  unfolding trail_no_conflict_def
+  by (metis Pair_inject rename_clause_def subst_cls_comp_subst)
+
 lemma trail_no_conflict_union_iff:
   "trail_no_conflict (N1 \<union> N2) \<Gamma> \<longleftrightarrow> trail_no_conflict N1 \<Gamma> \<and> trail_no_conflict N2 \<Gamma>"
   unfolding trail_no_conflict_def by blast
@@ -3327,9 +3428,12 @@ proof -
     oops
 
 (*
-The (case u of Some (C, \<gamma>) \<Rightarrow> ...) is not necessary.
-At a backtrack rule, one literal is undefined in the trail, which implies that it cannot be a
-conflicting clause.
+Mathias:
+  The (case u of Some (C, \<gamma>) \<Rightarrow> ...) is not necessary.
+  At a backtrack rule, one literal is undefined in the trail, which implies that it cannot be a
+  conflicting clause.
+Martin:
+  This is correct for \<gamma>, but there could be a conflict with another grounding.
 *)
 definition regular_state where
   "regular_state N S \<longleftrightarrow> sound_state N S \<and>
@@ -3633,7 +3737,7 @@ lemma not_trail_false_cls_if_not_trail_defined_lit:
   "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> L \<in># C \<Longrightarrow> \<not> trail_false_cls \<Gamma> C"
   using trail_defined_lit_iff_true_or_false trail_false_cls_def by blast
 
-primrec bt where
+(* primrec bt where
   "bt [] n = ([], 0)" |
   "bt (Ln # \<Gamma>) n =
     (let (\<Gamma>', m) = bt \<Gamma> n in
@@ -3715,42 +3819,7 @@ next
       apply (frule bt_level_inv2)
       apply simp
       oops
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ *)
 
 lemma "0 < trail_level_lit \<Gamma> L \<Longrightarrow> \<exists>n < length \<Gamma>. fst (\<Gamma> ! n) = L \<or> fst (\<Gamma> ! n) = - L"
 proof (induction \<Gamma>)
@@ -3768,54 +3837,19 @@ next
   qed
 qed
 
-lemma assumes sound_\<Gamma>: "sound_trail N U \<Gamma>"
-  shows "level < trail_level \<Gamma> \<Longrightarrow> level < trail_level_lit \<Gamma> L \<Longrightarrow>
-  \<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
-  (* using trail_backtrack_suffix[of \<Gamma> level, unfolded suffix_def] *)
-  (* using trail_backtrack_suffix[of \<Gamma> level, unfolded suffix_def] *)
-  using sound_\<Gamma>
-proof (induction \<Gamma> rule: sound_trail.induct)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons \<Gamma> K u)
-  from Cons.hyps have "\<not> trail_defined_lit \<Gamma> K" by simp
-  show ?case
-  proof (cases u)
-    case None
-    then show ?thesis
-      using Cons.prems
-      apply (simp add: is_decision_lit_def )
-      unfolding trail_level.simps(2)[of "(K, None)" \<Gamma>] is_decision_lit_def prod.sel
-      unfolding HOL.simp_thms(6) HOL.if_True
-      using Cons.IH
-      
-      sorry
-  next
-    case (Some a)
-    then show ?thesis
-      using Cons.prems
-      apply (simp add: is_decision_lit_def)
-      sorry
-  qed
-qed
-
 lemma backtrack_regular_state:
-  assumes step: "backtrack N S1 S2" and "regular_state N S1"
+  assumes step: "backtrack N S1 S2" and regular_S1: "regular_state N S1"
   shows "regular_state N S2"
   using step
 proof (cases N S1 S2 rule: backtrack.cases)
-  case (backtrackI \<Gamma> L \<sigma> U D)
-  with \<open>regular_state N S1\<close> have
+  case (backtrackI \<Gamma> D \<sigma> L U)
+  with regular_S1 have
     sound_S1: "sound_state N S1" and
     tr_almost_no_conf: "trail_almost_no_conflict (N \<union> U) \<Gamma>"
     by (simp_all add: regular_state_def)
 
   have sound_S2: "sound_state N S2"
     by (rule backtrack_sound_state[OF step sound_S1])
-
-  have "trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level \<Gamma>"
-    sorry
 
   show ?thesis
     unfolding regular_state_def
@@ -3839,14 +3873,15 @@ proof (cases N S1 S2 rule: backtrack.cases)
     qed
     moreover have "trail_no_conflict {D + {#L#}} (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)))"
     proof -
-      have "\<not> trail_defined_lit (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>))) (L \<cdot>l \<sigma>)"
-        using backtrackI \<open>trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level \<Gamma>\<close>
-        sorry
+      from sound_S1 have sound_\<Gamma>: "sound_trail N U \<Gamma>"
+        using backtrackI by (simp add: sound_state_def)
+      hence "\<not> trail_defined_lit (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>))) (L \<cdot>l \<sigma>)"
+        by (rule not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack)
+          (use backtrackI in simp_all)
       then show ?thesis
         unfolding trail_no_conflict_def
         apply simp
         using not_trail_false_cls_if_not_trail_defined_lit
-        
         sorry
     qed
     ultimately show "trail_almost_no_conflict (N \<union> (U \<union> {D + {#L#}}))
@@ -3856,9 +3891,8 @@ proof (cases N S1 S2 rule: backtrack.cases)
   qed
 qed
 
-lemma
+lemma regular_scl_preserves_regularity:
   assumes
-    sound_S1: "sound_state N S1" and
     regular_step: "regular_scl N S1 S2" and
     regular_S1: "regular_state N S1"
   shows "regular_state N S2"
@@ -3899,33 +3933,10 @@ next
       by (rule resolve_regular_state[OF _ regular_S1])
   next
     show "backtrack N S1 S2 \<Longrightarrow> ?thesis"
-      apply (erule backtrack.cases)
-      using almost_no_conf_S1
-      apply (simp add: regular_state_def)
-      using trail_no_conflict_suffixI[OF trail_backtrack_suffix]
-      oops
-      
-      
-
-lemma
-  assumes
-    fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
-    regular_run: "(regular_scl N)\<^sup>*\<^sup>* initial_state S0" and
-    regular_step: "backtrack N S0 S1"
-  shows "\<not> conflict N S1 S2"
-  using regular_run regular_step
-  thm converse_rtranclp_induct
-proof (induction arbitrary: rule: converse_rtranclp_induct)
-  case base
-  hence False by (simp add: backtrack.simps)
-  thus ?case ..
-next
-  case (step S0 S0')
-  then show ?case
-    
-    sorry
+      (* This depends on a sorry! *)
+      by (rule backtrack_regular_state[OF _ regular_S1])
+  qed
 qed
-
 
 lemma propagate_or_backtrack_before_regular_conflict:
   assumes
@@ -4252,10 +4263,9 @@ proof -
           trail_defined_lit_iff_true_or_false trail_false_cls_def
           trail_interp_cls_if_sound_and_trail_true trail_true_cls_def)
 
-    from conflict obtain S
-
-    from conflict obtain L C \<gamma> where "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
+    (* from conflict obtain L C \<gamma> where "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
       apply (elim conflict.cases)
+       *)
 
     thus False
       sorry
