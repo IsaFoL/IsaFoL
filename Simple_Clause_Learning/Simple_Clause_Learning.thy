@@ -26,6 +26,10 @@ lemma not_in_iff: "L \<notin> xs \<longleftrightarrow> (\<forall>y\<in>xs. L \<n
 lemma disjoint_iff': "A \<inter> B = {} \<longleftrightarrow> (\<forall>a \<in> A. a \<notin> B) \<and> (\<forall>b \<in> B. b \<notin> A)"
   by blast
 
+lemma set_filter_insert_conv:
+  "{x \<in> insert y S. P x} = (if P y then insert y else id) {x \<in> S. P x}"
+  by auto
+
 
 subsection \<open>List_Extra\<close>
 
@@ -606,6 +610,9 @@ next
   qed
 qed
 
+lemma unify_Cons_eq[simp]: "fst e = snd e \<Longrightarrow> unify (e # es) bs = unify es bs"
+  by (rule unify_append_eq_unify_if_prefix_same[of "[e]" for e, simplified])
+
 lemma unify_eq_Some_if_same:
   "(\<forall>e \<in> set es. fst e = snd e) \<Longrightarrow> unify es bs = Some bs"
   by (rule unify_append_eq_unify_if_prefix_same[of _ "[]", simplified])
@@ -977,6 +984,9 @@ definition restrict_subst where
 lemma restrict_subst_empty[simp]: "restrict_subst {} \<sigma> = Var"
   unfolding restrict_subst_def by auto
 
+lemma restrict_subst_Var[simp]: "restrict_subst V Var = Var"
+  unfolding restrict_subst_def by auto
+
 lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) \<subseteq> V"
   unfolding restrict_subst_def subst_domain_def
   by auto
@@ -1045,6 +1055,10 @@ lemma inv_renaming'_sound: "is_renaming \<rho> \<Longrightarrow> \<rho> \<odot> 
 lemma subst_cls_renaming_inv_renaming_idem: "is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<cdot> inv_renaming' \<rho> = C"
   using inv_renaming'_sound
   by (metis subst_cls_comp_subst subst_cls_id_subst)
+
+lemma inv_renaming'_Var[simp]: "inv_renaming' Var = Var"
+  unfolding inv_renaming'_def
+  by (metis id_subst_comp_subst is_renaming_id_subst inv_renaming'_def inv_renaming'_sound)
 
 lemma is_renaming_renaming_wrt: "finite N \<Longrightarrow> is_renaming (renaming_wrt N)"
   by (simp add: inj_Var_renaming is_renaming_iff)
@@ -1318,6 +1332,9 @@ lemma not_trail_false_Nil[simp]:
   "C \<noteq> {#} \<Longrightarrow> \<not> trail_false_cls [] C"
   by (simp_all add: trail_false_lit_def trail_false_cls_def)
 
+lemma not_trail_defined_lit_Nil[simp]: "\<not> trail_defined_lit [] L"
+  by (simp add: trail_defined_lit_iff_true_or_false)
+
 lemma ball_trail_backtrackI:
   assumes "\<forall>x \<in> set \<Gamma>. P (fst x)"
   shows "\<forall>x \<in> set (trail_backtrack \<Gamma> i). P (fst x)"
@@ -1417,6 +1434,24 @@ lemma trail_level_decide[simp]:
   "trail_level (trail_decide \<Gamma> L) = Suc (trail_level \<Gamma>)"
   by (simp add: trail_decide_def is_decision_lit_def)
 
+lemma trail_defined_lit_iff: "trail_defined_lit \<Gamma> L \<longleftrightarrow> atm_of L \<in> atm_of ` fst ` set \<Gamma>"
+  by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_defined_lit_def)
+
+lemma trail_interp_conv: "trail_interp \<Gamma> = atm_of ` {L \<in> fst ` set \<Gamma>. is_pos L}"
+proof (induction \<Gamma>)
+  case Nil
+  show ?case by (simp add: trail_interp_def)
+next
+  case (Cons Ln \<Gamma>)
+  then show ?case
+    unfolding list.set image_insert set_filter_insert_conv trail_interp_Cons'
+    by (simp add: literal.case_eq_if)
+qed
+
+lemma not_in_trail_interp_if_not_in_trail: "t \<notin> atm_of ` fst ` set \<Gamma> \<Longrightarrow> t \<notin> trail_interp \<Gamma>"
+  by (metis (no_types, lifting) atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+      literal.sel(2) mem_Collect_eq trail_interp_conv)
+
 
 section \<open>SCL Calculus\<close>
 
@@ -1455,7 +1490,7 @@ inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<
 
 inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
-  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
+  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow>
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
     resolve N (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
@@ -1966,7 +2001,7 @@ qed
 
 lemma resolve_sound_state: "resolve N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: resolve.induct)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> D \<sigma> \<rho> U L' \<mu>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
   from resolveI.prems have
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
@@ -2038,7 +2073,7 @@ proof (induction S S' rule: resolve.induct)
     have inter_L_\<rho>_E: "vars_term (atm_of L \<cdot>a \<rho>) \<inter> vars_cls E = {}"
         by (smt (verit, ccfv_threshold) E_in UN_I UN_Un Un_empty disjoint_iff fin finite.intros
             finite_UN finite_UnI finite_clss_of_trail finite_vars_cls inf_sup_distrib1
-            vars_lit_subst_renaming_disj resolveI.hyps(3) atm_of_subst_lit)
+            vars_lit_subst_renaming_disj resolveI.hyps(2) atm_of_subst_lit)
 
     show ?thesis
       unfolding subst_cls_union disjoint_vars_plus_iff
@@ -2046,12 +2081,12 @@ proof (induction S S' rule: resolve.induct)
       show "disjoint_vars (D \<cdot> \<mu> \<cdot> \<rho>) E"
         unfolding disjoint_vars_iff_inter_empty
         by (smt (verit) E_in UN_I Un_iff disjoint_iff fin finite.intros finite_UN finite_UnI
-            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI.hyps(3))
+            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI.hyps(2))
     next
       show "disjoint_vars (C \<cdot> \<mu> \<cdot> \<rho>) E"
         unfolding disjoint_vars_iff_inter_empty
         by (smt (verit) E_in UN_I Un_iff disjoint_iff fin finite.intros finite_UN finite_UnI
-            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI.hyps(3))
+            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI.hyps(2))
     qed
   qed
 
@@ -2303,6 +2338,106 @@ lemma reasonable_run_sound_state:
 lemma regular_run_sound_state:
   "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
+
+lemma trail_interp_lit_if_sound_and_trail_true:
+  shows "sound_trail N U \<Gamma> \<Longrightarrow> trail_true_lit \<Gamma> L \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile>l L"
+proof (induction \<Gamma> rule: sound_trail.induct)
+  case Nil
+  thus ?case
+    by (simp add: trail_true_lit_def)
+next
+  case (Cons \<Gamma> K u)
+  show ?case
+  proof (cases "L = K \<or> L = - K")
+    case True
+    then show ?thesis 
+    proof (elim disjE)
+      assume "L = K"
+      thus ?thesis
+      proof (cases L; cases K)
+        fix t\<^sub>L t\<^sub>K
+        from \<open>L = K\<close> show "L = Pos t\<^sub>L \<Longrightarrow> K = Pos t\<^sub>K \<Longrightarrow> ?thesis"
+          by (simp add: trail_interp_def)
+      next
+        fix t\<^sub>L t\<^sub>K
+        from \<open>L = K\<close> show "L = Neg t\<^sub>L \<Longrightarrow> K = Neg t\<^sub>K \<Longrightarrow> ?thesis"
+          using Cons.hyps
+          by (simp add: trail_defined_lit_iff trail_interp_Cons'
+              not_in_trail_interp_if_not_in_trail)
+      qed simp_all
+    next
+      assume "L = - K"
+      then show ?thesis
+      proof (cases L; cases K)
+        fix t\<^sub>L t\<^sub>K
+        from \<open>L = - K\<close> show "L = Pos t\<^sub>L \<Longrightarrow> K = Neg t\<^sub>K \<Longrightarrow> ?thesis"
+          unfolding trail_interp_Cons'
+          using Cons.hyps(1) Cons.prems
+          by (metis (no_types, lifting) image_insert insertE list.simps(15) literal.distinct(1)
+              prod.sel(1) trail_defined_lit_def trail_true_lit_def)
+      next
+        fix t\<^sub>L t\<^sub>K
+        from \<open>L = - K\<close> show "L = Neg t\<^sub>L \<Longrightarrow> K = Pos t\<^sub>K \<Longrightarrow> ?thesis"
+          unfolding trail_interp_Cons'
+          using Cons.hyps(1) Cons.prems
+          by (metis (no_types, lifting) image_insert insertE list.simps(15) literal.distinct(1)
+              prod.sel(1) trail_defined_lit_def trail_true_lit_def)
+      qed simp_all
+    qed
+  next
+    case False
+    with Cons.prems have "trail_true_lit \<Gamma> L"
+      by (simp add: trail_true_lit_def)
+    with Cons.IH have "trail_interp \<Gamma> \<TTurnstile>l L"
+      by simp
+    with False show ?thesis
+      by (cases L; cases K) (simp_all add: trail_interp_def del: true_lit_iff)
+  qed
+qed
+
+lemma trail_interp_cls_if_sound_and_trail_true:
+  assumes "sound_trail N U \<Gamma>" and "trail_true_cls \<Gamma> C"
+  shows "trail_interp \<Gamma> \<TTurnstile> C"
+proof -
+  from \<open>trail_true_cls \<Gamma> C\<close> obtain L where "L \<in># C" and "trail_true_lit \<Gamma> L"
+    by (auto simp: trail_true_cls_def)
+  show ?thesis
+    unfolding true_cls_def
+  proof (rule bexI[OF _ \<open>L \<in># C\<close>])
+    show "trail_interp \<Gamma> \<TTurnstile>l L"
+      by (rule trail_interp_lit_if_sound_and_trail_true[OF \<open>sound_trail N U \<Gamma>\<close> \<open>trail_true_lit \<Gamma> L\<close>])
+  qed
+qed
+
+lemma trail_true_cls_iff_trail_interp_entails:
+  assumes "sound_trail N U \<Gamma>" "\<forall>L \<in># C. trail_defined_lit \<Gamma> L"
+  shows "trail_true_cls \<Gamma> C \<longleftrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
+proof (rule iffI)
+  assume "trail_true_cls \<Gamma> C"
+  thus "trail_interp \<Gamma> \<TTurnstile> C"
+    using assms(1) trail_interp_cls_if_sound_and_trail_true by blast
+next
+  assume "trail_interp \<Gamma> \<TTurnstile> C"
+  then obtain L where "L \<in># C" and "trail_interp \<Gamma> \<TTurnstile>l L"
+    by (auto simp: true_cls_def)
+  show "trail_true_cls \<Gamma> C"
+  proof (cases L)
+    case (Pos t)
+    hence "t \<in> trail_interp \<Gamma>"
+      using \<open>trail_interp \<Gamma> \<TTurnstile>l L\<close> by simp
+    then show ?thesis
+      unfolding trail_true_cls_def
+      using \<open>L \<in># C\<close> Pos
+      by (metis assms(1) assms(2) trail_defined_lit_def trail_interp_lit_if_sound_and_trail_true
+          trail_true_lit_def true_lit_simps(2) uminus_Pos)
+  next
+    case (Neg t)
+    then show ?thesis
+      by (metis \<open>L \<in># C\<close> \<open>trail_interp \<Gamma> \<TTurnstile>l L\<close> assms(1) assms(2) trail_defined_lit_def
+          trail_interp_lit_if_sound_and_trail_true trail_true_cls_def trail_true_lit_def
+          true_lit_simps(1) true_lit_simps(2) uminus_Neg)
+  qed
+qed
 
 end
 

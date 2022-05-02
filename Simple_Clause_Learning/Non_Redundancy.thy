@@ -879,7 +879,7 @@ next
   qed
 qed
 
-lemma propagate_or_backtrack_before_regular_conflict:
+(* lemma propagate_or_backtrack_before_regular_conflict:
   assumes
     fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
     regular_run: "(regular_scl N)\<^sup>*\<^sup>* initial_state S0" and
@@ -901,14 +901,42 @@ proof -
   thus ?thesis
     unfolding scl_def
     by (simp add: S1_def skip.simps conflict.simps factorize.simps resolve.simps)
-qed
+qed *)
 
-(* lemma
+lemma
   assumes
     fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
     regular_run: "(regular_scl N)\<^sup>*\<^sup>* initial_state S1" and
     conflict: "conflict N S1 S2"
-  shows "{#} \<in> N \<or> (\<exists>S0. (regular_scl N)\<^sup>*\<^sup>* initial_state S0 \<and> propagate N S0 S1)" *)
+  shows "S1 = initial_state \<and> {#} \<in> N \<or>
+    (\<exists>S0. (regular_scl N)\<^sup>*\<^sup>* initial_state S0 \<and> (propagate N S0 S1 \<or> backtrack N S0 S1))"
+  (is "?lhs \<or> ?rhs")
+  using regular_run conflict
+proof (induction rule: rtranclp_induct)
+  case base
+  hence "{#} \<in> N"
+    apply (cases rule: conflict.cases)
+    apply simp
+    by (metis ex_inv_rename_clause fin_N not_trail_false_Nil(2) subst_cls_empty_iff)
+  thus ?case
+    by simp
+next
+  case (step S0 S1)
+
+  from step.prems obtain \<Gamma> U C \<gamma> where
+    S1_def: "S1 = (\<Gamma>, U, None)" and
+    S2_def: "S2 = (\<Gamma>, U, Some (C, \<gamma>))"
+    unfolding conflict.simps by auto
+  with step.hyps have "\<not> conflict N S0 S1" and "reasonable_scl N S0 S1"
+    unfolding regular_scl_def by (simp_all add: conflict.simps)
+  with step.prems have "scl N S0 S1" and "\<not> decide N S0 S1"
+    unfolding reasonable_scl_def by blast+
+  with step.hyps(1) show ?case
+    apply - apply (rule disjI2)
+    unfolding scl_def
+    apply (simp add: S1_def skip.simps conflict.simps factorize.simps resolve.simps)
+    by (metis prod_cases3)
+qed
   
 
 lemma
@@ -1204,9 +1232,10 @@ proof -
           trail_defined_lit_iff_true_or_false trail_false_cls_def
           trail_interp_cls_if_sound_and_trail_true trail_true_cls_def)
 
-    (* from conflict obtain L C \<gamma> where "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
-      apply (elim conflict.cases)
-       *)
+    obtain L C \<gamma> where "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
+      using regular_run
+      using propagate_or_backtrack_before_regular_conflict[OF fin_N  disj_vars_N _ _ conflict]
+      sorry
 
     thus False
       sorry
