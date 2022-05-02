@@ -39,7 +39,7 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
            \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
         of_nat level > (shiftr fema 32));
       GC_required \<leftarrow> GC_required_heur S n;
-      let should_inprocess = (GC_units_required S \<or> (GC_required \<and> units_since_last_GC_st S > 0));
+      let should_inprocess = (GC_units_required S \<or> GC_required);
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart

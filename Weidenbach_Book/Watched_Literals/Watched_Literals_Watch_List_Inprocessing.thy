@@ -1604,7 +1604,6 @@ definition forward_subsumption_one_wl_inv :: \<open>nat \<Rightarrow> nat list \
   \<open>forward_subsumption_one_wl_inv = (\<lambda>k ys S (i, x).
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_inv k S' (mset (take i ys), x)))\<close>
 
-term forward_subsumption_one_inv
 definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
   \<open>forward_subsumption_one_wl = (\<lambda>k xs S . do {
   ASSERT (forward_subsumption_one_wl_pre k S xs);

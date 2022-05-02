@@ -2855,8 +2855,8 @@ definition forward_subsumption_one_inv :: \<open>nat \<Rightarrow> 'v twl_st_l \
 
 definition forward_subsumption_one_select where
   \<open>forward_subsumption_one_select C S = (\<lambda>xs. C \<notin># xs \<and>
-  (\<forall>D\<in>#xs. D \<in># dom_m (get_clauses_l S) \<longrightarrow> length (get_clauses_l S \<propto> D) > 2
-     \<and> (\<forall>L\<in> set (get_clauses_l S \<propto> D). undefined_lit (get_trail_l S) L)))\<close>
+  (\<forall>D\<in>#xs. D \<in># dom_m (get_clauses_l S) \<longrightarrow>
+     (\<forall>L\<in> set (get_clauses_l S \<propto> D). undefined_lit (get_trail_l S) L)))\<close>
 
 definition forward_subsumption_one :: \<open> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> bool) nres\<close> where
   \<open>forward_subsumption_one = (\<lambda>C S . do {
@@ -2866,7 +2866,7 @@ definition forward_subsumption_one :: \<open> nat \<Rightarrow> 'v twl_st_l \<Ri
       WHILE\<^sub>T\<^bsup> forward_subsumption_one_inv C S \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
       (\<lambda>(xs, s). do {
         C' \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-        if C' \<notin># dom_m (get_clauses_l S) 
+        if C' \<notin># dom_m (get_clauses_l S)
         then RETURN (remove1_mset C' xs, s)
         else do {
           if C' \<notin># dom_m (get_clauses_l S)
@@ -3308,13 +3308,13 @@ definition forward_subsumption_one_round where
 definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_pre = (\<lambda>S.
   \<exists>T.
-  (S, T) \<in> twl_st_l None \<and>
-  twl_struct_invs T \<and>
-  twl_list_invs S \<and>
-  clauses_to_update_l S = {#} \<and>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
-  count_decided (get_trail_l S) = 0 \<and>
-  set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
+    (S, T) \<in> twl_st_l None \<and>
+    twl_struct_invs T \<and>
+    twl_list_invs S \<and>
+    clauses_to_update_l S = {#} \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of T) \<and>
+    count_decided (get_trail_l S) = 0 \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
 
 definition forward_subsumption_all_inv :: \<open>'v twl_st_l \<Rightarrow> nat multiset \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S))\<close>
