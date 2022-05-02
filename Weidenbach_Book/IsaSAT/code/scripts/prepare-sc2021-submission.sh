@@ -3,8 +3,8 @@ set -e
 
 cd `dirname $0`/..
 root=`pwd`
-tmp=/tmp/prepare-isasat-sc2021-submission.log
-VERSION="sc2021"
+tmp=/tmp/prepare-isasat-sc2022-submission.log
+VERSION="sc2022"
 rm -f $tmp
 ##########################################################################
 echo "make-src-release.sh"
@@ -23,10 +23,10 @@ rm -rf $dir
 echo "mkdir"
 mkdir $dir
 mkdir $dir/bin
-cp ./src/isasat $dir/bin/
+# cp ./src/isasat $dir/bin/
 mkdir $dir/build
 # cp ~/Documents/repos/cadical/build/cadical $dir/build/isasat
-cp src/isasat $dir/build
+#cp src/isasat $dir/build
 mkdir $dir/archives
 printf "cp to archives $tar\n"
 printf "cp to archives $dir\n"
@@ -35,19 +35,20 @@ echo "build script"
 cat <<EOF >$dir/build/build.sh
 #!/bin/sh
 # compilation flag
-# tar xf ../archives/isasat*
-# mv isasat* isasat
-# cd isasat/src
-# make
-install -s isasat ../bin/
+tar xf ../archives/isasat*
+mv isasat* isasat
+cd isasat/src
+# enable clang on starexec
+echo "activating llvm & running make"
+scl enable llvm-toolset-7.0 'make competition'
+install -s isasat ../../../bin/isasat
 EOF
 chmod 755 $dir/build/build.sh
 echo "starexec_build script"
 cat <<EOF >$dir/starexec_build
 #!/bin/sh
 cd build
-# ignored for starexec
-# exec ./build.sh
+exec ./build.sh
 EOF
 chmod 755 $dir/starexec_build
 echo "run script"
