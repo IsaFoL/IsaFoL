@@ -499,7 +499,7 @@ sepref_def isa_clause_remove_duplicate_clause_wl_impl
   by sepref
 sepref_register isa_binary_clause_subres_wl
 
-
+sepref_register incr_binary_unit_derived_clss
 lemma isa_binary_clause_subres_wl_alt_def:
   \<open>isa_binary_clause_subres_wl C L L' S\<^sub>0 = do {
       ASSERT (isa_binary_clause_subres_lits_wl_pre C L L' S\<^sub>0);
@@ -515,14 +515,16 @@ lemma isa_binary_clause_subres_wl_alt_def:
       ASSERT(\<not>st \<longrightarrow> (clss_size_lcount lcount \<ge> 1 \<and> clss_size_lcountUEk (clss_size_decr_lcount lcount) < learned_clss_count S\<^sub>0));
       let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let (stats, S) = extract_stats_wl_heur S;
-      let stats = (if st then decr_irred_clss stats else stats);
+      let stats = incr_binary_unit_derived_clss (if st then decr_irred_clss stats else stats);
       let stats = incr_units_since_last_GC (incr_uset stats);
       let S = update_trail_wl_heur M S;
       let S = update_arena_wl_heur N' S;
       let S = update_lcount_wl_heur lcount S;
       let S = update_stats_wl_heur stats S;
+      let _ = log_unit_clause L;
       RETURN S
-  }\<close>
+        }\<close>
+  apply (subst Let_def[of \<open>log_unit_clause L\<close>])
   by (auto simp: isa_binary_clause_subres_wl_def learned_clss_count_def
         state_extractors split: isasat_int.splits)
 

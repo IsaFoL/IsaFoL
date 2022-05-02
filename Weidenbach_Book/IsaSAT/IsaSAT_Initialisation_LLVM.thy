@@ -872,7 +872,7 @@ lemma finalise_init_code_alt_def:
   let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
   let init_stats = Stats (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
-    of_nat (length ivdom)::64 word, ema_fast_init);
+    of_nat (length ivdom)::64 word, 0::64 word,0::64 word, ema_fast_init);
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);

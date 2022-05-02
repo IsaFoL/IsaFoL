@@ -14,6 +14,8 @@ remove-print:
 	echo "fix printing functions"
 	sed -i -e '/define void @IsaSAT_LLVM_print_gc_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_irred_clss_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_binary_unit_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' \
@@ -51,6 +53,8 @@ declare void @IsaSAT_LLVM_print_lres_impl(i64)\
 declare void @IsaSAT_LLVM_print_uset_impl(i64)\
 declare void @IsaSAT_LLVM_print_gc_impl(i64)\
 declare void @IsaSAT_LLVM_print_irred_clss_impl(i64)\
+declare void @IsaSAT_LLVM_print_binary_unit_impl(i64)\
+declare void @IsaSAT_LLVM_print_binary_red_removed_impl(i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\

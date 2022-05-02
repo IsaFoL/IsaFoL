@@ -1573,7 +1573,7 @@ definition isa_clause_remove_duplicate_clause_wl :: \<open>nat \<Rightarrow> isa
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     let lcount = (if st then lcount else (clss_size_decr_lcount lcount));
     let stats = get_stats_heur S;
-    let stats = (if st then decr_irred_clss stats else stats);
+    let stats = (incr_binary_red_removed_clss (if st then decr_irred_clss stats else stats));
     let S = set_clauses_wl_heur N' S;
     let S = set_learned_count_wl_heur lcount S;
     let S = set_stats_wl_heur stats S;
@@ -1632,7 +1632,7 @@ definition isa_binary_clause_subres_wl :: \<open>_\<close> where
       ASSERT(\<not>st \<longrightarrow> (clss_size_lcount lcount \<ge> 1 \<and> clss_size_lcountUEk (clss_size_decr_lcount lcount) < learned_clss_count S));
       let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let stats = get_stats_heur S;
-      let stats = (if st then decr_irred_clss stats else stats);
+      let stats = incr_binary_unit_derived_clss (if st then decr_irred_clss stats else stats);
       let stats = incr_units_since_last_GC (incr_uset stats);
       let S = set_trail_wl_heur M S;
       let S = set_clauses_wl_heur N' S;

@@ -292,6 +292,17 @@ void IsaSAT_LLVM_print_irred_clss_impl(int64_t props) {
 #endif
 }
 
+void IsaSAT_LLVM_print_binary_unit_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c binary unit removed %ld\n", props);
+#endif
+}
+void IsaSAT_LLVM_print_binary_red_removed_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c binary redundant removed %ld\n", props);
+#endif
+}
+
 void print_phase(int8_t phase) {
 #ifdef PRINTSTATS
   if(phase == 1)
