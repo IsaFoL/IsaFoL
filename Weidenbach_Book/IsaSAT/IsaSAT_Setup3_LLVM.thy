@@ -37,13 +37,32 @@ global_interpretation current_restart_phase: read_heur_param_adder0 where
   subgoal by (auto simp: get_restart_phase_imp_def)
   done
 
+definition next_inprocessing_schedule_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>next_inprocessing_schedule_st_impl = read_heur_wl_heur_code next_inprocessing_schedule_info_stats_impl\<close>
+
+global_interpretation next_inprocessing_schedule: read_heur_param_adder0 where
+  f' = \<open>RETURN o next_inprocessing_schedule\<close> and
+  f = next_inprocessing_schedule_info_stats_impl and
+  x_assn = \<open>word64_assn\<close> and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites
+    \<open>read_heur_wl_heur (RETURN o next_inprocessing_schedule) = RETURN o next_inprocessing_schedule_st\<close> and
+    \<open>read_heur_wl_heur_code next_inprocessing_schedule_info_stats_impl = next_inprocessing_schedule_st_impl\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: next_inprocessing_schedule_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: next_inprocessing_schedule_st_impl_def)
+  done
+
 lemmas [sepref_fr_rules] =
   wasted_of.refine
   current_restart_phase.refine
+  next_inprocessing_schedule.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   wasted_bytes_st_impl_def[unfolded read_all_st_code_def]
   get_restart_phase_imp_def[unfolded read_all_st_code_def]
+  next_inprocessing_schedule_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
 

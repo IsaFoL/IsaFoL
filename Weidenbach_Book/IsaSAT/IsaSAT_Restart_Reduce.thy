@@ -3264,7 +3264,7 @@ definition isasat_GC_clauses_pre_wl_D :: \<open>isasat \<Rightarrow> bool\<close
 
 definition reset_added_heur_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>reset_added_heur_st S =
-  (let heur = get_heur S in set_heur_wl_heur (reset_added_heur heur) S)\<close>
+  (if should_inprocess_st S then let heur = get_heur S in set_heur_wl_heur (schedule_next_inprocessing (reset_added_heur heur)) S else S)\<close>
 
 lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (reset_added_heur heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def
@@ -3275,7 +3275,6 @@ lemma reset_added_heur_st:
   \<open>(S, T) \<in> twl_st_heur_restart''''u r u \<Longrightarrow>
   (reset_added_heur_st S, T) \<in> twl_st_heur_restart''''u r u\<close>
   by (auto simp: reset_added_heur_st_def twl_st_heur_restart_def)
- 
 
 definition isasat_GC_clauses_wl_D :: \<open>isasat \<Rightarrow> isasat nres\<close> where
 \<open>isasat_GC_clauses_wl_D = (\<lambda>S. do {

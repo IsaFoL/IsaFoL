@@ -542,8 +542,7 @@ sepref_def binary_deduplicate_required_fast_code
   is \<open>binary_deduplicate_required\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
-  unfolding binary_deduplicate_required_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  unfolding binary_deduplicate_required_def should_inprocess_st_def
   by sepref
 
 sepref_def isa_deduplicate_binary_clauses_wl_code

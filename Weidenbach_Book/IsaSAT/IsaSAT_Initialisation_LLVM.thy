@@ -848,12 +848,12 @@ definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> rest
   let fema = ema_init (opts_fema opts) in
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False))\<close>
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False, 262144))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>
   :: \<open>opts_assn\<^sup>k *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
-  supply  [[goals_limit=1]]  
+  supply  [[goals_limit=1]]
   unfolding heuristic_int_assn_def empty_heuristics_stats_def phase_heur_assn_def
   apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)

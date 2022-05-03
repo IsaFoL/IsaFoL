@@ -623,7 +623,7 @@ lemma phase_save_heur_rel_cong:
 lemma heuristic_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
   using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) (get_restart_heuristics heur)\<close>]
-  using phase_saving_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, _, _, _, a). a) (get_restart_heuristics heur)\<close>]
+  using phase_saving_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, _, _, _, a, _). a) (get_restart_heuristics heur)\<close>]
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def)
 
 lemma vmtf_cong:
@@ -1681,5 +1681,13 @@ proof -
     by auto
 qed
 
+definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S))\<close>
+
+definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
+
+definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
 
 end

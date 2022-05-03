@@ -168,11 +168,18 @@ definition restart_info_init :: \<open>restart_info\<close> where
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
+type_synonym schedule_info = \<open>64 word\<close>
+
+definition schedule_next_inprocessing_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
+  \<open>schedule_next_inprocessing_info = (\<lambda>(inprocess). (inprocess * 3 >> 1))\<close>
+
+definition next_inprocessing_schedule_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
+  \<open>next_inprocessing_schedule_info = (\<lambda>(inprocess). inprocess)\<close>
 
 
 section \<open>Heuristics\<close>
 
-type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool \<times> phase_saver\<close>
+type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool \<times> phase_saver \<times> schedule_info\<close>
 
 type_synonym isasat_restart_heuristics = \<open>restart_heuristics code_hider\<close>
 
@@ -192,6 +199,9 @@ fun slow_ema_of_stats :: \<open>restart_heuristics \<Rightarrow> ema\<close> whe
 
 fun restart_info_of_stats :: \<open>restart_heuristics \<Rightarrow> restart_info\<close> where
   \<open>restart_info_of_stats (fast_ema, slow_ema, restart_info, wasted, \<phi>) = restart_info\<close>
+
+fun schedule_info_of_stats :: \<open>restart_heuristics \<Rightarrow> schedule_info\<close> where
+  \<open>schedule_info_of_stats (fast_ema, slow_ema, restart_info, wasted, \<phi>, _, _, _, schedule) = schedule\<close>
 
 fun current_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>current_restart_phase_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
@@ -220,7 +230,7 @@ definition get_conflict_count_since_last_restart :: \<open>isasat_restart_heuris
   \<open>get_conflict_count_since_last_restart = get_conflict_count_since_last_restart_stats o get_content\<close>
 
 definition heuristic_rel_stats :: \<open>nat multiset \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-  \<open>heuristic_rel_stats \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _, _, lit_st). phase_save_heur_rel \<A> \<phi> \<and> phase_saving \<A> lit_st)\<close>
+  \<open>heuristic_rel_stats \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _, _, lit_st, schedule). phase_save_heur_rel \<A> \<phi> \<and> phase_saving \<A> lit_st)\<close>
 
 definition save_phase_heur_stats :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
 \<open>save_phase_heur_stats L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best), reluctant).
@@ -236,11 +246,11 @@ definition mop_save_phase_heur_stats :: \<open>nat \<Rightarrow> bool \<Rightarr
 }\<close>
 
 definition mark_added_heur_stats :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-\<open>mark_added_heur_stats L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st).
-    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st[L := True]))\<close>
+\<open>mark_added_heur_stats L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule).
+    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st[L := True], schedule))\<close>
 
 definition mark_added_heur_pre_stats :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>mark_added_heur_pre_stats L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st). L < length lits_st)\<close>
+\<open>mark_added_heur_pre_stats L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st, schedule). L < length lits_st)\<close>
 
 definition mop_mark_added_heur_stats :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
 \<open>mop_mark_added_heur_stats L b heur = do {
@@ -249,24 +259,24 @@ definition mop_mark_added_heur_stats :: \<open>nat \<Rightarrow> bool \<Rightarr
 }\<close>
 
 definition reset_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-\<open>reset_added_heur_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st).
-    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, replicate (length lits_st) False))\<close>
+\<open>reset_added_heur_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule).
+    (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, replicate (length lits_st) False, schedule))\<close>
 
 
 definition reset_added_heur_stats2 :: \<open>restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
-  \<open>reset_added_heur_stats2 = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0).
+  \<open>reset_added_heur_stats2 = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0, schedule).
   do {
   (_, lits_st) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, lits_st). (\<forall>k < i. \<not>lits_st ! k) \<and> i \<le> length lits_st \<and> length lits_st = length lits_st\<^sub>0\<^esup> (\<lambda>(i, lits_st). i < length lits_st)
     (\<lambda>(i, lits_st). do {ASSERT (i < length lits_st); RETURN (i+1, lits_st[i := False])})
     (0, lits_st\<^sub>0);
-  RETURN  (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st)
+  RETURN  (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule)
   })\<close>
 
 lemma reset_added_heur_stats2_reset_added_heur_stats:
   \<open>reset_added_heur_stats2 heur \<le>\<Down>Id (RETURN (reset_added_heur_stats heur))\<close>
 proof -
-  obtain fast_ema slow_ema res_info wasted \<phi> reluctant fully_proped lits_st\<^sub>0 where
-    heur: \<open>heur = (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0)\<close>
+  obtain fast_ema slow_ema res_info wasted \<phi> reluctant fully_proped lits_st\<^sub>0 schedule where
+    heur: \<open>heur = (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st\<^sub>0, schedule)\<close>
     by (cases heur)
   have [refine0]: \<open>wf (measure (\<lambda>(i, lits_st). length lits_st\<^sub>0 - i))\<close>
     by auto
@@ -287,11 +297,11 @@ proof -
 qed
 
 definition is_marked_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> nat \<Rightarrow> bool\<close> where
-\<open>is_marked_added_heur_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st) L.
+\<open>is_marked_added_heur_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule) L.
      lits_st ! L)\<close>
 
 definition is_marked_added_heur_pre_stats :: \<open>restart_heuristics \<Rightarrow>nat \<Rightarrow> bool\<close> where
-\<open>is_marked_added_heur_pre_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st) L. L < length lits_st)\<close>
+\<open>is_marked_added_heur_pre_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, _,  fully_proped, lits_st, schedule) L. L < length lits_st)\<close>
 
 definition mop_is_marked_added_heur_stats :: \<open>restart_heuristics \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
 \<open>mop_is_marked_added_heur_stats L heur = do {
@@ -501,11 +511,24 @@ definition unset_fully_propagated_heur :: \<open>isasat_restart_heuristics \<Rig
   \<open>unset_fully_propagated_heur =
   Restart_Heuristics o unset_fully_propagated_heur_stats o get_restart_heuristics\<close>
 
-
 definition restart_info_restart_done_heur :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
-  \<open>restart_info_restart_done_heur = 
+  \<open>restart_info_restart_done_heur =
   Restart_Heuristics o restart_info_restart_done_heur_stats o get_restart_heuristics\<close>
 
+definition schedule_info_of :: \<open>isasat_restart_heuristics \<Rightarrow> schedule_info\<close> where
+  \<open>schedule_info_of = schedule_info_of_stats o get_restart_heuristics\<close>
+
+definition schedule_next_inprocessing_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>schedule_next_inprocessing_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_inprocessing_info schedule))\<close>
+
+definition schedule_next_inprocessing :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>schedule_next_inprocessing = Restart_Heuristics o schedule_next_inprocessing_stats o get_restart_heuristics\<close>
+
+definition next_inprocessing_schedule_info_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_inprocessing_schedule_info_stats = next_inprocessing_schedule_info o schedule_info_of_stats\<close>
+
+definition next_inprocessing_schedule :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_inprocessing_schedule = next_inprocessing_schedule_info_stats o get_restart_heuristics\<close>
 
 lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
@@ -548,9 +571,12 @@ lemma heuristic_rel_incr_restartI[intro!]:
 
 lemma [intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
-  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def)
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_inprocessing heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def
+     next_inprocessing_schedule_def schedule_next_inprocessing_def schedule_next_inprocessing_stats_def)
 
-lemma [simp]: \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (restart_info_restart_done_heur heur)\<close>
+lemma [simp]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (restart_info_restart_done_heur heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def restart_info_restart_done_heur_def
     restart_info_restart_done_heur_stats_def)
 

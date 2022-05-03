@@ -2125,7 +2125,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let fema = ema_init (opts_fema opts);
      let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
-     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False, replicate (length \<phi>) False));
+     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False, replicate (length \<phi>) False, 262144));
      let vdoms = AIvdom_init vdom [] ivdom;
     RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)
        clvls cach lbd (take 1 (replicate 160 (Pos 0))) init_stats
@@ -2145,7 +2145,7 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
 
 lemma heuristic_rel_initI:
   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> phase_saving \<A> g \<Longrightarrow>
-  heuristic_rel \<A> (Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e, f, g)))\<close>
+  heuristic_rel \<A> (Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e, f, g, h)))\<close>
   by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def heuristic_rel_stats_def)
 
 lemma finalise_init_finalise_init_full:

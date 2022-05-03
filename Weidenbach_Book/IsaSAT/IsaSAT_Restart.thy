@@ -1960,4 +1960,9 @@ lemma isasat_GC_clauses_wl_D_rewatch_pre:
   unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
   by auto
 
+(*TODO Move*)
+definition should_inprocess_st :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>should_inprocess_st S \<longleftrightarrow>
+      (get_global_conflict_count S > next_inprocessing_schedule_st S)\<close>
+
 end

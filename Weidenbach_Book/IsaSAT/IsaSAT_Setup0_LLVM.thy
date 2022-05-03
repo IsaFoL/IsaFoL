@@ -253,7 +253,7 @@ definition bottom_heur_int :: \<open> restart_heuristics\<close> where
   let fema = ema_init (0) in
   let sema = ema_init (0) in let ccount = restart_info_init in
   let n = 0  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate 0 False))
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate 0 False, 0))
 \<close>
 sepref_def bottom_heur_int_code
   is \<open>uncurry0 (RETURN bottom_heur_int)\<close>
@@ -262,7 +262,7 @@ sepref_def bottom_heur_int_code
   unfolding bottom_heur_int_def heuristic_int_assn_def phase_heur_assn_def
   apply (rewrite in \<open>(replicate _ False, _)\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>(replicate _ False, _)\<close> array_fold_custom_replicate)
-  apply (rewrite at \<open>(_, _, _, \<hole>, _)\<close> annotate_assn[where A=phase_saver'_assn])
+  apply (rewrite at \<open>(_, _, _, \<hole>, _, _)\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>(_, _, \<hole>, _)\<close> array_fold_custom_replicate)
   apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])

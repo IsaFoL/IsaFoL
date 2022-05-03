@@ -2412,9 +2412,7 @@ definition mark_duplicated_binary_clauses_as_garbage_pre_wl_heur :: \<open>isasa
 
 definition binary_deduplicate_required :: \<open>isasat \<Rightarrow> bool nres\<close> where
   \<open>binary_deduplicate_required S = do {
-    n \<leftarrow> RETURN (full_arena_length_st S);
-    wasted \<leftarrow> RETURN (wasted_bytes_st S);
-    RETURN (3*wasted > ((of_nat n)>>2))
+    RETURN (should_inprocess_st S)
  }\<close>
 
 definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<Rightarrow> _ nres\<close> where

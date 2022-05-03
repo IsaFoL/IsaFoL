@@ -3,6 +3,18 @@ imports
   IsaSAT_Restart_Reduce IsaSAT_Restart_Inprocessing
 begin
 
+text \<open>
+
+  For simplification in our proofs, our inprocessing contains both inprocessing (currently:
+  deduplication of binary clauses) and removal of unit clauses. We leave the concrete schedule
+  to the inprocessing function.
+\<close>
+definition should_inprocess_or_unit_reduce_st :: \<open>isasat \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>should_inprocess_or_unit_reduce_st S should_GC \<longleftrightarrow>
+      (should_GC \<and> units_since_last_GC_st S > 0) \<or>
+      should_inprocess_st S \<or>
+      GC_units_required S\<close>
+
 definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
   \<open>restart_required_heur S last_GC last_Restart n = do {
     ASSERT(learned_clss_count S \<ge> last_Restart);
@@ -17,7 +29,7 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
     if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red \<or> \<not>fully_proped then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
     then do {
-      GC_required \<leftarrow> GC_required_heur S n;
+      should_GC \<leftarrow> GC_required_heur S n;
       let upper = upper_restart_bound_not_reached S;
       if (opt_res \<or> opt_red) \<and> \<not>upper \<and> can_GC
       then RETURN FLAG_GC_restart
@@ -38,12 +50,12 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
         level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
            \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
         of_nat level > (shiftr fema 32));
-      GC_required \<leftarrow> GC_required_heur S n;
-      let should_inprocess = (GC_units_required S \<or> GC_required);
+      should_GC \<leftarrow> GC_required_heur S n;
+      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart
-        else if GC_required
+        else if should_GC
         then RETURN FLAG_GC_restart
         else RETURN FLAG_Reduce_restart
       else if should_restart
