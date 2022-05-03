@@ -889,12 +889,12 @@ proof (unfold regular_scl_def, rule disjI1)
     by (simp add: trail_false_cls_def trail_false_lit_def subst_lit_def)
 qed
 
-abbreviation renaming_wrt8 where
+definition renaming_wrt8 where
   "renaming_wrt8 \<equiv> renaming_wrt
     (N \<union> clss_of_trail (state_trail S6) \<union>
       {{#Neg (Fun P [Var v]), Neg (Fun S [Var v])#} \<cdot> (Var \<circ> renaming_vars7)})"
 
-abbreviation mgu8 where
+definition mgu8 where
   "mgu8 \<equiv> the (Unification.mgu
     (atm_of (Pos (Fun S [Var w]) \<cdot>l (Var \<circ> renaming_vars6)))
     (atm_of (Neg (Fun S [Var v]) \<cdot>l (Var \<circ> renaming_vars7))))"
@@ -943,7 +943,7 @@ next
             (Neg (Fun S [Var v]) \<cdot>l (Var \<circ> renaming_vars7))))"])
     unfolding prod.inject
     apply (intro conjI)
-              apply simp_all
+              apply (simp_all add: mgu8_def renaming_wrt8_def)
        apply (simp add: S6_def subst_lit_def trail_propagate_def)
     using distinct_preds apply (simp add: trail_level_cls_def subst_lit_def S6_def)
     by (simp add: decompose_def zip_option.simps subst_list_def)
@@ -983,11 +983,86 @@ next
     unfolding reasonable_scl_def by simp
 qed
 
+definition mgu10 where
+  "mgu10 = the (Unification.mgu
+          (atm_of (Pos (Fun R [Var z]) \<cdot>l renaming_wrt N))
+          (atm_of
+            (Neg (Fun R [Var w]) \<cdot>l
+             (Var \<circ>
+              renaming_vars
+               (insert (renaming_vars (\<Union> (vars_cls ` N)) z)
+                 (\<Union> (vars_cls ` N)))) \<cdot>l
+             the (Unification.mgu
+                   (atm_of
+                     (Pos (Fun S [Var w]) \<cdot>l
+                      (Var \<circ>
+                       renaming_vars
+                        (insert
+                          (renaming_vars (\<Union> (vars_cls ` N)) z)
+                          (\<Union> (vars_cls ` N))))))
+                   (atm_of
+                     (Neg (Fun S [Var v]) \<cdot>l
+                      (Var \<circ> renaming_vars7)))) \<cdot>l
+             renaming_wrt
+              (N \<union> clss_of_trail (state_trail S6) \<union>
+               {{#Neg (Fun P [Var v]), Neg (Fun S [Var v])#} \<cdot>
+                (Var \<circ> renaming_vars7)}))))"
+
+definition renaming_wrt10 where
+  "renaming_wrt10 = renaming_wrt (N \<union> clss_of_trail (state_trail S5) \<union> {({#Neg (Fun P [Var v])#} \<cdot> (Var \<circ> renaming_vars7) + {#Neg (Fun R [Var w])#} \<cdot> (Var \<circ> renaming_vars6)) \<cdot> mgu8 \<cdot> renaming_wrt8})"
+
+definition conflict_cls10 where
+  "conflict_cls10 =
+    ({#Neg (Fun P [Var v])#} \<cdot> (Var \<circ> renaming_vars7) \<cdot> mgu8 \<cdot> renaming_wrt8 +
+     {#Neg (Fun Q [Var z])#} \<cdot> (Var \<circ> renaming_vars5)) \<cdot> mgu10 \<cdot> renaming_wrt10"
+
 definition conflict10 where
-  "conflict10 = conflict8"
+  "conflict10 = (
+    conflict_cls10,
+    restrict_subst (vars_cls conflict_cls10)
+      (inv_renaming' renaming_wrt10 \<odot> snd conflict8 \<odot> Var(renaming_vars5 z := b)))"
 
 definition S10 :: "('f, 'v) state" where
   "S10 = (state_trail S5, {}, Some conflict10)"
+
+lemma FOO: "Pos (Fun R [Var z]) \<cdot>l renaming_wrt N \<cdot>l Var
+    (renaming_vars (\<Union> (vars_cls ` N)) z := b) = Pos (Fun R [b])"
+  by (simp add: subst_lit_def)
+
+lemma "regular_scl N S9 S10"
+proof (unfold regular_scl_def, rule disjI2, rule conjI)
+  show "\<not> conflict N S9 S10"
+    unfolding S9_def by (simp add: conflict.simps)
+next
+  have "resolve N S9 S10"
+    unfolding S9_def S10_def conflict10_def resolve.simps
+    apply (rule exI[of _ "state_trail S5"])
+    apply (rule exI[of _ "state_trail S4"])
+    apply (rule exI[of _ "Pos (Fun R [Var z]) \<cdot>l (Var o renaming_vars5)"])
+    apply (rule exI[of _ "{#Neg (Fun Q [Var z]) \<cdot>l (Var o renaming_vars5)#}"])
+    apply (rule exI[of _ "Var(renaming_vars5 z := b)"])
+    apply (rule exI[of _ renaming_wrt10])
+    apply (rule exI[of _ "{}"])
+    apply (rule exI[of _ "{#Neg (Fun P [Var v])#} \<cdot> (Var \<circ> renaming_vars7) \<cdot> mgu8 \<cdot> renaming_wrt8"])
+    apply (rule exI[of _ "Neg (Fun R [Var w]) \<cdot>l (Var \<circ> renaming_vars6) \<cdot>l mgu8 \<cdot>l renaming_wrt8"])
+    apply (rule exI[of _ "snd conflict8"])
+    apply (rule exI[of _ mgu10])
+    apply (intro conjI)
+         apply (simp add: N_def decompose_def zip_option.simps S6_def clss_of_trail_def vars_cls_def
+          subst_lit_def conflict8_def)
+         apply (simp add: conflict_cls10_def)
+       apply (simp add: S5_def S4_def trail_propagate_def subst_lit_def)
+      apply (simp add: renaming_wrt10_def)
+    subgoal
+    unfolding FOO
+     apply (simp add: subst_lit_def)
+    apply (simp add: renaming_wrt8_def conflict8_def)
+    sorry
+  subgoal
+  unfolding mgu10_def
+  apply (simp add: decompose_def zip_option.simps subst_list_def S6_def)
+  sorry
+  oops
 
 end
 
