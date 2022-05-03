@@ -30,9 +30,12 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
     else if curr_phase = QUIET_PHASE
     then do {
       should_GC \<leftarrow> GC_required_heur S n;
-      let upper = upper_restart_bound_not_reached S;
-      if (opt_res \<or> opt_red) \<and> \<not>upper \<and> can_GC
-      then RETURN FLAG_GC_restart
+      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
+      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
+      if should_reduce
+      then if should_inprocess
+      then RETURN FLAG_Inprocess_restart
+      else if should_GC then RETURN FLAG_GC_restart else RETURN FLAG_Reduce_restart
       else if heuristic_reluctant_triggered2_st S \<and> can_res
         then RETURN FLAG_restart
         else RETURN FLAG_no_restart
