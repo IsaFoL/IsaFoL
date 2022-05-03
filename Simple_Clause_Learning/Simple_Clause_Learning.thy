@@ -1236,31 +1236,16 @@ lemma trail_level_cls_le: "trail_level_cls \<Gamma> C \<le> trail_level \<Gamma>
 primrec trail_backtrack :: "('f, 'v) trail \<Rightarrow> nat \<Rightarrow> ('f, 'v) trail" where
   "trail_backtrack [] _ = []" |
   "trail_backtrack (Lc # \<Gamma>) level =
-    (if is_decision_lit Lc \<and> trail_level (Lc # \<Gamma>) = level then
+    (if trail_level (Lc # \<Gamma>) \<le> level then
       Lc # \<Gamma>
     else
       trail_backtrack \<Gamma> level)"
 
-lemma trail_backtrack_inv: "trail_level \<Gamma> < level \<Longrightarrow> trail_backtrack \<Gamma> level = []"
-proof (induction \<Gamma>)
-  case Nil
-  thus ?case by simp
-next
-  case (Cons Lc \<Gamma>)
-  thus ?case
-    by (metis (mono_tags, lifting) trail_backtrack.simps(2) trail_level.simps(2) not_less_eq
-        not_less_iff_gr_or_eq of_nat_eq_id of_nat_id)
-qed
+lemma trail_backtrack_inv: "trail_level \<Gamma> < level \<Longrightarrow> trail_backtrack \<Gamma> level = \<Gamma>"
+  by (cases \<Gamma>) simp_all
 
 lemma trail_backtrack_suffix: "suffix (trail_backtrack \<Gamma> level) \<Gamma>"
-proof (induction \<Gamma>)
-  case Nil
-  thus ?case by simp
-next
-  case (Cons Lc \<Gamma>)
-  thus ?case
-    by (cases "is_decision_lit Lc") (simp_all add: suffix_ConsI)
-qed
+  by (induction \<Gamma>) (simp_all add: suffix_ConsI)
 
 lemma clss_of_trail_trail_decide_subset:
   "clss_of_trail (trail_backtrack \<Gamma> n) \<subseteq> clss_of_trail \<Gamma>"
@@ -1270,21 +1255,9 @@ lemma clss_of_trail_trail_decide_subset:
 lemma ball_set_trail_backtrackI: "\<forall>x \<in> set \<Gamma>. P x \<Longrightarrow> \<forall>x \<in> set (trail_backtrack \<Gamma> level). P x"
   by (meson set_mono_suffix subset_eq trail_backtrack_suffix)
 
-lemma trail_backtrack_hd:
-  "trail_backtrack \<Gamma> level = [] \<or> is_decision_lit (hd (trail_backtrack \<Gamma> level))"
-  by (induction \<Gamma>) simp_all
-
-lemma trail_backtrack_level:
-  "trail_level (trail_backtrack \<Gamma> level) = 0 \<or> trail_level (trail_backtrack \<Gamma> level) = level"
-  by (induction \<Gamma>) simp_all
-
-lemma trail_backtrack_level_eq:
-  "level \<le> trail_level \<Gamma> \<Longrightarrow> trail_level (trail_backtrack \<Gamma> level) = level"
+lemma trail_backtrack_level: "trail_level (trail_backtrack \<Gamma> level) =
+  (if level \<le> trail_level \<Gamma> then level else trail_level \<Gamma>)"
   by (induction \<Gamma>) auto
-
-lemma trail_backtrack_propagate[simp]:
-  "trail_backtrack (trail_propagate \<Gamma> L C \<gamma>) n = trail_backtrack \<Gamma> n"
-  by (simp add: trail_propagate_def is_decision_lit_def)
 
 definition trail_interp :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term interp" where
   "trail_interp \<Gamma> = \<Union>((\<lambda>L. case L of Pos A \<Rightarrow> {A} | Neg A \<Rightarrow> {}) ` fst ` set \<Gamma>)"
@@ -1716,39 +1689,29 @@ proof (induction \<Gamma> rule: sound_trail.induct)
 next
   case (Cons \<Gamma> K u)
   from Cons.hyps have not_\<Gamma>_defined_K: "\<not> trail_defined_lit \<Gamma> K" by simp
+  
   show ?case
-  proof (cases "is_decision_lit (K, u)")
+  proof (cases "trail_level ((K, u) # \<Gamma>) \<le> level")
     case True
-    hence "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
-      by (smt (verit, best) Cons.IH Cons.prems(1) Cons.prems(2) fst_conv less_Suc_eq not_\<Gamma>_defined_K
-          not_trail_backtrack_defined_if_not_defined trail_defined_lit_iff_defined_uminus
-          trail_level.simps(2) trail_level_lit.simps(2) trail_level_lit_le verit_comp_simplify1(3))
     thus ?thesis
-      using Cons.prems(1) by simp
+      using Cons.prems(1) by (simp del: trail_level.simps add: trail_defined_lit_def)
   next
-    case not_decision_K: False
-
-    moreover have "\<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
+    case not_trail_level_K_\<Gamma>_le: False
+    show ?thesis
     proof (cases "K = L \<or> K = - L")
-      case True
+      case K_eq_L: True
       then show ?thesis
-        using not_\<Gamma>_defined_K not_trail_backtrack_defined_if_not_defined
-          trail_defined_lit_iff_defined_uminus
-        by blast
+        using not_trail_level_K_\<Gamma>_le not_\<Gamma>_defined_K
+        apply (simp del: trail_level.simps add: trail_defined_lit_def)
+        by (metis not_trail_backtrack_defined_if_not_defined trail_defined_lit_def uminus_of_uminus_id)
     next
-      case False
-      show ?thesis
-      proof (rule Cons.IH)
-        from Cons.prems(1) show "level < trail_level \<Gamma>"
-          using not_decision_K by simp
-      next
-        from Cons.prems(2) show "level < trail_level_lit \<Gamma> L"
-          using False by simp
-      qed
+      case K_neq_L: False
+      then show ?thesis
+        using not_trail_level_K_\<Gamma>_le
+        apply (simp del: trail_level.simps add: trail_defined_lit_def)
+        by (metis (no_types, lifting) Cons.IH Cons.prems(2) fst_conv leD nless_le order.trans
+            trail_defined_lit_def trail_level_lit.simps(2) trail_level_lit_le)
     qed
-
-    ultimately show ?thesis
-      by simp
   qed
 qed
 

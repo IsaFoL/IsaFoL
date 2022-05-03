@@ -195,7 +195,6 @@ proof (rule notI)
     S'_def: "S' = (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))" and
     "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" and
-    "trail_level_cls \<Gamma> (D \<cdot> \<sigma>) = trail_level \<Gamma>" and
     "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}})" and
     "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" and
     "Unification.mgu (atm_of L) (atm_of L') = Some \<mu>"
@@ -409,11 +408,6 @@ proof (cases N S1 S2 rule: conflict.cases)
       by (rule tr_almost_no_conf)
   qed
 qed
-
-lemma propagate_preserves_trail_backtrack_level: "propagate N S1 S2 \<Longrightarrow>
-  (let \<Gamma> = state_trail S1 in trail_backtrack \<Gamma> (trail_level \<Gamma>)) =
-  (let \<Gamma> = state_trail S2 in trail_backtrack \<Gamma> (trail_level \<Gamma>))"
-  by (auto simp add: propagate.simps)
 
 lemma propagate_preserves_trail_almost_no_conflict:
   assumes "propagate N S1 S2" and "trail_almost_no_conflict (N \<union> state_learned S1) (state_trail S1)"
@@ -677,90 +671,6 @@ lemma trail_no_conflict_backtrack_if_no_conflict_backtrack_le:
 lemma not_trail_false_cls_if_not_trail_defined_lit:
   "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> L \<in># C \<Longrightarrow> \<not> trail_false_cls \<Gamma> C"
   using trail_defined_lit_iff_true_or_false trail_false_cls_def by blast
-
-(* primrec bt where
-  "bt [] n = ([], 0)" |
-  "bt (Ln # \<Gamma>) n =
-    (let (\<Gamma>', m) = bt \<Gamma> n in
-    if m < n then
-      (Ln # \<Gamma>', if is_decision_lit Ln then Suc m else m)
-    else
-      (\<Gamma>', m))"
-
-lemma bt_level_inv: "bt \<Gamma> level = (\<Gamma>', level') \<Longrightarrow> trail_level \<Gamma>' \<le> level'"
-proof (induction \<Gamma> arbitrary: \<Gamma>' level')
-  case Nil
-  then show ?case by simp
-next
-  case (Cons Ln \<Gamma>)
-  obtain \<Gamma>'' level'' where "bt \<Gamma> level = (\<Gamma>'', level'')"
-    by fastforce
-  show ?case
-  proof (cases "level'' < level")
-    case True
-    then show ?thesis
-      using Cons \<open>bt \<Gamma> level = (\<Gamma>'', level'')\<close>
-      by (cases "is_decision_lit Ln") auto
-  next
-    case False
-    then show ?thesis
-      using Cons \<open>bt \<Gamma> level = (\<Gamma>'', level'')\<close> by simp
-  qed
-qed
-
-
-lemma bt_level_inv2: "bt \<Gamma> level = (\<Gamma>', level') \<Longrightarrow> level' \<le> level"
-proof (induction \<Gamma>)
-  case Nil
-  then show ?case
-    by simp
-next
-  case (Cons Ln \<Gamma>)
-
-  obtain \<Gamma>' m where "bt \<Gamma> level = (\<Gamma>', m)"
-    by fastforce
-
-  with Cons show ?case
-    apply simp
-    using bt_level_inv
-    by (smt (verit) Suc_leI le_eq_less_or_eq prod.inject)
-qed
-
-lemma "trail_level (fst (bt \<Gamma> level)) \<le> level"
-proof (induction \<Gamma>)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons Ln \<Gamma>)
-
-  obtain \<Gamma>' m where "bt \<Gamma> level = (\<Gamma>', m)"
-    by fastforce
-
-  with Cons show ?case
-    apply simp
-    using bt_level_inv
-    by fastforce
-qed
-
-lemma assumes sound_\<Gamma>: "sound_trail N U \<Gamma>"
-  shows "level < trail_level_lit \<Gamma> L \<Longrightarrow> \<not> trail_defined_lit (fst (bt \<Gamma> level)) L"
-  using sound_\<Gamma>
-proof (induction \<Gamma> rule: sound_trail.induct)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons \<Gamma> K u)
-  obtain \<Gamma>' m where "bt \<Gamma> level = (\<Gamma>', m)" by force
-  with Cons.hyps(1) Cons.prems show ?case
-    apply simp
-    apply (rule conjI)
-    subgoal
-      sorry
-    subgoal
-      apply (frule bt_level_inv2)
-      apply simp
-      oops
- *)
 
 lemma "0 < trail_level_lit \<Gamma> L \<Longrightarrow> \<exists>n < length \<Gamma>. fst (\<Gamma> ! n) = L \<or> fst (\<Gamma> ! n) = - L"
 proof (induction \<Gamma>)
