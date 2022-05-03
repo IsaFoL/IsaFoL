@@ -517,7 +517,6 @@ theorem IsaSAT_full_correctness:
       model_bounded_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref]]
   unfolding model_bounded_assn_def clauses_l_assn_def
-  apply auto
-  done
+  by auto
 
 end

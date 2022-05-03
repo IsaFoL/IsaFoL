@@ -86,7 +86,7 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
     ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    V \<leftarrow> isasat_GC_clauses_wl_D False U;
     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
     RETURN (clss_size_resetUS0_st V)
   }\<close>
@@ -108,7 +108,7 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog_alt_def:
     U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
     ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    V \<leftarrow> isasat_GC_clauses_wl_D False U;
     RETURN (clss_size_resetUS0_st V)
   }\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def IsaSAT_Profile.start_def
@@ -274,7 +274,7 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
       U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
       ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
       ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-      V \<leftarrow> isasat_GC_clauses_wl_D U;
+      V \<leftarrow> isasat_GC_clauses_wl_D True U;
       _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
       RETURN (clss_size_resetUS0_st V)
     }
@@ -306,7 +306,7 @@ lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
       U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
       ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
       ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-      V \<leftarrow> isasat_GC_clauses_wl_D U;
+      V \<leftarrow> isasat_GC_clauses_wl_D True U;
       RETURN (clss_size_resetUS0_st V)
    }
   }\<close>

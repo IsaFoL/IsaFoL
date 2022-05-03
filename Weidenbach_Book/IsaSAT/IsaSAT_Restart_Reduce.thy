@@ -3262,9 +3262,9 @@ definition isasat_GC_clauses_pre_wl_D :: \<open>isasat \<Rightarrow> bool\<close
   \<exists>T. (S, T) \<in> twl_st_heur_restart \<and> cdcl_GC_clauses_pre_wl T
   )\<close>
 
-definition reset_added_heur_st :: \<open>isasat \<Rightarrow> isasat\<close> where
-  \<open>reset_added_heur_st S =
-  (if should_inprocess_st S then let heur = get_heur S in set_heur_wl_heur (schedule_next_inprocessing (reset_added_heur heur)) S else S)\<close>
+definition reset_added_heur_st :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
+  \<open>reset_added_heur_st b S =
+  (if b \<and> should_inprocess_st S then let heur = get_heur S in set_heur_wl_heur (schedule_next_inprocessing (reset_added_heur heur)) S else S)\<close>
 
 lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (reset_added_heur heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def
@@ -3273,11 +3273,11 @@ lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (r
 
 lemma reset_added_heur_st:
   \<open>(S, T) \<in> twl_st_heur_restart''''u r u \<Longrightarrow>
-  (reset_added_heur_st S, T) \<in> twl_st_heur_restart''''u r u\<close>
+  (reset_added_heur_st b S, T) \<in> twl_st_heur_restart''''u r u\<close>
   by (auto simp: reset_added_heur_st_def twl_st_heur_restart_def)
 
-definition isasat_GC_clauses_wl_D :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-\<open>isasat_GC_clauses_wl_D = (\<lambda>S. do {
+definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+\<open>isasat_GC_clauses_wl_D = (\<lambda>inprocessing S. do {
   ASSERT(isasat_GC_clauses_pre_wl_D S);
   let b = True;
   if b then do {
@@ -3285,7 +3285,7 @@ definition isasat_GC_clauses_wl_D :: \<open>isasat \<Rightarrow> isasat nres\<cl
     ASSERT(length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S));
     ASSERT(\<forall>i \<in> set (get_tvdom T). i < length (get_clauses_wl_heur S));
     U \<leftarrow> rewatch_heur_st (empty_US_heur T);
-    RETURN (reset_added_heur_st U)
+    RETURN (reset_added_heur_st inprocessing U)
   }
   else RETURN S})\<close>
 
@@ -3727,10 +3727,11 @@ proof -
 qed
 
 lemma isasat_GC_clauses_wl_D:
-  \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl)
+  \<open>(isasat_GC_clauses_wl_D b, cdcl_GC_clauses_wl)
     \<in> twl_st_heur_restart'''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart''''u r u\<rangle>nres_rel\<close>
-  unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def
   apply (intro frefI nres_relI)
+  unfolding prod_rel_fst_snd_iff
+    isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def uncurry_def
   apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st[where r=r]
     rewatch_heur_st_correct_watching reset_added_heur_st)
   subgoal unfolding isasat_GC_clauses_pre_wl_D_def by blast
