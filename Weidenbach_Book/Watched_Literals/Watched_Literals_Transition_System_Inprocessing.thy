@@ -156,7 +156,7 @@ twl_subresolution_IL_unit:
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>
 
- 
+
 lemma past_invs_count_decided0: \<open>count_decided (get_trail S) = 0 \<Longrightarrow> past_invs S\<close>
   by (cases S) (auto simp: past_invs.simps)
 
@@ -1154,7 +1154,7 @@ lemma cdcl_twl_subsumed_stgy_invs:
   apply (simp add: state_of_cdcl_subsumed twl_stgy_invs_def)
   apply (simp add: cdcl_subsumed_RI_stgy_invs)
   done
- 
+
 lemma cdcl_twl_subsumed_twl_stgy_invs:
   assumes \<open>cdcl_twl_subsumed S T\<close>
     \<open>twl_stgy_invs S\<close>
@@ -1162,5 +1162,19 @@ lemma cdcl_twl_subsumed_twl_stgy_invs:
   using assms
   by (metis (no_types, lifting) assms cdcl_subsumed_RI_stgy_invs
     cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed twl_stgy_invs_def)
+
+
+inductive cdcl_twl_pure_remove :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_pure_remove (M, N, U, None, NE, UE, NS, US, N0, U0, WS, Q)
+  (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0, WS, Q)\<close>
+  if \<open>count_decided M = 0\<close>
+    \<open>-L \<notin>  \<Union> ((set_mset o clause) ` set_mset N)\<close>
+    \<open>L \<in> \<Union> ((set_mset o clause) ` set_mset N)\<close>
+    \<open>undefined_lit M L\<close>
+
+lemma cdcl_twl_pure_remove_cdcl_pure_remove:
+  \<open>cdcl_twl_pure_remove S T \<Longrightarrow> cdcl_pure_literal_remove (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (auto simp: cdcl_twl_pure_remove.simps cdcl_pure_literal_remove.simps
+    dest!: multi_member_split)
 
 end

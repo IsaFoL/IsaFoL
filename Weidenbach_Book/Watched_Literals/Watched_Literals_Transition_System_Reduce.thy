@@ -167,8 +167,6 @@ restart_step:
   if
     \<open>size (get_all_learned_clss T) - size (get_all_learned_clss R) > f n\<close> and
     \<open>cdcl_twl_inp\<^sup>*\<^sup>* T U\<close> and
-    (* \<open>get_conflict U \<noteq> None \<longrightarrow> count_decided (get_trail U) = 0\<close> *)
-    (*\<open>cdcl_twl_restart U V\<close> and*)
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* U W\<close>
     \<open>clauses_to_update W = {#}\<close>
     \<open>get_conflict W \<noteq> None \<longrightarrow> count_decided (get_trail W) = 0\<close> |
