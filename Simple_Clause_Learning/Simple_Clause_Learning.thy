@@ -31,6 +31,74 @@ lemma set_filter_insert_conv:
   by auto
 
 
+subsection \<open>Finite_Set_Extra\<close>
+
+lemma finite_induct' [case_names empty singleton insert_insert, induct set: finite]:
+  \<comment> \<open>Discharging \<open>x \<notin> F\<close> entails extra work.\<close>
+  assumes "finite F"
+  assumes "P {}"
+    and singleton: "\<And>x. P {x}"
+    and insert_insert: "\<And>x y F. finite F \<Longrightarrow> x \<noteq> y \<Longrightarrow> x \<notin> F \<Longrightarrow> y \<notin> F \<Longrightarrow> P (insert y F) \<Longrightarrow> P (insert x (insert y F))"
+  shows "P F"
+  using \<open>finite F\<close>
+proof induct
+  show "P {}" by fact
+next
+  fix x F
+  assume F: "finite F" and P: "P F"
+  thus "P (insert x F)"
+  proof (induction F rule: finite.induct)
+    case emptyI
+    show ?case by (rule singleton)
+  next
+    case (insertI F y)
+    show ?case
+    proof (cases "x = y")
+      case True
+      then show ?thesis
+        by (simp add: insertI.prems)
+    next
+      case x_neq_y: False
+      show ?thesis
+      proof (cases "x \<in> F \<or> y \<in> F")
+        case True
+        then show ?thesis
+          by (metis insertCI insertI.IH insertI.prems insert_absorb)
+      next
+        case False
+        show ?thesis
+        proof (rule insert_insert)
+          show "finite F" using insertI by simp
+        next
+          show "x \<noteq> y" by (rule x_neq_y)
+        next
+          show "x \<notin> F" using False by simp
+        next
+          show "y \<notin> F" using False by simp
+        next
+          show "P (insert y F)"
+            by (simp add: insertI.prems)
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+subsection \<open>Product_Type_Extra\<close>
+
+lemma insert_Times: "insert a A \<times> B = Pair a ` B \<union> A \<times> B"
+  by blast
+
+lemma Times_insert: "A \<times> insert b B = (\<lambda>x. (x, b)) ` A \<union> A \<times> B"
+  by blast
+
+lemma insert_Times_insert':
+  "insert a A \<times> insert b B = insert (a, b) ((Pair a ` B) \<union> ((\<lambda>x. (x, b)) ` A) \<union> (A \<times> B))"
+  (is "?lhs = ?rhs")
+  unfolding insert_Times_insert by auto
+
+
 subsection \<open>List_Extra\<close>
 
 lemma lt_lengthD:
@@ -1007,6 +1075,79 @@ proof -
   thus ?thesis
     by simp
 qed
+
+lemma "unifiers E = unifiers {e \<in> E. fst e \<noteq> snd e}"
+  (is "?lhs = ?rhs")
+    unfolding unifiers_def by fastforce
+
+lemma is_unifier_iff_mem_unifiers_Times:
+  assumes fin_AA: "finite AA"
+  shows "is_unifier \<upsilon> AA \<longleftrightarrow> \<upsilon> \<in> unifiers (AA \<times> AA)"
+proof (rule iffI)
+  assume unif_\<upsilon>_AA: "is_unifier \<upsilon> AA"
+  show "\<upsilon> \<in> unifiers (AA \<times> AA)"
+  unfolding unifiers_def mem_Collect_eq
+  proof (rule ballI)
+    have "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<upsilon>) \<le> 1"
+      by (rule unif_\<upsilon>_AA[unfolded is_unifier_def subst_atms_def])
+  
+    fix p assume "p \<in> AA \<times> AA"
+    then obtain a b where p_def: "p = (a, b)" and "a \<in> AA" and "b \<in> AA"
+      by auto
+    hence "card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<upsilon>) = 1"
+      using fin_AA \<open>card (AA \<cdot>\<^sub>s\<^sub>e\<^sub>t \<upsilon>) \<le> 1\<close> antisym_conv2 by fastforce
+  
+    hence "a \<cdot>a \<upsilon> = b \<cdot>a \<upsilon>"
+      using \<open>a \<in> AA\<close> \<open>b \<in> AA\<close> fin_AA is_unifier_subst_atm_eqI unif_\<upsilon>_AA by blast
+    thus "fst p \<cdot>a \<upsilon> = snd p \<cdot>a \<upsilon>"
+      by (simp add: p_def)
+  qed
+next
+  assume unif_\<upsilon>_AA: "\<upsilon> \<in> unifiers (AA \<times> AA)"
+  show "is_unifier \<upsilon> AA"
+    using fin_AA unif_\<upsilon>_AA
+  proof (induction AA arbitrary: \<upsilon> rule: finite_induct)
+    case empty
+    then show ?case
+      by (simp add: is_unifier_def)
+  next
+    case (insert a AA)
+    from insert.prems have
+      \<upsilon>_in: "\<upsilon> \<in> unifiers ((insert (a, a) (Pair a ` AA) \<union> (\<lambda>x. (x, a)) ` AA) \<union> AA \<times> AA)"
+      unfolding insert_Times_insert'[of a AA a AA] by simp
+    then show ?case
+      by (smt (verit, del_insts) Set.set_insert Un_insert_left finite.insertI fst_conv image_insert
+          insert.hyps(1) insert_compr is_unifier_alt mem_Collect_eq snd_conv unifiers_def)
+  qed
+qed
+
+lemma is_mgu_singleton_iff_Unifiers_is_mgu_Times:
+  assumes fin: "finite AA"
+  shows "is_mgu \<upsilon> {AA} \<longleftrightarrow> Unifiers.is_mgu \<upsilon> (AA \<times> AA)"
+  by (auto simp: is_mgu_def Unifiers.is_mgu_def is_unifiers_def
+      is_unifier_iff_mem_unifiers_Times[OF fin])
+
+lemma is_imgu_singleton_iff_Unifiers_is_imgu_Times:
+  assumes fin: "finite AA"
+  shows "is_imgu \<upsilon> {AA} \<longleftrightarrow> Unifiers.is_imgu \<upsilon> (AA \<times> AA)"
+  by (auto simp: is_imgu_def Unifiers.is_imgu_def is_unifiers_def
+      is_unifier_iff_mem_unifiers_Times[OF fin])
+
+lemma
+  assumes fin: "finite AAA" "\<forall>AA \<in> AAA. finite AA"
+  shows "is_mgu \<upsilon> AAA \<longleftrightarrow> Unifiers.is_mgu \<upsilon> (\<Union>AA \<in> AAA. AA \<times> AA)"
+  using fin
+proof (induction AAA rule: finite_induct)
+  case empty
+  show ?case by (simp add: is_mgu_def Unifiers.is_mgu_def is_unifiers_def)
+next
+  case (insert AA AAA)
+  from insert.prems insert.IH have "is_mgu \<upsilon> AAA = Unifiers.is_mgu \<upsilon> (\<Union>AA\<in>AAA. AA \<times> AA)"
+    by simp
+  then show ?case
+    unfolding is_mgu_def Unifiers.is_mgu_def is_unifiers_def
+    using is_unifier_iff_mem_unifiers_Times
+    oops
 
 
 subsubsection \<open>Renaming Extra\<close>
