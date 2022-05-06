@@ -243,7 +243,8 @@ lemma cdcl_twl_inp_clauses_to_update:
   \<open>cdcl_twl_inp\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update S = {#} \<Longrightarrow> clauses_to_update T = {#}\<close>
   by (cases rule: rtranclp.cases, assumption)
    (auto simp: cdcl_twl_inp.simps cdcl_twl_subsumed.simps cdcl_twl_subresolution.simps
-    cdcl_twl_restart.simps cdcl_twl_unitres.simps cdcl_twl_unitres_true.simps)
+    cdcl_twl_restart.simps cdcl_twl_unitres.simps cdcl_twl_unitres_true.simps
+    cdcl_twl_pure_remove.simps)
 
 lemma restart_prog_bounded_spec:
   assumes

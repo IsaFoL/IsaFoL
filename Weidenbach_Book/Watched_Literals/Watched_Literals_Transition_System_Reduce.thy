@@ -7,7 +7,8 @@ inductive cdcl_twl_inp :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow>
   \<open>cdcl_twl_subresolution S T \<Longrightarrow> cdcl_twl_inp S T\<close> |
   \<open>cdcl_twl_unitres S T \<Longrightarrow> cdcl_twl_inp S T\<close> |
   \<open>cdcl_twl_unitres_true S T \<Longrightarrow> cdcl_twl_inp S T\<close> |
-  \<open>cdcl_twl_restart S T \<Longrightarrow> cdcl_twl_inp S T\<close>
+  \<open>cdcl_twl_restart S T \<Longrightarrow> cdcl_twl_inp S T\<close> |
+  \<open>cdcl_twl_pure_remove S T \<Longrightarrow> cdcl_twl_inp S T\<close>
 
 lemma true_clss_clss_subset_entailedI:
   \<open>UE + UE' = UE'' + ca \<Longrightarrow> A \<Turnstile>ps set_mset UE \<Longrightarrow> A \<Turnstile>ps set_mset UE' \<Longrightarrow> A \<Turnstile>ps set_mset UE''\<close>
@@ -38,6 +39,7 @@ proof -
     by (induction rule: cdcl_twl_inp.induct)
       (blast dest: cdcl_twl_subsumed_struct_invs cdcl_twl_subresolution_twl_struct_invs
       cdcl_twl_unitres_struct_invs cdcl_twl_unitres_true_twl_struct_invs
+      cdcl_twl_pure_remove_twl_struct_invs
       cdcl_twl_restart_twl_struct_invs)+
   show ?C
     using assms(1,2,3)
@@ -57,7 +59,9 @@ proof -
     using rtranclp_pcdcl_entailed_by_init twl_struct_invs_def apply blast
     apply (drule cdcl_twl_unitres_true_cdcl_unitres_true, drule pcdcl.intros)
     using pcdcl_entailed_by_init twl_struct_invs_def apply blast
-    using cdcl_twl_restart_entailed_init by blast
+    apply (solves \<open>simp add: cdcl_twl_restart_entailed_init\<close>)
+    using cdcl_pure_literal_remove_entailed_by_init cdcl_twl_pure_remove_cdcl_pure_remove
+      twl_struct_invs_def by blast
   with assms show ?B if \<open>twl_stgy_invs S\<close>
     using that
     apply (induction rule: cdcl_twl_inp.induct)
@@ -65,7 +69,8 @@ proof -
     using cdcl_twl_subresolution_twl_stgy_invs apply blast
     using cdcl_twl_unitres_twl_stgy_invs apply blast
     apply (metis (no_types, lifting) cdcl_twl_unitres_true_cdcl_unitres_true cdcl_unitres_true_same state\<^sub>W_of_def twl_stgy_invs_def)
-    using cdcl_twl_restart_twl_stgy_invs by blast
+    using cdcl_twl_restart_twl_stgy_invs apply blast
+    using cdcl_twl_pure_remove_twl_stgy_invs by blast
 qed
 
 lemma rtranclp_cdcl_twl_inp_invs:
@@ -91,7 +96,7 @@ lemma cdcl_twl_inp_no_new_conflict:
   \<open>cdcl_twl_inp S T \<Longrightarrow> get_conflict T = get_conflict S \<or> get_conflict T \<noteq> None \<and> count_decided(get_trail T) = 0\<close>
   by (induction rule: cdcl_twl_inp.induct)
    (auto simp: cdcl_twl_subsumed.simps cdcl_twl_subresolution.simps cdcl_twl_unitres.simps
-    cdcl_twl_unitres_true.simps cdcl_twl_restart.simps)
+    cdcl_twl_unitres_true.simps cdcl_twl_restart.simps cdcl_twl_pure_remove.simps)
 
 lemma rtranclp_pcdcl_restart_inprocessing: \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_inprocessing\<^sup>*\<^sup>* S T\<close>
   by (induction rule: rtranclp_induct) (auto dest: pcdcl_inprocessing.intros)
@@ -120,6 +125,9 @@ lemma cdcl_twl_inp_pcdcl:
       rtranclp_pcdcl_restart_inprocessing)
   subgoal
     using cdcl_twl_restart_pcdcl pcdcl_inprocessing.intros(2) by blast
+  subgoal
+    by (simp add: cdcl_twl_pure_remove_cdcl_pure_remove pcdcl.intros(10)
+      pcdcl_inprocessing.intros(1) r_into_rtranclp)
   done
 
 lemma rtranclp_cdcl_twl_inp_pcdcl:
@@ -736,7 +744,7 @@ lemma cdcl_pure_literal_remove_satisfiable_iff:
     \<open>satisfiable (set_mset (pget_all_init_clss S)) \<longleftrightarrow> satisfiable (set_mset (pget_all_init_clss T))\<close>
   using assms(1)
 proof (cases)
-  case (cdcl_pure_literal_remove L N M U NE UE NS US N0 U0) note S = this(1) and T = this(2) and 
+  case (cdcl_pure_literal_remove L N NE NS N0 M U UE US U0) note S = this(1) and T = this(2) and
     L = this(3,4) and undef = this(5) and lev0 = this(6)
   have
     ent: \<open>entailed_clss_inv S\<close> and
@@ -788,10 +796,10 @@ proof (cases)
       apply (metis atm_of_uminus literal.sel)+
       done
     have \<open>?J \<Turnstile>m N\<close>
-      using IN L by (auto simp: true_cls_mset_def add_mset_eq_add_mset true_cls_def
+      using IN L by (clarsimp simp: true_cls_mset_def add_mset_eq_add_mset true_cls_def
         dest!: multi_member_split)
     moreover have \<open>?J \<Turnstile>m NE\<close>
-        using \<open>I \<Turnstile>m NS\<close> ent \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m NE\<close> totJ L undef \<open>lits_of_l M \<subseteq> I\<close>
+        using \<open>I \<Turnstile>m NS\<close> ent \<open>I \<Turnstile>m N0\<close> \<open>I \<Turnstile>m NE\<close> totJ L(1) undef \<open>lits_of_l M \<subseteq> I\<close>
         apply (auto simp: entailed_clss_inv_def S true_cls_mset_def T Decided_Propagated_in_iff_in_lits_of_l
           dest!: multi_member_split[of \<open>_ :: _ clause\<close>])
        unfolding true_cls_def[of ]

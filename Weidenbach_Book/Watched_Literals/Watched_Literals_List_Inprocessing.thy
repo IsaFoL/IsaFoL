@@ -1705,11 +1705,48 @@ definition subsume_or_strengthen :: \<open>nat \<Rightarrow> 'v subsumption \<Ri
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q))
   })\<close>
 
+inductive cdcl_twl_pure_remove_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_pure_remove_l (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
+    (Propagated L 0 # M, N, None, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0,
+      {#}, add_mset (-L)Q)\<close>
+  if
+    \<open>undefined_lit M L\<close>
+    \<open>-L \<notin> \<Union>(set_mset ` set_mset (mset `# init_clss_lf N))\<close>
+    \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf N + NE + NEk + NS + N0)\<close>
+    \<open>count_decided M = 0\<close>
+
+lemma cdcl_twl_pure_remove_l_cdcl_twl_pure_remove:
+  assumes \<open>cdcl_twl_pure_remove_l S T\<close>
+    \<open>(S, S') \<in> twl_st_l None\<close>
+  shows \<open>\<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_pure_remove S' T'\<close>
+  using assms
+  by (auto 5 3 simp: cdcl_twl_pure_remove_l.simps twl_st_l_def
+    cdcl_twl_pure_remove.simps image_image in_all_lits_of_mm_ain_atms_of_iff
+    intro!: convert_lit.intros(3)
+    simp: convert_lits_l_add_mset mset_take_mset_drop_mset'
+    dest: in_set_takeD in_set_dropD)
+
+lemma rtranclp_cdcl_twl_pure_remove_l_cdcl_twl_pure_remove:
+  assumes \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T\<close>
+    \<open>(S, S') \<in> twl_st_l None\<close>
+  shows \<open>\<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_pure_remove\<^sup>*\<^sup>* S' T'\<close>
+  using assms apply (induction rule: rtranclp_induct)
+  subgoal by blast
+  subgoal for T U
+    using cdcl_twl_pure_remove_l_cdcl_twl_pure_remove[of T U] by fastforce
+  done
+
+lemma cdcl_twl_pure_remove_l_twl_list_invs:
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
+  by (auto simp: cdcl_twl_pure_remove_l.simps
+    twl_list_invs_def)
+
 inductive cdcl_twl_inprocessing_l for S T where
   \<open>cdcl_twl_unitres_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
   \<open>cdcl_twl_unitres_true_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close> |
   \<open>cdcl_twl_subsumed_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>|
-  \<open>cdcl_twl_subresolution_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>
+  \<open>cdcl_twl_subresolution_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>|
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> cdcl_twl_inprocessing_l S T\<close>
 
 lemma subseteq_mset_size_eql_iff: \<open>size Aa = size A \<Longrightarrow> Aa \<subseteq># A \<longleftrightarrow> Aa = A\<close>
   by (auto simp: subseteq_mset_size_eql)
@@ -2062,7 +2099,8 @@ proof -
     \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
     \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close> for S T
     by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_subsumed_l.simps
-      cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps)
+      cdcl_twl_unitres_l.simps cdcl_twl_subresolution_l.simps cdcl_twl_unitres_true_l.simps
+      cdcl_twl_pure_remove_l.simps)
       (*set (get_all_mark_of_propagated (get_trail_l T))*)
   show ?A ?B ?C
     using assms
@@ -2078,13 +2116,15 @@ lemma cdcl_twl_inprocessing_l_twl_st_l0:
  obtains V where
    \<open>(U, V) \<in> twl_st_l None\<close> and
    \<open>cdcl_twl_unitres T V \<or> cdcl_twl_unitres_true T V \<or> cdcl_twl_subsumed T V \<or>
-   cdcl_twl_subresolution T V\<close>
+   cdcl_twl_subresolution T V \<or> cdcl_twl_pure_remove T V\<close>
   using assms
   apply (induction rule: cdcl_twl_inprocessing_l.induct)
   using cdcl_twl_unitres_l_cdcl_twl_unitres apply blast
   using cdcl_twl_unitres_true_l_cdcl_twl_unitres_true apply blast
   using cdcl_twl_subsumed_l_cdcl_twl_subsumed apply blast
-  using cdcl_twl_subresolution_l_cdcl_twl_subresolution by blast
+  using cdcl_twl_subresolution_l_cdcl_twl_subresolution apply blast
+  using cdcl_twl_pure_remove_l_cdcl_twl_pure_remove by blast
+
 
 lemma cdcl_twl_unitres_l_list_invs:
   \<open>cdcl_twl_unitres_l S T \<Longrightarrow> twl_list_invs S \<Longrightarrow> twl_list_invs T\<close>
@@ -2102,7 +2142,7 @@ lemma cdcl_twl_inprocessing_l_twl_list_invs:
   using assms by (induction rule: cdcl_twl_inprocessing_l.induct)
    (auto simp: cdcl_twl_unitres_True_l_list_invs
     cdcl_twl_unitres_l_list_invs cdcl_twl_subsumed_l_list_invs
-    cdcl_twl_subresolution_l_list_invs)
+    cdcl_twl_subresolution_l_list_invs cdcl_twl_pure_remove_l_twl_list_invs)
 
 lemma rtranclp_cdcl_twl_inprocessing_l_twl_list_invs:
   assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S U\<close> and
@@ -2122,7 +2162,7 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
   obtains V where
     \<open>(U, V) \<in> twl_st_l None\<close> and
     \<open>cdcl_twl_unitres T V \<or> cdcl_twl_unitres_true T V \<or> cdcl_twl_subsumed T V \<or>
-    cdcl_twl_subresolution T V\<close> and
+    cdcl_twl_subresolution T V \<or> cdcl_twl_pure_remove T V\<close> and
     \<open>twl_struct_invs V\<close> and
     \<open>twl_list_invs U\<close>and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of V)\<close>
@@ -2134,7 +2174,8 @@ lemma cdcl_twl_inprocessing_l_twl_st_l:
       cdcl_twl_unitres_struct_invs assms cdcl_twl_subsumed_struct_invs
       cdcl_twl_subresolution_twl_struct_invs cdcl_twl_unitres_twl_stgy_invs
       cdcl_twl_subresolution_twl_stgy_invs cdcl_twl_unitres_true_twl_stgy_invs
-      cdcl_twl_subsumed_twl_stgy_invs)
+      cdcl_twl_subsumed_twl_stgy_invs
+      cdcl_twl_pure_remove_twl_struct_invs)
     apply (metis assms(3) assms(5) cdcl_twl_inp.intros cdcl_twl_inp_invs(3) state\<^sub>W_of_def)+
     done
   done
@@ -2727,12 +2768,21 @@ proof -
   have dups_uniq[dest]: \<open>remdups_mset D' = {#K#} \<Longrightarrow> set_mset (all_lits_of_m D') = {-K,K}\<close> for D' K
     by (metis all_lits_of_m_add_mset all_lits_of_m_empty all_lits_of_m_remdups_mset
       insert_commute set_mset_add_mset_insert set_mset_empty)
+  have [simp]: \<open>- L \<in># all_lits_of_m a \<longleftrightarrow> L \<in># all_lits_of_m a\<close>
+     \<open>- L \<in># all_lits_of_mm b \<longleftrightarrow> L \<in># all_lits_of_mm b\<close>
+    \<open>L \<in># xb \<Longrightarrow> L \<in># all_lits_of_m xb\<close> for L a xb b
+    by (solves \<open>cases L, auto simp: rev_image_eqI all_lits_of_m_def all_lits_of_mm_def\<close>)+
+
+  have [simp]: \<open>L \<in># all_lits_of_m (mset (N \<propto> xa)) \<longleftrightarrow> L \<in> set (N \<propto> xa) \<or> -L \<in> set (N \<propto> xa)\<close>
+    for L N xa xb
+    by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_all_lits_of_m_ain_atms_of_iff)
+
   show ?thesis
     using assms
     using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
     supply [[goals_limit=1]]
-    by (induction rule: cdcl_twl_inprocessing_l.induct)
-     (auto 4 3 simp: cdcl_twl_unitres_l.simps 
+    apply (induction rule: cdcl_twl_inprocessing_l.induct)
+    by (auto 4 3 simp: cdcl_twl_unitres_l.simps
       cdcl_twl_unitres_true_l.simps
       cdcl_twl_subsumed_l.simps
       cdcl_twl_subresolution_l.simps
@@ -2744,7 +2794,19 @@ proof -
       init_clss_l_fmupd_if all_lits_of_mm_add_mset
       all_lits_of_m_remdups_mset
       dest!: multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
-      dest: all_lits_of_m_mono)
+      dest: all_lits_of_m_mono)[4]
+    (auto simp: cdcl_twl_pure_remove_l.simps
+      all_init_lits_of_l_def
+      add_mset_eq_add_mset removeAll_notin
+      get_init_clss_l_def init_clss_l_mapsto_upd_notin
+      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
+      all_lits_of_m_add_mset distinct_mset_remove1_All
+      init_clss_l_fmupd_if all_lits_of_mm_add_mset all_lits_of_mm_union
+      all_lits_of_m_remdups_mset
+    dest!: multi_member_split[of \<open>_\<close> \<open>_ :: _ clauses\<close>]
+        multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
+    dest: all_lits_of_m_mono
+    intro: in_clause_in_all_lits_of_m)
 qed
 
 lemma rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l:
@@ -2773,7 +2835,7 @@ proof -
      (auto 4 3 simp: cdcl_twl_unitres_l.simps 
       cdcl_twl_unitres_true_l.simps
       cdcl_twl_subsumed_l.simps
-      cdcl_twl_subresolution_l.simps
+      cdcl_twl_subresolution_l.simps cdcl_twl_pure_remove_l.simps
       all_learned_lits_of_l_def
       add_mset_eq_add_mset removeAll_notin
       get_init_clss_l_def init_clss_l_mapsto_upd_notin
@@ -3073,7 +3135,7 @@ proof -
       subgoal using clss_upd_S by auto
       subgoal
         by (subst (asm) tranclp_unfold_end)
-         (auto simp: cdcl_twl_inprocessing_l.simps
+         (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_pure_remove_l.simps
           cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
           cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
       done
@@ -3081,7 +3143,7 @@ proof -
       using st apply (induction rule: rtranclp_induct)
       subgoal using lvl_S by auto
       subgoal
-        by (auto simp: cdcl_twl_inprocessing_l.simps
+        by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_pure_remove_l.simps
           cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
           cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
       done
@@ -3090,7 +3152,7 @@ proof -
     using st apply (induction rule: rtranclp_induct)
     subgoal using empty by auto
     subgoal by (auto simp: cdcl_twl_inprocessing_l.simps
-      cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
+      cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps cdcl_twl_pure_remove_l.simps
       cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
     done
   show ?thesis
@@ -3495,6 +3557,166 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    done
+qed
+
+
+definition propagate_pure_l_pre:: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>propagate_pure_l_pre L S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> twl_st_l None \<and> L \<in># all_init_lits_of_l S \<and> undefined_lit (get_trail_l S) L \<and>
+  clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and>
+  count_decided (get_trail_l S) = 0 \<and> -L \<notin> \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S)))\<close>
+
+definition propagate_pure_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>propagate_pure_bt_l = (\<lambda>L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
+    ASSERT(propagate_pure_l_pre L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
+    M \<leftarrow> cons_trail_propagate_l L 0 M;
+    RETURN (M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, WS, add_mset (-L) Q)})\<close>
+
+lemma in_all_lits_of_mm_Pos_Neg:
+  \<open>L \<in># all_lits_of_mm A \<longleftrightarrow> L \<in> \<Union>(set_mset ` set_mset A) \<or>  -L \<in> \<Union>(set_mset ` set_mset A)\<close>
+  by (cases L)
+   (auto simp: all_lits_of_mm_def image_UN dest!: multi_member_split)
+
+lemma propagate_pure_bt_l_spec:
+  assumes
+    \<open>propagate_pure_l_pre L S\<close> and
+    \<open>undefined_lit (get_trail_l S) L\<close>
+  shows \<open>propagate_pure_bt_l L S \<le> SPEC (\<lambda>T. cdcl_twl_pure_remove_l S T)\<close>
+proof -
+  have [iff]: \<open>\<not>(\<forall>b. \<not> b)\<close> \<open>(\<exists>b. b)\<close>
+    by blast+
+  show ?thesis
+    using assms
+    unfolding propagate_pure_bt_l_def cons_trail_propagate_l_def
+    apply (cases S)
+    apply refine_vcg
+    subgoal by simp
+    subgoal by auto
+    subgoal
+      unfolding propagate_pure_l_pre_def
+      apply (subst cdcl_twl_pure_remove_l.simps)
+      apply simp
+      apply (clarsimp simp add: propagate_pure_l_pre_def get_init_clss_l_def
+        all_init_lits_of_l_def all_lits_of_mm_union)
+      apply metis
+      done
+    done
+qed
+
+definition pure_literal_deletion_pre where
+  \<open>pure_literal_deletion_pre S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> twl_st_l None \<and>
+  clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+  count_decided (get_trail_l S) = 0 \<and> twl_list_invs S \<and> twl_struct_invs S' \<and> twl_stgy_invs S')\<close>
+
+definition pure_literal_deletion_candidates where
+  \<open>pure_literal_deletion_candidates S = SPEC (\<lambda>Ls. Ls \<subseteq># all_init_lits_of_l S)\<close>
+
+definition pure_literal_deletion_l_inv where
+  \<open>pure_literal_deletion_l_inv S xs0 = (\<lambda>(T, xs).
+     \<exists>S'. (S, S') \<in> twl_st_l None \<and> cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0)\<close>
+
+
+definition pure_literal_deletion_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>pure_literal_deletion_l S = do {
+    ASSERT (pure_literal_deletion_pre S);
+    let As =  \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S));
+    xs \<leftarrow> pure_literal_deletion_candidates S;
+    (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_l_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
+      (\<lambda>(S, xs). do {
+        L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
+        if -L \<notin> As \<and> undefined_lit (get_trail_l S) L
+        then do {S \<leftarrow> propagate_pure_bt_l L S;
+          RETURN (S, remove1_mset L xs)}
+        else RETURN (S, remove1_mset L xs)
+      })
+    (S, xs);
+  RETURN S
+  }\<close>
+
+
+lemma in_all_lits_of_mm_direct_inI: \<open>-L \<in> \<Union>(set_mset ` set_mset A) \<Longrightarrow> L \<in># all_lits_of_mm A\<close>
+  by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
+    dest!: multi_member_split)
+lemma cdcl_twl_pure_remove_l_same:
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_conflict_l T = get_conflict_l S\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clss_l T = get_init_clss_l S\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
+proof -
+  have [iff]: \<open>\<not>(\<forall>b. \<not> b)\<close>
+    by blast
+  have [simp]: \<open>L \<in># a \<Longrightarrow>-L \<in># all_lits_of_m (a)\<close>\<open>L \<in># a \<Longrightarrow>L \<in># all_lits_of_m (a)\<close> for L a
+    by (simp_all add: atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff in_clause_in_all_lits_of_m)
+  have [simp]: \<open>- L \<in># all_lits_of_mm b \<longleftrightarrow> L \<in># all_lits_of_mm b\<close> for b L
+    by (cases L; auto simp: all_lits_of_mm_def)
+  show
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_conflict_l T = get_conflict_l S\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clss_l T = get_init_clss_l S\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
+    by (solves \<open>auto simp: cdcl_twl_pure_remove_l.simps all_init_lits_of_l_def get_init_clss_l_def
+      all_lits_of_mm_add_mset all_lits_of_m_add_mset
+      intro: in_all_lits_of_mm_direct_inI
+      dest!: multi_member_split[of \<open>_\<close> \<open>ran_m _\<close>]
+        multi_member_split[of \<open>_\<close> \<open>_ :: _ clauses\<close>]\<close>)+
+     (auto simp: cdcl_twl_pure_remove_l.simps all_init_lits_of_l_def get_init_clss_l_def
+      all_lits_of_mm_add_mset all_lits_of_m_add_mset all_lits_of_mm_union
+      intro: in_all_lits_of_mm_direct_inI
+      dest!: multi_member_split[of \<open>_\<close> \<open>ran_m _\<close>]
+        multi_member_split[of \<open>_\<close> \<open>_ :: _ clauses\<close>])
+qed
+
+lemma rtranclp_cdcl_twl_pure_remove_l_same:
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_conflict_l T = get_conflict_l S\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_init_clss_l T = get_init_clss_l S\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
+  by (solves \<open>induction rule: rtranclp_induct; auto simp: cdcl_twl_pure_remove_l_same\<close>)+
+
+lemma pure_literal_deletion_l_spec:
+  assumes \<open>pure_literal_deletion_pre S\<close>
+  shows
+    \<open>pure_literal_deletion_l S \<le> SPEC (\<lambda>T. cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T)\<close>
+proof -
+  have [simp]: \<open>a - Suc b < a - b \<longleftrightarrow> Suc b \<le> a\<close> for a b
+    by auto
+  have [refine0]: \<open>wf (measure (\<lambda>(_, x). size x))\<close>
+    by auto
+  show ?thesis
+    unfolding pure_literal_deletion_l_def Let_def pure_literal_deletion_candidates_def
+    apply (refine_vcg propagate_pure_bt_l_spec[THEN order_trans])
+    subgoal using assms by fast
+    subgoal unfolding pure_literal_deletion_l_inv_def pure_literal_deletion_pre_def
+      by fast
+    subgoal for x s T xs L unfolding propagate_pure_l_pre_def pure_literal_deletion_l_inv_def
+       case_prod_beta pure_literal_deletion_pre_def
+      apply normalize_goal+
+      apply (frule rtranclp_cdcl_twl_pure_remove_l_cdcl_twl_pure_remove)
+      apply assumption+
+      apply normalize_goal+
+      apply (rule_tac x=xc in exI)
+      by (auto simp add: rtranclp_cdcl_twl_pure_remove_l_same)
+    subgoal by simp
+    subgoal by (auto dest!: multi_member_split
+      simp: pure_literal_deletion_l_inv_def)
+    subgoal by (auto dest!: multi_member_split
+      simp: pure_literal_deletion_l_inv_def)
+    subgoal
+      by (simp add: pure_literal_deletion_l_inv_def)
+    subgoal
+      by (auto dest!: multi_member_split)
+    subgoal by (simp add: pure_literal_deletion_l_inv_def)
     done
 qed
 

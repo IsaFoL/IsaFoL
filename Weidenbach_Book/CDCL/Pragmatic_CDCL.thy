@@ -393,7 +393,7 @@ cdcl_pure_literal_remove:
   \<open>cdcl_pure_literal_remove (M, N, U, None, NE, UE, NS, US, N0, U0)
     (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0)\<close>
   if \<open>-L \<notin> \<Union>(set_mset ` (set_mset N))\<close>
-     \<open>L \<in> \<Union>(set_mset ` (set_mset N))\<close>
+     \<open>atm_of L \<in> atms_of_mm (N+NE+NS+N0)\<close>
     \<open>undefined_lit M L\<close>
     \<open>count_decided M = 0\<close>
 
@@ -991,7 +991,7 @@ lemma cdcl_pure_literal_remove_all_struct_inv:
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of T)\<close>
   using assms
 proof (induction rule: cdcl_pure_literal_remove.induct)
-  case (cdcl_pure_literal_remove L N M U NE UE NS US N0 U0) note IH = this(1-4) and all = this(5)
+  case (cdcl_pure_literal_remove L N NE NS N0 M U UE US U0) note IH = this(1-4) and all = this(5)
   let ?S = \<open>state_of (M, N, U, None, NE, UE, NS, US, N0, U0)\<close>
   let ?T = \<open>state_of (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0)\<close>
   have 1: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm ?S\<close> and
