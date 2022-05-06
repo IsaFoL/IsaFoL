@@ -1904,13 +1904,13 @@ definition propagate_pure_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl 
     RETURN (M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, add_mset (-L) Q, WS)})\<close>
 
 lemma propagate_pure_bt_wl_propagate_pure_bt_l:
-  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>(L,L')\<in> Id\<close>
   shows
-    \<open>propagate_pure_bt_wl L S \<le>\<Down>{(S,T). correct_watching'_leaking_bin S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (propagate_pure_bt_l L S')\<close>
+    \<open>propagate_pure_bt_wl L S \<le>\<Down>{(S,T). correct_watching'_leaking_bin S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (propagate_pure_bt_l L' S')\<close>
 proof -
   have K: \<open>cons_trail_propagate_l L 0 a = cons_trail_propagate_l L 0 b \<Longrightarrow>
-    cons_trail_propagate_l L 0 a \<le>\<Down>{(x,y). x = y \<and> y = Propagated L 0 # a} (cons_trail_propagate_l L 0 b)\<close> for a b
-    unfolding cons_trail_propagate_l_def
+    cons_trail_propagate_l L 0 a \<le>\<Down>{(x,y). x = y \<and> y = Propagated L 0 # a} (cons_trail_propagate_l L' 0 b)\<close> for a b
+    using assms unfolding cons_trail_propagate_l_def
     by refine_rcg auto
   show ?thesis
     unfolding propagate_pure_bt_wl_def propagate_pure_bt_l_def
@@ -1938,7 +1938,8 @@ definition pure_literal_deletion_candidates_wl where
 
 definition pure_literal_deletion_wl_inv where
   \<open>pure_literal_deletion_wl_inv S xs0 = (\<lambda>(T, xs).
-     \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> pure_literal_deletion_l_inv S' xs0 (T', xs))\<close>
+  \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> pure_literal_deletion_l_inv S' xs0 (T', xs) \<and>
+    correct_watching'_leaking_bin T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
 definition pure_literal_deletion_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>pure_literal_deletion_wl S = do {
@@ -1956,6 +1957,36 @@ definition pure_literal_deletion_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
     (S, xs);
   RETURN S
   }\<close>
+
+lemma pure_literal_deletion_wl_pure_literal_deletion_l:
+  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows
+    \<open>pure_literal_deletion_wl S \<le>\<Down>{(S,T). correct_watching'_leaking_bin S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_deletion_l S')\<close> (is \<open>_ \<le>\<Down> ?A _\<close>)
+proof -
+  have [refine0]: \<open>(xs, ys) \<in> Id \<Longrightarrow> ((S, xs), (S', ys)) \<in> ?A \<times>\<^sub>f Id\<close> for xs ys
+    by (use assms in auto)
+  have [refine0]: \<open>pure_literal_deletion_candidates_wl S \<le> \<Down> Id (pure_literal_deletion_candidates S')\<close>
+    using assms by (auto simp: pure_literal_deletion_candidates_wl_def pure_literal_deletion_candidates_def)
+
+  show ?thesis
+    unfolding pure_literal_deletion_wl_def pure_literal_deletion_l_def
+    apply (refine_rcg propagate_pure_bt_wl_propagate_pure_bt_l)
+    subgoal using assms unfolding pure_literal_deletion_wl_pre_def by blast
+    subgoal for xs xsa x x'
+      using assms unfolding pure_literal_deletion_wl_inv_def case_prod_beta
+      by (rule_tac x=S' in exI, rule_tac x=\<open>fst x'\<close> in exI, case_tac x, case_tac x') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      by (subst twl_st_wl, use assms in auto)
+    subgoal by auto
+    subgoal unfolding pure_literal_deletion_wl_inv_def by blast
+    subgoal by simp
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 end
 

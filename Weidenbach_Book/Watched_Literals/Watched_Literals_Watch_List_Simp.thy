@@ -36,8 +36,11 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
     cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0)
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'_nobin)
-  subgoal unfolding mark_to_delete_clauses_GC_wl_pre_def by fast
-  subgoal
+  subgoal for S T U V W X unfolding mark_to_delete_clauses_GC_wl_pre_def
+    mark_to_delete_clauses_l_GC_pre_def
+    by normalize_goal+
+     (rule_tac x=X in exI; intro conjI; (rule_tac x=x in exI)?; auto)
+  subgoal unfolding mark_to_delete_clause_GC_wl_pre_alt_def
     by (auto dest: correct_watching'_clauses_pointed_to2)
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
@@ -109,11 +112,12 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
       (smt (verit, best) all_lits_st_alt_def basic_trans_rules(31) in_pair_collect_simp
          literals_are_\<L>\<^sub>i\<^sub>n'_def set_mset_set_mset_eq_iff union_iff)
   subgoal by auto
-  subgoal
+  subgoal for x y S' S'a S'b S'c T S'd Ta S'e
     unfolding mark_to_delete_clauses_GC_wl_pre_def
-    by fast
+    by (rule_tac x= S'e in exI) simp
   subgoal for x y S S' T Ta U Ua
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
+      mark_to_delete_clause_GC_wl_pre_alt_def
     by fast
   subgoal for x y S S' T Ta U Ua V Va W Wa X Xa
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Xa X]
