@@ -257,7 +257,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   opts_minimum_between_restart_st_fast_code_def[unfolded read_all_st_code_def]
   opts_restart_coeff1_st_fast_code_def[unfolded read_all_st_code_def]
   opts_restart_coeff2_st_fast_code_def[unfolded read_all_st_code_def]
-  units_since_last_GC_st_code_def[unfolded read_all_st_def]
+  units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
   get_GC_units_opt_code_def[unfolded read_all_st_code_def]
   isasat_length_trail_st_code_def[unfolded read_all_st_code_def]
   get_pos_of_level_in_trail_imp_st_code_def[unfolded read_all_st_code_def]

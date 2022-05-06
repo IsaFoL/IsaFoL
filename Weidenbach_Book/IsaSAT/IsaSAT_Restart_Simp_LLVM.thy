@@ -85,10 +85,6 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
-(*TODO Move to IsaSAT_Setup2*)
-lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
-lemmas [llvm_code del] = units_since_last_GC_st_code_def
-(**)
 experiment
 begin
    export_llvm opts_reduction_st_fast_code

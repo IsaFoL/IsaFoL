@@ -1366,7 +1366,7 @@ qed
 
 definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_unit_st_wl2 S = do {
-  let b = True in
+  let b = (units_since_last_GC_st S > 0) in
   if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
 }\<close>
 

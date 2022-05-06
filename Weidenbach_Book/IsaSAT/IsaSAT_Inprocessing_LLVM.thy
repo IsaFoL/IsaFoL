@@ -52,7 +52,6 @@ sepref_def isa_simplify_clause_with_unit2_code
     tri_bool_eq_def[symmetric]
   apply (rewrite at \<open>(\<hole>, _, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_ \<le> \<hole>)\<close> unat_const_fold[where 'a=32])
-
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>mop_arena_update_lit _ \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>If (\<hole> = _)\<close> annot_unat_snat_upcast[where 'l=64])
@@ -617,6 +616,7 @@ sepref_def isa_deduplicate_binary_clauses_code
   supply [[goals_limit=1]]
   by sepref
 
+term units_since_last_GC_st_code
 experiment
 begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
