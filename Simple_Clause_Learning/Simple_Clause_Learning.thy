@@ -248,6 +248,9 @@ lemma (in substitution) is_ground_lit_Neg[simp]: "is_ground_atm L \<Longrightarr
 
 subsection \<open>First_Order_Terms Extra\<close>
 
+text \<open>This simplification rule is annoying: mgu would be nicer if it was a @{command definition}.\<close>
+declare Unification.mgu.simps[simp del]
+
 
 subsubsection \<open>First_Order_Terms Only\<close>
 
@@ -475,7 +478,7 @@ lemma mgu_subst_range_vars:
   shows "range_vars \<sigma> \<subseteq> vars_term s \<union> vars_term t"
 proof -
   obtain xs where *: "unify [(s, t)] [] = Some xs" and [simp]: "subst_of xs = \<sigma>"
-    using assms by (simp split: option.splits)
+    using assms by (simp add: mgu.simps split: option.splits)
   from unify_Some_UNIF [OF *] obtain ss
     where "compose ss = \<sigma>" and "UNIF ss {#(s, t)#} {#}" by auto
   with UNIF_range_vars_subset [of ss "{#(s, t)#}" "{#}"]
@@ -689,8 +692,6 @@ lemma mgu_same: "Unification.mgu t t = Some Var"
   unfolding Unification.mgu.simps
   unfolding unify_eq_Some_if_same[of "[(t, t)]" for t, simplified]
   by simp
-
-
 
 subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
 
@@ -952,14 +953,14 @@ lemma vars_cls_plus[simp]: "vars_cls (C + D) = vars_cls C \<union> vars_cls D"
 lemma vars_cls_add_mset[simp]: "vars_cls (add_mset L C) = vars_lit L \<union> vars_cls C"
   by (simp add: vars_cls_def)
 
-lemma vars_cls_subst_mgu_subset:
-  assumes mgu_L_L': "Unification.mgu (atm_of L) (atm_of L') = Some \<eta>"
+lemma vars_cls_subst_subset:
+  assumes range_vars_\<eta>: "range_vars \<eta> \<subseteq> vars_lit L \<union> vars_lit L'"
   shows "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L, L'#})"
 proof -
   have "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L#}) - subst_domain \<eta> \<union> range_vars \<eta>"
     by (rule vars_subst_cls_subset[of "(D + {#L#})" \<eta>])
   also have "... \<subseteq> vars_cls (D + {#L#}) - (vars_lit L \<union> vars_lit L') \<union> vars_lit L \<union> vars_lit L'"
-    using mgu_subst_range_vars[OF mgu_L_L'] mgu_subst_domain[OF mgu_L_L'] by blast
+    using range_vars_\<eta> by blast
   also have "... \<subseteq> vars_cls (D + {#L#}) \<union> vars_lit L \<union> vars_lit L'"
     by fast
   also have "... \<subseteq> vars_cls D \<union> vars_lit L \<union> vars_lit L'"
@@ -974,11 +975,11 @@ lemma disjoint_vars_set_mgu:
   assumes
     disj_N_D_L_L': "disjoint_vars_set N" and
     D_L_L'_in: "D + {#L, L'#} \<in> N" and
-    mgu_L_L': "Unification.mgu (atm_of L) (atm_of L') = Some \<eta>"
+    range_vars_\<eta>: "range_vars \<eta> \<subseteq> vars_lit L \<union> vars_lit L'"
   shows "disjoint_vars_set (N - {D + {#L, L'#}} \<union> {(D + {#L#}) \<cdot> \<eta>})"
 proof -
   have vars_D_L_\<eta>_subset: "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L, L'#})"
-    by (rule vars_cls_subst_mgu_subset[OF mgu_L_L'])
+    by (rule vars_cls_subst_subset[OF range_vars_\<eta>])
 
   have disj_D_L_\<eta>: "disjoint_vars ((D + {#L#}) \<cdot> \<eta>) C" if C_in: "C \<in> N - {D + {#L, L'#}}" for C
   proof -
@@ -1076,10 +1077,6 @@ proof -
     by simp
 qed
 
-lemma "unifiers E = unifiers {e \<in> E. fst e \<noteq> snd e}"
-  (is "?lhs = ?rhs")
-    unfolding unifiers_def by fastforce
-
 lemma is_unifier_iff_mem_unifiers_Times:
   assumes fin_AA: "finite AA"
   shows "is_unifier \<upsilon> AA \<longleftrightarrow> \<upsilon> \<in> unifiers (AA \<times> AA)"
@@ -1133,7 +1130,12 @@ lemma is_imgu_singleton_iff_Unifiers_is_imgu_Times:
   by (auto simp: is_imgu_def Unifiers.is_imgu_def is_unifiers_def
       is_unifier_iff_mem_unifiers_Times[OF fin])
 
-lemma
+
+lemma unifiers_without_refl: "unifiers E = unifiers {e \<in> E. fst e \<noteq> snd e}"
+  (is "?lhs = ?rhs")
+  unfolding unifiers_def by fastforce
+
+(* lemma
   assumes fin: "finite AAA" "\<forall>AA \<in> AAA. finite AA"
   shows "is_mgu \<upsilon> AAA \<longleftrightarrow> Unifiers.is_mgu \<upsilon> (\<Union>AA \<in> AAA. AA \<times> AA)"
   using fin
@@ -1147,7 +1149,34 @@ next
   then show ?case
     unfolding is_mgu_def Unifiers.is_mgu_def is_unifiers_def
     using is_unifier_iff_mem_unifiers_Times
-    oops
+    oops *)
+
+
+text \<open>Minimal, idempotent MGU. It may be necessary to add
+  @{term "subst_domain \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"} at one point.\<close>
+
+definition is_mimgu where
+  "is_mimgu \<mu> TT \<equiv> is_imgu \<mu> TT \<and> range_vars \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"
+
+lemma is_mimgu_if_mgu_eq_Some:
+  assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
+  shows "is_mimgu \<mu> {{t, u}}"
+  unfolding is_mimgu_def
+proof (rule conjI)
+  have unifs_Times_t_u: "unifiers ({t, u} \<times> {t, u}) = unifiers {(t, u)}"
+    by (auto simp: unifiers_def)
+  have "Unifiers.is_imgu \<mu> ({t, u} \<times> {t, u})"
+    using mgu_t_u[THEN mgu_sound]
+    unfolding Unifiers.is_imgu_def
+    unfolding unifs_Times_t_u
+    by simp
+  then show "is_imgu \<mu> {{t, u}}"
+    by (simp add: is_imgu_singleton_iff_Unifiers_is_imgu_Times)
+next
+  show "range_vars \<mu> \<subseteq> (\<Union>T\<in>{{t, u}}. \<Union> (vars_term ` T))"
+    using mgu_t_u
+    by (simp add: mgu_subst_range_vars)
+qed
 
 
 subsubsection \<open>Renaming Extra\<close>
@@ -1501,8 +1530,8 @@ lemma ball_trail_decide_is_ground_lit:
 
 lemma trail_false_cls_subst_mgu_before_grounding:
   assumes tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
-    mgu_L_L': "Unifiers.is_imgu \<mu> {(atm_of L, atm_of L')}" and
-    \<sigma>_unif: "\<sigma> \<in> Unifiers.unifiers {(atm_of L, atm_of L')}"
+    imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
+    unif_\<sigma>: "is_unifiers \<sigma> {{atm_of L, atm_of L'}}"
   shows "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>)"
   unfolding trail_false_cls_def
 proof (rule ballI)
@@ -1512,14 +1541,12 @@ proof (rule ballI)
   thus "trail_false_lit \<Gamma> K"
   proof (elim disjE)
     show "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<Longrightarrow> trail_false_lit \<Gamma> K"
-      using mgu_L_L' \<sigma>_unif
-      by (metis Unifiers.is_imgu_def subst_cls_comp_subst subst_cls_union tr_false_cls
-          trail_false_cls_def union_iff)
+      using imgu_\<mu> unif_\<sigma>
+      by (metis is_imgu_def subst_cls_comp_subst subst_cls_union tr_false_cls trail_false_cls_def
+          union_iff)
   next
     have "L \<cdot>l \<mu> \<cdot>l \<sigma> = L \<cdot>l \<sigma>"
-      using mgu_L_L' \<sigma>_unif
-      unfolding Unifiers.is_imgu_def
-      by (metis subst_lit_comp_subst)
+      using imgu_\<mu> unif_\<sigma> by (metis is_imgu_def subst_lit_comp_subst)
     thus "K = L \<cdot>l \<mu> \<cdot>l \<sigma> \<Longrightarrow> trail_false_lit \<Gamma> K"
       by (auto intro: tr_false_cls[unfolded trail_false_cls_def, rule_format])
   qed
@@ -1599,7 +1626,7 @@ inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Right
 
 inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
-  factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
+  factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     \<sigma>' = restrict_subst (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
     factorize N (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
 
@@ -1982,33 +2009,29 @@ proof (induction S S' rule: factorize.induct)
     N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L, L'#}}"
     unfolding sound_state_def by simp_all
 
-  from factorizeI.hyps have mgu_L_L': "Unification.mgu (atm_of L) (atm_of L') = Some \<mu>" by simp
+  from factorizeI.hyps have
+    imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
+    range_vars_\<mu>: "range_vars \<mu> \<subseteq> vars_lit L \<union> vars_lit L'"
+    by (simp_all add: is_mimgu_def)
   from factorizeI.hyps have L_eq_L'_\<sigma>: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>" by simp
   from factorizeI.hyps have \<sigma>'_def: "\<sigma>' = restrict_subst (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma>" by simp
 
-  from L_eq_L'_\<sigma> have \<sigma>_unif: "\<sigma> \<in> Unifiers.unifiers {(atm_of L, atm_of L')}"
-    unfolding Unifiers.unifiers_def by (auto intro: subst_atm_of_eqI)
+  from L_eq_L'_\<sigma> have unif_\<sigma>: "is_unifier \<sigma> {atm_of L, atm_of L'}"
+    by (auto simp: is_unifier_alt intro: subst_atm_of_eqI)
+  hence unifs_\<sigma>: "is_unifiers \<sigma> {{atm_of L, atm_of L'}}"
+    by (simp add: is_unifiers_def)
 
-  have is_imgu_\<mu>_full:
-    "Unifiers.is_imgu \<mu> (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset D))"
-    using mgu_sound[OF mgu_L_L']
-    by (smt (verit, best) Unifiers.is_imgu_def imageE insert_iff mem_Collect_eq prod.sel singletonD
-        unifiers_def)
-
-  have \<sigma>_unif_full:
-    "\<sigma> \<in> unifiers (insert (atm_of L, atm_of L') ((\<lambda>t. (t, t)) ` atm_of ` set_mset D))"
-    unfolding unifiers_def mem_Collect_eq
-    using L_eq_L'_\<sigma> by (auto intro: subst_atm_of_eqI)
-
-  from mgu_L_L' have L_eq_L'_\<mu>: "L \<cdot>l \<mu> = L' \<cdot>l \<mu>"
-    using subst_term_eq_if_mgu
-    by (metis (mono_tags, lifting) L_eq_L'_\<sigma> atm_of_subst_lit literal.expand subst_lit_is_neg)
+  from imgu_\<mu> have "is_unifier \<mu> {atm_of L, atm_of L'}"
+    by (auto simp add: is_unifiers_def dest: is_imgu_is_mgu[THEN is_mgu_is_unifiers])
+  hence L_eq_L'_\<mu>: "L \<cdot>l \<mu> = L' \<cdot>l \<mu>"
+    apply (simp add: is_unifier_alt)
+    by (metis L_eq_L'_\<sigma> atm_of_subst_lit literal.expand subst_lit_is_neg)
 
   have "disjoint_vars ((D + {#L#}) \<cdot> \<mu>) C" if C_in: "C \<in> N \<union> U \<union> clss_of_trail \<Gamma>" for C
     using disj_N_U_D_L_L'[rule_format, OF C_in]
-    unfolding _disjoint_vars_iff_inter_empty
-    using vars_cls_subst_mgu_subset[OF mgu_L_L']
-    by fast
+    unfolding disjoint_vars_iff_inter_empty
+    using range_vars_\<mu> vars_subst_cls_subset_weak[of "D + {#L#}" \<mu>]
+    by auto
 
   moreover have "subst_domain \<sigma>' \<subseteq> vars_cls ((D + {#L#}) \<cdot> \<mu>)"
     unfolding \<sigma>'_def using subst_domain_restrict_subst by metis
@@ -2017,8 +2040,9 @@ proof (induction S S' rule: factorize.induct)
   proof -
     have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>)"
       using gr_D_L_L'_\<sigma>
-      by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_unif_full add_mset_add_single
-          is_ground_cls_union is_imgu_\<mu>_full subst_cls_comp_subst subst_cls_union)
+      by (smt (verit) range_vars_\<mu> Diff_eq_empty_iff UN_Un Un_empty dom_\<sigma>
+          is_ground_cls_iff_vars_empty subset_antisym sup.orderE vars_cls_subst_subset
+          vars_subst_cls_eq)
     thus ?thesis
       unfolding \<sigma>'_def using subst_cls_restrict_subst_idem by (metis subsetI)
   qed
@@ -2028,7 +2052,7 @@ proof (induction S S' rule: factorize.induct)
     show ?thesis
       unfolding \<sigma>'_def
       using subst_cls_restrict_subst_idem
-      using trail_false_cls_subst_mgu_before_grounding[OF tr_false_cls mgu_sound[OF mgu_L_L'] \<sigma>_unif]
+      using trail_false_cls_subst_mgu_before_grounding[OF tr_false_cls imgu_\<mu> unifs_\<sigma>]
       by (metis subsetI)
   qed
 
