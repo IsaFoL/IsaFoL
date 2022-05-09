@@ -580,12 +580,11 @@ definition isa_is_candidate_for_removal where
   \<open>isa_is_candidate_for_removal M C arena = do {
     ASSERT(arena_act_pre arena C);
     L \<leftarrow> mop_arena_lit arena C;
-    D \<leftarrow> get_the_propagation_reason_pol M L;
     lbd \<leftarrow> mop_arena_lbd arena C;
     length \<leftarrow> mop_arena_length arena C;
     status \<leftarrow> mop_arena_status arena C;
     used \<leftarrow> mop_marked_as_used arena C;
-    let can_del = (D \<noteq> Some C) \<and>
+    let can_del =
       lbd > MINIMUM_DELETION_LBD \<and>
       status = LEARNED \<and>
       length \<noteq> 2 \<and>
