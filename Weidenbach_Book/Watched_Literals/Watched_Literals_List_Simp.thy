@@ -7,7 +7,8 @@ lemma cdcl_twl_inprocessing_l_count_dec:
   \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
   by (induction rule: cdcl_twl_inprocessing_l.induct)
    (auto simp: cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
-    cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
+    cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps
+    cdcl_twl_pure_remove_l.simps)
  
 lemma rtranclp_cdcl_twl_inprocessing_l_count_dec:
   \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<Longrightarrow> count_decided (get_trail_l T) = count_decided (get_trail_l S)\<close>
@@ -39,7 +40,8 @@ lemma rtranclp_cdcl_twl_restart_l_inp_clauses_to_update_l:
     by (auto simp: cdcl_twl_restart_l_inp.simps
       cdcl_twl_restart_l.simps cdcl_twl_inprocessing_l.simps
       cdcl_twl_unitres_l.simps cdcl_twl_unitres_true_l.simps
-      cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps)
+      cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps
+      cdcl_twl_pure_remove_l.simps)
   done
 
 lemma rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp:
@@ -68,9 +70,10 @@ lemma cdcl_twl_restart_l_inp_cdcl_twl_restart_inp:
     apply (cases rule: cdcl_twl_inprocessing_l.cases, assumption)
     using cdcl_twl_inp.intros(3) cdcl_twl_unitres_l_cdcl_twl_unitres apply blast
     apply (meson cdcl_twl_inp.simps cdcl_twl_unitres_true_l_cdcl_twl_unitres_true)
-    apply (meson cdcl_twl_inp.intros(1) cdcl_twl_inp.intros(2) cdcl_twl_inp.intros(3) cdcl_twl_inp.intros(4) cdcl_twl_inprocessing_l_twl_st_l0)
-    by (meson cdcl_twl_inp.simps cdcl_twl_subresolution_l_cdcl_twl_subresolution)
-    done
+    apply (meson cdcl_twl_inp.intros cdcl_twl_inprocessing_l_twl_st_l0)
+    apply (meson cdcl_twl_inp.simps cdcl_twl_subresolution_l_cdcl_twl_subresolution)
+    using cdcl_twl_inp.intros(6) cdcl_twl_pure_remove_l_cdcl_twl_pure_remove by blast
+  done
 
 lemma rtranclp_cdcl_twl_restart_l_inp_cdcl_twl_restart_inp:
   assumes

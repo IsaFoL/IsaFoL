@@ -207,7 +207,6 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
   get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
 
-find_theorems get_restart_count RETURN
 sepref_def upper_restart_bound_not_reached_fast_impl
   is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
@@ -254,6 +253,14 @@ sepref_def GC_units_required_heur_fast_code
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
   unfolding GC_units_required_def
+  by sepref
+
+sepref_register should_inprocess_or_unit_reduce_st
+
+sepref_def should_inprocess_or_unit_reduce_st
+  is \<open>uncurry (RETURN oo should_inprocess_or_unit_reduce_st)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding should_inprocess_or_unit_reduce_st_def should_inprocess_st_def
   by sepref
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur

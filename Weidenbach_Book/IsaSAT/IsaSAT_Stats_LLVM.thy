@@ -49,11 +49,11 @@ lemma Constructor_hnr[sepref_fr_rules]:
 
 abbreviation stats_int_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_int_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
-     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
+     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
 
 abbreviation stats_int_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_int_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a
-     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
+     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
 
 abbreviation stats_rel :: \<open>(stats \<times> isasat_stats) set\<close> where
   \<open>stats_rel \<equiv> \<langle>stats_int_rel\<rangle>code_hider_rel\<close>
@@ -77,12 +77,14 @@ lemma [sepref_import_param]:
   \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word64_rel\<close>
   \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def
     incr_lrestart_def incr_uset_def
-    incr_GC_def add_lbd_def add_lbd_def
-    units_since_last_GC_def
+    incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
+    units_since_last_GC_def incr_binary_unit_derived_clss_def
     incr_restart_def incr_irred_clss_def get_conflict_count_def
     decr_irred_clss_def incr_units_since_last_GC_def)
 
@@ -100,6 +102,8 @@ lemmas [llvm_inline] =
   incr_irred_clss_stats_def
   incr_units_since_last_GC_stats_def
   get_conflict_count_stats_def
+  incr_binary_unit_derived_def
+  incr_binary_red_removed_def
 
 
 lemma id_unat[sepref_fr_rules]:
@@ -144,13 +148,18 @@ lemma add_lbd_stats_add_lbd:
   stats_conflicts_stats_stats_conflicts:
   \<open>(stats_conflicts_stats, stats_conflicts)\<in> stats_rel \<rightarrow> word_rel\<close> and
   incr_units_since_last_GC_stats_incr_units_since_last_GC:
-  \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_binary_unit_derived_incr_binary_unit_derived_clss:
+    \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  incr_binary_red_removed_incr_binary_red_removed_clss:
+    \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def
     incr_lrestart_def incr_uset_def
-    incr_GC_def add_lbd_def add_lbd_def
-    units_since_last_GC_def reset_units_since_last_GC_def
+    reset_units_since_last_GC_def
+    incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
+    units_since_last_GC_def incr_binary_unit_derived_clss_def
     incr_restart_def incr_irred_clss_def get_conflict_count_def
     decr_irred_clss_def incr_units_since_last_GC_def)
 
@@ -239,6 +248,18 @@ sepref_def incr_units_since_last_GC_stats_impl
   unfolding incr_units_since_last_GC_stats_def
   by sepref
 
+sepref_def incr_binary_red_removed_impl
+  is \<open>RETURN o incr_binary_red_removed\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_binary_red_removed_def
+  by sepref
+
+sepref_def incr_binary_unit_derived_impl
+  is \<open>RETURN o incr_binary_unit_derived\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_binary_unit_derived_def
+  by sepref
+
 lemma stats_assn_alt_def: \<open>stats_assn = hr_comp stats_int_assn stats_rel\<close>
   \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
   by (auto simp: stats_assn_def code_hider_assn_def)
@@ -265,12 +286,13 @@ lemmas stats_refine[sepref_fr_rules] =
   incr_units_since_last_GC_stats_impl.refine[FCOMP incr_units_since_last_GC_stats_incr_units_since_last_GC]
   hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
   hn_id[FCOMP get_content_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
+  incr_binary_unit_derived_impl.refine[FCOMP incr_binary_unit_derived_incr_binary_unit_derived_clss]
+  incr_binary_red_removed_impl.refine[FCOMP incr_binary_red_removed_incr_binary_red_removed_clss]
 
 end
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 abbreviation (input) restart_info_assn where
-
   \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 lemma restart_info_params[sepref_import_param]:
@@ -288,7 +310,16 @@ lemmas [llvm_inline] =
   restart_info_init_def
   restart_info_restart_done_def
 
+abbreviation (input) \<open>schedule_info_rel \<equiv> word64_rel\<close>
+abbreviation (input) schedule_info_assn where
+  \<open>schedule_info_assn \<equiv> word64_assn\<close>
 
+lemma schedule_info_params[sepref_import_param]:
+  "(next_inprocessing_schedule_info, next_inprocessing_schedule_info) \<in>
+    schedule_info_rel \<rightarrow> word64_rel"
+  "(schedule_next_inprocessing_info, schedule_next_inprocessing_info) \<in>
+    schedule_info_rel \<rightarrow> schedule_info_rel"
+  by (auto)
 
 sepref_register NORMAL_PHASE QUIET_PHASE DEFAULT_INIT_PHASE
 
@@ -484,15 +515,32 @@ sepref_def ema_extract_value_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_def schedule_next_inprocessing_info_impl
+  is \<open>RETURN o schedule_next_inprocessing_info\<close>
+  :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a schedule_info_assn\<close>
+  unfolding schedule_next_inprocessing_info_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def next_inprocessing_schedule_info_impl
+  is \<open>RETURN o next_inprocessing_schedule_info\<close>
+  :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding next_inprocessing_schedule_info_def
+  by sepref
+
+
+
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn \<times> 1 word)\<close>
+  (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times>
+  reluctant_rel_assn \<times> 1 word \<times> phase_saver_assn \<times> 64 word)\<close>
 
 definition heuristic_int_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_int_assn = ema_assn \<times>\<^sub>a
   ema_assn \<times>\<^sub>a
   restart_info_assn \<times>\<^sub>a
-  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn\<close>
+  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a phase_saver_assn \<times>\<^sub>a
+  schedule_info_assn\<close>
 
 abbreviation heur_int_rel :: \<open>(restart_heuristics \<times> restart_heuristics) set\<close> where
   \<open>heur_int_rel \<equiv> Id\<close>
@@ -554,14 +602,19 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
   \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f heur_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close> and
   get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats:
   \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart)
-  \<in> heur_rel \<rightarrow> word_rel\<close>
+  \<in> heur_rel \<rightarrow> word_rel\<close> and
+  schedule_next_inprocessing_stats_schedule_next_inprocessing:
+    \<open>(schedule_next_inprocessing_stats, schedule_next_inprocessing) \<in> heur_rel \<rightarrow> heur_rel\<close> and
+  next_inprocessing_schedule_next_inprocessing_schedule_stats:
+    \<open>(next_inprocessing_schedule_info_stats, next_inprocessing_schedule) \<in> heur_rel \<rightarrow> word64_rel\<close>
   by (auto simp: set_zero_wasted_def code_hider_rel_def heuristic_reluctant_tick_def
     heuristic_reluctant_enable_def heuristic_reluctant_triggered_def apfst_def map_prod_def
     heuristic_reluctant_disable_def heuristic_reluctant_triggered2_def is_fully_propagated_heur_def
     end_of_rephasing_phase_heur_def unset_fully_propagated_heur_def restart_info_restart_done_heur_def
     heuristic_reluctant_untrigger_def set_fully_propagated_heur_def wasted_of_def get_next_phase_heur_def
     slow_ema_of_def fast_ema_of_def current_restart_phase_def incr_wasted_def current_rephasing_phase_def
-    get_conflict_count_since_last_restart_def
+    get_conflict_count_since_last_restart_def next_inprocessing_schedule_def
+    schedule_next_inprocessing_def schedule_next_inprocessing_stats_def
     intro!: frefI nres_relI
     split: prod.splits)
 
@@ -644,7 +697,7 @@ sepref_def unset_fully_propagated_heur_stats_impl
   :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   unfolding heuristic_int_assn_def unset_fully_propagated_heur_stats_def
   by sepref
- 
+
 sepref_def restart_info_restart_done_heur_stats_impl
   is \<open>RETURN o restart_info_restart_done_heur_stats\<close>
   :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
@@ -730,7 +783,26 @@ sepref_def get_conflict_count_since_last_restart_stats_impl
   :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding get_conflict_count_since_last_restart_stats_alt_def heuristic_int_assn_def
   by sepref
-  
+
+lemma next_inprocessing_schedule_info_stats_alt_def:
+  \<open>next_inprocessing_schedule_info_stats =
+  (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule)). inprocess_schedule)\<close>
+  unfolding next_inprocessing_schedule_info_stats_def next_inprocessing_schedule_info_def
+  by auto
+
+sepref_def next_inprocessing_schedule_info_stats_impl
+  is \<open>RETURN o next_inprocessing_schedule_info_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding next_inprocessing_schedule_info_stats_alt_def heuristic_int_assn_def
+  by sepref
+
+sepref_def schedule_next_inprocessing_stats_impl
+  is \<open>RETURN o schedule_next_inprocessing_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  unfolding schedule_next_inprocessing_stats_def heuristic_int_assn_def
+  by sepref
+
+
 lemma hn_id_pure:
   \<open>CONSTRAINT is_pure A \<Longrightarrow> (Mreturn, RETURN o id) \<in> A\<^sup>k \<rightarrow>\<^sub>a A\<close>
   apply sepref_to_hoare
@@ -760,6 +832,8 @@ lemmas heur_refine[sepref_fr_rules] =
   current_rephasing_phase_stats_impl.refine[FCOMP current_rephasing_phase_stats_current_rephasing_phase]
   get_next_phase_heur_stats_impl.refine[FCOMP get_next_phase_heur_stats_get_next_phase_heur]
   get_conflict_count_since_last_restart_stats_impl.refine[FCOMP get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats]
+  schedule_next_inprocessing_stats_impl.refine[FCOMP schedule_next_inprocessing_stats_schedule_next_inprocessing]
+  next_inprocessing_schedule_info_stats_impl.refine[FCOMP next_inprocessing_schedule_next_inprocessing_schedule_stats]
   hn_id[of heuristic_int_assn, FCOMP get_content_hnr[of heur_int_rel]]
   hn_id[of heuristic_int_assn, FCOMP Constructor_hnr[of heur_int_rel]]
 
@@ -770,8 +844,8 @@ end
 
 
 sepref_register set_zero_wasted_stats save_phase_heur_stats heuristic_reluctant_tick_stats
-  heuristic_reluctant_tick is_fully_propagated_heur_stats get_content
-
+  heuristic_reluctant_tick is_fully_propagated_heur_stats get_content next_inprocessing_schedule_info_stats
+  schedule_next_inprocessing_stats
 
 lemma mop_save_phase_heur_stats_alt_def:
   \<open>mop_save_phase_heur_stats = (\<lambda> L b (fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best), rel). do {
@@ -926,5 +1000,118 @@ lemmas get_lrestart_count_impl_refine[sepref_fr_rules] =
   unfolded stats_assn_alt_def[symmetric]]
 
 sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
+
+sepref_def reset_added_heur_stats2_impl
+  is reset_added_heur_stats2
+  :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  unfolding reset_added_heur_stats2_def heuristic_int_assn_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+
+lemma reset_added_heur_stats2_reset_added_heur_stats:
+  \<open>(reset_added_heur_stats2, RETURN o (reset_added_heur_stats)) \<in> heur_int_rel \<rightarrow> \<langle>heur_int_rel\<rangle>nres_rel\<close>
+  unfolding fref_param1
+  apply (intro frefI fref_param1 nres_relI)
+  apply (subst comp_def)
+  apply (rule reset_added_heur_stats2_reset_added_heur_stats[THEN order_trans])
+  by simp
+
+lemmas reset_added_heur_stats_impl_refine[sepref_fr_rules] =
+  reset_added_heur_stats2_impl.refine[FCOMP reset_added_heur_stats2_reset_added_heur_stats]
+
+sepref_register reset_added_heur mop_reset_added_heur is_marked_added_heur
+
+sepref_def is_marked_added_heur_stats_impl
+  is \<open>uncurry (mop_is_marked_added_heur_stats)\<close>
+  :: \<open>heuristic_int_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k  \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[eta_contract=false]]
+  unfolding is_marked_added_heur_stats_def is_marked_added_heur_pre_stats_def
+    heuristic_int_assn_def mop_is_marked_added_heur_stats_def case_prod_app
+  apply (rewrite at \<open>_ ! _\<close> annot_index_of_atm)
+  by sepref
+
+lemma mop_mark_added_heur_stats_alt_def:
+\<open>mop_mark_added_heur_stats L b =(\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st). do {
+   ASSERT(mark_added_heur_pre_stats L b (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st));
+   RETURN (mark_added_heur_stats L b (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st))
+  })\<close>
+  by (auto simp: mop_mark_added_heur_stats_def)
+
+sepref_def mop_mark_added_heur_stats_impl
+  is \<open>uncurry2 mop_mark_added_heur_stats\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  unfolding heuristic_int_assn_def mop_mark_added_heur_stats_alt_def
+    mark_added_heur_stats_def prod.simps mark_added_heur_pre_stats_def
+  apply (rewrite at \<open>_[_ := _]\<close> annot_index_of_atm)
+  by sepref
+
+lemma mop_is_marked_added_heur_stats_alt_def:
+\<open>mop_is_marked_added_heur_stats =(\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule) L. do {
+   ASSERT(is_marked_added_heur_pre_stats (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule) L);
+   RETURN (is_marked_added_heur_stats (fast_ema, slow_ema, res_info, wasted, \<phi>, reluctant, fully_proped, lits_st, schedule) L)
+  })\<close>
+  by (auto simp: mop_is_marked_added_heur_stats_def intro!: ext)
+
+sepref_def mop_is_marked_added_heur_stats_impl
+  is \<open>uncurry mop_is_marked_added_heur_stats\<close>
+  :: \<open>heuristic_int_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_int_assn_def mop_is_marked_added_heur_stats_alt_def
+    is_marked_added_heur_stats_def prod.simps is_marked_added_heur_pre_stats_def
+  apply (rewrite at \<open>_ ! _\<close> annot_index_of_atm)
+  by sepref
+
+
+context
+  notes [fcomp_norm_unfold] = heuristic_assn_def[symmetric] heuristic_assn_alt_def[symmetric]
+begin
+
+lemma reset_added_heur_stats_reset_added_heur:
+  \<open>(reset_added_heur_stats, reset_added_heur) \<in> heur_rel \<rightarrow> heur_rel\<close> and
+  is_marked_added_heur_stats_is_marked_added_heur:
+  \<open>(is_marked_added_heur_stats, is_marked_added_heur) \<in> heur_rel \<rightarrow> nat_rel \<rightarrow> bool_rel\<close>
+  by (auto simp: reset_added_heur_def code_hider_rel_def is_marked_added_heur_def
+    mop_is_marked_added_heur_stats_def)
+
+lemmas reset_added_heur_refine[sepref_fr_rules] =
+  reset_added_heur_stats_impl_refine[FCOMP reset_added_heur_stats_reset_added_heur]
+
+lemma mop_is_marked_added_heur_stats_is_marked_added_heur:
+  \<open>(uncurry mop_is_marked_added_heur_stats, uncurry (RETURN oo is_marked_added_heur)) \<in>
+  [\<lambda>(S, l). is_marked_added_heur_pre_stats (get_restart_heuristics S) l]\<^sub>f
+  heur_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close> and
+  mop_mark_added_heur_stats_mop_mark_added_heur:
+  \<open>(uncurry2 mop_mark_added_heur_stats, uncurry2 (RETURN ooo mark_added_heur)) \<in>
+  [\<lambda>((l,b), S). mark_added_heur_pre l b S]\<^sub>f
+  nat_rel \<times>\<^sub>fbool_rel \<times>\<^sub>f heur_rel \<rightarrow> \<langle>heur_rel\<rangle>nres_rel\<close> and
+  mop_is_marked_added_heur_stats_mop_is_marked_added_heur:
+  \<open>(uncurry mop_is_marked_added_heur_stats, uncurry (RETURN oo is_marked_added_heur)) \<in>
+  [\<lambda>(l, S). is_marked_added_heur_pre l S]\<^sub>f
+   heur_rel \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI
+    simp: reset_added_heur_def code_hider_rel_def is_marked_added_heur_def
+    mop_mark_added_heur_stats_def mop_is_marked_added_heur_stats_def
+    mop_is_marked_added_heur_stats_def is_marked_added_heur_pre_def
+    mark_added_heur_pre_def
+    mop_mark_added_heur_stats_def mark_added_heur_def)
+
+lemmas is_marked_added_heur_stats_impl_refine[refine] =
+  is_marked_added_heur_stats_impl.refine[FCOMP mop_is_marked_added_heur_stats_is_marked_added_heur]
+
+lemmas mark_added_heur_impl_refine[refine] =
+  mop_mark_added_heur_stats_impl.refine[FCOMP mop_mark_added_heur_stats_mop_mark_added_heur]
+
+lemmas is_marked_added_heur_refine[refine] =
+  mop_is_marked_added_heur_stats_impl.refine[FCOMP mop_is_marked_added_heur_stats_mop_is_marked_added_heur]
+end
+
+
+sepref_def mop_reset_added_heur_impl
+  is \<open>mop_reset_added_heur\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding mop_reset_added_heur_def
+  by sepref
+
 
 end

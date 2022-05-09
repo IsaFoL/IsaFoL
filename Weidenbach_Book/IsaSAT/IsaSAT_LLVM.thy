@@ -19,11 +19,11 @@ abbreviation model_stat_assn\<^sub>0 ::
     \<open>bool \<times>
      nat literal list \<times>
      64 word \<times>
-     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
+     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
      \<Rightarrow> 1 word \<times>
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
        64 word \<times>
-       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> ema
+       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> 64 word\<times> 64 word\<times> ema
        \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close>
 where
   \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
@@ -319,6 +319,12 @@ definition print_uset :: \<open>64 word \<Rightarrow> unit\<close> where
 definition print_gcs :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_gcs _ = ()\<close>
 
+definition print_binary_unit :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_binary_unit _ = ()\<close>
+
+definition print_binary_red_removed :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_binary_red_removed _ = ()\<close>
+
 definition print_lbds :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_lbds _ = ()\<close>
 
@@ -373,6 +379,18 @@ sepref_def print_irred_clss_impl
   unfolding print_irred_clss_def
   by sepref
 
+sepref_def print_binary_unit_impl
+  is \<open>RETURN o print_binary_unit\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_binary_unit_def
+  by sepref
+
+sepref_def print_binary_red_removed_impl
+  is \<open>RETURN o print_binary_red_removed\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_binary_red_removed_def
+  by sepref
+
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
@@ -383,7 +401,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
          fema sema units;
-      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, _, irred_clss, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, _, irred_clss, binary_unit, binary_red_removed, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let _ = print_propa propa;
       let _ = print_confl confl;
       let _ = print_dec dec;
@@ -392,6 +410,8 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let _ = print_uset uset;
       let _ = print_gcs gcs;
       let _ = print_irred_clss irred_clss;
+      let _ = print_binary_unit binary_unit;
+      let _ = print_binary_red_removed binary_red_removed;
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 
@@ -497,7 +517,6 @@ theorem IsaSAT_full_correctness:
       model_bounded_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref]]
   unfolding model_bounded_assn_def clauses_l_assn_def
-  apply auto
-  done
+  by auto
 
 end

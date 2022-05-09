@@ -156,7 +156,7 @@ twl_subresolution_IL_unit:
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>
    \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close> \<open>undefined_lit M K\<close>
 
- 
+
 lemma past_invs_count_decided0: \<open>count_decided (get_trail S) = 0 \<Longrightarrow> past_invs S\<close>
   by (cases S) (auto simp: past_invs.simps)
 
@@ -826,7 +826,7 @@ proof (intro conjI)
     dupq: \<open>no_duplicate_queued S\<close> and
     distq: \<open>distinct_queued S\<close> and
     invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
-    propa:  \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close>
+    propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close>
     using assms(2) unfolding twl_struct_invs_def by fast+
 
   have n_d: \<open>no_dup (get_trail S)\<close>
@@ -869,7 +869,7 @@ proof (intro conjI)
   have struct: \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close>
     by (use st_inv n_d propa_cands confl_cands in \<open>cases S; auto simp: twl_st_inv.simps; fail\<close>)+
   then have \<open>propa_confl_cands_enqueued S\<close>
-    by (subst  propa_confl_cands_enqueued_propa_confl_enqueued[of S])
+    by (subst propa_confl_cands_enqueued_propa_confl_enqueued[of S])
      (use st_inv n_d propa_cands confl_cands in \<open>auto simp: twl_st_inv.simps; fail\<close>)+
   with assms(1) have \<open>propa_confl_cands_enqueued T\<close>
     using n_d struct except
@@ -1044,7 +1044,7 @@ proof (intro conjI)
   have struct: \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close>
     by (use st_inv n_d propa_cands confl_cands in \<open>cases S; auto simp: twl_st_inv.simps; fail\<close>)+
   then have \<open>propa_confl_cands_enqueued S\<close>
-    by (subst  propa_confl_cands_enqueued_propa_confl_enqueued[of S])
+    by (subst propa_confl_cands_enqueued_propa_confl_enqueued[of S])
      (use st_inv n_d propa_cands confl_cands in \<open>auto simp: twl_st_inv.simps; fail\<close>)+
   with assms(1) have \<open>propa_confl_cands_enqueued T\<close>
     using n_d struct except
@@ -1154,7 +1154,7 @@ lemma cdcl_twl_subsumed_stgy_invs:
   apply (simp add: state_of_cdcl_subsumed twl_stgy_invs_def)
   apply (simp add: cdcl_subsumed_RI_stgy_invs)
   done
- 
+
 lemma cdcl_twl_subsumed_twl_stgy_invs:
   assumes \<open>cdcl_twl_subsumed S T\<close>
     \<open>twl_stgy_invs S\<close>
@@ -1162,5 +1162,121 @@ lemma cdcl_twl_subsumed_twl_stgy_invs:
   using assms
   by (metis (no_types, lifting) assms cdcl_subsumed_RI_stgy_invs
     cdcl_twl_subsumed_cdcl_subsumed state\<^sub>W_of_def state_of_cdcl_subsumed twl_stgy_invs_def)
+
+
+inductive cdcl_twl_pure_remove :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_pure_remove (M, N, U, None, NE, UE, NS, US, N0, U0, {#}, Q)
+  (Propagated L {#L#} # M, N, U, None, add_mset {#L#} NE, UE, NS, US, N0, U0, {#}, add_mset (-L) Q)\<close>
+  if \<open>count_decided M = 0\<close>
+    \<open>-L \<notin>  \<Union> ((set_mset o clause) ` set_mset N)\<close>
+    \<open>atm_of L \<in> atms_of_mm (clauses N + NE + NS + N0)\<close>
+    \<open>undefined_lit M L\<close>
+
+lemma cdcl_twl_pure_remove_cdcl_pure_remove:
+  \<open>cdcl_twl_pure_remove S T \<Longrightarrow> cdcl_pure_literal_remove (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (auto simp: cdcl_twl_pure_remove.simps cdcl_pure_literal_remove.simps
+    dest!: multi_member_split)
+
+
+lemma cdcl_twl_pure_remove_twl_struct_invs:
+  assumes pure: \<open>cdcl_twl_pure_remove S T\<close> and
+    \<open>twl_struct_invs S\<close>
+  shows \<open>twl_struct_invs T\<close>
+proof -
+  have st_inv: \<open>twl_st_inv S\<close> and
+    valid: \<open>valid_enqueued S\<close> and
+    smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close> and
+    exception: \<open>twl_st_exception_inv S\<close> and
+    \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
+    dup: \<open>no_duplicate_queued S\<close>
+      \<open>distinct_queued S\<close>
+      \<open>confl_cands_enqueued S\<close>
+      \<open>propa_cands_enqueued S\<close> and
+    invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
+    upd_inv: \<open>clauses_to_update_inv S\<close>
+    using assms unfolding twl_struct_invs_def by fast+
+  have n_d: \<open>no_dup (get_trail S)\<close>
+    using invs unfolding pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  have wf: \<open>\<forall>C \<in># get_clauses S. struct_wf_twl_cls C\<close>
+    using st_inv by (cases S) (auto simp: twl_st_inv.simps)
+  have propa_confl: \<open>propa_confl_cands_enqueued S\<close>
+    by (subst propa_confl_cands_enqueued_propa_confl_enqueued)
+     (use wf dup n_d in auto)
+  have \<open>twl_st_inv T\<close>
+    using pure st_inv
+    by (auto simp: cdcl_twl_pure_remove.simps twl_st_inv.simps
+      twl_is_an_exception_add_mset_to_queue watched_literals_false_of_max_level_prop_lvl0
+      intro!: twl_lazy_update_subresII
+      dest: multi_member_split)
+  moreover have \<open>valid_enqueued T\<close>
+    using valid pure
+    by (auto simp: cdcl_twl_pure_remove.simps twl_st_inv.simps
+      get_level_cons_if)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of T)\<close>
+    using pure smaller
+    by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+      cdcl_twl_pure_remove.simps Propagated_eq_DecidedD)
+  moreover have \<open>twl_st_exception_inv T\<close>
+    using pure n_d exception apply -
+    by (cases rule: cdcl_twl_pure_remove.cases, assumption)
+     (auto simp: cdcl_twl_pure_remove.simps Propagated_eq_DecidedD
+        twl_exception_inv.simps uminus_lit_swap
+      intro!: propa_confl_cands_enqueued_propagate
+      dest!: no_has_blit_propagate'
+      dest!: multi_member_split[of \<open>_ :: _ clause\<close>])
+   moreover have \<open>no_duplicate_queued T\<close>
+     \<open>distinct_queued T\<close>
+     using pure dup apply (auto simp: no_duplicate_queued.simps
+       cdcl_twl_pure_remove.simps
+       dest!: multi_member_split[of _ \<open>_ :: _ clause\<close>]
+       dest: mset_subset_eq_insertD msed_map_invR)[]
+     using pure dup apply (auto simp: no_duplicate_queued.simps
+       cdcl_twl_pure_remove.simps undefined_notin
+       dest!: multi_member_split[of _ \<open>_ :: _ clause\<close>]
+       dest: mset_subset_eq_insertD dest: msed_map_invR)[]
+     apply (solves \<open>frule mset_subset_eq_insertD; clarsimp simp: undefined_notin\<close>)+
+     done
+   moreover {
+     have \<open>propa_confl_cands_enqueued T\<close>
+       using pure dup propa_confl wf exception n_d
+       by (auto simp: cdcl_twl_pure_remove.simps
+         twl_exception_inv.simps
+         simp del: propa_confl_cands_enqueued.simps 
+         intro!: propa_confl_cands_enqueued_propagate)[]
+     then have
+      \<open>confl_cands_enqueued T \<and> propa_cands_enqueued T\<close>
+    by (subst (asm) propa_confl_cands_enqueued_propa_confl_enqueued)
+     (use pure wf dup n_d in \<open>auto simp: cdcl_twl_pure_remove.simps\<close>)[3]
+  }
+  moreover have \<open>get_conflict T \<noteq> None \<longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
+    using pure by (auto simp: cdcl_twl_pure_remove.simps)
+  moreover have \<open>clauses_to_update_inv T\<close>
+    using n_d pure upd_inv
+    by (auto simp: cdcl_twl_pure_remove.simps filter_mset_empty_conv all_conj_distrib
+      Decided_Propagated_in_iff_in_lits_of_l clauses_to_update_prop.simps
+      split: if_splits dest: has_blit_Cons)
+     (auto simp:  clause_alt_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits; fail)+
+  moreover have \<open>past_invs T\<close>
+    using pure by (auto simp: cdcl_twl_pure_remove.simps past_invs.simps
+      Propagated_eq_DecidedD)
+  moreover have \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+    using cdcl_twl_pure_remove_cdcl_pure_remove invs pcdcl.intros(10) pcdcl_all_struct_invs pure
+    by blast
+  ultimately show ?thesis
+    unfolding twl_struct_invs_def
+    by simp
+qed
+
+lemma cdcl_twl_pure_remove_twl_stgy_invs:
+  assumes pure: \<open>cdcl_twl_pure_remove S T\<close> and
+    \<open>twl_stgy_invs S\<close>
+  shows \<open>twl_stgy_invs T\<close>
+  using assms by (auto simp: cdcl_twl_pure_remove.simps
+    twl_stgy_invs_def cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def Propagated_eq_DecidedD
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def)
 
 end

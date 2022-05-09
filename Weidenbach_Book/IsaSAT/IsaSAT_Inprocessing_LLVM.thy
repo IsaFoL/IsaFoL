@@ -1,24 +1,57 @@
 theory IsaSAT_Inprocessing_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
     IsaSAT_Restart_Inprocessing
+    IsaSAT_Proofs_LLVM
 begin
+
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 sepref_register 0 1
 
 sepref_register mop_arena_update_lit
 
+lemma isa_simplify_clause_with_unit2_alt_def:
+  \<open>isa_simplify_clause_with_unit2 C M N = do {
+     l \<leftarrow> mop_arena_length N C;
+    ASSERT(l < length N \<and> l \<le> Suc (uint32_max div 2));
+    (i, j, N::arena, is_true) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, j, N::arena, b). \<not>b \<and> j < l)
+    (\<lambda>(i, j, N, is_true). do {
+      ASSERT(i \<le> j \<and> j < l);
+      L \<leftarrow> mop_arena_lit2 N C j;
+      let _ = mark_literal_for_unit_deletion L;
+      val \<leftarrow> mop_polarity_pol M L;
+      if val = Some True then RETURN (i, j+1, N,True)
+      else if val = Some False
+      then RETURN (i, j+1, N,  False)
+        else do {
+        N \<leftarrow> mop_arena_update_lit C i L N;
+        RETURN (i+1, j+1, N, False)}
+    })
+      (0, 0, N, False);
+   L \<leftarrow> mop_arena_lit2 N C 0;
+   if is_true \<or> i \<le> 1
+   then do {
+     ASSERT(mark_garbage_pre (N, C));
+     RETURN (False, extra_information_mark_to_delete N C, L, is_true, i)}
+   else if i = j then RETURN (True, N, L, is_true, i)
+   else do {
+      N \<leftarrow> mop_arena_shorten C i N;
+      RETURN (False, N, L, is_true, i)}
+    }\<close>
+  by (auto simp: mark_literal_for_unit_deletion_def isa_simplify_clause_with_unit2_def)
+
 sepref_def isa_simplify_clause_with_unit2_code
   is \<open>uncurry2 isa_simplify_clause_with_unit2\<close>
   :: \<open>[\<lambda>((_, _), N). length (N) \<le> sint64_max]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>
   bool1_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a  bool1_assn \<times>\<^sub>a uint32_nat_assn\<close>
-  unfolding isa_simplify_clause_with_unit2_def
+  unfolding isa_simplify_clause_with_unit2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
     mop_arena_status_st_def[symmetric] isasat_bounded_assn_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric]
     tri_bool_eq_def[symmetric]
   apply (rewrite at \<open>(\<hole>, _, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_ \<le> \<hole>)\<close> unat_const_fold[where 'a=32])
-
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>mop_arena_update_lit _ \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>If (\<hole> = _)\<close> annot_unat_snat_upcast[where 'l=64])
@@ -47,9 +80,14 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
   E \<leftarrow> mop_arena_status N C;
    ASSERT(E = LEARNED \<longrightarrow> 1 \<le> clss_size_lcount lcount);
   (unc, N, L, b, i) \<leftarrow> isa_simplify_clause_with_unit2 C M N;
-   if unc then RETURN (update_arena_wl_heur N (update_trail_wl_heur M (update_lcount_wl_heur lcount S)))
+  ASSERT (length N \<le> length (get_clauses_wl_heur S\<^sub>0));
+   if unc then do {
+     let _ = mark_clause_for_unit_as_unchanged 0;
+     RETURN (update_arena_wl_heur N (update_trail_wl_heur M (update_lcount_wl_heur lcount S)))
+   }
    else if b then
    let (stats, S) = extract_stats_wl_heur S in
+   let _ = mark_clause_for_unit_as_unchanged 0 in
    RETURN  (update_trail_wl_heur M
      (update_arena_wl_heur N
      (update_stats_wl_heur (if E=LEARNED then stats else decr_irred_clss (stats))
@@ -59,6 +97,7 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
    then do {
      M \<leftarrow> cons_trail_Propagated_tr L 0 M;
     let (stats, S) = extract_stats_wl_heur S;
+    let _ = mark_clause_for_unit_as_unchanged 0;
      RETURN (update_arena_wl_heur N
      (update_trail_wl_heur M
      (update_stats_wl_heur (if E=LEARNED then incr_uset stats else incr_uset (decr_irred_clss stats))
@@ -67,6 +106,7 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
    else if i = 0
    then do {
      j \<leftarrow> mop_isa_length_trail M;
+     let _ = mark_clause_for_unit_as_unchanged 0;
      let (stats, S) = extract_stats_wl_heur S; let (confl, S) = extract_conflict_wl_heur S;
      RETURN (update_trail_wl_heur M
      (update_arena_wl_heur N
@@ -77,14 +117,26 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
      (update_lcount_wl_heur (if E = LEARNED then clss_size_decr_lcount lcount else lcount)
      S)))))))
    }
-   else
-     RETURN (update_trail_wl_heur M
+   else do {
+     let S = (update_trail_wl_heur M
      (update_lcount_wl_heur lcount
      (update_arena_wl_heur N
-     S)))
-     })\<close>
-     unfolding isa_simplify_clause_with_unit_st2_def
-     by (auto simp: state_extractors  split: isasat_int.splits intro!: ext bind_cong[OF refl])
+     S)));
+     _ \<leftarrow> log_new_clause_heur S C;
+     let _ = mark_clause_for_unit_as_changed 0;
+     RETURN S
+   }
+  })\<close>
+  unfolding isa_simplify_clause_with_unit_st2_def
+  apply (auto simp: state_extractors Let_def split: isasat_int.splits intro!: ext bind_cong[OF refl])
+  done
+
+(*TODO Move and generalise*)
+lemma [simp]:
+  \<open>get_clauses_wl_heur (update_trail_wl_heur M S) = get_clauses_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (update_lcount_wl_heur lc S) = get_clauses_wl_heur S\<close>
+  \<open>get_clauses_wl_heur (update_arena_wl_heur N S) = N\<close>
+  by (cases S) (auto simp: update_a_def update_b_def update_n_def split: isasat_int.splits)
 
 sepref_def isa_simplify_clause_with_unit_st2_code
   is \<open>uncurry isa_simplify_clause_with_unit_st2\<close>
@@ -96,6 +148,8 @@ sepref_def isa_simplify_clause_with_unit_st2_code
     mop_arena_status_st_def[symmetric]
     fold_tuple_optimizations
   apply (rewrite at \<open>(cons_trail_Propagated_tr _ \<hole>)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(mark_clause_for_unit_as_changed \<hole>)\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(mark_clause_for_unit_as_unchanged \<hole>)\<close> unat_const_fold[where 'a=64])+
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   supply [[goals_limit=1]]
   by sepref
@@ -223,7 +277,7 @@ sepref_def ahm_empty_code
 
 sepref_register empty
 lemma ahm_empty_empty:
-   \<open>(ahm_empty, empty) \<in> (array_hash_map_rel R) \<rightarrow> \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
+   \<open>(ahm_empty, IsaSAT_Restart_Inprocessing.empty) \<in> (array_hash_map_rel R) \<rightarrow> \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
   unfolding ahm_empty_def empty_def uncurry_def fref_param1
   apply (intro ext frefI nres_relI)
   subgoal for x y
@@ -425,7 +479,7 @@ lemma isa_clause_remove_duplicate_clause_wl_alt_def:
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     let lcount = (if st then lcount else (clss_size_decr_lcount lcount));
     let (stats, S) = extract_stats_wl_heur S;
-    let stats = (if st then decr_irred_clss stats else stats);
+    let stats = incr_binary_red_removed_clss (if st then decr_irred_clss stats else stats);
     let S = update_arena_wl_heur N' S;
     let S = update_lcount_wl_heur lcount S;
     let S = update_stats_wl_heur stats S;
@@ -444,7 +498,7 @@ sepref_def isa_clause_remove_duplicate_clause_wl_impl
   by sepref
 sepref_register isa_binary_clause_subres_wl
 
-
+sepref_register incr_binary_unit_derived_clss
 lemma isa_binary_clause_subres_wl_alt_def:
   \<open>isa_binary_clause_subres_wl C L L' S\<^sub>0 = do {
       ASSERT (isa_binary_clause_subres_lits_wl_pre C L L' S\<^sub>0);
@@ -460,14 +514,16 @@ lemma isa_binary_clause_subres_wl_alt_def:
       ASSERT(\<not>st \<longrightarrow> (clss_size_lcount lcount \<ge> 1 \<and> clss_size_lcountUEk (clss_size_decr_lcount lcount) < learned_clss_count S\<^sub>0));
       let lcount = (if st then lcount else (clss_size_incr_lcountUEk (clss_size_decr_lcount lcount)));
       let (stats, S) = extract_stats_wl_heur S;
-      let stats = (if st then decr_irred_clss stats else stats);
+      let stats = incr_binary_unit_derived_clss (if st then decr_irred_clss stats else stats);
       let stats = incr_units_since_last_GC (incr_uset stats);
       let S = update_trail_wl_heur M S;
       let S = update_arena_wl_heur N' S;
       let S = update_lcount_wl_heur lcount S;
       let S = update_stats_wl_heur stats S;
+      let _ = log_unit_clause L;
       RETURN S
-  }\<close>
+        }\<close>
+  apply (subst Let_def[of \<open>log_unit_clause L\<close>])
   by (auto simp: isa_binary_clause_subres_wl_def learned_clss_count_def
         state_extractors split: isasat_int.splits)
 
@@ -478,6 +534,14 @@ sepref_def isa_binary_clause_subres_wl_impl
   supply [[goals_limit=1]]
   unfolding isa_binary_clause_subres_wl_alt_def[abs_def]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_register binary_deduplicate_required
+sepref_def binary_deduplicate_required_fast_code
+  is \<open>binary_deduplicate_required\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
+  unfolding binary_deduplicate_required_def should_inprocess_st_def
   by sepref
 
 sepref_def isa_deduplicate_binary_clauses_wl_code
@@ -502,11 +566,11 @@ sepref_register get_vmtf_heur_array_nth get_vmtf_heur_fst
 lemma Massign_split: \<open>do{ x \<leftarrow> (M :: _ nres); f x} = do{(a,b) \<leftarrow> M; f (a,b)}\<close>
   by auto
 
-
 lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl2 S\<^sub>0 = (do {
      let ns = get_vmtf_heur_array S\<^sub>0;
     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
+    skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
     CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
     (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {
@@ -514,8 +578,8 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
         let A = the n;
         ASSERT (A < length (get_vmtf_heur_array S));
         ASSERT (A \<le> uint32_max div 2);
-        let skip = False;
-        if skip then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
+        added \<leftarrow> mop_is_marked_added_heur_st S A;
+        if \<not>skip \<or> \<not>added then RETURN (get_next (get_vmtf_heur_array S ! A), CS, S)
         else do {
           ASSERT (length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur S\<^sub>0) \<and> learned_clss_count S \<le> learned_clss_count S\<^sub>0);
           (CS, S) \<leftarrow> isa_deduplicate_binary_clauses_wl (Pos A) CS S;
@@ -528,12 +592,15 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
      (Some (get_vmtf_heur_fst S\<^sub>0), CS, S\<^sub>0);
     RETURN S
           })\<close>
-   unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_def
-   apply (simp add: case_prod_beta)
-   apply (subst Massign_split[of \<open>_ :: (_ \<times> isasat) nres\<close>])
+    unfolding isa_mark_duplicated_binary_clauses_as_garbage_wl2_def bind_to_let_conv
+      nres_monad3
+   apply (simp add: case_prod_beta cong: if_cong)
+   unfolding bind_to_let_conv Let_def prod.simps
+   apply (subst Massign_split[of \<open>isa_deduplicate_binary_clauses_wl (Pos _) _ _\<close>])
+   unfolding prod.simps nres_monad3
    apply (subst (2) Massign_split[of \<open>_ :: (_ \<times> isasat) nres\<close>])
-   unfolding prod.simps
-   apply simp
+   unfolding prod.simps nres_monad3
+   apply (auto intro!: bind_cong[OF refl] cong: if_cong)
    done
 
 sepref_def isa_deduplicate_binary_clauses_code
@@ -545,11 +612,11 @@ sepref_def isa_deduplicate_binary_clauses_code
     length_watchlist_def[unfolded length_ll_def, symmetric]
     length_watchlist_raw_def[symmetric]
   apply (rewrite at \<open>let _ = get_vmtf_heur_array _ in _\<close> Let_def)
-  apply (rewrite at \<open>let _ = False in _\<close> Let_def)
   unfolding if_False nres_monad3
   supply [[goals_limit=1]]
   by sepref
 
+term units_since_last_GC_st_code
 experiment
 begin
  export_llvm isa_simplify_clauses_with_unit_st2_code

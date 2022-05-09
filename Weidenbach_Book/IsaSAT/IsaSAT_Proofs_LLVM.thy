@@ -60,4 +60,23 @@ sepref_def log_unit_clause_impl
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_def mark_literal_for_unit_deletion_impl
+  is \<open>RETURN o mark_literal_for_unit_deletion\<close>
+  :: \<open>unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding mark_literal_for_unit_deletion_def
+  by sepref
+
+
+sepref_def mark_clause_for_unit_as_unchanged_impl
+  is \<open>RETURN o mark_clause_for_unit_as_unchanged\<close>
+  :: \<open>unat64_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding mark_clause_for_unit_as_unchanged_def
+  by sepref
+
+sepref_def mark_clause_for_unit_as_changed_impl
+  is \<open>RETURN o mark_clause_for_unit_as_changed\<close>
+  :: \<open>unat64_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding mark_clause_for_unit_as_changed_def
+  by sepref
+
 end

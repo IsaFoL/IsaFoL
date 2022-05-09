@@ -1137,10 +1137,11 @@ lemma pcdcl_pget_all_init_clss:
     simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss cdcl_inp_propagate.simps
         cdcl_inp_conflict.simps
     cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps
-    cdcl_unitres_true_all_init_clss
+    cdcl_unitres_true_all_init_clss cdcl_pure_literal_remove.simps
     cdcl_inp_conflict.simps pcdcl_all_struct_invs_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl_promote_false.simps
-    cdcl\<^sub>W_restart_mset.no_strange_atm_def)
+    cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    dest!: multi_member_split)
 
 lemma rtranclp_pcdcl_pget_all_init_clss:
   \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>  atms_of_mm (pget_all_init_clss S) =

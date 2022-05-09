@@ -1,8 +1,10 @@
 #define _POSIX_C_SOURCE 2
+#include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/time.h>
@@ -77,12 +79,16 @@ static CLAUSE copy_clause(CLAUSE *cl0) {
   return cl;
 }
 
-static void append_lit(int32_t lit, CLAUSE * cl) {
-  uint32_t ulit = (uint32_t)(lit < 0 ? 2 * (-lit - 1) +1 : 2 * (lit - 1) + 0);
+static void append_raw_lit(uint32_t ulit, CLAUSE * cl) {
   if(cl->used + 1 >= cl->size)
     make_room(cl);
   cl->clause[cl->used] = ulit;
   cl->used++;
+}
+
+static void append_lit(int32_t lit, CLAUSE * cl) {
+  uint32_t ulit = (uint32_t)(lit < 0 ? 2 * (-lit - 1) +1 : 2 * (lit - 1) + 0);
+  append_raw_lit(ulit, cl);
 }
 
 static void free_clause (CLAUSE *cl) {
@@ -155,7 +161,7 @@ HEADER:
 
   num_lits = ch - '0';
   while (isdigit (ch = next ())) num_lits = 10*num_lits + ch - '0';
- 
+
   ch = next ();
   num_clss = ch - '0';
   while (isdigit (ch = next ())) num_clss = 10*num_clss + ch - '0';
@@ -286,6 +292,17 @@ void IsaSAT_LLVM_print_irred_clss_impl(int64_t props) {
 #endif
 }
 
+void IsaSAT_LLVM_print_binary_unit_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c binary unit removed %ld\n", props);
+#endif
+}
+void IsaSAT_LLVM_print_binary_red_removed_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c binary redundant removed %ld\n", props);
+#endif
+}
+
 void print_phase(int8_t phase) {
 #ifdef PRINTSTATS
   if(phase == 1)
@@ -384,9 +401,31 @@ char * find (const char * prg) {
   return res;
 }
 
+CBOOL file_match_extension (const char *path, const int *sig)
+{
+  assert (path);
+  FILE * tmp = fopen (path, "r");
+  if (!tmp) {
+    printf ("failed to open file %s", path);
+    abort();
+  }
+
+  CBOOL res = 1;
+  for (const int *p = sig; res && (*p != EOF); p++)
+    res = (getc(tmp) == *p);
+  fclose (tmp);
+  if (!res) {
+#ifdef PRINTSTATS
+    printf ("file type signature check for '%s' failed\n", path);
+#endif
+ }
+  return res;
+}
 FILE * read_pipe (const char * fmt,
                         const int * sig,
                         const char * path) {
+  if (sig && !file_match_extension (path, sig))
+    return 0;
   return open_pipe (fmt, path, "r");
 }
 
@@ -407,31 +446,139 @@ void print_uint32(uint32_t u) {
 }
 
 FILE *proof = NULL;
+int binary_proof = 1;
+CLAUSE *proof_clause;
+
+static inline int
+isasat_putc (int ch)
+{
+#ifdef _POSIX_C_SOURCE
+  int res = putc_unlocked (ch, proof);
+#else
+  int res = putc (ch, proof);
+#endif
+  return res;
+}
+
+void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t _w) {
+  if (!proof)
+    return;
+
+  if (binary_proof)
+    isasat_putc ('a');
+  // tmp
+  // isasat_putc (' ');
+}
+
+void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t _w) {
+  if (!proof)
+    return;
+  if(!binary_proof) {
+    isasat_putc('0');
+    isasat_putc('\n');
+  }
+  else
+    isasat_putc(0);
+}
+
+
+static void
+isasat_print_binary_lit (uint32_t x)
+{
+  x = x>0 ? 2*x : -2*x+1;
+  unsigned char ch;
+  while (x & ~0x7f)
+    {
+      ch = (x & 0x7f) | 0x80;
+      isasat_putc (ch);
+      x >>= 7;
+    }
+  isasat_putc ((unsigned char) x);
+}
+
+static void
+isasat_print_ascii_lit (uint32_t ilit)
+{
+  fprintf(proof, "%d ", ilit);
+}
+
+static void isasat_print_binary_clause ()
+{
+
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
+    isasat_print_binary_lit(*lit);
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
+}
+
+
+static void isasat_print_ascii_clause ()
+{
+
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit) {
+    isasat_print_ascii_lit(*lit);
+  }
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(0);
+}
+
+static void isasat_print_clause ()
+{
+  if (binary_proof)
+    isasat_print_binary_clause();
+  else
+    isasat_print_ascii_clause();
+}
+
+static void isasat_print_literal (uint32_t lit)
+{
+  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
+  if (binary_proof)
+    isasat_print_binary_lit (ilit);
+  else
+    isasat_print_ascii_lit(ilit);
+}
 
 void IsaSAT_Proofs_LLVM_log_literal_impl(uint32_t lit) {
   if (!proof)
     return;
-  const int ilit = ((lit %2 == 0) ? 1 : -1) * ((lit >> 1) + 1);
-  fprintf(proof, "%d ", ilit);
+  isasat_print_literal (lit);
 }
 
-void IsaSAT_Proofs_LLVM_log_end_clause_impl(uint64_t) {
+void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t _w) {
   if (!proof)
     return;
-  fprintf(proof, "0 \n");
+  isasat_putc ('d');
+  if (!binary_proof)
+    isasat_putc (' ');
 }
 
-void IsaSAT_Proofs_LLVM_log_start_new_clause_impl(uint64_t ) {
+void IsaSAT_Proofs_LLVM_mark_literal_for_unit_deletion_impl(uint32_t lit)
+{
   if (!proof)
     return;
+  append_raw_lit (lit, proof_clause);
 }
 
-void IsaSAT_Proofs_LLVM_log_start_del_clause_impl(uint64_t) {
+void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_changed_impl(uint64_t i)
+{
   if (!proof)
     return;
-  fprintf(proof, "d ");
+  IsaSAT_Proofs_LLVM_log_start_del_clause_impl(i);
+  const uint32_t *end = proof_clause->clause + proof_clause->used;
+  for (uint32_t *lit = proof_clause->clause; lit != end; ++lit)
+    IsaSAT_Proofs_LLVM_log_literal_impl(*lit);
+  IsaSAT_Proofs_LLVM_log_end_clause_impl(i);
+  proof_clause->used = 0;
 }
-  
+
+void IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(uint64_t i)
+{
+  if (!proof)
+    return;
+  proof_clause->used = 0;
+}
+
 
 struct PROFILE {
     long double start;
@@ -565,13 +712,19 @@ int main(int argc, char *argv[]) {
   OPTIONu64 sema = 429450;
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
+  int versionOnly = 0;
 
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     int n;
-    printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
-#ifndef NOOPTIONS    
-    if(strcmp(opt, "--notarget\0") == 0)
+    //printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
+    if(strcmp(opt, "--version\0") == 0)
+      versionOnly = 1;
+    else
+#ifndef NOOPTIONS
+       if(strcmp(opt, "--ascii\0") == 0)
+      binary_proof = 0;
+    else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
@@ -598,22 +751,22 @@ int main(int argc, char *argv[]) {
       ++i;
     }
     else if (opt[0] == '-') {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
       if (inputname) {
       proof_path = opt;
-      printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c proof file %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else if (proof_path) {
-      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
       ++i;
     } else {
-      printf("c input file %s i=%d argc=%d\n", opt, i, argc);
+      // printf("c input file %s i=%d argc=%d\n", opt, i, argc);
       inputname = opt;
     }
   }
-  if(!inputname || has_suffix(inputname, "version\0")) {
+  if(versionOnly || !inputname || has_suffix(inputname, "version\0")) {
     print_version();
     printf("\n");
     return 0;
@@ -631,7 +784,7 @@ int main(int argc, char *argv[]) {
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
 #ifdef PRINTSTATS
-    printf("c compressed file\n");
+    //printf("c compressed file\n");
 #endif
     if (!inputfile) goto READ_FILE;
   } else if (has_suffix (inputname, ".lzma")) {
@@ -648,9 +801,6 @@ int main(int argc, char *argv[]) {
     if (!inputfile) goto READ_FILE;
   } else {
 READ_FILE:
-#ifdef PRINTSTATS
-    printf("c not compressed file\n");
-#endif
     inputfile = fopen (inputname, "r");
   }
 
@@ -661,6 +811,9 @@ READ_FILE:
 
   CLAUSES clauses = parse();
 
+  CLAUSE pc = new_clause();
+  proof_clause = &pc;
+
   fclose(inputfile);
   stop_profile(&parsing_prof);
 
@@ -670,7 +823,7 @@ READ_FILE:
 #ifdef PRINTSTATS
   printf("c    propagations                       redundant                 reductions                  level-0                       LBDS                    not-mem-reasons\n"
 	 "c                     conflicts                      irred                      lrestarts                       GCs                       unit-subsumed               subsumed\n");
-  //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0 
+  //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
@@ -678,10 +831,10 @@ READ_FILE:
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
-  _Bool satisfiable = t & 1;
+  _Bool unsatisfiable = t & 1;
   if(interrupted)
     printf("s UNKNOWN\n");
-  else if (satisfiable)
+  else if (unsatisfiable)
     printf("s UNSATISFIABLE\n");
   else {
     printf("s SATISFIABLE\n");
@@ -694,17 +847,20 @@ READ_FILE:
         printf("v"), c = 1;
       tmp = model.model[i++];
       char str[20];
-      sprintf(str, " %d", tmp);
+      sprintf (str, " %d", tmp);
       int l = strlen(str);
-      if (c + l > 78)
-        printf("\nv"), c = 1;
-      printf("%s", str);
+      if (c + l > 78) {
+        fputs ("\nv", stdout);
+	c = 1;
+      }
+      fputs (str, stdout);
       c += l;
     } while (tmp);
     if (c)
-      printf("\n");
+      fputs("\n", stdout);
   }
   free(model.model);
+
 
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
@@ -720,9 +876,23 @@ READ_FILE:
   printf("c total measured      : %.2Lf%% (%.2Lf s)\n", 100. * total_measure / total_prof.total, total_measure / 1000000.);
   printf("c unverified parsing  : %.2Lf%% (%.2Lf s)\n", 100. * parsing_prof.total / total_prof.total, parsing_prof.total / 1000000.);
 #endif
+
+  char res = -1;
   if (interrupted)
-    return 0;
-  else if (satisfiable)
-    return 20;
-  else return 10;
+    res = 0;
+  else if (unsatisfiable) {
+    // add missing false clause
+    if (proof) {
+      proof_clause->used = 0;
+      IsaSAT_Proofs_LLVM_log_start_new_clause_impl (0);
+      isasat_print_ascii_clause ();
+    }
+    res = 20;
+  }
+  else {
+    res = 10;
+  }
+  if (proof)
+    fflush(proof), fclose(proof);
+  return res;
 }

@@ -49,6 +49,7 @@ lemma get_unit_learned_clss_wl_alt_def:
   \<open>get_unit_learned_clss_wl T = get_unkept_unit_learned_clss_wl T + get_kept_unit_learned_clss_wl T\<close>
   by (cases T) auto
 
+
 section \<open>VMTF\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
@@ -189,7 +190,7 @@ definition watched_by_app_heur_pre where
 
 definition watched_by_app_heur :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
- 
+
 definition mop_watched_by_app_heur :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
   \<open>mop_watched_by_app_heur S L K = do {
      ASSERT(K < length (watched_by_int S L));
@@ -609,6 +610,11 @@ lemma distinct_atoms_rel_cong:
     atoms_hash_rel_def
   by (auto simp: )
 
+lemma phase_saving_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> phase_saving \<A> heur \<Longrightarrow> phase_saving \<B> heur\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  by (auto simp: phase_save_heur_rel_def phase_saving_def)
+
 lemma phase_save_heur_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> phase_save_heur_rel \<A> heur \<Longrightarrow> phase_save_heur_rel \<B> heur\<close>
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
@@ -617,6 +623,7 @@ lemma phase_save_heur_rel_cong:
 lemma heuristic_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
   using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) (get_restart_heuristics heur)\<close>]
+  using phase_saving_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, _, _, _, a, _). a) (get_restart_heuristics heur)\<close>]
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def)
 
 lemma vmtf_cong:
@@ -1146,7 +1153,7 @@ definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> 
      let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
      let S = set_heur_wl_heur heur S;
      let stats = get_stats_heur S;
-     let S = set_stats_wl_heur (incr_restart stats) S;
+     let S = set_stats_wl_heur (incr_restart (incr_lrestart stats)) S;
      RETURN S
   })\<close>
 
@@ -1535,5 +1542,152 @@ definition get_vmtf_heur_array where
   \<open>get_vmtf_heur_array S = fst (fst (get_vmtf_heur S))\<close>
 definition get_vmtf_heur_fst where
   \<open>get_vmtf_heur_fst S = (fst o snd o snd) (fst (get_vmtf_heur S))\<close>
+
+definition mop_mark_added_heur_st :: \<open>_\<close> where
+  \<open>mop_mark_added_heur_st L S = do {
+    let heur = get_heur S;
+    heur \<leftarrow> mop_mark_added_heur L True heur;
+    RETURN (set_heur_wl_heur heur S)
+  } \<close>
+
+definition mark_added_clause_heur2 where
+  \<open>mark_added_clause_heur2 S C = do {
+     i \<leftarrow> mop_arena_length_st S C;
+     ASSERT (i \<le> length (get_clauses_wl_heur S));
+     (_, S) \<leftarrow> WHILE\<^sub>T (\<lambda>(j, S). j < i)
+       (\<lambda>(j, S). do {
+          ASSERT (j<i);
+          L \<leftarrow> mop_access_lit_in_clauses_heur S C j;
+          S \<leftarrow> mop_mark_added_heur_st (atm_of L) S;
+          RETURN (j+1, S)
+        })
+      (0, S);
+    RETURN S
+  }\<close>
+
+definition mark_added_clause2 where
+  \<open>mark_added_clause2 S C = do {
+     i \<leftarrow> RETURN (length (get_clauses_wl S \<propto> C));
+     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(j, T). j \<le> i \<and> T = S\<^esup> (\<lambda>(j, S). j < i)
+       (\<lambda>(j, S). do {
+          ASSERT (j<i);
+          L \<leftarrow> mop_clauses_at (get_clauses_wl S) C j;
+          ASSERT (L \<in> set (get_clauses_wl S \<propto> C));
+          let S = S;
+          RETURN (j+1, S)
+        })
+      (0, S);
+    RETURN S
+  }\<close>
+
+
+lemma mop_mark_added_heur_st_it:
+  assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>A \<in># all_atms_st T\<close>
+  shows \<open>mop_mark_added_heur_st A S \<le> SPEC (\<lambda>c. (c, T) \<in> {(U, V). (U, V) \<in> twl_st_heur \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S})\<close>
+proof -
+  have heur: \<open>heuristic_rel (all_atms_st T) (get_heur S)\<close>
+    using assms(1)
+    by (auto simp: twl_st_heur_def)
+
+  show ?thesis
+    unfolding mop_mark_added_heur_st_def mop_mark_added_heur_def
+    apply refine_vcg
+    subgoal
+      using heur assms(2)
+      unfolding mark_added_heur_pre_def mark_added_heur_pre_stats_def
+      by (auto simp: heuristic_rel_def heuristic_rel_stats_def
+        phase_saving_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+        dest!: multi_member_split)
+    subgoal by (use assms in \<open>auto simp add: twl_st_heur_def\<close>)
+    done
+qed
+
+lemma mark_added_clause_heur2_id:
+  assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  shows \<open>mark_added_clause_heur2 S C
+     \<le> \<Down>{(U, V). (U, V) \<in> twl_st_heur \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S} (RETURN T)\<close> (is \<open>_ \<le>\<Down>?R _\<close>)
+proof -
+  have 1: \<open>mark_added_clause2 T C \<le> \<Down>Id (RETURN T)\<close>
+    unfolding mark_added_clause2_def mop_clauses_at_def nres_monad3
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i,_). length (get_clauses_wl T \<propto> C) -i)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (use assms in auto)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  have [refine]: \<open>y' \<in># dom_m x' \<Longrightarrow>
+    ((x, y), x', y') \<in> {(N, N'). valid_arena N N' (set (get_vdom S))} \<times>\<^sub>f nat_rel \<Longrightarrow>
+    mop_arena_length x y \<le> SPEC (\<lambda>y. (y, length (x' \<propto> y')) \<in> {(a,b). (a,b)\<in>nat_rel \<and> a = length (x' \<propto> y')})\<close> for x y x' y'
+    apply (rule mop_arena_length[THEN fref_to_Down_curry, of _ _ _ _ \<open>set (get_vdom S)\<close>, unfolded comp_def conc_fun_RETURN prod.simps, THEN order_trans])
+    apply assumption
+    apply assumption
+    by auto
+  have [refine]: \<open>((0, S), 0, T) \<in> nat_rel \<times>\<^sub>r ?R\<close>
+    using assms by auto
+  have 2: \<open>mark_added_clause_heur2 S C \<le> \<Down>?R (mark_added_clause2 T C)\<close>
+    unfolding mark_added_clause_heur2_def mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
+      mark_added_clause2_def
+    apply (refine_vcg mop_mark_added_heur_st_it)
+    subgoal by (use assms in auto)
+    subgoal by (use assms in \<open>auto simp: twl_st_heur_def\<close>)
+    subgoal using assms by (auto simp: twl_st_heur_def dest: arena_lifting(10))
+    subgoal by auto
+    subgoal by auto
+    apply (rule_tac vdom = \<open>set (get_vdom (x2a))\<close> in mop_arena_lit2)
+    subgoal by (use assms in \<open>auto simp: twl_st_heur_def\<close>)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (use assms in \<open>auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_def
+        all_lits_of_mm_add_mset image_Un atm_of_all_lits_of_m(2)
+      dest!: multi_member_split\<close>)
+    subgoal by auto
+    subgoal by auto
+    done
+  show ?thesis
+    unfolding mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
+    apply (rule order_trans[OF 2])
+    apply (rule ref_two_step')
+    apply (rule 1[unfolded Down_id_eq])
+    done
+qed
+
+definition mop_is_marked_added_heur_st where
+  \<open>mop_is_marked_added_heur_st S = mop_is_marked_added_heur (get_heur S)\<close>
+
+lemma is_marked_added_heur_st_it:
+  assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>A \<in># all_atms_st T\<close>
+  shows \<open>mop_is_marked_added_heur_st S A \<le> SPEC(\<lambda>c. (c, d) \<in> (UNIV :: (bool \<times> bool) set))\<close>
+proof -
+  have heur: \<open>heuristic_rel (all_atms_st T) (get_heur S)\<close>
+    using assms(1)
+    by (auto simp: twl_st_heur_def)
+  then have \<open>is_marked_added_heur_pre (get_heur S) A\<close>
+    using assms
+    unfolding is_marked_added_heur_pre_def
+    by (auto simp: heuristic_rel_def is_marked_added_heur_pre_stats_def
+      heuristic_rel_stats_def phase_saving_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+  then show ?thesis
+    unfolding mop_is_marked_added_heur_st_def mop_is_marked_added_heur_def
+    by auto
+qed
+
+definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S))\<close>
+
+definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
+
+definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
 
 end

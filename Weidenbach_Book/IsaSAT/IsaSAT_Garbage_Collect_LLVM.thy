@@ -2,6 +2,7 @@ theory IsaSAT_Garbage_Collect_LLVM
   imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
      IsaSAT_VMTF_State_LLVM IsaSAT_Rephase_State_LLVM
      IsaSAT_Arena_Sorting_LLVM
+     IsaSAT_Show_LLVM
 begin
 
 lemma length_ll[def_pat_rules]: \<open>length_ll$xs$i \<equiv> op_list_list_llen$xs$i\<close>
@@ -164,10 +165,40 @@ sepref_def rewatch_heur_st_code
 
 sepref_register isasat_GC_clauses_wl_D
 
+lemma reset_added_heur_st_alt_def:
+  \<open>reset_added_heur_st b S =
+      (let should_inprocess = should_inprocess_st S;
+           (heur, S) = extract_heur_wl_heur S;
+           (stats, S) = extract_stats_wl_heur S;
+           (lcount, S) = extract_lcount_wl_heur S;
+           bc = current_restart_phase heur;
+           heur = if b \<and> should_inprocess then (schedule_next_inprocessing (reset_added_heur heur)) else heur;
+           _ = isasat_print_progress (if should_inprocess then 105 else 103) bc stats (lcount);
+           S = update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)) in
+  S)\<close>
+  by (auto simp: reset_added_heur_st_def state_extractors split: isasat_int.splits
+    intro!: ext)
+
+(*TODO Move*)
+sepref_register should_inprocess_st
+sepref_def should_inprocess_st
+  is \<open>(RETURN o should_inprocess_st)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding should_inprocess_st_def
+  by sepref
+(*END Move*)
+
+thm isasat_print_progress_stats_isasat_print_progress
+sepref_def reset_added_heur_st_impl
+  is \<open>uncurry (RETURN oo reset_added_heur_st)\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding reset_added_heur_st_alt_def
+  by sepref
+
 sepref_def isasat_GC_clauses_wl_D_code
-  is \<open>isasat_GC_clauses_wl_D\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  is \<open>uncurry isasat_GC_clauses_wl_D\<close>
+  :: \<open>[\<lambda>(b, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      bool1_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_GC_clauses_wl_D_rewatch_pre[intro!]
   unfolding isasat_GC_clauses_wl_D_def
   by sepref

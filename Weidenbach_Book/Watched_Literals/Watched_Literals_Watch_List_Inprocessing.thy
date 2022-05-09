@@ -717,33 +717,45 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
 }\<close>
 
 
+lemma correct_watching'_leaking_bin_pure_lit:
+  assumes
+    \<open>correct_watching'_leaking_bin (a, b, c, d, e, f, g, h, i, ja, k, l, m)\<close>
+    \<open>L \<in># all_init_lits_of_wl (a, b, c, d, e, f, g, h, i, ja, k, l, m)\<close>
+  shows \<open>correct_watching'_leaking_bin
+    (Propagated L 0 # a, b, c, d, e,
+     add_mset {#L#} f, g, h, i, ja, k,
+     add_mset (-L) l, m)\<close>
+proof -
+  have [simp]: \<open>set_mset (all_init_lits_of_wl
+        ([], b, c, d, {#}, add_mset {#L#} f, {#}, h,
+    {#}, ja, {#}, add_mset (-L) l, m)) =
+    set_mset (all_init_lits_of_wl
+    ([], b, c, d, {#}, f, {#}, h, {#}, ja, {#}, l, m))\<close>
+    using assms unfolding all_init_lits_of_wl_def
+    by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
+      all_lits_of_m_add_mset all_lits_of_mm_union in_all_lits_of_mm_uminus_iff)
+  show ?thesis
+    using assms
+    by (auto simp: correct_watching'_leaking_bin.simps clause_to_update_def)
+qed
+
 lemma correct_watching'_leaking_bin_propagate_unit_irred:
   assumes 
     \<open>irred b j\<close> and
     \<open>j \<in># dom_m b\<close> and
-    \<open>correct_watching'_leaking_bin (a, b, None, d, e, f, g, h, i, ja, k, l, m)\<close>
+    \<open>correct_watching'_leaking_bin (a, b, c, d, e, f, g, h, i, ja, k, l, m)\<close>
     \<open>L \<in> set (b \<propto> j)\<close>
   shows \<open>correct_watching'_leaking_bin
-    (Propagated L 0 # a, b, None, d, e,
+    (Propagated L 0 # a, b, c, d, e,
      add_mset {#L#} f, g, h, i, ja, k,
      add_mset (-L) l, m)\<close>
 proof -
-  have 1: \<open>L \<in># all_lits_of_mm {#mset (fst x). x \<in># init_clss_l b#}\<close>
-    by (metis assms(1) assms(2) assms(4) in_all_lits_of_mm_init_clss_l_single_out
-      in_clause_in_all_lits_of_m in_set_mset_eq_in)
-  moreover have \<open>- L \<in># all_lits_of_mm {#mset (fst x). x \<in># init_clss_l b#}\<close>
-    using 1 by (simp add: in_all_lits_of_mm_uminus_iff)
-  ultimately have [simp]: \<open>set_mset (all_init_lits_of_wl
-        ([], b, None, d, {#}, add_mset {#L#} f, {#}, h,
-    {#}, ja, {#}, add_mset (-L) l, m)) =
-    set_mset (all_init_lits_of_wl
-    ([], b, None, d, {#}, f, {#}, h, {#}, ja, {#}, l, m))\<close>
-    using assms unfolding all_init_lits_of_wl_def
-    by (auto simp: all_init_lits_of_wl_def all_lits_of_mm_add_mset
-      all_lits_of_m_add_mset all_lits_of_mm_union)
-  show ?thesis
-    using assms
-    by (auto simp: correct_watching'_leaking_bin.simps clause_to_update_def)
+  have \<open>L \<in># all_init_lits_of_wl (a, b, c, d, e, f, g, h, i, ja, k, l, m)\<close>
+    using assms by (auto simp: all_lits_of_mm_union all_lits_of_mm_add_mset all_init_lits_of_wl_def
+      ran_m_def in_clause_in_all_lits_of_m
+      dest!: multi_member_split)
+  from correct_watching'_leaking_bin_pure_lit[OF _ this] show ?thesis
+    using assms by blast
 qed
 
 
@@ -1321,8 +1333,8 @@ definition mark_duplicated_binary_clauses_as_garbage_wl :: \<open>_ \<Rightarrow
      (S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_duplicated_binary_clauses_as_garbage_wl_inv Ls S\<^esup>(\<lambda>(S, Ls). Ls \<noteq> {#} \<and> get_conflict_wl S = None)
       (\<lambda>(S, Ls). do {
         L \<leftarrow> SPEC (\<lambda>L. L \<in># Ls);
-        skip \<leftarrow> RES (UNIV :: bool set);
         ASSERT (L \<in># atm_of `# all_init_lits_of_wl S);
+        skip \<leftarrow> RES (UNIV :: bool set);
         if skip then RETURN (S, remove1_mset L Ls)
         else do {
           S \<leftarrow> deduplicate_binary_clauses_wl (Pos L) S;
@@ -1604,7 +1616,6 @@ definition forward_subsumption_one_wl_inv :: \<open>nat \<Rightarrow> nat list \
   \<open>forward_subsumption_one_wl_inv = (\<lambda>k ys S (i, x).
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_inv k S' (mset (take i ys), x)))\<close>
 
-term forward_subsumption_one_inv
 definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> nat list \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
   \<open>forward_subsumption_one_wl = (\<lambda>k xs S . do {
   ASSERT (forward_subsumption_one_wl_pre k S xs);
@@ -1761,6 +1772,7 @@ lemma cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
   \<open>cdcl_twl_inprocessing_l S T \<Longrightarrow> dom_m (get_clauses_l T) \<subseteq># dom_m (get_clauses_l S)\<close>
   by (auto simp: cdcl_twl_inprocessing_l.simps cdcl_twl_unitres_true_l.simps cdcl_twl_unitres_l.simps
     cdcl_twl_subsumed_l.simps cdcl_twl_subresolution_l.simps add_mset_eq_add_mset
+    cdcl_twl_pure_remove_l.simps
     dest!: multi_member_split)
 
 lemma rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
@@ -1877,4 +1889,73 @@ S \<leftarrow> simplify_clause_with_unit_st_wl C S;
   })\<close>
 *)
 
+subsection \<open>Pure literal deletion\<close>
+
+definition propagate_pure_wl_pre:: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>propagate_pure_wl_pre L S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_pure_l_pre L S' \<and> correct_watching'_leaking_bin S \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+
+definition propagate_pure_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>propagate_pure_bt_wl = (\<lambda>L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS). do {
+    ASSERT(propagate_pure_wl_pre L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS));
+    M \<leftarrow> cons_trail_propagate_l L 0 M;
+    RETURN (M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, add_mset (-L) Q, WS)})\<close>
+
+lemma propagate_pure_bt_wl_propagate_pure_bt_l:
+  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows
+    \<open>propagate_pure_bt_wl L S \<le>\<Down>{(S,T). correct_watching'_leaking_bin S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (propagate_pure_bt_l L S')\<close>
+proof -
+  have K: \<open>cons_trail_propagate_l L 0 a = cons_trail_propagate_l L 0 b \<Longrightarrow>
+    cons_trail_propagate_l L 0 a \<le>\<Down>{(x,y). x = y \<and> y = Propagated L 0 # a} (cons_trail_propagate_l L 0 b)\<close> for a b
+    unfolding cons_trail_propagate_l_def
+    by refine_rcg auto
+  show ?thesis
+    unfolding propagate_pure_bt_wl_def propagate_pure_bt_l_def
+    apply refine_rcg
+    subgoal using assms unfolding propagate_pure_wl_pre_def apply - by (rule exI[of _ S']) fast
+    apply (rule K)
+    subgoal using assms by (auto simp: state_wl_l_def correct_watching'_leaking_bin.simps)
+    subgoal
+      using assms
+      by (auto simp: state_wl_l_def propagate_pure_l_pre_def in_all_lits_of_mm_uminusD
+        all_init_lits_of_wl_def all_init_lits_of_l_def get_init_clss_l_def
+        intro!: correct_watching'_leaking_bin_pure_lit
+        simp: literals_are_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
+          all_learned_lits_of_wl_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    done
+qed
+
+definition pure_literal_deletion_wl_pre where
+  \<open>pure_literal_deletion_wl_pre S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> pure_literal_deletion_pre S' \<and>
+    correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+definition pure_literal_deletion_candidates_wl where
+  \<open>pure_literal_deletion_candidates_wl S = SPEC (\<lambda>Ls. Ls \<subseteq># all_init_lits_of_wl S)\<close>
+
+definition pure_literal_deletion_wl_inv where
+  \<open>pure_literal_deletion_wl_inv S xs0 = (\<lambda>(T, xs).
+     \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> pure_literal_deletion_l_inv S' xs0 (T', xs))\<close>
+
+definition pure_literal_deletion_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>pure_literal_deletion_wl S = do {
+    ASSERT (pure_literal_deletion_wl_pre S);
+    let As =  \<Union>(set_mset ` set_mset (mset `# get_init_clss_wl S));
+    xs \<leftarrow> pure_literal_deletion_candidates_wl S;
+    (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_wl_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
+      (\<lambda>(S, xs). do {
+        L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
+        if -L \<notin> As \<and> undefined_lit (get_trail_wl S) L
+        then do {S \<leftarrow> propagate_pure_bt_wl L S;
+          RETURN (S, remove1_mset L xs)}
+        else RETURN (S, remove1_mset L xs)
+      })
+    (S, xs);
+  RETURN S
+  }\<close>
+
 end
+

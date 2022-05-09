@@ -3,6 +3,18 @@ imports
   IsaSAT_Restart_Reduce IsaSAT_Restart_Inprocessing
 begin
 
+text \<open>
+
+  For simplification in our proofs, our inprocessing contains both inprocessing (currently:
+  deduplication of binary clauses) and removal of unit clauses. We leave the concrete schedule
+  to the inprocessing function.
+\<close>
+definition should_inprocess_or_unit_reduce_st :: \<open>isasat \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>should_inprocess_or_unit_reduce_st S should_GC \<longleftrightarrow>
+      (should_GC \<and> units_since_last_GC_st S > 0) \<or>
+      should_inprocess_st S \<or>
+      GC_units_required S\<close>
+
 definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
   \<open>restart_required_heur S last_GC last_Restart n = do {
     ASSERT(learned_clss_count S \<ge> last_Restart);
@@ -17,10 +29,13 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
     if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red \<or> \<not>fully_proped then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
     then do {
-      GC_required \<leftarrow> GC_required_heur S n;
-      let upper = upper_restart_bound_not_reached S;
-      if (opt_res \<or> opt_red) \<and> \<not>upper \<and> can_GC
-      then RETURN FLAG_GC_restart
+      should_GC \<leftarrow> GC_required_heur S n;
+      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
+      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
+      if should_reduce
+      then if should_inprocess
+      then RETURN FLAG_Inprocess_restart
+      else if should_GC then RETURN FLAG_GC_restart else RETURN FLAG_Reduce_restart
       else if heuristic_reluctant_triggered2_st S \<and> can_res
         then RETURN FLAG_restart
         else RETURN FLAG_no_restart
@@ -38,12 +53,12 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
         level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
            \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
         of_nat level > (shiftr fema 32));
-      GC_required \<leftarrow> GC_required_heur S n;
-      let should_inprocess = (GC_units_required S \<or> (GC_required \<and> units_since_last_GC_st S > 0));
+      should_GC \<leftarrow> GC_required_heur S n;
+      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart
-        else if GC_required
+        else if should_GC
         then RETURN FLAG_GC_restart
         else RETURN FLAG_Reduce_restart
       else if should_restart
@@ -74,7 +89,7 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
     ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    V \<leftarrow> isasat_GC_clauses_wl_D False U;
     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
     RETURN (clss_size_resetUS0_st V)
   }\<close>
@@ -96,7 +111,7 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog_alt_def:
     U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
     ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-    V \<leftarrow> isasat_GC_clauses_wl_D U;
+    V \<leftarrow> isasat_GC_clauses_wl_D False U;
     RETURN (clss_size_resetUS0_st V)
   }\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def IsaSAT_Profile.start_def
@@ -262,7 +277,7 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
       U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
       ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
       ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-      V \<leftarrow> isasat_GC_clauses_wl_D U;
+      V \<leftarrow> isasat_GC_clauses_wl_D True U;
       _ \<leftarrow> RETURN (IsaSAT_Profile.stop_GC);
       RETURN (clss_size_resetUS0_st V)
     }
@@ -294,7 +309,7 @@ lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
       U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
       ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
       ASSERT(learned_clss_count U \<le> learned_clss_count S0);
-      V \<leftarrow> isasat_GC_clauses_wl_D U;
+      V \<leftarrow> isasat_GC_clauses_wl_D True U;
       RETURN (clss_size_resetUS0_st V)
    }
   }\<close>

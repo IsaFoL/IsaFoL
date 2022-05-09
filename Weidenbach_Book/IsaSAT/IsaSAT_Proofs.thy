@@ -45,7 +45,7 @@ definition log_clause2 :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> u
         })
       0;
     RETURN ()
-}\<close>
+   }\<close>
 
 definition log_clause :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> unit\<close> where \<open>log_clause S _ = ()\<close>
 
@@ -135,4 +135,18 @@ definition log_unit_clause where
       _ = log_end_clause 0 in
      ()
   )\<close>
+
+text \<open>For removing unit literals, we cheat as usual: we signal to the C side which literals are in
+and flush the clause if need be (without effect on the Isabelle side, because we neither want nor care
+about the proofs).\<close>
+
+definition mark_literal_for_unit_deletion :: \<open>nat literal \<Rightarrow> unit\<close> where
+  \<open>mark_literal_for_unit_deletion _ = ()\<close>
+
+definition mark_clause_for_unit_as_unchanged :: \<open>nat \<Rightarrow> unit\<close> where
+  \<open>mark_clause_for_unit_as_unchanged _ = ()\<close>
+
+definition mark_clause_for_unit_as_changed :: \<open>nat \<Rightarrow> unit\<close> where
+  \<open>mark_clause_for_unit_as_changed _ = ()\<close>
+
 end

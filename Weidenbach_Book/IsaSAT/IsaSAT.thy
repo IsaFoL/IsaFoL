@@ -47,32 +47,44 @@ lemmas cdcl_twl_stgy_restart_restart_prog_spec = cdcl_twl_stgy_restart_prog_spec
 
 lemmas cdcl_twl_stgy_restart_prog_bounded_spec = cdcl_twl_stgy_prog_bounded_spec
 
-lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
-  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
-  by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.cases cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps)
+lemma rtranclp_pcdcl_satisfiable_iff:
+  assumes
+    \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    ent_init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows
+    \<open>satisfiable (set_mset (pget_all_init_clss S)) \<longleftrightarrow> satisfiable (set_mset (pget_all_init_clss T))\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal
+    by (auto dest!: pcdcl_satisfiable_iff intro: rtranclp_pcdcl_all_struct_invs
+       Pragmatic_CDCL.rtranclp_pcdcl_entailed_by_init)
+  done
 
-lemma rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_init_state:
-  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
-  unfolding rtranclp_unfold
-  by (subst tranclp_unfold_begin)
-    (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step
-       cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state
-      simp del: init_state.simps
-       dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy)
+lemma pcdcl_stgy_restart_satisfiable_iff:
+  \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, g) (R1', R2', T, m', n', g') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  satisfiable (set_mset (pget_all_init_clss T)) \<longleftrightarrow> satisfiable (set_mset (pget_all_init_clss S))\<close>
+  apply (induction \<open>(R1, R2, S, m, n, g)\<close> \<open>(R1', R2', T, m', n', g')\<close> rule: pcdcl_stgy_restart.induct)
+  apply (auto dest: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
+    dest: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+    rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_satisfiable_iff)[]
+  apply (meson rtranclp_pcdcl_inprocessing_satisfiable_iff rtranclp_pcdcl_restart_inprocessing rtranclp_pcdcl_stgy_pcdcl rtranclp_trans)
+  apply (meson satisfiable_carac true_cls_mset_true_clss_iff(2) twl_restart_ops.pcdcl_restart_only_entailed_iff)
+  by simp
 
-lemma rtranclp_pcdcl_core_is_cdcl:
-  \<open>pcdcl_core\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (state_of S) (state_of T)\<close>
-  by (induction rule: rtranclp.induct)
-    (auto dest: pcdcl_core_is_cdcl)
+lemma rtranclp_pcdcl_restart_satisfiable_iff:
+  \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, g) (R1', R2', T, m', n', g') \<Longrightarrow>
+  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
+  satisfiable (set_mset (pget_all_init_clss T)) \<longleftrightarrow> satisfiable (set_mset (pget_all_init_clss S))\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+  subgoal by auto
+  subgoal for T U
+    by (simp add: pcdcl_stgy_restart_satisfiable_iff pcdcl_stgy_restart_same_init_vars
+      rtranclp_pcdcl_stgy_restart_entailed_by_init rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs)
+  done
 
-lemma pcdcl_tcore_is_cdclD:
-  \<open>pcdcl_tcore T T' \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of T) (state_of T')\<close>
-  by (induction rule: pcdcl_tcore.induct)
-    (auto intro: pcdcl_restart.intros dest!: pcdcl_core_is_cdcl
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart pcdcl_tcore_stgy_pcdcl_tcoreD
-      state_of_cdcl_subsumed cdcl_flush_unit_unchanged
-      cdcl_backtrack_unit_is_CDCL_backtrack)
 
 fun pinit_state :: \<open>'v clauses \<Rightarrow> 'v prag_st\<close> where
 \<open>pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#}, {#}, {#})\<close>
@@ -80,259 +92,6 @@ fun pinit_state :: \<open>'v clauses \<Rightarrow> 'v prag_st\<close> where
 lemma get_all_clss_alt_def:
   \<open>get_all_clss S = get_all_init_clss S + get_all_learned_clss S\<close>
   by (cases S) (auto simp: ac_simps clauses_def)
-
-lemma rtranclp_pcdcl_entailed_by_init:
-  assumes \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-   (auto dest!: pcdcl_entailed_by_init
-    intro: rtranclp_pcdcl_all_struct_invs)
-
-lemma pcdcl_inprocessing_entailed_by_init:
-  \<open>pcdcl_inprocessing S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  apply (induction rule: pcdcl_inprocessing.induct)
-  subgoal for S T
-    using pcdcl_entailed_by_init[of S T] by auto
-  subgoal
-    using pcdcl_restart_entailed_by_init by blast
-  done
-
-lemma rtranclp_pcdcl_inprocessing_entailed_by_init:
-  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal
-    by auto
-  subgoal for T U
-    using pcdcl_inprocessing_entailed_by_init[of T U] rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S T]
-    by blast
-  done
-
-find_theorems cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init pcdcl
-lemma pcdcl_stgy_restart_entailed_by_init:
-  assumes \<open>pcdcl_stgy_restart (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
-  subgoal
-    using pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init rtranclp_pcdcl_stgy_pcdcl
-    by blast
-  subgoal for U
-    using pcdcl_restart_entailed_by_init[of U R1'] pcdcl_restart_pcdcl_all_struct_invs[of S U]
-      rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S U]
-      rtranclp_pcdcl_inprocessing_entailed_by_init[of S U]
-    by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
-      rtranclp_pcdcl_stgy_pcdcl
-      dest: pcdcl_restart_pcdcl_all_struct_invs)
-  subgoal
-    using pcdcl_restart_only_entailed_by_init[of S U]
-    by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
-      rtranclp_pcdcl_stgy_pcdcl
-      dest: pcdcl_restart_only_entailed_by_init)
-  subgoal
-    by auto
-  done
-
-lemma pcdcl_stgy_restart_pcdcl_all_struct_invs:
-  assumes \<open>pcdcl_stgy_restart (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
-    \<open>pcdcl_all_struct_invs S\<close>
-  shows \<open>pcdcl_all_struct_invs T\<close>
-  using assms
-  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
-  apply (simp_all add: pcdcl_tcore_stgy_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs
-    rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl)
-  using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl
-    rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs apply blast
-  using pcdcl_restart_only_pcdcl_all_struct_invs by blast
-
-lemma rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs:
-  assumes \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
-    \<open>pcdcl_all_struct_invs S\<close>
-  shows \<open>pcdcl_all_struct_invs T\<close>
-  using assms
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
-    (auto dest!: pcdcl_stgy_restart_pcdcl_all_struct_invs)
-
-lemma rtranclp_pcdcl_stgy_restart_entailed_by_init:
-  assumes \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
-    \<open>pcdcl_all_struct_invs S\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
-   (auto dest!: pcdcl_stgy_restart_entailed_by_init rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs)
-
-lemma pcdcl_core_entailed_iff:
-  \<open>pcdcl_core S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  by (induction rule: pcdcl_core.induct)
-   (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
-    cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
-
-lemma pcdcl_entailed_iff:
-  \<open>pcdcl S T \<Longrightarrow> consistent_interp M \<Longrightarrow>
-  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-    M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction rule: pcdcl.induct)
-  subgoal
-    by (auto simp: pcdcl_core_entailed_iff)
-  subgoal
-    by (auto simp: cdcl_learn_clause.simps true_clss_cls_def total_over_m_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-      dest: spec[of _ M])
-  subgoal
-    by (auto simp: cdcl_resolution.simps total_over_m_def consistent_interp_def)
-  subgoal
-    by (auto simp: cdcl_subsumed.simps)
-  subgoal
-    by (auto simp: cdcl_flush_unit.simps)
-  subgoal
-    by (auto simp: cdcl_inp_propagate.simps)
-  subgoal
-    by (auto simp: cdcl_inp_conflict.simps)
-  subgoal
-    by (auto simp: cdcl_unitres_true.simps)
-  subgoal
-    by (auto simp: cdcl_promote_false.simps)
-  done
-
-lemma pcdcl_core_same_init_vars:
-  \<open>pcdcl_core S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: pcdcl_core.induct)
-   (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
-    cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
-
-lemma pcdcl_restart_same_init_vars:
-  \<open>pcdcl_restart S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: pcdcl_restart.induct) auto
-
-lemma pcdcl_restart_only_same_init_vars:
-  \<open>pcdcl_restart_only S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: pcdcl_restart_only.induct) auto
-
-lemma rtranclp_pcdcl_entailed_iff:
-  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using rtranclp_pcdcl_pget_all_init_clss[of S T] pcdcl_pget_all_init_clss[of T U]
-      Pragmatic_CDCL.rtranclp_pcdcl_entailed_by_init[of S T]
-      rtranclp_pcdcl_all_struct_invs[of S T]
-    by (auto dest!: pcdcl_entailed_iff[of _ _ M] simp del: atms_of_ms_union)
-  done
-
-
-lemma pcdcl_restart_entailed_iff:
-  \<open>pcdcl_restart S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  by (induction rule: pcdcl_restart.induct) (auto)
-
-lemma pcdcl_inprocessing_entailed_iff:
-  \<open>pcdcl_inprocessing S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction rule: pcdcl_inprocessing.induct)
-  using pcdcl_entailed_iff apply blast
-  using pcdcl_restart_entailed_iff by blast
-
-lemma rtranclp_pcdcl_inprocessing_entailed_iff:
-  \<open>pcdcl_inprocessing\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using
-      pcdcl_inprocessing_entailed_iff[of T U M] rtranclp_pcdcl_inprocessing_entailed_by_init[of T U]
-      rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs[of S T]
-      rtranclp_pcdcl_inprocessing_pget_all_init_clss[of S T]
-      pcdcl_inprocessing_pget_all_init_clss[of T U]
-      apply auto
-      using rtranclp_pcdcl_inprocessing_entailed_by_init apply blast+
-      done
-  done
-
-lemma pcdcl_restart_only_entailed_iff:
-  \<open>pcdcl_restart_only S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  by (induction rule: pcdcl_restart_only.induct) (auto)
-
-lemma pcdcl_stgy_restart_same_init_vars:
-  \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
-  pcdcl_all_struct_invs S \<Longrightarrow>
-     atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
-  subgoal
-    by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
-      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-      simp: rtranclp_pcdcl_pget_all_init_clss)
-  subgoal for U
-    apply (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_pget_all_init_clss
-      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy')
-    using rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss apply blast
-      by (smt pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs rtranclp_pcdcl_inprocessing_pget_all_init_clss rtranclp_pcdcl_pget_all_init_clss)
-  subgoal
-    by (auto simp: pcdcl_restart_only_same_init_vars)
-  subgoal
-    by auto
-  done
-
-lemma rtranclp_pcdcl_stgy_restart_same_init_vars:
-  \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
-  pcdcl_all_struct_invs S \<Longrightarrow>
-     atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
-  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
-  subgoal
-    by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
-      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-      rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_pget_all_init_clss)
-  subgoal
-    by (auto dest: rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs
-      pcdcl_stgy_restart_same_init_vars)
-  done
-
-lemma pcdcl_stgy_restart_entailed_iff:
-  \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
-  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
-  M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
-  apply (auto dest: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
-    dest: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
-    rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_entailed_iff)[]
-  apply (smt pcdcl_restart_entailed_iff pcdcl_restart_pcdcl_all_struct_invs pcdcl_restart_same_init_vars
-    rtranclp_pcdcl_entailed_iff rtranclp_pcdcl_inprocessing_entailed_by_init
-    rtranclp_pcdcl_inprocessing_entailed_iff rtranclp_pcdcl_inprocessing_pcdcl_all_struct_invs
-    rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_stgy_pget_all_init_clss twl_restart_ops.pcdcl_restart_entailed_by_init)
-  using pcdcl_restart_only_entailed_iff apply blast
-  by simp
-
-lemma rtranclp_pcdcl_restart_entailed_iff:
-  \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
-  pcdcl_all_struct_invs S \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S) \<Longrightarrow>
-  consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
-  M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
-  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
-  subgoal by auto
-  subgoal for T U
-    by (simp add: pcdcl_stgy_restart_entailed_iff pcdcl_stgy_restart_same_init_vars
-      rtranclp_pcdcl_stgy_restart_entailed_by_init rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs)
-  done
-
-lemma [simp]: \<open>pget_all_init_clss (pstate\<^sub>W_of S) = (get_all_init_clss S)\<close>
-  by (cases S) auto
-
-lemma empty_entails_novars_iff: \<open>atms_of_mm S = {} \<Longrightarrow> {} \<Turnstile>ps set_mset S \<longleftrightarrow> S = {#}\<close>
-  unfolding true_clss_clss_def
-  by (cases S) (auto simp: satisfiable_def total_over_m_def intro: Ex_consistent_interp)
 
 lemma conclusive_TWL_run_conclusive_CDCL_state:
   assumes
@@ -432,7 +191,7 @@ proof (rule RES_refine)
         in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def\<close>)
     then show \<open>unsatisfiable (set_mset (get_all_init_clss S))\<close>
-      using rtranclp_pcdcl_restart_entailed_iff[OF pcdcl]
+      using rtranclp_pcdcl_restart_satisfiable_iff[OF pcdcl]
         rtranclp_pcdcl_stgy_restart_same_init_vars[OF pcdcl] struct_invs_s init pcdcl_invs
       by (auto simp: satisfiable_def total_over_m_def twl_struct_invs_def)
   qed
@@ -1802,10 +1561,10 @@ definition empty_conflict :: \<open>nat literal list option\<close> where
 definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
-  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
+  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
 
 
 definition convert_state where
@@ -3821,7 +3580,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
 definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code' = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 
 lemma IsaSAT_bounded_heur_alt_def:
