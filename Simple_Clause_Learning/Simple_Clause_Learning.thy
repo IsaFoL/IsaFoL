@@ -1178,6 +1178,130 @@ next
     by (simp add: mgu_subst_range_vars)
 qed
 
+primrec pairs where
+  "pairs [] = []" |
+  "pairs (x # xs) = (x, x) # map (Pair x) xs @ map (\<lambda>y. (y, x)) xs @ pairs xs"
+
+lemma "set (pairs [a, b, c, d]) =
+  {(a, a), (a, b), (a, c), (a, d),
+   (b, a), (b, b), (b, c), (b, d),
+   (c, a), (c, b), (c, c), (c, d),
+   (d, a), (d, b), (d, c), (d, d)}"
+  by auto
+
+lemma set_pairs: "set (pairs xs) = {(x, y). x \<in> set xs \<and> y \<in> set xs}"
+  by (induction xs) auto
+
+text \<open>Reflexive and symmetric pairs are not necessary to computing the MGU, but it makes the set of
+the resulting list equivalent to @{term "{(x, y). x \<in> xs \<and> y \<in> ys}"}, which is necessary for the
+following properties.\<close>
+
+lemma pair_in_set_pairs: "a \<in> set as \<Longrightarrow> b \<in> set as \<Longrightarrow> (a, b) \<in> set (pairs as)"
+  by (induction as) auto
+
+lemma fst_pair_in_set_if_pair_in_pairs: "p \<in> set (pairs as) \<Longrightarrow> fst p \<in> set as"
+  by (induction as) auto
+
+lemma snd_pair_in_set_if_pair_in_pairs: "p \<in> set (pairs as) \<Longrightarrow> snd p \<in> set as"
+  by (induction as) auto
+
+lemma vars_mset_mset_pairs:
+  "vars_mset (mset (pairs as)) = (\<Union>b \<in> set as. \<Union>a \<in> set as. vars_term a \<union> vars_term b)"
+  by (induction as) (auto simp: vars_mset_def)
+
+definition mgu_sets where
+  "mgu_sets \<mu> AAA \<longleftrightarrow> (\<exists>ass. set (map set ass) = AAA \<and>
+    map_option subst_of (unify (concat (map pairs ass)) []) = Some \<mu>)"
+
+lemma is_mimgu_if_mgu_sets:
+  assumes mgu_AAA: "mgu_sets \<mu> AAA"
+  shows "is_mimgu \<mu> AAA"
+  unfolding is_mimgu_def
+proof (rule conjI)
+  from mgu_AAA obtain ass xs where
+    AAA_def: "AAA = set (map set ass)" and
+    unify: "unify (concat (map pairs ass)) [] = Some xs" and
+    "subst_of xs = \<mu>"
+    unfolding mgu_sets_def by auto
+  hence "Unifiers.is_imgu \<mu> (set (concat (map pairs ass)))"
+    using unify_sound[OF unify] by simp
+  moreover have "unifiers (set (concat (map pairs ass))) = {\<upsilon>. is_unifiers \<upsilon> AAA}"
+    unfolding AAA_def
+  proof (rule Set.equalityI; rule Set.subsetI; unfold mem_Collect_eq)
+    fix x assume x_in: "x \<in> unifiers (set (concat (map pairs ass)))"
+    show "is_unifiers x (set (map set ass))"
+      unfolding is_unifiers_def
+    proof (rule ballI)
+      fix As assume "As \<in> set (map set ass)"
+      hence "finite As" by auto
+
+      from \<open>As \<in> set (map set ass)\<close> obtain as where
+        as_in: "as \<in> set ass" and As_def: "As = set as"
+        by auto
+
+      show "is_unifier x As"
+        unfolding is_unifier_alt[OF \<open>finite As\<close>]
+      proof (intro ballI)
+        fix A B assume "A \<in> As" "B \<in> As"
+        hence "\<exists>xs \<in> set ass. (A, B) \<in> set (pairs xs)"
+          using as_in by (auto simp: As_def intro: pair_in_set_pairs)
+        thus "A \<cdot>a x = B \<cdot>a x"
+          using x_in[unfolded unifiers_def mem_Collect_eq, rule_format, of "(A, B)", simplified]
+          by simp
+      qed
+    qed
+  next
+    fix x assume is_unifs_x: "is_unifiers x (set (map set ass))"
+    show "x \<in> unifiers (set (concat (map pairs ass)))"
+      unfolding unifiers_def mem_Collect_eq
+    proof (rule ballI)
+      fix p assume "p \<in> set (concat (map pairs ass))"
+      then obtain as where "as \<in> set ass" and p_in: "p \<in> set (pairs as)"
+        by auto
+      hence is_unif_x: "is_unifier x (set as)"
+        using is_unifs_x[unfolded is_unifiers_def] by simp
+      moreover have "fst p \<in> set as"
+        by (rule p_in[THEN fst_pair_in_set_if_pair_in_pairs])
+      moreover have "snd p \<in> set as"
+        by (rule p_in[THEN snd_pair_in_set_if_pair_in_pairs])
+      ultimately show "fst p \<cdot>a x = snd p \<cdot>a x"
+        unfolding is_unifier_alt[of "set as", simplified]
+        by blast
+    qed
+  qed
+  ultimately show "is_imgu \<mu> AAA"
+    unfolding Unifiers.is_imgu_def is_imgu_def by simp
+next
+  from mgu_AAA obtain Ass xs where
+    AAA_def: "AAA = set (map set Ass)" and
+    unify: "unify (concat (map pairs Ass)) [] = Some xs" and
+    "subst_of xs = \<mu>"
+    unfolding mgu_sets_def by auto
+
+  then obtain ss where
+    compose_ss: "compose ss = \<mu>" and
+    UNIF_ss: "UNIF ss (mset (concat (map pairs Ass))) {#}"
+    by (auto dest: unify_Some_UNIF)
+
+  have "vars_mset (mset (concat (map pairs Ass))) = (\<Union>T\<in>AAA. \<Union> (vars_term ` T))"
+    using AAA_def
+  proof (induction Ass arbitrary: AAA)
+    case Nil
+    thus ?case by (simp add: vars_mset_def)
+  next
+    case (Cons As Ass)
+    from Cons.prems have AAA_def': "AAA = insert (set As) (set (map set Ass))"
+      by simp
+    moreover have "vars_mset (mset (pairs As)) = \<Union> (vars_term ` set As)"
+      by (simp add: vars_mset_mset_pairs)
+    ultimately show ?case
+      by (simp add: Cons.IH[OF refl])
+  qed
+  then show "range_vars \<mu> \<subseteq> (\<Union>T\<in>AAA. \<Union> (vars_term ` T))"
+    using UNIF_range_vars_subset[OF UNIF_ss, unfolded compose_ss]
+    by simp
+qed
+
 
 subsubsection \<open>Renaming Extra\<close>
 
