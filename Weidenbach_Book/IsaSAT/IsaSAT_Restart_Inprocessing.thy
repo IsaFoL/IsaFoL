@@ -1363,7 +1363,7 @@ proof -
    done
 qed
 
-
+(*TODO seems unused in the generated code*)
 definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_unit_st_wl2 S = do {
   let b = (units_since_last_GC_st S > 0) in
@@ -3001,5 +3001,252 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_cl
   apply (rule isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_clauses_as_garbage_wl)
   apply (rule assms)+
   done
+
+term map_fun_rel
+definition isa_pure_literal_count_occs_clause_wl_invs :: \<open>_\<close> where
+  \<open>isa_pure_literal_count_occs_clause_wl_invs C S occs =
+  (\<lambda>(i, occs2, remaining). \<exists>S' r u occs' occs2'. (S, S') \<in> twl_st_heur_restart_ana' r u \<and>
+    (occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')) \<and>
+    (occs2, occs2') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')) \<and>
+    pure_literal_count_occs_clause_wl_invs C S' occs' (i, occs2'))\<close>
+
+definition isa_pure_literal_count_occs_clause_wl_pre :: \<open>_\<close> where
+  \<open>isa_pure_literal_count_occs_clause_wl_pre C S occs =
+  (\<exists>S' r u occs'. (S, S') \<in> twl_st_heur_restart_ana' r u \<and>
+    (occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')) \<and>
+    pure_literal_count_occs_clause_wl_pre C S' occs')\<close>
+
+definition isa_pure_literal_count_occs_clause_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> _ \<Rightarrow> 32 word \<Rightarrow> _\<close> where
+  \<open>isa_pure_literal_count_occs_clause_wl C S occs remaining = do {
+    ASSERT (isa_pure_literal_count_occs_clause_wl_pre C S occs);
+    m \<leftarrow> mop_arena_length_st S C;
+    (i, occs, _) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_pure_literal_count_occs_clause_wl_invs C S occs\<^esup> (\<lambda>(i, occs, remaining). i < m)
+      (\<lambda>(i, occs, remaining). do {
+        L \<leftarrow> mop_access_lit_in_clauses_heur S C i;
+        ASSERT (nat_of_lit L < length occs);
+        ASSERT (nat_of_lit (-L) < length occs);
+        let remaining = (if \<not>occs!(nat_of_lit L) \<and> occs ! (nat_of_lit (-L)) then remaining-1 else remaining);
+        let occs = occs [nat_of_lit L := True];
+        RETURN (i+1, occs, remaining)
+      })
+      (0, occs, remaining);
+   RETURN (occs, remaining)
+ }\<close>
+
+
+lemma isa_pure_literal_count_occs_clause_wl_pure_literal_count_occs_clause_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+    \<open>(occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S'))\<close>
+    \<open>(C,C')\<in>nat_rel\<close>
+  shows \<open>isa_pure_literal_count_occs_clause_wl C S occs remaining \<le>\<Down>{((occs, remaining), occs').
+    (occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S'))}
+    (pure_literal_count_occs_clause_wl C' S' occs')\<close>
+proof -
+  have pure_literal_count_occs_clause_wl_alt_def:
+    \<open>pure_literal_count_occs_clause_wl C S occs = do {
+    ASSERT (pure_literal_count_occs_clause_wl_pre C S occs);
+    let m = length (get_clauses_wl S \<propto> C);
+    (i, occs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_count_occs_clause_wl_invs C S occs\<^esup> (\<lambda>(i, occs). i < m)
+      (\<lambda>(i, occs). do {
+        let L = get_clauses_wl S \<propto> C ! i;
+        let occs = occs (L := True);
+        RETURN (i+1, occs)
+      })
+      (0, occs);
+   RETURN occs
+  }\<close> for C S occs
+     by (auto simp: pure_literal_count_occs_clause_wl_def)
+  have [refine0]: \<open> ((0, occs, remaining), 0, occs') \<in> {((n, occs, remaining), n', occs').
+             (n,n')\<in> nat_rel \<and> (occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S'))}\<close>
+    using assms by auto
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del]
+    unfolding isa_pure_literal_count_occs_clause_wl_def pure_literal_count_occs_clause_wl_alt_def
+      mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
+    apply (refine_vcg mop_arena_length[THEN fref_to_Down_curry, unfolded comp_def,
+      of \<open>get_clauses_wl S'\<close> C' \<open>get_clauses_wl_heur S\<close> C \<open>set (get_vdom S)\<close>]
+      mop_arena_lit(2)[THEN RETURN_as_SPEC_refine, of _ _ \<open>set (get_vdom S)\<close>])
+    subgoal using assms unfolding isa_pure_literal_count_occs_clause_wl_pre_def by fast
+    subgoal
+      unfolding pure_literal_count_occs_clause_wl_pre_def
+        pure_literal_count_occs_l_clause_pre_def
+      by normalize_goal+ auto
+    subgoal using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+    subgoal using assms unfolding isa_pure_literal_count_occs_clause_wl_invs_def by fast
+    subgoal by auto
+    subgoal using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+    subgoal
+      unfolding pure_literal_count_occs_clause_wl_pre_def
+        pure_literal_count_occs_l_clause_pre_def
+      by normalize_goal+ auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      unfolding pure_literal_count_occs_clause_wl_pre_def
+        pure_literal_count_occs_l_clause_pre_def
+      by normalize_goal+
+       (auto simp add: map_fun_rel_def ran_m_def all_init_atms_alt_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) all_init_lits_of_wl_def all_lits_of_mm_add_mset
+        dest!: multi_member_split
+        dest: nth_mem_mset[THEN in_clause_in_all_lits_of_m])
+    subgoal
+      unfolding pure_literal_count_occs_clause_wl_pre_def
+        pure_literal_count_occs_l_clause_pre_def
+      apply normalize_goal+
+      apply (auto 4 3 simp add: map_fun_rel_def ran_m_def all_init_atms_alt_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) all_init_lits_of_wl_def all_lits_of_mm_add_mset
+        dest!: multi_member_split
+        dest: nth_mem_mset[THEN in_clause_in_all_lits_of_m] in_all_lits_of_mm_uminusD)
+      by (metis Un_iff all_lits_of_mm_add_mset in_all_lits_of_mm_uminusD in_clause_in_all_lits_of_m
+        nth_mem_mset set_mset_union)
+    subgoal by (auto simp add: map_fun_rel_def)
+    subgoal by auto
+    done
+qed
+
+(*
+TODO replace the hard coded constant by the the number of remaining literals *)
+definition isa_pure_literal_count_occs_wl :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>isa_pure_literal_count_occs_wl S = do {
+  let xs = get_avdom S @ get_ivdom S;
+  let m = length (xs);
+  let remaining = 1000000;
+  let abort = (remaining \<le> 0);
+  let occs = replicate (length (get_watched_wl_heur S)) False;
+  ASSERT (m \<le> length (get_clauses_wl_heur S) - 2);
+  (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, occs, remaining). i < m \<and> remaining > 0)
+      (\<lambda>(i, occs, remaining). do {
+        let C = (get_avdom S @ get_ivdom S) ! i;
+        E \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
+        if (E = IRRED) then do {
+          (occs, remaining) \<leftarrow> isa_pure_literal_count_occs_clause_wl C S occs remaining;
+          let abort = (remaining \<le> 0);
+          RETURN (i+1, occs, remaining)
+        } else RETURN  (i+1, occs, remaining)
+      })
+      (0, occs, remaining);
+   RETURN (abort \<le> 0, occs)
+  }\<close>
+(*TODO Move*)
+lemma distinct_mset_add_subset_iff: \<open>distinct_mset (A+B) \<Longrightarrow> A + B \<subseteq># C \<longleftrightarrow> A \<subseteq># C \<and> B \<subseteq># C\<close>
+  by (induction A)
+   (auto simp add: insert_subset_eq_iff subset_remove1_mset_notin)
+
+lemma isa_pure_literal_count_occs_wl_pure_literal_count_occs_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_pure_literal_count_occs_wl S \<le>
+    \<Down> (bool_rel \<times>\<^sub>f \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')))
+    (pure_literal_count_occs_wl S')\<close>
+proof -
+  have pure_literal_count_occs_wl_alt_def:
+  \<open>pure_literal_count_occs_wl S = do {
+  ASSERT (pure_literal_count_occs_wl_pre S);
+  xs \<leftarrow> SPEC (\<lambda>xs. distinct_mset xs \<and> (\<forall>C\<in>#dom_m (get_clauses_wl S). irred (get_clauses_wl S) C \<longrightarrow> C \<in># xs));
+  abort \<leftarrow> RES (UNIV :: bool set);
+  let occs = (\<lambda>_. False);
+  (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(A, occs, abort). A \<noteq> {#} \<and> \<not>abort)
+      (\<lambda>(A, occs, abort). do {
+        ASSERT (A \<noteq> {#});
+        C \<leftarrow> SPEC (\<lambda>C. C \<in># A);
+        b \<leftarrow> RETURN (C \<in># dom_m (get_clauses_wl S));
+        if (b \<and> irred (get_clauses_wl S) C) then do {
+          occs \<leftarrow> pure_literal_count_occs_clause_wl C S occs;
+          abort \<leftarrow> RES (UNIV :: bool set);
+          RETURN (remove1_mset C A, occs, abort)
+        } else RETURN  (remove1_mset C A, occs, abort)
+      })
+      (xs, occs, abort);
+   RETURN (abort, occs)
+  }\<close> for S
+  by (auto simp: pure_literal_count_occs_wl_def)
+
+  have dist: \<open>distinct_mset A \<Longrightarrow> distinct_mset B \<Longrightarrow> set_mset A \<inter> set_mset B = {} \<Longrightarrow> distinct_mset (A + B)\<close> for A B
+    by (metis distinct_mset_add set_mset_eq_empty_iff set_mset_inter)
+
+  have [refine0]: \<open>pure_literal_count_occs_wl_pre S' \<Longrightarrow>
+    RETURN (get_avdom S @ get_ivdom S)
+    \<le> \<Down> (list_mset_rel)
+    (SPEC
+      (\<lambda>xs. distinct_mset xs \<and>
+      (\<forall>C\<in>#dom_m (get_clauses_wl S').
+    irred (get_clauses_wl S') C \<longrightarrow> C \<in># xs)))\<close>
+    apply (rule RETURN_SPEC_refine)
+    apply (rule exI[of _ \<open>mset (get_avdom S @ get_ivdom S)\<close>])
+    using assms unfolding twl_st_heur_restart_def twl_st_heur_restart_ana_def in_pair_collect_simp
+    apply -
+    apply normalize_goal+
+    by (auto simp: list_mset_rel_def br_def aivdom_inv_dec_alt_def
+      dest: distinct_mset_mono
+      intro!: dist)
+  have conj_eqI: \<open>a=a' \<Longrightarrow> b=b' \<Longrightarrow> (a&b) = (a'&b')\<close> for a a' b b'
+    by auto
+  have [refine0]: \<open>(get_avdom S @ get_ivdom S, xs) \<in> list_mset_rel \<Longrightarrow>
+    (c \<le> 0, abort) \<in> bool_rel \<Longrightarrow>
+    ((0, replicate (length (get_watched_wl_heur S)) False, c),
+  xs, \<lambda>_. False, abort)
+  \<in> {(i,xs). xs = mset (drop i  (get_avdom S @ get_ivdom S))} \<times>\<^sub>r \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')) \<times>\<^sub>r {(a,b). b = (a \<le> 0)}\<close> for xs abort c
+    using assms unfolding twl_st_heur_restart_def twl_st_heur_restart_ana_def in_pair_collect_simp
+    apply -
+    apply normalize_goal+
+    by (auto simp: list_mset_rel_def br_def map_fun_rel_def all_init_atms_alt_def)
+  have [refine0]: \<open>RETURN (0 \<ge> a) \<le> \<Down> bool_rel (RES UNIV)\<close> for a
+    by auto
+  have K: \<open>(a',b)\<in> nat_rel \<Longrightarrow> (a, a'\<in># dom_m (get_clauses_wl S')) \<in> A\<Longrightarrow> (a,b\<in># dom_m (get_clauses_wl S'))\<in>A\<close> for a b f A a'
+    by auto
+  have aivdom: \<open>aivdom_inv_dec (get_aivdom S) (dom_m (get_clauses_wl S'))\<close> and
+    valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close>
+    using assms
+    by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+      aivdom_inv_dec_alt_def dest!: )
+  have dist_vdom: \<open>distinct (get_vdom S)\<close> and
+      valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close>
+    using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def aivdom_inv_dec_alt_def)
+
+
+  have vdom_incl: \<open>set (get_vdom S) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur S)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have dist: \<open>distinct_mset A \<Longrightarrow> distinct_mset B \<Longrightarrow> set_mset A \<inter> set_mset B = {} \<Longrightarrow> distinct_mset (A + B)\<close> for A B
+    by (metis distinct_mset_add set_mset_eq_empty_iff set_mset_inter)
+  then have dist2: \<open>distinct_mset (mset (get_avdom S @ get_ivdom S))\<close>
+    using aivdom unfolding aivdom_inv_dec_alt_def
+    by (auto intro!: dist dest: distinct_mset_mono)
+
+  have \<open>mset (get_avdom S @ get_ivdom S) \<subseteq># mset (get_vdom S)\<close>
+    using dist2 aivdom unfolding aivdom_inv_dec_alt_def
+    by (auto simp: distinct_mset_add_subset_iff dist2)
+  then have \<open>length (get_avdom S @ get_ivdom S) \<le> length (get_vdom S)\<close>
+    using size_mset_mono by fastforce
+  also have le_vdom_arena: \<open>length (get_vdom S) \<le> length (get_clauses_wl_heur S) - 2\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  finally have le: \<open>length (get_avdom S @ get_ivdom S) \<le> length (get_clauses_wl_heur S) - 2\<close> .
+  show ?thesis
+    unfolding isa_pure_literal_count_occs_wl_def
+      pure_literal_count_occs_wl_alt_def
+    apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = 0xF4240 in _\<close> Let_def)
+    apply (refine_vcg mop_arena_status2[where vdom=\<open>set(get_vdom S)\<close> and N=\<open>get_clauses_wl S'\<close>]
+      isa_pure_literal_count_occs_clause_wl_pure_literal_count_occs_clause_wl)
+    subgoal by (rule le)
+    subgoal by (auto simp: word_greater_zero_iff)
+    subgoal by (auto 6 4 intro: in_set_dropI simp: nth_append)
+    apply (assumption)
+    subgoal
+      using aivdom
+      apply (simp add: aivdom_inv_dec_alt_def)
+      by (metis (no_types, lifting) Un_iff length_append mset_subset_eqD nth_mem_mset
+        set_mset_mset set_union_code)
+    subgoal by (rule valid)
+    apply (rule K;assumption)
+    subgoal by auto
+    apply (rule assms)
+    subgoal by simp
+    subgoal by (auto simp: drop_Suc_nth simp del: drop_append)
+    subgoal by (auto simp: drop_Suc_nth simp del: drop_append)
+    subgoal by auto
+    done
+qed
 
 end

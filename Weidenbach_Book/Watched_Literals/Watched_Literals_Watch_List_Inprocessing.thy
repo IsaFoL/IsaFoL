@@ -2138,6 +2138,7 @@ definition pure_literal_count_occs_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<cl
   \<open>pure_literal_count_occs_wl S = do {
   ASSERT (pure_literal_count_occs_wl_pre S);
   xs \<leftarrow> SPEC (\<lambda>xs. distinct_mset xs \<and> (\<forall>C\<in>#dom_m (get_clauses_wl S). irred (get_clauses_wl S) C \<longrightarrow> C \<in># xs));
+  abort \<leftarrow> RES (UNIV :: bool set);
   let occs = (\<lambda>_. False);
   (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(A, occs, abort). A \<noteq> {#} \<and> \<not>abort)
       (\<lambda>(A, occs, abort). do {
@@ -2149,7 +2150,7 @@ definition pure_literal_count_occs_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<cl
           RETURN (remove1_mset C A, occs, abort)
         } else RETURN  (remove1_mset C A, occs, abort)
       })
-      (xs, occs, False);
+      (xs, occs, abort);
    RETURN (abort, occs)
   }\<close>
 
@@ -2160,8 +2161,8 @@ lemma pure_literal_count_occs_wl_pure_literal_count_occs_l:
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>pure_literal_count_occs_wl S \<le> \<Down>Id (pure_literal_count_occs_l S')\<close>
 proof -
-  have [refine0]: \<open>(xs, xsa)\<in> Id \<Longrightarrow>
-    ((xs, \<lambda>_. False, False), xsa, \<lambda>_. False, False) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<close> for xs xsa
+  have [refine0]: \<open>(xs, xsa)\<in> Id \<Longrightarrow> (abort, abort') \<in> bool_rel \<Longrightarrow>
+    ((xs, \<lambda>_. False, abort), xsa, \<lambda>_. False, abort') \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<close> for xs xsa abort abort'
     by auto
   show ?thesis
     unfolding pure_literal_count_occs_wl_def pure_literal_count_occs_l_def

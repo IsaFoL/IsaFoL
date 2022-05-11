@@ -3819,6 +3819,7 @@ definition pure_literal_count_occs_l :: \<open>'v twl_st_l \<Rightarrow> _\<clos
   \<open>pure_literal_count_occs_l S = do {
   ASSERT (pure_literal_count_occs_l_pre S);
   xs \<leftarrow> SPEC (\<lambda>xs. distinct_mset xs \<and> (\<forall>C\<in>#dom_m (get_clauses_l S). irred (get_clauses_l S) C \<longrightarrow> C \<in># xs));
+  abort \<leftarrow> RES (UNIV :: bool set);
   let occs = (\<lambda>_. False);
   (_, occs, abort) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_count_occs_l_inv S xs\<^esup>(\<lambda>(A, occs, abort). A \<noteq> {#} \<and> \<not>abort)
       (\<lambda>(A, occs, abort). do {
@@ -3831,7 +3832,7 @@ definition pure_literal_count_occs_l :: \<open>'v twl_st_l \<Rightarrow> _\<clos
             RETURN (remove1_mset C A, occs, abort)
         } else RETURN  (remove1_mset C A, occs, abort)
       })
-      (xs, occs, False);
+      (xs, occs, abort);
    RETURN (abort, occs)
   }\<close>
 
@@ -3860,7 +3861,7 @@ proof -
     subgoal
       unfolding pure_literal_count_occs_l_clause_pre_def
       by simp
-    subgoal for x s a b aa ba xa xb xc (*TODO Proof*)
+    subgoal for x abort s a b aa ba xa xb xc (*TODO Proof*)
       using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
       apply (auto dest!: multi_member_split[of \<open>_ :: nat\<close> a] multi_member_split[of xa] dest: mset_subset_eq_insertD
         simp add: pure_literal_count_occs_l_inv_def intro!: ext split: if_splits)
@@ -3869,7 +3870,7 @@ proof -
       by (metis (no_types, lifting) diff_add_mset_swap insert_DiffM insert_noteq_member mset_subset_eqD)
     subgoal
       by (auto dest!: multi_member_split)
-    subgoal for x s a b aa ba xa
+    subgoal for x abort s a b aa ba xa
       by (auto simp: pure_literal_count_occs_l_inv_def minus_remove1_mset_if)
     subgoal
       by (auto dest!: multi_member_split)
