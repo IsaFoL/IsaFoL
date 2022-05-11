@@ -2201,12 +2201,30 @@ definition pure_literal_elimination_round_wl where
 lemma pure_literal_elimination_round_wl_pure_literal_elimination_round_l:
   assumes
     \<open>(S, S') \<in> state_wl_l None\<close>
-    \<open>twl_list_invs S'\<close>
-    \<open>no_lost_clause_in_WL S\<close>
+    \<open>correct_watching'_leaking_bin S\<close>
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>pure_literal_elimination_round_wl S \<le>
     \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_round S')\<close>
 proof -
+  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_round_pre S'\<close>
+  proof -
+    obtain S'' where
+      S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs S''\<close> and
+      \<open>twl_list_invs S'\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'')\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
+      \<open>clauses_to_update_l S' = {#}\<close> and
+      \<open>count_decided (get_trail_l S') = 0\<close>
+      using pre unfolding pure_literal_elimination_round_pre_def by fast
+    have \<open>correct_watching'_nobin S\<close>
+      using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
+        correct_watching'_nobin.simps)
+    then show ?thesis
+      using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
+      by fast
+
+   qed
   show ?thesis
     unfolding pure_literal_elimination_round_wl_def pure_literal_elimination_round_def
     apply (refine_vcg
@@ -2215,7 +2233,7 @@ proof -
       pure_literal_deletion_wl_pure_literal_deletion_l)
     subgoal using assms unfolding pure_literal_elimination_round_wl_pre_def by fast
     subgoal using assms by fast
-    subgoal using assms by (cases S; auto)
+    subgoal by (rule lost)
     subgoal using assms by fast
     subgoal by auto
     subgoal by auto
