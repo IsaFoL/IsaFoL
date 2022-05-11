@@ -785,9 +785,9 @@ lemma ecl_ord_conv[simp]:
   by simp
 
 lemma ck_unifier_conv: "ck_unifier t s \<sigma> k \<longleftrightarrow>
-  Unifier \<sigma> t s \<and> (k = FirstOrder \<longrightarrow> (\<forall>\<theta>. Unifier \<theta> t s \<longrightarrow> (\<exists>\<gamma>. \<theta> \<doteq> \<sigma> \<lozenge> \<gamma>)))"
+  Unifier \<sigma> t s \<and> (k = FirstOrder \<longrightarrow> (\<forall>\<theta>. Unifier \<theta> t s \<longrightarrow> \<theta> \<doteq> \<sigma> \<lozenge> \<theta>))"
   unfolding ck_unifier_def
-  by (cases k) (simp_all add: MGU_def)
+  by (cases k) (simp_all add: IMGU_def)
 
 lemma reflexion_conclusion_smaller:
   assumes refl_C': "reflexion P1 C \<sigma> k C'" and fin_P1: "finite (cl_ecl P1)"
@@ -843,8 +843,7 @@ proof -
     using t_neq_s
     using trm_ord_subst by blast
   moreover have "t \<lhd> \<sigma> = u \<lhd> \<sigma>"
-    using unif_t_u
-    by (cases k) (simp_all add: ck_unifier_def MGU_def Unifier_def)
+    by (rule unif_t_u[THEN ck_unifier_thm])
   ultimately have "(mset_lit (subst_lit (equational_clausal_logic.literal.Neg (Eq s v)) \<sigma>),
     mset_lit (subst_lit L2 \<sigma>)) \<in> mult trm_ord"
     using orient_L2 unfolding orient_lit_inst_def
@@ -1863,7 +1862,7 @@ proof unfold_locales
     by (auto simp: to_SuperCalc_cl_def)
   thus "\<exists>B' \<in> {{#}}. B' \<in> N"
     by simp
-qed
+  oops
 
 
 subsubsection \<open>First-Order SuperCalc\<close>
@@ -2091,178 +2090,235 @@ lemma subst_if_in_dom: "x \<in> fst ` set \<sigma> \<Longrightarrow> \<exists>p 
 primrec the_Var where
   "the_Var (Var x) = x"
 
-lemma
-  assumes
-    (* ren_\<rho>: "renaming \<rho> V" and *)
-    inj_\<rho>: "inj (\<lambda>x. Var x \<lhd> \<rho>)" and
-    all_var_\<rho>: "\<forall>x. is_a_variable (Var x \<lhd> \<rho>)" and
-    (* vars_t_u_subset: "vars_of t \<union> vars_of u \<subseteq> V" and *)
-    \<rho>_\<rho>_inv_ident: "\<forall>x. Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
-    (* "\<forall>x. x \<notin> subst_codomain \<rho> V \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x" and *)
-    mgu_\<mu>: "MGU \<mu> t u" and
-    distinct_fst_\<mu>: "distinct (map fst \<mu>)"
-  defines "\<mu>' \<equiv> map (\<lambda>(x, v). (the_Var (assoc x (Var x) \<rho>), v \<lhd> \<rho>)) \<mu>"
-  shows "MGU \<mu>' (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
-  unfolding MGU_def
-proof (intro conjI allI impI)
-  from mgu_\<mu> have "Unifier \<mu> t u"
-    by (simp add: MGU_is_Unifier)
+term subst_codomain
+definition subst_domain where
+  "subst_domain \<sigma> = {x. Var x \<lhd> \<sigma> \<noteq> Var x}"
 
-  have *: "t \<lhd> \<rho> \<lhd> \<mu>' = t \<lhd> \<mu> \<lhd> \<rho>" (* if "vars_of t \<subseteq> V" *) for t
-    unfolding composition_of_substs Unification.agreement[of t]
-  proof (rule ballI)
-    fix x assume "x \<in> vars_of t"
-    (* with \<open>vars_of t \<subseteq> V\<close> have "x \<in> V" by blast *)
-    (* then *) obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
-      using all_var_\<rho> is_a_variable.elims(2) by blast
-      
-    show "Var x \<lhd> \<rho> \<lozenge> \<mu>' = Var x \<lhd> \<mu> \<lozenge> \<rho>"
-      unfolding composition_of_substs[symmetric]
-      unfolding x_\<rho> \<mu>'_def
-    proof (induction \<mu>)
-      case Nil
-      then show ?case
-        using x_\<rho> by simp
-    next
-      case (Cons p \<mu>)
-      obtain y v where p_def: "p = (y, v)"
-        by fastforce
-      show ?case
-      proof (cases "x = y")
+
+lemma assoc_ident_if_not_in_dom': "x \<notin> subst_domain \<sigma> \<Longrightarrow> Var x \<lhd> \<sigma> = Var x"
+  by (simp add: subst_domain_def)
+
+find_consts "_ subst \<Rightarrow> _ set"
+
+lemma map_of_map_map_prod_eq_SomeD:
+  assumes "map_of (map (map_prod f g) xs) k = Some v"
+  shows "\<exists>k' v'. f k' = k \<and> g v' = v \<and> map_of xs k' = Some v'"
+  using assms
+proof (induction xs)
+  case Nil
+  thus ?case by simp
+next
+  case (Cons x xs)
+  thus ?case
+    by (cases "k = f (fst x)"; force)
+qed
+
+lemma map_of_map_map_prod_eq_Some_if:
+  assumes inj_f: "inj_on f V" and
+    "dom (map_of xs) \<subseteq> V" and
+    "f k' = k" and "g v' = v" and "map_of xs k' = Some v'"
+  shows "map_of (map (map_prod f g) xs) k = Some v"
+  using assms(2,5-)
+proof (induction xs)
+  case Nil
+  thus ?case by simp
+next
+  case (Cons x xs)
+  show ?case 
+  proof (cases "k = f (fst x)")
+    case True
+    with Cons.prems inj_f assms(3,4) show ?thesis
+      by (smt (verit, best) domI inj_onD inj_on_subset list.simps(9) map_of_Cons_code(2)
+          map_prod_simp option.sel prod.collapse)
+  next
+    case False
+    with Cons assms(3,4) show ?thesis
+      by (smt (verit, ccfv_SIG) domIff fst_map_prod fun_upd_apply list.simps(9) map_of.simps(2)
+          option.simps(3) subset_iff)
+  qed
+qed
+
+lemma map_of_map_map_prod_eq_None_if:
+  assumes inj_f: "inj_on f V" and
+    "dom (map_of xs) \<subseteq> V" and "k \<in> V"
+    "map_of xs k = None"
+  shows "map_of (map (map_prod f g) xs) (f k) = None"
+  using assms(2-)
+proof (induction xs)
+  case Nil
+  thus ?case by simp
+next
+  case (Cons x xs)
+  show ?case
+  proof (cases "k = (fst x)")
+    case True
+    with Cons.prems have False by simp
+    thus ?thesis ..
+  next
+    case False
+    moreover have "f k \<noteq> f (fst x)"
+      using inj_f \<open>k \<in> V\<close>
+      by (metis Cons.prems(1) calculation domI fun_upd_same inj_onD map_of.simps(2) subset_iff)
+    ultimately show ?thesis
+      apply simp
+      using Cons.IH
+      using Cons.prems(1) Cons.prems(3) assms(3) by force
+  qed
+qed
+
+lemma inj_on_if_renaming: "renaming \<rho> V \<Longrightarrow> inj_on (\<lambda>x. Var x \<lhd> \<rho>)  V"
+  unfolding renaming_def by (meson inj_onI)
+
+lemma IMGU_of_renamed_if_IMGU:
+  assumes
+    ren_\<rho>: "renaming \<rho> V" and
+    \<rho>_\<rho>_inv_ident: "\<forall>x \<in> V. Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
+    vars_t_u_subset: "vars_of t \<union> vars_of u \<subseteq> V" and
+    dom_\<mu>: "fst `set \<mu> \<subseteq> vars_of t \<union> vars_of u" and
+    mgu_\<mu>: "IMGU \<mu> t u"
+  defines "\<mu>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<mu>"
+  shows "IMGU \<mu>' (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
+proof -
+  from ren_\<rho> have all_var_\<rho>: "\<forall>x \<in> V. is_a_variable (Var x \<lhd> \<rho>)"
+    by (simp add: renaming_def)
+
+  from ren_\<rho> have inj_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) V"
+    by (rule inj_on_if_renaming)
+  hence inj_\<rho>': "inj_on (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) V"
+    by (smt (verit, best) inj_onI ren_\<rho> renaming_def renaming_var_to_var the_Var.simps)
+  have "subst_domain \<mu> \<subseteq> dom (map_of \<mu>)"
+    unfolding subst_domain_def
+    by (metis (mono_tags, lifting) assoc_eq_map_of_or_default domIff mem_Collect_eq option.case(1)
+        subsetI subst.simps(1))
+
+  from dom_\<mu> vars_t_u_subset have dom_\<mu>': "dom (map_of \<mu>) \<subseteq> V"
+    by (metis dom_map_of_conv_image_fst subset_trans)
+
+  from mgu_\<mu> have unif_\<mu>: "Unifier \<mu> t u"
+    by (simp add: IMGU_def)
+
+  from mgu_\<mu> have most_general_idem: "\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> \<theta> \<doteq> \<mu> \<lozenge> \<theta>"
+    by (simp add: IMGU_def)
+
+  show ?thesis
+    unfolding IMGU_def
+  proof (intro conjI allI impI)
+    have *: "t \<lhd> \<rho> \<lhd> \<mu>' = t \<lhd> \<mu> \<lhd> \<rho>" if "vars_of t \<subseteq> V" for t
+      unfolding composition_of_substs Unification.agreement[of t]
+    proof (rule ballI)
+      fix x assume "x \<in> vars_of t"
+      with \<open>vars_of t \<subseteq> V\<close> have "x \<in> V" by blast
+      then obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
+        using all_var_\<rho> is_a_variable.elims(2) by blast
+      hence x_\<rho>': "the_Var (Var x \<lhd> \<rho>) = x'" by force
+        
+      show "Var x \<lhd> \<rho> \<lozenge> \<mu>' = Var x \<lhd> \<mu> \<lozenge> \<rho>"
+      proof (cases "x \<in> subst_domain \<mu>")
         case True
+        then obtain v where "map_of \<mu> x = Some v" and "v \<noteq> Var x"
+          unfolding subst_domain_def mem_Collect_eq
+          apply (simp add: assoc_eq_map_of_or_default)
+          by (metis option.case_eq_if option.collapse)
+        hence "map_of \<mu>' x' = Some (v \<lhd> \<rho>)"
+          using map_of_map_map_prod_eq_Some_if[
+              of _ _ _ _ _ "\<lambda>v. v \<lhd> \<rho>", OF inj_\<rho>' dom_\<mu>' x_\<rho>' refl]
+          by (simp add: \<mu>'_def)
         then show ?thesis
-          unfolding list.map p_def prod.case
-          using x_\<rho> by simp
+          unfolding composition_of_substs[symmetric] x_\<rho>
+          by (simp add: assoc_eq_map_of_or_default \<open>map_of \<mu> x = Some v\<close>)
       next
         case False
-        hence "Var x \<lhd> \<rho> \<noteq> assoc y (Var y) \<rho>"
-          using inj_\<rho>[THEN injD, of x y] by auto
-        hence "x' \<noteq> the_Var (assoc y (Var y) \<rho>)"
-          using all_var_\<rho> x_\<rho>
-          by (metis is_a_variable.elims(2) subst.simps(1) the_Var.simps)
+        hence "Var x \<lhd> \<mu> = Var x"
+          by (simp add: subst_domain_def)
+        hence FOO: "map_of \<mu> x = None \<or> map_of \<mu> x = Some (Var x)"
+          apply (simp add: assoc_eq_map_of_or_default)
+          by (metis option.case_eq_if option.collapse)
+        show ?thesis
+          unfolding composition_of_substs[symmetric]
+          unfolding assoc_ident_if_not_in_dom'[OF False]
+          unfolding x_\<rho>
+          apply (simp add: assoc_eq_map_of_or_default)
+          unfolding \<mu>'_def
+          using FOO
+          apply (elim disjE)
+          subgoal premises prem
+            unfolding map_of_map_map_prod_eq_None_if[OF inj_\<rho>' dom_\<mu>' \<open>x \<in> V\<close> prem, unfolded x_\<rho>']
+            by simp
+          subgoal premises prem
+            unfolding map_of_map_map_prod_eq_Some_if[OF inj_\<rho>' dom_\<mu>' x_\<rho>' refl prem]
+            using x_\<rho> by simp
+          done
+      qed
+    qed
+  
+    show "Unifier \<mu>' (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
+      using unif_\<mu> vars_t_u_subset
+      by (simp add: Unifier_def *)
+  next
+    fix \<upsilon> assume "Unifier \<upsilon> (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
+    hence unif_\<rho>_\<upsilon>: "Unifier (\<rho> \<lozenge> \<upsilon>) t u"
+      by (simp add: Unifier_def)
+    then obtain \<gamma> where **: "\<rho> \<lozenge> \<upsilon> \<doteq> \<mu> \<lozenge> \<gamma>"
+      using mgu_\<mu> by (auto simp: IMGU_def)
+    hence *: "\<forall>v. Var v \<lhd> \<rho> \<lhd> \<upsilon> = Var v \<lhd> \<mu> \<lhd> \<gamma>"
+      by (metis comp_subst_terms subst_comp)
+
+    from most_general_idem have BAR: "\<rho> \<lozenge> \<upsilon> \<doteq> \<mu> \<lozenge> \<rho> \<lozenge> \<upsilon>"
+      using unif_\<rho>_\<upsilon> by fastforce
+    hence FOO: "\<forall>v. Var v \<lhd> \<rho> \<lhd> \<upsilon> = Var v \<lhd> \<mu> \<lhd> \<rho> \<lhd> \<upsilon>"
+      by (metis subst_comp subst_eq_dest)
+  
+    have "\<forall>v. Var v \<lhd> \<upsilon> = Var v \<lhd> \<mu>' \<lhd> \<upsilon>"
+    proof (rule allI)
+      fix x
+      show "Var x \<lhd> \<upsilon> = Var x \<lhd> \<mu>' \<lhd> \<upsilon>"
+      proof (cases "x \<in> subst_domain \<mu>'")
+        case True
+        then obtain v where "map_of \<mu>' x = Some v" and "v \<noteq> Var x"
+          unfolding subst_domain_def mem_Collect_eq
+          apply (simp add: assoc_eq_map_of_or_default)
+          by (metis option.case_eq_if option.collapse)
+        then obtain x' v' where
+          the_Var_x'_\<rho>: "the_Var (Var x' \<lhd> \<rho>) = x" and "v' \<lhd> \<rho> = v" and "map_of \<mu> x' = Some v'"
+          unfolding \<mu>'_def
+          using map_of_map_map_prod_eq_SomeD
+          by fastforce
+        
+        from \<open>map_of \<mu> x' = Some v'\<close> have "x' \<in> V"
+          by (metis dom_\<mu> map_of_eq_None_iff option.simps(3) subset_iff vars_t_u_subset)
+        with the_Var_x'_\<rho> have x'_\<rho>: "Var x' \<lhd> \<rho> = Var x"
+          by (metis all_var_\<rho> is_a_variable.elims(2) the_Var.simps)
+  
+        from \<open>x' \<in> V\<close> True have x_\<mu>': "Var x \<lhd> \<mu>' = Var x \<lhd> \<rho>_inv \<lhd> \<mu> \<lhd> \<rho>"
+          by (metis \<open>map_of \<mu> x' = Some v'\<close> \<open>map_of \<mu>' x = Some v\<close> \<open>v' \<lhd> \<rho> = v\<close> \<rho>_\<rho>_inv_ident
+              assoc.simps(2) assoc_eq_map_of_or_default map_of_Cons_code(2) subst.simps(1) x'_\<rho>)
+  
+        have "Var x \<lhd> \<mu>' \<lhd> \<upsilon> = Var x \<lhd> \<rho>_inv \<lhd> \<mu> \<lhd> \<rho> \<lhd> \<upsilon>" using x_\<mu>' by simp
+        also have "... = Var x' \<lhd> \<rho> \<lhd> \<rho>_inv \<lhd> \<mu> \<lhd> \<rho> \<lhd> \<upsilon>" using x'_\<rho> by simp
+        also have "... = Var x' \<lhd> \<mu> \<lhd> \<rho> \<lhd> \<upsilon>" using \<rho>_\<rho>_inv_ident \<open>x' \<in> V\<close> by simp
+        also have "... = Var x' \<lhd> \<rho> \<lhd> \<upsilon>" using FOO by simp
+        also have "... = Var x \<lhd> \<upsilon>" using x'_\<rho> by simp
+        finally show ?thesis by simp
+      next
+        case False
         then show ?thesis
-          unfolding list.map p_def prod.case
-          using False Cons.IH by simp
+          using assoc_ident_if_not_in_dom' by metis
       qed
     qed
+    thus "\<upsilon> \<doteq> \<mu>' \<lozenge> \<upsilon>"
+      by (metis agreement subst_comp subst_eq_def)
   qed
-
-  show "Unifier \<mu>' (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
-    using mgu_\<mu>[THEN MGU_is_Unifier] (* vars_t_u_subset *)
-    unfolding Unifier_def
-    by (simp add: *)
-next
-  fix \<upsilon> assume "Unifier \<upsilon> (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
-  hence "Unifier (\<rho> \<lozenge> \<upsilon>) t u"
-    by (simp add: Unifier_def)
-  then obtain \<gamma> where **: "\<rho> \<lozenge> \<upsilon> \<doteq> \<mu> \<lozenge> \<gamma>"
-    using mgu_\<mu>[unfolded MGU_def] by auto
-  hence *: "\<forall>v. Var v \<lhd> \<rho> \<lhd> \<upsilon> = Var v \<lhd> \<mu> \<lhd> \<gamma>"
-    by (metis comp_subst_terms subst_comp)
-
-  have most_general_idem: "\<forall>\<theta>. Unifier \<theta> t u \<longrightarrow> \<theta> \<doteq> \<mu> \<lozenge> \<theta>" sorry
-  hence BAR: "\<rho> \<lozenge> \<upsilon> \<doteq> \<mu> \<lozenge> \<rho> \<lozenge> \<upsilon>"
-    using \<open>Unifier (\<rho> \<lozenge> \<upsilon>) t u\<close> by fastforce
-  hence FOO: "\<forall>v. Var v \<lhd> \<rho> \<lhd> \<upsilon> = Var v \<lhd> \<mu> \<lhd> \<rho> \<lhd> \<upsilon>"
-    by (metis subst_comp subst_eq_dest)
-  have "\<forall>v. Var v \<lhd> \<upsilon> = Var v \<lhd> \<mu>' \<lhd> \<upsilon>"
-  proof (rule allI)
-    fix x
-    show "Var x \<lhd> \<upsilon> = Var x \<lhd> \<mu>' \<lhd> \<upsilon>"
-    proof (cases "x \<in> fst ` set \<mu>'")
-      case True
-      then obtain x' where x'_\<rho>: "Var x' \<lhd> \<rho> = Var x"
-        unfolding \<mu>'_def
-        apply simp
-        by (smt (verit) all_var_\<rho> case_prod_beta fst_conv imageE is_a_variable.elims(2)
-            subst.simps(1) the_Var.simps)
-      from True have x_\<mu>': "Var x \<lhd> \<mu>' = Var x \<lhd> \<rho>_inv \<lhd> \<mu> \<lhd> \<rho>"
-        unfolding \<mu>'_def
-      proof (induction \<mu>)
-        case Nil
-        then show ?case by simp
-      next
-        case (Cons p \<mu>)
-        show ?case
-          apply (simp add: case_prod_beta)
-          apply (rule conjI)
-           apply (metis \<rho>_\<rho>_inv_ident all_var_\<rho> assoc.simps(2) is_a_variable.elims(2) prod.collapse
-              subst.simps(1) the_Var.simps)
-          by (smt (verit, ccfv_SIG) Cons.IH Cons.prems Pair_inject \<rho>_\<rho>_inv_ident assoc.simps(2)
-              case_prod_beta image_iff list.simps(9) map_eq_conv prod.collapse set_ConsD
-              subst.simps(1) the_Var.simps x'_\<rho>)
-      qed
-      show ?thesis
-        unfolding x_\<mu>'
-        unfolding x'_\<rho>[symmetric]
-        unfolding \<rho>_\<rho>_inv_ident[rule_format]
-        unfolding FOO[rule_format, symmetric]
-        by (rule refl)
-    next
-      case False
-      then show ?thesis
-        by (metis assoc_ident_if_not_in_dom subst.simps(1))
-    qed
-  qed
-  hence "\<upsilon> \<doteq> \<mu>' \<lozenge> \<upsilon>"
-    by (metis agreement subst_comp subst_eq_def)
-    
-
-  from \<rho>_\<rho>_inv_ident have \<rho>_\<rho>_inv_ident': "t \<lhd> \<rho> \<lhd> \<rho>_inv = t" for t
-    by (induction t) simp_all
-
-  define \<gamma>' where
-    "\<gamma>' = \<rho>_inv \<lozenge> \<gamma>"
-  have "\<exists>\<gamma>. \<forall>v. Var v \<lhd> \<upsilon> = Var v \<lhd> \<mu>' \<lozenge> \<gamma>"
-  proof (rule exI[of _ \<gamma>']; rule allI)
-    fix x
-    show "Var x \<lhd> \<upsilon> = Var x \<lhd> \<mu>' \<lozenge> \<gamma>'"
-    proof (cases "x \<in> fst ` set \<mu>'")
-      case True
-      then obtain x' where x'_\<rho>: "Var x' \<lhd> \<rho> = Var x"
-        unfolding \<mu>'_def
-        apply simp
-        by (smt (verit) all_var_\<rho> case_prod_beta fst_conv imageE is_a_variable.elims(2)
-            subst.simps(1) the_Var.simps)
-      from True have x_\<mu>': "Var x \<lhd> \<mu>' = Var x \<lhd> \<rho>_inv \<lhd> \<mu> \<lhd> \<rho>"
-        unfolding \<mu>'_def
-      proof (induction \<mu>)
-        case Nil
-        then show ?case by simp
-      next
-        case (Cons p \<mu>)
-        show ?case
-          apply (simp add: case_prod_beta)
-          apply (rule conjI)
-           apply (metis \<rho>_\<rho>_inv_ident all_var_\<rho> assoc.simps(2) is_a_variable.elims(2) prod.collapse
-              subst.simps(1) the_Var.simps)
-          by (smt (verit, ccfv_SIG) Cons.IH Cons.prems Pair_inject \<rho>_\<rho>_inv_ident assoc.simps(2)
-              case_prod_beta image_iff list.simps(9) map_eq_conv prod.collapse set_ConsD
-              subst.simps(1) the_Var.simps x'_\<rho>)
-      qed
-      
-      show ?thesis
-        unfolding composition_of_substs[symmetric]
-        unfolding x_\<mu>'
-        unfolding x'_\<rho>[symmetric]
-        unfolding \<rho>_\<rho>_inv_ident[rule_format]
-        unfolding **[THEN subst_eq_dest, simplified]
-        unfolding \<gamma>'_def
-        unfolding composition_of_substs[symmetric]
-        unfolding \<rho>_\<rho>_inv_ident'
-        by (rule refl)
-    next
-      case False
-      then show ?thesis
-        apply (simp add: assoc_ident_if_not_in_dom)
-        unfolding \<gamma>'_def
-        sorry
-    qed
-  qed
-  then show "\<exists>\<gamma>. \<upsilon> \<doteq> \<mu>' \<lozenge> \<gamma>"
-    unfolding subst_eq_def
-    using Unification.agreement by blast
 qed
+
+lemma
+  assumes "\<And>\<rho> \<rho>_inv \<mu> t u. inj (\<lambda>x. Var x \<lhd> \<rho>) \<Longrightarrow>
+    \<forall>x. is_a_variable (Var x \<lhd> \<rho>) \<Longrightarrow>
+    \<forall>x. Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x \<Longrightarrow>
+    MGU \<mu> t u \<Longrightarrow>
+    MGU (map (\<lambda>(x, v). (the_Var (assoc x (Var x) \<rho>), v \<lhd> \<rho>)) \<mu>) (t \<lhd> \<rho>) (u \<lhd> \<rho>)"
+  shows False
+  using assms
+  oops
 
 lemma ex_MGU_if_Unifier:
   assumes "Unifier \<upsilon> t u"
