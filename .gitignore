@@ -224,3 +224,5 @@ src-nostate
 *.spec
 pasteque
 
+# C code
+.ccls-cache
