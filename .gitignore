@@ -205,3 +205,22 @@ Weidenbach_Book/output*
 .projectile
 *.sml
 
+
+#isasat
+isasat
+isasat-*
+isasat_*
+src-nostate
+*.model
+*.bz2
+*.cnf
+*.csv
+*.xz
+
+#PAC
+*.pac
+*.polys
+*.poly
+*.spec
+pasteque
+
