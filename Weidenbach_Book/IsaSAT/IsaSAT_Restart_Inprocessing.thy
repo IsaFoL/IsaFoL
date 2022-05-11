@@ -3242,4 +3242,73 @@ proof -
     done
 qed
 
+
+
+
+definition isa_pure_literal_elimination_round_wl_pre where
+  \<open>isa_pure_literal_elimination_round_wl_pre S \<longleftrightarrow>
+  (\<exists>T r u. (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_round_wl_pre T)\<close>
+
+(*This is a placeholder doing nothing to have a working version faster*)
+
+definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
+  \<open>isa_pure_literal_elimination_wl_pre S = (\<exists>T u r.
+    (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_pre T)\<close>
+
+definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>isa_pure_literal_elimination_wl S = do {
+    ASSERT (isa_pure_literal_elimination_wl_pre S);
+    let A = (0::nat);
+    RETURN S
+  }\<close>
+
+(*
+lemma isa_pure_literal_deletion_wl_pure_literal_deletion_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_deletion_wl occs' S')\<close>
+proof -
+  have [refine]: \<open>RETURN {#} \<le> \<Down> Id (pure_literal_deletion_candidates_wl S')\<close>
+    by (auto simp: pure_literal_deletion_candidates_wl_def)
+
+  show ?thesis
+    unfolding isa_pure_literal_deletion_wl_def
+      pure_literal_deletion_wl_def
+    apply refine_rcg
+    subgoal
+      by (subst WHILEIT_unfold)
+        (use assms in auto)
+    done
+qed
+
+term pure_literal_deletion_wl
+definition isa_pure_literal_elimination_round_wl where
+  \<open>isa_pure_literal_elimination_round_wl S = do {
+    ASSERT (isa_pure_literal_elimination_round_wl_pre S);
+    S \<leftarrow> isa_simplify_clauses_with_units_st_wl2 S;
+    if get_conflict_wl_is_None_heur S
+    then do {
+     (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl S;
+      if \<not>abort then isa_pure_literal_deletion_wl occs S
+      else RETURN S}
+    else RETURN S
+}\<close>
+
+*)
+
+lemma isa_pure_literal_elimination_wl_pure_literal_elimination_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_elimination_wl S')\<close>
+proof -
+  have [refine]: \<open>RETURN (0::nat) \<le> \<Down> {(a,b). a = b \<and> a = 0} (RES UNIV)\<close>
+    by (auto simp: RETURN_RES_refine)
+  show ?thesis
+    unfolding isa_pure_literal_elimination_wl_def pure_literal_elimination_wl_def
+    apply (refine_vcg)
+    subgoal using assms unfolding isa_pure_literal_elimination_wl_pre_def by fast
+    subgoal
+      by (subst WHILEIT_unfold) (use assms in auto)
+    done
+qed
+
+
 end

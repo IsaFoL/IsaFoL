@@ -136,7 +136,7 @@ definition cdcl_twl_full_restart_inprocess_l where
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
   S' \<leftarrow> mark_duplicated_binary_clauses_as_garbage S';
-  S' \<leftarrow> pure_literal_elimination_round S';
+  S' \<leftarrow> pure_literal_elimination_l S';
   S' \<leftarrow> simplify_clauses_with_units_st S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
@@ -1152,7 +1152,7 @@ proof -
   qed
 
   have pure_literal_elimination_round:
-    \<open>pure_literal_elimination_round V \<le> SPEC (?finp V')\<close>
+    \<open>pure_literal_elimination_l V \<le> SPEC (?finp V')\<close>
  (*   \<open>mark_duplicated_binary_clauses_as_garbage V \<le> SPEC (?finp V')\<close> *)
     if
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
@@ -1221,15 +1221,15 @@ proof -
       using ent_U'' U''V'' rtranclp_cdcl_twl_inp_entailed_init struct_invs
       using T''U'' \<open>cdcl_twl_restart S' T'' \<or> S' = T''\<close> assms(3) cdcl_twl_restart_twl_struct_invs by blast
 
-    have pre: \<open>pure_literal_elimination_round_pre V\<close>
-      unfolding pure_literal_elimination_round_pre_def
+    have pre: \<open>pure_literal_elimination_l_pre V\<close>
+      unfolding pure_literal_elimination_l_pre_def
       using annot_V count_dec ent_V'' apply -
       unfolding mark_duplicated_binary_clauses_as_garbage_pre_def \<open>V' = V\<close>[symmetric]
       by (rule exI[of _ V''])
        (auto simp: VV'' clss_upd list_invs struct_invs)
 
     show ?thesis
-      by (rule pure_literal_elimination_round[THEN order_trans, of ])
+      by (rule pure_literal_elimination_l[THEN order_trans, of ])
        (use lev0 UU'' struct_invs list_invs confl clss ent  annot_V count_dec ent_V''
            \<open>V' = V\<close>[symmetric] clss_upd VV'' pre
         in \<open>auto dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp

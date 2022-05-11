@@ -2202,12 +2202,72 @@ definition pure_literal_elimination_round_wl where
 lemma pure_literal_elimination_round_wl_pure_literal_elimination_round_l:
   assumes
     \<open>(S, S') \<in> state_wl_l None\<close>
-    \<open>correct_watching'_leaking_bin S\<close>
+    \<open>no_lost_clause_in_WL S\<close>
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>pure_literal_elimination_round_wl S \<le>
     \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_round S')\<close>
 proof -
-  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_round_pre S'\<close>
+  show ?thesis
+    unfolding pure_literal_elimination_round_wl_def pure_literal_elimination_round_def
+    apply (refine_vcg
+      simplify_clauses_with_units_st_wl_simplify_clause_with_units_st2
+      pure_literal_count_occs_wl_pure_literal_count_occs_l
+      pure_literal_deletion_wl_pure_literal_deletion_l)
+    subgoal using assms unfolding pure_literal_elimination_round_wl_pre_def by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by blast
+    done
+qed
+
+
+
+definition pure_literal_elimination_wl_pre where
+  \<open>pure_literal_elimination_wl_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> pure_literal_elimination_l_pre T \<and> correct_watching'_leaking_bin S \<and>
+  literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+
+definition pure_literal_elimination_wl_inv where
+  \<open>pure_literal_elimination_wl_inv S max_rounds =
+  (\<lambda>(U,m,abort). \<exists>T U'. (S, T) \<in> state_wl_l None \<and> (U, U') \<in> state_wl_l None \<and>
+  no_lost_clause_in_WL U \<and> literals_are_\<L>\<^sub>i\<^sub>n' U \<and> pure_literal_elimination_l_inv T max_rounds (U',m,abort))\<close>
+
+definition pure_literal_elimination_wl :: \<open>_\<close> where
+  \<open>pure_literal_elimination_wl S = do {
+     ASSERT (pure_literal_elimination_wl_pre S);
+     max_rounds \<leftarrow> RES (UNIV :: nat set);
+    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_elimination_wl_inv S max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
+     (\<lambda>(S, m, abort). do {
+         S \<leftarrow> pure_literal_elimination_round_wl S;
+         abort \<leftarrow> RES (UNIV :: bool set);
+         RETURN (S, m+1, abort)
+       })
+    (S, 0, False);
+   RETURN S
+  }\<close>
+
+
+lemma pure_literal_elimination_wl:
+  assumes
+    \<open>(S, S') \<in> state_wl_l None\<close>
+    \<open>correct_watching'_leaking_bin S\<close>
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows \<open>pure_literal_elimination_wl S \<le> 
+    \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_l S')\<close>
+proof -
+  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_l_pre S'\<close>
   proof -
     obtain S'' where
       S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
@@ -2217,36 +2277,31 @@ proof -
       \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
       \<open>clauses_to_update_l S' = {#}\<close> and
       \<open>count_decided (get_trail_l S') = 0\<close>
-      using pre unfolding pure_literal_elimination_round_pre_def by fast
+      using pre unfolding pure_literal_elimination_l_pre_def by fast
     have \<open>correct_watching'_nobin S\<close>
       using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
         correct_watching'_nobin.simps)
     then show ?thesis
       using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
       by fast
-
-   qed
+  qed
+  have [refine0]: \<open>pure_literal_elimination_l_pre S' \<Longrightarrow>
+    ((S, 0, False), S', 0, False) \<in> {(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r nat_rel \<times>\<^sub>r bool_rel\<close>
+     using lost assms by auto
   show ?thesis
-    unfolding pure_literal_elimination_round_wl_def pure_literal_elimination_round_def
-    apply (refine_vcg
-      simplify_clauses_with_units_st_wl_simplify_clause_with_units_st2
-      pure_literal_count_occs_wl_pure_literal_count_occs_l
-      pure_literal_deletion_wl_pure_literal_deletion_l)
-    subgoal using assms unfolding pure_literal_elimination_round_wl_pre_def by fast
-    subgoal using assms by fast
-    subgoal by (rule lost)
-    subgoal using assms by fast
-    subgoal by auto
-    subgoal by auto
-    subgoal by blast
+    unfolding pure_literal_elimination_wl_def pure_literal_elimination_l_def
+    apply (refine_vcg pure_literal_elimination_round_wl_pure_literal_elimination_round_l)
+    subgoal using assms unfolding pure_literal_elimination_wl_pre_def by blast
+    subgoal for max_rounds max_roundsa x x'
+      using assms unfolding pure_literal_elimination_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
+      apply -
+      by (rule exI[of _ S'], rule exI[of _ \<open>fst x'\<close>]) auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by blast
     subgoal by auto
     subgoal by auto
-    subgoal by blast
-    subgoal by blast
+    subgoal by auto
     done
 qed
 
