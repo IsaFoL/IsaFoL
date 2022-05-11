@@ -199,15 +199,6 @@ sepref_def isa_simplify_clauses_with_unit_st2_code
    supply [[goals_limit=1]]
   by sepref
 
-sepref_def isa_simplify_clauses_with_unit_st_wl2_code
-  is isa_simplify_clauses_with_unit_st_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
-     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding isa_simplify_clauses_with_unit_st_wl2_def
-  supply [[goals_limit=1]]
-  by sepref
-
-
 sepref_def isa_simplify_clauses_with_units_st_wl2_code
   is isa_simplify_clauses_with_units_st_wl2
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -620,7 +611,6 @@ term units_since_last_GC_st_code
 experiment
 begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
-    isa_simplify_clauses_with_unit_st_wl2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
 end

@@ -1363,13 +1363,6 @@ proof -
    done
 qed
 
-(*TODO seems unused in the generated code*)
-definition isa_simplify_clauses_with_unit_st_wl2 :: \<open>_\<close> where
-  \<open>isa_simplify_clauses_with_unit_st_wl2 S = do {
-  let b = (units_since_last_GC_st S > 0) in
-  if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
-}\<close>
-
 definition simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>simplify_clauses_with_units_st_wl2 S = do {
   b \<leftarrow> SPEC(\<lambda>b::bool. b \<longrightarrow> get_conflict_wl S =None);
@@ -1383,7 +1376,7 @@ lemma simplify_clauses_with_units_st_wl2_simplify_clauses_with_units_st_wl:
 
 definition isa_simplify_clauses_with_units_st_wl2 :: \<open>_\<close> where
   \<open>isa_simplify_clauses_with_units_st_wl2 S = do {
-  b \<leftarrow> RETURN (get_conflict_wl_is_None_heur S);
+  b \<leftarrow> RETURN (get_conflict_wl_is_None_heur S \<and> units_since_last_GC_st S > 0);
   if b then isa_simplify_clauses_with_unit_st2 S else RETURN S
   }\<close>
 
