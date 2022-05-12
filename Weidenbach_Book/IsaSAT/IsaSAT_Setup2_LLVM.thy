@@ -122,6 +122,23 @@ global_interpretation units_since_last_GC: read_stats_param_adder0 where
   subgoal by (auto simp: units_since_last_GC_st_code_def)
   done
 
+definition units_since_beginning_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+   \<open>units_since_beginning_st_code = read_stats_wl_heur_code units_since_beginning_stats_impl\<close>
+
+global_interpretation units_since_beginning: read_stats_param_adder0 where
+  f' = \<open>RETURN o units_since_beginning\<close> and
+  f = units_since_beginning_stats_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o units_since_beginning) = RETURN o units_since_beginning_st\<close> and
+    \<open>read_stats_wl_heur_code units_since_beginning_stats_impl = units_since_beginning_st_code\<close>
+  apply unfold_locales
+  apply (rule stats_refine; assumption)
+  subgoal by (auto simp: read_all_st_def units_since_beginning_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: units_since_beginning_st_code_def)
+  done
+
 definition get_GC_units_opt_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_GC_units_opt_code = read_opts_wl_heur_code opts_rel_GC_units_lim_code\<close>
 
@@ -240,6 +257,7 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
   opts_restart_coeff1.refine
   opts_restart_coeff2.refine
   units_since_last_GC.refine
+  units_since_beginning.refine
   opts_GC_units_lim.refine
   trail_length.refine
   pos_of_level_in_trail.refine
@@ -248,7 +266,7 @@ lemmas [unfolded lambda_comp_true, sepref_fr_rules] =
 
 sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
     opts_minimum_between_restart_st opts_unbounded_mode_st get_GC_units_opt units_since_last_GC_st
-    isasat_length_trail_st get_pos_of_level_in_trail_imp_st
+    isasat_length_trail_st get_pos_of_level_in_trail_imp_st units_since_beginning
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   opts_restart_st_fast_code_def[unfolded read_all_st_code_def]
@@ -258,6 +276,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   opts_restart_coeff1_st_fast_code_def[unfolded read_all_st_code_def]
   opts_restart_coeff2_st_fast_code_def[unfolded read_all_st_code_def]
   units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
+  units_since_beginning_st_code_def[unfolded read_all_st_code_def]
   get_GC_units_opt_code_def[unfolded read_all_st_code_def]
   isasat_length_trail_st_code_def[unfolded read_all_st_code_def]
   get_pos_of_level_in_trail_imp_st_code_def[unfolded read_all_st_code_def]

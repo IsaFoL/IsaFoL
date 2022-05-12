@@ -377,7 +377,7 @@ lemma correct_watching'_clauses_pointed_to2:
   assumes
     xa_xb: \<open>(xa, xb) \<in> state_wl_l None\<close> and
     corr: \<open>correct_watching'_nobin xa\<close> and
-    pre: \<open>mark_to_delete_clauses_l_pre xb\<close> and
+    pre: \<open>mark_to_delete_clauses_l_GC_pre xb\<close> and
     L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close>
   shows \<open>set_mset (dom_m (get_clauses_wl xa))
          \<subseteq> clauses_pointed_to
@@ -387,7 +387,7 @@ lemma correct_watching'_clauses_pointed_to2:
         (is ?G1 is \<open>_ \<subseteq> ?A\<close>) and
     \<open>no_lost_clause_in_WL xa\<close> (is ?G2)
   using correct_watching'_nobin_clauses_pointed_to0[OF xa_xb corr L] pre
-  unfolding mark_to_delete_clauses_l_pre_def
+  unfolding mark_to_delete_clauses_l_GC_pre_def
   by fast+
 
 

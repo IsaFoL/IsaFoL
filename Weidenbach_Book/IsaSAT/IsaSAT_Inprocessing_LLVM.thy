@@ -1,3 +1,4 @@
+
 theory IsaSAT_Inprocessing_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
     IsaSAT_Restart_Inprocessing
@@ -10,6 +11,62 @@ no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [
 sepref_register 0 1
 
 sepref_register mop_arena_update_lit
+
+
+definition length_watchlist_raw where
+  \<open>length_watchlist_raw S = length (get_watched_wl_heur S)\<close>
+
+sepref_def length_watchlist_full_impl
+  is \<open>RETURN o length\<close>
+  :: \<open>watchlist_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding op_list_list_len_def[symmetric]
+  by sepref
+
+definition length_watchlist_raw_code where
+  \<open>length_watchlist_raw_code = read_watchlist_wl_heur_code (length_watchlist_full_impl)\<close>
+
+global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
+  f' = \<open>RETURN o length\<close> and
+  f = \<open>length_watchlist_full_impl\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_watchlist_wl_heur (RETURN \<circ> length) = RETURN o length_watchlist_raw\<close> and
+    \<open>read_watchlist_wl_heur_code (length_watchlist_full_impl) = length_watchlist_raw_code\<close>
+  apply unfold_locales
+  apply (rule length_watchlist_full_impl.refine)
+  subgoal
+     by (auto intro!: ext simp: length_watchlist_raw_def read_all_st_def length_watchlist_def
+         length_ll_def
+       split: isasat_int.splits)
+  subgoal by (auto simp: length_watchlist_raw_code_def)
+  done
+
+lemmas [sepref_fr_rules] = watchlist_length_raw.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  length_watchlist_raw_code_def[unfolded read_all_st_code_def]
+
+sepref_register mop_arena_status_st isa_pure_literal_count_occs_clause_wl
+sepref_def isa_pure_literal_count_occs_clause_wl_code
+  is \<open>uncurry3 isa_pure_literal_count_occs_clause_wl\<close>
+  :: \<open>[\<lambda>(((C, S), _), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a word64_assn\<^sup>d  \<rightarrow> larray_assn' TYPE(64) bool1_assn \<times>\<^sub>a word64_assn\<close>
+  unfolding isa_pure_literal_count_occs_clause_wl_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_register isa_pure_literal_count_occs_wl
+sepref_def isa_pure_literal_count_occs_wl_code
+  is isa_pure_literal_count_occs_wl
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn \<times>\<^sub>a larray_assn' TYPE(64) bool1_assn\<close>
+  unfolding isa_pure_literal_count_occs_wl_def nth_append Let_def
+    larray_fold_custom_replicate mop_arena_status_st_def[symmetric]
+    access_ivdom_at_def[symmetric] length_avdom_def[symmetric] length_ivdom_def[symmetric]
+    access_avdom_at_def[symmetric] length_watchlist_raw_def[symmetric] length_append
+  supply of_nat_snat[sepref_import_param]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 lemma isa_simplify_clause_with_unit2_alt_def:
   \<open>isa_simplify_clause_with_unit2 C M N = do {
@@ -199,15 +256,6 @@ sepref_def isa_simplify_clauses_with_unit_st2_code
    supply [[goals_limit=1]]
   by sepref
 
-sepref_def isa_simplify_clauses_with_unit_st_wl2_code
-  is isa_simplify_clauses_with_unit_st_wl2
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
-     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding isa_simplify_clauses_with_unit_st_wl2_def
-  supply [[goals_limit=1]]
-  by sepref
-
-
 sepref_def isa_simplify_clauses_with_units_st_wl2_code
   is isa_simplify_clauses_with_units_st_wl2
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -293,12 +341,6 @@ lemma ahm_empty_empty:
     done
   done
 
-
-sepref_def length_watchlist_full_impl
-  is \<open>RETURN o length\<close>
-  :: \<open>watchlist_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding op_list_list_len_def[symmetric]
-  by sepref
 
 definition encoded_irred_index_irred where
   \<open>encoded_irred_index_irred a = snd a\<close>
@@ -438,32 +480,6 @@ lemmas [sepref_fr_rules] =
   ahm_empty_code.refine[FCOMP ahm_empty_empty, where R19 = encoded_irred_indices]
   ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked]
 
-definition length_watchlist_raw where
-  \<open>length_watchlist_raw S = length (get_watched_wl_heur S)\<close>
-
-definition length_watchlist_raw_code where
-  \<open>length_watchlist_raw_code = read_watchlist_wl_heur_code (length_watchlist_full_impl)\<close>
-
-global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
-  f' = \<open>RETURN o length\<close> and
-  f = \<open>length_watchlist_full_impl\<close> and
-  x_assn = sint64_nat_assn and
-  P = \<open>(\<lambda>_. True)\<close>
-  rewrites
-    \<open>read_watchlist_wl_heur (RETURN \<circ> length) = RETURN o length_watchlist_raw\<close> and
-    \<open>read_watchlist_wl_heur_code (length_watchlist_full_impl) = length_watchlist_raw_code\<close>
-  apply unfold_locales
-  apply (rule length_watchlist_full_impl.refine)
-  subgoal
-     by (auto intro!: ext simp: length_watchlist_raw_def read_all_st_def length_watchlist_def
-         length_ll_def
-       split: isasat_int.splits)
-  subgoal by (auto simp: length_watchlist_raw_code_def)
-  done
-
-lemmas [sepref_fr_rules] = watchlist_length_raw.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  length_watchlist_raw_code_def[unfolded read_all_st_code_def]
 
 sepref_register create encoded_irred_index_set encoded_irred_index_get
 sepref_register uminus_lit:  "uminus :: nat literal \<Rightarrow> _"
@@ -616,11 +632,87 @@ sepref_def isa_deduplicate_binary_clauses_code
   supply [[goals_limit=1]]
   by sepref
 
-term units_since_last_GC_st_code
+lemma isa_propagate_pure_bt_wl_alt_def:
+    \<open>isa_propagate_pure_bt_wl = (\<lambda>L S. do {
+      let (M, S) = extract_trail_wl_heur S;
+      let (stats, S) = extract_stats_wl_heur S;
+      ASSERT(0 \<noteq> DECISION_REASON);
+      ASSERT(cons_trail_Propagated_tr_pre ((L, 0::nat), M));
+      M \<leftarrow> cons_trail_Propagated_tr (L) 0 M;
+      let stats = incr_units_since_last_GC (incr_uset stats);
+      let S = update_stats_wl_heur stats S;
+      let S = update_trail_wl_heur M S;
+      let _ = log_unit_clause L;
+      RETURN S})\<close>
+  unfolding isa_propagate_pure_bt_wl_def log_unit_clause_def
+  by (auto simp: empty_US_heur_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+
+sepref_register isa_propagate_pure_bt_wl
+sepref_def isa_propagate_pure_bt_wl_code
+  is \<open>uncurry isa_propagate_pure_bt_wl\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding isa_propagate_pure_bt_wl_alt_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma isa_pure_literal_deletion_wl_alt_def:
+ \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 = (do {
+  ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
+  (_, eliminated, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, _, S). get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S\<^esup> (\<lambda>(n, x). n \<noteq> None)
+    (\<lambda>(n, eliminated, T). do {
+       ASSERT (n \<noteq> None);
+       let A = the n;
+       ASSERT (A < length (get_vmtf_heur_array S\<^sub>0));
+       ASSERT (A \<le> uint32_max div 2);
+       ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
+       ASSERT (nat_of_lit (Pos A) < length occs);
+       ASSERT (nat_of_lit (Neg A) < length occs);
+       let L = (if occs ! nat_of_lit (Pos A) \<and> \<not> occs ! nat_of_lit (Neg A) then Pos A else Neg A);
+       ASSERT (nat_of_lit (- L) < length occs);
+       val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
+       if \<not> occs ! nat_of_lit (- L) \<and> val = None then do {
+          S \<leftarrow> isa_propagate_pure_bt_wl L T;
+          ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S);
+          RETURN (get_next (get_vmtf_heur_array S ! A),eliminated + 1, S)
+       }
+       else RETURN (get_next (get_vmtf_heur_array T ! A),eliminated, T)
+     })
+    (Some (get_vmtf_heur_fst S\<^sub>0), 0, S\<^sub>0);
+   mop_free occs;
+  RETURN (eliminated, S)
+         })\<close>
+  unfolding isa_pure_literal_deletion_wl_def mop_free_def
+  by auto
+
+sepref_def isa_pure_literal_deletion_wl_code
+  is \<open>uncurry isa_pure_literal_deletion_wl\<close>
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  unfolding isa_pure_literal_deletion_wl_alt_def iterate_over_VMTF_def nres_monad3 nres_monad2
+    get_vmtf_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
+    mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
+    get_vmtf_heur_array_nth_def[symmetric] prod.simps
+  by sepref
+
+sepref_def isa_pure_literal_elimination_round_wl_code
+  is isa_pure_literal_elimination_round_wl
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  unfolding isa_pure_literal_elimination_round_wl_def
+  by sepref
+
+
+sepref_def isa_pure_literal_elimination_wl_code
+  is isa_pure_literal_elimination_wl
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_pure_literal_elimination_wl_def Let_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 experiment
 begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
-    isa_simplify_clauses_with_unit_st_wl2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
 end

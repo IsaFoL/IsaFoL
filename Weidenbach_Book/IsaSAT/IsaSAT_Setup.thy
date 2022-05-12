@@ -285,7 +285,7 @@ definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> whe
     cach_refinement_empty (all_atms_st T) cach \<and>
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
-    vdom_m (all_atms_st T)  W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    vdom_m (all_atms_st T) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
     aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
@@ -1088,7 +1088,7 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
     RETURN S
    })\<close>
 
-definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close>where
+definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>delete_index_vdom_heur = (\<lambda>i S.
     let vdom = get_aivdom S in
     let vdom = remove_inactive_aivdom_tvdom i vdom in
@@ -1435,6 +1435,9 @@ definition get_GC_units_opt :: \<open>isasat \<Rightarrow> 64 word\<close> where
 
 definition units_since_last_GC_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_st S = units_since_last_GC (get_stats_heur S)\<close>
+
+definition units_since_beginning_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning_st S = units_since_beginning (get_stats_heur S)\<close>
 
 definition reset_units_since_last_GC_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>reset_units_since_last_GC_st S =

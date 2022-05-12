@@ -3604,37 +3604,6 @@ proof -
     done
 qed
 
-definition pure_literal_deletion_pre where
-  \<open>pure_literal_deletion_pre S \<longleftrightarrow>
-  (\<exists>S'. (S, S') \<in> twl_st_l None \<and>
-  clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
-  count_decided (get_trail_l S) = 0 \<and> twl_list_invs S \<and> twl_struct_invs S' \<and> twl_stgy_invs S')\<close>
-
-definition pure_literal_deletion_candidates where
-  \<open>pure_literal_deletion_candidates S = SPEC (\<lambda>Ls. Ls \<subseteq># all_init_lits_of_l S)\<close>
-
-definition pure_literal_deletion_l_inv where
-  \<open>pure_literal_deletion_l_inv S xs0 = (\<lambda>(T, xs).
-     \<exists>S'. (S, S') \<in> twl_st_l None \<and> cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0)\<close>
-
-
-definition pure_literal_deletion_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>pure_literal_deletion_l S = do {
-    ASSERT (pure_literal_deletion_pre S);
-    let As =  \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S));
-    xs \<leftarrow> pure_literal_deletion_candidates S;
-    (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_l_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
-      (\<lambda>(S, xs). do {
-        L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
-        if -L \<notin> As \<and> undefined_lit (get_trail_l S) L
-        then do {S \<leftarrow> propagate_pure_bt_l L S;
-          RETURN (S, remove1_mset L xs)}
-        else RETURN (S, remove1_mset L xs)
-      })
-    (S, xs);
-  RETURN S
-  }\<close>
-
 
 lemma in_all_lits_of_mm_direct_inI: \<open>-L \<in> \<Union>(set_mset ` set_mset A) \<Longrightarrow> L \<in># all_lits_of_mm A\<close>
   by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset
@@ -3646,7 +3615,9 @@ lemma cdcl_twl_pure_remove_l_same:
   \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clss_l T = get_init_clss_l S\<close>
   \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
   \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
-  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close> and
+ cdcl_twl_pure_remove_l_same_unit_init_subsetD:
+  \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_unit_init_clauses_l S \<subseteq># get_unit_init_clauses_l T\<close>
 proof -
   have [iff]: \<open>\<not>(\<forall>b. \<not> b)\<close>
     by blast
@@ -3662,6 +3633,7 @@ proof -
     \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
     \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
     \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
+    \<open>cdcl_twl_pure_remove_l S T \<Longrightarrow> get_unit_init_clauses_l S \<subseteq># get_unit_init_clauses_l T\<close>
     by (solves \<open>auto simp: cdcl_twl_pure_remove_l.simps all_init_lits_of_l_def get_init_clss_l_def
       all_lits_of_mm_add_mset all_lits_of_m_add_mset
       intro: in_all_lits_of_mm_direct_inI
@@ -3681,8 +3653,58 @@ lemma rtranclp_cdcl_twl_pure_remove_l_same:
   \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_init_clss_l T = get_init_clss_l S\<close>
   \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_subsumed_init_clauses_l T = get_subsumed_init_clauses_l S\<close>
   \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_init_clauses0_l T = get_init_clauses0_l S\<close>
-  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close>
-  by (solves \<open>induction rule: rtranclp_induct; auto simp: cdcl_twl_pure_remove_l_same\<close>)+
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l S)\<close> and
+  rtranclp_cdcl_twl_pure_remove_l_same_unit_init_subsetD:
+  \<open>cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<Longrightarrow> get_unit_init_clauses_l S \<subseteq># get_unit_init_clauses_l T\<close>
+  by (solves \<open>induction rule: rtranclp_induct; auto simp: cdcl_twl_pure_remove_l_same
+    dest: cdcl_twl_pure_remove_l_same_unit_init_subsetD\<close>)+
+
+
+subsection \<open>Pure Literal deletion\<close>
+
+text \<open>
+  Pure literal deletion is not really used nowadays (as it is subsumed by variable elimination),
+  but it is the first non-model preserving model we intend to implement and it should be easy to
+  implement.
+
+  In the implementation, it would better to simplify also when going over the clauses, instead of 
+  either (i) no simplifying anything or (ii) simplify all clauses. However, in the current version,
+  I can reuse the other proofs.
+
+  \<close>
+
+definition pure_literal_deletion_pre where
+  \<open>pure_literal_deletion_pre S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> twl_st_l None \<and>
+  clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+  count_decided (get_trail_l S) = 0 \<and> twl_list_invs S \<and> twl_struct_invs S')\<close>
+
+definition pure_literal_deletion_candidates where
+  \<open>pure_literal_deletion_candidates S = SPEC (\<lambda>Ls. set_mset Ls \<subseteq> atms_of_mm (get_all_init_clss_l S))\<close>
+
+definition pure_literal_deletion_l_inv where
+  \<open>pure_literal_deletion_l_inv S xs0 = (\<lambda>(T, xs).
+     \<exists>S'. (S, S') \<in> twl_st_l None \<and> cdcl_twl_pure_remove_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># xs0)\<close>
+
+
+definition pure_literal_deletion_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>pure_literal_deletion_l S = do {
+    ASSERT (pure_literal_deletion_pre S);
+    let As = \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S));
+    xs \<leftarrow> pure_literal_deletion_candidates S;
+    (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_l_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
+      (\<lambda>(S, xs). do {
+        L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
+        A \<leftarrow> RES {Pos L, Neg L};
+        if -A \<notin> As \<and> undefined_lit (get_trail_l S) A
+        then do {S \<leftarrow> propagate_pure_bt_l A S;
+          RETURN (S, remove1_mset L xs)}
+        else RETURN (S, remove1_mset L xs)
+      })
+    (S, xs);
+  RETURN S
+  }\<close>
+
 
 lemma pure_literal_deletion_l_spec:
   assumes \<open>pure_literal_deletion_pre S\<close>
@@ -3705,8 +3727,15 @@ proof -
       apply (frule rtranclp_cdcl_twl_pure_remove_l_cdcl_twl_pure_remove)
       apply assumption+
       apply normalize_goal+
-      apply (rule_tac x=xc in exI)
-      by (auto simp add: rtranclp_cdcl_twl_pure_remove_l_same)
+      apply (rule_tac x=xd in exI)
+      using rtranclp_cdcl_twl_pure_remove_l_same_unit_init_subsetD[of S T]
+      unfolding atms_of_ms_def[symmetric]
+      apply (auto simp add: rtranclp_cdcl_twl_pure_remove_l_same
+        all_init_lits_of_l_def in_all_lits_of_mm_ain_atms_of_iff 
+        dest!: multi_member_split[of L xs] multi_member_split[of L x]
+        mset_subset_eq_insertD)
+      apply (metis UnCI atms_of_ms_union set_mset_union subset_mset.le_iff_add)
+      by (metis Un_iff atms_of_ms_union set_mset_union subset_mset.le_iff_add)
     subgoal by simp
     subgoal by (auto dest!: multi_member_split
       simp: pure_literal_deletion_l_inv_def)
@@ -3717,6 +3746,325 @@ proof -
     subgoal
       by (auto dest!: multi_member_split)
     subgoal by (simp add: pure_literal_deletion_l_inv_def)
+    done
+qed
+
+
+
+
+definition pure_literal_count_occs_l_clause_invs :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow>_\<Rightarrow> nat \<times> ('v literal \<Rightarrow> bool) \<Rightarrow> bool\<close> where
+  \<open>pure_literal_count_occs_l_clause_invs C S occs = (\<lambda>(i, occs2). i \<le> length (get_clauses_l S \<propto> C) \<and>
+     (\<forall>L. occs2 L = (occs L \<or> (L \<in> set (take i (get_clauses_l S \<propto> C))))))\<close>
+
+definition pure_literal_count_occs_l_clause_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> _ \<Rightarrow> bool\<close> where
+  \<open>pure_literal_count_occs_l_clause_pre C S occs = (C \<in># dom_m (get_clauses_l S) \<and> irred (get_clauses_l S) C)\<close>
+
+definition pure_literal_count_occs_l_clause :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> _ \<Rightarrow> ('v literal \<Rightarrow> bool) nres\<close> where
+  \<open>pure_literal_count_occs_l_clause C S occs = do {
+    ASSERT (pure_literal_count_occs_l_clause_pre C S occs);
+    (i, occs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_count_occs_l_clause_invs C S occs\<^esup> (\<lambda>(i, occs). i < length (get_clauses_l S \<propto> C))
+      (\<lambda>(i, occs). do {
+        let L = get_clauses_l S \<propto> C ! i;
+        let occs = occs (L := True);
+        RETURN (i+1, occs)
+      })
+      (0, occs);
+   RETURN occs
+ }\<close>
+
+
+lemma pure_literal_count_occs_l_clause_spec:
+  assumes \<open>pure_literal_count_occs_l_clause_pre C S occs\<close>
+  shows \<open>pure_literal_count_occs_l_clause C S occs \<le> SPEC (\<lambda>occs2.
+     (occs2 = (\<lambda>L. if L \<in> set (get_clauses_l S \<propto> C) then True else occs L)))\<close>
+proof -
+  have [iff]: \<open>(\<forall>j. \<not> j < a) \<longleftrightarrow> a = 0\<close> for a :: nat
+    by auto
+  have [simp]: \<open>filter_mset P xs - xs = {#}\<close> for P xs
+    by (induction xs) auto
+  have [refine0]: \<open>wf (measure (\<lambda>(A, _). length (get_clauses_l S \<propto> C) - A))\<close>
+    by auto
+  show ?thesis
+    unfolding pure_literal_count_occs_l_clause_def
+    apply (refine_vcg)
+    subgoal using assms by fast
+    subgoal unfolding pure_literal_count_occs_l_clause_invs_def
+      by (auto dest: in_diffD dest: multi_member_split)
+    subgoal unfolding pure_literal_count_occs_l_clause_invs_def
+      apply simp
+      by (metis in_set_conv_iff less_Suc_eq)
+    subgoal
+      by auto
+    subgoal unfolding pure_literal_count_occs_l_clause_invs_def
+      by auto
+    done
+qed
+
+definition pure_literal_count_occs_l_pre :: \<open>_\<close> where
+  \<open>pure_literal_count_occs_l_pre S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> twl_st_l None \<and>
+    clauses_to_update_l S = {#} \<and> get_conflict_l S = None \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+    count_decided (get_trail_l S) = 0 \<and> twl_list_invs S \<and> twl_struct_invs S')\<close>
+
+definition pure_literal_count_occs_l_inv :: \<open>'v twl_st_l \<Rightarrow> nat multiset \<Rightarrow> nat multiset \<times> ('v literal \<Rightarrow> bool) \<times> bool \<Rightarrow> _\<close> where
+  \<open>pure_literal_count_occs_l_inv S xs0 = (\<lambda>(A, occs, _). A \<subseteq># xs0 \<and>
+    (occs = (\<lambda>L. L\<in>\<Union>(set_mset ` set_mset (mset `# (\<lambda>C. get_clauses_l S \<propto> C) `# ({#C \<in># xs0. (C \<in># dom_m (get_clauses_l S) \<and> irred (get_clauses_l S) C)#} - A))))))\<close>
+
+text \<open>We allow the solver to abort the search (for example if you already know that there are no 
+pure literals).\<close>
+
+definition pure_literal_count_occs_l :: \<open>'v twl_st_l \<Rightarrow> _\<close> where
+  \<open>pure_literal_count_occs_l S = do {
+  ASSERT (pure_literal_count_occs_l_pre S);
+  xs \<leftarrow> SPEC (\<lambda>xs. distinct_mset xs \<and> (\<forall>C\<in>#dom_m (get_clauses_l S). irred (get_clauses_l S) C \<longrightarrow> C \<in># xs));
+  abort \<leftarrow> RES (UNIV :: bool set);
+  let occs = (\<lambda>_. False);
+  (_, occs, abort) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_count_occs_l_inv S xs\<^esup>(\<lambda>(A, occs, abort). A \<noteq> {#} \<and> \<not>abort)
+      (\<lambda>(A, occs, abort). do {
+        ASSERT (A \<noteq> {#});
+        C \<leftarrow> SPEC (\<lambda>C. C \<in># A);
+        if (C \<in># dom_m (get_clauses_l S) \<and> irred (get_clauses_l S) C) 
+        then do {
+            occs \<leftarrow> pure_literal_count_occs_l_clause C S occs;
+            abort \<leftarrow> RES (UNIV :: bool set);
+            RETURN (remove1_mset C A, occs, abort)
+        } else RETURN  (remove1_mset C A, occs, abort)
+      })
+      (xs, occs, abort);
+   RETURN (abort, occs)
+  }\<close>
+
+(*TODO Move*)
+lemma filter_mset_remove_itself [simp]: \<open>filter_mset P xs - xs = {#}\<close> for P xs
+  by (induction xs) auto
+(*END Move*)
+
+lemma pure_literal_count_occs_l_spec:
+  assumes \<open>pure_literal_count_occs_l_pre S\<close>
+  shows \<open>pure_literal_count_occs_l S \<le> SPEC (\<lambda>(abort, occs). \<not>abort \<longrightarrow>
+     (\<forall>L. occs L = (L \<in> \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S)))))\<close>
+proof -
+  have H: \<open>y\<notin># A \<Longrightarrow> x \<in># A - remove1_mset y B \<longleftrightarrow> x \<in># A - B \<close> for x y A B
+    apply (auto simp: minus_remove1_mset_if)
+    done
+  have [refine0]: \<open>wf (measure (\<lambda>(A, _). size A))\<close>
+    by auto
+  show ?thesis
+    unfolding pure_literal_count_occs_l_def
+    apply (refine_vcg pure_literal_count_occs_l_clause_spec)
+    subgoal using assms by fast
+    subgoal unfolding pure_literal_count_occs_l_inv_def
+      by (auto dest: in_diffD dest: multi_member_split)
+    subgoal by auto
+    subgoal
+      unfolding pure_literal_count_occs_l_clause_pre_def
+      by simp
+    subgoal for x abort s a b aa ba xa xb xc (*TODO Proof*)
+      using distinct_mset_dom[of \<open>get_clauses_l S\<close>]
+      apply (auto dest!: multi_member_split[of \<open>_ :: nat\<close> a] multi_member_split[of xa] dest: mset_subset_eq_insertD
+        simp add: pure_literal_count_occs_l_inv_def intro!: ext split: if_splits)
+      apply (meson in_multiset_minus_notin_snd mset_subset_eqD union_single_eq_member)
+      apply (metis (no_types, lifting) add_mset_remove_trivial distinct_mem_diff_mset distinct_mset_filter in_diffD in_multiset_minus_notin_snd)
+      by (metis (no_types, lifting) diff_add_mset_swap insert_DiffM insert_noteq_member mset_subset_eqD)
+    subgoal
+      by (auto dest!: multi_member_split)
+    subgoal for x abort s a b aa ba xa
+      by (auto simp: pure_literal_count_occs_l_inv_def minus_remove1_mset_if)
+    subgoal
+      by (auto dest!: multi_member_split)
+    subgoal
+      by (auto simp: pure_literal_count_occs_l_inv_def get_init_clss_l_def ran_m_def
+        eq_commute[of _ \<open>the _\<close>] all_conj_distrib conj_disj_distribR ex_disj_distrib
+        dest!: multi_member_split)
+    done
+qed
+
+
+definition pure_literal_deletion_l2 :: \<open>_ \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>pure_literal_deletion_l2 occs S = do {
+    ASSERT (pure_literal_deletion_pre S);
+    let As = \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S));
+    xs \<leftarrow> pure_literal_deletion_candidates S;
+    (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_l_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
+      (\<lambda>(S, xs). do {
+        L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
+        let A = (if occs (Pos L) \<and> \<not>occs (Neg L) then Pos L else Neg L);
+        if \<not>occs (-A) \<and> undefined_lit (get_trail_l S) A
+        then do {S \<leftarrow> propagate_pure_bt_l A S;
+          RETURN (S, remove1_mset L xs)}
+        else RETURN (S, remove1_mset L xs)
+      })
+    (S, xs);
+  RETURN S
+  }\<close>
+
+lemma pure_literal_deletion_l2_pure_literal_deletion_l:
+  assumes \<open>(\<forall>L. occs L = (L \<in> \<Union>(set_mset ` set_mset (mset `# get_init_clss_l S))))\<close>
+  shows \<open>pure_literal_deletion_l2 occs S \<le> \<Down>Id (pure_literal_deletion_l S)\<close>
+proof -
+  have 1: \<open>a=b \<Longrightarrow> (a,b) \<in> Id\<close> and 2: \<open>c \<in> \<Phi> \<Longrightarrow> RETURN c \<le>\<Down>Id (RES \<Phi>)\<close> and
+    3: \<open>e = f \<Longrightarrow> e \<le>\<Down>Id f\<close> for a b c \<Phi> e f
+    by auto
+  show ?thesis
+    unfolding pure_literal_deletion_l2_def pure_literal_deletion_l_def
+    apply (refine_vcg)
+    apply (rule 1)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule 2)
+    subgoal by auto
+    subgoal using assms by (auto split: if_splits)
+    apply (rule 3)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition pure_literal_elimination_round_pre where
+  \<open>pure_literal_elimination_round_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)) \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    clauses_to_update_l S = {#} \<and>
+    count_decided (get_trail_l S) = 0)\<close>
+
+definition pure_literal_elimination_round where
+  \<open>pure_literal_elimination_round S = do {
+    ASSERT (pure_literal_elimination_round_pre S);
+    S \<leftarrow> simplify_clauses_with_units_st S;
+    if get_conflict_l S = None
+    then do {
+     (abort, occs) \<leftarrow> pure_literal_count_occs_l S;
+      if \<not>abort then pure_literal_deletion_l2 occs S
+      else RETURN S}
+    else RETURN S
+}\<close>
+
+lemma pure_literal_elimination_round:
+  assumes \<open>pure_literal_elimination_round_pre S\<close>
+  shows \<open>pure_literal_elimination_round S \<le> SPEC (\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T)\<close>
+proof -
+  have pure_literal_deletion_pre: \<open>pure_literal_elimination_round_pre S \<Longrightarrow>
+    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S x \<and> simplify_clauses_with_unit_st_inv S {} x \<Longrightarrow>
+    get_conflict_l x = None \<Longrightarrow>
+    pure_literal_deletion_pre x\<close> for x
+    unfolding pure_literal_deletion_pre_def pure_literal_elimination_round_pre_def apply normalize_goal+
+    apply (frule rtranclp_cdcl_twl_inprocessing_l_twl_st_l; assumption?)
+    apply (rule_tac x=V in exI)
+    apply (simp add: rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l
+      rtranclp_cdcl_twl_inprocessing_l_count_decided)
+    done
+  have pure_literal_count_occs_l_pre: \<open>pure_literal_elimination_round_pre S \<Longrightarrow>
+    cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S x \<and> simplify_clauses_with_unit_st_inv S {} x \<Longrightarrow>
+    get_conflict_l x = None \<Longrightarrow>
+    pure_literal_count_occs_l_pre x\<close> for x
+    unfolding pure_literal_count_occs_l_pre_def pure_literal_elimination_round_pre_def apply normalize_goal+
+    apply (frule rtranclp_cdcl_twl_inprocessing_l_twl_st_l; assumption?)
+    apply (rule_tac x=V in exI)
+    apply (auto simp add: rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l simplify_clauses_with_unit_st_inv_def
+      rtranclp_cdcl_twl_inprocessing_l_count_decided)
+    done
+
+  obtain T where
+    T: \<open> (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)) \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    clauses_to_update_l S = {#} \<and>
+    count_decided (get_trail_l S) = 0\<close>
+    using assms unfolding pure_literal_elimination_round_pre_def by blast
+  show ?thesis
+    unfolding pure_literal_elimination_round_def
+    apply (refine_vcg
+      simplify_clauses_with_units_st_spec[THEN order_trans, of _ T])
+    subgoal using assms by auto
+    subgoal using T by blast
+    subgoal using T by blast
+    subgoal using T by blast
+    subgoal using T by blast
+    subgoal using T by blast
+    subgoal using T by blast
+    subgoal using T by blast
+    apply (subst Down_id_eq)
+    apply (refine_vcg pure_literal_count_occs_l_spec
+      pure_literal_deletion_l2_pure_literal_deletion_l[THEN order_trans]
+      pure_literal_deletion_l_spec[THEN order_trans])
+    subgoal by (rule pure_literal_count_occs_l_pre)
+    subgoal by auto
+    subgoal
+      apply (subst Down_id_eq)
+      apply (rule pure_literal_deletion_l_spec[THEN order_trans])
+      apply (simp_all add: pure_literal_deletion_pre)
+      by (smt (verit, best) Collect_mono cdcl_twl_inprocessing_l.intros(5) mono_rtranclp rtranclp_trans)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition pure_literal_elimination_l_pre where
+  \<open>pure_literal_elimination_l_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init ((state\<^sub>W_of T)) \<and>
+    set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0} \<and>
+    clauses_to_update_l S = {#} \<and>
+    count_decided (get_trail_l S) = 0)\<close>
+
+definition pure_literal_elimination_l_inv where
+  \<open>pure_literal_elimination_l_inv S max_rounds = (\<lambda>(T,n,_). n \<le> max_rounds \<and> cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T)\<close>
+
+definition pure_literal_elimination_l :: \<open>_\<close> where
+  \<open>pure_literal_elimination_l S = do {
+     ASSERT (pure_literal_elimination_l_pre S);
+     max_rounds \<leftarrow> RES (UNIV :: nat set);
+    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_elimination_l_inv S max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
+     (\<lambda>(S, m, abort). do {
+         S \<leftarrow> pure_literal_elimination_round S;
+         abort \<leftarrow> RES (UNIV :: bool set);
+         RETURN (S, m+1, abort)
+       })
+    (S, 0, False);
+   RETURN S
+  }\<close>
+
+
+lemma pure_literal_elimination_l:
+  assumes \<open>pure_literal_elimination_l_pre S\<close>
+  shows \<open>pure_literal_elimination_l S \<le> SPEC (\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T)\<close>
+proof -
+  have [refine0]: \<open>max_rounds \<in> UNIV \<Longrightarrow> wf (measure (\<lambda>(S,n,m). max_rounds - n))\<close> for max_rounds
+    by auto
+  have H: \<open>pure_literal_elimination_l_pre S \<Longrightarrow>
+    x \<in> UNIV \<Longrightarrow>
+    pure_literal_elimination_l_inv S x s \<Longrightarrow>
+    case s of (S, m, abort) \<Rightarrow> m < x \<and> \<not> abort \<Longrightarrow>
+      s = (a, b) \<Longrightarrow> b = (aa, ba) \<Longrightarrow> pure_literal_elimination_round_pre a\<close> for x s a aa ba b S
+    apply hypsubst
+    unfolding pure_literal_elimination_round_pre_def pure_literal_elimination_l_inv_def
+        pure_literal_elimination_l_pre_def prod.simps
+    apply normalize_goal+
+    apply (frule rtranclp_cdcl_twl_inprocessing_l_twl_st_l; assumption?)
+    apply (rule_tac x=V in exI)
+    apply (auto simp add: rtranclp_cdcl_twl_inprocessing_l_clauses_to_update_l simplify_clauses_with_unit_st_inv_def
+      rtranclp_cdcl_twl_inprocessing_l_count_decided
+      dest: rtranclp_cdcl_twl_inprocessing_l_get_all_mark_of_propagated)
+    done
+  show ?thesis
+    unfolding pure_literal_elimination_l_def
+    apply (refine_vcg pure_literal_elimination_round)
+    subgoal using assms by auto
+    apply assumption
+    subgoal unfolding pure_literal_elimination_l_inv_def by auto
+    subgoal by (rule H)
+    subgoal by (auto simp: pure_literal_elimination_l_inv_def)
+    subgoal by auto
+    subgoal by (auto simp: pure_literal_elimination_l_inv_def)
     done
 qed
 

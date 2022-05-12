@@ -1041,11 +1041,39 @@ where
       mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
       no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
+lemma mark_to_delete_clauses_GC_wl_inv_alt_def:
+  \<open>mark_to_delete_clauses_GC_wl_inv = (\<lambda>S xs0 (i, T, xs).
+     \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
+     mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
+     set (get_all_mark_of_propagated (get_trail_wl T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_wl S)) \<union> {0} \<and> 
+      no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
+   unfolding mark_to_delete_clauses_GC_wl_inv_def case_prod_beta
+   apply (intro  impI iffI allI ext; normalize_goal+)
+   subgoal for S xs0 p x xa
+     by (rule_tac x=x in exI, rule_tac x=xa in exI)
+      (auto simp: mark_to_delete_clauses_l_inv_def
+       dest!: rtranclp_remove_one_annot_true_clause_get_all_mark_of_propagated)
+   subgoal for S xs0 p x xa
+     by (rule_tac x=x in exI, rule_tac x=xa in exI) auto
+   done
 
 definition mark_to_delete_clauses_GC_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
   where
   \<open>mark_to_delete_clauses_GC_wl_pre S \<longleftrightarrow>
-  (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_GC_pre T \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+lemma mark_to_delete_clause_GC_wl_pre_alt_def:
+  \<open>mark_to_delete_clauses_GC_wl_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_GC_pre T \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S \<and>  set (get_all_mark_of_propagated (get_trail_wl S)) \<subseteq> {0})\<close>
+  unfolding mark_to_delete_clauses_GC_wl_pre_def
+  apply (rule iffI impI conjI; normalize_goal+)
+  subgoal for T
+    by (rule exI[of _ T]) (auto simp: mark_to_delete_clauses_l_GC_pre_def)
+  subgoal for T
+    by (rule exI[of _ T]) (auto simp: mark_to_delete_clauses_l_GC_pre_def)
+  done
 
 text \<open>
   Unlike the @{thm[source] mark_to_delete_clauses_wl_def}, this version is only used for garbage
@@ -1064,7 +1092,6 @@ definition mark_to_delete_clauses_GC_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v 
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
 	  ASSERT (get_clauses_wl T \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T));
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
-             (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2);
           ASSERT(i < length xs);
           if can_del
@@ -1128,7 +1155,8 @@ lemma remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l2:
   \<open>(mark_to_delete_clauses_GC_wl, mark_to_delete_clauses_l)
-  \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+  \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
+    set (get_all_mark_of_propagated (get_trail_wl S)) \<subseteq> {0}} \<rightarrow>\<^sub>f
   \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id (collect_valid_indices S')\<close>
@@ -1150,7 +1178,12 @@ proof -
              xs = ys \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry]
       remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses3[THEN fref_to_Down])
-    subgoal unfolding mark_to_delete_clauses_GC_wl_pre_def by blast
+    subgoal for x y
+      unfolding mark_to_delete_clauses_GC_wl_pre_def mark_to_delete_clauses_l_GC_pre_def
+        mark_to_delete_clauses_l_pre_def
+      apply normalize_goal+
+      apply (rule_tac x=y in exI)
+      by fastforce
     subgoal by auto
     subgoal by (auto simp: state_wl_l_def)
     subgoal unfolding mark_to_delete_clauses_GC_wl_inv_def by fast
@@ -1160,7 +1193,9 @@ proof -
     subgoal by (force simp: state_wl_l_def)
     subgoal for x y xs xsa l to_keep xa x' x1 x2 x1a x2a x1b x2b x1c x2c
       by (auto simp: mark_to_delete_clauses_GC_wl_invD1)
-    subgoal by (auto simp: state_wl_l_def can_delete_def)
+    subgoal by (auto simp: state_wl_l_def can_delete_def
+      mark_to_delete_clauses_GC_wl_inv_alt_def
+      dest!: split_list)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
     subgoal

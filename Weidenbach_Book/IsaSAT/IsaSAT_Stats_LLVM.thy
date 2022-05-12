@@ -72,6 +72,7 @@ lemma [sepref_import_param]:
   \<open>(incr_GC_stats,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(add_lbd_stats,add_lbd) \<in> word32_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(units_since_last_GC_stats,units_since_last_GC)\<in> stats_rel \<rightarrow> word_rel\<close>
+  \<open>(units_since_beginning_stats,units_since_beginning)\<in> stats_rel \<rightarrow> word_rel\<close>
   \<open>(decr_irred_clss_stats,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_irred_clss_stats,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
@@ -82,7 +83,7 @@ lemma [sepref_import_param]:
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def
-    incr_lrestart_def incr_uset_def
+    incr_lrestart_def incr_uset_def units_since_beginning_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
     units_since_last_GC_def incr_binary_unit_derived_clss_def
     incr_restart_def incr_irred_clss_def get_conflict_count_def
@@ -125,6 +126,8 @@ lemma add_lbd_stats_add_lbd:
   \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word_rel\<close> and
   units_since_last_GC_stats_units_since_last_GC:
   \<open>(units_since_last_GC_stats, units_since_last_GC) \<in> stats_rel \<rightarrow> word_rel\<close> and
+  units_since_beginning_stats_units_since_beginning:
+  \<open>(units_since_beginning_stats, units_since_beginning) \<in> stats_rel \<rightarrow> word_rel\<close> and
   reset_units_since_last_GC_stats_reset_units_since_last_GC:
   \<open>(reset_units_since_last_GC_stats, reset_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close> and
   incr_irred_clss_stats_incr_irred_clss:
@@ -156,7 +159,7 @@ lemma add_lbd_stats_add_lbd:
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def
-    incr_lrestart_def incr_uset_def
+    incr_lrestart_def incr_uset_def units_since_beginning_def
     reset_units_since_last_GC_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
     units_since_last_GC_def incr_binary_unit_derived_clss_def
@@ -180,6 +183,12 @@ sepref_def reset_units_since_last_GC_stats_impl
   is \<open>(RETURN o reset_units_since_last_GC_stats)\<close>
   :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
   unfolding reset_units_since_last_GC_stats_def
+  by sepref
+
+sepref_def units_since_beginning_stats_impl
+  is \<open>(RETURN o units_since_beginning_stats)\<close>
+  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding units_since_beginning_stats_def
   by sepref
 
 sepref_def incr_irred_clss_stats_impl
@@ -272,6 +281,7 @@ lemmas stats_refine[sepref_fr_rules] =
   add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
   get_conflict_count_stats_impl.refine[FCOMP get_conflict_count_stats_get_conflict_count]
   units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]
+  units_since_beginning_stats_impl.refine[FCOMP units_since_beginning_stats_units_since_beginning]
   reset_units_since_last_GC_stats_impl.refine[FCOMP reset_units_since_last_GC_stats_reset_units_since_last_GC]
   incr_irred_clss_stats_impl.refine[FCOMP incr_irred_clss_stats_incr_irred_clss]
   decr_irred_clss_stats_impl.refine[FCOMP decr_irred_clss_stats_decr_irred_clss]

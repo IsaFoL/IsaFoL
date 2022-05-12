@@ -1603,6 +1603,15 @@ lemma remove_one_annot_true_clause_clauses_to_update_l:
   \<open>remove_one_annot_true_clause S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
   by (auto simp: remove_one_annot_true_clause.simps)
 
+lemma remove_one_annot_true_clause_get_all_mark_of_propagated:
+  \<open>remove_one_annot_true_clause S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close>
+  by (induction rule: remove_one_annot_true_clause.induct) auto
+
+lemma rtranclp_remove_one_annot_true_clause_get_all_mark_of_propagated:
+  \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> set (get_all_mark_of_propagated (get_trail_l T)) \<subseteq> set (get_all_mark_of_propagated (get_trail_l S)) \<union> {0}\<close>
+  by (induction rule: rtranclp_induct)
+   (blast dest: remove_one_annot_true_clause_get_all_mark_of_propagated)+
+
 lemma rtranclp_remove_one_annot_true_clause_clauses_to_update_l:
   \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update_l T = clauses_to_update_l S\<close>
   by (induction rule: rtranclp_induct) (auto simp: remove_one_annot_true_clause_clauses_to_update_l)
@@ -2433,6 +2442,7 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
         if(xs!i \<notin># dom_m (get_clauses_l S)) then RETURN (i, S, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_l S\<propto>(xs!i)));
+          ASSERT (xs ! i \<noteq> 0);
           can_del \<leftarrow> SPEC (can_delete S (xs!i));
           ASSERT(i < length xs);
           if can_del
@@ -2599,9 +2609,11 @@ proof -
       by (cases T) (auto simp: mark_garbage_l_def)
     ultimately show \<open>mark_to_delete_clauses_l_inv S xs0
         (i, mark_garbage_l (xs ! i) T, delete_index_and_swap xs i)\<close>
-      using inv
+      using inv apply -
       unfolding mark_to_delete_clauses_l_inv_def prod.simps st
-      by force
+      apply normalize_goal+
+      by (intro conjI; (rule_tac x=x in exI)?)
+       auto
 
     show \<open>I xs0 (i, mark_garbage_l (xs ! i) T, delete_index_and_swap xs i)\<close>
       using rem star unfolding st I_def by simp
@@ -2657,8 +2669,6 @@ proof -
       by (rule 1[THEN order_trans])
         (use that in \<open>auto simp: mark_to_delete_clauses_l_inv_def\<close>)
   qed
-
-
   show ?thesis
     unfolding mark_to_delete_clauses_l_def collect_valid_indices_def
     apply (rule ASSERT_refine_left)
@@ -2681,6 +2691,10 @@ proof -
         by auto
       subgoal
         by (rule length_ge0)
+      subgoal
+        apply (auto simp: mark_to_delete_clauses_l_inv_def )
+        by (metis gr0I rtranclp_cdcl_twl_restart_l_list_invs
+          rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2 twl_list_invs_def)
       subgoal
         by auto
       subgoal \<comment> \<open>delete clause\<close>

@@ -69,6 +69,9 @@ definition add_lbd_stats :: \<open>32 word \<Rightarrow> stats \<Rightarrow> sta
 definition units_since_last_GC_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). units)\<close>
 
+definition units_since_beginning_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). uset)\<close>
+
 definition incr_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, units + 1, lbds))\<close>
 
@@ -111,6 +114,9 @@ definition add_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> is
 
 definition units_since_last_GC :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC = units_since_last_GC_stats o get_stats\<close>
+
+definition units_since_beginning :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning = units_since_beginning_stats o get_stats\<close>
 
 definition incr_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_units_since_last_GC = Stats o incr_units_since_last_GC_stats o get_stats\<close>
