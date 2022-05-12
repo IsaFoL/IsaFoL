@@ -3015,6 +3015,7 @@ definition isa_pure_literal_count_occs_clause_wl :: \<open>nat \<Rightarrow> isa
     m \<leftarrow> mop_arena_length_st S C;
     (i, occs, _) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_pure_literal_count_occs_clause_wl_invs C S occs\<^esup> (\<lambda>(i, occs, remaining). i < m)
       (\<lambda>(i, occs, remaining). do {
+        ASSERT (i < m);
         L \<leftarrow> mop_access_lit_in_clauses_heur S C i;
         ASSERT (nat_of_lit L < length occs);
         ASSERT (nat_of_lit (-L) < length occs);
@@ -3067,6 +3068,7 @@ proof -
     subgoal using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
     subgoal using assms unfolding isa_pure_literal_count_occs_clause_wl_invs_def by fast
     subgoal by auto
+    subgoal by auto
     subgoal using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
     subgoal
       unfolding pure_literal_count_occs_clause_wl_pre_def
@@ -3110,6 +3112,7 @@ definition isa_pure_literal_count_occs_wl :: \<open>isasat \<Rightarrow> _\<clos
   ASSERT (m \<le> length (get_clauses_wl_heur S) - 2);
   (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, occs, remaining). i < m \<and> remaining > 0)
       (\<lambda>(i, occs, remaining). do {
+        ASSERT (i \<le> length (get_clauses_wl_heur S) - 2);
         ASSERT ((i < length (get_avdom S) \<longrightarrow> access_avdom_at_pre S i) \<and>
            (i \<ge> length (get_avdom S) \<longrightarrow> access_ivdom_at_pre S (i - length_avdom S)));
         let C = (get_avdom S @ get_ivdom S) ! i;
@@ -3226,6 +3229,7 @@ proof -
       isa_pure_literal_count_occs_clause_wl_pure_literal_count_occs_clause_wl)
     subgoal by (rule le)
     subgoal by (auto simp: word_greater_zero_iff)
+    subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal by (auto simp: access_avdom_at_pre_def)
     subgoal by (auto simp: access_ivdom_at_pre_def length_avdom_def)
     subgoal by (auto 6 4 intro: in_set_dropI simp: nth_append)
@@ -3407,8 +3411,11 @@ definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat
     (eliminated, S) \<leftarrow> iterate_over_VMTF
       (\<lambda>A (eliminated, T). do {
          ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
+         ASSERT (nat_of_lit (Pos A) < length occs);
+         ASSERT (nat_of_lit (Neg A) < length occs);
          let L = (if occs ! (nat_of_lit (Pos A)) \<and> \<not> occs ! (nat_of_lit (Neg A))
                   then Pos A else Neg A);
+         ASSERT (nat_of_lit (-L) < length occs);
          val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
          if \<not>occs ! (nat_of_lit (-L)) \<and> val = None
          then do {S \<leftarrow> isa_propagate_pure_bt_wl L T;
@@ -3521,11 +3528,14 @@ proof -
     ASSERT (pure_literal_deletion_wl_pre T);
     S \<leftarrow> iterate_over_VMTF
       (\<lambda>A (T). do {
+         ASSERT (nat_of_lit (Pos A) < length occs);
+         ASSERT (nat_of_lit (Neg A) < length occs);
          ASSERT (occs ! (nat_of_lit(Pos A)) = occs' (Pos A));
          ASSERT (occs ! (nat_of_lit(Neg A)) = occs' (Neg A));
          let L = (if occs ! (nat_of_lit(Pos A)) \<and> \<not> occs ! (nat_of_lit (Neg A))
                   then Pos A else Neg A);
          val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
+         ASSERT (nat_of_lit (-L) < length occs);
          if \<not>occs ! nat_of_lit (-L) \<and> val = None
          then do {S \<leftarrow> isa_propagate_pure_bt_wl L T;
           RETURN (S)}
@@ -3548,7 +3558,9 @@ proof -
        by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
          all_init_atms_alt_def all_init_atms_st_alt_def)
      have occs_st: \<open>occs ! (nat_of_lit (Pos (x1))) = occs' (Pos (x1))\<close>
-        \<open>occs ! (nat_of_lit (Neg (x1))) = occs' (Neg (x1))\<close>
+       \<open>occs ! (nat_of_lit (Neg (x1))) = occs' (Neg (x1))\<close>
+       \<open>nat_of_lit (Pos x1) < length occs\<close>
+       \<open>nat_of_lit (Neg x1) < length occs\<close>
        if inv: \<open>\<exists>xs. pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (x2, xs)\<close>
          \<open>x1 \<in># all_init_atms_st x2\<close> for x1 x2
      proof -
@@ -3562,6 +3574,8 @@ proof -
            all_init_lits_of_l_all_init_lits_of_wl rtranclp_cdcl_twl_pure_remove_l_same(7) set_image_mset that(2))
        then show \<open>occs ! (nat_of_lit (Pos (x1))) = occs' (Pos (x1))\<close>
          \<open>occs ! (nat_of_lit (Neg (x1))) = occs' (Neg (x1))\<close>
+       \<open>nat_of_lit (Pos x1) < length occs\<close>
+       \<open>nat_of_lit (Neg x1) < length occs\<close>
          using occs by (auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
      qed
      show ?thesis
@@ -3580,6 +3594,12 @@ proof -
          unfolding case_prod_beta
          by (rule occs_st) (assumption, simp)
        subgoal for x x' x1 x2 x1a x2a
+         unfolding case_prod_beta
+         by (rule occs_st) (assumption, simp)
+       subgoal for x x' x1 x2 x1a x2a
+         unfolding case_prod_beta
+         by (rule occs_st) (assumption, simp)
+       subgoal for x x' x1 x2 x1a x2a
          by (rule polarity_pol_pre[of _ _ \<open>(all_init_atms_st x2)\<close>])
           (auto simp add: H \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_st_alt_def all_init_atms_alt_def)
       apply (rule K)
@@ -3587,6 +3607,7 @@ proof -
         using assms
         by (auto intro!: polarity_pol_polarity[of \<open>(all_init_atms_st x2)\<close>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
           simp: H all_init_atms_st_alt_def)
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -3613,6 +3634,9 @@ proof -
       unfolding isa_pure_literal_deletion_wl_def iterate_over_VMTF_def prod.simps Let_def
       apply refine_vcg
       subgoal using assms unfolding isa_pure_literal_deletion_wl_pre_def by  fast
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
@@ -3647,9 +3671,10 @@ proof -
 qed
 
 definition isa_pure_literal_elimination_round_wl where
-  \<open>isa_pure_literal_elimination_round_wl S = do {
-    ASSERT (isa_pure_literal_elimination_round_wl_pre S);
-    S \<leftarrow> isa_simplify_clauses_with_units_st_wl2 S;
+  \<open>isa_pure_literal_elimination_round_wl S\<^sub>0 = do {
+    ASSERT (isa_pure_literal_elimination_round_wl_pre S\<^sub>0);
+    S \<leftarrow> isa_simplify_clauses_with_units_st_wl2 S\<^sub>0;
+    ASSERT (length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S\<^sub>0));
     if get_conflict_wl_is_None_heur S
     then do {
      (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl S;
@@ -3684,6 +3709,7 @@ proof -
       isa_pure_literal_count_occs_wl_pure_literal_count_occs_wl[where r=r and u=u]
       isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[OF assms])
     subgoal using assms unfolding isa_pure_literal_elimination_round_wl_pre_def by fast
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     subgoal
       by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
         (use assms in \<open>auto simp: get_conflict_wl_is_None_def\<close>)
@@ -3706,17 +3732,18 @@ definition isa_pure_literal_elimination_wl_inv :: \<open>_\<close> where
   (T, T') \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_inv S' max_rounds (T', m, abort))\<close>
 
 definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>isa_pure_literal_elimination_wl S = do {
-    ASSERT (isa_pure_literal_elimination_wl_pre S);
+  \<open>isa_pure_literal_elimination_wl S\<^sub>0 = do {
+    ASSERT (isa_pure_literal_elimination_wl_pre S\<^sub>0);
      max_rounds \<leftarrow> RETURN (3::nat);
-    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_pure_literal_elimination_wl_inv S max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
+    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_pure_literal_elimination_wl_inv S\<^sub>0 max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
      (\<lambda>(S, m, abort). do {
          ASSERT (m \<le> max_rounds);
+         ASSERT (length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S\<^sub>0));
          (elim, S) \<leftarrow> isa_pure_literal_elimination_round_wl S;
          abort \<leftarrow> RETURN (elim > 0);
          RETURN (S, m+1, abort)
        })
-    (S, 0, False);
+    (S\<^sub>0, 0, False);
    RETURN S
   }\<close>
 
@@ -3739,6 +3766,7 @@ proof -
       by (rule_tac x=S' in exI, rule_tac x=\<open>fst x'\<close> in exI) auto
     subgoal by auto
     subgoal by auto
+    subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
