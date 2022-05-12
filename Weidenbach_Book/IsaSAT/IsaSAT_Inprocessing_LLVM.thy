@@ -655,61 +655,60 @@ sepref_def isa_propagate_pure_bt_wl_code
   by sepref
 
 lemma isa_pure_literal_deletion_wl_alt_def:
-  \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 = (do {
-    ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
-    (eliminated, S) \<leftarrow> iterate_over_VMTF
-      (\<lambda>A (eliminated, T). do {
-         ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
-         let L = (if occs ! (nat_of_lit (Pos A)) \<and> \<not> occs ! (nat_of_lit (Neg A))
-                  then Pos A else Neg A);
-         val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
-         if \<not>occs ! (nat_of_lit (-L)) \<and> val = None
-         then do {S \<leftarrow> isa_propagate_pure_bt_wl L T;
-          RETURN (eliminated + 1, S)}
-        else RETURN (eliminated, T)
-      })
-     (\<lambda>(_, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S))
-     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0)) (0 :: 32 word, S\<^sub>0);
-   RETURN (eliminated, S)
-           })\<close>
-           unfolding isa_pure_literal_deletion_wl_def
-     by auto
-sepref_def isa_pure_literal_elimination_round_wl_code
+ \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 = (do {
+  ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
+  (_, eliminated, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, _, S). get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S\<^esup> (\<lambda>(n, x). n \<noteq> None)
+    (\<lambda>(n, eliminated, T). do {
+       ASSERT (n \<noteq> None);
+       let A = the n;
+       ASSERT (A < length (get_vmtf_heur_array S\<^sub>0));
+       ASSERT (A \<le> uint32_max div 2);
+       ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
+       ASSERT (nat_of_lit (Pos A) < length occs);
+       ASSERT (nat_of_lit (Neg A) < length occs);
+       let L = (if occs ! nat_of_lit (Pos A) \<and> \<not> occs ! nat_of_lit (Neg A) then Pos A else Neg A);
+       ASSERT (nat_of_lit (- L) < length occs);
+       val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
+       if \<not> occs ! nat_of_lit (- L) \<and> val = None then do {
+          S \<leftarrow> isa_propagate_pure_bt_wl L T;
+          ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S);
+          RETURN (get_next (get_vmtf_heur_array S ! A),eliminated + 1, S)
+       }
+       else RETURN (get_next (get_vmtf_heur_array T ! A),eliminated, T)
+     })
+    (Some (get_vmtf_heur_fst S\<^sub>0), 0, S\<^sub>0);
+   mop_free occs;
+  RETURN (eliminated, S)
+         })\<close>
+  unfolding isa_pure_literal_deletion_wl_def mop_free_def
+  by auto
+
+sepref_def isa_pure_literal_deletion_wl_code
   is \<open>uncurry isa_pure_literal_deletion_wl\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word32_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_deletion_wl_alt_def iterate_over_VMTF_def nres_monad3 nres_monad2
-    get_vmtf_heur_array_nth_def[symmetric] atom.fold_option
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-subgoal premises p
-oops
+    get_vmtf_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
+    mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
+    get_vmtf_heur_array_nth_def[symmetric] prod.simps
   by sepref
-
 
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> word32_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_elimination_round_wl_def
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-subgoal premises p
-oops
   by sepref
+
 
 sepref_def isa_pure_literal_elimination_wl_code
   is isa_pure_literal_elimination_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding isa_pure_literal_elimination_wl_def Let_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-term log_unit_clause
 experiment
 begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
