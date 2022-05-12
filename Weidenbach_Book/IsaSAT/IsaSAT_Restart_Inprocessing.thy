@@ -3110,6 +3110,8 @@ definition isa_pure_literal_count_occs_wl :: \<open>isasat \<Rightarrow> _\<clos
   ASSERT (m \<le> length (get_clauses_wl_heur S) - 2);
   (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(i, occs, remaining). i < m \<and> remaining > 0)
       (\<lambda>(i, occs, remaining). do {
+        ASSERT ((i < length (get_avdom S) \<longrightarrow> access_avdom_at_pre S i) \<and>
+           (i \<ge> length (get_avdom S) \<longrightarrow> access_ivdom_at_pre S (i - length_avdom S)));
         let C = (get_avdom S @ get_ivdom S) ! i;
         E \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
         if (E = IRRED) then do {
@@ -3224,6 +3226,8 @@ proof -
       isa_pure_literal_count_occs_clause_wl_pure_literal_count_occs_clause_wl)
     subgoal by (rule le)
     subgoal by (auto simp: word_greater_zero_iff)
+    subgoal by (auto simp: access_avdom_at_pre_def)
+    subgoal by (auto simp: access_ivdom_at_pre_def length_avdom_def)
     subgoal by (auto 6 4 intro: in_set_dropI simp: nth_append)
     apply (assumption)
     subgoal
@@ -3249,38 +3253,399 @@ definition isa_pure_literal_elimination_round_wl_pre where
   \<open>isa_pure_literal_elimination_round_wl_pre S \<longleftrightarrow>
   (\<exists>T r u. (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_round_wl_pre T)\<close>
 
-(*This is a placeholder doing nothing to have a working version faster*)
+definition isa_pure_literal_deletion_wl_pre :: \<open>_\<close> where
+  \<open>isa_pure_literal_deletion_wl_pre S \<longleftrightarrow>
+  (\<exists>T r u. (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_deletion_wl_pre T)\<close>
 
-definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
-  \<open>isa_pure_literal_elimination_wl_pre S = (\<exists>T u r.
-    (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_pre T)\<close>
 
-definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>isa_pure_literal_elimination_wl S = do {
-    ASSERT (isa_pure_literal_elimination_wl_pre S);
-    let A = (0::nat);
-    RETURN S
-  }\<close>
+definition isa_propagate_pure_bt_wl
+  :: \<open>nat literal \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
+  where
+    \<open>isa_propagate_pure_bt_wl = (\<lambda>L S. do {
+      let M = get_trail_wl_heur S;
+      let stats = get_stats_heur S;
+      ASSERT(0 \<noteq> DECISION_REASON);
+      ASSERT(cons_trail_Propagated_tr_pre ((L, 0::nat), M));
+      M \<leftarrow> cons_trail_Propagated_tr (L) 0 M;
+      let stats = incr_units_since_last_GC (incr_uset stats);
+      let S = set_stats_wl_heur stats S;
+      let S = set_trail_wl_heur M S;
+      RETURN S})
+\<close>
+(*TODO dedup*)
+lemma lookup_clause_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> lookup_clause_rel \<A> \<Longrightarrow> L \<in> lookup_clause_rel \<B>\<close>
+  using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding lookup_clause_rel_def
+  apply (cases L)
+  by (auto intro!: isa_vmtfI)
 
-(*
-lemma isa_pure_literal_deletion_wl_pure_literal_deletion_wl:
-  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
-  shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_deletion_wl occs' S')\<close>
+lemma isa_propagate_pure_bt_wl_propagate_pure_bt_wl:
+  assumes S\<^sub>0T: \<open>(S\<^sub>0, T) \<in> twl_st_heur_restart_ana' r u\<close> and
+    \<open>(L,L')\<in>Id\<close>
+  shows \<open>isa_propagate_pure_bt_wl L S\<^sub>0 \<le>\<Down>{(U, V). (U,V)\<in>twl_st_heur_restart_ana' r u \<and> get_vmtf_heur U = get_vmtf_heur S\<^sub>0} (propagate_pure_bt_wl L' T)\<close>
 proof -
-  have [refine]: \<open>RETURN {#} \<le> \<Down> Id (pure_literal_deletion_candidates_wl S')\<close>
-    by (auto simp: pure_literal_deletion_candidates_wl_def)
+  have propagate_pure_bt_wl_alt_def:
+    \<open>propagate_pure_bt_wl = (\<lambda>L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS). do {
+      ASSERT(propagate_pure_wl_pre L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS));
+      M \<leftarrow> cons_trail_propagate_l L 0 M;
+      RETURN (M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, add_mset (-L) Q, WS)})\<close>
+    unfolding propagate_pure_bt_wl_def by auto
+  have [refine]: \<open>S=S\<^sub>0 \<Longrightarrow> M = get_trail_wl T \<Longrightarrow>
+    mop_isa_length_trail (get_trail_wl_heur S) \<le> SPEC (\<lambda>ca. (ca, length M) \<in> Id)\<close> for S M
+     apply (subst twl_st_heur_restart_isa_length_trail_get_trail_wl[of _ T r])
+     using S\<^sub>0T apply simp
+     using S\<^sub>0T apply (simp_all add: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+       all_init_atms_st_alt_def all_init_atms_alt_def)
+     done
+   have trail: \<open>(get_trail_wl_heur S\<^sub>0, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close> for x2a x2
+     using assms by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def
+       all_init_atms_alt_def)
+    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
+      by auto
+    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
+      by auto
 
-  show ?thesis
-    unfolding isa_pure_literal_deletion_wl_def
-      pure_literal_deletion_wl_def
-    apply refine_rcg
-    subgoal
-      by (subst WHILEIT_unfold)
-        (use assms in auto)
+    obtain M N D NE UE NEk UEk NS US N0 U0 Q WS where
+      T: \<open>T = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, WS)\<close>
+      by (cases T)
+    {
+      assume pre: \<open>propagate_pure_wl_pre L T\<close>
+     note cong =  trail_pol_cong heuristic_rel_cong
+       option_lookup_clause_rel_cong
+        vdom_m_cong[symmetric, THEN H] isasat_input_nempty_cong[THEN iffD1]
+       isasat_input_bounded_cong[THEN iffD1]
+        cach_refinement_empty_cong[THEN H']
+        phase_saving_cong[THEN H']
+        \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
+       D\<^sub>0_cong[THEN H]
+       lookup_clause_rel_cong
+       map_fun_rel_D\<^sub>0_cong
+       isa_vmtf_cong[THEN isa_vmtf_consD2]
+       isasat_input_nempty_cong[THEN iffD1]
+       isasat_input_bounded_cong[THEN iffD1]
+      let ?T = \<open>(Propagated L 0 # M, N, D, NE, UE, add_mset {#L'#} NEk, UEk, NS, US, N0, U0,
+        add_mset (- L') Q, WS)\<close>
+      have \<open>L' \<in># all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l N#} + (NE + NEk) + NS + N0)\<close> and
+        D: \<open>D = None\<close> and
+        undef: \<open>undefined_lit M L'\<close>
+        using pre assms(2) unfolding propagate_pure_wl_pre_def propagate_pure_l_pre_def apply -
+        by (solves \<open>normalize_goal+; auto simp: T twl_st_l_def all_init_lits_of_wl_def\<close>)+
+      then have H: \<open>set_mset (all_init_lits_of_wl ?T) = set_mset (all_init_lits_of_wl T)\<close>
+        unfolding T by (auto simp: all_init_lits_of_wl_def
+          all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_mm_uminus_iff)
+      then have H: \<open>set_mset (all_init_atms_st ?T) = set_mset (all_init_atms_st T)\<close>
+        unfolding all_init_atms_st_alt_def by auto
+      note _ = D undef cong[OF H[symmetric]]
+  } note cong = this(3-) and D = this(1) and undef = this(2)
+
+    show ?thesis
+    supply [simp del] = isasat_input_nempty_def isasat_input_bounded_def
+    unfolding propagate_pure_bt_wl_alt_def isa_propagate_pure_bt_wl_def T
+    apply (rewrite at \<open>let _ = get_trail_wl_heur _ in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = get_stats_heur _ in _\<close> Let_def)
+    apply (cases S\<^sub>0)
+    apply (hypsubst, unfold prod.simps)
+    apply (refine_vcg
+      cons_trail_Propagated_tr2[of _ _ _ _ _ _ \<open>all_init_atms_st T\<close>])
+    subgoal by (auto simp: DECISION_REASON_def)
+    subgoal by (rule cons_trail_Propagated_tr_pre[of _ \<open>get_trail_wl T\<close> \<open>all_init_atms_st T\<close>])
+      (use \<open>(L,L')\<in>Id\<close> trail in \<open>auto simp: propagate_pure_wl_pre_def propagate_pure_l_pre_def
+        state_wl_l_def twl_st_l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_lits_of_wl_def all_init_lits_of_l_def
+        get_init_clss_l_def T\<close>)
+    subgoal by (use trail assms in \<open>auto simp: T\<close>)
+    subgoal by (use \<open>(L,L')\<in>Id\<close> trail in \<open>auto simp: propagate_pure_wl_pre_def propagate_pure_l_pre_def
+        state_wl_l_def twl_st_l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_lits_of_wl_def all_init_lits_of_l_def
+        get_init_clss_l_def T\<close>)
+    subgoal using assms D undef unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
+      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_st_alt_def all_init_atms_alt_def T
+      unfolding all_init_atms_st_alt_def[symmetric] apply -
+      apply (simp only: in_pair_collect_simp)
+      apply (intro conjI)
+      subgoal
+        apply simp
+        using cong T apply fast
+        done
+      subgoal by simp
+      subgoal
+        apply simp
+        using cong T apply fast
+        done
+      subgoal
+        apply auto
+        done
+      subgoal
+        apply simp
+        done
+      subgoal
+        apply simp
+        using cong(10-) T apply fast
+        done
+      subgoal apply simp using cong(10-) T by fast
+      subgoal by simp
+      subgoal by simp
+      subgoal apply simp using cong T by fast
+      subgoal by simp
+      subgoal by simp
+      subgoal apply simp using cong(4) T by fast
+      subgoal by simp
+      subgoal apply simp using cong T by fast
+      subgoal by simp (use cong T in fast)
+      subgoal by simp
+      subgoal by simp (use cong T in fast)
+      subgoal by simp
+      subgoal by (simp add: learned_clss_count_def)
+      subgoal by simp
+      done
     done
 qed
 
-term pure_literal_deletion_wl
+
+definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat \<Rightarrow> (32 word \<times> isasat) nres\<close> where
+  \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 = (do {
+    ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
+    (eliminated, S) \<leftarrow> iterate_over_VMTF
+      (\<lambda>A (eliminated, T). do {
+         ASSERT (get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array T);
+         let L = (if occs ! (nat_of_lit (Pos A)) \<and> \<not> occs ! (nat_of_lit (Neg A))
+                  then Pos A else Neg A);
+         val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
+         if \<not>occs ! (nat_of_lit (-L)) \<and> val = None
+         then do {S \<leftarrow> isa_propagate_pure_bt_wl L T;
+          RETURN (eliminated + 1, S)}
+        else RETURN (eliminated, T)
+      })
+     (\<lambda>(_, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S))
+     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0)) (0, S\<^sub>0);
+   RETURN (eliminated, S)
+})\<close>
+
+
+
+lemma isa_pure_literal_deletion_wl_pure_literal_deletion_wl:
+  assumes S\<^sub>0T: \<open>(S\<^sub>0, T) \<in> twl_st_heur_restart_ana' r u\<close> and
+    occs: \<open>(occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T))\<close>
+  shows \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 \<le>\<Down>{((_, U), V). (U,V)\<in>twl_st_heur_restart_ana' r u} (pure_literal_deletion_wl occs' T)\<close>
+proof -
+  have B: \<open>\<Down>Id(pure_literal_deletion_wl occs' T) \<ge>
+  (do {
+    ASSERT (pure_literal_deletion_wl_pre T);
+    iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l
+      (\<lambda>A (T). do {
+         ASSERT (A \<in># all_init_atms_st T);
+         let L = (if occs' (Pos A) \<and> \<not> occs' (Neg A)
+                  then Pos A else Neg A);
+         let val = polarity (get_trail_wl T) L;
+         if \<not>occs' (-L) \<and> val = None
+         then do {S \<leftarrow> propagate_pure_bt_wl L T;
+          RETURN (S)}
+        else RETURN (T)
+           })
+           (atm_of `# all_init_lits_of_wl T)
+     (\<lambda>xs S. pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (S, xs))
+     (T)})\<close> (is \<open>_ \<ge> ?B\<close> is \<open>_ \<ge> do { ASSERT _; iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l ?f _ _ _}\<close>)
+  proof -
+    have [refine0]: \<open>(x, xs) \<in> Id \<Longrightarrow> set_mset x = set_mset (atm_of `# all_init_lits_of_wl T) \<Longrightarrow>
+      ((x, T), T, xs) \<in> {((a,b), (c,d)). (a,d) \<in>Id \<and> (b,c)\<in>Id}\<close> for x xs
+      by (auto simp: all_init_atms_st_alt_def)
+    have K: \<open>a=b \<Longrightarrow> a \<le>\<Down>Id b\<close> for a b
+      by auto
+    have Lin: \<open>pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (x1, x2) \<Longrightarrow>
+       L \<in># x2 \<Longrightarrow> L \<in># all_init_atms_st x1\<close> for L x1 x2
+     unfolding pure_literal_deletion_wl_inv_def prod.simps pure_literal_deletion_l_inv_def
+     apply normalize_goal+
+     apply (simp add: all_init_atms_st_alt_def)
+     by (metis (no_types, lifting) all_init_lits_of_l_all_init_lits_of_wl mset_subset_eqD
+       multiset.set_map rtranclp_cdcl_twl_pure_remove_l_same(7))
+
+    show ?thesis
+      unfolding iterate_over_VMTF_def pure_literal_deletion_wl_def
+        pure_literal_deletion_candidates_wl_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+        iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>lC_def nres_monad3 nres_bind_let_law If_bind_distrib
+      apply (rewrite at \<open>let _ =  \<Union> _ in _\<close> Let_def)
+      apply refine_vcg
+      subgoal by (auto simp: all_init_atms_st_alt_def)
+      subgoal by fast
+      subgoal for \<A> xs x x' x1 x2
+        unfolding all_init_atms_st_alt_def pure_literal_deletion_l_inv_def
+        pure_literal_deletion_wl_inv_def case_prod_beta
+        apply normalize_goal+
+        apply (rename_tac ya yb yc, rule_tac x=ya in exI[of])
+        apply (rule_tac x=yb in exI[of])
+        apply (intro conjI)
+        apply simp
+        apply simp
+        apply (rule_tac x=yc in exI[of])
+        apply simp_all
+        by (metis distinct_subseteq_iff set_image_mset subset_mset.dual_order.trans subset_mset.order_refl)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by (simp add: Lin)
+      subgoal by (auto simp: polarity_def)
+      apply (rule K)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      done
+   qed
+
+   have vmtf: \<open>get_vmtf_heur S\<^sub>0 \<in> isa_vmtf (all_init_atms_st T) (get_trail_wl T)\<close> and
+     nempty: \<open>isasat_input_nempty (all_init_atms_st T)\<close> and
+     bounded: \<open>isasat_input_bounded (all_init_atms_st T)\<close>
+     using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
+     by (simp_all add: all_init_atms_alt_def del: isasat_input_nempty_def)
+   obtain a aa ac b ba where
+      vm: \<open>((get_vmtf_heur_array S\<^sub>0, aa, get_vmtf_heur_fst S\<^sub>0, ac, b), ba) \<in> vmtf (all_init_atms_st T) (get_trail_wl T)\<close> and
+      \<open>(get_vmtf_heur S\<^sub>0, (get_vmtf_heur_array S\<^sub>0, aa, get_vmtf_heur_fst S\<^sub>0, ac, b), ba) \<in> Id \<times>\<^sub>f distinct_atoms_rel (all_init_atms_st T)\<close>
+     using vmtf unfolding isa_vmtf_def get_vmtf_heur_fst_def get_vmtf_heur_array_def
+     by (cases \<open>get_vmtf_heur S\<^sub>0\<close>) auto
+   have C: \<open>\<Down>Id ?B \<ge> (do {
+     ASSERT (pure_literal_deletion_wl_pre T);
+     (S) \<leftarrow> iterate_over_VMTF ?f
+     (\<lambda>S. \<exists>xs. pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (S, xs))
+     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0)) (T);
+     RETURN (S)
+     })\<close> (is \<open>_ \<ge> ?C\<close>)
+     apply (refine_vcg iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l)
+     unfolding nres_monad2 all_init_atms_st_alt_def[symmetric]
+     apply (rule iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vm])
+     subgoal using nempty by auto
+     subgoal using bounded by auto
+     subgoal by blast
+     done
+
+   have D: \<open>\<Down>(twl_st_heur_restart_ana' r u) ?C \<ge>
+  (do {
+    ASSERT (pure_literal_deletion_wl_pre T);
+    S \<leftarrow> iterate_over_VMTF
+      (\<lambda>A (T). do {
+         ASSERT (occs ! (nat_of_lit(Pos A)) = occs' (Pos A));
+         ASSERT (occs ! (nat_of_lit(Neg A)) = occs' (Neg A));
+         let L = (if occs ! (nat_of_lit(Pos A)) \<and> \<not> occs ! (nat_of_lit (Neg A))
+                  then Pos A else Neg A);
+         val \<leftarrow> mop_polarity_pol (get_trail_wl_heur T) L;
+         if \<not>occs ! nat_of_lit (-L) \<and> val = None
+         then do {S \<leftarrow> isa_propagate_pure_bt_wl L T;
+          RETURN (S)}
+        else RETURN (T)
+           })
+      (\<lambda>S. get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S)
+     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0))
+     (S\<^sub>0);
+    RETURN S})\<close> (is \<open>_ \<ge> ?D\<close>)
+   proof -
+     have [refine]: \<open> ((Some (get_vmtf_heur_fst S\<^sub>0), S\<^sub>0), Some (get_vmtf_heur_fst S\<^sub>0), T)
+       \<in> Id \<times>\<^sub>r {(U,V). (U,V)\<in>twl_st_heur_restart_ana' r u \<and> get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array U}\<close>
+       using assms by auto
+     have H: \<open>P \<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_init_lits_of_wl A) \<longleftrightarrow> atm_of P \<in># all_init_atms_st A\<close> for P A
+       using \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n by (metis all_init_atms_st_alt_def)
+     have K: \<open>a=b \<Longrightarrow>(a,b)\<in>Id\<close> for a b
+       by auto
+     have [simp, intro!]: \<open>(x2a, x2) \<in> twl_st_heur_restart_ana r \<Longrightarrow>
+    (get_trail_wl_heur x2a, get_trail_wl x2) \<in> trail_pol (atm_of `# all_init_lits_of_wl x2)\<close> for x2a x2
+       by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+         all_init_atms_alt_def all_init_atms_st_alt_def)
+     have occs_st: \<open>occs ! (nat_of_lit (Pos (x1))) = occs' (Pos (x1))\<close>
+        \<open>occs ! (nat_of_lit (Neg (x1))) = occs' (Neg (x1))\<close>
+       if inv: \<open>\<exists>xs. pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (x2, xs)\<close>
+         \<open>x1 \<in># all_init_atms_st x2\<close> for x1 x2
+     proof -
+       obtain xs where inv: \<open>pure_literal_deletion_wl_inv T (atm_of `# all_init_lits_of_wl T) (x2, xs)\<close>
+         using inv by auto
+       have  \<open>x1 \<in># all_init_atms_st T\<close>
+         using inv unfolding pure_literal_deletion_wl_inv_def prod.simps
+           pure_literal_deletion_l_inv_def apply -
+         by normalize_goal+
+           (metis (no_types, opaque_lifting) all_init_atms_st_alt_def
+           all_init_lits_of_l_all_init_lits_of_wl rtranclp_cdcl_twl_pure_remove_l_same(7) set_image_mset that(2))
+       then show \<open>occs ! (nat_of_lit (Pos (x1))) = occs' (Pos (x1))\<close>
+         \<open>occs ! (nat_of_lit (Neg (x1))) = occs' (Neg (x1))\<close>
+         using occs by (auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
+     qed
+     show ?thesis
+       unfolding iterate_over_VMTF_def nres_monad3 nres_bind_let_law prod.simps If_bind_distrib
+         mop_polarity_pol_def nres_monad2 nres_monad1[of _ \<open>\<lambda>x. RETURN (_,x)\<close>]
+       apply (refine_vcg isa_propagate_pure_bt_wl_propagate_pure_bt_wl[where r=r and u=u])
+       subgoal by auto
+       subgoal by auto
+       subgoal by auto
+       subgoal by auto
+       subgoal by auto
+       subgoal for x x' x1 x2 x1a x2a
+         unfolding case_prod_beta
+         by (rule occs_st) (assumption, simp)
+       subgoal for x x' x1 x2 x1a x2a
+         unfolding case_prod_beta
+         by (rule occs_st) (assumption, simp)
+       subgoal for x x' x1 x2 x1a x2a
+         by (rule polarity_pol_pre[of _ _ \<open>(all_init_atms_st x2)\<close>])
+          (auto simp add: H \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_st_alt_def all_init_atms_alt_def)
+      apply (rule K)
+      subgoal for x x' x1 x2 x1a x2a
+        using assms
+        by (auto intro!: polarity_pol_polarity[of \<open>(all_init_atms_st x2)\<close>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id]
+          simp: H all_init_atms_st_alt_def)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by (auto simp: get_vmtf_heur_array_def)
+      subgoal by auto
+      subgoal by auto
+      done
+  qed
+
+  have E: \<open>\<Down>{((_, U), V). (U,V)\<in>Id}?D \<ge> isa_pure_literal_deletion_wl occs S\<^sub>0\<close>
+  proof -
+     have K: \<open>a=b \<Longrightarrow> a\<le>\<Down>Id b\<close> for a b
+       by auto
+     have H1: \<open>(S, x'a) \<in> Id \<Longrightarrow> ((x1b + 1, S), x'a)  \<in> {((a,b),c). (b,c)\<in>Id}\<close> for S x'a x1b
+       by auto
+         have H2: \<open>\<And>x x' x1 x2 x1a x2a.
+    pure_literal_deletion_wl_pre T \<Longrightarrow>
+    isa_pure_literal_deletion_wl_pre S\<^sub>0 \<Longrightarrow>
+           (x, x') \<in> {((a, b, c), x, y). (a, x) \<in> Id \<and> (c, y) \<in> Id} \<Longrightarrow> x' = (x1, x2) \<Longrightarrow> x = (x1a, x2a) \<Longrightarrow> (x2a, x2) \<in> {((a,b),c). (b,c)\<in>Id}\<close>
+           by auto
+    have [refine]: \<open>((Some (get_vmtf_heur_fst S\<^sub>0), 0, S\<^sub>0), Some (get_vmtf_heur_fst S\<^sub>0), S\<^sub>0) \<in>
+      {((a,b,c), (x,y)). (a,x)\<in> Id \<and> (c,y)\<in>Id}\<close> by auto
+    show ?thesis
+      unfolding isa_pure_literal_deletion_wl_def iterate_over_VMTF_def prod.simps Let_def
+      apply refine_vcg
+      subgoal using assms unfolding isa_pure_literal_deletion_wl_pre_def by  fast
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      apply (rule K)
+      subgoal by auto
+      subgoal by auto
+      apply (rule K)
+      subgoal by auto
+      apply (rule H1)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto
+      apply (rule H2; assumption)
+      subgoal by auto
+      done
+   qed
+   show ?thesis
+     apply (rule order_trans[OF E])
+     apply (rule order_trans)
+     apply (rule ref_two_step'[OF D])
+     apply (subst conc_fun_chain)
+     apply (rule order_trans)
+     apply (rule ref_two_step'[OF C])
+     apply (subst conc_fun_chain)
+     apply (rule order_trans)
+     apply (rule ref_two_step'[OF B])
+     apply (rule ref_two_step'')
+     by auto
+qed
+
 definition isa_pure_literal_elimination_round_wl where
   \<open>isa_pure_literal_elimination_round_wl S = do {
     ASSERT (isa_pure_literal_elimination_round_wl_pre S);
@@ -3289,26 +3654,95 @@ definition isa_pure_literal_elimination_round_wl where
     then do {
      (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl S;
       if \<not>abort then isa_pure_literal_deletion_wl occs S
-      else RETURN S}
-    else RETURN S
+      else RETURN (0, S)}
+    else RETURN (0, S)
 }\<close>
+lemma isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl:
+  assumes \<open>(S,S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows
+    \<open>isa_simplify_clauses_with_units_st_wl2 S \<le> \<Down> (twl_st_heur_restart_ana' r u) (simplify_clauses_with_units_st_wl S')\<close>
+  apply (rule order_trans)
+    defer
+  apply (rule ref_two_step')
+  apply (rule simplify_clauses_with_units_st_wl2_simplify_clauses_with_units_st_wl[unfolded Down_id_eq, of _ S'])
+  subgoal by auto
+  subgoal
+    apply (rule isa_simplify_clauses_with_units_st2_simplify_clauses_with_units_st2[THEN order_trans, of _ S'])
+    apply (rule assms)
+    subgoal using assms by auto
+    done
+  done
 
-*)
+
+lemma isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl:
+  assumes S\<^sub>0T: \<open>(S\<^sub>0, T) \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_pure_literal_elimination_round_wl S\<^sub>0 \<le>\<Down>{((_, U), V). (U,V)\<in>twl_st_heur_restart_ana' r u} (pure_literal_elimination_round_wl T)\<close>
+proof -
+  show ?thesis
+    unfolding isa_pure_literal_elimination_round_wl_def pure_literal_elimination_round_wl_def
+    apply (refine_rcg isa_pure_literal_deletion_wl_pure_literal_deletion_wl[where r=r and u=u]
+      isa_pure_literal_count_occs_wl_pure_literal_count_occs_wl[where r=r and u=u]
+      isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[OF assms])
+    subgoal using assms unfolding isa_pure_literal_elimination_round_wl_pre_def by fast
+    subgoal
+      by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
+        (use assms in \<open>auto simp: get_conflict_wl_is_None_def\<close>)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+(*This is a placeholder doing nothing to have a working version faster*)
+
+definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
+  \<open>isa_pure_literal_elimination_wl_pre S = (\<exists>T u r.
+    (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_pre T)\<close>
+definition isa_pure_literal_elimination_wl_inv :: \<open>_\<close> where
+  \<open>isa_pure_literal_elimination_wl_inv S max_rounds = (\<lambda>(T,m,abort). \<exists>S' T' u r.
+  (S, S') \<in> twl_st_heur_restart_ana' r u \<and>
+  (T, T') \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_inv S' max_rounds (T', m, abort))\<close>
+
+definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>isa_pure_literal_elimination_wl S = do {
+    ASSERT (isa_pure_literal_elimination_wl_pre S);
+     max_rounds \<leftarrow> RETURN (3::nat);
+    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_pure_literal_elimination_wl_inv S max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
+     (\<lambda>(S, m, abort). do {
+         ASSERT (m \<le> max_rounds);
+         (elim, S) \<leftarrow> isa_pure_literal_elimination_round_wl S;
+         abort \<leftarrow> RETURN (elim > 0);
+         RETURN (S, m+1, abort)
+       })
+    (S, 0, False);
+   RETURN S
+  }\<close>
+
 
 lemma isa_pure_literal_elimination_wl_pure_literal_elimination_wl:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_elimination_wl S')\<close>
 proof -
-  have [refine]: \<open>RETURN (0::nat) \<le> \<Down> {(a,b). a = b \<and> a = 0} (RES UNIV)\<close>
+  have [refine]: \<open>RETURN (3::nat) \<le> \<Down> {(a,b). a = b} (RES UNIV)\<close>
+    \<open>RETURN (0 < x1d) \<le> \<Down> bool_rel (RES UNIV)\<close> for x1d
     by (auto simp: RETURN_RES_refine)
+  have [refine]: \<open>((S, 0, False), S', 0, False) \<in> twl_st_heur_restart_ana' r u \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+    using assms by auto
   show ?thesis
     unfolding isa_pure_literal_elimination_wl_def pure_literal_elimination_wl_def
-    apply (refine_vcg)
+    apply (refine_vcg isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl[where r=r and u=u])
     subgoal using assms unfolding isa_pure_literal_elimination_wl_pre_def by fast
-    subgoal
-      by (subst WHILEIT_unfold) (use assms in auto)
+    subgoal for max_rounds max_roundsa x x'
+      using assms unfolding isa_pure_literal_elimination_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
+      by (rule_tac x=S' in exI, rule_tac x=\<open>fst x'\<close> in exI) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
-
 
 end
