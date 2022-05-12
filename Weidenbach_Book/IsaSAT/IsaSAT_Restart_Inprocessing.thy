@@ -3009,7 +3009,7 @@ definition isa_pure_literal_count_occs_clause_wl_pre :: \<open>_\<close> where
     (occs, occs') \<in> \<langle>bool_rel\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S')) \<and>
     pure_literal_count_occs_clause_wl_pre C S' occs')\<close>
 
-definition isa_pure_literal_count_occs_clause_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> _ \<Rightarrow> 32 word \<Rightarrow> _\<close> where
+definition isa_pure_literal_count_occs_clause_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> _ \<Rightarrow> 64 word \<Rightarrow> _\<close> where
   \<open>isa_pure_literal_count_occs_clause_wl C S occs remaining = do {
     ASSERT (isa_pure_literal_count_occs_clause_wl_pre C S occs);
     m \<leftarrow> mop_arena_length_st S C;
@@ -3106,7 +3106,7 @@ definition isa_pure_literal_count_occs_wl :: \<open>isasat \<Rightarrow> _\<clos
   \<open>isa_pure_literal_count_occs_wl S = do {
   let xs = get_avdom S @ get_ivdom S;
   let m = length (xs);
-  let remaining = length (get_watched_wl_heur S) / 2 - units_since_beginning_st S;
+  let remaining = ((of_nat (length (get_watched_wl_heur S)) :: 64 word) >> 1) - units_since_beginning_st S;
   let abort = (remaining \<le> 0);
   let occs = replicate (length (get_watched_wl_heur S)) False;
   ASSERT (m \<le> length (get_clauses_wl_heur S) - 2);
@@ -3224,7 +3224,7 @@ proof -
     unfolding isa_pure_literal_count_occs_wl_def
       pure_literal_count_occs_wl_alt_def
     apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = 0xF4240 in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = _ - _ in _\<close> Let_def)
     apply (refine_vcg mop_arena_status2[where vdom=\<open>set(get_vdom S)\<close> and N=\<open>get_clauses_wl S'\<close>]
       isa_pure_literal_count_occs_clause_wl_pure_literal_count_occs_clause_wl)
     subgoal by (rule le)
@@ -3405,7 +3405,7 @@ proof -
 qed
 
 
-definition isa_pure_literal_deletion_wl_raw :: \<open>bool list \<Rightarrow> isasat \<Rightarrow> (32 word \<times> isasat) nres\<close> where
+definition isa_pure_literal_deletion_wl_raw :: \<open>bool list \<Rightarrow> isasat \<Rightarrow> (64 word \<times> isasat) nres\<close> where
   \<open>isa_pure_literal_deletion_wl_raw occs S\<^sub>0 = (do {
     ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
     (eliminated, S) \<leftarrow> iterate_over_VMTF
@@ -3424,11 +3424,11 @@ definition isa_pure_literal_deletion_wl_raw :: \<open>bool list \<Rightarrow> is
         else RETURN (eliminated, T)
       })
      (\<lambda>(_, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S))
-     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0)) (0 :: 32 word, S\<^sub>0);
+     (get_vmtf_heur_array S\<^sub>0, Some (get_vmtf_heur_fst S\<^sub>0)) (0 :: 64 word, S\<^sub>0);
    RETURN (eliminated, S)
 })\<close>
 
-definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat \<Rightarrow> (32 word \<times> isasat) nres\<close> where
+definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat \<Rightarrow> (64 word \<times> isasat) nres\<close> where
   \<open>isa_pure_literal_deletion_wl occs S\<^sub>0 = (do {
   ASSERT (isa_pure_literal_deletion_wl_pre S\<^sub>0);
   (_, eliminated, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, _, S). get_vmtf_heur_array S\<^sub>0 = get_vmtf_heur_array S\<^esup> (\<lambda>(n, x). n \<noteq> None)

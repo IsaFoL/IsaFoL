@@ -50,7 +50,7 @@ sepref_register mop_arena_status_st isa_pure_literal_count_occs_clause_wl
 sepref_def isa_pure_literal_count_occs_clause_wl_code
   is \<open>uncurry3 isa_pure_literal_count_occs_clause_wl\<close>
   :: \<open>[\<lambda>(((C, S), _), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
-    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a word32_assn\<^sup>d  \<rightarrow> larray_assn' TYPE(64) bool1_assn \<times>\<^sub>a word32_assn\<close>
+    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a word64_assn\<^sup>d  \<rightarrow> larray_assn' TYPE(64) bool1_assn \<times>\<^sub>a word64_assn\<close>
   unfolding isa_pure_literal_count_occs_clause_wl_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -64,6 +64,7 @@ sepref_def isa_pure_literal_count_occs_wl_code
     larray_fold_custom_replicate mop_arena_status_st_def[symmetric]
     access_ivdom_at_def[symmetric] length_avdom_def[symmetric] length_ivdom_def[symmetric]
     access_avdom_at_def[symmetric] length_watchlist_raw_def[symmetric] length_append
+  supply of_nat_snat[sepref_import_param]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -686,7 +687,7 @@ lemma isa_pure_literal_deletion_wl_alt_def:
 sepref_def isa_pure_literal_deletion_wl_code
   is \<open>uncurry isa_pure_literal_deletion_wl\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
-     (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word32_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+     (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_deletion_wl_alt_def iterate_over_VMTF_def nres_monad3 nres_monad2
     get_vmtf_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
     mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
@@ -696,7 +697,7 @@ sepref_def isa_pure_literal_deletion_wl_code
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
-     isasat_bounded_assn\<^sup>d \<rightarrow> word32_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+     isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_elimination_round_wl_def
   by sepref
 
