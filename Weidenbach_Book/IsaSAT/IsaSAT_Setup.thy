@@ -1436,6 +1436,9 @@ definition get_GC_units_opt :: \<open>isasat \<Rightarrow> 64 word\<close> where
 definition units_since_last_GC_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_st S = units_since_last_GC (get_stats_heur S)\<close>
 
+definition units_since_beginning_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning_st S = units_since_beginning (get_stats_heur S)\<close>
+
 definition reset_units_since_last_GC_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>reset_units_since_last_GC_st S =
   (let stats = get_stats_heur S in

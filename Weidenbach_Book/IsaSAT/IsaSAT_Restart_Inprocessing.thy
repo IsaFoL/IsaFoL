@@ -3106,7 +3106,7 @@ definition isa_pure_literal_count_occs_wl :: \<open>isasat \<Rightarrow> _\<clos
   \<open>isa_pure_literal_count_occs_wl S = do {
   let xs = get_avdom S @ get_ivdom S;
   let m = length (xs);
-  let remaining = 1000000;
+  let remaining = length (get_watched_wl_heur S) / 2 - units_since_beginning_st S;
   let abort = (remaining \<le> 0);
   let occs = replicate (length (get_watched_wl_heur S)) False;
   ASSERT (m \<le> length (get_clauses_wl_heur S) - 2);
