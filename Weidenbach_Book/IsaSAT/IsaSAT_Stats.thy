@@ -77,14 +77,14 @@ definition incr_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<c
 
 
 definition incr_purelit_elim_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, lres, uset, gcs, units, purelit_elim + 1, purelit_rount, lbds))\<close>
+  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim + 1, purelit_rount, lbds))\<close>
 
 definition incr_purelit_rounds_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, lres, uset, gcs, units, purelit_elim, purelit_rount+1, lbds))\<close>
+  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount+1, lbds))\<close>
 
 
 definition reset_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, 0, lbds))\<close>
+  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_round, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, 0, a, b, c, purelit_elim, purelit_round, lbds))\<close>
 
 definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss+1, lbds))\<close>
