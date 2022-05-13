@@ -234,7 +234,7 @@ sepref_def bottom_outl_code
   by sepref
 
 definition bottom_stats :: \<open>isasat_stats\<close> where
-  \<open>bottom_stats = Stats (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)\<close>
+  \<open>bottom_stats = Stats (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)\<close>
 
 definition extract_stats_wl_heur where
   \<open>extract_stats_wl_heur = isasat_state_ops.remove_k bottom_stats\<close>

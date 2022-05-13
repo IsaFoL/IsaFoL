@@ -49,11 +49,11 @@ lemma Constructor_hnr[sepref_fr_rules]:
 
 abbreviation stats_int_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_int_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
-     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
+     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
 
 abbreviation stats_int_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_int_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a
-     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
+     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
 
 abbreviation stats_rel :: \<open>(stats \<times> isasat_stats) set\<close> where
   \<open>stats_rel \<equiv> \<langle>stats_int_rel\<rangle>code_hider_rel\<close>
@@ -76,12 +76,14 @@ lemma [sepref_import_param]:
   \<open>(decr_irred_clss_stats,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_irred_clss_stats,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_purelit_elim_stats, incr_purelit_elim) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_purelit_rounds_stats, incr_purelit_rounds) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word64_rel\<close>
   \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
-    stats_conflicts_def
+    stats_conflicts_def incr_purelit_elim_def incr_purelit_rounds_def
     incr_conflict_def incr_decision_def
     incr_lrestart_def incr_uset_def units_since_beginning_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
@@ -152,13 +154,17 @@ lemma add_lbd_stats_add_lbd:
   \<open>(stats_conflicts_stats, stats_conflicts)\<in> stats_rel \<rightarrow> word_rel\<close> and
   incr_units_since_last_GC_stats_incr_units_since_last_GC:
   \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>and
+  incr_purelit_elim_stats_incr_purelit_elim:
+  \<open>(incr_purelit_elim_stats, incr_purelit_elim) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  incr_purelit_rounds_stats_incr_purelit_rounds:
+  \<open>(incr_purelit_rounds_stats, incr_purelit_rounds) \<in> stats_rel \<rightarrow> stats_rel\<close> and
   incr_binary_unit_derived_incr_binary_unit_derived_clss:
     \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close> and
   incr_binary_red_removed_incr_binary_red_removed_clss:
     \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
-    incr_conflict_def incr_decision_def
+    incr_conflict_def incr_decision_def incr_purelit_elim_def incr_purelit_rounds_def
     incr_lrestart_def incr_uset_def units_since_beginning_def
     reset_units_since_last_GC_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
@@ -257,6 +263,18 @@ sepref_def incr_units_since_last_GC_stats_impl
   unfolding incr_units_since_last_GC_stats_def
   by sepref
 
+sepref_def incr_purelit_rounds_stats_impl
+  is \<open>RETURN o incr_purelit_rounds_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_purelit_rounds_stats_def
+  by sepref
+
+sepref_def incr_purelit_elim_stats_impl
+  is \<open>RETURN o incr_purelit_elim_stats\<close>
+  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
+  unfolding incr_purelit_elim_stats_def
+  by sepref
+
 sepref_def incr_binary_red_removed_impl
   is \<open>RETURN o incr_binary_red_removed\<close>
   :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
@@ -294,6 +312,8 @@ lemmas stats_refine[sepref_fr_rules] =
   incr_GC_stats_impl.refine[FCOMP incr_GC_stats_incr_GC]
   stats_conflicts_stats_impl.refine[FCOMP stats_conflicts_stats_stats_conflicts]
   incr_units_since_last_GC_stats_impl.refine[FCOMP incr_units_since_last_GC_stats_incr_units_since_last_GC]
+  incr_purelit_rounds_stats_impl.refine[FCOMP incr_purelit_rounds_stats_incr_purelit_rounds]
+  incr_purelit_elim_stats_impl.refine[FCOMP incr_purelit_elim_stats_incr_purelit_elim]
   hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
   hn_id[FCOMP get_content_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
   incr_binary_unit_derived_impl.refine[FCOMP incr_binary_unit_derived_incr_binary_unit_derived_clss]

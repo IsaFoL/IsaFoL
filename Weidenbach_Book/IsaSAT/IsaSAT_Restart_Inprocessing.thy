@@ -3271,7 +3271,7 @@ definition isa_propagate_pure_bt_wl
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((L, 0::nat), M));
       M \<leftarrow> cons_trail_Propagated_tr (L) 0 M;
-      let stats = incr_units_since_last_GC (incr_uset stats);
+      let stats = incr_units_since_last_GC (incr_uset (incr_purelit_elim stats));
       let S = set_stats_wl_heur stats S;
       let S = set_trail_wl_heur M S;
       RETURN S})
