@@ -302,6 +302,16 @@ void IsaSAT_LLVM_print_binary_red_removed_impl(int64_t props) {
   printf("c binary redundant removed %ld\n", props);
 #endif
 }
+void IsaSAT_LLVM_print_purelit_elim_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c pure literals unit removed %ld\n", props);
+#endif
+}
+void IsaSAT_LLVM_print_purelit_rounds_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c elimination rounds %ld\n", props);
+#endif
+}
 
 void print_phase(int8_t phase) {
 #ifdef PRINTSTATS

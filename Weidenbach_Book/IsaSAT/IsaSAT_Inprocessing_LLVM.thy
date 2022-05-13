@@ -1,4 +1,3 @@
-
 theory IsaSAT_Inprocessing_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
     IsaSAT_Restart_Inprocessing
@@ -639,7 +638,7 @@ lemma isa_propagate_pure_bt_wl_alt_def:
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((L, 0::nat), M));
       M \<leftarrow> cons_trail_Propagated_tr (L) 0 M;
-      let stats = incr_units_since_last_GC (incr_uset stats);
+      let stats = incr_units_since_last_GC (incr_uset (incr_purelit_elim stats));
       let S = update_stats_wl_heur stats S;
       let S = update_trail_wl_heur M S;
       let _ = log_unit_clause L;
