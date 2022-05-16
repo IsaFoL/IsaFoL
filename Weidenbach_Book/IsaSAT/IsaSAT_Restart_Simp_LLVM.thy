@@ -20,7 +20,6 @@ sepref_def cdcl_twl_full_restart_wl_prog_heur_fast_code
   by sepref
 
 
-
 sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a

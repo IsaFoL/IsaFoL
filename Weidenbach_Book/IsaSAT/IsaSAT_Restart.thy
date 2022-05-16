@@ -473,12 +473,6 @@ lemma in_set_delete_index_and_swapD:
   apply (auto dest!: in_set_butlastD)
   by (metis List.last_in_set in_set_upd_cases list.size(3) not_less_zero)
 
-lemma [simp]:
-  \<open>get_vdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_ivdom_aivdom aivdom\<close>
-  by (cases aivdom; auto simp: remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
-
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_tvdom S) \<Longrightarrow>
   get_tvdom S ! i \<notin># dom_m (get_clauses_wl T) \<Longrightarrow>
@@ -489,10 +483,6 @@ lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def delete_index_vdom_heur_def)
     (auto intro!: aivdom_inv_dec_removed_inactive_tvdom)
 
-lemma avdom_delete_index_vdom_heur[simp]:
-  \<open>get_avdom (delete_index_vdom_heur i S) =  (get_avdom S)\<close>
-  \<open>get_tvdom (delete_index_vdom_heur i S) = delete_index_and_swap (get_tvdom S) i\<close>
-  by (cases S; auto simp: delete_index_vdom_heur_def; fail)+
 
 lemma incr_wasted_st:
   assumes
@@ -509,12 +499,6 @@ lemma incr_wasted_st:
      dest!: in_set_butlastD in_vdom_m_fmdropD
      elim!: in_set_upd_cases)
   done
-
-lemma [simp]:
-  \<open>learned_clss_count (delete_index_vdom_heur C T) = learned_clss_count T\<close>
-  \<open>learned_clss_count (mark_unused_st_heur C T) = learned_clss_count T\<close>
-  by (cases T; auto simp: learned_clss_count_def delete_index_vdom_heur_def
-    mark_unused_st_heur_def; fail)+
 
 
 lemma twl_st_heur_restart_same_annotD:
@@ -539,18 +523,6 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_init_all:
   using all_init_lits_of_wl_all_lits_st \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms
     \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) by blast
 
-lemma get_vdom_mark_garbage[simp]:
-  \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
-  \<open>get_avdom (mark_garbage_heur C i S) = delete_index_and_swap (get_avdom S) i\<close>
-  \<open>get_ivdom (mark_garbage_heur C i S) = get_ivdom S\<close>
-  \<open>get_tvdom (mark_garbage_heur C i S) = get_tvdom S\<close>
-  \<open>get_tvdom (mark_garbage_heur3 C i S) = delete_index_and_swap (get_tvdom S) i\<close>
-  \<open>get_ivdom (mark_garbage_heur3 C i S) = get_ivdom S\<close>
-  \<open>get_vdom (mark_garbage_heur3 C i S) = get_vdom S\<close>
-  \<open>learned_clss_count (mark_garbage_heur3 C i (S)) \<le> learned_clss_count S\<close>
-  \<open>learned_clss_count (mark_garbage_heur3 C i (incr_wasted_st b S)) \<le> learned_clss_count S\<close>
-  by (cases S; auto simp: mark_garbage_heur_def mark_garbage_heur3_def
-   learned_clss_count_def incr_wasted_st_def; fail)+
 
 
 lemma twl_st_heur_restartD2:
@@ -1770,7 +1742,7 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
 lemma valid_arena_header_size:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
   by (auto simp: arena_header_size_def header_size_def arena_lifting)
-
+(*TODO Move*)
 lemma WHILEIT_refine_with_invariant_and_break:
   assumes R0: \<open>I' x' \<Longrightarrow> (x,x')\<in>R\<close>
   assumes IREF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x\<close>
@@ -1964,5 +1936,196 @@ lemma isasat_GC_clauses_wl_D_rewatch_pre:
 definition should_inprocess_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>should_inprocess_st S \<longleftrightarrow>
       (get_global_conflict_count S > next_inprocessing_schedule_st S)\<close>
+(*TODO Move*)
+lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana:
+  \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur_restart_ana' r (u) \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
+  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  by (auto simp: twl_st_heur_restart_ana_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def twl_st_heur_restart_def
+     split: option.splits)
+lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart:
+  \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
+  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  by (auto simp: twl_st_heur_restart_ana_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def twl_st_heur_restart_def
+     split: option.splits)
+(*TODO Move*)
+lemma mop_arena_status2:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in> vdom\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, C \<in># dom_m N)
+    \<in> {(a,b). (b \<longrightarrow> (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C)) \<and>  (a = DELETED \<longleftrightarrow> \<not>b)})\<close>
+  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
+  by (cases \<open>C \<in># dom_m N\<close>)
+    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
+     arena_lifting)
+
+(*END Move*)
+(*TODO Move*)
+lemma mop_arena_status_vdom:
+  assumes \<open>C \<in> vdom\<close> and \<open>(C,C')\<in>nat_rel\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, C' \<in># dom_m N)
+    \<in> {(a,b). (a \<noteq> DELETED \<longleftrightarrow> b) \<and> (((a = IRRED \<longleftrightarrow> (irred N C' \<and> b)) \<and> (a = LEARNED \<longleftrightarrow> (\<not>irred N C' \<and> b))))})\<close>
+   using assms arena_lifting(24,25)[of arena N vdom C] arena_dom_status_iff(1)[of arena N vdom C]
+   unfolding mop_arena_status_def
+   by (cases \<open>arena_status arena C'\<close>)
+    (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def)
+(*TODO rename*)
+lemma all_init_atms_alt_def:
+  \<open>all_init_atms (get_clauses_wl S')
+        (IsaSAT_Setup.get_unkept_unit_init_clss_wl S' + IsaSAT_Setup.get_kept_unit_init_clss_wl S' + get_subsumed_init_clauses_wl S' +
+  get_init_clauses0_wl S') = all_init_atms_st S'\<close>
+  by (auto simp: all_init_atms_st_def IsaSAT_Setup.get_unit_init_clss_wl_alt_def)
+
+lemma twl_st_heur_restart_state_simp:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart\<close>
+  shows
+     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       watched_by_int S C = watched_by S' C\<close>
+      \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       get_watched_wl_heur S ! (nat_of_lit C) =  get_watched_wl S' C\<close>and
+     \<open>literals_to_update_wl S' =
+         uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
+     twl_st_heur_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       nat_of_lit C < length(get_watched_wl_heur S)\<close>
+  using assms unfolding twl_st_heur_restart_def
+  by (solves \<open>cases S; cases S'; auto simp add: Let_def map_fun_rel_def ac_simps all_init_atms_st_def\<close>)+
+
+lemma twl_st_heur_restart_ana_state_simp:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana u\<close>
+  shows
+     twl_st_heur_restart_ana_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       watched_by_int S C = watched_by S' C\<close>
+      \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       get_watched_wl_heur S ! (nat_of_lit C) =  get_watched_wl S' C\<close>and
+     \<open>literals_to_update_wl S' =
+         uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
+     twl_st_heur_restart_ana_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow>
+       nat_of_lit C < length(get_watched_wl_heur S)\<close>
+  using assms twl_st_heur_restart_state_simp[of S S'] unfolding twl_st_heur_restart_ana_def
+  by (auto simp: )
+
+lemma twl_st_heur_restart_ana_watchlist_in_vdom:
+  \<open>get_watched_wl_heur x2e ! nat_of_lit L ! x1d = (a, b) \<Longrightarrow>
+  (x2e, x2f) \<in> twl_st_heur_restart_ana r \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x2f) \<Longrightarrow>
+  x1d < length (get_watched_wl_heur x2e ! nat_of_lit L) \<Longrightarrow>
+    a \<in> set (get_vdom x2e)\<close>
+  apply (drule nth_mem)
+  by (subst (asm) twl_st_heur_restart_ana_state_simp, assumption, assumption)+
+   (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def vdom_m_def
+    all_init_atms_alt_def
+    dest!: multi_member_split)
+
+lemma twl_st_heur_restart_alt_def2:
+  \<open>twl_st_heur_restart =
+  {(S,T).
+  let M' = get_trail_wl_heur S; N' = get_clauses_wl_heur S; D' = get_conflict_wl_heur S;
+    W' = get_watched_wl_heur S; j = literals_to_update_wl_heur S; outl = get_outlearned_heur S;
+    cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
+    vm = get_vmtf_heur S;
+    vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
+    lcount = get_learned_count S in
+    let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
+      Q = literals_to_update_wl T;
+      W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
+      NS = get_subsumed_init_clauses_wl T; US = get_subsumed_learned_clauses_wl T;
+      NEk = get_kept_unit_init_clss_wl T; UEk = get_kept_unit_learned_clss_wl T;
+      NE = get_unkept_unit_init_clss_wl T; UE = get_unkept_unit_learned_clss_wl T in
+    (M', M) \<in> trail_pol (all_init_atms_st T) \<and>
+    valid_arena N' N (set (get_vdom_aivdom vdom)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_init_atms_st T) \<and>
+    (D = None \<longrightarrow> j \<le> length M) \<and>
+    Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T)) \<and>
+    vm \<in> isa_vmtf (all_init_atms_st T) M \<and>
+    no_dup M \<and>
+    clvls \<in> counts_maximum_level M D \<and>
+    cach_refinement_empty (all_init_atms_st T) cach \<and>
+    out_learned M D outl \<and>
+    clss_size_corr_restart N NE {#} NEk UEk NS {#} N0 {#} lcount \<and>
+    vdom_m (all_init_atms_st T) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    aivdom_inv_dec vdom (dom_m N) \<and>
+    isasat_input_bounded (all_init_atms_st T) \<and>
+    isasat_input_nempty (all_init_atms_st T) \<and>
+    old_arena = [] \<and>
+    heuristic_rel (all_init_atms_st T) heur
+  }\<close>
+  unfolding twl_st_heur_restart_def Let_def
+  by (auto simp: all_init_atms_st_def )
+
+lemma length_watched_le_ana:
+  assumes
+    prop_inv: \<open>correct_watching'_leaking_bin x1\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_restart_ana r\<close> and
+    x2': \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
+  shows \<open>length (watched_by x1 x2) \<le> r - MIN_HEADER_SIZE\<close>
+proof -
+  have x2: \<open>x2 \<in># all_init_lits_of_wl x1\<close>
+    using \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) x2' by blast
+  have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using prop_inv x2 unfolding all_atms_def all_lits_def
+    by (cases x1; auto simp: correct_watching'_leaking_bin.simps ac_simps all_lits_st_alt_def[symmetric])
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using xb_x'a
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def twl_st_heur'_def aivdom_inv_dec_alt_def Let_def)
+
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
+    using xb_x'a unfolding all_atms_def all_lits_def
+    by (cases x1)
+     (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def Let_def)
+
+  have \<open>vdom_m (all_init_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_alt_def2 ac_simps Let_def)
+
+  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
+    using x2' unfolding vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms
+    by (cases x1)
+      (force simp: twl_st_heur'_def twl_st_heur_def
+        dest!: multi_member_split)
+  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
+    by (rule distinct_subseteq_iff[THEN iffD1])
+      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
+         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur x1a)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - MIN_HEADER_SIZE\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  then show ?thesis
+    using size_mset_mono[OF watched_incl] xb_x'a
+    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>]
+      simp: twl_st_heur_restart_ana_def)
+qed
+
+lemma D\<^sub>0_cong': \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> x \<in> D\<^sub>0 \<A> \<Longrightarrow> x \<in> D\<^sub>0 \<B>\<close>
+  by (subst (asm) D\<^sub>0_cong, assumption)
+lemma map_fun_rel_D\<^sub>0_cong: \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>x \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<Longrightarrow> x \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<B>)\<close>
+  by (subst (asm) D\<^sub>0_cong, assumption)
+
+lemma vdom_m_cong': "set_mset \<A> = set_mset \<B> \<Longrightarrow> x \<in> vdom_m \<A> a b \<Longrightarrow> x \<in> vdom_m \<B> a b"
+  by (subst (asm) vdom_m_cong, assumption)
+lemma vdom_m_cong'': "set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> a b \<subseteq> A \<Longrightarrow> vdom_m \<B> a b \<subseteq> A"
+  by (subst (asm) vdom_m_cong, assumption)
+lemma cach_refinement_empty_cong': "set_mset \<A> = set_mset \<B> \<Longrightarrow> cach_refinement_empty \<A> x \<Longrightarrow> cach_refinement_empty \<B> x"
+  by (subst (asm) cach_refinement_empty_cong, assumption)
 
 end

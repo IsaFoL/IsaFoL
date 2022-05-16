@@ -5,12 +5,6 @@ theory IsaSAT_Garbage_Collect_LLVM
      IsaSAT_Show_LLVM
 begin
 
-lemma length_ll[def_pat_rules]: \<open>length_ll$xs$i \<equiv> op_list_list_llen$xs$i\<close>
-  by (auto simp: length_ll_def)
-
-lemma [def_pat_rules]: \<open>nth_rll \<equiv> op_list_list_idx\<close>
-  by (auto simp: nth_rll_def[abs_def] op_list_list_idx_def intro!: ext)
-
 sepref_register length_ll extra_information_mark_to_delete nth_rll
   LEARNED
 
