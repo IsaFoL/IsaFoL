@@ -230,4 +230,29 @@ lemma rewatch_heur_alt_def:
   unfolding Let_def rewatch_heur_def
   by auto
 
+definition watchlist_put_binaries_first_one :: \<open>_\<close> where
+  \<open>watchlist_put_binaries_first_one W\<^sub>0 L = do {
+      (_, _, W) \<leftarrow> WHILE\<^sub>T (\<lambda>(i,j,W). \<forall>K. mset (W ! K) = mset (W\<^sub>0 ! K))
+       (\<lambda>(i,j,W). do {
+          ASSERT (j < length (W ! L));
+          let (C, L, b) = W ! L ! j;
+          if b then RETURN (i+1,j+1, W[L := swap (W!L) i j])
+          else RETURN (i+1, j+1, W)
+       })
+       (0, 0, W);
+    RETURN W
+}\<close>
+
+definition watchlist_put_binaries_first_one :: \<open>_\<close> where
+  \<open>watchlist_put_binaries_first_one W\<^sub>0 L = do {
+      (_, W) \<leftarrow> WHILE\<^sub>T (\<lambda>(i,W). \<forall>K. mset (W ! K) = mset (W\<^sub>0 ! K))
+       (\<lambda>(i,W). do {
+          ASSERT (i < length (W));
+          W \<leftarrow> watchlist_put_binaries_first_one W L;
+          RETURN (i+1, W)
+       })
+       (0, W);
+    RETURN W
+}\<close>
+
 end
