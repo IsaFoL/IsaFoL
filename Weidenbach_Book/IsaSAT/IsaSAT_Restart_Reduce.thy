@@ -1878,8 +1878,8 @@ proof -
     done
 qed
 
-definition cdcl_twl_full_restart_wl_prog_heur where
-  \<open>cdcl_twl_full_restart_wl_prog_heur S = do {
+definition cdcl_twl_mark_clauses_to_delete where
+  \<open>cdcl_twl_mark_clauses_to_delete S = do {
   _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
   _ \<leftarrow> RETURN (IsaSAT_Profile.start_reduce);
   T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
@@ -1887,13 +1887,13 @@ definition cdcl_twl_full_restart_wl_prog_heur where
   RETURN (clss_size_resetUS0_st T)
   }\<close>
 
-lemma cdcl_twl_full_restart_wl_prog_heur_alt_def:
-  \<open>cdcl_twl_full_restart_wl_prog_heur S = do {
+lemma cdcl_twl_mark_clauses_to_delete_alt_def:
+  \<open>cdcl_twl_mark_clauses_to_delete S = do {
   _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
   T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
   RETURN (clss_size_resetUS0_st T)
   }\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
+  unfolding cdcl_twl_mark_clauses_to_delete_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
   by auto
 
 lemma learned_clss_count_clss_size_resetUS0_st_le:
@@ -1906,10 +1906,10 @@ lemma learned_clss_count_clss_size_resetUS0_st_le:
     clss_size_lcount_def
     split: prod.splits)+
 
-lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
-  \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog) \<in>
+lemma cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D:
+  \<open>(cdcl_twl_mark_clauses_to_delete, cdcl_twl_full_restart_wl_prog) \<in>
      twl_st_heur''''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur''''u r u\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_alt_def cdcl_twl_full_restart_wl_prog_def
+  unfolding cdcl_twl_mark_clauses_to_delete_alt_def cdcl_twl_full_restart_wl_prog_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
     mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D[THEN fref_to_Down])
@@ -1936,7 +1936,7 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   by (intro frefI nres_relI)
     (refine_rcg lhs_step_If
     cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec[THEN fref_to_Down]
-    cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
+    cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
 
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D:
   \<open>(mark_to_delete_clauses_GC_wl_D_heur, mark_to_delete_clauses_GC_wl) \<in>
@@ -3173,7 +3173,7 @@ definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarr
     T \<leftarrow> isasat_GC_clauses_prog_wl S;
     ASSERT(length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S));
     ASSERT(\<forall>i \<in> set (get_tvdom T). i < length (get_clauses_wl_heur S));
-    U \<leftarrow> rewatch_heur_st (empty_US_heur T);
+    U \<leftarrow> rewatch_heur_and_reorder_st (empty_US_heur T);
     RETURN (reset_added_heur_st inprocessing U)
   }
   else RETURN S})\<close>
@@ -3309,11 +3309,82 @@ lemma rtranclp_GC_remap_ran_m_exists_earlier:
   using rtranclp_GC_remap_ran_m_no_new_map rtranclp_GC_remap_ran_m_no_rewrite
   by (metis fst_conv)
 
+
+lemma watchlist_put_binaries_first_one_correct_watching:
+  assumes \<open>\<exists>W'. correct_watching''' \<B> (M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W') \<and> (W,W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> \<open>L < length W\<close>
+  shows \<open>watchlist_put_binaries_first_one W L \<le> \<Down>{(a,b). (a,b)\<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> length a = length W \<and> (\<forall>K. mset (a ! K) = mset (W ! K))} (SPEC (\<lambda>W. correct_watching''' \<B> (M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W)))\<close>
+proof -
+  obtain W' where W': \<open>correct_watching''' \<B>(M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W') \<and> (W,W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+    using assms by fast
+  let ?R = \<open>measure (\<lambda>(i, j, _). length (W ! L) - i)\<close>
+  have R[refine]: \<open>wf ?R\<close>
+    by auto
+  have H: \<open>(\<forall>K. mset (Wa ! K) = mset (W ! K)) \<longleftrightarrow> (\<forall>K. mset (Wa ! K) = mset (W ! K)) \<and> (\<forall>K. set (Wa ! K) = set (W ! K)) \<and> 
+   (\<forall>K. distinct_watched (Wa ! K) \<longleftrightarrow> distinct_watched (W ! K))\<close> for W Wa
+   by (auto dest: mset_eq_setD simp del: distinct_mset_mset_distinct
+    simp flip: distinct_mset_mset_distinct)
+
+  show ?thesis
+    using assms(2) W'
+    unfolding watchlist_put_binaries_first_one_def conc_fun_SPEC apply -
+    apply (refine_vcg )
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: nth_list_update)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for s a b aa ba
+      apply (subst (asm) H)
+      apply (rule_tac x= \<open>\<lambda>L. if L \<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A> then ba ! nat_of_lit L else W' L\<close> in exI)
+      apply (auto simp: correct_watching'''.simps all_blits_are_in_problem_init.simps 
+        map_fun_rel_def dest: mset_eq_setD split: if_splits)
+      done
+    done
+qed
+
+lemma watchlist_put_binaries_first:
+  assumes \<open>correct_watching''' \<B> (M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W')\<close>
+    \<open>(W,W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+  shows \<open>watchlist_put_binaries_first W \<le> \<Down>(\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)) (SPEC (\<lambda>W. correct_watching''' \<B> (M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W)))\<close>
+proof -
+  let ?R = \<open>measure (\<lambda>(i, _). length W - i)\<close>
+  have [refine]: \<open>wf ?R\<close>
+    by auto
+  note [refine_vcg del] = WHILEIT_rule
+  show ?thesis
+    unfolding watchlist_put_binaries_first_def conc_fun_SPEC apply -
+    apply (refine_vcg
+          watchlist_put_binaries_first_one_correct_watching[where \<A>=\<A> and \<B>=\<B> and M=M and
+          N=N and D=D and NE=NE and UE=UE and NEk=NEk and UEk=UEk and NS=NS and US=US
+          and N\<^sub>0=N\<^sub>0 and U\<^sub>0=U\<^sub>0 and Q=Q, THEN order_trans]
+      WHILEIT_rule_stronger_inv[where
+      I' = \<open>\<lambda>(i, W). \<exists>W'. (W,W')\<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<and>
+        correct_watching''' \<B> (M, N, D, NE, UE, NEk, UEk, NS, US, N\<^sub>0, U\<^sub>0, Q, W')\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by fast
+    subgoal by auto
+    subgoal by fast
+    subgoal by (auto simp: conc_fun_RES)
+    subgoal by fast
+    done
+qed
+
 lemma rewatch_heur_st_correct_watching:
   assumes
     pre: \<open>cdcl_GC_clauses_pre_wl y\<close> and
     S_T: \<open>(S, T) \<in> isasat_GC_clauses_rel y u\<close>
-  shows \<open>rewatch_heur_st (empty_US_heur S) \<le> \<Down> (twl_st_heur_restart'''u (length (get_clauses_wl_heur S)) u)
+  shows \<open>rewatch_heur_and_reorder_st (empty_US_heur S) \<le> \<Down> (twl_st_heur_restart'''u (length (get_clauses_wl_heur S)) u)
     (rewatch_spec (T))\<close>
 proof -
   obtain M N D NE UE NEk UEk NS US N0 U0 Q W where
@@ -3488,8 +3559,8 @@ proof -
   show ?thesis
     supply [[goals_limit=1]]
     using assms
-    unfolding rewatch_heur_st_def T empty_US_heur_def 
-      Let_def prod.case tvdom isasat_state_simp
+    unfolding rewatch_heur_st_def T empty_US_heur_def rewatch_heur_and_reorder_st_def rewatch_heur_and_reorder_def
+      Let_def prod.case tvdom isasat_state_simp nres_monad3
     apply clarify
     apply (rule ASSERT_leI)
     subgoal by (auto dest!: valid_arena_vdom_subset simp: twl_st_heur_restart_strong_aivdom_def aivdom_inv_strong_dec_alt_def)
@@ -3509,10 +3580,32 @@ proof -
        simp del: all_init_atms_def[symmetric])
     apply (subst conc_fun_RES)
     apply (rule order.refl)
-    using Su
-    by (fastforce simp: rewatch_spec_def RETURN_RES_refine_iff NUE learned_clss_count_def
+    subgoal for m x
+      apply clarify
+      subgoal for W'
+      apply (rule bind_refine_res)
+        prefer 2
+      apply (rule order.trans)
+      apply (rule watchlist_put_binaries_first[where M=M and N=N and NE=NE and UE=UE and Q=Q and
+        NS=NS and US=US and N\<^sub>0=N0 and U\<^sub>0=U0 and UEk=UEk and NEk=NEk and D=D and W= \<open>x\<close> and W'=W'
+        and \<B> = \<open>(mset `# get_init_clss_wl y + get_unit_init_clss_wl y +
+        get_subsumed_init_clauses_wl y +
+        get_init_clauses0_wl y)\<close>])
+      apply auto[2]
+      apply (subst conc_fun_RES)
+      apply (rule order.refl)
+      apply clarify
+      using Su
+      apply (auto simp: rewatch_spec_def RETURN_RES_refine_iff NUE learned_clss_count_def
         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n'_def add.assoc get_unit_init_clss_wl_alt_def
-      intro: corr2 blit2 st dest: truc intro!: )
+        intro: corr2 blit2 st dest: truc intro!: )
+      apply (rule_tac x=xa in exI)
+      apply (auto simp: rewatch_spec_def RETURN_RES_refine_iff NUE learned_clss_count_def
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n'_def add.assoc get_unit_init_clss_wl_alt_def
+        intro: corr2 blit2 st dest: truc intro!: )
+      done
+    done
+  done
 qed
 
 lemma GC_remap_dom_m_subset:

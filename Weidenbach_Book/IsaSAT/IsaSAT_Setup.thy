@@ -801,6 +801,15 @@ definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<cl
      RETURN ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   }\<close>
 
+definition rewatch_heur_and_reorder_st
+ :: \<open>isasat \<Rightarrow> isasat nres\<close>
+where
+\<open>rewatch_heur_and_reorder_st = (\<lambda>S. do {
+  ASSERT(length (get_tvdom_aivdom (get_aivdom S)) \<le> length (get_clauses_wl_heur S));
+  W \<leftarrow> rewatch_heur_and_reorder (get_tvdom_aivdom (get_aivdom S)) (get_clauses_wl_heur S) (get_watched_wl_heur S);
+  RETURN (set_watched_wl_heur W S)
+  })\<close>
+
 
 fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
   \<open>remove_watched_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, _) = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q)\<close>

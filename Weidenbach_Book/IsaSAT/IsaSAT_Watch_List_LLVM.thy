@@ -2,8 +2,7 @@ theory IsaSAT_Watch_List_LLVM
   imports IsaSAT_Watch_List IsaSAT_Literals_LLVM IsaSAT_Arena_Sorting_LLVM
 begin
 
-type_synonym watched_wl_uint32
-  = \<open>(64,(64 word \<times> 32 word \<times> 1 word),64)array_array_list\<close>
+type_synonym watched_wl_uint32 = \<open>(64,(64 word \<times> 32 word \<times> 1 word),64)array_array_list\<close>
 
 abbreviation \<open>watcher_fast_assn \<equiv> sint64_nat_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a bool1_assn   \<close>
 abbreviation \<open>watchlist_fast_assn \<equiv> aal_assn' TYPE(64) TYPE(64) watcher_fast_assn\<close>
@@ -37,5 +36,34 @@ sepref_def rewatch_heur_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+lemma aal_gen_swap:
+  \<open>W[L := More_List.swap (W ! L) i j] = 
+   (let x = W ! L ! i; y = W ! L ! j; W = op_list_list_upd W L j x; W = op_list_list_upd W L i y in W)\<close>
+  apply (auto simp: convert_swap More_List.swap_def)
+  by (smt (verit, best) list_update_id' list_update_overwrite list_update_swap nth_list_update')
+
+sepref_register watchlist_put_binaries_first_one watchlist_put_binaries_first
+sepref_def watchlist_put_binaries_first_one_impl
+  is \<open>uncurry watchlist_put_binaries_first_one\<close>
+  :: \<open>watchlist_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a watchlist_fast_assn\<close>
+   unfolding watchlist_put_binaries_first_one_def
+   unfolding if_not_swap convert_swap fold_op_list_list_llen
+   unfolding
+     convert_swap aal_gen_swap fold_op_list_list_idx op_list_get_def
+     op_list_set_def fold_op_list_list_upd
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+sepref_def watchlist_put_binaries_first_impl
+  is \<open>watchlist_put_binaries_first\<close>
+  :: \<open>watchlist_fast_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_fast_assn\<close>
+   unfolding watchlist_put_binaries_first_def
+   unfolding if_not_swap convert_swap fold_op_list_list_llen
+   unfolding
+     convert_swap aal_gen_swap fold_op_list_list_idx op_list_get_def
+     op_list_set_def  op_list_list_len_def[symmetric]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 end

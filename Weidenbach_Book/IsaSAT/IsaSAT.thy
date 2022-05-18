@@ -3261,7 +3261,7 @@ proof -
 	by (auto simp: mset_take_mset_drop_mset' dest!: multi_member_split[of x]
 	  split: if_splits)
     qed
-    have min_len: \<open> x \<in># dom_m (get_clauses_wl (finalise_init (from_init_state T))) \<Longrightarrow>
+    have min_len: \<open>x \<in># dom_m (get_clauses_wl (finalise_init (from_init_state T))) \<Longrightarrow>
       distinct (get_clauses_wl (finalise_init (from_init_state T)) \<propto> x) \<and>
       2 \<le> length (get_clauses_wl (finalise_init (from_init_state T)) \<propto> x)\<close>
       for x

@@ -436,7 +436,7 @@ where
       then if b \<noteq> FLAG_Inprocess_restart then do {
          if b = FLAG_Reduce_restart
          then do {
-           T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
+           T \<leftarrow> cdcl_twl_mark_clauses_to_delete S;
            ASSERT(learned_clss_count T \<le> learned_clss_count S);
            RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
          }
@@ -497,7 +497,7 @@ lemma restart_prog_wl_D_heur_alt_def:
     then if b \<noteq> FLAG_Inprocess_restart then do {
        let b = b;
        T \<leftarrow> (if b = FLAG_Reduce_restart
-          then cdcl_twl_full_restart_wl_prog_heur S
+          then cdcl_twl_mark_clauses_to_delete S
           else  cdcl_twl_full_restart_wl_D_GC_heur_prog S);
        ASSERT(learned_clss_count T \<le> learned_clss_count S);
        RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
@@ -513,11 +513,11 @@ lemma restart_prog_wl_D_heur_alt_def:
    by (auto intro: bind_cong[OF refl])
 
 
-lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2:
-  \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog) \<in>
+lemma cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D2:
+  \<open>(cdcl_twl_mark_clauses_to_delete, cdcl_twl_full_restart_wl_prog) \<in>
      twl_st_heur''''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur''''uu r u\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rule order_trans[OF cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down]])
+  apply (rule order_trans[OF cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down]])
   apply fast
   apply assumption
   apply (rule conc_fun_R_mono)
@@ -638,7 +638,7 @@ proof -
       restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down, THEN order_trans]
-      cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2[where r=r and
+      cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D2[where r=r and
       u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down]
       cdcl_twl_full_restart_wl_D_inprocess_heur_prog[where r=r and
       u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down])

@@ -99,7 +99,7 @@ begin
        apply (vcg)
         supply [simp] = refine_pw_simps list_rel_imp_same_length 
         apply vcg[]
-       apply (auto simp: POSTCOND_def)
+       apply (auto simp: POSTCOND_def EXTRACT_def)
       apply (rule STATE_monoI)
        apply assumption
       apply (auto simp: entails_def)
@@ -126,7 +126,7 @@ begin
        apply (vcg)
        supply [simp] = refine_pw_simps list_rel_imp_same_length
        apply (vcg)[]
-       apply (auto simp: POSTCOND_def)
+       apply (auto simp: POSTCOND_def EXTRACT_def)
       apply (rule STATE_monoI)
        apply assumption
       apply (auto simp: entails_def)
@@ -219,7 +219,7 @@ lemma al_pure_eo: \<open>is_pure A \<Longrightarrow> pure_eo_adapter A (al_assn 
        apply (auto simp flip: in_snat_rel_conv_assn simp: fri_basic_extract_simps
         dr_assn_pure_asm_prefix_def entails_def pred_lift_extract_simps
         SOLVE_AUTO_DEFER_def list_rel_imp_same_length)[]
-      apply (simp add: POSTCOND_def)
+      apply (simp add: POSTCOND_def EXTRACT_def)
       apply (subst(asm) sep_algebra_class.sep_conj_commute)
       apply (subst STATE_monoI)
         apply assumption

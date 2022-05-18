@@ -3,6 +3,9 @@
 #define _ISASAT_RESTART_H 1
 
 
+#include <stdint.h>
+
+
 
 typedef struct CLAUSE CLAUSE;
 typedef struct CLAUSES CLAUSES;
