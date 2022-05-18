@@ -1135,25 +1135,11 @@ lemma unifiers_without_refl: "unifiers E = unifiers {e \<in> E. fst e \<noteq> s
   (is "?lhs = ?rhs")
   unfolding unifiers_def by fastforce
 
-(* lemma
-  assumes fin: "finite AAA" "\<forall>AA \<in> AAA. finite AA"
-  shows "is_mgu \<upsilon> AAA \<longleftrightarrow> Unifiers.is_mgu \<upsilon> (\<Union>AA \<in> AAA. AA \<times> AA)"
-  using fin
-proof (induction AAA rule: finite_induct)
-  case empty
-  show ?case by (simp add: is_mgu_def Unifiers.is_mgu_def is_unifiers_def)
-next
-  case (insert AA AAA)
-  from insert.prems insert.IH have "is_mgu \<upsilon> AAA = Unifiers.is_mgu \<upsilon> (\<Union>AA\<in>AAA. AA \<times> AA)"
-    by simp
-  then show ?case
-    unfolding is_mgu_def Unifiers.is_mgu_def is_unifiers_def
-    using is_unifier_iff_mem_unifiers_Times
-    oops *)
 
+subsubsection \<open>Minimal, Idempotent Most General Unifier\<close>
 
-text \<open>Minimal, idempotent MGU. It may be necessary to add
-  @{term "subst_domain \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"} at one point.\<close>
+text \<open>It may be necessary to add @{term "subst_domain \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"} at
+one point.\<close>
 
 definition is_mimgu where
   "is_mimgu \<mu> TT \<equiv> is_imgu \<mu> TT \<and> range_vars \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"
