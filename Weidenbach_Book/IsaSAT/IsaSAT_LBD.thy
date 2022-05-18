@@ -5,7 +5,7 @@ begin
 definition mark_lbd_from_clause_heur :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow> lbd nres\<close> where
   \<open>mark_lbd_from_clause_heur M N C lbd = do {
   n \<leftarrow> mop_arena_length N C;
-  nfoldli [0..<n] (\<lambda>_. True)
+  nfoldli [1..<n] (\<lambda>_. True)
     (\<lambda>i lbd. do {
        L \<leftarrow> mop_arena_lit2 N C i;
        ASSERT(get_level_pol_pre (M, L));
@@ -35,8 +35,7 @@ lemma mark_lbd_from_clause_heur_correctness:
   subgoal by simp
   apply auto[]
   subgoal H
-    by (metis add_cancel_left_right append_cons_eq_upt_length_i diff_zero impossible_Cons le0
-     length_append length_upt linorder_neqE_nat not_add_less1)
+    by (metis append_cons_eq_upt(2) eq_upt_Cons_conv)
   subgoal for x l1 l2 \<sigma> xa using H[of l1 x l2] apply -
     by (auto intro!: get_level_pol_pre  literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
   subgoal for x l1 l2 \<sigma> xa using H[of l1 x l2] apply -
