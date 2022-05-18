@@ -1062,7 +1062,6 @@ where
               RETURN (i, T)
             }
           else do {
-	    T \<leftarrow> mop_mark_unused_st_heur C T;
             RETURN (i+1, T)
 	  }
         }
@@ -1112,7 +1111,6 @@ where
               RETURN (i, T)
             }
           else do {
-	    T \<leftarrow> mop_mark_unused_st_heur C T;
             RETURN (i+1, T)
 	  }
         }
@@ -1171,10 +1169,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                                   (i, mark_garbage_heur3 (get_tvdom T ! i) i (incr_wasted_st (of_nat wasted) T))
                                }
                           else do {
-                                 ASSERT(arena_act_pre (get_clauses_wl_heur T) (get_tvdom T ! i));
-                                 RETURN
-                                  (i + 1,
-                                   mark_unused_st_heur (get_tvdom T ! i) T)
+                                 RETURN (i + 1, T)
                                }
                         }
                  })
@@ -1188,7 +1183,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur3_def mop_mark_unused_st_heur_def
       incr_wasted_st_twl_st
-    by (auto intro!: ext)
+    by (auto intro!: ext bind_cong[OF refl])
 
 lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_GC_wl_D_heur  = (\<lambda>S0. do {
@@ -1234,10 +1229,8 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
                                   (i, mark_garbage_heur3 (get_tvdom T ! i) i (incr_wasted_st (of_nat wasted) T))
                                }
                           else do {
-                                 ASSERT(arena_act_pre (get_clauses_wl_heur T) (get_tvdom T ! i));
                                  RETURN
-                                  (i + 1,
-                                   mark_unused_st_heur (get_tvdom T ! i) T)
+                                  (i + 1, T)
                                }
                         }
                  })
@@ -1867,8 +1860,6 @@ proof -
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>] dest!: set_mset_mono mset_subset_eqD)
-    subgoal
-      by (auto intro!: mark_unused_st_heur_ana)
     subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b
       using size_mset_mono[of \<open>mset (get_tvdom x2b)\<close> \<open>mset (get_vdom x2b)\<close>]
       by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
@@ -2404,8 +2395,6 @@ proof -
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>] dest!: set_mset_mono mset_subset_eqD)
-    subgoal
-      by (auto intro!: mark_unused_st_heur_ana)
     subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b
       using size_mset_mono[of \<open>mset (get_tvdom x2b)\<close> \<open>mset (get_vdom x2b)\<close>]
       by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
