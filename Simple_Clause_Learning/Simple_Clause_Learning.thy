@@ -1189,7 +1189,7 @@ lemma "set (pairs [a, b, c, d]) =
    (d, a), (d, b), (d, c), (d, d)}"
   by auto
 
-lemma set_pairs: "set (pairs xs) = {(x, y). x \<in> set xs \<and> y \<in> set xs}"
+lemma set_pairs: "set (pairs xs) = set xs \<times> set xs"
   by (induction xs) auto
 
 text \<open>Reflexive and symmetric pairs are not necessary to computing the MGU, but it makes the set of
