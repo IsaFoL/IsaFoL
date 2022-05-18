@@ -1719,8 +1719,7 @@ inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<
 
 inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
-  decideI: "L \<in> (\<Union>C \<in> N. \<Union>L \<in> set_mset C. {L, -L}) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
+  decideI: "L \<in> \<Union>(set_mset ` N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     decide N (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
 
 inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
