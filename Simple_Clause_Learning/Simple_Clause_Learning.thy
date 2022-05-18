@@ -312,24 +312,41 @@ next
     by (simp add: subst_compose_def)
 qed
 
+lemma subst_subst_eq_subst_subst_if_subst_eq_substI:
+  assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
+    t_inter_\<delta>_empty: "vars_term t \<inter> subst_domain \<delta> = {}" and
+    u_inter_\<sigma>_empty: "vars_term u \<inter> subst_domain \<sigma> = {}"
+  shows
+    "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> t \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
+    "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> t \<cdot> \<delta> \<cdot> \<sigma> = u \<cdot> \<delta> \<cdot> \<sigma>"
+proof -
+  have "u \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
+    unfolding term_subst_eq_conv[of u \<delta> "\<sigma> \<circ>\<^sub>s \<delta>", simplified]
+    using u_inter_\<sigma>_empty
+    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
+  thus "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> t \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
+    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> t_inter_\<delta>_empty
+    by (metis (no_types, opaque_lifting)  disjoint_iff subst_apply_term_eq_subst_apply_term_composeI
+        subst_subst term_subst_eq_conv)
+
+  have "t \<cdot> \<sigma> = t \<cdot> \<delta> \<cdot> \<sigma>"
+    unfolding term_subst_eq_conv[of t \<sigma> "\<delta> \<circ>\<^sub>s \<sigma>", simplified]
+    using t_inter_\<delta>_empty
+    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
+  thus "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> t \<cdot> \<delta> \<cdot> \<sigma> = u \<cdot> \<delta> \<cdot> \<sigma>"
+    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> u_inter_\<sigma>_empty
+    by (metis (no_types, opaque_lifting) disjoint_iff subst_apply_term_eq_subst_apply_term_composeI
+        subst_subst term_subst_eq_conv)
+qed
+
 lemma subst_comp_in_unifiersI:
   assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
     "vars_term t \<inter> subst_domain \<delta> = {}" and
     "vars_term u \<inter> subst_domain \<sigma> = {}" and
     "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
   shows "\<sigma> \<circ>\<^sub>s \<delta> \<in> unifiers {(t, u)}"
-proof -
-  have "t \<cdot> \<sigma> = t \<cdot> \<sigma> \<cdot> \<delta>"
-    unfolding term_subst_eq_conv[of t \<sigma> "\<sigma> \<circ>\<^sub>s \<delta>", simplified]
-    using \<open>vars_term t \<inter> subst_domain \<delta> = {}\<close> \<open>range_vars \<sigma> \<inter> subst_domain \<delta> = {}\<close>
-    by (auto intro: subst_apply_term_eq_subst_apply_term_composeI)
-  moreover have "u \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
-    unfolding term_subst_eq_conv[of u \<delta> "\<sigma> \<circ>\<^sub>s \<delta>", simplified]
-    using \<open>vars_term u \<inter> subst_domain \<sigma> = {}\<close>
-    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
-  ultimately show ?thesis
-    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> by (simp add: unifiers_def)
-qed
+  using subst_subst_eq_subst_subst_if_subst_eq_substI(1)[OF assms]
+  by (simp add: unifiers_def)
 
 lemma subst_comp_in_unifiersI':
   assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
@@ -337,18 +354,8 @@ lemma subst_comp_in_unifiersI':
     "vars_term u \<inter> subst_domain \<sigma> = {}" and
     "range_vars \<delta> \<inter> subst_domain \<sigma> = {}"
   shows "\<delta> \<circ>\<^sub>s \<sigma> \<in> unifiers {(t, u)}"
-proof -
-  have "t \<cdot> \<sigma> = t \<cdot> \<delta> \<cdot> \<sigma>"
-    unfolding term_subst_eq_conv[of t \<sigma> "\<delta> \<circ>\<^sub>s \<sigma>", simplified]
-    using \<open>vars_term t \<inter> subst_domain \<delta> = {}\<close>
-    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
-  moreover have "u \<cdot> \<delta> = u \<cdot> \<delta> \<cdot> \<sigma>"
-    unfolding term_subst_eq_conv[of u \<delta> "\<delta> \<circ>\<^sub>s \<sigma>", simplified]
-    using \<open>vars_term u \<inter> subst_domain \<sigma> = {}\<close> \<open>range_vars \<delta> \<inter> subst_domain \<sigma> = {}\<close>
-    by (auto intro: subst_apply_term_eq_subst_apply_term_composeI)
-  ultimately show ?thesis
-    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> by (simp add: unifiers_def)
-qed
+  using subst_subst_eq_subst_subst_if_subst_eq_substI(2)[OF assms]
+  by (simp add: unifiers_def)
 
 lemma mgu_ball_codom_is_Var:
   assumes mgu_\<mu>: "is_mgu \<mu> E"
@@ -1743,7 +1750,7 @@ inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Ri
   for N where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow>
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
-    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> Unification.mgu (atm_of L) (atm_of L') = Some \<mu> \<Longrightarrow>
+    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
@@ -2191,7 +2198,6 @@ proof (induction S S' rule: factorize.induct)
     using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
-
 lemma trail_false_cls_plus_subst_mgu_before_groundings:
   assumes
     tr_false_\<Gamma>_D_L'_\<sigma>: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
@@ -2200,8 +2206,8 @@ lemma trail_false_cls_plus_subst_mgu_before_groundings:
     gr_D_L'_\<sigma>: "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
     vars_D_L'_vars_C_L_disj: "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
-    is_imgu_\<mu>: "Unifiers.is_imgu \<mu> {(atm_of L, atm_of L')}" and
-    \<sigma>_\<delta>_in_unif: "\<sigma> \<odot> \<delta> \<in> unifiers {(atm_of L, atm_of L')}"
+    is_imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
+    is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
   shows "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
   unfolding subst_cls_union trail_false_cls_def
 proof (rule ballI)
@@ -2212,8 +2218,8 @@ proof (rule ballI)
   proof (elim disjE)
     assume K_in: "K \<in># D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
     hence "K \<in># D \<cdot> \<sigma> \<cdot> \<delta>"
-      using is_imgu_\<mu> \<sigma>_\<delta>_in_unif
-      by (metis Unifiers.is_imgu_def subst_cls_comp_subst)
+      using is_imgu_\<mu> is_unifs_\<sigma>_\<delta>
+      by (metis Simple_Clause_Learning.is_imgu_def subst_cls_comp_subst)
     hence "K \<in># D \<cdot> \<sigma>"
       using gr_D_L'_\<sigma> is_ground_subst_cls by (metis is_ground_cls_union subst_cls_union)
     then show ?thesis
@@ -2221,8 +2227,8 @@ proof (rule ballI)
   next
     assume "K \<in># C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
     hence "K \<in># C \<cdot> \<sigma> \<cdot> \<delta>"
-      using is_imgu_\<mu> \<sigma>_\<delta>_in_unif
-      by (metis Unifiers.is_imgu_def subst_cls_comp_subst)
+      using is_imgu_\<mu> is_unifs_\<sigma>_\<delta>
+      by (metis Simple_Clause_Learning.is_imgu_def subst_cls_comp_subst)
     have "K \<in># C \<cdot> \<delta>"
     proof -
       have "subst_domain \<sigma> \<inter> vars_cls C = {}"
@@ -2254,7 +2260,8 @@ proof (induction S S' rule: resolve.induct)
     unfolding sound_state_def by simp_all
 
   from resolveI.hyps have L_eq_comp_L': "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" by simp
-  from resolveI.hyps have mgu_L_L': "Unification.mgu (atm_of L) (atm_of L') = Some \<mu>" by simp
+  from resolveI.hyps have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
+  hence is_imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" by (simp add: is_mimgu_def)
   from resolveI.hyps have \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" by simp
   from resolveI.hyps fin have is_renaming_\<rho>: "is_renaming \<rho>"
     using is_renaming_renaming_wrt
@@ -2280,11 +2287,10 @@ proof (induction S S' rule: resolve.induct)
     unfolding \<Gamma>_def trail_propagate_def
     by auto
 
-  have \<sigma>_\<delta>_in_unif: "\<sigma> \<odot> \<delta> \<in> unifiers {(atm_of L, atm_of L')}"
-  proof (rule subst_comp_in_unifiersI')
-    show "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
-      using L_eq_comp_L' by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
-  next
+  from L_eq_comp_L' have "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
+    by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
+  hence "atm_of L \<cdot>a \<sigma> \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma> \<cdot>a \<delta>"
+  proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI)
     show "vars_lit L \<inter> subst_domain \<sigma> = {}"
       using dom_\<sigma> vars_D_L'_vars_C_L_disj by auto
   next
@@ -2298,6 +2304,8 @@ proof (induction S S' rule: resolve.induct)
     thus "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
       by simp
   qed
+  hence is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
+    by (simp add: is_unifiers_def is_unifier_def subst_atms_def)
 
   have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E" if E_in: "E \<in> N \<union> U \<union> clss_of_trail \<Gamma>" for E
   proof -
@@ -2344,8 +2352,8 @@ proof (induction S S' rule: resolve.induct)
     from gr_D_L'_\<sigma> have "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<delta>)"
       by (metis is_ground_subst_cls)
     hence "is_ground_cls ((D + {#L'#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif mgu_sound[OF mgu_L_L']
-          subst_cls_comp_subst)
+      using is_imgu_\<mu>[unfolded is_imgu_def, THEN conjunct2] is_unifs_\<sigma>_\<delta>
+      by (metis subst_cls_comp_subst)
     thus "is_ground_cls (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
       by (metis is_ground_cls_union subst_cls_union)
   next
@@ -2354,8 +2362,8 @@ proof (induction S S' rule: resolve.induct)
       using dom_\<sigma> vars_D_L'_vars_C_L_disj
       by (smt (verit, best) Int_assoc inf.orderE inf_bot_right subst_cls_idem_if_disj_vars)
     hence "is_ground_cls ((C + {#L#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      by (metis (no_types, lifting) Unifiers.is_imgu_def \<sigma>_\<delta>_in_unif mgu_sound[OF mgu_L_L']
-          subst_cls_comp_subst)
+      using is_imgu_\<mu>[unfolded is_imgu_def, THEN conjunct2] is_unifs_\<sigma>_\<delta>
+      by (metis subst_cls_comp_subst)
     thus "is_ground_cls (C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
       by (metis is_ground_cls_union subst_cls_union)
   qed
@@ -2365,18 +2373,16 @@ proof (induction S S' rule: resolve.induct)
     unfolding subst_cls_restrict_subst_idem[OF subset_refl]
     unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
   proof -
-    have tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
+    have "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
       using sound_\<Gamma>
       unfolding sound_trail.simps[of _ _ \<Gamma>]
       unfolding \<Gamma>_def trail_propagate_def
       by simp
-
-    show "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-    proof (rule trail_false_cls_plus_subst_mgu_before_groundings[OF tr_false_cls tr_false_cls_C _
-          gr_D_L'_\<sigma> vars_D_L'_vars_C_L_disj dom_\<sigma> mgu_sound[OF mgu_L_L'] \<sigma>_\<delta>_in_unif])
-      show "suffix \<Gamma>' \<Gamma>"
-        by (simp add: \<Gamma>_def suffix_ConsI trail_propagate_def)
-    qed
+    moreover have "suffix \<Gamma>' \<Gamma>"
+      by (simp add: \<Gamma>_def suffix_ConsI trail_propagate_def)
+    ultimately show "trail_false_cls \<Gamma> ((D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
+      using tr_false_cls gr_D_L'_\<sigma> vars_D_L'_vars_C_L_disj dom_\<sigma> is_imgu_\<mu> is_unifs_\<sigma>_\<delta>
+      by (auto intro: trail_false_cls_plus_subst_mgu_before_groundings[simplified])
   qed
 
   moreover have "N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
@@ -2432,9 +2438,11 @@ proof (induction S S' rule: resolve.induct)
         unfolding subst_cls_union Multiset_Bex_plus_iff
       proof (elim disjE)
         assume "\<exists>K \<in># {#L'#} \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K" and "\<exists>K \<in># {#L#} \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K"
-        hence False
+        moreover have "atm_of L \<cdot>a \<mu> = atm_of L' \<cdot>a \<mu>"
+          using is_imgu_\<mu>[unfolded is_imgu_def, THEN conjunct1]
+          by (meson finite.emptyI finite.insertI insertCI is_unifier_alt is_unifiers_def)
+        ultimately have False
           using L_eq_comp_L'
-          using subst_term_eq_if_mgu[OF mgu_L_L']
           by (cases L; cases L'; simp add: uminus_literal_def subst_lit_def)
         thus "(\<exists>K \<in># D \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K) \<or> (\<exists>K \<in># C \<cdot> \<mu> \<cdot> \<gamma>. I \<TTurnstile>l K)"
           by simp
