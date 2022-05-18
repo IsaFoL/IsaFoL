@@ -143,16 +143,20 @@ proof (induction S S' rule: conflict.induct)
     using clss_lits_generalize_clss_lits_insert by auto
 qed
 
+lemma clss_lits_generalize_clss_lits_subset:
+  "clss_lits_generalize_clss_lits N U1 \<Longrightarrow> U2 \<subseteq> U1 \<Longrightarrow> clss_lits_generalize_clss_lits N U2"
+  unfolding clss_lits_generalize_clss_lits_def by blast
+
 lemma skip_initial_lits_generalized_learned_lits:
   "skip N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: skip.induct)
-  case (skipI L \<delta> D \<sigma> \<Gamma> C U)
+  case (skipI L D \<sigma> Cl \<Gamma> U)
   then show ?case
     unfolding initial_lits_generalized_learned_lits_def
-    by (metis (no_types, lifting) Un_commute Un_insert_right clss_lits_generalize_clss_lits_insert
-        clss_of_trail_trail_propagate state_conflict_simp state_learned_simp state_trail_simp
-        sup_bot.right_neutral)
+    unfolding state_learned_simp state_conflict_simp state_trail_simp option.case prod.case
+    unfolding clss_of_trail_Cons[of _ \<Gamma>]
+    by (auto elim: clss_lits_generalize_clss_lits_subset)
 qed
 
 lemma clss_lits_generalize_clss_lits_subst_clss:

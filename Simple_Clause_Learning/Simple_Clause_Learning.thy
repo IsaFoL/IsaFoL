@@ -1607,8 +1607,8 @@ lemma trail_interp_Cons': "trail_interp (Ln # \<Gamma>) = (case fst Ln of Pos A 
 lemma true_lit_thick_unionD: "(I1 \<union> I2) \<TTurnstile>l L \<Longrightarrow> I1 \<TTurnstile>l L \<or> I2 \<TTurnstile>l L"
   by auto
 
-lemma trail_false_cls_ConsD:
-  assumes tr_false: "trail_false_cls ((L, Some Cl) # \<Gamma>) C" and L_not_in: "-L \<notin># C"
+lemma subtrail_falseI:
+  assumes tr_false: "trail_false_cls ((L, Cl) # \<Gamma>) C" and L_not_in: "-L \<notin># C"
   shows "trail_false_cls \<Gamma> C"
   unfolding trail_false_cls_def
 proof (rule ballI)
@@ -1617,7 +1617,7 @@ proof (rule ballI)
 
   from M_in L_not_in have M_neq_L: "M \<noteq> -L" by auto
 
-  from M_in tr_false have tr_false_lit_M: "trail_false_lit ((L, Some Cl) # \<Gamma>) M"
+  from M_in tr_false have tr_false_lit_M: "trail_false_lit ((L, Cl) # \<Gamma>) M"
     unfolding trail_false_cls_def by simp
   thus "trail_false_lit \<Gamma> M"
     unfolding trail_false_lit_def
@@ -1730,8 +1730,8 @@ inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<R
 
 inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
-  skipI: "-(L \<cdot>l \<delta>) \<notin># D \<cdot> \<sigma> \<Longrightarrow>
-    skip N (trail_propagate \<Gamma> L C \<delta>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
+  skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow>
+    skip N ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
 inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
@@ -1893,6 +1893,9 @@ next
       by (cases u) auto
   qed (use Cons in simp_all)
 qed
+
+lemma sound_subtrailI[intro]: "sound_trail N U (Ln # \<Gamma>) \<Longrightarrow> sound_trail N U \<Gamma>"
+  by (auto elim: sound_trail.cases)
 
 lemma ball_ground_lit_if_sound_trail: "sound_trail N U \<Gamma> \<Longrightarrow> \<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
 proof (induction \<Gamma> rule: sound_trail.induct)
@@ -2096,11 +2099,9 @@ qed
 
 lemma skip_sound_state: "skip N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: skip.induct)
-  case (skipI L \<delta> D \<sigma> \<Gamma> C U)
+  case (skipI L D \<sigma> Cl \<Gamma> U)
   thus ?case
-    unfolding sound_state_def
-    by (auto simp: trail_propagate_def clss_of_trail_Cons[of _ \<Gamma>] is_decision_lit_def
-        elim: sound_trail.cases dest!: trail_false_cls_ConsD)
+    by (auto simp: sound_state_def clss_of_trail_Cons[of _ \<Gamma>] elim!: subtrail_falseI)
 qed
 
 lemma factorize_sound_state: "factorize N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
