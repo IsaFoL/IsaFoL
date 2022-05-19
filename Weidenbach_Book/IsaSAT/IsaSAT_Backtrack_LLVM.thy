@@ -4,6 +4,21 @@ theory IsaSAT_Backtrack_LLVM
     IsaSAT_Stats_LLVM
 begin
 
+lemma update_lbd_pre_arena_act_preD:
+  \<open>update_lbd_pre ((a, ba), b) \<Longrightarrow>
+  arena_act_pre (update_lbd a ba b) a\<close>
+  unfolding update_lbd_pre_def arena_act_pre_def prod.simps
+  by (auto simp: arena_is_valid_clause_idx_def intro!: valid_arena_update_lbd)
+
+sepref_register update_lbd_and_mark_used
+sepref_def update_lbd_and_mark_used_impl
+  is \<open>uncurry2 (RETURN ooo update_lbd_and_mark_used)\<close>
+    :: \<open>[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn\<close>
+  unfolding update_lbd_and_mark_used_def LBD_SHIFT_def
+  supply [dest] = update_lbd_pre_arena_act_preD
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
 lemma mop_mark_added_heur_st_alt_def:
   \<open>mop_mark_added_heur_st L S = do {
   let (heur, S) = extract_heur_wl_heur S;
@@ -265,7 +280,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
-      let N = update_lbd i glue N;
+      let N = update_lbd_and_mark_used i glue N;
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);

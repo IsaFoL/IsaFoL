@@ -2,7 +2,7 @@ CLANG = clang
 
 # higher inlining level is necessary since moving to
 # the new state
-CFLAGS = -std=c11 -flto -mllvm -inline-threshold=4000 # -Omarch=native
+CFLAGS = -std=c11 -flto -mllvm -inline-threshold=4000 -Omtune=native -Omarch=native
 
 all: isallvm
 
@@ -17,6 +17,10 @@ remove-print:
 	  -e '/define void @IsaSAT_LLVM_print_binary_unit_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_purelit_elim_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_purelit_rounds_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' \
 	  -e '/define void @IsaSAT_LLVM_print_dec_impl/,/}/d' \
@@ -55,6 +59,8 @@ declare void @IsaSAT_LLVM_print_gc_impl(i64)\
 declare void @IsaSAT_LLVM_print_irred_clss_impl(i64)\
 declare void @IsaSAT_LLVM_print_binary_unit_impl(i64)\
 declare void @IsaSAT_LLVM_print_binary_red_removed_impl(i64)\
+declare void @IsaSAT_LLVM_print_purelit_elim_impl(i64)\
+declare void @IsaSAT_LLVM_print_purelit_rounds_impl(i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\

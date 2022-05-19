@@ -6,17 +6,23 @@ chapter \<open>Sorting of clauses\<close>
 
 text \<open>We use the sort function developped by Peter Lammich.\<close>
 
+text \<open>
+For the ordering, we prefer low lbds. If equal we take lower size. Then for tie, clauses 
+derived later are preferred because they are not redundant. The last condition ensures that we do not
+depend on the order of the clauses in the array.
+\<close>
 definition clause_score_ordering where
-  \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act < act'))\<close>
+  \<open>clause_score_ordering = (\<lambda>(lbd, size, idx) (lbd', size', idx'). lbd < lbd' \<or> (lbd = lbd' \<and> (size < size' \<or> (size = size' \<and> idx > idx'))))\<close>
 
-definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
+definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat \<times> nat\<close> where
   \<open>clause_score_extract arena C = (
      if arena_status arena C = DELETED
-     then (uint32_max, 0) \<comment> \<open>deleted elements are the
+     then (uint32_max, sint64_max, sint64_max) \<comment> \<open>deleted elements are the
         largest possible\<close>
      else
-       let lbd = arena_lbd arena C in
-       (lbd, C)
+       let lbd = arena_lbd arena C;
+           len = arena_length arena C in
+       (lbd, len, C)
   )\<close>
 
 definition valid_sort_clause_score_pre_at where

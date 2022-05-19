@@ -1561,10 +1561,10 @@ definition empty_conflict :: \<open>nat literal list option\<close> where
 definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
-  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
+  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
 
 
 definition convert_state where
@@ -3261,7 +3261,7 @@ proof -
 	by (auto simp: mset_take_mset_drop_mset' dest!: multi_member_split[of x]
 	  split: if_splits)
     qed
-    have min_len: \<open> x \<in># dom_m (get_clauses_wl (finalise_init (from_init_state T))) \<Longrightarrow>
+    have min_len: \<open>x \<in># dom_m (get_clauses_wl (finalise_init (from_init_state T))) \<Longrightarrow>
       distinct (get_clauses_wl (finalise_init (from_init_state T)) \<propto> x) \<and>
       2 \<le> length (get_clauses_wl (finalise_init (from_init_state T)) \<propto> x)\<close>
       for x
@@ -3580,7 +3580,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
 definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code' = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 
 lemma IsaSAT_bounded_heur_alt_def:

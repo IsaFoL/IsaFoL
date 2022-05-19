@@ -23,7 +23,7 @@ we are propagating slower than the other solvers), or to test different option c
 \<close>
 
 type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>
-  64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema\<close>
+  64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema\<close>
 
 type_synonym isasat_stats = \<open>stats code_hider\<close>
 
@@ -64,17 +64,27 @@ definition incr_binary_red_removed :: \<open>stats \<Rightarrow> stats\<close> w
   \<open>incr_binary_red_removed = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed+1, lbds))\<close>
 
 definition add_lbd_stats :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd_stats lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, ema_update (unat lbd) lbds))\<close>
+  \<open>add_lbd_stats lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, ema_update (unat lbd) lbds))\<close>
 
 definition units_since_last_GC_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). units)\<close>
+
+definition units_since_beginning_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). uset)\<close>
 
 definition incr_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, units + 1, lbds))\<close>
 
 
+definition incr_purelit_elim_stats :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim + 1, purelit_rount, lbds))\<close>
+
+definition incr_purelit_rounds_stats :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount+1, lbds))\<close>
+
+
 definition reset_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, 0, lbds))\<close>
+  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_round, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, 0, a, b, c, purelit_elim, purelit_round, lbds))\<close>
 
 definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss+1, lbds))\<close>
@@ -112,6 +122,9 @@ definition add_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> is
 definition units_since_last_GC :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC = units_since_last_GC_stats o get_stats\<close>
 
+definition units_since_beginning :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning = units_since_beginning_stats o get_stats\<close>
+
 definition incr_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_units_since_last_GC = Stats o incr_units_since_last_GC_stats o get_stats\<close>
 
@@ -129,6 +142,12 @@ definition incr_binary_unit_derived_clss :: \<open>isasat_stats \<Rightarrow> is
 
 definition incr_binary_red_removed_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_binary_red_removed_clss = Stats o incr_binary_red_removed o get_stats\<close>
+
+definition incr_purelit_elim :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_purelit_elim = Stats o incr_purelit_elim_stats o get_stats\<close>
+
+definition incr_purelit_rounds :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_purelit_rounds = Stats o incr_purelit_rounds_stats o get_stats\<close>
 
 definition get_conflict_count_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_stats =  (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). confl)\<close>

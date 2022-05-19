@@ -285,7 +285,7 @@ definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> whe
     cach_refinement_empty (all_atms_st T) cach \<and>
     out_learned M D outl \<and>
     clss_size_corr N NE UE NEk UEk NS US N0 U0 lcount \<and>
-    vdom_m (all_atms_st T)  W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
+    vdom_m (all_atms_st T) W N \<subseteq> set (get_vdom_aivdom vdom) \<and>
     aivdom_inv_dec vdom (dom_m N) \<and>
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
@@ -801,6 +801,15 @@ definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<cl
      RETURN ((M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   }\<close>
 
+definition rewatch_heur_and_reorder_st
+ :: \<open>isasat \<Rightarrow> isasat nres\<close>
+where
+\<open>rewatch_heur_and_reorder_st = (\<lambda>S. do {
+  ASSERT(length (get_tvdom_aivdom (get_aivdom S)) \<le> length (get_clauses_wl_heur S));
+  W \<leftarrow> rewatch_heur_and_reorder (get_tvdom_aivdom (get_aivdom S)) (get_clauses_wl_heur S) (get_watched_wl_heur S);
+  RETURN (set_watched_wl_heur W S)
+  })\<close>
+
 
 fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
   \<open>remove_watched_wl (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, _) = (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q)\<close>
@@ -1088,7 +1097,7 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> i
     RETURN S
    })\<close>
 
-definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close>where
+definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
   \<open>delete_index_vdom_heur = (\<lambda>i S.
     let vdom = get_aivdom S in
     let vdom = remove_inactive_aivdom_tvdom i vdom in
@@ -1436,6 +1445,9 @@ definition get_GC_units_opt :: \<open>isasat \<Rightarrow> 64 word\<close> where
 definition units_since_last_GC_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>units_since_last_GC_st S = units_since_last_GC (get_stats_heur S)\<close>
 
+definition units_since_beginning_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>units_since_beginning_st S = units_since_beginning (get_stats_heur S)\<close>
+
 definition reset_units_since_last_GC_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>reset_units_since_last_GC_st S =
   (let stats = get_stats_heur S in
@@ -1689,5 +1701,35 @@ definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close
 
 definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
+
+(*TODO move/deduplicate*)
+lemma [simp]:
+  \<open>get_vdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_ivdom_aivdom aivdom\<close>
+  by (cases aivdom; auto simp: remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
+
+lemma avdom_delete_index_vdom_heur[simp]:
+  \<open>get_avdom (delete_index_vdom_heur i S) =  (get_avdom S)\<close>
+  \<open>get_tvdom (delete_index_vdom_heur i S) = delete_index_and_swap (get_tvdom S) i\<close>
+  by (cases S; auto simp: delete_index_vdom_heur_def; fail)+
+lemma [simp]:
+  \<open>learned_clss_count (delete_index_vdom_heur C T) = learned_clss_count T\<close>
+  \<open>learned_clss_count (mark_unused_st_heur C T) = learned_clss_count T\<close>
+  by (cases T; auto simp: learned_clss_count_def delete_index_vdom_heur_def
+    mark_unused_st_heur_def; fail)+
+
+lemma get_vdom_mark_garbage[simp]:
+  \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
+  \<open>get_avdom (mark_garbage_heur C i S) = delete_index_and_swap (get_avdom S) i\<close>
+  \<open>get_ivdom (mark_garbage_heur C i S) = get_ivdom S\<close>
+  \<open>get_tvdom (mark_garbage_heur C i S) = get_tvdom S\<close>
+  \<open>get_tvdom (mark_garbage_heur3 C i S) = delete_index_and_swap (get_tvdom S) i\<close>
+  \<open>get_ivdom (mark_garbage_heur3 C i S) = get_ivdom S\<close>
+  \<open>get_vdom (mark_garbage_heur3 C i S) = get_vdom S\<close>
+  \<open>learned_clss_count (mark_garbage_heur3 C i (S)) \<le> learned_clss_count S\<close>
+  \<open>learned_clss_count (mark_garbage_heur3 C i (incr_wasted_st b S)) \<le> learned_clss_count S\<close>
+  by (cases S; auto simp: mark_garbage_heur_def mark_garbage_heur3_def
+   learned_clss_count_def incr_wasted_st_def; fail)+
 
 end

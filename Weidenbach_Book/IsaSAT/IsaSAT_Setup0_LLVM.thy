@@ -234,7 +234,7 @@ sepref_def bottom_outl_code
   by sepref
 
 definition bottom_stats :: \<open>isasat_stats\<close> where
-  \<open>bottom_stats = Stats (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)\<close>
+  \<open>bottom_stats = Stats (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)\<close>
 
 definition extract_stats_wl_heur where
   \<open>extract_stats_wl_heur = isasat_state_ops.remove_k bottom_stats\<close>
@@ -743,7 +743,7 @@ lemma add_pure_parameter:
   apply sepref_to_hoare
   apply vcg
   apply auto
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv, rule_format])
   apply auto
@@ -755,7 +755,7 @@ lemma remove_pure_parameter:
     sep_conj_empty' pure_true_conv, rule_format]
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   by (auto simp: pure_true_conv)
 
 lemma add_pure_parameter2:
@@ -764,7 +764,7 @@ lemma add_pure_parameter2:
   apply sepref_to_hoare
   apply vcg
   apply auto
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv, rule_format])
   apply auto
@@ -777,7 +777,7 @@ lemma remove_pure_parameter2:
     sep_conj_empty' pure_true_conv, rule_format]
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: pure_true_conv)
   done
 
@@ -794,7 +794,7 @@ lemma remove_pure_parameter2_twoargs:
     sep_conj_empty' pure_true_conv, rule_format]
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: pure_true_conv)
   done
 
@@ -864,8 +864,8 @@ lemma add_pure_parameter2_twoargs:
   apply sepref_to_hoare
   apply vcg
   apply auto
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
-  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
+  apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def EXTRACT_def
     sep_conj_empty' pure_true_conv, rule_format])
   apply auto
   done
@@ -875,7 +875,7 @@ lemma remove_unused_unit_parameter:
   shows \<open>(f, f') \<in> [P]\<^sub>a A \<rightarrow> b\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv, rule_format])
   apply auto
@@ -886,7 +886,7 @@ lemma add_pure_parameter_unit:
   shows \<open>(f (), f' ()) \<in> [P]\<^sub>a A \<rightarrow> b\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv, rule_format])
   apply auto
@@ -2345,7 +2345,7 @@ lemma refine_ASSERT_move_to_pre3:
     \<in> A *\<^sub>a B *\<^sub>a C *\<^sub>a D \<rightarrow>\<^sub>a x_assn\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: nofail_ASSERT_bind)
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])

@@ -215,7 +215,7 @@ lemma refine_ASSERT_move_to_pre2':
   subgoal premises p
     apply sepref_to_hoare
     apply vcg
-    apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+    apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
     apply (auto simp: nofail_ASSERT_bind hn_ctxt_def )
     apply (rule p[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
@@ -225,7 +225,7 @@ lemma refine_ASSERT_move_to_pre2':
     apply sepref_to_hoare
     apply vcg
     subgoal for b bi ba bia a ai asf s
-      apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+      apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
       using p[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
         sep_conj_empty' pure_true_conv sep.add_assoc, rule_format, of a ba b]
       apply auto

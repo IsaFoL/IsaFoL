@@ -230,4 +230,41 @@ lemma rewatch_heur_alt_def:
   unfolding Let_def rewatch_heur_def
   by auto
 
+definition watchlist_put_binaries_first_one :: \<open>_\<close> where
+  \<open>watchlist_put_binaries_first_one W\<^sub>0 L = do {
+      ASSERT (L < length W\<^sub>0);
+      let m = length (W\<^sub>0 ! L);
+      (_, _, W) \<leftarrow> WHILE\<^sub>T\<^bsup>(\<lambda>(i,j,W). length W = length W\<^sub>0 \<and> length (W ! L) = length (W\<^sub>0 ! L) \<and> i \<le> j \<and> (\<forall>K. mset (W ! K) = mset (W\<^sub>0 ! K)))\<^esup> (\<lambda>(i,j,W). j < m)
+       (\<lambda>(i,j,W). do {
+          ASSERT (j < length (W ! L));
+          let (_, _, b) = W ! L ! j;
+          if b then RETURN (i+1,j+1, W[L := swap (W!L) i j])
+          else RETURN (i+1, j+1, W)
+       })
+       (0, 0, W\<^sub>0);
+    RETURN W
+}\<close>
+
+definition watchlist_put_binaries_first :: \<open>_\<close> where
+  \<open>watchlist_put_binaries_first W\<^sub>0 = do {
+     let m = length W\<^sub>0;
+      (_, W) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, W). length W = length W\<^sub>0 \<and> (\<forall>K. mset (W ! K) = mset (W\<^sub>0 ! K))\<^esup>  (\<lambda>(i,W). i < m)
+       (\<lambda>(i,W). do {
+          ASSERT (i < length (W));
+          W \<leftarrow> watchlist_put_binaries_first_one W i;
+          RETURN (i+1, W)
+       })
+       (0, W\<^sub>0);
+    RETURN W
+}\<close>
+
+
+
+
+definition rewatch_heur_and_reorder where
+\<open>rewatch_heur_and_reorder vdom arena W = do {
+    W \<leftarrow> rewatch_heur vdom arena W;
+    watchlist_put_binaries_first W}\<close>
+
+
 end

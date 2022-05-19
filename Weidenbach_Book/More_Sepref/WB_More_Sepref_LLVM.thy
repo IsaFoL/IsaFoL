@@ -12,7 +12,7 @@ lemma refine_ASSERT_move_to_pre:
     \<in> A *\<^sub>a B \<rightarrow>\<^sub>a x_assn\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: nofail_ASSERT_bind)
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
@@ -26,7 +26,7 @@ lemma refine_ASSERT_move_to_pre0:
     \<in> A \<rightarrow>\<^sub>a x_assn\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: nofail_ASSERT_bind)
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])
@@ -40,7 +40,7 @@ lemma refine_ASSERT_move_to_pre2:
     \<in> A *\<^sub>a B *\<^sub>a C \<rightarrow>\<^sub>a x_assn\<close>
   apply sepref_to_hoare
   apply vcg
-  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv)+
+  apply (subst POSTCOND_def hn_ctxt_def sep_conj_empty' pure_true_conv EXTRACT_def)+
   apply (auto simp: nofail_ASSERT_bind)
   apply (rule assms[to_hnr, simplified, unfolded hn_ctxt_def hn_refine_def htriple_def
     sep_conj_empty' pure_true_conv sep.add_assoc, rule_format])

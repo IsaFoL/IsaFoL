@@ -269,6 +269,9 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
     T \<leftarrow> isa_mark_duplicated_binary_clauses_as_garbage_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_pure_literal_elimination_wl T;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
@@ -301,6 +304,9 @@ lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
     T \<leftarrow> isa_mark_duplicated_binary_clauses_as_garbage_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    T \<leftarrow> isa_pure_literal_elimination_wl T;
+    ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
+    ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
@@ -372,7 +378,8 @@ proof -
       mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_GC_wl_D[where r=r, THEN fref_to_Down]
       isasat_GC_clauses_wl_D[where r=r, THEN fref_to_Down]
       isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[where r=r]
-      isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_clauses_as_garbage_wl2[where r=r])
+      isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_clauses_as_garbage_wl2[where r=r]
+      isa_pure_literal_elimination_wl_pure_literal_elimination_wl[where r=r])
     apply (rule H2; assumption)
     subgoal
       unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def
@@ -384,6 +391,9 @@ proof -
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     apply (solves auto)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def)
+    apply (assumption)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     apply (assumption)
@@ -401,8 +411,8 @@ proof -
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def)
     apply (rule UUa; assumption)
-    subgoal for x y S S' T T' U U' V V' W W' X X'
-      using learned_clss_count_clss_size_resetUS0_st_le[of X]
+    subgoal for x y S S' T T' U U' V V' W W' X X' Y Y'
+      using learned_clss_count_clss_size_resetUS0_st_le[of Y]
       unfolding mem_Collect_eq prod.case
       apply (intro conjI )
       by (auto intro: twl_st_heur_twl_st_heur_loopD intro!: cdcl_twl_full_restart_wl_D_GC_prog_post_heur)
@@ -426,7 +436,7 @@ where
       then if b \<noteq> FLAG_Inprocess_restart then do {
          if b = FLAG_Reduce_restart
          then do {
-           T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
+           T \<leftarrow> cdcl_twl_mark_clauses_to_delete S;
            ASSERT(learned_clss_count T \<le> learned_clss_count S);
            RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
          }
@@ -487,7 +497,7 @@ lemma restart_prog_wl_D_heur_alt_def:
     then if b \<noteq> FLAG_Inprocess_restart then do {
        let b = b;
        T \<leftarrow> (if b = FLAG_Reduce_restart
-          then cdcl_twl_full_restart_wl_prog_heur S
+          then cdcl_twl_mark_clauses_to_delete S
           else  cdcl_twl_full_restart_wl_D_GC_heur_prog S);
        ASSERT(learned_clss_count T \<le> learned_clss_count S);
        RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
@@ -503,11 +513,11 @@ lemma restart_prog_wl_D_heur_alt_def:
    by (auto intro: bind_cong[OF refl])
 
 
-lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2:
-  \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog) \<in>
+lemma cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D2:
+  \<open>(cdcl_twl_mark_clauses_to_delete, cdcl_twl_full_restart_wl_prog) \<in>
      twl_st_heur''''u r u \<rightarrow>\<^sub>f \<langle>twl_st_heur''''uu r u\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rule order_trans[OF cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down]])
+  apply (rule order_trans[OF cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down]])
   apply fast
   apply assumption
   apply (rule conc_fun_R_mono)
@@ -628,7 +638,7 @@ proof -
       restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down, THEN order_trans]
-      cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2[where r=r and
+      cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D2[where r=r and
       u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down]
       cdcl_twl_full_restart_wl_D_inprocess_heur_prog[where r=r and
       u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down])

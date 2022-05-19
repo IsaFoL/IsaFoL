@@ -354,23 +354,23 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
 declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]
   mark_to_delete_clauses_wl_D_heur_impl.refine[sepref_fr_rules]
 
-sepref_register cdcl_twl_full_restart_wl_prog_heur
-sepref_definition cdcl_twl_full_restart_wl_prog_heur_code
-  is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
+sepref_register cdcl_twl_mark_clauses_to_delete
+sepref_definition cdcl_twl_mark_clauses_to_delete_code
+  is \<open>cdcl_twl_mark_clauses_to_delete\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def
+  unfolding cdcl_twl_mark_clauses_to_delete_def
   supply [[goals_limit = 1]]
   by sepref
 
-sepref_definition cdcl_twl_full_restart_wl_prog_heur_fast_code
-  is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
+sepref_definition cdcl_twl_mark_clauses_to_delete_fast_code
+  is \<open>cdcl_twl_mark_clauses_to_delete\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding cdcl_twl_full_restart_wl_prog_heur_def
+  unfolding cdcl_twl_mark_clauses_to_delete_def
   supply [[goals_limit = 1]]
   by sepref
 
-declare cdcl_twl_full_restart_wl_prog_heur_fast_code.refine[sepref_fr_rules]
-   cdcl_twl_full_restart_wl_prog_heur_code.refine[sepref_fr_rules]
+declare cdcl_twl_mark_clauses_to_delete_fast_code.refine[sepref_fr_rules]
+   cdcl_twl_mark_clauses_to_delete_code.refine[sepref_fr_rules]
 
 sepref_definition cdcl_twl_restart_wl_heur_code
   is \<open>cdcl_twl_restart_wl_heur\<close>

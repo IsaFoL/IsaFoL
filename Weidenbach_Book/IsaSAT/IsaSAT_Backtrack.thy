@@ -703,6 +703,17 @@ lemma heuristic_rel_update_heuristics[intro!]:
   by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def
     update_propagation_heuristics_def)
 
+definition update_lbd_and_mark_used where
+  \<open>update_lbd_and_mark_used i glue N = 
+    (let N = update_lbd i glue N in
+    (if glue \<le> TIER_TWO_MAXIMUM then mark_used2 N i else mark_used N i))\<close>
+
+lemma valid_arena_update_lbd_and_mark_used:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
+  shows \<open>valid_arena (update_lbd_and_mark_used i lbd arena) N vdom\<close>
+  using assms by (auto intro!: valid_arena_update_lbd valid_arena_mark_used valid_arena_mark_used2
+    simp: update_lbd_and_mark_used_def Let_def)
+
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C S\<^sub>0. do {
@@ -729,7 +740,7 @@ definition propagate_bt_wl_D_heur
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
-      let N = update_lbd i glue N;
+      let N = update_lbd_and_mark_used i glue N;
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast S\<^sub>0 \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
@@ -914,6 +925,9 @@ qed
 
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
+(*TODO Move*)
+lemma length_update_lbd_and_mark_used[simp]: \<open>length (update_lbd_and_mark_used i glue N) = length N\<close>
+  by (auto simp: update_lbd_and_mark_used_def Let_def split: if_splits)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
@@ -1961,7 +1975,7 @@ proof -
           ASSERT(isasat_fast S \<longrightarrow> clss_size_lcount lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
-          let N = update_lbd i glue N;
+          let N = update_lbd_and_mark_used i glue N;
           ASSERT(isasat_fast S \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
           ASSERT(isasat_fast S \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
@@ -2280,7 +2294,7 @@ proof -
       unfolding U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_alt_def rescore_clause_def
       apply (rewrite in \<open>let _ = _!1 in _\<close> Let_def)
-      apply (rewrite in \<open>let _ = update_lbd _ _ _ in _\<close> Let_def)
+      apply (rewrite in \<open>let _ = update_lbd_and_mark_used _ _ _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = False in _\<close> Let_def)
@@ -2340,7 +2354,7 @@ proof -
       subgoal
         using D' C_1_neq_hd vmtf avdom
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-            intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
+            intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd_and_mark_used
             dest: valid_arena_one_notin_vdomD
             intro!: vm)
       apply assumption
@@ -2356,13 +2370,13 @@ proof -
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew learned_clss_count_def all_atms_st_def
-            aivdom_inv_dec_intro_add_mset valid_arena_update_lbd old clss_size_corr_intro(2)
-            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+            aivdom_inv_dec_intro_add_mset valid_arena_update_lbd_and_mark_used old clss_size_corr_intro(2)
+            intro!: valid_arena_update_lbd_and_mark_used aivdom_inv_intro_add_mset
             simp del: isasat_input_bounded_def isasat_input_nempty_def
           dest: valid_arena_one_notin_vdomD
             get_learned_count_learned_clss_countD)
           (auto
-          intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+          intro!: valid_arena_update_lbd_and_mark_used aivdom_inv_intro_add_mset
           simp: vdom_m_simps5
             simp del: isasat_input_bounded_def isasat_input_nempty_def
            dest: valid_arena_one_notin_vdomD)
@@ -2385,8 +2399,8 @@ proof -
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew learned_clss_count_def all_atms_st_def
-            aivdom_inv_dec_intro_add_mset valid_arena_update_lbd old clss_size_corr_intro(2)
-            intro!: valid_arena_update_lbd aivdom_inv_intro_add_mset
+            aivdom_inv_dec_intro_add_mset valid_arena_update_lbd_and_mark_used old clss_size_corr_intro(2)
+            intro!: valid_arena_update_lbd_and_mark_used aivdom_inv_intro_add_mset
             simp del: isasat_input_bounded_def isasat_input_nempty_def
           dest: valid_arena_one_notin_vdomD
             get_learned_count_learned_clss_countD)

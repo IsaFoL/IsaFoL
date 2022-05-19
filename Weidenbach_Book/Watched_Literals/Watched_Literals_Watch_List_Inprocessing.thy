@@ -344,6 +344,80 @@ proof -
     done
 qed
 
+
+
+lemma simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st2:
+  assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and
+    point: \<open>no_lost_clause_in_WL S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows
+    \<open>simplify_clauses_with_unit_st_wl S \<le> \<Down> {(S',T). (S',T) \<in> state_wl_l None \<and>
+    no_lost_clause_in_WL S' \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S' \<and> get_watched_wl S' = get_watched_wl S}
+    (simplify_clauses_with_unit_st T)\<close>
+proof -
+  have [refine0]: \<open>inj_on id xs\<close> for xs
+    by auto
+  have 1: \<open>simplify_clauses_with_unit_st_wl S = do {
+    T \<leftarrow> simplify_clauses_with_unit_st_wl S;
+    RETURN T}\<close>
+    by auto
+  have 2: \<open>simplify_clauses_with_unit_st T = do {
+    T \<leftarrow> simplify_clauses_with_unit_st T;
+    RETURN T}\<close>
+    by auto
+  have ST2: \<open>(S,T) \<in>  {(S',U). (S',U) \<in> state_wl_l None \<and>
+    no_lost_clause_in_WL S' \<and>
+    get_watched_wl S = get_watched_wl S'}\<close>
+    if \<open>simplify_clauses_with_unit_st_pre T\<close>
+    using assms that correct_watching'_nobin_clauses_pointed_to0[OF ST]
+    unfolding simplify_clauses_with_unit_st_inv_def
+      simplify_clauses_with_unit_st_pre_def
+    by auto
+  show ?thesis
+    apply (subst 1)
+    unfolding simplify_clauses_with_unit_st_wl_def simplify_clauses_with_unit_st_def
+      nres_monad3
+    apply (refine_rcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st)
+    subgoal
+      using assms ST2 unfolding simplify_clauses_with_unit_st_wl_pre_def
+      by blast
+    subgoal
+      using ST by auto
+        apply (rule ST2, assumption)
+    subgoal by auto
+    subgoal for xs xsa it \<sigma> it' \<sigma>'
+      using assms apply -
+      unfolding simplify_clauses_with_unit_st_wl_inv_def
+      apply (rule exI[of _ T])
+      apply (rule exI[of _ \<sigma>'])
+      by auto
+    subgoal by auto
+    apply (rule_tac T1=\<sigma>' and j1 = x' in
+        simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st[THEN order_trans])
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (rule conc_fun_R_mono)
+        (use assms(3) in \<open>auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def
+        blits_in_\<L>\<^sub>i\<^sub>n'_def\<close>)
+    subgoal
+      using ST by auto
+    subgoal
+      using ST lits
+      by (auto 4 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def
+        blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    subgoal
+      using ST lits
+      by (auto 4 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def
+        blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    done
+qed
+
 definition simplify_clauses_with_units_st_wl_pre where
   \<open>simplify_clauses_with_units_st_wl_pre S \<longleftrightarrow>
   (\<exists>T. (S, T) \<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
@@ -377,6 +451,27 @@ lemma simplify_clauses_with_units_st_wl_simplify_clause_with_units_st:
     by (fast intro!: correct_watching'_nobin_clauses_pointed_to0(2))
   done
 
+
+lemma simplify_clauses_with_units_st_wl_simplify_clause_with_units_st2:
+  assumes ST: \<open>(S, T) \<in> state_wl_l None\<close> and
+    point: \<open>no_lost_clause_in_WL S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows
+    \<open>simplify_clauses_with_units_st_wl S \<le> \<Down> {(S',T). (S',T) \<in> state_wl_l None \<and>
+    no_lost_clause_in_WL S' \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S' \<and> get_watched_wl S' = get_watched_wl S}
+    (simplify_clauses_with_units_st T)\<close>
+  unfolding simplify_clauses_with_units_st_wl_def simplify_clauses_with_units_st_def
+  apply (refine_vcg simplify_clauses_with_unit_st_wl_simplify_clause_with_unit_st2)
+  subgoal using assms unfolding simplify_clauses_with_units_st_wl_pre_def by fast
+  subgoal using ST by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms unfolding simplify_clauses_with_units_st_pre_def
+    by (fast intro!: correct_watching'_nobin_clauses_pointed_to0(2))
+  done
 
 subsection \<open>Forward subsumption\<close>
 
@@ -1893,7 +1988,7 @@ subsection \<open>Pure literal deletion\<close>
 
 definition propagate_pure_wl_pre:: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>propagate_pure_wl_pre L S \<longleftrightarrow>
-  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_pure_l_pre L S' \<and> correct_watching'_leaking_bin S \<and>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_pure_l_pre L S' \<and> no_lost_clause_in_WL S \<and>
      literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 
@@ -1904,25 +1999,25 @@ definition propagate_pure_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl 
     RETURN (M, N, D, NE, UE, add_mset {#L#} NEk, UEk, NS, US, N0, U0, add_mset (-L) Q, WS)})\<close>
 
 lemma propagate_pure_bt_wl_propagate_pure_bt_l:
-  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>correct_watching'_leaking_bin S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>no_lost_clause_in_WL S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>(L,L')\<in> Id\<close>
   shows
-    \<open>propagate_pure_bt_wl L S \<le>\<Down>{(S,T). correct_watching'_leaking_bin S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (propagate_pure_bt_l L S')\<close>
+    \<open>propagate_pure_bt_wl L S \<le>\<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (propagate_pure_bt_l L' S')\<close>
 proof -
   have K: \<open>cons_trail_propagate_l L 0 a = cons_trail_propagate_l L 0 b \<Longrightarrow>
-    cons_trail_propagate_l L 0 a \<le>\<Down>{(x,y). x = y \<and> y = Propagated L 0 # a} (cons_trail_propagate_l L 0 b)\<close> for a b
-    unfolding cons_trail_propagate_l_def
+    cons_trail_propagate_l L 0 a \<le>\<Down>{(x,y). x = y \<and> y = Propagated L 0 # a} (cons_trail_propagate_l L' 0 b)\<close> for a b
+    using assms unfolding cons_trail_propagate_l_def
     by refine_rcg auto
   show ?thesis
     unfolding propagate_pure_bt_wl_def propagate_pure_bt_l_def
     apply refine_rcg
     subgoal using assms unfolding propagate_pure_wl_pre_def apply - by (rule exI[of _ S']) fast
     apply (rule K)
-    subgoal using assms by (auto simp: state_wl_l_def correct_watching'_leaking_bin.simps)
+    subgoal using assms by (auto simp: state_wl_l_def no_lost_clause_in_WL_def)
     subgoal
       using assms
       by (auto simp: state_wl_l_def propagate_pure_l_pre_def in_all_lits_of_mm_uminusD
         all_init_lits_of_wl_def all_init_lits_of_l_def get_init_clss_l_def
-        intro!: correct_watching'_leaking_bin_pure_lit
+        simp: no_lost_clause_in_WL_def
         simp: literals_are_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_add_mset all_lits_of_m_add_mset
           all_learned_lits_of_wl_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
     done
@@ -1931,25 +2026,27 @@ qed
 definition pure_literal_deletion_wl_pre where
   \<open>pure_literal_deletion_wl_pre S \<longleftrightarrow>
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and> pure_literal_deletion_pre S' \<and>
-    correct_watching'_leaking_bin S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+    no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition pure_literal_deletion_candidates_wl where
-  \<open>pure_literal_deletion_candidates_wl S = SPEC (\<lambda>Ls. Ls \<subseteq># all_init_lits_of_wl S)\<close>
+  \<open>pure_literal_deletion_candidates_wl S = SPEC (\<lambda>Ls. set_mset Ls \<subseteq> set_mset (all_init_atms_st S))\<close>
 
 definition pure_literal_deletion_wl_inv where
   \<open>pure_literal_deletion_wl_inv S xs0 = (\<lambda>(T, xs).
-     \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> pure_literal_deletion_l_inv S' xs0 (T', xs))\<close>
+  \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> pure_literal_deletion_l_inv S' xs0 (T', xs) \<and>
+    no_lost_clause_in_WL T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
-definition pure_literal_deletion_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>pure_literal_deletion_wl S = do {
+definition pure_literal_deletion_wl :: \<open>('v literal \<Rightarrow> bool) \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>pure_literal_deletion_wl occs S = do {
     ASSERT (pure_literal_deletion_wl_pre S);
     let As =  \<Union>(set_mset ` set_mset (mset `# get_init_clss_wl S));
     xs \<leftarrow> pure_literal_deletion_candidates_wl S;
     (S, xs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_deletion_wl_inv S xs\<^esup> (\<lambda>(S, xs). xs \<noteq> {#})
       (\<lambda>(S, xs). do {
         L \<leftarrow> SPEC (\<lambda>L. L \<in># xs);
-        if -L \<notin> As \<and> undefined_lit (get_trail_wl S) L
-        then do {S \<leftarrow> propagate_pure_bt_wl L S;
+        let A = (if occs (Pos L) \<and> \<not>occs (Neg L) then Pos L else Neg L);
+        if \<not>occs (-A) \<and> undefined_lit (get_trail_wl S) A
+        then do {S \<leftarrow> propagate_pure_bt_wl A S;
           RETURN (S, remove1_mset L xs)}
         else RETURN (S, remove1_mset L xs)
       })
@@ -1957,5 +2054,255 @@ definition pure_literal_deletion_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
   RETURN S
   }\<close>
 
-end
+lemma pure_literal_deletion_wl_pure_literal_deletion_l:
+  assumes \<open>(S,S')\<in> state_wl_l None\<close> and \<open>no_lost_clause_in_WL S\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>(occs, occs') \<in> Id\<close>
+  shows
+    \<open>pure_literal_deletion_wl occs S \<le>\<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_deletion_l2 occs' S')\<close> (is \<open>_ \<le>\<Down> ?A _\<close>)
+proof -
+  have [refine0]: \<open>(xs, ys) \<in> Id \<Longrightarrow> ((S, xs), (S', ys)) \<in> ?A \<times>\<^sub>f Id\<close> for xs ys
+    by (use assms in auto)
+  have [refine0]: \<open>pure_literal_deletion_candidates_wl S \<le> \<Down> Id (pure_literal_deletion_candidates S')\<close>
+    using assms by (auto simp: pure_literal_deletion_candidates_wl_def pure_literal_deletion_candidates_def
+      all_init_atms_st_def all_init_atms_alt_def)
+  show ?thesis
+    unfolding pure_literal_deletion_wl_def pure_literal_deletion_l2_def
+    apply (refine_rcg propagate_pure_bt_wl_propagate_pure_bt_l)
+    subgoal using assms unfolding pure_literal_deletion_wl_pre_def by blast
+    subgoal for xs xsa x x'
+      using assms unfolding pure_literal_deletion_wl_inv_def case_prod_beta
+      by (rule_tac x=S' in exI, rule_tac x=\<open>fst x'\<close> in exI, case_tac x, case_tac x') auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      by (subst twl_st_wl, use assms in auto)
+    subgoal by auto
+    subgoal unfolding pure_literal_deletion_wl_inv_def by blast
+    subgoal by simp
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
+
+definition pure_literal_count_occs_clause_wl_invs :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> bool) \<Rightarrow> nat \<times> ('v literal \<Rightarrow> bool) \<Rightarrow> bool\<close> where
+  \<open>pure_literal_count_occs_clause_wl_invs C S occs = (\<lambda>(i, occs2).
+  \<exists>S'. (S,S')\<in>state_wl_l None \<and> pure_literal_count_occs_l_clause_invs C S' occs (i, occs2))\<close>
+
+definition pure_literal_count_occs_clause_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> _ \<Rightarrow> bool\<close> where
+  \<open>pure_literal_count_occs_clause_wl_pre C S occs =
+    (\<exists>S'. (S,S')\<in>state_wl_l None \<and> pure_literal_count_occs_l_clause_pre C S' occs)\<close>
+
+definition pure_literal_count_occs_clause_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> _\<close> where
+  \<open>pure_literal_count_occs_clause_wl C S occs = do {
+    ASSERT (pure_literal_count_occs_clause_wl_pre C S occs);
+    (i, occs) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_count_occs_clause_wl_invs C S occs\<^esup> (\<lambda>(i, occs). i < length (get_clauses_wl S \<propto> C))
+      (\<lambda>(i, occs). do {
+        let L = get_clauses_wl S \<propto> C ! i;
+        let occs = occs (L := True);
+        RETURN (i+1, occs)
+      })
+      (0, occs);
+   RETURN occs
+ }\<close>
+
+lemma pure_literal_count_occs_clause_wl_pure_literal_count_occs_l_clause:
+  assumes \<open>(S, S') \<in> state_wl_l None\<close> \<open>(C,C')\<in>nat_rel\<close> \<open>(occs, occs') \<in> Id\<close>
+  shows \<open>pure_literal_count_occs_clause_wl C S occs \<le> \<Down>Id (pure_literal_count_occs_l_clause C' S' occs')\<close>
+proof -
+  have [refine0]: \<open>((0, occs), 0, occs') \<in> nat_rel \<times>\<^sub>f Id\<close>
+    using assms by auto
+  show ?thesis
+    unfolding pure_literal_count_occs_clause_wl_def pure_literal_count_occs_l_clause_def
+    apply (refine_vcg)
+    subgoal using assms unfolding pure_literal_count_occs_clause_wl_pre_def by fast
+    subgoal using assms unfolding pure_literal_count_occs_clause_wl_invs_def case_prod_beta prod.collapse
+      by fastforce
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    done
+qed
+
+definition pure_literal_count_occs_wl_pre :: \<open>_\<close> where
+  \<open>pure_literal_count_occs_wl_pre S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> 
+    no_lost_clause_in_WL S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> pure_literal_count_occs_l_pre S')\<close>
+
+definition pure_literal_count_occs_wl_inv :: \<open>_\<close> where
+  \<open>pure_literal_count_occs_wl_inv S T \<longleftrightarrow>
+    (\<exists>S' T'. (S,S')\<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> cdcl_twl_inprocessing_l S' T')\<close>
+
+definition pure_literal_count_occs_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
+  \<open>pure_literal_count_occs_wl S = do {
+  ASSERT (pure_literal_count_occs_wl_pre S);
+  xs \<leftarrow> SPEC (\<lambda>xs. distinct_mset xs \<and> (\<forall>C\<in>#dom_m (get_clauses_wl S). irred (get_clauses_wl S) C \<longrightarrow> C \<in># xs));
+  abort \<leftarrow> RES (UNIV :: bool set);
+  let occs = (\<lambda>_. False);
+  (_, occs, abort) \<leftarrow> WHILE\<^sub>T(\<lambda>(A, occs, abort). A \<noteq> {#} \<and> \<not>abort)
+      (\<lambda>(A, occs, abort). do {
+        ASSERT (A \<noteq> {#});
+        C \<leftarrow> SPEC (\<lambda>C. C \<in># A);
+        if (C \<in># dom_m (get_clauses_wl S) \<and> irred (get_clauses_wl S) C) then do {
+          occs \<leftarrow> pure_literal_count_occs_clause_wl C S occs;
+          abort \<leftarrow> RES (UNIV :: bool set);
+          RETURN (remove1_mset C A, occs, abort)
+        } else RETURN  (remove1_mset C A, occs, abort)
+      })
+      (xs, occs, abort);
+   RETURN (abort, occs)
+  }\<close>
+
+lemma pure_literal_count_occs_wl_pure_literal_count_occs_l:
+  assumes
+    \<open>(S, S') \<in> state_wl_l None\<close>
+    \<open>no_lost_clause_in_WL S\<close>
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows \<open>pure_literal_count_occs_wl S \<le> \<Down>Id (pure_literal_count_occs_l S')\<close>
+proof -
+  have [refine0]: \<open>(xs, xsa)\<in> Id \<Longrightarrow> (abort, abort') \<in> bool_rel \<Longrightarrow>
+    ((xs, \<lambda>_. False, abort), xsa, \<lambda>_. False, abort') \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r bool_rel\<close> for xs xsa abort abort'
+    by auto
+  show ?thesis
+    unfolding pure_literal_count_occs_wl_def pure_literal_count_occs_l_def
+    apply (refine_vcg pure_literal_count_occs_clause_wl_pure_literal_count_occs_l_clause)
+    subgoal using assms unfolding pure_literal_count_occs_wl_pre_def by fast
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition pure_literal_elimination_round_wl_pre where
+  \<open>pure_literal_elimination_round_wl_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> pure_literal_elimination_round_pre T)\<close>
+
+definition pure_literal_elimination_round_wl where
+  \<open>pure_literal_elimination_round_wl S = do {
+    ASSERT (pure_literal_elimination_round_wl_pre S);
+    S \<leftarrow> simplify_clauses_with_units_st_wl S;
+    if get_conflict_wl S = None
+    then do {
+     (abort, occs) \<leftarrow> pure_literal_count_occs_wl S;
+      if \<not>abort then pure_literal_deletion_wl occs S
+      else RETURN S}
+    else RETURN S
+}\<close>
+
+lemma pure_literal_elimination_round_wl_pure_literal_elimination_round_l:
+  assumes
+    \<open>(S, S') \<in> state_wl_l None\<close>
+    \<open>no_lost_clause_in_WL S\<close>
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows \<open>pure_literal_elimination_round_wl S \<le>
+    \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_round S')\<close>
+proof -
+  show ?thesis
+    unfolding pure_literal_elimination_round_wl_def pure_literal_elimination_round_def
+    apply (refine_vcg
+      simplify_clauses_with_units_st_wl_simplify_clause_with_units_st2
+      pure_literal_count_occs_wl_pure_literal_count_occs_l
+      pure_literal_deletion_wl_pure_literal_deletion_l)
+    subgoal using assms unfolding pure_literal_elimination_round_wl_pre_def by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal using assms by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal by blast
+    subgoal by blast
+    done
+qed
+
+
+
+definition pure_literal_elimination_wl_pre where
+  \<open>pure_literal_elimination_wl_pre S \<longleftrightarrow>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> pure_literal_elimination_l_pre T \<and> correct_watching'_leaking_bin S \<and>
+  literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
+
+
+definition pure_literal_elimination_wl_inv where
+  \<open>pure_literal_elimination_wl_inv S max_rounds =
+  (\<lambda>(U,m,abort). \<exists>T U'. (S, T) \<in> state_wl_l None \<and> (U, U') \<in> state_wl_l None \<and>
+  no_lost_clause_in_WL U \<and> literals_are_\<L>\<^sub>i\<^sub>n' U \<and> pure_literal_elimination_l_inv T max_rounds (U',m,abort))\<close>
+
+definition pure_literal_elimination_wl :: \<open>_\<close> where
+  \<open>pure_literal_elimination_wl S = do {
+     ASSERT (pure_literal_elimination_wl_pre S);
+     max_rounds \<leftarrow> RES (UNIV :: nat set);
+    (S, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>pure_literal_elimination_wl_inv S max_rounds\<^esup> (\<lambda>(S, m, abort). m < max_rounds \<and> \<not>abort)
+     (\<lambda>(S, m, abort). do {
+         S \<leftarrow> pure_literal_elimination_round_wl S;
+         abort \<leftarrow> RES (UNIV :: bool set);
+         RETURN (S, m+1, abort)
+       })
+    (S, 0, False);
+   RETURN S
+  }\<close>
+
+
+lemma pure_literal_elimination_wl:
+  assumes
+    \<open>(S, S') \<in> state_wl_l None\<close>
+    \<open>correct_watching'_leaking_bin S\<close>
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows \<open>pure_literal_elimination_wl S \<le> 
+    \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_l S')\<close>
+proof -
+  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_l_pre S'\<close>
+  proof -
+    obtain S'' where
+      S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs S''\<close> and
+      \<open>twl_list_invs S'\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'')\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
+      \<open>clauses_to_update_l S' = {#}\<close> and
+      \<open>count_decided (get_trail_l S') = 0\<close>
+      using pre unfolding pure_literal_elimination_l_pre_def by fast
+    have \<open>correct_watching'_nobin S\<close>
+      using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
+        correct_watching'_nobin.simps)
+    then show ?thesis
+      using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
+      by fast
+  qed
+  have [refine0]: \<open>pure_literal_elimination_l_pre S' \<Longrightarrow>
+    ((S, 0, False), S', 0, False) \<in> {(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r nat_rel \<times>\<^sub>r bool_rel\<close>
+     using lost assms by auto
+  show ?thesis
+    unfolding pure_literal_elimination_wl_def pure_literal_elimination_l_def
+    apply (refine_vcg pure_literal_elimination_round_wl_pure_literal_elimination_round_l)
+    subgoal using assms unfolding pure_literal_elimination_wl_pre_def by blast
+    subgoal for max_rounds max_roundsa x x'
+      using assms unfolding pure_literal_elimination_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
+      apply -
+      by (rule exI[of _ S'], rule exI[of _ \<open>fst x'\<close>]) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+end

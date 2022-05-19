@@ -577,4 +577,37 @@ lemmas [sepref_fr_rules] = is_marked_added.XX.mop_refine[unfolded mop_is_marked_
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   mop_is_marked_added_heur_stats_st_impl_def[unfolded  read_all_st_code_def]
 
+definition length_watchlist_raw where
+  \<open>length_watchlist_raw S = length (get_watched_wl_heur S)\<close>
+
+sepref_def length_watchlist_full_impl
+  is \<open>RETURN o length\<close>
+  :: \<open>watchlist_fast_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding op_list_list_len_def[symmetric]
+  by sepref
+
+definition length_watchlist_raw_code where
+  \<open>length_watchlist_raw_code = read_watchlist_wl_heur_code (length_watchlist_full_impl)\<close>
+
+global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
+  f' = \<open>RETURN o length\<close> and
+  f = \<open>length_watchlist_full_impl\<close> and
+  x_assn = sint64_nat_assn and
+  P = \<open>(\<lambda>_. True)\<close>
+  rewrites
+    \<open>read_watchlist_wl_heur (RETURN \<circ> length) = RETURN o length_watchlist_raw\<close> and
+    \<open>read_watchlist_wl_heur_code (length_watchlist_full_impl) = length_watchlist_raw_code\<close>
+  apply unfold_locales
+  apply (rule length_watchlist_full_impl.refine)
+  subgoal
+     by (auto intro!: ext simp: length_watchlist_raw_def read_all_st_def length_watchlist_def
+         length_ll_def
+       split: isasat_int.splits)
+  subgoal by (auto simp: length_watchlist_raw_code_def)
+  done
+
+lemmas [sepref_fr_rules] = watchlist_length_raw.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  length_watchlist_raw_code_def[unfolded read_all_st_code_def]
+
 end

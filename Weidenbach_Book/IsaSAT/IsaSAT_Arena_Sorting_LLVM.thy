@@ -16,27 +16,29 @@ sepref_def delete_index_and_swap_code2
 definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
  \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 
-definition mop_clause_score_less where
-  \<open>mop_clause_score_less arena i j = do {
-    ASSERT(valid_sort_clause_score_pre_at arena i);
-    ASSERT(valid_sort_clause_score_pre_at arena j);
-    RETURN (clause_score_ordering (clause_score_extract arena i) (clause_score_extract arena j))
-  }\<close>
-
 sepref_register clause_score_extract arena_status arena_lbd uint32_max DELETED
+
+lemma valid_sort_clause_score_pre_at_alt_def:
+  \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
+    (\<exists>i vdom. C = vdom ! i \<and> arena_is_valid_clause_vdom arena (vdom!i) \<and>
+          (arena_status arena (vdom!i) \<noteq> DELETED \<longrightarrow>
+            ((get_clause_LBD_pre arena (vdom!i) \<and> arena_act_pre arena (vdom!i)) \<and>
+            arena_is_valid_clause_idx arena C))
+          \<and> i < length vdom)\<close>
+  unfolding valid_sort_clause_score_pre_at_def arena_is_valid_clause_idx_def
+     arena_act_pre_def arena_is_valid_clause_idx_def by auto
 
 sepref_def (in -) clause_score_extract_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def uint64_max_def[simplified]
   by sepref
 
 sepref_def (in -) clause_score_ordering_code
   is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
-  :: \<open>(uint32_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>(uint32_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_ordering_def
   by sepref
