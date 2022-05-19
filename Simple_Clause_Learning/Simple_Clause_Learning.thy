@@ -1761,59 +1761,63 @@ lemma not_in_trail_interp_if_not_in_trail: "t \<notin> atm_of ` fst ` set \<Gamm
 section \<open>SCL Calculus\<close>
 
 locale scl = renaming_apart renaming_vars inv_renaming_vars
-  for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
+  for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
+  fixes less_B :: "('f, 'v) term literal \<Rightarrow> ('f, 'v) term literal \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
 begin
 
-inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   propagateI: "C \<in> N \<union> U \<Longrightarrow> C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C \<Longrightarrow>
     subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L \<Longrightarrow> is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>) \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
-    propagate N (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, None)"
+    \<forall>K \<in># add_mset L C' \<cdot> \<gamma>. K \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, None)"
 
-inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   decideI: "L \<in> \<Union>(set_mset ` N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    decide N (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
+    L \<cdot>l \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
 
-inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   conflictI: "D \<in> N \<union> U \<Longrightarrow> D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D \<Longrightarrow>
     subst_domain \<sigma> \<subseteq> vars_cls D' \<Longrightarrow> is_ground_cls (D' \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (D' \<cdot> \<sigma>) \<Longrightarrow>
-    conflict N (\<Gamma>, U, None) (\<Gamma>, U, Some (D', \<sigma>))"
+    conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D', \<sigma>))"
 
-inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow>
-    skip N ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
+    skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
-inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     \<sigma>' = restrict_subst (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
-    factorize N (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
+    factorize N \<beta> (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
 
-inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow>
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
-    resolve N (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
+    resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
-inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
-  for N where
+inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   backtrackI: "trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level \<Gamma> \<Longrightarrow>
     trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
-    backtrack N (\<Gamma>, U, Some (D + {#L#}, \<sigma>))
+    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>))
       (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)), U \<union> {D + {#L#}}, None)"
 
-definition scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
-  "scl N S S' \<longleftrightarrow> propagate N S S' \<or> decide N S S' \<or> conflict N S S' \<or> skip N S S' \<or>
-    factorize N S S' \<or> resolve N S S' \<or> backtrack N S S'"
+definition scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
+  ('f, 'v) state \<Rightarrow> bool" where
+  "scl N \<beta> S S' \<longleftrightarrow> propagate N \<beta> S S' \<or> decide N \<beta> S S' \<or> conflict N \<beta> S S' \<or> skip N \<beta> S S' \<or>
+    factorize N \<beta> S S' \<or> resolve N \<beta> S S' \<or> backtrack N \<beta> S S'"
 
 text \<open>Note that, in contrast to Fiori and Weidenbach (CADE 2019), the set of clauses @{term N} is a
 parameter of the relation instead of being repeated twice in the state. This is to highlight the
@@ -1823,98 +1827,98 @@ fact that it is a constant.\<close>
 subsection \<open>Well-Defined\<close>
 
 lemma propagate_well_defined:
-  assumes "propagate N S S'"
+  assumes "propagate N \<beta> S S'"
   shows
-    "\<not> decide N S S'"
-    "\<not> conflict N S S'"
-    "\<not> skip N S S'"
-    "\<not> factorize N S S'"
-    "\<not> resolve N S S'"
-    "\<not> backtrack N S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    "\<not> factorize N \<beta> S S'"
+    "\<not> resolve N \<beta> S S'"
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma decide_well_defined:
-  assumes "decide N S S'"
+  assumes "decide N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> conflict N S S'"
-    "\<not> skip N S S'"
-    "\<not> factorize N S S'"
-    "\<not> resolve N S S'"
-    "\<not> backtrack N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    "\<not> factorize N \<beta> S S'"
+    "\<not> resolve N \<beta> S S'"
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma conflict_well_defined:
-  assumes "conflict N S S'"
+  assumes "conflict N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> decide N S S'"
-    "\<not> skip N S S'"
-    "\<not> factorize N S S'"
-    "\<not> resolve N S S'"
-    "\<not> backtrack N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    "\<not> factorize N \<beta> S S'"
+    "\<not> resolve N \<beta> S S'"
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma skip_well_defined:
-  assumes "skip N S S'"
+  assumes "skip N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> decide N S S'"
-    "\<not> conflict N S S'"
-    "\<not> factorize N S S'"
-    "\<not> resolve N S S'"
-    "\<not> backtrack N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> factorize N \<beta> S S'"
+    "\<not> resolve N \<beta> S S'"
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma factorize_well_defined:
-  assumes "factorize N S S'"
+  assumes "factorize N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> decide N S S'"
-    "\<not> conflict N S S'"
-    "\<not> skip N S S'"
-    (* "\<not> resolve N S S'" *)
-    "\<not> backtrack N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    (* "\<not> resolve N \<beta> S S'" *)
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma resolve_well_defined:
-  assumes "resolve N S S'"
+  assumes "resolve N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> decide N S S'"
-    "\<not> conflict N S S'"
-    "\<not> skip N S S'"
-    (* "\<not> factorize N S S'" *)
-    "\<not> backtrack N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    (* "\<not> factorize N \<beta> S S'" *)
+    "\<not> backtrack N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
 
 lemma backtrack_well_defined:
-  assumes "backtrack N S S'"
+  assumes "backtrack N \<beta> S S'"
   shows
-    "\<not> propagate N S S'"
-    "\<not> decide N S S'"
-    "\<not> conflict N S S'"
-    "\<not> skip N S S'"
-    "\<not> factorize N S S'"
-    "\<not> resolve N S S'"
+    "\<not> propagate N \<beta> S S'"
+    "\<not> decide N \<beta> S S'"
+    "\<not> conflict N \<beta> S S'"
+    "\<not> skip N \<beta> S S'"
+    "\<not> factorize N \<beta> S S'"
+    "\<not> resolve N \<beta> S S'"
   using assms
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
@@ -2084,7 +2088,7 @@ lemma sound_initial_state[simp]: "finite N \<Longrightarrow> disjoint_vars_set N
 
 subsection \<open>SCL Rules Preserve Soundness\<close>
 
-lemma propagate_sound_state: "propagate N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma propagate_sound_state: "propagate N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: propagate.induct)
   case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
   from propagateI.prems have
@@ -2231,7 +2235,7 @@ proof (induction S S' rule: propagate.induct)
     using fin N_entails_U by simp
 qed
 
-lemma decide_sound_state: "decide N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma decide_sound_state: "decide N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: decide.induct)
   case (decideI L \<gamma> \<Gamma> U)
   from decideI.prems have
@@ -2246,7 +2250,7 @@ proof (induction S S' rule: decide.induct)
     by (auto intro: sound_trail_decide)
 qed
 
-lemma conflict_sound_state: "conflict N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma conflict_sound_state: "conflict N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: conflict.induct)
   case (conflictI D U D' \<Gamma> \<sigma>)
   from conflictI.prems have
@@ -2287,14 +2291,14 @@ proof (induction S S' rule: conflict.induct)
     using fin_N fin_U disj_N_U disj_N_U_D' sound_\<Gamma> N_entails_U conflictI.hyps by simp
 qed
 
-lemma skip_sound_state: "skip N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: skip.induct)
   case (skipI L D \<sigma> Cl \<Gamma> U)
   thus ?case
     by (auto simp: sound_state_def clss_of_trail_Cons[of _ \<Gamma>] elim!: subtrail_falseI)
 qed
 
-lemma factorize_sound_state: "factorize N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma factorize_sound_state: "factorize N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: factorize.induct)
   case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
   from factorizeI.prems have
@@ -2427,7 +2431,7 @@ proof (rule ballI)
   qed
 qed
 
-lemma resolve_sound_state: "resolve N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma resolve_sound_state: "resolve N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: resolve.induct)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
   from resolveI.prems have
@@ -2629,7 +2633,7 @@ proof (induction S S' rule: resolve.induct)
     using fin disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
-lemma backtrack_sound_state: "backtrack N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma backtrack_sound_state: "backtrack N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: backtrack.induct)
   case (backtrackI \<Gamma> D \<sigma> L U)
   from backtrackI.prems have
@@ -2680,16 +2684,16 @@ qed
 
 theorem scl_sound_state:
   fixes N :: "('f, 'v) Term.term clause set"
-  shows "scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  shows "scl N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   unfolding scl_def
   using propagate_sound_state decide_sound_state conflict_sound_state skip_sound_state
     factorize_sound_state resolve_sound_state backtrack_sound_state
   by metis
 
-lemma assumes "sound_state N S" and "conflict N S S'"
-  shows "(\<exists>\<gamma>. state_conflict S' = Some ({#}, \<gamma>)) \<or> (\<exists>S''. backtrack N S' S'')"
+lemma assumes "sound_state N S" and "conflict N \<beta> S S'"
+  shows "(\<exists>\<gamma>. state_conflict S' = Some ({#}, \<gamma>)) \<or> (\<exists>S''. backtrack N \<beta> S' S'')"
 proof -
-  from \<open>conflict N S S'\<close> obtain D U D' \<Gamma> \<sigma> where
+  from \<open>conflict N \<beta> S S'\<close> obtain D U D' \<Gamma> \<sigma> where
        "S = (\<Gamma>, U, None)" and
        S'_def: "S' = (\<Gamma>, U, Some (D', \<sigma>))" and
        "D \<in> N \<union> U"
@@ -2707,10 +2711,10 @@ proof -
     assume "D' \<noteq> {#}"
     then obtain D'' L where "D' = D'' + {#L#}"
       by (metis add_mset_add_single multi_nonempty_split)
-    have "(\<exists>S''. backtrack N S' S'')"
+    have "(\<exists>S''. backtrack N \<beta> S' S'')"
       unfolding S'_def \<open>D' = D'' + {#L#}\<close>
     proof (rule exI)
-      show "backtrack N (\<Gamma>, U, Some (D'' + {#L#}, \<sigma>))
+      show "backtrack N \<beta> (\<Gamma>, U, Some (D'' + {#L#}, \<sigma>))
         (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D'' \<cdot> \<sigma>)), U \<union> {D'' + {#L#}}, None)"
         apply (rule backtrackI)
   oops
@@ -2719,42 +2723,42 @@ proof -
 section \<open>Reasonable And Regular Runs\<close>
 
 definition reasonable_scl where
-  "reasonable_scl N S S' \<longleftrightarrow> scl N S S' \<and> (decide N S S' \<longrightarrow> \<not>(\<exists>S''. conflict N S' S''))"
+  "reasonable_scl N \<beta> S S' \<longleftrightarrow> scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
 
-lemma scl_if_reasonable: "reasonable_scl N S S' \<Longrightarrow> scl N S S'"
+lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   unfolding reasonable_scl_def scl_def by simp
 
 definition regular_scl where
-  "regular_scl N S S' \<longleftrightarrow> conflict N S S' \<or> \<not> conflict N S S' \<and> reasonable_scl N S S'"
+  "regular_scl N \<beta> S S' \<longleftrightarrow> conflict N \<beta> S S' \<or> \<not> conflict N \<beta> S S' \<and> reasonable_scl N \<beta> S S'"
 
 lemma reasonable_if_regular:
-  "regular_scl N S S' \<Longrightarrow> reasonable_scl N S S'"
+  "regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'"
   unfolding regular_scl_def
 proof (elim disjE conjE)
-  assume "conflict N S S'"
-  hence "scl N S S'"
+  assume "conflict N \<beta> S S'"
+  hence "scl N \<beta> S S'"
     by (simp add: scl_def)
-  moreover have "decide N S S' \<longrightarrow> \<not>(\<exists>S''. conflict N S' S'')"
-    by (smt (verit, best) \<open>conflict N S S'\<close> conflict.cases option.distinct(1) snd_conv)
-  ultimately show "reasonable_scl N S S'"
+  moreover have "decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S'')"
+    by (smt (verit, best) \<open>conflict N \<beta> S S'\<close> conflict.cases option.distinct(1) snd_conv)
+  ultimately show "reasonable_scl N \<beta> S S'"
     by (simp add: reasonable_scl_def)
 next
-  assume "\<not> conflict N S S'" and "reasonable_scl N S S'"
+  assume "\<not> conflict N \<beta> S S'" and "reasonable_scl N \<beta> S S'"
   thus ?thesis by simp
 qed
 
-lemma reasonable_scl_sound_state: "reasonable_scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma reasonable_scl_sound_state: "reasonable_scl N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   using scl_sound_state reasonable_scl_def by blast
 
-lemma regular_scl_sound_state: "regular_scl N S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+lemma regular_scl_sound_state: "regular_scl N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   by (rule reasonable_scl_sound_state[OF reasonable_if_regular])
 
 lemma reasonable_run_sound_state:
-  "(reasonable_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  "(reasonable_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   by (smt (verit, best) reasonable_scl_sound_state rtranclp_induct)
 
 lemma regular_run_sound_state:
-  "(regular_scl N)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
+  "(regular_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
   by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
 
 lemma trail_interp_lit_if_sound_and_trail_true:
