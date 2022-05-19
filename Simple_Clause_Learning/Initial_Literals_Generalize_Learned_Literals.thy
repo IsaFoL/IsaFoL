@@ -72,7 +72,7 @@ lemma propagate_initial_lits_generalized_learned_lits:
   "propagate N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: propagate.induct)
-  case (propagateI C U C'' L \<Gamma> \<gamma>)
+  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
 
   from propagateI.prems have
     fin: "finite N" "finite U" and
@@ -80,10 +80,11 @@ proof (induction S S' rule: propagate.induct)
     unfolding initial_lits_generalized_learned_lits_def by simp_all
 
   from propagateI.hyps have C_in: "C \<in> N \<union> U" by simp
-  from propagateI.hyps have rename_C: "C'' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
+  from propagateI.hyps have rename_C: "C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
     by simp
 
-  moreover have "clss_lits_generalize_clss_lits N (U \<union> clss_of_trail (trail_propagate \<Gamma> L C'' \<gamma>))"
+  have "clss_lits_generalize_clss_lits N
+    (insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (U \<union> clss_of_trail \<Gamma>))"
   proof -
     from C_in have "clss_lits_generalize_clss_lits N {rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C}"
     proof (unfold Un_iff, elim disjE)
@@ -97,15 +98,38 @@ proof (induction S S' rule: propagate.induct)
         by (auto intro!: clss_lits_generalize_clss_lits_trans[OF N_superset_lits]
             intro: clss_lits_generalize_clss_lits_rename_clause)
     qed
-    hence "clss_lits_generalize_clss_lits N {add_mset L C''}"
+    hence *: "clss_lits_generalize_clss_lits N {add_mset L C'}"
       unfolding rename_C[simplified] by assumption
+
+    have "clss_lits_generalize_clss_lits N {add_mset L C\<^sub>0 \<cdot> \<mu>}"
+      unfolding clss_lits_generalize_clss_lits_def
+    proof (rule ballI)
+      fix K assume "K \<in> \<Union> (set_mset ` {add_mset L C\<^sub>0 \<cdot> \<mu>})"
+      hence "K = L \<cdot>l \<mu> \<or> (\<exists>M. M \<in># C\<^sub>0 \<and> K = M \<cdot>l \<mu>)"
+        by simp
+      then show "\<exists>K'\<in>\<Union> (set_mset ` N). generalizes_lit K' K"
+      proof (elim disjE exE conjE)
+        assume "K = L \<cdot>l \<mu>"
+        thus ?thesis
+          apply simp
+          using *[unfolded clss_lits_generalize_clss_lits_def, rule_format, simplified]
+          by (metis generalizes_lit_def subst_lit_comp_subst)
+      next
+        fix K' assume "K' \<in># C\<^sub>0" and K_def: "K = K' \<cdot>l \<mu>"
+        hence "K' \<in># C'"
+          by (simp add: propagateI.hyps(5))
+        then obtain D K'' where "D\<in>N" and "K''\<in>#D" and "generalizes_lit K'' K'"
+          using *[unfolded clss_lits_generalize_clss_lits_def, simplified] by blast
+        thus ?thesis
+          unfolding K_def
+          by (metis UN_I generalizes_lit_def subst_lit_comp_subst)
+      qed
+    qed
     thus ?thesis
-      using N_superset_lits
-      using clss_lits_generalize_clss_lits_insert[of N "add_mset L C''" "U \<union> clss_of_trail \<Gamma>"]
-      by simp
+      using N_superset_lits clss_lits_generalize_clss_lits_insert by blast
   qed
 
-  ultimately show ?case
+  then show ?case
     unfolding initial_lits_generalized_learned_lits_def using fin by simp
 qed
 
