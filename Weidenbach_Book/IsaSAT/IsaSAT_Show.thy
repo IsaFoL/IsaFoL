@@ -113,8 +113,8 @@ definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \
          _ = print_uint64 confl;
          _ = print_uint64 (of_nat lcount);
          _ = print_uint64 (irred_clss);
-         _ = print_uint64 frestarts;
          _ = print_uint64 lrestarts;
+         _ = print_uint64 frestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
          _ = print_uint64 (ema_extract_value lbds);

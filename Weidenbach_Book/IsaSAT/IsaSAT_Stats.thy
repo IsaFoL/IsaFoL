@@ -92,8 +92,14 @@ definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> whe
 definition decr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>decr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss-1, lbds))\<close>
 
+definition irredundant_clss_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
+  \<open>irredundant_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). irred_clss)\<close>
+
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation = Stats o incr_propagation_stats o get_stats\<close>
+
+definition irredundant_clss :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>irredundant_clss = irredundant_clss_stats o get_stats\<close>
 
 definition incr_conflict :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_conflict = Stats o incr_conflict_stats o get_stats\<close>
@@ -159,6 +165,7 @@ definition get_restart_count_stats :: \<open>stats \<Rightarrow> _\<close> where
 definition get_restart_count where \<open>get_restart_count = get_restart_count_stats o get_content\<close>
 definition get_lrestart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_lrestart_count_stats = (\<lambda>(props, decs, confl, restarts, lres, _). lres)\<close>
 definition get_lrestart_count where \<open>get_lrestart_count = get_lrestart_count_stats o get_content\<close>
+definition get_irredundant_count where \<open>get_irredundant_count = irredundant_clss_stats o get_content\<close>
 
 
 section \<open>Information related to restarts\<close>
@@ -187,13 +194,19 @@ definition restart_info_init :: \<open>restart_info\<close> where
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
-type_synonym schedule_info = \<open>64 word\<close>
+type_synonym schedule_info = \<open>64 word \<times> 64 word\<close>
 
 definition schedule_next_inprocessing_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
-  \<open>schedule_next_inprocessing_info = (\<lambda>(inprocess). (inprocess * 3 >> 1))\<close>
+  \<open>schedule_next_inprocessing_info = (\<lambda>(inprocess, reduce). (inprocess * 3 >> 1, reduce))\<close>
 
-definition next_inprocessing_schedule_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
-  \<open>next_inprocessing_schedule_info = (\<lambda>(inprocess). inprocess)\<close>
+definition next_inprocessing_schedule_info :: \<open>schedule_info \<Rightarrow> 64 word\<close> where
+  \<open>next_inprocessing_schedule_info = (\<lambda>(inprocess, reduce). inprocess)\<close>
+
+definition schedule_next_reduce_info :: \<open>64 word \<Rightarrow> schedule_info \<Rightarrow> schedule_info\<close> where
+  \<open>schedule_next_reduce_info delta = (\<lambda>(inprocess, reduce). (inprocess, reduce + delta))\<close>
+
+definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 word\<close> where
+  \<open>next_reduce_schedule_info = (\<lambda>(inprocess, reduce). reduce)\<close>
 
 
 section \<open>Heuristics\<close>
@@ -549,6 +562,18 @@ definition next_inprocessing_schedule_info_stats :: \<open>restart_heuristics \<
 definition next_inprocessing_schedule :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>next_inprocessing_schedule = next_inprocessing_schedule_info_stats o get_restart_heuristics\<close>
 
+definition schedule_next_reduce_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>schedule_next_reduce_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_reduce_info delta schedule))\<close>
+
+definition schedule_next_reduce :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>schedule_next_reduce delta = Restart_Heuristics o schedule_next_reduce_stats delta o get_restart_heuristics\<close>
+
+definition next_reduce_schedule_info_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_reduce_schedule_info_stats = next_reduce_schedule_info o schedule_info_of_stats\<close>
+
+definition next_reduce_schedule :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_reduce_schedule = next_reduce_schedule_info_stats o get_restart_heuristics\<close>
+
 lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_zero_wasted heur)\<close>
@@ -591,8 +616,11 @@ lemma heuristic_rel_incr_restartI[intro!]:
 lemma [intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_inprocessing heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_reduce delta heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def
-     next_inprocessing_schedule_def schedule_next_inprocessing_def schedule_next_inprocessing_stats_def)
+     next_inprocessing_schedule_def schedule_next_inprocessing_def schedule_next_inprocessing_stats_def
+     next_reduce_schedule_def schedule_next_reduce_def schedule_next_reduce_stats_def)
 
 lemma [simp]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (restart_info_restart_done_heur heur)\<close>

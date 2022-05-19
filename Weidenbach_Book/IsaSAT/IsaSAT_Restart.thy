@@ -124,9 +124,6 @@ lemma twl_st_heur_restartD:
   \<open>x \<in> twl_st_heur_restart \<Longrightarrow> x \<in> twl_st_heur_restart_ana (length (get_clauses_wl_heur (fst x)))\<close>
   by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
 
-definition clause_score_ordering2 where
-  \<open>clause_score_ordering2 = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act \<le> act'))\<close>
-
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
@@ -200,15 +197,8 @@ definition minimum_number_between_restarts :: \<open>64 word\<close> where
 definition five_uint64 :: \<open>64 word\<close> where
   \<open>five_uint64 = 5\<close>
 
-definition upper_restart_bound_not_reached :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>upper_restart_bound_not_reached = (\<lambda>S.
-  of_nat (clss_size_lcount (get_learned_count S)) < 3000 + 1000 * (get_restart_count (get_stats_heur S)))\<close>
-
-definition (in -) lower_restart_bound_not_reached :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>lower_restart_bound_not_reached = (\<lambda>S.
-  \<not>opts_reduce (get_opts S) \<or>
-   (opts_restart (get_opts S) \<and> 
-    (of_nat (clss_size_lcount (get_learned_count S)) < 2000 + 1000 * (get_restart_count (get_stats_heur S)))))\<close>
+definition upper_restart_bound_reached :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>upper_restart_bound_reached = (\<lambda>S. get_global_conflict_count S \<ge> next_reduce_schedule_st S)\<close>
 
 definition div2 where [simp]: \<open>div2 n = n div 2\<close>
 
@@ -219,10 +209,6 @@ definition max_restart_decision_lvl :: nat where
 
 definition max_restart_decision_lvl_code :: \<open>32 word\<close> where
   \<open>max_restart_decision_lvl_code = 300\<close>
-
-fun (in -) get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
-  \<open>get_reductions_count S
-  = get_lrestart_count (get_stats_heur S)\<close>
 
 definition GC_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>GC_required_heur S n = do {

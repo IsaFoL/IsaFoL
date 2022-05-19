@@ -104,124 +104,12 @@ sepref_def update_restart_phases_impl
 
 sepref_register upper_restart_bound_not_reached
 
-definition get_restart_count_st where
-  \<open>get_restart_count_st S = get_restart_count (get_stats_heur S)\<close>
-
-definition get_restart_count_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>get_restart_count_st_impl = read_stats_wl_heur_code get_restart_count_impl\<close>
-
-global_interpretation restart_count: read_stats_param_adder0 where
-  f' = \<open>RETURN o get_restart_count\<close> and
-  f = get_restart_count_impl and
-  x_assn = word_assn and
-  P = \<open>\<lambda>_. True\<close>
-  rewrites \<open>read_stats_wl_heur (RETURN o get_restart_count) = RETURN o get_restart_count_st\<close> and
-    \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
-  apply unfold_locales
-  apply (rule get_restart_count_impl_refine; assumption)
-  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
-    split: isasat_int.splits)
-  subgoal by (auto simp: get_restart_count_st_impl_def)
-  done
-
-definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_lrestart_count_impl\<close>
-
-(*TODO check if this is the right statistics to read!*)
-global_interpretation reduction_count: read_stats_param_adder0 where
-  f' = \<open>RETURN o get_lrestart_count\<close> and
-  f = get_lrestart_count_impl and
-  x_assn = word_assn and
-  P = \<open>\<lambda>_. True\<close>
-  rewrites \<open>read_stats_wl_heur (RETURN o get_lrestart_count) = RETURN o get_reductions_count\<close> and
-    \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
-  apply unfold_locales
-  apply (rule get_lrestart_count_impl_refine)
-  subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
-    split: isasat_int.splits)
-  subgoal by (auto simp: get_reductions_count_fast_code_def)
-  done
-
-definition get_slow_ema_heur_full where
-  \<open>get_slow_ema_heur_full S = ema_get_value (slow_ema_of S)\<close>
-definition get_fast_ema_heur_full where
-  \<open>get_fast_ema_heur_full S = ema_get_value (fast_ema_of S)\<close>
-
-sepref_def get_slow_ema_heur_full_impl
-  is \<open>RETURN o get_slow_ema_heur_full\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding get_slow_ema_heur_full_def
-  by sepref
-
-sepref_def get_fast_ema_heur_full_impl
-  is \<open>RETURN o get_fast_ema_heur_full\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding get_fast_ema_heur_full_def
-  by sepref
-
-definition get_slow_ema_heur_st where
-  \<open>get_slow_ema_heur_st S = ema_get_value (get_slow_ema_heur S)\<close>
-definition get_fast_ema_heur_st where
-  \<open>get_fast_ema_heur_st S = ema_get_value (get_fast_ema_heur S)\<close>
-
-definition get_slow_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>get_slow_ema_heur_st_impl = read_heur_wl_heur_code get_slow_ema_heur_full_impl\<close>
-
-definition get_fast_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>get_fast_ema_heur_st_impl = read_heur_wl_heur_code get_fast_ema_heur_full_impl\<close>
-
-global_interpretation slow_ema: read_heur_param_adder0 where
-  f' = \<open>RETURN o get_slow_ema_heur_full\<close> and
-  f = get_slow_ema_heur_full_impl and
-  x_assn = word_assn and
-  P = \<open>\<lambda>_. True\<close>
-  rewrites \<open>read_heur_wl_heur (RETURN o get_slow_ema_heur_full) = RETURN o get_slow_ema_heur_st\<close> and
-    \<open>read_heur_wl_heur_code get_slow_ema_heur_full_impl = get_slow_ema_heur_st_impl\<close>
-  apply unfold_locales
-  apply (rule get_slow_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_slow_ema_heur_st_def
-      get_slow_ema_heur_full_def intro!: ext
-    split: isasat_int.splits)
-  subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
-  done
-
-global_interpretation fast_ema: read_heur_param_adder0 where
-  f' = \<open>RETURN o get_fast_ema_heur_full\<close> and
-  f = get_fast_ema_heur_full_impl and
-  x_assn = word_assn and
-  P = \<open>\<lambda>_. True\<close>
-  rewrites \<open>read_heur_wl_heur (RETURN o get_fast_ema_heur_full) = RETURN o get_fast_ema_heur_st\<close> and
-    \<open>read_heur_wl_heur_code get_fast_ema_heur_full_impl = get_fast_ema_heur_st_impl\<close>
-  apply unfold_locales
-  apply (rule get_fast_ema_heur_full_impl.refine)
-  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_fast_ema_heur_st_def
-      get_fast_ema_heur_full_def intro!: ext
-    split: isasat_int.splits)
-  subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
-  done
-
-lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
-lemmas [unfolded inline_direct_return_node_case, llvm_code] =
-  get_restart_count_st_impl_def[unfolded read_all_st_code_def]
-  get_reductions_count_fast_code_def[unfolded read_all_st_code_def]
-  get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
-  get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
-
 sepref_def upper_restart_bound_not_reached_fast_impl
   is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding upper_restart_bound_not_reached_def PR_CONST_def
     fold_tuple_optimizations get_restart_count_st_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_register lower_restart_bound_not_reached
-sepref_def lower_restart_bound_not_reached_impl
-  is \<open>(RETURN o lower_restart_bound_not_reached)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding lower_restart_bound_not_reached_def PR_CONST_def
-    get_restart_count_st_def[symmetric] opts_reduction_st_def[symmetric]
-    opts_restart_st_def[symmetric]
+    get_global_conflict_count_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 

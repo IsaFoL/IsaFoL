@@ -516,7 +516,7 @@ lemmas [llvm_code del] = units_since_last_GC_st_code_def
      typedef int8_t PROFILE_CST;
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
-     typedef int32_t* STRING_VERSION;
+   For those who don’t understand the reference this is satire coming from the comment on the Dropbox Launch post on HN in 2007 [0]  typedef int32_t* STRING_VERSION;
   \<close>
   file \<open>code/src/isasat_restart.ll\<close>
 

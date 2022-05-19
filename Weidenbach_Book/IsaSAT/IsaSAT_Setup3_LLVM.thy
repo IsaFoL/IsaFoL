@@ -54,15 +54,34 @@ global_interpretation next_inprocessing_schedule: read_heur_param_adder0 where
   subgoal by (auto simp: next_inprocessing_schedule_st_impl_def)
   done
 
+definition next_reduce_schedule_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>next_reduce_schedule_st_impl = read_heur_wl_heur_code next_reduce_schedule_info_stats_impl\<close>
+
+global_interpretation next_reduce_schedule: read_heur_param_adder0 where
+  f' = \<open>RETURN o next_reduce_schedule\<close> and
+  f = next_reduce_schedule_info_stats_impl and
+  x_assn = \<open>word64_assn\<close> and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites
+    \<open>read_heur_wl_heur (RETURN o next_reduce_schedule) = RETURN o next_reduce_schedule_st\<close> and
+    \<open>read_heur_wl_heur_code next_reduce_schedule_info_stats_impl = next_reduce_schedule_st_impl\<close>
+  apply unfold_locales
+  apply (rule heur_refine)
+  subgoal by (auto simp: next_reduce_schedule_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: next_reduce_schedule_st_impl_def)
+  done
+
 lemmas [sepref_fr_rules] =
   wasted_of.refine
   current_restart_phase.refine
   next_inprocessing_schedule.refine
+  next_reduce_schedule.refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   wasted_bytes_st_impl_def[unfolded read_all_st_code_def]
   get_restart_phase_imp_def[unfolded read_all_st_code_def]
   next_inprocessing_schedule_st_impl_def[unfolded read_all_st_code_def]
+  next_reduce_schedule_st_impl_def[unfolded read_all_st_code_def]
 
 sepref_register set_zero_wasted mop_save_phase_heur add_lbd
 
@@ -206,11 +225,8 @@ sepref_register incr_restart_stat clss_size_lcountUE clss_size_lcountUS learned_
 
 lemma incr_restart_stat_alt_def:
   \<open>incr_restart_stat = (\<lambda>S. do{
-     let (heur, S) = extract_heur_wl_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
-     let S = update_heur_wl_heur heur S;
      let (stats, S) = extract_stats_wl_heur S;
-     let stats = incr_restart (incr_lrestart stats);
+     let stats = incr_restart (stats);
      let S = update_stats_wl_heur stats S;
      RETURN S
   })\<close>
@@ -609,5 +625,126 @@ global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
 lemmas [sepref_fr_rules] = watchlist_length_raw.refine
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_watchlist_raw_code_def[unfolded read_all_st_code_def]
+
+definition get_restart_count_st where
+  \<open>get_restart_count_st S = get_restart_count (get_stats_heur S)\<close>
+
+definition get_restart_count_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_restart_count_st_impl = read_stats_wl_heur_code get_restart_count_impl\<close>
+
+global_interpretation restart_count: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_restart_count\<close> and
+  f = get_restart_count_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_restart_count) = RETURN o get_restart_count_st\<close> and
+    \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_restart_count_impl_refine; assumption)
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_restart_count_st_impl_def)
+  done
+
+definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_lrestart_count_impl\<close>
+
+(*TODO check if this is the right statistics to read!*)
+global_interpretation reduction_count: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_lrestart_count\<close> and
+  f = get_lrestart_count_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_lrestart_count) = RETURN o get_reductions_count\<close> and
+    \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
+  apply unfold_locales
+  apply (rule get_lrestart_count_impl_refine)
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_reductions_count_fast_code_def)
+  done
+
+
+definition get_irredundant_count_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_irredundant_count_st_code = read_stats_wl_heur_code get_irredundant_count_impl\<close>
+
+global_interpretation irredandant_count: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_irredundant_count\<close> and
+  f = get_irredundant_count_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_irredundant_count) = RETURN o get_irredundant_count_st\<close> and
+    \<open>read_stats_wl_heur_code get_irredundant_count_impl = get_irredundant_count_st_code\<close>
+  apply unfold_locales
+  apply (rule get_irredundant_count_impl_refine)
+  subgoal by (auto simp: read_all_st_def get_irredundant_count_st_def stats_conflicts_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_irredundant_count_st_code_def)
+  done
+
+definition get_slow_ema_heur_full where
+  \<open>get_slow_ema_heur_full S = ema_get_value (slow_ema_of S)\<close>
+definition get_fast_ema_heur_full where
+  \<open>get_fast_ema_heur_full S = ema_get_value (fast_ema_of S)\<close>
+
+sepref_def get_slow_ema_heur_full_impl
+  is \<open>RETURN o get_slow_ema_heur_full\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_slow_ema_heur_full_def
+  by sepref
+
+sepref_def get_fast_ema_heur_full_impl
+  is \<open>RETURN o get_fast_ema_heur_full\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_fast_ema_heur_full_def
+  by sepref
+
+definition get_slow_ema_heur_st where
+  \<open>get_slow_ema_heur_st S = ema_get_value (get_slow_ema_heur S)\<close>
+definition get_fast_ema_heur_st where
+  \<open>get_fast_ema_heur_st S = ema_get_value (get_fast_ema_heur S)\<close>
+
+definition get_slow_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_slow_ema_heur_st_impl = read_heur_wl_heur_code get_slow_ema_heur_full_impl\<close>
+
+definition get_fast_ema_heur_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_fast_ema_heur_st_impl = read_heur_wl_heur_code get_fast_ema_heur_full_impl\<close>
+
+global_interpretation slow_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o get_slow_ema_heur_full\<close> and
+  f = get_slow_ema_heur_full_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o get_slow_ema_heur_full) = RETURN o get_slow_ema_heur_st\<close> and
+    \<open>read_heur_wl_heur_code get_slow_ema_heur_full_impl = get_slow_ema_heur_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_slow_ema_heur_full_impl.refine)
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_slow_ema_heur_st_def
+      get_slow_ema_heur_full_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
+  done
+
+global_interpretation fast_ema: read_heur_param_adder0 where
+  f' = \<open>RETURN o get_fast_ema_heur_full\<close> and
+  f = get_fast_ema_heur_full_impl and
+  x_assn = word_assn and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_heur_wl_heur (RETURN o get_fast_ema_heur_full) = RETURN o get_fast_ema_heur_st\<close> and
+    \<open>read_heur_wl_heur_code get_fast_ema_heur_full_impl = get_fast_ema_heur_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_fast_ema_heur_full_impl.refine)
+  subgoal by (auto simp: read_all_st_def stats_conflicts_def get_fast_ema_heur_st_def
+      get_fast_ema_heur_full_def intro!: ext
+    split: isasat_int.splits)
+  subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
+  done
+
+lemmas [sepref_fr_rules] = restart_count.refine reduction_count.refine fast_ema.refine slow_ema.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_restart_count_st_impl_def[unfolded read_all_st_code_def]
+  get_reductions_count_fast_code_def[unfolded read_all_st_code_def]
+  get_fast_ema_heur_st_impl_def[unfolded read_all_st_code_def]
+  get_slow_ema_heur_st_impl_def[unfolded read_all_st_code_def]
 
 end

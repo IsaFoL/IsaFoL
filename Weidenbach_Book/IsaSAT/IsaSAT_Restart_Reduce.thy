@@ -1,6 +1,4 @@
-theory IsaSAT_Restart_Reduce
-  imports IsaSAT_Restart
-begin
+theory IsaSAT_Restart_Reduce imports IsaSAT_Restart begin
 
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
@@ -356,22 +354,8 @@ definition sort_clauses_by_score :: \<open>arena \<Rightarrow> isasat_aivdom \<R
 
 definition (in -) quicksort_clauses_by_score_avdom :: \<open>arena \<Rightarrow> vdom \<Rightarrow> vdom nres\<close> where
   \<open>quicksort_clauses_by_score_avdom arena =
-     (full_quicksort_ref clause_score_ordering2 (clause_score_extract arena))\<close>
-
-definition (in -) quicksort_clauses_by_score :: \<open>arena \<Rightarrow> isasat_aivdom \<Rightarrow> isasat_aivdom nres\<close> where
-  \<open>quicksort_clauses_by_score arena =
-    map_tvdom_aivdom (quicksort_clauses_by_score_avdom arena)\<close>
-
-lemma quicksort_clauses_by_score_sort:
- \<open>(quicksort_clauses_by_score, sort_clauses_by_score) \<in>
-   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-   by (intro fun_relI nres_relI specify_left)
-    (auto simp: quicksort_clauses_by_score_def sort_clauses_by_score_def
-       reorder_list_def  clause_score_extract_def clause_score_ordering2_def
-       le_ASSERT_iff map_tvdom_aivdom_def quicksort_clauses_by_score_avdom_def
-     intro: specify_left[OF insert_sort_reorder_list[THEN fref_to_Down, THEN order_trans]]
-     split: code_hider.splits)
-
+     (full_quicksort_ref clause_score_ordering (clause_score_extract arena))\<close>
+ 
 definition remove_deleted_clauses_from_avdom_inv :: \<open>_\<close> where
   \<open>remove_deleted_clauses_from_avdom_inv N avdom0 = (\<lambda>(i, j, avdom). i \<le> j \<and> j \<le> length (get_avdom_aivdom avdom0) \<and> length (get_avdom_aivdom avdom) = length (get_avdom_aivdom avdom0) \<and>
     mset (take i (get_avdom_aivdom avdom) @ drop j (get_avdom_aivdom avdom)) \<subseteq># mset (get_avdom_aivdom avdom0) \<and>
@@ -1117,7 +1101,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_restart_stat T
+    incr_lrestart_stat T
   })\<close>
 
 lemma mark_to_delete_clauses_wl_D_heur_alt_def:
@@ -1176,7 +1160,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-          incr_restart_stat T
+         incr_restart_stat T
         })\<close>
     unfolding mark_to_delete_clauses_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1237,7 +1221,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-          incr_restart_stat T
+          incr_lrestart_stat T
         })\<close>
     unfolding mark_to_delete_clauses_GC_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1869,20 +1853,28 @@ proof -
     done
 qed
 
+definition schedule_next_reduction_st :: \<open>isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_reduction_st S =
+   (let delta = get_reductions_count S * 300;
+      irred = (get_irredundant_count_st S) >> 10;
+      extra = if irred < 10 then 1 else of_nat (word_log2 (irred)) >> 1;
+      delta = extra * delta in
+    schedule_next_reduce_st delta S)\<close>
+
 definition cdcl_twl_mark_clauses_to_delete where
   \<open>cdcl_twl_mark_clauses_to_delete S = do {
   _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
   _ \<leftarrow> RETURN (IsaSAT_Profile.start_reduce);
   T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
   _ \<leftarrow> RETURN (IsaSAT_Profile.stop_reduce);
-  RETURN (clss_size_resetUS0_st T)
+  RETURN (schedule_next_reduction_st (clss_size_resetUS0_st T))
   }\<close>
 
 lemma cdcl_twl_mark_clauses_to_delete_alt_def:
   \<open>cdcl_twl_mark_clauses_to_delete S = do {
   _ \<leftarrow> ASSERT (mark_to_delete_clauses_wl_D_heur_pre S);
   T \<leftarrow> mark_to_delete_clauses_wl_D_heur S;
-  RETURN (clss_size_resetUS0_st T)
+  RETURN (schedule_next_reduction_st (clss_size_resetUS0_st T))
   }\<close>
   unfolding cdcl_twl_mark_clauses_to_delete_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
   by auto
@@ -1891,11 +1883,23 @@ lemma learned_clss_count_clss_size_resetUS0_st_le:
   \<open>learned_clss_count (clss_size_resetUS0_st T) \<le> learned_clss_count T\<close> and
   clss_size_resetUS0_st_simp[simp]:
   \<open>get_clauses_wl_heur (clss_size_resetUS0_st T) = get_clauses_wl_heur T\<close>
-  by (cases T;clarsimp  simp: clss_size_resetUS0_st_def learned_clss_count_def
+  by (cases T;clarsimp simp: clss_size_resetUS0_st_def learned_clss_count_def
     clss_size_lcountUS_def clss_size_lcountU0_def clss_size_lcountUE_def
     clss_size_resetUS_def clss_size_resetU0_def clss_size_resetUE_def clss_size_lcountUEk_def
     clss_size_lcount_def
     split: prod.splits)+
+
+lemma learned_clss_count_schedule_next_reduction_st_le:
+  \<open>learned_clss_count (schedule_next_reduction_st T) = learned_clss_count T\<close> and
+  schedule_next_reduction_st_simp[simp]:
+  \<open>get_clauses_wl_heur (schedule_next_reduction_st T) = get_clauses_wl_heur T\<close>
+  by (solves \<open>cases T;clarsimp simp: schedule_next_reduction_st_def learned_clss_count_def Let_def
+     schedule_next_reduce_st_def\<close>)+
+
+lemma schedule_next_reduction_sttwl_st_heur:
+   \<open>(S,T)\<in>twl_st_heur \<Longrightarrow> (schedule_next_reduction_st S, T) \<in> twl_st_heur\<close>
+  by (auto simp: twl_st_heur_def schedule_next_reduction_st_def Let_def
+    schedule_next_reduce_st_def)
 
 lemma cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D:
   \<open>(cdcl_twl_mark_clauses_to_delete, cdcl_twl_full_restart_wl_prog) \<in>
@@ -1911,7 +1915,9 @@ lemma cdcl_twl_mark_clauses_to_delete_cdcl_twl_full_restart_wl_prog_D:
     by (rule mark_to_delete_clauses_wl_D_heur_pre_twl_st_heur) auto
   subgoal for x y T Ta
     using learned_clss_count_clss_size_resetUS0_st_le[of T]
-    by (auto simp: mark_to_delete_clauses_wl_post_twl_st_heur twl_st_heur_restart_anaD)
+      learned_clss_count_schedule_next_reduction_st_le[of \<open>clss_size_resetUS0_st T\<close>]
+    by (auto simp: mark_to_delete_clauses_wl_post_twl_st_heur twl_st_heur_restart_anaD
+        schedule_next_reduction_sttwl_st_heur)
      (auto simp: twl_st_heur_restart_ana_def)
   done
 
@@ -2156,7 +2162,7 @@ proof -
     subgoal
       using that by (auto simp: twl_st_heur_restart arena_lifting dest: twl_st_heur_restart(2) dest!: twl_st_heur_restart_anaD)
     done
-  have incr_restart_stat: \<open>incr_restart_stat T
+  have incr_lrestart_stat: \<open>incr_lrestart_stat T
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
     if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
     using that
@@ -2165,7 +2171,7 @@ proof -
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
       remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
-      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def 
+      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def incr_lrestart_stat_def
         RES_RETURN_RES)
 
   have only_irred: \<open>\<not> irred (get_clauses_wl x1a) (x2a ! x1)\<close> (is ?A) and
@@ -2331,7 +2337,7 @@ proof -
     unfolding mark_to_delete_clauses_GC_wl_D_heur_alt_def mark_to_delete_clauses_GC_wl_D_alt_def
       access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_restart_stat)
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_lrestart_stat)
     subgoal
       unfolding mark_to_delete_clauses_GC_wl_D_heur_pre_def by fast
     apply assumption
