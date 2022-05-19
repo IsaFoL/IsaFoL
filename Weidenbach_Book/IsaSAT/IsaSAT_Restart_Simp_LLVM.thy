@@ -92,7 +92,7 @@ begin
     get_fast_ema_heur_fast_code
     get_slow_ema_heur_fast_code
     get_learned_count_fast_code
-    upper_restart_bound_not_reached_fast_impl
+    upper_restart_bound_reached_fast_impl
     minimum_number_between_restarts_impl
     restart_required_heur_fast_code
     cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code

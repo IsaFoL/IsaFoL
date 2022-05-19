@@ -43,57 +43,57 @@ definition incr_decision_stats :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_decision_stats = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
 
 definition incr_restart_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_restart_stats = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
+  \<open>incr_restart_stats = (\<lambda>(propa, confl, dec, res, reduction). (propa, confl, dec, res + 1, reduction))\<close>
 
-definition incr_lrestart_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_lrestart_stats = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
+definition incr_reduction_stats :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_reduction_stats = (\<lambda>(propa, confl, dec, res, reduction, uset). (propa, confl, dec, res, reduction + 1, uset))\<close>
 
 definition incr_uset_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_uset_stats = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
+  \<open>incr_uset_stats = (\<lambda>(propa, confl, dec, res, reduction, (uset, gcs)). (propa, confl, dec, res, reduction, uset + 1, gcs))\<close>
 
 definition incr_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
+  \<open>incr_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, lbds). (propa, confl, dec, res, reduction, uset, gcs + 1, lbds))\<close>
 
 definition stats_conflicts_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
   \<open>stats_conflicts_stats = (\<lambda>(propa, confl, dec). confl)\<close>
 
 definition incr_binary_unit_derived :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_binary_unit_derived = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit+1, binary_red_removed, lbds))\<close>
+  \<open>incr_binary_unit_derived = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit+1, binary_red_removed, lbds))\<close>
 
 definition incr_binary_red_removed :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_binary_red_removed = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed+1, lbds))\<close>
+  \<open>incr_binary_red_removed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed+1, lbds))\<close>
 
 definition add_lbd_stats :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd_stats lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, ema_update (unat lbd) lbds))\<close>
+  \<open>add_lbd_stats lbd = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, ema_update (unat lbd) lbds))\<close>
 
 definition units_since_last_GC_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). units)\<close>
+  \<open>units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). units)\<close>
 
 definition units_since_beginning_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_beginning_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). uset)\<close>
+  \<open>units_since_beginning_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). uset)\<close>
 
 definition incr_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, lbds). (propa, confl, dec, res, lres, uset, gcs, units + 1, lbds))\<close>
+  \<open>incr_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). (propa, confl, dec, res, reduction, uset, gcs, units + 1, lbds))\<close>
 
 
 definition incr_purelit_elim_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim + 1, purelit_rount, lbds))\<close>
+  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds::ema). (propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim + 1, purelit_rount, lbds))\<close>
 
 definition incr_purelit_rounds_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_rount+1, lbds))\<close>
+  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount+1, lbds))\<close>
 
 
 definition reset_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, a, b, c, purelit_elim, purelit_round, lbds::ema). (propa, confl, dec, res, lres, uset, gcs, 0, a, b, c, purelit_elim, purelit_round, lbds))\<close>
+  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_round, lbds::ema). (propa, confl, dec, res, reduction, uset, gcs, 0, a, b, c, purelit_elim, purelit_round, lbds))\<close>
 
 definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss+1, lbds))\<close>
+  \<open>incr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss+1, lbds))\<close>
 
 definition decr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>decr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, lres, uset, gcs, units, irred_clss-1, lbds))\<close>
+  \<open>decr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss-1, lbds))\<close>
 
 definition irredundant_clss_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>irredundant_clss_stats = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). irred_clss)\<close>
+  \<open>irredundant_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). irred_clss)\<close>
 
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation = Stats o incr_propagation_stats o get_stats\<close>
@@ -110,8 +110,8 @@ definition incr_decision :: \<open>isasat_stats \<Rightarrow> isasat_stats\<clos
 definition incr_restart :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_restart = Stats o incr_restart_stats o get_stats\<close>
 
-definition incr_lrestart :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_lrestart = Stats o incr_lrestart_stats o get_stats\<close>
+definition incr_reduction :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_reduction = Stats o incr_reduction_stats o get_stats\<close>
 
 definition incr_uset :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_uset = Stats o incr_uset_stats o get_stats\<close>
@@ -156,15 +156,15 @@ definition incr_purelit_rounds :: \<open>isasat_stats \<Rightarrow> isasat_stats
   \<open>incr_purelit_rounds = Stats o incr_purelit_rounds_stats o get_stats\<close>
 
 definition get_conflict_count_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_stats =  (\<lambda>(propa, confl, dec, res, lres, uset, gcs, units, irred_clss, lbds). confl)\<close>
+  \<open>get_conflict_count_stats =  (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). confl)\<close>
 
 definition get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count =  get_conflict_count_stats o get_stats\<close>
 
 definition get_restart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_restart_count_stats = (\<lambda>(props, decs, confl, restarts, _). restarts)\<close>
 definition get_restart_count where \<open>get_restart_count = get_restart_count_stats o get_content\<close>
-definition get_lrestart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_lrestart_count_stats = (\<lambda>(props, decs, confl, restarts, lres, _). lres)\<close>
-definition get_lrestart_count where \<open>get_lrestart_count = get_lrestart_count_stats o get_content\<close>
+definition get_reduction_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_reduction_count_stats = (\<lambda>(props, decs, confl, restarts, reduction, _). reduction)\<close>
+definition get_reduction_count where \<open>get_reduction_count = get_reduction_count_stats o get_content\<close>
 definition get_irredundant_count where \<open>get_irredundant_count = irredundant_clss_stats o get_content\<close>
 
 

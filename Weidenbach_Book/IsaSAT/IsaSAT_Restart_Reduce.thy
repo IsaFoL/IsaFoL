@@ -96,7 +96,7 @@ where
       else do {
         S \<leftarrow> find_decomp_wl_st_int lvl S;
         S \<leftarrow> empty_Q S;
-        incr_lrestart_stat S
+        incr_restart_stat S
       }
    })\<close>
 
@@ -294,7 +294,7 @@ proof -
     supply [[goals_limit=1]]
     unfolding cdcl_twl_local_restart_wl_D_heur_def
     unfolding
-      find_decomp_wl_st_int_def find_local_restart_target_level_def incr_lrestart_stat_def
+      find_decomp_wl_st_int_def find_local_restart_target_level_def incr_restart_stat_def
        empty_Q_def find_local_restart_target_level_st_def nres_monad_laws
     apply (intro frefI nres_relI)
     apply clarify
@@ -316,7 +316,6 @@ proof -
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
-        thm isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
       apply (frule twl_st_heur_change_subsumed_clauses[where US' = ba and NS' = ag and
@@ -1101,7 +1100,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_lrestart_stat T
+    incr_reduction_stat T
   })\<close>
 
 lemma mark_to_delete_clauses_wl_D_heur_alt_def:
@@ -1221,7 +1220,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-          incr_lrestart_stat T
+          incr_reduction_stat T
         })\<close>
     unfolding mark_to_delete_clauses_GC_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -2162,7 +2161,7 @@ proof -
     subgoal
       using that by (auto simp: twl_st_heur_restart arena_lifting dest: twl_st_heur_restart(2) dest!: twl_st_heur_restart_anaD)
     done
-  have incr_lrestart_stat: \<open>incr_lrestart_stat T
+  have incr_reduction_stat: \<open>incr_reduction_stat T
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
     if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
     using that
@@ -2171,7 +2170,7 @@ proof -
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
       remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
-      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def incr_lrestart_stat_def
+      clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def incr_reduction_stat_def
         RES_RETURN_RES)
 
   have only_irred: \<open>\<not> irred (get_clauses_wl x1a) (x2a ! x1)\<close> (is ?A) and
@@ -2337,7 +2336,7 @@ proof -
     unfolding mark_to_delete_clauses_GC_wl_D_heur_alt_def mark_to_delete_clauses_GC_wl_D_alt_def
       access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_lrestart_stat)
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_reduction_stat)
     subgoal
       unfolding mark_to_delete_clauses_GC_wl_D_heur_pre_def by fast
     apply assumption

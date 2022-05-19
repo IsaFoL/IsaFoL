@@ -67,7 +67,7 @@ lemma [sepref_import_param]:
   \<open>(incr_conflict_stats,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_decision_stats,incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_restart_stats,incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_lrestart_stats,incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_reduction_stats,incr_reduction) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_uset_stats,incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_GC_stats,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(add_lbd_stats,add_lbd) \<in> word32_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
@@ -85,7 +85,7 @@ lemma [sepref_import_param]:
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def incr_purelit_elim_def incr_purelit_rounds_def
     incr_conflict_def incr_decision_def
-    incr_lrestart_def incr_uset_def units_since_beginning_def
+    incr_reduction_def incr_uset_def units_since_beginning_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
     units_since_last_GC_def incr_binary_unit_derived_clss_def
     incr_restart_def incr_irred_clss_def get_conflict_count_def
@@ -96,7 +96,7 @@ lemmas [llvm_inline] =
   incr_conflict_stats_def
   incr_decision_stats_def
   incr_restart_stats_def
-  incr_lrestart_stats_def
+  incr_reduction_stats_def
   incr_uset_stats_def
   incr_GC_stats_def
   stats_conflicts_stats_def
@@ -148,8 +148,8 @@ lemma add_lbd_stats_add_lbd:
   \<open>(incr_uset_stats, incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>and
   incr_restart_stats_incr_restart:
   \<open>(incr_restart_stats, incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_lrestart_stats_incr_lrestart:
-  \<open>(incr_lrestart_stats, incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel\<close> and
+  incr_reduction_stats_incr_reduction:
+  \<open>(incr_reduction_stats, incr_reduction) \<in> stats_rel \<rightarrow> stats_rel\<close> and
   stats_conflicts_stats_stats_conflicts:
   \<open>(stats_conflicts_stats, stats_conflicts)\<in> stats_rel \<rightarrow> word_rel\<close> and
   incr_units_since_last_GC_stats_incr_units_since_last_GC:
@@ -165,7 +165,7 @@ lemma add_lbd_stats_add_lbd:
   by (auto simp: incr_propagation_def code_hider_rel_def
     stats_conflicts_def
     incr_conflict_def incr_decision_def incr_purelit_elim_def incr_purelit_rounds_def
-    incr_lrestart_def incr_uset_def units_since_beginning_def
+    incr_reduction_def incr_uset_def units_since_beginning_def
     reset_units_since_last_GC_def
     incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
     units_since_last_GC_def incr_binary_unit_derived_clss_def
@@ -233,10 +233,10 @@ sepref_def incr_restart_stats_impl
   unfolding incr_restart_stats_def
   by sepref
 
-sepref_def incr_lrestart_stats_impl
-  is \<open>RETURN o incr_lrestart_stats\<close>
+sepref_def incr_reduction_stats_impl
+  is \<open>RETURN o incr_reduction_stats\<close>
   :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_lrestart_stats_def
+  unfolding incr_reduction_stats_def
   by sepref
 
 sepref_def incr_uset_stats_impl
@@ -306,7 +306,7 @@ lemmas stats_refine[sepref_fr_rules] =
   incr_propagation_stats_impl.refine[FCOMP incr_propagation_stats_incr_propagation]
   incr_decision_stats_impl.refine[FCOMP incr_decision_stats_incr_decision]
   incr_restart_stats_impl.refine[FCOMP incr_restart_stats_incr_restart]
-  incr_lrestart_stats_impl.refine[FCOMP incr_lrestart_stats_incr_lrestart]
+  incr_reduction_stats_impl.refine[FCOMP incr_reduction_stats_incr_reduction]
   incr_uset_stats_impl.refine[FCOMP incr_uset_stats_incr_uset]
   incr_conflict_stats_impl.refine[FCOMP incr_conflict_stats_incr_conflict]
   incr_GC_stats_impl.refine[FCOMP incr_GC_stats_incr_GC]
@@ -1056,18 +1056,18 @@ lemmas get_restart_count_impl_refine[sepref_fr_rules] =
   get_restart_count_impl.refine[FCOMP get_restart_count_stats_get_restart_count,
   unfolded stats_assn_alt_def[symmetric]]
 
-sepref_def get_lrestart_count_impl
-  is \<open>RETURN o get_lrestart_count_stats\<close>
+sepref_def get_reduction_count_impl
+  is \<open>RETURN o get_reduction_count_stats\<close>
   :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_lrestart_count_stats_def
+  unfolding get_reduction_count_stats_def
   by sepref
 
-lemma get_lrestart_count_stats_get_lrestart_count:
-  \<open>(get_lrestart_count_stats, get_lrestart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_lrestart_count_def)
+lemma get_reduction_count_stats_get_reduction_count:
+  \<open>(get_reduction_count_stats, get_reduction_count) \<in> stats_rel \<rightarrow> word_rel\<close>
+  by (auto simp: code_hider_rel_def get_reduction_count_def)
 
-lemmas get_lrestart_count_impl_refine[sepref_fr_rules] =
-  get_lrestart_count_impl.refine[FCOMP get_lrestart_count_stats_get_lrestart_count,
+lemmas get_reduction_count_impl_refine[sepref_fr_rules] =
+  get_reduction_count_impl.refine[FCOMP get_reduction_count_stats_get_reduction_count,
   unfolded stats_assn_alt_def[symmetric]]
 
 sepref_def get_irredundant_count_impl

@@ -225,6 +225,9 @@ sepref_register incr_restart_stat clss_size_lcountUE clss_size_lcountUS learned_
 
 lemma incr_restart_stat_alt_def:
   \<open>incr_restart_stat = (\<lambda>S. do{
+     let (heur, S) = extract_heur_wl_heur S;
+     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
+     let S = update_heur_wl_heur heur S;
      let (stats, S) = extract_stats_wl_heur S;
      let stats = incr_restart (stats);
      let S = update_stats_wl_heur stats S;
@@ -240,27 +243,24 @@ sepref_def incr_restart_stat_fast_code
   unfolding incr_restart_stat_alt_def
   by sepref
 
-sepref_register incr_lrestart_stat clss_size_decr_lcount
+sepref_register incr_reduction_stat clss_size_decr_lcount
     clss_size_incr_lcountUE clss_size_incr_lcountUS
 
-lemma incr_lrestart_stat_alt_def:
-    \<open>incr_lrestart_stat = (\<lambda>S. do{
-     let (heur, S) = extract_heur_wl_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
-     let S = update_heur_wl_heur heur S;
+lemma incr_reduction_stat_alt_def:
+    \<open>incr_reduction_stat = (\<lambda>S. do{
      let (stats, S) = extract_stats_wl_heur S;
-     let stats = incr_lrestart stats;
+     let stats = incr_reduction stats;
      let S = update_stats_wl_heur stats S;
      RETURN S
   })\<close>
-  by (auto simp: incr_lrestart_stat_def state_extractors split: isasat_int.splits
+  by (auto simp: incr_reduction_stat_def state_extractors split: isasat_int.splits
     intro!: ext)
 
-sepref_def incr_lrestart_stat_fast_code
-  is \<open>incr_lrestart_stat\<close>
+sepref_def incr_reduction_stat_fast_code
+  is \<open>incr_reduction_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_alt_def
+  unfolding incr_reduction_stat_alt_def
   by sepref
 
 sepref_register mark_unused_st_heur
@@ -647,18 +647,18 @@ global_interpretation restart_count: read_stats_param_adder0 where
   done
 
 definition get_reductions_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_lrestart_count_impl\<close>
+  \<open>get_reductions_count_fast_code = read_stats_wl_heur_code get_reduction_count_impl\<close>
 
 (*TODO check if this is the right statistics to read!*)
 global_interpretation reduction_count: read_stats_param_adder0 where
-  f' = \<open>RETURN o get_lrestart_count\<close> and
-  f = get_lrestart_count_impl and
+  f' = \<open>RETURN o get_reduction_count\<close> and
+  f = get_reduction_count_impl and
   x_assn = word_assn and
   P = \<open>\<lambda>_. True\<close>
-  rewrites \<open>read_stats_wl_heur (RETURN o get_lrestart_count) = RETURN o get_reductions_count\<close> and
-    \<open>read_stats_wl_heur_code get_lrestart_count_impl = get_reductions_count_fast_code\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_reduction_count) = RETURN o get_reductions_count\<close> and
+    \<open>read_stats_wl_heur_code get_reduction_count_impl = get_reductions_count_fast_code\<close>
   apply unfold_locales
-  apply (rule get_lrestart_count_impl_refine)
+  apply (rule get_reduction_count_impl_refine)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
     split: isasat_int.splits)
   subgoal by (auto simp: get_reductions_count_fast_code_def)

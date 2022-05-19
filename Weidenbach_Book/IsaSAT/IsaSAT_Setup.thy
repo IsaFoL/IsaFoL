@@ -1159,19 +1159,17 @@ text \<open>
 definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>incr_restart_stat = (\<lambda>S. do{
      let heur = get_heur S;
+     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
      let S = set_heur_wl_heur heur S;
      let stats = get_stats_heur S;
      let S = set_stats_wl_heur (incr_restart (stats)) S;
      RETURN S
   })\<close>
 
-definition incr_lrestart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>S. do{
-     let heur = get_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
-     let S = set_heur_wl_heur heur S;
+definition incr_reduction_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>incr_reduction_stat = (\<lambda>S. do{
      let stats = get_stats_heur S;
-     let stats = incr_lrestart stats;
+     let stats = incr_reduction stats;
      let S = set_stats_wl_heur stats S;
      RETURN S
   })\<close>
@@ -1732,7 +1730,7 @@ lemma get_vdom_mark_garbage[simp]:
    learned_clss_count_def incr_wasted_st_def; fail)+
 
 fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
-  \<open>get_reductions_count S = get_lrestart_count (get_stats_heur S)\<close>
+  \<open>get_reductions_count S = get_reduction_count (get_stats_heur S)\<close>
 
 definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>

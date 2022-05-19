@@ -102,12 +102,12 @@ sepref_def update_restart_phases_impl
   unfolding update_restart_phases_alt_def
   by sepref
 
-sepref_register upper_restart_bound_not_reached
+sepref_register upper_restart_bound_reached
 
-sepref_def upper_restart_bound_not_reached_fast_impl
-  is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
+sepref_def upper_restart_bound_reached_fast_impl
+  is \<open>(RETURN o upper_restart_bound_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding upper_restart_bound_not_reached_def PR_CONST_def
+  unfolding upper_restart_bound_reached_def PR_CONST_def
     fold_tuple_optimizations get_restart_count_st_def[symmetric]
     get_global_conflict_count_def[symmetric]
   supply [[goals_limit = 1]]
