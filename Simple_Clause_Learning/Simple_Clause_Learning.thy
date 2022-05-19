@@ -1764,8 +1764,6 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
   for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v"
 begin
 
-term atm_of
-
 inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) state \<Rightarrow> bool"
   for N where
   propagateI: "C \<in> N \<union> U \<Longrightarrow> C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C \<Longrightarrow>
