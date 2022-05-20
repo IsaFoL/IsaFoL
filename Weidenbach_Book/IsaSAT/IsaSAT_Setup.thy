@@ -1162,17 +1162,14 @@ definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> 
      let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
      let S = set_heur_wl_heur heur S;
      let stats = get_stats_heur S;
-     let S = set_stats_wl_heur (incr_restart (incr_lrestart stats)) S;
+     let S = set_stats_wl_heur (incr_restart (stats)) S;
      RETURN S
   })\<close>
 
-definition incr_lrestart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
-  \<open>incr_lrestart_stat = (\<lambda>S. do{
-     let heur = get_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
-     let S = set_heur_wl_heur heur S;
+definition incr_reduction_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>incr_reduction_stat = (\<lambda>S. do{
      let stats = get_stats_heur S;
-     let stats = incr_lrestart stats;
+     let stats = incr_reduction stats;
      let S = set_stats_wl_heur stats S;
      RETURN S
   })\<close>
@@ -1693,8 +1690,8 @@ proof -
     by auto
 qed
 
-definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> _\<close> where
-  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S))\<close>
+definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S)) S\<close>
 
 definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
@@ -1702,13 +1699,13 @@ definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close
 definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
 
-(*TODO move/deduplicate*)
-lemma [simp]:
-  \<open>get_vdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_avdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (remove_inactive_aivdom_tvdom i aivdom) = get_ivdom_aivdom aivdom\<close>
-  by (cases aivdom; auto simp: remove_inactive_aivdom_tvdom_def remove_inactive_aivdom_tvdom_int_def; fail)+
+definition schedule_next_reduce_st :: \<open>64 word \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_reduce_st b S = set_heur_wl_heur (schedule_next_reduce b (get_heur S)) S\<close>
 
+definition next_reduce_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_reduce_schedule_st S = next_reduce_schedule (get_heur S)\<close>
+
+(*TODO move/deduplicate*)
 lemma avdom_delete_index_vdom_heur[simp]:
   \<open>get_avdom (delete_index_vdom_heur i S) =  (get_avdom S)\<close>
   \<open>get_tvdom (delete_index_vdom_heur i S) = delete_index_and_swap (get_tvdom S) i\<close>
@@ -1731,5 +1728,11 @@ lemma get_vdom_mark_garbage[simp]:
   \<open>learned_clss_count (mark_garbage_heur3 C i (incr_wasted_st b S)) \<le> learned_clss_count S\<close>
   by (cases S; auto simp: mark_garbage_heur_def mark_garbage_heur3_def
    learned_clss_count_def incr_wasted_st_def; fail)+
+
+fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>get_reductions_count S = get_reduction_count (get_stats_heur S)\<close>
+
+definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>
 
 end

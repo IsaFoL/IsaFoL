@@ -419,12 +419,12 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
          fema sema units;
-      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, _, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      (b, (b', (_, propa, confl, dec, res, reduction, uset, gcs, _, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let _ = print_propa propa;
       let _ = print_confl confl;
       let _ = print_dec dec;
       let _ = print_res res;
-      let _ = print_lres lres;
+      let _ = print_lres reduction;
       let _ = print_uset uset;
       let _ = print_gcs gcs;
       let _ = print_irred_clss irred_clss;

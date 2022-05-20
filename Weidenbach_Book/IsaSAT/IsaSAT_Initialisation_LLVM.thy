@@ -843,12 +843,18 @@ schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE marked_
   unfolding marked_struct_assn_def
   by synthesize_free
 
+sepref_def reduce_interval_init_impl
+  is \<open>uncurry0 (RETURN reduce_interval_init)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding reduce_interval_init_def
+  by sepref
+
 definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> restart_heuristics\<close> where
   \<open>empty_heuristics_stats opts \<phi> = (
   let fema = ema_init (opts_fema opts) in
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False, 262144))\<close>
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False, (262144, reduce_interval_init)))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>

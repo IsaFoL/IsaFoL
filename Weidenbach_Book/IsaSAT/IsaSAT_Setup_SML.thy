@@ -138,9 +138,9 @@ lemma incr_restart_hnr[sepref_fr_rules]:
     \<open>(return o incr_restart, RETURN o incr_restart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: incr_restart_def)
 
-lemma incr_lrestart_hnr[sepref_fr_rules]:
-    \<open>(return o incr_lrestart, RETURN o incr_lrestart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
+lemma incr_reduction_hnr[sepref_fr_rules]:
+    \<open>(return o incr_reduction, RETURN o incr_reduction) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_reduction_def)
 
 lemma incr_uset_hnr[sepref_fr_rules]:
     \<open>(return o incr_uset, RETURN o incr_uset) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>

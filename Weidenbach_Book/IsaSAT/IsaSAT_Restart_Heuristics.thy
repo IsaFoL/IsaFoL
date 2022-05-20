@@ -25,13 +25,13 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
     let can_res = (learned_clss_count S > last_Restart);
     let can_GC = (learned_clss_count S - last_GC> n);
     let fully_proped = is_fully_propagated_heur_st S;
+    let should_reduce = (opt_red \<and> upper_restart_bound_reached S \<and> can_GC);
+    should_GC \<leftarrow> GC_required_heur S n;
+    let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
 
     if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red \<or> \<not>fully_proped then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
     then do {
-      should_GC \<leftarrow> GC_required_heur S n;
-      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
-      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
       if should_reduce
       then if should_inprocess
       then RETURN FLAG_Inprocess_restart
@@ -47,14 +47,11 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
       let ccount = get_conflict_count_since_last_restart_heur S;
       let min_reached = (ccount > opts_minimum_between_restart_st S);
       let level = count_decided_st_heur S;
-      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
       let should_restart = ((opt_res) \<and>
          limit > fema \<and> min_reached \<and> can_res \<and>
         level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
            \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
         of_nat level > (shiftr fema 32));
-      should_GC \<leftarrow> GC_required_heur S n;
-      let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
       if should_reduce
         then if should_inprocess
         then RETURN FLAG_Inprocess_restart

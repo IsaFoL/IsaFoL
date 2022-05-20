@@ -42,14 +42,14 @@ code_printing constant
 
 lemma isasat_current_information_alt_def:
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
+   (\<lambda>(propa, confl, decs, frestarts, reductions, uset, gcs, lbds) lcount.
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then let c = '' | '' in
         let _ = println_string (String.implode (show ''c | '' @ show confl @ show c @ show propa @
-          show c @ show decs @ show c @ show frestarts @ show c @ show lrestarts
+          show c @ show decs @ show c @ show frestarts @ show c @ show reductions
           @ show c @ show gcs @ show c @ show uset @ show c @ show lcount @ show c @ show (lbds >> 13))) in
-        zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
-      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
+        zero_some_stats (propa, confl, decs, frestarts, reductions, uset, gcs, lbds)
+      else (propa, confl, decs, frestarts, reductions, uset, gcs, lbds)
       )\<close>
   unfolding isasat_current_information_def by auto
 
