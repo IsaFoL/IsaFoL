@@ -818,6 +818,7 @@ READ_FILE:
     printf("could not open file %s", inputname);
     exit(EXIT_FAILURE);
   }
+  printf("c isasat-"); print_version(); printf("\n");
 
   CLAUSES clauses = parse();
 
