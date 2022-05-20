@@ -716,10 +716,10 @@ int main(int argc, char *argv[]) {
   OPTIONb target_phases = 1;
   OPTIONb reduce = 1;
   OPTIONb restart = 1;
-  OPTIONu64 restartint = 20;
+  OPTIONu64 restartint = 10;
   OPTIONu64 restartmargin = 17;
-  OPTIONu64 fema = 128849010;
-  OPTIONu64 sema = 429450;
+  OPTIONu64 fema = 141733;
+  OPTIONu64 sema = 429496729;
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
   int versionOnly = 0;
@@ -727,7 +727,7 @@ int main(int argc, char *argv[]) {
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
     uint64_t n;
-    printf("c checking option %s i=%d argc=%d; next: %s = %ld\n", opt, i, argc, i+1 < argc ? argv[i+1] : "", i+1 < argc ? (uint64_t)atol(argv[i+1]) : -1);
+    // printf("c checking option %s i=%d argc=%d; next: %s = %ld\n", opt, i, argc, i+1 < argc ? argv[i+1] : "", i+1 < argc ? (uint64_t)atol(argv[i+1]) : -1);
     if(strcmp(opt, "--version\0") == 0)
       versionOnly = 1;
     else

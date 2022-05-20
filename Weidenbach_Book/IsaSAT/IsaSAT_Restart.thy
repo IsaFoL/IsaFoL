@@ -442,7 +442,7 @@ definition number_clss_to_keep :: \<open>isasat \<Rightarrow> nat nres\<close> w
 
 definition number_clss_to_keep_impl :: \<open>isasat \<Rightarrow> nat nres\<close> where
   \<open>number_clss_to_keep_impl = (\<lambda>S.
-    RETURN (length_tvdom_aivdom (get_aivdom S) >> 1))\<close>
+    RETURN (length_tvdom_aivdom (get_aivdom S) >> 2))\<close>
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
   \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Id \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>

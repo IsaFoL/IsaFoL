@@ -253,16 +253,11 @@ proof -
     done
 qed
 
-lemma number_clss_to_keep_impl_alt_def:
-  \<open>number_clss_to_keep_impl = (\<lambda>S.
-    RETURN (length_tvdom S >> 1))\<close>
-  by (auto intro!: ext simp: length_tvdom_def length_tvdom_aivdom_def number_clss_to_keep_impl_def)
-
 sepref_def number_clss_to_keep_fast_code
   is \<open>number_clss_to_keep_impl\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding number_clss_to_keep_impl_alt_def
+  unfolding number_clss_to_keep_impl_def length_tvdom_def[symmetric] length_tvdom_aivdom_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
