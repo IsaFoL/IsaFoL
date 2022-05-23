@@ -810,6 +810,12 @@ lemma same_on_vars_clause:
   by (smt assms image_eqI image_mset_cong2 mem_simps(9) same_on_vars_lit set_image_mset
       subst_cls_def vars_cls_def)
 
+lemma same_on_lits_clause:
+  assumes "\<forall>L \<in># C. subst_lit L \<sigma> = subst_lit L \<tau>"
+  shows "subst_cls C \<sigma> = subst_cls C \<tau>"
+  using assms unfolding subst_cls_def
+  by simp
+
 global_interpretation substitution "(\<cdot>a)" "Var :: _ \<Rightarrow> ('f, 'v) term" "(\<odot>)"
 proof unfold_locales
   show "\<And>A. A \<cdot>a Var = A"
@@ -1930,6 +1936,10 @@ section \<open>Soundness\<close>
 abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
   "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
 
+inductive trail_consistent where
+  Nil[simp]: "trail_consistent []" |
+  Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> trail_consistent \<Gamma> \<Longrightarrow> trail_consistent ((L, u) # \<Gamma>)"
+
 inductive sound_trail for N U where
   Nil[simp]: "sound_trail N U []" |
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
@@ -1938,6 +1948,9 @@ inductive sound_trail for N U where
       Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
         is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C + {#L'#}}) \<Longrightarrow>
     sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U ((L, u) # \<Gamma>)"
+
+lemma trail_consistent_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
+  by (induction \<Gamma> rule: sound_trail.induct) (simp_all add: trail_consistent.intros)
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
   by (meson grounding_of_clss_mono true_clss_mono)
