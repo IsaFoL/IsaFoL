@@ -1815,10 +1815,11 @@ inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term liter
 
 inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  backtrackI: "trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level \<Gamma> \<Longrightarrow>
-    trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) = trail_level \<Gamma> \<Longrightarrow>
-    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>))
-      (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)), U \<union> {D + {#L#}}, None)"
+  backtrackI: "\<Gamma> = trail_decide \<Gamma>' (- (L \<cdot>l \<sigma>)) \<Longrightarrow>
+    trail_level_cls \<Gamma> (D \<cdot> \<sigma>) < trail_level_lit \<Gamma> (L \<cdot>l \<sigma>) \<Longrightarrow>
+    i \<le> trail_level_cls \<Gamma> (D \<cdot> \<sigma>) \<Longrightarrow>
+    \<nexists>S'. conflict N \<beta> (trail_backtrack \<Gamma> i, insert (add_mset L D) U, None) S' \<Longrightarrow>
+    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>)) (trail_backtrack \<Gamma> i, insert (add_mset L D) U, None)"
 
 definition scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" where
@@ -2648,7 +2649,7 @@ qed
 
 lemma backtrack_sound_state: "backtrack N \<beta> S S' \<Longrightarrow> sound_state N S \<Longrightarrow> sound_state N S'"
 proof (induction S S' rule: backtrack.induct)
-  case (backtrackI \<Gamma> D \<sigma> L U)
+  case (backtrackI \<Gamma> \<Gamma>' L \<sigma> D i U)
   from backtrackI.prems have
     fin: "finite N" "finite U" and
     disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
@@ -2661,29 +2662,29 @@ proof (induction S S' rule: backtrack.induct)
     N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L#}}"
     unfolding sound_state_def by simp_all
 
-  have "disjoint_vars_set (N \<union> U \<union>
-    clss_of_trail (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>))) \<union> {D + {#L#}})"
+  have "disjoint_vars_set (insert (add_mset L D) (N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> i)))"
     unfolding disjoint_vars_set_def
   proof (intro ballI impI)
     fix C E
     assume
-      C_in: "C \<in> N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>))) \<union>
-        {D + {#L#}}" and
-      E_in: "E \<in> N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>))) \<union>
-        {D + {#L#}}" and
+      C_in: "C \<in> insert (add_mset L D) (N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> i))" and
+      E_in: "E \<in> insert (add_mset L D) (N \<union> U \<union> clss_of_trail (trail_backtrack \<Gamma> i))" and
       C_neq_E: "C \<noteq> E"
-    from C_in have C_in': "C \<in> N \<union> U \<union> clss_of_trail \<Gamma> \<or> C = D + {#L#}"
+
+    from C_in have C_in': "C = add_mset L D \<or> C \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
       using clss_of_trail_trail_decide_subset by blast
-    from E_in have E_in': "E \<in> N \<union> U \<union> clss_of_trail \<Gamma> \<or> E = D + {#L#}"
+
+    from E_in have E_in': "E = add_mset L D \<or> E \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
       using clss_of_trail_trail_decide_subset by blast
 
     from C_in' E_in' C_neq_E show "disjoint_vars C E"
       using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
-      using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym by blast
+      using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym
+      by (metis add_mset_add_single)
   qed
 
   moreover have
-    "sound_trail N (insert (add_mset L D) U) (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D \<cdot> \<sigma>)))"
+    "sound_trail N (insert (add_mset L D) U) (trail_backtrack \<Gamma> i)"
     using backtrackI
     by (auto simp: sound_state_def intro: sound_trail_backtrackI sound_trail_supersetI)
 
@@ -2729,7 +2730,6 @@ proof -
     proof (rule exI)
       show "backtrack N \<beta> (\<Gamma>, U, Some (D'' + {#L#}, \<sigma>))
         (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D'' \<cdot> \<sigma>)), U \<union> {D'' + {#L#}}, None)"
-        apply (rule backtrackI)
   oops
 
 
