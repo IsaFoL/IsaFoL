@@ -113,24 +113,24 @@ declare incr_restart_stat_slow_code.refine[sepref_fr_rules]
   incr_restart_stat_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition incr_lrestart_stat_slow_code
-  is \<open>incr_lrestart_stat\<close>
+sepref_definition incr_reduction_stat_slow_code
+  is \<open>incr_reduction_stat\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_def isasat_unbounded_assn_def PR_CONST_def
+  unfolding incr_reduction_stat_def isasat_unbounded_assn_def PR_CONST_def
   by sepref
 
-sepref_register incr_lrestart_stat
+sepref_register incr_reduction_stat
 
-sepref_definition incr_lrestart_stat_fast_code
-  is \<open>incr_lrestart_stat\<close>
+sepref_definition incr_reduction_stat_fast_code
+  is \<open>incr_reduction_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
+  unfolding incr_reduction_stat_def isasat_bounded_assn_def PR_CONST_def
   by sepref
 
-declare incr_lrestart_stat_slow_code.refine[sepref_fr_rules]
-  incr_lrestart_stat_fast_code.refine[sepref_fr_rules]
+declare incr_reduction_stat_slow_code.refine[sepref_fr_rules]
+  incr_reduction_stat_fast_code.refine[sepref_fr_rules]
 
 
 sepref_definition find_local_restart_target_level_st_code

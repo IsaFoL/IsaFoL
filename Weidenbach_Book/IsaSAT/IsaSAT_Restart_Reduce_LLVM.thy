@@ -8,6 +8,38 @@ no_notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f\<^sub>d _\<close>
 no_notation Sepref_Rules.freftnd (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 
+
+lemma schedule_next_reduce_st_alt_def:
+  \<open>schedule_next_reduce_st b S = (let (heur, S) = extract_heur_wl_heur S; heur = schedule_next_reduce b heur in update_heur_wl_heur heur S)\<close>
+  by (auto simp: schedule_next_reduce_st_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+
+sepref_def schedule_next_reduce_st_impl
+  is \<open>uncurry (RETURN oo schedule_next_reduce_st)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding schedule_next_reduce_st_alt_def
+  by sepref
+
+lemmas [sepref_fr_rules] = irredandant_count.refine
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_irredundant_count_st_code_def[unfolded read_all_st_code_def]
+
+lemma schedule_next_reduction_stI: \<open>\<not>a < (10 :: 64 word) \<Longrightarrow> a > 0\<close>
+  unfolding word_le_not_less[symmetric]
+  apply (rule order.strict_trans2)
+  prefer 2
+  apply assumption
+  by auto
+
+sepref_def schedule_next_reduction_st_impl
+  is \<open>RETURN o schedule_next_reduction_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  supply [simp] = schedule_next_reduction_stI 
+  supply of_nat_snat[sepref_import_param]
+  unfolding schedule_next_reduction_st_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 sepref_def find_local_restart_target_level_fast_code
   is \<open>uncurry find_local_restart_target_level_int\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -171,6 +203,7 @@ lemma
 lemma get_aivdom_eq_aivdom_iff:
   \<open>IsaSAT_VDom.get_aivdom b = (x1, a, aa, ba) \<longleftrightarrow> b = AIvdom (x1, a, aa, ba)\<close>
   by (cases b) auto
+
 lemma quicksort_clauses_by_score_sort:
   \<open>(uncurry lbd_sort_clauses, uncurry sort_clauses_by_score) \<in>
   Id \<times>\<^sub>r aivdom_rel \<rightarrow>\<^sub>f \<langle>aivdom_rel\<rangle>nres_rel\<close>

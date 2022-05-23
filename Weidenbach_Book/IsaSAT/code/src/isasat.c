@@ -264,13 +264,13 @@ void IsaSAT_LLVM_print_dec_impl(int64_t props) {
 
 void IsaSAT_LLVM_print_res_impl(int64_t props) {
 #ifdef PRINTSTATS
-  printf("c reductions %ld\n", props);
+  printf("c restarts %ld\n", props);
 #endif
 }
 
 void IsaSAT_LLVM_print_lres_impl(int64_t props) {
 #ifdef PRINTSTATS
-  printf("c local_restarts %ld\n", props);
+  printf("c reductions %ld\n", props);
 #endif
 }
 
@@ -716,18 +716,18 @@ int main(int argc, char *argv[]) {
   OPTIONb target_phases = 1;
   OPTIONb reduce = 1;
   OPTIONb restart = 1;
-  OPTIONu64 restartint = 20;
+  OPTIONu64 restartint = 10;
   OPTIONu64 restartmargin = 17;
-  OPTIONu64 fema = 128849010;
-  OPTIONu64 sema = 429450;
+  OPTIONu64 fema = 141733;
+  OPTIONu64 sema = 429496729;
   OPTIONu64 unitinterval = 1000;
   char *proof_path = NULL;
   int versionOnly = 0;
 
   for(int i = 1; i < argc; ++i) {
     char * opt = argv[i];
-    int n;
-    //printf("c checking option %s i=%d argc=%d\n", opt, i, argc);
+    uint64_t n;
+    // printf("c checking option %s i=%d argc=%d; next: %s = %ld\n", opt, i, argc, i+1 < argc ? argv[i+1] : "", i+1 < argc ? (uint64_t)atol(argv[i+1]) : -1);
     if(strcmp(opt, "--version\0") == 0)
       versionOnly = 1;
     else
@@ -740,28 +740,28 @@ int main(int argc, char *argv[]) {
       reduce = 0;
     else if(strcmp(opt, "--norestart\0") == 0)
       restart = 0;
-    else if (strcmp(opt, "--restartint\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--restartint\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
       restartint = (uint64_t)n;
       ++i;
     }
-    else if (strcmp(opt, "--restartmargin\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--restartmargin\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
       restartmargin = (uint64_t)n;
       ++i;
     }
-    else if (strcmp(opt, "--emafast\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--emafast\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
       fema = (uint64_t)n;
       ++i;
     }
-    else if (strcmp(opt, "--emaslow\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--emaslow\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
       sema = (uint64_t)n;
       ++i;
     }
-    else if (strcmp(opt, "--unitinterval\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--unitinterval\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
       unitinterval = (uint64_t)n;
       ++i;
     }
     else if (opt[0] == '-') {
-      //printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
+      printf("c ignoring  unrecognised option %s i=%d argc=%d\n", opt, i, argc);
     } else
 #endif
       if (inputname) {
@@ -818,6 +818,7 @@ READ_FILE:
     printf("could not open file %s", inputname);
     exit(EXIT_FAILURE);
   }
+  printf("c isasat-"); print_version(); printf("\n");
 
   CLAUSES clauses = parse();
 
@@ -831,8 +832,8 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 #ifdef PRINTSTATS
-  printf("c    propagations                       redundant                 reductions                  level-0                       LBDS                    not-mem-reasons\n"
-	 "c                     conflicts                      irred                      lrestarts                       GCs                       unit-subsumed               subsumed\n");
+  printf("c    propagations                       redundant                  restarts                     level-0                       LBDS                    not-mem-reasons\n"
+	 "c                     conflicts                      irred                     reductions                      GCs                       unit-subsumed               subsumed\n");
   //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0
 
 #endif

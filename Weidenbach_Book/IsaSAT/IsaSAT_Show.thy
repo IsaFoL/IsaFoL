@@ -56,7 +56,7 @@ definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
 
 definition isasat_current_information_stats :: \<open>64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> stats\<close> where
   \<open>isasat_current_information_stats =
-   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
+   (\<lambda>curr_phase (propa, confl, decs, frestarts, reductions, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then do{
        let _ = print_c propa;
@@ -67,7 +67,7 @@ definition isasat_current_information_stats :: \<open>64 word \<Rightarrow> stat
          _ = print_uint64 (of_nat lcount);
          _ = print_uint64 (irred_clss);
          _ = print_uint64 frestarts;
-         _ = print_uint64 lrestarts;
+         _ = print_uint64 reductions;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
          _ = print_uint64 (ema_extract_value lbds);
@@ -76,8 +76,8 @@ definition isasat_current_information_stats :: \<open>64 word \<Rightarrow> stat
          _ = print_uint64 (of_nat lcountUS);
          _ = print_close_colour 0
        in
-         (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds)}
-      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds)
+         (propa, confl, decs, frestarts, reductions, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds)}
+      else (propa, confl, decs, frestarts, reductions, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, lbds)
     )\<close>
 
 definition isasat_current_information :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> clss_size \<Rightarrow> isasat_stats\<close> where
@@ -104,7 +104,7 @@ lemma isasat_current_status_id:
 
 definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
 \<open>isasat_print_progress_stats c curr_phase =
-  (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, _, _, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
+  (\<lambda>(propa, confl, decs, frestarts, reductions, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, _, _, lbds) (lcount, lcountUE, lcountUEk, lcountUS, _).
      let
          _ = print_c propa;
          _ = if curr_phase = 1 then print_open_colour 33 else ();
@@ -114,7 +114,7 @@ definition isasat_print_progress_stats :: \<open>64 word \<Rightarrow> 64 word \
          _ = print_uint64 (of_nat lcount);
          _ = print_uint64 (irred_clss);
          _ = print_uint64 frestarts;
-         _ = print_uint64 lrestarts;
+         _ = print_uint64 reductions;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
          _ = print_uint64 (ema_extract_value lbds);
