@@ -1707,7 +1707,8 @@ lemma subsume_or_strengthen_wl_subsume_or_strengthen:
 
 definition forward_subsumption_one_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_wl_pre = (\<lambda>C S.
-  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> forward_subsumption_one_pre C S'))\<close>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> forward_subsumption_one_pre C S' \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S))\<close>
  
 definition forward_subsumption_one_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow>  nat multiset \<times> 'v subsumption \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_wl_inv = (\<lambda>S C (i, x).
@@ -1740,7 +1741,7 @@ definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \
 
 lemma forward_subsumption_one_wl:
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and \<open>no_lost_clause_in_WL S\<close>
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and \<open>no_lost_clause_in_WL S\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
    \<open>forward_subsumption_one_wl C S \<le> \<Down>({(T, T').
     (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S} \<times>\<^sub>f bool_rel)
@@ -1841,7 +1842,8 @@ definition try_to_forward_subsume_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_w
 definition try_to_forward_subsume_wl_inv :: \<open>_\<close> where
   \<open>try_to_forward_subsume_wl_inv S C = (\<lambda>(i,break, T). 
   (\<exists>S' T'. (S,S')\<in>state_wl_l None \<and> (T,T')\<in>state_wl_l None \<and> no_lost_clause_in_WL S \<and>
-  try_to_forward_subsume_inv S' C (i, break, T') \<and> get_watched_wl T = get_watched_wl S)) \<close>
+  try_to_forward_subsume_inv S' C (i, break, T') \<and> get_watched_wl T = get_watched_wl S \<and>
+  literals_are_\<L>\<^sub>i\<^sub>n' S)) \<close>
 
 definition try_to_forward_subsume_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>try_to_forward_subsume_wl C S = do {
@@ -1875,7 +1877,7 @@ lemma rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_mono:
 lemma try_to_forward_subsume_wl_inv_no_lost_clause_in_WLD:
    assumes
     \<open>try_to_forward_subsume_wl_inv S C (i, break, T)\<close>
-  shows \<open>no_lost_clause_in_WL T\<close>
+  shows \<open>no_lost_clause_in_WL T\<close> and \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
 proof -
   obtain S' T' where
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -1883,25 +1885,32 @@ proof -
     lost: \<open>no_lost_clause_in_WL S\<close>
     \<open>try_to_forward_subsume_inv S' C (i, break, T')\<close> and
     S'T': \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S' T'\<close> and
-    w: \<open>get_watched_wl T = get_watched_wl S\<close>
+    w: \<open>get_watched_wl T = get_watched_wl S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
     using assms unfolding try_to_forward_subsume_wl_inv_def prod.simps
       try_to_forward_subsume_inv_def
     by blast
 
   have \<open>set_mset (dom_m (get_clauses_wl T)) \<subseteq> set_mset (dom_m (get_clauses_wl S))\<close>
     using SS' TT' rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_mono[OF S'T'] by auto
-  moreover have \<open>set_mset (all_init_lits_of_l S') = set_mset (all_init_lits_of_l T')\<close>
+  moreover have eq: \<open>set_mset (all_init_lits_of_l S') = set_mset (all_init_lits_of_l T')\<close>
    using S'T' rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l by blast
-  ultimately show ?thesis
+  ultimately show \<open>no_lost_clause_in_WL T\<close>
     using lost SS' TT' w unfolding no_lost_clause_in_WL_def
     by (auto simp: watched_by_alt_def)
+
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+    using eq SS' TT' rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[OF S'T'] w lits
+    unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
+    by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
 qed
 
 lemma try_to_forward_subsume_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and 
     \<open>no_lost_clause_in_WL S\<close> and
-    \<open>(C,C')\<in>nat_rel\<close>
+    \<open>(C,C')\<in>nat_rel\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
    \<open>try_to_forward_subsume_wl C S \<le> \<Down>({(T, T').
     (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S})
@@ -1924,6 +1933,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto dest: try_to_forward_subsume_wl_inv_no_lost_clause_in_WLD)
+    subgoal by (auto dest: try_to_forward_subsume_wl_inv_no_lost_clause_in_WLD)
     subgoal by auto
     subgoal by auto
     done
@@ -1936,7 +1946,7 @@ definition forward_subsumption_all_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> b
 definition forward_subsumption_all_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> nat multiset \<times> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_wl_inv = (\<lambda>S (xs, s).
   (\<exists>T s'. (S, T) \<in> state_wl_l None \<and> (s, s') \<in> state_wl_l None \<and> forward_subsumption_all_inv T (xs, s') \<and>
-   no_lost_clause_in_WL S \<and> get_watched_wl s = get_watched_wl S))\<close>
+   no_lost_clause_in_WL S \<and> get_watched_wl s = get_watched_wl S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S))\<close>
 
 definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>forward_subsumption_all_wl = (\<lambda>S. do {
@@ -1962,36 +1972,64 @@ definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
   }
 )\<close>
 
-lemma forward_subsumption_all_wl_inv_no_lost_clause_in_WLD:
+lemma 
   assumes \<open>forward_subsumption_all_wl_inv S (xs, T)\<close>
-  shows \<open>no_lost_clause_in_WL T\<close>
+  shows 
+     forward_subsumption_all_wl_inv_no_lost_clause_in_WLD: \<open>no_lost_clause_in_WL T\<close> and
+    forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D:
+      \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
 proof -
   obtain S' T' where
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
     TT': \<open>(T, T') \<in> state_wl_l None\<close> and
     lost: \<open>no_lost_clause_in_WL S\<close> and
     S'T': \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S' T'\<close> and
-    w: \<open>get_watched_wl T = get_watched_wl S\<close>
+    w: \<open>get_watched_wl T = get_watched_wl S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
     using assms unfolding forward_subsumption_all_wl_inv_def prod.simps
       forward_subsumption_all_inv_def
     by blast
 
   have \<open>set_mset (dom_m (get_clauses_wl T)) \<subseteq> set_mset (dom_m (get_clauses_wl S))\<close>
     using SS' TT' rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_mono[OF S'T'] by auto
-  moreover have \<open>set_mset (all_init_lits_of_l S') = set_mset (all_init_lits_of_l T')\<close>
+  moreover have eq: \<open>set_mset (all_init_lits_of_l S') = set_mset (all_init_lits_of_l T')\<close>
    using S'T' rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l by blast
-  ultimately show ?thesis
+  ultimately show \<open>no_lost_clause_in_WL T\<close>
     using lost SS' TT' w unfolding no_lost_clause_in_WL_def
     by (auto simp: watched_by_alt_def)
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+    using eq SS' TT' rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[OF S'T'] w lits
+    unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
+    by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
 qed
+
+(*TODO Move*)
+text \<open>this is the less dumb version of the refinement for while loops, keeping the loop invariant.\<close>
+lemma WHILEIT_refine_with_all_loopinvariants:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF:
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>{(a,b). (a,b) \<in> R \<and> I a \<and> I' b} (WHILEIT I' b' f' x')"
+  apply (subst (2) WHILEIT_add_post_condition)
+  apply (rule WHILEIT_refine)
+  subgoal using R0 IREF by blast
+  subgoal using IREF by blast
+  subgoal using COND_REF by blast
+  subgoal using STEP_REF apply auto
+    by (smt (verit, best) IREF in_pair_collect_simp inres_SPEC pw_ref_iff)
+  done
+
 
 lemma forward_subsumption_all_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    lost: \<open>no_lost_clause_in_WL S\<close>
+    lost: \<open>no_lost_clause_in_WL S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
    \<open>forward_subsumption_all_wl S \<le> \<Down>({(T, T').
-    (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S})
+    (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S \<and> no_lost_clause_in_WL T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T})
     (forward_subsumption_all S')\<close>
 proof -
   have [refine0]: \<open>(xs, ys) \<in> Id \<Longrightarrow> forward_subsumption_all_inv S' (ys, S') \<Longrightarrow>
@@ -2002,11 +2040,60 @@ proof -
     ((xs, S), (ys, S')) \<in> Id \<times>\<^sub>f {(U,V). (U,V)\<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S}\<close> (is \<open>_ \<Longrightarrow> _ \<in> ?loop\<close>) for xs ys :: \<open>nat multiset\<close>
     using assms by auto
 
+  have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' Sa\<close>
+    if 
+      \<open>forward_subsumption_all_pre S'\<close> and
+      \<open>forward_subsumption_all_wl_pre S\<close> and
+      \<open>(xs, xsa) \<in> Id\<close> and
+      \<open>xs \<in> {xs. xs \<subseteq># dom_m (get_clauses_wl S)}\<close> and
+      \<open>xsa \<in> {xs. xs \<subseteq># dom_m (get_clauses_l S')}\<close> and
+      \<open>(x, x')
+    \<in> Id \<times>\<^sub>f
+      {(U, V). (U, V) \<in> state_wl_l None \<and> get_watched_wl U = get_watched_wl S}\<close> and
+      \<open>case x of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_wl S = None\<close> and
+      \<open>case x' of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_l S = None\<close> and
+      \<open>forward_subsumption_all_wl_inv S x\<close> and
+      \<open>forward_subsumption_all_inv S' x'\<close> and
+      \<open>(case x' of
+     (xs, S) \<Rightarrow> do {
+      C \<leftarrow> SPEC (\<lambda>C'. C' \<in># xs);
+      if C \<notin># dom_m (get_clauses_l S) then RETURN (remove1_mset C xs, S)
+      else do {
+          T \<leftarrow> simplify_clause_with_unit_st C S;
+          _ \<leftarrow> ASSERT (cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T);
+          if get_conflict_l T = None \<and>
+          C \<in># dom_m (get_clauses_l T) \<and> 2 < length (get_clauses_l T \<propto> C)
+          then do {
+              S \<leftarrow> try_to_forward_subsume C T;
+              RETURN (remove1_mset C xs, S)
+            }
+          else RETURN (remove1_mset C xs, T)
+        }
+       })
+    \<le> SPEC (forward_subsumption_all_inv S')\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>(C, Ca) \<in> nat_rel\<close> and
+      \<open>C \<in> {C. C \<in># x1a}\<close> and
+      \<open>Ca \<in> {C'. C' \<in># x1}\<close> and
+      \<open>\<not> C \<notin># dom_m (get_clauses_wl x2a)\<close> and
+      \<open>\<not> Ca \<notin># dom_m (get_clauses_l x2)\<close> and
+      \<open>(Sa, T) \<in> {(S', T). (S', T) \<in> state_wl_l None \<and> no_lost_clause_in_WL S' \<and> get_watched_wl S' = get_watched_wl x2a}\<close> and
+      x2T: \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* x2 T\<close> and
+      \<open>get_conflict_wl Sa = None \<and> C \<in># dom_m (get_clauses_wl Sa) \<and> 2 < length (get_clauses_wl Sa \<propto> C)\<close> and
+      \<open>get_conflict_l T = None \<and> Ca \<in># dom_m (get_clauses_l T) \<and> 2 < length (get_clauses_l T \<propto> Ca)\<close>
+    for xs xsa x x' x1 x2 x1a x2a C Ca Sa T
+  proof -
+    have \<open>literals_are_\<L>\<^sub>i\<^sub>n' x2a\<close>
+      using that by (auto dest: forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
+    then show ?thesis using that rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l[OF x2T]
+      rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l[OF x2T]
+      by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
+  qed
   show ?thesis
     unfolding forward_subsumption_all_wl_def forward_subsumption_all_def
-    apply (subst (2) WHILEIT_add_post_condition)
     apply (refine_vcg simplify_clause_with_unit_st_wl_simplify_clause_with_unit_st
-      forward_subsumption_one_wl try_to_forward_subsume_wl)
+      forward_subsumption_one_wl try_to_forward_subsume_wl WHILEIT_refine_with_all_loopinvariants)
     subgoal using assms unfolding forward_subsumption_all_wl_pre_def by fast
     subgoal using assms by auto
     subgoal for xs xsa x x'
@@ -2017,13 +2104,17 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD)
+    subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD
+      forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal for xs xsa x x' x1 x2 x1a x2a C Ca Sa T
+      by (rule lits)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD
+      forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
     done
 qed
 
@@ -2318,7 +2409,7 @@ lemma pure_literal_elimination_wl:
     \<open>(S, S') \<in> state_wl_l None\<close>
     \<open>correct_watching'_leaking_bin S\<close>
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
-  shows \<open>pure_literal_elimination_wl S \<le> 
+  shows \<open>pure_literal_elimination_wl S \<le>
     \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_l S')\<close>
 proof -
   have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_l_pre S'\<close>

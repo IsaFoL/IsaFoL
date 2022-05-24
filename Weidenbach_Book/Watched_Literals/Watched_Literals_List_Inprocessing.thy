@@ -3379,12 +3379,13 @@ definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
        if C \<notin># dom_m (get_clauses_l S)
        then RETURN (remove1_mset C xs, S)
        else do {
-         S \<leftarrow> simplify_clause_with_unit_st C S;
-         if get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and> length (get_clauses_l S \<propto> C) > 2 then do {
-           S \<leftarrow> try_to_forward_subsume C S;
+         T \<leftarrow> simplify_clause_with_unit_st C S;
+         ASSERT (cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T);
+         if get_conflict_l T = None \<and> C \<in># dom_m (get_clauses_l T) \<and> length (get_clauses_l T \<propto> C) > 2 then do {
+           S \<leftarrow> try_to_forward_subsume C T;
            RETURN (remove1_mset C xs, S)
          }
-         else RETURN (remove1_mset C xs, S)
+         else RETURN (remove1_mset C xs, T)
       }
     })
     (xs, S);
@@ -3538,6 +3539,7 @@ proof -
     subgoal by (rule simplify_clause_with_unit_st_pre)
       auto
     subgoal by (auto dest!: cdcl_twl_inprocessing_l.intros)
+    subgoal by auto
     subgoal by auto
     subgoal by (rule try_to_forward_subsume_pre)
     subgoal by auto
