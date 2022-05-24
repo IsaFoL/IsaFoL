@@ -8,3 +8,5 @@ session Simple_Clause_Learning = First_Order_Terms +
   theories
     Initial_Literals_Generalize_Learned_Literals
     Simple_Clause_Learning
+  theories [quick_and_dirty]
+    Correct_Termination

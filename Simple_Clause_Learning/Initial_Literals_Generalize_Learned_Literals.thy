@@ -69,7 +69,7 @@ lemma initial_lits_generalized_learned_lits_initial_state:
   unfolding initial_lits_generalized_learned_lits_def by simp
 
 lemma propagate_initial_lits_generalized_learned_lits:
-  "propagate N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "propagate N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: propagate.induct)
   case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
@@ -134,7 +134,7 @@ proof (induction S S' rule: propagate.induct)
 qed
 
 lemma decide_initial_lits_generalized_learned_lits:
-  "decide N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "decide N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: decide.induct)
   case (decideI L \<Gamma> U)
@@ -143,7 +143,7 @@ proof (induction S S' rule: decide.induct)
 qed
 
 lemma conflict_initial_lits_generalized_learned_lits:
-  "conflict N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "conflict N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: conflict.induct)
   case (conflictI D U D' \<Gamma> \<sigma>)
@@ -172,7 +172,7 @@ lemma clss_lits_generalize_clss_lits_subset:
   unfolding clss_lits_generalize_clss_lits_def by blast
 
 lemma skip_initial_lits_generalized_learned_lits:
-  "skip N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "skip N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: skip.induct)
   case (skipI L D \<sigma> Cl \<Gamma> U)
@@ -226,7 +226,7 @@ next
 qed
 
 lemma factorize_initial_lits_generalized_learned_lits:
-  "factorize N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "factorize N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: factorize.induct)
   case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
@@ -243,7 +243,7 @@ proof (induction S S' rule: factorize.induct)
 qed
 
 lemma resolve_initial_lits_generalized_learned_lits:
-  "resolve N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "resolve N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: resolve.induct)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
@@ -289,7 +289,7 @@ proof (induction S S' rule: resolve.induct)
 qed
 
 lemma backtrack_initial_lits_generalized_learned_lits:
-  "backtrack N S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
+  "backtrack N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: backtrack.induct)
   case (backtrackI \<Gamma> D \<sigma> L U)
