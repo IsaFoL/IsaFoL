@@ -296,9 +296,8 @@ proof (induction S S' rule: backtrack.induct)
   then show ?case
     unfolding initial_lits_generalized_learned_lits_def
     apply simp
-    by (metis (no_types, opaque_lifting) Un_assoc clss_lits_generalize_clss_lits_insert
-        clss_lits_generalize_clss_lits_subset clss_of_trail_trail_decide
-        clss_of_trail_trail_decide_subset subset_Un_eq sup_ge1)
+    by (smt (verit, best) Un_insert_left Un_left_commute clss_lits_generalize_clss_lits_subset
+        clss_of_trail_append inf_sup_ord(4))
 qed
 
 abbreviation lits_of_clss where
