@@ -901,67 +901,30 @@ proof -
 
           show ?thesis
           proof (cases n)
-            case None
+            case None \<comment> \<open>Conflict clause can be backtracked\<close>
             hence \<Gamma>_def: "\<Gamma> = trail_decide \<Gamma>' (- (K \<cdot>l \<gamma>))"
               by (simp add: \<Gamma>_def L_eq_uminus_K_\<gamma> trail_decide_def)
 
-            show ?thesis
-            proof (cases "\<exists>K' \<in># C'. K \<cdot>l \<gamma> = K' \<cdot>l \<gamma>")
-              case True \<comment> \<open>Conflict clause can be factorized\<close>
-              then obtain K' where "K' \<in># C'" and 1: "K \<cdot>l \<gamma> = K' \<cdot>l \<gamma>"
-                by blast
-              then obtain C'' where C'_def: "C' = add_mset K' C''"
-                by (meson multi_member_split)
-              hence C_def': "C = C'' + {#K, K'#}"
-                by (simp add: C_def)
+            from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (K \<cdot>l \<gamma>))"
+              by auto
 
-              from 1 obtain \<mu> where "Unification.mgu (atm_of K) (atm_of K') = Some \<mu>"
-                using ex_mgu_if_subst_eq_subst
-                by (metis substitution_ops.subst_atm_of_eqI)
-              hence 2: "is_mimgu \<mu> {{atm_of K, atm_of K'}}"
-                by (rule is_mimgu_if_mgu_eq_Some)
+            have no_new_new_conflict: "\<nexists>S'. conflict N \<beta> ([], insert (add_mset K C') U, None) S'"
+              apply simp
+              apply (intro allI notI)
+              apply (erule conflict.cases)
+              apply (simp add: )
+              using mempty_not_in_N mempty_not_in_learned_S[unfolded S_def, simplified]
+              by (metis C_def C_not_empty add_mset_add_single insertE not_trail_false_Nil(2)
+                  rename_clause_def subst_cls_empty_iff)
 
-              have "factorize N \<beta> (\<Gamma>, U, Some (C'' + {#K, K'#}, \<gamma>))
-                (\<Gamma>, U, Some ((C'' + {#K#}) \<cdot> \<mu>, restrict_subst (vars_cls ((C'' + {#K#}) \<cdot> \<mu>)) \<gamma>))"
-                by (rule factorizeI[OF 1 2 refl, of N \<beta> \<Gamma> U C''])
-              with no_more_regular_step have False
-                unfolding regular_scl_def reasonable_scl_def scl_def
-                unfolding S_def[unfolded u_def C_def', symmetric]
-                using decide_well_defined(4) by blast
-              thus ?thesis ..
-            next
-              case False \<comment> \<open>Conflict clause can be backtracked\<close>
-              (*
-              hence "\<not> trail_defined_lit \<Gamma>' (K \<cdot>l \<gamma>)"
-                using trail_consistent[unfolded S_def state_trail_simp \<Gamma>_def trail_decide_def]
-                by (metis (mono_tags, opaque_lifting) list.discI list.inject prod.sel(1)
-                    trail_consistent.cases trail_defined_lit_iff_defined_uminus)
-              have "trail_backtrack \<Gamma> (trail_level \<Gamma>') = \<Gamma>'"
-                unfolding \<Gamma>_def trail_decide_def apply (simp add: is_decision_lit_def)
-                by (metis (no_types, opaque_lifting) neq_Nil_conv order_refl
-                    trail_backtrack.simps(1) trail_backtrack.simps(2))
-              *)
+            have "backtrack N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) ([], insert (add_mset K C') U, None)"
+              by (rule backtrackI[OF \<Gamma>_def' no_new_new_conflict])
 
-              from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (K \<cdot>l \<gamma>))"
-                by auto
-
-              have no_new_new_conflict: "\<nexists>S'. conflict N \<beta> ([], insert (add_mset K C') U, None) S'"
-                apply simp
-                apply (intro allI notI)
-                apply (erule conflict.cases)
-                apply (simp add: )
-                using mempty_not_in_N mempty_not_in_learned_S[unfolded S_def, simplified]
-                by (metis C_def C_not_empty add_mset_add_single insertE not_trail_false_Nil(2)
-                    rename_clause_def subst_cls_empty_iff)
-
-              have "backtrack N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) ([], insert (add_mset K C') U, None)"
-                by (rule backtrackI[OF \<Gamma>_def' no_new_new_conflict])
-              with no_more_regular_step have False
-                unfolding regular_scl_def reasonable_scl_def scl_def
-                unfolding S_def[unfolded u_def C_def, symmetric]
-                using backtrack_well_defined(2) by blast
-              thus ?thesis ..
-            qed
+            with no_more_regular_step have False
+              unfolding regular_scl_def reasonable_scl_def scl_def
+              unfolding S_def[unfolded u_def C_def, symmetric]
+              using backtrack_well_defined(2) by blast
+            thus ?thesis ..
           next
             case Some \<comment> \<open>Literal can be resolved\<close>
             then obtain D L' \<sigma> where n_def: "n = Some (D, L', \<sigma>)"
