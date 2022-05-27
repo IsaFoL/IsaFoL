@@ -1571,11 +1571,12 @@ definition subsume_or_strengthen_wl_pre :: \<open>nat \<Rightarrow> 'v subsumpti
 
 definition strengthen_clause_wl :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow>
    'v twl_st_wl  \<Rightarrow>  'v twl_st_wl nres\<close> where
-  \<open>strengthen_clause_wl = (\<lambda>C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+  \<open>strengthen_clause_wl = (\<lambda>C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+  E \<leftarrow> SPEC (\<lambda>E. mset E = mset (remove1 (-L) (N \<propto> C)));
   if length (N \<propto> C) = 2
   then do {
      ASSERT (length (remove1 (-L) (N \<propto> C)) = 1);
-     let L = hd (remove1 (-L) (N \<propto> C));
+     let L = hd E;
        RETURN (Propagated L 0 # M, fmdrop C' (fmdrop C N), D,
        (if irred N C' then add_mset (mset (N \<propto> C')) else id) NE,
        (if \<not>irred N C' then add_mset (mset (N \<propto> C')) else id) UE,
@@ -1585,13 +1586,13 @@ definition strengthen_clause_wl :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v
        N0, U0, add_mset (-L) Q, W)
   }
   else if length (N \<propto> C) = length (N \<propto> C')
-  then RETURN (M, fmdrop C' (fmupd C ((remove1 (-L) (N \<propto> C)), irred N C \<or> irred N C') N), D, NE, UE, NEk, UEk,
+  then RETURN (M, fmdrop C' (fmupd C (E, irred N C \<or> irred N C') N), D, NE, UE, NEk, UEk,
      ((if irred N C' then add_mset (mset (N \<propto> C')) else id)  o (if irred N C then add_mset (mset (N \<propto> C)) else id)) NS,
     ((if \<not>irred N C' then add_mset (mset (N \<propto> C')) else id) o (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id)) US,
      N0, U0, Q, W)
-  else RETURN (M, fmupd C (remove1 (-L) (N \<propto> C), irred N C) N, D, NE, UE, NEk, UEk,
+  else RETURN (M, fmupd C (E, irred N C) N, D, NE, UE, NEk, UEk,
     (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
-    (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W))\<close>
+    (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W)})\<close>
 
 definition subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> 'v twl_st_wl \<Rightarrow> _ nres\<close> where
   \<open>subsume_or_strengthen_wl = (\<lambda>C s (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
@@ -1662,6 +1663,7 @@ proof -
         Watched_Literals_List_Inprocessing.strengthen_clause_pre_def image_mset_remove_add_mset
         split: subsumption.splits dest: in_diffD dest: multi_member_split)
     subgoal by (auto simp: state_wl_l_def split: subsumption.splits)
+    subgoal by (auto simp: state_wl_l_def length_remove1 no_lost_clause_in_WL_def split: subsumption.splits)
     subgoal by (auto simp: state_wl_l_def length_remove1 no_lost_clause_in_WL_def split: subsumption.splits)
     subgoal using H
       apply (cases \<open>irred (get_clauses_wl S) C\<close>)

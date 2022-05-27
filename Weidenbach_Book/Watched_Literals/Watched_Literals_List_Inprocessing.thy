@@ -1665,11 +1665,12 @@ definition strengthen_clause :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v li
    'v twl_st_l  \<Rightarrow>  'v twl_st_l nres\<close> where
   \<open>strengthen_clause = (\<lambda>C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q). do {
    ASSERT (strengthen_clause_pre C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
+  E \<leftarrow> SPEC (\<lambda>E. mset E = mset (remove1 (-L) (N \<propto> C)));
   if length (N \<propto> C) = 2
   then do {
      ASSERT (length (remove1 (-L) (N \<propto> C)) = 1);
-     let L = hd (remove1 (-L) (N \<propto> C));
-       RETURN (Propagated L 0 # M, fmdrop C' (fmdrop C N), D,
+     let L = hd E;
+     RETURN (Propagated L 0 # M, fmdrop C' (fmdrop C N), D,
        (if irred N C' then add_mset (mset (N \<propto> C')) else id) NE,
        (if \<not>irred N C' then add_mset (mset (N \<propto> C')) else id) UE,
         (if irred N C then add_mset {#L#} else id) NEk, (if \<not>irred N C then add_mset {#L#} else id) UEk,
@@ -1678,11 +1679,11 @@ definition strengthen_clause :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v li
        N0, U0, WS, add_mset (-L) Q)
   }
   else if length (N \<propto> C) = length (N \<propto> C')
-  then RETURN (M, fmdrop C' (fmupd C ((remove1 (-L) (N \<propto> C)), irred N C \<or> irred N C') N), D, NE, UE, NEk, UEk,
+  then RETURN (M, fmdrop C' (fmupd C (E, irred N C \<or> irred N C') N), D, NE, UE, NEk, UEk,
      ((if irred N C' then add_mset (mset (N \<propto> C')) else id)  o (if irred N C then add_mset (mset (N \<propto> C)) else id)) NS,
     ((if \<not>irred N C' then add_mset (mset (N \<propto> C')) else id) o (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id)) US,
      N0, U0, WS, Q)
-  else RETURN (M, fmupd C (remove1 (-L) (N \<propto> C), irred N C) N, D, NE, UE, NEk, UEk,
+  else RETURN (M, fmupd C (E, irred N C) N, D, NE, UE, NEk, UEk,
     (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
     (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, WS, Q)
   })\<close>
@@ -1762,9 +1763,9 @@ lemma subresolution_strengtheningI:
   distinct (N \<propto> C') \<Longrightarrow> 3 \<le> length (N \<propto> C') \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C'). undefined_lit M L \<Longrightarrow>
   C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
-  irred N C' \<Longrightarrow>
+  irred N C' \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmupd C' (remove1 L (N \<propto> C'), True) N, None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C')) NS,
+  (M, fmupd C' (E, True) N, None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C')) NS,
   US, N0, U0, {#}, Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   remove1_mset (-L) (mset (N \<propto> C)) \<subseteq># remove1_mset L (mset (N \<propto> C')) \<Longrightarrow>
@@ -1772,18 +1773,18 @@ lemma subresolution_strengtheningI:
   distinct (N \<propto> C') \<Longrightarrow> 3 \<le> length (N \<propto> C') \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C'). undefined_lit M L \<Longrightarrow>
   C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
-  \<not>irred N C' \<Longrightarrow>
+  \<not>irred N C' \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmupd C' (remove1 L (N \<propto> C'), False) N, None, NE, UE, NEk, UEk, NS, add_mset (mset (N \<propto> C')) US, N0, U0, {#}, Q)\<close>
+  (M, fmupd C' (E, False) N, None, NE, UE, NEk, UEk, NS, add_mset (mset (N \<propto> C')) US, N0, U0, {#}, Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   remove1_mset (-L) (mset (N \<propto> C)) \<subseteq># remove1_mset L (mset (N \<propto> C')) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> 3 \<le> length (N \<propto> C') \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C'). undefined_lit M L \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
-  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
+  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   irred N C' \<Longrightarrow> irred N C \<Longrightarrow> length (N \<propto> C') = length (N \<propto> C) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmdrop C (fmupd C' (remove1 L (N \<propto> C'), True) N), None, NE, UE, NEk, UEk,
+  (M, fmdrop C (fmupd C' (E, True) N), None, NE, UE, NEk, UEk,
   add_mset (mset (N \<propto> C))  (add_mset (mset (N \<propto> C')) NS),
   US, N0, U0, {#}, Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
@@ -1791,11 +1792,11 @@ lemma subresolution_strengtheningI:
   distinct (N \<propto> C') \<Longrightarrow> 3 \<le> length (N \<propto> C') \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C'). undefined_lit M L \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
-  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
+  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   \<not> tautology (remove1_mset (- L) (mset (N \<propto> C)) + remove1_mset L (mset (N \<propto> C'))) \<Longrightarrow>
   \<not>irred N C' \<Longrightarrow> \<not>irred N C \<Longrightarrow> length (N \<propto> C') = length (N \<propto> C) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmdrop C (fmupd C' (remove1 L (N \<propto> C'), False) N), None, NE, UE, NEk, UEk, NS,
+  (M, fmdrop C (fmupd C' (E, False) N), None, NE, UE, NEk, UEk, NS,
   add_mset (mset (N \<propto> C))  (add_mset (mset (N \<propto> C')) US), N0, U0, {#}, Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   remove1_mset (-L) (mset (N \<propto> C)) \<subseteq># remove1_mset L (mset (N \<propto> C')) \<Longrightarrow>
@@ -1804,20 +1805,20 @@ lemma subresolution_strengtheningI:
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   \<not> tautology (remove1_mset (- L) (mset (N \<propto> C)) + remove1_mset L (mset (N \<propto> C'))) \<Longrightarrow>
-  \<not>irred N C' \<Longrightarrow> irred N C \<Longrightarrow> length (N \<propto> C') = length (N \<propto> C) \<Longrightarrow>
+  \<not>irred N C' \<Longrightarrow> irred N C \<Longrightarrow> length (N \<propto> C') = length (N \<propto> C) \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmdrop C (fmupd C' (remove1 L (N \<propto> C'), True) N), None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C)) NS,
+  (M, fmdrop C (fmupd C' (E, True) N), None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C)) NS,
   (add_mset (mset (N \<propto> C')) US), N0, U0, {#}, Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   remove1_mset (-L) (mset (N \<propto> C)) \<subseteq># remove1_mset L (mset (N \<propto> C')) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> 3 \<le> length (N \<propto> C') \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C'). undefined_lit M L \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
-  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
+  C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> mset E = mset (remove1 (L) (N \<propto> C')) \<Longrightarrow>
   \<not> tautology (remove1_mset (- L) (mset (N \<propto> C)) + remove1_mset L (mset (N \<propto> C'))) \<Longrightarrow>
   irred N C' \<Longrightarrow> \<not>irred N C \<Longrightarrow> length (N \<propto> C') = length (N \<propto> C) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>* (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (M, fmdrop C (fmupd C' (remove1 L (N \<propto> C'), True) N), None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C')) NS,
+  (M, fmdrop C (fmupd C' (E, True) N), None, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C')) NS,
   (add_mset (mset (N \<propto> C)) US), N0, U0, {#}, Q)\<close>
   and
 
@@ -1826,45 +1827,45 @@ lemma subresolution_strengtheningI:
   length (N \<propto> C) = 2 \<Longrightarrow> remove1_mset (L) (mset (N \<propto> C')) \<subseteq># remove1_mset (-L) (mset (N \<propto> C)) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> length (N \<propto> C') \<ge> 2  \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C). undefined_lit M L \<Longrightarrow>
-  irred N C \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow>
+  irred N C \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow> mset E = mset (remove1 (-L) (N \<propto> C)) \<Longrightarrow>
   irred N C' \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>*
   (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (Propagated (hd (remove1 (-L) (N \<propto> C))) 0 # M, fmdrop C' (fmdrop C N), None, add_mset (mset (N \<propto> C')) NE, UE, add_mset {#hd (remove1 (- L) (N \<propto> C))#} NEk, UEk,
-   (add_mset (mset (N \<propto> C)) NS), US, N0, U0, {#}, add_mset (-hd (remove1 (-L) (N \<propto> C))) Q)\<close>
+  (Propagated (hd E) 0 # M, fmdrop C' (fmdrop C N), None, add_mset (mset (N \<propto> C')) NE, UE, add_mset {#hd E#} NEk, UEk,
+   (add_mset (mset (N \<propto> C)) NS), US, N0, U0, {#}, add_mset (-hd E) Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   length (N \<propto> C) = 2 \<Longrightarrow> remove1_mset (L) (mset (N \<propto> C')) \<subseteq># remove1_mset (-L) (mset (N \<propto> C)) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> length (N \<propto> C') \<ge> 2  \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C). undefined_lit M L \<Longrightarrow>
-  \<not>irred N C \<Longrightarrow> \<not>irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow>
+  \<not>irred N C \<Longrightarrow> \<not>irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow> mset E = mset (remove1 (-L) (N \<propto> C)) \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>*
   (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (Propagated (hd (remove1 (- L) (N \<propto> C))) 0 # M, fmdrop C' (fmdrop C N), None, NE, add_mset (mset (N \<propto> C')) UE, NEk,
-   add_mset {#hd (remove1 (- L) (N \<propto> C))#} UEk, NS, add_mset (mset (N \<propto> C)) US, N0, U0,
-   {#}, add_mset (- hd (remove1 (- L) (N \<propto> C))) Q)\<close>
+  (Propagated (hd E) 0 # M, fmdrop C' (fmdrop C N), None, NE, add_mset (mset (N \<propto> C')) UE, NEk,
+   add_mset {#hd E#} UEk, NS, add_mset (mset (N \<propto> C)) US, N0, U0,
+   {#}, add_mset (- hd E) Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   length (N \<propto> C) = 2 \<Longrightarrow> remove1_mset (L) (mset (N \<propto> C')) \<subseteq># remove1_mset (-L) (mset (N \<propto> C)) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> length (N \<propto> C') \<ge> 2  \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C). undefined_lit M L \<Longrightarrow>
-  \<not>irred N C \<Longrightarrow> irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow>
+  \<not>irred N C \<Longrightarrow> irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow> mset E = mset (remove1 (-L) (N \<propto> C)) \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>*
   (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (Propagated (hd (remove1 (- L) (N \<propto> C))) 0 # M, fmdrop C' (fmdrop C N), None, add_mset (mset (N \<propto> C'))  NE, UE, NEk,
-   add_mset {#hd (remove1 (- L) (N \<propto> C))#} UEk, NS, add_mset (mset (N \<propto> C)) US, N0, U0,
-   {#}, add_mset (- hd (remove1 (- L) (N \<propto> C))) Q)\<close>
+  (Propagated (hd E) 0 # M, fmdrop C' (fmdrop C N), None, add_mset (mset (N \<propto> C'))  NE, UE, NEk,
+   add_mset {#hd E#} UEk, NS, add_mset (mset (N \<propto> C)) US, N0, U0,
+   {#}, add_mset (- hd E) Q)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> C' \<in># dom_m N \<Longrightarrow> -L \<in># mset (N \<propto> C) \<Longrightarrow> L \<in># mset (N \<propto> C') \<Longrightarrow> count_decided M = 0 \<Longrightarrow>
   length (N \<propto> C) = 2 \<Longrightarrow> remove1_mset (L) (mset (N \<propto> C')) \<subseteq># remove1_mset (-L) (mset (N \<propto> C)) \<Longrightarrow>
   distinct (N \<propto> C') \<Longrightarrow> length (N \<propto> C') \<ge> 2  \<Longrightarrow>
   \<forall>L\<in> set (N \<propto> C). undefined_lit M L \<Longrightarrow>
-  irred N C \<Longrightarrow> \<not>irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow>
+  irred N C \<Longrightarrow> \<not>irred N C' \<Longrightarrow> C' \<noteq> 0 \<Longrightarrow> mset E = mset (remove1 (-L) (N \<propto> C)) \<Longrightarrow>
   C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> C' \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow>
   cdcl_twl_inprocessing_l\<^sup>*\<^sup>*
   (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, Q)
-  (Propagated (hd (remove1 (- L) (N \<propto> C))) 0 # M, fmdrop C' (fmdrop C N), None, NE,
-   add_mset (mset (N \<propto> C')) UE, add_mset {#hd (remove1 (- L) (N \<propto> C))#} NEk, UEk,
-   add_mset (mset (N \<propto> C)) NS, US, N0, U0, {#}, add_mset (- hd (remove1 (- L) (N \<propto> C))) Q)\<close>
+  (Propagated (hd E) 0 # M, fmdrop C' (fmdrop C N), None, NE,
+   add_mset (mset (N \<propto> C')) UE, add_mset {#hd E#} NEk, UEk,
+   add_mset (mset (N \<propto> C)) NS, US, N0, U0, {#}, add_mset (- hd E) Q)\<close>
   unfolding distinct_mset_mset_distinct[symmetric] set_mset_mset[symmetric]
   supply [simp del] = distinct_mset_mset_distinct set_mset_mset
   supply [simp] = distinct_mset_mset_distinct[symmetric]
@@ -1874,11 +1875,11 @@ lemma subresolution_strengtheningI:
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (cases \<open>irred N C\<close>)
     apply (rule cdcl_twl_subresolution_l.intros(1)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>remove1 L (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 simp flip: size_mset; fail)+
     apply (rule cdcl_twl_subresolution_l.intros(7)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>remove1 L (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 simp flip: size_mset; fail)+
     done
   subgoal
     apply (drule multi_member_split[of L] multi_member_split[of \<open>-L\<close>])+
@@ -1886,11 +1887,11 @@ lemma subresolution_strengtheningI:
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (cases \<open>\<not>irred N C\<close>)
     apply (rule cdcl_twl_subresolution_l.intros(3)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>remove1 (L) (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 simp flip: size_mset; fail)+
     apply (rule cdcl_twl_subresolution_l.intros(5)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>remove1 (L) (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 simp flip: size_mset; fail)+
     done
   subgoal
     apply (drule multi_member_split[of L] multi_member_split[of \<open>-L\<close>])+
@@ -1898,8 +1899,8 @@ lemma subresolution_strengtheningI:
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (cases \<open>irred N C\<close>)
     apply (rule cdcl_twl_subresolution_l.intros(1)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>remove1 L (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset L (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 simp flip: size_mset; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(3))
     apply (rule cdcl_twl_subsumed_l.intros(1)[where C=C' and C'=C])
@@ -1915,8 +1916,8 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(3)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>remove1 (L) (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1  simp flip: size_mset; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(3))
     apply (rule cdcl_twl_subsumed_l.intros(2)[where C=C' and C'=C])
@@ -1932,8 +1933,8 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(5)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>remove1 (L) (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1  simp flip: size_mset; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(3))
     apply (rule cdcl_twl_subsumed_l.intros(4)[where C=C' and C'=C])
@@ -1950,8 +1951,8 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(7)[of C N C' \<open>-L\<close> \<open>remove1_mset (-L) (mset (N \<propto> C))\<close>
-      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>remove1 (L) (N \<propto> C')\<close>])
-    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1; fail)+
+      \<open>remove1_mset (L) (mset (N \<propto> C'))\<close> _ \<open>E\<close>])
+    apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1  simp flip: size_mset; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(3))
     apply (rule cdcl_twl_subsumed_l.intros(3)[where C=C' and C'=C])
@@ -1969,9 +1970,9 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(2)[of C' N C \<open>L\<close> \<open>remove1_mset (L) (mset (N \<propto> C'))\<close>
-      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd (remove1 (-L) (N \<propto> C))\<close>])
+      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd E\<close>])
     apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 length_list_2
-      add_mset_eq_add_mset; fail)+
+      add_mset_eq_add_mset subset_eq_mset_single_iff; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(2))
     apply (rule cdcl_twl_unitres_true_l.intros(1)[where N=\<open>fmdrop C N\<close> and C=C' and
@@ -2009,13 +2010,13 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(6)[of C' N C \<open>L\<close> \<open>remove1_mset (L) (mset (N \<propto> C'))\<close>
-      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd (remove1 (-L) (N \<propto> C))\<close>])
+      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd E\<close>])
     apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 length_list_2
-      add_mset_eq_add_mset; fail)+
+      add_mset_eq_add_mset subset_eq_mset_single_iff; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(2))
     apply (rule cdcl_twl_unitres_true_l.intros(1)[where N=\<open>fmdrop C N\<close> and C=C' and
-      L = \<open>hd (remove1 (- L) (N \<propto> C))\<close>])
+      L = \<open>hd E\<close>])
     apply (auto simp: add_mset_eq_add_mset length_list_2 subset_eq_mset_single_iff)[]
     apply (metis add_mset_commute set_mset_mset union_single_eq_member)
     apply (metis add_mset_commute set_mset_mset union_single_eq_member)
@@ -2029,13 +2030,13 @@ lemma subresolution_strengtheningI:
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(4))
     apply (rule cdcl_twl_subresolution_l.intros(8)[of C' N C \<open>L\<close> \<open>remove1_mset (L) (mset (N \<propto> C'))\<close>
-      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd (remove1 (-L) (N \<propto> C))\<close>])
+      \<open>remove1_mset (-L) (mset (N \<propto> C))\<close> _  \<open>hd E\<close>])
     apply (auto dest!: in_diffD simp: distinct_mset_remdups_mset_id length_remove1 length_list_2
-      add_mset_eq_add_mset; fail)+
+      add_mset_eq_add_mset subset_eq_mset_single_iff; fail)+
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule cdcl_twl_inprocessing_l.intros(2))
     apply (rule cdcl_twl_unitres_true_l.intros(2)[where N=\<open>fmdrop C N\<close> and C=C' and
-      L = \<open>hd (remove1 (- L) (N \<propto> C))\<close>])
+      L = \<open>hd E\<close>])
     apply (auto simp: add_mset_eq_add_mset length_list_2 subset_eq_mset_single_iff)[]
     apply (metis add_mset_commute set_mset_mset union_single_eq_member)
     apply (metis add_mset_commute set_mset_mset union_single_eq_member)
@@ -2062,15 +2063,18 @@ lemma subsume_or_strengthen:
     subgoal
       apply (clarsimp simp only: strengthen_clause_def subsumption.case Let_def
         intro!: ASSERT_leI impI)
-      apply (split if_splits; (intro impI conjI ASSERT_leI allI)?)
+      apply (intro ASSERT_leI intro_spec_iff[THEN iffD2]; (split if_splits[of _ \<open>_ = (2::nat)\<close>])?; (intro conjI impI ballI ASSERT_leI)?)
       subgoal by (auto simp: length_remove1 strengthen_clause_pre_def subsume_or_strengthen_pre_def)
-      subgoal by (auto simp: length_remove1 subsume_or_strengthen_pre_def)
       subgoal
         by (auto simp: strengthen_clause_def subsume_or_strengthen_pre_def length_remove1 Let_def
            subresolution_strengtheningI_binary
           intro!: ASSERT_leI
           dest: in_diffD)
-      subgoal by (auto simp: length_remove1 strengthen_clause_pre_def subsume_or_strengthen_pre_def)
+      subgoal
+        by (auto simp: strengthen_clause_def subsume_or_strengthen_pre_def length_remove1 Let_def
+           intro: subresolution_strengtheningI_binary
+          intro!: ASSERT_leI
+          dest: in_diffD)
       apply (split if_splits; (intro impI conjI ASSERT_leI allI)?)
       subgoal
         by (auto simp: strengthen_clause_def subsume_or_strengthen_pre_def length_remove1 Let_def
