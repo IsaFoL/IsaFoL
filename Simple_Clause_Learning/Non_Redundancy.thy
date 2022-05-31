@@ -112,40 +112,40 @@ lemma trail_defined_if_trail_less_ex:
 lemma trail_defined_cls_if_lt_defined:
   assumes sound_\<Gamma>: "sound_trail N U \<Gamma>" and
     transp_lt: "transp lt" and
-    total_on_lt: "Restricted_Predicates.total_on lt (set_mset C \<union> set_mset D)" and
     C_lt_D: "multp (trail_less_ex lt (map fst \<Gamma>)) C D" and
     tr_def_D: "trail_defined_cls \<Gamma> D"
   shows "trail_defined_cls \<Gamma> C"
 proof -
-  have transp_on: "transp_on (trail_less_ex lt (map fst \<Gamma>)) S" for S
-    using transp_trail_less_ex_if_sound[OF sound_\<Gamma> transp_lt]
-    by (metis transpD transp_onI)
+  have transp_tr_lt_ex: "transp (trail_less_ex lt (map fst \<Gamma>))"
+    by (rule transp_trail_less_ex_if_sound[OF sound_\<Gamma> transp_lt])
 
-  have tot_on_C_D:
-    "Restricted_Predicates.total_on (trail_less_ex lt (map fst \<Gamma>)) (set_mset C \<union> set_mset D)"
-    using total_on_trail_less_ex[OF Clausal_Logic.uminus_of_uminus_id total_on_lt]
-    by assumption
+  from multp_implies_one_step[OF transp_tr_lt_ex C_lt_D]
+  obtain I J K where D_def: "D = I + J" and C_def: "C = I + K" and "J \<noteq> {#}" and
+    *: "\<forall>k\<in>#K. \<exists>x\<in>#J. trail_less_ex lt (map fst \<Gamma>) k x"
+    by auto
 
   show ?thesis
-    using total_on_unionD[
-        OF tot_on_C_D,
-        THEN multiset_is_empty_or_bex_greatest_element_if_trans_and_total[OF transp_on]]
-  proof (elim disjE)
-    assume
-      "\<exists>x\<in>#C. \<forall>y\<in>#C. x \<noteq> y \<longrightarrow> trail_less_ex lt (map fst \<Gamma>) y x"
-      "D = {#}"
-    thus "trail_defined_cls \<Gamma> C"
-      using C_lt_D multp_implies_one_step sound_\<Gamma> transp_lt transp_trail_less_ex_if_sound
-      by blast
-  next
-    assume
-      "\<exists>x\<in>#C. \<forall>y\<in>#C. x \<noteq> y \<longrightarrow> trail_less_ex lt (map fst \<Gamma>) y x"
-      "\<exists>x\<in>#D. \<forall>y\<in>#D. x \<noteq> y \<longrightarrow> trail_less_ex lt (map fst \<Gamma>) y x"
-    show "trail_defined_cls \<Gamma> C"
-      using tr_def_D trail_defined_if_trail_less_ex
-      by (smt (verit, ccfv_threshold) C_lt_D multp_implies_one_step sound_\<Gamma> trail_defined_cls_def
-          transp_lt transp_trail_less_ex_if_sound union_iff)
-  qed (simp_all add: trail_defined_cls_def)
+    unfolding trail_defined_cls_def
+  proof (rule ballI)
+    fix L assume L_in: "L \<in># C"
+    show "trail_defined_lit \<Gamma> L"
+    proof (cases "L \<in># I")
+      case True
+      then show ?thesis
+        using tr_def_D D_def
+        by (simp add: trail_defined_cls_def)
+    next
+      case False
+      with C_def L_in have "L \<in># K" by fastforce
+      then obtain L' where L'_in: "L'\<in>#J" and "trail_less_ex lt (map fst \<Gamma>) L L'"
+        using * by blast
+      moreover have "trail_defined_lit \<Gamma> L'"
+        using tr_def_D D_def L'_in
+        by (simp add: trail_defined_cls_def)
+      ultimately show ?thesis
+        by (auto intro: trail_defined_if_trail_less_ex)
+    qed
+  qed
 qed
 
 section \<open>Learned Clauses in Regular Runs\<close>
@@ -154,7 +154,7 @@ term multp
 term "multp (trail_less_ex lt (map fst \<Gamma>))"
 term "redundant (multp (trail_less_ex lt (map fst \<Gamma>)))"
 
-term "regular_scl N initial_state"
+term "regular_scl N \<beta> initial_state"
 
 thm regular_scl_def
 thm ground_redundant_def redundant_def
@@ -227,7 +227,7 @@ proof (rule notI)
 
     assume "E \<in> grounding_of_clss (N \<union> U)" and "lt' E ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>)"
     then show ?thesis
-      using multiset_is_empty_or_bex_greatest_element_if_trans_and_total[OF ]
+      using multiset_bex_greatest_element[OF ]
       using total_on_trail_less_ex
       sorry
 

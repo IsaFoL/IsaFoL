@@ -143,52 +143,36 @@ subsection \<open>Multiset_Extra\<close>
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
   by auto
 
-lemma multiset_is_empty_or_bex_greatest_element_if_trans_and_total:
-  assumes
-    transp_R: "Restricted_Predicates.transp_on R (set_mset M)" and
-    total_on_R: "Restricted_Predicates.total_on R (set_mset M)"
-  shows "M = {#} \<or> (\<exists>x \<in># M. \<forall>y \<in># M. x \<noteq> y \<longrightarrow> R y x)"
-  using transp_R total_on_R
-proof (induction M rule: multiset_induct)
-  case empty
-  thus ?case by simp
-next
-  case (add x M)
-  from add.prems have transp_on_x_M_raw: "\<forall>y\<in>#M. \<forall>z\<in>#M. R x y \<and> R y z \<longrightarrow> R x z"
-    by (metis transp_on_def insert_iff set_mset_add_mset_insert)
+lemma multp_singleton_rightD:
+  assumes "multp R M {#x#}" and "transp R"
+  shows "y \<in># M \<Longrightarrow> R y x"
+  using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M {#x#}\<close>]
+  by (metis add_cancel_left_left set_mset_single single_is_union singletonD)
 
-  from add.prems have transp_on_R_M: "Restricted_Predicates.transp_on R (set_mset M)"
-    by (simp add: Restricted_Predicates.transp_on_subset[OF subset_insertI])
-
-  from add.prems have
-    total_on_x_M_raw: "\<forall>y \<in># M. x \<noteq> y \<longrightarrow> R x y \<or> R y x" and
-    total_on_R_M: "Restricted_Predicates.total_on R (set_mset M)"
-    by (simp_all add: total_on_conv)
-
-  from add.IH[OF transp_on_R_M total_on_R_M] have "M = {#} \<or> (\<exists>x\<in>#M. \<forall>y\<in>#M. x \<noteq> y \<longrightarrow> R y x)"
-    by simp
-  hence "\<exists>xa\<in>#add_mset x M. \<forall>y\<in>#add_mset x M. xa \<noteq> y \<longrightarrow> R y xa"
-  proof (elim disjE bexE)
-    assume "M = {#}"
-    thus ?thesis by simp
-  next
-    fix y
-    assume "y \<in># M" and y_greatest: "\<forall>z\<in>#M. y \<noteq> z \<longrightarrow> R z y"
-    show ?thesis
-    proof (cases "x = y")
-      case True
-      thus ?thesis
-        using y_greatest by auto
-    next
-      case False
-      with \<open>y \<in># M\<close> show ?thesis
-        using y_greatest
-        by (metis total_on_x_M_raw transp_on_x_M_raw insert_iff set_mset_add_mset_insert)
-    qed
+lemma multp_mono_strong:
+  assumes "multp R M1 M2" and "transp R" and
+    S_if_R: "\<And>x y. x \<in> set_mset M1 \<Longrightarrow> y \<in> set_mset M2 \<Longrightarrow> R x y \<Longrightarrow> S x y"
+  shows "multp S M1 M2"
+proof -
+  obtain I J K where "M2 = I + J" and "M1 = I + K" and "J \<noteq> {#}" and "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M1 M2\<close>] by auto
+  show ?thesis
+    unfolding \<open>M2 = I + J\<close> \<open>M1 = I + K\<close>
+  proof (rule one_step_implies_multp[OF \<open>J \<noteq> {#}\<close>])
+    show "\<forall>k\<in>#K. \<exists>j\<in>#J. S k j"
+      using S_if_R
+      by (metis \<open>M1 = I + K\<close> \<open>M2 = I + J\<close> \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> union_iff)
   qed
-  thus ?case by simp
 qed
 
+
+lemma mult_mono_strong:
+  assumes "(M1, M2) \<in> mult r" and "trans r" and
+    S_if_R: "\<And>x y. x \<in> set_mset M1 \<Longrightarrow> y \<in> set_mset M2 \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> (x, y) \<in> s"
+  shows "(M1, M2) \<in> mult s"
+  using assms multp_mono_strong[of "\<lambda>x y. (x, y) \<in> r" M1 M2 "\<lambda>x y. (x, y) \<in> s",
+      unfolded multp_def transp_trans_eq, simplified]
+  by blast
 
 subsubsection \<open>Calculus_Extra\<close>
 

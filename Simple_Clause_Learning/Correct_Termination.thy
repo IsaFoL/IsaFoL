@@ -582,29 +582,8 @@ lemma "sound_state N S \<Longrightarrow> conflict_grounding (state_conflict S)"
   by (cases "state_conflict S") (auto simp add: sound_state_def conflict_grounding_def)
 
 definition conflict_minimal_subst_domain where
-  "conflict_minimal_subst_domain u \<longleftrightarrow> (case u of None \<Rightarrow> True | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C)"
-
-lemma multp_singleton_rightD:
-  assumes "multp R M {#x#}" and "transp R"
-  shows "y \<in># M \<Longrightarrow> R y x"
-  using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M {#x#}\<close>]
-  by (metis add_cancel_left_left set_mset_single single_is_union singletonD)
-
-lemma multp_mono_strong:
-  assumes "multp R M1 M2" and "transp R" and
-    S_if_R: "\<And>x y. x \<in> set_mset M1 \<Longrightarrow> y \<in> set_mset M2 \<Longrightarrow> R x y \<Longrightarrow> S x y"
-  shows "multp S M1 M2"
-proof -
-  obtain I J K where "M2 = I + J" and "M1 = I + K" and "J \<noteq> {#}" and "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
-    using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M1 M2\<close>] by auto
-  show ?thesis
-    unfolding \<open>M2 = I + J\<close> \<open>M1 = I + K\<close>
-  proof (rule one_step_implies_multp[OF \<open>J \<noteq> {#}\<close>])
-    show "\<forall>k\<in>#K. \<exists>j\<in>#J. S k j"
-      using S_if_R
-      by (metis \<open>M1 = I + K\<close> \<open>M2 = I + J\<close> \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> union_iff)
-  qed
-qed
+  "conflict_minimal_subst_domain u \<longleftrightarrow>
+    (case u of None \<Rightarrow> True | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C)"
 
 lemma conflict_if_mempty_in_initial_clauses_and_no_conflict:
   assumes "{#} \<in> N" and "state_conflict S = None"

@@ -3,9 +3,6 @@ theory Trail_Induced_Ordering
     (* Isabelle theories *)
     Main
 
-    (* AFP theories *)
-    Open_Induction.Restricted_Predicates
-
     (* Local theories *)
     Relation_Extra
 begin
@@ -255,39 +252,39 @@ lemma asymp_trail_less:
 
 subsection \<open>Strict Total (w.r.t. Elements in Trail) Order\<close>
 
-lemma total_on_trail_less:
-  "Restricted_Predicates.total_on (trail_less Ls) (set Ls \<union> uminus ` set Ls)"
-proof (rule Restricted_Predicates.total_onI, unfold Un_iff, elim disjE)
+lemma totalp_on_trail_less:
+  "totalp_on (set Ls \<union> uminus ` set Ls) (trail_less Ls)"
+proof (rule totalp_onI, unfold Un_iff, elim disjE)
   fix L K
-  assume "L \<in> set Ls" and "K \<in> set Ls"
+  assume "L \<in> set Ls" and "K \<in> set Ls" and "L \<noteq> K"
   then obtain i j where "i < length Ls" "Ls ! i = L" "j < length Ls" "Ls ! j = K"
     unfolding in_set_conv_nth by auto
-  thus "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
-    using less_linear[of i j]
+  thus "trail_less Ls L K \<or> trail_less Ls K L"
+    using \<open>L \<noteq> K\<close> less_linear[of i j]
     by (meson trail_less_def trail_less_id_id_def)
 next
   fix L K
-  assume "L \<in> set Ls" and "K \<in> uminus ` set Ls"
+  assume "L \<in> set Ls" and "K \<in> uminus ` set Ls" and "L \<noteq> K"
   then obtain i j where "i < length Ls" "Ls ! i = L" "j < length Ls" "- (Ls ! j) = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
-    using less_linear[of i j]
+  thus "trail_less Ls L K \<or> trail_less Ls K L"
+    using  less_linear[of i j]
     by (metis le_eq_less_or_eq trail_less_comp_id_def trail_less_def trail_less_id_comp_def)
 next
   fix L K
-  assume "L \<in> uminus ` set Ls" and "K \<in> set Ls"
+  assume "L \<in> uminus ` set Ls" and "K \<in> set Ls" and "L \<noteq> K"
   then obtain i j where "i < length Ls" "- (Ls ! i) = L" "j < length Ls" "Ls ! j = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
+  thus "trail_less Ls L K \<or> trail_less Ls K L"
     using less_linear[of i j]
     by (metis le_eq_less_or_eq trail_less_comp_id_def trail_less_def trail_less_id_comp_def)
 next
   fix L K
-  assume "L \<in> uminus ` set Ls" and "K \<in> uminus ` set Ls"
+  assume "L \<in> uminus ` set Ls" and "K \<in> uminus ` set Ls" and "L \<noteq> K"
   then obtain i j where "i < length Ls" "- (Ls ! i) = L" "j < length Ls" "- (Ls ! j) = K"
     unfolding in_set_conv_nth image_set length_map by auto
-  then show "L = K \<or> trail_less Ls L K \<or> trail_less Ls K L"
-    using less_linear[of i j]
+  thus "trail_less Ls L K \<or> trail_less Ls K L"
+    using \<open>L \<noteq> K\<close> less_linear[of i j]
     by (metis trail_less_comp_comp_def trail_less_def)
 qed
 
@@ -523,6 +520,15 @@ lemma trail_less_ex_if_trail_less:
   using defined_if_trail_less[THEN defined_conv[OF uminus_uminus_id, THEN iffD1]]
   by auto
 
+lemma
+  fixes Ls :: "('a :: uminus) list"
+  assumes
+    uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
+  shows "L \<in> set Ls \<union> uminus ` set Ls \<Longrightarrow> K \<notin> set Ls \<union> uminus ` set Ls \<Longrightarrow> trail_less_ex lt Ls L K"
+  using defined_conv uminus_uminus_id
+  by (auto simp add: trail_less_ex_def)
+  
+
 lemma irreflp_trail_ex_less:
   fixes Ls :: "('a :: uminus) list" and lt :: "'a \<Rightarrow> 'a \<Rightarrow> bool"
   assumes
@@ -562,17 +568,16 @@ lemma asymp_trail_less_ex:
   using asymp_trail_less[OF uminus_not_id uminus_uminus_id pairwise_distinct] asymp_lt
   by (simp add: asymp.simps)
 
-lemma total_on_trail_less_ex:
+lemma totalp_on_trail_less_ex:
   fixes Ls :: "('a :: uminus) list"
   assumes
     uminus_uminus_id: "\<And>x :: 'a. - (- x) = x" and
-    total_on_lt: "Restricted_Predicates.total_on lt S"
-  shows "Restricted_Predicates.total_on (trail_less_ex lt Ls) S"
-  using total_on_trail_less[of Ls, unfolded Restricted_Predicates.total_on_def]
-  using total_on_lt
+    totalp_on_lt: "totalp_on A lt"
+  shows "totalp_on (A \<union> set Ls \<union> uminus ` set Ls) (trail_less_ex lt Ls)"
+  using totalp_on_trail_less[of Ls]
+  using totalp_on_lt
   unfolding trail_less_ex_def
-  by (smt (verit, ccfv_threshold) Restricted_Predicates.total_on_def defined_conv
-      uminus_uminus_id)
+  by (smt (verit, best) Un_iff defined_conv totalp_on_def uminus_uminus_id)
 
 
 subsubsection \<open>Well-Founded\<close>
