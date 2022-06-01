@@ -174,14 +174,11 @@ lemma mult_mono_strong:
       unfolded multp_def transp_trans_eq, simplified]
   by blast
 
-lemma ball_image_mset: "(\<forall>x \<in># image_mset f M. P x) \<longleftrightarrow> (\<forall>x \<in># M. P (f x))"
+lemma ball_image_mset_iff: "(\<forall>x \<in># image_mset f M. P x) \<longleftrightarrow> (\<forall>x \<in># M. P (f x))"
   by blast
 
-lemma ball_filter_mset: "(\<forall>x \<in># filter_mset P M. Q x) \<longleftrightarrow> (\<forall>x \<in># M. P x \<longrightarrow> Q x)"
+lemma ball_filter_mset_iff: "(\<forall>x \<in># filter_mset P M. Q x) \<longleftrightarrow> (\<forall>x \<in># M. P x \<longrightarrow> Q x)"
   by fastforce
-
-lemma set_list_of_mset[simp]: "set (list_of_mset M) = set_mset M"
-  by (rule set_mset_mset[of "list_of_mset _", unfolded mset_list_of_mset, symmetric])
 
 
 subsubsection \<open>Calculus_Extra\<close>

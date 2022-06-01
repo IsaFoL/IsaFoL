@@ -292,7 +292,7 @@ proof -
         \<open>vars_cls {#K \<in># D''. K \<cdot>l \<rho> \<cdot>l \<sigma>'' \<noteq> L' \<cdot>l \<sigma>'#} \<subseteq> subst_domain \<sigma>'\<close>, folded \<sigma>''_def]
     unfolding \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'\<close>[symmetric]
     unfolding trail_false_cls_def trail_false_lit_def list.set image_insert prod.sel
-    unfolding subst_cls_def ball_image_mset ball_filter_mset
+    unfolding subst_cls_def ball_image_mset_iff ball_filter_mset_iff
     by (smt (verit, ccfv_threshold) \<open>vars_cls D'' \<subseteq> subst_domain \<sigma>'\<close> \<rho>_def \<sigma>''_def
         add_mset_add_single clss_of_trail_trail_decide image_insert insert_DiffM insert_iff
         is_renaming_wrt_N_U_\<Gamma>_L le_sup_iff mk_disjoint_insert multiset.set_map
@@ -305,17 +305,20 @@ proof -
     using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>
     by (metis trail_defined_lit_iff_defined_uminus)
 
-  let ?xs =
-    "map atm_of (list_of_mset (add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#}))"
+  obtain xs where "mset xs = add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#}"
+    using ex_mset by auto
+  hence set_xs_conv:
+    "set xs = set_mset (add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#})"
+    by (metis set_mset_mset)
 
-  have "unifiers (set (pairs ?xs)) \<noteq> {}"
+  have "unifiers (set (pairs (map atm_of xs))) \<noteq> {}"
   proof (rule not_empty_if_mem)
-    show "\<sigma>''' \<in> unifiers (set (pairs ?xs))"
+    show "\<sigma>''' \<in> unifiers (set (pairs (map atm_of xs)))"
+      unfolding unifiers_def mem_Collect_eq
+      unfolding set_pairs list.set_map set_xs_conv
       unfolding subst_cls_def[of D'']
       unfolding image_mset_filter_mset_swap[symmetric]
       unfolding subst_cls_def[symmetric]
-      unfolding unifiers_def mem_Collect_eq
-      unfolding set_pairs list.set_map set_list_of_mset
       unfolding split_paired_Ball_Sigma prod.sel
       unfolding set_mset_add_mset_insert image_insert
       unfolding subst_cls_def set_image_mset set_mset_filter
@@ -323,7 +326,7 @@ proof -
   qed
 
   then obtain ys where
-    unify_pairs: "unify (pairs ?xs) [] = Some ys"
+    unify_pairs: "unify (pairs (map atm_of xs)) [] = Some ys"
     using ex_unify_if_unifiers_not_empty[OF _ refl]
     by blast
 
@@ -333,13 +336,11 @@ proof -
   have 6: "is_mimgu \<mu>
     {atm_of ` set_mset (add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#})}"
   proof (intro is_mimgu_if_mgu_sets[unfolded mgu_sets_def] exI conjI)
-    show "set (map set [?xs]) = {atm_of ` set_mset
+    show "set (map set [(map atm_of xs)]) = {atm_of ` set_mset
       (add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#})}"
-      by simp
+      using set_xs_conv by auto
   next
-    show "map_option subst_of (unify (concat (map pairs
-      [map atm_of (list_of_mset (add_mset (L' \<cdot>l \<rho>) {#K \<in># D'' \<cdot> \<rho>. K \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>'''#}))]))
-      []) = Some \<mu>"
+    show "map_option subst_of (unify (concat (map pairs [map atm_of xs])) []) = Some \<mu>"
       by (simp add: unify_pairs \<mu>_def)
   qed
 
