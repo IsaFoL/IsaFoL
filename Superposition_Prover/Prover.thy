@@ -2478,6 +2478,146 @@ proof -
     by (simp add: Unifier_def *)
 qed
 
+lemma not_in_dom_map_map_prod_if:
+  assumes inj_f: "inj_on f (insert x (fst ` set \<sigma>))"
+  shows "x \<notin> fst ` set \<sigma> \<Longrightarrow> f x \<notin> fst ` set (map (map_prod f g) \<sigma>)"
+  by (metis inj_f dom_map_of_conv_image_fst insertI1 map_of_eq_None_iff
+      map_of_map_map_prod_eq_None_if subset_insertI)
+
+lemma subst_renaming_map_map_prod_eq:
+  assumes
+    all_vars_\<rho>: "\<forall>x \<in> insert x (fst ` set \<sigma>). is_a_variable (Var x \<lhd> \<rho>)" and
+    inj_subst_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (insert x (fst ` set \<sigma>))"
+  shows "Var x \<lhd> \<rho> \<lhd> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma> =
+    Var x \<lhd> \<sigma> \<lhd> \<rho>"
+proof (cases "x \<in> fst ` set \<sigma>")
+  case True
+
+  from inj_subst_\<rho> have inj_subst_\<rho>': "inj_on (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ((insert x (fst ` set \<sigma>)))"
+    by (smt (verit, best) all_vars_\<rho> inj_onD inj_onI is_a_variable.elims(2) the_Var.simps)
+
+  have dom_\<sigma>: "dom (map_of \<sigma>) \<subseteq> insert x (fst ` set \<sigma>)"
+    by (simp add: dom_map_of_conv_image_fst subset_insertI)
+
+  obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
+    using all_vars_\<rho> is_a_variable.elims(2) by blast
+  hence x_\<rho>': "the_Var (Var x \<lhd> \<rho>) = x'"
+    by simp
+
+  from True obtain v' where "map_of \<sigma> x = Some v'"
+    by (metis domD dom_map_of_conv_image_fst)
+
+  show ?thesis
+    unfolding x_\<rho>
+    unfolding subst_Var_eq_map_of_or_default[of x] \<open>map_of \<sigma> x = Some v'\<close> option.case
+    unfolding subst_Var_eq_map_of_or_default[of x']
+    unfolding map_of_map_map_prod_eq_Some_if[OF inj_subst_\<rho>' dom_\<sigma> x_\<rho>' refl \<open>map_of \<sigma> x = Some v'\<close>]
+      option.case
+    by (rule refl)
+next
+  case False
+
+  from inj_subst_\<rho> have inj_subst_\<rho>': "inj_on (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ((insert x (fst ` set \<sigma>)))"
+    by (smt (verit, best) all_vars_\<rho> inj_onD inj_onI is_a_variable.elims(2) the_Var.simps)
+
+  obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
+    using all_vars_\<rho> is_a_variable.elims(2) by blast
+
+  show ?thesis
+    unfolding subst_Var_ident_if_not_in_dom[OF False]
+    unfolding x_\<rho>
+    unfolding not_in_dom_map_map_prod_if[OF inj_subst_\<rho>' False,
+        THEN subst_Var_ident_if_not_in_dom, unfolded x_\<rho> the_Var.simps]
+    by (rule refl)
+qed
+
+lemma dom_of_subst_adapted_to_renaming:
+  assumes
+    ren_\<rho>: "renaming \<rho> V" and
+    dom_\<sigma>: "fst `set \<sigma> \<subseteq> V"
+  defines "\<sigma>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>"
+  shows "fst `set \<sigma>' \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` fst `set \<sigma>"
+proof (rule Set.subsetI)
+  fix x assume "x \<in> fst ` set \<sigma>'"
+  then obtain prod where prod_in: "prod \<in> set \<sigma>" and x_def: "x = the_Var (Var (fst prod) \<lhd> \<rho>)"
+    unfolding \<sigma>'_def list.set_map Set.image_iff Set.bex_simps fst_map_prod
+    by auto
+  thus "x \<in> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` fst ` set \<sigma>"
+    using renaming_var_to_var[OF ren_\<rho>] by blast
+qed
+
+definition range_vars where
+  "range_vars \<sigma> = \<Union> {vars_of (Var x \<lhd> \<sigma>) |x. Var x \<lhd> \<sigma> \<noteq> Var x}"
+
+lemma vars_of_subst_subset_if_range_vars_subset:
+  "range_vars \<sigma> \<subseteq> V \<Longrightarrow> Var y \<lhd> \<sigma> \<noteq> Var y \<Longrightarrow> vars_of (Var y \<lhd> \<sigma>) \<subseteq> V"
+  using range_vars_def by fastforce
+
+lemma range_vars_of_subst_adapted_to_renaming:
+  assumes
+    ren_\<rho>: "renaming \<rho> V" and
+    dom_\<sigma>: "fst `set \<sigma> \<subseteq> V" and
+    range_vars_\<sigma>: "range_vars \<sigma> \<subseteq> V"
+  defines "\<sigma>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>"
+  shows "range_vars \<sigma>' \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` range_vars \<sigma>"
+proof (rule Set.subsetI)
+  fix x assume "x \<in> range_vars \<sigma>'"
+  then obtain y' where x_in: "x \<in> vars_of (Var y' \<lhd> \<sigma>')" and y'_\<sigma>': "Var y' \<lhd> \<sigma>' \<noteq> Var y'"
+    by (auto simp: range_vars_def)
+
+  from y'_\<sigma>' have x'_in: "y' \<in> fst `set \<sigma>'"
+    by (meson subst_Var_ident_if_not_in_dom)
+  with y'_\<sigma>' obtain y where y_\<rho>: "Var y \<lhd> \<rho> = Var y'" and y_in: "y \<in> V"
+    unfolding \<sigma>'_def
+    unfolding image_set
+    apply simp
+    using dom_\<sigma> ren_\<rho> renaming_var_to_var by fastforce
+
+  have FOO:
+    "Var x \<lhd> \<rho> \<lhd> \<sigma>' = Var x \<lhd> \<sigma> \<lhd> \<rho>" if x_in: "x \<in> V" for x
+  proof -
+    have x_dom_\<sigma>\<^sub>C_subset: "insert x (fst ` set \<sigma>) \<subseteq> V"
+      using x_in dom_\<sigma> by blast
+
+    from ren_\<rho> have "\<forall>x\<in>V. is_a_variable (Var x \<lhd> \<rho>)"
+      using renaming_def by fast
+    hence all_vars: "\<forall>x\<in>insert x (fst ` set \<sigma>). is_a_variable (Var x \<lhd> \<rho>)"
+      using x_dom_\<sigma>\<^sub>C_subset by blast
+
+    from ren_\<rho> have "inj_on (\<lambda>x. Var x \<lhd> \<rho>) V"
+      using inj_on_if_renaming by blast
+    hence inj_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (insert x (fst ` set \<sigma>))"
+      using x_dom_\<sigma>\<^sub>C_subset by (meson inj_on_subset)
+
+    show ?thesis
+      unfolding \<sigma>'_def
+      unfolding subst_renaming_map_map_prod_eq[OF all_vars inj_\<rho>]
+      by simp
+  qed
+
+  from y'_\<sigma>' have y_\<sigma>_not_ident: "Var y \<lhd> \<sigma> \<noteq> Var y"
+    using y_\<rho> FOO[OF y_in] by fastforce
+  hence vars_of_y_\<sigma>: "vars_of (Var y \<lhd> \<sigma>) \<subseteq> V"
+    by (rule vars_of_subst_subset_if_range_vars_subset[OF range_vars_\<sigma>])
+
+  have "x \<in> vars_of (Var y \<lhd> \<sigma> \<lhd> \<rho>)"
+    by (rule x_in[unfolded y_\<rho>[symmetric] FOO[OF y_in]])
+  hence "x \<in> (\<Union>x \<in> vars_of (Var y \<lhd> \<sigma>). vars_of (Var x \<lhd> \<rho>))"
+    using vars_of_instances by fastforce
+  hence "x \<in> (\<Union>x \<in> vars_of (Var y \<lhd> \<sigma>). {the_Var (Var x \<lhd> \<rho>)})"
+    using range_vars_\<sigma>[unfolded range_vars_def]
+    using y'_\<sigma>'[unfolded y_\<rho>[symmetric]]
+    using vars_of_y_\<sigma> ren_\<rho>
+    by (smt (verit, ccfv_SIG) UN_iff is_a_variable.elims(2) renaming_def subset_iff the_Var.simps
+        vars_of.simps(1))
+  hence "x \<in> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` vars_of (Var y \<lhd> \<sigma>)"
+    by blast
+  then show "x \<in> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` range_vars \<sigma>"
+    unfolding range_vars_def
+    using y_\<sigma>_not_ident by blast
+qed
+
+
 lemma IMGU_of_renamed_if_IMGU:
   assumes
     ren_\<rho>: "renaming \<rho> V" and
@@ -2583,59 +2723,6 @@ proof -
       using IMGU_of_renamed_if_IMGU[OF ren_\<rho> \<rho>_\<rho>_inv_ident vars_t_u_subset dom_\<mu>]
       by (simp add: \<mu>'_def SuperCalc.ck_unifier_def)
   qed
-qed
-
-lemma not_in_dom_map_map_prod_if:
-  assumes inj_f: "inj_on f (insert x (fst ` set \<sigma>))"
-  shows "x \<notin> fst ` set \<sigma> \<Longrightarrow> f x \<notin> fst ` set (map (map_prod f g) \<sigma>)"
-  by (metis inj_f dom_map_of_conv_image_fst insertI1 map_of_eq_None_iff
-      map_of_map_map_prod_eq_None_if subset_insertI)
-
-lemma subst_renaming_map_map_prod_eq:
-  assumes
-    all_vars_\<rho>: "\<forall>x \<in> insert x (fst ` set \<sigma>). is_a_variable (Var x \<lhd> \<rho>)" and
-    inj_subst_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (insert x (fst ` set \<sigma>))"
-  shows "Var x \<lhd> \<rho> \<lhd> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma> =
-    Var x \<lhd> \<sigma> \<lhd> \<rho>"
-proof (cases "x \<in> fst ` set \<sigma>")
-  case True
-
-  from inj_subst_\<rho> have inj_subst_\<rho>': "inj_on (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ((insert x (fst ` set \<sigma>)))"
-    by (smt (verit, best) all_vars_\<rho> inj_onD inj_onI is_a_variable.elims(2) the_Var.simps)
-
-  have dom_\<sigma>: "dom (map_of \<sigma>) \<subseteq> insert x (fst ` set \<sigma>)"
-    by (simp add: dom_map_of_conv_image_fst subset_insertI)
-
-  obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
-    using all_vars_\<rho> is_a_variable.elims(2) by blast
-  hence x_\<rho>': "the_Var (Var x \<lhd> \<rho>) = x'"
-    by simp
-
-  from True obtain v' where "map_of \<sigma> x = Some v'"
-    by (metis domD dom_map_of_conv_image_fst)
-  
-  show ?thesis
-    unfolding x_\<rho>
-    unfolding subst_Var_eq_map_of_or_default[of x] \<open>map_of \<sigma> x = Some v'\<close> option.case
-    unfolding subst_Var_eq_map_of_or_default[of x']
-    unfolding map_of_map_map_prod_eq_Some_if[OF inj_subst_\<rho>' dom_\<sigma> x_\<rho>' refl \<open>map_of \<sigma> x = Some v'\<close>]
-      option.case
-    by (rule refl)
-next
-  case False
-
-  from inj_subst_\<rho> have inj_subst_\<rho>': "inj_on (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ((insert x (fst ` set \<sigma>)))"
-    by (smt (verit, best) all_vars_\<rho> inj_onD inj_onI is_a_variable.elims(2) the_Var.simps)
-
-  obtain x' where x_\<rho>: "Var x \<lhd> \<rho> = Var x'"
-    using all_vars_\<rho> is_a_variable.elims(2) by blast
-  
-  show ?thesis
-    unfolding subst_Var_ident_if_not_in_dom[OF False]
-    unfolding x_\<rho>
-    unfolding not_in_dom_map_map_prod_if[OF inj_subst_\<rho>' False,
-        THEN subst_Var_ident_if_not_in_dom, unfolded x_\<rho> the_Var.simps]
-    by (rule refl)
 qed
 
 lemma renaming_subset: "V1 \<subseteq> V2 \<Longrightarrow> renaming \<rho> V2 \<Longrightarrow> renaming \<rho> V1"
@@ -3015,9 +3102,6 @@ next
 qed
 
 
-definition range_vars where
-  "range_vars \<sigma> = \<Union> {vars_of (Var x \<lhd> \<sigma>) |x. Var x \<lhd> \<sigma> \<noteq> Var x}"
-
 lemma reflexion_if_renaming:
   fixes \<sigma>
   assumes
@@ -3028,7 +3112,10 @@ lemma reflexion_if_renaming:
     trms_ecl_P1_empty: "trms_ecl P1 = {}" and
     range_vars_\<sigma>\<^sub>C: "range_vars \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)" and
     dom_vars_\<sigma>\<^sub>C: "fst ` set \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)"
-  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D k D' \<and> renaming_cl C D"
+  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D k D' \<and>
+    renaming_cl C D \<and>
+    range_vars \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1') \<and>
+    fst ` set \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')"
 proof -
   from refl obtain L1 t s Cl_P Cl_C trms_C where
     "SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C" and
@@ -3065,7 +3152,7 @@ proof -
     by simp
 
   from \<open>L1 \<in> cl_ecl P1\<close> have L1_\<rho>_in_P1': "equational_clausal_logic.subst_lit L1 \<rho> \<in> cl_ecl P1'"
-    by (simp add: \<open>P1' = subst_ecl P1 \<rho>\<close> cl_ecl_subst_ecl_distrib subst_cl_conv)
+    by (simp add: P1'_def cl_ecl_subst_ecl_distrib subst_cl_conv)
 
   define D' where
     "D' = cl_ecl P1' - {equational_clausal_logic.subst_lit L1 \<rho>}"
@@ -3421,6 +3508,30 @@ proof -
       ultimately show "D = subst_ecl C \<rho>"
         by (simp add: \<open>C = Ecl Cl_C trms_C\<close> D_def)
     qed
+  next
+    have "range_vars \<sigma>\<^sub>D \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` range_vars \<sigma>\<^sub>C"
+      by (rule range_vars_of_subst_adapted_to_renaming[OF ren_\<rho> dom_vars_\<sigma>\<^sub>C range_vars_\<sigma>\<^sub>C,
+            folded \<sigma>\<^sub>D_def])
+    also have "... \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` vars_of_cl (cl_ecl P1)"
+      using range_vars_\<sigma>\<^sub>C by fast
+    also have "... \<subseteq> vars_of_cl (cl_ecl (subst_ecl P1 \<rho>))"
+      by (smt (verit, best) UN_iff cl_ecl_subst_ecl_distrib image_iff ren_\<rho> renaming_var_to_var
+          subset_iff the_Var.simps vars_iff_occseq vars_of_cl_subst_renaming_conv)
+    also have "... \<subseteq> vars_of_cl (cl_ecl P1')"
+      by (simp add: P1'_def)
+    finally show "range_vars \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')"
+      by assumption
+  next
+    have dom_vars_\<sigma>\<^sub>D: "fst ` set \<sigma>\<^sub>D \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` fst ` set \<sigma>\<^sub>C"
+      by (rule dom_of_subst_adapted_to_renaming[OF ren_\<rho> dom_vars_\<sigma>\<^sub>C, folded \<sigma>\<^sub>D_def])
+    also have "... \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` vars_of_cl (cl_ecl P1)"
+      using dom_vars_\<sigma>\<^sub>C by blast
+    also have "... \<subseteq> vars_of_cl (subst_cl (cl_ecl P1) \<rho>)"
+      using ren_\<rho> renaming_var_to_var vars_of_cl_subst_renaming_conv by fastforce
+    also have "... \<subseteq> vars_of_cl (cl_ecl P1')"
+      by (simp add: P1'_def cl_ecl_subst_ecl_distrib)
+    finally show "fst ` set \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')"
+      by assumption
   qed
 qed
 
@@ -3785,7 +3896,9 @@ next
       by (auto dest: ex_eq_map2_if_ball_set_eq)
 
     from deriv_prems_\<iota>'[unfolded derivable_list_def] have
-      "\<exists>D D' \<sigma>\<^sub>D. renaming_cl C D \<and> derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
+      "\<exists>D D' \<sigma>\<^sub>D. renaming_cl C D \<and> derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and>
+        fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps)) \<and>
+        range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps))"
       using prems_\<iota>'_def
     proof (elim disjE exE conjE)
       fix P1
@@ -3913,7 +4026,8 @@ next
         apply simp
         using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1 vars_of_trms_P1 trms_P1_empty
             range_vars_\<sigma>\<^sub>C' dom_vars_\<sigma>\<^sub>C']
-        using derivable_list_def by blast
+        using derivable_list_def
+        by auto
     next
       show ?thesis sorry
     next
@@ -3923,7 +4037,9 @@ next
     then obtain D D' \<sigma>\<^sub>D where
       deriv_Ps: "derivable_list D (map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps)))
         \<sigma>\<^sub>D SuperCalc.FirstOrder D'" and
-      "renaming_cl C D"
+      "renaming_cl C D" and
+      dom_vars_\<sigma>\<^sub>D: "fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps))" and
+      range_vars_\<sigma>\<^sub>D: "range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps))"
       by blast
 
     from deriv_prems_\<iota>' have "cl_ecl C = subst_cl C' \<sigma>\<^sub>C"
@@ -3962,7 +4078,20 @@ next
     define \<iota> where "\<iota> = Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D)"
 
     have \<iota>_in: "\<iota> \<in> F_Inf"
-      unfolding \<iota>_def F_Inf_def mem_Collect_eq using deriv_Ps sorry
+      unfolding \<iota>_def F_Inf_def mem_Collect_eq Let_def
+    proof (intro exI conjI)
+      show "Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D) = Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D)"
+        by (rule refl)
+    next
+      show "derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
+        by (rule deriv_Ps)
+    next
+      show "fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ((?map_prems Ps)))"
+        by (rule dom_vars_\<sigma>\<^sub>D)
+    next
+      show "range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ((?map_prems Ps)))"
+        by (rule range_vars_\<sigma>\<^sub>D)
+    qed
 
     have prems_\<iota>_in_subset: "set (prems_of \<iota>) \<subseteq> N"
       using FOO by (simp add: \<iota>_def list_all2_conj_unary_iff list_all_member_iff_subset)
