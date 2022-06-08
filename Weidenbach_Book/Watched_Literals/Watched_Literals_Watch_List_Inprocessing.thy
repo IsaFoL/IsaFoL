@@ -2007,14 +2007,33 @@ qed
 lemma forward_subsumption_all_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
-    lost: \<open>no_lost_clause_in_WL S\<close> and
+    lost: \<open>correct_watching'_leaking_bin S\<close> and
     lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows
    \<open>forward_subsumption_all_wl S \<le> \<Down>({(T, T').
     (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S \<and> no_lost_clause_in_WL T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T})
     (forward_subsumption_all S')\<close>
 proof -
-  have [refine0]: \<open>(xs, ys) \<in> Id \<Longrightarrow> forward_subsumption_all_inv S' (ys, S') \<Longrightarrow>
+
+  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>forward_subsumption_all_pre S'\<close>
+  proof -
+    obtain S'' where
+      S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs S''\<close> and
+      \<open>twl_list_invs S'\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'')\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
+      \<open>clauses_to_update_l S' = {#}\<close> and
+      \<open>count_decided (get_trail_l S') = 0\<close>
+      using pre unfolding forward_subsumption_all_pre_def by fast
+    have \<open>correct_watching'_nobin S\<close>
+      using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
+        correct_watching'_nobin.simps)
+    then show ?thesis
+      using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
+      by fast
+  qed
+  then have [refine0]: \<open>(xs, ys) \<in> Id \<Longrightarrow> forward_subsumption_all_pre S' \<Longrightarrow> forward_subsumption_all_inv S' (ys, S') \<Longrightarrow>
     forward_subsumption_all_wl_inv S (xs, S)\<close> for xs ys :: \<open>nat multiset\<close>
     using assms unfolding forward_subsumption_all_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
     by (rule_tac x=S' in exI, rule_tac x=\<open>S'\<close> in exI) auto
@@ -2079,7 +2098,7 @@ proof -
     subgoal using assms unfolding forward_subsumption_all_wl_pre_def by fast
     subgoal using assms by auto
     subgoal for xs xsa x x'
-      using assms unfolding forward_subsumption_all_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
+      using assms lost unfolding forward_subsumption_all_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
       by (rule_tac x=S' in exI, rule_tac x=\<open>snd x'\<close> in exI) auto
     subgoal by auto
     subgoal by auto
@@ -2363,7 +2382,7 @@ qed
 
 definition pure_literal_elimination_wl_pre where
   \<open>pure_literal_elimination_wl_pre S \<longleftrightarrow>
-  (\<exists>T. (S, T) \<in> state_wl_l None \<and> pure_literal_elimination_l_pre T \<and> correct_watching'_leaking_bin S \<and>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> pure_literal_elimination_l_pre T \<and> no_lost_clause_in_WL S \<and>
   literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 
@@ -2390,32 +2409,14 @@ definition pure_literal_elimination_wl :: \<open>_\<close> where
 lemma pure_literal_elimination_wl:
   assumes
     \<open>(S, S') \<in> state_wl_l None\<close>
-    \<open>correct_watching'_leaking_bin S\<close>
+    \<open>no_lost_clause_in_WL S\<close>
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
   shows \<open>pure_literal_elimination_wl S \<le>
     \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_elimination_l S')\<close>
 proof -
-  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>pure_literal_elimination_l_pre S'\<close>
-  proof -
-    obtain S'' where
-      S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
-      struct_invs: \<open>twl_struct_invs S''\<close> and
-      \<open>twl_list_invs S'\<close>
-      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'')\<close> and
-      \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
-      \<open>clauses_to_update_l S' = {#}\<close> and
-      \<open>count_decided (get_trail_l S') = 0\<close>
-      using pre unfolding pure_literal_elimination_l_pre_def by fast
-    have \<open>correct_watching'_nobin S\<close>
-      using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
-        correct_watching'_nobin.simps)
-    then show ?thesis
-      using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
-      by fast
-  qed
   have [refine0]: \<open>pure_literal_elimination_l_pre S' \<Longrightarrow>
     ((S, 0, False), S', 0, False) \<in> {(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<times>\<^sub>r nat_rel \<times>\<^sub>r bool_rel\<close>
-     using lost assms by auto
+     using assms by auto
   show ?thesis
     unfolding pure_literal_elimination_wl_def pure_literal_elimination_l_def
     apply (refine_vcg pure_literal_elimination_round_wl_pure_literal_elimination_round_l)
