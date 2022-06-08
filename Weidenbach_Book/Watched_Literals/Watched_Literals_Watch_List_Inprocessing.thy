@@ -1909,7 +1909,7 @@ qed
 
 lemma try_to_forward_subsume_wl:
   assumes
-    SS': \<open>(S, S') \<in> state_wl_l None\<close> and 
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
     \<open>no_lost_clause_in_WL S\<close> and
     \<open>(C,C')\<in>nat_rel\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
@@ -1974,12 +1974,11 @@ definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
   }
 )\<close>
 
-lemma 
+lemma
   assumes \<open>forward_subsumption_all_wl_inv S (xs, T)\<close>
-  shows 
-     forward_subsumption_all_wl_inv_no_lost_clause_in_WLD: \<open>no_lost_clause_in_WL T\<close> and
-    forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D:
-      \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+  shows
+    forward_subsumption_all_wl_inv_no_lost_clause_in_WLD: \<open>no_lost_clause_in_WL T\<close> and
+    forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D: \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
 proof -
   obtain S' T' where
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -2005,25 +2004,6 @@ proof -
     by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
 qed
 
-(*TODO Move*)
-text \<open>this is the less dumb version of the refinement for while loops, keeping the loop invariant.\<close>
-lemma WHILEIT_refine_with_all_loopinvariants:
-  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
-  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
-  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
-  assumes STEP_REF:
-    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
-  shows "WHILEIT I b f x \<le>\<Down>{(a,b). (a,b) \<in> R \<and> I a \<and> I' b} (WHILEIT I' b' f' x')"
-  apply (subst (2) WHILEIT_add_post_condition)
-  apply (rule WHILEIT_refine)
-  subgoal using R0 IREF by blast
-  subgoal using IREF by blast
-  subgoal using COND_REF by blast
-  subgoal using STEP_REF apply auto
-    by (smt (verit, best) IREF in_pair_collect_simp inres_SPEC pw_ref_iff)
-  done
-
-
 lemma forward_subsumption_all_wl:
   assumes
     SS': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -2043,7 +2023,7 @@ proof -
     using assms by auto
 
   have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' Sa\<close>
-    if 
+    if
       \<open>forward_subsumption_all_pre S'\<close> and
       \<open>forward_subsumption_all_wl_pre S\<close> and
       \<open>(xs, xsa) \<in> Id\<close> and
@@ -2130,6 +2110,7 @@ lemma cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
 lemma rtranclp_cdcl_twl_inprocessing_l_dom_get_clauses_l_mono:
   \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<Longrightarrow> dom_m (get_clauses_l T) \<subseteq># dom_m (get_clauses_l S)\<close>
   by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_dom_get_clauses_l_mono)
+
 
 subsection \<open>Pure literal deletion\<close>
 
