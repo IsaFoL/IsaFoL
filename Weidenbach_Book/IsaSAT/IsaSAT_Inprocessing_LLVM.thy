@@ -3,6 +3,7 @@ theory IsaSAT_Inprocessing_LLVM
     IsaSAT_Restart_Inprocessing
     IsaSAT_Simplify_Units_LLVM
     IsaSAT_Simplify_Binaries_LLVM
+    IsaSAT_Simplify_Forward_Subsumption_LLVM
     IsaSAT_Simplify_Pure_Literals_LLVM
 begin
 
