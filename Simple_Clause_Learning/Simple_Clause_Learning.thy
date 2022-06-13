@@ -30,6 +30,9 @@ lemma set_filter_insert_conv:
   "{x \<in> insert y S. P x} = (if P y then insert y else id) {x \<in> S. P x}"
   by auto
 
+lemma not_empty_if_mem: "x \<in> X \<Longrightarrow> X \<noteq> {}"
+  by blast
+
 
 subsection \<open>Finite_Set_Extra\<close>
 
@@ -698,6 +701,24 @@ lemma mgu_same: "Unification.mgu t t = Some Var"
   unfolding unify_eq_Some_if_same[of "[(t, t)]" for t, simplified]
   by simp
 
+lemma ex_mgu_if_subst_eq_subst:
+  fixes t u :: "('f, 'v) Term.term" and \<sigma> :: "('f, 'v) subst"
+  assumes t_eq_u: "t \<cdot> \<sigma> = u \<cdot> \<sigma>"
+  shows "\<exists>\<mu> :: ('f, 'v) subst. Unification.mgu t u = Some \<mu>"
+proof -
+  from t_eq_u have "unifiers {(t, u)} \<noteq> {}"
+    unfolding unifiers_def by auto
+  then obtain xs :: "('v \<times> ('f, 'v) Term.term) list" where
+    unify: "unify [(t, u)] [] = Some xs"
+    using ex_unify_if_unifiers_not_empty[of "{(t, u)}" "[(t, u)]"] by auto
+
+  show ?thesis
+  proof (rule exI)
+    show "Unification.mgu t u = Some (subst_of xs)"
+      using unify by (simp add: Unification.mgu.simps)
+  qed
+qed
+
 subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 no_notation subst_apply_term (infixl "\<cdot>" 67)
@@ -1191,6 +1212,63 @@ lemma is_imgu_singleton_iff_Unifiers_is_imgu_Times:
 lemma unifiers_without_refl: "unifiers E = unifiers {e \<in> E. fst e \<noteq> snd e}"
   (is "?lhs = ?rhs")
   unfolding unifiers_def by fastforce
+
+definition adapt_subst_to_renaming where
+  "adapt_subst_to_renaming \<rho> \<sigma> x =
+    (if x \<in> the_Var ` \<rho> ` subst_domain \<sigma> then
+      \<sigma> (the_inv \<rho> (Var x))
+    else
+      Var x)"
+
+lemma subst_lit_renaming_subst_adapted:
+  assumes ren_\<rho>: "is_renaming \<rho>" and vars_L: "vars_lit L \<subseteq> subst_domain \<sigma>"
+  shows "L \<cdot>l \<rho> \<cdot>l adapt_subst_to_renaming \<rho> \<sigma> = L \<cdot>l \<sigma>"
+  unfolding subst_lit_comp_subst[symmetric]
+proof (intro same_on_vars_lit ballI)
+  fix x assume "x \<in> vars_lit L"
+  with vars_L have x_in: "x \<in> subst_domain \<sigma>"
+    by blast
+
+  obtain x' where \<rho>_x: "\<rho> x = Var x'"
+    using ren_\<rho>[unfolded is_renaming_iff]
+    by (meson is_Var_def)
+  with x_in have x'_in: "x' \<in> the_Var ` \<rho> ` subst_domain \<sigma>"
+    by (metis image_eqI term.sel(1))
+
+  have "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<rho> x \<cdot>a adapt_subst_to_renaming \<rho> \<sigma>"
+    by (simp add: subst_compose_def)
+  also have "... = adapt_subst_to_renaming \<rho> \<sigma> x'"
+    using \<rho>_x by simp
+  also have "... = \<sigma> (the_inv \<rho> (Var x'))"
+    by (simp add: adapt_subst_to_renaming_def if_P[OF x'_in])
+  also have "... = \<sigma> (the_inv \<rho> (\<rho> x))"
+    by (simp add: \<rho>_x)
+  also have "... = \<sigma> x"
+    using ren_\<rho>[unfolded is_renaming_iff]
+    by (simp add: the_inv_f_f)
+  finally show "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<sigma> x"
+    by simp
+qed
+
+lemma subst_renaming_subst_adapted:
+  assumes ren_\<rho>: "is_renaming \<rho>" and vars_D: "vars_cls D \<subseteq> subst_domain \<sigma>"
+  shows "D \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<sigma> = D \<cdot> \<sigma>"
+  unfolding subst_cls_comp_subst[symmetric]
+proof (intro same_on_lits_clause ballI)
+  fix L assume "L \<in># D"
+  with vars_D have "vars_lit L \<subseteq> subst_domain \<sigma>"
+    by (auto dest!: multi_member_split)
+  thus "L \<cdot>l (\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) = L \<cdot>l \<sigma>"
+    unfolding subst_lit_comp_subst
+    by (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>])
+qed
+
+lemma range_vars_eq_empty_if_is_ground:
+  "is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<Longrightarrow> range_vars \<gamma> = {}"
+  unfolding range_vars_def UNION_empty_conv subst_range.simps is_ground_cls_iff_vars_empty
+  by (metis (no_types, opaque_lifting) dual_order.eq_iff imageE is_ground_atm_iff_vars_empty
+      is_ground_cls_iff_vars_empty is_ground_cls_is_ground_on_var
+      vars_cls_subset_subst_domain_if_grounding)
 
 
 subsubsection \<open>Minimal, Idempotent Most General Unifier\<close>
@@ -1951,9 +2029,9 @@ definition scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Righta
   "scl N \<beta> S S' \<longleftrightarrow> propagate N \<beta> S S' \<or> decide N \<beta> S S' \<or> conflict N \<beta> S S' \<or> skip N \<beta> S S' \<or>
     factorize N \<beta> S S' \<or> resolve N \<beta> S S' \<or> backtrack N \<beta> S S'"
 
-text \<open>Note that, in contrast to Fiori and Weidenbach (CADE 2019), the set of clauses @{term N} is a
-parameter of the relation instead of being repeated twice in the state. This is to highlight the
-fact that it is a constant.\<close>
+text \<open>Note that, in contrast to Fiori and Weidenbach (CADE 2019), the set @{term N} of initial
+clauses and the ground atom @{term \<beta>} are parameters of the relation instead of being repeated twice
+in the states. This is to highlight the fact that they are constant.\<close>
 
 
 subsection \<open>Well-Defined\<close>
@@ -2055,6 +2133,63 @@ lemma backtrack_well_defined:
   by (auto elim!: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
           resolve.cases backtrack.cases
         simp: trail_decide_def trail_propagate_def)
+
+
+subsection \<open>Miscellaneous Lemmas\<close>
+
+lemma not_trail_false_ground_cls_if_no_conflict:
+  assumes
+    fin: "finite N" "finite (state_learned S)" and
+    no_conf: "\<nexists>S'. conflict N \<beta> S S'" and
+    could_conf: "state_conflict S = None" and
+    C_in: "C \<in> N \<union> state_learned S" and
+    gr_C_\<gamma>: "is_ground_cls (C \<cdot> \<gamma>)"
+  shows "\<not> trail_false_cls (state_trail S) (C \<cdot> \<gamma>)"
+proof (rule notI)
+  assume tr_false: "trail_false_cls (state_trail S) (C \<cdot> \<gamma>)"
+
+  from could_conf obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
+    by (metis prod_cases3 state_conflict_simp)
+
+  define \<rho> where
+    "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+
+  have C_\<rho>_adapt_\<gamma>_simp: "C \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<gamma> = C \<cdot> \<gamma>"
+  proof (rule subst_renaming_subst_adapted)
+    from fin show "is_renaming \<rho>"
+      unfolding \<rho>_def
+      using is_renaming_renaming_wrt
+      by (metis S_def finite_Un finite_clss_of_trail state_learned_simp)
+  next
+    from gr_C_\<gamma> show "vars_cls C \<subseteq> subst_domain \<gamma>"
+      by (rule vars_cls_subset_subst_domain_if_grounding)
+  qed
+
+  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U,
+    Some (C \<cdot> \<rho>, restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)))"
+  proof (rule conflictI[of C N U "C \<cdot> \<rho>" \<Gamma>
+        "restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)" \<beta>])
+    from C_in show "C \<in> N \<union> U"
+      by (simp add: S_def)
+  next
+    show "C \<cdot> \<rho> = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
+      by (simp add: \<rho>_def rename_clause_def)
+  next
+    show "subst_domain (restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)) \<subseteq>
+      vars_cls (C \<cdot> \<rho>)"
+      by (rule subst_domain_restrict_subst)
+  next
+    from gr_C_\<gamma> show "is_ground_cls (C \<cdot> \<rho> \<cdot> restrict_subst (vars_cls (C \<cdot> \<rho>))
+      (adapt_subst_to_renaming \<rho> \<gamma>))"
+      by (simp add: C_\<rho>_adapt_\<gamma>_simp subst_cls_restrict_subst_idem)
+  next
+    from tr_false show "trail_false_cls \<Gamma> (C \<cdot> \<rho> \<cdot> restrict_subst (vars_cls (C \<cdot> \<rho>))
+      (adapt_subst_to_renaming \<rho> \<gamma>))"
+      by (simp add: S_def C_\<rho>_adapt_\<gamma>_simp subst_cls_restrict_subst_idem)
+  qed
+  with no_conf show False
+    by (simp add: S_def)
+qed
 
 
 section \<open>Soundness\<close>

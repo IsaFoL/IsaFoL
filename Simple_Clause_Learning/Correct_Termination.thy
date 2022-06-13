@@ -13,59 +13,6 @@ proof -
   thus ?thesis by simp
 qed
 
-definition adapt_subst_to_renaming where
-  "adapt_subst_to_renaming \<rho> \<sigma> x =
-    (if x \<in> the_Var ` \<rho> ` subst_domain \<sigma> then
-      \<sigma> (the_inv \<rho> (Var x))
-    else
-      Var x)"
-
-lemma subst_lit_renaming_subst_adapted:
-  assumes ren_\<rho>: "is_renaming \<rho>" and vars_L: "vars_lit L \<subseteq> subst_domain \<sigma>"
-  shows "L \<cdot>l \<rho> \<cdot>l adapt_subst_to_renaming \<rho> \<sigma> = L \<cdot>l \<sigma>"
-  unfolding subst_lit_comp_subst[symmetric]
-proof (intro same_on_vars_lit ballI)
-  fix x assume "x \<in> vars_lit L"
-  with vars_L have x_in: "x \<in> subst_domain \<sigma>"
-    by blast
-
-  obtain x' where \<rho>_x: "\<rho> x = Var x'"
-    using ren_\<rho>[unfolded is_renaming_iff]
-    by (meson is_Var_def)
-  with x_in have x'_in: "x' \<in> the_Var ` \<rho> ` subst_domain \<sigma>"
-    by (metis image_eqI term.sel(1))
-
-  have "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<rho> x \<cdot>a adapt_subst_to_renaming \<rho> \<sigma>"
-    by (simp add: subst_compose_def)
-  also have "... = adapt_subst_to_renaming \<rho> \<sigma> x'"
-    using \<rho>_x by simp
-  also have "... = \<sigma> (the_inv \<rho> (Var x'))"
-    by (simp add: adapt_subst_to_renaming_def if_P[OF x'_in])
-  also have "... = \<sigma> (the_inv \<rho> (\<rho> x))"
-    by (simp add: \<rho>_x)
-  also have "... = \<sigma> x"
-    using ren_\<rho>[unfolded is_renaming_iff]
-    by (simp add: the_inv_f_f)
-  finally show "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<sigma> x"
-    by simp
-qed
-
-lemma subst_renaming_subst_adapted:
-  assumes ren_\<rho>: "is_renaming \<rho>" and vars_D: "vars_cls D \<subseteq> subst_domain \<sigma>"
-  shows "D \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<sigma> = D \<cdot> \<sigma>"
-  unfolding subst_cls_comp_subst[symmetric]
-proof (intro same_on_lits_clause ballI)
-  fix L assume "L \<in># D"
-  with vars_D have "vars_lit L \<subseteq> subst_domain \<sigma>"
-    by (auto dest!: multi_member_split)
-  thus "L \<cdot>l (\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) = L \<cdot>l \<sigma>"
-    unfolding subst_lit_comp_subst
-    by (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>])
-qed
-
-lemma not_empty_if_mem: "x \<in> X \<Longrightarrow> X \<noteq> {}"
-  by blast
-
 lemma propagate_if_conflict_follows_decide:
   assumes
     fin_N: "finite N" and fin_learned: "finite (state_learned S\<^sub>0)" and
@@ -106,65 +53,11 @@ proof -
   from D'_def ground_D'_\<sigma> tr_\<Gamma>_L_false_D' obtain \<sigma>' where
     "is_ground_cls (D \<cdot> \<sigma>')" and "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (D \<cdot> \<sigma>')"
     unfolding trail_decide_def by (metis rename_clause_def subst_cls_comp_subst)
-  moreover have
-    nex_false_grounding: "\<nexists>\<sigma>. is_ground_cls (D \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (D \<cdot> \<sigma>)"
-    unfolding not_ex de_Morgan_conj
-  proof (intro allI disj_not1[THEN iffD2] impI)
-    fix \<delta> assume "is_ground_cls (D \<cdot> \<delta>)"
-    hence "is_ground_cls (D \<cdot> restrict_subst (vars_cls D) \<delta>)"
-      unfolding subst_cls_restrict_subst_idem[OF subset_refl]
-      by assumption
-
-    have "D \<cdot> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) = D'"
-      by (rule D'_def[unfolded rename_clause_def clss_of_trail_trail_decide, symmetric])
-    hence "D' \<cdot> adapt_subst_to_renaming (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) \<sigma> = D \<cdot> \<sigma>"
-      if "is_ground_cls (D \<cdot> \<sigma>)" for \<sigma>
-      using vars_cls_subset_subst_domain_if_grounding[OF that]
-        subst_renaming_subst_adapted[OF is_renaming_wrt_N_U_\<Gamma>_L]
-      by auto
-    hence D'_adapt_conv: "D' \<cdot> adapt_subst_to_renaming (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>))
-      (restrict_subst (vars_cls D) \<delta>) = D \<cdot> \<delta>"
-      using \<open>is_ground_cls (D \<cdot> restrict_subst (vars_cls D) \<delta>)\<close>
-      by (simp add: subst_cls_restrict_subst_idem)
-
-    from no_conf have no_conf': "\<not> conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D', restrict_subst (vars_cls D')
-      (adapt_subst_to_renaming
-        (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>))
-        (restrict_subst (vars_cls D) \<delta>))))"
-      using S\<^sub>0_def clss_of_trail_trail_decide
-      by blast
-
-    thus "\<not> trail_false_cls \<Gamma> (D \<cdot> \<delta>)"
-    proof (rule contrapos_nn)
-      assume "trail_false_cls \<Gamma> (D \<cdot> \<delta>)"
-      show "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D', restrict_subst (vars_cls D')
-        (adapt_subst_to_renaming (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>))
-          (restrict_subst (vars_cls D) \<delta>))))"
-      proof (rule conflictI[OF D_in])
-        show "D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D"
-          unfolding rename_clause_def
-          unfolding \<open>D \<cdot> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) = D'\<close>
-          by (rule refl)
-      next
-        show "subst_domain (restrict_subst (vars_cls D') (adapt_subst_to_renaming
-         (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) (restrict_subst (vars_cls D) \<delta>))) \<subseteq> vars_cls D'"
-          by (rule subst_domain_restrict_subst)
-      next
-        show "is_ground_cls (D' \<cdot> restrict_subst (vars_cls D') (adapt_subst_to_renaming
-          (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) (restrict_subst (vars_cls D) \<delta>)))"
-          using D'_adapt_conv \<open>is_ground_cls (D \<cdot> \<delta>)\<close>
-          by (simp add: subst_cls_restrict_subst_idem)
-      next
-        from \<open>trail_false_cls \<Gamma> (D \<cdot> \<delta>)\<close>
-        show "trail_false_cls \<Gamma> (D' \<cdot> restrict_subst (vars_cls D') (adapt_subst_to_renaming
-          (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) (restrict_subst (vars_cls D) \<delta>)))"
-          using D'_adapt_conv
-          by (simp add: subst_cls_restrict_subst_idem)
-      qed
-    qed
-  qed
+  moreover hence "\<not> trail_false_cls \<Gamma> (D \<cdot> \<sigma>')"
+    using not_trail_false_ground_cls_if_no_conflict[OF fin_N fin_learned no_conf]
+    using D_in by (simp add: S\<^sub>0_def)
   ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<sigma>'"
-    using subtrail_falseI by blast
+    using subtrail_falseI by metis
   then obtain D'' L' where D_def: "D = add_mset L' D''" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'"
     by (meson Melem_subst_cls multi_member_split)
 
@@ -211,9 +104,9 @@ proof -
   have not_false_if_grounding:
     "is_ground_cls (add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>) \<Longrightarrow>
       \<not> trail_false_cls \<Gamma> (add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>)" for \<sigma>
-    using nex_false_grounding[simplified, rule_format, of "\<rho> \<odot> _", simplified]
-    unfolding 1[unfolded rename_clause_def, folded \<rho>_def, symmetric]
-    by simp
+    using not_trail_false_ground_cls_if_no_conflict[OF fin_N fin_learned no_conf, unfolded S\<^sub>0_def,
+        of "add_mset L' D''" "\<rho> \<odot> \<sigma>", simplified]
+    using D_def D_in by auto
 
   have "L' \<cdot>l \<rho> \<cdot>l \<sigma>''' = L' \<cdot>l \<rho> \<cdot>l \<sigma>''"
     unfolding \<sigma>'''_def
@@ -379,31 +272,6 @@ proof -
     using propagateI[OF D_in 1 2 3 refl refl 4 5 6 refl 7]
     unfolding S\<^sub>0_def by blast
 qed
-
-lemma ex_mgu_if_subst_eq_subst:
-  assumes "t \<cdot>a \<sigma> = u \<cdot>a \<sigma>"
-  shows "\<exists>\<mu>. Unification.mgu t u = Some \<mu>"
-proof -
-  from assms have "unifiers {(t, u)} \<noteq> {}"
-    unfolding unifiers_def by auto
-  then obtain xs where unify: "unify [(t, u)] [] = Some xs"
-    using ex_unify_if_unifiers_not_empty[of "{(t, u)}" "[(t, u)]"]
-    by auto
-
-  show ?thesis
-  proof (rule exI)
-    show "Unification.mgu t u = Some (subst_of xs)"
-      using unify
-      by (simp add: Unification.mgu.simps)
-  qed
-qed
-
-lemma range_vars_eq_empty_if_is_ground:
-  "is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<Longrightarrow> range_vars \<gamma> = {}"
-  unfolding range_vars_def UNION_empty_conv subst_range.simps is_ground_cls_iff_vars_empty
-  by (metis (no_types, opaque_lifting) dual_order.eq_iff imageE is_ground_atm_iff_vars_empty
-      is_ground_cls_iff_vars_empty is_ground_cls_is_ground_on_var
-      vars_cls_subset_subst_domain_if_grounding)
 
 definition trail_propagated_wf where
   "trail_propagated_wf \<Gamma> \<longleftrightarrow> (\<forall>(L\<^sub>\<gamma>, n) \<in> set \<Gamma>.
