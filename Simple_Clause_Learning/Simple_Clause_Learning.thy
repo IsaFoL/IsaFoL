@@ -702,6 +702,67 @@ proof -
   qed
 qed
 
+definition restrict_subst where
+  "restrict_subst V \<sigma> x \<equiv> (if x \<in> V then \<sigma> x else Var x)"
+
+lemma restrict_subst_empty[simp]: "restrict_subst {} \<sigma> = Var"
+  unfolding restrict_subst_def by auto
+
+lemma restrict_subst_Var[simp]: "restrict_subst V Var = Var"
+  unfolding restrict_subst_def by auto
+
+lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) \<subseteq> V"
+  unfolding restrict_subst_def subst_domain_def
+  by auto
+
+lemma subst_restrict_subst_idem: "vars_term t \<subseteq> V \<Longrightarrow> t \<cdot> restrict_subst V \<sigma> = t \<cdot> \<sigma>"
+  by (rule term_subst_eq) (simp add: restrict_subst_def subsetD)
+
+lemma ex_mgu_if_subst_eq_subst_and_disj_vars:
+  fixes t u :: "('f, 'v) Term.term" and \<sigma>\<^sub>t \<sigma>\<^sub>u :: "('f, 'v) subst"
+  assumes
+    subst_eq_subst: "t \<cdot> \<sigma>\<^sub>t = u \<cdot> \<sigma>\<^sub>u" and
+    disj_vars: "vars_term t \<inter> vars_term u = {}" and
+    codom_\<sigma>\<^sub>t_inter_dom_\<sigma>\<^sub>u: "(\<Union>x \<in> vars_term t. if \<sigma>\<^sub>t x = Var x then {} else vars_term (\<sigma>\<^sub>t x)) \<inter>
+      {x \<in> vars_term u. \<sigma>\<^sub>u x \<noteq> Var x} = {}"
+  shows "\<exists>\<mu> :: ('f, 'v) subst. Unification.mgu t u = Some \<mu>"
+proof -
+  have
+    "t \<cdot> restrict_subst (vars_term t) \<sigma>\<^sub>t \<cdot> restrict_subst (vars_term u) \<sigma>\<^sub>u =
+     u \<cdot> restrict_subst (vars_term t) \<sigma>\<^sub>t \<cdot> restrict_subst (vars_term u) \<sigma>\<^sub>u"
+  proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI(1))
+    show "t \<cdot> restrict_subst (vars_term t) \<sigma>\<^sub>t = u \<cdot> restrict_subst (vars_term u) \<sigma>\<^sub>u"
+      using subst_eq_subst by (simp add: subst_restrict_subst_idem)
+  next
+    show "vars_term t \<inter> subst_domain (restrict_subst (vars_term u) \<sigma>\<^sub>u) = {}"
+      using disj_vars subst_domain_restrict_subst by fastforce
+  next
+    show "vars_term u \<inter> subst_domain (restrict_subst (vars_term t) \<sigma>\<^sub>t) = {}"
+      using disj_vars subst_domain_restrict_subst by fastforce
+  next
+    have 1: "(x \<in> vars_term t \<longrightarrow> \<sigma>\<^sub>t x \<noteq> Var x) \<and> x \<in> vars_term t \<longleftrightarrow> x \<in> vars_term t \<and> \<sigma>\<^sub>t x \<noteq> Var x" for x t \<sigma>\<^sub>t
+      by fast
+    have 2: "{x \<in> vars_term t. \<sigma>\<^sub>t x \<noteq> Var x} \<inter> vars_term t = {x \<in> vars_term t. \<sigma>\<^sub>t x \<noteq> Var x}"
+      by fast
+    have 3: "{x \<in> vars_term t. \<sigma>\<^sub>t x \<noteq> Var x} \<inter> {x. x \<notin> vars_term t} = {}"
+      by fast
+
+    have "range_vars (restrict_subst (vars_term t) \<sigma>\<^sub>t) =
+      (\<Union>x\<in>vars_term t. if \<sigma>\<^sub>t x = Var x then {} else vars_term (\<sigma>\<^sub>t x))"
+      unfolding range_vars_def subst_range.simps subst_domain_def restrict_subst_def
+      by auto
+    moreover have "subst_domain (restrict_subst (vars_term u) \<sigma>\<^sub>u) = {x \<in> vars_term u. \<sigma>\<^sub>u x \<noteq> Var x}"
+      unfolding subst_domain_def restrict_subst_def
+      by auto
+    ultimately show "range_vars (restrict_subst (vars_term t) \<sigma>\<^sub>t) \<inter>
+      subst_domain (restrict_subst (vars_term u) \<sigma>\<^sub>u) = {}"
+      using codom_\<sigma>\<^sub>t_inter_dom_\<sigma>\<^sub>u by simp
+  qed
+  thus ?thesis
+    using ex_mgu_if_subst_eq_subst by (metis subst_subst_compose)
+qed
+
+
 subsubsection \<open>First_Order_Terms And Abstract_Substitution\<close>
 
 no_notation subst_apply_term (infixl "\<cdot>" 67)
@@ -1101,22 +1162,6 @@ lemma subst_cls_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_cls C = 
 
 lemma subst_lit_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_lit L = {} \<Longrightarrow> L \<cdot>l \<sigma> = L"
   by (rule subst_cls_idem_if_disj_vars[of _ "{#L#}", simplified])
-
-definition restrict_subst where
-  "restrict_subst V \<sigma> x \<equiv> (if x \<in> V then \<sigma> x else Var x)"
-
-lemma restrict_subst_empty[simp]: "restrict_subst {} \<sigma> = Var"
-  unfolding restrict_subst_def by auto
-
-lemma restrict_subst_Var[simp]: "restrict_subst V Var = Var"
-  unfolding restrict_subst_def by auto
-
-lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) \<subseteq> V"
-  unfolding restrict_subst_def subst_domain_def
-  by auto
-
-lemma subst_restrict_subst_idem: "vars_term t \<subseteq> V \<Longrightarrow> t \<cdot>a restrict_subst V \<sigma> = t \<cdot>a \<sigma>"
-  by (rule term_subst_eq) (simp add: restrict_subst_def subsetD)
 
 lemma subst_lit_restrict_subst_idem: "vars_lit L \<subseteq> V \<Longrightarrow> L \<cdot>l restrict_subst V \<sigma> = L \<cdot>l \<sigma>"
   by (simp add: restrict_subst_def same_on_vars_lit subsetD)
