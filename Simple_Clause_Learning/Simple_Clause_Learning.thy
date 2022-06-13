@@ -8,7 +8,6 @@ theory Simple_Clause_Learning
     Ordered_Resolution_Prover.Herbrand_Interpretation
     First_Order_Terms.Unification
     First_Order_Terms.Subsumption
-    Open_Induction.Restricted_Predicates
     Abstract_Renaming_Apart
     Relation_Extra
 begin
@@ -127,20 +126,6 @@ proof -
 qed
 
 
-subsection \<open>Restricted_Predicates_Extra\<close>
-
-lemma total_on_conv:
-  shows "Restricted_Predicates.total_on R S \<longleftrightarrow> (\<forall>x \<in> S. \<forall>y \<in> S. x \<noteq> y \<longrightarrow> R x y \<or> R y x)"
-  by (metis Restricted_Predicates.total_on_def)
-
-lemma total_on_unionD:
-  assumes "Restricted_Predicates.total_on R (S1 \<union> S2)"
-  shows
-    total_on_unionD1: "Restricted_Predicates.total_on R S1" and
-    total_on_unionD2: "Restricted_Predicates.total_on R S2"
-  by (metis Un_iff assms total_on_conv)+
-
-
 subsection \<open>Multiset_Extra\<close>
 
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
@@ -257,8 +242,6 @@ lemma ex_unify_if_unifiers_not_empty:
 
 lemma atm_of_eq_uminus_if_lit_eq: "L = - K \<Longrightarrow> atm_of L = atm_of K"
   by (cases L; cases K) simp_all
-
-term subst_domain
 
 lemma mem_range_varsI:
   assumes "\<sigma> x = Var y" "x \<noteq> y"
