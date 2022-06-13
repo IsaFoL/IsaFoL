@@ -138,13 +138,6 @@ lemma image_mset_mset_set_minus_multI:
       THEN Multiset.subset_mset.diff_add[of "mset_set T" "mset_set S"]]
   by (meson assms finite_subset mset_set_empty_iff)
 
-lemma Bex_mset_set[simp]:
-  assumes "finite S"
-  shows "(\<exists>x \<in># mset_set S. P x) = (\<exists>x \<in> S. P x)"
-  (is "?lhs = ?rhs")
-  using elem_mset_set[OF assms]
-  by blast
-
 lemma image_mset_mset_set_insert_minus_multI:
   assumes
     fin_S: "finite S" and
@@ -178,8 +171,8 @@ next
     unfolding mset_S_conv image_mset_union
     apply (rule Multiset.one_step_implies_mult)
      apply (meson T_neq_empty T_subseteq_S fin_S image_mset_is_empty_iff infinite_super mset_set_empty_iff)
-    using Bex_x_less
-    by (simp add: Bex_mset_set[OF fin_T])
+    using Bex_x_less fin_T
+    by simp
 qed
 
 lemma Multiset_equalityI: "A \<subseteq># B \<Longrightarrow> B \<subseteq># A \<Longrightarrow> A = B"
@@ -191,35 +184,331 @@ lemma
   using assms
   by (metis (mono_tags, lifting) UnCI inj_onD multiset.inj_map_strong)
 
-(* lemma image_mset_comp_mset_set_eq_image_mset_comp_mset_setI:
-  assumes f_A_eq_g_B: "f ` A = g ` B" and
-    "\<forall>a \<in> A. f' (conv a) = conv (f a)" and
-    "\<forall>b \<in> B. g' (conv b) = conv (g b)" (* and
-    "inj_on f A" and "inj_on g B" *)
-  shows "image_mset (f' o conv) (mset_set A) = image_mset (g' o conv) (mset_set B)"
-  (is "?lhs = ?rhs")
-proof -
-  have i: "image_mset (f' \<circ> conv) (mset_set A) = image_mset (conv \<circ> f) (mset_set A)"
-    apply (rule multiset.map_cong0)
-    using assms(2)
-    by (metis comp_apply empty_iff finite_set_mset_mset_set infinite_set_mset_mset_set)
 
-  have ii: "image_mset (g' \<circ> conv) (mset_set B) = image_mset (conv \<circ> g) (mset_set B)"
-    apply (rule multiset.map_cong0)
-    using assms(3)
-    by (metis comp_apply empty_iff finite_set_mset_mset_set infinite_set_mset_mset_set)
+
+lemma image_mset_eq_plusD:
+  "image_mset f M1 = M2 + M3 \<Longrightarrow>
+    \<exists>M2' M3'. M1 = M2' + M3' \<and> M2 = image_mset f M2' \<and> M3 = image_mset f M3'"
+proof (induction M1 arbitrary: M2 M3)
+  case empty
+  thus ?case by simp
+next
+  case (add x M1)
+  show ?case
+  proof (cases "f x \<in># M2")
+    case True
+    with add.prems have "image_mset f M1 = (M2 - {#f x#}) + M3"
+      by (metis add_mset_remove_trivial image_mset_add_mset mset_subset_eq_single
+          subset_mset.add_diff_assoc2)
+    thus ?thesis
+      using add.IH add.prems by force
+  next
+    case False
+    with add.prems have "image_mset f M1 = M2 + (M3 - {#f x#})"
+      by (metis diff_single_eq_union diff_union_single_conv image_mset_add_mset union_iff
+          union_single_eq_member)
+    then show ?thesis
+      using add.IH add.prems by force
+  qed
+qed
+
+lemma image_mset_eq_image_mset_plusD:
+  assumes inj_f: "inj_on f (set_mset M1 \<union> set_mset M2)"
+  shows "image_mset f M1 = image_mset f M2 + M3 \<Longrightarrow>
+    \<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3"
+  using inj_f
+proof (induction M1 arbitrary: M2 M3)
+  case empty
+  thus ?case by simp
+next
+  case (add x M1)
+  show ?case
+  proof (cases "x \<in># M2")
+    case True
+    with add.prems have "image_mset f M1 = image_mset f (M2 - {#x#}) + M3"
+      by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
+          diff_union_single_conv image_mset_union union_mset_add_mset_left
+          union_mset_add_mset_right)
+    with add.IH have "\<exists>M3'. M1 = M2 - {#x#} + M3' \<and> image_mset f M3' = M3"
+      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
+          insert_DiffM set_mset_add_mset_insert)
+    with True show ?thesis
+      by auto
+  next
+    case False
+    with add.prems(2) have "f x \<notin># image_mset f M2"
+      by auto
+    with add.prems(1) have "image_mset f M1 = image_mset f M2 + (M3 - {#f x#})"
+      by (metis (no_types, lifting) diff_union_single_conv image_eqI image_mset_Diff
+          image_mset_single mset_subset_eq_single set_image_mset union_iff union_single_eq_diff
+          union_single_eq_member)
+    with add.prems(2) add.IH have "\<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3 - {#f x#}"
+      by auto
+    then show ?thesis
+      by (metis add.prems(1) add_diff_cancel_left' image_mset_Diff mset_subset_eq_add_left
+          union_mset_add_mset_right)
+  qed
+qed
+
+lemma monotone_list_all2_list_all2_map:
+  assumes "monotone R S f"
+  shows "monotone (list_all2 R) (list_all2 S) (map f)"
+proof (rule monotoneI)
+  fix xs ys assume "list_all2 R xs ys"
+  thus "list_all2 S (map f xs) (map f ys)"
+    unfolding list.rel_map
+  proof (rule list.rel_mono_strong)
+    fix x y assume "x \<in> set xs" and "y \<in> set ys" and "R x y"
+    from \<open>R x y\<close> show "S (f x) (f y)"
+      by (rule \<open>monotone R S f\<close>[THEN monotoneD])
+  qed
+qed
+
+lemma monotone_rel_mset_rel_mset_image_mset:
+  assumes "monotone R S f"
+  shows "monotone (rel_mset R) (rel_mset S) (image_mset f)"
+proof (rule monotoneI)
+  fix A B assume "rel_mset R A B"
+  thus "rel_mset S (image_mset f A) (image_mset f B)"
+    unfolding multiset.rel_map
+  proof (rule multiset.rel_mono_strong)
+    fix a b assume "a \<in># A" and "b \<in># B" and "R a b"
+    from \<open>R a b\<close> show "S (f a) (f b)"
+      by (rule \<open>monotone R S f\<close>[THEN monotoneD])
+  qed
+qed
+
+lemma monotone_multp_multp_image_mset:
+  assumes "monotone R S f" and "transp R"
+  shows "monotone (multp R) (multp S) (image_mset f)"
+proof (rule monotoneI)
+  fix M1 M2 assume "multp R M1 M2"
+  with multp_implies_one_step[OF \<open>transp R\<close>] obtain I J K where
+    M2_eq: "M2 = I + J" and
+    M1_eq: "M1 = I + K" and
+    J_neq_mempty: "J \<noteq> {#}" and
+    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    by metis
+
+  have "multp S (image_mset f I + image_mset f K) (image_mset f I + image_mset f J)"
+  proof (rule one_step_implies_multp)
+    show "image_mset f J \<noteq> {#}"
+      using J_neq_mempty by simp
+  next
+    show "\<forall>k\<in>#image_mset f K. \<exists>j\<in>#image_mset f J. S k j"
+      using \<open>monotone R S f\<close>[THEN monotoneD] ball_K_less by fastforce
+  qed
+  thus "multp S (image_mset f M1) (image_mset f M2)"
+    by (simp add: M1_eq M2_eq)
+qed
+
+lemma multp_image_msetD1:
+  assumes "multp R (image_mset f A) B" and "transp R" and "Relation.reflp_on (set_mset B) R"
+  shows "multp (\<lambda>x. R (f x)) A B"
+proof -
+  obtain I J K where
+    B_def: "B = I + J" and "image_mset f A = I + K" and "J \<noteq> {#}" and "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R (image_mset f A) B\<close>] by metis
+  then obtain I' K' where
+    A_def: "A = I' + K'" and I_def: "I = image_mset f I'" and K_def: "K = image_mset f K'"
+    using image_mset_eq_plusD by metis
+
+  show "multp (\<lambda>x. R (f x)) A B"
+  proof (rule one_step_implies_multp[of _ _ _ "{#}", simplified])
+    show "B \<noteq> {#}"
+      using \<open>J \<noteq> {#}\<close> by (simp add: B_def)
+  next
+    show "\<forall>k\<in>#A. \<exists>j\<in>#B. R (f k) j"
+    proof (rule ballI)
+      fix a assume "a \<in># A"
+      hence "a \<in># I' \<or> a \<in># K'"
+        by (simp add: A_def)
+      thus "\<exists>j\<in>#B. R (f a) j"
+      proof (rule disjE)
+        assume "a \<in># I'"
+        have "f a \<in># B"
+          using \<open>a \<in># I'\<close> by (simp add: B_def I_def)
+        show ?thesis
+        proof (rule bexI)
+          show "R (f a) (f a)"
+            using \<open>f a \<in># B\<close>
+            by (rule \<open>Relation.reflp_on (set_mset B) R\<close>[THEN reflp_onD])
+        next
+          show "f a \<in># B"
+            by (rule \<open>f a \<in># B\<close>)
+        qed
+      next
+        assume "a \<in># K'"
+        thus ?thesis
+          using B_def K_def \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> by auto
+      qed
+    qed
+  qed
+qed
+
+lemma multp_image_msetD2:
+  assumes "multp R A (image_mset f B)" and "transp R" and "Relation.reflp_on (set_mset A) R"
+  shows "multp (\<lambda>x y. R x (f y)) A B"
+proof -
+  obtain I J K where
+    A_def: "A = I + K" and "image_mset f B = I + J" and "J \<noteq> {#}" and "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R A (image_mset f B)\<close>] by metis
+  then obtain I' J' where
+    B_def: "B = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
+    using image_mset_eq_plusD by metis
+
+  show "multp (\<lambda>x y. R x (f y)) A B"
+  proof (rule one_step_implies_multp[of _ _ _ "{#}", simplified])
+    show "B \<noteq> {#}"
+      using \<open>J \<noteq> {#}\<close> by (simp add: B_def J_def)
+  next
+    show "\<forall>k\<in>#A. \<exists>j\<in>#B. R k (f j)"
+    proof (rule ballI)
+      fix a assume "a \<in># A"
+      hence "a \<in># I \<or> a \<in># K"
+        by (simp add: A_def)
+      thus "\<exists>j\<in>#B. R a (f j)"
+      proof (rule disjE)
+        assume "a \<in># I"
+        then obtain a' where "a' \<in># I'" and "a = f a'"
+          unfolding I_def by blast
+        hence "a' \<in># B"
+          by (simp add: B_def)
+        show ?thesis
+        proof (rule bexI)
+          show "a' \<in># B"
+            using \<open>a' \<in># I'\<close> by (simp add: B_def)
+        next
+          from assms(3) show "R a (f a')"
+            using \<open>a = f a'\<close> \<open>a \<in># A\<close> reflp_onD by fastforce
+        qed
+      next
+        assume "a \<in># K"
+        thus ?thesis
+          by (metis \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> \<open>image_mset f B = I + J\<close> image_mset_thm union_iff)
+      qed
+    qed
+  qed
+qed
+
+lemma multp_image_mset_image_msetD:
+  assumes
+    multp_f_A_f_B: "multp R (image_mset f A) (image_mset f B)" and
+    "transp R" and
+    inj_on_f: "inj_on f (set_mset A \<union> set_mset B)"
+  shows "multp (\<lambda>x y. R (f x) (f y)) A B"
+proof -
+  from multp_implies_one_step[OF \<open>transp R\<close> multp_f_A_f_B] obtain I J K where
+    f_B_eq: "image_mset f B = I + J" and
+    f_A_eq: "image_mset f A = I + K" and
+    J_neq_mempty: "J \<noteq> {#}" and
+    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    by auto
+
+  from f_B_eq obtain I' J' where
+    B_def: "B = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
+    using image_mset_eq_plusD by blast
+
+  from inj_on_f have inj_on_f': "inj_on f (set_mset A \<union> set_mset I')"
+    by (rule inj_on_subset) (auto simp add: B_def)
+
+  from f_A_eq obtain K' where
+    A_def: "A = I' + K'" and K_def: "K = image_mset f K'"
+    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF inj_on_f'])
 
   show ?thesis
-  proof (rule Multiset_equalityI; rule mset_subset_eqI)
-    show "\<And>a. count ?lhs a \<le> count ?rhs a"
-      unfolding i ii
-      unfolding multiset.map_comp[symmetric]
-      using f_A_eq_g_B
-      sledgehammer [timeout = 60, verbose] (del: assms(2,3))
-    (* unfolding image_mset_mset_set[OF \<open>inj_on f A\<close>] image_mset_mset_set[OF \<open>inj_on g B\<close>] *)
-    unfolding f_A_eq_g_B
-    by blast
-qed *)
+    unfolding A_def B_def
+  proof (intro one_step_implies_multp ballI)
+    from J_neq_mempty show "J' \<noteq> {#}"
+      by (simp add: J_def)
+  next
+    fix k assume "k \<in># K'"
+    with ball_K_less obtain j' where "j' \<in># J" and "R (f k) j'"
+      using K_def by auto
+    moreover then obtain j where "j \<in># J'" and "f j = j'"
+      using J_def by auto
+    ultimately show "\<exists>j\<in>#J'. R (f k) (f j)"
+      by blast
+  qed
+qed
+
+lemma multp_image_mset_image_msetD_strong:
+  assumes
+    transp_R: "transp R" and
+    converse_mono_wrt_f_R:
+      "\<forall>t \<in> set_mset M1. \<forall>u \<in> set_mset M2. R (f t) (f u) \<longrightarrow> S t u" and
+    inj_on_f: "inj_on f (set_mset M1 \<union> set_mset M2)" and
+    multp_f_M1_f_M2: "multp R (image_mset f M1) (image_mset f M2)"
+  shows "multp S M1 M2"
+proof -
+  from multp_implies_one_step[OF transp_R multp_f_M1_f_M2] obtain I J K where
+    f_M2_eq: "image_mset f M2 = I + J" and
+    f_M1_eq: "image_mset f M1 = I + K" and
+    J_neq_mempty: "J \<noteq> {#}" and
+    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
+    by auto
+
+  from f_M2_eq obtain I' J' where
+    M2_def: "M2 = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
+    using image_mset_eq_plusD by blast
+
+  from inj_on_f have inj_on_f': "inj_on f (set_mset M1 \<union> set_mset I')"
+    by (rule inj_on_subset) (auto simp add: M2_def)
+
+  from f_M1_eq obtain K' where
+    M1_def: "M1 = I' + K'" and K_def: "K = image_mset f K'"
+    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF inj_on_f'])
+
+  show ?thesis
+    unfolding M1_def M2_def
+  proof (intro one_step_implies_multp ballI)
+    from J_neq_mempty show "J' \<noteq> {#}"
+      by (simp add: J_def)
+  next
+    fix k assume "k \<in># K'"
+    with ball_K_less obtain j' where "j' \<in># J" and "R (f k) j'"
+      using K_def by auto
+    then obtain j where "j \<in># J'" and "f j = j'"
+      using J_def by auto
+    show "\<exists>j\<in>#J'. S k j"
+    proof (rule bexI)
+      show "j \<in># J'"
+        by (rule \<open>j \<in># J'\<close>)
+    next
+      show "S k j"
+        using converse_mono_wrt_f_R[rule_format, of k j]
+        by (simp add: M1_def M2_def \<open>R (f k) j'\<close> \<open>f j = j'\<close> \<open>j \<in># J'\<close> \<open>k \<in># K'\<close>)
+    qed
+  qed
+qed
+
+lemma multp_iff_mult: "multp (\<lambda>x y. (x, y) \<in> r) x y \<longleftrightarrow> (x, y) \<in> mult r"
+  by (simp add: multp_def)
+
+lemma mult_iff_multp: "(x, y) \<in> mult {(x, y). R x y} \<longleftrightarrow> multp R x y"
+  by (simp add: multp_def)
+
+lemma image_mset_image_mset_mem_multD:
+  assumes
+    "trans r" and
+    "\<forall>t \<in> set_mset M1. \<forall>u \<in> set_mset M2. (f t, f u) \<in> r \<longrightarrow> (t, u) \<in> s" and
+    "inj_on f (set_mset M1 \<union> set_mset M2)" and
+    "(image_mset f M1, image_mset f M2) \<in> mult r"
+  shows "(M1, M2) \<in> mult s"
+proof (rule multp_image_mset_image_msetD_strong[of _ _ _ _ "\<lambda>x y. (x, y) \<in> s",
+        unfolded multp_iff_mult])
+  from assms(1) show "transp (\<lambda>x y. (x, y) \<in> r)"
+    by (simp add: transp_trans_eq)
+next
+  from assms(2) show "\<forall>t\<in>#M1. \<forall>u\<in>#M2. (f t, f u) \<in> r \<longrightarrow> (t, u) \<in> s"
+    by simp
+next
+  from assms(3) show "inj_on f (set_mset M1 \<union> set_mset M2)"
+    by assumption
+next
+  from assms(4) show "multp (\<lambda>x y. (x, y) \<in> r) (image_mset f M1) (image_mset f M2)"
+    by (simp add: multp_iff_mult)
+qed
 
 
 subsection \<open>Generic definitions and associated lemmas\<close>
@@ -2782,132 +3071,6 @@ next
     using vars_of_subst_lit
     by (smt (z3) DiffI UN_iff Un_iff mem_Collect_eq subst.simps(1) subst_cl.simps vars_of_cl.simps)
 qed
-
-lemma image_mset_eq_plusD:
-  "image_mset f M1 = M2 + M3 \<Longrightarrow>
-    \<exists>M2' M3'. M1 = M2' + M3' \<and> image_mset f M2' = M2 \<and> image_mset f M3' = M3"
-proof (induction M1 arbitrary: M2 M3)
-  case empty
-  thus ?case by simp
-next
-  case (add x M1)
-  show ?case
-  proof (cases "f x \<in># M2")
-    case True
-    with add.prems have "image_mset f M1 = (M2 - {#f x#}) + M3"
-      by (metis add_mset_remove_trivial image_mset_add_mset mset_subset_eq_single
-          subset_mset.add_diff_assoc2)
-    thus ?thesis
-      using add.IH add.prems by force
-  next
-    case False
-    with add.prems have "image_mset f M1 = M2 + (M3 - {#f x#})"
-      by (metis diff_single_eq_union diff_union_single_conv image_mset_add_mset union_iff
-          union_single_eq_member)
-    then show ?thesis
-      using add.IH add.prems by force
-  qed
-qed
-
-lemma image_mset_eq_image_mset_plusD:
-  assumes inj_f: "inj_on f (set_mset M1 \<union> set_mset M2)"
-  shows "image_mset f M1 = image_mset f M2 + M3 \<Longrightarrow>
-    \<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3"
-  using inj_f
-proof (induction M1 arbitrary: M2 M3)
-  case empty
-  thus ?case by simp
-next
-  case (add x M1)
-  show ?case
-  proof (cases "x \<in># M2")
-    case True
-    with add.prems have "image_mset f M1 = image_mset f (M2 - {#x#}) + M3"
-      by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
-          diff_union_single_conv image_mset_union union_mset_add_mset_left
-          union_mset_add_mset_right)
-    with add.IH have "\<exists>M3'. M1 = M2 - {#x#} + M3' \<and> image_mset f M3' = M3"
-      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
-          insert_DiffM set_mset_add_mset_insert)
-    with True show ?thesis
-      by auto
-  next
-    case False
-    with add.prems(2) have "f x \<notin># image_mset f M2"
-      by auto
-    with add.prems(1) have "image_mset f M1 = image_mset f M2 + (M3 - {#f x#})"
-      by (metis (no_types, lifting) diff_union_single_conv image_eqI image_mset_Diff
-          image_mset_single mset_subset_eq_single set_image_mset union_iff union_single_eq_diff
-          union_single_eq_member)
-    with add.prems(2) add.IH have "\<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3 - {#f x#}"
-      by auto
-    then show ?thesis
-      by (metis add.prems(1) add_diff_cancel_left' image_mset_Diff mset_subset_eq_add_left
-          union_mset_add_mset_right)
-  qed
-qed
-
-lemma multp_image_mset_image_msetD:
-  assumes
-    transp_R: "transp R" and
-    converse_mono_wrt_f_R:
-      "\<forall>t \<in> set_mset M1 \<union> set_mset M2. \<forall>u \<in> set_mset M1 \<union> set_mset M2. R (f t) (f u) \<longrightarrow> R t u" and
-    inj_on_f: "inj_on f (set_mset M1 \<union> set_mset M2)" and
-    multp_f_M1_f_M2: "multp R (image_mset f M1) (image_mset f M2)"
-  shows "multp R M1 M2"
-proof -
-  from multp_implies_one_step[OF transp_R multp_f_M1_f_M2] obtain I J K where
-    f_M2_eq: "image_mset f M2 = I + J" and
-    f_M1_eq: "image_mset f M1 = I + K" and
-    J_neq_mempty: "J \<noteq> {#}" and
-    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
-    by auto
-
-  from f_M2_eq obtain I' J' where
-    M2_def: "M2 = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
-    using image_mset_eq_plusD by blast
-
-  from inj_on_f have inj_on_f': "inj_on f (set_mset M1 \<union> set_mset I')"
-    by (rule inj_on_subset) (auto simp add: M2_def)
-
-  from f_M1_eq obtain K' where
-    M1_def: "M1 = I' + K'" and K_def: "K = image_mset f K'"
-    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF inj_on_f'])
-
-  show ?thesis
-    unfolding M1_def M2_def
-  proof (intro one_step_implies_multp ballI)
-    from J_neq_mempty show "J' \<noteq> {#}"
-      by (simp add: J_def)
-  next
-    fix k assume "k \<in># K'"
-    with ball_K_less obtain j' where "j' \<in># J" and "R (f k) j'"
-      using K_def by auto
-    then obtain j where "j \<in># J'" and "f j = j'"
-      using J_def by auto
-    show "\<exists>j\<in>#J'. R k j"
-    proof (rule bexI)
-      show "j \<in># J'"
-        by (rule \<open>j \<in># J'\<close>)
-    next
-      show "R k j"
-        using converse_mono_wrt_f_R[rule_format, of k j]
-        by (simp add: M1_def M2_def \<open>R (f k) j'\<close> \<open>f j = j'\<close> \<open>j \<in># J'\<close> \<open>k \<in># K'\<close>)
-    qed
-  qed
-qed
-
-lemma image_mset_image_mset_mem_multD:
-  assumes
-    "trans r" and
-    converse_mono_wrt_f_R:
-      "\<forall>t \<in> set_mset M1 \<union> set_mset M2. \<forall>u \<in> set_mset M1 \<union> set_mset M2.
-        (f t, f u) \<in> r \<longrightarrow> (t, u) \<in> r" and
-    "inj_on f (set_mset M1 \<union> set_mset M2)"
-  shows "(image_mset f M1, image_mset f M2) \<in> mult r \<Longrightarrow> (M1, M2) \<in> mult r"
-  using assms multp_image_mset_image_msetD[of "\<lambda>x y. (x, y) \<in> r" for r,
-      unfolded transp_def multp_def, folded trans_def, simplified]
-  by blast
 
 lemma subst_lit_renaming_ord_iff:
   assumes ren_\<rho>: "renaming \<rho> (vars_of_lit L \<union> vars_of_lit K)"
