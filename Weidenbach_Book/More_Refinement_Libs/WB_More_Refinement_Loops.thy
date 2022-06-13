@@ -892,6 +892,23 @@ lemma fold_eq_nfoldli:
   "RETURN (fold f l s) = nfoldli l (\<lambda>_. True) (\<lambda>x s. RETURN (f x s)) s"
   by (induction l arbitrary: s) auto
 
+text \<open>this is the less dumb version of the refinement for while loops, keeping the loop invariant.\<close>
+lemma WHILEIT_refine_with_all_loopinvariants:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF:
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x'; f' x' \<le> SPEC I' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>{(a,b). (a,b) \<in> R \<and> I a \<and> I' b} (WHILEIT I' b' f' x')"
+  apply (subst (2) WHILEIT_add_post_condition)
+  apply (rule WHILEIT_refine)
+  subgoal using R0 IREF by blast
+  subgoal using IREF by blast
+  subgoal using COND_REF by blast
+  subgoal using STEP_REF apply auto
+    by (smt (verit, best) IREF in_pair_collect_simp inres_SPEC pw_ref_iff)
+  done
+
 text \<open>This lemma cannot be moved to \<^theory>\<open>Weidenbach_Book_Base.WB_List_More\<close>, because the syntax
  \<^term>\<open>CARD('a)\<close> does not exist there.\<close>
 lemma finite_length_le_CARD:
