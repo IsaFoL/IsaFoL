@@ -184,72 +184,6 @@ lemma
   using assms
   by (metis (mono_tags, lifting) UnCI inj_onD multiset.inj_map_strong)
 
-
-
-lemma image_mset_eq_plusD:
-  "image_mset f M1 = M2 + M3 \<Longrightarrow>
-    \<exists>M2' M3'. M1 = M2' + M3' \<and> M2 = image_mset f M2' \<and> M3 = image_mset f M3'"
-proof (induction M1 arbitrary: M2 M3)
-  case empty
-  thus ?case by simp
-next
-  case (add x M1)
-  show ?case
-  proof (cases "f x \<in># M2")
-    case True
-    with add.prems have "image_mset f M1 = (M2 - {#f x#}) + M3"
-      by (metis add_mset_remove_trivial image_mset_add_mset mset_subset_eq_single
-          subset_mset.add_diff_assoc2)
-    thus ?thesis
-      using add.IH add.prems by force
-  next
-    case False
-    with add.prems have "image_mset f M1 = M2 + (M3 - {#f x#})"
-      by (metis diff_single_eq_union diff_union_single_conv image_mset_add_mset union_iff
-          union_single_eq_member)
-    then show ?thesis
-      using add.IH add.prems by force
-  qed
-qed
-
-lemma image_mset_eq_image_mset_plusD:
-  assumes inj_f: "inj_on f (set_mset M1 \<union> set_mset M2)"
-  shows "image_mset f M1 = image_mset f M2 + M3 \<Longrightarrow>
-    \<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3"
-  using inj_f
-proof (induction M1 arbitrary: M2 M3)
-  case empty
-  thus ?case by simp
-next
-  case (add x M1)
-  show ?case
-  proof (cases "x \<in># M2")
-    case True
-    with add.prems have "image_mset f M1 = image_mset f (M2 - {#x#}) + M3"
-      by (smt (verit, del_insts) add.left_commute add_cancel_right_left diff_union_cancelL
-          diff_union_single_conv image_mset_union union_mset_add_mset_left
-          union_mset_add_mset_right)
-    with add.IH have "\<exists>M3'. M1 = M2 - {#x#} + M3' \<and> image_mset f M3' = M3"
-      by (smt (verit, del_insts) True Un_insert_left Un_insert_right add.prems(2) inj_on_insert
-          insert_DiffM set_mset_add_mset_insert)
-    with True show ?thesis
-      by auto
-  next
-    case False
-    with add.prems(2) have "f x \<notin># image_mset f M2"
-      by auto
-    with add.prems(1) have "image_mset f M1 = image_mset f M2 + (M3 - {#f x#})"
-      by (metis (no_types, lifting) diff_union_single_conv image_eqI image_mset_Diff
-          image_mset_single mset_subset_eq_single set_image_mset union_iff union_single_eq_diff
-          union_single_eq_member)
-    with add.prems(2) add.IH have "\<exists>M3'. M1 = M2 + M3' \<and> image_mset f M3' = M3 - {#f x#}"
-      by auto
-    then show ?thesis
-      by (metis add.prems(1) add_diff_cancel_left' image_mset_Diff mset_subset_eq_add_left
-          union_mset_add_mset_right)
-  qed
-qed
-
 lemma monotone_list_all2_list_all2_map:
   assumes "monotone R S f"
   shows "monotone (list_all2 R) (list_all2 S) (map f)"
@@ -388,47 +322,6 @@ proof -
           by (metis \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> \<open>image_mset f B = I + J\<close> image_mset_thm union_iff)
       qed
     qed
-  qed
-qed
-
-lemma multp_image_mset_image_msetD:
-  assumes
-    multp_f_A_f_B: "multp R (image_mset f A) (image_mset f B)" and
-    "transp R" and
-    inj_on_f: "inj_on f (set_mset A \<union> set_mset B)"
-  shows "multp (\<lambda>x y. R (f x) (f y)) A B"
-proof -
-  from multp_implies_one_step[OF \<open>transp R\<close> multp_f_A_f_B] obtain I J K where
-    f_B_eq: "image_mset f B = I + J" and
-    f_A_eq: "image_mset f A = I + K" and
-    J_neq_mempty: "J \<noteq> {#}" and
-    ball_K_less: "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
-    by auto
-
-  from f_B_eq obtain I' J' where
-    B_def: "B = I' + J'" and I_def: "I = image_mset f I'" and J_def: "J = image_mset f J'"
-    using image_mset_eq_plusD by blast
-
-  from inj_on_f have inj_on_f': "inj_on f (set_mset A \<union> set_mset I')"
-    by (rule inj_on_subset) (auto simp add: B_def)
-
-  from f_A_eq obtain K' where
-    A_def: "A = I' + K'" and K_def: "K = image_mset f K'"
-    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF inj_on_f'])
-
-  show ?thesis
-    unfolding A_def B_def
-  proof (intro one_step_implies_multp ballI)
-    from J_neq_mempty show "J' \<noteq> {#}"
-      by (simp add: J_def)
-  next
-    fix k assume "k \<in># K'"
-    with ball_K_less obtain j' where "j' \<in># J" and "R (f k) j'"
-      using K_def by auto
-    moreover then obtain j where "j \<in># J'" and "f j = j'"
-      using J_def by auto
-    ultimately show "\<exists>j\<in>#J'. R (f k) (f j)"
-      by blast
   qed
 qed
 
