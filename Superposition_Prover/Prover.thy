@@ -350,7 +350,7 @@ proof -
 
   from f_M1_eq obtain K' where
     M1_def: "M1 = I' + K'" and K_def: "K = image_mset f K'"
-    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF inj_on_f'])
+    by (auto simp: I_def dest: image_mset_eq_image_mset_plusD[OF _ inj_on_f'])
 
   show ?thesis
     unfolding M1_def M2_def
@@ -4089,6 +4089,89 @@ proof -
   qed
 qed
 
+lemma set_entails_clause_Un_\<G>_FI: "set_entails_clause (to_SuperCalc_cl ` \<Union> (\<G>_F ` N)) {}"
+  if N_entails_empty: "set_entails_clause (to_SuperCalc_cl ` N) {}"
+  for N
+  unfolding set_entails_clause_def
+proof (intro allI impI)
+  fix I
+  assume "fo_interpretation I" and
+    validate_I_\<G>_F_N: "validate_clause_set I (to_SuperCalc_cl ` \<Union> (\<G>_F ` N))"
+
+  have "validate_clause_set I (to_SuperCalc_cl ` N)"
+    unfolding validate_clause_set.simps validate_clause.simps
+  proof (intro allI impI)
+    have 1: "f ` (\<Union>x\<in>N. {g x \<gamma> |\<gamma>. P x \<gamma>}) = (\<Union>x\<in>N. f ` {g x \<gamma> |\<gamma>. P x \<gamma>})"
+      for f g P
+      by blast
+    have 2: "(\<Union>x\<in>N. f ` {g x \<gamma> |\<gamma>. P x \<gamma>}) = (\<Union>x\<in>N. {f (g x \<gamma>) |\<gamma>. P x \<gamma>})" for f g P
+      by blast
+
+    fix C \<gamma>
+    assume "C \<in> to_SuperCalc_cl ` N" and gr_C_\<gamma>: "ground_clause (subst_cl C \<gamma>)"
+    hence "subst_cl C \<gamma> \<in> to_SuperCalc_cl ` \<Union> (\<G>_F ` N)"
+      apply (simp add: \<G>_F_def 1 2)
+      using to_from_SuperCalc_cl
+      by (metis finite_to_SuperCalc_cl ground_clauses_and_ground_substs imageE
+          substs_preserve_finiteness)
+    hence validate_I_C_\<gamma>: "validate_clause I (subst_cl C \<gamma>)"
+      using validate_I_\<G>_F_N by simp
+
+    have "validate_ground_clause I (subst_cl (subst_cl C \<gamma>) [])"
+      using gr_C_\<gamma> validate_I_C_\<gamma>[unfolded validate_clause.simps, rule_format, of "[]"]
+      by simp
+    thus "validate_ground_clause I (subst_cl C \<gamma>)"
+      by simp
+  qed
+  thus "validate_clause I {}"
+    using \<open>fo_interpretation I\<close> N_entails_empty
+    by (simp add: set_entails_clause_def)
+qed
+
+lemma set_entails_clause_Un_\<G>_FD: "set_entails_clause (to_SuperCalc_cl ` N) {}"
+  if N_entails_empty: "set_entails_clause (to_SuperCalc_cl ` \<Union> (\<G>_F ` N)) {}"
+  for N
+  unfolding set_entails_clause_def
+proof (intro allI impI)
+  fix I
+  assume "fo_interpretation I" and validate_I: "validate_clause_set I (to_SuperCalc_cl ` N)"
+  have "validate_clause_set I (to_SuperCalc_cl ` \<Union> (\<G>_F ` N))"
+    unfolding validate_clause_set.simps validate_clause.simps
+  proof (intro allI impI)
+    have 1: "f ` (\<Union>x\<in>N. {g x \<gamma> |\<gamma>. P x \<gamma>}) = (\<Union>x\<in>N. f ` {g x \<gamma> |\<gamma>. P x \<gamma>})"
+      for f g P
+      by blast
+    have 2: "(\<Union>x\<in>N. f ` {g x \<gamma> |\<gamma>. P x \<gamma>}) = (\<Union>x\<in>N. {f (g x \<gamma>) |\<gamma>. P x \<gamma>})" for f g P
+      by blast
+
+    fix C \<gamma>
+    assume C_in: "C \<in> to_SuperCalc_cl ` \<Union> (\<G>_F ` N)" and gr_C_\<gamma>: "ground_clause (subst_cl C \<gamma>)"
+
+    from C_in have "C \<in> (\<Union>C\<in>N. {subst_cl (to_SuperCalc_cl C) \<gamma> | \<gamma>.
+      ground_on (vars_of_cl (to_SuperCalc_cl C)) \<gamma>})"
+      by (simp add: \<G>_F_def 1 2 substs_preserve_finiteness)
+    then obtain C' where
+      "C' \<in> N" and
+      C_in':"C \<in> {subst_cl (to_SuperCalc_cl C') \<gamma> | \<gamma>. ground_on (vars_of_cl (to_SuperCalc_cl C')) \<gamma>}"
+      by auto
+
+    from C_in' have gr_C: "ground_clause C"
+      using ground_substs_yield_ground_clause by blast
+
+    from \<open>C' \<in> N\<close> have "validate_clause I (to_SuperCalc_cl C')"
+      using validate_I[unfolded validate_clause_set.simps] by blast
+    hence "validate_ground_clause I C"
+      unfolding validate_clause.simps
+      using C_in' gr_C by blast
+    thus "validate_ground_clause I (subst_cl C \<gamma>)"
+      using gr_C
+      by (simp add: substs_preserve_ground_clause)
+  qed
+  thus "validate_clause I {}"
+    using \<open>fo_interpretation I\<close> N_entails_empty
+    by (simp add: set_entails_clause_def)
+qed
+
 sublocale statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>e)" F.Red_I_\<G> F.Red_F_\<G>
 proof unfold_locales
   show "\<And>N. F.Red_I_\<G> N \<subseteq> F_Inf"
@@ -4096,9 +4179,23 @@ proof unfold_locales
 next
   fix B N
   assume "B \<in> {{#}}" and "N \<TTurnstile>e {B}"
-  then show "N - F.Red_F_\<G> N \<TTurnstile>e {B}"
+  hence B_def: "B = {#}" and "N \<TTurnstile>e {{#}}"
+    by simp_all
+  hence N_entails_empty: "set_entails_clause (to_SuperCalc_cl ` N) {}"
+    by (simp add: entails_def)
+  hence "set_entails_clause (to_SuperCalc_cl ` \<Union> (\<G>_F ` N)) {}"
+    by (rule set_entails_clause_Un_\<G>_FI)
+  hence "\<Union> (\<G>_F ` N) \<TTurnstile>e {{#}}"
+    by (simp add: entails_def)
+  hence "\<Union> (\<G>_F ` (N - F.Red_F_\<G> N)) \<TTurnstile>e {{#}}"
     using F.Red_F_Bot[simplified, OF refl, unfolded F.entails_\<G>_def, simplified, of N]
-    sorry
+    by simp
+  hence "set_entails_clause (to_SuperCalc_cl ` \<Union> (\<G>_F ` (N - F.Red_F_\<G> N))) {}"
+    by (simp add: entails_def)
+  hence "set_entails_clause (to_SuperCalc_cl ` (N - F.Red_F_\<G> N)) {}"
+    by (rule set_entails_clause_Un_\<G>_FD)
+  then show "N - F.Red_F_\<G> N \<TTurnstile>e {B}"
+    by (simp add: B_def entails_def)
 next
   show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> F.Red_F_\<G> N \<subseteq> F.Red_F_\<G> N'"
     by (rule F.Red_F_of_subset)
