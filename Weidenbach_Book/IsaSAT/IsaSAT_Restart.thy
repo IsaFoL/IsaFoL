@@ -151,9 +151,9 @@ lemma [twl_st_heur_restart]:
   using assms by (cases S; cases T)
    (simp only: twl_st_heur_restart_def get_trail_wl.simps
     mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
-    all_init_atms_def get_init_clauses0_wl.simps isasat_int.inject get_unkept_unit_init_clss_wl.simps
+    all_init_atms_def get_init_clauses0_wl.simps tuple17.inject get_unkept_unit_init_clss_wl.simps
     get_kept_unit_init_clss_wl.simps
-    get_subsumed_init_clauses_wl.simps split: isasat_int.splits)
+    get_subsumed_init_clauses_wl.simps split: tuple17.splits)
 
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
@@ -1209,7 +1209,7 @@ lemma mark_garbage_heur4_remove_and_add_cls_l:
     supply [[goals_limit=1]]
     apply (auto simp: learned_clss_count_def)
     apply (clarsimp simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def
-        arena_lifting
+        arena_lifting isasat_state_simp
      valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
       learned_clss_l_l_fmdrop_irrelev aivdom_inv_dec_remove_clause

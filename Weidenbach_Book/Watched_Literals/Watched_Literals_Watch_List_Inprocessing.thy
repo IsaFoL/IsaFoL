@@ -1711,14 +1711,16 @@ definition forward_subsumption_one_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_
   \<open>forward_subsumption_one_wl_pre = (\<lambda>C S.
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and> no_lost_clause_in_WL S \<and> forward_subsumption_one_pre C S' \<and>
     literals_are_\<L>\<^sub>i\<^sub>n' S))\<close>
- 
+
 definition forward_subsumption_one_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow>  nat multiset \<times> 'v subsumption \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_one_wl_inv = (\<lambda>S C (i, x).
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and>  forward_subsumption_one_inv C S' (i, x)))\<close>
 
 definition forward_subsumption_one_wl_select where
-  \<open>forward_subsumption_one_wl_select C S = (\<lambda>xs. (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
-    forward_subsumption_one_select C S' xs))\<close>
+  \<open>forward_subsumption_one_wl_select C S = (\<lambda>xs. C \<notin># xs \<and>
+ (\<forall>D\<in>#xs. D \<in># dom_m (get_clauses_wl S) \<longrightarrow>
+    (\<forall>L\<in> set (get_clauses_wl S \<propto> D). undefined_lit (get_trail_wl S) L) \<and>
+    (length (get_clauses_wl S \<propto> D) \<le> length (get_clauses_wl S \<propto> C))))\<close>
 
 definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
   \<open>forward_subsumption_one_wl = (\<lambda>C S . do {
@@ -1803,9 +1805,9 @@ proof -
     apply (refine_vcg
       subsume_clauses_match[unfolded Down_id_eq])
     subgoal using assms unfolding forward_subsumption_one_wl_pre_def by fast
-    subgoal using assms unfolding forward_subsumption_one_wl_select_def  forward_subsumption_one_select_def
-      apply - by normalize_goal+ auto
-      subgoal for ys xs x x'
+    subgoal using assms unfolding forward_subsumption_one_wl_select_def forward_subsumption_one_select_def
+      by auto
+    subgoal for ys xs x x'
         using assms unfolding forward_subsumption_one_wl_inv_def case_prod_beta by (cases x; cases x') fastforce
     subgoal by auto
     subgoal by auto
@@ -1842,7 +1844,7 @@ definition try_to_forward_subsume_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_w
   \<open>try_to_forward_subsume_wl_pre C S = (\<exists>T. (S,T)\<in>state_wl_l None \<and> try_to_forward_subsume_pre C T \<and> no_lost_clause_in_WL S)\<close>
 
 definition try_to_forward_subsume_wl_inv :: \<open>_\<close> where
-  \<open>try_to_forward_subsume_wl_inv S C = (\<lambda>(i,break, T). 
+  \<open>try_to_forward_subsume_wl_inv S C = (\<lambda>(i,break, T).
   (\<exists>S' T'. (S,S')\<in>state_wl_l None \<and> (T,T')\<in>state_wl_l None \<and> no_lost_clause_in_WL S \<and>
   try_to_forward_subsume_inv S' C (i, break, T') \<and> get_watched_wl T = get_watched_wl S \<and>
   literals_are_\<L>\<^sub>i\<^sub>n' S)) \<close>
