@@ -129,10 +129,10 @@ definition push_to_occs_list2 where
 
 definition correct_occurence_list where
   \<open>correct_occurence_list S occs n \<longleftrightarrow>
-  (all_occurrences  (all_atms_st S) occs) \<subseteq># dom_m (get_clauses_wl S) \<and>
-  (\<forall>C\<in># all_occurrences (all_atms_st S) occs. length (get_clauses_wl S \<propto> C) \<le> n)\<and>
-  (\<forall>C\<in># all_occurrences (all_atms_st S) occs. \<forall>L\<in>set (get_clauses_wl S \<propto> C).
-     undefined_lit (get_trail_wl S) L) \<and> fst occs = set_mset (all_atms_st S)\<close>
+  (\<forall>C\<in># all_occurrences (all_atms_st S) occs. C \<in># dom_m (get_clauses_wl S) \<longrightarrow> length (get_clauses_wl S \<propto> C) \<le> n)\<and>
+  (\<forall>C\<in># all_occurrences (all_atms_st S) occs. C \<in># dom_m (get_clauses_wl S) \<longrightarrow>
+    (\<forall>L\<in>set (get_clauses_wl S \<propto> C). undefined_lit (get_trail_wl S) L)) \<and>
+  fst occs = set_mset (all_atms_st S)\<close>
 
 definition forward_subsumption_one_wl2_rel where
   \<open>forward_subsumption_one_wl2_rel S\<^sub>0 occs n C = {((S, changed, occs', D), (T, changed')).
@@ -302,7 +302,7 @@ lemma all_atms_st_drop_subsumed:
     C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
     x22 \<in># dom_m (get_clauses_wl_S) \<Longrightarrow> 
     set_mset (all_atms_st
-       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, True) (get_clauses_wl_S)), None,
+       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, b) (get_clauses_wl_S)), D,
         get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
         get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
         add_mset (mset (get_clauses_wl_S \<propto> x22))
@@ -310,7 +310,7 @@ lemma all_atms_st_drop_subsumed:
         get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
   literals_to_update_wl_S, get_watched_wl_S)) =
   set_mset (all_atms_st
-       (get_trail_wl_S, (get_clauses_wl_S), None,
+       (get_trail_wl_S, (get_clauses_wl_S), D,
         get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
         get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
         get_subsumed_init_clauses_wl_S,
@@ -320,40 +320,182 @@ lemma all_atms_st_drop_subsumed:
     C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
     x22 \<in># dom_m (get_clauses_wl_S) \<Longrightarrow> 
     set_mset (all_atms_st
-       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, True) (get_clauses_wl_S)), None,
+       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, b) (get_clauses_wl_S)), D,
         get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
         get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
         add_mset (mset (get_clauses_wl_S \<propto> x22)) (get_subsumed_init_clauses_wl_S),
         add_mset (mset (get_clauses_wl_S \<propto> C)) get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
   literals_to_update_wl_S, get_watched_wl_S)) =
   set_mset (all_atms_st
-       (get_trail_wl_S, (get_clauses_wl_S), None,
+       (get_trail_wl_S, (get_clauses_wl_S), D,
         get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
         get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
         get_subsumed_init_clauses_wl_S,
         get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
         literals_to_update_wl_S, get_watched_wl_S))\<close>
-  apply (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
-    Watched_Literals_Clauses.ran_m_mapsto_upd
-    image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
-  apply (metis (no_types, lifting) WB_List_More.ran_m_mapsto_upd all_lits_of_mm_add_mset
-    all_lits_of_mm_union fmupd_same image_eqI image_mset_add_mset union_iff)
-  apply (metis (no_types, lifting) WB_List_More.ran_m_mapsto_upd all_lits_of_mm_add_mset
-    all_lits_of_mm_union fmupd_same image_eqI image_mset_add_mset union_iff)
-  apply (auto simp:  all_lits_of_mm_add_mset all_lits_of_mm_union in_clause_in_all_lits_of_mm image_Un
-    dest: all_lits_of_m_diffD; fail)+
-  apply (smt (z3) Watched_Literals_Clauses.ran_m_mapsto_upd all_lits_of_m_add_mset
-    all_lits_of_mm_add_mset diff_single_trivial fmupd_same imageI image_mset_add_mset
-    insert_DiffM member_add_mset union_iff union_mset_add_mset_left)
-  apply (smt (z3) WB_List_More.ran_m_mapsto_upd Watched_Literals_Clauses.ran_m_fmdrop
-    add_mset_remove_trivial all_clss_l_ran_m all_lits_of_mm_add_mset dom_m_fmdrop fmlookup_drop
-    fmupd_same image_eqI image_mset_add_mset image_mset_union member_add_mset multi_member_split
-    prod.collapse union_mset_add_mset_left union_mset_add_mset_right)
-  apply (smt (verit, del_insts) Watched_Literals_Clauses.ran_m_fmdrop
-    Watched_Literals_Clauses.ran_m_mapsto_upd dom_m_fmdrop fmlookup_drop fmupd_same insert_DiffM
-    member_add_mset prod.collapse)
-  by (smt (verit, ccfv_threshold) all_lits_of_mm_add_mset diff_single_trivial imageI insert_DiffM union_iff)
-
+  \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl_S \<propto> C)) \<Longrightarrow>
+    C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
+    x22 \<in># dom_m (get_clauses_wl_S) \<Longrightarrow> 
+    set_mset (all_atms_st
+       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, b) (get_clauses_wl_S)), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        add_mset (mset (get_clauses_wl_S \<propto> C)) (get_subsumed_init_clauses_wl_S),
+        add_mset (mset (get_clauses_wl_S \<propto> x22)) get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+  literals_to_update_wl_S, get_watched_wl_S)) =
+  set_mset (all_atms_st
+       (get_trail_wl_S, (get_clauses_wl_S), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+        literals_to_update_wl_S, get_watched_wl_S))\<close>
+  \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl_S \<propto> C)) \<Longrightarrow>
+    C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
+    x22 \<in># dom_m (get_clauses_wl_S) \<Longrightarrow> 
+    set_mset (all_atms_st
+       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, b) (get_clauses_wl_S)), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        add_mset (mset (get_clauses_wl_S \<propto> C)) (add_mset (mset (get_clauses_wl_S \<propto> x22)) get_subsumed_learned_clauses_wl_S), get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+  literals_to_update_wl_S, get_watched_wl_S)) =
+  set_mset (all_atms_st
+       (get_trail_wl_S, (get_clauses_wl_S), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+        literals_to_update_wl_S, get_watched_wl_S))\<close>
+  \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl_S \<propto> C)) \<Longrightarrow>
+    C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
+    x22 \<in># dom_m (get_clauses_wl_S) \<Longrightarrow> 
+    set_mset (all_atms_st
+       (get_trail_wl_S, fmdrop x22 (fmupd C (Ea, b) (get_clauses_wl_S)), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        add_mset (mset (get_clauses_wl_S \<propto> x22)) (add_mset (mset (get_clauses_wl_S \<propto> C)) get_subsumed_learned_clauses_wl_S), get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+  literals_to_update_wl_S, get_watched_wl_S)) =
+  set_mset (all_atms_st
+       (get_trail_wl_S, (get_clauses_wl_S), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+        literals_to_update_wl_S, get_watched_wl_S))\<close>
+  \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl_S \<propto> C)) \<Longrightarrow>
+    C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
+    set_mset (all_atms_st
+       (get_trail_wl_S, (fmupd C (Ea, b) (get_clauses_wl_S)), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        (add_mset (mset (get_clauses_wl_S \<propto> C)) get_subsumed_learned_clauses_wl_S), get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+  literals_to_update_wl_S, get_watched_wl_S)) =
+  set_mset (all_atms_st
+       (get_trail_wl_S, (get_clauses_wl_S), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+        literals_to_update_wl_S, get_watched_wl_S))\<close>
+  \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl_S \<propto> C)) \<Longrightarrow>
+    C \<in># dom_m (get_clauses_wl_S) \<Longrightarrow>
+    set_mset (all_atms_st
+       (get_trail_wl_S, (fmupd C (Ea, b) (get_clauses_wl_S)), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        add_mset (mset (get_clauses_wl_S \<propto> C)) get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+  literals_to_update_wl_S, get_watched_wl_S)) =
+  set_mset (all_atms_st
+       (get_trail_wl_S, (get_clauses_wl_S), D,
+        get_unkept_unit_init_clss_wl_S, get_unkept_unit_learned_clss_wl_S,
+        get_kept_unit_init_clss_wl_S, get_kept_unit_learned_clss_wl_S,
+        get_subsumed_init_clauses_wl_S,
+        get_subsumed_learned_clauses_wl_S, get_init_clauses0_wl_S, get_learned_clauses0_wl_S,
+        literals_to_update_wl_S, get_watched_wl_S))\<close>
+  subgoal H1
+    by (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+   subgoal H2
+    by (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  subgoal H3
+    apply (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+    apply (metis (no_types, lifting) WB_List_More.ran_m_mapsto_upd all_lits_of_mm_add_mset
+      all_lits_of_mm_union fmupd_same image_eqI image_mset_add_mset union_iff)
+    apply (metis (no_types, lifting) WB_List_More.ran_m_mapsto_upd all_lits_of_mm_add_mset
+      all_lits_of_mm_union fmupd_same image_eqI image_mset_add_mset union_iff)
+    done
+  subgoal H4
+    apply (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+    apply (auto simp:  all_lits_of_mm_add_mset all_lits_of_mm_union in_clause_in_all_lits_of_mm image_Un
+      dest: all_lits_of_m_diffD; fail)+
+    apply (smt (z3) Watched_Literals_Clauses.ran_m_mapsto_upd all_lits_of_m_add_mset
+      all_lits_of_mm_add_mset diff_single_trivial fmupd_same imageI image_mset_add_mset
+      insert_DiffM member_add_mset union_iff union_mset_add_mset_left)
+    apply (smt (z3) WB_List_More.ran_m_mapsto_upd Watched_Literals_Clauses.ran_m_fmdrop
+      add_mset_remove_trivial all_clss_l_ran_m all_lits_of_mm_add_mset dom_m_fmdrop fmlookup_drop
+      fmupd_same image_eqI image_mset_add_mset image_mset_union member_add_mset multi_member_split
+      prod.collapse union_mset_add_mset_left union_mset_add_mset_right)
+    apply (smt (verit, del_insts) Watched_Literals_Clauses.ran_m_fmdrop
+      Watched_Literals_Clauses.ran_m_mapsto_upd dom_m_fmdrop fmlookup_drop fmupd_same insert_DiffM
+      member_add_mset prod.collapse)
+    apply (smt (verit, ccfv_threshold) all_lits_of_mm_add_mset diff_single_trivial imageI insert_DiffM union_iff)
+    done
+  subgoal H5
+    using H4
+    by (auto simp add: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd add_mset_commute[of \<open>mset (get_clauses_wl_S \<propto> C)\<close>]
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  subgoal H6
+    using H4
+    by (auto simp add: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd add_mset_commute[of \<open>mset (get_clauses_wl_S \<propto> C)\<close>]
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  subgoal H7
+    using H4
+    by (auto simp add: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd add_mset_commute[of \<open>mset (get_clauses_wl_S \<propto> C)\<close>]
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  subgoal H8
+    using H4
+    by (auto simp add: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd add_mset_commute[of \<open>mset (get_clauses_wl_S \<propto> C)\<close>]
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  subgoal H9
+    apply (auto simp: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+    apply (smt (z3) Watched_Literals_Clauses.ran_m_mapsto_upd all_lits_of_m_add_mset
+      all_lits_of_mm_add_mset diff_single_trivial fmupd_same imageI image_mset_add_mset
+      insert_DiffM member_add_mset union_iff union_mset_add_mset_left)
+    apply (smt (z3) WB_List_More.ran_m_mapsto_upd Watched_Literals_Clauses.ran_m_fmdrop
+      add_mset_remove_trivial all_clss_l_ran_m all_lits_of_mm_add_mset dom_m_fmdrop fmlookup_drop
+      fmupd_same image_eqI image_mset_add_mset image_mset_union member_add_mset multi_member_split
+      prod.collapse union_mset_add_mset_left union_mset_add_mset_right)
+    done
+  subgoal H10
+    using H9
+    by (auto simp add: all_atms_st_def all_atms_def all_lits_def ran_m_fmdrop_If clauses_update_status_only
+      Watched_Literals_Clauses.ran_m_mapsto_upd add_mset_commute[of \<open>mset (get_clauses_wl_S \<propto> C)\<close>]
+      image_mset_remove1_mset_if add_mset_remove_trivial_If  simp del: all_atms_def[symmetric])
+  done
+(*
+(get_trail_wl S, fmupd C (Ea, True) (get_clauses_wl S), None, IsaSAT_Setup.get_unkept_unit_init_clss_wl S,
+        IsaSAT_Setup.get_unkept_unit_learned_clss_wl S, IsaSAT_Setup.get_kept_unit_init_clss_wl S,
+        IsaSAT_Setup.get_kept_unit_learned_clss_wl S,
+        add_mset (mset (get_clauses_wl S \<propto> C)) (get_subsumed_init_clauses_wl S), get_subsumed_learned_clauses_wl S,
+        get_init_clauses0_wl S, get_learned_clauses0_wl S, literals_to_update_wl S, get_watched_wl S)
+*)
 lemma forward_subsumption_one_wl2_rel_forward_subsumption_one_wl_rel:
   assumes
     \<open>(C, E) \<in> nat_rel\<close>
@@ -424,7 +566,13 @@ proof -
     (xa, ()) \<in> R \<Longrightarrow>
     (xa, if is_strengthened x2 then () else ()) \<in> (if \<not>is_strengthened x2a then {(a,b). a = occs} else R)\<close> for xa x2 x2a R
     by auto
-  have itself: \<open>subsume_or_strengthen_wl C s S \<le>\<Down>{(x,y). x = y \<and> set_mset (all_atms_st S) = set_mset (all_atms_st x)} b\<close> if b: \<open>b = subsume_or_strengthen_wl C s S\<close> and
+  have itself: \<open>subsume_or_strengthen_wl C s S \<le>\<Down>{(x,y). x = y \<and> set_mset (all_atms_st S) = set_mset (all_atms_st x) \<and>
+    get_trail_wl x = get_trail_wl S \<and>
+    (s = NONE \<longrightarrow> x = S) \<and>
+    (dom_m (get_clauses_wl x) \<subseteq># dom_m (get_clauses_wl S)) \<and>
+    (\<forall>Ca\<in>#dom_m (get_clauses_wl x). Ca\<in>#dom_m (get_clauses_wl S) \<and>  length (get_clauses_wl x \<propto> Ca) \<le> length (get_clauses_wl S \<propto> Ca)) \<and>
+    (\<forall>Ca\<in>#dom_m (get_clauses_wl x). Ca\<in>#dom_m (get_clauses_wl S) \<and> set (get_clauses_wl x \<propto> Ca) \<subseteq> set (get_clauses_wl S \<propto> Ca))
+    } b\<close> if b: \<open>b = subsume_or_strengthen_wl C s S\<close> and
     S: \<open>forward_subsumption_one_wl_pre C S\<close>
     for a b s S
   proof -
@@ -437,7 +585,17 @@ proof -
         IsaSAT_Setup.get_kept_unit_learned_clss_wl S, get_subsumed_init_clauses_wl S,
         get_subsumed_learned_clauses_wl S, get_init_clauses0_wl S, get_learned_clauses0_wl S,
         literals_to_update_wl S, get_watched_wl S) = S\<close> for S
-     by (cases S) auto
+      by (cases S) auto
+    have [simp]: \<open>C \<notin># remove1_mset C (dom_m S)\<close> for C S
+      using distinct_mset_dom[of \<open>S\<close>]
+      by (cases \<open>C \<in># dom_m S\<close>) (auto dest!: multi_member_split)
+    have H: \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl S \<propto> C)) \<Longrightarrow>
+          length (get_clauses_wl S \<propto> C) = length (get_clauses_wl S \<propto> x22) \<Longrightarrow>
+      length Ea \<le> length (get_clauses_wl S \<propto> x22)\<close>for Ea x21 S C x22
+      by (metis size_Diff1_le size_mset)
+    have H2: \<open>mset Ea = remove1_mset (- x21) (mset (get_clauses_wl S \<propto> C)) \<Longrightarrow>
+      x \<in> set Ea \<Longrightarrow> x \<in> set (get_clauses_wl S \<propto> C)\<close>for Ea x21 S C x22 x
+      by (metis in_diffD in_multiset_in_set)
     show ?thesis
       unfolding subsume_or_strengthen_wl_def b strengthen_clause_wl_def case_wl_split
         state_wl_recompose
@@ -457,32 +615,15 @@ proof -
           subgoal
             by (auto split: subsumption.splits simp: all_atms_st_drop_subsumed state_wl_recompose)
           subgoal
-            apply refine_vcg
-            
-            apply (auto split: subsumption.splits simp: all_atms_st_drop_subsumed state_wl_recompose)
-apply (subst all_atms_st_drop_subsumed)
-apply simp
-apply simp
-apply simp
-
-            sorry
+            by refine_vcg
+              (auto split: subsumption.splits simp: all_atms_st_drop_subsumed state_wl_recompose
+              intro: H H2)
           subgoal
             by (auto split: subsumption.splits simp: all_atms_st_drop_subsumed state_wl_recompose)
-thm subsume_or_strengthen_wl_pre_def
-  subsume_or_strengthen_pre_def
-  supply [[goals_limit=1]]
-  apply (auto split: subsumption.splits simp: all_atms_st_drop_subsumed state_wl_recompose)
-    apply (subst all_atms_st_drop_subsumed)
-apply auto
-  oops
-  apply (auto split: subsumption.splits
-    simp: all_atms_st_alt_def all_lits_st_def all_atms_def all_lits_def ran_m_fmdrop_If
-    image_mset_remove1_mset_if add_mset_remove_trivial_If 
-    simp del: all_atms_st_alt_def[symmetric] all_atms_def[symmetric] all_lits_def[symmetric])
-  sledgehammer
-  sorry
-  done
-find_theorems  "add_mset ?a (remove1_mset ?a _)"
+          done
+      done
+    done
+  qed
   have mop_ch_remove_all2:
     \<open>mop_ch_remove_all C \<le> SPEC(\<lambda>c. (c, {#}) \<in> clause_hash_ref \<A>)\<close>
     if  \<open>(C, D) \<in> clause_hash_ref \<A>\<close> for C D  \<A>
@@ -495,6 +636,31 @@ find_theorems  "add_mset ?a (remove1_mset ?a _)"
     {(xa, b). if x2 \<noteq> NONE then b = {#} \<and> (xa, b)\<in> clause_hash_ref (all_atms_st S\<^sub>0)
     else (xa,b) = (D,G)}\<close> for xa x2
     by auto
+  have clause_hash_ref_cong: \<open>set_mset A = set_mset B \<Longrightarrow> clause_hash_ref A = clause_hash_ref B\<close> for A B
+    unfolding clause_hash_ref_def
+    by auto
+  have remdups_mset_set_mset_cong: \<open>set_mset A = set_mset B \<Longrightarrow> remdups_mset A = remdups_mset B\<close> for A B
+    by (simp add: remdups_mset_def)
+  have all_occurrences_cong: \<open>set_mset A = set_mset B \<Longrightarrow> all_occurrences A = all_occurrences B\<close> for A B
+    using remdups_mset_set_mset_cong[of A B]
+    unfolding all_occurrences_def
+    by auto
+  have correct_occurence_list_cong:
+    \<open>correct_occurence_list T occs n \<Longrightarrow>
+    set_mset (all_atms_st T) = set_mset (all_atms_st U) \<Longrightarrow>
+    get_trail_wl T = get_trail_wl U \<Longrightarrow>
+    dom_m (get_clauses_wl U) \<subseteq># dom_m (get_clauses_wl T) \<Longrightarrow>
+    (\<forall>Ca\<in>#dom_m (get_clauses_wl U). Ca\<in>#dom_m (get_clauses_wl T) \<and> length (get_clauses_wl U \<propto> Ca) \<le> length (get_clauses_wl T \<propto> Ca)) \<Longrightarrow>
+    (\<forall>Ca\<in>#dom_m (get_clauses_wl U). Ca\<in>#dom_m (get_clauses_wl T) \<and> set (get_clauses_wl U \<propto> Ca) \<subseteq> set (get_clauses_wl T \<propto> Ca)) \<Longrightarrow>
+    correct_occurence_list U occs (length (get_clauses_wl S\<^sub>0 \<propto> C))\<close> for T U
+    using remdups_mset_set_mset_cong[of \<open>all_atms_st T\<close> \<open>all_atms_st U\<close>]
+      all_occurrences_cong[of \<open>all_atms_st T\<close> \<open>all_atms_st U\<close>] n
+    unfolding correct_occurence_list_def
+    apply (cases occs)
+    apply (auto)
+    apply (meson mset_subset_eqD order_trans)
+    apply (meson mset_subset_eqD subsetD)
+    done
 
   show ?thesis
     unfolding forward_subsumption_one_wl2_def
@@ -527,9 +693,13 @@ find_theorems  "add_mset ?a (remove1_mset ?a _)"
     subgoal by auto
     apply (rule itself)
     subgoal by auto
-    subgoal apply (auto simp: forward_subsumption_one_wl2_rel_def split: if_splits)
-(*missing: proving that the set of atoms has not changed*)
-      sorry
+    subgoal by auto
+    subgoal
+      using occs n
+      by (auto simp: forward_subsumption_one_wl2_rel_def  clause_hash_ref_cong[of \<open>all_atms_st S\<^sub>0\<close>]
+        all_occurrences_cong[of \<open>all_atms_st S\<^sub>0\<close>]
+        correct_occurence_list_cong[of ]
+        split: if_splits)
     done
 qed
 
