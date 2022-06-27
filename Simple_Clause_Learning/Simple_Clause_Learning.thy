@@ -126,6 +126,24 @@ proof -
 qed
 
 
+subsection \<open>Sublist_Extra\<close>
+
+
+(* lemma map_mono_strict_suffix: "strict_suffix xs ys \<Longrightarrow> strict_suffix (map f xs) (map f ys)"
+  by (metis map_mono_suffix  map_eq_imp_length_eq nless_le strict_suffix_def suffix_length_less) *)
+
+lemma not_mem_strict_suffix:
+  shows "strict_suffix xs (y # ys) \<Longrightarrow> y \<notin> set ys \<Longrightarrow> y \<notin> set xs"
+  unfolding strict_suffix_def suffix_def
+  by (metis Cons_eq_append_conv Un_iff set_append)
+
+lemma not_mem_strict_suffix':
+  shows "strict_suffix xs (y # ys) \<Longrightarrow> f y \<notin> f ` set ys \<Longrightarrow> f y \<notin> f ` set xs"
+  using not_mem_strict_suffix[of "map f xs" "f y" "map f ys", unfolded list.set_map]
+  using map_mono_strict_suffix[of _ "_ # _", unfolded list.map]
+  by fast
+
+
 subsection \<open>Multiset_Extra\<close>
 
 lemma Multiset_Bex_plus_iff: "(\<exists>x \<in># (M1 + M2). P x) \<longleftrightarrow> (\<exists>x \<in># M1. P x) \<or> (\<exists>x \<in># M2. P x)"
@@ -152,7 +170,6 @@ proof -
       by (metis \<open>M1 = I + K\<close> \<open>M2 = I + J\<close> \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> union_iff)
   qed
 qed
-
 
 lemma mult_mono_strong:
   assumes "(M1, M2) \<in> mult r" and "trans r" and
@@ -1307,6 +1324,9 @@ one point.\<close>
 definition is_mimgu where
   "is_mimgu \<mu> TT \<equiv> is_imgu \<mu> TT \<and> range_vars \<mu> \<subseteq> (\<Union>T \<in> TT. (\<Union>t \<in> T. vars_term t))"
 
+lemma is_imgu_if_is_mimgu[intro]: "is_mimgu \<mu> TT \<Longrightarrow> is_imgu \<mu> TT"
+  by (simp add: is_mimgu_def)
+
 lemma is_mimgu_if_mgu_eq_Some:
   assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
   shows "is_mimgu \<mu> {{t, u}}"
@@ -1627,6 +1647,9 @@ definition state_conflict :: "('f, 'v) state \<Rightarrow> ('f, 'v) closure opti
 
 lemma state_conflict_simp[simp]: "state_conflict (\<Gamma>, U, u) = u"
   by (simp add: state_conflict_def)
+
+lemma state_simp[simp]: "(state_trail S, state_learned S, state_conflict S) = S"
+  by (simp add: state_conflict_def state_learned_def state_trail_def)
 
 definition clss_of_trail :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause set" where
   "clss_of_trail \<Gamma> = (\<Union>Ln \<in> set \<Gamma>. case snd Ln of None \<Rightarrow> {} | Some (C, L, _) \<Rightarrow> {C + {#L#}})"
@@ -1995,6 +2018,19 @@ next
   qed
 qed
 
+lemma trail_false_cls_iff_not_trail_interp_entails:
+  assumes "trail_consistent \<Gamma>" "\<forall>L \<in># C. trail_defined_lit \<Gamma> L"
+  shows "trail_false_cls \<Gamma> C \<longleftrightarrow> \<not> trail_interp \<Gamma> \<TTurnstile> C"
+proof (rule iffI)
+  show "trail_false_cls \<Gamma> C \<Longrightarrow> \<not> trail_interp \<Gamma> \<TTurnstile> C"
+    by (metis (mono_tags, opaque_lifting) assms(1) trail_false_cls_def trail_false_lit_def
+        trail_interp_lit_if_trail_true trail_true_lit_def true_cls_def true_lit_iff
+        true_lit_simps(1) true_lit_simps(2) uminus_Neg uminus_Pos)
+next
+  show "\<not> trail_interp \<Gamma> \<TTurnstile> C \<Longrightarrow> trail_false_cls \<Gamma> C"
+    using assms(1) assms(2) trail_defined_cls_def trail_interp_cls_if_trail_true
+      trail_true_or_false_cls_if_defined by blast
+qed
 
 section \<open>SCL Calculus\<close>
 
@@ -3262,6 +3298,122 @@ lemma scl_mempty_not_in_sate_learned:
   unfolding scl_def
   by (elim disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
       resolve.cases backtrack.cases) simp_all
+
+
+lemma conflict_if_mempty_in_initial_clauses_and_no_conflict:
+  assumes "{#} \<in> N" and "state_conflict S = None"
+  shows "conflict N \<beta> S (state_trail S, state_learned S, Some ({#}, Var))"
+proof -
+  from assms(2) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
+    by (metis snd_conv state_conflict_def surj_pair)
+
+  show ?thesis
+    unfolding S_def state_trail_simp state_learned_simp
+  proof (rule conflictI[of "{#}" N _ _ _ Var])
+    from assms(1) show "{#} \<in> N \<union> U"
+      by simp
+  qed simp_all
+qed
+
+lemma conflict_initial_state_if_mempty_in_intial_clauses:
+  "{#} \<in> N \<Longrightarrow> conflict N \<beta> initial_state ([], {}, Some ({#}, Var))"
+  using conflict_if_mempty_in_initial_clauses_and_no_conflict by auto
+
+lemma conflict_initial_state_only_with_mempty:
+  assumes "conflict N \<beta> initial_state S"
+  shows "S = ([], {}, Some ({#}, Var))"
+  using assms(1)
+proof (cases rule: conflict.cases)
+  case (conflictI D D' \<sigma>)
+
+  from \<open>trail_false_cls [] (D' \<cdot> \<sigma>)\<close> have "D' \<cdot> \<sigma> = {#}"
+    using not_trail_false_Nil(2) by blast
+  hence "D' = {#}"
+    by simp
+  moreover with \<open>subst_domain \<sigma> \<subseteq> vars_cls D'\<close> have "\<sigma> = Var"
+    using subst_ident_if_not_in_domain by fastforce
+  ultimately show ?thesis
+    using \<open>S = ([], {}, Some (D', \<sigma>))\<close> by simp
+qed
+
+lemma no_more_step_if_conflict_mempty:
+  assumes "state_conflict S = Some ({#}, \<gamma>)"
+  shows "\<not> (\<exists>S'. scl N \<beta> S S')"
+  apply (rule notI)
+  unfolding scl_def
+  apply (insert assms)
+  by (elim exE disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+      resolve.cases backtrack.cases) simp_all
+
+lemma mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict:
+  assumes "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}"
+  shows "{#} \<notin> N"
+proof (rule notI)
+  from assms(2) have "initial_state \<noteq> S" by fastforce
+  then obtain S' where
+    reg_scl_init_S': "regular_scl N \<beta> initial_state S'" and "(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S"
+    by (metis assms(1) converse_rtranclpE)
+
+  assume "{#} \<in> N"
+  hence "conflict N \<beta> initial_state ([], {}, Some ({#}, Var))"
+    by (rule conflict_initial_state_if_mempty_in_intial_clauses)
+  hence conf_init: "regular_scl N \<beta> initial_state ([], {}, Some ({#}, Var))"
+    using regular_scl_def by blast
+  hence S'_def: "S' = ([], {}, Some ({#}, Var))"
+    using reg_scl_init_S'
+    unfolding regular_scl_def
+    using \<open>conflict N \<beta> initial_state ([], {}, Some ({#}, Var))\<close>
+      conflict_initial_state_only_with_mempty
+    by blast
+
+  have "\<nexists>S'. scl N \<beta> ([], {}, Some ({#}, Var)) S'"
+    by (rule no_more_step_if_conflict_mempty) simp
+  hence "\<nexists>S'. regular_scl N \<beta> ([], {}, Some ({#}, Var)) S'"
+    using scl_if_reasonable[OF reasonable_if_regular] by blast
+  hence "S = S'"
+    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S\<close> unfolding S'_def
+    by (metis converse_rtranclpE)
+  with assms(2,3) show False by (simp add: S'_def)
+qed
+
+lemma ex_conflict_if_trail_false_cls:
+  assumes fin: "finite N" "finite U" and
+    tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (N \<union> U)"
+  shows "\<exists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
+proof -
+  from D_in obtain D' \<gamma> where
+    D'_in: "D' \<in> N \<union> U" and D_def: "D = D' \<cdot> \<gamma>" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>)"
+    unfolding grounding_of_clss_def grounding_of_cls_def by force
+
+  define \<rho> where
+    "\<rho> \<equiv> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+
+  define \<gamma>' where
+    "\<gamma>' \<equiv> restrict_subst (vars_cls (D' \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)"
+
+  have "D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>"
+    unfolding \<gamma>'_def using fin
+    by (metis \<rho>_def finite_UnI finite_clss_of_trail gr_D_\<gamma> is_renaming_renaming_wrt order_refl
+        subst_cls_restrict_subst_idem subst_renaming_subst_adapted
+        vars_cls_subset_subst_domain_if_grounding)
+
+  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, \<gamma>'))"
+  proof (rule conflictI[OF D'_in])
+    show "D' \<cdot> \<rho> = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D'"
+      by (simp add: rename_clause_def \<rho>_def)
+  next
+    show "subst_domain \<gamma>' \<subseteq> vars_cls (D' \<cdot> \<rho>)"
+      by (simp add: \<gamma>'_def subst_domain_restrict_subst)
+  next
+    show "is_ground_cls (D' \<cdot> \<rho> \<cdot> \<gamma>')"
+      unfolding \<open>D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>\<close> by (rule gr_D_\<gamma>)
+  next
+    show "trail_false_cls \<Gamma> (D' \<cdot> \<rho> \<cdot> \<gamma>')"
+      unfolding \<open>D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>\<close> D_def[symmetric]
+      by (rule tr_false_\<Gamma>_D)
+  qed
+  thus ?thesis by auto
+qed
 
 end
 

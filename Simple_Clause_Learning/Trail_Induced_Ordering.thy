@@ -125,6 +125,15 @@ lemma defined_conv:
   shows "L \<in> set Ls \<union> uminus ` set Ls \<longleftrightarrow> L \<in> set Ls \<or> - L \<in> set Ls"
   by (auto simp: rev_image_eqI uminus_uminus_id)
 
+lemma trail_less_comp_rightI: "L \<in> set Ls \<Longrightarrow> trail_less Ls L (- L)"
+  by (metis in_set_conv_nth le_eq_less_or_eq trail_less_def trail_less_id_comp_def)
+
+lemma trail_less_comp_leftI:
+  fixes Ls :: "('a :: uminus) list"
+  assumes uminus_uminus_id: "\<And>x :: 'a. - (- x) = x"
+  shows "- L \<in> set Ls \<Longrightarrow> trail_less Ls (- L) L"
+  by (rule trail_less_comp_rightI[of "- L", unfolded uminus_uminus_id])
+
 
 subsection \<open>Well-Defined\<close>
 
