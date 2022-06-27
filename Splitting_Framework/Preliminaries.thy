@@ -567,7 +567,8 @@ proof -
   have \<open>{C} \<union> {Neg C} \<Turnstile>\<^sub>\<sim> {}\<close> unfolding entails_neg_def
     by (smt (verit, ccfv_threshold) Collect_empty_eq Un_empty Un_insert_right empty_iff
       empty_subsetI entails_reflexive entails_subsets insertI1 insert_iff insert_subset
-      is_Pos.simps(2) mem_Collect_eq singletonD sup_bot.right_neutral sup_bot_left to_V.simps(2))
+      is_Pos.simps(2) mem_Collect_eq singletonD sup_bot.right_neutral sup_bot_left to_V.simps(2)
+      Un_insert_left)
   then show ?thesis using neg_ext_cons_rel.entails_subsets by blast 
 qed
 
