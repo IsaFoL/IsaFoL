@@ -409,8 +409,8 @@ lemma
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(\<lambda>S S'. skip N \<beta> S S' \<or> factorize N \<beta> S S' \<or> resolve N \<beta> S S')\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
-    "transp lt" and
-    total_on_ground_lt: "totalp_on {L. is_ground_lit L} lt"
+    "transp lt" (* and
+    total_on_ground_lt: "totalp_on {L. is_ground_lit L} lt" *)
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1)))) (N \<union> state_learned S1) C)"
