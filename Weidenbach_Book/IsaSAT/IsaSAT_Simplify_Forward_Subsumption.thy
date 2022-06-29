@@ -637,26 +637,37 @@ proof -
     done
 qed
 
-definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+
+definition forward_subsumption_all_wl2_inv :: \<open>nat twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<times> _ \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_all_wl2_inv = (\<lambda>S xs (i, occs, D, s).
+  (D, {#}) \<in> clause_hash_ref (all_init_atms_st s) \<and>
+  forward_subsumption_all_wl_inv S (mset (drop i xs), s))
+  \<close>
+
+definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> _ nres\<close> where
   \<open>forward_subsumption_all_wl2 = (\<lambda>S. do {
   ASSERT (forward_subsumption_all_wl_pre S);
-  xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_wl S));
-  (xs, S) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_wl S = None)
-    (\<lambda>(xs, S). do {
-       C \<leftarrow> SPEC (\<lambda>C. C \<in># xs);
+  xs \<leftarrow> SPEC (\<lambda>xs. mset xs \<subseteq># dom_m (get_clauses_wl S) \<and> sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) xs);
+  occs \<leftarrow> mop_occ_list_create (set_mset (all_init_atms_st S));
+  let n = length xs;
+  D \<leftarrow> mop_ch_create (set_mset (all_init_atms_st S));
+  (xs, occs, D, S) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S). i < n \<and> get_conflict_wl S = None)
+    (\<lambda>(i, occs, D, S). do {
+       let C = xs!i;
        if C \<notin># dom_m (get_clauses_wl S)
-       then RETURN (remove1_mset C xs, S)
+       then RETURN (i+1, occs, D, S)
        else do {
-         S \<leftarrow> simplify_clause_with_unit_st_wl C S;
+         S \<leftarrow> simplify_clause_with_unit_st_wl C  S;
          if get_conflict_wl S = None \<and> C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) > 2 then do {
-           (S) \<leftarrow> try_to_forward_subsume_wl2 C S;
-           RETURN (remove1_mset C xs, S)
+           D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl S \<propto> C)) D;
+           (occs, D, S) \<leftarrow> try_to_forward_subsume_wl2 C occs D S;
+           RETURN (i+1, occs, D, S)
          }
-         else RETURN (remove1_mset C xs, S)
+         else RETURN (i+1, occs, D, S)
       }
     })
-    (xs, S);
+    (0, occs, D, S);
   RETURN S
   }
 )\<close>
