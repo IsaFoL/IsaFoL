@@ -1723,22 +1723,23 @@ definition forward_subsumption_one_wl_select where
     (length (get_clauses_wl S \<propto> D) \<le> length (get_clauses_wl S \<propto> C))))\<close>
 
 definition forward_subsumption_one_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> bool) nres\<close> where
-  \<open>forward_subsumption_one_wl = (\<lambda>C S . do {
-  ASSERT (forward_subsumption_one_wl_pre C S);
-  ys \<leftarrow> SPEC (forward_subsumption_one_wl_select C S);
+  \<open>forward_subsumption_one_wl = (\<lambda>C S\<^sub>0 . do {
+  ASSERT (forward_subsumption_one_wl_pre C S\<^sub>0);
+  ys \<leftarrow> SPEC (forward_subsumption_one_wl_select C S\<^sub>0);
   (xs, s) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_one_wl_inv S C \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
+    WHILE\<^sub>T\<^bsup> forward_subsumption_one_wl_inv S\<^sub>0 C \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
     (\<lambda>(xs, s). do {
       C' \<leftarrow> SPEC (\<lambda>C'. C' \<in># xs);
-      if C' \<notin># dom_m (get_clauses_wl S)
+      if C' \<notin># dom_m (get_clauses_wl S\<^sub>0)
       then RETURN (remove1_mset C' xs, s)
       else do  {
-        s \<leftarrow> subsume_clauses_match C' C (get_clauses_wl S);
+       s \<leftarrow> subsume_clauses_match C' C (get_clauses_wl S\<^sub>0);
        RETURN (remove1_mset C' xs, s)
       }
     })
     (ys, NONE);
-  S \<leftarrow> subsume_or_strengthen_wl C s S;
+  S \<leftarrow> subsume_or_strengthen_wl C s S\<^sub>0;
+  ASSERT (literals_are_\<L>\<^sub>i\<^sub>n' S \<and> set_mset (all_init_lits_of_wl S) = set_mset (all_init_lits_of_wl S\<^sub>0));
   RETURN (S, s \<noteq> NONE)
   })\<close>
 
@@ -1835,6 +1836,9 @@ proof -
       apply - apply normalize_goal+ 
       by (simp add: try_to_subsume_def
         forward_subsumption_one_inv_def subsume_or_strengthen_pre_def split: subsumption.splits)
+    subgoal using assms(3) SS' by (force simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def
+      watched_by_alt_def)
+    subgoal using SS' by auto
     subgoal by auto
     done
 qed

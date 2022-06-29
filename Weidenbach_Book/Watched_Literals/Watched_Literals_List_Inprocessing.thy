@@ -2941,23 +2941,24 @@ definition forward_subsumption_one_select where
     (length (get_clauses_l S \<propto> D) \<le> length (get_clauses_l S \<propto> C))))\<close>
 
 definition forward_subsumption_one :: \<open> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> ('v twl_st_l \<times> bool) nres\<close> where
-  \<open>forward_subsumption_one = (\<lambda>C S . do {
-    ASSERT(forward_subsumption_one_pre C S);
-    xs \<leftarrow> SPEC (forward_subsumption_one_select C S);
+  \<open>forward_subsumption_one = (\<lambda>C S\<^sub>0. do {
+    ASSERT(forward_subsumption_one_pre C S\<^sub>0);
+    xs \<leftarrow> SPEC (forward_subsumption_one_select C S\<^sub>0);
     (xs, s) \<leftarrow>
-      WHILE\<^sub>T\<^bsup> forward_subsumption_one_inv C S \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
+      WHILE\<^sub>T\<^bsup> forward_subsumption_one_inv C S\<^sub>0 \<^esup> (\<lambda>(xs, s). xs \<noteq> {#} \<and> s = NONE)
       (\<lambda>(xs, s). do {
         C' \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-        if C' \<notin># dom_m (get_clauses_l S)
+        if C' \<notin># dom_m (get_clauses_l S\<^sub>0)
         then RETURN (remove1_mset C' xs, s)
         else do {
-          s \<leftarrow> SPEC(try_to_subsume C C' (get_clauses_l S));
+          s \<leftarrow> SPEC(try_to_subsume C C' (get_clauses_l S\<^sub>0));
           RETURN (remove1_mset C' xs, s)
         }
       })
       (xs, NONE);
-    ASSERT (forward_subsumption_one_inv C S (xs, s));
-    S \<leftarrow> subsume_or_strengthen C s S;
+    ASSERT (forward_subsumption_one_inv C S\<^sub>0 (xs, s));
+    S \<leftarrow> subsume_or_strengthen C s S\<^sub>0;
+    ASSERT (set_mset (all_learned_lits_of_l S) \<subseteq> set_mset (all_learned_lits_of_l S\<^sub>0) \<and> set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l S\<^sub>0));
     RETURN (S, s \<noteq> NONE)
   }
 )\<close>
@@ -3076,8 +3077,11 @@ proof -
      unfolding forward_subsumption_one_inv_def
      by fast
    subgoal using C by auto
-   subgoal for x s a b xa
-     using le_C by fastforce
+   subgoal by (simp add: rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+   subgoal by (auto dest:  rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
+   subgoal premises p for x s a b xa
+     using p(1-7) le_C
+     by fastforce
    done
 qed
 
