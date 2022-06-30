@@ -3057,15 +3057,8 @@ lemma reflexion_if_renaming:
     ren: "renaming_cl P1 P1'" and
     fin_P1: "finite (cl_ecl P1)" and
     trms_P1_subset:"(\<Union>t \<in> trms_ecl P1. vars_of t) \<subseteq> vars_of_cl (cl_ecl P1)" and
-    trms_ecl_P1_empty: "trms_ecl P1 = {}" (* and *)
-    (* range_vars_\<sigma>\<^sub>C: "range_vars \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)" and *)
-    (* dom_vars_\<sigma>\<^sub>C: "fst ` set \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)" *) (* and
-    "Idem \<sigma>\<^sub>C" *)
-  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and>
-    renaming_cl C D \<and>
-    fst ` set \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')" (* \<and>
-    range_vars \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1') \<and>
-    Idem \<sigma>\<^sub>D" *)
+    trms_ecl_P1_empty: "trms_ecl P1 = {}"
+  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
 proof -
   from refl obtain L1 t s Cl_P Cl_C trms_C where
     "SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C" and
@@ -3386,33 +3379,6 @@ proof -
       ultimately show "D = subst_ecl C \<rho>"
         by (simp add: \<open>C = Ecl Cl_C trms_C\<close> D_def)
     qed
-(*   next
-    have "range_vars \<sigma>\<^sub>D \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` range_vars \<sigma>\<^sub>C"
-      by (rule range_vars_of_subst_adapted_to_renaming[OF ren_\<rho> dom_vars_\<sigma>\<^sub>C range_vars_\<sigma>\<^sub>C,
-            folded \<sigma>\<^sub>D_def])
-    also have "... \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` vars_of_cl (cl_ecl P1)"
-      using range_vars_\<sigma>\<^sub>C by fast
-    also have "... \<subseteq> vars_of_cl (cl_ecl (subst_ecl P1 \<rho>))"
-      by (smt (verit, best) UN_iff cl_ecl_subst_ecl_distrib image_iff ren_\<rho> renaming_var_to_var
-          subset_iff the_Var.simps vars_iff_occseq vars_of_cl_subst_renaming_conv)
-    also have "... \<subseteq> vars_of_cl (cl_ecl P1')"
-      by (simp add: P1'_def)
-    finally show "range_vars \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')"
-      by assumption *)
-  next
-    have dom_vars_\<sigma>\<^sub>D: "fst ` set \<sigma>\<^sub>D \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` fst ` set \<sigma>\<^sub>C"
-      by (rule dom_of_subst_adapted_to_renaming[OF ren_\<rho> dom_vars_\<sigma>\<^sub>C, folded \<sigma>\<^sub>D_def])
-    also have "... \<subseteq> (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) ` vars_of_cl (cl_ecl P1)"
-      using dom_vars_\<sigma>\<^sub>C by blast
-    also have "... \<subseteq> vars_of_cl (subst_cl (cl_ecl P1) \<rho>)"
-      using ren_\<rho> renaming_var_to_var vars_of_cl_subst_renaming_conv by fastforce
-    also have "... \<subseteq> vars_of_cl (cl_ecl P1')"
-      by (simp add: P1'_def cl_ecl_subst_ecl_distrib)
-    finally show "fst ` set \<sigma>\<^sub>D \<subseteq> vars_of_cl (cl_ecl P1')"
-      by assumption
-  (* next
-    show "Idem \<sigma>\<^sub>D"
-      by (rule \<open>Idem \<sigma>\<^sub>D\<close>) *)
   qed
 qed
 
@@ -3431,10 +3397,7 @@ If it ever cause a problem, change the structure to have access to @{type Clausa
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
   "F_Inf \<equiv> {Infer Ps (subst_cls (from_SuperCalc_cl C') \<sigma>) | Ps C \<sigma> C'.
     let Ps' = map to_SuperCalc_ecl (Map2.map2 subst_cls Ps (renamings_apart Ps)) in
-    derivable_list C Ps' \<sigma> SuperCalc.FirstOrder C'}" (* \<and>
-    fst ` set \<sigma> \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set Ps') \<and>
-    range_vars \<sigma> \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set Ps') \<and>
-    Idem \<sigma>}" *)
+    derivable_list C Ps' \<sigma> SuperCalc.FirstOrder C'}"
 
 lemma F_Inf_have_prems: "\<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
   by (auto simp: F_Inf_def derivable_list_def)
@@ -3886,8 +3849,7 @@ proof -
       show ?thesis
         unfolding Ps_def renamings_P1'
         apply simp
-        using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1 vars_of_trms_P1 trms_P1_empty
-            (* range_vars_\<sigma>\<^sub>C' *) (* dom_vars_\<sigma>\<^sub>C' *) (* \<open>Idem \<sigma>\<^sub>C\<close> *)]
+        using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1 vars_of_trms_P1 trms_P1_empty]
         using derivable_list_def
         by auto
     next
