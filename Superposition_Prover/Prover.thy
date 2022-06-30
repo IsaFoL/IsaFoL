@@ -1146,7 +1146,7 @@ qed
 lemma factorization_conclusion_smaller:
   assumes fact_C': "factorization P1 C \<sigma> k C'" and fin_P1: "finite (cl_ecl P1)" and
     total_trm_ord: "Relation.total_on
-      (\<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P1)) trm_ord"
+      (\<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P1) \<sigma>)) trm_ord"
   shows "((C', \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
 proof -
   from fact_C' obtain L1 L2 t s u v where
@@ -1155,48 +1155,55 @@ proof -
     L2_in_P1: "L2 \<in> cl_ecl P1 - {L1}" and
     orient_L1: "orient_lit_inst L1 t s pos \<sigma>" and
     orient_L2: "orient_lit_inst L2 u v pos \<sigma>" and
-    t_neq_s: "t \<lhd> \<sigma> \<noteq> s \<lhd> \<sigma>" and
-    t_neq_v: "t \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>" and
+    t_\<sigma>_neq_s_\<sigma>: "t \<lhd> \<sigma> \<noteq> s \<lhd> \<sigma>" and
+    t_\<sigma>_neq_v_\<sigma>: "t \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>" and
     unif_t_u: "ck_unifier t u \<sigma> k" and
     C'_def: "C' = cl_ecl P1 - {L2} \<union> {equational_clausal_logic.literal.Neg (Eq s v)}"
     by (auto simp: factorization_def)
 
-  have
-    "s \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L1)" and
-    "t \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L1)"
-    using orient_L1 by (auto simp: orient_lit_inst_def)
-  hence
-    t_in_P1: "t \<in> \<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P1)" and
-    s_in_P1: "s \<in> \<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P1)"
-    using L1_in_P1 by blast+
+  have "(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<in> trm_ord \<or> (s \<lhd> \<sigma>, t \<lhd> \<sigma>) \<in> trm_ord"
+  proof (rule total_trm_ord[unfolded Relation.total_on_def, rule_format])
+    have "t \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L1 \<sigma>))"
+      using orient_L1 by (auto simp: orient_lit_inst_def)
+    thus "t \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P1) \<sigma>)"
+      using L1_in_P1 by auto
+  next
+    have "s \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L1 \<sigma>))"
+      using orient_L1 by (auto simp: orient_lit_inst_def)
+    thus "s \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P1) \<sigma>)"
+      using L1_in_P1 by auto
+  next
+    show "t \<lhd> \<sigma> \<noteq> s \<lhd> \<sigma>"
+      by (rule t_\<sigma>_neq_s_\<sigma>)
+  qed
 
-  have
-    "u \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L2)" and
-    "v \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L2)"
-    using orient_L2 by (auto simp: orient_lit_inst_def)
-  hence
-    u_in_P1: "u \<in> \<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P1)" and
-    v_in_P1: "v \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P1)"
-    using L2_in_P1 by blast+
-
-  have "(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<notin> trm_ord"
+  moreover have "(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<notin> trm_ord"
     using orient_L1 by (simp add: orient_lit_inst_def)
-  hence "(s \<lhd> \<sigma>, t \<lhd> \<sigma>) \<in> trm_ord"
-    using total_trm_ord[unfolded Relation.total_on_def, rule_format, OF t_in_P1 s_in_P1]
-    using t_neq_s
-    using trm_ord_subst by blast
+  ultimately have "(s \<lhd> \<sigma>, t \<lhd> \<sigma>) \<in> trm_ord"
+    by simp
   moreover have "t \<lhd> \<sigma> = u \<lhd> \<sigma>"
     by (rule unif_t_u[THEN ck_unifier_thm])
+  moreover have "(u \<lhd> \<sigma>, v \<lhd> \<sigma>) \<in> trm_ord \<or> (v \<lhd> \<sigma>, u \<lhd> \<sigma>) \<in> trm_ord"
+  proof (rule total_trm_ord[unfolded Relation.total_on_def, rule_format])
+    have "u \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L2 \<sigma>))"
+      using orient_L2 by (auto simp: orient_lit_inst_def)
+    thus "u \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P1) \<sigma>)"
+      using L2_in_P1 by auto
+  next
+    have "v \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L2 \<sigma>))"
+      using orient_L2 by (auto simp: orient_lit_inst_def)
+    thus "v \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P1) \<sigma>)"
+      using L2_in_P1 by auto
+  next
+    show "u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>"
+      using t_\<sigma>_neq_v_\<sigma> \<open>t \<lhd> \<sigma> = u \<lhd> \<sigma>\<close> by simp
+  qed
   ultimately have "(mset_lit (subst_lit (equational_clausal_logic.literal.Neg (Eq s v)) \<sigma>),
     mset_lit (subst_lit L2 \<sigma>)) \<in> mult trm_ord"
     using orient_L2 unfolding orient_lit_inst_def
-    using total_trm_ord[unfolded Relation.total_on_def, rule_format, OF u_in_P1 v_in_P1]
-    using t_neq_v
     apply -
     apply (rule one_step_implies_mult[of _ _ _ "{#}", simplified])
-    apply auto [1]
-    apply safe
-    by (auto intro: trm_ord_subst[rule_format])
+    by auto
 
   then show ?thesis
     unfolding C'_def cl_ord_def
@@ -1937,7 +1944,8 @@ proof -
       using G_SuperCalc.factorization_conclusion_smaller[OF fact_P1 fin_P1]
       using G_SuperCalc.trm_ord_total_on_ground_clause
       using ground_C' ground_P1
-      by (metis G_SuperCalc.cl_ord_ground_subst fin_P1 to_from_SuperCalc_cl)
+      by (metis G_SuperCalc.cl_ord_ground_subst fin_P1 substs_preserve_ground_clause
+          to_from_SuperCalc_cl)
   next
     fix P1 P2
     assume
