@@ -1243,8 +1243,8 @@ lemma superposition_conclusion_smaller:
   assumes super_C': "superposition P1 P2 C \<sigma> Ground C'" and
     fin_P1: "finite (cl_ecl P1)" and
     fin_P2: "finite (cl_ecl P2)" and
-    total_trm_ord: "Relation.total_on
-      (\<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P2)) trm_ord"
+    total_trm_ord': "Relation.total_on
+      (\<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P2) \<sigma>)) trm_ord"
   shows "((C', \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
 proof -
   from super_C' obtain L1 t s u v L2 p polarity t' u' where
@@ -1256,7 +1256,7 @@ proof -
     "\<not> is_a_variable u'" and
     orient_L2: "orient_lit_inst L2 u v pos \<sigma>" and
     orient_L1: "orient_lit_inst L1 t s polarity \<sigma>" and
-    u_neq_v: "u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>" and
+    u_\<sigma>_neq_v_\<sigma>: "u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>" and
     subterm_t_p: "subterm t p u'" and
     ck_unif_u'_u: "ck_unifier u' u \<sigma> Ground" and
     replace_t_v: "replace_subterm t p v t'" and
@@ -1266,24 +1266,23 @@ proof -
     unfolding superposition_def
     by blast
 
-  have
-    "u \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L2)" and
-    "v \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom L2)"
-    using orient_L2 by (auto simp: orient_lit_inst_def)
-  hence
-    u_in_P2: "u \<in> \<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P2)" and
-    v_in_P2: "v \<in> \<Union>(case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P2)"
-    using L2_in_P2 by blast+
-
-  have trm_ord_v_u: "(v \<lhd> \<sigma>, u \<lhd> \<sigma>) \<in> trm_ord"
-    using orient_L2[unfolded orient_lit_inst_def]
-    apply simp
-    using total_trm_ord[unfolded Relation.total_on_def, rule_format, OF u_in_P2 v_in_P2]
-    using u_neq_v
-    using trm_ord_subst by blast
-
-  have "(t \<lhd> \<sigma>, s \<lhd> \<sigma>) \<notin> trm_ord"
-    using orient_L1[unfolded orient_lit_inst_def] by blast
+  have "(u \<lhd> \<sigma>, v \<lhd> \<sigma>) \<in> trm_ord \<or> (v \<lhd> \<sigma>, u \<lhd> \<sigma>) \<in> trm_ord"
+  proof (rule total_trm_ord'[unfolded Relation.total_on_def, rule_format])
+    have "u \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L2 \<sigma>))"
+      using orient_L2 by (auto simp: orient_lit_inst_def)
+    thus "u \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P2) \<sigma>)"
+      using L2_in_P2 by auto
+  next
+    have "v \<lhd> \<sigma> \<in> case_equation (\<lambda>t1 t2. {t1, t2}) (atom (subst_lit L2 \<sigma>))"
+      using orient_L2 by (auto simp: orient_lit_inst_def)
+    thus "v \<lhd> \<sigma> \<in> \<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P2) \<sigma>)"
+      using L2_in_P2 by auto
+  next
+    show "u \<lhd> \<sigma> \<noteq> v \<lhd> \<sigma>"
+      by (rule u_\<sigma>_neq_v_\<sigma>)
+  qed
+  hence trm_ord_v_u: "(v \<lhd> \<sigma>, u \<lhd> \<sigma>) \<in> trm_ord"
+    using orient_L2[unfolded orient_lit_inst_def] by auto
 
   have u_eq_u': "u \<lhd> \<sigma> = u' \<lhd> \<sigma>"
     using ck_unif_u'_u by (simp add: ck_unifier_thm)
@@ -1964,8 +1963,10 @@ proof -
 
     have "((C', \<sigma>), cl_ecl P1, \<sigma>) \<in> G_SuperCalc.cl_ord"
     proof (rule G_SuperCalc.superposition_conclusion_smaller[OF super_P1_P2 fin_P1 fin_P2])
-      show "Relation.total_on (\<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` cl_ecl P2)) trm_ord"
-        using G_SuperCalc.trm_ord_total_on_ground_clause ground_P2 by blast
+      show "Relation.total_on
+        (\<Union> (case_equation (\<lambda>t1 t2. {t1, t2}) ` atom ` subst_cl (cl_ecl P2) \<sigma>)) trm_ord"
+        using G_SuperCalc.trm_ord_total_on_ground_clause ground_P2
+        by (simp add: substs_preserve_ground_clause)
     qed
     thus "fclause_ord (from_SuperCalc_cl C') (from_SuperCalc_cl (last Ps))"
       unfolding fclause_ord_def to_from_SuperCalc_cl[OF fin_C'] to_from_SuperCalc_cl[OF fin_P1]
