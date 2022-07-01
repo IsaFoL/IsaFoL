@@ -1,5 +1,6 @@
 (* Title:        Preliminaries of the Splitting Framework
- * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
+ * Author:       Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020-2022
+ *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022 *)
 
 theory Preliminaries_With_Zorn
   imports Saturation_Framework.Calculus 
@@ -258,7 +259,7 @@ qed
           then have N'_in_finite_union : \<open>\<exists>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}. finite Q \<and> N' \<subseteq> \<Union>Q\<close>
             by (meson \<open>finite N' \<and> N' \<subseteq> \<Union> {C2. \<exists>C1. (C1, C2) \<in> C}\<close> finite_subset_Union)
 
-          ultimately obtain P Q where \<open>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}} \<and> finite P \<and> M' \<subseteq> \<Union>P \<and> Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}} \<and> finite Q \<and> N' \<subseteq> \<Union>Q\<close>      
+          ultimately obtain P Q where \<open>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> and finite_p: \<open>finite P\<close> and \<open>M' \<subseteq> \<Union>P \<and> Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}} \<and> finite Q \<and> N' \<subseteq> \<Union>Q\<close>      
             by auto
 
 (*may be useless*)
@@ -268,18 +269,96 @@ qed
           then have \<open>\<exists>\<P> \<subseteq> C. \<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P}\<close>
             by fastforce
 
-          then obtain \<P> where \<open>\<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P}\<close>
+          then obtain \<P> where \<P>_def: \<open>\<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P}\<close>
             by auto
 
-          then have \<open>\<exists>\<P>' \<subseteq> \<P>. (\<forall> (C1,C2) \<in> \<P>. \<exists>C2'. (C1,C2') \<in> \<P>') \<and> 
-                      (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P>' \<and> (C1,C2') \<in> \<P>') \<longrightarrow> (C2' = C2))\<close>
-            sorry
+          define f where \<open>f = (\<lambda>C1. if (\<exists>C2. (C1,C2)\<in>\<P>) then (SOME C2. (C1,C2) \<in> \<P>) else {})\<close>
+
+          define \<P>' where \<open>\<P>' = {(C1, f C1)|C1. \<exists>C2. (C1,C2)\<in>\<P>}\<close>
+          then have \<open>((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2'\<close>
+            by auto
+
+          have \<open>\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>')\<close>
+            unfolding \<P>'_def by auto
+
+          have \<open>\<P> \<noteq> {} \<longrightarrow> \<P>' \<noteq> {}\<close>
+            unfolding \<P>'_def by auto
+
+          (* have \<open>(\<forall>C1 C2 C2'. ((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2') \<and> \<P>' \<noteq> {} \<and> (\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>'))\<close>
+           *   unfolding \<P>'_def f_def 
+           *     sorry
+           * 
+           * have \<open>\<exists>f. \<forall>(C1,C2) \<in> \<P>. (C1, f C1) \<in> \<P>\<close>
+           * proof
+           * 
+           *   sorry
+           * 
+           * 
+           * 
+           * 
+           * then obtain f where \<open>\<forall>(C1,C2) \<in> \<P>. (C1, f C1) \<in> \<P>\<close>
+           *   unfolding \<P>_def 
+           *   (\* by (metis \<open>P \<subseteq> {C1. \<exists>C2. (C1, C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> case_prod_conv mem_Collect_eq subsetD) *\)
+           * 
+           * 
+           * have \<open>\<exists>\<P>'. (\<forall>C1 C2 C2'. ((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2') \<and> \<P>' \<noteq> {} \<and> (\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>'))\<close>
+           *   unfolding \<P>_def using finite_p
+           * 
+           * 
+           *     sorry
+           * 
+           * have \<open>\<exists>\<P>' \<subseteq> \<P>. (\<forall> (C1,C2) \<in> \<P>. \<exists>!C2'. (C1,C2') \<in> \<P>')\<close>
+           *   unfolding \<P>_def
+           *   sorry *)
 
           find_theorems name: Choice
 
           then obtain \<P>' where \<open>(\<forall> (C1,C2) \<in> \<P>. \<exists>C2'. (C1,C2') \<in> \<P>') \<and> 
                       (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P>' \<and> (C1,C2') \<in> \<P>') \<longrightarrow> (C2' = C2))\<close>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
 
 
 
