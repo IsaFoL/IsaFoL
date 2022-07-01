@@ -64,7 +64,7 @@ proof -
 
     (*interpret zorn : Zorn.pred_on A order_double_subsets.*)
 
-    have \<open>(M,N) \<in> A\<close>
+    have M_N_in_A : \<open>(M,N) \<in> A\<close>
       using not_M_entails_N A_def by simp
     then have not_empty_A :  \<open>A\<noteq>{}\<close>
       by force
@@ -89,7 +89,7 @@ proof -
       using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by auto
      qed
    
-     moreover have zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C1) \<longrightarrow> (C1 = C2)\<close>
+    moreover have zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C1) \<longrightarrow> (C1 = C2)\<close>
     proof -
       have \<open>\<forall>C1 C2. (fst C1 \<subseteq> fst C2) \<longrightarrow> (fst C2 \<subseteq> fst C1) \<longrightarrow> (fst C1 = fst C2)\<close>
         by force
@@ -129,11 +129,27 @@ proof -
     using antisym_zorn_relation by simp
 
   moreover have "Field zorn_relation = A"
-    sorry
+  proof -
+    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq> C0\<close>
+      using A_def \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
+    then have \<open>\<forall> C0 \<in> A. ((M,N),C0) \<in> zorn_relation\<close>
+      unfolding zorn_relation_def
+      using M_N_in_A by simp
+    then have "A \<subseteq> Range zorn_relation"
+      unfolding Range_def by fast
+    moreover have \<open>\<forall>C0. C0 \<in> (Range zorn_relation) \<longrightarrow> C0 \<in> A\<close>
+      by (meson Range_iff \<open>refl_on A zorn_relation\<close> refl_onD2)
+    moreover have \<open>\<forall>C0. C0 \<in> (Domain zorn_relation) \<longrightarrow> C0 \<in> A\<close>
+      by (metis Domain.cases \<open>refl_on A zorn_relation\<close> refl_on_domain)
+    ultimately show ?thesis
+      by (metis Field_def Un_absorb1 subrelI subset_antisym)
+  qed
 
+  show ?thesis by (simp add: \<open>Field zorn_relation = A\<close> calculation)
+qed
 
-      have relation_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall> C1 \<in> C. C1 \<in> A\<close>
-        by (meson calculation(1) in_ChainsD refl_on_domain)
+  have relation_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall> C1 \<in> C. C1 \<in> A\<close>
+  using in_ChainsD zorn_relation_def by fastforce
 
       have max_chain_is_a_max : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall>C1\<in>C. (C1 \<preceq> max_chain C)\<close>
       proof -
@@ -258,6 +274,8 @@ proof -
           then have \<open>\<exists>\<P>' \<subseteq> \<P>. (\<forall> (C1,C2) \<in> \<P>. \<exists>C2'. (C1,C2') \<in> \<P>') \<and> 
                       (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P>' \<and> (C1,C2') \<in> \<P>') \<longrightarrow> (C2' = C2))\<close>
             sorry
+
+          find_theorems name: Choice
 
           then obtain \<P>' where \<open>(\<forall> (C1,C2) \<in> \<P>. \<exists>C2'. (C1,C2') \<in> \<P>') \<and> 
                       (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P>' \<and> (C1,C2') \<in> \<P>') \<longrightarrow> (C2' = C2))\<close>
