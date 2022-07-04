@@ -30,6 +30,11 @@ fun is_in :: "'a neg \<Rightarrow> 'a neg set \<Rightarrow> bool" (infix "\<in>\
   \<open>(Pos C) \<in>\<^sub>v J = (\<exists>v\<in>J. is_Pos v \<and> to_V v = C)\<close> |
   \<open>(Neg C) \<in>\<^sub>v J = (\<exists>v\<in>J. (is_Pos v = is_Pos (Neg C)) \<and> to_V v = to_V C)\<close>
 
+(*definition of the iteration of a function*)
+fun iter_fun :: "nat \<Rightarrow> ('a \<Rightarrow> 'a)  \<Rightarrow> 'a \<Rightarrow> 'a"  where
+    "iter_fun 0 f x  = x" |
+    "iter_fun (Suc n) f x  = f (iter_fun n f x)"
+ 
 locale consequence_relation =
   fixes
     bot :: "'f" and
@@ -49,15 +54,19 @@ begin
 
 
 lemma entails_supsets : "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
-proof -
-  fix M N
+proof (rule ccontr)
   assume not_M_entails_N : \<open>\<not>M \<Turnstile> N\<close>
+  assume hyp_entails_sup : \<open>(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N')
+\<close>
   have \<open>\<exists>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<and> \<not>M' \<Turnstile> N'\<close>
   proof -
     define A  :: "('f set * 'f set) set" where \<open>A = {(M',N'). M \<subseteq> M' \<and> N \<subseteq> N' \<and> \<not>M' \<Turnstile> N'}\<close>
     define order_double_subsets :: "('f set * 'f set) \<Rightarrow> ('f set * 'f set) \<Rightarrow> bool" 
       (infix "\<preceq>" 50) where
           \<open>C1 \<preceq> C2 \<equiv> fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+    define order_double_subsets_strict :: "('f set * 'f set) \<Rightarrow> ('f set * 'f set) \<Rightarrow> bool" 
+      (infix "\<prec>" 50) where
+          \<open>C1 \<prec> C2 \<equiv> C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
     define zorn_relation :: "(('f set * 'f set) \<times> ('f set * 'f set)) set"
       where \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>
     define max_chain :: "('f set * 'f set) set \<Rightarrow> 'f set * 'f set"
@@ -73,6 +82,9 @@ proof -
     have trivial_induction_order : \<open>C1 \<subseteq> B \<and> C2 \<subseteq> B' \<longrightarrow> (C1,C2) \<preceq> (B,B')\<close>
     by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
 
+    have trivial_replacement_order [simp] : \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation  \<longrightarrow> (C1 \<preceq> C2)\<close>
+        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>  by force
+
     moreover have zorn_relation_refl : \<open>\<forall>C\<in>A. C \<preceq> C\<close>
     proof -
       have \<open>\<forall>C\<in>A. fst C \<subseteq> fst C \<and> snd C \<subseteq> snd C\<close>
@@ -80,7 +92,7 @@ proof -
       then show ?thesis by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
     qed
 
-    moreover  have zorn_relation_trans : \<open>\<forall>C1 C2 C3. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C3) \<longrightarrow> (C1 \<preceq> C3)\<close>
+    moreover have zorn_relation_trans : \<open>\<forall>C1 C2 C3. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C3) \<longrightarrow> (C1 \<preceq> C3)\<close>
     proof -
       have \<open>\<forall>C1 C2 C3. fst C1 \<subseteq> fst C2 \<longrightarrow> fst C2 \<subseteq> fst C3 \<longrightarrow> fst C1 \<subseteq> fst C3\<close>
         by blast
@@ -89,7 +101,10 @@ proof -
       then show ?thesis
       using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by auto
      qed
-   
+
+     then have zorn_strict_relation_trans : \<open>\<forall>(C1::'f set \<times> 'f set) C2 C3. (C1 \<prec> C2) \<longrightarrow> (C2 \<prec> C3) \<longrightarrow> (C1 \<prec> C3)\<close>
+     by (metis \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close> \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.antisym prod_eq_iff)
+
     moreover have zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C1) \<longrightarrow> (C1 = C2)\<close>
     proof -
       have \<open>\<forall>C1 C2. (fst C1 \<subseteq> fst C2) \<longrightarrow> (fst C2 \<subseteq> fst C1) \<longrightarrow> (fst C1 = fst C2)\<close>
@@ -100,15 +115,35 @@ proof -
         by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.eq_iff)
     qed
 
-    ultimately have po: "Partial_order zorn_relation"
-    proof -
-      have "refl_on A zorn_relation"
+    moreover have refl_on_zorn_relation : "refl_on A zorn_relation"
         using zorn_relation_refl
       by (smt (verit, ccfv_SIG) case_prod_conv mem_Collect_eq mem_Sigma_iff refl_onI subrelI zorn_relation_def)
-    moreover have antisym_zorn_relation : "antisym zorn_relation"
+
+    moreover have zorn_relation_field_is_A :  "Field zorn_relation = A"
+    proof -
+    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq> C0\<close>
+      using A_def \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
+    then have \<open>\<forall> C0 \<in> A. ((M,N),C0) \<in> zorn_relation\<close>
+      unfolding zorn_relation_def
+      using M_N_in_A by simp
+    then have "A \<subseteq> Range zorn_relation"
+      unfolding Range_def by fast
+    moreover have \<open>\<forall>C0. C0 \<in> (Range zorn_relation) \<longrightarrow> C0 \<in> A\<close>
+      by (meson Range_iff \<open>refl_on A zorn_relation\<close> refl_onD2)
+    moreover have \<open>\<forall>C0. C0 \<in> (Domain zorn_relation) \<longrightarrow> C0 \<in> A\<close>
+      by (metis Domain.cases \<open>refl_on A zorn_relation\<close> refl_on_domain)
+    ultimately show ?thesis
+      by (metis Field_def Un_absorb1 subrelI subset_antisym)
+  qed
+
+
+    ultimately have po: "Partial_order zorn_relation"
+    proof -
+    
+      have antisym_zorn_relation : "antisym zorn_relation"
     proof -
       have \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation \<and> (C2,C1) \<in> zorn_relation \<longrightarrow> (C1 \<preceq> C2) \<and> (C2 \<preceq> C1)\<close>
-        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>  by force
+         by force
       then show ?thesis using zorn_relation_antisym
       by (meson antisymI)
     qed
@@ -121,15 +156,17 @@ proof -
         by blast
 
       then show ?thesis using zorn_relation_trans
-      by (metis (no_types, opaque_lifting) \<open>\<forall>C1 C2 C3. (C1, C2) \<in> zorn_relation \<longrightarrow> (C2, C3) \<in> zorn_relation \<longrightarrow> C1 \<preceq> C2 \<longrightarrow> C2 \<preceq> C3\<close> calculation(1) refl_onD1 refl_onD2 transI zorn_relation_refl)
+      by (metis (no_types, opaque_lifting) FieldI1 FieldI2 transI trivial_replacement_order zorn_relation_field_is_A zorn_relation_trans)
+
   qed
   ultimately have "preorder_on A zorn_relation"
-    unfolding preorder_on_def by simp
+    unfolding preorder_on_def refl_on_zorn_relation
+  by (simp add: refl_on_zorn_relation)
   then have "partial_order_on A zorn_relation"
     unfolding partial_order_on_def
     using antisym_zorn_relation by simp
 
-  moreover have "Field zorn_relation = A"
+  moreover have  "Field zorn_relation = A"
   proof -
     have \<open>\<forall> C0 \<in> A. (M,N) \<preceq> C0\<close>
       using A_def \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
@@ -149,8 +186,10 @@ proof -
   show ?thesis by (simp add: \<open>Field zorn_relation = A\<close> calculation)
 qed
 
+
   have relation_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall> C1 \<in> C. C1 \<in> A\<close>
-  using in_ChainsD zorn_relation_def by fastforce
+    using in_ChainsD zorn_relation_def 
+    by (metis (no_types, lifting) mem_Collect_eq mem_Sigma_iff old.prod.case)
 
       have max_chain_is_a_max : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall>C1\<in>C. (C1 \<preceq> max_chain C)\<close>
       proof -
@@ -188,8 +227,8 @@ qed
 
      
     have M_N_less_than_max_chain : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (M,N) \<preceq> max_chain C\<close>
-      proof -
-        fix C
+    proof -
+      fix C
         assume \<open>C \<in> Chains zorn_relation\<close>
         consider (a) "C = {}" | (b) "C \<noteq> {}"
           by blast
@@ -221,7 +260,7 @@ qed
       qed
     qed
 
-    have left_U_not_entails_right_U :\<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<not> fst (max_chain C)\<Turnstile> snd (max_chain C)\<close>
+    moreover have left_U_not_entails_right_U :\<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<not> fst (max_chain C)\<Turnstile> snd (max_chain C)\<close>
     proof -
       fix C
       assume \<open>C \<in> Chains zorn_relation\<close>
@@ -235,9 +274,16 @@ qed
         next
           case b
           assume C_not_empty :\<open>C \<noteq> {}\<close>
-          assume abs_fst_entails_snd : \<open>fst (max_chain C) \<Turnstile> snd (max_chain C)\<close>
+          show ?thesis
+          proof (rule ccontr)
+            assume \<open>\<not>\<not>fst (max_chain C) \<Turnstile> snd (max_chain C)\<close>
+            then have abs_fst_entails_snd : \<open>fst (max_chain C) \<Turnstile> snd (max_chain C)\<close>
+              by auto
           then obtain M' N'  where abs_max_chain_compactness : \<open>M' \<subseteq> fst (max_chain C) \<and> N' \<subseteq> snd (max_chain C) \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N'\<close>
             using entails_compactness  by fastforce
+
+          then have not_empty_M'_or_N' : \<open>(M' \<noteq> {}) \<or> (N' \<noteq> {})\<close>
+            by (meson empty_subsetI entails_subsets not_M_entails_N)
 
           then have \<open>(finite M') \<and> M' \<subseteq> \<Union>{C1. \<exists>C2. (C1,C2) \<in> C}\<close>
             using C_not_empty abs_max_chain_compactness
@@ -259,140 +305,562 @@ qed
           then have N'_in_finite_union : \<open>\<exists>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}. finite Q \<and> N' \<subseteq> \<Union>Q\<close>
             by (meson \<open>finite N' \<and> N' \<subseteq> \<Union> {C2. \<exists>C1. (C1, C2) \<in> C}\<close> finite_subset_Union)
 
-          ultimately obtain P Q where \<open>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> and finite_p: \<open>finite P\<close> and \<open>M' \<subseteq> \<Union>P \<and> Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}} \<and> finite Q \<and> N' \<subseteq> \<Union>Q\<close>      
+          ultimately obtain P Q where \<open>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> and finite_p: \<open>finite P\<close> and \<open>M' \<subseteq> \<Union>P\<close> and \<open>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close> and finite_q : \<open>finite Q\<close> and \<open>N' \<subseteq> \<Union>Q\<close>      
             by auto
 
-(*may be useless*)
-          then have C1_at_least_one_rp : \<open>\<forall> C1 \<in> P. \<exists> C2 \<in> {C2. \<exists>C1. (C1,C2) \<in> C}. (C1,C2) \<in> C\<close>
-            by blast
-  
+          have not_empty_P_or_Q : \<open>P \<noteq> {} \<or> Q \<noteq> {}\<close>
+            using not_empty_M'_or_N' \<open>M' \<subseteq> \<Union> P\<close> \<open>Q \<subseteq> {C2. \<exists>C1. (C1, C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close> \<open>N' \<subseteq> \<Union> Q\<close> 
+            by force
+
+          have P_linked_C : \<open>\<forall>C1\<in>P. \<exists>C2. (C1,C2)\<in>C\<close>
+          using \<open>P \<subseteq> {C1. \<exists>C2. (C1, C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> by auto
+
+          then have Q_linked_C : \<open>\<forall>C2\<in>Q. \<exists>C1. (C1,C2)\<in>C\<close>
+            using \<open>M' \<subseteq> \<Union> P\<close>  \<open>Q \<subseteq> {C2. \<exists>C1. (C1, C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close> by blast
+
           then have \<open>\<exists>\<P> \<subseteq> C. \<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P}\<close>
             by fastforce
 
           then obtain \<P> where \<P>_def: \<open>\<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P}\<close>
             by auto
 
-          define f where \<open>f = (\<lambda>C1. if (\<exists>C2. (C1,C2)\<in>\<P>) then (SOME C2. (C1,C2) \<in> \<P>) else {})\<close>
-
-          define \<P>' where \<open>\<P>' = {(C1, f C1)|C1. \<exists>C2. (C1,C2)\<in>\<P>}\<close>
-          then have \<open>((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2'\<close>
+          then have \<P>_in_C : \<open>\<P> \<subseteq> C\<close>
             by auto
 
-          have \<open>\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>')\<close>
-            unfolding \<P>'_def by auto
+          have P_linked_\<P> : \<open>\<forall>C1\<in>P. \<exists>C2. (C1,C2)\<in>\<P>\<close>
+            by (simp add: P_linked_C \<P>_def)
 
-          have \<open>\<P> \<noteq> {} \<longrightarrow> \<P>' \<noteq> {}\<close>
-            unfolding \<P>'_def by auto
+          define f where \<open>f = (\<lambda>C1. if (\<exists>C2. (C1,C2)\<in>\<P>) then (SOME C2. (C1,C2) \<in> \<P>) else {})\<close>
 
-          (* have \<open>(\<forall>C1 C2 C2'. ((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2') \<and> \<P>' \<noteq> {} \<and> (\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>'))\<close>
-           *   unfolding \<P>'_def f_def 
-           *     sorry
-           * 
-           * have \<open>\<exists>f. \<forall>(C1,C2) \<in> \<P>. (C1, f C1) \<in> \<P>\<close>
-           * proof
-           * 
-           *   sorry
-           * 
-           * 
-           * 
-           * 
-           * then obtain f where \<open>\<forall>(C1,C2) \<in> \<P>. (C1, f C1) \<in> \<P>\<close>
-           *   unfolding \<P>_def 
-           *   (\* by (metis \<open>P \<subseteq> {C1. \<exists>C2. (C1, C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> case_prod_conv mem_Collect_eq subsetD) *\)
-           * 
-           * 
-           * have \<open>\<exists>\<P>'. (\<forall>C1 C2 C2'. ((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2') \<and> \<P>' \<noteq> {} \<and> (\<forall>C1 C2. (C1,C2)\<in>\<P> \<longrightarrow> (\<exists> C2'. (C1,C2')\<in>\<P>'))\<close>
-           *   unfolding \<P>_def using finite_p
-           * 
-           * 
-           *     sorry
-           * 
-           * have \<open>\<exists>\<P>' \<subseteq> \<P>. (\<forall> (C1,C2) \<in> \<P>. \<exists>!C2'. (C1,C2') \<in> \<P>')\<close>
-           *   unfolding \<P>_def
-           *   sorry *)
+          have \<open>\<forall>(C1,C2)\<in>\<P>. C1\<in>P\<close>
+          using \<P>_def by blast
 
-          find_theorems name: Choice
+          have f_stability_in_\<P> : \<open>\<And> C1 C2. (C1,C2)\<in>\<P> \<Longrightarrow> (C1, f C1)\<in>\<P>\<close>
+          proof -
+            fix C1 C2
+            show  \<open>(C1,C2)\<in>\<P> \<Longrightarrow> (C1, f C1)\<in>\<P>\<close>
+            proof -
+              assume \<open>(C1,C2)\<in>\<P>\<close>
+              then have \<open>\<exists>C3. (C1,C3)\<in>\<P>\<close>
+                by blast
+              then have \<open>(C1, f C1) = (C1, SOME C3. (C1,C3) \<in> \<P>)\<close>
+                unfolding f_def by simp
+              then have \<open>(C1, f C1)\<in>\<P>\<close>
+                by (metis \<open>(C1, C2) \<in> \<P>\<close> someI_ex)
+              then show  \<open>(C1,C2)\<in>\<P> \<Longrightarrow> (C1, f C1)\<in>\<P>\<close> by blast
+            qed
+          qed
 
-          then obtain \<P>' where \<open>(\<forall> (C1,C2) \<in> \<P>. \<exists>C2'. (C1,C2') \<in> \<P>') \<and> 
-                      (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P>' \<and> (C1,C2') \<in> \<P>') \<longrightarrow> (C2' = C2))\<close>
+          define \<P>' where \<open>\<P>' = {(C1, f C1)|C1. \<exists>C2. (C1,C2)\<in>\<P>}\<close>
 
+          then have injectivity_\<P>' : \<open>\<forall>C1 C2 C2'.(((C1, C2) \<in> \<P>' \<and> (C1, C2') \<in> \<P>') \<longrightarrow> C2 = C2')\<close>
+            by auto
 
+          have \<P>'_in_\<P> : \<open>\<P>' \<subseteq> \<P>\<close>
+            unfolding \<P>'_def
+            using f_stability_in_\<P>
+            by blast
 
+          then have \<P>'_in_C : \<open>\<P>' \<subseteq> C\<close>
+            using \<P>_in_C
+            by blast
 
+          have \<P>'_less_than_P : \<open>\<forall>C0 \<in> \<P>'. fst C0\<in>P\<close>
+            unfolding \<P>'_def \<P>_def by fastforce
 
+          have P_less_than_\<P> : \<open>\<forall>C1 \<in> P. \<exists>C2. (C1,C2)\<in>\<P>\<close>
+            unfolding \<P>_def
+            using P_linked_C by simp
 
+          then have \<open>\<forall>C1 \<in> P. \<exists>C0\<in>\<P>'. (fst C0) = C1\<close>
+            by (simp add: \<P>'_def)
 
+          then have union_P_in_union_fst_\<P>' : \<open>\<Union>P \<subseteq> \<Union>{C1. \<exists>C0 \<in> \<P>'. (fst C0) = C1}\<close>
+            by (simp add: Union_mono subsetI)
 
+          have injectivity_\<P>'_reformulated :
+             \<open>\<forall>C0 C0'. ((C0 \<in> \<P>' \<and> C0' \<in> \<P>' \<and> C0' \<noteq> C0) \<longrightarrow> (fst C0) \<noteq> (fst C0'))\<close>
+            unfolding \<P>'_def
+            by force
 
+          define bij_\<P>':: "('f set \<times> 'f set) \<Rightarrow> 'f set"
+            where \<open>bij_\<P>' C0 = (fst C0)\<close> for C0
 
+          have injectivity_bij_\<P>' : \<open>\<forall>C0\<in>\<P>'. \<forall>C0'\<in>\<P>'. bij_\<P>' C0 = bij_\<P>' C0' \<longrightarrow> C0 = C0'\<close>
+            unfolding bij_\<P>'_def
+            using injectivity_\<P>'_reformulated  \<open>bij_\<P>' \<equiv> fst\<close> by blast
 
+          then have bij_\<P>'_injectivity : \<open>inj_on bij_\<P>' \<P>'\<close>
+            unfolding inj_on_def
+            by simp
 
+          moreover have surjectivity_bij_\<P>'_first_inc :  \<open>bij_\<P>' ` \<P>' \<subseteq> P\<close>
+            unfolding bij_\<P>'_def
+            using \<P>'_less_than_P by (simp add: \<open>bij_\<P>' \<equiv> fst\<close> image_subset_iff)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          moreover have surjectivity_bij_\<Q>'_second_inc : \<open>P \<subseteq> bij_\<P>' ` \<P>'\<close>
+            unfolding bij_\<P>'_def
+            using \<open>\<forall>C1\<in>P. \<exists>C0\<in>\<P>'. fst C0 = C1\<close> \<open>bij_\<P>' \<equiv> fst\<close> by auto
 
 
+          ultimately have surjectivity_bij_\<P>' : \<open>bij_\<P>' ` \<P>' = P\<close>
+          by blast
+
+        then have bij : \<open>bij_betw bij_\<P>' \<P>' P\<close>
+          unfolding bij_betw_def
+          using bij_\<P>'_injectivity by simp
+
+        then have \<open>finite \<P>'\<close>
+          using bij_\<P>'_injectivity finite_p inj_on_finite surjectivity_bij_\<P>'_first_inc by auto
 
 
-            
+          moreover have \<open>\<exists>\<Q> \<subseteq> C. \<Q> = {(C1,C2). (C1,C2) \<in> C \<and> C2 \<in> Q}\<close>
+            by fastforce
+
+          then obtain \<Q> where \<Q>_def: \<open>\<Q> = {(C1,C2). (C1,C2) \<in> C \<and> C2 \<in> Q}\<close>
+            by auto
+  
+          then have \<Q>_in_C : \<open>\<Q> \<subseteq> C\<close>
+            by auto
+
+          define g where \<open>g = (\<lambda>C2. if (\<exists>C1. (C1,C2)\<in>\<Q>) then (SOME C1. (C1,C2) \<in> \<Q>) else {})\<close>
+
+          have \<open>\<forall>(C1,C2)\<in>\<Q>. C2\<in>Q\<close>
+          using \<Q>_def by blast
+
+          have g_stability_in_\<Q> : \<open>\<And> C1 C2. (C1,C2)\<in>\<Q> \<Longrightarrow> (g C2, C2)\<in>\<Q>\<close>
+          proof -
+            fix C1 C2
+            show  \<open>(C1,C2)\<in>\<Q> \<Longrightarrow> (g C2, C2)\<in>\<Q>\<close>
+            proof -
+              assume \<open>(C1,C2)\<in>\<Q>\<close>
+              then have \<open>\<exists>C3. (C3,C2)\<in>\<Q>\<close>
+                by blast
+              then have \<open>(g C2, C2) = ((SOME C1. (C1,C2) \<in> \<Q>), C2)\<close>
+                unfolding g_def by simp
+              then have \<open>(g C2, C2)\<in>\<Q>\<close>
+                by (metis \<open>(C1, C2) \<in> \<Q>\<close> someI_ex)
+              then show  \<open>(C1,C2)\<in>\<Q> \<Longrightarrow> (g C2, C2)\<in>\<Q>\<close> by blast
+            qed
+          qed
 
 
+          define \<Q>' where \<open>\<Q>' = {(g C2, C2)|C2. \<exists>C1. (C1,C2)\<in>\<Q>}\<close>
 
-          then have \<open>\<exists>\<P> \<subseteq> C. \<P> = {(C1,C2). (C1,C2) \<in> C \<and> C1 \<in> P} \<and> 
-                      (\<forall> C2 C2' C1. ((C1,C2) \<in> \<P> \<and> (C1,C2') \<in> \<P>) \<longrightarrow> (C2' = C2))\<close>
-            by 
+          then have injectivity_\<Q>' : \<open>\<forall>C1 C2 C1'.(((C1, C2) \<in> \<Q>' \<and> (C1', C2) \<in> \<Q>') \<longrightarrow> C1 = C1')\<close>
+            by auto
 
-          then have \<open>\<exists>\<P> \<subseteq> C. {C1. \<exists> C2. (C1,C2) \<in> \<P>} = P\<close>
+          have \<Q>'_in_\<Q> : \<open>\<Q>' \<subseteq> \<Q>\<close>
+            unfolding \<Q>'_def
+            using g_stability_in_\<Q>
+            by blast
+
+          then have \<Q>'_in_C : \<open>\<Q>' \<subseteq> C\<close>
+            using \<Q>_in_C
+            by blast
+
+          have \<Q>'_less_than_Q : \<open>\<forall>C0 \<in> \<Q>'. snd C0\<in>Q\<close>
+            unfolding \<Q>'_def \<Q>_def by fastforce
+
+          have Q_less_than_\<Q> : \<open>\<forall>C2 \<in> Q. \<exists>C1. (C1,C2)\<in>\<Q>\<close>
+            unfolding \<Q>_def
+            using Q_linked_C by simp
+
+          then have \<open>\<forall>C2 \<in> Q. \<exists>C0\<in>\<Q>'. (snd C0) = C2\<close>
+            by (simp add: \<Q>'_def)
+
+          then have union_Q_in_union_fst_\<Q>' : \<open>\<Union>Q \<subseteq> \<Union>{C2. \<exists>C0 \<in> \<Q>'. (snd C0) = C2}\<close>
+            by (simp add: Union_mono subsetI)
+
+          have injectivity_\<Q>'_reformulated :
+             \<open>\<forall>C0 C0'. ((C0 \<in> \<Q>' \<and> C0' \<in> \<Q>' \<and> C0' \<noteq> C0) \<longrightarrow> (snd C0) \<noteq> (snd C0'))\<close>
+            unfolding \<Q>'_def
+            by force
+
+          define bij_\<Q>':: "('f set \<times> 'f set) \<Rightarrow> 'f set"
+            where \<open>bij_\<Q>' C0 = (snd C0)\<close> for C0
+
+          have injectivity_bij_\<Q>' : \<open>\<forall>C0\<in>\<Q>'. \<forall>C0'\<in>\<Q>'. bij_\<Q>' C0 = bij_\<Q>' C0' \<longrightarrow> C0 = C0'\<close>
+            unfolding bij_\<Q>'_def
+            using injectivity_\<Q>'_reformulated  \<open>bij_\<Q>' \<equiv> snd\<close> by blast
+
+          then have bij_\<Q>'_injectivity : \<open>inj_on bij_\<Q>' \<Q>'\<close>
+            unfolding inj_on_def
+            by simp
+
+          moreover have surjectivity_bij_\<Q>'_first_inc :  \<open>bij_\<Q>' ` \<Q>' \<subseteq> Q\<close>
+            unfolding bij_\<Q>'_def
+            using \<Q>'_less_than_Q by (simp add: \<open>bij_\<Q>' \<equiv> snd\<close> image_subset_iff)
+
+          moreover have surjectivity_bij_\<Q>'_second_inc : \<open>Q \<subseteq> bij_\<Q>' ` \<Q>'\<close>
+            unfolding bij_\<Q>'_def
+            using \<open>\<forall>C2\<in>Q. \<exists>C0\<in>\<Q>'. snd C0 = C2\<close> \<open>bij_\<Q>' \<equiv> snd\<close> by auto
 
 
-          then have \<open>\<exists>MaxP \<in> {(C1,C2) \<in> C. C1 \<in> P}. \<forall>C' \<in> {(C1,C2) \<in> C. C1 \<in> P}. C' \<preceq> MaxP\<close>
+          ultimately have surjectivity_bij_\<Q>' : \<open>bij_\<Q>' ` \<Q>' = Q\<close>
+          by blast
 
-          then have \<open>\<exists>C1 \<in> P. \<forall>C1' \<in> P. C1' \<subseteq> C1\<close>
-            using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> \<open>finite P\<close>
+        then have bij : \<open>bij_betw bij_\<Q>' \<Q>' Q\<close>
+          unfolding bij_betw_def
+          using bij_\<Q>'_injectivity by simp
 
-          then have \<open>finite ({(C1,C2) \<in> C. C1 \<in> P \<or> C2 \<in> Q})\<close>
-            using \<open>C \<in> Chains zorn_relation\<close> by sl
+        then have \<open>finite \<Q>'\<close>
+        using bij_\<Q>'_injectivity finite_q inj_on_finite surjectivity_bij_\<Q>'_first_inc by auto
 
 
-        qed
+      have not_empty_\<P>_or_\<Q> : \<open>\<P> \<noteq> {} \<or> \<Q> \<noteq> {}\<close>
+      using \<P>'_in_\<P> \<Q>'_in_\<Q> surjectivity_bij_\<P>' surjectivity_bij_\<Q>' not_empty_P_or_Q by fastforce
 
-     
+      then have not_empty_\<P>'_or_\<Q>' : \<open>\<P>' \<noteq> {} \<or> \<Q>' \<noteq> {}\<close>
+      using not_empty_P_or_Q surjectivity_bij_\<P>' surjectivity_bij_\<Q>' by blast
 
-    find_theorems name: partial_order
-    find_theorems name: trans
-    find_theorems name: refl_on
-    find_theorems name: Zorn
-    find_theorems name:Field
+         define \<R>' where \<open>\<R>' = \<P>'\<union>\<Q>'\<close>
 
-  find_theorems name : subset.chain
-  find_theorems name: Zorn
-  thm Zorn.subset_Zorn
+         have \<open>\<forall> (C1,C2) \<in> \<R>'. C1\<in>P \<or> C2\<in>Q\<close>
+            unfolding \<R>'_def \<P>'_def \<Q>'_def \<P>_def \<Q>_def
+            by fastforce
+
+         have finite_\<R>' : \<open>finite \<R>'\<close>
+          by (simp add: \<R>'_def \<open>finite \<P>'\<close> \<open>finite \<Q>'\<close>)
+
+        moreover have \<R>'_in_C : \<open>\<R>' \<subseteq> C\<close>
+          unfolding \<R>'_def
+          using \<P>'_in_C \<Q>'_in_C
+          by blast
+
+        moreover have not_empty_\<R>' : \<open>\<R>' \<noteq> {}\<close>
+        using \<R>'_def not_empty_\<P>'_or_\<Q>' by blast
+
+       have max_\<R>' : \<open>\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M0,N0))\<close>
+       proof (rule ccontr) 
+         assume \<open>\<not>(\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M0,N0)))\<close>
+         then have abs_max_\<R>' : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. \<not>((M,N) \<preceq> (M0,N0)))\<close>
+           by auto
+
+            have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>((M,N),(M0,N0))\<in>zorn_relation \<longrightarrow> ((M0,N0),(M,N))\<in>zorn_relation\<close>
+              unfolding zorn_relation_def
+              using \<open>C \<in> Chains zorn_relation\<close>
+              by (smt (verit, best) Chains_def case_prodI2 mem_Collect_eq zorn_relation_def)
+
+            then have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<preceq> (M,N)\<close>
+              unfolding zorn_relation_def
+              using trivial_replacement_order
+              by blast
+
+            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<preceq> (M,N)\<close>
+              using \<R>'_in_C
+              by auto
+
+            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<prec> (M,N)\<close>
+              using  \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
+              by blast
+
+            then have abs_max_\<R>'_reformulated : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N))\<close>
+              using abs_max_\<R>'
+              by blast
+
+
+            (* For all (M0,N0), find_dif returns a pair (M,N) which is \<succ> (M0,N0)*)
+            define  find_dif :: "('f set \<times> 'f set) \<Rightarrow> ('f set \<times> 'f set)"
+              where \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+
+            obtain M0 N0 where \<open>(M0,N0)\<in> \<R>'\<close>
+              using not_empty_\<R>' by auto
+
+            define bij_nat :: "nat \<Rightarrow> ('f set \<times> 'f set)"
+              where \<open> \<And>k. bij_nat k = iter_fun k (find_dif) (M0,N0)\<close>
+
+
+            have \<open>bij_nat k \<in> \<R>'\<close> for k
+            proof (induction k)
+              case 0
+              then show ?case 
+              by (simp add: \<open>(M0, N0) \<in> \<R>'\<close> \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>)
+            next
+              case (Suc k)
+              assume \<open>bij_nat k \<in> \<R>'\<close>
+              have \<open>\<exists>(M,N)\<in>\<R>'. bij_nat k \<prec> (M,N)\<close>
+                using abs_max_\<R>'_reformulated
+                by (simp add: Suc)
+              then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close>
+                unfolding find_dif_def
+                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+                by auto        
+
+              then have \<open>bij_nat (Suc k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close>
+                by (simp add: \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>)
+
+              then show ?case
+              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec> (M, N)\<close> case_prod_conv some_eq_imp surj_pair)
+          qed
+
+
+            then have \<open>\<exists>(M,N)\<in>\<R>'. (bij_nat k) \<prec> (M,N)\<close> for k
+              using abs_max_\<R>'_reformulated
+              by simp
+
+            then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close> for k
+                unfolding find_dif_def
+                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+                by auto 
+
+              then have bij_nat_croiss : \<open>(bij_nat (k::nat)) \<prec> (bij_nat (Suc k))\<close> for k
+              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec> (M, N)\<close> \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close> case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
+
+             have bij_nat_general_croiss : \<open>i < j \<Longrightarrow> bij_nat i \<prec> bij_nat j\<close> for i j
+             proof -
+               assume \<open>i < j\<close>
+
+               have \<open>bij_nat i \<prec> bij_nat (i+1+(k::nat))\<close> for k
+               proof (induction k)
+                 case 0
+                 then show ?case using bij_nat_croiss by simp
+               next
+                 case (Suc k)
+                 have \<open>bij_nat (i+1+k) \<prec> bij_nat (i+1+(Suc k))\<close>
+                   using bij_nat_croiss by simp
+                 then show ?case using zorn_strict_relation_trans Suc by blast
+               qed
+
+               then have \<open>bij_nat i \<prec> bij_nat j\<close>
+                 by (metis Suc_eq_plus1_left \<open>i < j\<close> add.assoc add.commute less_natE)
+               then show ?thesis by simp
+             qed
+
+             have \<open>bij_nat i = bij_nat j \<and> \<not>i=j \<Longrightarrow> False\<close> for i j
+             proof -
+               assume bij_nat_i_equals_bij_nat_j : \<open>bij_nat i = bij_nat j \<and> \<not>i=j\<close>
+               then have \<open>i < j \<or> j < i\<close>
+                     by auto
+                   then have \<open>bij_nat i \<prec> bij_nat j \<or> bij_nat j \<prec> bij_nat i\<close>
+                     using bij_nat_general_croiss
+                     by blast
+                   then have \<open>bij_nat i \<noteq> bij_nat j\<close>
+                     using \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
+                     by force
+                   then show ?thesis by (simp add: bij_nat_i_equals_bij_nat_j)
+             qed
+
+             then have bij_nat_inj : \<open>bij_nat i = bij_nat j \<longrightarrow> i = j\<close> for i j
+               using \<open>\<And>j i. bij_nat i = bij_nat j \<and> i \<noteq> j \<Longrightarrow> False\<close> by auto
+             
+             then have bij_nat_inj_gen : \<open>\<forall> i j. bij_nat i = bij_nat j \<longrightarrow> i = j\<close>
+               by auto
+
+             then have \<open>inj_on bij_nat (UNIV :: nat set)\<close>
+               unfolding inj_on_def
+               by simp
+
+             then have bij_nat_is_a_bij : \<open>bij_betw bij_nat (UNIV :: nat set) (bij_nat `(UNIV :: nat set))\<close>
+               unfolding bij_betw_def
+               by simp
+
+             then have \<open>finite (UNIV :: nat set) \<longleftrightarrow> finite (bij_nat `(UNIV:: nat set))\<close>
+               using bij_betw_finite by auto
+
+             moreover have \<open>\<not>(finite (UNIV :: nat set))\<close>
+               by simp
+
+             ultimately have \<open>\<not>finite (bij_nat `(UNIV:: nat set))\<close>
+               by blast
+
+             moreover have \<open>bij_nat `(UNIV:: nat set) \<subseteq> \<R>'\<close>
+               unfolding bij_nat_def
+               using \<R>'_in_C \<open>\<And>k. bij_nat k \<in> \<R>'\<close> \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>
+               by (simp add: image_subset_iff)
+
+             ultimately have \<open>\<not>(finite \<R>')\<close>
+               using finite_subset by blast
+
+             then show "False" using finite_\<R>' by blast
+           qed
+
+       then obtain M_max N_max where
+        M_N_max_def : \<open>(M_max,N_max)\<in>\<R>' \<and> (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M_max,N_max))\<close>
+         by auto
+
+      then have  \<open>\<forall>C1\<in>P. \<exists>(M0,N0)\<in>\<R>'. M0 = C1 \<close>
+        using \<R>'_def \<open>\<forall>C1\<in>P. \<exists>C0\<in>\<P>'. fst C0 = C1\<close> by fastforce
+
+      then have \<open>\<Union>P \<subseteq> \<Union>{C1. \<exists>C0 \<in> \<R>'. (fst C0) = C1}\<close>
+        unfolding \<R>'_def        
+        by fastforce
+
+      moreover have \<open>\<forall>C1. (\<exists>C0 \<in> \<R>'. (fst C0) = C1 \<and> C0 \<preceq> (M_max,N_max)) \<longrightarrow> C1 \<subseteq> M_max\<close>
+        unfolding M_N_max_def
+        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        by auto
+
+      then have \<open>\<forall>C1 \<in> {C1. \<exists>C0 \<in> \<R>'. (fst C0) = C1}. C1 \<subseteq> M_max \<close>
+      using M_N_max_def by auto
+
+    then have \<open>\<Union>{C1. \<exists>C0 \<in> \<R>'. (fst C0) = C1} \<subseteq> M_max\<close>
+      by auto
+
+    ultimately have union_P_in_M_max : \<open>\<Union>P \<subseteq> M_max\<close>
+      by blast
+
+    moreover have \<open>\<forall>C2\<in>Q. \<exists>(M0,N0)\<in>\<R>'. N0 = C2 \<close>
+        using \<R>'_def \<open>\<forall>C2\<in>Q. \<exists>C0\<in>\<Q>'. snd C0 = C2\<close> by fastforce
+
+      then have \<open>\<Union>Q \<subseteq> \<Union>{C2. \<exists>C0 \<in> \<R>'. (snd C0) = C2}\<close>
+        unfolding \<R>'_def        
+        by fastforce
+
+      moreover have \<open>\<forall>C2. (\<exists>C0 \<in> \<R>'. (snd C0) = C2 \<and> C0 \<preceq> (M_max,N_max)) \<longrightarrow> C2 \<subseteq> N_max\<close>
+        unfolding M_N_max_def
+        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        by auto
+
+      then have \<open>\<forall>C2 \<in> {C2. \<exists>C0 \<in> \<R>'. (snd C0) = C2}. C2 \<subseteq> N_max \<close>
+      using M_N_max_def by auto
+
+    then have \<open>\<Union>{C2. \<exists>C0 \<in> \<R>'. (snd C0) = C2} \<subseteq> N_max\<close>
+      by auto
+
+    ultimately have union_Q_in_N_max : \<open>\<Union>Q \<subseteq> N_max\<close>
+      by blast
+
+
+    have \<open>M' \<subseteq> M_max \<and> N' \<subseteq> N_max\<close>
+      using \<open>M' \<subseteq> \<Union> P\<close> \<open>N' \<subseteq> \<Union> Q\<close> union_P_in_M_max union_Q_in_N_max by auto
+
+
+    then have \<open>M_max \<Turnstile> N_max\<close>
+      using abs_max_chain_compactness entails_subsets
+      by force
+
+    moreover have \<open>(M_max,N_max) \<in> \<R>'\<close>
+      using M_N_max_def
+      by simp
+
+    then have \<open>(M_max,N_max) \<in> C\<close>
+      using \<R>'_in_C by auto
+
+    then have \<open>(M_max,N_max) \<in> A\<close>
+      using \<open>C \<in> Chains zorn_relation\<close> relation_in_A by auto
  
+  
+  then have \<open>\<not>M_max \<Turnstile> N_max\<close>
+    unfolding A_def
+    by auto
 
+  ultimately show "False"
+      by simp
+  qed
+qed
+qed
+
+  moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> M \<subseteq> fst (max_chain C)\<close>
+    using M_N_less_than_max_chain \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
+
+  moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> N \<subseteq> snd (max_chain C)\<close>
+    using M_N_less_than_max_chain \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
+
+
+  ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
+    unfolding A_def
+    using M_N_less_than_max_chain
+    by (simp add: case_prod_beta)
+
+  then have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (max_chain C) \<in> A \<and> (\<forall>C0\<in>C. (C0, max_chain C) \<in> zorn_relation)\<close>
+    unfolding zorn_relation_def
+    using zorn_relation_field_is_A max_chain_is_a_max relation_in_A zorn_relation_def
+    by fastforce
+
+  then have u : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<exists>u\<in>Field zorn_relation. \<forall>a\<in>C. (a, u) \<in> zorn_relation\<close>
+    using zorn_relation_field_is_A  max_chain_is_a_max by auto
+
+(*the result of Zorn lemma*)
+then have  \<open>\<exists>Cmax\<in>Field zorn_relation. \<forall>C\<in>Field zorn_relation. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+  using Zorns_po_lemma po by blast 
+
+  then have zorn_result : \<open>\<exists>Cmax\<in>A. \<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+    using zorn_relation_field_is_A by blast
+
+  then obtain Cmax where Cmax_in_A : \<open>Cmax\<in>A\<close> and Cmax_is_max : \<open>\<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+    by blast
+
+  have Cmax_not_entails : \<open>\<not> fst Cmax \<Turnstile> snd Cmax\<close>
+    unfolding A_def
+    using Cmax_in_A
+    using A_def by force
+
+  have M_less_fst_Cmax : \<open>M \<subseteq> fst Cmax\<close>
+    using A_def Cmax_in_A  by force
+
+  moreover have N_less_snd_Cmax : \<open>N \<subseteq> snd Cmax\<close>
+    using A_def Cmax_in_A  by force
+
+(*the last part of the proof*)
+  have \<open>fst Cmax \<union> snd Cmax = UNIV\<close>
+  proof (rule ccontr)
+    assume \<open>\<not>fst Cmax \<union> snd Cmax = UNIV\<close>
+    then have \<open>\<exists>C0. C0 \<notin> fst Cmax \<union> snd Cmax\<close>
+      by auto
+    then obtain C0 where C0_def : \<open>C0 \<notin> fst Cmax \<union> snd Cmax\<close>
+      by auto
+    
+    have fst_max_entailment_extended : \<open>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
+    proof (rule ccontr)
+      assume \<open>\<not>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
+      then have fst_extended_Cmax_in_A : \<open>((fst Cmax \<union> {C0}), snd Cmax) \<in> A\<close>
+        unfolding A_def
+        using M_less_fst_Cmax N_less_snd_Cmax by blast
+
+      then have \<open>(Cmax,((fst Cmax) \<union> {C0},snd Cmax)) \<in> zorn_relation\<close>
+        unfolding zorn_relation_def
+        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using Cmax_in_A by auto
+
+      then have \<open>Cmax = ((fst Cmax) \<union> {C0},snd Cmax)\<close>
+        using Cmax_is_max fst_extended_Cmax_in_A by fastforce
+
+      then have \<open>C0 \<in> (fst Cmax)\<close>
+      by (metis UnI2 fst_eqD singleton_iff)
+
+    then show "False" using C0_def by auto
+  qed
+
+  moreover have snd_max_entailment_extended : \<open>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
+    proof (rule ccontr)
+      assume \<open>\<not>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
+      then have snd_extended_Cmax_in_A : \<open>(fst Cmax,snd Cmax \<union> {C0}) \<in> A\<close>
+        unfolding A_def
+        using M_less_fst_Cmax N_less_snd_Cmax by blast
+
+      then have \<open>(Cmax,(fst Cmax,snd Cmax \<union> {C0})) \<in> zorn_relation\<close>
+        unfolding zorn_relation_def
+        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using Cmax_in_A by auto
+
+      then have \<open>Cmax = (fst Cmax,snd Cmax \<union> {C0})\<close>
+        using Cmax_is_max snd_extended_Cmax_in_A by fastforce
+
+      then have \<open>C0 \<in> (snd Cmax)\<close>
+      by (metis UnI2 singleton_iff sndI)
+
+    then show "False" using C0_def by auto
+  qed
+
+  ultimately have \<open>fst Cmax \<Turnstile> snd Cmax\<close>
+    using entails_cut by force
+
+  then have \<open>Cmax \<notin> A\<close>
+    unfolding A_def
+    by fastforce
+
+  then show "False"
+    using Cmax_in_A by simp
+qed
+
+  then show ?thesis using M_less_fst_Cmax N_less_snd_Cmax Cmax_not_entails by auto
+qed
+
+  then show "False" using hyp_entails_sup by auto
+qed
+
+ 
 lemma entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" 
 proof -
   fix M P N Q
@@ -1125,7 +1593,7 @@ locale sound_calculus = sound_inference_system Inf bot entails_sound +
 begin
 
 sublocale calculus bot Inf entails
-  by (simp add: My_Preliminaries.calculus.intro My_Preliminaries.calculus_axioms.intro Red_F_Bot
+  by (simp add: Preliminaries_With_Zorn.calculus.intro Preliminaries_With_Zorn.calculus_axioms.intro Red_F_Bot
     Red_F_of_Red_F_subset Red_F_of_subset Red_I_of_Inf_to_N Red_I_of_Red_F_subset Red_I_of_subset
     Red_I_to_Inf consequence_relation_axioms)
 end
