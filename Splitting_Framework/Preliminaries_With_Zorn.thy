@@ -52,7 +52,6 @@ locale consequence_relation =
     it was detected to be unsufficient thanks to the forma*)
 begin
 
-
 lemma entails_supsets : "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
 proof (rule ccontr)
   assume not_M_entails_N : \<open>\<not>M \<Turnstile> N\<close>
@@ -62,13 +61,13 @@ proof (rule ccontr)
   proof -
     define A  :: "('f set * 'f set) set" where \<open>A = {(M',N'). M \<subseteq> M' \<and> N \<subseteq> N' \<and> \<not>M' \<Turnstile> N'}\<close>
     define order_double_subsets :: "('f set * 'f set) \<Rightarrow> ('f set * 'f set) \<Rightarrow> bool" 
-      (infix "\<preceq>" 50) where
-          \<open>C1 \<preceq> C2 \<equiv> fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+      (infix "\<preceq>\<^sub>s" 50) where
+          \<open>C1 \<preceq>\<^sub>s C2 \<equiv> fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
     define order_double_subsets_strict :: "('f set * 'f set) \<Rightarrow> ('f set * 'f set) \<Rightarrow> bool" 
-      (infix "\<prec>" 50) where
-          \<open>C1 \<prec> C2 \<equiv> C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
+      (infix "\<prec>\<^sub>s" 50) where
+          \<open>C1 \<prec>\<^sub>s C2 \<equiv> C1 \<preceq>\<^sub>s C2 \<and> C1 \<noteq> C2\<close>
     define zorn_relation :: "(('f set * 'f set) \<times> ('f set * 'f set)) set"
-      where \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>
+      where \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>\<^sub>sC2}\<close>
     define max_chain :: "('f set * 'f set) set \<Rightarrow> 'f set * 'f set"
       where \<open>max_chain C = (if C = {} then (M,N) else (\<Union>{C1. \<exists>C2. (C1,C2) \<in> C},\<Union>{C2. \<exists>C1. (C1,C2) \<in> C}))\<close>
 
@@ -79,40 +78,40 @@ proof (rule ccontr)
     then have not_empty_A :  \<open>A\<noteq>{}\<close>
       by force
 
-    have trivial_induction_order : \<open>C1 \<subseteq> B \<and> C2 \<subseteq> B' \<longrightarrow> (C1,C2) \<preceq> (B,B')\<close>
-    by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
+    have trivial_induction_order : \<open>C1 \<subseteq> B \<and> C2 \<subseteq> B' \<longrightarrow> (C1,C2) \<preceq>\<^sub>s (B,B')\<close>
+    by (simp add: \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
 
-    have trivial_replacement_order [simp] : \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation  \<longrightarrow> (C1 \<preceq> C2)\<close>
-        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>  by force
+    have trivial_replacement_order [simp] : \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation  \<longrightarrow> (C1 \<preceq>\<^sub>s C2)\<close>
+        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>\<^sub>sC2}\<close>  by force
 
-    moreover have zorn_relation_refl : \<open>\<forall>C\<in>A. C \<preceq> C\<close>
+    moreover have zorn_relation_refl : \<open>\<forall>C\<in>A. C \<preceq>\<^sub>s C\<close>
     proof -
       have \<open>\<forall>C\<in>A. fst C \<subseteq> fst C \<and> snd C \<subseteq> snd C\<close>
         by blast
-      then show ?thesis by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
+      then show ?thesis by (simp add: \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
     qed
 
-    moreover have zorn_relation_trans : \<open>\<forall>C1 C2 C3. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C3) \<longrightarrow> (C1 \<preceq> C3)\<close>
+    moreover have zorn_relation_trans : \<open>\<forall>C1 C2 C3. (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C3) \<longrightarrow> (C1 \<preceq>\<^sub>s C3)\<close>
     proof -
       have \<open>\<forall>C1 C2 C3. fst C1 \<subseteq> fst C2 \<longrightarrow> fst C2 \<subseteq> fst C3 \<longrightarrow> fst C1 \<subseteq> fst C3\<close>
         by blast
       then  have \<open>\<forall>C1 C2 C3. snd C1 \<subseteq> snd C2 \<longrightarrow> snd C2 \<subseteq> snd C3 \<longrightarrow> snd C1 \<subseteq> snd C3\<close>
         by blast
       then show ?thesis
-      using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by auto
+      using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by auto
      qed
 
-     then have zorn_strict_relation_trans : \<open>\<forall>(C1::'f set \<times> 'f set) C2 C3. (C1 \<prec> C2) \<longrightarrow> (C2 \<prec> C3) \<longrightarrow> (C1 \<prec> C3)\<close>
-     by (metis \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close> \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.antisym prod_eq_iff)
+     then have zorn_strict_relation_trans : \<open>\<forall>(C1::'f set \<times> 'f set) C2 C3. (C1 \<prec>\<^sub>s C2) \<longrightarrow> (C2 \<prec>\<^sub>s C3) \<longrightarrow> (C1 \<prec>\<^sub>s C3)\<close>
+     by (metis \<open>(\<prec>\<^sub>s) \<equiv> \<lambda>C1 C2. C1 \<preceq>\<^sub>s C2 \<and> C1 \<noteq> C2\<close> \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.antisym prod_eq_iff)
 
-    moreover have zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C1) \<longrightarrow> (C1 = C2)\<close>
+    moreover have zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C1) \<longrightarrow> (C1 = C2)\<close>
     proof -
       have \<open>\<forall>C1 C2. (fst C1 \<subseteq> fst C2) \<longrightarrow> (fst C2 \<subseteq> fst C1) \<longrightarrow> (fst C1 = fst C2)\<close>
         by force
       then have \<open>\<forall>C1 C2. (snd C1 \<subseteq> snd C2) \<longrightarrow> (snd C2 \<subseteq> snd C1) \<longrightarrow> (snd C1 = snd C2)\<close>
         by force
       then show ?thesis
-        by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.eq_iff)
+        by (simp add: \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> dual_order.eq_iff)
     qed
 
     moreover have refl_on_zorn_relation : "refl_on A zorn_relation"
@@ -121,8 +120,8 @@ proof (rule ccontr)
 
     moreover have zorn_relation_field_is_A :  "Field zorn_relation = A"
     proof -
-    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq> C0\<close>
-      using A_def \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
+    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq>\<^sub>s C0\<close>
+      using A_def \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
     then have \<open>\<forall> C0 \<in> A. ((M,N),C0) \<in> zorn_relation\<close>
       unfolding zorn_relation_def
       using M_N_in_A by simp
@@ -142,17 +141,17 @@ proof (rule ccontr)
     
       have antisym_zorn_relation : "antisym zorn_relation"
     proof -
-      have \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation \<and> (C2,C1) \<in> zorn_relation \<longrightarrow> (C1 \<preceq> C2) \<and> (C2 \<preceq> C1)\<close>
+      have \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation \<and> (C2,C1) \<in> zorn_relation \<longrightarrow> (C1 \<preceq>\<^sub>s C2) \<and> (C2 \<preceq>\<^sub>s C1)\<close>
          by force
       then show ?thesis using zorn_relation_antisym
       by (meson antisymI)
     qed
     moreover have "trans zorn_relation"
     proof -
-      have \<open>\<forall>C1 C2 C3. (C1,C2) \<in> zorn_relation \<longrightarrow> (C2,C3) \<in> zorn_relation \<longrightarrow> (C1 \<preceq> C2) \<longrightarrow> (C2 \<preceq> C3)\<close>
-        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close>  by force
-      then  have \<open>\<forall>C1\<in>A. \<forall>C2\<in>A. (C1 \<preceq> C2) \<longrightarrow> (C1,C2) \<in> zorn_relation\<close>
-        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>C2}\<close> 
+      have \<open>\<forall>C1 C2 C3. (C1,C2) \<in> zorn_relation \<longrightarrow> (C2,C3) \<in> zorn_relation \<longrightarrow> (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C3)\<close>
+        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>\<^sub>sC2}\<close>  by force
+      then  have \<open>\<forall>C1\<in>A. \<forall>C2\<in>A. (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C1,C2) \<in> zorn_relation\<close>
+        using \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>\<^sub>sC2}\<close> 
         by blast
 
       then show ?thesis using zorn_relation_trans
@@ -168,8 +167,8 @@ proof (rule ccontr)
 
   moreover have  "Field zorn_relation = A"
   proof -
-    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq> C0\<close>
-      using A_def \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
+    have \<open>\<forall> C0 \<in> A. (M,N) \<preceq>\<^sub>s C0\<close>
+      using A_def \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> by simp
     then have \<open>\<forall> C0 \<in> A. ((M,N),C0) \<in> zorn_relation\<close>
       unfolding zorn_relation_def
       using M_N_in_A by simp
@@ -191,13 +190,13 @@ qed
     using in_ChainsD zorn_relation_def 
     by (metis (no_types, lifting) mem_Collect_eq mem_Sigma_iff old.prod.case)
 
-      have max_chain_is_a_max : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall>C1\<in>C. (C1 \<preceq> max_chain C)\<close>
+      have max_chain_is_a_max : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall>C1\<in>C. (C1 \<preceq>\<^sub>s max_chain C)\<close>
       proof -
         fix C
         assume C_is_a_chain : \<open>C \<in> Chains zorn_relation\<close>
         consider (a) "C = {}" | (b) "C \<noteq> {}"
           by auto
-        then show \<open>\<forall> C1 \<in> C. C1 \<preceq> max_chain C\<close>
+        then show \<open>\<forall> C1 \<in> C. C1 \<preceq>\<^sub>s max_chain C\<close>
         proof cases
           case a
           show ?thesis  by (simp add: a)
@@ -211,34 +210,34 @@ qed
           by blast
         moreover have \<open>\<forall> (C1,C2) \<in> C. C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}\<close>
           by blast
-        moreover have \<open>\<forall> (C1,C2) \<in> C. ((C1 \<subseteq> \<Union>{C3. \<exists> C4. (C3,C4) \<in> C} \<and> C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}) \<longrightarrow> (C1,C2) \<preceq> (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C}))\<close>
-          using trivial_induction_order  \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        moreover have \<open>\<forall> (C1,C2) \<in> C. ((C1 \<subseteq> \<Union>{C3. \<exists> C4. (C3,C4) \<in> C} \<and> C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}) \<longrightarrow> (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C}))\<close>
+          using trivial_induction_order  \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
           by simp
-        ultimately have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq> (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C})\<close>
+        ultimately have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C})\<close>
           by fastforce
-        then have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq> max_chain C\<close>
+        then have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq>\<^sub>s max_chain C\<close>
           unfolding max_chain_def
           by (simp add: \<open>max_chain \<equiv> \<lambda>C. if C = {} then (M, N) else (\<Union> {C1. \<exists>C2. (C1, C2) \<in> C}, \<Union> {C2. \<exists>C1. (C1, C2) \<in> C})\<close>)
-        then show \<open>\<forall> C1 \<in> C. C1 \<preceq> max_chain C\<close>
+        then show \<open>\<forall> C1 \<in> C. C1 \<preceq>\<^sub>s max_chain C\<close>
           by fast
       qed
     qed
           
 
      
-    have M_N_less_than_max_chain : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (M,N) \<preceq> max_chain C\<close>
+    have M_N_less_than_max_chain : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (M,N) \<preceq>\<^sub>s max_chain C\<close>
     proof -
       fix C
         assume \<open>C \<in> Chains zorn_relation\<close>
         consider (a) "C = {}" | (b) "C \<noteq> {}"
           by blast
-        then show \<open>(M,N) \<preceq> max_chain C\<close>
+        then show \<open>(M,N) \<preceq>\<^sub>s max_chain C\<close>
         proof cases
           case a
           assume "C = {}"
           then have \<open>max_chain C = (M,N)\<close>
           by (simp add: \<open>max_chain \<equiv> \<lambda>C. if C = {} then (M, N) else (\<Union> {C1. \<exists>C2. (C1, C2) \<in> C}, \<Union> {C2. \<exists>C1. (C1, C2) \<in> C})\<close>)
-        then show \<open>(M,N) \<preceq> max_chain C\<close>
+        then show \<open>(M,N) \<preceq>\<^sub>s max_chain C\<close>
           by (simp add: \<open>(M, N) \<in> A\<close> zorn_relation_refl)
       next
         case b
@@ -248,15 +247,15 @@ qed
         have N_minor_second :  \<open>\<forall> C1 \<in> C. N \<subseteq> snd C1\<close>
           using A_def \<open>C \<in> Chains zorn_relation\<close> relation_in_A by fastforce
         moreover have \<open>(\<forall> C1 \<in> C. (fst C1 \<subseteq> fst (max_chain C)) \<and> snd C1 \<subseteq> snd (max_chain C))\<close>
-          using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> \<open>C \<in> Chains zorn_relation\<close> max_chain_is_a_max 
+          using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> \<open>C \<in> Chains zorn_relation\<close> max_chain_is_a_max 
           by presburger
         moreover have \<open>(\<exists>C1 \<in> C. (M \<subseteq> fst C1 \<and> N \<subseteq> snd C1) \<longrightarrow> fst C1 \<subseteq> fst (max_chain C) \<and> snd C1 \<subseteq> snd (max_chain C)) \<longrightarrow> M \<subseteq> fst (max_chain C) \<and> N \<subseteq> snd (max_chain C) \<close>
           using M_minor_first N_minor_second
           by blast
         ultimately have  \<open>M \<subseteq> fst (max_chain C) \<and> N \<subseteq> snd (max_chain C)\<close>
-          by (meson \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> \<open>C \<in> Chains zorn_relation\<close> \<open>C \<noteq> {}\<close> ex_in_conv max_chain_is_a_max)
-        then show  \<open>(M,N) \<preceq> max_chain C\<close>
-          by (simp add: \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
+          by (meson \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close> \<open>C \<in> Chains zorn_relation\<close> \<open>C \<noteq> {}\<close> ex_in_conv max_chain_is_a_max)
+        then show  \<open>(M,N) \<preceq>\<^sub>s max_chain C\<close>
+          by (simp add: \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>)
       qed
     qed
 
@@ -531,10 +530,10 @@ qed
         moreover have not_empty_\<R>' : \<open>\<R>' \<noteq> {}\<close>
         using \<R>'_def not_empty_\<P>'_or_\<Q>' by blast
 
-       have max_\<R>' : \<open>\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M0,N0))\<close>
+       have max_\<R>' : \<open>\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq>\<^sub>s (M0,N0))\<close>
        proof (rule ccontr) 
-         assume \<open>\<not>(\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M0,N0)))\<close>
-         then have abs_max_\<R>' : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. \<not>((M,N) \<preceq> (M0,N0)))\<close>
+         assume \<open>\<not>(\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq>\<^sub>s (M0,N0)))\<close>
+         then have abs_max_\<R>' : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. \<not>((M,N) \<preceq>\<^sub>s (M0,N0)))\<close>
            by auto
 
             have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>((M,N),(M0,N0))\<in>zorn_relation \<longrightarrow> ((M0,N0),(M,N))\<in>zorn_relation\<close>
@@ -542,27 +541,27 @@ qed
               using \<open>C \<in> Chains zorn_relation\<close>
               by (smt (verit, best) Chains_def case_prodI2 mem_Collect_eq zorn_relation_def)
 
-            then have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<preceq> (M,N)\<close>
+            then have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>(M,N) \<preceq>\<^sub>s (M0,N0) \<longrightarrow> (M0,N0) \<preceq>\<^sub>s (M,N)\<close>
               unfolding zorn_relation_def
               using trivial_replacement_order
               by blast
 
-            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<preceq> (M,N)\<close>
+            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq>\<^sub>s (M0,N0) \<longrightarrow> (M0,N0) \<preceq>\<^sub>s (M,N)\<close>
               using \<R>'_in_C
               by auto
 
-            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq> (M0,N0) \<longrightarrow> (M0,N0) \<prec> (M,N)\<close>
-              using  \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
+            then have \<open>\<forall>(M0,N0)\<in>\<R>'. \<forall>(M,N)\<in>\<R>'. \<not>(M,N) \<preceq>\<^sub>s (M0,N0) \<longrightarrow> (M0,N0) \<prec>\<^sub>s (M,N)\<close>
+              using  \<open>(\<prec>\<^sub>s) \<equiv> \<lambda>C1 C2. C1 \<preceq>\<^sub>s C2 \<and> C1 \<noteq> C2\<close>
               by blast
 
-            then have abs_max_\<R>'_reformulated : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N))\<close>
+            then have abs_max_\<R>'_reformulated : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N))\<close>
               using abs_max_\<R>'
               by blast
 
 
             (* For all (M0,N0), find_dif returns a pair (M,N) which is \<succ> (M0,N0)*)
             define  find_dif :: "('f set \<times> 'f set) \<Rightarrow> ('f set \<times> 'f set)"
-              where \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+              where \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec>\<^sub>s (M,N)) else ({},{}))\<close>
 
             obtain M0 N0 where \<open>(M0,N0)\<in> \<R>'\<close>
               using not_empty_\<R>' by auto
@@ -579,50 +578,50 @@ qed
             next
               case (Suc k)
               assume \<open>bij_nat k \<in> \<R>'\<close>
-              have \<open>\<exists>(M,N)\<in>\<R>'. bij_nat k \<prec> (M,N)\<close>
+              have \<open>\<exists>(M,N)\<in>\<R>'. bij_nat k \<prec>\<^sub>s (M,N)\<close>
                 using abs_max_\<R>'_reformulated
                 by (simp add: Suc)
-              then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close>
+              then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec>\<^sub>s (M,N))\<close>
                 unfolding find_dif_def
-                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec>\<^sub>s (M,N)) else ({},{}))\<close>
                 by auto        
 
-              then have \<open>bij_nat (Suc k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close>
+              then have \<open>bij_nat (Suc k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec>\<^sub>s (M,N))\<close>
                 by (simp add: \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>)
 
               then show ?case
-              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec> (M, N)\<close> case_prod_conv some_eq_imp surj_pair)
+              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec>\<^sub>s (M, N)\<close> case_prod_conv some_eq_imp surj_pair)
           qed
 
 
-            then have \<open>\<exists>(M,N)\<in>\<R>'. (bij_nat k) \<prec> (M,N)\<close> for k
+            then have \<open>\<exists>(M,N)\<in>\<R>'. (bij_nat k) \<prec>\<^sub>s (M,N)\<close> for k
               using abs_max_\<R>'_reformulated
               by simp
 
-            then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec> (M,N))\<close> for k
+            then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec>\<^sub>s (M,N))\<close> for k
                 unfolding find_dif_def
-                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec> (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec> (M,N)) else ({},{}))\<close>
+                using \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec>\<^sub>s (M,N)) else ({},{}))\<close>
                 by auto 
 
-              then have bij_nat_croiss : \<open>(bij_nat (k::nat)) \<prec> (bij_nat (Suc k))\<close> for k
-              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec> (M, N)\<close> \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close> case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
+              then have bij_nat_croiss : \<open>(bij_nat (k::nat)) \<prec>\<^sub>s (bij_nat (Suc k))\<close> for k
+              by (metis (mono_tags, lifting) \<open>\<exists>(M, N)\<in>\<R>'. bij_nat k \<prec>\<^sub>s (M, N)\<close> \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close> case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
 
-             have bij_nat_general_croiss : \<open>i < j \<Longrightarrow> bij_nat i \<prec> bij_nat j\<close> for i j
+             have bij_nat_general_croiss : \<open>i < j \<Longrightarrow> bij_nat i \<prec>\<^sub>s bij_nat j\<close> for i j
              proof -
                assume \<open>i < j\<close>
 
-               have \<open>bij_nat i \<prec> bij_nat (i+1+(k::nat))\<close> for k
+               have \<open>bij_nat i \<prec>\<^sub>s bij_nat (i+1+(k::nat))\<close> for k
                proof (induction k)
                  case 0
                  then show ?case using bij_nat_croiss by simp
                next
                  case (Suc k)
-                 have \<open>bij_nat (i+1+k) \<prec> bij_nat (i+1+(Suc k))\<close>
+                 have \<open>bij_nat (i+1+k) \<prec>\<^sub>s bij_nat (i+1+(Suc k))\<close>
                    using bij_nat_croiss by simp
                  then show ?case using zorn_strict_relation_trans Suc by blast
                qed
 
-               then have \<open>bij_nat i \<prec> bij_nat j\<close>
+               then have \<open>bij_nat i \<prec>\<^sub>s bij_nat j\<close>
                  by (metis Suc_eq_plus1_left \<open>i < j\<close> add.assoc add.commute less_natE)
                then show ?thesis by simp
              qed
@@ -632,11 +631,11 @@ qed
                assume bij_nat_i_equals_bij_nat_j : \<open>bij_nat i = bij_nat j \<and> \<not>i=j\<close>
                then have \<open>i < j \<or> j < i\<close>
                      by auto
-                   then have \<open>bij_nat i \<prec> bij_nat j \<or> bij_nat j \<prec> bij_nat i\<close>
+                   then have \<open>bij_nat i \<prec>\<^sub>s bij_nat j \<or> bij_nat j \<prec>\<^sub>s bij_nat i\<close>
                      using bij_nat_general_croiss
                      by blast
                    then have \<open>bij_nat i \<noteq> bij_nat j\<close>
-                     using \<open>(\<prec>) \<equiv> \<lambda>C1 C2. C1 \<preceq> C2 \<and> C1 \<noteq> C2\<close>
+                     using \<open>(\<prec>\<^sub>s) \<equiv> \<lambda>C1 C2. C1 \<preceq>\<^sub>s C2 \<and> C1 \<noteq> C2\<close>
                      by force
                    then show ?thesis by (simp add: bij_nat_i_equals_bij_nat_j)
              qed
@@ -676,7 +675,7 @@ qed
            qed
 
        then obtain M_max N_max where
-        M_N_max_def : \<open>(M_max,N_max)\<in>\<R>' \<and> (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq> (M_max,N_max))\<close>
+        M_N_max_def : \<open>(M_max,N_max)\<in>\<R>' \<and> (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq>\<^sub>s (M_max,N_max))\<close>
          by auto
 
       then have  \<open>\<forall>C1\<in>P. \<exists>(M0,N0)\<in>\<R>'. M0 = C1 \<close>
@@ -686,9 +685,9 @@ qed
         unfolding \<R>'_def        
         by fastforce
 
-      moreover have \<open>\<forall>C1. (\<exists>C0 \<in> \<R>'. (fst C0) = C1 \<and> C0 \<preceq> (M_max,N_max)) \<longrightarrow> C1 \<subseteq> M_max\<close>
+      moreover have \<open>\<forall>C1. (\<exists>C0 \<in> \<R>'. (fst C0) = C1 \<and> C0 \<preceq>\<^sub>s (M_max,N_max)) \<longrightarrow> C1 \<subseteq> M_max\<close>
         unfolding M_N_max_def
-        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
         by auto
 
       then have \<open>\<forall>C1 \<in> {C1. \<exists>C0 \<in> \<R>'. (fst C0) = C1}. C1 \<subseteq> M_max \<close>
@@ -707,9 +706,9 @@ qed
         unfolding \<R>'_def        
         by fastforce
 
-      moreover have \<open>\<forall>C2. (\<exists>C0 \<in> \<R>'. (snd C0) = C2 \<and> C0 \<preceq> (M_max,N_max)) \<longrightarrow> C2 \<subseteq> N_max\<close>
+      moreover have \<open>\<forall>C2. (\<exists>C0 \<in> \<R>'. (snd C0) = C2 \<and> C0 \<preceq>\<^sub>s (M_max,N_max)) \<longrightarrow> C2 \<subseteq> N_max\<close>
         unfolding M_N_max_def
-        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
         by auto
 
       then have \<open>\<forall>C2 \<in> {C2. \<exists>C0 \<in> \<R>'. (snd C0) = C2}. C2 \<subseteq> N_max \<close>
@@ -752,10 +751,10 @@ qed
 qed
 
   moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> M \<subseteq> fst (max_chain C)\<close>
-    using M_N_less_than_max_chain \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
+    using M_N_less_than_max_chain \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
 
   moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> N \<subseteq> snd (max_chain C)\<close>
-    using M_N_less_than_max_chain \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
+    using M_N_less_than_max_chain \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>  by simp
 
 
   ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
@@ -810,7 +809,7 @@ then have  \<open>\<exists>Cmax\<in>Field zorn_relation. \<forall>C\<in>Field zo
 
       then have \<open>(Cmax,((fst Cmax) \<union> {C0},snd Cmax)) \<in> zorn_relation\<close>
         unfolding zorn_relation_def
-        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
         using Cmax_in_A by auto
 
       then have \<open>Cmax = ((fst Cmax) \<union> {C0},snd Cmax)\<close>
@@ -831,7 +830,7 @@ then have  \<open>\<exists>Cmax\<in>Field zorn_relation. \<forall>C\<in>Field zo
 
       then have \<open>(Cmax,(fst Cmax,snd Cmax \<union> {C0})) \<in> zorn_relation\<close>
         unfolding zorn_relation_def
-        using \<open>(\<preceq>) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
+        using \<open>(\<preceq>\<^sub>s) \<equiv> \<lambda>C1 C2. fst C1 \<subseteq> fst C2 \<and> snd C1 \<subseteq> snd C2\<close>
         using Cmax_in_A by auto
 
       then have \<open>Cmax = (fst Cmax,snd Cmax \<union> {C0})\<close>
