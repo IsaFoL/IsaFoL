@@ -144,8 +144,8 @@ definition forward_subsumption_one_wl2_rel where
      changed = changed' \<and> set_mset (all_init_atms_st S) = set_mset (all_init_atms_st S\<^sub>0) \<and>
       (changed \<longrightarrow> (D', {#}) \<in> clause_hash_ref (all_init_atms_st S)) \<and>
       (\<not>changed \<longrightarrow> D' = D \<and> occs' = occs \<and> get_clauses_wl S \<propto> C = get_clauses_wl S\<^sub>0 \<propto> C) \<and>
-      correct_occurence_list S occs' (if changed then size (get_clauses_wl S\<^sub>0 \<propto> C) else n) \<and>
-     all_occurrences (all_init_atms_st S) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S) occs) \<and>
+        correct_occurence_list S occs' (if changed then size (get_clauses_wl S\<^sub>0 \<propto> C) else n) \<and>
+        all_occurrences (all_init_atms_st S) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S) occs) \<and>
      (S,T)\<in>Id
     }\<close>
 
@@ -515,16 +515,18 @@ definition try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> occurences \<R
   RETURN (occs, D, S)
   }\<close>
 
-lemma
+lemma try_to_forward_subsume_wl2_try_to_forward_subsume_wl:
   assumes \<open>(C, E) \<in> nat_rel\<close> and
-    DG: \<open>(D, G) \<in> clause_hash_ref (all_init_atms_st S\<^sub>0)\<close> and
-    G: \<open>G = mset (get_clauses_wl S\<^sub>0 \<propto> C)\<close> and
+    DG: \<open>(D, G) \<in> clause_hash_ref (all_init_atms_st T\<^sub>0)\<close> and
+    G: \<open>G = mset (get_clauses_wl T\<^sub>0 \<propto> C)\<close> and
     occs: \<open>correct_occurence_list S\<^sub>0 occs n\<close> and
-    n: \<open>n\<le> size (get_clauses_wl S\<^sub>0 \<propto> C)\<close> and
-    C_occs: \<open>C \<notin># all_occurrences (all_init_atms_st S\<^sub>0) occs\<close> and
+    n: \<open>n\<le> length (get_clauses_wl S\<^sub>0 \<propto> C)\<close> and
+    C_occs: \<open>C \<notin># all_occurrences (all_init_atms_st T\<^sub>0) occs\<close> and
     \<open>(S\<^sub>0, T\<^sub>0) \<in> Id\<close>
   shows \<open>try_to_forward_subsume_wl2 C occs D S\<^sub>0 \<le>
-    \<Down>{((occs', D', T), U). (T, U) \<in> Id \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st T)}
+    \<Down>{((occs', D', T), U). (T, U) \<in> Id \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st T) \<and>
+       correct_occurence_list U occs' (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n) \<and>
+       all_occurrences (all_init_atms_st U) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S\<^sub>0) occs)}
     (try_to_forward_subsume_wl E T\<^sub>0)\<close>
 proof -
   have eq: \<open>T\<^sub>0 = S\<^sub>0\<close> \<open>E = C\<close>
@@ -556,8 +558,10 @@ proof -
       (\<not>changed \<longrightarrow> (D', mset (get_clauses_wl U \<propto> C)) \<in> clause_hash_ref (all_init_atms_st U)) \<and> 
       (changed \<longrightarrow> ebreak \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st U)) \<and> 
     (ebreak, ebreak') \<in> bool_rel \<and>
-    (\<not>changed \<longrightarrow> correct_occurence_list U occs' n \<and> occs' = occs \<and> get_clauses_wl U \<propto> C = get_clauses_wl S\<^sub>0 \<propto> C) \<and>
-    (changed \<longrightarrow> correct_occurence_list U occs' (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n)) \<and>
+    (\<not>changed \<longrightarrow> correct_occurence_list U occs' n \<and> occs' = occs \<and> get_clauses_wl U \<propto> C = get_clauses_wl S\<^sub>0 \<propto> C \<and>
+        all_occurrences (all_init_atms_st V) occs' = all_occurrences  (all_init_atms_st S\<^sub>0) occs) \<and>
+    (changed \<longrightarrow> correct_occurence_list U occs' (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n) \<and>
+       all_occurrences (all_init_atms_st V) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S\<^sub>0) occs)) \<and>
     U = V}\<close> (is \<open>_ \<Longrightarrow> _ \<in> ?R\<close>)
     for ebreak ebreaka
     using assms by auto
@@ -622,58 +626,196 @@ proof -
     subgoal using DG G by (auto dest: clause_hash_ref_cong[OF try_to_forward_subsume_wl2_invD])
     subgoal by auto
     subgoal using n by auto
-    subgoal using C_occs by (auto dest: all_occurrences_cong[OF try_to_forward_subsume_wl2_invD])
+    subgoal using C_occs by (auto dest: all_occurrences_cong[OF try_to_forward_subsume_wl2_invD] simp: eq)
     subgoal for a ebreak ebreaka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
       using K[of x1 x2a] by auto
     subgoal by auto
-    subgoal
-      by (auto 4 3 dest: clause_hash_ref_cong
-        simp add: correct_occurence_list_size_mono[of _ _ _ \<open>(max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n)\<close>]
-        forward_subsumption_one_wl2_rel_def)
+    subgoal for na ebreak ebreaka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f uu_ xa x'a x1g x2g x1h x2h x1i x2i
+      x1j x2j ebreakb ebreakc
+      apply (frule all_occurrences_cong[OF try_to_forward_subsume_wl2_invD])
+      apply (clarsimp simp add: forward_subsumption_one_wl2_rel_def)
+      apply (auto dest: 
+        intro: correct_occurence_list_size_mono[of _ _ _ \<open>(max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n)\<close>]
+        simp: clause_hash_ref_cong[of \<open>all_init_atms_st x1g\<close>]
+        all_occurrences_cong[of \<open>all_init_atms_st x1g\<close> \<open>all_init_atms_st x2a\<close>]
+        forward_subsumption_one_wl2_rel_def
+        simp: )
+     done
     apply (rule mop_ch_remove_all2; assumption)
     subgoal by auto
     subgoal for na ebreak ebreaka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
-      by auto
+      using n by (auto simp: eq intro: correct_occurence_list_size_mono)
     done
 qed
 
 
-definition forward_subsumption_all_wl2_inv :: \<open>nat twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<times> _ \<times> nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_all_wl2_inv = (\<lambda>S xs (i, occs, D, s).
+definition forward_subsumption_all_wl2_inv :: \<open>nat twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<times> _ \<times> nat twl_st_wl \<times> nat \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_all_wl2_inv = (\<lambda>S xs (i, occs, D, s, n).
   (D, {#}) \<in> clause_hash_ref (all_init_atms_st s) \<and>
   forward_subsumption_all_wl_inv S (mset (drop i xs), s))
   \<close>
 
+(*TODO populate occs*)
+
+definition populate_occs_inv where
+  \<open>populate_occs_inv S xs = (\<lambda>(i, occs, cands).
+  all_occurrences (all_init_atms_st S) occs + mset cands \<subseteq># mset (take i xs) \<and>
+  mset xs \<subseteq># dom_m (get_clauses_wl S) \<and>
+  distinct cands \<and>
+  correct_occurence_list S occs 2)\<close>
+
+
+definition populate_occs_spec where
+  \<open>populate_occs_spec S = (\<lambda>(occs, cands).
+  all_occurrences (all_init_atms_st S) occs + mset cands \<subseteq># dom_m (get_clauses_wl S) \<and>
+  distinct cands \<and> sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) cands \<and>
+  correct_occurence_list S occs 2 \<and>
+  (\<forall>C\<in># dom_m (get_clauses_wl S). \<forall>L\<in> set (get_clauses_wl S \<propto> C). undefined_lit (get_trail_wl S) L))\<close>
+
+definition populate_occs :: \<open>nat twl_st_wl \<Rightarrow> _ nres\<close> where
+  \<open>populate_occs S = do {
+    xs \<leftarrow> SPEC (\<lambda>xs. mset xs \<subseteq># dom_m (get_clauses_wl S));
+    let n = size xs;
+    occs \<leftarrow> mop_occ_list_create (set_mset (all_init_atms_st S));
+    let cands = [];
+    (xs, occs, cands) \<leftarrow> WHILE\<^sub>T\<^bsup>populate_occs_inv S xs\<^esup> (\<lambda>(i, occs, cands). i < n)
+    (\<lambda>(i, occs, cands). do {
+      let C = xs ! i;
+      if C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) = 2 then do {
+        occs \<leftarrow> push_to_occs_list2 C S occs;
+        RETURN (i+1, occs, cands)
+      }
+      else  do {
+        cand \<leftarrow> SPEC (\<lambda>b. b \<longrightarrow> C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) > 2);
+        if cand then RETURN (i+1, occs, cands @ [C])
+        else RETURN (i+1, occs, cands)
+        }
+      }
+      )
+      (0, occs, cands);
+     cands \<leftarrow> SPEC (\<lambda>cands'. mset cands' = mset cands \<and> sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) cands');
+     RETURN (occs, cands)
+  }\<close>
+
+lemma \<open>populate_occs S \<le> SPEC(populate_occs_spec S)\<close>
+  sorry
 definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> _ nres\<close> where
   \<open>forward_subsumption_all_wl2 = (\<lambda>S. do {
   ASSERT (forward_subsumption_all_wl_pre S);
-  xs \<leftarrow> SPEC (\<lambda>xs. mset xs \<subseteq># dom_m (get_clauses_wl S) \<and> sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) xs);
-  occs \<leftarrow> mop_occ_list_create (set_mset (all_init_atms_st S));
-  let n = length xs;
+  (occs, xs) \<leftarrow> SPEC (populate_occs_spec S);
+  let m = length xs;
   D \<leftarrow> mop_ch_create (set_mset (all_init_atms_st S));
-  (xs, occs, D, S) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S). i < n \<and> get_conflict_wl S = None)
-    (\<lambda>(i, occs, D, S). do {
+  (xs, occs, D, S, _) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S, n). i < m \<and> get_conflict_wl S = None)
+    (\<lambda>(i, occs, D, S, n). do {
        let C = xs!i;
        if C \<notin># dom_m (get_clauses_wl S)
-       then RETURN (i+1, occs, D, S)
+       then RETURN (i+1, occs, D, S, n)
        else do {
-         S \<leftarrow> simplify_clause_with_unit_st_wl C  S;
-         if get_conflict_wl S = None \<and> C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) > 2 then do {
-           D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl S \<propto> C)) D;
-           (occs, D, S) \<leftarrow> try_to_forward_subsume_wl2 C occs D S;
-           RETURN (i+1, occs, D, S)
+         T \<leftarrow> simplify_clause_with_unit_st_wl C S;
+         ASSERT (set_mset (all_init_atms_st S) = set_mset (all_init_atms_st T));
+         ASSERT (get_trail_wl T = get_trail_wl S);
+         ASSERT (\<forall>D \<in># dom_m (get_clauses_wl T). (D \<noteq> C \<longrightarrow> get_clauses_wl T \<propto> D = get_clauses_wl S \<propto> D));
+         ASSERT (C \<in># dom_m (get_clauses_wl T) \<longrightarrow> (\<forall>L\<in>set (get_clauses_wl T \<propto> C). undefined_lit (get_trail_wl T) L));
+         if get_conflict_wl T = None \<and> C \<in># dom_m (get_clauses_wl T) \<and> length (get_clauses_wl T \<propto> C) > 2 then do {
+           D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl T \<propto> C)) D;
+           (occs, D, T) \<leftarrow> try_to_forward_subsume_wl2 C occs D T;
+           RETURN (i+1, occs, D, T, max (length (get_clauses_wl T \<propto> C)) n)
          }
-         else RETURN (i+1, occs, D, S)
+         else RETURN (i+1, occs, D, T, n)
       }
     })
-    (0, occs, D, S);
+    (0, occs, D, S, 2);
   RETURN S
   }
 )\<close>
+thm forward_subsumption_one_wl_def
+thm forward_subsumption_one_wl_pre_def
+thm forward_subsumption_one_wl_pre_def 
+thm forward_subsumption_one_wl_select_def
+lemma
+  \<open>forward_subsumption_all_wl2 S \<le> \<Down>Id (forward_subsumption_all_wl S)\<close>
+proof -
+  have forward_subsumption_all_wl_alt_def:
+    \<open>forward_subsumption_all_wl = (\<lambda>S. do {
+  ASSERT (forward_subsumption_all_wl_pre S);
+    xs \<leftarrow> SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_wl S));
+  let _ = size xs;
+   D \<leftarrow> RETURN ({#} :: nat clause);
+  ASSERT (D = {#});
+  (xs, S) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_wl S = None)
+    (\<lambda>(xs, S). do {
+       C \<leftarrow> SPEC (\<lambda>C. C \<in># xs);
+       if C \<notin># dom_m (get_clauses_wl S)
+       then RETURN (remove1_mset C xs, S)
+       else do {
+         S \<leftarrow> simplify_clause_with_unit_st_wl C S;
+         if get_conflict_wl S = None \<and> C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) > 2 then do {
+           let _ = mset (get_clauses_wl S \<propto> C) + {#};
+           (S) \<leftarrow> try_to_forward_subsume_wl C S;
+           RETURN (remove1_mset C xs, S)
+         }
+         else RETURN (remove1_mset C xs, S)
+      }
+    })
+    (xs, S);
+  RETURN S
+  }
+           )\<close>
+    unfolding forward_subsumption_all_wl_def Let_def by auto
+  have [refine]: \<open>SPEC
+  (\<lambda>xs. mset xs \<subseteq># dom_m (get_clauses_wl S) \<and>
+     sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) xs)
+    \<le> \<Down> {(xs,ys). mset xs = ys \<and> mset xs \<subseteq># dom_m (get_clauses_wl S) \<and>
+     sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) xs}
+    (SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_wl S)))\<close>
+    by (auto intro!: RES_refine)
+  have [refine]: \<open>SPEC (populate_occs_spec S) \<le> \<Down> {((occs,xs), ys).  ys = mset xs \<and> populate_occs_spec S (occs, xs)}(SPEC (\<lambda>xs. xs \<subseteq># dom_m (get_clauses_wl S)))\<close>
+    (is \<open>_ \<le> \<Down> ?populate _\<close>)
+    unfolding populate_occs_spec_def prod.simps
+    by (rule RES_refine)
+     (auto dest: mset_le_decr_left2)
+  have loop_init: \<open>(occsxs, xsa) \<in> ?populate \<Longrightarrow>
+    occsxs = (occs, xs) \<Longrightarrow>
+    (D, D') \<in> clause_hash_ref (all_init_atms_st S) \<Longrightarrow>
+    D' = {#} \<Longrightarrow>
+    forward_subsumption_all_wl_inv S (xsa, S) \<Longrightarrow> ((0, occs, D, S, 2), xsa, S) \<in>
+    {((i, occs', D, U, n), (xsa, V)). (U,V)\<in>Id \<and> i \<le> length xs \<and>
+    (D, {#}) \<in> clause_hash_ref (all_init_atms_st V) \<and>
+    correct_occurence_list U occs n \<and> xsa = mset (drop i xs)}\<close> 
+    (is \<open>_ \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow>_ \<Longrightarrow> _ \<Longrightarrow> _ \<in> ?loopinv\<close>) for D occs xsa aa xs occsxs uu D'
+    by (auto simp: populate_occs_spec_def)
+  have [refine]: \<open>(a,b) \<in> Id \<Longrightarrow> (c, d) \<in> Id \<Longrightarrow> simplify_clause_with_unit_st_wl a c \<le>\<Down>Id (simplify_clause_with_unit_st_wl b d)\<close> for a b c d
+    by auto
+      find_theorems simplify_clause_with_unit_st_wl
+  show ?thesis
+    unfolding forward_subsumption_all_wl_alt_def forward_subsumption_all_wl2_def
+    apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
+    apply (refine_vcg mop_occ_list_create mop_ch_create mop_ch_add_all
+      try_to_forward_subsume_wl2_try_to_forward_subsume_wl)
+    apply (rule loop_init; assumption)
+    subgoal unfolding forward_subsumption_all_wl2_inv_def by auto
+    subgoal by auto
+    subgoal by (auto simp: in_set_dropI)
+    subgoal by auto
+    subgoal by (auto simp: drop_Suc_nth)
+    subgoal by auto
+    subgoal sorry
+    subgoal by auto
+    apply (solves auto)
+    subgoal sorry
+    subgoal by auto
+    subgoal by auto
+    apply (subst clause_hash_ref_cong)
+    defer apply assumption
+    subgoal by auto
+    subgoal
+thm mop_ch_add_all
+  thm correct_occurence_list_def
+    apply assumption
 
-
-  find_theorems drop Suc nth
+  find_theorems mop_ch_create
 thm subsume_clauses_match_def
 thm forward_subsumption_one_wl_def
 thm try_to_forward_subsume_wl_def
