@@ -1370,7 +1370,7 @@ next
     unfolding entails_neg_def
     using entails_supsets[of "{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}"
       "{to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"]
-    by (*auto*)
+    by auto
 qed
 
 
