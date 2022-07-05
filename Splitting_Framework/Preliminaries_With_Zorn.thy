@@ -77,7 +77,6 @@ proof (rule ccontr)
       using not_M_entails_N A_def by simp
     then have not_empty_A :  \<open>A\<noteq>{}\<close>
       by force
-thm order_double_subsets_def
 
     have trivial_induction_order : \<open>C1 \<subseteq> B \<and> C2 \<subseteq> B' \<longrightarrow> (C1,C2) \<preceq>\<^sub>s (B,B')\<close>
       by (simp add: order_double_subsets_def)
