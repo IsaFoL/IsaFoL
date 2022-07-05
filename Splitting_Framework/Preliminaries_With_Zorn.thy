@@ -75,8 +75,10 @@ lemma zorn_relation_trans : \<open>\<forall>C1 C2 C3. (C1 \<preceq>\<^sub>s C2) 
         by auto
     qed
 
-lemma zorn_strict_relation_trans : \<open>\<forall>(C1::'f set \<times> 'f set) C2 C3. (C1 \<prec>\<^sub>s C2) \<longrightarrow> (C2 \<prec>\<^sub>s C3) \<longrightarrow> (C1 \<prec>\<^sub>s C3)\<close>
-  by (metis order_double_subsets_def order_double_subsets_strict_def prod.expand subset_antisym zorn_relation_trans)
+lemma zorn_strict_relation_trans :
+  \<open>\<forall>(C1::'f set \<times> 'f set) C2 C3. (C1 \<prec>\<^sub>s C2) \<longrightarrow> (C2 \<prec>\<^sub>s C3) \<longrightarrow> (C1 \<prec>\<^sub>s C3)\<close>
+  by (metis order_double_subsets_def order_double_subsets_strict_def prod.expand subset_antisym
+        zorn_relation_trans)
 
 lemma zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C1) \<longrightarrow> (C1 = C2)\<close>
     proof -
@@ -92,20 +94,28 @@ lemma zorn_relation_antisym :  \<open>\<forall>C1 C2. (C1 \<preceq>\<^sub>s C2) 
 
 lemma entails_supsets : "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"
 proof (rule ccontr)
-  assume not_M_entails_N : \<open>\<not>M \<Turnstile> N\<close>
-  assume hyp_entails_sup : \<open>(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N')\<close>
-  have \<open>\<exists>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<and> \<not>M' \<Turnstile> N'\<close>
+  assume
+    not_M_entails_N : \<open>\<not>M \<Turnstile> N\<close> and
+    hyp_entails_sup : \<open>(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N')\<close>
+  have contrapos_hyp_entails_sup: \<open>\<exists>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<and> \<not>M' \<Turnstile> N'\<close>
   proof -
     define A  :: "('f set * 'f set) set" where \<open>A = {(M',N'). M \<subseteq> M' \<and> N \<subseteq> N' \<and> \<not>M' \<Turnstile> N'}\<close>
     define zorn_relation :: "(('f set * 'f set) \<times> ('f set * 'f set)) set" where
       \<open>zorn_relation = {(C1,C2) \<in> A \<times> A. C1\<preceq>\<^sub>sC2}\<close>
     define max_chain :: "('f set * 'f set) set \<Rightarrow> 'f set * 'f set" where
-      \<open>max_chain = (\<lambda>C. if C = {} then (M,N) else (\<Union>{C1. \<exists>C2. (C1,C2) \<in> C},\<Union>{C2. \<exists>C1. (C1,C2) \<in> C}))\<close>
-    
+      \<open>max_chain = (\<lambda>C. if C = {} then (M,N)
+                            else (\<Union>{C1. \<exists>C2. (C1,C2) \<in> C},\<Union>{C2. \<exists>C1. (C1,C2) \<in> C}))\<close>
+
+(*minor properties on zorn_relation and chains*)
+    have relation_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall> C1 \<in> C. C1 \<in> A\<close>
+      using in_ChainsD zorn_relation_def 
+      by (metis (no_types, lifting) mem_Collect_eq mem_Sigma_iff old.prod.case)
     have M_N_in_A : \<open>(M,N) \<in> A\<close>
       using not_M_entails_N A_def by simp
     then have not_empty_A :  \<open>A\<noteq>{}\<close>
       by force 
+
+(*we show that zorn_relation is a partial order*)
     have trivial_replacement_order [simp] : \<open>\<forall>C1 C2. (C1,C2) \<in> zorn_relation  \<longrightarrow> (C1 \<preceq>\<^sub>s C2)\<close>
       unfolding zorn_relation_def by force
     moreover have zorn_relation_refl : \<open>\<forall>C\<in>A. C \<preceq>\<^sub>s C\<close>
@@ -118,7 +128,8 @@ proof (rule ccontr)
     qed
     moreover have refl_on_zorn_relation : "refl_on A zorn_relation"
       using zorn_relation_refl
-      by (smt (verit, ccfv_SIG) case_prod_conv mem_Collect_eq mem_Sigma_iff refl_onI subrelI zorn_relation_def)
+      by (smt (verit, ccfv_SIG) case_prod_conv mem_Collect_eq mem_Sigma_iff refl_onI 
+          subrelI zorn_relation_def)
     moreover have zorn_relation_field_is_A :  "Field zorn_relation = A"
     proof -
       have \<open>\<forall> C0 \<in> A. (M,N) \<preceq>\<^sub>s C0\<close>
@@ -136,7 +147,6 @@ proof (rule ccontr)
       ultimately show ?thesis
         by (metis Field_def Un_absorb1 subrelI subset_antisym)
     qed
-
     ultimately have zorn_hypothesis_po: "Partial_order zorn_relation"
     proof -
       have antisym_zorn_relation : "antisym zorn_relation"
@@ -149,12 +159,14 @@ proof (rule ccontr)
 
       moreover have "trans zorn_relation"
       proof -
-        have \<open>\<forall>C1 C2 C3. (C1,C2) \<in> zorn_relation \<longrightarrow> (C2,C3) \<in> zorn_relation \<longrightarrow> (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C3)\<close>
+        have \<open>\<forall>C1 C2 C3. (C1,C2) \<in> zorn_relation
+               \<longrightarrow> (C2,C3) \<in> zorn_relation \<longrightarrow> (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C2 \<preceq>\<^sub>s C3)\<close>
           unfolding zorn_relation_def by blast
         then  have \<open>\<forall>C1\<in>A. \<forall>C2\<in>A. (C1 \<preceq>\<^sub>s C2) \<longrightarrow> (C1,C2) \<in> zorn_relation\<close>
           unfolding zorn_relation_def by blast
         then show ?thesis using zorn_relation_trans
-          by (metis (no_types, opaque_lifting) FieldI1 FieldI2 transI trivial_replacement_order zorn_relation_field_is_A zorn_relation_trans)
+          by (metis (no_types, opaque_lifting) FieldI1 FieldI2 transI 
+              trivial_replacement_order zorn_relation_field_is_A zorn_relation_trans)
       qed
 
       ultimately have "preorder_on A zorn_relation"
@@ -184,9 +196,7 @@ proof (rule ccontr)
       show ?thesis using zorn_relation_field calculation by simp
     qed
 
-    have relation_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall> C1 \<in> C. C1 \<in> A\<close>
-      using in_ChainsD zorn_relation_def 
-      by (metis (no_types, lifting) mem_Collect_eq mem_Sigma_iff old.prod.case)
+(*we show that max_chain C is an upper bound of C for all chain C*)
     have max_chain_is_a_max : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<forall>C1\<in>C. (C1 \<preceq>\<^sub>s max_chain C)\<close>
     proof -
       fix C
@@ -207,11 +217,14 @@ proof (rule ccontr)
           by blast
         moreover have \<open>\<forall> (C1,C2) \<in> C. C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}\<close>
           by blast
-        moreover have \<open>\<forall> (C1,C2) \<in> C. ((C1 \<subseteq> \<Union>{C3. \<exists> C4. (C3,C4) \<in> C} \<and> C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}) \<longrightarrow> (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C}))\<close>
+        moreover have \<open>\<forall> (C1,C2) \<in> C. 
+                    ((C1 \<subseteq> \<Union>{C3. \<exists> C4. (C3,C4) \<in> C} \<and> C2 \<subseteq> \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}) \<longrightarrow>
+                      (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C}, \<Union>{C4. \<exists> C3. (C3,C4) \<in> C}))\<close>
           unfolding order_double_subsets_def
           using trivial_induction_order
           by simp
-        ultimately have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C})\<close>
+        ultimately have \<open>\<forall> (C1,C2) \<in> C. 
+                        (C1,C2) \<preceq>\<^sub>s (\<Union>{C3. \<exists> C4. (C3,C4) \<in> C},\<Union>{C4. \<exists> C3. (C3,C4) \<in> C})\<close>
           by fastforce
         then have \<open>\<forall> (C1,C2) \<in> C. (C1,C2) \<preceq>\<^sub>s max_chain C\<close>
           unfolding max_chain_def
@@ -220,7 +233,8 @@ proof (rule ccontr)
           by fast
       qed
     qed
-      
+
+(*we show that max_chain C is in A*)
     have M_N_less_than_max_chain : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (M,N) \<preceq>\<^sub>s max_chain C\<close>
     proof -
       fix C
@@ -247,7 +261,9 @@ proof (rule ccontr)
         moreover have \<open>(\<forall> C1 \<in> C. (fst C1 \<subseteq> fst (max_chain C)) \<and> snd C1 \<subseteq> snd (max_chain C))\<close>
           using order_double_subsets_def C_chain max_chain_is_a_max
           by presburger
-        moreover have \<open>(\<exists>C1 \<in> C. (M \<subseteq> fst C1 \<and> N \<subseteq> snd C1) \<longrightarrow> fst C1 \<subseteq> fst (max_chain C) \<and> snd C1 \<subseteq> snd (max_chain C)) \<longrightarrow> M \<subseteq> fst (max_chain C) \<and> N \<subseteq> snd (max_chain C) \<close>
+        moreover have \<open>(\<exists>C1 \<in> C. (M \<subseteq> fst C1 \<and> N \<subseteq> snd C1)
+                               \<longrightarrow> fst C1 \<subseteq> fst (max_chain C) \<and> snd C1 \<subseteq> snd (max_chain C))
+                       \<longrightarrow> M \<subseteq> fst (max_chain C) \<and> N \<subseteq> snd (max_chain C)\<close>
           using M_minor_first N_minor_second
           by blast
         ultimately have  \<open>M \<subseteq> fst (max_chain C) \<and> N \<subseteq> snd (max_chain C)\<close>
@@ -257,8 +273,8 @@ proof (rule ccontr)
           by simp
       qed
     qed
-
-    moreover have left_U_not_entails_right_U :\<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<not> fst (max_chain C)\<Turnstile> snd (max_chain C)\<close>
+    moreover have left_U_not_entails_right_U:
+      \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<not> fst (max_chain C)\<Turnstile> snd (max_chain C)\<close>
     proof -
       fix C
       assume C_chain :\<open>C \<in> Chains zorn_relation\<close>
@@ -278,7 +294,12 @@ proof (rule ccontr)
           assume \<open>\<not>\<not>fst (max_chain C) \<Turnstile> snd (max_chain C)\<close>
           then have abs_fst_entails_snd : \<open>fst (max_chain C) \<Turnstile> snd (max_chain C)\<close>
             by auto
-          then obtain M' N'  where abs_max_chain_compactness : \<open>M' \<subseteq> fst (max_chain C) \<and> N' \<subseteq> snd (max_chain C) \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N'\<close>
+          then obtain M' N' where 
+            abs_max_chain_compactness : \<open>M' \<subseteq> fst (max_chain C) 
+                                         \<and> N' \<subseteq> snd (max_chain C) 
+                                         \<and> finite M'
+                                         \<and> finite N'
+                                         \<and> M' \<Turnstile> N'\<close>
             using entails_compactness  by fastforce
           then have not_empty_M'_or_N' : \<open>(M' \<noteq> {}) \<or> (N' \<noteq> {})\<close>
             by (meson empty_subsetI entails_subsets not_M_entails_N)
@@ -287,7 +308,8 @@ proof (rule ccontr)
             by simp
           then have M'_in_great_union : \<open>M' \<subseteq> \<Union>{C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close>
             by blast
-          then have M'_in_finite_union : \<open>\<exists>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}. finite P \<and> M' \<subseteq> \<Union>P\<close>
+          then have M'_in_finite_union : 
+            \<open>\<exists>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}. finite P \<and> M' \<subseteq> \<Union>P\<close>
             by (meson finite_M'_subset finite_subset_Union)
           moreover have finite_N'_subset : \<open>(finite N') \<and> N' \<subseteq> \<Union>{C2. \<exists>C1. (C1,C2) \<in> C}\<close>
             using C_not_empty abs_max_chain_compactness
@@ -295,15 +317,16 @@ proof (rule ccontr)
             by simp
           then have N'_in_great_union : \<open>N' \<subseteq> \<Union>{C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close>
             by blast
-          then have N'_in_finite_union : \<open>\<exists>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}. finite Q \<and> N' \<subseteq> \<Union>Q\<close>
+          then have N'_in_finite_union : 
+            \<open>\<exists>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}. finite Q \<and> N' \<subseteq> \<Union>Q\<close>
             by (meson finite_N'_subset finite_subset_Union)
 
           ultimately obtain P Q where 
             P_subset : \<open>P \<subseteq> {C1. \<exists>C2. (C1,C2) \<in> C \<and> C1 \<inter> M' \<noteq> {}}\<close> and 
-                        finite_P: \<open>finite P\<close> and 
-                        P_supset : \<open>M' \<subseteq> \<Union>P\<close> and 
-                        Q_subset : \<open>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close> 
-                        and finite_Q : \<open>finite Q\<close> and Q_supset : \<open>N' \<subseteq> \<Union>Q\<close>      
+            finite_P: \<open>finite P\<close> and 
+            P_supset : \<open>M' \<subseteq> \<Union>P\<close> and 
+            Q_subset : \<open>Q \<subseteq> {C2. \<exists>C1. (C1,C2) \<in> C \<and> C2 \<inter> N' \<noteq> {}}\<close> 
+            and finite_Q : \<open>finite Q\<close> and Q_supset : \<open>N' \<subseteq> \<Union>Q\<close>      
             by auto
           have not_empty_P_or_Q : \<open>P \<noteq> {} \<or> Q \<noteq> {}\<close>
             using not_empty_M'_or_N' P_supset Q_supset by blast
@@ -470,10 +493,11 @@ proof (rule ccontr)
             using bij_\<Q>'_injectivity finite_Q inj_on_finite surjectivity_bij_\<Q>'_first_inc by auto
 
           have not_empty_\<P>_or_\<Q> : \<open>\<P> \<noteq> {} \<or> \<Q> \<noteq> {}\<close>
-            using \<P>'_in_\<P> \<Q>'_in_\<Q> surjectivity_bij_\<P>' surjectivity_bij_\<Q>' not_empty_P_or_Q by fastforce
+            using \<P>'_in_\<P> \<Q>'_in_\<Q> surjectivity_bij_\<P>' surjectivity_bij_\<Q>' not_empty_P_or_Q 
+            by fastforce
           then have not_empty_\<P>'_or_\<Q>' : \<open>\<P>' \<noteq> {} \<or> \<Q>' \<noteq> {}\<close>
             using not_empty_P_or_Q surjectivity_bij_\<P>' surjectivity_bij_\<Q>' by blast
-         
+
           define \<R>' where \<open>\<R>' = \<P>'\<union>\<Q>'\<close>
           have \<open>\<forall> (C1,C2) \<in> \<R>'. C1\<in>P \<or> C2\<in>Q\<close>
             unfolding \<R>'_def \<P>'_def \<Q>'_def \<P>_def \<Q>_def
@@ -493,7 +517,8 @@ proof (rule ccontr)
             assume \<open>\<not>(\<exists>(M0,N0)\<in>\<R>'. (\<forall>(M,N)\<in>\<R>'. (M,N) \<preceq>\<^sub>s (M0,N0)))\<close>
             then have abs_max_\<R>' : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. \<not>((M,N) \<preceq>\<^sub>s (M0,N0)))\<close>
               by auto
-            have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. \<not>((M,N),(M0,N0))\<in>zorn_relation \<longrightarrow> ((M0,N0),(M,N))\<in>zorn_relation\<close>
+            have \<open>\<forall>(M0,N0)\<in>C. \<forall>(M,N)\<in>C. 
+                  \<not>((M,N),(M0,N0))\<in>zorn_relation \<longrightarrow> ((M0,N0),(M,N))\<in>zorn_relation\<close>
               unfolding zorn_relation_def
               using C_chain
               by (smt (verit, best) Chains_def case_prodI2 mem_Collect_eq zorn_relation_def)
@@ -510,13 +535,13 @@ proof (rule ccontr)
             then have abs_max_\<R>'_reformulated : \<open>\<forall>(M0,N0)\<in>\<R>'. (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N))\<close>
               using abs_max_\<R>'
               by blast
-
-                (* For all (M0,N0), find_dif returns a pair (M,N) which is \<succ> (M0,N0)*)
+            (* For all (M0,N0), find_dif returns a pair (M,N) which is \<succ> (M0,N0)*)
             define  find_dif :: "('f set \<times> 'f set) \<Rightarrow> ('f set \<times> 'f set)" where 
-              \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N)) then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec>\<^sub>s (M,N)) else ({},{}))\<close>
+              \<open>find_dif = (\<lambda>(M0,N0). if (\<exists>(M,N)\<in>\<R>'. (M0,N0) \<prec>\<^sub>s (M,N)) 
+                                     then (SOME (M,N). (M,N)\<in>\<R>' \<and> (M0,N0) \<prec>\<^sub>s (M,N)) 
+                                     else ({},{}))\<close>
             obtain M0 N0 where M0_N0_def : \<open>(M0,N0)\<in> \<R>'\<close>
               using not_empty_\<R>' by auto
-
             define bij_nat :: "nat \<Rightarrow> ('f set \<times> 'f set)" where
               \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>
             have bij_nat_in_\<R>' : \<open>bij_nat k \<in> \<R>'\<close> for k
@@ -548,7 +573,8 @@ proof (rule ccontr)
               unfolding find_dif_def
               by auto 
             then have bij_nat_croiss : \<open>(bij_nat (k::nat)) \<prec>\<^sub>s (bij_nat (Suc k))\<close> for k
-              by (metis (mono_tags, lifting) new_major_general bij_nat_def case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
+              by (metis (mono_tags, lifting) new_major_general bij_nat_def
+                  case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
             have bij_nat_general_croiss : \<open>i < j \<Longrightarrow> bij_nat i \<prec>\<^sub>s bij_nat j\<close> for i j
             proof -
               assume hyp_croiss : \<open>i < j\<close>
@@ -591,7 +617,8 @@ proof (rule ccontr)
             then have \<open>inj_on bij_nat (UNIV :: nat set)\<close>
               unfolding inj_on_def
               by simp
-            then have bij_nat_is_a_bij : \<open>bij_betw bij_nat (UNIV :: nat set) (bij_nat `(UNIV :: nat set))\<close>
+            then have bij_nat_is_a_bij : 
+                     \<open>bij_betw bij_nat (UNIV :: nat set) (bij_nat `(UNIV :: nat set))\<close>
               unfolding bij_betw_def
               by simp
             then have \<open>finite (UNIV :: nat set) \<longleftrightarrow> finite (bij_nat `(UNIV:: nat set))\<close>
@@ -660,97 +687,96 @@ proof (rule ccontr)
         qed
       qed
     qed
-
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> M \<subseteq> fst (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def fst_eqD
       by fastforce
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> N \<subseteq> snd (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def snd_eqD
       by fastforce
-  ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
-    unfolding A_def
-    using M_N_less_than_max_chain case_prod_beta
-    by force
+    ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
+      unfolding A_def using M_N_less_than_max_chain case_prod_beta
+      by force
 
-  then have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> (max_chain C) \<in> A \<and> (\<forall>C0\<in>C. (C0, max_chain C) \<in> zorn_relation)\<close>
-    unfolding zorn_relation_def
-    using zorn_relation_field_is_A max_chain_is_a_max relation_in_A zorn_relation_def
-    by fastforce
-  then have zorn_hypothesis_u : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<exists>u\<in>Field zorn_relation. \<forall>a\<in>C. (a, u) \<in> zorn_relation\<close>
-    using zorn_relation_field_is_A  max_chain_is_a_max by auto
+(*reformulation of max_chain_in_A to apply Zorn's lemma*)
+    then have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> 
+      (max_chain C) \<in> A \<and> (\<forall>C0\<in>C. (C0, max_chain C) \<in> zorn_relation)\<close>
+      unfolding zorn_relation_def
+      using zorn_relation_field_is_A max_chain_is_a_max relation_in_A zorn_relation_def
+      by fastforce
+    then have zorn_hypothesis_u : 
+      \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> \<exists>u\<in>Field zorn_relation. \<forall>a\<in>C. (a, u) \<in> zorn_relation\<close>
+      using zorn_relation_field_is_A  max_chain_is_a_max by auto
 
-(*the result of Zorn lemma*)
-then have  \<open>\<exists>Cmax\<in>Field zorn_relation. \<forall>C\<in>Field zorn_relation. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
-  using Zorns_po_lemma zorn_hypothesis_u zorn_hypothesis_po by blast 
-  then have zorn_result : \<open>\<exists>Cmax\<in>A. \<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
-    using zorn_relation_field_is_A by blast
+(*application of Zorn's lemma*)
+    then have  \<open>\<exists>Cmax\<in>Field zorn_relation. \<forall>C\<in>Field zorn_relation. 
+                (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+      using Zorns_po_lemma zorn_hypothesis_u zorn_hypothesis_po by blast 
+    then have zorn_result : \<open>\<exists>Cmax\<in>A. \<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+      using zorn_relation_field_is_A by blast
+    then obtain Cmax where 
+      Cmax_in_A : \<open>Cmax\<in>A\<close> and 
+      Cmax_is_max : \<open>\<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
+      by blast
 
-  then obtain Cmax where 
-    Cmax_in_A : \<open>Cmax\<in>A\<close> and 
-    Cmax_is_max : \<open>\<forall>C\<in>A. (Cmax, C) \<in> zorn_relation \<longrightarrow> C = Cmax\<close>
-    by blast
-  have Cmax_not_entails : \<open>\<not> fst Cmax \<Turnstile> snd Cmax\<close>
-    unfolding A_def
-    using Cmax_in_A
-    using A_def by force
-  have M_less_fst_Cmax : \<open>M \<subseteq> fst Cmax\<close>
-    using A_def Cmax_in_A  by force
-  moreover have N_less_snd_Cmax : \<open>N \<subseteq> snd Cmax\<close>
-    using A_def Cmax_in_A  by force
-(*the last part of the proof*)
-  have \<open>fst Cmax \<union> snd Cmax = UNIV\<close>
-  proof (rule ccontr)
-    assume \<open>\<not>fst Cmax \<union> snd Cmax = UNIV\<close>
-    then have \<open>\<exists>C0. C0 \<notin> fst Cmax \<union> snd Cmax\<close>
-      by auto
-    then obtain C0 where 
-      C0_def : \<open>C0 \<notin> fst Cmax \<union> snd Cmax\<close>
-      by auto
-
-    have fst_max_entailment_extended : \<open>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
+(*deriving contrapos_hyp_entails_sup from Zorn's lemma*)
+    have Cmax_not_entails : \<open>\<not> fst Cmax \<Turnstile> snd Cmax\<close>
+      unfolding A_def
+      using Cmax_in_A
+      using A_def by force
+    have M_less_fst_Cmax : \<open>M \<subseteq> fst Cmax\<close>
+      using A_def Cmax_in_A  by force
+    moreover have N_less_snd_Cmax : \<open>N \<subseteq> snd Cmax\<close>
+      using A_def Cmax_in_A  by force
+    have \<open>fst Cmax \<union> snd Cmax = UNIV\<close>
     proof (rule ccontr)
-      assume \<open>\<not>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
-      then have fst_extended_Cmax_in_A : \<open>((fst Cmax \<union> {C0}), snd Cmax) \<in> A\<close>
+      assume \<open>\<not>fst Cmax \<union> snd Cmax = UNIV\<close>
+      then have \<open>\<exists>C0. C0 \<notin> fst Cmax \<union> snd Cmax\<close>
+        by auto
+      then obtain C0 where C0_def : \<open>C0 \<notin> fst Cmax \<union> snd Cmax\<close>
+        by auto
+      have fst_max_entailment_extended : \<open>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
+      proof (rule ccontr)
+        assume \<open>\<not>(fst Cmax) \<union> {C0} \<Turnstile> snd Cmax\<close>
+        then have fst_extended_Cmax_in_A : \<open>((fst Cmax \<union> {C0}), snd Cmax) \<in> A\<close>
+          unfolding A_def
+          using M_less_fst_Cmax N_less_snd_Cmax by blast
+        then have \<open>(Cmax,((fst Cmax) \<union> {C0},snd Cmax)) \<in> zorn_relation\<close>
+          unfolding zorn_relation_def order_double_subsets_def
+          using Cmax_in_A by auto
+        then have \<open>Cmax = ((fst Cmax) \<union> {C0},snd Cmax)\<close>
+          using Cmax_is_max fst_extended_Cmax_in_A by fastforce
+        then have \<open>C0 \<in> (fst Cmax)\<close>
+          by (metis UnI2 fst_eqD singleton_iff)
+        then show "False" using C0_def by auto
+      qed
+      moreover have snd_max_entailment_extended : \<open>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
+      proof (rule ccontr)
+        assume \<open>\<not>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
+        then have snd_extended_Cmax_in_A : \<open>(fst Cmax,snd Cmax \<union> {C0}) \<in> A\<close>
+          unfolding A_def
+          using M_less_fst_Cmax N_less_snd_Cmax by blast
+        then have \<open>(Cmax,(fst Cmax,snd Cmax \<union> {C0})) \<in> zorn_relation\<close>
+          unfolding zorn_relation_def order_double_subsets_def
+          using Cmax_in_A by auto
+        then have \<open>Cmax = (fst Cmax,snd Cmax \<union> {C0})\<close>
+          using Cmax_is_max snd_extended_Cmax_in_A by fastforce
+        then have \<open>C0 \<in> (snd Cmax)\<close>
+          by (metis UnI2 singleton_iff sndI)
+        then show "False" using C0_def by auto
+      qed
+      ultimately have \<open>fst Cmax \<Turnstile> snd Cmax\<close>
+        using entails_cut by force
+      then have \<open>Cmax \<notin> A\<close>
         unfolding A_def
-        using M_less_fst_Cmax N_less_snd_Cmax by blast
-      then have \<open>(Cmax,((fst Cmax) \<union> {C0},snd Cmax)) \<in> zorn_relation\<close>
-        unfolding zorn_relation_def order_double_subsets_def
-        using Cmax_in_A by auto
-      then have \<open>Cmax = ((fst Cmax) \<union> {C0},snd Cmax)\<close>
-        using Cmax_is_max fst_extended_Cmax_in_A by fastforce
-      then have \<open>C0 \<in> (fst Cmax)\<close>
-      by (metis UnI2 fst_eqD singleton_iff)
-    then show "False" using C0_def by auto
+        by fastforce
+      then show "False"
+        using Cmax_in_A by simp
+    qed
+    then show ?thesis using M_less_fst_Cmax N_less_snd_Cmax Cmax_not_entails by auto
   qed
-
-  moreover have snd_max_entailment_extended : \<open>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
-    proof (rule ccontr)
-      assume \<open>\<not>fst Cmax \<Turnstile> snd Cmax \<union> {C0}\<close>
-      then have snd_extended_Cmax_in_A : \<open>(fst Cmax,snd Cmax \<union> {C0}) \<in> A\<close>
-        unfolding A_def
-        using M_less_fst_Cmax N_less_snd_Cmax by blast
-      then have \<open>(Cmax,(fst Cmax,snd Cmax \<union> {C0})) \<in> zorn_relation\<close>
-        unfolding zorn_relation_def order_double_subsets_def
-        using Cmax_in_A by auto
-      then have \<open>Cmax = (fst Cmax,snd Cmax \<union> {C0})\<close>
-        using Cmax_is_max snd_extended_Cmax_in_A by fastforce
-      then have \<open>C0 \<in> (snd Cmax)\<close>
-      by (metis UnI2 singleton_iff sndI)
-    then show "False" using C0_def by auto
-  qed
-
-  ultimately have \<open>fst Cmax \<Turnstile> snd Cmax\<close>
-    using entails_cut by force
-  then have \<open>Cmax \<notin> A\<close>
-    unfolding A_def
-    by fastforce
-  then show "False"
-    using Cmax_in_A by simp
-qed
-  then show ?thesis using M_less_fst_Cmax N_less_snd_Cmax Cmax_not_entails by auto
-qed
   then show "False" using hyp_entails_sup by auto
 qed
+
 
  
 lemma entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" 
@@ -860,8 +886,9 @@ qed
 
 definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
   "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-  {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} "
+  {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
 
+(*returns the union of all extended formulas which are equivalent to an extended formula of M*)
 definition all_ext :: "'f neg set \<Rightarrow> 'f neg set" where
   "all_ext M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D = is_Pos C})" 
 
@@ -874,6 +901,7 @@ lemma rm_all_ext: \<open>{to_V C |C. C \<in> all_ext M \<and> is_Pos C} = {to_V 
 lemma rm_all_ext_neg: \<open>{to_V C |C. C \<in> all_ext M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
   unfolding all_ext_def by blast 
 
+(*returns the union of all extended formulas which are opposite to an extended formula of M*)
 definition all_ext_complement :: "'f neg set \<Rightarrow> 'f neg set" where
   "all_ext_complement M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D \<noteq> is_Pos C})" 
 
@@ -954,8 +982,48 @@ next
   show \<open>entails_neg N Q\<close>
     using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
 next
-  fix M N
-  assume all_supsets_entails: \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>\<sim> N'\<close>
+  fix M N C M' N'
+  assume cut_hypothesis: \<open>M \<Turnstile>\<^sub>\<sim> N \<union> {C} \<and> M' \<union> {C} \<Turnstile>\<^sub>\<sim> N'\<close>
+  consider (a) \<open>is_Pos C\<close> | (b) \<open>\<not>is_Pos C\<close>
+    by auto
+  then  have \<open>M \<union> M' \<Turnstile>\<^sub>\<sim> N \<union> N'\<close>
+  proof (cases)
+    case a
+    assume Pos_C: \<open>is_Pos C\<close>
+    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      using cut_hypothesis entails_neg_def by force
+    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} = {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C}\<close>
+      using Pos_C by force
+    then have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} = 
+               {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      by blast
+    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    then have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
+              {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> is_Pos D}\<close>
+      by blast
+    ultimately have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union> {to_V C}\<close>
+      by 
+
+    have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+          {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+      unfolding entails_neg_def
+      using cut_hypothesis
+
+
+    then show ?thesis sorry
+  next
+    case b
+    then show ?thesis sorry
+  qed
+
+
+
+
+
+
   have \<open>\<forall>M' N'. {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<subseteq> M' \<and>
     {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow>
     M' \<Turnstile> N'\<close>
