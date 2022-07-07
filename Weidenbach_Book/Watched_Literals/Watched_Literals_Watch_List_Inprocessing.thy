@@ -1964,7 +1964,7 @@ definition forward_subsumption_wl_all_cands where
   \<open>forward_subsumption_wl_all_cands S xs \<longleftrightarrow> xs \<subseteq># dom_m (get_clauses_wl S) \<and>
   (\<forall>C\<in>#xs. (\<forall>L\<in>set (get_clauses_wl S \<propto> C). undefined_lit (get_trail_wl S) L) \<and>
   length (get_clauses_wl S \<propto> C) > 2)\<close>
-  
+
 definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>forward_subsumption_all_wl = (\<lambda>S. do {
   ASSERT (forward_subsumption_all_wl_pre S);
@@ -1973,12 +1973,9 @@ definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
     WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl_inv S xs \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_wl S = None)
     (\<lambda>(xs, S). do {
        C \<leftarrow> SPEC (\<lambda>C. C \<in># xs);
-       if C \<notin># dom_m (get_clauses_wl S)
-       then RETURN (remove1_mset C xs, S)
-       else do {
-         S \<leftarrow> try_to_forward_subsume_wl C xs S;
-         RETURN (remove1_mset C xs, S)
-       }
+       T \<leftarrow> try_to_forward_subsume_wl C xs S;
+       ASSERT (\<forall>D\<in>#remove1_mset C xs. get_clauses_wl T \<propto> D = get_clauses_wl S \<propto> D);
+       RETURN (remove1_mset C xs, T)
     })
     (xs, S);
   RETURN S
@@ -2014,6 +2011,13 @@ proof -
     unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
     by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def watched_by_alt_def)
 qed
+
+lemma forward_subsumption_all_wl_inv_alt_def:
+  \<open>forward_subsumption_all_wl_inv = (\<lambda>S cands (xs, s).
+  (\<exists>T s'. (S, T) \<in> state_wl_l None \<and> (s, s') \<in> state_wl_l None \<and> forward_subsumption_all_inv T (xs, s') \<and>
+  no_lost_clause_in_WL S \<and> get_watched_wl s = get_watched_wl S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' s))\<close>
+  using forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D unfolding forward_subsumption_all_wl_inv_def
+  by fast
 
 lemma forward_subsumption_all_wl:
   assumes
@@ -2064,12 +2068,11 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
     subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD
       forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
     subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD
       forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD

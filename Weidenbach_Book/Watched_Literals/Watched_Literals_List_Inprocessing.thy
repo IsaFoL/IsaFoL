@@ -3427,7 +3427,8 @@ definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\
     set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
 
 definition forward_subsumption_all_inv :: \<open>'v twl_st_l \<Rightarrow> nat multiset \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S) \<and> get_trail_l T = get_trail_l S)\<close>
+  \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S) \<and>
+    get_trail_l T = get_trail_l S \<and> (\<forall>C\<in>#xs. get_clauses_l T \<propto> C = get_clauses_l S \<propto> C) \<and> xs \<subseteq># dom_m (get_clauses_l T))\<close>
 
 definition forward_subsumption_all_cands where
   \<open>forward_subsumption_all_cands S xs \<longleftrightarrow> xs \<subseteq># dom_m (get_clauses_l S) \<and>
@@ -3442,12 +3443,9 @@ definition forward_subsumption_all :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
     WHILE\<^sub>T\<^bsup> forward_subsumption_all_inv S \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S = None)
     (\<lambda>(xs, S). do {
        C \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-       if C \<notin># dom_m (get_clauses_l S)
-       then RETURN (remove1_mset C xs, S)
-       else do {
-         S \<leftarrow> try_to_forward_subsume C xs S;
-         RETURN (remove1_mset C xs, S)
-       }
+       T \<leftarrow> try_to_forward_subsume C xs S;
+       ASSERT (\<forall>D\<in>#remove1_mset C xs. get_clauses_l T \<propto> D = get_clauses_l S \<propto> D);
+       RETURN (remove1_mset C xs, T)
     })
     (xs, S);
   RETURN S
@@ -3493,14 +3491,10 @@ proof -
     WHILE\<^sub>T\<^bsup> \<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S) \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_l S = None)
     (\<lambda>(xs, S'). do {
        C \<leftarrow> SPEC(\<lambda>C'. C' \<in># xs);
-       if C \<notin># dom_m (get_clauses_l S')
-       then RETURN (remove1_mset C xs, S')
-       else do {
-         S \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S' T \<and> get_trail_l T = get_trail_l S \<and> length (get_clauses_l S \<propto> C) > 2 \<and>
-            remove1_mset C xs \<subseteq># dom_m (get_clauses_l T) \<and>
-            (\<forall>D\<in>#remove1_mset C (dom_m (get_clauses_l T)). D \<in># dom_m (get_clauses_l S') \<and> get_clauses_l T \<propto> D = get_clauses_l S' \<propto> D));
-           RETURN (remove1_mset C xs, S)
-      }
+       S \<leftarrow> SPEC(\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S' T \<and> get_trail_l T = get_trail_l S \<and> length (get_clauses_l S \<propto> C) > 2 \<and>
+          remove1_mset C xs \<subseteq># dom_m (get_clauses_l T) \<and>
+          (\<forall>D\<in>#remove1_mset C (dom_m (get_clauses_l T)). D \<in># dom_m (get_clauses_l S') \<and> get_clauses_l T \<propto> D = get_clauses_l S' \<propto> D));
+        RETURN (remove1_mset C xs, S)
     })
     (xs, S);
   RETURN S
@@ -3513,9 +3507,6 @@ proof -
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
-    subgoal by (auto simp: forward_subsumption_all_inv_def)
-    subgoal by (auto simp: size_mset_remove1_mset_le_iff)
-    subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
@@ -3535,9 +3526,7 @@ proof -
       st: \<open>x' = (x1, x2)\<close> \<open>x = (x1a, x2a)\<close> and
       CCa: \<open>(C, Ca) \<in> nat_rel\<close> and
        \<open>C \<in> {C'. C' \<in># x1a}\<close> and
-      \<open>Ca \<in> {C'. C' \<in># x1}\<close> and
-      C: \<open>\<not> C \<notin># dom_m (get_clauses_l x2a)\<close> and
-      \<open>\<not> Ca \<notin># dom_m (get_clauses_l x2)\<close>
+      \<open>Ca \<in> {C'. C' \<in># x1}\<close> 
     for xs xsa x x' x1 x2 x1a x2a C Ca T U
   proof -
     have TU: \<open>x2 = x2a\<close> and
@@ -3547,7 +3536,7 @@ proof -
       undef: \<open>\<forall>L\<in>set (get_clauses_l x2 \<propto> C). undefined_lit (get_trail_l x2a) L\<close> and
       [intro]: \<open>2 < length (get_clauses_l x2a \<propto> Ca)\<close> and
       confl: \<open>get_conflict_l x2a = None\<close>
-      using inv xx' C CCa cands break
+      using inv xx' CCa cands break
       unfolding forward_subsumption_all_inv_def st forward_subsumption_all_cands_def
       by (auto dest!: multi_member_split simp: ball_conj_distrib)
        (metis mem_Collect_eq pair_in_Id_conv subset_mset.le_iff_add that(13) that(2) union_iff)+
@@ -3593,14 +3582,14 @@ proof -
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
-    subgoal by auto
-    subgoal by auto
     apply (rule try_to_forward_subsume[THEN order_trans])
     subgoal by (rule try_to_forward_subsume_pre)
     subgoal unfolding Down_id_eq
       by (rule SPEC_rule) (auto simp: forward_subsumption_all_cands_def Ball_def
         forward_subsumption_all_inv_def distinct_mset_remove1_All 
         intro!: distinct_subseteq_iff[THEN iffD1])
+    subgoal
+      by (auto dest: in_diffD simp: distinct_mset_remove1_All)
     subgoal
       by (auto dest: in_diffD simp: distinct_mset_remove1_All)
     subgoal by auto
