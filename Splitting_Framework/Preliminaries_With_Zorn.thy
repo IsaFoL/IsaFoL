@@ -7,7 +7,24 @@ theory Preliminaries_With_Zorn
     "HOL-Library.Library"
   (* Finite_Set *)
 begin
-  
+
+  (*useful tools for the following proofs*)
+lemma finite_because_singleton: \<open>(\<forall>C1 \<in> S. \<forall>C2 \<in> S. C1 = C2) \<longrightarrow> finite S\<close> for S
+  by (metis finite.simps is_singletonI' is_singleton_the_elem)
+
+lemma finite_union_in_conditions: \<open>finite E \<Longrightarrow> (\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})) \<Longrightarrow>
+                                  finite({f C |C. P C \<and> g C \<in> E})\<close>
+proof -
+  assume finite_E: \<open>finite E\<close> and
+         all_finite: \<open>\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})\<close>
+  have \<open>finite (\<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E})\<close>
+    using finite_E all_finite finite_UN_I
+    by (simp add: setcompr_eq_image)
+  moreover have \<open>{f C |C. P C \<and> g C \<in> E} \<subseteq> \<Union>{{f C |C. P C \<and> g C = D} |D. D\<in>E}\<close>
+    by blast
+  ultimately show ?thesis by (meson finite_subset)
+qed
+
   (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
   (sect. 2.1) *)
 datatype 'a neg = Pos "'a" | Neg "'a neg" (* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
@@ -25,6 +42,119 @@ fun is_Pos :: "'a neg \<Rightarrow> bool" where
   
 lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
   by blast
+
+  (*returns the most general formula equivalent to A which is in M, and A if A \<notin> M*)
+fun elementary_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
+  "elementary_formula_in (Pos C) M = Pos C" |
+  "elementary_formula_in (Neg (Pos C)) M = Neg (Pos C)" |
+  "elementary_formula_in (Neg (Neg C)) M = (if (elementary_formula_in C M) \<in> M
+                                           then elementary_formula_in C M 
+                                           else (Neg (Neg C)))"
+
+lemma elementary_inclusion: \<open>C \<in> M \<Longrightarrow> elementary_formula_in C M \<in> M\<close>
+proof (induction C  M rule: elementary_formula_in.induct)
+  case (1 C M)
+  then show ?case by auto
+next
+  case (2 C M)
+  then show ?case by auto
+next
+  case (3 C M)
+  then show ?case by auto
+qed
+
+lemma elementary_same_to_V: \<open>to_V C = to_V (elementary_formula_in C M)\<close>
+proof(induction C M rule:elementary_formula_in.induct)
+  case (1 C M)
+  then show ?case by force
+next
+  case (2 C M)
+  then show ?case by force
+next
+  case (3 C M)
+  then show ?case by force
+qed
+
+lemma elementary_same_Pos: \<open> is_Pos C = is_Pos (elementary_formula_in C M)\<close>
+proof(induction C M rule:elementary_formula_in.induct)
+  case (1 C M)
+  then show ?case by force
+next
+  case (2 C M)
+  then show ?case by force
+next
+  case (3 C M)
+  then show ?case by force
+qed
+
+fun formula_induction_double :: "'a neg  \<Rightarrow> 'a neg" where
+  "formula_induction_double (Pos C) = Pos C" |
+  "formula_induction_double (Neg (Pos C)) = Neg (Pos C)" |
+  "formula_induction_double (Neg (Neg C)) = Neg (Neg C)"
+
+lemma elementary_reduction : \<open>C1 \<in> M \<Longrightarrow> C2 \<in> M \<Longrightarrow>
+                               (to_V C1 = to_V C2 \<and> is_Pos C1 = is_Pos C2) \<Longrightarrow> 
+                                 elementary_formula_in C1 M = elementary_formula_in C2 M\<close>
+proof (induction C1 rule:formula_induction_double.induct)
+  case (1 C1)
+  then show ?case
+  proof (induction C2 rule:formula_induction_double.induct)
+    case (1 C2)
+    then show ?case by auto
+  next
+    case (2 C2)
+    then show ?case by auto
+  next
+    case (3 C2)
+    have \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
+      by simp
+    moreover have \<open>is_Pos (Pos C1) = True\<close>
+      by simp
+    moreover have \<open>to_V (Neg (Neg C)) = to_V C\<close>
+      by simp
+    ultimately show ?case by
+    consider (a) \<open>elementary_formula_in C2 M \<in> M\<close> | (b) \<open>\<not>elementary_formula_in C2 M \<in> M\<close>
+      by auto
+    then show ?case
+    proof(cases)
+      case a
+      then show ?thesis
+    next
+      case b
+      then show ?thesis sorry
+    qed
+      
+
+  qed
+next
+  case (2 C1)
+  then show ?case
+  proof (induction C2 rule:formula_induction_double.induct)
+    case (1 C2)
+    then show ?case by auto
+  next
+    case (2 C2)
+    then show ?case by auto
+  next
+    case (3 C2)
+    then show ?case by auto
+  qed
+next
+  case (3 C1)
+   then show ?case
+  proof (induction C2 rule:formula_induction_double.induct)
+    case (1 C2)
+    then show ?case by auto
+  next
+    case (2 C2)
+    then show ?case by auto
+  next
+    case (3 C2)
+    then show ?case by auto
+  qed
+qed
+
+
 
 fun is_in :: "'a neg \<Rightarrow> 'a neg set \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90) where
   \<open>(Pos C) \<in>\<^sub>v J = (\<exists>v\<in>J. is_Pos v \<and> to_V v = C)\<close> |
@@ -888,9 +1018,61 @@ definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> boo
   "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
 
+lemma elementary_entailment:
+  \<open>M \<Turnstile>\<^sub>\<sim> N \<Longrightarrow> {elementary_formula_in C M |C. C\<in>M} \<Turnstile>\<^sub>\<sim> {elementary_formula_in C N |C. C\<in>N}\<close>
+proof -
+  assume \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
+  then have M_entails_N: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+                          {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    unfolding entails_neg_def .
+  moreover have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
+                 {to_V (elementary_formula_in C M) |C. C \<in> M  \<and> is_Pos C}\<close>
+    using elementary_same_to_V by metis
+  then have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
+             {to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C}\<close>
+    using elementary_same_Pos by auto
+  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    by simp
+  moreover have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} = 
+                 {to_V (elementary_formula_in C N) |C. C \<in> N  \<and> \<not>is_Pos C}\<close>
+    using elementary_same_to_V by metis
+  then have \<open>{to_V C |C. C \<in> N \<and> \<not>is_Pos C} = 
+             {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C}\<close>
+    using elementary_same_Pos by auto
+  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M} \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    by simp
+  moreover have \<open>{to_V C |C. C \<in> N \<and>  is_Pos C} = 
+                 {to_V (elementary_formula_in C N) |C. C \<in> N  \<and> is_Pos C}\<close>
+    using elementary_same_to_V by metis
+  then have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} = 
+             {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> is_Pos C}\<close>
+    using elementary_same_Pos by auto
+  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    by simp
+  moreover have \<open>{to_V C |C. C \<in> M \<and>  \<not>is_Pos C} = 
+                 {to_V (elementary_formula_in C M) |C. C \<in> M  \<and> \<not>is_Pos C}\<close>
+    using elementary_same_to_V by metis
+  then have \<open>{to_V C |C. C \<in> M \<and> \<not>is_Pos C} = 
+             {to_V C |C. C \<in> {elementary_formula_in C M|C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
+    using elementary_same_Pos by auto
+  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
+    by simp
+  then show ?thesis unfolding entails_neg_def by auto
+qed
+
 (*returns the union of all extended formulas which are equivalent to an extended formula of M*)
 definition all_ext :: "'f neg set \<Rightarrow> 'f neg set" where
-  "all_ext M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D = is_Pos C})" 
+  "all_ext M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D = is_Pos C})"
 
 lemma self_in_all_ext: \<open>M \<subseteq> all_ext M\<close>
   unfolding all_ext_def by auto 
@@ -983,41 +1165,324 @@ next
     using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
 next
   fix M N C M' N'
-  assume cut_hypothesis: \<open>M \<Turnstile>\<^sub>\<sim> N \<union> {C} \<and> M' \<union> {C} \<Turnstile>\<^sub>\<sim> N'\<close>
+  assume cut_hypothesis_M_N: \<open>M \<Turnstile>\<^sub>\<sim> N \<union> {C}\<close> and
+         cut_hypothesis_M'_N': \<open>M' \<union> {C} \<Turnstile>\<^sub>\<sim> N'\<close>
   consider (a) \<open>is_Pos C\<close> | (b) \<open>\<not>is_Pos C\<close>
     by auto
-  then  have \<open>M \<union> M' \<Turnstile>\<^sub>\<sim> N \<union> N'\<close>
+  then show  \<open>M \<union> M' \<Turnstile>\<^sub>\<sim> N \<union> N'\<close>
   proof (cases)
     case a
     assume Pos_C: \<open>is_Pos C\<close>
-    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
+    have M_entails_NC:
+          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
           {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
-      using cut_hypothesis entails_neg_def by force
-    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} = {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C}\<close>
+      using cut_hypothesis_M_N entails_neg_def by force
+    moreover have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D}\<close>
       using Pos_C by force
-    then have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} = 
-               {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
-      by blast
-    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
-    then have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
-              {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> is_Pos D}\<close>
-      by blast
     ultimately have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union> {to_V C}\<close>
-      by 
-
-    have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-          {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-      unfolding entails_neg_def
-      using cut_hypothesis
-
-
-    then show ?thesis sorry
+          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} =
+                    {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have M_entails_NC_reformulated:
+          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      by simp
+    have M'_entails_N'C:
+          \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N'  \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+      using cut_hypothesis_M'_N' entails_neg_def by force
+    moreover have \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have 
+          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D} =
+                    {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have M'_entails_N'C_reformulated:
+          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      by simp
+    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
+          {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<Turnstile>
+          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      using M_entails_NC_reformulated M'_entails_N'C_reformulated entails_cut
+      by (smt (verit, ccfv_threshold) M'_entails_N'C_reformulated 
+          M_entails_NC_reformulated Un_assoc Un_commute)
+    moreover have  \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
+                    {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D}\<close>
+      by auto
+    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
+                     {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+                     {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+                   {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D} =
+                   {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+      by auto
+    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
+                     {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+      by simp 
+    then show ?thesis unfolding entails_neg_def by auto
   next
     case b
-    then show ?thesis sorry
+    assume Pos_C: \<open>\<not>is_Pos C\<close>
+    have M_entails_NC:
+          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      using cut_hypothesis_M_N entails_neg_def by force
+    moreover have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} =
+                    {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have M_entails_NC_reformulated:
+          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+      by simp
+    have M'_entails_N'C:
+          \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N'  \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+      using cut_hypothesis_M'_N' entails_neg_def by force
+    moreover have \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have 
+          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D} =
+                    {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      using Pos_C by force
+    ultimately have M'_entails_N'C_reformulated:
+          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      by simp
+    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
+          {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<Turnstile>
+          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      using M_entails_NC_reformulated M'_entails_N'C_reformulated entails_cut
+      by (smt (verit, ccfv_threshold) M'_entails_N'C_reformulated 
+          M_entails_NC_reformulated Un_assoc Un_commute)
+    moreover have  \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
+                    {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
+                    {to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D}\<close>
+      by auto
+    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
+                     {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+                     {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+      by simp
+    moreover have \<open>{to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
+                   {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D} =
+                   {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+      by auto
+    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
+                     {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+      by simp 
+    then show ?thesis unfolding entails_neg_def by auto
   qed
+next
+  fix M N
+  assume M_entails_N: \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
+  then have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
+             {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+    unfolding entails_neg_def .
+  then have \<open>\<exists> M' N'. (M' \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<and>
+                       N' \<subseteq> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<and> 
+                       finite M' \<and> finite N' \<and> M' \<Turnstile> N')\<close>
+    using entails_compactness by auto
+  then obtain M' N' where
+    M'_def: \<open>M' \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close> and
+    M'_finite: \<open>finite M'\<close> and
+    N'_def: \<open>N' \<subseteq> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close> and
+    N'_finite: \<open>finite N'\<close> and
+    M'_entails_N': \<open>M' \<Turnstile> N'\<close>
+    by auto
+  then have compactness_hypothesis: 
+    \<open>(M' \<inter> {to_V C |C. C \<in> M \<and> is_Pos C}) \<union> (M' \<inter> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}) \<Turnstile>
+    (N' \<inter> {to_V C |C. C \<in> N \<and> is_Pos C}) \<union> (N' \<inter> {to_V C |C. C \<in> M \<and> \<not> is_Pos C})\<close>
+    using inf.absorb_iff1 inf_sup_distrib1 by (smt (verit))
+  moreover have M'_union_N'_finite: \<open>finite (M'\<union>N')\<close>
+    using N'_finite M'_finite by simp
+  moreover have \<open>(M' \<inter> {to_V C |C. C \<in> M \<and> is_Pos C}) \<union> (M' \<inter> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}) = 
+                 M' \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}\<close>
+    by blast
+  moreover have set_replacement_N:
+    \<open>(N' \<inter> {to_V C |C. C \<in> N \<and> is_Pos C}) \<union> (N' \<inter> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}) =
+    (N' \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
+    by blast
+  ultimately have M'_N'_entailment_reformulated :
+    \<open>(M' \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}) \<Turnstile>
+    (N' \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
+    by auto
+  then have  \<open>((M' \<union> N') \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}) \<Turnstile>
+             ((N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
+    using entails_subsets by (meson equalityE inf_mono sup.cobounded1)
+  moreover have set_replacement_M'_N'_M: 
+    \<open>(M' \<union> N') \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C)} =
+    {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C}\<close>
+    by blast
+  moreover have set_replacement_M'_N'_N:
+    \<open>(M' \<union> N') \<inter> {to_V C |C. (C \<in> N \<and> \<not> is_Pos C)} =
+    {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
+    by blast
+  ultimately have  \<open>{to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>
+                   {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C} \<Turnstile>
+                   (N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)}\<close>
+    by (smt (verit, ccfv_SIG) Collect_mono_iff Int_mono Un_mono Un_upper1 compactness_hypothesis
+        set_replacement_N entails_subsets)
+  moreover have  \<open>(N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C)} =
+                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C}\<close>
+    by blast
+  moreover have  \<open>(N' \<union> M') \<inter> {to_V C |C. (C \<in> M \<and> \<not> is_Pos C)} =
+                  {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
+    by blast
+  ultimately have M'_N'_infinite_compactness:
+                  \<open>{to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>
+                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C} \<Turnstile>
+                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>                 
+                  {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
+    by (smt (verit, ccfv_SIG) Collect_mono_iff Int_mono Un_mono Un_upper1 compactness_hypothesis
+      entails_subsets set_replacement_M'_N'_M set_replacement_M'_N'_N)
+  then have \<open>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<Turnstile>\<^sub>\<sim> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
+    unfolding entails_neg_def by simp
+  then have M'_N'_finite_compactness:
+    \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<Turnstile>\<^sub>\<sim> 
+     {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} | 
+                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
+    using elementary_entailment by blast
+  have \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                      C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
+                 {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}\<close>
+    using elementary_inclusion
+    by (smt (verit, best) Collect_mono mem_Collect_eq)
+  then have left_entailment_neg_in_M:
+     \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> M\<close>
+    by blast
+  have \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                      C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
+                 {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
+    using elementary_inclusion
+    by (smt (verit, best) Collect_mono mem_Collect_eq)
+  then have right_entailment_neg_in_N:
+     \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> N\<close>
+    by blast
+  have elementary_inclusion_decomposed:
+        \<open>{elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'} \<subseteq>
+        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C} \<union>
+        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C}\<close> for S
+    by auto
+  have \<open>\<forall>D \<in> M' \<union> N'.
+    (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> is_Pos C1 \<and>
+                C2 \<in> S \<and> (to_V C2) = D \<and> is_Pos C2) \<longrightarrow>
+      elementary_formula_in C1 S = elementary_formula_in C2 S)\<close> for S
+    using elementary_reduction by metis
+  then have \<open>\<forall>D \<in> M' \<union> N'.
+    (\<forall>C1. \<forall>C2. (C1 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<and>
+               (C2 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<longrightarrow>
+               C1 = C2)\<close> for S
+    by blast
+  then have \<open>\<forall>D \<in> M' \<union> N'.
+    finite({elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C})\<close> for S
+    using finite_because_singleton by (metis (no_types, lifting))
+  then have \<open>finite(
+    {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C})\<close> for S
+    using M'_union_N'_finite finite_UN_I
+    finite_union_in_conditions[of "M'\<union>N'" "\<lambda>C. elementary_formula_in C S" 
+                                  "\<lambda>C. (C \<in> S \<and> is_Pos C)" "\<lambda>C. to_V C"]
+    by (smt (verit, ccfv_threshold) Collect_cong elementary_reduction
+        finite_because_singleton mem_Collect_eq) 
+  moreover have \<open>\<forall>D \<in> M' \<union> N'.
+    (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> \<not>is_Pos C1 \<and>
+                C2 \<in> S \<and> (to_V C2) = D \<and> \<not>is_Pos C2) \<longrightarrow>
+      elementary_formula_in C1 S = elementary_formula_in C2 S)\<close> for S
+    using elementary_reduction by metis
+  then have \<open>\<forall>D \<in> M' \<union> N'.
+    (\<forall>C1. \<forall>C2. (C1 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<and>
+               (C2 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<longrightarrow>
+               C1 = C2)\<close> for S
+    by blast
+  then have \<open>\<forall>D \<in> M' \<union> N'.
+    finite({elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C})\<close> for S
+    using finite_because_singleton by (metis (no_types, lifting))
+  then have \<open>finite(
+    {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S
+    using M'_union_N'_finite finite_UN_I
+    finite_union_in_conditions[of "M'\<union>N'" "\<lambda>C. elementary_formula_in C S" 
+                                  "\<lambda>C. (C \<in> S \<and> \<not>is_Pos C)" "\<lambda>C. to_V C"]
+    by (smt (verit, ccfv_threshold) Collect_cong elementary_reduction
+        finite_because_singleton mem_Collect_eq) 
+  ultimately have  \<open>finite(
+        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'  \<and> is_Pos C} \<union>
+        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S 
+    by blast
+  then have finite_elementary_formula_in_M'_N':
+    \<open>finite {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'}\<close> for S
+    using elementary_inclusion_decomposed
+    by (meson rev_finite_subset)
+  then have 
+    \<open>finite {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
+    by blast
+  moreover have \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
+                 {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
+    by blast
+  ultimately have right_neg_finite:
+    \<open>finite {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
+    by force
+  moreover have 
+    \<open>finite {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
+    using finite_elementary_formula_in_M'_N' by blast
+  moreover have \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
+                 {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
+    by blast
+  ultimately have left_neg_finite:
+    \<open>finite {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
+    by force
+  have \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>\<sim> N'\<close>
+    using right_neg_finite left_neg_finite M'_N'_finite_compactness
+          left_entailment_neg_in_M right_entailment_neg_in_N by blast
+  then show ?thesis by auto
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
