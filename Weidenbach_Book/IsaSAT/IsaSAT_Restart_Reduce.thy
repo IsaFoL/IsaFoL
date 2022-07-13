@@ -950,7 +950,7 @@ proof -
   note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-      isasat_input_bounded_cong
+      isasat_input_bounded_cong empty_occs_list_cong
 
   show ?A if ?pre
     using that apply -
@@ -2985,7 +2985,7 @@ definition twl_st_heur_restart_strong_aivdom :: \<open>(isasat \<times> nat twl_
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -3009,7 +3009,8 @@ definition twl_st_heur_restart_strong_aivdom :: \<open>(isasat \<times> nat twl_
     isasat_input_bounded (all_init_atms N (NE+NEk+NS+N0)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NEk+NS+N0)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur
+      heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur \<and>
+    (occs, empty_occs_list (all_init_atms N (NE+NEk+NS+N0))) \<in> occurrence_list_ref
   }\<close>
 
 lemma isasat_GC_clauses_prog_wl:

@@ -7,6 +7,8 @@ theory IsaSAT_Simplify_Forward_Subsumption
     IsaSAT_Occurence_List
 begin
 
+experiment (*Temporary deactivation*)
+begin
 section \<open>Forward subsumption\<close>
 
 subsection \<open>Algorithm\<close>
@@ -847,7 +849,7 @@ definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> _ n
   }
 )\<close>
 
-lemma
+lemma forward_subsumption_all_wl2_forward_subsumption_all_wl:
   \<open>forward_subsumption_all_wl2 S \<le> \<Down>Id (forward_subsumption_all_wl S)\<close>
 proof -
   have forward_subsumption_all_wl_alt_def:
@@ -1029,39 +1031,6 @@ qed
 
 subsection \<open>Refinement to isasat.\<close>
 
-definition isa_forward_subsumption_pre_all :: \<open>_\<close> where
-  \<open>isa_forward_subsumption_pre_all  S \<longleftrightarrow>
-  (\<exists>T r u. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> forward_subsumption_all_wl_pre T) \<close>
-
-
-definition isa_forward_subsumption_all where
-  \<open>isa_forward_subsumption_all S = do {
-    ASSERT (isa_forward_subsumption_pre_all S);
-    RETURN S
-  }\<close>
-
-
-lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
-  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
-  shows \<open>isa_forward_subsumption_all S \<le>
-    \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl S')\<close>
-proof -
-  have isa_forward_subsumption_all_def: \<open>isa_forward_subsumption_all S = do {
-    ASSERT (isa_forward_subsumption_pre_all S);
-    let xs = ({#} :: nat multiset);
-    RETURN S
-  }\<close>
-  unfolding isa_forward_subsumption_all_def by auto
-  show ?thesis
-    unfolding isa_forward_subsumption_all_def forward_subsumption_all_wl_def
-    apply (refine_vcg)
-    subgoal using assms unfolding isa_forward_subsumption_pre_all_def by fast
-    subgoal by auto
-    subgoal
-      by (subst WHILEIT_unfold)
-       (use assms in auto)
-    done
-qed
 
 (*TODO: this is dumbed currently*)
 definition is_candidate_forward_subsumption where
@@ -1122,7 +1091,7 @@ thm subsume_clauses_match_def
 
 definition isa_forward_subsumption_one_wl_pre :: \<open>_\<close> where
   \<open>isa_forward_subsumption_one_wl_pre C S \<longleftrightarrow>
-  (\<exists>T r u. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> forward_subsumption_one_wl_pre C T) \<close>
+  (\<exists>T r u cands. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> forward_subsumption_one_wl_pre C cands T) \<close>
 
 
 thm forward_subsumption_one_wl_def
@@ -1135,15 +1104,15 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> isasat \<R
 
 definition isa_try_to_forward_subsume_wl_pre :: \<open>_\<close> where
   \<open>isa_try_to_forward_subsume_wl_pre C S occs \<longleftrightarrow>
-  (\<exists>T r u. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> try_to_forward_subsume_wl_pre C T \<and>
-  all_occurrences occs \<subseteq># dom_m (get_clauses_wl T))\<close>
+  (\<exists>T r u cands. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> try_to_forward_subsume_wl_pre C cands T \<and>
+  all_occurrences (all_atms_st T) occs \<subseteq># dom_m (get_clauses_wl T))\<close>
 
 
 definition isa_try_to_forward_subsume_wl_inv :: \<open>_\<close> where
   \<open>isa_try_to_forward_subsume_wl_inv S C occs = (\<lambda>(i, break, T).
-  (\<exists>S' T' r u. (S,S')\<in>twl_st_heur_restart_ana' r u \<and> (T,T')\<in>twl_st_heur_restart_ana' r u \<and>
-  try_to_forward_subsume_wl_inv S' C (i, break, T') \<and>
-  all_occurrences occs \<subseteq># dom_m (get_clauses_wl T')))\<close>
+  (\<exists>S' T' r u cands. (S,S')\<in>twl_st_heur_restart_ana' r u \<and> (T,T')\<in>twl_st_heur_restart_ana' r u \<and>
+  try_to_forward_subsume_wl_inv S' cands C (i, break, T') \<and>
+  all_occurrences (all_atms_st T') occs \<subseteq># dom_m (get_clauses_wl T')))\<close>
 
 (*TODO: Missing ticks*)
 definition isa_try_to_forward_subsume_wl :: \<open>nat \<Rightarrow> isasat \<Rightarrow> occurences \<Rightarrow> isasat nres\<close> where
@@ -1165,9 +1134,9 @@ definition isa_try_to_forward_subsume_wl :: \<open>nat \<Rightarrow> isasat \<Ri
 
 definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
   \<open>isa_forward_subsumption_all_wl_inv  S =
-  (\<lambda>(i, T, occs). \<exists>S' T' r u. (S, S')\<in>twl_st_heur_restart_ana' r u \<and>
+  (\<lambda>(i, T, occs). \<exists>S' T' r u cands. (S, S')\<in>twl_st_heur_restart_ana' r u \<and>
      (T,T')\<in>twl_st_heur_restart_ana' r u \<and>
-    forward_subsumption_all_wl_inv S' (mset (drop i (get_tvdom_aivdom (get_aivdom S))), T')) \<close>
+    forward_subsumption_all_wl_inv S' cands (mset (drop i (get_tvdom_aivdom (get_aivdom S))), T')) \<close>
 
 definition append_clause_to_occs_pre where
   \<open>append_clause_to_occs_pre C S occs =
@@ -1181,36 +1150,40 @@ definition append_clause_to_occs where
     mop_occ_list_append C occs L
   }
   \<close>
+end
+
+definition isa_forward_subsumption_pre_all :: \<open>_\<close> where
+  \<open>isa_forward_subsumption_pre_all  S \<longleftrightarrow>
+  (\<exists>T r u. (S,T)\<in>twl_st_heur_restart_ana' r u \<and> forward_subsumption_all_wl_pre T) \<close>
 
 
-definition isa_forward_subsumption_all2 where
-  \<open>isa_forward_subsumption_all2 S = do {
-  ASSERT (isa_forward_subsumption_pre_all S);
-  S \<leftarrow> isa_forward_accumulate_candidades_st S;
-  let n = length (get_tvdom_aivdom (get_aivdom S));
-  ASSERT (n < length (get_clauses_wl_heur S));
-  occs \<leftarrow> mop_occ_list_create (length (get_watched_wl_heur S));
-  let mark = (0, replicate (length (get_watched_wl_heur S) >> 1) None);
-  (_, S) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> isa_forward_subsumption_all_wl_inv S \<^esup> (\<lambda>(i, S, occs). i < n \<and> get_conflict_wl_is_None_heur S)
-    (\<lambda>(i, S, occs). do {
-       ASSERT (access_tvdom_at_pre S i);
-       C \<leftarrow> RETURN (access_tvdom_at S i);
-       if clause_not_marked_to_delete_heur S C
-       then RETURN (i+1, S, occs)
-       else do {
-         S \<leftarrow> isa_simplify_clause_with_unit_st2 C S;
-         length \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
-         if get_conflict_wl_is_None_heur S \<and> clause_not_marked_to_delete_heur S C \<and> length > 2 then do {
-           S \<leftarrow> isa_try_to_forward_subsume_wl C S occs;
-           occs \<leftarrow> (if clause_not_marked_to_delete_heur S C then append_clause_to_occs C S occs else RETURN occs);
-           RETURN (i+1, S, occs)
-         }
-         else RETURN (i+1, S, occs)
-      }
-    })
-    (0, S, occs);
-  RETURN S
+definition isa_forward_subsumption_all where
+  \<open>isa_forward_subsumption_all S = do {
+    ASSERT (isa_forward_subsumption_pre_all S);
+    RETURN S
   }\<close>
+
+
+lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_forward_subsumption_all S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl S')\<close>
+proof -
+  have isa_forward_subsumption_all_def: \<open>isa_forward_subsumption_all S = do {
+    ASSERT (isa_forward_subsumption_pre_all S);
+    let xs = ({#} :: nat multiset);
+    RETURN S
+  }\<close>
+  unfolding isa_forward_subsumption_all_def by auto
+  show ?thesis
+    unfolding isa_forward_subsumption_all_def forward_subsumption_all_wl_def
+    apply (refine_vcg)
+    subgoal using assms unfolding isa_forward_subsumption_pre_all_def by fast
+    subgoal unfolding forward_subsumption_wl_all_cands_def by auto
+    subgoal
+      by (subst WHILEIT_unfold)
+       (use assms in auto)
+    done
+qed
 
 end

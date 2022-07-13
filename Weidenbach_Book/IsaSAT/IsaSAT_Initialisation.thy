@@ -2128,9 +2128,10 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let ccount = restart_info_init;
      let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False, replicate (length \<phi>) False, (262144, reduce_interval_init)));
      let vdoms = AIvdom_init vdom [] ivdom;
+     let occs =  replicate (length W') [];
     RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)
        clvls cach lbd (take 1 (replicate 160 (Pos 0))) init_stats
-       heur vdoms lcount opts [])
+       heur vdoms lcount opts [] occs)
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -2149,6 +2150,11 @@ lemma heuristic_rel_initI:
   heuristic_rel \<A> (Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e, f, g, h)))\<close>
   by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def heuristic_rel_stats_def)
 
+lemma init_empty_occ_list_from_WL_length: \<open>(x5, m) \<in> \<langle>Id\<rangle>map_fun_rel  (D\<^sub>0 A) \<Longrightarrow>
+    (replicate (length x5) [],  empty_occs_list A)  \<in> occurrence_list_ref\<close>
+  by (auto simp: occurrence_list_ref_def map_fun_rel_def empty_occs_list_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+    dest!: multi_member_split)
+
 lemma finalise_init_finalise_init_full:
   \<open>get_conflict_wl S = None \<Longrightarrow>
   all_atms_st S \<noteq> {#} \<Longrightarrow> size (learned_clss_l (get_clauses_wl S)) = 0 \<Longrightarrow>
@@ -2166,7 +2172,7 @@ lemma finalise_init_finalise_init_full:
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
     intro: isa_vmtf_init_nemptyD)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
-    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def
+    twl_st_heur_parsing_no_WL_wl_def distinct_mset_dom AIvdom_init_def init_empty_occ_list_from_WL_length
       finalise_init_code_def out_learned_def all_lits_st_alt_def[symmetric] phase_saving_def
       twl_st_heur_post_parsing_wl_def all_atms_st_def aivdom_inv_dec_def ac_simps
     intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI

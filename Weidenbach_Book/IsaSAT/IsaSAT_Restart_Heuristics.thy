@@ -135,7 +135,7 @@ proof -
   note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-      isasat_input_bounded_cong
+      isasat_input_bounded_cong empty_occs_list_cong
 
   show \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow> ?Apre \<Longrightarrow> ?A\<close>
     supply [[goals_limit=1]]

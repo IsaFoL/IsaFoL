@@ -81,7 +81,7 @@ paragraph \<open>Definition\<close>
 type_synonym isasat = \<open>(trail_pol, arena,
       conflict_option_rel, nat, (nat watcher) list list, isa_vmtf_remove_int,
       nat, conflict_min_cach_l, lbd, out_learned, isasat_stats, isasat_restart_heuristics,
-     isasat_aivdom, clss_size, opts, arena, occurences) tuple17\<close>
+     isasat_aivdom, clss_size, opts, arena, occurences_ref) tuple17\<close>
 
 abbreviation IsaSAT where
   \<open>IsaSAT a b c d e f g h i j k l m n xo p occs \<equiv> Tuple17 a b c d e f g h i j k l m n xo p occs :: isasat\<close>
@@ -134,6 +134,9 @@ abbreviation get_opts :: \<open>isasat \<Rightarrow> opts\<close> where
 abbreviation get_old_arena :: \<open>isasat \<Rightarrow> arena\<close> where
   \<open>get_old_arena \<equiv> Tuple17_get_p\<close>
 
+abbreviation get_occs :: \<open>isasat \<Rightarrow> occurences_ref\<close> where
+  \<open>get_occs \<equiv> Tuple17_get_q\<close>
+
 abbreviation set_trail_wl_heur :: \<open>trail_pol \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>set_trail_wl_heur \<equiv> Tuple17.set_a\<close>
 
@@ -181,6 +184,9 @@ abbreviation set_opts_wl_heur :: \<open>opts \<Rightarrow>isasat \<Rightarrow> _
 
 abbreviation set_old_arena_wl_heur :: \<open>arena \<Rightarrow>isasat \<Rightarrow> _\<close> where
   \<open>set_old_arena_wl_heur \<equiv> Tuple17.set_p\<close>
+
+abbreviation set_occs_wl_heur :: \<open>occurences_ref \<Rightarrow>isasat \<Rightarrow> _\<close> where
+  \<open>set_occs_wl_heur \<equiv> Tuple17.set_q\<close>
 
 fun watched_by_int :: \<open>isasat \<Rightarrow> nat literal \<Rightarrow> nat watched\<close> where
   \<open>watched_by_int S L = get_watched_wl_heur S ! nat_of_lit L\<close>
@@ -267,7 +273,8 @@ definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> whe
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S;
+    occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -291,7 +298,8 @@ definition twl_st_heur :: \<open>(isasat \<times> nat twl_st_wl) set\<close> whe
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms_st T) heur
+    heuristic_rel (all_atms_st T) heur \<and>
+    (occs, empty_occs_list (all_atms_st T)) \<in> occurrence_list_ref
   }\<close>
 
 
@@ -321,7 +329,7 @@ definition twl_st_heur_loop :: \<open>(isasat \<times> nat twl_st_wl) set\<close
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -345,7 +353,8 @@ definition twl_st_heur_loop :: \<open>(isasat \<times> nat twl_st_wl) set\<close
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms_st T) heur
+    heuristic_rel (all_atms_st T) heur\<and>
+    (occs, empty_occs_list (all_atms_st T)) \<in> occurrence_list_ref
   }\<close>
 
 abbreviation learned_clss_count_lcount :: \<open>_\<close> where
@@ -400,7 +409,7 @@ where
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -422,7 +431,8 @@ where
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms_st T) heur
+    heuristic_rel (all_atms_st T) heur\<and>
+    (occs, empty_occs_list (all_atms_st T)) \<in> occurrence_list_ref
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
@@ -448,7 +458,7 @@ definition twl_st_heur_bt :: \<open>(isasat \<times> nat twl_st_wl) set\<close> 
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -470,7 +480,8 @@ definition twl_st_heur_bt :: \<open>(isasat \<times> nat twl_st_wl) set\<close> 
     isasat_input_bounded (all_atms_st T) \<and>
     isasat_input_nempty (all_atms_st T) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_atms_st T) heur
+    heuristic_rel (all_atms_st T) heur \<and>
+    (occs, empty_occs_list (all_atms_st T)) \<in> occurrence_list_ref
   }\<close>
 
 
