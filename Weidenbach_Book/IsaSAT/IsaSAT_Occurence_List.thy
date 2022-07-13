@@ -418,8 +418,9 @@ definition mop_ch_remove_clause :: \<open>nat clause \<Rightarrow> clause_hash \
 definition ch_remove_all :: \<open>clause_hash \<Rightarrow> clause_hash\<close> where
   \<open>ch_remove_all  =  (\<lambda>(\<A>, C). (\<A>, {#}))\<close>
 
-definition mop_ch_remove_all :: \<open>clause_hash \<Rightarrow> clause_hash nres\<close> where
-  \<open>mop_ch_remove_all C = do {
+definition mop_ch_remove_all :: \<open>nat clause \<Rightarrow> clause_hash \<Rightarrow> clause_hash nres\<close> where
+  \<open>mop_ch_remove_all D C = do {
+    ASSERT (D = snd C);
     RETURN (ch_remove_all C)
   }\<close>
 
@@ -479,9 +480,10 @@ lemma mop_ch_remove:
 
 lemma mop_ch_remove_all:
   assumes \<open>(C, D) \<in> clause_hash_ref \<A>\<close>
-  shows \<open>mop_ch_remove_all C \<le> SPEC(\<lambda>c. (c, {#}) \<in> clause_hash_ref \<A>)\<close>
+  shows \<open>mop_ch_remove_all D C \<le> SPEC(\<lambda>c. (c, {#}) \<in> clause_hash_ref \<A>)\<close>
   using assms unfolding mop_ch_remove_all_def
   apply refine_vcg
+  subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
   subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
   done
 
@@ -604,5 +606,14 @@ proof -
         dest: bspec[of _ _ L'])
     done
 qed
+
+
+definition mop_cch_remove_all :: \<open>nat clause_l \<Rightarrow> bool list \<Rightarrow> bool list nres\<close> where
+  \<open>mop_cch_remove_all C D = do {
+     (_, D) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, D). i < length C)
+       (\<lambda>(i, D). RETURN (i+1, D[nat_of_lit (C!i) := False]))
+      (0, D);
+    RETURN D
+  }\<close>
 
 end
