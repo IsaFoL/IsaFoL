@@ -181,13 +181,14 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset K A)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l A) \<union> {Pos K, Neg K}\<close>
   by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
 
+
 lemma mop_cocc_list_at_mop_occ_list_at:
   assumes
     \<open>(xs, \<A>xs) \<in> occurrence_list_ref\<close>
     \<open>(L,L')\<in>Id\<close>
     \<open>(i,i')\<in>nat_rel\<close>
   shows
-    \<open>mop_cocc_list_at xs L i \<le> \<Down>nat_rel (mop_occ_list_at \<A>xs L' i')\<close>
+    \<open>mop_cocc_list_at xs L i \<le> \<Down>{(K,K'). (K,K')\<in>nat_rel \<and> K = occ_list_at \<A>xs L' i \<and> K = cocc_list_at xs L' i \<and> nat_of_lit L' < length xs \<and> i < length (xs ! nat_of_lit L)} (mop_occ_list_at \<A>xs L' i')\<close>
   using assms unfolding mop_cocc_list_at_def mop_occ_list_at_def occurrence_list_ref_def
   apply refine_rcg
   subgoal
