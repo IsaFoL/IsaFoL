@@ -460,6 +460,7 @@ proof -
     using that unfolding mop_ch_remove_all_def
     apply refine_vcg
     subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
+    subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def dest!: multi_member_split)
     subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
     done
   have K: \<open>(xa, {#}) \<in> clause_hash_ref (all_init_atms_st S\<^sub>0) \<Longrightarrow> x2 \<noteq> NONE \<Longrightarrow>
@@ -625,7 +626,7 @@ proof -
 
   have [refine]: \<open>(ebreak, ebreaka) \<in> bool_rel \<Longrightarrow>
     ((0, False, ebreak, occs, D, S\<^sub>0), 0, ebreaka, S\<^sub>0) \<in>
-    {((p, changed, ebreak, occs', D', U), (q, ebreak', V)). (p,q)\<in>nat_rel \<and>
+    {((p, changed, ebreak, occs', D', U), (q, ebreak', V)). (p,q)\<in>nat_rel \<and> 
       (\<not>changed \<longrightarrow> (D', mset (get_clauses_wl U \<propto> C)) \<in> clause_hash_ref (all_init_atms_st U)) \<and> 
       (changed \<longrightarrow> ebreak \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st U)) \<and> 
     (ebreak, ebreak') \<in> bool_rel \<and>
@@ -633,7 +634,7 @@ proof -
         all_occurrences (all_init_atms_st V) occs' = all_occurrences  (all_init_atms_st S\<^sub>0) occs) \<and>
     (changed \<longrightarrow> correct_occurence_list U occs' (remove1_mset C cands) (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n) \<and>
        all_occurrences (all_init_atms_st V) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S\<^sub>0) occs)) \<and>
-    U = V}\<close> (is \<open>_ \<Longrightarrow> _ \<in> ?R\<close>)
+    U = V}\<close> (is \<open>_ \<Longrightarrow>  _ \<in> ?R\<close>)
     for ebreak ebreaka
     using assms by (auto simp: try_to_forward_subsume_wl2_pre0_def)
   have try_to_forward_subsume_wl2_invD:
@@ -651,6 +652,8 @@ proof -
       (set_mset (all_lits_of_m (mset (get_clauses_wl x2a \<propto> C))))\<close> for x1 x2a
     by (rule imageI)
        (auto intro!: in_clause_in_all_lits_of_m nth_mem)
+
+
   have K: \<open>try_to_forward_subsume_wl_inv S\<^sub>0 cands C (x1, False, x2a) \<Longrightarrow>
     x1 < 2 * length (get_clauses_wl x2a \<propto> C) \<Longrightarrow>
     atm_of (get_clauses_wl x2a \<propto> C ! (x1 div 2)) \<in># all_init_atms_st x2a\<close> for x1 x2a
@@ -668,6 +671,21 @@ proof -
       simp del: all_init_atms_def[symmetric] all_init_lits_of_wl_def[symmetric])
     by blast
 
+  have K0: \<open>try_to_forward_subsume_wl_inv S\<^sub>0 cands C (x1, False, x2a) \<Longrightarrow>
+     atm_of ` set (get_clauses_wl x2a \<propto> C) \<subseteq> set_mset (all_init_atms_st x2a)\<close> for x1 x2a
+    unfolding try_to_forward_subsume_wl_inv_def prod.simps try_to_forward_subsume_inv_def
+      literals_are_\<L>\<^sub>i\<^sub>n'_def apply -
+    apply normalize_goal+
+    apply (frule rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l,
+      frule rtranclp_cdcl_twl_inprocessing_l_all_learned_lits_of_l)
+    apply (simp add: all_init_atms_st_alt_def)
+    apply (auto simp: all_init_atms_st_def ran_m_def all_init_atms_alt_def all_init_atms_def
+      all_init_lits_of_wl_def
+      all_init_lits_def all_lits_of_mm_add_mset all_learned_lits_of_wl_def in_clause_in_all_lits_of_m
+      dest!: multi_member_split[of C]
+      simp del: all_init_atms_def[symmetric] all_init_lits_of_wl_def[symmetric])
+    by (meson image_eqI in_clause_in_all_lits_of_m in_multiset_in_set subsetD)
+
   have mop_ch_remove_all2:
     \<open>(x, x') \<in> ?R \<Longrightarrow>
     x2 = (x1a, x2a) \<Longrightarrow>
@@ -684,6 +702,7 @@ proof -
     subgoal
       using DG G
       by (auto simp: clause_hash_ref_def ch_remove_all_def)
+    subgoal by (auto 5 3 simp add: clause_hash_ref_def) 
     subgoal
       by (auto simp: clause_hash_ref_def ch_remove_all_def)
     done
@@ -1177,7 +1196,7 @@ definition isa_forward_accumulate_candidades_st :: \<open>_\<close> where
 
 definition isa_forward_subsumption_one_wl_pre :: \<open>_\<close> where
   \<open>isa_forward_subsumption_one_wl_pre C L S \<longleftrightarrow>
-  (\<exists>T r u cands. (S,T)\<in>twl_st_heur_restart_occs' r u \<and> forward_subsumption_one_wl2_pre C cands L T \<and> C \<in> set (get_vdom S)) \<close>
+  (\<exists>T r u cands. (S,T)\<in>twl_st_heur_restart_occs' r u \<and> forward_subsumption_one_wl2_pre C cands L T) \<close>
 
 definition isa_forward_subsumption_one_wl2_inv :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow>
   nat \<times> nat subsumption \<Rightarrow> bool\<close> where
@@ -1302,11 +1321,32 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
    | STRENGTHENED_BY L C' \<Rightarrow> isa_strengthen_clause_wl2 C C' L S)
   })\<close>
 
+
+definition mop_cch_remove_one where
+  \<open>mop_cch_remove_one L D = do {
+     ASSERT (nat_of_lit L < length D);
+     RETURN (D[nat_of_lit L := False])
+  } \<close>
+
+lemma mop_cch_remove_one_mop_ch_remove_one:
+  assumes
+    \<open>(L,L')\<in>Id\<close> and
+    DD': \<open>(D,D')\<in>clause_hash\<close>
+  shows \<open>mop_cch_remove_one L D
+    \<le> \<Down> clause_hash
+    (mop_ch_remove L' D')\<close>
+  using assms
+  unfolding mop_cch_remove_one_def mop_ch_remove_def
+  apply (refine_vcg,
+    auto simp: ch_remove_pre_def clause_hash_def ch_remove_def distinct_mset_remove1_All
+    dest: bspec[of _ _ L])
+  apply (cases L; auto)
+  done
 definition mop_cch_remove_all_clauses where
   \<open>mop_cch_remove_all_clauses S C D = do {
      n \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
      (_, D) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, D). i < n)
-       (\<lambda>(i, D). do {L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i; RETURN (i+1, D[nat_of_lit L := False])})
+       (\<lambda>(i, D). do {L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i; D \<leftarrow> mop_cch_remove_one L D; RETURN (i+1, D)})
       (0, D);
     RETURN D
   } \<close>
@@ -1399,14 +1439,96 @@ lemma valid_occs_in_vdomI:
   unfolding valid_occs_def cocc_list_at_def Union_eq subset_iff
   by (auto dest: spec[of _ \<open>occs ! nat_of_lit L ! x1\<close>])
 
+
+definition mop_ch_remove_all_clauses where
+  \<open>mop_ch_remove_all_clauses C D = do {
+     (_, D) \<leftarrow> WHILE\<^sub>T (\<lambda>(C, D). C \<noteq> {#})
+       (\<lambda>(C, D). do {L \<leftarrow> SPEC (\<lambda>L. L \<in># C); D \<leftarrow> mop_ch_remove L D; RETURN (remove1_mset L C, D)})
+      (C, D);
+    RETURN D
+  } \<close>
+
+(*TODO Move*)
+lemma diff_mono_mset: "a \<subseteq># b \<Longrightarrow> a - c \<subseteq># b - c"
+  by (meson subset_eq_diff_conv subset_mset.dual_order.eq_iff subset_mset.dual_order.trans)
+
+lemma mop_ch_remove_all_clauses_mop_ch_remove_all:
+  \<open>mop_ch_remove_all_clauses C D \<le> \<Down>Id (mop_ch_remove_all C D)\<close>
+  unfolding mop_ch_remove_all_clauses_def mop_ch_remove_all_def mop_ch_remove_def nres_monad3
+  apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). size i)\<close> and
+    I = \<open> \<lambda>(C', D').  C' \<subseteq># C \<and>  C' \<subseteq># snd D' \<and> snd D = snd D' + C - C' \<and> fst D = fst D'\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for s x b unfolding ch_remove_pre_def by force
+  subgoal by auto
+  subgoal unfolding ch_remove_def by (auto simp: case_prod_beta diff_mono_mset)
+  subgoal
+    by (drule multi_member_split)
+      (clarsimp simp: ch_remove_def case_prod_beta ch_remove_pre_def)
+  subgoal by (auto simp: ch_remove_def case_prod_beta)
+  subgoal by (clarsimp dest!: multi_member_split simp: size_Diff_singleton_if)
+  subgoal for s a b by (cases b) (auto simp: ch_remove_all_def case_prod_beta)
+  done
+
+lemma mop_cch_remove_all_clauses_mop_ch_remove_all_clauses:
+  assumes
+    SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close>and
+    \<open>(C,C')\<in>nat_rel\<close> and
+    DD': \<open>(D,D')\<in>clause_hash\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_wl S')\<close>
+  shows \<open>mop_cch_remove_all_clauses S C D
+    \<le> \<Down> clause_hash
+    (mop_ch_remove_all (mset (get_clauses_wl S' \<propto> C)) D')\<close>
+proof -
+  define f where "f C = SPEC (\<lambda>L. L \<in># C)" for C :: \<open>nat clause\<close>
+  have eq[simp]: \<open>C' = C\<close>
+    using assms by auto
+  have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close>
+    using SS' C unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def twl_st_heur_restart_occs_def
+    by (auto simp: arena_lifting)
+  have f: \<open>(x, x')
+    \<in> {((n, D), m, D'). (D, D') \<in> clause_hash \<and> m = mset (drop n (get_clauses_wl S' \<propto> C))} \<Longrightarrow>
+    case x of (i, D) \<Rightarrow> i < arena_length (get_clauses_wl_heur S) C \<Longrightarrow>
+    case x' of (C, D) \<Rightarrow> C \<noteq> {#} \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x = (x1a, x2a) \<Longrightarrow>SPEC (\<lambda>c. (c, get_clauses_wl S' \<propto> C ! x1a) \<in> nat_lit_lit_rel)
+    \<le> \<Down> {(a,b). a = b \<and> a = get_clauses_wl S' \<propto> C ! x1a} (f x1)\<close> for x1 x1a x2 x2a x x'
+    unfolding f_def by (auto intro!: RES_refine in_set_dropI)
+  show ?thesis
+    apply (rule ref_two_step[OF _ mop_ch_remove_all_clauses_mop_ch_remove_all[unfolded Down_id_eq]])
+    unfolding mop_cch_remove_all_clauses_def mop_ch_remove_all_clauses_def mop_arena_length_def
+      nres_monad3 bind_to_let_conv f_def[symmetric]
+    apply (subst Let_def[of \<open>arena_length _ _\<close>])
+    apply (refine_vcg WHILET_refine[where R = \<open>{((n, D), (m, D')). (D,D')\<in> clause_hash \<and>
+      m = mset (drop n (get_clauses_wl S' \<propto> C))}\<close>] mop_cch_remove_one_mop_ch_remove_one)
+    subgoal using valid C unfolding arena_is_valid_clause_idx_def twl_st_heur_restart_occs_def apply -
+      by (rule exI[of _ \<open>get_clauses_wl S'\<close>], auto intro!: exI[of _ \<open>get_vdom S\<close>])
+   subgoal using DD' by auto
+   subgoal using valid by (auto simp: arena_lifting C)
+   apply (rule mop_arena_lit[THEN order_trans])
+   apply (rule valid)
+   apply (rule C)
+   subgoal by auto
+   apply (rule refl)
+   subgoal using valid by (auto simp: arena_lifting C)
+   apply (rule f; assumption)
+   subgoal by (auto intro!: in_set_dropI)
+   subgoal using DD' by auto
+   subgoal by (auto simp flip: Cons_nth_drop_Suc add_mset_remove_trivial_If)
+   subgoal by auto
+   done
+qed
+
 lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   assumes
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
-    \<open>(C,C')\<in>nat_rel\<close> and
+    CC': \<open>(C,C')\<in>nat_rel\<close> and
     DD': \<open>(D,D')\<in>clause_hash\<close> and
     \<open>(L,L')\<in>Id\<close> and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    \<open>C \<in> set (get_vdom S)\<close> and
     incl: \<open>set_mset (all_occurrences (all_init_atms_st S') occs) \<subseteq> set (get_vdom S)\<close>
   shows \<open>isa_forward_subsumption_one_wl C D L S \<le>
     \<Down>{((S, changed, E), (S', changed', occs', E')). (get_occs S, occs') \<in> occurrence_list_ref \<and>
@@ -1453,7 +1575,7 @@ have forward_subsumption_one_wl2_alt_def:
   show ?thesis
     unfolding isa_forward_subsumption_one_wl_def forward_subsumption_one_wl2_alt_def eq Let_def
     apply (refine_vcg mop_cocc_list_at_mop_occ_list_at occs mop_arena_status2[where arena=\<open>get_clauses_wl_heur S\<close> and vdom=\<open>set (get_vdom S)\<close> and
-      N=\<open>get_clauses_wl S'\<close>] isa_subsume_clauses_match2_subsume_clauses_match2 SS')
+      N=\<open>get_clauses_wl S'\<close>] isa_subsume_clauses_match2_subsume_clauses_match2 SS' mop_cch_remove_all_clauses_mop_ch_remove_all_clauses CC' DD')
     subgoal using assms unfolding isa_forward_subsumption_one_wl_pre_def by fast
     subgoal using occs by (cases L) (auto simp: occurrence_list_ref_def map_fun_rel_def dest: bspec[of _ _ \<open>L\<close>])
     subgoal using assms H unfolding isa_forward_subsumption_one_wl2_inv_def apply - by (rule exI[of _ S']) auto
@@ -1467,9 +1589,12 @@ have forward_subsumption_one_wl2_alt_def:
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal using DD' by auto
     subgoal by auto
-    subgoal by auto
+    subgoal unfolding forward_subsumption_one_wl2_pre_def forward_subsumption_one_wl_pre_def
+      forward_subsumption_one_pre_def
+      by normalize_goal+ auto
     subgoal by auto
     subgoal apply (auto simp: forward_subsumption_one_wl2_pre_def isa_forward_subsumption_one_wl_pre_def
       forward_subsumption_one_wl_pre_def)

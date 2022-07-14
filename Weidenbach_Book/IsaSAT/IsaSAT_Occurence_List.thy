@@ -352,7 +352,7 @@ subsection \<open>Abstract Representation\<close>
 
 type_synonym clause_hash = \<open>(nat set \<times> nat clause)\<close>
 definition clause_hash_ref where
-  \<open>clause_hash_ref \<A> = {((\<B>, C), D). C = D \<and> set_mset \<A> = \<B>}\<close>
+  \<open>clause_hash_ref \<A> = {((\<B>, C), D). C = D \<and> set_mset \<A> = \<B> \<and> atms_of C \<subseteq> \<B>}\<close>
 
 definition ch_create_pre :: \<open>nat set \<Rightarrow> bool\<close> where
   \<open>ch_create_pre n = (True)\<close>
@@ -421,7 +421,7 @@ definition ch_remove_all :: \<open>clause_hash \<Rightarrow> clause_hash\<close>
 
 definition mop_ch_remove_all :: \<open>nat clause \<Rightarrow> clause_hash \<Rightarrow> clause_hash nres\<close> where
   \<open>mop_ch_remove_all D C = do {
-    ASSERT (D = snd C);
+    ASSERT (D = snd C \<and>  atm_of ` (set_mset D) \<subseteq> fst C);
     RETURN (ch_remove_all C)
   }\<close>
 
@@ -476,14 +476,15 @@ lemma mop_ch_remove:
   using assms unfolding mop_ch_remove_def
   apply refine_vcg
   subgoal unfolding ch_remove_pre_def by (auto simp: clause_hash_ref_def)
-  subgoal by (auto simp: clause_hash_ref_def ch_remove_def)
+  subgoal by (auto simp: clause_hash_ref_def ch_remove_def dest: in_atms_of_minusD)
   done
 
 lemma mop_ch_remove_all:
-  assumes \<open>(C, D) \<in> clause_hash_ref \<A>\<close>
+  assumes \<open>(C, D) \<in> clause_hash_ref \<A>\<close> \<open>atm_of ` set_mset D \<subseteq> set_mset \<A>\<close>
   shows \<open>mop_ch_remove_all D C \<le> SPEC(\<lambda>c. (c, {#}) \<in> clause_hash_ref \<A>)\<close>
   using assms unfolding mop_ch_remove_all_def
   apply refine_vcg
+  subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
   subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
   subgoal by (auto simp: clause_hash_ref_def ch_remove_all_def)
   done
