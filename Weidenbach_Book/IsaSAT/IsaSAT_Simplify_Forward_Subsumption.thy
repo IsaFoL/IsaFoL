@@ -128,7 +128,7 @@ definition forward_subsumption_one_wl2_inv :: \<open>'v twl_st_wl \<Rightarrow> 
 
 definition push_to_occs_list2_pre :: \<open>_\<close> where
   \<open>push_to_occs_list2_pre C S occs \<longleftrightarrow>
-    C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) \<ge> 2\<close>
+    (C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) \<ge> 2 \<and> fst occs = set_mset (all_init_atms_st S))\<close>
 
 definition push_to_occs_list2 where
   \<open>push_to_occs_list2 C S occs = do {
@@ -230,7 +230,7 @@ proof -
     using literals_are_\<L>\<^sub>i\<^sub>n'_all_init_atms_alt_def[OF lin]
     unfolding push_to_occs_list2_def
     apply (refine_vcg mop_occ_list_append[THEN order_trans])
-    subgoal using assms unfolding push_to_occs_list2_pre_def by fast
+    subgoal using assms unfolding push_to_occs_list2_pre_def correct_occurence_list_def by fast
     subgoal using assms unfolding occ_list_append_pre_def correct_occurence_list_def
       by auto
     subgoal for L occs'
@@ -1150,13 +1150,13 @@ definition isa_is_candidate_forward_subsumption where
 
 definition find_best_subsumption_candidate where
   \<open>find_best_subsumption_candidate C S = do {
-    L \<leftarrow> mop_arena_lit (get_clauses_wl_heur S) 0;
+    L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C 0;
     ASSERT (nat_of_lit L < length (get_occs S));
     score \<leftarrow> RETURN (length (get_occs S ! nat_of_lit L));
     n \<leftarrow> mop_arena_length_st S C;
    (i,score,L) \<leftarrow> WHILE\<^sub>T (\<lambda>(i,score,L). i < n)
      (\<lambda>(i,score,L). do {
-       new_L \<leftarrow> mop_arena_lit (get_clauses_wl_heur S) i;
+       new_L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
        ASSERT (nat_of_lit L < length (get_occs S));
        new_score \<leftarrow> RETURN (length (get_occs S ! nat_of_lit new_L));
        if new_score < score then RETURN (i+1, new_score, new_L) else RETURN (i+1, score, L)
@@ -1522,6 +1522,72 @@ proof -
    done
 qed
 
+
+lemma
+  assumes
+    SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
+    pre0: \<open>push_to_occs_list2_pre C S' occs\<close> and
+    occs: \<open>(get_occs S, occs') \<in> occurrence_list_ref\<close>
+  shows \<open>find_best_subsumption_candidate C S \<le> SPEC (\<lambda>L. L \<in># mset (get_clauses_wl S' \<propto> C))\<close>
+proof -
+  have valid: \<open>valid_occs (get_occs S) (get_vdom S)\<close> and
+    arena: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close>
+    using SS' by (auto simp: twl_st_heur_restart_occs_def)
+  have
+    C: \<open>C \<in># dom_m (get_clauses_wl S')\<close> and
+    le: \<open>2 \<le> length (get_clauses_wl S' \<propto> C)\<close> and
+    \<open>fst occs = set_mset (all_init_atms_st S')\<close>
+    using pre0 unfolding push_to_occs_list2_pre_def by fast+
+  have pre2: \<open>arena_lit_pre (get_clauses_wl_heur S) (C+i)\<close>
+    if \<open>i < length (get_clauses_wl S' \<propto> C)\<close> for i
+    using that unfolding arena_lit_pre_def apply -
+    by (rule exI[of _ C])
+     (use SS' arena C le in \<open>auto simp: arena_is_valid_clause_idx_and_access_def intro!: exI[of _ \<open>get_clauses_wl S'\<close>] exI[of _ \<open>set (get_vdom S)\<close>]\<close>)
+
+  have pre: \<open>arena_lit_pre (get_clauses_wl_heur S) C\<close>
+    unfolding arena_lit_pre_def
+    by (rule exI[of _ C])
+     (use SS' arena C le in \<open>auto simp: arena_is_valid_clause_idx_and_access_def intro!: exI[of _ \<open>get_clauses_wl S'\<close>] exI[of _ \<open>set (get_vdom S)\<close>]\<close>)
+
+  have lit[simp]: \<open>arena_lit (get_clauses_wl_heur S) (C + i) = get_clauses_wl S' \<propto> C ! i\<close>
+    if \<open>i < length (get_clauses_wl S' \<propto> C)\<close> for i
+    using that C arena by (auto simp: arena_lifting)
+  from this[of 0] have [simp]: \<open>arena_lit (get_clauses_wl_heur S) C = get_clauses_wl S' \<propto> C ! 0\<close>
+    using le by fastforce
+  have [simp]: \<open>arena_length (get_clauses_wl_heur S) C = length (get_clauses_wl S' \<propto> C)\<close>
+    using arena C by (auto simp: arena_lifting)
+
+  show ?thesis
+    using le
+    unfolding find_best_subsumption_candidate_def mop_arena_lit_def nres_monad3 mop_arena_length_st_def
+      mop_arena_length_def mop_arena_lit2_def
+    apply (refine_vcg arena WHILET_rule[where R = \<open>measure (\<lambda>(i, _). length (get_clauses_wl S' \<propto> C) - i)\<close> and
+      I = \<open> \<lambda>(i, score, L). L \<in> set (get_clauses_wl S' \<propto> C)\<close>])
+    subgoal using pre by auto
+    subgoal sorry
+    subgoal using C arena unfolding arena_is_valid_clause_idx_def by fast
+    subgoal by auto
+    subgoal by (use le in \<open>auto intro!: nth_mem\<close>)
+    subgoal by (auto intro!: pre2)
+    subgoal sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma
+  assumes
+    SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
+    CC': \<open>(C,C')\<in>nat_rel\<close>
+  shows \<open>isa_push_to_occs_list_st C S
+    \<le> \<Down> {(S, occs'). (get_occs S, occs') \<in> occurrence_list_ref \<and> (S, S') \<in> twl_st_heur_restart_occs' r u} (push_to_occs_list2 C S' occs)\<close>
+proof -
+  show ?thesis
+    unfolding isa_push_to_occs_list_st_def push_to_occs_list2_def
+    apply refine_rcg
 lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   assumes
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
