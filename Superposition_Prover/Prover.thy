@@ -19,9 +19,6 @@ lemma set_eq_unionI:
   shows "A = (B \<union> C)"
   using assms by blast
 
-lemma total_trancl: "total R \<Longrightarrow> total (trancl R)"
-  by (meson Relation.total_on_def r_into_trancl')
-
 lemma refl_Un: "refl S1 \<or> refl S2 \<Longrightarrow> refl (S1 \<union> S2)"
   by (auto dest: refl_onD intro: refl_onI)
 
@@ -590,7 +587,7 @@ lemma subst_set_identI:
 lemma cl_ecl_subst_ecl_distrib: "cl_ecl (subst_ecl C \<sigma>) = subst_cl (cl_ecl C) \<sigma>"
   by (cases C) simp
 
-lemma singleton_subst_li_conv: "{equational_clausal_logic.subst_lit L1 \<sigma>} = subst_cl {L1} \<sigma>"
+lemma singleton_subst_lit_conv: "{equational_clausal_logic.subst_lit L1 \<sigma>} = subst_cl {L1} \<sigma>"
   unfolding subst_cl.simps
   by simp
 
@@ -2480,6 +2477,72 @@ proof (rule ballI)
   qed
 qed
 
+lemma subst_equation_renaming_map_map_prod_eq:
+  assumes
+    all_vars_\<rho>: "\<forall>x \<in> vars_of_eq e \<union> fst ` set \<sigma>. is_a_variable (Var x \<lhd> \<rho>)" and
+    inj_subst_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_eq e \<union> fst ` set \<sigma>)"
+  defines "\<sigma>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>"
+  shows "subst_equation (subst_equation e \<rho>) \<sigma>' = subst_equation (subst_equation e \<sigma>) \<rho>"
+proof (cases e)
+  case (Eq t u)
+  
+  moreover have "t \<lhd> \<rho> \<lhd> \<sigma>' = t \<lhd> \<sigma> \<lhd> \<rho>"
+    apply (rule subst_renaming_map_map_prod_eq[of t \<sigma> \<rho>, folded \<sigma>'_def])
+    using all_vars_\<rho> inj_subst_\<rho> by (auto simp: Eq intro: inj_on_subset)
+  
+  moreover have "u \<lhd> \<rho> \<lhd> \<sigma>' = u \<lhd> \<sigma> \<lhd> \<rho>"
+    apply (rule subst_renaming_map_map_prod_eq[of u \<sigma> \<rho>, folded \<sigma>'_def])
+    using all_vars_\<rho> inj_subst_\<rho> by (auto simp: Eq intro: inj_on_subset)
+
+  ultimately show ?thesis
+    by simp
+qed
+
+
+lemma subst_lit_renaming_map_map_prod_eq:
+  assumes
+    all_vars_\<rho>: "\<forall>x \<in> vars_of_lit L \<union> fst ` set \<sigma>. is_a_variable (Var x \<lhd> \<rho>)" and
+    inj_subst_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_lit L \<union> fst ` set \<sigma>)"
+  defines "\<sigma>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>"
+  shows "equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L \<rho>) \<sigma>' =
+         equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L \<sigma>) \<rho>"
+  apply (cases L)
+  apply simp
+  using subst_equation_renaming_map_map_prod_eq[of _ \<sigma> \<rho>, folded \<sigma>'_def]
+  apply (metis all_vars_\<rho> inj_subst_\<rho> vars_of_lit.simps(1))
+  using subst_equation_renaming_map_map_prod_eq[of _ \<sigma> \<rho>, folded \<sigma>'_def]
+  by (metis all_vars_\<rho> inj_subst_\<rho> subst_lit.simps(2) vars_of_lit.simps(2))
+
+lemma subst_cl_renaming_map_map_prod_eq:
+  assumes
+    all_vars_\<rho>: "\<forall>x \<in> vars_of_cl C \<union> fst ` set \<sigma>. is_a_variable (Var x \<lhd> \<rho>)" and
+    inj_subst_\<rho>: "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_cl C \<union> fst ` set \<sigma>)"
+  defines "\<sigma>' \<equiv> map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>"
+  shows "subst_cl (subst_cl C \<rho>) \<sigma>' = subst_cl (subst_cl C \<sigma>) \<rho>"
+proof (rule Set.equalityI; rule Set.subsetI)
+  fix L assume "L \<in> subst_cl (subst_cl C \<rho>) \<sigma>'"
+  then obtain L' where
+    "L' \<in> C" and
+    L_eq: "L = equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L' \<rho>) \<sigma>'"
+    by (metis (no_types, lifting) image_iff subst_cl_conv)
+  hence "L = equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L' \<sigma>) \<rho>"
+    using all_vars_\<rho> inj_subst_\<rho> subst_lit_renaming_map_map_prod_eq[of L' \<sigma> \<rho>, folded \<sigma>'_def]
+    by (smt (verit, best) Un_iff inj_on_subset subset_eq vars_of_cl_lem)
+  then show "L \<in> subst_cl (subst_cl C \<sigma>) \<rho>"
+    by (simp add: \<open>L' \<in> C\<close> subst_cl_conv)
+next
+  fix L assume "L \<in> subst_cl (subst_cl C \<sigma>) \<rho>"
+  then obtain L' where
+    "L' \<in> C" and
+    L_eq: "L = equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L' \<sigma>) \<rho>"
+    by (metis (no_types, lifting) image_iff subst_cl_conv)
+  hence "L = equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L' \<rho>) \<sigma>'"
+    using all_vars_\<rho> inj_subst_\<rho> subst_lit_renaming_map_map_prod_eq[of L' \<sigma> \<rho>, folded \<sigma>'_def]
+    by (smt (verit, best) Un_iff inj_on_subset subset_eq vars_of_cl_lem)
+  then show "L \<in> subst_cl (subst_cl C \<rho>) \<sigma>'"
+    by (simp add: \<open>L' \<in> C\<close> subst_cl_conv)
+qed
+
 lemma inj_on_if_renaming: "renaming \<rho> V \<Longrightarrow> inj_on (\<lambda>x. Var x \<lhd> \<rho>)  V"
   unfolding renaming_def by (meson inj_onI)
 
@@ -2845,6 +2908,29 @@ proof (rule inj_onI, unfold mem_Collect_eq)
   qed
 qed
 
+lemma inj_subst_equation_if_renaming:
+  assumes ren_\<rho>: "renaming \<rho> V"
+  shows "inj_on (\<lambda>e. subst_equation e \<rho>) {e. vars_of_eq e \<subseteq> V}"
+proof (rule inj_onI, unfold mem_Collect_eq)
+  fix e1 e2
+  assume "vars_of_eq e1 \<subseteq> V" "vars_of_eq e2 \<subseteq> V" and
+    "subst_equation e1 \<rho> = subst_equation e2 \<rho> "
+  then show "e1 = e2"
+    by (cases e1; cases e2) (auto elim: inj_subst_if_renaming[OF ren_\<rho>, THEN inj_onD])
+qed
+
+lemma inj_subst_lit_if_renaming:
+  assumes ren_\<rho>: "renaming \<rho> V"
+  shows "inj_on (\<lambda>L. equational_clausal_logic.subst_lit L \<rho>) {L. vars_of_lit L \<subseteq> V}"
+proof (rule inj_onI, unfold mem_Collect_eq)
+  fix L K
+  assume "vars_of_lit L \<subseteq> V" "vars_of_lit K \<subseteq> V" and
+    "equational_clausal_logic.subst_lit L \<rho> = equational_clausal_logic.subst_lit K \<rho>"
+  then show "L = K"
+    by (cases L; cases K) (auto elim: inj_subst_equation_if_renaming[OF ren_\<rho>, THEN inj_onD])
+qed
+    
+
 lemma dom_trm_if_dom_trm_subst_renaming:
   assumes
     ren_\<rho>: "renaming \<rho> (vars_of t \<union> vars_of_cl C)" and
@@ -2923,6 +3009,43 @@ proof -
     qed
   qed
 qed
+
+lemma vars_of_subst_conv: "vars_of (t \<lhd> \<sigma>) = (\<Union>x \<in> vars_of t. vars_of (Var x \<lhd> \<sigma>))"
+  by (metis UN_simps(10) vars_of_subst_conv_Union)
+
+lemma vars_of_subst_equation_conv:
+  "vars_of_eq (subst_equation e \<sigma>) = (\<Union>x \<in> vars_of_eq e. vars_of (Var x \<lhd> \<sigma>))"
+  using vars_of_subst_conv by (simp add: vars_of_eq_subst_equation_conv)
+
+lemma vars_of_subst_lit_conv:
+  "vars_of_lit (equational_clausal_logic.subst_lit L \<sigma>) =
+    (\<Union>x \<in> vars_of_lit L. vars_of (Var x \<lhd> \<sigma>))"
+  using vars_of_subst_equation_conv by (simp add: vars_of_lit_subst_lit_conv)
+
+lemma vars_of_subst_cl_conv:
+  "vars_of_cl (subst_cl C \<sigma>) = (\<Union>x \<in> vars_of_cl C. vars_of (Var x \<lhd> \<sigma>))"
+proof (rule Set.equalityI; rule Set.subsetI)
+  show "\<And>x. x \<in> vars_of_cl (subst_cl C \<sigma>) \<Longrightarrow> x \<in> (\<Union>x\<in>vars_of_cl C. vars_of (Var x \<lhd> \<sigma>))"
+    using vars_of_subst_lit_conv
+    by (smt (z3) UN_iff mem_Collect_eq subst_cl.simps vars_of_cl.simps)
+next
+  show "\<And>x. x \<in> (\<Union>x\<in>vars_of_cl C. vars_of (Var x \<lhd> \<sigma>)) \<Longrightarrow> x \<in> vars_of_cl (subst_cl C \<sigma>)"
+    by (smt (verit, ccfv_threshold) UN_iff image_iff mem_Collect_eq subst_cl_conv vars_of_cl.simps
+        vars_of_subst_lit_conv)
+qed
+
+lemma vars_of_subst_eq_subset: "vars_of_eq (subst_equation e \<sigma>) \<subseteq> vars_of_eq e \<union> range_vars \<sigma>"
+  apply (cases e)
+  using vars_of_subst_subset by force
+
+lemma vars_of_subst_lit_subset:
+  "vars_of_lit (equational_clausal_logic.subst_lit L \<sigma>) \<subseteq> vars_of_lit L \<union> range_vars \<sigma>"
+  by (cases L) (simp_all add: vars_of_subst_eq_subset)
+
+lemma vars_of_subst_cl_subset:
+  "vars_of_cl (subst_cl C \<sigma>) \<subseteq> vars_of_cl C \<union> range_vars \<sigma>"
+  using vars_of_subst_lit_subset
+  by (smt (verit, ccfv_threshold) Un_iff mem_Collect_eq subset_eq subst_cl.simps vars_of_cl.simps)
 
 lemma vars_of_subst: "vars_of (t \<lhd> \<sigma>) =
   vars_of t - {x \<in> vars_of t. Var x \<lhd> \<sigma> \<noteq> Var x} \<union> (\<Union>x \<in> vars_of t. vars_of (Var x \<lhd> \<sigma>))"
@@ -3050,15 +3173,107 @@ next
     using SuperCalc.lit_ord_subst by blast
 qed
 
+lemma subst_cl_minus_subst_cl_eq_subst_cl_minus:
+  assumes inj_subst_\<rho>:
+    "inj_on (\<lambda>L. equational_clausal_logic.subst_lit L \<rho>) (C \<union> D)"
+  shows "subst_cl C \<rho> - subst_cl D \<rho> = subst_cl (C - D) \<rho>"
+  unfolding cl_ecl_subst_ecl_distrib
+proof (rule Set.equalityI; rule subsetI)
+  fix K
+  assume "K \<in> subst_cl C \<rho> - subst_cl D \<rho>"
+  then show "K \<in> subst_cl (C - D) \<rho>"
+    apply simp
+    using inj_subst_\<rho>[THEN inj_onD]
+    by (smt (verit, best) DiffI image_iff subst_cl_conv)
+next
+  fix K
+  assume "K \<in> subst_cl (C - D) \<rho>"
+  then show "K \<in> subst_cl C \<rho> - subst_cl D \<rho>"
+    apply simp
+    using inj_subst_\<rho>[THEN inj_onD]
+    by (smt (verit, del_insts) DiffD1 DiffD2 Un_iff mem_Collect_eq subst_cl.simps)
+qed
+
+lemma eligible_literal_of_renaming:
+  "SuperCalc.eligible_literal (equational_clausal_logic.subst_lit L1 \<rho>) (subst_ecl P1 \<rho>) \<sigma>\<^sub>D"
+  if eli_L1: "SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C" and
+    ren_\<rho>: "renaming \<rho> (vars_of_cl (cl_ecl P1))" and
+    \<sigma>\<^sub>D_def: "\<sigma>\<^sub>D = map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>\<^sub>C" and
+    ball_is_Var: "\<forall>x\<in>vars_of_lit L1 \<union> vars_of_cl (cl_ecl P1) \<union> fst ` set \<sigma>\<^sub>C.
+             is_a_variable (Var x \<lhd> \<rho>)" and
+    inj_subst: "inj_on (\<lambda>x. Var x \<lhd> \<rho>)
+             (vars_of_lit L1 \<union> vars_of_cl (cl_ecl P1) \<union> fst ` set \<sigma>\<^sub>C)" and
+    range_\<sigma>\<^sub>C: "range_vars \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)" and
+    L1_in: "L1 \<in> cl_ecl P1"
+  for L1 \<rho> \<sigma>\<^sub>D P1 \<sigma>\<^sub>C
+  using eli_L1[unfolded SuperCalc.eligible_literal_def]
+proof (elim disjE conjE)
+  assume "L1 \<in> select (cl_ecl P1)"
+  hence "equational_clausal_logic.subst_lit L1 \<rho> \<in> select (subst_cl (cl_ecl P1) \<rho>)"
+    unfolding select_renaming_strong[rule_format, of \<rho> "cl_ecl P1", OF ren_\<rho>]
+    by (simp add: subst_cl_conv)
+  thus ?thesis
+    unfolding SuperCalc.eligible_literal_def cl_ecl_subst_ecl_distrib
+    by blast
+next
+  assume
+    1: "select (cl_ecl P1) = {}" and
+    2: "SuperCalc.maximal_literal (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C)
+            (subst_cl (cl_ecl P1) \<sigma>\<^sub>C)"
+  from 1 have "select (subst_cl (cl_ecl P1) \<rho>) = {}"
+    unfolding select_renaming_strong[rule_format, of \<rho> "cl_ecl P1", OF ren_\<rho>]
+    by simp
+  moreover have "SuperCalc.maximal_literal
+          (equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L1 \<rho>) \<sigma>\<^sub>D)
+          (subst_cl (subst_cl (cl_ecl P1) \<rho>) \<sigma>\<^sub>D)"
+    unfolding SuperCalc.maximal_literal_def
+  proof (intro allI impI)
+    fix x assume x_in: "x \<in> subst_cl (subst_cl (cl_ecl P1) \<rho>) \<sigma>\<^sub>D"
+    hence "x \<in> subst_cl (subst_cl (cl_ecl P1) \<sigma>\<^sub>C) \<rho>"
+      using subst_cl_renaming_map_map_prod_eq[of _ \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def] ball_is_Var inj_subst
+      by (metis (no_types, lifting) Un_iff inf_sup_ord(4) inj_on_subset sup_assoc)
+    then obtain x' where
+      x'_in: "x' \<in> subst_cl (cl_ecl P1) \<sigma>\<^sub>C" and
+      x_def: "x = equational_clausal_logic.subst_lit x' \<rho>"
+      by (metis (mono_tags, lifting) image_iff subst_cl_conv)
+
+    have "vars_of_cl (subst_cl (cl_ecl P1) \<sigma>\<^sub>C) \<subseteq> vars_of_cl (cl_ecl P1)"
+      using range_\<sigma>\<^sub>C vars_of_subst_cl_subset by fast
+    hence vars_of_x': "vars_of_lit x' \<subseteq> vars_of_cl (cl_ecl P1)"
+      using x'_in vars_of_cl_lem by blast
+
+    have vars_of_L_\<sigma>\<^sub>C: "vars_of_lit (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C) \<subseteq>
+            vars_of_cl (cl_ecl P1)"
+      using range_\<sigma>\<^sub>C L1_in
+      by (smt (verit, best) Un_iff subset_iff vars_of_cl_lem vars_of_subst_lit_subset)
+
+    have
+      "(equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C) \<rho>, x)
+              \<notin> SuperCalc.lit_ord"
+      unfolding x_def
+      using 2[unfolded SuperCalc.maximal_literal_def, rule_format, OF x'_in]
+      apply (rule contrapos_nn)
+      apply (rule subst_lit_renaming_ord_iff[THEN iffD1])
+      apply (rule renaming_subset[OF _ ren_\<rho>])
+      using vars_of_x' vars_of_L_\<sigma>\<^sub>C
+      by simp
+    thus
+      "(equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L1 \<rho>) \<sigma>\<^sub>D, x)
+              \<notin> SuperCalc.lit_ord"
+      using subst_lit_renaming_map_map_prod_eq[of L1 \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def] ball_is_Var inj_subst
+      by (smt (verit, best) Un_iff inj_on_def)
+  qed
+  ultimately show ?thesis
+    unfolding SuperCalc.eligible_literal_def cl_ecl_subst_ecl_distrib
+    by simp
+qed
 
 lemma reflexion_if_renaming:
   fixes \<sigma>
   assumes
     refl: "SuperCalc.reflexion P1 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
     ren: "renaming_cl P1 P1'" and
-    fin_P1: "finite (cl_ecl P1)" and
-    trms_P1_subset:"(\<Union>t \<in> trms_ecl P1. vars_of t) \<subseteq> vars_of_cl (cl_ecl P1)" and
-    trms_ecl_P1_empty: "trms_ecl P1 = {}"
+    fin: "finite (cl_ecl P1)"
   shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.reflexion P1' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
 proof -
   from refl obtain L1 t s Cl_P Cl_C trms_C where
@@ -3093,11 +3308,12 @@ proof -
     P1'_def: "P1' = subst_ecl P1 \<rho>"
     unfolding renaming_cl_def by blast
 
-  from fin_P1 have fin_vars_P1: "finite (vars_of_cl (cl_ecl P1))"
+  from fin have fin_vars_P1: "finite (vars_of_cl (cl_ecl P1))"
     using set_of_variables_is_finite_cl by blast
   with ren_\<rho> obtain \<rho>_inv where
     \<rho>_\<rho>_inv_ident: "\<forall>x\<in>vars_of_cl (cl_ecl P1). Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
-      "\<forall>x. x \<notin> subst_codomain \<rho> (vars_of_cl (cl_ecl P1)) \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x"
+      "\<forall>x. x \<notin> subst_codomain \<rho> (vars_of_cl (cl_ecl P1)) \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x" and
+      "\<forall>x. is_a_variable (Var x \<lhd> \<rho>_inv)"
     using renamings_admit_inverse by blast
 
   have subst_P1_\<rho>_\<rho>_inv: "subst_cl (subst_cl (cl_ecl P1) \<rho>) \<rho>_inv = cl_ecl P1"
@@ -3134,6 +3350,7 @@ proof -
 
   have subst_\<rho>_\<sigma>\<^sub>D_conv:
     "Var x \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = Var x \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>" if x_in: "x \<in> vars_of_cl (cl_ecl P1)" for x
+    (* using subst_renaming_map_map_prod_eq[of _ \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def] *)
   proof -
     have x_dom_\<sigma>\<^sub>C_subset: "insert x (fst ` set \<sigma>\<^sub>C) \<subseteq> vars_of_cl (cl_ecl P1)"
       using x_in dom_vars_\<sigma>\<^sub>C vars_t_s_subset by blast
@@ -3188,68 +3405,16 @@ proof -
         by (rule L1_\<rho>_in_P1')
     next
       show "SuperCalc.eligible_literal (equational_clausal_logic.subst_lit L1 \<rho>) P1' \<sigma>\<^sub>D"
-        using \<open>SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C\<close>[unfolded SuperCalc.eligible_literal_def]
-      proof (elim disjE conjE)
-        assume "L1 \<in> select (cl_ecl P1)"
-        hence "equational_clausal_logic.subst_lit L1 \<rho> \<in> select (subst_cl (cl_ecl P1) \<rho>)"
-          unfolding \<open>P1' = subst_ecl P1 \<rho>\<close> cl_ecl_subst_ecl_distrib
-          using select_renaming_strong[rule_format, of \<rho> "cl_ecl P1", OF ren_\<rho>]
-          by (simp add: subst_cl_conv)
-        thus ?thesis
-          unfolding SuperCalc.eligible_literal_def \<open>P1' = subst_ecl P1 \<rho>\<close> cl_ecl_subst_ecl_distrib
-          by blast
+        unfolding P1'_def
+      proof (rule eligible_literal_of_renaming[OF \<open>SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C\<close>,
+              OF ren_\<rho> \<sigma>\<^sub>D_def _ _ range_vars_\<sigma>\<^sub>C \<open>L1 \<in> cl_ecl P1\<close>])
+        show "\<forall>x\<in>vars_of_lit L1 \<union> vars_of_cl (cl_ecl P1) \<union> fst ` set \<sigma>\<^sub>C. is_a_variable (Var x \<lhd> \<rho>)"
+          using renaming_imp_ball_var[OF ren_\<rho>]
+          by (metis dom_vars_\<sigma>\<^sub>C subset_Un_eq sup.order_iff vars_of_L1_subset)
       next
-        assume
-          1: "select (cl_ecl P1) = {}" and
-          2: "SuperCalc.maximal_literal (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C)
-            (subst_cl (cl_ecl P1) \<sigma>\<^sub>C)"
-        from 1 have "select (subst_cl (cl_ecl P1) \<rho>) = {}"
-          unfolding select_renaming_strong[rule_format, of \<rho> "cl_ecl P1", OF ren_\<rho>]
-          by simp
-        moreover have "SuperCalc.maximal_literal
-          (equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L1 \<rho>) \<sigma>\<^sub>D)
-          (subst_cl (subst_cl (cl_ecl P1) \<rho>) \<sigma>\<^sub>D)"
-          unfolding SuperCalc.maximal_literal_def
-          unfolding subst_cl_\<rho>_\<sigma>\<^sub>D_conv subst_lit_\<rho>_\<sigma>\<^sub>D_conv[OF \<open>L1 \<in> cl_ecl P1\<close>]
-        proof (intro allI impI)
-          fix x assume x_in: "x \<in> subst_cl (subst_cl (cl_ecl P1) \<sigma>\<^sub>C) \<rho>"
-          then obtain x' where
-            x'_in: "x' \<in> subst_cl (cl_ecl P1) \<sigma>\<^sub>C" and
-            x_def: "x = equational_clausal_logic.subst_lit x' \<rho>"
-            by (metis (mono_tags, lifting) image_iff subst_cl_conv)
-
-          have vars_of_x': "vars_of_lit x' \<subseteq> vars_of_cl (cl_ecl P1)"
-            using x'_in
-            apply (auto simp add: subst_cl.simps vars_of_subst_lit)
-             apply (auto simp add: vars_of_cl.simps) [1]
-            using range_vars_\<sigma>\<^sub>C unfolding range_vars_def
-            by (smt (verit, ccfv_SIG) Cl_P_def Sup_upper insertI1 insert_absorb insert_subset
-                mem_Collect_eq occs.simps(1) subsetD subst.simps(1) the_Var.simps vars_iff_occseq
-                vars_of_cl_lem)
-
-          have vars_of_L_\<sigma>\<^sub>C: "vars_of_lit (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C) \<subseteq>
-            vars_of_cl (cl_ecl P1)"
-            unfolding vars_of_subst_lit
-            using vars_of_L1_subset
-            apply (auto simp del: vars_of_cl.simps)
-            using range_vars_\<sigma>\<^sub>C unfolding range_vars_def
-            by (smt (verit, best) Cl_P_def Sup_upper insert_absorb insert_subset mem_Collect_eq
-                occs.simps(1) subst.simps(1) the_Var.simps vars_iff_occseq vars_of_L1_subset)
-
-          show
-            "(equational_clausal_logic.subst_lit (equational_clausal_logic.subst_lit L1 \<sigma>\<^sub>C) \<rho>, x)
-              \<notin> SuperCalc.lit_ord"
-            unfolding x_def
-            using 2[unfolded SuperCalc.maximal_literal_def, rule_format, OF x'_in]
-            apply (rule contrapos_nn)
-            apply (rule subst_lit_renaming_ord_iff[THEN iffD1])
-            apply (rule renaming_subset[OF _ ren_\<rho>])
-            using vars_of_x' vars_of_L_\<sigma>\<^sub>C
-            by (simp del: vars_of_cl.simps)
-        qed
-        ultimately show ?thesis
-          unfolding SuperCalc.eligible_literal_def \<open>P1' = subst_ecl P1 \<rho>\<close> cl_ecl_subst_ecl_distrib
-          by simp
+        show "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_lit L1 \<union> vars_of_cl (cl_ecl P1) \<union> fst ` set \<sigma>\<^sub>C)"
+          using inj_on_if_renaming[OF ren_\<rho>]
+          by (metis Un_absorb1 Un_absorb2 dom_vars_\<sigma>\<^sub>C vars_of_L1_subset)
       qed
     next
       show "subst_cl D' \<sigma>\<^sub>D = cl_ecl D"
@@ -3287,57 +3452,9 @@ proof -
             vars_of_cl.simps)
     qed
 
-    have INJ_lit:  "L1 \<in> cl_ecl P1 \<Longrightarrow> L2 \<in> cl_ecl P1 \<Longrightarrow> L1 \<noteq> L2 \<Longrightarrow>
-      equational_clausal_logic.subst_lit L1 \<rho> \<noteq> equational_clausal_logic.subst_lit L2 \<rho>" for L1 L2
-      using subst_lit_identI[OF \<rho>_\<rho>_inv_ident vars_of_cl_lem] by metis
-
-    have singleton_subst_conv: "{t \<lhd> \<sigma>} = (\<lambda>t. t \<lhd> \<sigma>) ` {t}" for t \<sigma>
-      by simp
-
-    have singleton_subst_lit_conv: "{equational_clausal_logic.subst_lit L \<sigma>} =
-      (\<lambda>L. equational_clausal_logic.subst_lit L \<sigma>) ` {L}" for L \<sigma>
-      by blast
-
-    have FOO: "cl_ecl (subst_ecl P1 \<rho>) - {equational_clausal_logic.subst_lit L1 \<rho>} =
-      subst_cl (cl_ecl P1 - {L1}) \<rho>"
-      unfolding cl_ecl_subst_ecl_distrib
-    proof (rule Set.equalityI; rule subsetI)
-      fix K
-      assume "K \<in> subst_cl (cl_ecl P1) \<rho> - {equational_clausal_logic.subst_lit L1 \<rho>}"
-      then show "K \<in> subst_cl (cl_ecl P1 - {L1}) \<rho>"
-        apply simp
-        using INJ_lit
-        by (smt (verit, best) image_iff insert_Diff_single insert_iff subst_cl_conv)
-    next
-      fix K
-      assume "K \<in> subst_cl (cl_ecl P1 - {L1}) \<rho>"
-      then show "K \<in> subst_cl (cl_ecl P1) \<rho> - {equational_clausal_logic.subst_lit L1 \<rho>}"
-        apply simp
-        using INJ_lit
-        by (smt (verit, best) DiffD1 DiffD2 \<open>L1 \<in> cl_ecl P1\<close> image_iff insertCI subst_cl_conv)
-    qed
-
-    have vars_of_cl_minus_subset: "vars_of_cl (C - D) \<subseteq> vars_of_cl C" for C D
-      by (auto simp: vars_of_cl.simps)
-
-    have trms_ecl_subst_ecl: "trms_ecl (subst_ecl C \<sigma>) = (\<lambda>t. t \<lhd> \<sigma>) ` trms_ecl C" for C \<sigma>
-      by (cases C) auto
-
-    have subst_set_comp: "subst_set N (\<sigma> \<lozenge> \<tau>) = subst_set (subst_set N \<sigma>) \<tau>" for N \<sigma> \<tau>
-      by (simp add: subst_set_image_conv image_image)
-
-    have vars_P1_t_subset: "\<Union> (vars_of ` (trms_ecl P1 \<union> {t})) \<subseteq> vars_of_cl (cl_ecl P1)"
-      unfolding UN_subset_iff
-    proof (rule ballI, unfold Un_iff, erule disjE)
-      fix u
-      show "u \<in> {t} \<Longrightarrow> vars_of u \<subseteq> vars_of_cl (cl_ecl P1)"
-        using vars_of_t_s_subset(1) by simp
-    next
-      fix u
-      show "u \<in> trms_ecl P1 \<Longrightarrow> vars_of u \<subseteq> vars_of_cl (cl_ecl P1)"
-        using trms_P1_subset
-        by blast
-    qed
+    have inj_subst_lit_\<rho>: "inj_on (\<lambda>L. equational_clausal_logic.subst_lit L \<rho>) (cl_ecl P1 \<union> {L1})"
+      using inj_subst_lit_if_renaming[OF ren_\<rho>]
+      by (rule inj_on_subset) (simp add: \<open>L1 \<in> cl_ecl P1\<close> subsetI vars_of_cl_lem)
 
     show "renaming_cl C D"
       unfolding renaming_cl_def
@@ -3356,15 +3473,22 @@ proof -
       have "subst_cl D' \<sigma>\<^sub>D = subst_cl (cl_ecl P1' - {equational_clausal_logic.subst_lit L1 \<rho>}) \<sigma>\<^sub>D"
         by (simp add: D'_def)
       also have "... = subst_cl (cl_ecl P1' - subst_cl {L1} \<rho>) \<sigma>\<^sub>D"
-        by (simp add: singleton_subst_li_conv)
+        by (simp add: singleton_subst_lit_conv)
       also have "... = subst_cl (subst_cl (cl_ecl P1) \<rho> - subst_cl {L1} \<rho>) \<sigma>\<^sub>D"
         by (simp add: P1'_def cl_ecl_subst_ecl_distrib)
       also have "... = subst_cl (subst_cl (cl_ecl P1 - {L1}) \<rho>) \<sigma>\<^sub>D"
-        using D'_def FOO P1'_def calculation by presburger
+        using subst_cl_minus_subst_cl_eq_subst_cl_minus[OF inj_subst_lit_\<rho>] by simp
       also have "... = subst_cl (subst_cl (cl_ecl P1 - {L1}) \<sigma>\<^sub>C) \<rho>"
-        using subst_lit_\<rho>_\<sigma>\<^sub>D_conv
-        by (metis (mono_tags, lifting) DiffD1 composition_of_substs_cl composition_of_substs_lit
-            image_cong subst_cl_conv)
+      proof (rule subst_cl_renaming_map_map_prod_eq[of _ \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def])
+        show "\<forall>x\<in>vars_of_cl (cl_ecl P1 - {L1}) \<union> fst ` set \<sigma>\<^sub>C. is_a_variable (Var x \<lhd> \<rho>)"
+          by (metis C'_def Cl_P_def Un_absorb2 Un_iff \<open>renaming \<rho> (vars_of_cl C')\<close> dom_vars_\<sigma>\<^sub>C ren_\<rho>
+              renaming_imp_ball_var)
+      next
+        show "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_cl (cl_ecl P1 - {L1}) \<union> fst ` set \<sigma>\<^sub>C)"
+          by (rule inj_on_if_renaming[OF ren_\<rho>, THEN inj_on_subset])
+            (smt (verit, del_insts) DiffD1 Un_iff dom_vars_\<sigma>\<^sub>C mem_Collect_eq subset_eq
+              vars_of_cl.simps)
+      qed
       also have "... = subst_cl (subst_cl C' \<sigma>\<^sub>C) \<rho>"
         by (simp add: C'_def Cl_P_def)
       also have "... = subst_cl Cl_C \<rho>"
@@ -3381,6 +3505,329 @@ proof -
         by (simp add: \<open>C = Ecl Cl_C trms_C\<close> D_def)
     qed
   qed
+qed
+
+lemma subst_ecl_conv: "subst_ecl (Ecl C trms) \<sigma> = Ecl (subst_cl C \<sigma>) ((\<lambda>t. t \<lhd> \<sigma>) ` trms)"
+  by auto
+
+lemma subst_cl_union: "subst_cl (C \<union> D) \<sigma> = subst_cl C \<sigma> \<union> subst_cl D \<sigma>"
+  by (simp add: image_Un subst_cl_conv)
+
+lemma factorization_if_renaming:
+  fixes \<sigma>
+  assumes
+    fact: "SuperCalc.factorization P1 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
+    ren: "renaming_cl P1 P1'" and
+    fin: "finite (cl_ecl P1)"
+  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.factorization P1' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
+proof -
+  from fact obtain L1 L2 L' t s u v where
+    eligible_L1: "SuperCalc.eligible_literal L1 P1 \<sigma>\<^sub>C" and
+    L1_in: "L1 \<in> cl_ecl P1" and
+    L2_in: "L2 \<in> cl_ecl P1 - {L1}" and
+    orient_L1: "SuperCalc.orient_lit_inst L1 t s pos \<sigma>\<^sub>C" and
+    orient_L2: "SuperCalc.orient_lit_inst L2 u v pos \<sigma>\<^sub>C" and
+    "t \<lhd> \<sigma>\<^sub>C \<noteq> s \<lhd> \<sigma>\<^sub>C" and
+    "t \<lhd> \<sigma>\<^sub>C \<noteq> v \<lhd> \<sigma>\<^sub>C" and
+    unif_t_u_\<sigma>\<^sub>C: "SuperCalc.ck_unifier t u \<sigma>\<^sub>C SuperCalc.FirstOrder" and
+    L'_eq: "L' = equational_clausal_logic.literal.Neg (Eq s v)" and
+    C_def: "C = Ecl (subst_cl C' \<sigma>\<^sub>C) (SuperCalc.get_trms (subst_cl C' \<sigma>\<^sub>C)
+      (SuperCalc.dom_trms (subst_cl C' \<sigma>\<^sub>C) (subst_set (trms_ecl P1 \<union> proper_subterms_of t) \<sigma>\<^sub>C))
+      SuperCalc.FirstOrder)" and
+    C'_def: "C' = cl_ecl P1 - {L2} \<union> {L'}"
+    unfolding SuperCalc.factorization_def by metis
+
+  have
+    vars_t_subset: "vars_of t \<subseteq> vars_of_cl (cl_ecl P1)" and
+    vars_s_subset: "vars_of s \<subseteq> vars_of_cl (cl_ecl P1)"
+    using SuperCalc.orient_lit_inst_vars[OF \<open>SuperCalc.orient_lit_inst L1 t s pos \<sigma>\<^sub>C\<close>]
+    using \<open>L1 \<in> cl_ecl P1\<close> by (auto dest: vars_of_cl_lem)
+
+  have
+    vars_u_subset: "vars_of u \<subseteq> vars_of_cl (cl_ecl P1)" and
+    vars_v_subset: "vars_of v \<subseteq> vars_of_cl (cl_ecl P1)"
+    using SuperCalc.orient_lit_inst_vars[OF \<open>SuperCalc.orient_lit_inst L2 u v pos \<sigma>\<^sub>C\<close>]
+    using \<open>L1 \<in> cl_ecl P1\<close> \<open>L2 \<in> cl_ecl P1 - {L1}\<close> by (auto dest: vars_of_cl_lem)
+
+  have vars_L'_eq: "vars_of_lit L' = vars_of s \<union> vars_of v"
+    by (simp add: L'_eq)
+  hence vars_L'_subset: "vars_of_lit L' \<subseteq> vars_of_cl (cl_ecl P1)"
+    using vars_s_subset vars_v_subset by simp
+
+  from unif_t_u_\<sigma>\<^sub>C have min_IMGU_\<sigma>\<^sub>C: "min_IMGU \<sigma>\<^sub>C t u"
+    by (simp add: SuperCalc.ck_unifier_def)
+  hence dom_\<sigma>\<^sub>C_subset: "fst ` set \<sigma>\<^sub>C \<subseteq> vars_of t \<union> vars_of u"
+    by (simp add: min_IMGU_def)
+  hence dom_\<sigma>\<^sub>C_subset_weak: "fst ` set \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)"
+    using vars_t_subset vars_u_subset by auto
+
+  from min_IMGU_\<sigma>\<^sub>C have range_\<sigma>\<^sub>C: "range_vars \<sigma>\<^sub>C \<subseteq> vars_of t \<union> vars_of u"
+    by (simp add: min_IMGU_def)
+  hence range_\<sigma>\<^sub>C_weak: "range_vars \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)"
+    using vars_t_subset vars_u_subset by auto
+
+  from ren obtain \<rho> where
+    ren_\<rho>: "renaming \<rho> (vars_of_cl (cl_ecl P1))" and
+    P1'_def: "P1' = subst_ecl P1 \<rho>"
+    unfolding renaming_cl_def by blast
+
+  from fin have fin_vars_P1: "finite (vars_of_cl (cl_ecl P1))"
+    using set_of_variables_is_finite_cl by blast
+  with ren_\<rho> obtain \<rho>_inv where
+    \<rho>_\<rho>_inv_ident: "\<forall>x\<in>vars_of_cl (cl_ecl P1). Var x \<lhd> \<rho> \<lhd> \<rho>_inv = Var x" and
+      "\<forall>x. x \<notin> subst_codomain \<rho> (vars_of_cl (cl_ecl P1)) \<longrightarrow> Var x \<lhd> \<rho>_inv = Var x" and
+      "\<forall>x. is_a_variable (Var x \<lhd> \<rho>_inv)"
+    using renamings_admit_inverse by blast
+
+  define D' where
+    "D' = cl_ecl P1' -
+      {equational_clausal_logic.subst_lit L2 \<rho>} \<union>
+      {equational_clausal_logic.subst_lit L' \<rho>}"
+
+  define \<sigma>\<^sub>D where
+    "\<sigma>\<^sub>D = map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>\<^sub>C"
+
+  define D where
+    "D = (let Cl_D = subst_cl D' \<sigma>\<^sub>D in
+      Ecl Cl_D (SuperCalc.get_trms Cl_D
+        (SuperCalc.dom_trms Cl_D (subst_set (trms_ecl P1' \<union> proper_subterms_of (t \<lhd> \<rho>)) \<sigma>\<^sub>D))
+        SuperCalc.FirstOrder))"
+
+  have "t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = t \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>"
+    using subst_renaming_map_map_prod_eq[of t \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def]
+    by (smt (verit, ccfv_SIG) UnE dom_\<sigma>\<^sub>C_subset_weak inj_on_def ren_\<rho>
+        renaming_imp_ball_neq_imp_neq_subst renaming_imp_ball_var subsetD vars_t_subset)
+
+  have "u \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = u \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>"
+    using subst_renaming_map_map_prod_eq[of u \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def]
+    by (smt (verit, ccfv_SIG) UnE dom_\<sigma>\<^sub>C_subset_weak inj_on_def ren_\<rho>
+        renaming_imp_ball_neq_imp_neq_subst renaming_imp_ball_var subsetD vars_u_subset)
+
+  have "s \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = s \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>"
+    using subst_renaming_map_map_prod_eq[of s \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def]
+    by (smt (verit, ccfv_SIG) UnE dom_\<sigma>\<^sub>C_subset_weak inj_on_def ren_\<rho>
+        renaming_imp_ball_neq_imp_neq_subst renaming_imp_ball_var subsetD vars_s_subset)
+
+  have "v \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = v \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>"
+    using subst_renaming_map_map_prod_eq[of v \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def]
+    by (smt (verit, ccfv_SIG) UnE dom_\<sigma>\<^sub>C_subset_weak inj_on_def ren_\<rho>
+        renaming_imp_ball_neq_imp_neq_subst renaming_imp_ball_var subsetD vars_v_subset)
+
+  show ?thesis
+  proof (intro exI conjI)
+    have "SuperCalc.eligible_literal (equational_clausal_logic.subst_lit L1 \<rho>) P1' \<sigma>\<^sub>D"
+      unfolding P1'_def
+      using eligible_literal_of_renaming[OF eligible_L1 ren_\<rho> \<sigma>\<^sub>D_def _ _ range_\<sigma>\<^sub>C_weak L1_in]
+      using inj_on_if_renaming[OF ren_\<rho>] renaming_imp_ball_var[OF ren_\<rho>]
+      by (metis L1_in Un_absorb1 dom_\<sigma>\<^sub>C_subset_weak sup.order_iff vars_of_cl_lem)
+    moreover have "equational_clausal_logic.subst_lit L1 \<rho> \<in> cl_ecl P1'"
+      using L1_in by (simp add: P1'_def cl_ecl_subst_ecl_distrib subst_cl_conv)
+    moreover have "equational_clausal_logic.subst_lit L2 \<rho> \<in> cl_ecl P1' -
+      {equational_clausal_logic.subst_lit L1 \<rho>}"
+    proof -
+      from L2_in have "L2 \<in> cl_ecl P1" and "L2 \<noteq> L1"
+        by simp_all
+      hence "equational_clausal_logic.subst_lit L2 \<rho> \<noteq> equational_clausal_logic.subst_lit L1 \<rho>"
+        using inj_subst_lit_if_renaming[OF ren_\<rho>, THEN inj_onD, of L2 L1, simplified]
+        using L1_in vars_of_cl_lem by blast
+
+      moreover have "equational_clausal_logic.subst_lit L2 \<rho> \<in> cl_ecl (subst_ecl P1 \<rho>)"
+        using \<open>L2 \<in> cl_ecl P1\<close>
+        by (simp add: cl_ecl_subst_ecl_distrib subst_cl_conv)
+
+      ultimately show ?thesis
+        by (simp add: P1'_def)
+    qed
+    moreover have "SuperCalc.orient_lit_inst (equational_clausal_logic.subst_lit L1 \<rho>)
+      (t \<lhd> \<rho>) (s \<lhd> \<rho>) pos \<sigma>\<^sub>D"
+      using orient_L1 unfolding SuperCalc.orient_lit_inst_def
+      unfolding \<open>t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = t \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close> \<open>s \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = s \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close>
+      apply (elim disjE conjE)
+         apply simp_all
+      using SuperCalc.trm_ord_subst_renaming[of \<rho> "t \<lhd> \<sigma>\<^sub>C" "s \<lhd> \<sigma>\<^sub>C"]
+      apply (smt (verit, ccfv_SIG) dual_order.trans range_\<sigma>\<^sub>C_weak ren_\<rho> sup.boundedI renaming_subset
+          vars_of_subst_subset vars_s_subset vars_t_subset)
+      using SuperCalc.trm_ord_subst_renaming[of \<rho> "t \<lhd> \<sigma>\<^sub>C" "s \<lhd> \<sigma>\<^sub>C"]
+      apply (smt (verit, ccfv_SIG) dual_order.trans range_\<sigma>\<^sub>C_weak ren_\<rho> sup.boundedI renaming_subset
+          vars_of_subst_subset vars_s_subset vars_t_subset)
+      done
+    moreover have "SuperCalc.orient_lit_inst (equational_clausal_logic.subst_lit L2 \<rho>)
+      (u \<lhd> \<rho>) (v \<lhd> \<rho>) pos \<sigma>\<^sub>D"
+      using orient_L2 unfolding SuperCalc.orient_lit_inst_def
+      unfolding \<open>u \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = u \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close> \<open>v \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = v \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close>
+      apply (elim disjE conjE)
+         apply simp_all
+      using SuperCalc.trm_ord_subst_renaming[of \<rho> "u \<lhd> \<sigma>\<^sub>C" "v \<lhd> \<sigma>\<^sub>C"]
+      apply (smt (verit, ccfv_SIG) dual_order.trans range_\<sigma>\<^sub>C_weak ren_\<rho> sup.boundedI renaming_subset
+          vars_of_subst_subset vars_u_subset vars_v_subset)
+      using SuperCalc.trm_ord_subst_renaming[of \<rho> "u \<lhd> \<sigma>\<^sub>C" "v \<lhd> \<sigma>\<^sub>C"]
+      apply (smt (verit, ccfv_SIG) dual_order.trans range_\<sigma>\<^sub>C_weak ren_\<rho> sup.boundedI renaming_subset
+          vars_of_subst_subset vars_u_subset vars_v_subset)
+      done
+    moreover have "t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D \<noteq> s \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D"
+      unfolding \<open>t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = t \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close> \<open>s \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = s \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close>
+      using \<open>t \<lhd> \<sigma>\<^sub>C \<noteq> s \<lhd> \<sigma>\<^sub>C\<close> inj_subst_if_renaming[OF ren_\<rho>, THEN inj_onD, simplified]
+      by (meson dual_order.trans le_sup_iff range_\<sigma>\<^sub>C_weak vars_of_subst_subset vars_s_subset
+          vars_t_subset)
+    moreover have "t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D \<noteq> v \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D"
+      unfolding \<open>t \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = t \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close> \<open>v \<lhd> \<rho> \<lhd> \<sigma>\<^sub>D = v \<lhd> \<sigma>\<^sub>C \<lhd> \<rho>\<close>
+      using \<open>t \<lhd> \<sigma>\<^sub>C \<noteq> v \<lhd> \<sigma>\<^sub>C\<close> inj_subst_if_renaming[OF ren_\<rho>, THEN inj_onD, simplified]
+      by (meson dual_order.trans le_sup_iff range_\<sigma>\<^sub>C_weak vars_of_subst_subset vars_v_subset
+          vars_t_subset)
+    moreover have "SuperCalc.ck_unifier (t \<lhd> \<rho>) (u \<lhd> \<rho>) \<sigma>\<^sub>D SuperCalc.FirstOrder"
+      apply (rule ck_unifier_of_renamed_if_ck_unifier[
+            OF unif_t_u_\<sigma>\<^sub>C ren_\<rho> \<rho>_\<rho>_inv_ident _ dom_\<sigma>\<^sub>C_subset, folded \<sigma>\<^sub>D_def])
+      using vars_t_subset vars_u_subset by simp
+    ultimately show "SuperCalc.factorization P1' D \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
+      unfolding SuperCalc.factorization_def
+      apply -
+      apply (rule exI[of _ "equational_clausal_logic.subst_lit L1 \<rho>"])
+      apply (rule exI[of _ "equational_clausal_logic.subst_lit L2 \<rho>"])
+      apply (rule exI[of _ "equational_clausal_logic.literal.Neg (Eq (s \<lhd> \<rho>) (v \<lhd> \<rho>))"])
+      apply (rule exI[of _ "(t \<lhd> \<rho>)"])
+      apply (rule exI[of _ "(s \<lhd> \<rho>)"])
+      apply (rule exI[of _ "(u \<lhd> \<rho>)"])
+      apply (rule exI[of _ "(v \<lhd> \<rho>)"])
+      by (simp add: D_def D'_def Let_def L'_eq)
+  next
+    show "renaming_cl C D"
+      unfolding renaming_cl_def
+    proof (intro exI conjI)
+      have "vars_of_cl (cl_ecl C) = vars_of_cl (subst_cl C' \<sigma>\<^sub>C)"
+        by (simp add: C_def)
+      also have "... = vars_of_cl (subst_cl (cl_ecl P1 - {L2} \<union> {L'}) \<sigma>\<^sub>C)"
+        by (simp add: C'_def)
+      also have "... = vars_of_cl (subst_cl (cl_ecl P1 - {L2}) \<sigma>\<^sub>C \<union> subst_cl {L'} \<sigma>\<^sub>C)"
+        unfolding subst_cl_union by (rule refl)
+      also have "... = vars_of_cl (subst_cl (cl_ecl P1 - {L2}) \<sigma>\<^sub>C) \<union> vars_of_cl (subst_cl {L'} \<sigma>\<^sub>C)"
+        by (simp add: vars_of_cl_conv)
+      also have "... \<subseteq> vars_of_cl (subst_cl (cl_ecl P1) \<sigma>\<^sub>C) \<union> vars_of_cl (subst_cl {L'} \<sigma>\<^sub>C)"
+        by (smt (verit, del_insts) DiffD1 UN_iff Un_iff \<open>L2 \<in> cl_ecl P1 - {L1}\<close> image_insert
+            insert_Diff insert_iff subsetI subst_cl_conv vars_of_cl_conv)
+      also have "... =
+        (\<Union>x \<in> vars_of_cl (cl_ecl P1). vars_of (Var x \<lhd> \<sigma>\<^sub>C)) \<union>
+        (\<Union>x \<in> vars_of_lit L'. vars_of (Var x \<lhd> \<sigma>\<^sub>C))"
+        unfolding vars_of_subst_cl_conv vars_of_cl_conv[of "{L'}"] by simp
+      also have "... \<subseteq> (\<Union>x \<in> vars_of_cl (cl_ecl P1). vars_of (Var x \<lhd> \<sigma>\<^sub>C))"
+        using vars_L'_subset by auto
+      also have "... \<subseteq> (\<Union>x \<in> vars_of_cl (cl_ecl P1). insert x (range_vars \<sigma>\<^sub>C))"
+        using vars_of_subst_subset[of "Var _" \<sigma>\<^sub>C] by auto
+      also have "... \<subseteq> vars_of_cl (cl_ecl P1) \<union> range_vars \<sigma>\<^sub>C"
+        by blast
+      also have "... = vars_of_cl (cl_ecl P1)"
+        using range_\<sigma>\<^sub>C_weak by fast
+      finally show "renaming \<rho> (vars_of_cl (cl_ecl C))"
+        by (rule renaming_subset[OF _ ren_\<rho>])
+    next
+      have "subst_cl D' \<sigma>\<^sub>D = subst_cl (cl_ecl P1' -
+        {equational_clausal_logic.subst_lit L2 \<rho>} \<union>
+        {equational_clausal_logic.subst_lit L' \<rho>}) \<sigma>\<^sub>D"
+        by (simp add: D'_def)
+      also have "... = subst_cl (cl_ecl P1' - subst_cl {L2} \<rho> \<union> subst_cl {L'} \<rho>) \<sigma>\<^sub>D"
+        by (simp add: singleton_subst_lit_conv)
+      also have "... = subst_cl (subst_cl (cl_ecl P1) \<rho> - subst_cl {L2} \<rho> \<union> subst_cl {L'} \<rho>) \<sigma>\<^sub>D"
+        by (simp add: P1'_def cl_ecl_subst_ecl_distrib)
+      also have "... = subst_cl (subst_cl (cl_ecl P1 - {L2}) \<rho> \<union> subst_cl {L'} \<rho>) \<sigma>\<^sub>D"
+      proof -
+        have "inj_on (\<lambda>L. equational_clausal_logic.subst_lit L \<rho>) (cl_ecl P1 \<union> {L2})"
+          using inj_subst_lit_if_renaming[OF ren_\<rho>]
+          by (rule inj_on_subset)
+            (metis (no_types, lifting) CollectI DiffD1 Un_insert_right \<open>L2 \<in> cl_ecl P1 - {L1}\<close>
+              insert_Diff insert_Diff_single subsetI sup_bot.right_neutral vars_of_cl_lem)
+        thus ?thesis
+          using subst_cl_minus_subst_cl_eq_subst_cl_minus[of \<rho> "cl_ecl P1" "{L2}"] by simp
+      qed
+      also have "... = subst_cl (subst_cl (cl_ecl P1 - {L2} \<union> {L'}) \<rho>) \<sigma>\<^sub>D"
+        unfolding subst_cl_union by (rule refl)
+      also have "... = subst_cl (subst_cl (cl_ecl P1 - {L2} \<union> {L'}) \<sigma>\<^sub>C) \<rho>"
+      proof (rule subst_cl_renaming_map_map_prod_eq[of _ \<sigma>\<^sub>C \<rho>, folded \<sigma>\<^sub>D_def])
+        have "vars_of_lit L' \<subseteq> vars_of_cl (cl_ecl P1)"
+          using \<open>L1 \<in> cl_ecl P1\<close> \<open>L2 \<in> cl_ecl P1 - {L1}\<close>
+          using \<open>SuperCalc.orient_lit_inst L1 t s pos \<sigma>\<^sub>C\<close> \<open>SuperCalc.orient_lit_inst L2 u v pos \<sigma>\<^sub>C\<close>
+          unfolding L'_eq vars_of_lit.simps vars_of_eq.simps
+          by (metis (no_types, lifting) DiffD1 SuperCalc.orient_lit_inst_vars le_sup_iff
+              subset_trans vars_of_cl_lem)
+        hence "vars_of_cl (cl_ecl P1 - {L2} \<union> {L'}) \<subseteq> vars_of_cl (cl_ecl P1)"
+          unfolding vars_of_cl_conv by blast
+        thus "\<forall>x \<in> vars_of_cl (cl_ecl P1 - {L2} \<union> {L'}) \<union> fst ` set \<sigma>\<^sub>C. is_a_variable (Var x \<lhd> \<rho>)"
+          using renaming_imp_ball_var[OF ren_\<rho>] dom_\<sigma>\<^sub>C_subset_weak by blast
+      next
+        show "inj_on (\<lambda>x. Var x \<lhd> \<rho>) (vars_of_cl (cl_ecl P1 - {L2} \<union> {L'}) \<union> fst ` set \<sigma>\<^sub>C)"
+          apply (rule inj_on_if_renaming[OF ren_\<rho>, THEN inj_on_subset])
+          using vars_L'_subset dom_\<sigma>\<^sub>C_subset_weak
+          by (simp add: vars_of_cl_conv Union_mono image_mono)
+      qed
+      finally have "subst_cl D' \<sigma>\<^sub>D = subst_cl (subst_cl C' \<sigma>\<^sub>C) \<rho>"
+        by (simp add: C'_def)
+      thus "D = subst_ecl C \<rho>"
+        unfolding C_def subst_ecl.simps D_def Let_def
+        by (simp add: SuperCalc.get_trms_def)
+    qed
+  qed
+qed
+
+lemma superposition_if_renaming:
+  fixes \<sigma>
+  assumes
+    super: "SuperCalc.superposition P1 P2 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
+    ren: "renaming_cl P1 P1'" "renaming_cl P2 P2'" and
+    fin: "finite (cl_ecl P1)" "finite (cl_ecl P2)"
+  shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.superposition P1' P2' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
+  sorry
+
+lemma derivable_list_if_renaming:
+  fixes \<sigma>
+  assumes
+    deriv: "derivable_list C Ps \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
+    ren: "list_all2 renaming_cl Ps Ps'" and
+    fin: "list_all (finite \<circ> cl_ecl) Ps"
+  shows "\<exists>D \<sigma>\<^sub>D D'. derivable_list D Ps' \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
+  using deriv[unfolded derivable_list_def]
+proof (elim disjE exE conjE)
+  fix P1 P2
+  assume
+    Ps_def: "Ps = [P2, P1]" and
+    super: "SuperCalc.superposition P1 P2 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
+  
+  from ren obtain P2' P1' where
+    "Ps' = [P2', P1']" and "renaming_cl P2 P2'" and "renaming_cl P1 P1'"
+    using Ps_def
+    by (metis (no_types, opaque_lifting) list.rel_distinct(2) list.rel_inject(2) list_all2_Nil
+        neq_Nil_conv)
+  moreover from fin have "finite (cl_ecl P1)" and "finite (cl_ecl P2)"
+    using Ps_def by auto
+  ultimately show ?thesis
+    using superposition_if_renaming[OF super, of P1' P2'] derivable_list_def by blast
+next
+  fix P1
+  assume
+    Ps_def: "Ps = [P1]" and
+    fact: "SuperCalc.factorization P1 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
+
+  from ren obtain P1' where
+    "Ps' = [P1']" and "renaming_cl P1 P1'"
+    using Ps_def
+    by (metis (no_types, opaque_lifting) list.rel_distinct(2) list.rel_inject(2) list_all2_Nil
+        neq_Nil_conv)
+  moreover from fin have "finite (cl_ecl P1)"
+    using Ps_def by auto
+  ultimately show ?thesis
+    using factorization_if_renaming[OF fact, of P1'] derivable_list_def by blast
+next
+  fix P1
+  assume
+    Ps_def: "Ps = [P1]" and
+    fact: "SuperCalc.reflexion P1 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
+
+  from ren obtain P1' where
+    "Ps' = [P1']" and "renaming_cl P1 P1'"
+    using Ps_def
+    by (metis (no_types, opaque_lifting) list.rel_distinct(2) list.rel_inject(2) list_all2_Nil
+        neq_Nil_conv)
+  moreover from fin have "finite (cl_ecl P1)"
+    using Ps_def by auto
+  ultimately show ?thesis
+    using reflexion_if_renaming[OF fact, of P1'] derivable_list_def by blast
 qed
 
 
@@ -3706,10 +4153,7 @@ proof -
     from \<iota>'_in obtain C \<sigma>\<^sub>C C' where
       concl_of_\<iota>': "concl_of \<iota>' = subst_cls (from_SuperCalc_cl C') \<sigma>\<^sub>C" and
       deriv_prems_\<iota>': "derivable_list C (?map_prems (prems_of \<iota>'))
-        \<sigma>\<^sub>C SuperCalc.FirstOrder C'" (* and
-      dom_vars_\<sigma>\<^sub>C: "fst ` set \<sigma>\<^sub>C \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems (prems_of \<iota>')))" *) (* and
-      range_vars_\<sigma>\<^sub>C: "range_vars \<sigma>\<^sub>C \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems (prems_of \<iota>')))" *) (* and
-      "Idem \<sigma>\<^sub>C" *)
+        \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
       unfolding F_Inf_def mem_Collect_eq by force
 
     let ?prems_vars = "\<Union>(vars_of_cl ` cl_ecl ` set (?map_prems (prems_of \<iota>')))"
@@ -3721,11 +4165,7 @@ proof -
       by (auto dest: ex_eq_map2_if_ball_set_eq)
 
     from deriv_prems_\<iota>'[unfolded derivable_list_def] have
-      "\<exists>D D' \<sigma>\<^sub>D. renaming_cl C D \<and> derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D'" (* \<and>
-        fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps)) \<and>
-        range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps)) \<and>
-        Idem \<sigma>\<^sub>D" *)
-      using prems_\<iota>'_def
+      "\<exists>D \<sigma>\<^sub>D D'. derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
     proof (elim disjE exE conjE)
       fix P1
       assume
@@ -3778,23 +4218,11 @@ proof -
               subst_set_empty to_SuperCalc_cl_subst_cls)
       qed simp_all
 
-      from prems_eq_P1 have trms_P1_empty: "trms_ecl P1 = {}"
-        by force
-      hence vars_of_trms_P1: "\<Union>(vars_of ` trms_ecl P1) \<subseteq> vars_of_cl (cl_ecl P1)"
-        by simp
-
       have fin_P1: "finite (cl_ecl P1)"
         unfolding P1_def by simp
 
       have prems_vars_subset: "?prems_vars \<subseteq> vars_of_cl (cl_ecl P1)"
         unfolding prems_eq_P1 by simp
-
-(*       from range_vars_\<sigma>\<^sub>C have range_vars_\<sigma>\<^sub>C': "range_vars \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)"
-        unfolding range_vars_def
-        by (rule subset_trans[OF _ prems_vars_subset]) *)
-
-(*       from dom_vars_\<sigma>\<^sub>C have dom_vars_\<sigma>\<^sub>C': "fst ` set \<sigma>\<^sub>C \<subseteq> vars_of_cl (cl_ecl P1)"
-        by (rule subset_trans[OF _ prems_vars_subset]) *)
 
       obtain \<rho>2 where renamings_P1': "renamings_apart [P1'] = [\<rho>2]"
         by (metis length_0_conv length_Suc_conv renamings_apart_length)
@@ -3850,9 +4278,9 @@ proof -
       show ?thesis
         unfolding Ps_def renamings_P1'
         apply simp
-        using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1 vars_of_trms_P1 trms_P1_empty]
+        using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1]
         using derivable_list_def
-        by auto
+        by blast
     next
       show ?thesis sorry
     next
@@ -3861,10 +4289,7 @@ proof -
     then obtain D D' \<sigma>\<^sub>D where
       deriv_Ps: "derivable_list D (map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps)))
         \<sigma>\<^sub>D SuperCalc.FirstOrder D'" and
-      "renaming_cl C D" (* and
-      dom_vars_\<sigma>\<^sub>D: "fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps))" *) (* and
-      range_vars_\<sigma>\<^sub>D: "range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set (?map_prems Ps))" *) (* and
-      "Idem \<sigma>\<^sub>D" *)
+      "renaming_cl C D"
       by blast
 
     from deriv_prems_\<iota>' have "cl_ecl C = subst_cl C' \<sigma>\<^sub>C"
@@ -3910,15 +4335,6 @@ proof -
     next
       show "derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
         by (rule deriv_Ps)
-    (* next
-      show "fst ` set \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ((?map_prems Ps)))"
-        by (rule dom_vars_\<sigma>\<^sub>D) *)
-    (* next
-      show "range_vars \<sigma>\<^sub>D \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ((?map_prems Ps)))"
-        by (rule range_vars_\<sigma>\<^sub>D) *)
-    (* next
-      show "Idem \<sigma>\<^sub>D"
-        by (rule \<open>Idem \<sigma>\<^sub>D\<close>) *)
     qed
 
     have prems_\<iota>_in_subset: "set (prems_of \<iota>) \<subseteq> N"
@@ -4066,6 +4482,15 @@ lemma derivable_list_if_SuperCalc_derivable:
   unfolding SuperCalc.derivable_def derivable_list_def
   by (metis (no_types, lifting) empty_set insert_commute list.simps(15))
 
+lemma lifting_lemma_derivable_list:
+  assumes "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
+  shows "\<exists>D \<theta>. derivable_list D Ps \<theta> SuperCalc.FirstOrder C' \<and>
+           \<sigma> \<doteq> \<theta> \<lozenge> \<sigma> \<and> SuperCalc.trms_subsumes D C \<sigma>"
+  using assms SuperCalc.lifting_lemma_reflexion SuperCalc.lifting_lemma_factorization
+    SuperCalc.lifting_lemma_superposition
+  unfolding derivable_list_def
+  by metis
+
 sublocale statically_complete_calculus "{{#}}" F_Inf "(\<TTurnstile>e)" F.Red_I_\<G> F.Red_F_\<G>
 proof unfold_locales
   show "\<And>N. F.Red_I_\<G> N \<subseteq> F_Inf"
@@ -4088,7 +4513,7 @@ next
     by (simp add: entails_def)
   hence "set_entails_clause (to_SuperCalc_cl ` (N - F.Red_F_\<G> N)) {}"
     by (rule set_entails_clause_Un_\<G>_FD)
-  then show "N - F.Red_F_\<G> N \<TTurnstile>e {B}"
+  thus "N - F.Red_F_\<G> N \<TTurnstile>e {B}"
     by (simp add: B_def entails_def)
 next
   show "\<And>N N'. N \<subseteq> N' \<Longrightarrow> F.Red_F_\<G> N \<subseteq> F.Red_F_\<G> N'"
@@ -4134,7 +4559,10 @@ next
     by (rule saturated_renamings[OF \<open>F.saturated N\<close>, folded N'_def])
 
   have gr_inf_satur_N': "SuperCalc.ground_inference_saturated (to_SuperCalc_ecl ` N')"
+    using saturated_N'[unfolded F.saturated_def F.Inf_from_def F.Red_I_\<G>_def
+          F.Red_I_\<G>_q_def, simplified, unfolded subset_iff mem_Collect_eq, rule_format]
     unfolding SuperCalc.ground_inference_saturated_def
+    
   proof (intro allI impI)
     fix C P \<sigma> C'
     assume
@@ -4142,58 +4570,85 @@ next
       ground_C: "ground_clause (cl_ecl C)" and
       grounding_P: "SuperCalc.grounding_set P \<sigma>"
 
+    from deriv_C_P have P_subset: "P \<subseteq> to_SuperCalc_ecl ` N'"
+      by (simp add: SuperCalc.derivable_premisses)
+
     from deriv_C_P obtain Ps
-      where "P = set Ps" and deriv_C_Ps: "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
+      where P_eq: "P = set Ps" and deriv_C_Ps: "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
       by (auto dest: derivable_list_if_SuperCalc_derivable)
+
+    from deriv_C_Ps obtain D \<sigma>' where
+      deriv_D: "derivable_list D Ps \<sigma>' SuperCalc.FirstOrder C'" and
+      "\<sigma> \<doteq> comp_subst_abbrev \<sigma>' \<sigma>" and
+      "SuperCalc.trms_subsumes D C \<sigma>"
+      using lifting_lemma_derivable_list by blast
+
+    thm derivable_list_if_renaming[OF deriv_D]
 
     let ?renamed_Ps = "map to_SuperCalc_ecl (Map2.map2 subst_cls (map (from_SuperCalc_cl \<circ> cl_ecl) Ps)
         (renamings_apart (map (from_SuperCalc_cl \<circ> cl_ecl) Ps)))"
 
-    from deriv_C_Ps have "\<exists>D D' \<sigma>'. derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder D'"
-      sorry
-
-    then obtain D D' \<sigma>' where deriv_D: "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder D'"
-      by auto
-
     define \<iota> where
-      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl D') \<sigma>')"
+      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
 
     have "\<iota> \<in> F_Inf"
       unfolding F_Inf_def mem_Collect_eq Let_def
     proof (intro exI conjI)
-      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl D') \<sigma>')"
+      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
         by (simp add: \<iota>_def)
     next
-      show "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder D'"
-        by (rule deriv_D)
-    (* next
-      show "fst ` set \<sigma>' \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ?renamed_Ps)"
-        sorry *)
-    (* next
-      show "range_vars \<sigma>' \<subseteq> \<Union> (vars_of_cl ` cl_ecl ` set ?renamed_Ps)"
-        sorry *)
-    (* next
-      show "Idem \<sigma>'"
-        sorry *)
+      show "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder C'"
+        using deriv_D
+        sorry
     qed
 
-    moreover have "\<forall>t. t \<in> set (prems_of \<iota>) \<longrightarrow> t \<in> N'"
-      unfolding \<iota>_def apply simp
-      sorry
+    moreover have "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
+    proof -
+      from C_in obtain x where x_in: "x \<in> P" and C_eq: "C = from_SuperCalc_cl (cl_ecl x)"
+        using P_eq[symmetric] by (auto simp add: \<iota>_def image_iff)
+
+      from x_in P_subset have "x \<in> to_SuperCalc_ecl ` N'"
+        by auto
+
+      then show ?thesis
+        unfolding image_iff C_eq
+        apply safe
+        apply simp
+        sorry
+    qed
 
     ultimately have "\<iota> \<in> (\<Inter>x. {\<iota> \<in> F_Inf. \<forall>t. t \<in> \<G>_I x \<iota> \<longrightarrow> t \<in> G.Red_I x (\<Union> (\<G>_F ` N'))})"
       using saturated_N'[unfolded F.saturated_def F.Inf_from_def F.Red_I_\<G>_def
           F.Red_I_\<G>_q_def, simplified, unfolded subset_iff mem_Collect_eq, rule_format]
-      by simp
+      by auto
     hence "\<iota>\<^sub>\<G> \<in> \<G>_I x \<iota> \<Longrightarrow> \<iota>\<^sub>\<G> \<in> G.Red_I x (\<Union> (\<G>_F ` N'))" for \<iota>\<^sub>\<G> x
       by simp
     hence "\<iota>\<^sub>\<G> \<in> \<G>_I x \<iota> \<Longrightarrow> G.redundant_infer (\<Union> (\<G>_F ` N')) \<iota>\<^sub>\<G>" for \<iota>\<^sub>\<G> x
       unfolding G.Red_I_def mem_Collect_eq by simp
+    moreover obtain \<iota>\<^sub>\<G> where "\<iota>\<^sub>\<G> \<in> \<G>_I (to_SuperCalc_cl ` N') \<iota>"
+      unfolding \<G>_I_def mem_Collect_eq G_Inf_def
+      sorry
+    ultimately have "G.redundant_infer (\<Union> (\<G>_F ` N')) \<iota>\<^sub>\<G>"
+      by simp
+    then obtain DD where
+      "DD \<subseteq> \<Union> (\<G>_F ` N')" and
+      "finite DD" and
+      "DD \<union> set (side_prems_of \<iota>\<^sub>\<G>) \<TTurnstile>e {concl_of \<iota>\<^sub>\<G>}" and
+      ball_DD_smaller: "\<forall>D\<in>DD. fclause_ord D (main_prem_of \<iota>\<^sub>\<G>)"
+      unfolding G.redundant_infer_def by auto
+    
+    define S' where
+      "S' = to_SuperCalc_cl ` DD \<union> to_SuperCalc_cl ` set (side_prems_of \<iota>\<^sub>\<G>)"
 
-    then show "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` N') P \<sigma>"
-      unfolding G.redundant_infer_def
+    (* \<iota>\<^sub>\<G> doit être basé sur la substitution \<sigma> *)
+    (* les clauses de DD peuvent être basé sur n'importe quelle substition grâce à ball_DD_smaller *)
+    (* trouver un obtain DD' tel que tous les éléments sont une paire de clause et subst tel que plus haut *)
+
+    show "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` N') P \<sigma>"
       unfolding SuperCalc.redundant_inference_def
       unfolding SuperCalc.derivable_clauses_lemma[OF deriv_C_P]
+    proof (intro exI conjI)
+      show "S' \<subseteq> SuperCalc.instances (to_SuperCalc_ecl ` N')"
       unfolding SuperCalc.instances_def
       apply (intro exI conjI)
       sorry
