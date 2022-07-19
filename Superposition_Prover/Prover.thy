@@ -4013,7 +4013,7 @@ If it ever cause a problem, change the structure to have access to @{type Clausa
 \<close>
 
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
-  "F_Inf \<equiv> {Infer Ps (subst_cls (from_SuperCalc_cl C') \<sigma>) | Ps C \<sigma> C'.
+  "F_Inf \<equiv> {Infer Ps (from_SuperCalc_cl (subst_cl C' \<sigma>)) | Ps C \<sigma> C'.
     let Ps' = map to_SuperCalc_ecl (Map2.map2 subst_cls Ps (renamings_apart Ps)) in
     derivable_list C Ps' \<sigma> SuperCalc.FirstOrder C'}"
 
@@ -4321,7 +4321,7 @@ proof -
     let ?map_prems = "\<lambda>Ps. map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps))"
 
     from \<iota>'_in obtain C \<sigma>\<^sub>C C' where
-      concl_of_\<iota>': "concl_of \<iota>' = subst_cls (from_SuperCalc_cl C') \<sigma>\<^sub>C" and
+      concl_of_\<iota>': "concl_of \<iota>' = from_SuperCalc_cl (subst_cl C' \<sigma>\<^sub>C)" and
       deriv_prems_\<iota>': "derivable_list C (?map_prems (prems_of \<iota>'))
         \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
       unfolding F_Inf_def mem_Collect_eq by force
@@ -4495,12 +4495,12 @@ proof -
     have "subst_cl C' \<sigma>\<^sub>C = subst_cl D' (\<sigma>\<^sub>D \<lozenge> \<rho>')"
       using \<open>subst_cl C' \<sigma>\<^sub>C = subst_cl (subst_cl D' \<sigma>\<^sub>D) \<rho>'\<close> composition_of_substs_cl by blast
 
-    define \<iota> where "\<iota> = Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D)"
+    define \<iota> where "\<iota> = Infer Ps (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D))"
 
     have \<iota>_in: "\<iota> \<in> F_Inf"
       unfolding \<iota>_def F_Inf_def mem_Collect_eq Let_def
     proof (intro exI conjI)
-      show "Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D) = Infer Ps (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D)"
+      show "Infer Ps (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D)) = Infer Ps (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D))"
         by (rule refl)
     next
       show "derivable_list D (?map_prems Ps) \<sigma>\<^sub>D SuperCalc.FirstOrder D'"
@@ -4537,15 +4537,16 @@ proof -
           by (metis prems_of_\<iota>g prems_\<iota>'_def subst_cls_lists_comp_substs subst_cls_lists_def)
       next
         have "\<exists>\<gamma>. set_mset (subst_cls (concl_of \<iota>') \<gamma>\<^sub>\<iota>) =
-          set_mset (subst_cls (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D) \<gamma>)"
-          unfolding concl_of_\<iota>' to_SuperCalc_cl_eq_conv[symmetric]
-          unfolding to_SuperCalc_cl_subst_cls composition_of_substs_cl
-          unfolding to_from_SuperCalc_cl[OF \<open>finite C'\<close>]
-          unfolding to_from_SuperCalc_cl[OF \<open>finite D'\<close>]
-          using \<open>subst_cl C' \<sigma>\<^sub>C = subst_cl (subst_cl D' \<sigma>\<^sub>D) \<rho>'\<close>
-          by (metis composition_of_substs_cl)
+          set_mset (subst_cls (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D)) \<gamma>)"
+          unfolding concl_of_\<iota>'
+          unfolding to_SuperCalc_cl_eq_conv[symmetric]
+          unfolding to_SuperCalc_cl_subst_cls
+          unfolding to_from_SuperCalc_cl[OF substs_preserve_finiteness[OF \<open>finite C'\<close>]]
+          unfolding to_from_SuperCalc_cl[OF substs_preserve_finiteness[OF \<open>finite D'\<close>]]
+          unfolding \<open>subst_cl C' \<sigma>\<^sub>C = subst_cl (subst_cl D' \<sigma>\<^sub>D) \<rho>'\<close>
+          using composition_of_substs_cl by blast
         thus "\<exists>\<gamma>. concl_of \<iota>g =
-          mset_set (set_mset (subst_cls (subst_cls (from_SuperCalc_cl D') \<sigma>\<^sub>D) \<gamma>))"
+          mset_set (set_mset (subst_cls (from_SuperCalc_cl (subst_cl D' \<sigma>\<^sub>D)) \<gamma>))"
           by (simp add: concl_of_\<iota>g)
       qed
       moreover have "G.Red_I q (\<Union> (\<G>_F ` N)) \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N'))"
@@ -4802,18 +4803,19 @@ next
 
     define \<iota> where
       "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps)
-        (subst_cls (from_SuperCalc_cl C') \<sigma>')"
+        (from_SuperCalc_cl (subst_cl C' \<sigma>'))"
 
     have "\<iota> \<in> F_Inf"
       unfolding F_Inf_def mem_Collect_eq Let_def
-    proof (intro exI conjI)
-      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
+      sorry
+    (* proof (intro exI conjI)
+      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps) (from_SuperCalc_cl (subst_cl C' \<sigma>'))"
         by (simp add: \<iota>_def)
     next
       show "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder C'"
         using deriv_D
         sorry
-    qed
+    qed *)
 
     moreover have "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
     proof -
@@ -4860,11 +4862,12 @@ next
     show "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` N') P \<sigma>"
       unfolding SuperCalc.redundant_inference_def
       unfolding SuperCalc.derivable_clauses_lemma[OF deriv_C_P]
-    proof (intro exI conjI)
+      sorry
+    (* proof (intro exI conjI)
       show "S' \<subseteq> SuperCalc.instances (to_SuperCalc_ecl ` N')"
       unfolding SuperCalc.instances_def
       apply (intro exI conjI)
-      sorry
+      sorry *)
   qed
 
   have ball_well_constrained_N': "Ball (to_SuperCalc_ecl ` N') SuperCalc.well_constrained"
