@@ -4014,7 +4014,7 @@ If it ever cause a problem, change the structure to have access to @{type Clausa
 
 definition F_Inf :: "'a equation Clausal_Logic.clause inference set" where
   "F_Inf \<equiv> {Infer Ps (from_SuperCalc_cl (subst_cl C' \<sigma>)) | Ps C \<sigma> C'.
-    let Ps' = map to_SuperCalc_ecl (Map2.map2 subst_cls Ps (renamings_apart Ps)) in
+    let Ps' = Map2.map2 (subst_ecl \<circ> to_SuperCalc_ecl) Ps (renamings_apart Ps) in
     derivable_list C Ps' \<sigma> SuperCalc.FirstOrder C'}"
 
 lemma F_Inf_have_prems: "\<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
@@ -4318,12 +4318,11 @@ proof -
     hence \<iota>'_in: "\<iota>' \<in> F_Inf" and prems_\<iota>'_subset: "set (prems_of \<iota>') \<subseteq> N'"
       unfolding F.Inf_from_def Set.mem_Collect_eq by simp_all
 
-    let ?map_prems = "\<lambda>Ps. map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps))"
+    let ?map_prems = "\<lambda>Ps. map2 (subst_ecl \<circ> to_SuperCalc_ecl) Ps (renamings_apart Ps)"
 
     from \<iota>'_in obtain C \<sigma>\<^sub>C C' where
       concl_of_\<iota>': "concl_of \<iota>' = from_SuperCalc_cl (subst_cl C' \<sigma>\<^sub>C)" and
-      deriv_prems_\<iota>': "derivable_list C (?map_prems (prems_of \<iota>'))
-        \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
+      deriv_prems_\<iota>': "derivable_list C (?map_prems (prems_of \<iota>')) \<sigma>\<^sub>C SuperCalc.FirstOrder C'"
       unfolding F_Inf_def mem_Collect_eq by force
 
     let ?prems_vars = "\<Union>(vars_of_cl ` cl_ecl ` set (?map_prems (prems_of \<iota>')))"
@@ -4362,7 +4361,7 @@ proof -
         using prems_\<iota>'_def
         by (metis (no_types, opaque_lifting) Suc_length_conv length_0_conv subst_cls_lists_def
             subst_cls_lists_single)
-      
+
       have ren_\<rho>_\<rho>1: "renaming (\<rho> \<lozenge> \<rho>1) (vars_of_cl (to_SuperCalc_cl P1'))"
       proof (rule renaming_subst_compI)
         show "renaming \<rho> (vars_of_cl (to_SuperCalc_cl P1'))"
@@ -4375,8 +4374,8 @@ proof -
           by (rule is_renaming_imp_renaming)
       qed
 
-      from prems_eq_P1 have P1_def: "P1 = to_SuperCalc_ecl (subst_cls (subst_cls P1' \<rho>) \<rho>1)"
-        by (simp add: Ps_def \<rho>s_def prems_\<iota>'_def renamings_P1'_\<rho>)
+      from prems_eq_P1 have P1_def: "P1 = Ecl (subst_cl (subst_cl (to_SuperCalc_cl P1') \<rho>) \<rho>1) {}"
+        by (simp add: prems_\<iota>'_def Ps_def \<rho>s_def renamings_P1'_\<rho> to_SuperCalc_cl_subst_cls)
 
       have renaming_P1_P1': "renaming_cl P1 (to_SuperCalc_ecl P1')"
       proof (rule renaming_cl_commutative)
@@ -4389,7 +4388,7 @@ proof -
       qed simp_all
 
       have fin_P1: "finite (cl_ecl P1)"
-        unfolding P1_def by simp
+        unfolding P1_def by (simp add: substs_preserve_finiteness)
 
       have prems_vars_subset: "?prems_vars \<subseteq> vars_of_cl (cl_ecl P1)"
         unfolding prems_eq_P1 by simp
@@ -4450,14 +4449,14 @@ proof -
         apply simp
         using reflexion_if_renaming[OF refl_P1 ren_P1 fin_P1]
         using derivable_list_def
-        by blast
+        by (metis to_SuperCalc_cl_subst_cls)
     next
       show ?thesis sorry
     next
       show ?thesis sorry
     qed
     then obtain D D' \<sigma>\<^sub>D where
-      deriv_Ps: "derivable_list D (map to_SuperCalc_ecl (map2 subst_cls Ps (renamings_apart Ps)))
+      deriv_Ps: "derivable_list D (map2 (subst_ecl o to_SuperCalc_ecl) Ps (renamings_apart Ps))
         \<sigma>\<^sub>D SuperCalc.FirstOrder D'" and
       "renaming_cl C D"
       by blast
@@ -4466,16 +4465,26 @@ proof -
       using derivable_list_concl_conv by blast
 
     have "finite C'"
-      by (smt (verit, del_insts) cl_ecl.simps deriv_prems_\<iota>' derivable_list_finite_conclusion
-          finite_to_SuperCalc_cl imageE list.set_map)
+      apply (rule derivable_list_finite_conclusion[OF _ deriv_prems_\<iota>'])
+      apply simp
+      apply (rule ballI)
+      subgoal for p
+        apply (cases p)
+        by (simp add: comp_def substs_preserve_finiteness)
+      done
     hence "finite (subst_cl C' \<sigma>\<^sub>C)"
       by (rule substs_preserve_finiteness)
     hence "finite (cl_ecl C)"
       unfolding \<open>cl_ecl C = subst_cl C' \<sigma>\<^sub>C\<close> by assumption
 
     have "finite D'"
-      by (smt (verit) cl_ecl.simps deriv_Ps finite_to_SuperCalc_cl imageE list.set_map
-          derivable_list_finite_conclusion)
+      apply (rule derivable_list_finite_conclusion[OF _ deriv_Ps])
+      apply simp
+      apply (rule ballI)
+      subgoal for p
+        apply (cases p)
+        by (simp add: comp_def substs_preserve_finiteness)
+      done
     hence "finite (subst_cl D' \<sigma>\<^sub>D)"
       by (rule substs_preserve_finiteness)
 
@@ -4513,9 +4522,6 @@ proof -
     from sat_N_alt[OF \<iota>_in prems_\<iota>_in_subset]
     have \<G>_subset_Red_\<iota>: "\<And>q. \<G>_I q \<iota> \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N))"
       unfolding F.Red_I_\<G>_def F.Red_I_\<G>_q_def by simp
-
-    have "finite D'"
-      by (rule derivable_list_finite_conclusion[OF _ deriv_Ps]) simp
 
     have "\<G>_I q \<iota>' \<subseteq> G.Red_I q (\<Union> (\<G>_F ` N'))" for q
     proof (rule subsetI)
@@ -4759,7 +4765,7 @@ next
 
     let ?renamed_Ps = "Map2.map2 subst_ecl Ps (renamings_apart (map (from_SuperCalc_cl \<circ> cl_ecl) Ps))"
 
-    have "list_all2 renaming_cl Ps ?renamed_Ps"
+    have all2_renaming_Ps: "list_all2 renaming_cl Ps ?renamed_Ps"
       using deriv_C_Ps[unfolded derivable_list_def]
     proof (elim disjE exE conjE)
       fix P1 assume Ps_def: "Ps = [P1]"
@@ -4797,27 +4803,26 @@ next
       then show ?thesis
         by (auto simp add: Ps_def ren_apa_eq renaming_cl_def)
     qed
-        
 
-    thm derivable_list_if_renaming[OF deriv_D _ fin_Ps, of ?renamed_Ps]
+    obtain E \<sigma>\<^sub>E E' where
+      "derivable_list E (Map2.map2 subst_ecl Ps (renamings_apart (map (from_SuperCalc_cl \<circ> cl_ecl) Ps)))
+        \<sigma>\<^sub>E SuperCalc.FirstOrder E' \<and> renaming_cl D E"
+      using derivable_list_if_renaming[OF deriv_D all2_renaming_Ps fin_Ps]
+      by blast
 
     define \<iota> where
-      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps)
-        (from_SuperCalc_cl (subst_cl C' \<sigma>'))"
+      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (from_SuperCalc_cl (subst_cl E' \<sigma>\<^sub>E))"
 
     have "\<iota> \<in> F_Inf"
-      unfolding F_Inf_def mem_Collect_eq Let_def
+      unfolding F_Inf_def mem_Collect_eq Let_def \<iota>_def
+      apply simp
+      apply (rule exI[of _ "Ecl (subst_cl E' \<sigma>\<^sub>E) {}"])
+      apply (rule exI[of _ \<sigma>\<^sub>E])
+      apply (rule exI[of _ E'])
+      apply simp
       sorry
-    (* proof (intro exI conjI)
-      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps) (from_SuperCalc_cl (subst_cl C' \<sigma>'))"
-        by (simp add: \<iota>_def)
-    next
-      show "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder C'"
-        using deriv_D
-        sorry
-    qed *)
 
-    moreover have "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
+    moreover have all_prems_in_N': "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
     proof -
       from C_in obtain x where x_in: "x \<in> P" and C_eq: "C = from_SuperCalc_cl (cl_ecl x)"
         using P_eq[symmetric] by (auto simp add: \<iota>_def image_iff)
@@ -4829,6 +4834,7 @@ next
         unfolding image_iff C_eq
         apply safe
         apply simp
+        \<comment> \<open>Only possible by getting rid of multisets\<close>
         sorry
     qed
 
@@ -4841,7 +4847,9 @@ next
     hence "\<iota>\<^sub>\<G> \<in> \<G>_I x \<iota> \<Longrightarrow> G.redundant_infer (\<Union> (\<G>_F ` N')) \<iota>\<^sub>\<G>" for \<iota>\<^sub>\<G> x
       unfolding G.Red_I_def mem_Collect_eq by simp
     moreover obtain \<iota>\<^sub>\<G> where "\<iota>\<^sub>\<G> \<in> \<G>_I (to_SuperCalc_cl ` N') \<iota>"
-      unfolding \<G>_I_def mem_Collect_eq G_Inf_def
+      unfolding \<G>_I_def mem_Collect_eq
+      unfolding G_Inf_def mem_Collect_eq
+      using all_prems_in_N'
       sorry
     ultimately have "G.redundant_infer (\<Union> (\<G>_F ` N')) \<iota>\<^sub>\<G>"
       by simp
@@ -4862,6 +4870,7 @@ next
     show "SuperCalc.redundant_inference C (to_SuperCalc_ecl ` N') P \<sigma>"
       unfolding SuperCalc.redundant_inference_def
       unfolding SuperCalc.derivable_clauses_lemma[OF deriv_C_P]
+      using all_prems_in_N'
       sorry
     (* proof (intro exI conjI)
       show "S' \<subseteq> SuperCalc.instances (to_SuperCalc_ecl ` N')"
