@@ -14,6 +14,11 @@ begin
 
 subsection \<open>Generic lemmas about HOL definitions\<close>
 
+lemma list_all2_zip_map_right:
+  assumes "length xs = length ys"
+  shows "list_all2 P xs (zip (map f xs) ys) = list_all2 (\<lambda>x y. P x (f x, y)) xs ys"
+  using assms by (induction xs ys rule: list_induct2) simp_all
+
 lemma set_eq_unionI:
   assumes "\<And>x. x \<in> A \<longleftrightarrow> x \<in> B \<or> x \<in> C"
   shows "A = (B \<union> C)"
@@ -398,6 +403,59 @@ lemma uncurry_comp_curry[simp]: "uncurry o curry = id"
 
 subsection \<open>Generic lemmas about SuperCalc\<close>
 
+lemma subst_append_remove_left: "vars_of t \<inter> fst `set \<sigma>\<^sub>1 = {} \<Longrightarrow> t \<lhd> \<sigma>\<^sub>1 @ \<sigma>\<^sub>2 = t \<lhd> \<sigma>\<^sub>2"
+  apply (induction \<sigma>\<^sub>1)
+   apply simp
+  by (smt (verit, best) agreement append_Cons assoc.elims fst_conv image_insert inf_commute
+      insert_disjoint(1) list.discI list.inject list.simps(15) subst.simps(1))
+
+lemma subst_append_remove_right: "vars_of t \<inter> fst `set \<sigma>\<^sub>2 = {} \<Longrightarrow> t \<lhd> \<sigma>\<^sub>1 @ \<sigma>\<^sub>2 = t \<lhd> \<sigma>\<^sub>1"
+  apply (induction \<sigma>\<^sub>1)
+  using subst_append_remove_left[of t \<sigma>\<^sub>2 "[]", simplified]
+   apply simp
+  using agreement list.discI by fastforce
+
+lemma assoc_eq_map_of_or_default: "assoc x y xs = (case map_of xs x of None \<Rightarrow> y | Some z \<Rightarrow> z)"
+  by (induction xs) auto
+
+lemma subst_Var_ident_if_not_in_dom: "x \<notin> fst ` set \<sigma> \<Longrightarrow> Var x \<lhd> \<sigma> = Var x"
+  by (metis assoc.simps(1) assoc_eq_map_of_or_default empty_iff image_empty list.set(1)
+      map_of_eq_None_iff subst.simps(1))
+
+lemma subst_if_in_dom: "x \<in> fst ` set \<sigma> \<Longrightarrow> \<exists>p \<in> set \<sigma>. Var x \<lhd> \<sigma> = snd p"
+  apply (induction \<sigma>)
+   apply simp
+  apply simp
+  by force
+
+lemma subst_ident: "vars_of t \<inter> fst `set \<sigma> = {} \<Longrightarrow> t \<lhd> \<sigma> = t" for t \<sigma>
+proof (induction \<sigma>)
+  case Nil
+  show ?case by simp
+next
+  case (Cons p \<sigma>)
+  thus ?case
+    by (metis agreement disjoint_iff subst_Nil subst_Var_ident_if_not_in_dom)
+qed
+
+lemma subst_append_swap: "fst `set \<sigma>\<^sub>1 \<inter> fst `set \<sigma>\<^sub>2 = {} \<Longrightarrow> t \<lhd> \<sigma>\<^sub>1 @ \<sigma>\<^sub>2 = t \<lhd> \<sigma>\<^sub>2 @ \<sigma>\<^sub>1"
+proof (induction t)
+  case (Var x)
+  then show ?case
+    apply (cases "vars_of (Var x) \<inter> fst ` set \<sigma>\<^sub>1 = {}")
+    unfolding subst_append_remove_left subst_append_remove_right
+     apply (simp add: subst_append_remove_left subst_append_remove_right)
+    by (metis (no_types, opaque_lifting) inf_bot_left insert_absorb insert_disjoint(1)
+        subst_append_remove_left subst_append_remove_right vars_of.simps(1))
+next
+  case (Const x)
+  show ?case by simp
+next
+  case (Comb t1 t2)
+  thus ?case
+    by simp
+qed
+
 lemma renaming_subst_compI:
   assumes "renaming \<rho>\<^sub>1 V" and "renaming \<rho>\<^sub>2 (subst_codomain \<rho>\<^sub>1 V)"
   shows "renaming (\<rho>\<^sub>1 \<lozenge> \<rho>\<^sub>2) V"
@@ -454,9 +512,6 @@ proof (cases C)
       by (meson UnionI imageI subst_trm_ident)
   qed
 qed
-
-lemma assoc_eq_map_of_or_default: "assoc x y xs = (case map_of xs x of None \<Rightarrow> y | Some z \<Rightarrow> z)"
-  by (induction xs) auto
 
 lemma subst_Var_eq_map_of_or_default: "Var x \<lhd> \<sigma> = (case map_of \<sigma> x of None \<Rightarrow> Var x | Some z \<Rightarrow> z)"
   by (induction \<sigma>) auto
@@ -1656,6 +1711,10 @@ proof -
     by (simp add: image_image)
 qed
 
+lemma to_SuperCalc_ecl_subst_cl_conv:
+  "to_SuperCalc_ecl (subst_cls C \<sigma>) = Ecl (subst_cl (to_SuperCalc_cl C) \<sigma>) {}"
+  using to_SuperCalc_cl_subst_cls by blast
+
 subsubsection \<open>Ground selection at an Arbitrary Limit\<close>
 
 definition ground_select :: "'a clause set \<Rightarrow> 'a clause \<Rightarrow> 'a clause" where
@@ -2289,16 +2348,6 @@ proof -
   ultimately show False
     by (metis trm.inject(1))
 qed
-
-lemma subst_Var_ident_if_not_in_dom: "x \<notin> fst ` set \<sigma> \<Longrightarrow> Var x \<lhd> \<sigma> = Var x"
-  by (metis assoc.simps(1) assoc_eq_map_of_or_default empty_iff image_empty list.set(1)
-      map_of_eq_None_iff subst.simps(1))
-
-lemma subst_if_in_dom: "x \<in> fst ` set \<sigma> \<Longrightarrow> \<exists>p \<in> set \<sigma>. Var x \<lhd> \<sigma> = snd p"
-  apply (induction \<sigma>)
-   apply simp
-  apply simp
-  by force
 
 primrec the_Var where
   "the_Var (Var x) = x"
@@ -3579,13 +3628,13 @@ proof -
       "\<forall>x. is_a_variable (Var x \<lhd> \<rho>_inv)"
     using renamings_admit_inverse by blast
 
+  define \<sigma>\<^sub>D where
+    "\<sigma>\<^sub>D = map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>\<^sub>C"
+
   define D' where
     "D' = cl_ecl P1' -
       {equational_clausal_logic.subst_lit L2 \<rho>} \<union>
       {equational_clausal_logic.subst_lit L' \<rho>}"
-
-  define \<sigma>\<^sub>D where
-    "\<sigma>\<^sub>D = map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>\<^sub>C"
 
   define D where
     "D = (let Cl_D = subst_cl D' \<sigma>\<^sub>D in
@@ -3771,9 +3820,130 @@ lemma superposition_if_renaming:
   assumes
     super: "SuperCalc.superposition P1 P2 C \<sigma>\<^sub>C SuperCalc.FirstOrder C'" and
     ren: "renaming_cl P1 P1'" "renaming_cl P2 P2'" and
-    fin: "finite (cl_ecl P1)" "finite (cl_ecl P2)"
+    fin: "finite (cl_ecl P1)" "finite (cl_ecl P2)" (* and
+    "variable_disjoint P1' P2'" *)
   shows "\<exists>D \<sigma>\<^sub>D D'. SuperCalc.superposition P1' P2' D \<sigma>\<^sub>D SuperCalc.FirstOrder D' \<and> renaming_cl C D"
-  sorry
+proof -
+  from super obtain L M u' p t u v s polarity t' L' where
+    L_in: "L \<in> cl_ecl P1" and
+    M_in: "M \<in> cl_ecl P2" and
+    eligible_L: "SuperCalc.eligible_literal L P1 \<sigma>\<^sub>C" and
+    eligible_M: "SuperCalc.eligible_literal M P2 \<sigma>\<^sub>C" and
+    var_disj_P1_P2: "variable_disjoint P1 P2" and
+    "\<not> is_a_variable u'" and
+    "SuperCalc.allowed_redex u' P1 \<sigma>\<^sub>C" and
+    "C = Ecl (subst_cl C' \<sigma>\<^sub>C) (SuperCalc.get_trms (subst_cl C' \<sigma>\<^sub>C)
+      (SuperCalc.dom_trms (subst_cl C' \<sigma>\<^sub>C) (subst_set (trms_ecl P1 \<union> trms_ecl P2 \<union>
+        {r. \<exists>q. (q, p) \<in> pos_ord P1 t \<and> subterm t q r}) \<sigma>\<^sub>C)) SuperCalc.FirstOrder)" and
+    "SuperCalc.orient_lit_inst M u v pos \<sigma>\<^sub>C" and
+    "SuperCalc.orient_lit_inst L t s polarity \<sigma>\<^sub>C" and
+    "u \<lhd> \<sigma>\<^sub>C \<noteq> v \<lhd> \<sigma>\<^sub>C" and
+    "subterm t p u'" and
+    "SuperCalc.ck_unifier u' u \<sigma>\<^sub>C SuperCalc.FirstOrder" and
+    "replace_subterm t p v t'" and
+    "L' = mk_lit polarity (Eq t' s)" and
+    "C' = cl_ecl P1 - {L} \<union> (cl_ecl P2 - {M} \<union> {L'})"
+    unfolding SuperCalc.superposition_def
+    by blast
+
+  from ren obtain \<rho>\<^sub>1 \<rho>\<^sub>2 where
+    ren_\<rho>\<^sub>1: "renaming \<rho>\<^sub>1 (vars_of_cl (cl_ecl P1))" and
+    ren_\<rho>\<^sub>2: "renaming \<rho>\<^sub>2 (vars_of_cl (cl_ecl P2))" and
+    P1'_def: "P1' = subst_ecl P1 \<rho>\<^sub>1" and
+    P2'_def: "P2' = subst_ecl P2 \<rho>\<^sub>2"
+    unfolding renaming_cl_def by blast
+
+  define min_\<rho>\<^sub>1 where
+    "min_\<rho>\<^sub>1 = filter (\<lambda>p. fst p \<in> vars_of_cl (cl_ecl P1)) \<rho>\<^sub>1"
+
+  define min_\<rho>\<^sub>2 where
+    "min_\<rho>\<^sub>2 = filter (\<lambda>p. fst p \<in> vars_of_cl (cl_ecl P2)) \<rho>\<^sub>2"
+
+  define \<rho> where
+    "\<rho> = min_\<rho>\<^sub>1 @ min_\<rho>\<^sub>2"
+
+  have dom_filter_\<rho>\<^sub>1:
+    "fst ` set min_\<rho>\<^sub>1 \<subseteq> vars_of_cl (cl_ecl P1)"
+    unfolding min_\<rho>\<^sub>1_def by force
+
+  have dom_filter_\<rho>\<^sub>2:
+    "fst ` set min_\<rho>\<^sub>2 \<subseteq> vars_of_cl (cl_ecl P2)"
+    unfolding min_\<rho>\<^sub>2_def by force
+
+  have subst_append_keep_left:
+    "t \<lhd> \<sigma>\<^sub>1 @ \<sigma>\<^sub>2 = t \<lhd> \<sigma>\<^sub>1"
+    if "vars_of t \<subseteq> fst ` set \<sigma>\<^sub>1" and "fst ` set \<sigma>\<^sub>1 \<inter> fst ` set \<sigma>\<^sub>2 = {}" for t \<sigma>\<^sub>1 \<sigma>\<^sub>2
+  proof -
+    from that have "vars_of t \<inter> fst ` set \<sigma>\<^sub>2 = {}"
+      by auto
+    thus ?thesis
+      by (simp add: subst_append_remove_right)
+  qed
+
+  have vars_P1_disj_dom_min_\<rho>\<^sub>2: "vars_of_cl (cl_ecl P1) \<inter> fst ` set min_\<rho>\<^sub>2 = {}"
+    using var_disj_P1_P2 dom_filter_\<rho>\<^sub>2 by (auto simp: variable_disjoint_def)
+
+  have ren_\<rho>: "renaming \<rho> (vars_of_cl (cl_ecl P1) \<union> vars_of_cl (cl_ecl P2))"
+    unfolding renaming_def
+  proof (intro ballI conjI allI impI)
+    fix x assume "x \<in> vars_of_cl (cl_ecl P1) \<union> vars_of_cl (cl_ecl P2)"
+    then show "is_a_variable (Var x \<lhd> \<rho>)"
+      unfolding Set.Un_iff
+    proof (elim disjE)
+      assume x_in: "x \<in> vars_of_cl (cl_ecl P1)"
+      hence "is_a_variable (Var x \<lhd> \<rho>\<^sub>1)"
+        using renaming_imp_ball_var[OF ren_\<rho>\<^sub>1] by simp
+      then show "is_a_variable (Var x \<lhd> \<rho>)"
+        unfolding \<rho>_def min_\<rho>\<^sub>1_def
+      proof (induction \<rho>\<^sub>1)
+        case Nil
+        thus ?case
+          using x_in subst_ident[of "Var x" min_\<rho>\<^sub>2] vars_P1_disj_dom_min_\<rho>\<^sub>2 by force
+      next
+        case (Cons p \<rho>\<^sub>1)
+        then show ?case
+          by (smt (verit, ccfv_SIG) append_Cons assoc.elims assoc.simps(2) filter.simps(2) fst_conv
+              list.discI list.inject subst.simps(1) x_in)
+      qed
+    next
+      assume x_in: "x \<in> vars_of_cl (cl_ecl P2)"
+      hence "is_a_variable (Var x \<lhd> \<rho>\<^sub>2)"
+        using renaming_imp_ball_var[OF ren_\<rho>\<^sub>2] by simp
+      hence "is_a_variable (Var x \<lhd> min_\<rho>\<^sub>2)"
+        unfolding min_\<rho>\<^sub>2_def
+        apply (induction \<rho>\<^sub>2)
+         apply simp
+        using x_in by force
+
+      moreover from x_in have "x \<notin> fst ` set min_\<rho>\<^sub>1"
+        by (metis IntI dom_filter_\<rho>\<^sub>1 empty_iff subsetD var_disj_P1_P2 variable_disjoint_def)
+
+      ultimately show "is_a_variable (Var x \<lhd> \<rho>)"
+        unfolding \<rho>_def
+        using subst_append_remove_left[of "Var x" min_\<rho>\<^sub>1 min_\<rho>\<^sub>2, simplified]
+        by simp
+    qed
+  next
+    fix x y
+    assume
+      "x \<in> vars_of_cl (cl_ecl P1) \<union> vars_of_cl (cl_ecl P2)"
+      "y \<in> vars_of_cl (cl_ecl P1) \<union> vars_of_cl (cl_ecl P2)"
+    show "x \<noteq> y \<Longrightarrow> Var x \<lhd> \<rho> \<noteq> Var y \<lhd> \<rho>"
+      unfolding \<rho>_def
+      using inj_subst_if_renaming[OF ren_\<rho>\<^sub>1]
+        inj_subst_if_renaming[OF ren_\<rho>\<^sub>2, THEN inj_onD, simplified]
+      
+      sorry
+  qed
+
+  thm var_disj_P1_P2
+
+  (* define \<sigma>\<^sub>D where
+    "\<sigma>\<^sub>D = map (map_prod (\<lambda>x. the_Var (Var x \<lhd> \<rho>)) (\<lambda>v. v \<lhd> \<rho>)) \<sigma>\<^sub>C" *)
+
+  show ?thesis
+    sorry
+qed
 
 lemma derivable_list_if_renaming:
   fixes \<sigma>
@@ -4583,18 +4753,61 @@ next
       "SuperCalc.trms_subsumes D C \<sigma>"
       using lifting_lemma_derivable_list by blast
 
-    thm derivable_list_if_renaming[OF deriv_D]
+    have fin_Ps: "list_all (finite \<circ> cl_ecl) Ps"
+      using Ball_set P_eq P_subset by fastforce
 
-    let ?renamed_Ps = "map to_SuperCalc_ecl (Map2.map2 subst_cls (map (from_SuperCalc_cl \<circ> cl_ecl) Ps)
-        (renamings_apart (map (from_SuperCalc_cl \<circ> cl_ecl) Ps)))"
+    let ?renamed_Ps = "Map2.map2 subst_ecl Ps (renamings_apart (map (from_SuperCalc_cl \<circ> cl_ecl) Ps))"
+
+    have "list_all2 renaming_cl Ps ?renamed_Ps"
+      using deriv_C_Ps[unfolded derivable_list_def]
+    proof (elim disjE exE conjE)
+      fix P1 assume Ps_def: "Ps = [P1]"
+      then obtain \<rho> where ren_apa_eq: "renamings_apart [from_SuperCalc_cl (cl_ecl P1)] = [\<rho>]"
+        using renamings_apart_length by (metis length_0_conv length_Suc_conv)
+      hence "is_renaming \<rho>"
+        using renamings_apart_renaming by (metis list.set_intros(1))
+      hence "renaming \<rho> V" for V
+        by (rule is_renaming_imp_renaming)
+      then show ?thesis
+        by (auto simp add: Ps_def ren_apa_eq renaming_cl_def)
+    next
+      fix P1 assume Ps_def: "Ps = [P1]"
+      then obtain \<rho> where ren_apa_eq: "renamings_apart [from_SuperCalc_cl (cl_ecl P1)] = [\<rho>]"
+        using renamings_apart_length by (metis length_0_conv length_Suc_conv)
+      hence "is_renaming \<rho>"
+        using renamings_apart_renaming by (metis list.set_intros(1))
+      hence "renaming \<rho> V" for V
+        by (rule is_renaming_imp_renaming)
+      then show ?thesis
+        by (auto simp add: Ps_def ren_apa_eq renaming_cl_def)
+    next
+      fix P1 P2 assume Ps_def: "Ps = [P1, P2]"
+      then obtain \<rho>1 \<rho>2 where
+        ren_apa_eq: "renamings_apart [from_SuperCalc_cl (cl_ecl P1),
+          from_SuperCalc_cl (cl_ecl P2)] = [\<rho>1, \<rho>2]"
+        using renamings_apart_length
+        by (smt (verit, ccfv_threshold) length_0_conv length_0_conv length_0_conv length_Suc_conv
+            length_Suc_conv length_Suc_conv)
+      hence "is_renaming \<rho>1" and "is_renaming \<rho>2"
+        using renamings_apart_renaming[of _ "[from_SuperCalc_cl (cl_ecl P1), from_SuperCalc_cl (cl_ecl P2)]"]
+        by (auto intro: list.set_intros)
+      hence "renaming \<rho>1 V" and "renaming \<rho>2 V" for V
+        by (simp_all add: is_renaming_imp_renaming)
+      then show ?thesis
+        by (auto simp add: Ps_def ren_apa_eq renaming_cl_def)
+    qed
+        
+
+    thm derivable_list_if_renaming[OF deriv_D _ fin_Ps, of ?renamed_Ps]
 
     define \<iota> where
-      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
+      "\<iota> \<equiv> Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps)
+        (subst_cls (from_SuperCalc_cl C') \<sigma>')"
 
     have "\<iota> \<in> F_Inf"
       unfolding F_Inf_def mem_Collect_eq Let_def
     proof (intro exI conjI)
-      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
+      show "\<iota> = Infer (map (from_SuperCalc_cl \<circ> cl_ecl) ?renamed_Ps) (subst_cls (from_SuperCalc_cl C') \<sigma>')"
         by (simp add: \<iota>_def)
     next
       show "derivable_list D ?renamed_Ps \<sigma>' SuperCalc.FirstOrder C'"
