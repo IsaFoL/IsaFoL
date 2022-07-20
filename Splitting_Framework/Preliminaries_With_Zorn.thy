@@ -11,24 +11,13 @@ begin
 
   (*useful tools for the following proofs*)
 
-(*definition of the iteration of a function*)
-fun iter_fun :: "nat \<Rightarrow> ('a \<Rightarrow> 'a)  \<Rightarrow> 'a \<Rightarrow> 'a"  where
-    "iter_fun 0 f x  = x" |
-    "iter_fun (Suc n) f x  = f (iter_fun n f x)"
-
-lemma iter_commut: \<open>iter_fun k f (f(x)) = f(iter_fun k f x)\<close>
-proof(induction k)
-  case 0
-  then show ?case by auto
-next
-  case (Suc k)
-  then show ?case by auto
-qed
+lemma pow_suc: \<open>(f^^(Suc k)) x = (f^^k) (f x)\<close>
+  by (induction k) auto
 
 lemma finite_because_singleton: \<open>(\<forall>C1 \<in> S. \<forall>C2 \<in> S. C1 = C2) \<longrightarrow> finite S\<close> for S
   by (metis finite.simps is_singletonI' is_singleton_the_elem)
 
-lemma finite_union_in_conditions: \<open>finite E \<Longrightarrow> (\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})) \<Longrightarrow>
+lemma finite_union_of_finite_is_finite: \<open>finite E \<Longrightarrow> (\<forall>D \<in> E. finite({f C |C. P C \<and> g C = D})) \<Longrightarrow>
                                   finite({f C |C. P C \<and> g C \<in> E})\<close>
 proof -
   assume finite_E: \<open>finite E\<close> and
@@ -59,69 +48,104 @@ fun is_Pos :: "'a neg \<Rightarrow> bool" where
 lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
   by blast
 
-fun elementary_formula :: "'a neg \<Rightarrow> 'a neg" where
-  "elementary_formula (Pos C) = Pos C" |
-  "elementary_formula (Neg (Pos C)) = Neg (Pos C)" |
-  "elementary_formula (Neg (Neg C)) = elementary_formula C" 
+fun neg_formulas_double_induction :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a neg" where
+  "neg_formulas_double_induction (Pos C1) (Pos C2) = Pos C1" |
+  "neg_formulas_double_induction (Pos C1) (Neg (Pos C2)) = Pos C1" |
+  "neg_formulas_double_induction (Pos C1)(Neg(Neg C2)) = neg_formulas_double_induction (Pos C1) C2"|
+  "neg_formulas_double_induction (Neg (Pos C1)) (Pos C2) = Neg (Pos C1)" |
+  "neg_formulas_double_induction (Neg (Pos C1)) (Neg (Pos C2)) = (Neg (Pos C1))" |
+  "neg_formulas_double_induction (Neg (Pos C1)) (Neg (Neg C2)) = 
+    neg_formulas_double_induction (Neg (Pos C1)) C2" |
+  "neg_formulas_double_induction (Neg (Neg C1))(Pos C2) = neg_formulas_double_induction C1(Pos C2)"|
+  "neg_formulas_double_induction (Neg (Neg C1)) (Neg (Pos C2)) = 
+    neg_formulas_double_induction C1 (Neg (Pos C2))" |
+  "neg_formulas_double_induction (Neg (Neg C1)) (Neg (Neg C2)) = 
+    neg_formulas_double_induction C1 C2"
 
-fun formula_induction_double :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a neg" where
-  "formula_induction_double (Pos C1) (Pos C2) = Pos C1" |
-  "formula_induction_double (Pos C1) (Neg (Pos C2)) = Pos C1" |
-  "formula_induction_double (Pos C1) (Neg (Neg C2)) = formula_induction_double (Pos C1) C2" |
-  "formula_induction_double (Neg (Pos C1)) (Pos C2) = Neg (Pos C1)" |
-  "formula_induction_double (Neg (Pos C1)) (Neg (Pos C2)) = (Neg (Pos C1))" |
-  "formula_induction_double (Neg (Pos C1)) (Neg (Neg C2)) = formula_induction_double (Neg (Pos C1)) C2" |
-  "formula_induction_double (Neg (Neg C1)) (Pos C2) = formula_induction_double C1 (Pos C2)" |
-  "formula_induction_double (Neg (Neg C1)) (Neg (Pos C2)) = formula_induction_double C1 (Neg (Pos C2))" |
-  "formula_induction_double (Neg (Neg C1)) (Neg (Neg C2)) = formula_induction_double C1 C2"
+  (*returns the most general formula equivalent to A which is in M, or A if there is no*)
+fun smallest_equivalent_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
+  "smallest_equivalent_formula_in (Pos C) M = Pos C" |
+  "smallest_equivalent_formula_in (Neg (Pos C)) M = Neg (Pos C)" |
+  "smallest_equivalent_formula_in (Neg (Neg C)) M = (if smallest_equivalent_formula_in C M \<in> M
+                                           then smallest_equivalent_formula_in C M
+                                           else (Neg(Neg C)))"
+(*
+lemma a_neg_double_induction : \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B.
+  (\<And>C1 C2. P (Pos C1) (Pos C2)) \<Longrightarrow>
+  (\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
+  (\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
+  (\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)) \<Longrightarrow>
+  (\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))) \<Longrightarrow>
+  (\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))) \<Longrightarrow>
+  (\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
+  (\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
+  (\<And>C1 C2. P C1 C2 \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))) \<Longrightarrow> P A B\<close>
+proof -
+  fix P::"'a neg \<Rightarrow> 'a neg \<Rightarrow> bool" and  A::"'a neg" and M::"'a neg set" and B 
+  assume h1: \<open>\<And>C1 C2. P (Pos C1) (Pos C2)\<close> and
+         h2: \<open>\<And>C1 C2. P (Pos C1) (Neg (Pos C2))\<close> and
+         h3: \<open>\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))\<close> and
+         h4: \<open>\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)\<close> and
+         h5: \<open>\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))\<close> and
+         h6: \<open>\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))\<close> and
+         h7: \<open>\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)\<close> and
+         h8: \<open>\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))\<close> and
+         h9: \<open>\<And>C1 C2. P C1 C2 \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))\<close>
+  then show \<open>P A B\<close>
+  proof(induction A M rule:smallest_equivalent_formula_in.induct)
+    case (1 C M)
+    then show ?case
+      by (induction B M rule:smallest_equivalent_formula_in.induct) auto
+  next
+    case (2 C M)
+    then show ?case
+      by (induction B M rule:smallest_equivalent_formula_in.induct) auto
+  next
+    case (3 C M)
+    then show ?case
+    proof (induction B M rule:smallest_equivalent_formula_in.induct)
+      case (1 C M)
+      then show ?case by auto
+    next
+      case (2 C M)
+      then show ?case by auto
+    next
+      case (3 C M)
+      then show ?case using h9 by
+    qed
+  qed
+*)
 
 fun add_Neg_Neg :: "'a neg \<Rightarrow> 'a neg" where
   "add_Neg_Neg C = Neg (Neg C)"
 
-lemma impossible_Neg_Neg_is_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> iter_fun k add_Neg_Neg C2 = Pos C\<close>
+lemma impossible_Neg_Neg_is_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> (add_Neg_Neg^^k) C2 = Pos C\<close>
+  by (induction k) auto
+
+lemma impossible_Neg_Neg_is_Neg_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> (add_Neg_Neg^^k) C2 = Neg (Pos C)\<close>
+  by (induction k) auto
+
+lemma sub_formula_basis_Pos: \<open>(k\<ge>1) \<Longrightarrow> (add_Neg_Neg^^k) (Pos C1) = C2 \<Longrightarrow>
+                               (add_Neg_Neg^^(k+1)) (Pos C1) = Neg (Neg C2)\<close>
+  by (induction k) auto
+
+lemma sub_formula_basis_Neg_Neg: \<open>(add_Neg_Neg^^k) C1 = C2 \<Longrightarrow>
+                                  (add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2)\<close>
 proof(induction k)
   case 0
   then show ?case by auto
 next
   case (Suc k)
-  then show ?case by auto
+  then show ?case
+    by (metis add_Neg_Neg.elims funpow_swap1)
 qed
 
-lemma impossible_Neg_Neg_is_Neg_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> iter_fun k add_Neg_Neg C2 = Neg (Pos C)\<close>
-proof(induction k)
-  case 0
-  then show ?case by auto
-next
-  case (Suc k)
-  then show ?case by auto
-qed
-
-lemma sub_formula_basis_Pos: \<open>(k\<ge>1) \<Longrightarrow> iter_fun k add_Neg_Neg (Pos C1) = C2 \<Longrightarrow>
-                               iter_fun (k+1) add_Neg_Neg (Pos C1) = Neg (Neg C2)\<close>
-proof(induction k)
-  case 0
-  then show ?case by auto
-next
-  case (Suc k)
-  then show ?case by auto
-qed
-
-lemma sub_formula_basis_Neg_Neg: \<open>iter_fun k add_Neg_Neg C1 = C2 \<Longrightarrow>
-                                  iter_fun k add_Neg_Neg (Neg (Neg C1)) = Neg (Neg C2)\<close>
-proof(induction k)
-  case 0
-  then show ?case by auto
-next
-  case (Suc k)
-  then show ?case using iter_commut
-  by (metis add_Neg_Neg.elims)
-qed
-
-
+  (*formulas having the same to_V and positivity must be equivalent modulo an iteration of Neg Neg
+  in their front*)
 lemma sub_formula: \<open>to_V C1 = to_V C2 \<Longrightarrow> is_Pos C1 = is_Pos C2 \<Longrightarrow>
-                    C1 \<noteq> C2 \<Longrightarrow> \<exists>k. (k\<ge>1) \<and> (iter_fun k add_Neg_Neg C1 = C2 \<or> 
-                                             iter_fun k add_Neg_Neg C2 = C1)\<close>
-proof(induction C1 C2 rule:formula_induction_double.induct)
+                    C1 \<noteq> C2 \<Longrightarrow> \<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C1 = C2 \<or> 
+                                             (add_Neg_Neg^^k) C2 = C1)\<close>
+proof(induction C1 C2 rule:neg_formulas_double_induction.induct)
   case (1 C1 C2)
   then show ?case by auto
 next
@@ -132,7 +156,8 @@ next
   assume induction_hypothesis_3_sub_formula:
     \<open>to_V (Pos C1) = to_V C2 \<Longrightarrow>
     is_Pos (Pos C1) = is_Pos C2 \<Longrightarrow>
-    Pos C1 \<noteq> C2 \<Longrightarrow> \<exists>k\<ge>1. iter_fun k add_Neg_Neg (Pos C1) = C2 \<or> iter_fun k add_Neg_Neg C2 = Pos C1\<close>
+    Pos C1 \<noteq> C2 \<Longrightarrow> 
+    \<exists>k\<ge>1. (add_Neg_Neg^^k) (Pos C1) = C2 \<or> (add_Neg_Neg^^k) C2 = Pos C1\<close>
   consider (a) \<open>Pos C1 = C2\<close> | (b) \<open>Pos C1 \<noteq> C2\<close>
     by auto
   then show ?case
@@ -140,7 +165,7 @@ next
     case a
     have \<open>add_Neg_Neg (Pos C1) = Neg (Neg C2)\<close>
       using a by auto
-    then have \<open>iter_fun 1 add_Neg_Neg (Pos C1) = Neg (Neg C2)\<close>
+    then have \<open>(add_Neg_Neg^^1) (Pos C1) = Neg (Neg C2)\<close>
       by auto
     then show ?thesis by auto
   next
@@ -149,13 +174,13 @@ next
       using "3.prems"(1) by fastforce
     moreover have Pos_C1_equals_C2: \<open>is_Pos (Pos C1) = is_Pos C2\<close>
       using "3.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Pos C1) = C2 \<or>
-                                  iter_fun k add_Neg_Neg C2 = Pos C1\<close>
+    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C1) = C2 \<or>
+                                  (add_Neg_Neg^^k) C2 = Pos C1\<close>
       using induction_hypothesis_3_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Pos C1) = C2\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C1) = C2\<close>
       using impossible_Neg_Neg_is_Pos
       by (metis "3.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun (k+1) add_Neg_Neg (Pos C1) = Neg (Neg C2)\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Pos C1) = Neg (Neg C2)\<close>
       using sub_formula_basis_Pos by auto
     then show ?thesis
     using le_add2 by blast
@@ -172,7 +197,7 @@ next
     \<open>to_V (Neg (Pos C1)) = to_V C2 \<Longrightarrow>
     is_Pos (Neg (Pos C1)) = is_Pos C2 \<Longrightarrow>
     Neg (Pos C1) \<noteq> C2 \<Longrightarrow>
-    \<exists>k\<ge>1. iter_fun k add_Neg_Neg (Neg (Pos C1)) = C2 \<or> iter_fun k add_Neg_Neg C2 = Neg (Pos C1)\<close>
+    \<exists>k\<ge>1. (add_Neg_Neg^^k) (Neg (Pos C1)) = C2 \<or> (add_Neg_Neg^^k) C2 = Neg (Pos C1)\<close>
   consider (a) \<open>Neg (Pos C1) = C2\<close> | (b) \<open>Neg (Pos C1) \<noteq> C2\<close>
     by auto
   then show ?case
@@ -180,7 +205,7 @@ next
     case a
     have \<open>add_Neg_Neg (Neg (Pos C1)) = Neg (Neg C2)\<close>
       using a by auto
-    then have \<open>iter_fun 1 add_Neg_Neg (Neg (Pos C1)) = Neg (Neg C2)\<close>
+    then have \<open>(add_Neg_Neg^^1) (Neg (Pos C1)) = Neg (Neg C2)\<close>
       by auto
     then show ?thesis by auto
   next
@@ -189,13 +214,13 @@ next
       using "6.prems"(1) by fastforce
     moreover have Pos_C1_equals_C2: \<open>is_Pos (Neg (Pos C1)) = is_Pos C2\<close>
       using "6.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Neg(Pos C1)) = C2 \<or>
-                                  iter_fun k add_Neg_Neg C2 = Neg (Pos C1)\<close>
+    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg(Pos C1)) = C2 \<or>
+                                  (add_Neg_Neg^^k) C2 = Neg (Pos C1)\<close>
       using induction_hypothesis_6_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Neg (Pos C1)) = C2\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg (Pos C1)) = C2\<close>
       using impossible_Neg_Neg_is_Neg_Pos
       by (metis "6.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun (k+1) add_Neg_Neg (Neg (Pos C1)) = Neg (Neg C2)\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Neg (Pos C1)) = Neg (Neg C2)\<close>
       using sub_formula_basis_Pos by auto
     then show ?thesis
     using le_add2 by blast
@@ -205,8 +230,8 @@ next
   assume induction_hypothesis_7_sub_formula:
     \<open>to_V C1 = to_V (Pos C2) \<Longrightarrow>
     is_Pos C1 = is_Pos (Pos C2) \<Longrightarrow>
-    C1 \<noteq> Pos C2 \<Longrightarrow> \<exists>k\<ge>1. iter_fun k add_Neg_Neg C1 = Pos C2 \<or> 
-                           iter_fun k add_Neg_Neg (Pos C2) = C1\<close>
+    C1 \<noteq> Pos C2 \<Longrightarrow> \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = Pos C2 \<or> 
+                           (add_Neg_Neg^^k) (Pos C2) = C1\<close>
   consider (a) \<open>Pos C2 = C1\<close> | (b) \<open>Pos C2 \<noteq> C1\<close>
     by auto
   then show ?case
@@ -214,7 +239,7 @@ next
     case a
     have \<open>add_Neg_Neg (Pos C2) = Neg (Neg C1)\<close>
       using a by auto
-    then have \<open>iter_fun 1 add_Neg_Neg (Pos C2) = Neg (Neg C1)\<close>
+    then have \<open>(add_Neg_Neg^^1) (Pos C2) = Neg (Neg C1)\<close>
       by auto
     then show ?thesis by auto
   next
@@ -223,13 +248,13 @@ next
       using "7.prems"(1) by fastforce
     moreover have Pos_C1_equals_C2: \<open>is_Pos (Pos C2) = is_Pos C1\<close>
       using "7.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Pos C2) = C1 \<or>
-                                  iter_fun k add_Neg_Neg C1 = Pos C2\<close>
+    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C2) = C1 \<or>
+                                  (add_Neg_Neg^^k) C1 = Pos C2\<close>
       using induction_hypothesis_7_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Pos C2) = C1\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C2) = C1\<close>
       using impossible_Neg_Neg_is_Pos
       by (metis "7.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun (k+1) add_Neg_Neg (Pos C2) = Neg (Neg C1)\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Pos C2) = Neg (Neg C1)\<close>
       using sub_formula_basis_Pos by auto
     then show ?thesis
     using le_add2 by blast
@@ -240,7 +265,7 @@ next
     \<open>to_V C1 = to_V (Neg (Pos C2)) \<Longrightarrow>
     is_Pos C1 = is_Pos (Neg (Pos C2)) \<Longrightarrow>
     C1 \<noteq> Neg (Pos C2) \<Longrightarrow>
-    \<exists>k\<ge>1. iter_fun k add_Neg_Neg C1 = Neg (Pos C2) \<or> iter_fun k add_Neg_Neg (Neg (Pos C2)) = C1\<close>
+    \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = Neg (Pos C2) \<or> (add_Neg_Neg^^k) (Neg (Pos C2)) = C1\<close>
   consider (a) \<open>Neg (Pos C2) = C1\<close> | (b) \<open>Neg (Pos C2) \<noteq> C1\<close>
     by auto
   then show ?case
@@ -248,7 +273,7 @@ next
     case a
     have \<open>add_Neg_Neg (Neg (Pos C2)) = Neg (Neg C1)\<close>
       using a by auto
-    then have \<open>iter_fun 1 add_Neg_Neg (Neg (Pos C2)) = Neg (Neg C1)\<close>
+    then have \<open>(add_Neg_Neg^^1) (Neg (Pos C2)) = Neg (Neg C1)\<close>
       by auto
     then show ?thesis by auto
   next
@@ -257,13 +282,13 @@ next
       using "8.prems"(1) by fastforce
     moreover have Pos_C1_equals_C2: \<open>is_Pos (Neg (Pos C2)) = is_Pos C1\<close>
       using "8.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Neg(Pos C2)) = C1 \<or>
-                                  iter_fun k add_Neg_Neg C1 = Neg (Pos C2)\<close>
+    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg(Pos C2)) = C1 \<or>
+                                  (add_Neg_Neg^^k) C1 = Neg (Pos C2)\<close>
       using induction_hypothesis_8_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun k add_Neg_Neg (Neg (Pos C2)) = C1\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg (Pos C2)) = C1\<close>
       using impossible_Neg_Neg_is_Neg_Pos
       by (metis "8.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> iter_fun (k+1) add_Neg_Neg (Neg (Pos C2)) = Neg (Neg C1)\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Neg (Pos C2)) = Neg (Neg C1)\<close>
       using sub_formula_basis_Pos by auto
     then show ?thesis
     using le_add2 by blast
@@ -273,210 +298,77 @@ next
   assume induction_hypothesis_8_sub_formula:
     \<open>to_V C1 = to_V C2 \<Longrightarrow>
     is_Pos C1 = is_Pos C2 \<Longrightarrow>
-    C1 \<noteq> C2 \<Longrightarrow> \<exists>k\<ge>1. iter_fun k add_Neg_Neg C1 = C2 \<or> iter_fun k add_Neg_Neg C2 = C1\<close>
+    C1 \<noteq> C2 \<Longrightarrow> \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = C2 \<or> (add_Neg_Neg^^k) C2 = C1\<close>
   have to_V_C1_equals_C2: \<open>to_V C2 = to_V C1\<close>
       using "9.prems"(1) by fastforce
     moreover have Pos_C1_equals_C2: \<open>is_Pos C2 = is_Pos C1\<close>
       using "9.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (iter_fun k add_Neg_Neg C2 = C1 \<or>
-                                  iter_fun k add_Neg_Neg C1 = C2)\<close>
+    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C2 = C1 \<or>
+                                  (add_Neg_Neg^^k) C1 = C2)\<close>
       using induction_hypothesis_8_sub_formula "9.prems"(3) by auto
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (iter_fun k add_Neg_Neg (Neg (Neg C2)) = Neg (Neg C1) \<or>
-                            iter_fun k add_Neg_Neg (Neg (Neg C1)) = Neg (Neg C2))\<close>
+    then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1) \<or>
+                            (add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2))\<close>
       using sub_formula_basis_Neg_Neg by auto
   then show ?case by fast
 qed
 
-(*fun elementary_formula_in_base :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
-  "elementary_formula_in_base C M = (if C \<in> M then C
-                                    else 
-                                       (if \<exists>k. (iter_fun k add_Neg_Neg C) \<in> M 
-                                       then elementary_formula_in_base (add_Neg_Neg C) M
-                                       else C))"*)
-
-  (*returns the most general formula equivalent to A which is in M, or A if there is no*)
-fun elementary_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
-  "elementary_formula_in (Pos C) M = Pos C" |
-  "elementary_formula_in (Neg (Pos C)) M = Neg (Pos C)" |
-  "elementary_formula_in (Neg (Neg C)) M = (if elementary_formula_in C M \<in> M
-                                           then elementary_formula_in C M
-                                           else (Neg(Neg C)))"
-
-lemma elementary_inclusion_in: \<open>C \<in> M \<Longrightarrow> elementary_formula_in C M \<in> M\<close>
-proof (induction C M rule: elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by auto
-next
-  case (2 C M)
-  then show ?case by auto
-next
-  case (3 C M)
-  then show ?case by auto
-qed
+lemma smallest_inclusion_in: \<open>C \<in> M \<Longrightarrow> smallest_equivalent_formula_in C M \<in> M\<close>
+  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
 
 lemma sub_formula_csq: 
-      \<open>iter_fun k add_Neg_Neg C1 = C2 \<Longrightarrow> C1 \<in>  M \<Longrightarrow> elementary_formula_in C2 M \<in> M\<close>
+      \<open>(add_Neg_Neg^^k) C1 = C2 \<Longrightarrow> C1 \<in>  M \<Longrightarrow> smallest_equivalent_formula_in C2 M \<in> M\<close>
 proof(induction k arbitrary:C1 C2)
   case 0
-  then show ?case using elementary_inclusion_in by simp
+  then show ?case using smallest_inclusion_in by simp
 next
   case (Suc k)
-  assume iter_k_C1_C2: \<open>iter_fun (Suc k) add_Neg_Neg C1 = C2\<close>
+  assume iter_k_C1_C2: \<open>(add_Neg_Neg^^(Suc k)) C1 = C2\<close>
   then have \<open>\<exists>C3. C2 = Neg (Neg C3)\<close>
     by force
   then obtain C3 where C3_def: \<open>C2 = Neg (Neg C3)\<close>
     by auto
-  then have \<open>iter_fun k add_Neg_Neg C1 = C3\<close>
+  then have \<open>(add_Neg_Neg^^k) C1 = C3\<close>
     using iter_k_C1_C2 by auto
   then show ?case
     using C3_def Suc.IH Suc.prems(2) by fastforce
 qed
 
-lemma elementary_same_to_V_in: \<open>to_V C = to_V (elementary_formula_in C M)\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by force
-next
-  case (2 C M)
-  then show ?case by force
-next
-  case (3 C M)
-  then show ?case by force
-qed
+lemma smallest_same_to_V_in: \<open>to_V C = to_V (smallest_equivalent_formula_in C M)\<close>
+  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma elementary_same_Pos_in: \<open> is_Pos C = is_Pos (elementary_formula_in C M)\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by force
-next
-  case (2 C M)
-  then show ?case by force
-next
-  case (3 C M)
-  then show ?case by force
-qed
+lemma smallest_same_Pos_in: \<open> is_Pos C = is_Pos (smallest_equivalent_formula_in C M)\<close>
+  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma elementary_is_less_Neg_Neg_n: \<open>elementary_formula_in C M \<in>  M \<Longrightarrow>
-                    size(elementary_formula_in (Neg (Neg C)) M) < size(Neg (Neg C))\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by auto
-next
-  case (2 C M)
-  then show ?case by auto
-next
-  case (3 C M)
-  then show ?case by auto
-qed
+lemma size_neg_neg_greater: \<open>smallest_equivalent_formula_in C M \<in>  M \<Longrightarrow>
+                           size(smallest_equivalent_formula_in (Neg (Neg C)) M) < size(Neg (Neg C))\<close>
+  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma projection_elementary_in: \<open>elementary_formula_in (elementary_formula_in C M) M =
-                              elementary_formula_in C M\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by auto
-next
-  case (2 C M)
-  then show ?case by auto
-next
-  case (3 C M)
-  then show ?case by auto
-qed
+lemma idempotent_smallest_formula_in: 
+  \<open>smallest_equivalent_formula_in (smallest_equivalent_formula_in C M) M =
+  smallest_equivalent_formula_in C M\<close>
+  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma elementary_to_V_stability_in: \<open>to_V (elementary_formula_in C M) = to_V C\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by auto
-next
-  case (2 C M)
-  then show ?case by auto
-next
-  case (3 C M)
-  then show ?case by auto
-qed
+lemma smallest_reduction_basis_Pos_in : \<open>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Pos C \<in> M \<Longrightarrow>
+                                           smallest_equivalent_formula_in C1 M = Pos C\<close>
+  by (induction C1 M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma elementary_is_Pos_stability_in: \<open>is_Pos (elementary_formula_in C M) = is_Pos C\<close>
-proof(induction C M rule:elementary_formula_in.induct)
-  case (1 C M)
-  then show ?case by auto
-next
-  case (2 C M)
-  then show ?case by auto
-next
-  case (3 C M)
-  then show ?case by auto
-qed
+lemma smallest_reduction_basis_Neg_in: \<open>\<not>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Neg (Pos C) \<in> M \<Longrightarrow>
+                                          smallest_equivalent_formula_in C1 M = Neg (Pos C)\<close>
+  by (induction C1 M rule:smallest_equivalent_formula_in.induct) auto
 
-lemma elementary_reduction_basis_Pos_in : \<open>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Pos C \<in> M \<Longrightarrow>
-                                      elementary_formula_in C1 M = Pos C\<close>
-proof (induction C1 M rule:elementary_formula_in.induct)
-  case (1 C2 M)
-  then show ?case by auto
-next
-  case (2 C2 M)
-  then show ?case by auto
-next
-  case (3 C2 M)
-  then show ?case by auto 
-qed
-
-lemma elementary_reduction_basis_Neg_in: \<open>\<not>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Neg (Pos C) \<in> M \<Longrightarrow>
-                                      elementary_formula_in C1 M = Neg (Pos C)\<close>
-proof (induction C1 M rule:elementary_formula_in.induct)
-  case (1 C2 M)
-  then show ?case by auto
-next
-  case (2 C2 M)
-  then show ?case by auto
-next
-  case (3 C2 M)
-  then show ?case by auto 
-qed
-
-lemma elementary_reduction: \<open>to_V C1 = to_V C2 \<and> is_Pos C1 = is_Pos C2 \<Longrightarrow> 
-                             elementary_formula C1 = elementary_formula C2\<close>
-proof (induction C1 C2 rule:formula_induction_double.induct)
-  case (1 C1 C2)
-  then show ?case by auto
-next
-  case (2 C1 C2)
-  then show ?case by auto
-next
-  case (3 C1 C2)
-  then show ?case
-    by (metis elementary_formula.simps(3) is_Pos.simps(2) to_V.simps(2))
-next
-  case (4 C1 C2)
-  then show ?case by auto
-next
-  case (5 C1 C2)
-  then show ?case by auto
-next
-  case (6 C1 C2)
-  then show ?case
-  by (metis elementary_formula.simps(3) is_Pos.simps(2) to_V.simps(2))
-next
-  case (7 C1 C2)
-  then show ?case by simp
-next
-  case (8 C1 C2)
-  then show ?case by simp
-next
-  case (9 C1 C2)
-  then show ?case by auto
-qed
-
-lemma new_red_induction: \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B. (\<And>C1 C2. P (Pos C1) (Pos C2)) \<Longrightarrow>
-(\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
-(\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
-(\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)) \<Longrightarrow>
-(\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))) \<Longrightarrow>
-(\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))) \<Longrightarrow>
-(\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
-(\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
-(\<And>C1 C2.(\<And>C1' C2'. (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2))))
-                                       \<Longrightarrow> P C1' C2')
-                   \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2)))
- \<Longrightarrow> P A B\<close>
+(*changer le nom : neg_lex_size_induction \<rightarrow> utilisé pour la suite*)
+lemma neg_lex_size_induction: \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B. (\<And>C1 C2. P (Pos C1) (Pos C2))\<Longrightarrow>
+    (\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
+    (\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
+    (\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)) \<Longrightarrow>
+    (\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))) \<Longrightarrow>
+    (\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))) \<Longrightarrow>
+    (\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
+    (\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
+    (\<And>C1 C2.(\<And>C1' C2'. 
+               (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2)))) \<Longrightarrow> P C1' C2') \<Longrightarrow>
+       P (Neg (Neg C1)) (Neg (Neg C2))) \<Longrightarrow> 
+    P A B\<close>
 proof -
   fix P::"'a neg \<Rightarrow> 'a neg \<Rightarrow> bool" and A B
   assume h1_nri: \<open>\<And>C1 C2. P (Pos C1) (Pos C2)\<close> and 
@@ -487,7 +379,7 @@ proof -
          h6_nri: \<open>\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))\<close> and
          h7_nri: \<open>\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)\<close> and
          h8_nri: \<open>\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))\<close> and
-         h9_nri: \<open>\<And>C1 C2.(\<And>C1' C2'. (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2))))
+         h9_nri: \<open>\<And>C1 C2.(\<And>C1' C2'.(size(C1'),size(C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2))))
                                        \<Longrightarrow> P C1' C2')
                    \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))\<close>
   show \<open>P A B\<close>
@@ -503,7 +395,7 @@ proof -
              (7) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Pos C2\<close> |
              (8) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Neg (Pos C2)\<close> |
              (9) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Neg (Neg C2)\<close>
-      by (meson elementary_formula.cases)
+      by (metis smallest_equivalent_formula_in.elims)
     then show ?case
     proof(cases)
       case 1
@@ -545,7 +437,6 @@ proof -
       case 8
       then obtain C1 C2 where C1_def: \<open>A = Neg (Neg C1)\<close> and C2_def: \<open>B = Neg (Pos C2)\<close>
         by auto
-      
       have \<open>(size C1,size B) < (size A, size B)\<close>
         using C1_def C2_def by auto
       then show ?thesis using h8_nri
@@ -564,10 +455,11 @@ proof -
   qed
 qed
 
-lemma elementary_reduction_in: \<open>C1 \<in> M \<Longrightarrow> C2 \<in> M \<Longrightarrow>
-                               (to_V C1 = to_V C2 \<and> is_Pos C1 = is_Pos C2) \<Longrightarrow> 
-                                 elementary_formula_in C1 M = elementary_formula_in C2 M\<close>
-proof (induction C1 C2  rule:new_red_induction)
+  (*formulas over a set M, which have same to_V and positivity have the same smallest formula in M*)
+lemma smallest_reduction_in: \<open>C1 \<in> M \<Longrightarrow> C2 \<in> M \<Longrightarrow>
+  (to_V C1 = to_V C2 \<and> is_Pos C1 = is_Pos C2) \<Longrightarrow> 
+  smallest_equivalent_formula_in C1 M = smallest_equivalent_formula_in C2 M\<close>
+proof (induction C1 C2  rule:neg_lex_size_induction)
   case (1 C1 C2)
   then show ?case by auto
 next
@@ -579,7 +471,7 @@ next
     by simp
   moreover have \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
     by simp
-  ultimately show ?case using elementary_reduction_basis_Pos_in
+  ultimately show ?case using smallest_reduction_basis_Pos_in
     by (metis "3.prems"(1) "3.prems"(3) is_Pos.simps(1) to_V.simps(1))
 next
   case (4 C1 C2)
@@ -593,7 +485,7 @@ next
     by simp
   moreover have \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
     by simp
-  ultimately show ?case using elementary_reduction_basis_Neg_in
+  ultimately show ?case using smallest_reduction_basis_Neg_in
   by (metis "6.prems"(1) "6.prems"(3) is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1) to_V.simps(2)) 
 next
   case (7 C1 C2)
@@ -601,7 +493,7 @@ next
     by simp
   moreover have \<open>is_Pos (Neg (Neg C1)) = is_Pos C1\<close>
     by simp
-  ultimately show ?case using elementary_reduction_basis_Pos_in
+  ultimately show ?case using smallest_reduction_basis_Pos_in
   by (metis "7.prems"(2) "7.prems"(3) is_Pos.simps(1) to_V.simps(1))
 next
   case (8 C1 C2)
@@ -609,7 +501,7 @@ next
     by simp
   moreover have \<open>is_Pos (Neg (Neg C1)) = is_Pos C1\<close>
     by simp
-  ultimately show ?case using elementary_reduction_basis_Neg_in
+  ultimately show ?case using smallest_reduction_basis_Neg_in
   by (metis "8.prems"(2) "8.prems"(3) is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1) to_V.simps(2))
 next
   case (9 C1 C2)
@@ -621,59 +513,64 @@ next
     by auto
   moreover have stab_is_Pos_C2: \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
     by auto
-  consider (a) \<open>elementary_formula_in C1 M \<in> M \<and> elementary_formula_in C2 M \<in> M\<close> |
-           (b) \<open>elementary_formula_in C1 M \<notin> M \<and> elementary_formula_in C2 M \<in> M\<close> |
-           (c) \<open>elementary_formula_in C1 M \<in> M \<and> elementary_formula_in C2 M \<notin> M\<close> |
-           (d) \<open>elementary_formula_in C1 M \<notin> M \<and> elementary_formula_in C2 M \<notin> M\<close>
+  consider (a) \<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
+           (b) \<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
+           (c) \<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>|
+           (d) \<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>
     by auto
   then show ?case
   proof(cases)
     case a
-    have \<open>to_V (elementary_formula_in C1 M) = to_V (elementary_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) elementary_to_V_stability_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (elementary_formula_in C1 M) = is_Pos (elementary_formula_in C2 M)\<close>
-      using "9.prems"(3) elementary_is_Pos_stability_in by auto
-    moreover have \<open>size (elementary_formula_in C1 M) < size (Neg (Neg C1))\<close>
-      by (metis a elementary_formula_in.simps(3) elementary_is_less_Neg_Neg_n)
-    ultimately have \<open>elementary_formula_in C1 M =
-                     elementary_formula_in C2 M\<close>
+    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
+      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
+    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) =
+                   is_Pos (smallest_equivalent_formula_in C2 M)\<close>
+      using "9.prems"(3) smallest_same_Pos_in by auto
+    moreover have \<open>size (smallest_equivalent_formula_in C1 M) < size (Neg (Neg C1))\<close>
+      by (metis a smallest_equivalent_formula_in.simps(3) size_neg_neg_greater)
+    ultimately have \<open>smallest_equivalent_formula_in C1 M =
+                     smallest_equivalent_formula_in C2 M\<close>
       using a
-      by (metis "9.IH" less_prod_simp projection_elementary_in)
+      by (metis "9.IH" less_prod_simp idempotent_smallest_formula_in)
     then show ?thesis using a by simp
   next
     case b
-    have \<open>to_V (elementary_formula_in C1 M) = to_V (elementary_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) elementary_to_V_stability_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (elementary_formula_in C1 M) = is_Pos (elementary_formula_in C2 M)\<close>
-      using "9.prems"(3) elementary_is_Pos_stability_in by auto
-    moreover have \<open>size (elementary_formula_in (Neg (Neg C1)) M) = size(Neg (Neg C1))\<close>
+    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
+      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
+    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) = 
+                  is_Pos (smallest_equivalent_formula_in C2 M)\<close>
+      using "9.prems"(3) smallest_same_Pos_in by auto
+    moreover have \<open>size (smallest_equivalent_formula_in (Neg (Neg C1)) M) = size(Neg (Neg C1))\<close>
       using b by auto
-    moreover have \<open>size (elementary_formula_in C2 M) < size (Neg (Neg C2))\<close>
-      using b elementary_is_less_Neg_Neg_n by force
-    ultimately have \<open>elementary_formula_in (elementary_formula_in (Neg (Neg C1)) M) =
-                     elementary_formula_in (elementary_formula_in C2 M)\<close>
+    moreover have \<open>size (smallest_equivalent_formula_in C2 M) < size (Neg (Neg C2))\<close>
+      using b size_neg_neg_greater by force
+    ultimately have \<open>smallest_equivalent_formula_in( 
+                       smallest_equivalent_formula_in (Neg (Neg C1)) M) =
+                     smallest_equivalent_formula_in (smallest_equivalent_formula_in C2 M)\<close>
       using b "9.IH"
-      by (metis "9.prems"(1) "9.prems"(3) elementary_is_Pos_stability_in elementary_to_V_stability_in
-        less_prod_simp projection_elementary_in stab_is_Pos_C2 stab_to_V_C2 verit_comp_simplify1(3))
-    then show ?thesis using b projection_elementary_in by simp
+      by (metis "9.prems"(1) "9.prems"(3) smallest_same_Pos_in smallest_same_to_V_in
+        less_prod_simp idempotent_smallest_formula_in
+        stab_is_Pos_C2 stab_to_V_C2 verit_comp_simplify1(3))
+    then show ?thesis using b idempotent_smallest_formula_in by simp
   next
     case c
-    have \<open>to_V (elementary_formula_in C1 M) = to_V (elementary_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) elementary_to_V_stability_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (elementary_formula_in C1 M) = is_Pos (elementary_formula_in C2 M)\<close>
-      using "9.prems"(3) elementary_is_Pos_stability_in by auto
-    moreover have \<open>size (elementary_formula_in (Neg (Neg C2)) M) = size(Neg (Neg C2))\<close>
+    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
+      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
+    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) = 
+                   is_Pos (smallest_equivalent_formula_in C2 M)\<close>
+      using "9.prems"(3) smallest_same_Pos_in by auto
+    moreover have \<open>size (smallest_equivalent_formula_in (Neg (Neg C2)) M) = size(Neg (Neg C2))\<close>
       using c by auto
-    moreover have \<open>size (elementary_formula_in C1 M) < size (Neg (Neg C1))\<close>
-      using c elementary_is_less_Neg_Neg_n by force
-    ultimately have \<open>elementary_formula_in (elementary_formula_in (Neg (Neg C2)) M) =
-                     elementary_formula_in (elementary_formula_in C1 M)\<close>
+    moreover have \<open>size (smallest_equivalent_formula_in C1 M) < size (Neg (Neg C1))\<close>
+      using c size_neg_neg_greater by force
+    ultimately have \<open>smallest_equivalent_formula_in(smallest_equivalent_formula_in(Neg (Neg C2))M)=
+                     smallest_equivalent_formula_in(smallest_equivalent_formula_in C1 M)\<close>
       using "9.IH"
-      by (metis "9.prems"(2) "9.prems"(3) c elementary_is_Pos_stability_in
-        elementary_to_V_stability_in 
-        less_prod_simp projection_elementary_in stab_is_Pos_C1 stab_to_V_C2)
-    then show ?thesis using c projection_elementary_in
-      by (metis elementary_formula_in.simps(3))
+      by (metis "9.prems"(2) "9.prems"(3) c smallest_same_Pos_in
+        smallest_same_to_V_in 
+        less_prod_simp idempotent_smallest_formula_in stab_is_Pos_C1 stab_to_V_C2)
+    then show ?thesis using c idempotent_smallest_formula_in
+      by (metis smallest_equivalent_formula_in.simps(3))
   next
     case d
     have \<open>C1 = C2\<close>
@@ -681,31 +578,36 @@ next
       assume \<open>C1  \<noteq> C2\<close>
       then have Neg_Neg_C1_not_equals_Neg_Neg_C2: \<open>Neg(Neg C1) \<noteq> Neg(Neg C2)\<close>
         by auto
-      then have \<open>\<exists>k. (k\<ge>1) \<and> (iter_fun k add_Neg_Neg (Neg (Neg C1)) = Neg (Neg C2) \<or> 
-                 iter_fun k add_Neg_Neg (Neg (Neg C2)) = Neg (Neg C1))\<close>
+      then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2) \<or> 
+                 (add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1))\<close>
         using sub_formula "9.prems"(3) by blast
       then obtain k where k_not_null: \<open>k \<ge> 1\<close> and
-                          k_def: \<open>iter_fun k add_Neg_Neg (Neg (Neg C1)) = Neg (Neg C2) \<or> 
-                                  iter_fun k add_Neg_Neg (Neg (Neg C2)) = Neg (Neg C1)\<close>
+                          k_def: \<open>(add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2) \<or> 
+                                  (add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1)\<close>
         by blast
-      consider (a) \<open>iter_fun k add_Neg_Neg (Neg (Neg C1)) = Neg (Neg C2)\<close> | 
-               (b) \<open>iter_fun k add_Neg_Neg (Neg (Neg C2)) = Neg (Neg C1)\<close>
+      consider (a) \<open>(add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2)\<close> | 
+               (b) \<open>(add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1)\<close>
         using k_def by auto
       then show \<open>False\<close>
       proof(cases)
         case a
-        have \<open>iter_fun (k-1) add_Neg_Neg (Neg (Neg C1)) = C2\<close>
-          by (smt (verit) a add_Neg_Neg.elims iter_fun.simps(2) k_not_null neg.inject(2)
-            ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
-        then have \<open>elementary_formula_in C2 M \<in> M\<close>
+        have \<open>(add_Neg_Neg^^k) C1 = C2\<close>
+          by (metis a neg.inject(2) sub_formula_basis_Neg_Neg)
+        then have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C1)) = C2\<close>
+          using pow_suc
+          by (metis add_Neg_Neg.elims k_not_null
+              ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
+        then have \<open>smallest_equivalent_formula_in C2 M \<in> M\<close>
           using sub_formula_csq "9.prems"(1) by auto
         then show ?thesis using d by auto
       next
         case b
-        have \<open>iter_fun (k-1) add_Neg_Neg (Neg (Neg C2)) = C1\<close>
-          by (smt (verit, del_insts) add_Neg_Neg.elims b iter_fun.simps(2) k_not_null neg.inject(2)
-            ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
-        then have \<open>elementary_formula_in C1 M \<in> M\<close>
+        have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C2)) = C1\<close>
+          using pow_suc
+        by (smt (verit, del_insts) add_Neg_Neg.elims b k_not_null neg.inject(2) 
+            ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc 
+            sub_formula_basis_Neg_Neg)
+        then have \<open>smallest_equivalent_formula_in C1 M \<in> M\<close>
           using sub_formula_csq "9.prems"(2) by auto
         then show ?thesis using d by auto
       qed
@@ -728,7 +630,7 @@ locale consequence_relation =
     entails_reflexive: "{C} \<Turnstile> {C}" and
     entails_subsets: "M' \<subseteq> M \<Longrightarrow> N' \<subseteq> N \<Longrightarrow> M' \<Turnstile> N' \<Longrightarrow> M \<Turnstile> N" and
     entails_cut : "M \<Turnstile> N \<union> {C} \<Longrightarrow> M' \<union> {C} \<Turnstile> N' \<Longrightarrow> M \<union> M'\<Turnstile> N \<union> N'" and
-    entails_compactness : "M \<Turnstile> N \<Longrightarrow> \<exists> M' N'. (M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N') "
+    entails_compactness : "M \<Turnstile> N \<Longrightarrow> \<exists> M' N'. (M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N')"
     (*entails_supsets: "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"*)
     (* the version of D4 below was relaxed to fix lemma 6, which was found broken due to the forma *)
     (* entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" *)
@@ -1227,7 +1129,7 @@ proof (rule ccontr)
             obtain M0 N0 where M0_N0_def : \<open>(M0,N0)\<in> \<R>'\<close>
               using not_empty_\<R>' by auto
             define bij_nat :: "nat \<Rightarrow> ('f set \<times> 'f set)" where
-              \<open>bij_nat \<equiv> \<lambda>k. iter_fun k find_dif (M0, N0)\<close>
+              \<open>bij_nat \<equiv> \<lambda>k. (find_dif^^k) (M0, N0)\<close>
             have bij_nat_in_\<R>' : \<open>bij_nat k \<in> \<R>'\<close> for k
             proof (induction k)
               case 0
@@ -1255,10 +1157,11 @@ proof (rule ccontr)
               by simp
             then have \<open>find_dif (bij_nat k) = (SOME (M,N). (M,N)\<in>\<R>' \<and> bij_nat k \<prec>\<^sub>s (M,N))\<close> for k
               unfolding find_dif_def
-              by auto 
-            then have bij_nat_croiss : \<open>(bij_nat (k::nat)) \<prec>\<^sub>s (bij_nat (Suc k))\<close> for k
-              by (metis (mono_tags, lifting) new_major_general bij_nat_def
-                  case_prod_conv iter_fun.simps(2) some_eq_imp surj_pair)
+              by auto
+            then have \<open>bij_nat k \<prec>\<^sub>s find_dif (bij_nat k)\<close> for k
+              by (metis (mono_tags, lifting) case_prod_conv new_major_general some_eq_imp surj_pair)
+            then have bij_nat_croiss: \<open>(bij_nat (k::nat)) \<prec>\<^sub>s (bij_nat (Suc k))\<close> for k
+              using bij_nat_def by simp
             have bij_nat_general_croiss : \<open>i < j \<Longrightarrow> bij_nat i \<prec>\<^sub>s bij_nat j\<close> for i j
             proof -
               assume hyp_croiss : \<open>i < j\<close>
@@ -1572,54 +1475,54 @@ definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> boo
   "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
 
-lemma elementary_entailment:
-  \<open>M \<Turnstile>\<^sub>\<sim> N \<Longrightarrow> {elementary_formula_in C M |C. C\<in>M} \<Turnstile>\<^sub>\<sim> {elementary_formula_in C N |C. C\<in>N}\<close>
+lemma smallest_entailment:
+  \<open>M \<Turnstile>\<^sub>\<sim> N \<Longrightarrow> {smallest_equivalent_formula_in C M |C. C\<in>M} \<Turnstile>\<^sub>\<sim> {smallest_equivalent_formula_in C N |C. C\<in>N}\<close>
 proof -
   assume \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
   then have M_entails_N: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
                           {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
     unfolding entails_neg_def .
   moreover have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
-                 {to_V (elementary_formula_in C M) |C. C \<in> M  \<and> is_Pos C}\<close>
-    using elementary_same_to_V_in by metis
+                 {to_V (smallest_equivalent_formula_in C M) |C. C \<in> M  \<and> is_Pos C}\<close>
+    using smallest_same_to_V_in by metis
   then have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
-             {to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C}\<close>
-    using elementary_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+             {to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C}\<close>
+    using smallest_same_Pos_in by auto
+  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
                    {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
                    {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
     by simp
   moreover have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} = 
-                 {to_V (elementary_formula_in C N) |C. C \<in> N  \<and> \<not>is_Pos C}\<close>
-    using elementary_same_to_V_in by metis
+                 {to_V (smallest_equivalent_formula_in C N) |C. C \<in> N  \<and> \<not>is_Pos C}\<close>
+    using smallest_same_to_V_in by metis
   then have \<open>{to_V C |C. C \<in> N \<and> \<not>is_Pos C} = 
-             {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C}\<close>
-    using elementary_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M} \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C} \<Turnstile>
+             {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C}\<close>
+    using smallest_same_Pos_in by auto
+  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M} \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C} \<Turnstile>
                    {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
     by simp
   moreover have \<open>{to_V C |C. C \<in> N \<and>  is_Pos C} = 
-                 {to_V (elementary_formula_in C N) |C. C \<in> N  \<and> is_Pos C}\<close>
-    using elementary_same_to_V_in by metis
+                 {to_V (smallest_equivalent_formula_in C N) |C. C \<in> N  \<and> is_Pos C}\<close>
+    using smallest_same_to_V_in by metis
   then have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} = 
-             {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N} \<and> is_Pos C}\<close>
-    using elementary_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
+             {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> is_Pos C}\<close>
+    using smallest_same_Pos_in by auto
+  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
                    {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
     by simp
   moreover have \<open>{to_V C |C. C \<in> M \<and>  \<not>is_Pos C} = 
-                 {to_V (elementary_formula_in C M) |C. C \<in> M  \<and> \<not>is_Pos C}\<close>
-    using elementary_same_to_V_in by metis
+                 {to_V (smallest_equivalent_formula_in C M) |C. C \<in> M  \<and> \<not>is_Pos C}\<close>
+    using smallest_same_to_V_in by metis
   then have \<open>{to_V C |C. C \<in> M \<and> \<not>is_Pos C} = 
-             {to_V C |C. C \<in> {elementary_formula_in C M|C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
-    using elementary_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> {elementary_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {elementary_formula_in C M |C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
+             {to_V C |C. C \<in> {smallest_equivalent_formula_in C M|C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
+    using smallest_same_Pos_in by auto
+  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
+                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
     by simp
   then show ?thesis unfolding entails_neg_def by auto
 qed
@@ -1913,106 +1816,106 @@ next
   then have \<open>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<Turnstile>\<^sub>\<sim> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
     unfolding entails_neg_def by simp
   then have M'_N'_finite_compactness:
-    \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+    \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                  C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<Turnstile>\<^sub>\<sim> 
-     {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} | 
+     {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} | 
                                  C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    using elementary_entailment by blast
-  have \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+    using smallest_entailment by blast
+  have \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                       C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
                  {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}\<close>
-    using elementary_inclusion_in
+    using smallest_inclusion_in
     by (smt (verit, best) Collect_mono mem_Collect_eq)
   then have left_entailment_neg_in_M:
-     \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+     \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> M\<close>
     by blast
-  have \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+  have \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                       C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
                  {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
-    using elementary_inclusion_in
+    using smallest_inclusion_in
     by (smt (verit, best) Collect_mono mem_Collect_eq)
   then have right_entailment_neg_in_N:
-     \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+     \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> N\<close>
     by blast
-  have elementary_inclusion_decomposed:
-        \<open>{elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'} \<subseteq>
-        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C} \<union>
-        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C}\<close> for S
+  have smallest_inclusion_decomposed:
+        \<open>{smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'} \<subseteq>
+        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C} \<union>
+        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C}\<close> for S
     by auto
   have \<open>\<forall>D \<in> M' \<union> N'.
     (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> is_Pos C1 \<and>
                 C2 \<in> S \<and> (to_V C2) = D \<and> is_Pos C2) \<longrightarrow>
-      elementary_formula_in C1 S = elementary_formula_in C2 S)\<close> for S
-    using elementary_reduction_in by metis
+      smallest_equivalent_formula_in C1 S = smallest_equivalent_formula_in C2 S)\<close> for S
+    using smallest_reduction_in by metis
   then have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<and>
-               (C2 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<longrightarrow>
+    (\<forall>C1. \<forall>C2. (C1 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<and>
+               (C2 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<longrightarrow>
                C1 = C2)\<close> for S
     by blast
   then have \<open>\<forall>D \<in> M' \<union> N'.
-    finite({elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C})\<close> for S
+    finite({smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C})\<close> for S
     using finite_because_singleton by (metis (no_types, lifting))
   then have \<open>finite(
-    {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C})\<close> for S
+    {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C})\<close> for S
     using M'_union_N'_finite finite_UN_I
-    finite_union_in_conditions[of "M'\<union>N'" "\<lambda>C. elementary_formula_in C S" 
+    finite_union_of_finite_is_finite[of "M'\<union>N'" "\<lambda>C. smallest_equivalent_formula_in C S" 
                                   "\<lambda>C. (C \<in> S \<and> is_Pos C)" "\<lambda>C. to_V C"]
-    by (smt (verit, ccfv_threshold) Collect_cong elementary_reduction_in
+    by (smt (verit, ccfv_threshold) Collect_cong smallest_reduction_in
         finite_because_singleton mem_Collect_eq) 
   moreover have \<open>\<forall>D \<in> M' \<union> N'.
     (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> \<not>is_Pos C1 \<and>
                 C2 \<in> S \<and> (to_V C2) = D \<and> \<not>is_Pos C2) \<longrightarrow>
-      elementary_formula_in C1 S = elementary_formula_in C2 S)\<close> for S
-    using elementary_reduction_in by metis
+      smallest_equivalent_formula_in C1 S = smallest_equivalent_formula_in C2 S)\<close> for S
+    using smallest_reduction_in by metis
   then have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<and>
-               (C2 \<in> {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<longrightarrow>
+    (\<forall>C1. \<forall>C2. (C1 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<and>
+               (C2 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<longrightarrow>
                C1 = C2)\<close> for S
     by blast
   then have \<open>\<forall>D \<in> M' \<union> N'.
-    finite({elementary_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C})\<close> for S
+    finite({smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C})\<close> for S
     using finite_because_singleton by (metis (no_types, lifting))
   then have \<open>finite(
-    {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S
+    {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S
     using M'_union_N'_finite finite_UN_I
-    finite_union_in_conditions[of "M'\<union>N'" "\<lambda>C. elementary_formula_in C S" 
+    finite_union_of_finite_is_finite[of "M'\<union>N'" "\<lambda>C. smallest_equivalent_formula_in C S" 
                                   "\<lambda>C. (C \<in> S \<and> \<not>is_Pos C)" "\<lambda>C. to_V C"]
-    by (smt (verit, ccfv_threshold) Collect_cong elementary_reduction_in
+    by (smt (verit, ccfv_threshold) Collect_cong smallest_reduction_in
         finite_because_singleton mem_Collect_eq) 
   ultimately have  \<open>finite(
-        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'  \<and> is_Pos C} \<union>
-        {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S 
+        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'  \<and> is_Pos C} \<union>
+        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S 
     by blast
-  then have finite_elementary_formula_in_M'_N':
-    \<open>finite {elementary_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'}\<close> for S
-    using elementary_inclusion_decomposed
+  then have finite_smallest_equivalent_formula_in_M'_N':
+    \<open>finite {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'}\<close> for S
+    using smallest_inclusion_decomposed
     by (meson rev_finite_subset)
   then have 
-    \<open>finite {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
     by blast
-  moreover have \<open>{elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+  moreover have \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
-                 {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+                 {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
     by blast
   ultimately have right_neg_finite:
-    \<open>finite {elementary_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
+    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
     by force
   moreover have 
-    \<open>finite {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
-    using finite_elementary_formula_in_M'_N' by blast
-  moreover have \<open>{elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+    using finite_smallest_equivalent_formula_in_M'_N' by blast
+  moreover have \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
-                 {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+                 {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
     by blast
   ultimately have left_neg_finite:
-    \<open>finite {elementary_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
+    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
     by force
   have \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>\<sim> N'\<close>
