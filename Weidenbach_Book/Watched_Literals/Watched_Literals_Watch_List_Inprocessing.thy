@@ -1599,9 +1599,13 @@ definition subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> 'v subsumption \
    ASSERT(subsume_or_strengthen_wl_pre C s (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
    (case s of
      NONE \<Rightarrow> RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)
-   | SUBSUMED_BY C' \<Rightarrow> RETURN (M, fmdrop C (if \<not>irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N), D,
+   | SUBSUMED_BY C' \<Rightarrow> do {
+       let T = (M, fmdrop C (if \<not>irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N), D,
           NE, UE, NEk, UEk, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
-      (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W)
+         (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W);
+        ASSERT (set_mset (all_init_atms_st T) = set_mset (all_init_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W)));
+        RETURN T
+     }
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W))
   })\<close>
 
@@ -1673,37 +1677,44 @@ proof -
     done
 qed
 
+lemma case_subsumption_refine:
+  \<open>(a,b)\<in>Id \<Longrightarrow>
+  (is_subsumed a \<Longrightarrow> f(subsumed_by a )\<le> \<Down>R (f' (subsumed_by b))) \<Longrightarrow>
+  (is_strengthened a \<Longrightarrow> g (strengthened_on_lit a) (strengthened_by a) \<le> \<Down>R (g' (strengthened_on_lit a) (strengthened_by a))) \<Longrightarrow>
+  (a = NONE \<Longrightarrow> h \<le>\<Down>R h') \<Longrightarrow>
+  case_subsumption f g h a \<le> \<Down> R (case_subsumption f' g' h' b)\<close>
+  by (cases a) auto
+
 lemma subsume_or_strengthen_wl_subsume_or_strengthen:
   assumes 
     \<open>(C, C') \<in> nat_rel\<close> and
     \<open>(s, s') \<in> Id\<close> and
     \<open>(S, S') \<in> state_wl_l None\<close> and
-    \<open>is_subsumed s' \<Longrightarrow> subsumed_by s' \<in># dom_m (get_clauses_wl S)\<close> and
-    \<open>is_strengthened s' \<Longrightarrow> strengthened_by s' \<in># dom_m (get_clauses_wl S)\<close> and
     \<open>C \<in># dom_m (get_clauses_wl S)\<close>
   shows \<open>subsume_or_strengthen_wl C s S \<le> \<Down>{(T, T'). (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S}
     (subsume_or_strengthen C' s' S')\<close>
     using assms
-  unfolding subsume_or_strengthen_wl_def subsume_or_strengthen_def
-  apply (refine_vcg strengthen_clause_wl_strengthen_clause)
+  unfolding subsume_or_strengthen_wl_def subsume_or_strengthen_def Let_def
+  apply (refine_vcg strengthen_clause_wl_strengthen_clause case_subsumption_refine)
   subgoal unfolding subsume_or_strengthen_wl_pre_def by fast
+  subgoal premises p
+    using assms p(32-) unfolding p(1-31)
+    by (auto simp: state_wl_l_def all_init_lits_of_wl_def all_init_lits_of_l_def
+      all_init_atms_st_alt_def get_init_clss_l_def)
   subgoal
     unfolding in_pair_collect_simp
-    apply (split subsumption.splits; intro conjI)
-    subgoal
-      by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
-        intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
-        split: subsumption.splits)
-    subgoal
-      by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
-        intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
-        split: subsumption.splits)
-    subgoal
-      by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
-        no_lost_clause_in_WL_def
-        intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
-        split: subsumption.splits)
-    done
+    by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
+      intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans] ASSERT_leI
+      split: subsumption.splits)
+  subgoal
+    by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
+      intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
+      split: subsumption.splits)
+  subgoal
+    by (auto simp: state_wl_l_def subsume_or_strengthen_pre_def strengthen_clause_pre_def
+      no_lost_clause_in_WL_def
+      intro!: strengthen_clause_wl_strengthen_clause[THEN order_trans]
+      split: subsumption.splits)
   done
 
 
@@ -1823,16 +1834,6 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using assms by auto
-    subgoal using assms unfolding forward_subsumption_one_inv_def subsume_or_strengthen_pre_def
-      prod.simps
-      apply - apply normalize_goal+ 
-      by (simp add: try_to_subsume_def
-        forward_subsumption_one_inv_def subsume_or_strengthen_pre_def split: subsumption.splits)
-    subgoal using assms unfolding forward_subsumption_one_inv_def subsume_or_strengthen_pre_def
-      prod.simps
-      apply - apply normalize_goal+ 
-      by (simp add: try_to_subsume_def
-        forward_subsumption_one_inv_def subsume_or_strengthen_pre_def split: subsumption.splits)
     subgoal using assms unfolding forward_subsumption_one_inv_def subsume_or_strengthen_pre_def
       prod.simps
       apply - apply normalize_goal+ 

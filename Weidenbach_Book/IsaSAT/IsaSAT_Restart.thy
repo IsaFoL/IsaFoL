@@ -1953,6 +1953,17 @@ lemma mop_arena_status2:
     (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
      arena_lifting)
 
+lemma mop_arena_status3:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in># dom_m N\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, irred N C)
+    \<in> {(a,b). (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C) \<and> b = (irred N C)\<and>  (a \<noteq> DELETED)})\<close>
+  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
+  by (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
+     arena_lifting)
 (*END Move*)
 (*TODO Move*)
 lemma mop_arena_status_vdom:

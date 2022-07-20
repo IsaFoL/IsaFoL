@@ -157,7 +157,7 @@ abbreviation D\<^sub>1 :: \<open>nat set \<Rightarrow> (nat \<times> nat literal
   \<open>D\<^sub>1 \<A>\<^sub>i\<^sub>n \<equiv> (\<lambda>L. (nat_of_lit L, L)) ` (Pos ` \<A>\<^sub>i\<^sub>n \<union> Neg ` \<A>\<^sub>i\<^sub>n)\<close>
 
 definition occurrence_list_ref :: \<open>(occurences_ref \<times> occurences) set\<close> where
-  \<open>occurrence_list_ref \<equiv> {(xs, (n, ys)). (xs, ys)\<in>\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>map_fun_rel (D\<^sub>1 n)}\<close>
+  \<open>occurrence_list_ref \<equiv> {(xs, (n, ys)). (xs, ys)\<in>\<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>map_fun_rel (D\<^sub>1 n) \<and> (\<forall>L. L \<notin> fst ` (D\<^sub>1 n) \<longrightarrow> L < length xs \<longrightarrow> xs ! L = [])}\<close>
 
 lemma empty_occs_list_cong':
   \<open>set_mset A = set_mset B \<Longrightarrow> (occs, empty_occs_list A) \<in> occurrence_list_ref \<Longrightarrow> (occs, empty_occs_list B) \<in> occurrence_list_ref\<close>
@@ -254,7 +254,7 @@ lemma mop_cocc_list_append_mop_occ_list_append:
     \<open>(L,L')\<in>Id\<close> and
     \<open>(x,x')\<in>nat_rel\<close>
   shows
-    \<open>mop_cocc_list_append x xs L \<le> \<Down>(occurrence_list_ref) (mop_occ_list_append x' \<A>xs L')\<close>
+    \<open>mop_cocc_list_append x xs L \<le> \<Down>{(a,b). (a,b)\<in>occurrence_list_ref \<and> a = cocc_list_append x xs L \<and> nat_of_lit L < length xs} (mop_occ_list_append x' \<A>xs L')\<close>
   using assms
   unfolding mop_cocc_list_append_def mop_occ_list_append_def occurrence_list_ref_def
   apply refine_vcg
@@ -263,9 +263,11 @@ lemma mop_cocc_list_append_mop_occ_list_append:
      (auto simp: cocc_list_append_pre_def occ_list_append_pre_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
         map_fun_rel_def  dest!: bspec[of _ _ L])
   subgoal
-    by (cases L)
-     (auto simp: cocc_list_append_pre_def occ_list_append_pre_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
-        map_fun_rel_def cocc_list_append_def occ_list_append_def; force)+
+    apply (cases L)
+    apply (auto simp: cocc_list_append_pre_def occ_list_append_pre_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+        map_fun_rel_def cocc_list_append_def occ_list_append_def)
+    apply (force simp add: image_image image_Un)+
+    done
   done
 
 definition mop_cocc_list_create :: \<open>nat \<Rightarrow> occurences_ref nres\<close> where
@@ -617,5 +619,34 @@ definition mop_cch_remove_all :: \<open>nat clause_l \<Rightarrow> bool list \<R
       (0, D);
     RETURN D
   }\<close>
+
+
+abbreviation cocc_content :: \<open>nat list list \<Rightarrow> nat multiset\<close>  where
+  \<open>cocc_content coccs \<equiv> sum_list (map mset coccs)\<close>
+
+definition cocc_content_set :: \<open>nat list list \<Rightarrow> nat set\<close> where
+  \<open>cocc_content_set coccs \<equiv> \<Union>(image set (set coccs))\<close>
+
+(*TODO why doesn't that come from subset_mset.sum_list_update?*)
+lemma sum_list_update_mset:
+  "k < size xs \<Longrightarrow> sum_list (xs[k := x]) = sum_list xs + x - xs ! k" for xs :: \<open>'a multiset list\<close>
+  unfolding sum_mset_sum_list[symmetric]
+  apply (subst mset_update, assumption)
+  apply (auto simp: cancel_comm_monoid_add_class.sum_mset_diff ac_simps)
+  done
+
+lemma sum_list_cocc_list_append[simp]: \<open>nat_of_lit La < length coccs \<Longrightarrow> sum_list (map mset (cocc_list_append C coccs La)) = add_mset C (sum_list (map mset coccs))\<close>
+  apply (auto simp: cocc_list_append_def map_update sum_list_update sum_list_update_mset)
+  done
+
+lemma cocc_content_set_append[simp]:
+  \<open>nat_of_lit La < length coccs \<Longrightarrow> cocc_content_set (cocc_list_append C coccs La) = insert C (cocc_content_set coccs)\<close>
+  apply (simp only: cocc_content_set_def cocc_list_append_def in_set_upd_eq)
+  apply auto
+  apply (smt (verit, ccfv_threshold) in_set_conv_nth in_set_upd_cases length_Suc_rev_conv nat_neq_iff not_less_eq nth_append_first nth_append_length nth_mem)
+  unfolding Bex_def
+  apply (subst in_set_upd_eq, simp)
+  apply (metis in_set_conv_nth length_Suc_rev_conv nat_in_between_eq(1) nth_append_length)
+  by (smt (verit, best) in_set_conv_nth le_imp_less_Suc length_Suc_rev_conv length_list_update less_imp_le_nat list_update_append1 list_update_id nth_list_update_neq set_update_memI)
 
 end

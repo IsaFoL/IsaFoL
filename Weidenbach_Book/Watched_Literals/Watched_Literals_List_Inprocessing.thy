@@ -1689,7 +1689,7 @@ definition strengthen_clause :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v li
   })\<close>
 
 definition subsume_or_strengthen_pre :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>subsume_or_strengthen_pre = (\<lambda>C s S. length (get_clauses_l S \<propto> C) \<ge> 2 \<and>
+  \<open>subsume_or_strengthen_pre = (\<lambda>C s S. length (get_clauses_l S \<propto> C) \<ge> 2 \<and> C \<in># dom_m (get_clauses_l S) \<and>
   count_decided (get_trail_l S) = 0 \<and> distinct (get_clauses_l S \<propto> C) \<and> (\<forall>L\<in>set (get_clauses_l S \<propto> C). undefined_lit (get_trail_l S) L) \<and> get_conflict_l S = None \<and>
   C \<notin> set (get_all_mark_of_propagated (get_trail_l S)) \<and> clauses_to_update_l S = {#} \<and>
    (case s of
@@ -1705,9 +1705,12 @@ definition subsume_or_strengthen :: \<open>nat \<Rightarrow> 'v subsumption \<Ri
    ASSERT(subsume_or_strengthen_pre C s (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q));
    (case s of
      NONE \<Rightarrow> RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)
-   | SUBSUMED_BY C' \<Rightarrow> RETURN (M, fmdrop C (if \<not>irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N), D,
+   | SUBSUMED_BY C' \<Rightarrow> do { let T= (M, fmdrop C (if \<not>irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N), D,
           NE, UE, NEk, UEk, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
-      (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, WS, Q)
+           (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, WS, Q);
+       ASSERT (set_mset (all_init_lits_of_l T) = set_mset (all_init_lits_of_l  (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q)));
+       RETURN T
+     }
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q))
   })\<close>
 
@@ -2046,6 +2049,65 @@ lemma subresolution_strengtheningI:
     done
   done
 
+lemma cdcl_twl_inprocessing_l_all_init_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l S T\<close>
+  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
+proof -
+  have [simp]: \<open>D \<notin># A \<Longrightarrow> {#the (if D = x then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close>
+    \<open>D \<notin># A \<Longrightarrow> {#the (if x = D then b else fmlookup N x). x \<in># A#} =
+    {#the (fmlookup N x). x \<in># A#}\<close> for D E N A b
+    by (auto intro!: image_mset_cong)
+  have dups_uniq[dest]: \<open>remdups_mset D' = {#K#} \<Longrightarrow> set_mset (all_lits_of_m D') = {-K,K}\<close> for D' K
+    by (metis all_lits_of_m_add_mset all_lits_of_m_empty all_lits_of_m_remdups_mset
+      insert_commute set_mset_add_mset_insert set_mset_empty)
+  have [simp]: \<open>- L \<in># all_lits_of_m a \<longleftrightarrow> L \<in># all_lits_of_m a\<close>
+     \<open>- L \<in># all_lits_of_mm b \<longleftrightarrow> L \<in># all_lits_of_mm b\<close>
+    \<open>L \<in># xb \<Longrightarrow> L \<in># all_lits_of_m xb\<close> for L a xb b
+    by (solves \<open>cases L, auto simp: rev_image_eqI all_lits_of_m_def all_lits_of_mm_def\<close>)+
+
+  have [simp]: \<open>L \<in># all_lits_of_m (mset (N \<propto> xa)) \<longleftrightarrow> L \<in> set (N \<propto> xa) \<or> -L \<in> set (N \<propto> xa)\<close>
+    for L N xa xb
+    by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_all_lits_of_m_ain_atms_of_iff)
+
+  show ?thesis
+    using assms
+    using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
+    supply [[goals_limit=1]]
+    apply (induction rule: cdcl_twl_inprocessing_l.induct)
+    by (auto 4 3 simp: cdcl_twl_unitres_l.simps
+      cdcl_twl_unitres_true_l.simps
+      cdcl_twl_subsumed_l.simps
+      cdcl_twl_subresolution_l.simps
+      all_init_lits_of_l_def
+      add_mset_eq_add_mset removeAll_notin
+      get_init_clss_l_def init_clss_l_mapsto_upd_notin
+      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
+      all_lits_of_m_add_mset distinct_mset_remove1_All
+      init_clss_l_fmupd_if all_lits_of_mm_add_mset
+      all_lits_of_m_remdups_mset
+      dest!: multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
+      dest: all_lits_of_m_mono)[4]
+    (auto simp: cdcl_twl_pure_remove_l.simps
+      all_init_lits_of_l_def
+      add_mset_eq_add_mset removeAll_notin
+      get_init_clss_l_def init_clss_l_mapsto_upd_notin
+      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
+      all_lits_of_m_add_mset distinct_mset_remove1_All
+      init_clss_l_fmupd_if all_lits_of_mm_add_mset all_lits_of_mm_union
+      all_lits_of_m_remdups_mset
+    dest!: multi_member_split[of \<open>_\<close> \<open>_ :: _ clauses\<close>]
+        multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
+    dest: all_lits_of_m_mono
+    intro: in_clause_in_all_lits_of_m)
+qed
+
+lemma rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l:
+  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
+  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_all_init_lits_of_l)
+
 lemma subsume_or_strengthen:
   assumes \<open>subsume_or_strengthen_pre C s S\<close> \<open>C \<in># dom_m (get_clauses_l S)\<close>
   shows
@@ -2071,11 +2133,33 @@ proof -
   using assms unfolding subsume_or_strengthen_def
   apply refine_vcg+
   subgoal by auto
-  subgoal for M b N ba NE bb UE bc NEk bd UEk be NS bf US bg NS0 bh US0 bi WS Q
+  subgoal for M b N ba NE bb UE bc NEk bd UEk be NS bf US bg NS0 bh US0 bi WS bj Q occs
     apply (cases s)
     subgoal for C'
-      by auto (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
-        intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp dest!: in_diffD)
+      apply (simp only: Let_def subsumption.case(1))
+      apply refine_vcg
+      subgoal
+        apply (subgoal_tac \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>*
+          (M, N, NE, UE, NEk, UEk, NS, US, NS0, US0, WS, Q, occs)
+          (M, fmdrop C (if \<not> irred N C' \<and> irred N C then fmupd C' (N \<propto> C', True) N else N),
+             NE, UE, NEk, UEk, NS,
+             (if irred N C then add_mset (mset (N \<propto> C)) else id) US,
+             (if \<not> irred N C then add_mset (mset (N \<propto> C)) else id) NS0, US0, WS, Q,  occs)\<close>)
+        subgoal
+          by (frule rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l)
+           presburger
+        subgoal by auto (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
+           intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp dest!: in_diffD)
+        done
+      subgoal by auto (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
+           intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp dest!: in_diffD)
+      subgoal by auto
+      subgoal by auto
+      subgoal by auto  (auto 8 8 simp: subsume_or_strengthen_pre_def cdcl_twl_subsumed_l.simps fmdrop_fmupd
+           intro!: cdcl_twl_inprocessing_l.intros(3) r_into_rtranclp dest!: in_diffD)
+      subgoal by auto 
+      subgoal by auto
+      done
     subgoal
       apply (clarsimp simp only: strengthen_clause_def subsumption.case Let_def
         intro!: ASSERT_leI impI)
@@ -2172,7 +2256,6 @@ lemma rtranclp_cdcl_twl_inprocessing_l_twl_list_invs:
     \<open>twl_list_invs U\<close>
   using assms by (induction rule: rtranclp_induct)
     (auto simp: cdcl_twl_inprocessing_l_twl_list_invs)
- 
 
 lemma cdcl_twl_inprocessing_l_twl_st_l:
   assumes \<open>cdcl_twl_inprocessing_l S U\<close> and
@@ -2783,65 +2866,6 @@ definition mark_duplicated_binary_clauses_as_garbage :: \<open>_ \<Rightarrow> '
      (S, Ls);
     RETURN S
   }\<close>
-
-lemma cdcl_twl_inprocessing_l_all_init_lits_of_l:
-  assumes \<open>cdcl_twl_inprocessing_l S T\<close>
-  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
-proof -
-  have [simp]: \<open>D \<notin># A \<Longrightarrow> {#the (if D = x then b else fmlookup N x). x \<in># A#} =
-    {#the (fmlookup N x). x \<in># A#}\<close>
-    \<open>D \<notin># A \<Longrightarrow> {#the (if x = D then b else fmlookup N x). x \<in># A#} =
-    {#the (fmlookup N x). x \<in># A#}\<close> for D E N A b
-    by (auto intro!: image_mset_cong)
-  have dups_uniq[dest]: \<open>remdups_mset D' = {#K#} \<Longrightarrow> set_mset (all_lits_of_m D') = {-K,K}\<close> for D' K
-    by (metis all_lits_of_m_add_mset all_lits_of_m_empty all_lits_of_m_remdups_mset
-      insert_commute set_mset_add_mset_insert set_mset_empty)
-  have [simp]: \<open>- L \<in># all_lits_of_m a \<longleftrightarrow> L \<in># all_lits_of_m a\<close>
-     \<open>- L \<in># all_lits_of_mm b \<longleftrightarrow> L \<in># all_lits_of_mm b\<close>
-    \<open>L \<in># xb \<Longrightarrow> L \<in># all_lits_of_m xb\<close> for L a xb b
-    by (solves \<open>cases L, auto simp: rev_image_eqI all_lits_of_m_def all_lits_of_mm_def\<close>)+
-
-  have [simp]: \<open>L \<in># all_lits_of_m (mset (N \<propto> xa)) \<longleftrightarrow> L \<in> set (N \<propto> xa) \<or> -L \<in> set (N \<propto> xa)\<close>
-    for L N xa xb
-    by (simp add: atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set in_all_lits_of_m_ain_atms_of_iff)
-
-  show ?thesis
-    using assms
-    using distinct_mset_dom[of \<open>get_clauses_l S\<close>] apply -
-    supply [[goals_limit=1]]
-    apply (induction rule: cdcl_twl_inprocessing_l.induct)
-    by (auto 4 3 simp: cdcl_twl_unitres_l.simps
-      cdcl_twl_unitres_true_l.simps
-      cdcl_twl_subsumed_l.simps
-      cdcl_twl_subresolution_l.simps
-      all_init_lits_of_l_def
-      add_mset_eq_add_mset removeAll_notin
-      get_init_clss_l_def init_clss_l_mapsto_upd_notin
-      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
-      all_lits_of_m_add_mset distinct_mset_remove1_All
-      init_clss_l_fmupd_if all_lits_of_mm_add_mset
-      all_lits_of_m_remdups_mset
-      dest!: multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
-      dest: all_lits_of_m_mono)[4]
-    (auto simp: cdcl_twl_pure_remove_l.simps
-      all_init_lits_of_l_def
-      add_mset_eq_add_mset removeAll_notin
-      get_init_clss_l_def init_clss_l_mapsto_upd_notin
-      init_clss_l_mapsto_upd ran_m_def all_lits_of_m_union
-      all_lits_of_m_add_mset distinct_mset_remove1_All
-      init_clss_l_fmupd_if all_lits_of_mm_add_mset all_lits_of_mm_union
-      all_lits_of_m_remdups_mset
-    dest!: multi_member_split[of \<open>_\<close> \<open>_ :: _ clauses\<close>]
-        multi_member_split[of \<open>_ :: nat\<close> \<open>_\<close>]
-    dest: all_lits_of_m_mono
-    intro: in_clause_in_all_lits_of_m)
-qed
-
-lemma rtranclp_cdcl_twl_inprocessing_l_all_init_lits_of_l:
-  assumes \<open>cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T\<close>
-  shows \<open>set_mset (all_init_lits_of_l S) = set_mset (all_init_lits_of_l T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_inprocessing_l_all_init_lits_of_l)
 
 lemma cdcl_twl_inprocessing_l_all_learned_lits_of_l:
   assumes \<open>cdcl_twl_inprocessing_l S T\<close>
