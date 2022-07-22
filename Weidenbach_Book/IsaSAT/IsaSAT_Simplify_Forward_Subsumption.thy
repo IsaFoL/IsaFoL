@@ -1255,10 +1255,122 @@ definition isa_subsume_or_strengthen_wl_pre :: \<open>_\<close> where
    (\<exists>T r u.  (S,T)\<in>twl_st_heur_restart_occs' r u \<and> subsume_or_strengthen_wl_pre C s T)\<close>
 
 (*TODO Move to arena definitions*)
+definition arena_set_status where
+  \<open>arena_set_status arena C b= do {
+    (arena[C - STATUS_SHIFT := AStatus b (arena_used arena C) (arena_lbd arena C)])
+  }\<close>
+
+lemma length_arena_set_status[simp]:
+  \<open>length (arena_set_status arena C b) = length arena\<close>
+  by (auto simp: arena_set_status_def)
+
+lemma valid_arena_arena_set_status:
+  assumes
+    valid: \<open>valid_arena arena N vdm\<close> and
+    C: \<open>C \<in># dom_m N\<close> and
+    b: \<open>b = IRRED \<or> b = LEARNED\<close> and
+    b': \<open>b' \<longleftrightarrow> b = IRRED\<close>
+  shows \<open>valid_arena (arena_set_status arena C b) (fmupd C (N \<propto> C, b') N) vdm\<close>
+proof -
+  have [simp]: \<open>i - 2 \<le> length arena\<close> and
+    [simp]: \<open>C - 2 = i - 2 \<longleftrightarrow> C =i\<close> if \<open>i \<in> vdm\<close> for i
+    apply (meson less_imp_diff_less less_imp_le_nat that valid valid_arena_def)
+    by (metis C STATUS_SHIFT_def add_diff_inverse_nat arena_lifting(16) that valid valid_arena_in_vdom_le_arena(2) verit_comp_simplify1(3))
+  have [iff]: \<open>arena_dead_clause (Misc.slice (i - 2) i (arena_set_status arena C b)) \<longleftrightarrow>
+    arena_dead_clause (Misc.slice (i - 2) i arena)\<close>
+    if \<open>i \<notin># dom_m N\<close> and \<open>i \<in> vdm\<close> for i
+    using minimal_difference_between_invalid_index2[OF valid C that(1) _ that(2)]
+      minimal_difference_between_invalid_index[OF valid C that(1) _ that(2)]
+      that
+    by (cases \<open>i < C\<close>)
+      (auto simp: extra_information_mark_to_delete_def drop_update_swap
+      arena_dead_clause_def SHIFTS_def arena_set_status_def ac_simps nth_list_update' nth_drop
+       Misc.slice_def header_size_def split: if_splits)
+
+  have [simp]: \<open>header_size (N \<propto> C) - POS_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
+     \<open>header_size (N \<propto> C) - STATUS_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
+     \<open>header_size (N \<propto> C) - SIZE_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
+    apply (smt (verit, ccfv_threshold) C add.right_neutral add_diff_inverse_nat diff_is_0_eq' le_zero_eq
+      length_greater_0_conv less_diff_conv less_imp_diff_less list.size(3) nat.simps(3)
+      nat_add_left_cancel_less numeral_2_eq_2 valid valid_arena_def xarena_active_clause_alt_def)
+    apply (smt (verit, ccfv_SIG) C Nat.diff_add_assoc2 STATUS_SHIFT_def arena_lifting(1)
+      arena_shift_distinct(16) diff_diff_cancel diff_is_0_eq nat.simps(3) nat_le_linear
+      not_add_less1 not_gr0 numeral_2_eq_2 valid zero_less_diff)
+      using C SIZE_SHIFT_def arena_lifting(1) valid verit_comp_simplify1(3) by fastforce
+
+  have [iff]: \<open>C - header_size (N \<propto> C) \<le> length arena\<close>
+    by (meson C arena_lifting(2) less_imp_diff_less less_imp_le_nat valid)
+  have  \<open>C \<ge> header_size (N \<propto> C)\<close> \<open>C < length arena\<close>
+    using arena_lifting[OF valid C] by auto
+  then have [iff]: \<open>C - LBD_SHIFT < length arena\<close>
+     \<open>C - SIZE_SHIFT < length arena\<close>
+    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> header_size (N \<propto> C) \<ge> POS_SHIFT\<close> and
+    [simp]: \<open>C - header_size (N \<propto> C) + header_size (N \<propto> C) = C\<close>
+    by (auto simp: LBD_SHIFT_def SIZE_SHIFT_def header_size_def POS_SHIFT_def split: if_splits)
+
+
+  have [simp]: \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close>
+    \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - SIZE_SHIFT) = C - SIZE_SHIFT\<close>
+    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> C - header_size (N \<propto> C) + header_size (N \<propto> C) - POS_SHIFT = C - POS_SHIFT\<close>
+    apply (smt (verit, best) C Nat.add_diff_assoc2 add.right_neutral add_diff_cancel_right
+      add_diff_inverse_nat arena_lifting(1) arena_shift_distinct(16) diff_is_0_eq' less_imp_le_nat
+      order_mono_setup.refl valid)
+    apply (metis Nat.diff_add_assoc One_nat_def SIZE_SHIFT_def STATUS_SHIFT_def \<open>header_size (N \<propto> C) \<le> C\<close>
+      arena_shift_distinct(10) diff_is_0_eq le_add_diff_inverse2 lessI less_or_eq_imp_le nat_le_linear numeral_2_eq_2)
+    using SHIFTS_alt_def(1) header_size_Suc_def by presburger
+  have [iff]: \<open>C - LBD_SHIFT = C - SIZE_SHIFT \<longleftrightarrow> False\<close>
+    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> C - LBD_SHIFT = C - POS_SHIFT \<longleftrightarrow> False\<close>
+    \<open>C - LBD_SHIFT < C\<close>
+    apply (metis \<open>header_size (N \<propto> C) \<le> C\<close> arena_shift_distinct(10))
+    using \<open>header_size (N \<propto> C) \<le> C\<close> arena_shift_distinct(13) apply presburger
+    by (metis STATUS_SHIFT_def \<open>header_size (N \<propto> C) \<le> C\<close> diff_less header_size_Suc_def le_zero_eq nat.simps(3) not_gr0 numeral_2_eq_2)
+
+  let ?s = \<open>clause_slice (arena_set_status arena C b) N C\<close>
+  let ?t = \<open>clause_slice arena N C\<close>
+  have [simp]: \<open>is_Pos (?s ! (header_size (N \<propto> C) - POS_SHIFT)) = is_Pos (?t ! (header_size (N \<propto> C) - POS_SHIFT))\<close>
+    \<open>is_Status (?s ! (header_size (N \<propto> C) - STATUS_SHIFT))\<close>
+    \<open>xarena_status (?s ! (header_size (N \<propto> C) - LBD_SHIFT)) = b\<close>
+    \<open>is_Size (?s ! (header_size (N \<propto> C) - SIZE_SHIFT)) = is_Size (?t ! (header_size (N \<propto> C) - SIZE_SHIFT))\<close>
+    \<open>xarena_length (?s ! (header_size (N \<propto> C) - SIZE_SHIFT)) = xarena_length (?t ! (header_size (N \<propto> C) - SIZE_SHIFT))\<close>
+    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> xarena_pos (?s ! (header_size (N \<propto> C) - POS_SHIFT)) = xarena_pos (?t ! (header_size (N \<propto> C) - POS_SHIFT))\<close>
+    \<open>length ?s = length ?t\<close>
+    \<open>Misc.slice C (C + length (N \<propto> C)) (arena_set_status arena C b) = Misc.slice C (C + length (N \<propto> C)) arena\<close>
+    apply (auto simp: arena_set_status_def Misc.slice_def nth_list_update')
+    apply (metis C arena_el.distinct_disc(11) arena_lifting(14) valid)
+    done
+  have \<open>xarena_active_clause (clause_slice arena N C) (the (fmlookup N C))\<close>
+    using assms(1,2) unfolding valid_arena_def by (auto dest!: multi_member_split)
+  then have [simp]: \<open>xarena_active_clause (clause_slice (arena_set_status arena C b) N C) (N \<propto> C, b')\<close>
+    using b' b unfolding xarena_active_clause_def case_prod_beta
+    by (auto simp: xarena_active_clause_def)
+  have [simp]: \<open>(clause_slice (arena_set_status arena C b) N i) = (clause_slice arena N i)\<close>
+    if \<open>C \<noteq> i\<close> and \<open>i \<in># dom_m N\<close> for i
+    using 
+      valid_minimal_difference_between_valid_index[OF valid that(2) C]
+      valid_minimal_difference_between_valid_index[OF valid C that(2)]
+      that
+    apply (cases \<open>C > i\<close>)
+    apply (auto simp: Misc.slice_def arena_set_status_def)
+    apply (subst drop_update_swap)
+    using \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close> apply linarith
+    apply (subst take_update_cancel)
+    using \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close> apply linarith
+    apply auto
+    apply (subst drop_upd_irrelevant)
+    using \<open>C - LBD_SHIFT < C\<close> apply linarith
+    apply auto
+    done
+
+  show ?thesis
+    using assms(1,2)
+    unfolding valid_arena_def
+    by auto
+qed
+
 definition mop_arena_set_status where
   \<open>mop_arena_set_status arena C b= do {
     ASSERT(arena_is_valid_clause_vdom arena C);
-    RETURN(arena[C - STATUS_SHIFT := AStatus b (arena_used arena C) (arena_lbd arena C)])
+    RETURN(arena_set_status arena C b)
   }\<close>
 
 definition  mop_arena_promote_st where
@@ -1267,6 +1379,7 @@ definition  mop_arena_promote_st where
     let lcount = get_learned_count S;
     ASSERT( clss_size_lcount lcount \<ge> 1);
     let lcount = clss_size_decr_lcount lcount;
+    N' \<leftarrow> mop_arena_set_status N' C IRRED;
     RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
   }\<close>
 
@@ -1547,8 +1660,13 @@ proof-
         simp flip: learned_clss_count_def
          simp del: isasat_input_nempty_def) simp
      done
-   have [simp]: \<open>\<And>D E. get_trail_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_trail_wl T\<close>
+   have T2_simp[simp]: \<open>\<And>D E. get_trail_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_trail_wl T\<close>
      \<open>\<And>E. get_trail_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_trail_wl T\<close>
+     \<open>\<And>D' E. C \<noteq> D' \<Longrightarrow> \<not>(irred (get_clauses_wl T) E) \<Longrightarrow> (irred (get_clauses_wl T) C) \<Longrightarrow>
+       get_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D') = fmupd D' (get_clauses_wl T \<propto> D', True) (fmdrop C (get_clauses_wl T))\<close>
+     \<open>\<And>D' E. C \<noteq> D' \<Longrightarrow> (irred (get_clauses_wl T) E) \<or>\<not>(irred (get_clauses_wl T) C) \<Longrightarrow>
+       get_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D') = (fmdrop D (get_clauses_wl T))\<close>
+     \<open>\<And>E. get_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = fmdrop D (get_clauses_wl T)\<close>
      \<open>\<And>D E. get_conflict_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_conflict_wl T\<close>
      \<open>\<And>E. get_conflict_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_conflict_wl T\<close> 
      \<open>\<And>D E. literals_to_update_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = literals_to_update_wl T\<close>
@@ -1562,7 +1680,7 @@ proof-
      \<open>\<And>D E. get_init_clauses0_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_init_clauses0_wl T\<close>
      \<open>\<And>E. get_init_clauses0_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_init_clauses0_wl T\<close> 
      \<open>\<And>D E. get_subsumed_init_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C))\<close>
-     by (auto simp: T2_def T1_def Let_def)
+     by (auto simp: T2_def T1_def Let_def eq; fail)+
      (*  (IsaSAT_Setup.get_unkept_unit_init_clss_wl
     (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
   {#}
@@ -1586,32 +1704,50 @@ proof-
       set_mset (all_init_atms_st T)\<close> and
       atms_eql1: \<open>set_mset (all_init_atms_st (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C))) =
         set_mset (all_init_atms_st T)\<close> and
-      \<open>\<not>irred (get_clauses_wl Ta) (subsumed_by s)\<close> and
+      irred: \<open>\<not>irred (get_clauses_wl T) (subsumed_by s)\<close>
+          \<open>irred (get_clauses_wl T) C\<close> and
       sub: \<open>is_subsumed s\<close> and
       pre: \<open>subsume_or_strengthen_wl_pre C s T\<close>
     for Sa Ta s
-    using that(1) unfolding mop_arena_promote_st_def eq
-    apply refine_vcg
-    subgoal
-      by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs2[of _ Ta r u  \<open>subsumed_by s\<close>])
-       (use that(3-) subsumed_dist[OF pre sub] ST in \<open>auto simp: T1_def T2_def subsumed_indom eq\<close>)
-    subgoal apply (clarsimp simp flip: learned_clss_count_def T2_def
-      simp add: twl_st_heur_restart_occs_def all_init_atms_alt_def cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
-      apply (intro conjI impI)
-defer
-      subgoal premises p
-        apply (rule cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
-        apply simp
-          thm SaTa
+  proof -
+    have [simp]: \<open>C \<noteq> subsumed_by s\<close> \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close>
+      sorry
+    have [simp]: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur Sa) (subsumed_by s)\<close>
+      sorry
+    let ?Ta = \<open>T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)\<close>
+    have [simp]: \<open>get_clauses_wl (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)
+      (subsumed_by s)) =  fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T))\<close>
+      apply (subst T2_simp(3))
+      using irred SaTa apply (auto simp: T1_def eq split: if_splits)
+      done
+    have valid: \<open>valid_arena (get_clauses_wl_heur Sa) (get_clauses_wl ?Ta) (set (get_vdom Sa))\<close>
+      using SaTa by (clarsimp simp add: twl_st_heur_restart_occs_def)
+    have \<open>valid_arena (arena_set_status (get_clauses_wl_heur Sa) (subsumed_by s) IRRED)
+      (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
+      (set (get_vdom Sa))\<close>
+      using valid unfolding eq apply auto 
+       sorry
+    show ?thesis
+      using that(1) unfolding mop_arena_promote_st_def eq mop_arena_set_status_def nres_monad3
+      apply refine_vcg
+      subgoal
+        by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs2[of _ Ta r u  \<open>subsumed_by s\<close>])
+         (use that(3-) subsumed_dist[OF pre sub] ST in \<open>auto simp: T1_def T2_def subsumed_indom eq\<close>)
+      subgoal by simp
+      subgoal using subsumed_dist[OF pre sub] apply (clarsimp simp flip: learned_clss_count_def T2_def split: if_splits
+        simp add: twl_st_heur_restart_occs_def all_init_atms_alt_def cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
+        apply (intro conjI impI)
+        subgoal premises p
+          supply [[unify_trace_failure]]
+            using cong(1)[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]]
+          apply (rule cong(1)[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
+          apply simp
+          sorry
+          sorry
 
-        using cong(1)[OF eq[symmetric]]
-find_theorems all_init_atms all_init_atms_st
-        sorry
-        sorry
-     
     sorry
-      
-  have \<open>\<Down>?R ?C \<ge> ?A\<close>
+  qed
+  have \<open>\<Down>(?R s) ?C \<ge> ?A\<close> for s
     unfolding isa_subsume_or_strengthen_wl_def subsume_or_strengthen_wl_def case_wl_split
        nres_monad3 eq
     unfolding state_wl_recompose
