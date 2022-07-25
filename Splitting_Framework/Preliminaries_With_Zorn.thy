@@ -3,7 +3,7 @@
  *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022 *)
 
 theory Preliminaries_With_Zorn
-  imports Saturation_Framework.Calculus 
+  imports (*Saturation_Framework.Calculus*)
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
   (* Finite_Set *)
@@ -48,19 +48,20 @@ fun is_Pos :: "'a neg \<Rightarrow> bool" where
 lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
   by blast
 
-fun neg_formulas_double_induction :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a neg" where
-  "neg_formulas_double_induction (Pos C1) (Pos C2) = Pos C1" |
-  "neg_formulas_double_induction (Pos C1) (Neg (Pos C2)) = Pos C1" |
-  "neg_formulas_double_induction (Pos C1)(Neg(Neg C2)) = neg_formulas_double_induction (Pos C1) C2"|
-  "neg_formulas_double_induction (Neg (Pos C1)) (Pos C2) = Neg (Pos C1)" |
-  "neg_formulas_double_induction (Neg (Pos C1)) (Neg (Pos C2)) = (Neg (Pos C1))" |
-  "neg_formulas_double_induction (Neg (Pos C1)) (Neg (Neg C2)) = 
-    neg_formulas_double_induction (Neg (Pos C1)) C2" |
-  "neg_formulas_double_induction (Neg (Neg C1))(Pos C2) = neg_formulas_double_induction C1(Pos C2)"|
-  "neg_formulas_double_induction (Neg (Neg C1)) (Neg (Pos C2)) = 
-    neg_formulas_double_induction C1 (Neg (Pos C2))" |
-  "neg_formulas_double_induction (Neg (Neg C1)) (Neg (Neg C2)) = 
-    neg_formulas_double_induction C1 C2"
+  (*formulas_double_induction gets only used for the theorem .induct*)
+fun formulas_double_induction :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a neg" where
+  "formulas_double_induction (Pos C1) (Pos C2) = Pos C1" |
+  "formulas_double_induction (Pos C1) (Neg (Pos C2)) = Pos C1" |
+  "formulas_double_induction (Pos C1)(Neg(Neg C2)) = formulas_double_induction (Pos C1) C2"|
+  "formulas_double_induction (Neg (Pos C1)) (Pos C2) = Neg (Pos C1)" |
+  "formulas_double_induction (Neg (Pos C1)) (Neg (Pos C2)) = (Neg (Pos C1))" |
+  "formulas_double_induction (Neg (Pos C1)) (Neg (Neg C2)) = 
+    formulas_double_induction (Neg (Pos C1)) C2" |
+  "formulas_double_induction (Neg (Neg C1))(Pos C2) = formulas_double_induction C1(Pos C2)"|
+  "formulas_double_induction (Neg (Neg C1)) (Neg (Pos C2)) = 
+    formulas_double_induction C1 (Neg (Pos C2))" |
+  "formulas_double_induction (Neg (Neg C1)) (Neg (Neg C2)) = 
+    formulas_double_induction C1 C2"
 
   (*returns the most general formula equivalent to A which is in M, or A if there is no*)
 fun smallest_equivalent_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
@@ -69,52 +70,6 @@ fun smallest_equivalent_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Right
   "smallest_equivalent_formula_in (Neg (Neg C)) M = (if smallest_equivalent_formula_in C M \<in> M
                                            then smallest_equivalent_formula_in C M
                                            else (Neg(Neg C)))"
-(*
-lemma a_neg_double_induction : \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B.
-  (\<And>C1 C2. P (Pos C1) (Pos C2)) \<Longrightarrow>
-  (\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
-  (\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
-  (\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)) \<Longrightarrow>
-  (\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))) \<Longrightarrow>
-  (\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))) \<Longrightarrow>
-  (\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
-  (\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
-  (\<And>C1 C2. P C1 C2 \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))) \<Longrightarrow> P A B\<close>
-proof -
-  fix P::"'a neg \<Rightarrow> 'a neg \<Rightarrow> bool" and  A::"'a neg" and M::"'a neg set" and B 
-  assume h1: \<open>\<And>C1 C2. P (Pos C1) (Pos C2)\<close> and
-         h2: \<open>\<And>C1 C2. P (Pos C1) (Neg (Pos C2))\<close> and
-         h3: \<open>\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))\<close> and
-         h4: \<open>\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)\<close> and
-         h5: \<open>\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))\<close> and
-         h6: \<open>\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))\<close> and
-         h7: \<open>\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)\<close> and
-         h8: \<open>\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))\<close> and
-         h9: \<open>\<And>C1 C2. P C1 C2 \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))\<close>
-  then show \<open>P A B\<close>
-  proof(induction A M rule:smallest_equivalent_formula_in.induct)
-    case (1 C M)
-    then show ?case
-      by (induction B M rule:smallest_equivalent_formula_in.induct) auto
-  next
-    case (2 C M)
-    then show ?case
-      by (induction B M rule:smallest_equivalent_formula_in.induct) auto
-  next
-    case (3 C M)
-    then show ?case
-    proof (induction B M rule:smallest_equivalent_formula_in.induct)
-      case (1 C M)
-      then show ?case by auto
-    next
-      case (2 C M)
-      then show ?case by auto
-    next
-      case (3 C M)
-      then show ?case using h9 by
-    qed
-  qed
-*)
 
 fun add_Neg_Neg :: "'a neg \<Rightarrow> 'a neg" where
   "add_Neg_Neg C = Neg (Neg C)"
@@ -145,7 +100,7 @@ qed
 lemma sub_formula: \<open>to_V C1 = to_V C2 \<Longrightarrow> is_Pos C1 = is_Pos C2 \<Longrightarrow>
                     C1 \<noteq> C2 \<Longrightarrow> \<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C1 = C2 \<or> 
                                              (add_Neg_Neg^^k) C2 = C1)\<close>
-proof(induction C1 C2 rule:neg_formulas_double_induction.induct)
+proof(induction C1 C2 rule:formulas_double_induction.induct)
   case (1 C1 C2)
   then show ?case by auto
 next
