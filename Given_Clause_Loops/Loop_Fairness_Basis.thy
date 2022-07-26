@@ -30,7 +30,7 @@ inductive strategy_step :: "'f strategy \<Rightarrow> ('f \<times> nat) set \<Ri
     strategy_step stgy P ((P - {Ck}) \<union> N)"
 
 definition is_strategy_fair :: "'f strategy \<Rightarrow> bool" where
-  "is_strategy_fair stgy \<longleftrightarrow> (\<forall>Ps. chain (strategy_step stgy) Ps \<longrightarrow> Liminf_llist Ps = {})"
+  "is_strategy_fair stgy \<longleftrightarrow> (\<forall>Ps. full_chain (strategy_step stgy) Ps \<longrightarrow> Liminf_llist Ps = {})"
 
 
 subsection \<open>Strict Age-Based Strategy\<close>
@@ -39,7 +39,7 @@ text \<open>A strict age-based strategy performs extremely poorly in practice, b
 test case for our definitions above.\<close>
 
 definition strict_age_based_strategy :: "'f strategy" where
-  "strict_age_based_strategy P = {Ck \<in> P. snd Ck = Min (snd ` P)}"
+  "strict_age_based_strategy P = {Ck \<in> P. snd Ck = Inf (snd ` P)}"
 
 lemma is_strict_age_based_strategy_legal:
   "is_strategy_legal strict_age_based_strategy"
@@ -51,15 +51,37 @@ proof (intro allI conjI impI)
 next
   fix P :: "('f \<times> nat) set"
   assume "P \<noteq> {}"
-  have "snd ` P \<noteq> {}"
-    sorry
-  have "Min (snd ` P) \<in> snd ` P"
-    find_theorems "Min _ \<in> _"
-    sorry
+  hence "snd ` P \<noteq> {}"
+    by simp
+  hence "Inf (snd ` P) \<in> snd ` P"
+    using Inf_nat_def1 by presburger
   then show "strict_age_based_strategy P \<noteq> {}"
     unfolding strict_age_based_strategy_def by auto
 qed
 
+lemma is_strict_age_based_strategy_fair:
+  "is_strategy_fair strict_age_based_strategy"
+  unfolding is_strategy_fair_def
+proof (intro allI impI)
+  fix Ps :: "('f \<times> nat) set llist"
+  assume "full_chain (strategy_step strict_age_based_strategy) Ps"
+  show "Liminf_llist Ps = {}"
+  proof (rule ccontr)
+    assume lim_ne: "Liminf_llist Ps \<noteq> {}"
 
+    obtain i :: nat where
+      i_lt: "enat i < llength Ps" and
+      inter_ne: "\<Inter> (lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}) \<noteq> {}"
+      using lim_ne unfolding Liminf_llist_def by auto
+    from inter_ne obtain C :: "'f \<times> nat" where
+      c_in: "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> P"
+      by auto
+    hence "\<forall>j. i \<le> j \<longrightarrow> enat j < llength Ps \<longrightarrow> C \<in> lnth Ps j"
+      by auto
+
+    show False
+      sorry
+  qed
+qed
 
 end
