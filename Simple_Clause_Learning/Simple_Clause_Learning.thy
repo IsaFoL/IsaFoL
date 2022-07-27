@@ -2256,10 +2256,231 @@ proof (rule notI)
 qed
 
 
-section \<open>Soundness\<close>
+section \<open>Invariants\<close>
 
 
-subsection \<open>Trail Less Than \<beta>\<close>
+subsection \<open>Trail Literals Come From Clauses\<close>
+
+definition trail_lits_from_clauses where
+  "trail_lits_from_clauses N S \<longleftrightarrow>
+    (\<forall>L \<in> fst ` set (state_trail S).
+      \<exists>L' \<in> \<Union>(set_mset ` (N \<union> state_learned S)). generalizes_lit L' L)"
+
+lemma trail_lits_from_clauses_initial_state:
+  "trail_lits_from_clauses N initial_state"
+  by (simp add: trail_lits_from_clauses_def)
+
+lemma propagate_preserves_trail_lits_from_clauses:
+  assumes "propagate N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  then obtain L\<^sub>C where "L\<^sub>C \<in># C" and "L = L\<^sub>C \<cdot>l renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+    by (metis Melem_subst_cls add_mset_add_single insert_iff rename_clause_def
+        set_mset_add_mset_insert)
+
+  have "\<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L'
+    (L \<cdot>l \<mu> \<cdot>l restrict_subst (vars_term (atm_of L \<cdot>a \<mu>) \<union> vars_cls ({#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<cdot> \<mu>)) \<gamma>)"
+  proof (rule bexI[of _ L\<^sub>C])
+    show "L\<^sub>C \<in> \<Union> (set_mset ` (N \<union> U))"
+      using \<open>L\<^sub>C \<in># C\<close> \<open>C \<in> N \<union> U\<close> by blast
+  next
+    show "generalizes_lit L\<^sub>C
+     (L \<cdot>l \<mu> \<cdot>l restrict_subst (vars_term (atm_of L \<cdot>a \<mu>) \<union> vars_cls ({#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<cdot> \<mu>)) \<gamma>)"
+      unfolding generalizes_lit_def
+      by (metis \<open>L = L\<^sub>C \<cdot>l renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close> subst_lit_comp_subst)
+  qed
+
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+    using assms(2) unfolding propagateI by (simp add: trail_lits_from_clauses_def)
+
+  ultimately show ?thesis
+    unfolding propagateI by (simp add: trail_lits_from_clauses_def trail_propagate_def)
+qed
+
+lemma decide_preserves_trail_lits_from_clauses:
+  assumes "decide N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: decide.cases)
+  case (decideI L \<gamma> \<Gamma> U)
+
+  hence "\<exists>L'\<in>\<Union> (set_mset ` (N \<union> U)). generalizes_lit L' (L \<cdot>l \<gamma>)"
+    by (auto simp: generalizes_lit_def)
+
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+    using assms(2) unfolding decideI by (simp add: trail_lits_from_clauses_def)
+
+  ultimately show ?thesis
+    unfolding decideI by (simp add: trail_lits_from_clauses_def trail_decide_def)
+qed
+
+lemma conflict_preserves_trail_lits_from_clauses:
+  assumes "conflict N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U D' \<Gamma> \<sigma>)
+  thus ?thesis
+    using assms(2) by (simp add: trail_lits_from_clauses_def)
+qed
+
+lemma skip_preserves_trail_lits_from_clauses:
+  assumes "skip N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: skip.cases)
+  case (skipI L D \<sigma> n \<Gamma> U)
+  thus ?thesis
+    using assms(2) by (simp add: trail_lits_from_clauses_def)
+qed
+
+lemma factorize_preserves_trail_lits_from_clauses:
+  assumes "factorize N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: factorize.cases)
+  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  thus ?thesis
+    using assms(2) by (simp add: trail_lits_from_clauses_def)
+qed
+
+lemma resolve_preserves_trail_lits_from_clauses:
+  assumes "resolve N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: resolve.cases)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  thus ?thesis
+    using assms(2) by (simp add: trail_lits_from_clauses_def)
+qed
+
+lemma backtrack_preserves_trail_lits_from_clauses:
+  assumes "backtrack N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: backtrack.cases)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  hence "suffix \<Gamma>'' \<Gamma>"
+    by (simp add: suffixI trail_decide_def)
+  hence "set \<Gamma>'' \<subseteq> set \<Gamma>"
+    by (simp add: set_mono_suffix)
+
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+    using assms(2) unfolding backtrackI by (simp add: trail_lits_from_clauses_def)
+
+  ultimately have "\<forall>L \<in> fst ` set \<Gamma>''. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+    by fast
+  thus ?thesis
+    unfolding trail_lits_from_clauses_def backtrackI(1,2) state_trail_simp state_learned_simp
+    by fast
+qed
+
+lemma scl_preserves_trail_lits_from_clauses:
+  assumes "scl N \<beta> S S'" and "trail_lits_from_clauses N S"
+  shows "trail_lits_from_clauses N S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_lits_from_clauses decide_preserves_trail_lits_from_clauses
+    conflict_preserves_trail_lits_from_clauses skip_preserves_trail_lits_from_clauses
+    factorize_preserves_trail_lits_from_clauses resolve_preserves_trail_lits_from_clauses
+    backtrack_preserves_trail_lits_from_clauses
+  by metis
+
+
+subsection \<open>Trail Literals Are Ground\<close>
+
+definition trail_lits_ground where
+  "trail_lits_ground S \<longleftrightarrow> (\<forall>L \<in> fst ` set (state_trail S). is_ground_lit L)"
+
+lemma trail_lits_ground_initial_state:
+  "trail_lits_ground initial_state"
+  by (simp add: trail_lits_ground_def)
+
+lemma propagate_preserves_trail_lits_ground:
+  assumes "propagate N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  hence "is_ground_lit (L \<cdot>l \<gamma>)"
+    by (meson Melem_subst_cls is_ground_cls_def mset_subset_eqD mset_subset_eq_add_right
+        union_single_eq_member)
+
+  moreover have "\<forall>\<tau>. is_unifiers \<tau> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<longrightarrow> \<tau> = \<mu> \<odot> \<tau>"
+    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_mimgu_def is_imgu_def)
+
+  moreover have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
+    by (auto simp: is_unifiers_def is_unifier_alt \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+        intro: subst_atm_of_eqI)
+
+  ultimately have "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
+    by (metis subst_lit_comp_subst)
+  hence "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+    using subst_lit_restrict_subst_idem[of "L \<cdot>l \<mu>" _ \<gamma>] by auto
+
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+    using assms(2) by (simp add: propagateI(1) trail_lits_ground_def)
+
+  ultimately show ?thesis
+    by (simp add: propagateI(2) trail_lits_ground_def trail_propagate_def)
+qed
+
+lemma decide_preserves_trail_lits_ground:
+  assumes "decide N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: decide.cases)
+  case (decideI L \<gamma> \<Gamma> U)
+  hence "is_ground_lit (L \<cdot>l \<gamma>)"
+    by metis
+
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+    using assms(2) by (simp add: decideI(1) trail_lits_ground_def)
+
+  ultimately show ?thesis
+    by (simp add: decideI(2) trail_lits_ground_def trail_decide_def)
+qed
+
+lemma conflict_preserves_trail_lits_ground:
+  assumes "conflict N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms by (auto simp: trail_lits_ground_def elim!: conflict.cases)
+
+lemma skip_preserves_trail_lits_ground:
+  assumes "skip N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms by (auto simp: trail_lits_ground_def elim!: skip.cases)
+
+lemma factorize_preserves_trail_lits_ground:
+  assumes "factorize N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms by (auto simp: trail_lits_ground_def elim!: factorize.cases)
+
+lemma resolve_preserves_trail_lits_ground:
+  assumes "resolve N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms by (auto simp: trail_lits_ground_def elim!: resolve.cases)
+
+lemma backtrack_preserves_trail_lits_ground:
+  assumes "backtrack N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms by (auto simp: trail_lits_ground_def trail_decide_def elim!: backtrack.cases)
+
+lemma scl_preserves_trail_trail_lits_ground:
+  assumes "scl N \<beta> S S'" and "trail_lits_ground S"
+  shows "trail_lits_ground S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_lits_ground decide_preserves_trail_lits_ground
+    conflict_preserves_trail_lits_ground skip_preserves_trail_lits_ground
+    factorize_preserves_trail_lits_ground resolve_preserves_trail_lits_ground
+    backtrack_preserves_trail_lits_ground
+  by metis
+
+
+subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 lemma ball_trail_lt_initial_state: "\<forall>L\<in>fst ` set (state_trail initial_state). atm_of L \<prec>\<^sub>B \<beta>"
   by simp
@@ -2335,6 +2556,9 @@ lemma ball_trail_lt_scl:
   using ball_trail_lt_propagate ball_trail_lt_decide ball_trail_lt_conflict ball_trail_lt_skip
     ball_trail_lt_factorize ball_trail_lt_resolve ball_trail_lt_backtrack
   by presburger
+
+
+section \<open>Soundness\<close>
 
 
 subsection \<open>Sound Trail\<close>
