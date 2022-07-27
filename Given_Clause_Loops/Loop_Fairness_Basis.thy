@@ -26,11 +26,30 @@ definition is_strategy_legal :: "'f strategy \<Rightarrow> bool" where
 
 inductive strategy_step :: "'f strategy \<Rightarrow> ('f \<times> nat) set \<Rightarrow> ('f \<times> nat) set \<Rightarrow> bool"
   for stgy :: "'f strategy" where
-  strategy_step: "Ck \<in> stgy P \<Longrightarrow> (\<forall>(_, n) \<in> N. \<forall>(_, m) \<in> P. n > m) \<Longrightarrow>
+  strategy_step: "finite P \<Longrightarrow> finite N \<Longrightarrow> Ck \<in> stgy P \<Longrightarrow> (\<forall>(_, n) \<in> N. \<forall>(_, m) \<in> P. n > m) \<Longrightarrow>
     strategy_step stgy P ((P - {Ck}) \<union> N)"
 
 definition is_strategy_fair :: "'f strategy \<Rightarrow> bool" where
   "is_strategy_fair stgy \<longleftrightarrow> (\<forall>Ps. full_chain (strategy_step stgy) Ps \<longrightarrow> Liminf_llist Ps = {})"
+
+lemma exists_strategy_step_iff_not_empty:
+  assumes
+    leg: "is_strategy_legal stgy" and
+    fin: "finite P"
+  shows "(\<exists>P'. strategy_step stgy P P') \<longleftrightarrow> P \<noteq> {}"
+proof (intro iffI exI)
+  assume "\<exists>P'. strategy_step stgy P P'"
+  then obtain P' where
+    step: "strategy_step stgy P P'"
+    by blast
+  thus "P \<noteq> {}"
+    by (metis empty_iff is_strategy_legal_def leg strategy_step.simps subset_empty)
+next
+  assume p_ne: "P \<noteq> {}"
+  show "strategy_step stgy P (P - {SOME Ck. Ck \<in> stgy P})"
+    by (rule strategy_step[of _ "{}", simplified, OF fin])
+      (metis (full_types) p_ne is_strategy_legal_def leg some_in_eq)
+qed
 
 
 subsection \<open>Strict Age-Based Strategy\<close>
@@ -64,7 +83,7 @@ lemma is_strict_age_based_strategy_fair:
   unfolding is_strategy_fair_def
 proof (intro allI impI)
   fix Ps :: "('f \<times> nat) set llist"
-  assume "full_chain (strategy_step strict_age_based_strategy) Ps"
+  assume ps_full: "full_chain (strategy_step strict_age_based_strategy) Ps"
   show "Liminf_llist Ps = {}"
   proof (rule ccontr)
     assume lim_ne: "Liminf_llist Ps \<noteq> {}"
@@ -76,8 +95,32 @@ proof (intro allI impI)
     from inter_ne obtain C :: "'f \<times> nat" where
       c_in: "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> P"
       by auto
-    hence "\<forall>j. i \<le> j \<longrightarrow> enat j < llength Ps \<longrightarrow> C \<in> lnth Ps j"
+    hence c_in': "\<forall>j. i \<le> j \<longrightarrow> enat j < llength Ps \<longrightarrow> C \<in> lnth Ps j"
       by auto
+
+    have ps_inf: "llength Ps = \<infinity>"
+    proof (rule ccontr)
+      assume "llength Ps \<noteq> \<infinity>"
+      obtain n :: nat where
+        n: "enat n = llength Ps"
+        using \<open>llength Ps \<noteq> \<infinity>\<close> by force
+
+      have n_gz: "n > 0"
+        using full_chain_length_pos[OF ps_full] by (metis enat_ord_simps(2) n zero_enat_def)
+
+      have "\<not> strategy_step strict_age_based_strategy (lnth Ps (n - 1)) P" for P
+        using full_chain_lnth_not_rel[OF ps_full, of "n - 1" P] Suc_diff_1 n n_gz by presburger
+      hence "lnth Ps (n - 1) = {}"
+        using exists_strategy_step_iff_not_empty[OF is_strict_age_based_strategy_legal]
+        (* NEED FINITENESSS *)
+        sorry
+      moreover have "C \<in> lnth Ps (n - 1)"
+        using i_lt c_in' n
+        by (metis Suc_pred' diff_less enat_ord_simps(2) le_Suc_eq less_numeral_extra(1) n_gz
+            nless_le)
+      ultimately show False
+        by blast
+    qed
 
     show False
       sorry
