@@ -25,12 +25,12 @@ locale passive_struct =
   fixes
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f \<times> 'p" and
-    add :: "'f fset \<Rightarrow> 'p \<Rightarrow> 'p" and
+    add :: "'f list \<Rightarrow> 'p \<Rightarrow> 'p" and
     formulas :: "'p \<Rightarrow> 'f fset"
   assumes
     "formulas empty = {||}" and
     "formulas P \<noteq> {||} \<Longrightarrow> finsert (fst (select P)) (formulas (snd (select P))) = formulas P" and
-    "formulas (add F P) = F |\<union>| formulas P"
+    "formulas (add Cs P) = fset_of_list Cs |\<union>| formulas P"
 begin
 
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
@@ -41,12 +41,28 @@ definition is_struct_fair :: bool where
 
 end
 
+interpretation fifo: passive_struct "[]" "\<lambda>xs. (hd xs, tl xs)" "\<lambda>ys xs. xs @ ys" fset_of_list
+proof
+  show "fset_of_list [] = {||}"
+    by (auto simp: fset_of_list_elem)
+next
+  show "\<And>P. fset_of_list P \<noteq> {||} \<Longrightarrow>
+    finsert (fst (hd P, tl P)) (fset_of_list (snd (hd P, tl P))) = fset_of_list P"
+    by (metis fset_of_list_simps fst_conv list.exhaust_sel snd_conv)
+next
+  show "\<And>Cs P. fset_of_list (P @ Cs) = fset_of_list Cs |\<union>| fset_of_list P"
+    by (simp add: funion_commute)
+qed
 
+lemma fifo_is_struct_fair: "fifo.is_struct_fair TYPE('f)"
+  unfolding fifo.is_struct_fair_def
+proof (intro allI impI)
+  fix Ps :: "'f list llist"
+  assume "full_chain fifo.step Ps"
+  show "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) = {}"
+    sorry
 
-
-
-
-
+qed
 
 
 
