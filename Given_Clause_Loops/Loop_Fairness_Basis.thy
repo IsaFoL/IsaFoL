@@ -42,10 +42,11 @@ text \<open>The assumption that the added formulas do not belong to the passive 
 annotating formulas with timestamps.\<close>
 
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  stepI: "set Cs \<inter> fset (formulas P) = {} \<Longrightarrow> step P (add Cs (snd (select P)))"
+  stepI: "distinct Cs \<Longrightarrow> set Cs \<inter> fset (formulas P) = {} \<Longrightarrow> step P (add Cs (snd (select P)))"
 
 definition is_struct_fair :: bool where
-  "is_struct_fair \<longleftrightarrow> (\<forall>Ps. full_chain step Ps \<longrightarrow> Liminf_llist (lmap (fset \<circ> formulas) Ps) = {})"
+  "is_struct_fair \<longleftrightarrow>
+   (\<forall>Ps. full_chain step Ps \<longrightarrow> lhd Ps = empty \<longrightarrow> Liminf_llist (lmap (fset \<circ> formulas) Ps) = {})"
 
 end
 
@@ -65,15 +66,38 @@ qed
 lemma chain_fifo_step_distinct_formulas:
   assumes
     ps_chain: "chain fifo.step Ps" and
+    dist_hd: "distinct (lhd Ps)" and
     i_lt: "enat i < llength Ps"
   shows "distinct (lnth Ps i)"
-  sorry
+  using i_lt
+proof (induct i)
+  case 0
+  then show ?case
+    using dist_hd chain_length_pos[OF ps_chain] by (simp add: lhd_conv_lnth)
+next
+  case (Suc i)
+
+  have ih: "distinct (lnth Ps i)"
+    using Suc.hyps Suc.prems Suc_ile_eq order_less_imp_le by blast
+
+  show ?case
+  proof -
+    have step: "fifo.step (lnth Ps i) (lnth Ps (Suc i))"
+      by (rule chain_lnth_rel[OF ps_chain Suc.prems])
+
+    show "distinct (lnth Ps (Suc i))"
+      using step[unfolded fifo.step.simps, simplified]
+      by (metis (no_types, lifting) disjoint_iff_not_equal distinct_append distinct_tl ih
+          list.sel(2) tl_append2)
+  qed
+qed
 
 lemma fifo_is_struct_fair: "fifo.is_struct_fair TYPE('f)"
   unfolding fifo.is_struct_fair_def
 proof (intro allI impI)
   fix Ps :: "'f list llist"
   assume ps_full: "full_chain fifo.step Ps"
+  assume hd_emp: "lhd Ps = []"
 
   have ps_chain: "chain fifo.step Ps"
     by (rule full_chain_imp_chain[OF ps_full])
@@ -125,9 +149,46 @@ proof (intro allI impI)
     have
       ij_bnd: "k - j < length (lnth Ps (i + j))" and
       at_kmj: "lnth Ps (i + j) ! (k - j) = C"
-      if i_le: "j \<le> k" for j
-      apply -
-      sorry
+      if j_le: "j \<le> k" for j
+      using j_le
+    proof (induct j)
+      case 0
+      {
+        case 1
+        then show ?case
+          by (simp add: k_lt)
+      next
+        case 2
+        then show ?case
+          by (simp add: at_k)
+      }
+    next
+      case (Suc j)
+      {
+        case 1
+
+        have j_le: "j \<le> k"
+          using 1 by auto
+
+        have ih: "k - j < length (lnth Ps (i + j))"
+          by (rule Suc.hyps(1)[OF j_le])
+
+        have step: "fifo.step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
+          by (simp add: full_chain_lnth_rel ps_full ps_inf)
+
+        have "\<exists>Cs. lnth Ps (i + Suc j) = tl (lnth Ps (i + j)) @ Cs"
+          using step[unfolded fifo.step.simps] by auto
+        then have "length (lnth Ps (i + Suc j)) + 1 \<ge> length (lnth Ps (i + j))"
+          by fastforce
+        thus ?case
+          using 1 ih by linarith
+      next
+        case 2
+        then show ?case
+          sorry
+      }
+    qed
+
     have
       ik_bnd: "length (lnth Ps (i + k)) > 0" and
       at_0: "lnth Ps (i + k) ! 0 = C"
@@ -147,12 +208,15 @@ proof (intro allI impI)
         inter: "set Cs \<inter> fset (fset_of_list P) = {}"
         using step[simplified fifo.step.simps] by auto
 
+      have dist_hd: "distinct (lhd Ps)"
+        using hd_emp by simp
+
       have "length P > 0"
         using at_ik ik_bnd by auto
       moreover have "hd P = C"
         using c_at_hd_ik at_ik by auto
       moreover have "distinct (lnth Ps (i + k))"
-        using chain_fifo_step_distinct_formulas[OF ps_chain] by (simp add: ps_inf)
+        using chain_fifo_step_distinct_formulas[OF ps_chain dist_hd] by (simp add: ps_inf)
       ultimately have c_ni_tl: "C \<notin> set (tl P)"
         using at_ik by (metis distinct.simps(2) hd_Cons_tl length_greater_0_conv)
 
