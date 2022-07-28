@@ -5,12 +5,51 @@
 
 section \<open>Basic Definitions for Stating and Proving the Fairness of Prover Loops\<close>
 
-text \<open>This section covers concepts that can be shared across the different prover loops inspired by
-the literature (e.g., DISCOUNT, Otter).\<close>
+text \<open>This section covers concepts that can be shared across the different
+prover loops inspired by the literature (e.g., DISCOUNT, Otter).\<close>
 
 theory Loop_Fairness_Basis
-  imports Ordered_Resolution_Prover.Lazy_List_Chain
+  imports
+    "HOL-Library.FSet"
+    Ordered_Resolution_Prover.Lazy_List_Chain
 begin
+
+
+subsection \<open>Passive Set\<close>
+
+text \<open>The passive set of a given clause prover can be organized in different
+ways—e.g., as a priority queue or as a list of queues. This locale abstracts
+over the specific data structure.\<close>
+
+locale passive_struct =
+  fixes
+    empty :: "'p" and
+    select :: "'p \<Rightarrow> 'f \<times> 'p" and
+    add :: "'f fset \<Rightarrow> 'p \<Rightarrow> 'p" and
+    formulas :: "'p \<Rightarrow> 'f fset"
+  assumes
+    "formulas empty = {||}" and
+    "formulas P \<noteq> {||} \<Longrightarrow> finsert (fst (select P)) (formulas (snd (select P))) = formulas P" and
+    "formulas (add F P) = F |\<union>| formulas P"
+begin
+
+inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  stepI: "step P (add F (snd (select P)))"
+
+definition is_struct_fair :: bool where
+  "is_struct_fair \<longleftrightarrow> (\<forall>Ps. full_chain step Ps \<longrightarrow> Liminf_llist (lmap (fset \<circ> formulas) Ps) = {})"
+
+end
+
+
+
+
+
+
+
+
+
+
 
 
 subsection \<open>Strategies\<close>
