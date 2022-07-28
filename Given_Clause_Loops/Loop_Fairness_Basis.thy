@@ -33,8 +33,11 @@ locale passive_struct =
     "formulas (add Cs P) = fset_of_list Cs |\<union>| formulas P"
 begin
 
+text \<open>The assumption that the selected formula is not immediately readded can be fulfilled by
+annotating formulas with timestamps.\<close>
+
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  stepI: "step P (add F (snd (select P)))"
+  stepI: "fst (select P) \<notin> set Cs \<Longrightarrow> step P (add Cs (snd (select P)))"
 
 definition is_struct_fair :: bool where
   "is_struct_fair \<longleftrightarrow> (\<forall>Ps. full_chain step Ps \<longrightarrow> Liminf_llist (lmap (fset \<circ> formulas) Ps) = {})"
@@ -58,10 +61,48 @@ lemma fifo_is_struct_fair: "fifo.is_struct_fair TYPE('f)"
   unfolding fifo.is_struct_fair_def
 proof (intro allI impI)
   fix Ps :: "'f list llist"
-  assume "full_chain fifo.step Ps"
-  show "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) = {}"
-    sorry
+  assume ps_full: "full_chain fifo.step Ps"
 
+  show "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) = {}"
+  proof (rule ccontr)
+    assume lim_ne: "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) \<noteq> {}"
+
+    obtain i :: nat where
+      i_lt: "enat i < llength Ps" and
+      inter_ne: "\<Inter> ((set \<circ> lnth Ps) ` {j. i \<le> j \<and> enat j < llength Ps}) \<noteq> {}"
+      using lim_ne unfolding Liminf_llist_def by (auto simp: fset_of_list.rep_eq)
+
+    from inter_ne obtain C :: 'f where
+      c_in: "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> set P"
+      by auto
+    hence c_in': "\<forall>j. i \<le> j \<longrightarrow> enat j < llength Ps \<longrightarrow> C \<in> set (lnth Ps j)"
+      by auto
+
+    have ps_inf: "llength Ps = \<infinity>"
+    proof (rule ccontr)
+      assume "llength Ps \<noteq> \<infinity>"
+      obtain n :: nat where
+        n: "enat n = llength Ps"
+        using \<open>llength Ps \<noteq> \<infinity>\<close> by force
+
+      have n_gz: "n > 0"
+        using full_chain_length_pos[OF ps_full] by (metis enat_ord_simps(2) n zero_enat_def)
+
+      have "\<not> fifo.step (lnth Ps (n - 1)) P" for P
+        using full_chain_lnth_not_rel[OF ps_full, of "n - 1" P] Suc_diff_1 n n_gz by presburger
+      hence "set (lnth Ps (n - 1)) = {}"
+        using fifo.step.simps by force
+      moreover have "C \<in> set (lnth Ps (n - 1))"
+        using i_lt c_in' n
+        by (metis Suc_pred' diff_less enat_ord_simps(2) le_Suc_eq less_numeral_extra(1) n_gz
+            nless_le)
+      ultimately show False
+        by simp
+    qed
+
+    show False
+      sorry
+  qed
 qed
 
 end
