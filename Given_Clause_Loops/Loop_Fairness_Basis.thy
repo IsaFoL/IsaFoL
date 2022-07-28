@@ -164,28 +164,39 @@ proof (intro allI impI)
       }
     next
       case (Suc j)
+
+      have step: "fifo.step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
+        by (simp add: full_chain_lnth_rel ps_full ps_inf)
+
       {
         case 1
 
         have j_le: "j \<le> k"
           using 1 by auto
 
-        have ih: "k - j < length (lnth Ps (i + j))"
+        have ih1: "k - j < length (lnth Ps (i + j))"
           by (rule Suc.hyps(1)[OF j_le])
 
-        have step: "fifo.step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
-          by (simp add: full_chain_lnth_rel ps_full ps_inf)
-
-        have "\<exists>Cs. lnth Ps (i + Suc j) = tl (lnth Ps (i + j)) @ Cs"
+        have "length (lnth Ps (i + Suc j)) + 1 \<ge> length (lnth Ps (i + j))"
           using step[unfolded fifo.step.simps] by auto
-        then have "length (lnth Ps (i + Suc j)) + 1 \<ge> length (lnth Ps (i + j))"
-          by fastforce
         thus ?case
-          using 1 ih by linarith
+          using 1 ih1 by linarith
       next
         case 2
-        then show ?case
-          sorry
+
+        have j_le: "j \<le> k"
+          using 2 by auto
+
+        have ih1: "k - j < length (lnth Ps (i + j))"
+          by (rule Suc.hyps(1)[OF j_le])
+        have ih2: "lnth Ps (i + j) ! (k - j) = C"
+          by (rule Suc.hyps(2)[OF j_le])
+
+        show ?case
+          using step[unfolded fifo.step.simps]
+          by (smt (verit) 2 Suc.hyps(1) Suc_diff_Suc Suc_le_lessD add_diff_cancel_left' ih2 j_le
+              length_tl less_imp_Suc_add nat_add_left_cancel_less nth_append nth_tl plus_1_eq_Suc
+              snd_conv)
       }
     qed
 
