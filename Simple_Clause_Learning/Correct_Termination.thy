@@ -16,7 +16,7 @@ qed
 lemma propagate_if_conflict_follows_decide:
   assumes
     fin_N: "finite N" and fin_learned: "finite (state_learned S\<^sub>0)" and
-    trail_lt_\<beta>: "\<forall>L \<in> fst ` set (state_trail S\<^sub>2). atm_of L \<prec>\<^sub>B \<beta>" and
+    trail_lt_\<beta>: "trail_atoms_lt \<beta> S\<^sub>2" and
     no_conf: "\<nexists>S\<^sub>1. conflict N \<beta> S\<^sub>0 S\<^sub>1" and deci: "decide N \<beta> S\<^sub>0 S\<^sub>2" and conf: "conflict N \<beta> S\<^sub>2 S\<^sub>3"
   shows "\<exists>S\<^sub>4. propagate N \<beta> S\<^sub>0 S\<^sub>4"
 proof -
@@ -240,7 +240,7 @@ proof -
   have 7: "\<forall>K\<in>#add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>'''. atm_of K \<prec>\<^sub>B \<beta>"
   proof (rule ballI)
     from trail_lt_\<beta> have trail_lt_\<beta>': "\<forall>K \<in> fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm_of K \<prec>\<^sub>B \<beta>"
-      by (simp add: S\<^sub>2_def)
+      by (simp add: trail_atoms_lt_def S\<^sub>2_def)
     
     fix K assume "K\<in>#add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>'''"
 
@@ -486,8 +486,8 @@ proof -
     next
       fix S' S''
       assume deci: "decide N \<beta> S S'" and conf: "conflict N \<beta> S' S''"
-      moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-        by (rule decide_sound_state[OF deci sound_S, THEN trail_lt_if_sound_state])
+      moreover have "trail_atoms_lt \<beta> S'"
+        by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
         using propagate_if_conflict_follows_decide[OF fin_N fin_learned_S _ no_new_conflict]
         by simp

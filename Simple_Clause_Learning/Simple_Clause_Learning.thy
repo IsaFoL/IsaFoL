@@ -2482,12 +2482,15 @@ lemma scl_preserves_trail_trail_lits_ground:
 
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
-lemma ball_trail_lt_initial_state: "\<forall>L\<in>fst ` set (state_trail initial_state). atm_of L \<prec>\<^sub>B \<beta>"
-  by simp
+definition trail_atoms_lt where
+  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>)"
 
-lemma ball_trail_lt_propagate:
-  assumes "propagate N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+lemma ball_trail_lt_initial_state: "trail_atoms_lt \<beta> initial_state"
+  by (simp add: trail_atoms_lt_def)
+
+lemma propagate_preserves_trail_atoms_lt:
+  assumes "propagate N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
 proof -
   from \<open>propagate N \<beta> S S'\<close> obtain \<Gamma> U  C C' L C\<^sub>0 C\<^sub>1 \<mu> \<gamma> \<gamma>' where
     S_def: "S = (\<Gamma>, U, None)" and
@@ -2516,46 +2519,46 @@ proof -
   ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' \<prec>\<^sub>B \<beta>"
     by simp
   with assms(2) show ?thesis
-    by (simp add: S_def S'_def trail_propagate_def)
+    by (simp add: trail_atoms_lt_def S_def S'_def trail_propagate_def)
 qed
 
-lemma ball_trail_lt_decide:
-  assumes "decide N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto simp add: trail_decide_def elim!: decide.cases)
+lemma decide_preserves_trail_atoms_lt:
+  assumes "decide N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: decide.cases)
 
-lemma ball_trail_lt_conflict:
-  assumes "conflict N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto elim!: conflict.cases)
+lemma conflict_preserves_trail_atoms_lt:
+  assumes "conflict N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def elim!: conflict.cases)
 
-lemma ball_trail_lt_skip:
-  assumes "skip N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto elim!: skip.cases)
+lemma skip_preserves_trail_atoms_lt:
+  assumes "skip N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def elim!: skip.cases)
 
-lemma ball_trail_lt_factorize:
-  assumes "factorize N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto elim!: factorize.cases)
+lemma factorize_preserves_trail_atoms_lt:
+  assumes "factorize N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def elim!: factorize.cases)
 
-lemma ball_trail_lt_resolve:
-  assumes "resolve N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto elim!: resolve.cases)
+lemma resolve_preserves_trail_atoms_lt:
+  assumes "resolve N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def elim!: resolve.cases)
 
-lemma ball_trail_lt_backtrack:
-  assumes "backtrack N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-  using assms by (auto simp add: trail_decide_def elim!: backtrack.cases)
+lemma backtrack_preserves_trail_atoms_lt:
+  assumes "backtrack N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
+  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: backtrack.cases)
 
-lemma ball_trail_lt_scl:
-  assumes "scl N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+lemma scl_preserves_trail_atoms_lt:
+  assumes "scl N \<beta> S S'" and "trail_atoms_lt \<beta> S"
+  shows "trail_atoms_lt \<beta> S'"
   using assms unfolding scl_def
-  using ball_trail_lt_propagate ball_trail_lt_decide ball_trail_lt_conflict ball_trail_lt_skip
-    ball_trail_lt_factorize ball_trail_lt_resolve ball_trail_lt_backtrack
-  by presburger
+  using propagate_preserves_trail_atoms_lt decide_preserves_trail_atoms_lt conflict_preserves_trail_atoms_lt skip_preserves_trail_atoms_lt
+    factorize_preserves_trail_atoms_lt resolve_preserves_trail_atoms_lt backtrack_preserves_trail_atoms_lt
+  by metis
 
 
 section \<open>Soundness\<close>
@@ -2675,7 +2678,7 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term 
     finite N \<and> finite U \<and>
     disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>) \<and>
     (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> N \<union> U  \<union> clss_of_trail \<Gamma>. disjoint_vars C D) \<and>
-    sound_trail N U \<Gamma> \<and> (\<forall>L\<in>fst ` set \<Gamma>. atm_of L \<prec>\<^sub>B \<beta>) \<and>
+    sound_trail N U \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
     N \<TTurnstile>\<G>e U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
@@ -2685,7 +2688,7 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term 
 subsection \<open>Miscellaneous Lemmas\<close>
 
 lemma trail_lt_if_sound_state:
-  "sound_state N \<beta> S \<Longrightarrow> \<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+  "sound_state N \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S"
   unfolding sound_state_def by auto
 
 lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
@@ -2730,7 +2733,7 @@ subsection \<open>Initial State Is Sound\<close>
 
 lemma sound_initial_state[simp]:
   "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N \<beta> initial_state"
-  by (simp add: sound_state_def)
+  by (simp add: sound_state_def trail_atoms_lt_def)
 
 
 subsection \<open>SCL Rules Preserve Soundness\<close>
@@ -2760,7 +2763,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     fin: "finite N" "finite U" and
     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    trail_lt_\<beta>: "\<forall>L\<in>fst ` set \<Gamma>. atm_of L \<prec>\<^sub>B \<beta>" and
     N_entails_U: "N \<TTurnstile>\<G>e U"
     unfolding sound_state_def S_def by auto
 
@@ -2883,8 +2885,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       by simp
   qed
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_propagate trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms propagate_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding S'_def sound_state_def
@@ -2907,8 +2909,8 @@ proof (cases N \<beta> S S' rule: decide.cases)
   moreover have "sound_trail N U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_decide trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms decide_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding decideI sound_state_def by simp
@@ -2954,8 +2956,8 @@ proof (cases N \<beta> S S' rule: conflict.cases)
           grounding_of_clss_singleton true_clss_def)
   qed
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_conflict trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms conflict_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding conflictI sound_state_def
@@ -2967,7 +2969,8 @@ lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N \<b
 proof (induction S S' rule: skip.induct)
   case (skipI L D \<sigma> Cl \<Gamma> U)
   thus ?case
-    by (auto simp: sound_state_def clss_of_trail_Cons[of _ \<Gamma>] elim!: subtrail_falseI)
+    by (auto simp: sound_state_def trail_atoms_lt_def clss_of_trail_Cons[of _ \<Gamma>]
+        elim!: subtrail_falseI)
 qed
 
 lemma factorize_sound_state:
@@ -3056,8 +3059,8 @@ proof (cases N \<beta> S S' rule: factorize.cases)
       by simp
   qed
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_factorize trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms factorize_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
@@ -3316,8 +3319,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   moreover have "sound_trail N U (trail_propagate \<Gamma>' L C \<delta>)"
     using \<Gamma>_def sound_\<Gamma> by blast
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_resolve trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms resolve_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding resolveI sound_state_def
@@ -3376,8 +3379,8 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   moreover have "N \<TTurnstile>\<G>e (U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
-    using assms ball_trail_lt_backtrack trail_lt_if_sound_state by simp
+  moreover have "trail_atoms_lt \<beta> S'"
+    using assms backtrack_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding backtrackI sound_state_def
