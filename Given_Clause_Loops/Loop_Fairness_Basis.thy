@@ -44,8 +44,8 @@ annotating formulas with timestamps.\<close>
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   stepI: "distinct Cs \<Longrightarrow> set Cs \<inter> fset (formulas P) = {} \<Longrightarrow> step P (add Cs (snd (select P)))"
 
-definition is_struct_fair :: bool where
-  "is_struct_fair \<longleftrightarrow>
+definition is_fair :: bool where
+  "is_fair \<longleftrightarrow>
    (\<forall>Ps. full_chain step Ps \<longrightarrow> lhd Ps = empty \<longrightarrow> Liminf_llist (lmap (fset \<circ> formulas) Ps) = {})"
 
 end
@@ -92,8 +92,8 @@ next
   qed
 qed
 
-lemma fifo_is_struct_fair: "fifo.is_struct_fair TYPE('f)"
-  unfolding fifo.is_struct_fair_def
+lemma fifo_is_fair: "fifo.is_fair TYPE('f)"
+  unfolding fifo.is_fair_def
 proof (intro allI impI)
   fix Ps :: "'f list llist"
   assume ps_full: "full_chain fifo.step Ps"
