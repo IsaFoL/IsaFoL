@@ -335,6 +335,35 @@ proof (rule subsetI)
     by (metis subst_lit_comp_subst)
 qed
 
+
+definition trail_lits_from_init_clauses where
+  "trail_lits_from_init_clauses N S \<longleftrightarrow>
+    (\<forall>L \<in> fst ` set (state_trail S). \<exists>L' \<in> \<Union>(set_mset ` N). generalizes_lit L' L)"
+
+lemma trail_lits_from_init_clausesI:
+  assumes "trail_lits_from_clauses N S" and "initial_lits_generalized_learned_lits N S"
+  shows "trail_lits_from_init_clauses N S"
+  unfolding trail_lits_from_init_clauses_def
+proof (rule ballI)
+  fix L assume "L \<in> fst ` set (state_trail S)"
+  with assms(1) obtain L' where "L' \<in> \<Union> (set_mset ` (N \<union> state_learned S)) \<and> generalizes_lit L' L"
+    unfolding trail_lits_from_clauses_def by metis
+  hence "(\<exists>x\<in>N. L' \<in># x) \<or> (\<exists>x\<in>state_learned S. L' \<in># x)" and "generalizes_lit L' L"
+    by simp_all
+  thus "\<exists>L'\<in>\<Union> (set_mset ` N). generalizes_lit L' L"
+  proof (elim disjE bexE)
+    fix C assume "C \<in> N"
+    thus "L' \<in># C \<Longrightarrow> ?thesis"
+      using \<open>generalizes_lit L' L\<close> by auto
+  next
+    fix C assume "C \<in> state_learned S" and "L' \<in># C"
+    with assms(2) have "\<exists>K\<in>\<Union> (set_mset ` N). generalizes_lit K L'"
+      by (auto simp: initial_lits_generalized_learned_lits_def clss_lits_generalize_clss_lits_def)
+    thus "?thesis"
+      using \<open>generalizes_lit L' L\<close> by (metis generalizes_lit_def subst_lit_comp_subst)
+  qed
+qed
+
 end
 
 end

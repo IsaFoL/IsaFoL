@@ -2,9 +2,76 @@ theory Non_Redundancy
   imports
     Simple_Clause_Learning
     Trail_Induced_Ordering
+    Initial_Literals_Generalize_Learned_Literals
 begin
 
 context scl begin
+
+lemma before_conflict:
+  assumes "conflict N \<beta> S1 S2" and
+    invars: "trail_lits_from_init_clauses N S1" "trail_lits_ground S1" "trail_atoms_lt \<beta> S1"
+      "trail_lits_consistent S1"
+  shows "{#} \<in> N \<union> state_learned S1 \<or> (\<exists>S0. propagate N \<beta> S0 S1) \<or> (\<exists>S0. decide N \<beta> S0 S1)"
+  using assms
+proof (cases N \<beta> S1 S2 rule: conflict.cases)
+  case (conflictI D U D' \<Gamma> \<sigma>)
+  show ?thesis
+  proof (cases \<Gamma>)
+    case Nil
+    hence "D' \<cdot> \<sigma> = {#}"
+      using \<open>trail_false_cls \<Gamma> (D' \<cdot> \<sigma>)\<close> not_trail_false_Nil(2) by blast
+    hence "D' = {#}"
+      using subst_cls_empty_iff by blast
+    hence "D = {#}"
+      by (simp add: local.conflictI(4) rename_clause_def)
+    hence "{#} \<in> N \<union> U"
+      using \<open>D \<in> N \<union> U\<close> by simp
+    thus ?thesis
+      unfolding conflictI(1) by simp
+  next
+    case (Cons Ln \<Gamma>')
+    with invars(1) obtain L' where
+      L'_in: "L' \<in> \<Union> (set_mset ` N)" and "generalizes_lit L' (fst Ln)"
+      by (auto simp add: conflictI(1) trail_lits_from_init_clauses_def)
+    then obtain \<gamma> where "fst Ln = L' \<cdot>l \<gamma>"
+      by (metis generalizes_lit_def)
+
+    from invars(2) have gr_L'_\<gamma>: "is_ground_lit (L' \<cdot>l \<gamma>)"
+      by (simp add: conflictI(1) Cons trail_lits_ground_def \<open>fst Ln = L' \<cdot>l \<gamma>\<close>)
+
+    from invars(3) have L'_\<gamma>_lt_\<beta>: "atm_of L' \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
+      by (simp add: conflictI(1) Cons trail_atoms_lt_def \<open>fst Ln = L' \<cdot>l \<gamma>\<close>)
+
+    from invars(4) have not_def_L'_\<gamma>: "\<not> trail_defined_lit \<Gamma>' (L' \<cdot>l \<gamma>)"
+      using \<open>fst Ln = L' \<cdot>l \<gamma>\<close>
+      by (auto simp add: conflictI(1) Cons trail_lits_consistent_def elim: trail_consistent.cases)
+
+    from L'_in obtain C where "C \<in> N" and "L' \<in># C"
+      by blast
+
+    show ?thesis
+    proof (cases "is_decision_lit Ln")
+      case True
+      hence "\<Gamma> = trail_decide \<Gamma>' (L' \<cdot>l \<gamma>)"
+        unfolding Cons trail_decide_def
+        using \<open>fst Ln = L' \<cdot>l \<gamma>\<close> by (metis is_decision_lit_def prod.exhaust_sel)
+      moreover have "decide N \<beta> (\<Gamma>', U, None) (trail_decide \<Gamma>' (L' \<cdot>l \<gamma>), U, None)"
+        by (rule decideI[OF L'_in gr_L'_\<gamma> not_def_L'_\<gamma> L'_\<gamma>_lt_\<beta>])
+      ultimately have "\<exists>S0. decide N \<beta> S0 S1"
+        unfolding conflictI(1) by metis
+      thus ?thesis
+        by simp
+    next
+      case False
+      (* hence "\<Gamma> = trail_propagate \<Gamma>' (L' \<cdot>l ?\<mu>) (?C\<^sub>0 \<cdot> ?\<mu>) \<gamma>'" *)
+      have "\<exists>S0. propagate N \<beta> S0 S1"
+        using propagateI[of C N U]
+        sorry
+      thus ?thesis
+        by simp
+    qed
+  qed
+qed
 
 section \<open>Resolve in Regular Runs\<close>
 
@@ -142,13 +209,12 @@ lemma resolve_state_trail: "resolve N \<beta> S S' \<Longrightarrow> state_trail
   by (auto elim: resolve.cases)
 
 lemma conflict_with_literal_gets_resolved:
-  defines "res_scl \<equiv> \<lambda>N \<beta> S S'. skip N \<beta> S S' \<or> factorize N \<beta> S S' \<or> resolve N \<beta> S S'"
   assumes
     fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
     reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1" and
     trail_lit: "state_trail S1 = Lc # \<Gamma>" and
     conf: "conflict N \<beta> S1 S2" and
-    resolution: "(res_scl N \<beta>)\<^sup>*\<^sup>* S2 Sn" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S2 Sn" and
     backtrack: "\<exists>Sn'. backtrack N \<beta> Sn Sn'"
   shows "\<not> is_decision_lit Lc \<and> strict_suffix (state_trail Sn) (state_trail S1)"
 proof -
@@ -183,7 +249,7 @@ proof -
       next
         case (step y z)
         from step.hyps(2) have "suffix (state_trail z) (state_trail y)"
-          by (auto simp: res_scl_def suffix_def factorize_state_trail resolve_state_trail
+          by (auto simp: suffix_def factorize_state_trail resolve_state_trail
               dest: skip_state_trail)
         with step.IH show ?case
           by (auto simp: suffix_def)
@@ -370,7 +436,7 @@ qed
 section \<open>Learned Clauses in Regular Runs\<close>
 
 lemma regular_run_if_skip_factorize_resolve_run:
-  assumes "(\<lambda>S S'. skip N \<beta> S S' \<or> factorize N \<beta> S S' \<or> resolve N \<beta> S S')\<^sup>*\<^sup>* S S'"
+  assumes "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S S'"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* S S'"
   using assms
 proof (induction S' rule: rtranclp_induct)
@@ -384,8 +450,9 @@ next
     using reasonable_scl_def decide_well_defined(4) decide_well_defined(5) skip_well_defined(2)
     by blast
   moreover from step.hyps(2) have "\<not> Ex (conflict N \<beta> S')"
-    by (smt (verit) conflict.cases factorize.simps option.simps(3) prod.simps(1) resolve.simps
-        skip.simps)
+    apply simp
+    by (smt (verit, best) conflict.cases factorize.simps option.distinct(1) resolve.simps skip.simps
+        state_conflict_simp)
   ultimately have "regular_scl N \<beta> S' S''"
     by (simp add: regular_scl_def)
   with step.IH show ?case
@@ -407,10 +474,9 @@ lemma
     fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
-    resolution: "(\<lambda>S S'. skip N \<beta> S S' \<or> factorize N \<beta> S S' \<or> resolve N \<beta> S S')\<^sup>+\<^sup>+ S1 Sn" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
-    "transp lt" (* and
-    total_on_ground_lt: "totalp_on {L. is_ground_lit L} lt" *)
+    "transp lt"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1)))) (N \<union> state_learned S1) C)"
@@ -418,7 +484,7 @@ proof -
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
-    using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by fast
+    using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by metis
   also have "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn'"
   proof (rule r_into_rtranclp)
     from backtrack have "scl N \<beta> Sn Sn'"
@@ -458,7 +524,7 @@ proof -
   proof (induction Sn rule: tranclp_induct)
     case (base S2)
     thus ?case
-    proof (elim disjE)
+    proof (elim sup2E)
       assume "skip N \<beta> S1 S2"
       thus ?thesis
         using conflict_S1 skip.simps suffix_ConsI trail_S1_false_C1_\<gamma>1 by fastforce
@@ -479,7 +545,7 @@ proof -
     case (step Sm Sm')
     from step.hyps(2) have "suffix (state_trail Sm') (state_trail Sm)"
       by (smt (verit) factorize.simps prod.sel(1) resolve.simps skip.simps state_trail_def
-          suffix_ConsI suffix_order.eq_iff)
+          suffix_ConsI suffix_order.eq_iff sup2E)
     with step.IH have "suffix (state_trail Sm') (state_trail S1)"
       by force
 
@@ -494,7 +560,7 @@ proof -
       by auto
 
     from step.hyps(2) show ?case
-    proof (elim disjE)
+    proof (elim sup2E)
       assume "skip N \<beta> Sm Sm'"
       thus ?thesis
         using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
@@ -685,7 +751,6 @@ proof -
       using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
       using \<open>trail_consistent (state_trail S1)\<close> trail_interp_cls_if_trail_true
         trail_true_or_false_cls_if_defined by blast
-
 
     have "trail_false_cls (state_trail S1) D"
       apply (rule trail_false_cls_iff_not_trail_interp_entails[THEN iffD2,
