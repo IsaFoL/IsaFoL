@@ -3,7 +3,7 @@
  *               Florent Krasnopol <florent.krasnopol at ens-paris-saclay.fr>, 2022 *)
 
 theory Preliminaries_With_Zorn
-  imports (*Saturation_Framework.Calculus*)
+  imports Saturation_Framework.Calculus
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
   (* Finite_Set *)
@@ -32,19 +32,20 @@ qed
 
   (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
   (sect. 2.1) *)
-datatype 'a neg = Pos "'a" | Neg "'a neg" (* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
+datatype 'a neg = Pos "'a" | Neg "'a neg"
+(* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
 
 fun to_V :: "'a neg \<Rightarrow> 'a" where
   "to_V (Pos C) = C" |
   "to_V (Neg C) = to_V C"
 
-lemma tov_set[simp]: \<open>{to_V C |C. to_V C \<in> A} = A\<close>
-  by (smt (verit, del_insts) mem_Collect_eq subsetI subset_antisym to_V.simps(1))
-
 fun is_Pos :: "'a neg \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
   "is_Pos (Neg C) = (\<not>(is_Pos C))"
-  
+
+lemma tov_set[simp]: \<open>{to_V C |C. to_V C \<in> A} = A\<close>
+  by (smt (verit, del_insts) mem_Collect_eq subsetI subset_antisym to_V.simps(1))
+
 lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
   by blast
 
@@ -62,6 +63,10 @@ fun formulas_double_induction :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a
     formulas_double_induction C1 (Neg (Pos C2))" |
   "formulas_double_induction (Neg (Neg C1)) (Neg (Neg C2)) = 
     formulas_double_induction C1 C2"
+
+fun smallest_equivalent_formula :: "'a neg \<Rightarrow> 'a neg" where
+  "smallest_equivalent_formula A = (if (is_Pos A) then (Pos (to_V A))
+                                    else (Neg (Pos (to_V A))))"
 
   (*returns the most general formula equivalent to A which is in M, or A if there is no*)
 fun smallest_equivalent_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
@@ -311,7 +316,6 @@ lemma smallest_reduction_basis_Neg_in: \<open>\<not>is_Pos C1 \<Longrightarrow> 
                                           smallest_equivalent_formula_in C1 M = Neg (Pos C)\<close>
   by (induction C1 M rule:smallest_equivalent_formula_in.induct) auto
 
-(*changer le nom : neg_lex_size_induction \<rightarrow> utilisé pour la suite*)
 lemma neg_lex_size_induction: \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B. (\<And>C1 C2. P (Pos C1) (Pos C2))\<Longrightarrow>
     (\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
     (\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
@@ -321,7 +325,7 @@ lemma neg_lex_size_induction: \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rig
     (\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
     (\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
     (\<And>C1 C2.(\<And>C1' C2'. 
-               (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2)))) \<Longrightarrow> P C1' C2') \<Longrightarrow>
+             (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2)))) \<Longrightarrow> P C1' C2') \<Longrightarrow>
        P (Neg (Neg C1)) (Neg (Neg C2))) \<Longrightarrow> 
     P A B\<close>
 proof -
@@ -468,10 +472,10 @@ next
     by auto
   moreover have stab_is_Pos_C2: \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
     by auto
-  consider (a) \<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
-           (b) \<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
-           (c) \<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>|
-           (d) \<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>
+  consider (a)\<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
+           (b)\<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
+           (c)\<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>|
+           (d)\<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>
     by auto
   then show ?case
   proof(cases)
@@ -530,27 +534,23 @@ next
     case d
     have \<open>C1 = C2\<close>
     proof (rule ccontr)
-      assume \<open>C1  \<noteq> C2\<close>
-      then have Neg_Neg_C1_not_equals_Neg_Neg_C2: \<open>Neg(Neg C1) \<noteq> Neg(Neg C2)\<close>
-        by auto
-      then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2) \<or> 
-                 (add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1))\<close>
-        using sub_formula "9.prems"(3) by blast
+      assume C1_neq_C2: \<open>C1  \<noteq> C2\<close>
+      then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C1) = C2 \<or> 
+                 ((add_Neg_Neg^^k) C2) = C1\<close>
+        using sub_formula "9.prems"(3) by auto
       then obtain k where k_not_null: \<open>k \<ge> 1\<close> and
-                          k_def: \<open>(add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2) \<or> 
-                                  (add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1)\<close>
-        by blast
-      consider (a) \<open>(add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2)\<close> | 
-               (b) \<open>(add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1)\<close>
+                          k_def: \<open>(add_Neg_Neg^^k) C1 = C2 \<or> 
+                                  (add_Neg_Neg^^k) C2 = C1\<close>
+        using "9.prems"(3) C1_neq_C2 sub_formula by auto
+      consider (a) \<open>(add_Neg_Neg^^k)  C1 = C2\<close> | 
+               (b) \<open>(add_Neg_Neg^^k)  C2 = C1\<close>
         using k_def by auto
       then show \<open>False\<close>
       proof(cases)
         case a
-        have \<open>(add_Neg_Neg^^k) C1 = C2\<close>
-          by (metis a neg.inject(2) sub_formula_basis_Neg_Neg)
-        then have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C1)) = C2\<close>
+        have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C1)) = C2\<close>
           using pow_suc
-          by (metis add_Neg_Neg.elims k_not_null
+          by (metis a add_Neg_Neg.elims k_not_null
               ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
         then have \<open>smallest_equivalent_formula_in C2 M \<in> M\<close>
           using sub_formula_csq "9.prems"(1) by auto
@@ -584,8 +584,8 @@ locale consequence_relation =
     bot_entails_empty: "{bot} \<Turnstile> {}" and
     entails_reflexive: "{C} \<Turnstile> {C}" and
     entails_subsets: "M' \<subseteq> M \<Longrightarrow> N' \<subseteq> N \<Longrightarrow> M' \<Turnstile> N' \<Longrightarrow> M \<Turnstile> N" and
-    entails_cut : "M \<Turnstile> N \<union> {C} \<Longrightarrow> M' \<union> {C} \<Turnstile> N' \<Longrightarrow> M \<union> M'\<Turnstile> N \<union> N'" and
-    entails_compactness : "M \<Turnstile> N \<Longrightarrow> \<exists> M' N'. (M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N')"
+    entails_cut: "M \<Turnstile> N \<union> {C} \<Longrightarrow> M' \<union> {C} \<Turnstile> N' \<Longrightarrow> M \<union> M'\<Turnstile> N \<union> N'" and
+    entails_compactness: "M \<Turnstile> N \<Longrightarrow> \<exists> M' N'. (M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile> N')"
     (*entails_supsets: "(\<forall>M' N'. (M' \<supseteq> M \<and> N' \<supseteq> N \<and> M' \<union> N' = UNIV) \<longrightarrow> M' \<Turnstile> N') \<Longrightarrow> M \<Turnstile> N"*)
     (* the version of D4 below was relaxed to fix lemma 6, which was found broken due to the forma *)
     (* entails_each: "M \<Turnstile> P \<Longrightarrow> \<forall>C\<in>M. N \<Turnstile> Q \<union> {C} \<Longrightarrow> \<forall>D\<in>P. N \<union> {D} \<Turnstile> Q \<Longrightarrow> N \<Turnstile> Q" *)
@@ -3163,6 +3163,7 @@ oops
  * qed *)
 
  *)
+
 end
 
 end
