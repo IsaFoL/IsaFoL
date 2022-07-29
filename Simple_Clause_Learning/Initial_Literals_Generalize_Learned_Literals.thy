@@ -72,7 +72,7 @@ lemma propagate_initial_lits_generalized_learned_lits:
   "propagate N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: propagate.induct)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
 
   from propagateI.prems have
     fin: "finite N" "finite U" and
@@ -80,26 +80,29 @@ proof (induction S S' rule: propagate.induct)
     unfolding initial_lits_generalized_learned_lits_def by simp_all
 
   from propagateI.hyps have C_in: "C \<in> N \<union> U" by simp
-  from propagateI.hyps have rename_C: "C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
+  from propagateI.hyps have rename_C: "C' + {#L#} = C \<cdot> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
     by simp
 
   have "clss_lits_generalize_clss_lits N
     (insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (U \<union> clss_of_trail \<Gamma>))"
   proof -
-    from C_in have "clss_lits_generalize_clss_lits N {rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C}"
+    from C_in have "clss_lits_generalize_clss_lits N {C \<cdot> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)}"
     proof (unfold Un_iff, elim disjE)
       assume "C \<in> N "
       thus ?thesis
-        using fin by (auto intro: clss_lits_generalize_clss_lits_rename_clause)
+        using fin
+        by (metis clss_lits_generalize_clss_lits_rename_clause finite_UnI finite_clss_of_trail
+            rename_clause_def)
     next
       assume "C \<in> U"
       thus ?thesis
         using fin
-        by (auto intro!: clss_lits_generalize_clss_lits_trans[OF N_superset_lits]
-            intro: clss_lits_generalize_clss_lits_rename_clause)
+        by (metis (no_types, lifting) N_superset_lits UnI1 finite_clss_of_trail infinite_Un
+            rename_clause_def clss_lits_generalize_clss_lits_rename_clause
+            clss_lits_generalize_clss_lits_trans)
     qed
     hence *: "clss_lits_generalize_clss_lits N {add_mset L C'}"
-      unfolding rename_C[simplified] by assumption
+      unfolding rename_C[simplified] by simp
 
     have "clss_lits_generalize_clss_lits N {add_mset L C\<^sub>0 \<cdot> \<mu>}"
       unfolding clss_lits_generalize_clss_lits_def
@@ -117,7 +120,7 @@ proof (induction S S' rule: propagate.induct)
       next
         fix K' assume "K' \<in># C\<^sub>0" and K_def: "K = K' \<cdot>l \<mu>"
         hence "K' \<in># C'"
-          by (simp add: propagateI.hyps(5))
+          by (simp add: propagateI.hyps(6))
         then obtain D K'' where "D\<in>N" and "K''\<in>#D" and "generalizes_lit K'' K'"
           using *[unfolded clss_lits_generalize_clss_lits_def, simplified] by blast
         thus ?thesis

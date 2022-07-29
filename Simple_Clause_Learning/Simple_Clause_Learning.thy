@@ -2042,7 +2042,7 @@ begin
 
 inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  propagateI: "C \<in> N \<union> U \<Longrightarrow> C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C \<Longrightarrow>
+  propagateI: "C \<in> N \<union> U \<Longrightarrow> \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow> C' + {#L#} = C \<cdot> \<rho> \<Longrightarrow>
     subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L \<Longrightarrow> is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>) \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
@@ -2275,10 +2275,9 @@ lemma propagate_preserves_trail_lits_from_clauses:
   shows "trail_lits_from_clauses N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
-  then obtain L\<^sub>C where "L\<^sub>C \<in># C" and "L = L\<^sub>C \<cdot>l renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
-    by (metis Melem_subst_cls add_mset_add_single insert_iff rename_clause_def
-        set_mset_add_mset_insert)
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  then obtain L\<^sub>C where "L\<^sub>C \<in># C" and "L = L\<^sub>C \<cdot>l \<rho>"
+    by (metis Melem_subst_cls add_mset_add_single insert_iff set_mset_add_mset_insert)
 
   have "\<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L'
     (L \<cdot>l \<mu> \<cdot>l restrict_subst (vars_term (atm_of L \<cdot>a \<mu>) \<union> vars_cls ({#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<cdot> \<mu>)) \<gamma>)"
@@ -2289,7 +2288,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     show "generalizes_lit L\<^sub>C
      (L \<cdot>l \<mu> \<cdot>l restrict_subst (vars_term (atm_of L \<cdot>a \<mu>) \<union> vars_cls ({#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<cdot> \<mu>)) \<gamma>)"
       unfolding generalizes_lit_def
-      by (metis \<open>L = L\<^sub>C \<cdot>l renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close> subst_lit_comp_subst)
+      by (metis \<open>L = L\<^sub>C \<cdot>l \<rho>\<close> subst_lit_comp_subst)
   qed
 
   moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
@@ -2402,7 +2401,7 @@ lemma propagate_preserves_trail_lits_ground:
   shows "trail_lits_ground S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
   hence "is_ground_lit (L \<cdot>l \<gamma>)"
     by (meson Melem_subst_cls is_ground_cls_def mset_subset_eqD mset_subset_eq_add_right
         union_single_eq_member)
@@ -2491,35 +2490,26 @@ lemma ball_trail_lt_initial_state: "trail_atoms_lt \<beta> initial_state"
 lemma propagate_preserves_trail_atoms_lt:
   assumes "propagate N \<beta> S S'" and "trail_atoms_lt \<beta> S"
   shows "trail_atoms_lt \<beta> S'"
-proof -
-  from \<open>propagate N \<beta> S S'\<close> obtain \<Gamma> U  C C' L C\<^sub>0 C\<^sub>1 \<mu> \<gamma> \<gamma>' where
-    S_def: "S = (\<Gamma>, U, None)" and
-    S'_def: "S' = (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, None)" and
-    "add_mset L C' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C" and
-    "subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L" and
-    "C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}" and
-    C\<^sub>1_def: "C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}" and
-    is_mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}" and
-    \<gamma>'_def: "\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>" and
-    ball_lt_\<beta>: "\<forall>K\<in>#add_mset L C' \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta>"
-    apply (cases rule: propagate.cases)
-    by (auto)
+  using assms(1)
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
 
-  from C\<^sub>1_def have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
+  from propagateI have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
     by (auto simp: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
-  with is_mimgu_\<mu> have "\<gamma> = \<mu> \<odot> \<gamma>"
+  with propagateI have "\<gamma> = \<mu> \<odot> \<gamma>"
     by (simp add: is_mimgu_def is_imgu_def)
   hence "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma> = atm_of L \<cdot>a \<gamma>"
     by (metis subst_atm_comp_subst)
-  with \<gamma>'_def have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' = atm_of L \<cdot>a \<gamma>"
+  with propagateI have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' = atm_of L \<cdot>a \<gamma>"
     by (metis subst_atm_comp_subst subst_cls_add_mset subst_lit_comp_subst
         subst_lit_restrict_subst_idem substitution_ops.subst_atm_of_eqI sup_ge1 vars_cls_add_mset)
-  moreover from ball_lt_\<beta> have "atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
-    by simp
+  moreover from propagateI have "atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
+    by (metis add_mset_add_single atm_of_subst_lit subst_cls_single subst_cls_union
+        union_single_eq_member)
   ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' \<prec>\<^sub>B \<beta>"
     by simp
   with assms(2) show ?thesis
-    by (simp add: trail_atoms_lt_def S_def S'_def trail_propagate_def)
+    by (simp add: trail_atoms_lt_def propagateI(1,2) trail_propagate_def)
 qed
 
 lemma decide_preserves_trail_atoms_lt:
@@ -2743,12 +2733,13 @@ lemma propagate_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
   hence
     S_def: "S = (\<Gamma>, U, None)" and
     S'_def: "S' = (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, None)" and
     C_in: "C \<in> N \<union> U" and
-    rename_C: "C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C" and
+    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)" and
+    rename_C: "C' + {#L#} = C \<cdot> \<rho>" and
     domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L" and
     gr_C'_L_\<gamma>: "is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>)" and
     C\<^sub>0_def: "C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}" and
@@ -2788,7 +2779,9 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   proof (intro disjoint_vars_set_insertI[OF disj_N_U_\<Gamma>] ballI impI)
     fix D assume D_in: "D \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
     hence disj_L_C: "disjoint_vars (add_mset L C') D"
-      using rename_C disjoint_vars_rename_clause[OF fin_N_U_\<Gamma>] by auto
+      using rename_C[unfolded \<rho>_def]
+      by (metis empty_neutral(2) fin_N_U_\<Gamma> disjoint_vars_rename_clause rename_clause_def
+          union_mset_add_mset_right)
     hence "disjoint_vars ((add_mset L C') \<cdot> \<mu>) D"
     proof (rule disjoint_vars_subst_clsI)
       show "range_vars \<mu> \<inter> vars_cls D = {}"
@@ -2838,7 +2831,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     from C_in N_entails_U have "N \<TTurnstile>\<G>e {C}"
       by (meson Un_iff empty_subsetI grounding_of_clss_mono insert_subset true_clss_mono)
     with rename_C have "N \<TTurnstile>\<G>e {C' + {#L#}}"
-      by (metis fin_N_U_\<Gamma> grounding_of_cls_rename_clause grounding_of_clss_singleton)
+      by (metis grounding_of_clss_singleton grounding_of_subst_cls_subset true_clss_mono)
     with C\<^sub>0_def C\<^sub>1_def have "N \<TTurnstile>\<G>e {C\<^sub>0 + C\<^sub>1 + {#L#}}"
       by auto
     hence "N \<TTurnstile>\<G>e {(C\<^sub>0 + C\<^sub>1 + {#L#}) \<cdot> \<mu>}"

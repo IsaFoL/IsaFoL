@@ -60,7 +60,7 @@ lemma resolve_if_conflict_follows_propagate:
   shows "\<exists>S\<^sub>3. resolve N \<beta> S\<^sub>2 S\<^sub>3"
   using propa
 proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
   hence S\<^sub>0_def: "S\<^sub>0 = (\<Gamma>, U, None)"
     by simp
 

@@ -61,9 +61,8 @@ proof -
   then obtain D'' L' where D_def: "D = add_mset L' D''" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'"
     by (meson Melem_subst_cls multi_member_split)
 
-  have 1: "D'' \<cdot> \<rho> + {#L' \<cdot>l \<rho>#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D"
-    unfolding D_def rename_clause_def
-    by (simp add: \<rho>_def)
+  have 1: "D'' \<cdot> \<rho> + {#L' \<cdot>l \<rho>#} = D \<cdot> \<rho>"
+    by (simp add: D_def)
 
   have "inj \<rho>"
     unfolding \<rho>_def
@@ -269,7 +268,7 @@ proof -
   qed
 
   show ?thesis
-    using propagateI[OF D_in 1 2 3 refl refl 4 5 6 refl 7]
+    using propagateI[OF D_in \<rho>_def 1 2 3 refl refl 4 5 6 refl 7]
     unfolding S\<^sub>0_def by blast
 qed
 
@@ -487,7 +486,7 @@ proof -
       fix S' S''
       assume deci: "decide N \<beta> S S'" and conf: "conflict N \<beta> S' S''"
       moreover have "trail_atoms_lt \<beta> S'"
-        by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
+        by (rule decide_sound_state[OF deci sound_S, THEN trail_lt_if_sound_state])
       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
         using propagate_if_conflict_follows_decide[OF fin_N fin_learned_S _ no_new_conflict]
         by simp
