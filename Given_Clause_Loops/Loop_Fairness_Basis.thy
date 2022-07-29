@@ -29,13 +29,12 @@ over the specific data structure.\<close>
 locale passive_set =
   fixes
     empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f \<times> 'p" and
+    select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f  \<Rightarrow> 'p \<Rightarrow> 'p" and
+    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset"
   assumes
     "fformulas empty = {||}" and
-    "fformulas P \<noteq> {||} \<Longrightarrow> finsert (fst (select P)) (fformulas (snd (select P))) = fformulas P" and
     "fformulas (add C P) = {|C|} |\<union>| fformulas P"
     "fformulas (remove C P) = fformulas P |-| {|C|}"
 begin
@@ -51,7 +50,7 @@ abbreviation formulas :: "'p \<Rightarrow> 'f set" where
   "formulas P \<equiv> fset (fformulas P)"
 
 inductive big_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  big_stepI: "small_step\<^sup>*\<^sup>* P P' \<Longrightarrow> fformulas P' \<noteq> {||} \<Longrightarrow> big_step P (snd (select P'))"
+  big_stepI: "small_step\<^sup>*\<^sup>* P P' \<Longrightarrow> fformulas P' \<noteq> {||} \<Longrightarrow> big_step P (remove (select P') P')"
 
 definition is_fair :: bool where
   "is_fair \<longleftrightarrow>
@@ -59,15 +58,10 @@ definition is_fair :: bool where
 
 end
 
-interpretation fifo_passive_set: passive_set "[]" "\<lambda>xs. (hd xs, tl xs)" "\<lambda>y xs. xs @ [y]" removeAll
-  fset_of_list
+interpretation fifo_passive_set: passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
 proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
-next
-  show "\<And>P. fset_of_list P \<noteq> {||} \<Longrightarrow>
-    finsert (fst (hd P, tl P)) (fset_of_list (snd (hd P, tl P))) = fset_of_list P"
-    by (metis fset_of_list_simps fst_conv list.exhaust_sel snd_conv)
 next
   show "\<And>C P. fset_of_list (P @ [C]) = {|C|} |\<union>| fset_of_list P"
     by (simp add: funion_commute)
