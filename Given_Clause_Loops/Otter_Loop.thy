@@ -10,8 +10,8 @@ theory Otter_Loop
 begin
 
 locale otter_loop =
-  given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F
-    Prec_F Prec_L active
+  given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
+    Prec_L active
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -23,7 +23,6 @@ locale otter_loop =
     Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
-    Inf_FL :: \<open>('f \<times> 'l) inference set\<close> and
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) and
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
     Prec_L :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>L" 50) and
@@ -49,7 +48,7 @@ fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f
 
 inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
   choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A) "
-| delete_fwd: "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C'\<in> (P \<union> A). C' \<preceq>\<cdot> C) \<Longrightarrow>
+| delete_fwd: "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C' \<in> P \<union> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P, {}, A) "
 | simplify_fwd: "C \<in> no_labels.Red_F (P \<union> A \<union> {C'}) \<Longrightarrow>
     state (N, {C}, P, {}, A) \<leadsto>OL state (N, {C'}, P, {}, A)"
@@ -141,7 +140,7 @@ proof -
 qed
 
 lemma deleteFwd_in_GC:
-  assumes "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C'\<in> (P \<union> A). C' \<preceq>\<cdot> C)"
+  assumes "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C' \<in> P \<union> A. C' \<preceq>\<cdot> C)"
   shows "state (N, {C}, P, {}, A) \<leadsto>GC state (N, {}, P, {}, A)"
   using assms
 proof
@@ -158,7 +157,7 @@ proof
   then show ?thesis
     using remove_redundant_no_label by auto
 next
-  assume "\<exists>C'\<in>P \<union> A. C' \<preceq>\<cdot> C"
+  assume "\<exists>C' \<in> P \<union> A. C' \<preceq>\<cdot> C"
   then obtain C' where "C' \<in> P \<union> A" and c'_le_c: "C' \<preceq>\<cdot> C"
     by auto
   then have "C' \<in> P \<or> C' \<in> A"
@@ -186,7 +185,6 @@ next
       by auto
   qed
 qed
-
 
 lemma simplifyFwd_in_GC:
   "C \<in> no_labels.Red_F (P \<union> A \<union> {C'}) \<Longrightarrow>
@@ -336,7 +334,6 @@ proof -
     by (metis state_add_C_new state_add_C_active)
 qed
 
-
 lemma transfer_in_GC: "state (N, {C}, P, {}, A) \<leadsto>GC state  (N, {}, P \<union> {C}, {}, A)"
 proof -
   let ?\<N> = "state (N, {}, P, {}, A)"
@@ -382,7 +379,7 @@ proof -
   moreover have "fst` (active_subset ?\<N>) = A"
     using prj_activeSubset_of_state by blast
   ultimately have "no_labels.Inf_between (fst` (active_subset ?\<N>)) {C} \<subseteq>
-                    no_labels.Red_I ((fst` ?\<N>) \<union> {C} \<union> (fst` ?\<M>))"
+    no_labels.Red_I ((fst` ?\<N>) \<union> {C} \<union> (fst` ?\<M>))"
     using assms by auto
 
   then have "?\<N> \<union> {(C, yy)} \<leadsto>GC ?\<N> \<union> {(C, active)} \<union> ?\<M>"
