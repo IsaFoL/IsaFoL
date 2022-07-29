@@ -50,7 +50,7 @@ abbreviation TIER_TWO_MAXIMUM where
   \<open>TIER_TWO_MAXIMUM \<equiv> 6\<close>
 
 abbreviation TIER_ONE_MAXIMUM where
-  \<open>TIER_ONE_MAXIMUM \<equiv> 6\<close>
+  \<open>TIER_ONE_MAXIMUM \<equiv> 2\<close>
 
 definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> lbd \<Rightarrow> nat \<Rightarrow> (arena \<times> lbd) nres\<close> where
   \<open>calculate_LBD_heur_st = (\<lambda>M N lbd C. do{

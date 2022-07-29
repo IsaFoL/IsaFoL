@@ -1675,11 +1675,15 @@ proof-
      \<open>\<And>E. get_watched_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_watched_wl T\<close> 
      \<open>\<And>D E. IsaSAT_Setup.get_unkept_unit_init_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_unkept_unit_init_clss_wl T\<close>
      \<open>\<And>E. IsaSAT_Setup.get_unkept_unit_init_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_unkept_unit_init_clss_wl T\<close> 
+     \<open>\<And>D E. IsaSAT_Setup.get_kept_unit_init_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_kept_unit_init_clss_wl T\<close>
+     \<open>\<And>E. IsaSAT_Setup.get_kept_unit_init_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_kept_unit_init_clss_wl T\<close> 
      \<open>\<And>D E. IsaSAT_Setup.get_kept_unit_learned_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_kept_unit_learned_clss_wl T\<close>
      \<open>\<And>E. IsaSAT_Setup.get_kept_unit_learned_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_kept_unit_learned_clss_wl T\<close> 
      \<open>\<And>D E. get_init_clauses0_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_init_clauses0_wl T\<close>
      \<open>\<And>E. get_init_clauses0_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_init_clauses0_wl T\<close> 
-     \<open>\<And>D E. get_subsumed_init_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C))\<close>
+     \<open>\<And>D E. get_subsumed_init_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C))\<close> and
+     T2_if_simps:
+     \<open>\<And>D E. get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = apply_if (irred (get_clauses_wl T) C) (add_mset (mset (get_clauses_wl T \<propto> C))) (get_subsumed_init_clauses_wl T)\<close>
      by (auto simp: T2_def T1_def Let_def eq; fail)+
      (*  (IsaSAT_Setup.get_unkept_unit_init_clss_wl
     (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
@@ -1710,23 +1714,72 @@ proof-
       pre: \<open>subsume_or_strengthen_wl_pre C s T\<close>
     for Sa Ta s
   proof -
-    have [simp]: \<open>C \<noteq> subsumed_by s\<close> \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close>
-      sorry
-    have [simp]: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur Sa) (subsumed_by s)\<close>
-      sorry
+    have [simp]: \<open>C \<noteq> subsumed_by s\<close> \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close> \<open>subsumed_by s \<noteq> C\<close>
+      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
+      apply normalize_goal+ apply (cases s; auto)
+      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
+      apply normalize_goal+ apply (cases s; auto)
+      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
+      apply normalize_goal+ apply (cases s; auto)
+      done
+    have valid: \<open>valid_arena (get_clauses_wl_heur Sa) (fmdrop C (get_clauses_wl T)) (set (get_vdom Sa))\<close> and
+       corr: \<open>clss_size_corr_restart (fmdrop C (get_clauses_wl T)) (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#}
+  (IsaSAT_Setup.get_kept_unit_init_clss_wl T) (IsaSAT_Setup.get_kept_unit_learned_clss_wl T)
+  (apply_if (irred (get_clauses_wl T) C) (add_mset (mset (get_clauses_wl T \<propto> C))) (get_subsumed_init_clauses_wl T)) {#}
+      (get_init_clauses0_wl T) {#} (get_learned_count Sa)\<close> and
+      vdom:  \<open>vdom_m
+                 (all_init_atms (fmdrop C (get_clauses_wl T))
+                   (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
+                    get_subsumed_init_clauses_wl
+                  (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)) +
+                    get_init_clauses0_wl T))
+                  (get_watched_wl T) (fmdrop C (get_clauses_wl T))
+      \<subseteq> set (get_vdom Sa)\<close> and
+      aivdom: \<open>aivdom_inv_dec (get_aivdom Sa) (remove1_mset C (dom_m (get_clauses_wl T)))\<close> and
+      u: \<open>learned_clss_count Sa \<le> u\<close>
+       using SaTa by (clarsimp_all split: if_splits simp: T2_if_simps twl_st_heur_restart_occs_def eq)
+     have [simp]: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur Sa) (subsumed_by s)\<close>
+       unfolding arena_is_valid_clause_vdom_def
+       by (intro exI conjI, rule valid)
+        auto
     let ?Ta = \<open>T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)\<close>
+    let ?Tb = \<open>(T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s))\<close>
     have [simp]: \<open>get_clauses_wl (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)
       (subsumed_by s)) =  fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T))\<close>
       apply (subst T2_simp(3))
       using irred SaTa apply (auto simp: T1_def eq split: if_splits)
       done
-    have valid: \<open>valid_arena (get_clauses_wl_heur Sa) (get_clauses_wl ?Ta) (set (get_vdom Sa))\<close>
-      using SaTa by (clarsimp simp add: twl_st_heur_restart_occs_def)
     have \<open>valid_arena (arena_set_status (get_clauses_wl_heur Sa) (subsumed_by s) IRRED)
+      (fmupd (subsumed_by s) (fmdrop C (get_clauses_wl T) \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
+      (set (get_vdom Sa))\<close>
+      by (rule valid_arena_arena_set_status) (use valid in \<open>auto\<close>)
+    then have [simp]: \<open>valid_arena (arena_set_status (get_clauses_wl_heur Sa) (subsumed_by s) IRRED)
       (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
       (set (get_vdom Sa))\<close>
-      using valid unfolding eq apply auto 
-       sorry
+      by auto
+    have clss_size_corr_restart: \<open>clss_size_corr_restart (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#} (IsaSAT_Setup.get_kept_unit_init_clss_wl T)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl T)
+  (get_subsumed_init_clauses_wl ?Ta) {#}
+  (get_init_clauses0_wl T) {#} (clss_size_decr_lcount (get_learned_count Sa))\<close>
+      using irred corr apply -
+      by (auto simp add: clss_size_corr_restart_def clss_size_decr_lcount_def
+        clss_size_def learned_clss_l_mapsto_upd_in_irrelev size_Diff_singleton_if
+        learned_clss_l_l_fmdrop_irrelev)
+
+    have [simp]:  \<open>vdom_m (all_init_atms_st (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C))) (get_watched_wl T)
+  (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
+      \<subseteq> set (get_vdom Sa)\<close>
+      apply (subst vdom_m_cong[OF trans[OF atms_eql2 atms_eql1[symmetric],symmetric]])
+      using vdom irred apply (auto simp: T2_if_simps)
+      by (smt (z3) IsaSAT_Restart.all_init_atms_alt_def T2_if_simps \<L>\<^sub>a\<^sub>l\<^sub>l_cong \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close> all_init_atms_fmdrop_add_mset_unit(1) atms_eql2 dom_m_fmupd fmdrop_fmupd fmupd_same in_dom pre subsetD union_mset_add_mset_left union_mset_add_mset_right vdom_m_def)
+
+    have [simp]:  \<open>aivdom_inv_dec (get_aivdom Sa) (add_mset (subsumed_by s) (dom_m (get_clauses_wl T) - {#subsumed_by s, C#}))\<close>
+      using aivdom by (metis (no_types, lifting) \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close>
+        \<open>subsumed_by s \<noteq> C\<close> add_mset_diff_bothsides in_dom insert_noteq_member mset_add
+        multiset_add_sub_el_shuffle pre)
+    have [simp]: \<open>learned_clss_count Sa - Suc 0 \<le> u\<close>
+      using u by presburger
     show ?thesis
       using that(1) unfolding mop_arena_promote_st_def eq mop_arena_set_status_def nres_monad3
       apply refine_vcg
@@ -1734,18 +1787,12 @@ proof-
         by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs2[of _ Ta r u  \<open>subsumed_by s\<close>])
          (use that(3-) subsumed_dist[OF pre sub] ST in \<open>auto simp: T1_def T2_def subsumed_indom eq\<close>)
       subgoal by simp
-      subgoal using subsumed_dist[OF pre sub] apply (clarsimp simp flip: learned_clss_count_def T2_def split: if_splits
-        simp add: twl_st_heur_restart_occs_def all_init_atms_alt_def cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
-        apply (intro conjI impI)
-        subgoal premises p
-          supply [[unify_trace_failure]]
-            using cong(1)[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]]
-          apply (rule cong(1)[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]])
-          apply simp
-          sorry
-          sorry
-
-    sorry
+      subgoal using subsumed_dist[OF pre sub]
+        by (clarsimp simp flip: learned_clss_count_def T2_def split: if_splits
+          simp add: twl_st_heur_restart_occs_def all_init_atms_alt_def cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]]
+          clss_size_corr_restart
+          simp del: isasat_input_nempty_def)
+      done
   qed
   have \<open>\<Down>(?R s) ?C \<ge> ?A\<close> for s
     unfolding isa_subsume_or_strengthen_wl_def subsume_or_strengthen_wl_def case_wl_split
