@@ -10,8 +10,8 @@ theory iProver_Loop
 begin
 
 locale iProver_loop =
-  otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
-    Red_F_q \<G>_F_q \<G>_I_q Inf_FL Equiv_F Prec_F Prec_L active new xx passive yy
+  otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F Prec_L
+    active new xx passive yy
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -23,7 +23,6 @@ locale iProver_loop =
     Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
-    Inf_FL :: \<open>('f \<times> 'l) inference set\<close> and
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) and
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
     Prec_L :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>L" 50) and
