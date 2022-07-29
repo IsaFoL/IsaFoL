@@ -20,7 +20,7 @@ definition OL_Prec_L :: "OL_label \<Rightarrow> OL_label \<Rightarrow> bool" whe
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
     OL_Prec_L Active New XX Passive YY +
-  ps: passive_set empty select add fformulas
+  ps: passive_set empty select add remove fformulas
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -36,7 +36,8 @@ locale fair_otter_loop =
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f \<times> 'p" and
-    add :: "'f list \<Rightarrow> 'p \<Rightarrow> 'p" and
+    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset"
 begin
 

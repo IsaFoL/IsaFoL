@@ -30,32 +30,36 @@ locale passive_set =
   fixes
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f \<times> 'p" and
-    add :: "'f list \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    remove :: "'f  \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset"
   assumes
     "fformulas empty = {||}" and
     "fformulas P \<noteq> {||} \<Longrightarrow> finsert (fst (select P)) (fformulas (snd (select P))) = fformulas P" and
-    "fformulas (add Cs P) = fset_of_list Cs |\<union>| fformulas P"
+    "fformulas (add C P) = {|C|} |\<union>| fformulas P"
     "fformulas (remove C P) = fformulas P |-| {|C|}"
 begin
 
-text \<open>The assumption that the added fformulas do not belong to the passive set can be fulfilled by
-annotating fformulas with timestamps.\<close>
+text \<open>The assumption that the added formulas do not belong to the passive set can be fulfilled by
+annotating formulas with timestamps.\<close>
 
-inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  stepI: "distinct Cs \<Longrightarrow> set Cs \<inter> fset (fformulas P) = {} \<Longrightarrow> step P (add Cs (snd (select P)))"
-
-definition is_fair :: bool where
-  "is_fair \<longleftrightarrow>
-   (\<forall>Ps. full_chain step Ps \<longrightarrow> lhd Ps = empty \<longrightarrow> Liminf_llist (lmap (fset \<circ> fformulas) Ps) = {})"
+inductive small_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  small_step_addI: "C |\<notin>| fformulas P \<Longrightarrow> small_step P (add C P)"
+| small_step_removeI: "small_step P (remove C P)"
 
 abbreviation formulas :: "'p \<Rightarrow> 'f set" where
   "formulas P \<equiv> fset (fformulas P)"
 
+inductive big_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  big_stepI: "small_step\<^sup>*\<^sup>* P P' \<Longrightarrow> fformulas P' \<noteq> {||} \<Longrightarrow> big_step P (snd (select P'))"
+
+definition is_fair :: bool where
+  "is_fair \<longleftrightarrow>
+   (\<forall>Ps. full_chain big_step Ps \<longrightarrow> lhd Ps = empty \<longrightarrow> Liminf_llist (lmap formulas Ps) = {})"
+
 end
 
-interpretation fifo_passive_set: passive_set "[]" "\<lambda>xs. (hd xs, tl xs)" "\<lambda>ys xs. xs @ ys" removeAll
+interpretation fifo_passive_set: passive_set "[]" "\<lambda>xs. (hd xs, tl xs)" "\<lambda>y xs. xs @ [y]" removeAll
   fset_of_list
 proof
   show "fset_of_list [] = {||}"
@@ -65,7 +69,7 @@ next
     finsert (fst (hd P, tl P)) (fset_of_list (snd (hd P, tl P))) = fset_of_list P"
     by (metis fset_of_list_simps fst_conv list.exhaust_sel snd_conv)
 next
-  show "\<And>Cs P. fset_of_list (P @ Cs) = fset_of_list Cs |\<union>| fset_of_list P"
+  show "\<And>C P. fset_of_list (P @ [C]) = {|C|} |\<union>| fset_of_list P"
     by (simp add: funion_commute)
 next
   show "\<And>C P. fset_of_list (removeAll C P) = fset_of_list P |-| {|C|}"
@@ -74,7 +78,7 @@ qed
 
 lemma chain_fifo_passive_set_step_distinct_fformulas:
   assumes
-    ps_chain: "chain fifo_passive_set.step Ps" and
+    ps_chain: "chain fifo_passive_set.big_step Ps" and
     dist_hd: "distinct (lhd Ps)" and
     i_lt: "enat i < llength Ps"
   shows "distinct (lnth Ps i)"
@@ -91,13 +95,12 @@ next
 
   show ?case
   proof -
-    have step: "fifo_passive_set.step (lnth Ps i) (lnth Ps (Suc i))"
+    have step: "fifo_passive_set.big_step (lnth Ps i) (lnth Ps (Suc i))"
       by (rule chain_lnth_rel[OF ps_chain Suc.prems])
 
     show "distinct (lnth Ps (Suc i))"
-      using step[unfolded fifo_passive_set.step.simps, simplified]
-      by (metis (no_types, lifting) disjoint_iff_not_equal distinct_append distinct_tl ih
-          list.sel(2) tl_append2)
+      using step[unfolded fifo_passive_set.big_step.simps, simplified]
+      sorry
   qed
 qed
 
@@ -105,15 +108,15 @@ lemma fifo_passive_set_is_fair: "fifo_passive_set.is_fair TYPE('f)"
   unfolding fifo_passive_set.is_fair_def
 proof (intro allI impI)
   fix Ps :: "'f list llist"
-  assume ps_full: "full_chain fifo_passive_set.step Ps"
+  assume ps_full: "full_chain fifo_passive_set.big_step Ps"
   assume hd_emp: "lhd Ps = []"
 
-  have ps_chain: "chain fifo_passive_set.step Ps"
+  have ps_chain: "chain fifo_passive_set.big_step Ps"
     by (rule full_chain_imp_chain[OF ps_full])
 
-  show "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) = {}"
+  show "Liminf_llist (lmap fifo_passive_set.formulas Ps) = {}"
   proof (rule ccontr)
-    assume lim_ne: "Liminf_llist (lmap (fset \<circ> fset_of_list) Ps) \<noteq> {}"
+    assume lim_ne: "Liminf_llist (lmap fifo_passive_set.formulas Ps) \<noteq> {}"
 
     obtain i :: nat where
       i_lt: "enat i < llength Ps" and
@@ -136,10 +139,10 @@ proof (intro allI impI)
       have n_gz: "n > 0"
         using full_chain_length_pos[OF ps_full] by (metis enat_ord_simps(2) n zero_enat_def)
 
-      have "\<not> fifo_passive_set.step (lnth Ps (n - 1)) P" for P
+      have "\<not> fifo_passive_set.big_step (lnth Ps (n - 1)) P" for P
         using full_chain_lnth_not_rel[OF ps_full, of "n - 1" P] Suc_diff_1 n n_gz by presburger
       hence "set (lnth Ps (n - 1)) = {}"
-        using fifo_passive_set.step.simps by force
+        using fifo_passive_set.big_step.simps sorry
       moreover have "C \<in> set (lnth Ps (n - 1))"
         using i_lt c_in' n
         by (metis Suc_pred' diff_less enat_ord_simps(2) le_Suc_eq less_numeral_extra(1) n_gz
@@ -174,7 +177,7 @@ proof (intro allI impI)
     next
       case (Suc j)
 
-      have step: "fifo_passive_set.step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
+      have step: "fifo_passive_set.big_step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
         by (simp add: full_chain_lnth_rel ps_full ps_inf)
 
       {
@@ -187,7 +190,7 @@ proof (intro allI impI)
           by (rule Suc.hyps(1)[OF j_le])
 
         have "length (lnth Ps (i + Suc j)) + 1 \<ge> length (lnth Ps (i + j))"
-          using step[unfolded fifo_passive_set.step.simps] by auto
+          using step[unfolded fifo_passive_set.big_step.simps] sorry (* WON'T WORK *)
         thus ?case
           using 1 ih1 by linarith
       next
@@ -202,10 +205,8 @@ proof (intro allI impI)
           by (rule Suc.hyps(2)[OF j_le])
 
         show ?case
-          using step[unfolded fifo_passive_set.step.simps]
-          by (smt (verit) 2 Suc.hyps(1) Suc_diff_Suc Suc_le_lessD add_diff_cancel_left' ih2 j_le
-              length_tl less_imp_Suc_add nat_add_left_cancel_less nth_append nth_tl plus_1_eq_Suc
-              snd_conv)
+          using step[unfolded fifo_passive_set.big_step.simps]
+          sorry
       }
     qed
 
@@ -216,7 +217,7 @@ proof (intro allI impI)
     from at_0 have c_at_hd_ik:"hd (lnth Ps (i + k)) = C"
       using ik_bnd by (simp add: hd_conv_nth)
 
-    have step: "fifo_passive_set.step (lnth Ps (i + k)) (lnth Ps (i + k + 1))"
+    have step: "fifo_passive_set.big_step (lnth Ps (i + k)) (lnth Ps (i + k + 1))"
       using full_chain_lnth_rel[OF ps_full]
       by (metis (full_types) Suc_eq_plus1 enat_ord_code(4) ps_inf)
 
@@ -226,7 +227,7 @@ proof (intro allI impI)
         at_ik: "lnth Ps (i + k) = P" and
         at_sik: "lnth Ps (i + k + 1) = tl P @ Cs" and
         inter: "set Cs \<inter> fset (fset_of_list P) = {}"
-        using step[simplified fifo_passive_set.step.simps] by auto
+        using step[simplified fifo_passive_set.big_step.simps] sorry (* WON'T WORK *)
 
       have dist_hd: "distinct (lhd Ps)"
         using hd_emp by simp
@@ -236,7 +237,8 @@ proof (intro allI impI)
       moreover have "hd P = C"
         using c_at_hd_ik at_ik by auto
       moreover have "distinct (lnth Ps (i + k))"
-        using chain_fifo_passive_set_step_distinct_fformulas[OF ps_chain dist_hd] by (simp add: ps_inf)
+        using chain_fifo_passive_set_step_distinct_fformulas[OF ps_chain dist_hd]
+        by (simp add: ps_inf)
       ultimately have c_ni_tl: "C \<notin> set (tl P)"
         using at_ik by (metis distinct.simps(2) hd_Cons_tl length_greater_0_conv)
 
