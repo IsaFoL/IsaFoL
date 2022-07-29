@@ -47,16 +47,16 @@ fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f
    {(C, active) | C. C \<in> A}"
 
 inductive OL :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
-  choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A) "
+  choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C' \<in> P \<union> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
-    state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P, {}, A) "
+    state (N, {C}, P, {}, A) \<leadsto>OL state (N, {}, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (P \<union> A \<union> {C'}) \<Longrightarrow>
     state (N, {C}, P, {}, A) \<leadsto>OL state (N, {C'}, P, {}, A)"
-| delete_bwd_p: "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C'  \<Longrightarrow>
+| delete_bwd_p: "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state(N, {C}, P, {}, A)"
 | simplify_bwd_p: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
     state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
-| delete_bwd_a: "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C'  \<Longrightarrow>
+| delete_bwd_a: "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N, {C}, P, {}, A)"
 | simplify_bwd_a: "C' \<in> no_labels.Red_F ({C, C'' }) \<Longrightarrow>
     state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
@@ -212,8 +212,8 @@ proof -
 qed
 
 lemma deleteBwdP_in_GC:
-  assumes "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C'"
-  shows  "state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>GC state(N, {C}, P, {}, A)"
+  assumes "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C'"
+  shows  "state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>GC state (N, {C}, P, {}, A)"
   using assms
   proof
     let ?\<N> = "state (N, {C}, P, {}, A)"
@@ -276,7 +276,7 @@ proof -
 qed
 
 lemma deleteBwdA_in_GC:
-  assumes "C' \<in> no_labels.Red_F ({C}) \<or> C \<prec>\<cdot> C' "
+  assumes "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' "
   shows "state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>GC state (N, {C}, P, {}, A) "
   using assms
 proof
@@ -289,7 +289,7 @@ proof
       using c_ls_c' remove_succ_F by blast
     also have "?\<N> \<union> {(C', active)} = state (N, {C}, P, {}, A \<union> {C'})"
       by auto
-    finally show "state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>GC state(N, {C}, P, {}, A)"
+    finally show "state (N, {C}, P, {}, A \<union> {C'}) \<leadsto>GC state (N, {C}, P, {}, A)"
       by auto
 next
     let ?\<N> = "state (N, {C}, P, {}, A)"
