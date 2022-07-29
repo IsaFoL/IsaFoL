@@ -2060,8 +2060,13 @@ definition trail_closures_from_clauses where
     (\<forall>Ln \<in> set (state_trail S).
       (case snd Ln of
         None \<Rightarrow> True
-      | Some (C, L, \<gamma>) \<Rightarrow> \<exists>D \<in> N \<union> state_learned S. \<exists>\<rho> \<mu>.
-        is_renaming \<rho> \<and> is_mimgu \<mu> {atm_of ` set_mset {#K \<in># D. K \<cdot>l \<rho> \<cdot>l \<gamma> = L \<cdot>l \<rho> \<cdot>l \<gamma>#}}))"
+      | Some (D, L\<^sub>D, \<gamma>') \<Rightarrow> \<exists>C \<in> N \<union> state_learned S. \<exists>C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu>.
+        C' + {#L#} = rename_clause (N \<union> state_learned S \<union> clss_of_trail (state_trail S)) C \<and>
+        subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L \<and> is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>) \<and>
+        C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<and> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<and>
+        is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<and>
+        \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<and>
+        D = C\<^sub>0 \<cdot> \<mu> \<and> L\<^sub>D = L \<cdot>l \<mu>))"
 
 inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
