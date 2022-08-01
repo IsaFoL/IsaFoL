@@ -25,7 +25,7 @@ lemma distinct_imp_notin_set_drop_Suc:
     "i < length xs"
     "xs ! i = x"
   shows "x \<notin> set (drop (Suc i) xs)"
-  by (metis Cons_nth_drop_Suc assms(1) assms(2) assms(3) distinct.simps(2) distinct_drop)
+  by (metis Cons_nth_drop_Suc assms distinct.simps(2) distinct_drop)
 
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
@@ -36,6 +36,11 @@ definition finitely_often :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightar
 
 abbreviation infinitely_often :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
   "infinitely_often R xs \<equiv> \<not> finitely_often R xs"
+
+lemma infinitely_often_alt_def:
+  "infinitely_often R xs \<longleftrightarrow>
+   (\<forall>i. \<exists>j. i \<le> j \<and> enat (Suc j) < llength xs \<and> R (lnth xs j) (lnth xs (Suc j)))"
+  unfolding finitely_often_def by blast
 
 
 subsection \<open>Passive Set\<close>
@@ -127,21 +132,16 @@ next
     using step_preserves_distinct ih by blast
 qed
 
-
-
-
-
-
-
-
 lemma fifo_passive_set_is_fair: "is_fair TYPE('f)"
   unfolding is_fair_def
 proof (intro allI impI)
   fix Ps :: "'f list llist"
-  assume ps_full: "full_chain big_step Ps"
-  assume hd_emp: "lhd Ps = []"
+    assume
+      ps_full: "full_chain step Ps" and
+      inf_sel: "infinitely_often select_step Ps" and
+      hd_emp: "lhd Ps = []"
 
-  have ps_chain: "chain big_step Ps"
+  have ps_chain: "chain step Ps"
     by (rule full_chain_imp_chain[OF ps_full])
 
   show "Liminf_llist (lmap formulas Ps) = {}"
@@ -166,19 +166,9 @@ proof (intro allI impI)
         n: "enat n = llength Ps"
         using \<open>llength Ps \<noteq> \<infinity>\<close> by force
 
-      have n_gz: "n > 0"
-        using full_chain_length_pos[OF ps_full] by (metis enat_ord_simps(2) n zero_enat_def)
-
-      have "\<not> big_step (lnth Ps (n - 1)) P" for P
-        using full_chain_lnth_not_rel[OF ps_full, of "n - 1" P] Suc_diff_1 n n_gz by presburger
-      hence "set (lnth Ps (n - 1)) = {}"
-        using no_big_step_imp_fformulas_empty by (metis equals0I fempty_iff fset_of_list_elem)
-      moreover have "C \<in> set (lnth Ps (n - 1))"
-        using i_lt c_in' n
-        by (metis Suc_pred' diff_less enat_ord_simps(2) le_Suc_eq less_numeral_extra(1) n_gz
-            nless_le)
-      ultimately show False
-        by simp
+      show False
+        using inf_sel[unfolded infinitely_often_alt_def]
+        by (metis Suc_lessD enat_ord_simps(2) less_le_not_le n)
     qed
 
     have c_in'': "\<forall>j \<ge> i. C \<in> set (lnth Ps j)"
@@ -191,6 +181,8 @@ proof (intro allI impI)
     have dist: "distinct (lnth Ps i)"
       by (simp add: chain_big_step_preserves_distinct hd_emp i_lt ps_chain)
 
+
+    
     have ni_j: "C \<notin> set (drop (k + 1 - j) (lnth Ps (i + j)))"
       if j_le: "j \<le> k + 1" for j
     proof (induct j)
