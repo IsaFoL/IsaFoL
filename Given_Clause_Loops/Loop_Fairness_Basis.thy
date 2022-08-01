@@ -35,6 +35,11 @@ lemma distinct_set_drop_removeAll_hd:
   using assms
   by (metis distinct.simps(2) drop_Suc list.exhaust_sel removeAll.simps(2) removeAll_id)
 
+lemma set_drop_append_subseteq:
+  "set (drop n (xs @ ys)) \<subseteq> set (drop n xs) \<union> set ys"
+  sorry
+
+
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
 
 definition finitely_often :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
@@ -244,6 +249,14 @@ proof (intro allI impI)
                 case False
                 note d_ne_i' = this(1)
 
+                have dm1_bounds:
+                  "d - 1 < d"
+                  "i' \<le> d - 1"
+                  "d - 1 \<le> i''"
+                  using d_ge d_le d_ne_i' by auto
+                have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
+                  by (rule ih[OF dm1_bounds])
+
                 have step: "step (lnth Ps (d - 1)) (lnth Ps d)"
                   by (metis Suc_diff_1 c_in' d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
                       enat_ord_code(4) full_chain_lnth_rel hd_emp i'_ge lhd_conv_lnth
@@ -253,10 +266,21 @@ proof (intro allI impI)
                 proof cases
                   case (step_addI D)
                   note at_d = this(1) and d_ni = this(2)
+
+                  have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
+                    by (meson c_in'' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
+                  hence d_ne: "D \<noteq> C"
+                    using d_ni by blast
+
+                  have "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
+                    by (rule ih_dm1)
+                  moreover have "C \<notin> set [D]"
+                    using d_ne by simp
+                  ultimately have c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ [D]))"
+                    using set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" "[D]"] by fast
+
                   show ?thesis
-                    unfolding at_d
-                    using ih
-                    sorry
+                    unfolding at_d by (rule c_ni_dm1)
                 next
                   case (step_removeI D)
                   then show ?thesis
