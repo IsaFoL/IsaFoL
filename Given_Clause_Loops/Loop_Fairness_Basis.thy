@@ -15,7 +15,7 @@ theory Loop_Fairness_Basis
 begin
 
 
-subsection \<open>Setup and Basic Lemma\<close>
+subsection \<open>Setup and Basic Lemmas\<close>
 
 declare fset_of_list.rep_eq [simp]
 
@@ -26,6 +26,36 @@ lemma distinct_imp_notin_set_drop_Suc:
     "xs ! i = x"
   shows "x \<notin> set (drop (Suc i) xs)"
   by (metis Cons_nth_drop_Suc assms distinct.simps(2) distinct_drop)
+
+lemma distinct_set_drop_removeAll_hd:
+  assumes
+    "distinct xs"
+    "xs \<noteq> []"
+  shows "set (drop n (removeAll (hd xs) xs)) = set (drop (Suc n) xs)"
+  using assms
+proof (induct xs)
+  case Nil
+  then show ?case
+    by auto
+next
+  case (Cons x xs)
+  show ?case
+  proof (cases "xs = []")
+    case True
+    then show ?thesis
+      by auto
+  next
+    case False
+    note xs_nnil = this(1)
+
+    have ih: "set (drop n (removeAll (hd xs) xs)) = set (drop (Suc n) xs)"
+      by (meson Cons.hyps Cons.prems(1) distinct.simps(2) xs_nnil)
+
+    show ?thesis
+      using ih
+      sorry
+  qed
+qed
 
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
@@ -71,10 +101,10 @@ be fulfilled by annotating formulas with timestamps.\<close>
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   step_addI: "C |\<notin>| fformulas P \<Longrightarrow> step P (add C P)"
 | step_removeI: "step P (remove C P)"
-| step_selectI: "step P (remove (select P) P)"
+| step_selectI: "fformulas P \<noteq> {||} \<Longrightarrow> step P (remove (select P) P)"
 
 inductive select_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  select_stepI: "select_step P (remove (select P) P)"
+  select_stepI: "fformulas P \<noteq> {||} \<Longrightarrow> select_step P (remove (select P) P)"
 
 text \<open>The passive set starts empty. The initial formulas must be added explicitly.\<close>
 
@@ -192,7 +222,45 @@ proof (intro allI impI)
           by auto
       next
         case (Suc l)
-        then show ?case sorry
+        then obtain i' :: nat where
+          i'_ge: "i' \<ge> i" and
+          c_ni_i': "C \<notin> set (drop (k + 1 - l) (lnth Ps i'))"
+          by blast
+
+        obtain i'' :: nat where
+          i''_ge: "i'' \<ge> i'" and
+          i''_lt: "enat (Suc i'') < llength Ps" and
+          sel: "select_step (lnth Ps i'') (lnth Ps (Suc i''))"
+          using inf_sel[unfolded infinitely_often_alt_def] by blast
+
+        have c_ni_i'_i'': "\<forall>j. j \<ge> i' \<longrightarrow> j \<le> i'' \<longrightarrow> C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
+          sorry
+
+        have "Suc i'' > i"
+          using i''_ge i'_ge by linarith
+        moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Ps (Suc i'')))"
+          using sel
+        proof cases
+          case select_stepI
+          note at_si'' = this(1) and at_i''_ne = this(2)
+
+          have at_i''_nnil: "lnth Ps i'' \<noteq> []"
+            using at_i''_ne by auto
+
+          have dist_i'': "distinct (lnth Ps i'')"
+            by (simp add: chain_big_step_preserves_distinct hd_emp ps_chain ps_inf)
+
+          have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps i''))"
+            using c_ni_i'_i'' i''_ge by blast
+
+          show ?thesis
+            unfolding at_si''
+            by (subst distinct_set_drop_removeAll_hd[OF dist_i'' at_i''_nnil])
+              (metis Suc_diff_Suc bot_nat_0.not_eq_extremum c_ni_i'' drop0 in_set_dropD
+                zero_less_diff)
+        qed
+        ultimately show ?case
+          by (rule_tac x = "Suc i''" in exI) auto
       qed
       then show ?thesis
         by (metis diff_add_zero drop0 in_set_dropD)
