@@ -187,8 +187,8 @@ proof (intro allI impI)
       at_k: "lnth Ps i ! k = C"
       by (meson in_set_conv_nth le_refl)
 
-    have "C \<in> set (take (k - j + 1) (lnth Ps (i + j)))"
-      if j_le: "j \<le> k" for j
+    have ni_j: "C \<notin> set (drop (k + 1 - j) (lnth Ps (i + j)))"
+      if j_le: "j \<le> k + 1" for j
     proof (induct j)
       case 0
       then show ?case sorry
@@ -196,76 +196,9 @@ proof (intro allI impI)
       case (Suc j)
       then show ?case sorry
     qed
-    then have in_take: "C \<in> set (take 1 (lnth Ps (i + k)))"
-      sorry
-
-    have ik_bnd: "length (lnth Ps (i + k)) > 0"
-      using in_take by force
-    have at_0: "lnth Ps (i + k) ! 0 = C"
-      using in_take by (metis One_nat_def in_set_takeD length_pos_if_in_set less_numeral_extra(3)
-          list.size(3) self_append_conv2 set_ConsD take0 take_Suc_conv_app_nth)
-    from at_0 have c_at_hd_ik:"hd (lnth Ps (i + k)) = C"
-      using ik_bnd by (simp add: hd_conv_nth)
-
-    have step: "big_step (lnth Ps (i + k)) (lnth Ps (i + k + 1))"
-      using full_chain_lnth_rel[OF ps_full]
-      by (metis (full_types) Suc_eq_plus1 enat_ord_code(4) ps_inf)
 
     have "C \<notin> set (lnth Ps (i + k + 1))"
-    proof -
-      obtain P' :: "'f list" where
-        ss: "small_step\<^sup>*\<^sup>* (lnth Ps (i + k)) P'" and
-        at_ikp1: "lnth Ps (i + k + 1) = removeAll (hd P') P'"
-        using step[simplified big_step.simps] by blast
-
-      show ?thesis
-      proof (cases "P' = []")
-        case True
-        then have "lnth Ps (i + k + 1) = []"
-          using at_ikp1 by fastforce
-        then show ?thesis
-          by simp
-      next
-        case False
-        then show ?thesis sorry
-      qed
-      qed
-    qed
-
-
-
-
-
-
-
-
-
-    proof -
-      obtain Cs and P where
-        at_ik: "lnth Ps (i + k) = P" and
-        at_sik: "lnth Ps (i + k + 1) = tl P @ Cs" and
-        inter: "set Cs \<inter> fset (fset_of_list P) = {}"
-        using step[simplified big_step.simps] sorry (* WON'T WORK *)
-
-      have dist_hd: "distinct (lhd Ps)"
-        using hd_emp by simp
-
-      have "length P > 0"
-        using at_ik ik_bnd by auto
-      moreover have "hd P = C"
-        using c_at_hd_ik at_ik by auto
-      moreover have "distinct (lnth Ps (i + k))"
-        using chain_big_step_preserves_distinct[OF ps_chain dist_hd]
-        by (simp add: ps_inf)
-      ultimately have c_ni_tl: "C \<notin> set (tl P)"
-        using at_ik by (metis distinct.simps(2) hd_Cons_tl length_greater_0_conv)
-
-      have c_ni_cs: "C \<notin> set Cs"
-        using inter at_0 at_ik ik_bnd by auto
-
-      thus ?thesis
-        using c_ni_tl c_ni_cs at_sik by simp
-    qed
+      using ni_j[of "k + 1"] by simp
     thus False
       using c_in'' by auto
   qed
