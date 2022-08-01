@@ -35,9 +35,28 @@ lemma distinct_set_drop_removeAll_hd:
   using assms
   by (metis distinct.simps(2) drop_Suc list.exhaust_sel removeAll.simps(2) removeAll_id)
 
-lemma set_drop_append_subseteq:
-  "set (drop n (xs @ ys)) \<subseteq> set (drop n xs) \<union> set ys"
-  sorry
+lemma set_drop_removeAll: "set (drop n (removeAll y xs)) \<subseteq> set (drop n xs)"
+proof (induct n arbitrary: xs)
+  case 0
+  then show ?case
+    by auto
+next
+  case (Suc n)
+  then show ?case
+  proof (cases xs)
+    case Nil
+    then show ?thesis
+      by auto
+  next
+    case (Cons x xs')
+    then show ?thesis
+      by (metis Suc Suc_n_not_le_n drop_Suc_Cons nat_le_linear removeAll.simps(2)
+          set_drop_subset_set_drop subset_code(1))
+  qed
+qed
+
+lemma set_drop_append_subseteq: "set (drop n (xs @ ys)) \<subseteq> set (drop n xs) \<union> set ys"
+  by (metis drop_append set_append set_drop_subset sup.idem sup.orderI sup_mono)
 
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
@@ -272,19 +291,20 @@ proof (intro allI impI)
                   hence d_ne: "D \<noteq> C"
                     using d_ni by blast
 
-                  have "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
-                    by (rule ih_dm1)
-                  moreover have "C \<notin> set [D]"
+                  have "C \<notin> set [D]"
                     using d_ne by simp
-                  ultimately have c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ [D]))"
-                    using set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" "[D]"] by fast
+                  then have c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ [D]))"
+                    using ih_dm1 set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" "[D]"]
+                    by fast
 
                   show ?thesis
                     unfolding at_d by (rule c_ni_dm1)
                 next
                   case (step_removeI D)
-                  then show ?thesis
-                    sorry
+                  note at_d = this(1)
+
+                  show ?thesis
+                    unfolding at_d using ih_dm1 set_drop_removeAll by fast
                 qed
               qed
             qed
