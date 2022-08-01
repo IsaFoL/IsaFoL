@@ -22,8 +22,8 @@ primrec nat_of_OL_label :: "OL_label \<Rightarrow> nat" where
 definition OL_Prec_L :: "OL_label \<Rightarrow> OL_label \<Rightarrow> bool" (infix "\<sqsubset>L" 50) where
   "OL_Prec_L l l' \<longleftrightarrow> nat_of_OL_label l < nat_of_OL_label l'"
 
-locale otter_loop = inter?: labeled_lifting_intersection Bot_F Inf_F Bot_G Q
-  entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
+locale otter_loop = labeled_lifting_intersection Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
+  Red_F_q \<G>_F_q \<G>_I_q
   "{\<iota>\<^sub>F\<^sub>L :: ('f \<times> 'l) inference. Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F}"
   for
     Bot_F :: "'f set"
@@ -38,8 +38,7 @@ locale otter_loop = inter?: labeled_lifting_intersection Bot_F Inf_F Bot_G Q
     and \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option"
   + fixes
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
-    active :: "'l"
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50)
   assumes
     equiv_equiv_F: "equivp (\<doteq>)" and
     wf_prec_F: "minimal_element (\<prec>\<cdot>) UNIV" and
@@ -64,7 +63,7 @@ lemma Active_minimal: "l2 \<noteq> Active \<Longrightarrow> Active \<sqsubset>L 
 lemma at_least_two_labels: "\<exists>l2. Active \<sqsubset>L l2"
   using Active_minimal by blast
 
-interpretation gc?: given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
+sublocale gc?: given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
   Equiv_F Prec_F OL_Prec_L Active
   apply unfold_locales
                apply simp
