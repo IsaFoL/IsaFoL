@@ -33,30 +33,7 @@ lemma distinct_set_drop_removeAll_hd:
     "xs \<noteq> []"
   shows "set (drop n (removeAll (hd xs) xs)) = set (drop (Suc n) xs)"
   using assms
-proof (induct xs)
-  case Nil
-  then show ?case
-    by auto
-next
-  case (Cons x xs)
-  show ?case
-  proof (cases "xs = []")
-    case True
-    then show ?thesis
-      by auto
-  next
-    case False
-    note xs_nnil = this(1)
-
-    have ih: "set (drop n (removeAll (hd xs) xs)) = set (drop (Suc n) xs)"
-      by (meson Cons.hyps Cons.prems(1) distinct.simps(2) xs_nnil)
-
-    show ?thesis
-      using ih
-      sorry
-  qed
-qed
-
+  by (metis distinct.simps(2) drop_Suc list.exhaust_sel removeAll.simps(2) removeAll_id)
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
 
@@ -176,14 +153,14 @@ proof (intro allI impI)
 
   show "Liminf_llist (lmap formulas Ps) = {}"
   proof (rule ccontr)
-    assume lim_ne: "Liminf_llist (lmap formulas Ps) \<noteq> {}"
+    assume lim_nemp: "Liminf_llist (lmap formulas Ps) \<noteq> {}"
 
     obtain i :: nat where
       i_lt: "enat i < llength Ps" and
-      inter_ne: "\<Inter> ((set \<circ> lnth Ps) ` {j. i \<le> j \<and> enat j < llength Ps}) \<noteq> {}"
-      using lim_ne unfolding Liminf_llist_def by auto
+      inter_nemp: "\<Inter> ((set \<circ> lnth Ps) ` {j. i \<le> j \<and> enat j < llength Ps}) \<noteq> {}"
+      using lim_nemp unfolding Liminf_llist_def by auto
 
-    from inter_ne obtain C :: 'f where
+    from inter_nemp obtain C :: 'f where
       c_in: "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> set P"
       by auto
     hence c_in': "\<forall>j \<ge> i. enat j < llength Ps \<longrightarrow> C \<in> set (lnth Ps j)"
@@ -230,22 +207,62 @@ proof (intro allI impI)
         obtain i'' :: nat where
           i''_ge: "i'' \<ge> i'" and
           i''_lt: "enat (Suc i'') < llength Ps" and
-          sel: "select_step (lnth Ps i'') (lnth Ps (Suc i''))"
+          sel_step: "select_step (lnth Ps i'') (lnth Ps (Suc i''))"
           using inf_sel[unfolded infinitely_often_alt_def] by blast
 
-        have c_ni_i'_i'': "\<forall>j. j \<ge> i' \<longrightarrow> j \<le> i'' \<longrightarrow> C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
-          sorry
+        have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
+          if j_ge: "j \<ge> i'" and j_le: "j \<le> i''" for j
+          using j_ge j_le
+        proof (induct j rule: less_induct)
+          case (less d)
+          then show ?case
+          proof (cases "d < i'")
+            case True
+            then show ?thesis
+              using less.prems(1) by linarith
+          next
+            case False
+            then have d_ge: "d \<ge> i'"
+              by simp
+            then show ?thesis
+            proof (cases "d > i''")
+              case True
+              then show ?thesis
+                using less.prems(2) linorder_not_less by blast
+            next
+              case False
+              then have d_le: "d \<le> i''"
+                by simp
+
+              show ?thesis
+              proof (cases "d = i'")
+                case True
+                then show ?thesis
+                  using c_ni_i' by blast
+              next
+                case False
+                note d_ne_i' = this(1)
+
+                have step: "step (lnth Ps (d - 1)) (lnth Ps d)"
+                  sorry
+
+                show ?thesis
+                  sorry
+              qed
+            qed
+          qed
+        qed
 
         have "Suc i'' > i"
           using i''_ge i'_ge by linarith
         moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Ps (Suc i'')))"
-          using sel
+          using sel_step
         proof cases
           case select_stepI
-          note at_si'' = this(1) and at_i''_ne = this(2)
+          note at_si'' = this(1) and at_i''_nemp = this(2)
 
           have at_i''_nnil: "lnth Ps i'' \<noteq> []"
-            using at_i''_ne by auto
+            using at_i''_nemp by auto
 
           have dist_i'': "distinct (lnth Ps i'')"
             by (simp add: chain_big_step_preserves_distinct hd_emp ps_chain ps_inf)
