@@ -403,7 +403,7 @@ proof -
     by simp
 qed
 
-theorem ol_in_gc: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
+theorem OL_step_imp_GC_step: "M \<leadsto>OL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: OL.induct)
   case (choose_n N C P A)
   then show ?case

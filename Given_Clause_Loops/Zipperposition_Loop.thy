@@ -254,7 +254,7 @@ proof -
     using thesis_before_rewriting zl_state.simps by presburger
 qed
 
-theorem zl_in_gc: "(T, \<M>) \<leadsto>ZL (T, \<M>') \<Longrightarrow> (T, \<M>) \<leadsto>LGC (T, \<M>')"
+theorem ZL_step_imp_LGC_step: "T\<M> \<leadsto>ZL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
 proof (induction rule: ZL.induct)
   case (choose_p T P C A)
   then show ?case

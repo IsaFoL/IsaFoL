@@ -315,7 +315,7 @@ proof -
     by simp
 qed
 
-theorem dl_in_gc: "(T, \<M>) \<leadsto>DL (T, \<M>') \<Longrightarrow> (T, \<M>) \<leadsto>LGC (T, \<M>') "
+theorem DL_step_imp_GC_step: "T\<M> \<leadsto>DL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
 proof (induction rule: DL.induct)
   case (choose_p T P C A)
   then show ?case

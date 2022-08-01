@@ -58,6 +58,84 @@ where
 
 subsection \<open>Refinement\<close>
 
+lemma OLf_step_imp_OL_step:
+  assumes olf: "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A')"
+  shows "state (N, X, formulas P, Y, A) \<leadsto>OL state (N', X', formulas P', Y', A')"
+  using olf
+proof cases
+  case (choose_n C)
+  note unfolds = this(1-7) and c_ni = this(8)
+  show ?thesis
+    unfolding unfolds by (rule OL.choose_n[OF c_ni])
+next
+  case (delete_fwd C)
+  note unfolds = this(1-7) and c_red = this(8)
+  show ?thesis
+    unfolding unfolds by (rule OL.delete_fwd[OF c_red])
+next
+  case (simplify_fwd C' S C)
+  note unfolds = this(1-7) and c_red = this(9)
+  show ?thesis
+    unfolding unfolds by (rule OL.simplify_fwd[OF c_red])
+next
+  case (delete_bwd_p C' C)
+  note unfolds = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
+
+  have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
+    unfolding fformulas_remove by (auto intro: c'_in_p)
+  have p_mns_c': "formulas P - {C'} = formulas (remove C' P)"
+    unfolding fformulas_remove by auto
+
+  show ?thesis
+    unfolding unfolds
+    by (rule OL.delete_bwd_p[OF c'_red, of _ "formulas P - {C'}",
+          unfolded p_rm_c'_uni_c' p_mns_c'])
+next
+  case (simplify_bwd_p C' S C C'')
+  note unfolds = this(1-7) and c'_in_p = this(9) and c'_red = this(10)
+
+  have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
+    unfolding fformulas_remove by (auto intro: c'_in_p)
+  have p_mns_c': "formulas P - {C'} = formulas (remove C' P)"
+    unfolding fformulas_remove by auto
+
+  show ?thesis
+    unfolding unfolds
+    by (rule OL.simplify_bwd_p[OF c'_red, of _ "formulas P - {C'}",
+          unfolded p_rm_c'_uni_c' p_mns_c'])
+next
+  case (delete_bwd_a C' C)
+  note unfolds = this(1-7) and c'_red = this(8)
+  show ?thesis
+    unfolding unfolds by (rule OL.delete_bwd_a[OF c'_red])
+next
+  case (simplify_bwd_a C' S C C'')
+  note unfolds = this(1-7) and c'_red = this(9)
+  show ?thesis
+    unfolding unfolds by (rule OL.simplify_bwd_a[OF c'_red])
+next
+  case (transfer C)
+  note unfolds = this(1-7)
+
+  have p_uni_c: "formulas P \<union> {C} = formulas (add C P)"
+    unfolding fformulas_add by auto
+
+  show ?thesis
+    unfolding unfolds by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
+next
+  case choose_p
+  then show ?thesis sorry
+next
+  case (infer C)
+  show ?thesis
+    sorry
+qed
+
+lemma OLf_step_imp_GC_step:
+  "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A') \<Longrightarrow>
+   state (N, X, formulas P, Y, A) \<leadsto>GC state (N', X', formulas P', Y', A')"
+  by (rule OL_step_imp_GC_step[OF OLf_step_imp_OL_step])
+
 end
 
 end

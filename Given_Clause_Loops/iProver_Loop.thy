@@ -67,14 +67,15 @@ proof -
     by simp
 qed
 
-theorem il_in_gc: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
+theorem IL_step_imp_GC_step: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
 proof (induction rule: iprover_loop.induct)
   case (ol \<M> \<M>')
   then show ?case
-    by (simp add: ol_in_gc)
+    by (simp add: OL_step_imp_GC_step)
 next
   case (replace C A M C' P)
-  then show ?case using replace_in_GC by auto
+  then show ?case using replace_in_GC
+    by auto
 qed
 
 end

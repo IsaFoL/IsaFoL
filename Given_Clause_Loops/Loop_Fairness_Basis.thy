@@ -88,9 +88,9 @@ locale passive_set =
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset"
   assumes
-    "fformulas empty = {||}" and
-    "fformulas (add C P) = {|C|} |\<union>| fformulas P"
-    "fformulas (remove C P) = fformulas P |-| {|C|}"
+    fformulas_empty: "fformulas empty = {||}" and
+    fformulas_add: "fformulas (add C P) = {|C|} |\<union>| fformulas P" and
+    fformulas_remove: "fformulas (remove C P) = fformulas P |-| {|C|}"
 begin
 
 abbreviation formulas :: "'p \<Rightarrow> 'f set" where
