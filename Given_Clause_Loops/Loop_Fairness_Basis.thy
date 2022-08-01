@@ -124,6 +124,9 @@ proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
 next
+  show "\<And>P. fset_of_list P \<noteq> {||} \<Longrightarrow> hd P |\<in>| fset_of_list P"
+    by (metis fset_of_list_elem fset_of_list_simps(1) list.set_sel(1))
+next
   show "\<And>C P. fset_of_list (P @ [C]) = {|C|} |\<union>| fset_of_list P"
     by (simp add: funion_commute)
 next
