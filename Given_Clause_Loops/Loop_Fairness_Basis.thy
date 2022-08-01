@@ -78,7 +78,6 @@ be fulfilled by annotating formulas with timestamps.\<close>
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   step_addI: "C |\<notin>| fformulas P \<Longrightarrow> step P (add C P)"
 | step_removeI: "step P (remove C P)"
-| step_selectI: "fformulas P \<noteq> {||} \<Longrightarrow> step P (remove (select P) P)"
 
 inductive select_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_stepI: "fformulas P \<noteq> {||} \<Longrightarrow> select_step P (remove (select P) P)"
@@ -215,7 +214,9 @@ proof (intro allI impI)
           using j_ge j_le
         proof (induct j rule: less_induct)
           case (less d)
-          then show ?case
+          note ih = this(1)
+
+          show ?case
           proof (cases "d < i'")
             case True
             then show ?thesis
@@ -244,10 +245,23 @@ proof (intro allI impI)
                 note d_ne_i' = this(1)
 
                 have step: "step (lnth Ps (d - 1)) (lnth Ps d)"
-                  sorry
-
+                  by (metis Suc_diff_1 c_in' d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
+                      enat_ord_code(4) full_chain_lnth_rel hd_emp i'_ge lhd_conv_lnth
+                      linorder_not_less llength_eq_0 order_trans ps_full ps_inf)
                 show ?thesis
-                  sorry
+                  using step
+                proof cases
+                  case (step_addI D)
+                  note at_d = this(1) and d_ni = this(2)
+                  show ?thesis
+                    unfolding at_d
+                    using ih
+                    sorry
+                next
+                  case (step_removeI D)
+                  then show ?thesis
+                    sorry
+                qed
               qed
             qed
           qed
