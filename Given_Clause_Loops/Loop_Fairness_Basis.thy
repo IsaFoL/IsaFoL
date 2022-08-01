@@ -15,9 +15,17 @@ theory Loop_Fairness_Basis
 begin
 
 
-subsection \<open>Setup\<close>
+subsection \<open>Setup and Basic Lemma\<close>
 
 declare fset_of_list.rep_eq [simp]
+
+lemma distinct_imp_notin_set_drop_Suc:
+  assumes
+    "distinct xs"
+    "i < length xs"
+    "xs ! i = x"
+  shows "x \<notin> set (drop (Suc i) xs)"
+  by (metis Cons_nth_drop_Suc assms(1) assms(2) assms(3) distinct.simps(2) distinct_drop)
 
 
 subsection \<open>Passive Set\<close>
@@ -187,14 +195,19 @@ proof (intro allI impI)
       at_k: "lnth Ps i ! k = C"
       by (meson in_set_conv_nth le_refl)
 
+    have dist: "distinct (lnth Ps i)"
+      by (simp add: chain_big_step_preserves_distinct hd_emp i_lt ps_chain)
+
     have ni_j: "C \<notin> set (drop (k + 1 - j) (lnth Ps (i + j)))"
       if j_le: "j \<le> k + 1" for j
     proof (induct j)
       case 0
-      then show ?case sorry
+      then show ?case
+        using distinct_imp_notin_set_drop_Suc[OF dist k_lt at_k] by simp
     next
       case (Suc j)
-      then show ?case sorry
+      show ?case
+        sorry
     qed
 
     have "C \<notin> set (lnth Ps (i + k + 1))"
