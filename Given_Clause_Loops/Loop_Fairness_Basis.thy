@@ -89,6 +89,7 @@ locale passive_set =
     fformulas :: "'p \<Rightarrow> 'f fset"
   assumes
     fformulas_empty: "fformulas empty = {||}" and
+    select_in_fformulas: "fformulas P \<noteq> {||} \<Longrightarrow> select P |\<in>| fformulas P" and
     fformulas_add: "fformulas (add C P) = {|C|} |\<union>| fformulas P" and
     fformulas_remove: "fformulas (remove C P) = fformulas P |-| {|C|}"
 begin

@@ -51,14 +51,15 @@ where
 | simplify_bwd_a: "C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, {C}, P, {}, A \<union> {C'}) \<leadsto>OLf (N \<union> {C''}, {C}, P, {}, A)"
 | transfer: "(N, {C}, P, {}, A) \<leadsto>OLf (N, {}, add C P, {}, A)"
-| choose_p: "({}, {}, P, {}, A) \<leadsto>OLf ({}, {}, remove (select P) P, {select P}, A)"
+| choose_p: "fformulas P \<noteq> {||} \<Longrightarrow>
+    ({}, {}, P, {}, A) \<leadsto>OLf ({}, {}, remove (select P) P, {select P}, A)"
 | infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
     ({}, {}, P, {C}, A) \<leadsto>OLf (M, {}, P, {}, A \<union> {C})"
 
 
 subsection \<open>Refinement\<close>
 
-lemma OLf_step_imp_OL_step:
+lemma fair_OL_step_imp_OL_step:
   assumes olf: "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A')"
   shows "state (N, X, formulas P, Y, A) \<leadsto>OL state (N', X', formulas P', Y', A')"
   using olf
@@ -124,17 +125,30 @@ next
     unfolding unfolds by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
 next
   case choose_p
-  then show ?thesis sorry
+  note unfolds = this(1-8) and p_nemp = this(9)
+
+  have sel_ni_rm: "select P \<notin> formulas (remove (select P) P)"
+    unfolding fformulas_remove by auto
+
+  have rm_sel_uni_sel: "formulas (remove (select P) P) \<union> {select P} = formulas P"
+    unfolding fformulas_remove using p_nemp select_in_fformulas
+    by (metis Un_insert_right finsert.rep_eq finsert_fminus sup_bot_right)
+
+  show ?thesis
+    unfolding unfolds
+    by (rule OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
+          unfolded rm_sel_uni_sel])
 next
   case (infer C)
+  note unfolds = this(1-7) and infers = this(8)
   show ?thesis
-    sorry
+    unfolding unfolds by (rule OL.infer[OF infers])
 qed
 
-lemma OLf_step_imp_GC_step:
+lemma fair_OL_step_imp_GC_step:
   "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A') \<Longrightarrow>
    state (N, X, formulas P, Y, A) \<leadsto>GC state (N', X', formulas P', Y', A')"
-  by (rule OL_step_imp_GC_step[OF OLf_step_imp_OL_step])
+  by (rule OL_step_imp_GC_step[OF fair_OL_step_imp_OL_step])
 
 end
 
