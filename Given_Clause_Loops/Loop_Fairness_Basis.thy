@@ -181,34 +181,27 @@ proof (intro allI impI)
     have dist: "distinct (lnth Ps i)"
       by (simp add: chain_big_step_preserves_distinct hd_emp i_lt ps_chain)
 
-
-    
-    have ni_j: "C \<notin> set (drop (k + 1 - j) (lnth Ps (i + j)))"
-      if j_le: "j \<le> k + 1" for j
-    proof (induct j)
-      case 0
-      then show ?case
-        using distinct_imp_notin_set_drop_Suc[OF dist k_lt at_k] by simp
-    next
-      case (Suc j)
-      note ih = Suc(1)
-
-      have big_step: "big_step (lnth Ps (i + j)) (lnth Ps (i + Suc j))"
-        by (simp add: full_chain_lnth_rel ps_full ps_inf)
-
-      obtain P' :: "'f list" where
-        ss: "small_step\<^sup>*\<^sup>* (lnth Ps (i + j)) P'" and
-        at_isj: "lnth Ps (i + Suc j) = removeAll (hd P') P'"
-        using big_step[unfolded big_step.simps] by blast
-
-      show ?case
-        unfolding at_isj
-        sorry
+    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Ps i'))"
+    proof -
+      have "\<exists>i' \<ge> i. C \<notin> set (drop (k + 1 - l) (lnth Ps i'))" for l
+      proof (induct l)
+        case 0
+        have "C \<notin> set (drop (k + 1) (lnth Ps i))"
+          by (simp add: at_k dist distinct_imp_notin_set_drop_Suc k_lt)
+        then show ?case
+          by auto
+      next
+        case (Suc l)
+        then show ?case sorry
+      qed
+      then show ?thesis
+        by (metis diff_add_zero drop0 in_set_dropD)
     qed
-
-    have "C \<notin> set (lnth Ps (i + k + 1))"
-      using ni_j[of "k + 1"] by simp
-    thus False
+    then obtain i' :: nat where
+      "i' \<ge> i"
+      "C \<notin> set (lnth Ps i')"
+      by fastforce
+    then show False
       using c_in'' by auto
   qed
 qed
