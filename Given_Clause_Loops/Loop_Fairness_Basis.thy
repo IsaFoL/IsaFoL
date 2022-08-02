@@ -107,14 +107,26 @@ inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
 inductive select_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_stepI: "fformulas P \<noteq> {||} \<Longrightarrow> select_step P (remove (select P) P)"
 
-text \<open>The passive set starts empty. The initial formulas must be added explicitly.\<close>
+end
 
-definition is_fair :: bool where
-  "is_fair \<longleftrightarrow>
-   (\<forall>Ps. full_chain step Ps \<longrightarrow> infinitely_often select_step Ps \<longrightarrow> lhd Ps = empty \<longrightarrow>
-    Liminf_llist (lmap formulas Ps) = {})"
+locale fair_passive_set = passive_set empty select add remove fformulas
+  for
+    empty :: "'p" and
+    select :: "'p \<Rightarrow> 'f" and
+    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    fformulas :: "'p \<Rightarrow> 'f fset" +
+  assumes fair: "full_chain step Ps \<Longrightarrow> infinitely_often select_step Ps \<Longrightarrow> lhd Ps = empty \<Longrightarrow>
+    Liminf_llist (lmap formulas Ps) = {}"
+begin
+
+text \<open>In a fair derivation, the passive set starts empty. The initial formulas
+must be added explicitly.\<close>
 
 end
+
+text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
+passive set.\<close>
 
 locale fifo_passive_set
 begin
@@ -166,9 +178,8 @@ next
     using step_preserves_distinct ih by blast
 qed
 
-lemma fifo_passive_set_is_fair: "is_fair TYPE('f)"
-  unfolding is_fair_def
-proof (intro allI impI)
+sublocale fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
+proof unfold_locales
   fix Ps :: "'f list llist"
     assume
       ps_full: "full_chain step Ps" and
