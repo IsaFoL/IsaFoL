@@ -120,16 +120,16 @@ subsection \<open>Invariant\<close>
 inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "(N = {} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
 
-lemma fair_OL_invariant_initial:
+lemma initial_fair_OL_invariant:
   "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
   unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by auto
 
-lemma fair_OL_invariant_step:
+lemma step_fair_OL_invariant:
   assumes "St \<leadsto>OLf St'"
   shows "fair_OL_invariant St'"
   using assms by cases (simp_all add: fair_OL_invariant.intros)
 
-lemma chain_fair_OL_preserves_invariant:
+lemma chain_fair_OL_invariant_lnth:
   assumes
     chain: "chain (\<leadsto>OLf) Sts" and
     fair_hd: "fair_OL_invariant (lhd Sts)" and
@@ -143,7 +143,28 @@ proof (induct i)
 next
   case (Suc i)
   then show ?case
-    using chain chain_lnth_rel fair_OL_invariant_step by blast
+    using chain chain_lnth_rel step_fair_OL_invariant by blast
+qed
+
+lemma chain_fair_OL_invariant_llast:
+  assumes
+    chain: "chain (\<leadsto>OLf) Sts" and
+    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    fin: "lfinite Sts"
+  shows "fair_OL_invariant (llast Sts)"
+proof -
+  obtain i :: nat where
+    i: "llength Sts = enat i"
+    using lfinite_llength_enat[OF fin] by blast
+
+  have im1_lt: "enat (i - 1) < llength Sts"
+    using i by (metis chain chain_length_pos diff_less enat_ord_simps(2) less_numeral_extra(1)
+        zero_enat_def)
+
+  show ?thesis
+    using chain_fair_OL_invariant_lnth[OF chain fair_hd im1_lt]
+    by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
+        zero_enat_def)
 qed
 
 
@@ -357,7 +378,7 @@ proof (rule ccontr)
     using lim_nemp unfolding Liminf_llist_def by auto
 
   have inv_at_i: "fair_OL_invariant (lnth Sts i)"
-    by (simp add: chain chain_fair_OL_preserves_invariant i_lt inv)
+    by (simp add: chain chain_fair_OL_invariant_lnth i_lt inv)
 
   from inter_nemp obtain C :: 'f where
     c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
@@ -369,7 +390,7 @@ proof (rule ccontr)
     using c_in' i_lt by blast
   have new_at_i: "new_of (lnth Sts i) = {}" and
     xx_at_i: "new_of (lnth Sts i) = {}"
-    using yy_at_i chain_fair_OL_preserves_invariant[OF chain inv i_lt]
+    using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
     by (force simp: fair_OL_invariant.simps)+
 
   have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
@@ -404,7 +425,7 @@ lemma fair_OL_Liminf_passive_empty:
     init: "is_initial_fair_OL_state (lhd Sts)"
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
 proof -
-  have chain_step: "full_chain passive_step (lmap passive_of Sts)"
+  have chain_step: "chain passive_step (lmap passive_of Sts)"
     using OLf_step_imp_passive_step chain_lmap
     sorry
 
@@ -475,7 +496,7 @@ proof -
   have olf_inv: "fair_OL_invariant (lhd Sts)"
     using olf_init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
 
-  have "\<not> lnull Sts"
+  have nnul: "\<not> lnull Sts"
     using olf_chain chain_not_lnull by blast
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
     by (rule llist.map_sel(1))
@@ -483,25 +504,30 @@ proof -
     using act unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
   have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
-  proof (cases "llength Sts")
-    case l: (enat l)
-    have "l > 0"
-      using full_chain_length_pos[OF olf_full, unfolded l] by (simp add: zero_enat_def)
-    have lim: "Liminf_llist (lmap statef Sts) = statef (lnth Sts (l - 1))"
-      find_theorems "llength _ = _ \<Longrightarrow> Liminf_llist _ = _"
-      sorry
+  proof (cases "lfinite Sts")
+    case fin: True
 
-    have "is_final_fair_OL_state (lnth Sts (l - 1))"
-      using full_chain_lnth_not_rel[OF olf_full]
-      sorry
+    have lim: "Liminf_llist (lmap statef Sts) = statef (llast Sts)"
+      using lfinite_Liminf_llist fin nnul
+      by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
+
+    have last_inv: "fair_OL_invariant (llast Sts)"
+      by (rule chain_fair_OL_invariant_llast[OF olf_chain olf_inv fin])
+
+    have "\<forall>St'. \<not> llast Sts \<leadsto>OLf St'"
+      using full_chain_lnth_not_rel[OF olf_full] by (metis fin full_chain_iff_chain olf_full)
+    then have "is_final_fair_OL_state (llast Sts)"
+      unfolding is_final_fair_OL_state_iff_no_trans[OF last_inv] .
     then obtain A :: "'f set" where
-      at_l: "lnth Sts (l - 1) = ({}, None, empty, None, A)"
+      at_l: "llast Sts = ({}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
     show ?thesis
       unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l statef.simps state.simps
       by (auto simp: fformulas_empty)
   next
-    case len: infinity
+    case False
+    then have len: "llength Sts = \<infinity>"
+      by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
       using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
