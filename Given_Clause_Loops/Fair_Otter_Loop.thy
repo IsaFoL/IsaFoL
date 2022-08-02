@@ -6,7 +6,7 @@ type_synonym ('p, 'f) fair_OL_state = "'f set \<times> 'f set \<times> 'p \<time
 
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  passive_set empty select add remove fformulas
+  fair_passive_set empty select add remove fformulas
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -204,6 +204,9 @@ lemma fair_OL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
+lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
+  using no_labels.entails_trans no_labels.subset_entailed by blast
+
 lemma
   assumes "chain (\<leadsto>OLf) Sts"
   shows
@@ -242,13 +245,12 @@ proof -
     by simp
 
   have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"
-    sorry
+    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap statef Sts)"
     by (rule gc_complete_Liminf[OF gc_chain act' pas' bot unsat'])
-  then show "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts"
-    unfolding Liminf_statef_def
-    sorry
+  then show "\<exists>B \<in> Bot_F. B \<in> statef_union (Liminf_statef Sts)"
+    unfolding Liminf_statef_def Liminf_statef_commute by auto
   then show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
     unfolding Liminf_statef_def Liminf_llist_def by auto
 qed
