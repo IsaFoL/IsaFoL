@@ -103,7 +103,7 @@ where
 | simplify_bwd_a: "C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N \<union> {C''}, Some C, P, None, A)"
 | transfer: "(N, Some C, P, None, A) \<leadsto>OLf (N, None, add C P, None, A)"
-| choose_p: "fformulas P \<noteq> {||} \<Longrightarrow>
+| choose_p: "P \<noteq> empty \<Longrightarrow>
     ({}, None, P, None, A) \<leadsto>OLf ({}, None, remove (select P) P, Some (select P), A)"
 | infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
     ({}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A \<union> {C})"
@@ -134,6 +134,80 @@ next
   case (Suc i)
   then show ?case
     using chain chain_lnth_rel fair_OL_invariant by blast
+qed
+
+
+subsection \<open>Final State\<close>
+
+inductive is_final_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "is_final_fair_OL_state ({}, None, empty, None, A)"
+
+lemma is_final_fair_OL_state_iff_no_trans:
+  assumes inv: "fair_OL_invariant St"
+  shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
+proof
+  assume "is_final_fair_OL_state St"
+  then obtain A :: "'f set" where
+    st: "St = ({}, None, empty, None, A)"
+    by (auto simp: is_final_fair_OL_state.simps)
+  show "\<forall>St'. \<not> St \<leadsto>OLf St'"
+    unfolding st
+  proof (intro allI notI)
+    fix St'
+    assume "({}, None, empty, None, A) \<leadsto>OLf St'"
+    then show False
+      by cases (auto simp: fformulas_empty)
+  qed
+next
+  assume no_trans: "\<forall>St'. \<not> St \<leadsto>OLf St'"
+  show "is_final_fair_OL_state St"
+  proof (rule ccontr)
+    assume not_fin: "\<not> is_final_fair_OL_state St"
+
+    obtain N A :: "'f set" and X Y :: "'f option" and P :: 'p where
+      st: "St = (N, X, P, Y, A)"
+      by (cases St)
+
+    have inv': "(N = {} \<and> X = None) \<or> Y = None"
+      using inv st fair_OL_invariant.simps by simp
+
+    have "N \<noteq> {} \<or> X \<noteq> None \<or> P \<noteq> empty \<or> Y \<noteq> None"
+      using not_fin unfolding st is_final_fair_OL_state.simps by auto
+    moreover {
+      assume
+        n: "N \<noteq> {}" and
+        x: "X = None"
+
+      obtain N' :: "'f set" and C :: 'f where
+        n': "N = N' \<union> {C}" and
+        c_ni: "C \<notin> N'"
+        using n by (metis Set.set_insert ex_in_conv insert_is_Un sup_commute)
+      have y: "Y = None"
+        using n x inv' by meson
+
+      have "\<exists>St'. St \<leadsto>OLf St'"
+        using fair_OL.choose_n[OF c_ni] unfolding st n' x y by fast
+    } moreover {
+      assume "X \<noteq> None"
+      have "\<exists>St'. St \<leadsto>OLf St'"
+        using fair_OL.transfer
+        sorry
+    } moreover {
+      assume
+        "P \<noteq> empty" and
+        "N = {}" and
+        "X = None"
+      have "\<exists>St'. St \<leadsto>OLf St'"
+        using fair_OL.choose_p
+        sorry
+    } moreover {
+      assume "Y \<noteq> None"
+      have "\<exists>St'. St \<leadsto>OLf St'"
+        using fair_OL.infer
+        sorry
+    } ultimately show False
+      using no_trans by force
+  qed
 qed
 
 

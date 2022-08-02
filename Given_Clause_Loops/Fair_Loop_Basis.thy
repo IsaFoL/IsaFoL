@@ -89,7 +89,8 @@ locale passive_set =
     fformulas :: "'p \<Rightarrow> 'f fset"
   assumes
     fformulas_empty: "fformulas empty = {||}" and
-    select_in_fformulas: "fformulas P \<noteq> {||} \<Longrightarrow> select P |\<in>| fformulas P" and
+    fformula_not_empty: "P \<noteq> empty \<Longrightarrow> fformulas P \<noteq> {||}" and
+    select_in_fformulas: "P \<noteq> empty \<Longrightarrow> select P |\<in>| fformulas P" and
     fformulas_add: "fformulas (add C P) = {|C|} |\<union>| fformulas P" and
     fformulas_remove: "fformulas (remove C P) = fformulas P |-| {|C|}"
 begin
@@ -105,7 +106,7 @@ inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
 | step_removeI: "step P (remove C P)"
 
 inductive select_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  select_stepI: "fformulas P \<noteq> {||} \<Longrightarrow> select_step P (remove (select P) P)"
+  select_stepI: "P \<noteq> empty \<Longrightarrow> select_step P (remove (select P) P)"
 
 end
 
@@ -136,8 +137,11 @@ proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
 next
-  show "\<And>P. fset_of_list P \<noteq> {||} \<Longrightarrow> hd P |\<in>| fset_of_list P"
-    by (metis fset_of_list_elem fset_of_list_simps(1) list.set_sel(1))
+  show "\<And>P. P \<noteq> [] \<Longrightarrow> fset_of_list P \<noteq> {||}"
+    by (metis fset_of_list.rep_eq fset_simps(1) set_empty)
+next
+  show "\<And>P. P \<noteq> [] \<Longrightarrow> hd P |\<in>| fset_of_list P"
+    by (metis fset_of_list_elem list.set_sel(1))
 next
   show "\<And>C P. fset_of_list (P @ [C]) = {|C|} |\<union>| fset_of_list P"
     by (simp add: funion_commute)
