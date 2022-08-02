@@ -1,5 +1,5 @@
-theory Otter_Loop_Fairness
-  imports Otter_Loop Loop_Fairness_Basis
+theory Fair_Otter_Loop
+  imports Otter_Loop Fair_Loop_Basis
 begin
 
 type_synonym ('p, 'f) fair_OL_state = "'f set \<times> 'f set \<times> 'p \<times> 'f set \<times> 'f set"
@@ -50,11 +50,32 @@ abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
 fun statef :: "'f set \<times> 'f set \<times> 'p \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
   "statef (N, X, P, Y, A) = state (N, X, formulas P, Y, A)"
 
-definition Liminf_statef :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set" where
+definition
+  Liminf_statef :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
+where
   "Liminf_statef Sts =
-   Liminf_llist (lmap new_of Sts) \<union> Liminf_llist (lmap xx_of Sts) \<union>
-   Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union> Liminf_llist (lmap yy_of Sts) \<union>
-   Liminf_llist (lmap active_of Sts)"
+   (Liminf_llist (lmap new_of Sts),
+    Liminf_llist (lmap xx_of Sts),
+    Liminf_llist (lmap (formulas \<circ> passive_of) Sts),
+    Liminf_llist (lmap yy_of Sts),
+    Liminf_llist (lmap active_of Sts))"
+
+lemma Liminf_statef_commute: "Liminf_llist (lmap statef Sts) = state (Liminf_statef Sts)"
+proof -
+  have "Liminf_llist (lmap statef Sts) =
+    (\<lambda>C. (C, New)) ` Liminf_llist (lmap new_of Sts) \<union>
+    (\<lambda>C. (C, XX)) ` Liminf_llist (lmap xx_of Sts) \<union>
+    (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union>
+    (\<lambda>C. (C, YY)) ` Liminf_llist (lmap yy_of Sts) \<union>
+    (\<lambda>C. (C, Active)) ` Liminf_llist (lmap active_of Sts)"
+    using Liminf_llist_lmap_union Liminf_llist_lmap_image
+    sorry
+ then show ?thesis
+   unfolding Liminf_statef_def by fastforce
+qed
+
+fun statef_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
+  "statef_union (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
 
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
@@ -178,10 +199,10 @@ subsection \<open>Completeness\<close>
 lemma
   assumes "chain (\<leadsto>OLf) Sts"
   shows
-    fair_OL_liminf_new_empty: "Liminf_llist (lmap new_of Sts) = {}" and
-    fair_OL_liminf_xx_empty: "Liminf_llist (lmap xx_of Sts) = {}" and
-    fair_OL_liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}" and
-    fair_OL_liminf_yy_empty: "Liminf_llist (lmap yy_of Sts) = {}"
+    fair_OL_Liminf_new_empty: "Liminf_llist (lmap new_of Sts) = {}" and
+    fair_OL_Liminf_xx_empty: "Liminf_llist (lmap xx_of Sts) = {}" and
+    fair_OL_Liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}" and
+    fair_OL_Liminf_yy_empty: "Liminf_llist (lmap yy_of Sts) = {}"
   sorry
 
 theorem
@@ -193,25 +214,35 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
   shows
-    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts" and
+    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> statef_union (Liminf_statef Sts)" and
     OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
-  have pas: "formulas (passive_of (lhd Sts)) = {}"
+  have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
+    using olf_chain fair_OL_step_imp_GC_step chain_lmap by (smt (verit) statef.cases)
+
+  have "\<not> lnull Sts"
+    using olf_chain chain_not_lnull by blast
+  hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
+    by (rule llist.map_sel(1))
+  have act': "active_subset (lhd (lmap statef Sts)) = {}"
+    using act unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
+
+  have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
+    unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
+    using fair_OL_Liminf_new_empty[OF olf_chain] fair_OL_Liminf_xx_empty[OF olf_chain]
+      fair_OL_Liminf_passive_empty[OF olf_chain] fair_OL_Liminf_yy_empty[OF olf_chain]
+    by simp
+
+  have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"
     sorry
 
-  have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
-    using olf_chain fair_OL_step_imp_GC_step chain_mono
-    sorry
-  show "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts"
-(*
-    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
-*)
+  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap statef Sts)"
+    by (rule gc_complete_Liminf[OF gc_chain act' pas' bot unsat'])
+  then show "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts"
+    unfolding Liminf_statef_def
     sorry
   then show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
-(*
-    unfolding Liminf_llist_def by auto
-*)
-    sorry
+    unfolding Liminf_statef_def Liminf_llist_def by auto
 qed
 
 end

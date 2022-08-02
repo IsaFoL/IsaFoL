@@ -8,7 +8,7 @@ section \<open>Basic Definitions for Stating and Proving the Fairness of Prover 
 text \<open>This section covers concepts that can be shared across the different
 prover loops inspired by the literature (e.g., DISCOUNT, Otter).\<close>
 
-theory Loop_Fairness_Basis
+theory Fair_Loop_Basis
   imports
     "HOL-Library.FSet"
     Ordered_Resolution_Prover.Lazy_List_Chain
