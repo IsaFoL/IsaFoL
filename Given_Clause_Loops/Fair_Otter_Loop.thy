@@ -392,6 +392,11 @@ proof (rule ccontr)
     using c_in' si_lt by simp
 qed
 
+lemma OLf_step_imp_passive_step:
+  assumes "St \<leadsto>OLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  sorry
+
 lemma fair_OL_Liminf_passive_empty:
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
@@ -399,6 +404,7 @@ lemma fair_OL_Liminf_passive_empty:
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
 proof -
   have full_step: "full_chain passive_step (lmap passive_of Sts)"
+    using OLf_step_imp_passive_step chain_lmap
     sorry
 
   have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"

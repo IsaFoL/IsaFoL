@@ -59,6 +59,10 @@ lemma set_drop_append_subseteq: "set (drop n (xs @ ys)) \<subseteq> set (drop n 
   by (metis drop_append set_append set_drop_subset sup.idem sup.orderI sup_mono)
 
 
+(* PROBLEMS:
+* infinitely_often doesn't work well with finite chains
+* full_chain passive_step is hard to establish: a chain can be full only by being infinite! *)
+
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
 
 definition finitely_often :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
