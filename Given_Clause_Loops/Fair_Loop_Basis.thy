@@ -59,10 +59,6 @@ lemma set_drop_append_subseteq: "set (drop n (xs @ ys)) \<subseteq> set (drop n 
   by (metis drop_append set_append set_drop_subset sup.idem sup.orderI sup_mono)
 
 
-(* PROBLEMS:
-* infinitely_often doesn't work well with finite chains
-* full_chain passive_step is hard to establish: a chain can be full only by being infinite! *)
-
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
 
 definition finitely_often :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a llist \<Rightarrow> bool" where
@@ -121,7 +117,7 @@ locale fair_passive_set = passive_set empty select add remove fformulas
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset" +
-  assumes fair: "full_chain passive_step Ps \<Longrightarrow> infinitely_often select_passive_step Ps \<Longrightarrow>
+  assumes fair: "chain passive_step Ps \<Longrightarrow> infinitely_often select_passive_step Ps \<Longrightarrow>
     lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap formulas Ps) = {}"
 begin
 
@@ -190,12 +186,9 @@ sublocale fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_l
 proof unfold_locales
   fix Ps :: "'f list llist"
     assume
-      ps_full: "full_chain passive_step Ps" and
+      chain: "chain passive_step Ps" and
       inf_sel: "infinitely_often select_passive_step Ps" and
       hd_emp: "lhd Ps = []"
-
-  have chain: "chain passive_step Ps"
-    by (rule full_chain_imp_chain[OF ps_full])
 
   show "Liminf_llist (lmap formulas Ps) = {}"
   proof (rule ccontr)
@@ -300,9 +293,9 @@ proof unfold_locales
                   by (rule ih[OF dm1_bounds])
 
                 have "passive_step (lnth Ps (d - 1)) (lnth Ps d)"
-                  by (metis Suc_diff_1 c_in d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
-                      enat_ord_code(4) full_chain_lnth_rel hd_emp i'_ge lhd_conv_lnth
-                      linorder_not_less llength_eq_0 order_trans ps_full ps_inf)
+                  by (metis add_leE chain chain_lnth_rel dm1_bounds(1) enat_ord_code(4) le_refl
+                      less_imp_Suc_add ordered_cancel_comm_monoid_diff_class.add_diff_inverse
+                      plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
                   case (passive_step_addI D)

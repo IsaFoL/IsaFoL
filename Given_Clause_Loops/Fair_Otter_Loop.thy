@@ -399,11 +399,12 @@ lemma OLf_step_imp_passive_step:
 
 lemma fair_OL_Liminf_passive_empty:
   assumes
+    len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>OLf) Sts" and
     init: "is_initial_fair_OL_state (lhd Sts)"
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
 proof -
-  have full_step: "full_chain passive_step (lmap passive_of Sts)"
+  have chain_step: "full_chain passive_step (lmap passive_of Sts)"
     using OLf_step_imp_passive_step chain_lmap
     sorry
 
@@ -415,7 +416,7 @@ proof -
     using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
 
   have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
-    by (rule fair[of "lmap passive_of Sts", OF full_step inf_oft hd_emp])
+    by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
   then show ?thesis
     by (simp add: llist.map_comp)
 qed
@@ -482,12 +483,33 @@ proof -
     using act unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
   have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
-    unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
-    using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
-      fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
-      fair_OL_Liminf_passive_empty[OF olf_full olf_init]
-      fair_OL_Liminf_yy_empty[OF olf_full olf_inv]
-    by simp
+  proof (cases "llength Sts")
+    case l: (enat l)
+    have "l > 0"
+      using full_chain_length_pos[OF olf_full, unfolded l] by (simp add: zero_enat_def)
+    have lim: "Liminf_llist (lmap statef Sts) = statef (lnth Sts (l - 1))"
+      find_theorems "llength _ = _ \<Longrightarrow> Liminf_llist _ = _"
+      sorry
+
+    have "is_final_fair_OL_state (lnth Sts (l - 1))"
+      using full_chain_lnth_not_rel[OF olf_full]
+      sorry
+    then obtain A :: "'f set" where
+      at_l: "lnth Sts (l - 1) = ({}, None, empty, None, A)"
+      unfolding is_final_fair_OL_state.simps by blast
+    show ?thesis
+      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l statef.simps state.simps
+      by (auto simp: fformulas_empty)
+  next
+    case len: infinity
+    show ?thesis
+      unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
+      using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
+        fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
+        fair_OL_Liminf_passive_empty[OF len olf_full olf_init]
+        fair_OL_Liminf_yy_empty[OF olf_full olf_inv]
+      by simp
+  qed
 
   have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
