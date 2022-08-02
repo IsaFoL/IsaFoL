@@ -47,13 +47,14 @@ abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
 abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
   "all_of St \<equiv> new_of St \<union> xx_of St \<union> formulas (passive_of St) \<union> yy_of St \<union> active_of St"
 
-definition
-  Liminf_state :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
-where
-  "Liminf_state Sts =
-   (Liminf_llist (lmap new_of Sts), Liminf_llist (lmap xx_of Sts),
-    Liminf_llist (lmap (formulas \<circ> passive_of) Sts), Liminf_llist (lmap yy_of Sts),
-    Liminf_llist (lmap active_of Sts))"
+fun statef :: "'f set \<times> 'f set \<times> 'p \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
+  "statef (N, X, P, Y, A) = state (N, X, formulas P, Y, A)"
+
+definition Liminf_statef :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set" where
+  "Liminf_statef Sts =
+   Liminf_llist (lmap new_of Sts) \<union> Liminf_llist (lmap xx_of Sts) \<union>
+   Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union> Liminf_llist (lmap yy_of Sts) \<union>
+   Liminf_llist (lmap active_of Sts)"
 
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
@@ -82,23 +83,23 @@ subsection \<open>Refinement\<close>
 
 lemma fair_OL_step_imp_OL_step:
   assumes olf: "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A')"
-  shows "state (N, X, formulas P, Y, A) \<leadsto>OL state (N', X', formulas P', Y', A')"
+  shows "statef (N, X, P, Y, A) \<leadsto>OL statef (N', X', P', Y', A')"
   using olf
 proof cases
   case (choose_n C)
   note unfolds = this(1-7) and c_ni = this(8)
   show ?thesis
-    unfolding unfolds by (rule OL.choose_n[OF c_ni])
+    unfolding unfolds statef.simps by (rule OL.choose_n[OF c_ni])
 next
   case (delete_fwd C)
   note unfolds = this(1-7) and c_red = this(8)
   show ?thesis
-    unfolding unfolds by (rule OL.delete_fwd[OF c_red])
+    unfolding unfolds statef.simps by (rule OL.delete_fwd[OF c_red])
 next
   case (simplify_fwd C' S C)
   note unfolds = this(1-7) and c_red = this(9)
   show ?thesis
-    unfolding unfolds by (rule OL.simplify_fwd[OF c_red])
+    unfolding unfolds statef.simps by (rule OL.simplify_fwd[OF c_red])
 next
   case (delete_bwd_p C' C)
   note unfolds = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
@@ -109,7 +110,7 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds
+    unfolding unfolds statef.simps
     by (rule OL.delete_bwd_p[OF c'_red, of _ "formulas P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
@@ -122,19 +123,19 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds
+    unfolding unfolds statef.simps
     by (rule OL.simplify_bwd_p[OF c'_red, of _ "formulas P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
   case (delete_bwd_a C' C)
   note unfolds = this(1-7) and c'_red = this(8)
   show ?thesis
-    unfolding unfolds by (rule OL.delete_bwd_a[OF c'_red])
+    unfolding unfolds statef.simps by (rule OL.delete_bwd_a[OF c'_red])
 next
   case (simplify_bwd_a C' S C C'')
   note unfolds = this(1-7) and c'_red = this(9)
   show ?thesis
-    unfolding unfolds by (rule OL.simplify_bwd_a[OF c'_red])
+    unfolding unfolds statef.simps by (rule OL.simplify_bwd_a[OF c'_red])
 next
   case (transfer C)
   note unfolds = this(1-7)
@@ -143,7 +144,7 @@ next
     unfolding fformulas_add by auto
 
   show ?thesis
-    unfolding unfolds by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
+    unfolding unfolds statef.simps by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
 next
   case choose_p
   note unfolds = this(1-8) and p_nemp = this(9)
@@ -156,19 +157,19 @@ next
     by (metis Un_insert_right finsert.rep_eq finsert_fminus sup_bot_right)
 
   show ?thesis
-    unfolding unfolds
+    unfolding unfolds statef.simps
     by (rule OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
           unfolded rm_sel_uni_sel])
 next
   case (infer C)
   note unfolds = this(1-7) and infers = this(8)
   show ?thesis
-    unfolding unfolds by (rule OL.infer[OF infers])
+    unfolding unfolds statef.simps by (rule OL.infer[OF infers])
 qed
 
 lemma fair_OL_step_imp_GC_step:
   "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A') \<Longrightarrow>
-   state (N, X, formulas P, Y, A) \<leadsto>GC state (N', X', formulas P', Y', A')"
+   statef (N, X, P, Y, A) \<leadsto>GC statef (N', X', P', Y', A')"
   by (rule OL_step_imp_GC_step[OF fair_OL_step_imp_OL_step])
 
 
@@ -187,21 +188,30 @@ theorem
   assumes
     olf_chain: "chain (\<leadsto>OLf) Sts" and
     xx: "xx_of (lhd Sts) = {}" and
-    pas: "formulas (passive_of (lhd Sts)) = {}" and
     yy: "yy_of (lhd Sts) = {}" and
     act: "active_of (lhd Sts) = {}" and
     bot: "B \<in> Bot_F" and
     unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
   shows
-    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> all_of (Liminf_llist Sts)" and
-    OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts" and
+    OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
-  have gc_chain: "chain (\<leadsto>GC) Sts"
-    using ol_chain OL_step_imp_GC_step chain_mono by blast
-  show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts"
+  have pas: "formulas (passive_of (lhd Sts)) = {}"
+    sorry
+
+  have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
+    using olf_chain fair_OL_step_imp_GC_step chain_mono
+    sorry
+  show "\<exists>B \<in> Bot_F. B \<in> Liminf_statef Sts"
+(*
     by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
-  then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+*)
+    sorry
+  then show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
+(*
     unfolding Liminf_llist_def by auto
+*)
+    sorry
 qed
 
 end

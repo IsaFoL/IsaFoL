@@ -89,11 +89,8 @@ subsection \<open>Definition and Lemmas\<close>
 
 fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
   "state (N, X, P, Y, A) =
-   {(C, New) | C. C \<in> N} \<union>
-   {(C, XX) | C. C \<in> X} \<union>
-   {(C, Passive) | C. C \<in> P} \<union>
-   {(C, YY) | C. C \<in> Y} \<union>
-   {(C, Active) | C. C \<in> A}"
+   {(C, New) | C. C \<in> N} \<union> {(C, XX) | C. C \<in> X} \<union> {(C, Passive) | C. C \<in> P} \<union>
+   {(C, YY) | C. C \<in> Y} \<union> {(C, Active) | C. C \<in> A}"
 
 inductive OL :: "('f \<times> OL_label) set \<Rightarrow> ('f \<times> OL_label) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
   choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A)"

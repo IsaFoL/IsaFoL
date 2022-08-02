@@ -97,8 +97,8 @@ begin
 abbreviation formulas :: "'p \<Rightarrow> 'f set" where
   "formulas P \<equiv> fset (fformulas P)"
 
-text \<open>In the first rule, the assumption that the added formulas do not belong to the passive set can
-be fulfilled by annotating formulas with timestamps.\<close>
+text \<open>In the first rule, the assumption that the added formulas do not belong to
+the passive set can be fulfilled by annotating formulas with timestamps.\<close>
 
 inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   step_addI: "C |\<notin>| fformulas P \<Longrightarrow> step P (add C P)"
