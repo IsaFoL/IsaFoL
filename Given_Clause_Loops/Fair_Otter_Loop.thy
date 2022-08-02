@@ -189,22 +189,41 @@ next
         using fair_OL.choose_n[OF c_ni] unfolding st n' x y by fast
     } moreover {
       assume "X \<noteq> None"
+      then obtain C :: 'f where
+        x: "X = Some C"
+        by blast
+
+      have y: "Y = None"
+        using x inv' by auto
+
       have "\<exists>St'. St \<leadsto>OLf St'"
-        using fair_OL.transfer
-        sorry
+        using fair_OL.transfer unfolding st x y by fast
     } moreover {
       assume
-        "P \<noteq> empty" and
-        "N = {}" and
-        "X = None"
+        p: "P \<noteq> empty" and
+        n: "N = {}" and
+        x: "X = None" and
+        y: "Y = None"
+
       have "\<exists>St'. St \<leadsto>OLf St'"
-        using fair_OL.choose_p
-        sorry
+        using fair_OL.choose_p[OF p] unfolding st n x y by fast
     } moreover {
       assume "Y \<noteq> None"
+      then obtain C :: 'f where
+        y: "Y = Some C"
+        by blast
+
+      have n: "N = {}" and
+        x: "X = None"
+        using y inv' by blast+
+
+      let ?M = "concl_of ` no_labels.Inf_between A {C}"
+
+      have inf_red: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I_\<G> (A \<union> {C} \<union> ?M)"
+        by (simp add: no_labels.Inf_if_Inf_between no_labels.empty_ord.Red_I_of_Inf_to_N subsetI)
+
       have "\<exists>St'. St \<leadsto>OLf St'"
-        using fair_OL.infer
-        sorry
+        using fair_OL.infer[OF inf_red] unfolding st n x y by fast
     } ultimately show False
       using no_trans by force
   qed
