@@ -207,18 +207,29 @@ subsection \<open>Completeness\<close>
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
-lemma
-  assumes "chain (\<leadsto>OLf) Sts"
-  shows
-    fair_OL_Liminf_new_empty: "Liminf_llist (lmap new_of Sts) = {}" and
-    fair_OL_Liminf_xx_empty: "Liminf_llist (lmap xx_of Sts) = {}" and
-    fair_OL_Liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}" and
-    fair_OL_Liminf_yy_empty: "Liminf_llist (lmap yy_of Sts) = {}"
+lemma fair_OL_Liminf_new_empty:
+  assumes "full_chain (\<leadsto>OLf) Sts"
+  shows "Liminf_llist (lmap new_of Sts) = {}"
+  sorry
+
+lemma fair_OL_Liminf_xx_empty:
+  assumes "full_chain (\<leadsto>OLf) Sts"
+  shows "Liminf_llist (lmap xx_of Sts) = {}"
+  sorry
+
+lemma fair_OL_Liminf_passive_empty:
+  assumes "full_chain (\<leadsto>OLf) Sts"
+  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
+  sorry
+
+lemma fair_OL_Liminf_yy_empty:
+  assumes "full_chain (\<leadsto>OLf) Sts"
+  shows "Liminf_llist (lmap yy_of Sts) = {}"
   sorry
 
 theorem
   assumes
-    olf_chain: "chain (\<leadsto>OLf) Sts" and
+    olf_full: "full_chain (\<leadsto>OLf) Sts" and
     xx: "xx_of (lhd Sts) = {}" and
     yy: "yy_of (lhd Sts) = {}" and
     act: "active_of (lhd Sts) = {}" and
@@ -228,6 +239,8 @@ theorem
     OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> statef_union (Liminf_statef Sts)" and
     OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
+  have olf_chain: "chain (\<leadsto>OLf) Sts"
+    by (rule full_chain_imp_chain[OF olf_full])
   have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
     using olf_chain fair_OL_step_imp_GC_step chain_lmap by (smt (verit) statef.cases)
 
@@ -240,8 +253,8 @@ proof -
 
   have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
     unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
-    using fair_OL_Liminf_new_empty[OF olf_chain] fair_OL_Liminf_xx_empty[OF olf_chain]
-      fair_OL_Liminf_passive_empty[OF olf_chain] fair_OL_Liminf_yy_empty[OF olf_chain]
+    using fair_OL_Liminf_new_empty[OF olf_full] fair_OL_Liminf_xx_empty[OF olf_full]
+      fair_OL_Liminf_passive_empty[OF olf_full] fair_OL_Liminf_yy_empty[OF olf_full]
     by simp
 
   have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"
