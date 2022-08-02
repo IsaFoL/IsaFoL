@@ -34,6 +34,27 @@ begin
 
 subsection \<open>Definition and Lemmas\<close>
 
+abbreviation new_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "new_of St \<equiv> fst St"
+abbreviation xx_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "xx_of St \<equiv> fst (snd St)"
+abbreviation passive_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'p" where
+  "passive_of St \<equiv> fst (snd (snd St))"
+abbreviation yy_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "yy_of St \<equiv> fst (snd (snd (snd St)))"
+abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "active_of St \<equiv> snd (snd (snd (snd St)))"
+abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "all_of St \<equiv> new_of St \<union> xx_of St \<union> formulas (passive_of St) \<union> yy_of St \<union> active_of St"
+
+definition
+  Liminf_state :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
+where
+  "Liminf_state Sts =
+   (Liminf_llist (lmap new_of Sts), Liminf_llist (lmap xx_of Sts),
+    Liminf_llist (lmap (formulas \<circ> passive_of) Sts), Liminf_llist (lmap yy_of Sts),
+    Liminf_llist (lmap active_of Sts))"
+
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
 where
@@ -156,13 +177,32 @@ subsection \<open>Completeness\<close>
 lemma
   assumes "chain (\<leadsto>OLf) Sts"
   shows
-    fair_OL_liminf_new_empty: "Liminf_llist (lmap fst Sts) = {}" and
-    fair_OL_liminf_xx_empty: "Liminf_llist (lmap (fst \<circ> snd) Sts) = {}" and
-    fair_OL_liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> fst \<circ> snd \<circ> snd) Sts) = {}" and
-    fair_OL_liminf_yy_empty: "Liminf_llist (lmap (fst \<circ> snd \<circ> snd \<circ> snd) Sts) = {}"
+    fair_OL_liminf_new_empty: "Liminf_llist (lmap new_of Sts) = {}" and
+    fair_OL_liminf_xx_empty: "Liminf_llist (lmap xx_of Sts) = {}" and
+    fair_OL_liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}" and
+    fair_OL_liminf_yy_empty: "Liminf_llist (lmap yy_of Sts) = {}"
   sorry
 
-
+theorem
+  assumes
+    olf_chain: "chain (\<leadsto>OLf) Sts" and
+    xx: "xx_of (lhd Sts) = {}" and
+    pas: "formulas (passive_of (lhd Sts)) = {}" and
+    yy: "yy_of (lhd Sts) = {}" and
+    act: "active_of (lhd Sts) = {}" and
+    bot: "B \<in> Bot_F" and
+    unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+  shows
+    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> all_of (Liminf_llist Sts)" and
+    OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+proof -
+  have gc_chain: "chain (\<leadsto>GC) Sts"
+    using ol_chain OL_step_imp_GC_step chain_mono by blast
+  show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts"
+    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
+  then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+    unfolding Liminf_llist_def by auto
+qed
 
 end
 
