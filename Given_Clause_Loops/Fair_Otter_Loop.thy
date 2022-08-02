@@ -109,12 +109,22 @@ where
     ({}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A \<union> {C})"
 
 
+subsection \<open>Initial State\<close>
+
+inductive is_initial_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "is_initial_fair_OL_state (N, None, empty, None, {})"
+
+
 subsection \<open>Invariant\<close>
 
 inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "(N = {} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
 
-lemma fair_OL_invariant:
+lemma fair_OL_invariant_initial:
+  "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
+  unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by auto
+
+lemma fair_OL_invariant_step:
   assumes "St \<leadsto>OLf St'"
   shows "fair_OL_invariant St'"
   using assms by cases (simp_all add: fair_OL_invariant.intros)
@@ -133,7 +143,7 @@ proof (induct i)
 next
   case (Suc i)
   then show ?case
-    using chain chain_lnth_rel fair_OL_invariant by blast
+    using chain chain_lnth_rel fair_OL_invariant_step by blast
 qed
 
 
@@ -330,46 +340,6 @@ subsection \<open>Completeness\<close>
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
-lemma fair_OL_Liminf_new_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap new_of Sts) = {}"
-  sorry
-
-lemma fair_OL_Liminf_xx_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
-proof (rule ccontr)
-  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
-
-  obtain i :: nat where
-    i_lt: "enat i < llength Sts" and
-    inter_nemp: "\<Inter> ((set_option \<circ> xx_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
-    using lim_nemp unfolding Liminf_llist_def by auto
-
-  from inter_nemp obtain C :: 'f where
-    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (xx_of P)"
-    by auto
-  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
-    by auto
-
-  have "lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
-    yy_of (lnth Sts i), active_of (lnth Sts i))"
-    sorry
-  show False
-    sorry
-qed
-
-lemma fair_OL_Liminf_passive_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
-  sorry
-
 lemma fair_OL_Liminf_yy_empty:
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
@@ -422,10 +392,65 @@ proof (rule ccontr)
     using c_in' si_lt by simp
 qed
 
+lemma fair_OL_Liminf_passive_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    init: "is_initial_fair_OL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
+proof -
+  have full_step: "full_chain passive_step (lmap passive_of Sts)"
+    sorry
+
+  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+    (* TODO: Exploit well-foundedness of simplification *)
+    sorry
+
+  have hd_emp: "lhd (lmap passive_of Sts) = empty"
+    using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
+
+  have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
+    by (rule fair[of "lmap passive_of Sts", OF full_step inf_oft hd_emp])
+  then show ?thesis
+    by (simp add: llist.map_comp)
+qed
+
+lemma fair_OL_Liminf_xx_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> xx_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (xx_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
+    by auto
+
+  have "lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
+    yy_of (lnth Sts i), active_of (lnth Sts i))"
+    sorry
+  show False
+    sorry
+qed
+
+lemma fair_OL_Liminf_new_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap new_of Sts) = {}"
+  sorry
+
 theorem
   assumes
     olf_full: "full_chain (\<leadsto>OLf) Sts" and
-    olf_inv: "fair_OL_invariant (lhd Sts)" and
+    olf_init: "is_initial_fair_OL_state (lhd Sts)" and
     xx: "xx_of (lhd Sts) = None" and
     yy: "yy_of (lhd Sts) = None" and
     act: "active_of (lhd Sts) = {}" and
@@ -440,6 +465,9 @@ proof -
   have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
     using olf_chain fair_OL_step_imp_GC_step chain_lmap by (smt (verit) statef.cases)
 
+  have olf_inv: "fair_OL_invariant (lhd Sts)"
+    using olf_init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
+
   have "\<not> lnull Sts"
     using olf_chain chain_not_lnull by blast
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
@@ -451,7 +479,7 @@ proof -
     unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
     using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
       fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
-      fair_OL_Liminf_passive_empty[OF olf_full olf_inv]
+      fair_OL_Liminf_passive_empty[OF olf_full olf_init]
       fair_OL_Liminf_yy_empty[OF olf_full olf_inv]
     by simp
 

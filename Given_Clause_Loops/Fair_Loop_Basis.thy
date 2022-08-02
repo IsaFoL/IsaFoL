@@ -101,12 +101,12 @@ abbreviation formulas :: "'p \<Rightarrow> 'f set" where
 text \<open>In the first rule, the assumption that the added formulas do not belong to
 the passive set can be fulfilled by annotating formulas with timestamps.\<close>
 
-inductive step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  step_addI: "C |\<notin>| fformulas P \<Longrightarrow> step P (add C P)"
-| step_removeI: "step P (remove C P)"
+inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  passive_step_addI: "C |\<notin>| fformulas P \<Longrightarrow> passive_step P (add C P)"
+| passive_step_removeI: "passive_step P (remove C P)"
 
-inductive select_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  select_stepI: "P \<noteq> empty \<Longrightarrow> select_step P (remove (select P) P)"
+inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  select_passive_stepI: "P \<noteq> empty \<Longrightarrow> select_passive_step P (remove (select P) P)"
 
 end
 
@@ -117,8 +117,8 @@ locale fair_passive_set = passive_set empty select add remove fformulas
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     fformulas :: "'p \<Rightarrow> 'f fset" +
-  assumes fair: "full_chain step Ps \<Longrightarrow> infinitely_often select_step Ps \<Longrightarrow> lhd Ps = empty \<Longrightarrow>
-    Liminf_llist (lmap formulas Ps) = {}"
+  assumes fair: "full_chain passive_step Ps \<Longrightarrow> infinitely_often select_passive_step Ps \<Longrightarrow>
+    lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap formulas Ps) = {}"
 begin
 
 text \<open>In a fair derivation, the passive set starts empty. The initial formulas
@@ -150,18 +150,18 @@ next
     by (auto simp: fset_of_list_elem)
 qed
 
-lemma step_preserves_distinct:
+lemma passive_step_preserves_distinct:
   assumes
     dist: "distinct P" and
-    step: "step P P'"
+    step: "passive_step P P'"
   shows "distinct P'"
-  using step unfolding step.simps
+  using step unfolding passive_step.simps
   by (metis dist distinct.simps(2) distinct1_rotate distinct_removeAll fset_of_list_elem
       rotate1.simps(2))
 
-lemma chain_step_preserves_distinct:
+lemma chain_passive_step_preserves_distinct:
   assumes
-    chain: "chain step Ps" and
+    chain: "chain passive_step Ps" and
     dist_hd: "distinct (lhd Ps)" and
     i_lt: "enat i < llength Ps"
   shows "distinct (lnth Ps i)"
@@ -176,21 +176,21 @@ next
   have ih: "distinct (lnth Ps i)"
     using Suc.hyps Suc.prems Suc_ile_eq order_less_imp_le by blast
 
-  have "step (lnth Ps i) (lnth Ps (Suc i))"
+  have "passive_step (lnth Ps i) (lnth Ps (Suc i))"
     by (rule chain_lnth_rel[OF chain Suc.prems])
   then show ?case
-    using step_preserves_distinct ih by blast
+    using passive_step_preserves_distinct ih by blast
 qed
 
 sublocale fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
 proof unfold_locales
   fix Ps :: "'f list llist"
     assume
-      ps_full: "full_chain step Ps" and
-      inf_sel: "infinitely_often select_step Ps" and
+      ps_full: "full_chain passive_step Ps" and
+      inf_sel: "infinitely_often select_passive_step Ps" and
       hd_emp: "lhd Ps = []"
 
-  have chain: "chain step Ps"
+  have chain: "chain passive_step Ps"
     by (rule full_chain_imp_chain[OF ps_full])
 
   show "Liminf_llist (lmap formulas Ps) = {}"
@@ -228,7 +228,7 @@ proof unfold_locales
       by (meson in_set_conv_nth le_refl)
 
     have dist: "distinct (lnth Ps i)"
-      by (simp add: chain_step_preserves_distinct hd_emp i_lt chain)
+      by (simp add: chain_passive_step_preserves_distinct hd_emp i_lt chain)
 
     have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Ps i'))"
     proof -
@@ -249,7 +249,7 @@ proof unfold_locales
         obtain i'' :: nat where
           i''_ge: "i'' \<ge> i'" and
           i''_lt: "enat (Suc i'') < llength Ps" and
-          sel_step: "select_step (lnth Ps i'') (lnth Ps (Suc i''))"
+          sel_step: "select_passive_step (lnth Ps i'') (lnth Ps (Suc i''))"
           using inf_sel[unfolded infinitely_often_alt_def] by blast
 
         have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
@@ -295,14 +295,13 @@ proof unfold_locales
                 have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
                   by (rule ih[OF dm1_bounds])
 
-                have step: "step (lnth Ps (d - 1)) (lnth Ps d)"
+                have "passive_step (lnth Ps (d - 1)) (lnth Ps d)"
                   by (metis Suc_diff_1 c_in d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
                       enat_ord_code(4) full_chain_lnth_rel hd_emp i'_ge lhd_conv_lnth
                       linorder_not_less llength_eq_0 order_trans ps_full ps_inf)
-                show ?thesis
-                  using step
+                then show ?thesis
                 proof cases
-                  case (step_addI D)
+                  case (passive_step_addI D)
                   note at_d = this(1) and d_ni = this(2)
 
                   have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
@@ -319,7 +318,7 @@ proof unfold_locales
                   show ?thesis
                     unfolding at_d by (rule c_ni_dm1)
                 next
-                  case (step_removeI D)
+                  case (passive_step_removeI D)
                   note at_d = this(1)
 
                   show ?thesis
@@ -335,14 +334,14 @@ proof unfold_locales
         moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Ps (Suc i'')))"
           using sel_step
         proof cases
-          case select_stepI
+          case select_passive_stepI
           note at_si'' = this(1) and at_i''_nemp = this(2)
 
           have at_i''_nnil: "lnth Ps i'' \<noteq> []"
             using at_i''_nemp by auto
 
           have dist_i'': "distinct (lnth Ps i'')"
-            by (simp add: chain_step_preserves_distinct hd_emp chain ps_inf)
+            by (simp add: chain_passive_step_preserves_distinct hd_emp chain ps_inf)
 
           have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps i''))"
             using c_ni_i'_i'' i''_ge by blast
