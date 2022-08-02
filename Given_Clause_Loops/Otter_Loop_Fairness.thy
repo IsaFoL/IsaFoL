@@ -150,6 +150,20 @@ lemma fair_OL_step_imp_GC_step:
    state (N, X, formulas P, Y, A) \<leadsto>GC state (N', X', formulas P', Y', A')"
   by (rule OL_step_imp_GC_step[OF fair_OL_step_imp_OL_step])
 
+
+subsection \<open>Completeness\<close>
+
+lemma
+  assumes "chain (\<leadsto>OLf) Sts"
+  shows
+    fair_OL_liminf_new_empty: "Liminf_llist (lmap fst Sts) = {}" and
+    fair_OL_liminf_xx_empty: "Liminf_llist (lmap (fst \<circ> snd) Sts) = {}" and
+    fair_OL_liminf_passive_empty: "Liminf_llist (lmap (formulas \<circ> fst \<circ> snd \<circ> snd) Sts) = {}" and
+    fair_OL_liminf_yy_empty: "Liminf_llist (lmap (fst \<circ> snd \<circ> snd \<circ> snd) Sts) = {}"
+  sorry
+
+
+
 end
 
 end
