@@ -92,6 +92,12 @@ fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f
    {(C, New) | C. C \<in> N} \<union> {(C, XX) | C. C \<in> X} \<union> {(C, Passive) | C. C \<in> P} \<union>
    {(C, YY) | C. C \<in> Y} \<union> {(C, Active) | C. C \<in> A}"
 
+lemma state_alt_def:
+  "state (N, X, P, Y, A) =
+   (\<lambda>C. (C, New)) ` N \<union> (\<lambda>C. (C, XX)) ` X \<union> (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union>
+   (\<lambda>C. (C, Active)) ` A"
+  by auto
+
 inductive OL :: "('f \<times> OL_label) set \<Rightarrow> ('f \<times> OL_label) set \<Rightarrow> bool" (infix "\<leadsto>OL" 50) where
   choose_n: "C \<notin> N \<Longrightarrow> state (N \<union> {C}, {}, P, {}, A) \<leadsto>OL state (N, {C}, P, {}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F (P \<union> A) \<or> (\<exists>C' \<in> P \<union> A. C' \<preceq>\<cdot> C) \<Longrightarrow>

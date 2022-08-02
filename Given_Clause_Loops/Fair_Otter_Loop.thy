@@ -50,6 +50,12 @@ abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
 fun statef :: "'f set \<times> 'f set \<times> 'p \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
   "statef (N, X, P, Y, A) = state (N, X, formulas P, Y, A)"
 
+lemma statef_alt_def:
+  "statef St =
+   state (fst St, fst (snd St), formulas (fst (snd (snd St))), fst (snd (snd (snd St))),
+     snd (snd (snd (snd St))))"
+  by (cases St) auto
+
 definition
   Liminf_statef :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
 where
@@ -68,8 +74,10 @@ proof -
     (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union>
     (\<lambda>C. (C, YY)) ` Liminf_llist (lmap yy_of Sts) \<union>
     (\<lambda>C. (C, Active)) ` Liminf_llist (lmap active_of Sts)"
-    using Liminf_llist_lmap_union Liminf_llist_lmap_image
-    sorry
+    unfolding statef_alt_def state_alt_def
+    apply (subst Liminf_llist_lmap_union, fast)+
+    apply (subst Liminf_llist_lmap_image, simp add: inj_on_convol_ident)+
+    by auto
  then show ?thesis
    unfolding Liminf_statef_def by fastforce
 qed
