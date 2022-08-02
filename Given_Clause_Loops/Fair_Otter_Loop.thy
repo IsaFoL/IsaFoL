@@ -386,6 +386,9 @@ proof (rule ccontr)
     inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
     using lim_nemp unfolding Liminf_llist_def by auto
 
+  have inv_at_i: "fair_OL_invariant (lnth Sts i)"
+    by (simp add: chain chain_fair_OL_preserves_invariant i_lt inv)
+
   from inter_nemp obtain C :: 'f where
     c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
     by auto
@@ -399,16 +402,24 @@ proof (rule ccontr)
     using yy_at_i chain_fair_OL_preserves_invariant[OF chain inv i_lt]
     by (force simp: fair_OL_invariant.simps)+
 
-  have "\<exists>M. (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
-     yy_of (lnth Sts i), active_of (lnth Sts i)) \<leadsto>OLf
-    (M, xx_of (lnth Sts i), passive_of (lnth Sts i), None,
-     active_of (lnth Sts i) \<union> set_option (yy_of (lnth Sts i)))"
-    unfolding new_at_i xx_at_i yy_at_i
-    using fair_OL.infer
+  have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
+    using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
+    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
 
-    sorry
-  show False
-    sorry
+  obtain P :: 'p and A :: "'f set" where
+    at_i: "lnth Sts i = ({}, None, P, Some C, A)"
+    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+
+  have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
+    by (simp add: chain chain_lnth_rel si_lt)
+  then have "({}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
+    unfolding at_i .
+  then have "yy_of (lnth Sts (Suc i)) = None"
+    by cases simp
+  then show False
+    using c_in' si_lt by simp
 qed
 
 theorem
