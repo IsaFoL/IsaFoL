@@ -199,9 +199,9 @@ proof unfold_locales
       using lim_nemp unfolding Liminf_llist_def by auto
 
     from inter_nemp obtain C :: 'f where
-      c_in: "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> set P"
+      "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> set P"
       by auto
-    hence c_in': "\<forall>j \<ge> i. enat j < llength Ps \<longrightarrow> C \<in> set (lnth Ps j)"
+    hence c_in: "\<forall>j \<ge> i. enat j < llength Ps \<longrightarrow> C \<in> set (lnth Ps j)"
       by auto
 
     have ps_inf: "llength Ps = \<infinity>"
@@ -216,8 +216,8 @@ proof unfold_locales
         by (metis Suc_lessD enat_ord_simps(2) less_le_not_le n)
     qed
 
-    have c_in'': "\<forall>j \<ge> i. C \<in> set (lnth Ps j)"
-      by (simp add: c_in' ps_inf)
+    have c_in': "\<forall>j \<ge> i. C \<in> set (lnth Ps j)"
+      by (simp add: c_in ps_inf)
     then obtain k :: nat where
       k_lt: "k < length (lnth Ps i)" and
       at_k: "lnth Ps i ! k = C"
@@ -292,7 +292,7 @@ proof unfold_locales
                   by (rule ih[OF dm1_bounds])
 
                 have step: "step (lnth Ps (d - 1)) (lnth Ps d)"
-                  by (metis Suc_diff_1 c_in' d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
+                  by (metis Suc_diff_1 c_in d_ge empty_iff empty_set enat.distinct(2) enat_defs(1)
                       enat_ord_code(4) full_chain_lnth_rel hd_emp i'_ge lhd_conv_lnth
                       linorder_not_less llength_eq_0 order_trans ps_full ps_inf)
                 show ?thesis
@@ -302,7 +302,7 @@ proof unfold_locales
                   note at_d = this(1) and d_ni = this(2)
 
                   have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
-                    by (meson c_in'' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
+                    by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
                   hence d_ne: "D \<noteq> C"
                     using d_ni by blast
 
@@ -360,7 +360,7 @@ proof unfold_locales
       "C \<notin> set (lnth Ps i')"
       by fastforce
     then show False
-      using c_in'' by auto
+      using c_in' by auto
   qed
 qed
 
