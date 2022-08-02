@@ -109,6 +109,34 @@ where
     ({}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A \<union> {C})"
 
 
+subsection \<open>Invariant\<close>
+
+inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "(N = {} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
+
+lemma fair_OL_invariant:
+  assumes "St \<leadsto>OLf St'"
+  shows "fair_OL_invariant St'"
+  using assms by cases (simp_all add: fair_OL_invariant.intros)
+
+lemma chain_fair_OL_preserves_invariant:
+  assumes
+    chain: "chain (\<leadsto>OLf) Sts" and
+    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    i_lt: "enat i < llength Sts"
+  shows "fair_OL_invariant (lnth Sts i)"
+  using i_lt
+proof (induct i)
+  case 0
+  then show ?case
+    using fair_hd lhd_conv_lnth zero_enat_def by fastforce
+next
+  case (Suc i)
+  then show ?case
+    using chain chain_lnth_rel fair_OL_invariant by blast
+qed
+
+
 subsection \<open>Refinement\<close>
 
 lemma fair_OL_step_imp_OL_step:
@@ -210,12 +238,16 @@ lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnst
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
 lemma fair_OL_Liminf_new_empty:
-  assumes "full_chain (\<leadsto>OLf) Sts"
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap new_of Sts) = {}"
   sorry
 
 lemma fair_OL_Liminf_xx_empty:
-  assumes "full_chain (\<leadsto>OLf) Sts"
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
@@ -239,15 +271,22 @@ proof (rule ccontr)
 qed
 
 lemma fair_OL_Liminf_passive_empty:
-  assumes "full_chain (\<leadsto>OLf) Sts"
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
   sorry
 
 lemma fair_OL_Liminf_yy_empty:
-  assumes "full_chain (\<leadsto>OLf) Sts"
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
+
+  have chain: "chain (\<leadsto>OLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
 
   obtain i :: nat where
     i_lt: "enat i < llength Sts" and
@@ -260,8 +299,20 @@ proof (rule ccontr)
   hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
     by auto
 
-  have "\<exists>M. lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
-    None, active_of (lnth Sts i) \<union> set_option (yy_of (lnth Sts i)) \<union> M)"
+  have yy_at_i: "yy_of (lnth Sts i) = Some C"
+    using c_in' i_lt by blast
+  have new_at_i: "new_of (lnth Sts i) = {}" and
+    xx_at_i: "new_of (lnth Sts i) = {}"
+    using yy_at_i chain_fair_OL_preserves_invariant[OF chain inv i_lt]
+    by (force simp: fair_OL_invariant.simps)+
+
+  have "\<exists>M. (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
+     yy_of (lnth Sts i), active_of (lnth Sts i)) \<leadsto>OLf
+    (M, xx_of (lnth Sts i), passive_of (lnth Sts i), None,
+     active_of (lnth Sts i) \<union> set_option (yy_of (lnth Sts i)))"
+    unfolding new_at_i xx_at_i yy_at_i
+    using fair_OL.infer
+
     sorry
   show False
     sorry
@@ -270,6 +321,7 @@ qed
 theorem
   assumes
     olf_full: "full_chain (\<leadsto>OLf) Sts" and
+    olf_inv: "fair_OL_invariant (lhd Sts)" and
     xx: "xx_of (lhd Sts) = None" and
     yy: "yy_of (lhd Sts) = None" and
     act: "active_of (lhd Sts) = {}" and
@@ -293,8 +345,10 @@ proof -
 
   have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
     unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
-    using fair_OL_Liminf_new_empty[OF olf_full] fair_OL_Liminf_xx_empty[OF olf_full]
-      fair_OL_Liminf_passive_empty[OF olf_full] fair_OL_Liminf_yy_empty[OF olf_full]
+    using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
+      fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
+      fair_OL_Liminf_passive_empty[OF olf_full olf_inv]
+      fair_OL_Liminf_yy_empty[OF olf_full olf_inv]
     by simp
 
   have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"

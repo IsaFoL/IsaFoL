@@ -155,9 +155,9 @@ lemma step_preserves_distinct:
   by (metis dist distinct.simps(2) distinct1_rotate distinct_removeAll fset_of_list_elem
       rotate1.simps(2))
 
-lemma chain_big_step_preserves_distinct:
+lemma chain_step_preserves_distinct:
   assumes
-    ps_chain: "chain step Ps" and
+    chain: "chain step Ps" and
     dist_hd: "distinct (lhd Ps)" and
     i_lt: "enat i < llength Ps"
   shows "distinct (lnth Ps i)"
@@ -165,7 +165,7 @@ lemma chain_big_step_preserves_distinct:
 proof (induct i)
   case 0
   then show ?case
-    using dist_hd chain_length_pos[OF ps_chain] by (simp add: lhd_conv_lnth)
+    using dist_hd chain_length_pos[OF chain] by (simp add: lhd_conv_lnth)
 next
   case (Suc i)
 
@@ -173,7 +173,7 @@ next
     using Suc.hyps Suc.prems Suc_ile_eq order_less_imp_le by blast
 
   have "step (lnth Ps i) (lnth Ps (Suc i))"
-    by (rule chain_lnth_rel[OF ps_chain Suc.prems])
+    by (rule chain_lnth_rel[OF chain Suc.prems])
   then show ?case
     using step_preserves_distinct ih by blast
 qed
@@ -186,7 +186,7 @@ proof unfold_locales
       inf_sel: "infinitely_often select_step Ps" and
       hd_emp: "lhd Ps = []"
 
-  have ps_chain: "chain step Ps"
+  have chain: "chain step Ps"
     by (rule full_chain_imp_chain[OF ps_full])
 
   show "Liminf_llist (lmap formulas Ps) = {}"
@@ -224,7 +224,7 @@ proof unfold_locales
       by (meson in_set_conv_nth le_refl)
 
     have dist: "distinct (lnth Ps i)"
-      by (simp add: chain_big_step_preserves_distinct hd_emp i_lt ps_chain)
+      by (simp add: chain_step_preserves_distinct hd_emp i_lt chain)
 
     have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Ps i'))"
     proof -
@@ -338,7 +338,7 @@ proof unfold_locales
             using at_i''_nemp by auto
 
           have dist_i'': "distinct (lnth Ps i'')"
-            by (simp add: chain_big_step_preserves_distinct hd_emp ps_chain ps_inf)
+            by (simp add: chain_step_preserves_distinct hd_emp chain ps_inf)
 
           have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps i''))"
             using c_ni_i'_i'' i''_ge by blast
