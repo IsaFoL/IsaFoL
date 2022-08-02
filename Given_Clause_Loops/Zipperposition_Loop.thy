@@ -289,6 +289,30 @@ next
     using zl_delete_orphans_in_lgc by auto
 qed
 
+
+section \<open>Completeness\<close>
+
+theorem
+  assumes
+    zl_chain: "chain (\<leadsto>ZL) Sts" and
+    act: "active_subset (snd (lhd Sts)) = {}" and
+    pas: "passive_subset (Liminf_llist (lmap snd Sts)) = {}" and
+    no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd Sts)" and
+    final_sched: "Liminf_llist (lmap fst Sts) = {}" and
+    bot: "B \<in> Bot_F" and
+    unsat: "fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+  shows
+    ZL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)" and
+    ZL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+proof -
+  have lgc_chain: "chain (\<leadsto>LGC) Sts"
+    using zl_chain ZL_step_imp_LGC_step chain_mono by blast
+  show ZL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)"
+    by (rule lgc_complete_Liminf[OF lgc_chain act pas no_prems_init final_sched bot unsat])
+  then show OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+    unfolding Liminf_llist_def by auto
+qed
+
 end
 
 end

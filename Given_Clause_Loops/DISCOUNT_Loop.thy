@@ -315,7 +315,7 @@ proof -
     by simp
 qed
 
-theorem DL_step_imp_GC_step: "T\<M> \<leadsto>DL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
+theorem DL_step_imp_LGC_step: "T\<M> \<leadsto>DL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
 proof (induction rule: DL.induct)
   case (choose_p T P C A)
   then show ?case
@@ -348,6 +348,30 @@ next
   case (delete_Orphans T' A T P Y)
   then show ?case
     using dl_delete_orphans_in_lgc by blast
+qed
+
+
+section \<open>Completeness\<close>
+
+theorem
+  assumes
+    dl_chain: "chain (\<leadsto>DL) Sts" and
+    act: "active_subset (snd (lhd Sts)) = {}" and
+    pas: "passive_subset (Liminf_llist (lmap snd Sts)) = {}" and
+    no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd Sts)" and
+    final_sched: "Liminf_llist (lmap fst Sts) = {}" and
+    bot: "B \<in> Bot_F" and
+    unsat: "fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+  shows
+    DL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)" and
+    DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+proof -
+  have lgc_chain: "chain (\<leadsto>LGC) Sts"
+    using dl_chain DL_step_imp_LGC_step chain_mono by blast
+  show DL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)"
+    by (rule lgc_complete_Liminf[OF lgc_chain act pas no_prems_init final_sched bot unsat])
+  then show OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+    unfolding Liminf_llist_def by auto
 qed
 
 end

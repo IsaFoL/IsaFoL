@@ -78,6 +78,28 @@ next
     by auto
 qed
 
+
+section \<open>Completeness\<close>
+
+theorem
+  assumes
+    il_chain: "chain (\<leadsto>IL) Sts" and
+    act: "active_subset (lhd Sts) = {}" and
+    pas: "passive_subset (Liminf_llist Sts) = {}" and
+    bot: "B \<in> Bot_F" and
+    unsat: "fst ` lhd Sts \<Turnstile>\<inter>\<G> {B}"
+  shows
+    IL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts" and
+    IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+proof -
+  have gc_chain: "chain (\<leadsto>GC) Sts"
+    using il_chain IL_step_imp_GC_step chain_mono by blast
+  show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts"
+    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
+  then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+    unfolding Liminf_llist_def by auto
+qed
+
 end
 
 end
