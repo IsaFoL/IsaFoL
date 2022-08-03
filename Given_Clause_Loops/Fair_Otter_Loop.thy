@@ -89,9 +89,6 @@ qed
 fun state_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
   "state_union (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
 
-fun fstate_union :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
-  "fstate_union (N, X, P, Y, A) = state_union (N, set_option X, formulas P, set_option Y, A)"
-
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
 where
@@ -104,9 +101,9 @@ where
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C, remove C' P, None, A)"
 | simplify_bwd_p: "C' \<prec>S S \<Longrightarrow> C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N \<union> {C''}, Some C, remove C' P, None, A)"
-| delete_bwd_a: "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
+| delete_bwd_a: "C' \<notin> A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N, Some C, P, None, A)"
-| simplify_bwd_a: "C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd_a: "C' \<notin> A \<Longrightarrow> C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N \<union> {C''}, Some C, P, None, A)"
 | transfer:
     "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> formulas P then P else add C P, None, A)"
@@ -317,12 +314,12 @@ next
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
   case (delete_bwd_a C' C)
-  note unfolds = this(1-7) and c'_red = this(8)
+  note unfolds = this(1-7) and c'_red = this(9)
   show ?thesis
     unfolding unfolds fstate.simps option.set by (rule OL.delete_bwd_a[OF c'_red])
 next
   case (simplify_bwd_a C' S C C'')
-  note unfolds = this(1-7) and c'_red = this(9)
+  note unfolds = this(1-7) and c'_red = this(10)
   show ?thesis
     unfolding unfolds fstate.simps option.set by (rule OL.simplify_bwd_a[OF c'_red])
 next
@@ -372,7 +369,9 @@ lemma wfP_multp_Prec_S: "wfP (multp (\<prec>S))"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
-  "mset_of_fstate St = mset_set (fstate_union St)"
+  "mset_of_fstate (N, X, P, Y, A) =
+   mset_set N + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
+   mset_set A"
 
 lemma fair_OL_Liminf_new_empty:
   assumes
@@ -388,11 +387,33 @@ qed
 
 lemma within_xx_step_imp_multp_Prec_S:
   assumes
-    "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
-    "xx_of (lnth Sts i) \<noteq> None"
-    "xx_of (lnth Sts (Suc i)) \<noteq> None"
-  shows "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
-  sorry
+    step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
+    xx_i: "xx_of (lnth Sts i) \<noteq> None" and
+    xx_si: "xx_of (lnth Sts (Suc i)) \<noteq> None"
+  shows "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc i))) (mset_of_fstate (lnth Sts i))"
+  using step
+proof cases
+  case (simplify_fwd C' S C P A N)
+  then show ?thesis sorry
+next
+  case (delete_bwd_p C' P C N A)
+  then show ?thesis sorry
+next
+  case (simplify_bwd_p C' S P C C'' N A)
+  then show ?thesis sorry
+next
+  case (delete_bwd_a C' A C N P)
+  note unfolds = this(1,2) and c'_ni = this(3)
+  have "mset_set A \<subset># mset_set (insert C' A)"
+    using c'_ni sorry
+    sorry
+  then show ?thesis
+    unfolding unfolds by (auto intro!: subset_implies_multp)
+next
+  case (simplify_bwd_a C' A S C C'' N P)
+  then show ?thesis sorry
+qed (use xx_i xx_si in auto)
+
 
 lemma fair_OL_Liminf_xx_empty:
   assumes
