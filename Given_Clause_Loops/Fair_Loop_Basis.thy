@@ -98,8 +98,20 @@ begin
 abbreviation formulas :: "'p \<Rightarrow> 'f set" where
   "formulas P \<equiv> fset (fformulas P)"
 
-text \<open>In the first rule, the assumption that the added formulas do not belong to
-the passive set can be fulfilled by annotating formulas with timestamps.\<close>
+lemma formulas_empty: "formulas empty = {}"
+  by (simp add: fformulas_empty)
+
+lemma formula_not_empty: "P \<noteq> empty \<Longrightarrow> formulas P \<noteq> {}"
+  by (metis bot_fset.rep_eq fformula_not_empty fset_cong)
+
+lemma select_in_formulas: "P \<noteq> empty \<Longrightarrow> select P \<in> formulas P"
+  by (metis fmember.rep_eq select_in_fformulas)
+
+lemma formulas_add: "formulas (add C P) = {C} \<union> formulas P"
+  by (simp add: fformulas_add)
+
+lemma formulas_remove: "formulas (remove C P) = formulas P - {C}"
+  by (simp add: fformulas_remove)
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   passive_step_idleI: "passive_step P P"

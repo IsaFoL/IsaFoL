@@ -430,7 +430,13 @@ proof cases
   then show ?thesis sorry
 next
   case (delete_bwd_p C' P C N A)
-  then show ?thesis sorry
+  note defs = this(1,2) and c'_in = this(3)
+  have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
+    by (metis Diff_iff c'_in finite_fset finite_set_mset_mset_set formulas_remove insertCI
+        insert_Diff subset_imp_msubset_mset_set subset_insertI subset_mset.less_le)
+  then show ?thesis
+    unfolding defs using c'_in
+    by (auto simp: formulas_remove intro!: subset_implies_multp)
 next
   case (simplify_bwd_p C'' C' P C N A)
   then show ?thesis sorry
@@ -441,7 +447,7 @@ next
     unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
 next
   case (simplify_bwd_a C' A C'' C N P)
-  note defs = this(1,2) and c'_ni = this(3)
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
 
   have aft:
     "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas P) + mset_set (fset A)) =
@@ -476,10 +482,7 @@ next
         unfolding aft bef multp_def
       proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
         show "multp (\<prec>S) {#C''#} {#C'#}"
-          unfolding multp_def
-          apply (rule singletons_in_mult)
-          apply simp
-          sorry
+          unfolding multp_def using prec by (auto intro: singletons_in_mult)
       qed
     qed
   qed
