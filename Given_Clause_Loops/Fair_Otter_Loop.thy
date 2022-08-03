@@ -386,6 +386,14 @@ proof (rule ccontr)
     sorry
 qed
 
+lemma within_xx_step_imp_multp_Prec_S:
+  assumes
+    "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
+    "xx_of (lnth Sts i) \<noteq> None"
+    "xx_of (lnth Sts (Suc i)) \<noteq> None"
+  shows "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
+  sorry
+
 lemma fair_OL_Liminf_xx_empty:
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
@@ -427,9 +435,18 @@ proof (rule ccontr)
   hence si_lt: "enat (Suc i) < llength Sts"
     by (simp add: not_lfinite_llength)
 
+  have xx_j: "xx_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
+    by (metis c_in' enat_ord_code(4) ex_in_conv llength_eq_infty_conv_lfinite nfin option.simps(14)
+        j_ge)
+  have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that xx_j by presburger
+
+  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
+
   have "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
     if j_ge: "j \<ge> i" for j
-    sorry
+    using within_xx_step_imp_multp_Prec_S by (meson step that xx_j xx_sj)
   hence "(multp (\<prec>S))\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
