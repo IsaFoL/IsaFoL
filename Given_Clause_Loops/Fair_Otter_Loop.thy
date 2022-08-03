@@ -3,9 +3,12 @@ theory Fair_Otter_Loop
 begin
 
 
+subsection \<open>Utilities\<close>
+
+
 subsection \<open>Locale\<close>
 
-type_synonym ('p, 'f) fair_OL_state = "'f set \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f set"
+type_synonym ('p, 'f) fair_OL_state = "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset"
 
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
@@ -31,13 +34,14 @@ locale fair_otter_loop =
   fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
-    wf_Prec_S: "minimal_element (\<prec>S) UNIV"
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
 
 
 subsection \<open>Definition and Lemmas\<close>
 
-abbreviation new_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+abbreviation new_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
   "new_of St \<equiv> fst St"
 abbreviation xx_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
   "xx_of St \<equiv> fst (snd St)"
@@ -45,39 +49,39 @@ abbreviation passive_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst (snd (snd St))"
 abbreviation yy_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd (snd St)))"
-abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd (snd St)))"
 abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
-  "all_of St \<equiv> new_of St \<union> set_option (xx_of St) \<union> formulas (passive_of St) \<union>
-     set_option (yy_of St) \<union> active_of St"
+  "all_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> formulas (passive_of St) \<union>
+     set_option (yy_of St) \<union> fset (active_of St)"
 
-fun fstate :: "'f set \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
-  "fstate (N, X, P, Y, A) = state (N, set_option X, formulas P, set_option Y, A)"
+fun fstate :: "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset \<Rightarrow> ('f \<times> OL_label) set" where
+  "fstate (N, X, P, Y, A) = state (fset N, set_option X, formulas P, set_option Y, fset A)"
 
 lemma fstate_alt_def:
   "fstate St =
-   state (fst St, set_option (fst (snd St)), formulas (fst (snd (snd St))),
-     set_option (fst (snd (snd (snd St)))), snd (snd (snd (snd St))))"
+   state (fset (fst St), set_option (fst (snd St)), formulas (fst (snd (snd St))),
+     set_option (fst (snd (snd (snd St)))), fset (snd (snd (snd (snd St)))))"
   by (cases St) auto
 
 definition
   Liminf_fstate :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
 where
   "Liminf_fstate Sts =
-   (Liminf_llist (lmap new_of Sts),
+   (Liminf_llist (lmap (fset \<circ> new_of) Sts),
     Liminf_llist (lmap (set_option \<circ> xx_of) Sts),
     Liminf_llist (lmap (formulas \<circ> passive_of) Sts),
     Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
-    Liminf_llist (lmap active_of Sts))"
+    Liminf_llist (lmap (fset \<circ> active_of) Sts))"
 
 lemma Liminf_fstate_commute: "Liminf_llist (lmap fstate Sts) = state (Liminf_fstate Sts)"
 proof -
   have "Liminf_llist (lmap fstate Sts) =
-    (\<lambda>C. (C, New)) ` Liminf_llist (lmap new_of Sts) \<union>
+    (\<lambda>C. (C, New)) ` Liminf_llist (lmap (fset \<circ> new_of) Sts) \<union>
     (\<lambda>C. (C, XX)) ` Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<union>
     (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union>
     (\<lambda>C. (C, YY)) ` Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<union>
-    (\<lambda>C. (C, Active)) ` Liminf_llist (lmap active_of Sts)"
+    (\<lambda>C. (C, Active)) ` Liminf_llist (lmap (fset \<circ> active_of) Sts)"
     unfolding fstate_alt_def state_alt_def
     apply (subst Liminf_llist_lmap_union, fast)+
     apply (subst Liminf_llist_lmap_image, simp add: inj_on_convol_ident)+
@@ -92,37 +96,37 @@ fun state_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<tim
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
 where
-  choose_n: "C \<notin> N \<Longrightarrow> (N \<union> {C}, None, P, None, A) \<leadsto>OLf (N, Some C, P, None, A)"
-| delete_fwd: "C \<in> no_labels.Red_F (formulas P \<union> A) \<or> (\<exists>C' \<in> formulas P \<union> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
+  choose_n: "C |\<notin>| N \<Longrightarrow> (N |\<union>| {|C|}, None, P, None, A) \<leadsto>OLf (N, Some C, P, None, A)"
+| delete_fwd: "C \<in> no_labels.Red_F (formulas P \<union> fset A) \<or> (\<exists>C' \<in> formulas P \<union> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, None, P, None, A)"
-| simplify_fwd: "C' \<prec>S S \<Longrightarrow> C \<in> no_labels.Red_F (formulas P \<union> A \<union> {C'}) \<Longrightarrow>
+| simplify_fwd: "C' \<prec>S S \<Longrightarrow> C \<in> no_labels.Red_F (formulas P \<union> fset A \<union> {C'}) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C', P, None, A)"
 | delete_bwd_p: "C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C, remove C' P, None, A)"
 | simplify_bwd_p: "C' \<prec>S S \<Longrightarrow> C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
-    (N, Some C, P, None, A) \<leadsto>OLf (N \<union> {C''}, Some C, remove C' P, None, A)"
-| delete_bwd_a: "C' \<notin> A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
-    (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N, Some C, P, None, A)"
-| simplify_bwd_a: "C' \<notin> A \<Longrightarrow> C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
-    (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N \<union> {C''}, Some C, P, None, A)"
+    (N, Some C, P, None, A) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, remove C' P, None, A)"
+| delete_bwd_a: "C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
+    (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N, Some C, P, None, A)"
+| simplify_bwd_a: "C' |\<notin>| A \<Longrightarrow> C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+    (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, P, None, A)"
 | transfer:
     "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> formulas P then P else add C P, None, A)"
 | choose_p: "P \<noteq> empty \<Longrightarrow>
-    ({}, None, P, None, A) \<leadsto>OLf ({}, None, remove (select P) P, Some (select P), A)"
-| infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
-    ({}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A \<union> {C})"
+    ({||}, None, P, None, A) \<leadsto>OLf ({||}, None, remove (select P) P, Some (select P), A)"
+| infer: "no_labels.Inf_between (fset A) {C} \<subseteq> no_labels.Red_I (fset A \<union> {C} \<union> fset M) \<Longrightarrow>
+    ({||}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A |\<union>| {|C|})"
 
 
 subsection \<open>Initial State\<close>
 
 inductive is_initial_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "is_initial_fair_OL_state (N, None, empty, None, {})"
+  "is_initial_fair_OL_state (N, None, empty, None, {||})"
 
 
 subsection \<open>Invariant\<close>
 
 inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "(N = {} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
+  "(N = {||} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
 
 lemma initial_fair_OL_invariant:
   "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
@@ -175,21 +179,21 @@ qed
 subsection \<open>Final State\<close>
 
 inductive is_final_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "is_final_fair_OL_state ({}, None, empty, None, A)"
+  "is_final_fair_OL_state ({||}, None, empty, None, A)"
 
 lemma is_final_fair_OL_state_iff_no_trans:
   assumes inv: "fair_OL_invariant St"
   shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
 proof
   assume "is_final_fair_OL_state St"
-  then obtain A :: "'f set" where
-    st: "St = ({}, None, empty, None, A)"
+  then obtain A :: "'f fset" where
+    st: "St = ({||}, None, empty, None, A)"
     by (auto simp: is_final_fair_OL_state.simps)
   show "\<forall>St'. \<not> St \<leadsto>OLf St'"
     unfolding st
   proof (intro allI notI)
     fix St'
-    assume "({}, None, empty, None, A) \<leadsto>OLf St'"
+    assume "({||}, None, empty, None, A) \<leadsto>OLf St'"
     then show False
       by cases (auto simp: fformulas_empty)
   qed
@@ -199,24 +203,24 @@ next
   proof (rule ccontr)
     assume not_fin: "\<not> is_final_fair_OL_state St"
 
-    obtain N A :: "'f set" and X Y :: "'f option" and P :: 'p where
+    obtain N A :: "'f fset" and X Y :: "'f option" and P :: 'p where
       st: "St = (N, X, P, Y, A)"
       by (cases St)
 
-    have inv': "(N = {} \<and> X = None) \<or> Y = None"
+    have inv': "(N = {||} \<and> X = None) \<or> Y = None"
       using inv st fair_OL_invariant.simps by simp
 
-    have "N \<noteq> {} \<or> X \<noteq> None \<or> P \<noteq> empty \<or> Y \<noteq> None"
+    have "N \<noteq> {||} \<or> X \<noteq> None \<or> P \<noteq> empty \<or> Y \<noteq> None"
       using not_fin unfolding st is_final_fair_OL_state.simps by auto
     moreover {
       assume
-        n: "N \<noteq> {}" and
+        n: "N \<noteq> {||}" and
         x: "X = None"
 
-      obtain N' :: "'f set" and C :: 'f where
-        n': "N = N' \<union> {C}" and
-        c_ni: "C \<notin> N'"
-        using n by (metis Set.set_insert ex_in_conv insert_is_Un sup_commute)
+      obtain N' :: "'f fset" and C :: 'f where
+        n': "N = N' |\<union>| {|C|}" and
+        c_ni: "C |\<notin>| N'"
+        using n finsert_is_funion by blast
       have y: "Y = None"
         using n x inv' by meson
 
@@ -236,7 +240,7 @@ next
     } moreover {
       assume
         p: "P \<noteq> empty" and
-        n: "N = {}" and
+        n: "N = {||}" and
         x: "X = None" and
         y: "Y = None"
 
@@ -248,14 +252,21 @@ next
         y: "Y = Some C"
         by blast
 
-      have n: "N = {}" and
+      have n: "N = {||}" and
         x: "X = None"
         using y inv' by blast+
 
-      let ?M = "concl_of ` no_labels.Inf_between A {C}"
+      let ?M = "concl_of ` no_labels.Inf_between (fset A) {C}"
 
-      have inf_red: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I_\<G> (A \<union> {C} \<union> ?M)"
-        by (simp add: no_labels.Inf_if_Inf_between no_labels.empty_ord.Red_I_of_Inf_to_N subsetI)
+      have fin: "finite ?M"
+        by (simp add: finite_Inf_between)
+      have fset_abs_m: "fset (Abs_fset ?M) = ?M"
+        by (rule Abs_fset_inverse[simplified, OF fin])
+
+      have inf_red: "no_labels.Inf_between (fset A) {C}
+        \<subseteq> no_labels.Red_I_\<G> (fset A \<union> {C} \<union> fset (Abs_fset ?M))"
+        by (simp add: fset_abs_m no_labels.Inf_if_Inf_between no_labels.empty_ord.Red_I_of_Inf_to_N
+            subsetI)
 
       have "\<exists>St'. St \<leadsto>OLf St'"
         using fair_OL.infer[OF inf_red] unfolding st n x y by fast
@@ -275,7 +286,7 @@ proof cases
   case (choose_n C)
   note unfolds = this(1-7) and c_ni = this(8)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.choose_n[OF c_ni])
+    unfolding unfolds fstate.simps option.set using OL.choose_n c_ni by (simp add: notin_fset)
 next
   case (delete_fwd C)
   note unfolds = this(1-7) and c_red = this(8)
@@ -310,18 +321,19 @@ next
 
   show ?thesis
     unfolding unfolds fstate.simps option.set
-    by (rule OL.simplify_bwd_p[OF c'_red, of _ "formulas P - {C'}",
-          unfolded p_rm_c'_uni_c' p_mns_c'])
+    using OL.simplify_bwd_p[OF c'_red, of "fset N" "formulas P - {C'}",
+        unfolded p_rm_c'_uni_c' p_mns_c']
+    by simp
 next
   case (delete_bwd_a C' C)
   note unfolds = this(1-7) and c'_red = this(9)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.delete_bwd_a[OF c'_red])
+    unfolding unfolds fstate.simps option.set using OL.delete_bwd_a[OF c'_red] by simp
 next
   case (simplify_bwd_a C' S C C'')
   note unfolds = this(1-7) and c'_red = this(10)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.simplify_bwd_a[OF c'_red])
+    unfolding unfolds fstate.simps option.set using OL.simplify_bwd_a[OF c'_red] by simp
 next
   case (transfer C)
   note unfolds = this(1-7)
@@ -345,13 +357,14 @@ next
 
   show ?thesis
     unfolding unfolds fstate.simps option.set
-    by (rule OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
-          unfolded rm_sel_uni_sel])
+    using OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
+        unfolded rm_sel_uni_sel]
+    by simp
 next
   case (infer C)
   note unfolds = this(1-7) and infers = this(8)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.infer[OF infers])
+    unfolding unfolds fstate.simps option.set using OL.infer[OF infers] by simp
 qed
 
 lemma fair_OL_step_imp_GC_step:
@@ -370,16 +383,16 @@ lemma wfP_multp_Prec_S: "wfP (multp (\<prec>S))"
 
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
-   mset_set N + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
-   mset_set A"
+   mset_set (fset N) + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
+   mset_set (fset A)"
 
 lemma fair_OL_Liminf_new_empty:
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap new_of Sts) = {}"
+  shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
 proof (rule ccontr)
-  assume "Liminf_llist (lmap new_of Sts) \<noteq> {}"
+  assume "Liminf_llist (lmap (fset \<circ> new_of) Sts) \<noteq> {}"
 
   show False
     sorry
@@ -404,11 +417,9 @@ next
 next
   case (delete_bwd_a C' A C N P)
   note unfolds = this(1,2) and c'_ni = this(3)
-  have "mset_set A \<subset># mset_set (insert C' A)"
-    using c'_ni sorry
-    sorry
-  then show ?thesis
-    unfolding unfolds by (auto intro!: subset_implies_multp)
+  show ?thesis
+    unfolding unfolds using c'_ni
+    by (auto simp: notin_fset intro!: subset_implies_multp notin_fset)
 next
   case (simplify_bwd_a C' A S C C'' N P)
   then show ?thesis sorry
@@ -616,8 +627,8 @@ proof (rule ccontr)
 
   have yy_at_i: "yy_of (lnth Sts i) = Some C"
     using c_in' i_lt by blast
-  have new_at_i: "new_of (lnth Sts i) = {}" and
-    xx_at_i: "new_of (lnth Sts i) = {}"
+  have new_at_i: "new_of (lnth Sts i) = {||}" and
+    xx_at_i: "new_of (lnth Sts i) = {||}"
     using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
     by (force simp: fair_OL_invariant.simps)+
 
@@ -627,13 +638,13 @@ proof (rule ccontr)
   hence si_lt: "enat (Suc i) < llength Sts"
     by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
 
-  obtain P :: 'p and A :: "'f set" where
-    at_i: "lnth Sts i = ({}, None, P, Some C, A)"
+  obtain P :: 'p and A :: "'f fset" where
+    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
     using fair_OL_invariant.simps inv_at_i yy_at_i by auto
 
   have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
     by (simp add: chain chain_lnth_rel si_lt)
-  then have "({}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
+  then have "({||}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
     unfolding at_i .
   then have "yy_of (lnth Sts (Suc i)) = None"
     by cases simp
@@ -646,7 +657,7 @@ theorem
     olf_full: "full_chain (\<leadsto>OLf) Sts" and
     olf_init: "is_initial_fair_OL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
-    unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+    unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
     OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" and
     OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
@@ -664,7 +675,7 @@ proof -
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
     by (rule llist.map_sel(1))
 
-  have "active_of (lhd Sts) = {}"
+  have "active_of (lhd Sts) = {||}"
     by (metis is_initial_fair_OL_state.cases olf_init snd_conv)
   then have act: "active_subset (lhd (lmap fstate Sts)) = {}"
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
@@ -684,8 +695,8 @@ proof -
       using full_chain_lnth_not_rel[OF olf_full] by (metis fin full_chain_iff_chain olf_full)
     then have "is_final_fair_OL_state (llast Sts)"
       unfolding is_final_fair_OL_state_iff_no_trans[OF last_inv] .
-    then obtain A :: "'f set" where
-      at_l: "llast Sts = ({}, None, empty, None, A)"
+    then obtain A :: "'f fset" where
+      at_l: "llast Sts = ({||}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
     show ?thesis
       unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l fstate.simps state.simps
@@ -739,7 +750,8 @@ locale fifo_otter_loop =
   fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
-    wf_Prec_S: "minimal_element (\<prec>S) UNIV"
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
 
 sublocale fifo_passive_set
@@ -747,7 +759,15 @@ sublocale fifo_passive_set
 
 sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F
   Prec_F "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
-  apply unfold_locales
-  using wf_Prec_S minimal_element.po minimal_element.wf by blast+
+proof unfold_locales
+  show "po_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.po by blast
+next
+  show "wfp_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.wf by blast
+next
+  show "\<And>A C. finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
+    by (fact finite_Inf_between)
+qed
 
 end
