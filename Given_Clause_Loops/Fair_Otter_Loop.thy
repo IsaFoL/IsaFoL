@@ -31,7 +31,7 @@ locale fair_otter_loop =
   fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
-    wf_prec_S: "minimal_element (\<prec>S) UNIV"
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV"
 begin
 
 
@@ -369,7 +369,7 @@ lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnst
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
 lemma wfP_multp_Prec_S: "wfP (multp (\<prec>S))"
-  using minimal_element_def wfP_multp wf_prec_S wfp_on_UNIV by blast
+  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate St = mset_set (fstate_union St)"
@@ -684,8 +684,7 @@ subsection \<open>Specialization with FIFO Queue\<close>
 print_locale fair_otter_loop
 
 locale fifo_otter_loop =
-  fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
-    "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+  otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -703,11 +702,19 @@ locale fifo_otter_loop =
     select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset" and
+    fformulas :: "'p \<Rightarrow> 'f fset" +
+  fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
+  assumes
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV"
 begin
 
-sublocale blah: fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
-  sorry
+sublocale fifo_passive_set
+  .
+
+sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
+  "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+  apply unfold_locales
+  using wf_Prec_S minimal_element.po minimal_element.wf by blast+
 
 end
