@@ -60,63 +60,65 @@ lemma resolve_if_conflict_follows_propagate:
   shows "\<exists>S\<^sub>3. resolve N \<beta> S\<^sub>2 S\<^sub>3"
   using propa
 proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
-  case (propagateI C U \<rho> \<Gamma> C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
   hence S\<^sub>0_def: "S\<^sub>0 = (\<Gamma>, U, None)"
     by simp
 
   from conf obtain D' \<sigma> D where
-    S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U, Some (D', \<sigma>))" and
+    S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, Some (D', \<sigma>))" and
     D_in: "D \<in> N \<union> U" and
-    D'_def: "D' = D \<cdot> renaming_wrt (insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (N \<union> U \<union> clss_of_trail \<Gamma>))" and
+    D'_def: "D' = D \<cdot> renaming_wrt (N \<union> U \<union> clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))" and
     "subst_domain \<sigma> \<subseteq> vars_cls D'" and
     gr_D'_\<sigma>: "is_ground_cls (D' \<cdot> \<sigma>)" and
-    tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>') (D' \<cdot> \<sigma>)"
-    unfolding propagateI
-    by (auto simp: rename_clause_def elim: conflict.cases)
+    tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>') (D' \<cdot> \<sigma>)"
+    apply (elim conflict.cases)
+    unfolding propagateI rename_clause_def by blast
 
-  define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
-    "\<rho> = renaming_wrt (insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (N \<union> U \<union> clss_of_trail \<Gamma>))"
+  define \<rho>' :: "'v \<Rightarrow> ('f, 'v) Term.term" where
+    "\<rho>' = renaming_wrt (insert (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) (N \<union> U \<union> clss_of_trail \<Gamma>))"
+
+  with D'_def have D'_def': "D' = D \<cdot> \<rho>'"
+    by simp
 
   from no_conf have "\<not> trail_false_cls \<Gamma> (D' \<cdot> \<sigma>)"
-    using gr_D'_\<sigma> D_in not_trail_false_ground_cls_if_no_conflict[OF fin, of \<beta> D "\<rho> \<odot> \<sigma>"]
-    unfolding D'_def \<rho>_def[symmetric]
-    by (simp add: S\<^sub>0_def)
-  with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') \<in># D' \<cdot> \<sigma>"
-    using trail_propagate_def subtrail_falseI by metis
-  then obtain D'' L' where D'_def': "D' = add_mset L' D''" and "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') = L' \<cdot>l \<sigma>"
+    using gr_D'_\<sigma> D_in not_trail_false_ground_cls_if_no_conflict[OF fin, of \<beta> D "\<rho>' \<odot> \<sigma>"]
+    by (simp add: D'_def' S\<^sub>0_def)
+  with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') \<in># D' \<cdot> \<sigma>"
+    unfolding trail_propagate_def by (metis subtrail_falseI)
+  then obtain D'' L' where D'_def'': "D' = add_mset L' D''" and "- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') = L' \<cdot>l \<sigma>"
     by (meson Melem_subst_cls multi_member_split)
-  hence 1: "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<sigma>)"
+  hence 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<sigma>)"
     by (metis uminus_of_uminus_id)
-  hence "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' = atm_of L' \<cdot>a \<sigma>"
+  hence "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L' \<cdot>a \<sigma>"
     by (metis atm_of_subst_lit atm_of_uminus)
-  hence "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu>) (atm_of L') = Some \<mu>'"
+  hence "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) (atm_of L') = Some \<mu>'"
   proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
     have fin': "finite (\<Union> (vars_cls ` insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (N \<union> U \<union> clss_of_trail \<Gamma>)))"
       using S\<^sub>0_def fin(1) fin(2) by auto
-    show "vars_term (atm_of L \<cdot>a \<mu>) \<inter> vars_lit L' = {}"
-      using D'_def[unfolded D'_def']
-      using renaming_correct[OF fin']
-      by (smt (verit, best) UN_I Un_iff atm_of_subst_lit disjoint_iff fin' insertCI
-          subst_cls_add_mset vars_cls_add_mset vars_cls_subst_renaming_disj)
+    show "vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<inter> vars_lit L' = {}"
+      using D'_def'[unfolded D'_def'']
+      by (smt (verit, del_insts) IntD1 Sup_insert Un_Int_eq(1) \<rho>'_def atm_of_subst_lit disjoint_iff
+          fin' finite_Un finite_vars_cls image_insert subst_cls_add_mset vars_cls_add_mset
+          vars_cls_subst_renaming_disj)
   next
-    have "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
-      using is_ground_cls_imp_is_ground_lit[OF \<open>- (L \<cdot>l \<mu> \<cdot>l \<gamma>') \<in># D' \<cdot> \<sigma>\<close> gr_D'_\<sigma>]
+    have "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
+      using is_ground_cls_imp_is_ground_lit[OF \<open>- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') \<in># D' \<cdot> \<sigma>\<close> gr_D'_\<sigma>]
       by (simp add: is_ground_lit_iff_vars_empty)
-    hence "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu>). if \<gamma>' x = Var x then {} else vars_term (\<gamma>' x)) = {}"
+    hence "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>). if \<gamma>\<^sub>\<rho>' x = Var x then {} else vars_term (\<gamma>\<^sub>\<rho>' x)) = {}"
       unfolding atm_of_subst_lit[symmetric]
       using is_ground_lit_is_ground_on_var[unfolded is_ground_atm_iff_vars_empty]
       by force
-    then show "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu>). if \<gamma>' x = Var x then {} else vars_term (\<gamma>' x)) \<inter>
+    then show "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>). if \<gamma>\<^sub>\<rho>' x = Var x then {} else vars_term (\<gamma>\<^sub>\<rho>' x)) \<inter>
       {x \<in> vars_lit L'. \<sigma> x \<noteq> Var x} = {}"
       by simp
   qed
-  then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of L'}}"
+  then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu> \<cdot>l \<rho>), atm_of L'}}"
     using is_mimgu_if_mgu_eq_Some by auto
 
   show ?thesis
-    using resolveI[of _ \<Gamma> "L \<cdot>l \<mu>" "C\<^sub>0 \<cdot> \<mu>" \<gamma>' _ N U D'', OF refl refl 1 2]
-    unfolding S\<^sub>2_def D'_def'
-    by auto
+    using resolveI[OF refl refl 1 2, of N \<beta> \<Gamma> "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" U D'',
+        unfolded add_mset_add_single[symmetric], folded D'_def'']
+    unfolding S\<^sub>2_def by auto
 qed
 
 text \<open>The following lemma corresponds to Lemma 7 in the paper.\<close>
