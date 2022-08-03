@@ -48,43 +48,46 @@ abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
   "all_of St \<equiv> new_of St \<union> set_option (xx_of St) \<union> formulas (passive_of St) \<union>
      set_option (yy_of St) \<union> active_of St"
 
-fun statef :: "'f set \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
-  "statef (N, X, P, Y, A) = state (N, set_option X, formulas P, set_option Y, A)"
+fun fstate :: "'f set \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
+  "fstate (N, X, P, Y, A) = state (N, set_option X, formulas P, set_option Y, A)"
 
-lemma statef_alt_def:
-  "statef St =
+lemma fstate_alt_def:
+  "fstate St =
    state (fst St, set_option (fst (snd St)), formulas (fst (snd (snd St))),
      set_option (fst (snd (snd (snd St)))), snd (snd (snd (snd St))))"
   by (cases St) auto
 
 definition
-  Liminf_statef :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
+  Liminf_fstate :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
 where
-  "Liminf_statef Sts =
+  "Liminf_fstate Sts =
    (Liminf_llist (lmap new_of Sts),
     Liminf_llist (lmap (set_option \<circ> xx_of) Sts),
     Liminf_llist (lmap (formulas \<circ> passive_of) Sts),
     Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
     Liminf_llist (lmap active_of Sts))"
 
-lemma Liminf_statef_commute: "Liminf_llist (lmap statef Sts) = state (Liminf_statef Sts)"
+lemma Liminf_fstate_commute: "Liminf_llist (lmap fstate Sts) = state (Liminf_fstate Sts)"
 proof -
-  have "Liminf_llist (lmap statef Sts) =
+  have "Liminf_llist (lmap fstate Sts) =
     (\<lambda>C. (C, New)) ` Liminf_llist (lmap new_of Sts) \<union>
     (\<lambda>C. (C, XX)) ` Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<union>
     (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union>
     (\<lambda>C. (C, YY)) ` Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<union>
     (\<lambda>C. (C, Active)) ` Liminf_llist (lmap active_of Sts)"
-    unfolding statef_alt_def state_alt_def
+    unfolding fstate_alt_def state_alt_def
     apply (subst Liminf_llist_lmap_union, fast)+
     apply (subst Liminf_llist_lmap_image, simp add: inj_on_convol_ident)+
     by auto
  then show ?thesis
-   unfolding Liminf_statef_def by fastforce
+   unfolding Liminf_fstate_def by fastforce
 qed
 
-fun statef_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
-  "statef_union (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
+fun state_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
+  "state_union (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
+
+fun fstate_union :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "fstate_union (N, X, P, Y, A) = state_union (N, set_option X, formulas P, set_option Y, A)"
 
 inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
@@ -266,23 +269,23 @@ subsection \<open>Refinement\<close>
 
 lemma fair_OL_step_imp_OL_step:
   assumes olf: "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A')"
-  shows "statef (N, X, P, Y, A) \<leadsto>OL statef (N', X', P', Y', A')"
+  shows "fstate (N, X, P, Y, A) \<leadsto>OL fstate (N', X', P', Y', A')"
   using olf
 proof cases
   case (choose_n C)
   note unfolds = this(1-7) and c_ni = this(8)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.choose_n[OF c_ni])
+    unfolding unfolds fstate.simps option.set by (rule OL.choose_n[OF c_ni])
 next
   case (delete_fwd C)
   note unfolds = this(1-7) and c_red = this(8)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.delete_fwd[OF c_red])
+    unfolding unfolds fstate.simps option.set by (rule OL.delete_fwd[OF c_red])
 next
   case (simplify_fwd C' S C)
   note unfolds = this(1-7) and c_red = this(9)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.simplify_fwd[OF c_red])
+    unfolding unfolds fstate.simps option.set by (rule OL.simplify_fwd[OF c_red])
 next
   case (delete_bwd_p C' C)
   note unfolds = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
@@ -293,7 +296,7 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds statef.simps option.set
+    unfolding unfolds fstate.simps option.set
     by (rule OL.delete_bwd_p[OF c'_red, of _ "formulas P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
@@ -306,19 +309,19 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds statef.simps option.set
+    unfolding unfolds fstate.simps option.set
     by (rule OL.simplify_bwd_p[OF c'_red, of _ "formulas P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
   case (delete_bwd_a C' C)
   note unfolds = this(1-7) and c'_red = this(8)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.delete_bwd_a[OF c'_red])
+    unfolding unfolds fstate.simps option.set by (rule OL.delete_bwd_a[OF c'_red])
 next
   case (simplify_bwd_a C' S C C'')
   note unfolds = this(1-7) and c'_red = this(9)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.simplify_bwd_a[OF c'_red])
+    unfolding unfolds fstate.simps option.set by (rule OL.simplify_bwd_a[OF c'_red])
 next
   case (transfer C)
   note unfolds = this(1-7)
@@ -327,7 +330,7 @@ next
     using fformulas_add by auto
 
   show ?thesis
-    unfolding unfolds statef.simps option.set
+    unfolding unfolds fstate.simps option.set
     by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
 next
   case choose_p
@@ -341,19 +344,19 @@ next
     by (metis Un_insert_right finsert.rep_eq finsert_fminus sup_bot_right)
 
   show ?thesis
-    unfolding unfolds statef.simps option.set
+    unfolding unfolds fstate.simps option.set
     by (rule OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
           unfolded rm_sel_uni_sel])
 next
   case (infer C)
   note unfolds = this(1-7) and infers = this(8)
   show ?thesis
-    unfolding unfolds statef.simps option.set by (rule OL.infer[OF infers])
+    unfolding unfolds fstate.simps option.set by (rule OL.infer[OF infers])
 qed
 
 lemma fair_OL_step_imp_GC_step:
   "(N, X, P, Y, A) \<leadsto>OLf (N', X', P', Y', A') \<Longrightarrow>
-   statef (N, X, P, Y, A) \<leadsto>GC statef (N', X', P', Y', A')"
+   fstate (N, X, P, Y, A) \<leadsto>GC fstate (N', X', P', Y', A')"
   by (rule OL_step_imp_GC_step[OF fair_OL_step_imp_OL_step])
 
 
@@ -362,12 +365,23 @@ subsection \<open>Completeness\<close>
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
+lemma wfP_multp_Prec_S: "wfP (multp (\<prec>S))"
+  using minimal_element_def wfP_multp wf_prec_S wfp_on_UNIV by blast
+
+fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
+  "mset_of_fstate St = mset_set (fstate_union St)"
+
 lemma fair_OL_Liminf_new_empty:
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap new_of Sts) = {}"
-  sorry
+proof (rule ccontr)
+  assume "Liminf_llist (lmap new_of Sts) \<noteq> {}"
+
+  show False
+    sorry
+qed
 
 lemma fair_OL_Liminf_xx_empty:
   assumes
@@ -388,11 +402,41 @@ proof (rule ccontr)
   hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
     by auto
 
-  have "lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
-    yy_of (lnth Sts i), active_of (lnth Sts i))"
+  have nfin: "\<not> lfinite Sts"
+  proof
+    assume "lfinite Sts"
+    then obtain k :: nat where
+      k: "enat (Suc k) = llength Sts"
+      by (metis lessE enat_ord_simps(2) i_lt lfinite_llength_enat)
+    then have k_lt: "enat k < llength Sts"
+      by (metis enat_ord_simps(2) lessI)
+    have inv_at_i: "fair_OL_invariant (lnth Sts k)"
+      by (rule chain_fair_OL_invariant_lnth[OF full_chain_imp_chain[OF full] inv k_lt])
+
+    have "\<exists>St'. lnth Sts k \<leadsto>OLf St'"
+      using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
+      by (metis c_in' elem_set enat_ord_simps(2) fair_otter_loop.is_final_fair_OL_state.cases
+          fair_otter_loop_axioms fst_conv i_lt k le_Suc_eq le_eq_less_or_eq lessI less_irrefl_nat
+          option.simps(3) snd_conv)
+    thus False
+      using full_chain_lnth_not_rel[OF full k] by simp
+  qed
+
+  have "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
+    if j_ge: "j \<ge> i" for j
     sorry
+  then have "(multp (\<prec>S))\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+    if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  have inf_down_chain: "chain (multp (\<prec>S))\<inverse>\<inverse> (lmap mset_of_fstate (ldrop i Sts))"
+    sorry
+
+  have inf_i: "\<not> lfinite (ldrop i Sts)"
+    using nfin by simp
+
   show False
-    sorry
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "multp (\<prec>S)"]
+      wfP_multp_Prec_S lfinite_lmap by blast
 qed
 
 lemma OLf_step_imp_passive_step:
@@ -563,13 +607,13 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
   shows
-    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> statef_union (Liminf_statef Sts)" and
+    OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" and
     OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
   have olf_chain: "chain (\<leadsto>OLf) Sts"
     by (rule full_chain_imp_chain[OF olf_full])
-  have gc_chain: "chain (\<leadsto>GC) (lmap statef Sts)"
-    using olf_chain fair_OL_step_imp_GC_step chain_lmap by (smt (verit) statef.cases)
+  have gc_chain: "chain (\<leadsto>GC) (lmap fstate Sts)"
+    using olf_chain fair_OL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
   have olf_inv: "fair_OL_invariant (lhd Sts)"
     using olf_init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
@@ -578,14 +622,14 @@ proof -
     using olf_chain chain_not_lnull by blast
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
     by (rule llist.map_sel(1))
-  have act': "active_subset (lhd (lmap statef Sts)) = {}"
+  have act': "active_subset (lhd (lmap fstate Sts)) = {}"
     using act unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
-  have pas': "passive_subset (Liminf_llist (lmap statef Sts)) = {}"
+  have pas': "passive_subset (Liminf_llist (lmap fstate Sts)) = {}"
   proof (cases "lfinite Sts")
     case fin: True
 
-    have lim: "Liminf_llist (lmap statef Sts) = statef (llast Sts)"
+    have lim: "Liminf_llist (lmap fstate Sts) = fstate (llast Sts)"
       using lfinite_Liminf_llist fin nnul
       by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
 
@@ -600,14 +644,14 @@ proof -
       at_l: "llast Sts = ({}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
     show ?thesis
-      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l statef.simps state.simps
+      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l fstate.simps state.simps
       by (auto simp: fformulas_empty)
   next
     case False
     then have len: "llength Sts = \<infinity>"
       by (simp add: not_lfinite_llength)
     show ?thesis
-      unfolding Liminf_statef_commute passive_subset_def Liminf_statef_def
+      unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
       using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
         fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
         fair_OL_Liminf_passive_empty[OF len olf_full olf_init]
@@ -615,15 +659,15 @@ proof -
       by simp
   qed
 
-  have unsat': "fst ` lhd (lmap statef Sts) \<Turnstile>\<inter>\<G> {B}"
+  have unsat': "fst ` lhd (lmap fstate Sts) \<Turnstile>\<inter>\<G> {B}"
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
-  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap statef Sts)"
+  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
     by (rule gc_complete_Liminf[OF gc_chain act' pas' bot unsat'])
-  then show "\<exists>B \<in> Bot_F. B \<in> statef_union (Liminf_statef Sts)"
-    unfolding Liminf_statef_def Liminf_statef_commute by auto
+  then show "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
+    unfolding Liminf_fstate_def Liminf_fstate_commute by auto
   then show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
-    unfolding Liminf_statef_def Liminf_llist_def by auto
+    unfolding Liminf_fstate_def Liminf_llist_def by auto
 qed
 
 end
