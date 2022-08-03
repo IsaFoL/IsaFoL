@@ -1,9 +1,19 @@
 theory Fair_Otter_Loop
-  imports Otter_Loop Fair_Loop_Basis
+  imports
+    Otter_Loop
+    Fair_Loop_Basis
+    Weighted_Path_Order.Multiset_Extension_Pair
 begin
 
+subsection \<open>Setup and Utilities\<close>
 
-subsection \<open>Utilities\<close>
+hide_const (open) Seq.chain
+
+lemma singletons_in_mult1: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult1 R"
+  by (metis add_mset_add_single insert_DiffM mult1I single_eq_add_mset)
+
+lemma singletons_in_mult: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult R"
+  by (simp add: mult_def singletons_in_mult1 trancl.intros(1))
 
 
 subsection \<open>Locale\<close>
@@ -35,8 +45,18 @@ locale fair_otter_loop =
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
     wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    transp_Prec_S: "transp (\<prec>S)" and
     finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
+
+lemma trans_Prec_S: "trans {(x, y). x \<prec>S y}"
+  using transp_Prec_S transp_trans by blast
+
+lemma irreflp_Prec_S: "irreflp (\<prec>S)"
+  using minimal_element.wf wfP_imp_irreflp wf_Prec_S wfp_on_UNIV by blast
+
+lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
+  by (metis CollectD case_prod_conv irrefl_def irreflp_Prec_S irreflp_def)
 
 
 subsection \<open>Definition and Lemmas\<close>
@@ -99,15 +119,15 @@ where
   choose_n: "C |\<notin>| N \<Longrightarrow> (N |\<union>| {|C|}, None, P, None, A) \<leadsto>OLf (N, Some C, P, None, A)"
 | delete_fwd: "C \<in> no_labels.Red_F (formulas P \<union> fset A) \<or> (\<exists>C' \<in> formulas P \<union> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, None, P, None, A)"
-| simplify_fwd: "C' \<prec>S S \<Longrightarrow> C \<in> no_labels.Red_F (formulas P \<union> fset A \<union> {C'}) \<Longrightarrow>
+| simplify_fwd: "C' \<prec>S C \<Longrightarrow> C \<in> no_labels.Red_F (formulas P \<union> fset A \<union> {C'}) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C', P, None, A)"
 | delete_bwd_p: "C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C, remove C' P, None, A)"
-| simplify_bwd_p: "C' \<prec>S S \<Longrightarrow> C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd_p: "C'' \<prec>S C' \<Longrightarrow> C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, remove C' P, None, A)"
 | delete_bwd_a: "C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N, Some C, P, None, A)"
-| simplify_bwd_a: "C' |\<notin>| A \<Longrightarrow> C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd_a: "C' |\<notin>| A \<Longrightarrow> C'' \<prec>S C' \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, P, None, A)"
 | transfer:
     "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> formulas P then P else add C P, None, A)"
@@ -284,22 +304,22 @@ lemma fair_OL_step_imp_OL_step:
   using olf
 proof cases
   case (choose_n C)
-  note unfolds = this(1-7) and c_ni = this(8)
+  note defs = this(1-7) and c_ni = this(8)
   show ?thesis
-    unfolding unfolds fstate.simps option.set using OL.choose_n c_ni by (simp add: notin_fset)
+    unfolding defs fstate.simps option.set using OL.choose_n c_ni by (simp add: notin_fset)
 next
   case (delete_fwd C)
-  note unfolds = this(1-7) and c_red = this(8)
+  note defs = this(1-7) and c_red = this(8)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.delete_fwd[OF c_red])
+    unfolding defs fstate.simps option.set by (rule OL.delete_fwd[OF c_red])
 next
-  case (simplify_fwd C' S C)
-  note unfolds = this(1-7) and c_red = this(9)
+  case (simplify_fwd C' C)
+  note defs = this(1-7) and c_red = this(9)
   show ?thesis
-    unfolding unfolds fstate.simps option.set by (rule OL.simplify_fwd[OF c_red])
+    unfolding defs fstate.simps option.set by (rule OL.simplify_fwd[OF c_red])
 next
   case (delete_bwd_p C' C)
-  note unfolds = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
+  note defs = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
 
   have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
     unfolding fformulas_remove by (auto intro: c'_in_p)
@@ -307,12 +327,12 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds fstate.simps option.set
+    unfolding defs fstate.simps option.set
     by (rule OL.delete_bwd_p[OF c'_red, of _ "formulas P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
-  case (simplify_bwd_p C' S C C'')
-  note unfolds = this(1-7) and c'_in_p = this(9) and c'_red = this(10)
+  case (simplify_bwd_p C'' C' C)
+  note defs = this(1-7) and c'_in_p = this(9) and c'_red = this(10)
 
   have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
     unfolding fformulas_remove by (auto intro: c'_in_p)
@@ -320,33 +340,33 @@ next
     unfolding fformulas_remove by auto
 
   show ?thesis
-    unfolding unfolds fstate.simps option.set
+    unfolding defs fstate.simps option.set
     using OL.simplify_bwd_p[OF c'_red, of "fset N" "formulas P - {C'}",
         unfolded p_rm_c'_uni_c' p_mns_c']
     by simp
 next
   case (delete_bwd_a C' C)
-  note unfolds = this(1-7) and c'_red = this(9)
+  note defs = this(1-7) and c'_red = this(9)
   show ?thesis
-    unfolding unfolds fstate.simps option.set using OL.delete_bwd_a[OF c'_red] by simp
+    unfolding defs fstate.simps option.set using OL.delete_bwd_a[OF c'_red] by simp
 next
-  case (simplify_bwd_a C' S C C'')
-  note unfolds = this(1-7) and c'_red = this(10)
+  case (simplify_bwd_a C' C'' C)
+  note defs = this(1-7) and c'_red = this(10)
   show ?thesis
-    unfolding unfolds fstate.simps option.set using OL.simplify_bwd_a[OF c'_red] by simp
+    unfolding defs fstate.simps option.set using OL.simplify_bwd_a[OF c'_red] by simp
 next
   case (transfer C)
-  note unfolds = this(1-7)
+  note defs = this(1-7)
 
   have p_uni_c: "formulas P \<union> {C} = formulas (if C \<in> formulas P then P else add C P)"
     using fformulas_add by auto
 
   show ?thesis
-    unfolding unfolds fstate.simps option.set
+    unfolding defs fstate.simps option.set
     by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
 next
   case choose_p
-  note unfolds = this(1-8) and p_nemp = this(9)
+  note defs = this(1-8) and p_nemp = this(9)
 
   have sel_ni_rm: "select P \<notin> formulas (remove (select P) P)"
     unfolding fformulas_remove by auto
@@ -356,15 +376,15 @@ next
     by (metis Un_insert_right finsert.rep_eq finsert_fminus sup_bot_right)
 
   show ?thesis
-    unfolding unfolds fstate.simps option.set
+    unfolding defs fstate.simps option.set
     using OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
         unfolded rm_sel_uni_sel]
     by simp
 next
   case (infer C)
-  note unfolds = this(1-7) and infers = this(8)
+  note defs = this(1-7) and infers = this(8)
   show ?thesis
-    unfolding unfolds fstate.simps option.set using OL.infer[OF infers] by simp
+    unfolding defs fstate.simps option.set using OL.infer[OF infers] by simp
 qed
 
 lemma fair_OL_step_imp_GC_step:
@@ -406,25 +426,68 @@ lemma within_xx_step_imp_multp_Prec_S:
   shows "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc i))) (mset_of_fstate (lnth Sts i))"
   using step
 proof cases
-  case (simplify_fwd C' S C P A N)
+  case (simplify_fwd C' C P A N)
   then show ?thesis sorry
 next
   case (delete_bwd_p C' P C N A)
   then show ?thesis sorry
 next
-  case (simplify_bwd_p C' S P C C'' N A)
+  case (simplify_bwd_p C'' C' P C N A)
   then show ?thesis sorry
 next
   case (delete_bwd_a C' A C N P)
-  note unfolds = this(1,2) and c'_ni = this(3)
+  note defs = this(1,2) and c'_ni = this(3)
   show ?thesis
-    unfolding unfolds using c'_ni
-    by (auto simp: notin_fset intro!: subset_implies_multp notin_fset)
+    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
 next
-  case (simplify_bwd_a C' A S C C'' N P)
-  then show ?thesis sorry
-qed (use xx_i xx_si in auto)
+  case (simplify_bwd_a C' A C'' C N P)
+  note defs = this(1,2) and c'_ni = this(3)
 
+  have aft:
+    "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas P) + mset_set (fset A)) =
+     {#C#} + mset_set (formulas P) + mset_set (fset A) + mset_set (insert C'' (fset N))"
+    (is "?old_aft = ?new_aft")
+    by auto
+  have bef:
+    "add_mset C' (add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))) =
+     {#C#} + mset_set (formulas P) + mset_set (fset A) + ({#C'#} + mset_set (fset N))"
+    (is "?old_bef = ?new_bef")
+    by auto
+
+  have "multp (\<prec>S) ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "multp (\<prec>S) (mset_set (insert C'' (fset N))) ({#C'#} + mset_set (fset N))"
+    proof (cases "C'' \<in> fset N")
+      case True
+      hence ins: "insert C'' (fset N) = fset N"
+        by blast
+      show ?thesis
+        unfolding ins by (auto intro!: subset_implies_multp)
+    next
+      case c''_ni: False
+
+      have aft: "mset_set (insert C'' (fset N)) = mset_set (fset N) + {#C''#}"
+        using c''_ni by auto
+      have bef: "{#C'#} + mset_set (fset N) = mset_set (fset N) + {#C'#}"
+        by auto
+
+      show ?thesis
+        unfolding aft bef multp_def
+      proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+        show "multp (\<prec>S) {#C''#} {#C'#}"
+          unfolding multp_def
+          apply (rule singletons_in_mult)
+          apply simp
+          sorry
+      qed
+    qed
+  qed
+  hence "multp (\<prec>S) ?old_aft ?old_bef"
+    unfolding bef aft .
+  thus ?thesis
+    unfolding defs using c'_ni by (auto simp: notin_fset)
+qed (use xx_i xx_si in auto)
 
 lemma fair_OL_Liminf_xx_empty:
   assumes
@@ -500,78 +563,78 @@ lemma OLf_step_imp_passive_step:
   using olf_step
 proof cases
   case (choose_n C N P A)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 next
   case (delete_fwd C P A N)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 next
-  case (simplify_fwd C' S C P A N)
-  note unfolds = this(1,2)
+  case (simplify_fwd C' C P A N)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 next
   case (delete_bwd_p C' P C N A)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   have pas: "passive_of St' = remove C' P"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
-    unfolding unfolds pas by (auto intro: passive_step_removeI)
+    unfolding defs pas by (auto intro: passive_step_removeI)
 next
-  case (simplify_bwd_p C' S P C C'' N A)
-  note unfolds = this(1,2)
+  case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2)
   have pas: "passive_of St' = remove C' P"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
-    unfolding unfolds pas by (auto intro: passive_step_removeI)
+    unfolding defs pas by (auto intro: passive_step_removeI)
 next
-  case (delete_bwd_a C' C N P A)
-  note unfolds = this(1,2)
+  case (delete_bwd_a C' A C N P)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 next
-  case (simplify_bwd_a C' S C C'' N P A)
-  note unfolds = this(1,2)
+  case (simplify_bwd_a C' A C'' C N P)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 next
   case (transfer N C P A)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   show ?thesis
   proof (cases "C \<in> formulas P")
     case c_in: True
     show ?thesis
-      unfolding unfolds by (auto simp: c_in intro: passive_step_idleI)
+      unfolding defs by (auto simp: c_in intro: passive_step_idleI)
   next
     case c_ni: False
     show ?thesis
-      unfolding unfolds by (auto simp: c_ni intro: passive_step_addI)
+      unfolding defs by (auto simp: c_ni intro: passive_step_addI)
   qed
 next
   case (choose_p P A)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   have pas: "passive_of St' = remove (select P) P"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
-    unfolding unfolds pas by (auto intro: passive_step_removeI)
+    unfolding defs pas by (auto intro: passive_step_removeI)
 next
   case (infer A C M P)
-  note unfolds = this(1,2)
+  note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
-    unfolding unfolds by simp
+    unfolding defs by simp
   show ?thesis
     unfolding pas by (rule passive_step_idleI)
 qed
@@ -751,6 +814,7 @@ locale fifo_otter_loop =
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
     wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    transp_Prec_S: "transp (\<prec>S)" and
     finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
 
@@ -765,6 +829,9 @@ proof unfold_locales
 next
   show "wfp_on (\<prec>S) UNIV"
     using wf_Prec_S minimal_element.wf by blast
+next
+  show "transp (\<prec>S)"
+    by (rule transp_Prec_S)
 next
   show "\<And>A C. finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
     by (fact finite_Inf_between)
