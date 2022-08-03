@@ -24,7 +24,7 @@ definition OL_Prec_L :: "OL_label \<Rightarrow> OL_label \<Rightarrow> bool" (in
 
 locale otter_loop = labeled_lifting_intersection Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q
   Red_F_q \<G>_F_q \<G>_I_q
-  "{\<iota>\<^sub>F\<^sub>L :: ('f \<times> 'l) inference. Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F}"
+  "{\<iota>\<^sub>F\<^sub>L :: ('f \<times> OL_label) inference. Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F}"
   for
     Bot_F :: "'f set"
     and Inf_F :: "'f inference set"
@@ -66,8 +66,6 @@ lemma at_least_two_labels: "\<exists>l2. Active \<sqsubset>L l2"
 sublocale gc?: given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
   Equiv_F Prec_F OL_Prec_L Active
   apply unfold_locales
-               apply simp
-              apply simp
              apply (rule equiv_equiv_F)
             apply (simp add: minimal_element.po wf_prec_F)
            using minimal_element.wf wf_prec_F apply blast

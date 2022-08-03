@@ -127,6 +127,9 @@ must be added explicitly.\<close>
 
 end
 
+
+subsection \<open>Instantiation with FIFO Queue\<close>
+
 text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
 passive set.\<close>
 

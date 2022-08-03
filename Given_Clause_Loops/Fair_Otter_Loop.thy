@@ -2,37 +2,6 @@ theory Fair_Otter_Loop
   imports Otter_Loop Fair_Loop_Basis
 begin
 
-subsection \<open>Utilities\<close>
-
-lemma chain_ldropnI:
-  assumes
-    rel: "\<forall>j. j \<ge> i \<longrightarrow> enat (Suc j) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (Suc j))" and
-    si_lt: "enat (Suc i) < llength xs"
-  shows "chain R (ldropn i xs)"
-proof (rule lnth_rel_chain)
-  show "\<not> lnull (ldropn i xs)"
-    using si_lt by (simp add: Suc_ile_eq less_le_not_le)
-next
-  show "\<forall>j. enat (j + 1) < llength (ldropn i xs) \<longrightarrow>
-    R (lnth (ldropn i xs) j) (lnth (ldropn i xs) (j + 1))"
-    using rel by (smt (z3) One_nat_def Suc_ile_eq add.commute add.right_neutral add_Suc_right
-        add_le_cancel_right ldropn_eq_LNil ldropn_ldropn less_le_not_le linorder_not_less
-        lnth_ldropn not_less_zero)
-qed
-
-lemma chain_ldropn_lmapI:
-  assumes
-    rel: "\<forall>j. j \<ge> i \<longrightarrow> enat (Suc j) < llength xs \<longrightarrow> R (f (lnth xs j)) (f (lnth xs (Suc j)))" and
-    si_lt: "enat (Suc i) < llength xs"
-  shows "chain R (ldropn i (lmap f xs))"
-proof -
-  have "chain R (lmap f (ldropn i xs))"
-    using chain_lmap[of "\<lambda>x y. R (f x) (f y)" R f, of "ldropn i xs"] chain_ldropnI[OF rel si_lt]
-    by auto
-  thus ?thesis
-    by auto
-qed
-
 
 subsection \<open>Locale\<close>
 
@@ -708,5 +677,37 @@ proof -
 qed
 
 end
+
+
+subsection \<open>Specialization with FIFO Queue\<close>
+
+print_locale fair_otter_loop
+
+locale fifo_otter_loop =
+  fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
+    "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool" and
+    Inf_G_q :: "'q \<Rightarrow> 'g inference set" and
+    Red_I_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
+    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
+    \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
+    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
+    empty :: "'p" and
+    select :: "'p \<Rightarrow> 'f" and
+    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
+    fformulas :: "'p \<Rightarrow> 'f fset" and
+    Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
+begin
+
+sublocale blah: fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
+  sorry
 
 end
