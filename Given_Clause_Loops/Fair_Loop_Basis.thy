@@ -102,7 +102,8 @@ text \<open>In the first rule, the assumption that the added formulas do not bel
 the passive set can be fulfilled by annotating formulas with timestamps.\<close>
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  passive_step_addI: "C |\<notin>| fformulas P \<Longrightarrow> passive_step P (add C P)"
+  passive_step_idleI: "passive_step P P"
+| passive_step_addI: "C \<notin> formulas P \<Longrightarrow> passive_step P (add C P)"
 | passive_step_removeI: "passive_step P (remove C P)"
 
 inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
@@ -156,7 +157,7 @@ lemma passive_step_preserves_distinct:
     step: "passive_step P P'"
   shows "distinct P'"
   using step unfolding passive_step.simps
-  by (metis dist distinct.simps(2) distinct1_rotate distinct_removeAll fset_of_list_elem
+  by (metis dist distinct.simps(2) distinct1_rotate distinct_removeAll fset_of_list.rep_eq
       rotate1.simps(2))
 
 lemma chain_passive_step_preserves_distinct:
@@ -298,13 +299,17 @@ proof unfold_locales
                       plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
+                  case passive_step_idleI
+                  then show ?thesis
+                    using ih_dm1 by presburger
+                next
                   case (passive_step_addI D)
                   note at_d = this(1) and d_ni = this(2)
 
                   have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
                     by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
                   hence d_ne: "D \<noteq> C"
-                    using d_ni by blast
+                    using d_ni by (meson notin_fset)
 
                   have "C \<notin> set [D]"
                     using d_ne by simp

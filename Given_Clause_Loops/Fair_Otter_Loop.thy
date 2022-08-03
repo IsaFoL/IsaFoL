@@ -102,7 +102,8 @@ where
     (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N, Some C, P, None, A)"
 | simplify_bwd_a: "C' \<prec>S S \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A \<union> {C'}) \<leadsto>OLf (N \<union> {C''}, Some C, P, None, A)"
-| transfer: "(N, Some C, P, None, A) \<leadsto>OLf (N, None, add C P, None, A)"
+| transfer:
+    "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> formulas P then P else add C P, None, A)"
 | choose_p: "P \<noteq> empty \<Longrightarrow>
     ({}, None, P, None, A) \<leadsto>OLf ({}, None, remove (select P) P, Some (select P), A)"
 | infer: "no_labels.Inf_between A {C} \<subseteq> no_labels.Red_I (A \<union> {C} \<union> M) \<Longrightarrow>
@@ -322,8 +323,8 @@ next
   case (transfer C)
   note unfolds = this(1-7)
 
-  have p_uni_c: "formulas P \<union> {C} = formulas (add C P)"
-    unfolding fformulas_add by auto
+  have p_uni_c: "formulas P \<union> {C} = formulas (if C \<in> formulas P then P else add C P)"
+    using fformulas_add by auto
 
   show ?thesis
     unfolding unfolds statef.simps option.set
@@ -360,6 +361,145 @@ subsection \<open>Completeness\<close>
 
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
+
+lemma fair_OL_Liminf_new_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap new_of Sts) = {}"
+  sorry
+
+lemma fair_OL_Liminf_xx_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> xx_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (xx_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
+    by auto
+
+  have "lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
+    yy_of (lnth Sts i), active_of (lnth Sts i))"
+    sorry
+  show False
+    sorry
+qed
+
+lemma OLf_step_imp_passive_step:
+  assumes olf_step: "St \<leadsto>OLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using olf_step
+proof cases
+  case (choose_n C N P A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (delete_fwd C P A N)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_fwd C' S C P A N)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (delete_bwd_p C' P C N A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = remove C' P"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding unfolds pas by (auto intro: passive_step_removeI)
+next
+  case (simplify_bwd_p C' S P C C'' N A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = remove C' P"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding unfolds pas by (auto intro: passive_step_removeI)
+next
+  case (delete_bwd_a C' C N P A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_bwd_a C' S C C'' N P A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (transfer N C P A)
+  note unfolds = this(1,2)
+  show ?thesis
+  proof (cases "C \<in> formulas P")
+    case c_in: True
+    show ?thesis
+      unfolding unfolds by (auto simp: c_in intro: passive_step_idleI)
+  next
+    case c_ni: False
+    show ?thesis
+      unfolding unfolds by (auto simp: c_ni intro: passive_step_addI)
+  qed
+next
+  case (choose_p P A)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = remove (select P) P"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding unfolds pas by (auto intro: passive_step_removeI)
+next
+  case (infer A C M P)
+  note unfolds = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding unfolds by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+qed
+
+lemma fair_OL_Liminf_passive_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    init: "is_initial_fair_OL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
+proof -
+  have chain_step: "chain passive_step (lmap passive_of Sts)"
+    using OLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+    by (metis (no_types, lifting))
+
+  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+    (* TODO: Exploit well-foundedness of simplification *)
+    sorry
+
+  have hd_emp: "lhd (lmap passive_of Sts) = empty"
+    using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
+
+  have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
+    by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
+  then show ?thesis
+    by (simp add: llist.map_comp)
+qed
 
 lemma fair_OL_Liminf_yy_empty:
   assumes
@@ -412,68 +552,6 @@ proof (rule ccontr)
   then show False
     using c_in' si_lt by simp
 qed
-
-lemma OLf_step_imp_passive_step:
-  assumes "St \<leadsto>OLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
-  sorry
-
-lemma fair_OL_Liminf_passive_empty:
-  assumes
-    len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    init: "is_initial_fair_OL_state (lhd Sts)"
-  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
-proof -
-  have chain_step: "chain passive_step (lmap passive_of Sts)"
-    using OLf_step_imp_passive_step chain_lmap
-    sorry
-
-  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
-    (* TODO: Exploit well-foundedness of simplification *)
-    sorry
-
-  have hd_emp: "lhd (lmap passive_of Sts) = empty"
-    using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
-
-  have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
-    by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
-  then show ?thesis
-    by (simp add: llist.map_comp)
-qed
-
-lemma fair_OL_Liminf_xx_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
-proof (rule ccontr)
-  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
-
-  obtain i :: nat where
-    i_lt: "enat i < llength Sts" and
-    inter_nemp: "\<Inter> ((set_option \<circ> xx_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
-    using lim_nemp unfolding Liminf_llist_def by auto
-
-  from inter_nemp obtain C :: 'f where
-    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (xx_of P)"
-    by auto
-  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
-    by auto
-
-  have "lnth Sts i \<leadsto>OLf (new_of (lnth Sts i), xx_of (lnth Sts i), passive_of (lnth Sts i),
-    yy_of (lnth Sts i), active_of (lnth Sts i))"
-    sorry
-  show False
-    sorry
-qed
-
-lemma fair_OL_Liminf_new_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap new_of Sts) = {}"
-  sorry
 
 theorem
   assumes
