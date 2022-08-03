@@ -607,9 +607,6 @@ theorem
   assumes
     olf_full: "full_chain (\<leadsto>OLf) Sts" and
     olf_init: "is_initial_fair_OL_state (lhd Sts)" and
-    xx: "xx_of (lhd Sts) = None" and
-    yy: "yy_of (lhd Sts) = None" and
-    act: "active_of (lhd Sts) = {}" and
     bot: "B \<in> Bot_F" and
     unsat: "new_of (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -628,10 +625,13 @@ proof -
     using olf_chain chain_not_lnull by blast
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
     by (rule llist.map_sel(1))
-  have act': "active_subset (lhd (lmap fstate Sts)) = {}"
-    using act unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
-  have pas': "passive_subset (Liminf_llist (lmap fstate Sts)) = {}"
+  have "active_of (lhd Sts) = {}"
+    by (metis is_initial_fair_OL_state.cases olf_init snd_conv)
+  then have act: "active_subset (lhd (lmap fstate Sts)) = {}"
+    unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
+
+  have pas: "passive_subset (Liminf_llist (lmap fstate Sts)) = {}"
   proof (cases "lfinite Sts")
     case fin: True
 
@@ -669,7 +669,7 @@ proof -
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
-    by (rule gc_complete_Liminf[OF gc_chain act' pas' bot unsat'])
+    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
   then show "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
   then show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
@@ -697,12 +697,7 @@ locale fifo_otter_loop =
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
-    empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f" and
-    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset" +
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) +
   fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
@@ -712,8 +707,8 @@ begin
 sublocale fifo_passive_set
   .
 
-sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
-  "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F
+  Prec_F "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
   apply unfold_locales
   using wf_Prec_S minimal_element.po minimal_element.wf by blast+
 
