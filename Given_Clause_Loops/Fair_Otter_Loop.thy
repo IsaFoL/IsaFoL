@@ -2,6 +2,40 @@ theory Fair_Otter_Loop
   imports Otter_Loop Fair_Loop_Basis
 begin
 
+subsection \<open>Utilities\<close>
+
+lemma chain_ldropnI:
+  assumes
+    rel: "\<forall>j. j \<ge> i \<longrightarrow> enat (Suc j) < llength xs \<longrightarrow> R (lnth xs j) (lnth xs (Suc j))" and
+    si_lt: "enat (Suc i) < llength xs"
+  shows "chain R (ldropn i xs)"
+proof (rule lnth_rel_chain)
+  show "\<not> lnull (ldropn i xs)"
+    using si_lt by (simp add: Suc_ile_eq less_le_not_le)
+next
+  show "\<forall>j. enat (j + 1) < llength (ldropn i xs) \<longrightarrow>
+    R (lnth (ldropn i xs) j) (lnth (ldropn i xs) (j + 1))"
+    using rel by (smt (z3) One_nat_def Suc_ile_eq add.commute add.right_neutral add_Suc_right
+        add_le_cancel_right ldropn_eq_LNil ldropn_ldropn less_le_not_le linorder_not_less
+        lnth_ldropn not_less_zero)
+qed
+
+lemma chain_ldropn_lmapI:
+  assumes
+    rel: "\<forall>j. j \<ge> i \<longrightarrow> enat (Suc j) < llength xs \<longrightarrow> R (f (lnth xs j)) (f (lnth xs (Suc j)))" and
+    si_lt: "enat (Suc i) < llength xs"
+  shows "chain R (ldropn i (lmap f xs))"
+proof -
+  have "chain R (lmap f (ldropn i xs))"
+    using chain_lmap[of "\<lambda>x y. R (f x) (f y)" R f, of "ldropn i xs"] chain_ldropnI[OF rel si_lt]
+    by auto
+  thus ?thesis
+    by auto
+qed
+
+
+subsection \<open>Locale\<close>
+
 type_synonym ('p, 'f) fair_OL_state = "'f set \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f set"
 
 locale fair_otter_loop =
@@ -421,22 +455,25 @@ proof (rule ccontr)
     thus False
       using full_chain_lnth_not_rel[OF full k] by simp
   qed
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (simp add: not_lfinite_llength)
 
   have "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
     if j_ge: "j \<ge> i" for j
     sorry
-  then have "(multp (\<prec>S))\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+  hence "(multp (\<prec>S))\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
-  have inf_down_chain: "chain (multp (\<prec>S))\<inverse>\<inverse> (lmap mset_of_fstate (ldrop i Sts))"
-    sorry
+  hence inf_down_chain: "chain (multp (\<prec>S))\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+    using chain_ldropn_lmapI[OF _ si_lt] by blast
 
-  have inf_i: "\<not> lfinite (ldrop i Sts)"
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
     using nfin by simp
 
   show False
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "multp (\<prec>S)"]
-      wfP_multp_Prec_S lfinite_lmap by blast
+      wfP_multp_Prec_S
+    by (metis lfinite_ldropn lfinite_lmap)
 qed
 
 lemma OLf_step_imp_passive_step:
