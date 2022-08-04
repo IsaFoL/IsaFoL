@@ -413,13 +413,13 @@ definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_stat
    \<or> (mset_of_fstate St = mset_of_fstate St'
       \<and> (\<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St')))
          \<or> (mset_set (fset (new_of St)) = mset_set (fset (new_of St'))
-            \<and> \<mu>1 (mset_set (formulas (passive_of St))) (mset_set (formulas (passive_of St'))))))"
+            \<and> \<mu>1 (mset_set (set_option (xx_of St))) (mset_set (set_option (xx_of St'))))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
   let ?\<mu>1set = "{(M, M'). \<mu>1 M M'}"
   let ?triple_of =
-    "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (formulas (passive_of St)))"
+    "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (set_option (xx_of St)))"
 
   have wf_\<mu>1set: "wf ?\<mu>1set"
     using wfP_\<mu>1 wfP_def by auto
