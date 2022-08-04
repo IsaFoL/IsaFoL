@@ -859,6 +859,16 @@ next
     unfolding pas by (rule passive_step_idleI)
 qed
 
+lemma yy_empty_step_imp_\<mu>3:
+  assumes step: "(N, X, P, None, A) \<leadsto>OLf (N', X', P', None, A')" (is "?bef \<leadsto>OLf ?aft")
+  shows "\<mu>3 ?aft ?bef"
+proof -
+  have \<mu>2: "\<mu>2 ?aft ?bef"
+    using yy_empty_step_imp_\<mu>2 by (simp add: step)
+  show ?thesis
+    unfolding \<mu>3_def using \<mu>2 by force
+qed
+
 lemma non_choose_p_step_imp_\<mu>3:
   assumes
     step: "St \<leadsto>OLf St'" and
@@ -867,28 +877,44 @@ lemma non_choose_p_step_imp_\<mu>3:
   using step
 proof cases
   case (choose_n C N P A)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_fwd C P A N)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_fwd C' C P A N)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_bwd_p C' P C N A)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_bwd_p C'' C' P C N A)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_bwd_a C' A C N P)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_bwd_a C'' C' A C N P)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (transfer N C P A)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (choose_p P A)
   note defs = this(1,2)
