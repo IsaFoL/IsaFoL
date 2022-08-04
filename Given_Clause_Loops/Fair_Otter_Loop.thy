@@ -427,7 +427,27 @@ lemma within_xx_step_imp_multp_Prec_S:
   using step
 proof cases
   case (simplify_fwd C' C P A N)
-  thus ?thesis sorry
+  note defs = this(1,2) and prec = this(3)
+
+  have aft: "add_mset C' (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C'#}"
+    (is "?old_aft = ?new_aft")
+    by auto
+  have bef: "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C#}"
+    (is "?old_bef = ?new_bef")
+    by auto
+
+  have "multp (\<prec>S) ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "multp (\<prec>S) {#C'#} {#C#}"
+      by (simp add: multp_def prec singletons_in_mult)
+  qed
+  hence "multp (\<prec>S) ?old_aft ?old_bef"
+    unfolding bef aft .
+  thus ?thesis
+    unfolding defs by auto
 next
   case (delete_bwd_p C' P C N A)
   note defs = this(1,2) and c'_in = this(3)
