@@ -211,7 +211,7 @@ proof
     fix St'
     assume "({||}, None, empty, None, A) \<leadsto>OLf St'"
     thus False
-      by cases (auto simp: felems_empty)
+      by cases auto
   qed
 next
   assume no_step: "\<forall>St'. \<not> St \<leadsto>OLf St'"

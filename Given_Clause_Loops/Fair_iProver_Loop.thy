@@ -939,8 +939,7 @@ proof -
       at_l: "llast Sts = ({||}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
     show ?thesis
-      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l fstate.simps state.simps
-      by (auto simp: felems_empty)
+      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l by auto
   next
     case False
     hence len: "llength Sts = \<infinity>"

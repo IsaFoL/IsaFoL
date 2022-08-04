@@ -88,30 +88,30 @@ locale passive_set =
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     felems :: "'p \<Rightarrow> 'f fset"
   assumes
-    felems_empty: "felems empty = {||}" and
-    felems_not_empty: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
-    select_in_felems: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
-    felems_add: "felems (add C P) = {|C|} |\<union>| felems P" and
-    felems_remove: "felems (remove C P) = felems P |-| {|C|}"
+    felems_empty[simp]: "felems empty = {||}" and
+    felems_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
+    select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
+    felems_add[simp]: "felems (add C P) = {|C|} |\<union>| felems P" and
+    felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}"
 begin
 
 abbreviation elems :: "'p \<Rightarrow> 'f set" where
   "elems P \<equiv> fset (felems P)"
 
 lemma elems_empty: "elems empty = {}"
-  by (simp add: felems_empty)
+  by simp
 
-lemma formula_not_empty: "P \<noteq> empty \<Longrightarrow> elems P \<noteq> {}"
+lemma formula_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> elems P \<noteq> {}"
   by (metis bot_fset.rep_eq felems_not_empty fset_cong)
 
-lemma select_in_elems: "P \<noteq> empty \<Longrightarrow> select P \<in> elems P"
+lemma select_in_elems[simp]: "P \<noteq> empty \<Longrightarrow> select P \<in> elems P"
   by (metis fmember.rep_eq select_in_felems)
 
 lemma elems_add: "elems (add C P) = {C} \<union> elems P"
-  by (simp add: felems_add)
+  by simp
 
 lemma elems_remove: "elems (remove C P) = elems P - {C}"
-  by (simp add: felems_remove)
+  by simp
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   passive_step_idleI: "passive_step P P"
