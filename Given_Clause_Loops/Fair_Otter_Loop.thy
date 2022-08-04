@@ -408,16 +408,16 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "\<mu>2 St St' \<equiv>
-   \<mu>1 (mset_of_fstate St) (mset_of_fstate St')
-   \<or> (mset_of_fstate St = mset_of_fstate St'
-      \<and> (\<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St')))
-         \<or> (mset_set (fset (new_of St)) = mset_set (fset (new_of St'))
-            \<and> \<mu>1 (mset_set (set_option (xx_of St))) (mset_set (set_option (xx_of St'))))))"
+  "\<mu>2 St' St \<equiv>
+   \<mu>1 (mset_of_fstate St') (mset_of_fstate St)
+   \<or> (mset_of_fstate St' = mset_of_fstate St
+      \<and> (\<mu>1 (mset_set (fset (new_of St'))) (mset_set (fset (new_of St)))
+         \<or> (mset_set (fset (new_of St')) = mset_set (fset (new_of St))
+            \<and> \<mu>1 (mset_set (set_option (xx_of St'))) (mset_set (set_option (xx_of St))))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
-  let ?\<mu>1set = "{(M, M'). \<mu>1 M M'}"
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
   let ?triple_of =
     "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (set_option (xx_of St)))"
 
@@ -426,8 +426,8 @@ proof -
   have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set)"
     by (rule wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_\<mu>1set]])
 
-  have \<mu>2_alt_def: "\<And>St St'. \<mu>2 St St' \<longleftrightarrow>
-    (?triple_of St, ?triple_of St') \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set"
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
+    (?triple_of St', ?triple_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set"
     unfolding \<mu>2_def by simp
 
   show ?thesis
@@ -652,8 +652,16 @@ lemma new_nonempty_step_imp_\<mu>2:
   using step
 proof cases
   case (choose_n C N P A)
+  note defs = this(1,2) and c_ni = this(3)
+
+  have mset_eq: "mset_of_fstate St' = mset_of_fstate St"
+    unfolding defs using c_ni by (fastforce simp: fmember.rep_eq)
+  have new_lt: "\<mu>1 (mset_set (fset (new_of St'))) (mset_set (fset (new_of St)))"
+    unfolding defs using c_ni[unfolded fmember.rep_eq]
+    by (auto intro!: subset_implies_multp)
+
   show ?thesis
-    sorry
+    unfolding \<mu>2_def using mset_eq new_lt by blast
 next
   case (delete_fwd C P A N)
   note defs = this(1,2)
@@ -688,8 +696,27 @@ next
     unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (transfer N C P A)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+  proof (cases "C \<in> formulas P")
+    case c_in: True
+    have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+      unfolding defs using c_in by (auto intro!: subset_implies_multp)
+    thus ?thesis
+      unfolding \<mu>2_def by blast
+  next
+    case c_ni: False
+
+    have mset_eq: "mset_of_fstate St' = mset_of_fstate St"
+      unfolding defs using c_ni by (auto simp: formulas_add)
+    have new_mset_eq: "mset_set (fset (new_of St')) = mset_set (fset (new_of St))"
+      unfolding defs using c_ni by auto
+    have xx_lt: "\<mu>1 (mset_set (set_option (xx_of St'))) (mset_set (set_option (xx_of St)))"
+      unfolding defs using c_ni[unfolded fmember.rep_eq] by (auto intro!: subset_implies_multp)
+
+    show ?thesis
+      unfolding \<mu>2_def using mset_eq new_mset_eq xx_lt by blast
+  qed
 qed (use new_i in auto)
 
 lemma fair_OL_Liminf_new_empty:
