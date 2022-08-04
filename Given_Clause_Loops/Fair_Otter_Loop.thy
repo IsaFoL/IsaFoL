@@ -434,14 +434,40 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
+definition \<mu>3 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "\<mu>3 St' St \<equiv>
+   \<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))
+   \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
+      \<and> \<mu>2 St' St)"
+
+lemma wfP_\<mu>3: "wfP \<mu>3"
+proof -
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?\<mu>2set = "{(St', St). \<mu>2 St' St}"
+  let ?pair_of = "\<lambda>St. (mset_set (set_option (yy_of St)), St)"
+
+  have wf_\<mu>1set: "wf ?\<mu>1set"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_\<mu>2set: "wf ?\<mu>2set"
+    using wfP_\<mu>2 wfP_def by auto
+  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>2set)"
+    by (rule wf_lex_prod[OF wf_\<mu>1set wf_\<mu>2set])
+
+  have \<mu>3_alt_def: "\<And>St' St. \<mu>3 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>2set"
+    unfolding \<mu>3_def by simp
+
+  show ?thesis
+    unfolding wfP_def \<mu>3_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
+qed
+
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
 lemma xx_nonempty_step_imp_\<mu>1:
   assumes
     step: "St \<leadsto>OLf St'" and
-    xx_i: "xx_of St \<noteq> None" and
-    xx_si: "xx_of St' \<noteq> None"
+    xx: "xx_of St \<noteq> None" and
+    xx': "xx_of St' \<noteq> None"
   shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
   using step
 proof cases
@@ -566,7 +592,7 @@ next
     unfolding bef aft .
   thus ?thesis
     unfolding defs using c'_ni by (auto simp: notin_fset)
-qed (use xx_i xx_si in auto)
+qed (use xx xx' in auto)
 
 lemma fair_OL_Liminf_xx_empty:
   assumes
@@ -629,7 +655,7 @@ qed
 lemma new_nonempty_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>OLf St'" and
-    new_i: "new_of St \<noteq> {||}"
+    new: "new_of St \<noteq> {||}"
   shows "\<mu>2 St' St"
   using step
 proof cases
@@ -699,11 +725,11 @@ next
     show ?thesis
       unfolding \<mu>2_def using mset_eq new_mset_eq xx_lt by blast
   qed
-qed (use new_i in auto)
+qed (use new in auto)
 
 lemma fair_OL_Liminf_new_empty:
   assumes
-    inf: "llength Sts = \<infinity>" and
+    len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
@@ -722,12 +748,12 @@ proof (rule ccontr)
     by auto
 
   have si_lt: "enat (Suc i) < llength Sts"
-    by (simp add: inf)
+    by (simp add: len)
 
   have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
-    using c_in' inf that by fastforce
+    using c_in' len that by fastforce
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
-    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel inf llength_eq_infty_conv_lfinite
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
@@ -738,7 +764,7 @@ proof (rule ccontr)
     using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
-    using inf lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+    using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
 
   show False
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>2"] wfP_\<mu>2 by blast
@@ -826,6 +852,14 @@ next
     unfolding pas by (rule passive_step_idleI)
 qed
 
+lemma non_choose_p_step_imp_\<mu>3:
+  assumes
+    step: "St \<leadsto>OLf St'" and
+    xx: "formulas (passive_of St') \<subseteq> formulas (passive_of St)"
+  shows "\<mu>3 St' St"
+  using step
+  sorry
+
 lemma fair_OL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -838,8 +872,36 @@ proof -
     by (metis (no_types, lifting))
 
   have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
-    (* TODO: Exploit well-foundedness of simplification *)
-    sorry
+  proof
+    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    then obtain i :: nat where
+      "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+
+    have pas_sub: "formulas (passive_of (lnth Sts (Suc j))) \<subseteq> formulas (passive_of (lnth Sts j))"
+      if j_ge: "j \<ge> i" for j
+      sorry
+
+    have si_lt: "enat (Suc i) < llength Sts"
+      unfolding len by auto
+
+    have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+      using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+      by blast
+
+    have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+      by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] pas_sub[OF j_ge]])
+    hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using j_ge by blast
+    hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
+      using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+    have inf_i: "\<not> lfinite (ldropn i Sts)"
+      using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+
+    show False
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>3"] wfP_\<mu>3 by blast
+  qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
     using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
