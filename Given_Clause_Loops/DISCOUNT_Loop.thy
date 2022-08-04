@@ -117,11 +117,11 @@ where
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P, {C}, A)"
 | simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P \<union> {C''}, {C}, A)"
-| compute_Infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
+| compute_infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
     state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
-| schedule_Infer: "T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
+| schedule_infer: "T' = no_labels.Inf_between A {C} \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
-| delete_Orphans: "(T' \<inter> no_labels.Inf_from A) = {} \<Longrightarrow>
+| delete_orphan_formulas: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
     state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
 
 lemma If_f_in_A_then_fl_in_PYA: "C' \<in> A \<Longrightarrow> (C', Active) \<in> formulas_of (P, Y, A)"
@@ -281,7 +281,7 @@ proof -
   also have "active_subset ?\<M> = {}"
     using active_subset_of_setOfFormulasWithLabelDiffActive by auto
   then have "(T \<union> {\<iota>}, ?\<N>) \<leadsto>LGC (T, ?\<N> \<union> ?\<M>)"
-    using calculation compute_infer by blast
+    using calculation lgc.step.compute_infer by blast
   moreover have "?\<N> \<union> ?\<M> = formulas_of(P, {C}, A)"
     by simp
   ultimately show ?thesis
@@ -299,12 +299,12 @@ proof -
     using assms by auto
   then have "(T, formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
     (T \<union> T', formulas_of (P, {}, A) \<union> {(C, Active)})"
-    using schedule_infer by blast
+    using lgc.step.schedule_infer by blast
   then show ?thesis
     by (metis state.simps P0A_add_y_formula PYA_add_active_formula)
 qed
 
-lemma dl_delete_orphans_in_lgc:
+lemma dl_delete_orphan_formulas_in_lgc:
   assumes "T' \<inter> no_labels.Inf_from A = {}"
   shows "state (T \<union> T', P, Y, A) \<leadsto>LGC state (T, P, Y, A)"
 proof -
@@ -314,7 +314,7 @@ proof -
   then have "T' \<inter> no_labels.Inf_from (fst ` (active_subset ?\<N>)) = {}"
     using assms by simp
   then have "(T \<union> T', ?\<N>) \<leadsto>LGC (T, ?\<N>)"
-    using delete_orphans by blast
+    using lgc.step.delete_orphans by blast
   then show ?thesis
     by simp
 qed
@@ -341,17 +341,17 @@ next
   then show ?case
     using dl_simplify_bwd_in_lgc by blast
 next
-  case (compute_Infer \<iota> A C T P)
+  case (compute_infer \<iota> A C T P)
   then show ?case
     using dl_compute_infer_in_lgc by blast
 next
-  case (schedule_Infer T' A C T P)
+  case (schedule_infer T' A C T P)
   then show ?case
     using dl_schedule_infer_in_lgc by blast
 next
-  case (delete_Orphans T' A T P Y)
+  case (delete_orphan_formulas T' A T P Y)
   then show ?case
-    using dl_delete_orphans_in_lgc by blast
+    using dl_delete_orphan_formulas_in_lgc by blast
 qed
 
 
