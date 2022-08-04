@@ -411,28 +411,27 @@ definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_stat
   "\<mu>2 St St' \<equiv>
    \<mu>1 (mset_of_fstate St) (mset_of_fstate St')
    \<or> (mset_of_fstate St = mset_of_fstate St'
-      \<and> \<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St'))))"
+      \<and> (\<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St')))
+         \<or> (mset_set (fset (new_of St)) = mset_set (fset (new_of St'))
+            \<and> \<mu>1 (mset_set (formulas (passive_of St))) (mset_set (formulas (passive_of St'))))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
-  let ?lhs = "{(St, St'). \<mu>1 St St'}"
-  let ?rhs = "{(St, St'). \<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St')))}"
+  let ?\<mu>1set = "{(M, M'). \<mu>1 M M'}"
+  let ?triple_of =
+    "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (formulas (passive_of St)))"
 
-  have wf_lhs: "wf ?lhs"
+  have wf_\<mu>1set: "wf ?\<mu>1set"
     using wfP_\<mu>1 wfP_def by auto
-  have wf_rhs: "wf ?rhs"
-    using wf_app[of "{(St, St'). \<mu>1 St St'}" "\<lambda>St. mset_set (fset (new_of St))"] wfP_\<mu>1 wfP_def
-    by auto
-  have wf_lhs_lex_rhs: "wf (?lhs <*lex*> ?rhs)"
-    by (rule wf_lex_prod[OF wf_lhs wf_rhs])
+  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set)"
+    by (rule wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_\<mu>1set]])
 
   have \<mu>2_alt_def: "\<And>St St'. \<mu>2 St St' \<longleftrightarrow>
-    ((mset_of_fstate St, St), (mset_of_fstate St', St')) \<in> ?lhs <*lex*> ?rhs"
+    (?triple_of St, ?triple_of St') \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set"
     unfolding \<mu>2_def by simp
 
   show ?thesis
-    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ "\<lambda>x. (mset_of_fstate x, x)"] wf_lhs_lex_rhs
-    by blast
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
