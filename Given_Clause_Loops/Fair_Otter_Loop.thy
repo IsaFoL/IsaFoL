@@ -946,12 +946,9 @@ proof -
   proof
     assume "finitely_often select_passive_step (lmap passive_of Sts)"
     then obtain i :: nat where
-      "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+      no_sel:
+        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
       by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
-
-    have yy: "yy_of (lnth Sts (Suc j)) = None"
-      if j_ge: "j \<ge> i" for j
-      sorry
 
     have si_lt: "enat (Suc i) < llength Sts"
       unfolding len by auto
@@ -959,6 +956,18 @@ proof -
     have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
+
+    have yy: "yy_of (lnth Sts (Suc j)) = None"
+      if j_ge: "j \<ge> i" for j
+      using step[OF j_ge]
+    proof cases
+      case (choose_p P A)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    qed auto
 
     have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
       by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
