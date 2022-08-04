@@ -197,7 +197,7 @@ subsection \<open>Final State\<close>
 inductive is_final_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "is_final_fair_OL_state ({||}, None, empty, None, A)"
 
-lemma is_final_fair_OL_state_iff_no_OL_step:
+lemma is_final_fair_OL_state_iff_no_OLf_step:
   assumes inv: "fair_OL_invariant St"
   shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
 proof

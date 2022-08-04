@@ -97,7 +97,7 @@ qed
 
 subsection \<open>Final State\<close>
 
-lemma is_final_fair_OL_state_iff_no_IL_step:
+lemma is_final_fair_OL_state_iff_no_ILf_step:
   assumes inv: "fair_OL_invariant St"
   shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ILf St')"
 proof
@@ -114,7 +114,7 @@ proof
     proof cases
       case ol
       then show False
-        using final st is_final_fair_OL_state_iff_no_OL_step[OF inv] by blast
+        using final st is_final_fair_OL_state_iff_no_OLf_step[OF inv] by blast
     qed
   qed
 next
@@ -122,7 +122,7 @@ next
   hence "\<forall>St'. \<not> St \<leadsto>OLf St'"
     using fair_IL.ol by blast
   thus "is_final_fair_OL_state St"
-    using inv is_final_fair_OL_state_iff_no_OL_step by blast
+    using inv is_final_fair_OL_state_iff_no_OLf_step by blast
 qed
 
 
@@ -256,7 +256,7 @@ proof (rule ccontr)
     by (force simp: fair_OL_invariant.simps)+
 
   have "\<exists>St'. lnth Sts i \<leadsto>ILf St'"
-    using is_final_fair_OL_state_iff_no_IL_step[OF inv_at_i]
+    using is_final_fair_OL_state_iff_no_ILf_step[OF inv_at_i]
     by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
   hence si_lt: "enat (Suc i) < llength Sts"
     by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
@@ -283,7 +283,7 @@ proof (rule ccontr)
     using c_in' si_lt by simp
 qed
 
-lemma xx_nonempty_step_imp_\<mu>1:
+lemma xx_nonempty_OLf_step_imp_\<mu>1:
   assumes
     step: "St \<leadsto>OLf St'" and
     xx: "xx_of St \<noteq> None" and
@@ -414,10 +414,19 @@ next
     unfolding defs using c'_ni by (auto simp: notin_fset)
 qed (use xx xx' in auto)
 
-lemma fair_OL_Liminf_xx_empty:
+lemma xx_nonempty_ILf_step_imp_\<mu>1:
+  assumes
+    step: "St \<leadsto>ILf St'" and
+    xx: "xx_of St \<noteq> None" and
+    xx': "xx_of St' \<noteq> None"
+  shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+  using step
+  sorry
+
+lemma fair_IL_Liminf_xx_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>OLf) Sts" and
+    full: "full_chain (\<leadsto>ILf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
 proof (rule ccontr)
@@ -441,12 +450,12 @@ proof (rule ccontr)
     using c_in' len j_ge by auto
   have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
     using le_Suc_eq that xx_j by presburger
-  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+  have step: "lnth Sts j \<leadsto>ILf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
   have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
-    using xx_nonempty_step_imp_\<mu>1 by (meson step j_ge xx_j xx_sj)
+    using xx_nonempty_ILf_step_imp_\<mu>1 by (meson step j_ge xx_j xx_sj)
   hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
@@ -462,17 +471,17 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
-lemma xx_nonempty_step_imp_\<mu>2:
+lemma xx_nonempty_OLf_step_imp_\<mu>2:
   assumes step: "(N, Some C, P, Y, A) \<leadsto>OLf (N', Some C', P', Y', A')" (is "?bef \<leadsto>OLf ?aft")
   shows "\<mu>2 ?aft ?bef"
 proof -
   have "\<mu>1 (mset_of_fstate ?aft) (mset_of_fstate ?bef)"
-    using xx_nonempty_step_imp_\<mu>1 by (metis fst_conv local.step option.distinct(1) snd_conv)
+    using xx_nonempty_OLf_step_imp_\<mu>1 by (metis fst_conv local.step option.distinct(1) snd_conv)
   thus ?thesis
     unfolding \<mu>2_def by blast
 qed
 
-lemma yy_empty_step_imp_\<mu>2:
+lemma yy_empty_OLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>OLf St'" and
     yy: "yy_of St = None" and
@@ -502,27 +511,27 @@ next
   case (simplify_fwd C' C P A N)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+    unfolding defs by (rule xx_nonempty_OLf_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (delete_bwd_p C' P C N A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+    unfolding defs by (rule xx_nonempty_OLf_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (simplify_bwd_p C'' C' P C N A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+    unfolding defs by (rule xx_nonempty_OLf_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (delete_bwd_a C' A C N P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+    unfolding defs by (rule xx_nonempty_OLf_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (simplify_bwd_a C'' C' A C N P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+    unfolding defs by (rule xx_nonempty_OLf_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (transfer N C P A)
   note defs = this(1,2)
@@ -548,10 +557,18 @@ next
   qed
 qed (use yy yy' in auto)
 
-lemma fair_OL_Liminf_new_empty:
+lemma yy_empty_ILf_step_imp_\<mu>2:
+  assumes
+    step: "St \<leadsto>ILf St'" and
+    yy: "yy_of St = None" and
+    yy': "yy_of St' = None"
+  shows "\<mu>2 St' St"
+  sorry
+
+lemma fair_IL_Liminf_new_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>OLf) Sts" and
+    full: "full_chain (\<leadsto>ILf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
 proof (rule ccontr)
@@ -575,16 +592,16 @@ proof (rule ccontr)
     using c_in' len that by fastforce
 
   have yy: "yy_of (lnth Sts j) = None" if j_ge: "j \<ge> i" for j
-    by (smt (z3) chain_fair_OL_invariant_lnth enat_ord_code(4) fair_OL_invariant.cases fst_conv full
+    by (smt (z3) chain_fair_IL_invariant_lnth enat_ord_code(4) fair_OL_invariant.cases fst_conv full
         full_chain_imp_chain inv len new_j snd_conv j_ge)
   hence yy': "yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
     using j_ge by auto
-  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+  have step: "lnth Sts j \<leadsto>ILf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-    by (rule yy_empty_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge] yy'[OF j_ge]])
+    by (rule yy_empty_ILf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge] yy'[OF j_ge]])
   hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
     using j_ge by blast
   hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
@@ -679,17 +696,22 @@ next
     unfolding pas by (rule passive_step_idleI)
 qed
 
-lemma yy_empty_step_imp_\<mu>3:
+lemma ILf_step_imp_passive_step:
+  assumes ilf_step: "St \<leadsto>ILf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  sorry
+
+lemma yy_empty_OLf_step_imp_\<mu>3:
   assumes step: "(N, X, P, None, A) \<leadsto>OLf (N', X', P', None, A')" (is "?bef \<leadsto>OLf ?aft")
   shows "\<mu>3 ?aft ?bef"
 proof -
   have \<mu>2: "\<mu>2 ?aft ?bef"
-    using yy_empty_step_imp_\<mu>2 by (simp add: step)
+    using yy_empty_OLf_step_imp_\<mu>2 by (simp add: step)
   show ?thesis
     unfolding \<mu>3_def using \<mu>2 by force
 qed
 
-lemma non_choose_p_step_imp_\<mu>3:
+lemma non_choose_p_OLf_step_imp_\<mu>3:
   assumes
     step: "St \<leadsto>OLf St'" and
     yy: "yy_of St' = None"
@@ -699,42 +721,42 @@ proof cases
   case (choose_n C N P A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_fwd C P A N)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_fwd C' C P A N)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_bwd_p C' P C N A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_bwd_p C'' C' P C N A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (delete_bwd_a C' A C N P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (simplify_bwd_a C'' C' A C N P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (transfer N C P A)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+    unfolding defs by (rule yy_empty_OLf_step_imp_\<mu>3[OF step[unfolded defs]])
 next
   case (choose_p P A)
   note defs = this(1,2)
@@ -751,15 +773,22 @@ next
     unfolding \<mu>3_def by blast
 qed
 
-lemma fair_OL_Liminf_passive_empty:
+lemma non_choose_p_ILf_step_imp_\<mu>3:
+  assumes
+    step: "St \<leadsto>ILf St'" and
+    yy: "yy_of St' = None"
+  shows "\<mu>3 St' St"
+  sorry
+
+lemma fair_IL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>OLf) Sts" and
+    full: "full_chain (\<leadsto>ILf) Sts" and
     init: "is_initial_fair_OL_state (lhd Sts)"
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain passive_step (lmap passive_of Sts)"
-    using OLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+    using ILf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
 
   have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
@@ -773,7 +802,7 @@ proof -
     have si_lt: "enat (Suc i) < llength Sts"
       unfolding len by auto
 
-    have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    have step: "lnth Sts j \<leadsto>ILf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
@@ -781,16 +810,24 @@ proof -
       if j_ge: "j \<ge> i" for j
       using step[OF j_ge]
     proof cases
-      case (choose_p P A)
-      note defs = this(1,2) and p_ne = this(3)
-      have False
-        using no_sel defs p_ne select_passive_stepI that by fastforce
-      thus ?thesis
-        by blast
-    qed auto
+      case ol
+      then show ?thesis
+      proof cases
+        case (choose_p P A)
+        note defs = this(1,2) and p_ne = this(3)
+        have False
+          using no_sel defs p_ne select_passive_stepI that by fastforce
+        thus ?thesis
+          by blast
+      qed auto
+    next
+      case (red_by_children C A M C' P)
+      then show ?thesis
+        by simp
+    qed
 
     have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
+      by (rule non_choose_p_ILf_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
     hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
@@ -854,7 +891,7 @@ proof -
     have "\<forall>St'. \<not> llast Sts \<leadsto>ILf St'"
       using full_chain_lnth_not_rel[OF ilf_full] by (metis fin full_chain_iff_chain ilf_full)
     hence "is_final_fair_OL_state (llast Sts)"
-      unfolding is_final_fair_OL_state_iff_no_IL_step[OF last_inv] .
+      unfolding is_final_fair_OL_state_iff_no_ILf_step[OF last_inv] .
     then obtain A :: "'f fset" where
       at_l: "llast Sts = ({||}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
