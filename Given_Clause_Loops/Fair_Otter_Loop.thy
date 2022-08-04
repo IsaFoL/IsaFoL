@@ -855,10 +855,45 @@ qed
 lemma non_choose_p_step_imp_\<mu>3:
   assumes
     step: "St \<leadsto>OLf St'" and
-    xx: "formulas (passive_of St') \<subseteq> formulas (passive_of St)"
+    yy: "yy_of St' = None"
   shows "\<mu>3 St' St"
   using step
-  sorry
+proof cases
+  case (choose_n C N P A)
+  then show ?thesis sorry
+next
+  case (delete_fwd C P A N)
+  then show ?thesis sorry
+next
+  case (simplify_fwd C' C P A N)
+  then show ?thesis sorry
+next
+  case (delete_bwd_p C' P C N A)
+  then show ?thesis sorry
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  then show ?thesis sorry
+next
+  case (delete_bwd_a C' A C N P)
+  then show ?thesis sorry
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  then show ?thesis sorry
+next
+  case (transfer N C P A)
+  then show ?thesis sorry
+next
+  case (choose_p P A)
+  note defs = this(1,2)
+
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (infer A C M P)
+  then show ?thesis sorry
+qed
 
 lemma fair_OL_Liminf_passive_empty:
   assumes
@@ -878,7 +913,7 @@ proof -
       "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
       by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
 
-    have pas_sub: "formulas (passive_of (lnth Sts (Suc j))) \<subseteq> formulas (passive_of (lnth Sts j))"
+    have yy: "yy_of (lnth Sts (Suc j)) = None"
       if j_ge: "j \<ge> i" for j
       sorry
 
@@ -890,7 +925,7 @@ proof -
       by blast
 
     have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] pas_sub[OF j_ge]])
+      by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
     hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
