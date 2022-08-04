@@ -5,6 +5,7 @@ theory Fair_Otter_Loop
     Weighted_Path_Order.Multiset_Extension_Pair
 begin
 
+
 subsection \<open>Setup and Utilities\<close>
 
 hide_const (open) Seq.chain
@@ -614,7 +615,6 @@ proof (rule ccontr)
         j_ge)
   have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
     using le_Suc_eq that xx_j by presburger
-
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
 
@@ -635,18 +635,45 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
-lemma new_nonempty_step_imp_\<mu>1:
+lemma new_nonempty_step_imp_\<mu>2:
   assumes
     step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
-    xx_i: "new_of (lnth Sts i) \<noteq> {||}" and
-    xx_si: "new_of (lnth Sts (Suc i)) \<noteq> {||}"
+    new_i: "new_of (lnth Sts i) \<noteq> {||}"
   shows "\<mu>2 (lnth Sts (Suc i)) (lnth Sts i)"
   using step
-(*
 proof cases
-qed
-*)
-  sorry
+  case (choose_n C N P A)
+  show ?thesis
+    sorry
+next
+  case (delete_fwd C P A N)
+  show ?thesis
+    sorry
+next
+  case (simplify_fwd C' C P A N)
+  show ?thesis
+    sorry
+next
+  case (delete_bwd_p C' P C N A)
+  show ?thesis
+    sorry
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  show ?thesis
+    sorry
+next
+  case (delete_bwd_a C' A C N P)
+  show ?thesis
+    sorry
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  show ?thesis
+    sorry
+next
+  case (transfer N C P A)
+  show ?thesis
+    sorry
+qed (use new_i in auto)
 
 lemma fair_OL_Liminf_new_empty:
   assumes
@@ -690,14 +717,11 @@ proof (rule ccontr)
 
   have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
     by (metis bot_fset.rep_eq c_in' enat_ord_code(4) equals0D nfin not_lfinite_llength that)
-  have new_sj: "new_of (lnth Sts (Suc j)) \<noteq> {||}" if j_ge: "j \<ge> i" for j
-    using le_Suc_eq that new_j by presburger
-
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-    using new_nonempty_step_imp_\<mu>1 by (meson step j_ge new_j new_sj)
+    using new_nonempty_step_imp_\<mu>2 by (meson step j_ge new_j)
   hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
     using j_ge by blast
   hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
