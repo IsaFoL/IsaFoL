@@ -447,13 +447,15 @@ next
 
   have "multp (\<prec>S) ?old_aft ?old_bef"
   proof (cases "C'' \<in> fset N")
-    case True
-    note c''_in = this(1)
+    case c''_in: True
 
-    show ?thesis sorry
+    have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
+      by (metis c'_in finite_fset mset_set.remove multi_psub_of_add_self)
+    thus ?thesis
+      unfolding defs
+      by (auto simp: formulas_remove insert_absorb[OF c''_in] intro!: subset_implies_multp)
   next
-    case False
-    note c''_ni = this(1)
+    case c''_ni: False
 
     have aft: "?old_aft = add_mset C (mset_set (fset N) + mset_set (formulas (remove C' P)) +
       mset_set (fset A)) + {#C''#}"
