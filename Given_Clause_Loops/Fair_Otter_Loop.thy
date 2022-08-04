@@ -209,7 +209,7 @@ subsection \<open>Final State\<close>
 inductive is_final_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "is_final_fair_OL_state ({||}, None, empty, None, A)"
 
-lemma is_final_fair_OL_state_iff_no_trans:
+lemma is_final_fair_OL_state_iff_no_OL_step:
   assumes inv: "fair_OL_invariant St"
   shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
 proof
@@ -226,7 +226,7 @@ proof
       by cases (auto simp: fformulas_empty)
   qed
 next
-  assume no_trans: "\<forall>St'. \<not> St \<leadsto>OLf St'"
+  assume no_step: "\<forall>St'. \<not> St \<leadsto>OLf St'"
   show "is_final_fair_OL_state St"
   proof (rule ccontr)
     assume not_fin: "\<not> is_final_fair_OL_state St"
@@ -299,7 +299,7 @@ next
       have "\<exists>St'. St \<leadsto>OLf St'"
         using fair_OL.infer[OF inf_red] unfolding st n x y by fast
     } ultimately show False
-      using no_trans by force
+      using no_step by force
   qed
 qed
 
@@ -469,6 +469,58 @@ qed
 
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
+
+lemma fair_OL_Liminf_yy_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
+
+  have chain: "chain (\<leadsto>OLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  have inv_at_i: "fair_OL_invariant (lnth Sts i)"
+    by (simp add: chain chain_fair_OL_invariant_lnth i_lt inv)
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
+    by auto
+
+  have yy_at_i: "yy_of (lnth Sts i) = Some C"
+    using c_in' i_lt by blast
+  have new_at_i: "new_of (lnth Sts i) = {||}" and
+    xx_at_i: "new_of (lnth Sts i) = {||}"
+    using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
+    by (force simp: fair_OL_invariant.simps)+
+
+  have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
+    using is_final_fair_OL_state_iff_no_OL_step[OF inv_at_i]
+    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
+
+  obtain P :: 'p and A :: "'f fset" where
+    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
+    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+
+  have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
+    by (simp add: chain chain_lnth_rel si_lt)
+  hence "({||}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
+    unfolding at_i .
+  hence "yy_of (lnth Sts (Suc i)) = None"
+    by cases simp
+  thus False
+    using c_in' si_lt by simp
+qed
 
 lemma xx_nonempty_step_imp_\<mu>1:
   assumes
@@ -999,58 +1051,6 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
-lemma fair_OL_Liminf_yy_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
-proof (rule ccontr)
-  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
-
-  have chain: "chain (\<leadsto>OLf) Sts"
-    by (rule full_chain_imp_chain[OF full])
-
-  obtain i :: nat where
-    i_lt: "enat i < llength Sts" and
-    inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
-    using lim_nemp unfolding Liminf_llist_def by auto
-
-  have inv_at_i: "fair_OL_invariant (lnth Sts i)"
-    by (simp add: chain chain_fair_OL_invariant_lnth i_lt inv)
-
-  from inter_nemp obtain C :: 'f where
-    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
-    by auto
-  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
-    by auto
-
-  have yy_at_i: "yy_of (lnth Sts i) = Some C"
-    using c_in' i_lt by blast
-  have new_at_i: "new_of (lnth Sts i) = {||}" and
-    xx_at_i: "new_of (lnth Sts i) = {||}"
-    using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
-    by (force simp: fair_OL_invariant.simps)+
-
-  have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
-    using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
-    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
-  hence si_lt: "enat (Suc i) < llength Sts"
-    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
-
-  obtain P :: 'p and A :: "'f fset" where
-    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
-    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
-
-  have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
-    by (simp add: chain chain_lnth_rel si_lt)
-  hence "({||}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
-    unfolding at_i .
-  hence "yy_of (lnth Sts (Suc i)) = None"
-    by cases simp
-  thus False
-    using c_in' si_lt by simp
-qed
-
 theorem
   assumes
     olf_full: "full_chain (\<leadsto>OLf) Sts" and
@@ -1093,7 +1093,7 @@ proof -
     have "\<forall>St'. \<not> llast Sts \<leadsto>OLf St'"
       using full_chain_lnth_not_rel[OF olf_full] by (metis fin full_chain_iff_chain olf_full)
     hence "is_final_fair_OL_state (llast Sts)"
-      unfolding is_final_fair_OL_state_iff_no_trans[OF last_inv] .
+      unfolding is_final_fair_OL_state_iff_no_OL_step[OF last_inv] .
     then obtain A :: "'f fset" where
       at_l: "llast Sts = ({||}, None, empty, None, A)"
       unfolding is_final_fair_OL_state.simps by blast
@@ -1172,5 +1172,7 @@ next
   show "\<And>A C. finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
     by (fact finite_Inf_between)
 qed
+
+end
 
 end

@@ -16,66 +16,65 @@ begin
 
 subsection \<open>Definition\<close>
 
-inductive
-  iprover_loop :: "('f \<times> OL_label) set \<Rightarrow> ('f \<times> OL_label) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50)
+inductive IL :: "('f \<times> OL_label) set \<Rightarrow> ('f \<times> OL_label) set \<Rightarrow> bool" (infix "\<leadsto>IL" 50)
 where
-  ol: "\<M> \<leadsto>OL \<M>' \<Longrightarrow> \<M> \<leadsto>IL \<M>'"
-| replace: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
+  ol: "St \<leadsto>OL St' \<Longrightarrow> St \<leadsto>IL St'"
+| red_by_children: "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C) \<Longrightarrow>
     state ({}, {}, P, {C}, A) \<leadsto>IL state (M, {}, P, {}, A)"
 
 
 subsection \<open>Refinement\<close>
 
-lemma replace_in_GC:
+lemma red_by_children_in_GC:
   assumes "C \<in> no_labels.Red_F (A \<union> M) \<or> (M = {C'} \<and> C' \<prec>\<cdot> C)"
   shows "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
 proof -
   let ?\<N> = "state ({}, {}, P, {}, A)"
-  and ?\<M> = "{(C, YY)}"
-  and ?\<M>' = "{(x, New) |x. x \<in> M}"
+  and ?St = "{(C, YY)}"
+  and ?St' = "{(x, New) |x. x \<in> M}"
 
-  have "(C, YY) \<in> Red_F (?\<N> \<union> ?\<M>')"
+  have "(C, YY) \<in> Red_F (?\<N> \<union> ?St')"
     using assms
   proof
     assume c_in: "C \<in> no_labels.Red_F (A \<union> M)"
     have "A \<union> M \<subseteq> A \<union> M \<union> P" by auto
-    also have "fst ` (?\<N> \<union> ?\<M>') = A \<union> M \<union> P"
+    also have "fst ` (?\<N> \<union> ?St') = A \<union> M \<union> P"
       by auto
-    then have "C \<in> no_labels.Red_F (fst ` (?\<N> \<union> ?\<M>'))"
+    then have "C \<in> no_labels.Red_F (fst ` (?\<N> \<union> ?St'))"
       by (metis (no_types, lifting) c_in calculation in_mono no_labels.Red_F_of_subset)
-    then show "(C, YY) \<in> Red_F (?\<N> \<union> ?\<M>')"
+    then show "(C, YY) \<in> Red_F (?\<N> \<union> ?St')"
       using no_labels_Red_F_imp_Red_F by blast
   next
     assume assm: "M = {C'} \<and> C' \<prec>\<cdot> C"
-    then have "C' \<in> fst ` (?\<N> \<union> ?\<M>')"
+    then have "C' \<in> fst ` (?\<N> \<union> ?St')"
       by simp
-    then show "(C, YY) \<in> Red_F (?\<N> \<union> ?\<M>')"
+    then show "(C, YY) \<in> Red_F (?\<N> \<union> ?St')"
       by (metis (mono_tags) assm succ_F_imp_Red_F)
   qed
-  then have \<M>_included_in: "?\<M> \<subseteq> Red_F (?\<N> \<union> ?\<M>')"
+  then have St_included_in: "?St \<subseteq> Red_F (?\<N> \<union> ?St')"
     by auto
 
-  have prj_of_active_subset_of_\<M>': "fst ` (active_subset ?\<M>') = {}"
+  have prj_of_active_subset_of_St': "fst ` (active_subset ?St') = {}"
     by (simp add: active_subset_def)
 
-  have "?\<N> \<union> ?\<M> \<leadsto>GC ?\<N> \<union> ?\<M>'"
-    using process[of _ "?\<N>" "?\<M>" _ "?\<M>'"] \<M>_included_in prj_of_active_subset_of_\<M>' by auto
-  moreover have "?\<N> \<union> ?\<M> = state ({}, {}, P, {C}, A)"
+  have "?\<N> \<union> ?St \<leadsto>GC ?\<N> \<union> ?St'"
+    using process[of _ "?\<N>" "?St" _ "?St'"] St_included_in prj_of_active_subset_of_St' by auto
+  moreover have "?\<N> \<union> ?St = state ({}, {}, P, {C}, A)"
     by simp
-  moreover have "?\<N> \<union> ?\<M>' = state (M, {}, P, {}, A)"
+  moreover have "?\<N> \<union> ?St' = state (M, {}, P, {}, A)"
     by auto
   ultimately show "state ({}, {}, P, {C}, A) \<leadsto>GC state (M, {}, P, {}, A)"
     by simp
 qed
 
 theorem IL_step_imp_GC_step: "M \<leadsto>IL M' \<Longrightarrow> M \<leadsto>GC M'"
-proof (induction rule: iprover_loop.induct)
-  case (ol \<M> \<M>')
+proof (induction rule: IL.induct)
+  case (ol St St')
   then show ?case
     by (simp add: OL_step_imp_GC_step)
 next
-  case (replace C A M C' P)
-  then show ?case using replace_in_GC
+  case (red_by_children C A M C' P)
+  then show ?case using red_by_children_in_GC
     by auto
 qed
 
