@@ -657,9 +657,10 @@ proof cases
 next
   case (delete_fwd C P A N)
   note defs = this(1,2)
-  show ?thesis
-    unfolding defs
-    sorry
+  have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+    unfolding defs by (auto intro: subset_implies_multp)
+  thus ?thesis
+    unfolding \<mu>2_def by blast
 next
   case (simplify_fwd C' C P A N)
   note defs = this(1,2)
