@@ -34,12 +34,12 @@ where
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {C'}, A)"
-| delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
+| delete_bwd: "C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
     zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P, {C}, A)"
-| simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
+| simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P \<union> {C''}, {C}, A)"
 | compute_infer: "\<iota>0 \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-    zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P\<union>{C}, {}, A)"
+    zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
 | schedule_infer: "zl_inferences_of T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
 | delete_orphan_formulas: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>

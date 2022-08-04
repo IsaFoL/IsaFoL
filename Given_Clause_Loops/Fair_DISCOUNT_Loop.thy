@@ -15,7 +15,7 @@ begin
 
 section \<open>Locale\<close>
 
-type_synonym ('p, 'f) fair_OL_state = "'p \<times> 'f option \<times> 'f fset"
+type_synonym ('p, 'f) fair_DL_state = "'p \<times> 'f option \<times> 'f fset"
 
 datatype 'f passive_elem =
   Passive_Inference "'f inference"
@@ -59,7 +59,79 @@ lemma irreflp_Prec_S: "irreflp (\<prec>S)"
 lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
   by (metis CollectD case_prod_conv irrefl_def irreflp_Prec_S irreflp_def)
 
-thm DL.intros
+
+subsection \<open>Definition and Lemmas\<close>
+
+abbreviation passive_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'p" where
+  "passive_of St \<equiv> fst St"
+abbreviation yy_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f option" where
+  "yy_of St \<equiv> fst (snd St)"
+abbreviation active_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f fset" where
+  "active_of St \<equiv> snd (snd St)"
+
+definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
+  "passive_inferences_of P = {\<iota>. Passive_Inference \<iota> \<in> elems P}"
+definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
+  "passive_formulas_of P = {C. Passive_Formula C \<in> elems P}"
+
+fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
+  "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
+
+lemma fstate_alt_def:
+  "fstate St = state (passive_inferences_of (fst St), passive_formulas_of (fst St),
+     set_option (fst (snd St)), fset (snd (snd St)))"
+  by (cases St) auto
+
+definition
+  Liminf_fstate :: "('p, 'f) fair_DL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
+where
+  "Liminf_fstate Sts =
+   (Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts),
+    Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
+    Liminf_llist (lmap (fset \<circ> active_of) Sts))"
+
+lemma Liminf_fstate_commute:
+  "Liminf_llist (lmap (snd \<circ> fstate) Sts) = formulas_of (Liminf_fstate Sts)"
+proof -
+  have "Liminf_llist (lmap (snd \<circ> fstate) Sts) =
+    (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts) \<union>
+    (\<lambda>C. (C, YY)) ` Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<union>
+    (\<lambda>C. (C, Active)) ` Liminf_llist (lmap (fset \<circ> active_of) Sts)"
+    unfolding fstate_alt_def state_alt_def
+    apply simp
+    apply (subst Liminf_llist_lmap_union, fast)+
+    apply (subst Liminf_llist_lmap_image, simp add: inj_on_convol_ident)+
+    by auto
+ thus ?thesis
+   unfolding Liminf_fstate_def by fastforce
+qed
+
+fun formulas_union :: "'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
+  "formulas_union (P, Y, A) = P \<union> Y \<union> A"
+
+inductive
+  fair_DL :: "('p, 'f) fair_DL_state \<Rightarrow> ('p, 'f) fair_DL_state \<Rightarrow> bool" (infix "\<leadsto>DLf" 50)
+where
+  choose_p: "P \<noteq> empty \<Longrightarrow> select P = Passive_Formula C \<Longrightarrow>
+    (P, None, A) \<leadsto>DLf (remove (select P) P, Some C, A)"
+| delete_fwd: "C \<in> no_labels.Red_F (fset A) \<or> (\<exists>C' \<in> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
+    (P, Some C, A) \<leadsto>DLf (P, None, A)"
+| simplify_fwd: "C \<in> no_labels.Red_F (fset A \<union> {C'}) \<Longrightarrow> (P, Some C, A) \<leadsto>DLf (P, Some C', A)"
+| delete_bwd: "C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
+    (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (P, Some C, A)"
+| simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+    (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (add (Passive_Formula C'') P, Some C, A)"
+| compute_infer: "P \<noteq> empty \<Longrightarrow> select P = Passive_Inference \<iota> \<Longrightarrow>
+    \<iota> \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
+    (P, None, A) \<leadsto>DLf (remove (select P) P, Some C, A)"
+(*
+TODO: Add these, plus the \<prec>S order:
+
+| schedule_infer: "T' = no_labels.Inf_between A {C} \<Longrightarrow>
+    state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
+| delete_orphan_formulas: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
+    state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
+*)
 
 end
 

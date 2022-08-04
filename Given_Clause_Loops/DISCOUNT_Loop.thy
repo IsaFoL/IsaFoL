@@ -94,15 +94,21 @@ abbreviation sqsupset :: "DL_label \<Rightarrow> DL_label \<Rightarrow> bool" (i
   "l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
 fun formulas_of :: " 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> DL_label) set " where
-  "formulas_of (P, Y, A) =
-   {(C, Passive) | C. C \<in> P} \<union>
-   {(C, YY) | C. C \<in> Y} \<union>
-   {(C, Active) | C. C \<in> A}"
+  "formulas_of (P, Y, A) = {(C, Passive) | C. C \<in> P} \<union> {(C, YY) | C. C \<in> Y} \<union>
+     {(C, Active) | C. C \<in> A}"
+
+lemma formulas_of_alt_def:
+  "formulas_of (P, Y, A) = (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A"
+  by auto
 
 fun
   state :: "'f inference set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set"
 where
   "state (T, P, Y, A) = (T, formulas_of (P, Y, A))"
+
+lemma state_alt_def:
+  "state (T, P, Y, A) = (T, (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A)"
+  by auto
 
 inductive
   DL :: "'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> bool"
@@ -113,9 +119,9 @@ where
     state (T, P, {C}, A) \<leadsto>DL state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T, P, {C'}, A)"
-| delete_bwd: "C' \<in> no_labels.Red_F ({C}) \<or> C' \<cdot>\<succ> C \<Longrightarrow>
+| delete_bwd: "C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P, {C}, A)"
-| simplify_bwd: "C' \<in> no_labels.Red_F ({C, C''}) \<Longrightarrow>
+| simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P \<union> {C''}, {C}, A)"
 | compute_infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
     state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
