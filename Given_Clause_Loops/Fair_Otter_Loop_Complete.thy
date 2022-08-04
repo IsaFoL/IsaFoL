@@ -1,6 +1,6 @@
 (* Title:        Completeness of Fair Otter Loop
-   Authors:      Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
 section \<open>Completeness of Fair Otter Loop\<close>
