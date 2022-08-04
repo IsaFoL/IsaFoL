@@ -811,7 +811,17 @@ lemma non_choose_p_ILf_step_imp_\<mu>3:
     step: "St \<leadsto>ILf St'" and
     yy: "yy_of St' = None"
   shows "\<mu>3 St' St"
-  sorry
+  using step
+proof cases
+  case ol
+  then show ?thesis
+    using non_choose_p_OLf_step_imp_\<mu>3[OF _ yy] by blast
+next
+  case (red_by_children C A M C' P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs \<mu>3_def by (simp add: subset_implies_multp)
+qed
 
 lemma fair_IL_Liminf_passive_empty:
   assumes
@@ -884,8 +894,8 @@ qed
 
 theorem
   assumes
-    ilf_full: "full_chain (\<leadsto>ILf) Sts" and
-    olf_init: "is_initial_fair_OL_state (lhd Sts)" and
+    full: "full_chain (\<leadsto>ILf) Sts" and
+    init: "is_initial_fair_OL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -893,12 +903,12 @@ theorem
     IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
   have ilf_chain: "chain (\<leadsto>ILf) Sts"
-    by (rule full_chain_imp_chain[OF ilf_full])
+    by (rule full_chain_imp_chain[OF full])
   have gc_chain: "chain (\<leadsto>GC) (lmap fstate Sts)"
     using ilf_chain fair_IL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
   have olf_inv: "fair_OL_invariant (lhd Sts)"
-    using olf_init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
+    using init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
 
   have nnul: "\<not> lnull Sts"
     using ilf_chain chain_not_lnull by blast
@@ -906,7 +916,7 @@ proof -
     by (rule llist.map_sel(1))
 
   have "active_of (lhd Sts) = {||}"
-    by (metis is_initial_fair_OL_state.cases olf_init snd_conv)
+    by (metis is_initial_fair_OL_state.cases init snd_conv)
   hence act: "active_subset (lhd (lmap fstate Sts)) = {}"
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
@@ -922,7 +932,7 @@ proof -
       by (rule chain_fair_IL_invariant_llast[OF ilf_chain olf_inv fin])
 
     have "\<forall>St'. \<not> llast Sts \<leadsto>ILf St'"
-      using full_chain_lnth_not_rel[OF ilf_full] by (metis fin full_chain_iff_chain ilf_full)
+      using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
     hence "is_final_fair_OL_state (llast Sts)"
       unfolding is_final_fair_OL_state_iff_no_ILf_step[OF last_inv] .
     then obtain A :: "'f fset" where
@@ -937,10 +947,10 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
-      using fair_IL_Liminf_new_empty[OF len ilf_full olf_inv]
-        fair_IL_Liminf_xx_empty[OF len ilf_full olf_inv]
-        fair_IL_Liminf_passive_empty[OF len ilf_full olf_init]
-        fair_IL_Liminf_yy_empty[OF ilf_full olf_inv]
+      using fair_IL_Liminf_new_empty[OF len full olf_inv]
+        fair_IL_Liminf_xx_empty[OF len full olf_inv]
+        fair_IL_Liminf_passive_empty[OF len full init]
+        fair_IL_Liminf_yy_empty[OF full olf_inv]
       by simp
   qed
 

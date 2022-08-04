@@ -19,8 +19,8 @@ begin
 
 theorem
   assumes
-    olf_full: "full_chain (\<leadsto>OLf) Sts" and
-    olf_init: "is_initial_fair_OL_state (lhd Sts)" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    init: "is_initial_fair_OL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -28,16 +28,16 @@ theorem
     OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
 proof -
   have ilf_chain: "chain (\<leadsto>ILf) Sts"
-    using Lazy_List_Chain.chain_mono fair_IL.ol full_chain_imp_chain olf_full by blast
+    using Lazy_List_Chain.chain_mono fair_IL.ol full_chain_imp_chain full by blast
   hence ilf_full: "full_chain (\<leadsto>ILf) Sts"
     by (metis chain_fair_IL_invariant_llast full_chain_iff_chain initial_fair_OL_invariant
-        is_final_fair_OL_state_iff_no_IL_step is_final_fair_OL_state_iff_no_OL_step olf_full
-        olf_init)
+        is_final_fair_OL_state_iff_no_ILf_step is_final_fair_OL_state_iff_no_OLf_step full
+        init)
 
   show "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
-    by (rule IL_complete_Liminf[OF ilf_full olf_init bot unsat])
+    by (rule IL_complete_Liminf[OF ilf_full init bot unsat])
   show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
-    by (rule IL_complete[OF ilf_full olf_init bot unsat])
+    by (rule IL_complete[OF ilf_full init bot unsat])
 qed
 
 end
