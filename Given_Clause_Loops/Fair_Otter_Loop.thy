@@ -1,3 +1,10 @@
+(* Title:        Fairness of Otter Loop
+   Authors:      Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
+   Maintainer:   Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
+*)
+
+section \<open>Fairness of Otter Loop\<close>
+
 theory Fair_Otter_Loop
   imports
     Otter_Loop

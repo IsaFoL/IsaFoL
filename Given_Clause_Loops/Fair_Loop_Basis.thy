@@ -1,7 +1,7 @@
 (* Title:        Basic Definitions for Stating and Proving the Fairness of Prover Loops
    Authors:      Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022 *)
-
+   Maintainer:   Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
+*)
 
 section \<open>Basic Definitions for Stating and Proving the Fairness of Prover Loops\<close>
 

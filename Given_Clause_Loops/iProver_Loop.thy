@@ -13,6 +13,7 @@ begin
 context otter_loop
 begin
 
+
 subsection \<open>Definition\<close>
 
 inductive

@@ -1,13 +1,17 @@
 (* Title:        DISCOUNT Loop
    Authors:      Qi Qiu, 2021
                  Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021 *)
+   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021
+*)
 
 section \<open>DISCOUNT Loop\<close>
 
 theory DISCOUNT_Loop
   imports More_Given_Clause_Architectures
 begin
+
+
+subsection \<open>Locale\<close>
 
 datatype DL_label =
   Active | YY | Passive

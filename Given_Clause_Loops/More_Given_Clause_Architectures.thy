@@ -1,9 +1,10 @@
 (* Title:        More Lemmas about Given Clause Architectures 
    Authors:      Qi Qiu, 2021
                  Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021 *)
+   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021
+*)
 
-section \<open>More Lemmas about Given Clause Architectures \<close>
+section \<open>More Lemmas about Given Clause Architectures\<close>
 
 theory More_Given_Clause_Architectures
   imports Saturation_Framework.Given_Clause_Architectures
