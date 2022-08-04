@@ -406,33 +406,38 @@ abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool
 lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
-find_theorems name: lex name: wf
-thm  Wellfounded.wf_mlex
-
-term "X <*mlex*> Y"
-
 definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "\<mu>2 St St' \<equiv>
    \<mu>1 (mset_of_fstate St) (mset_of_fstate St')
    \<or> (mset_of_fstate St = mset_of_fstate St'
-      \<and> multp (\<prec>S) (mset_set (fset (new_of St))) (mset_set (fset (new_of St'))))"
+      \<and> \<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St'))))"
+
+lemma wfP_\<mu>2: "wfP \<mu>2"
+proof -
+  let ?lhs = "{(St, St'). \<mu>1 St St'}"
+  let ?rhs = "{(St, St'). \<mu>1 (mset_set (fset (new_of St))) (mset_set (fset (new_of St')))}"
+
+  have wf_lhs: "wf ?lhs"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_rhs: "wf ?rhs"
+    using wf_app[of "{(St, St'). \<mu>1 St St'}" "\<lambda>St. mset_set (fset (new_of St))"] wfP_\<mu>1 wfP_def
+    by auto
+  have wf_lhs_lex_rhs: "wf (?lhs <*lex*> ?rhs)"
+    by (rule wf_lex_prod[OF wf_lhs wf_rhs])
+
+  have \<mu>2_alt_def: "\<And>St St'. \<mu>2 St St' \<longleftrightarrow>
+    ((mset_of_fstate St, St), (mset_of_fstate St', St')) \<in> ?lhs <*lex*> ?rhs"
+    unfolding \<mu>2_def by simp
+
+  show ?thesis
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ "\<lambda>x. (mset_of_fstate x, x)"] wf_lhs_lex_rhs
+    by blast
+qed
 
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
-lemma fair_OL_Liminf_new_empty:
-  assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
-  shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
-proof (rule ccontr)
-  assume "Liminf_llist (lmap (fset \<circ> new_of) Sts) \<noteq> {}"
-
-  show False
-    sorry
-qed
-
-lemma within_xx_step_imp_\<mu>1:
+lemma xx_nonempty_step_imp_\<mu>1:
   assumes
     step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
     xx_i: "xx_of (lnth Sts i) \<noteq> None" and
@@ -613,9 +618,8 @@ proof (rule ccontr)
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
 
-  have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
-    if j_ge: "j \<ge> i" for j
-    using within_xx_step_imp_\<mu>1 by (meson step that xx_j xx_sj)
+  have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
+    using xx_nonempty_step_imp_\<mu>1 by (meson step j_ge xx_j xx_sj)
   hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
@@ -629,6 +633,81 @@ proof (rule ccontr)
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
       wfP_\<mu>1
     by (metis lfinite_ldropn lfinite_lmap)
+qed
+
+lemma new_nonempty_step_imp_\<mu>1:
+  assumes
+    step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
+    xx_i: "new_of (lnth Sts i) \<noteq> {||}" and
+    xx_si: "new_of (lnth Sts (Suc i)) \<noteq> {||}"
+  shows "\<mu>2 (lnth Sts (Suc i)) (lnth Sts i)"
+  using step
+(*
+proof cases
+qed
+*)
+  sorry
+
+lemma fair_OL_Liminf_new_empty:
+  assumes
+    full: "full_chain (\<leadsto>OLf) Sts" and
+    inv: "fair_OL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (fset \<circ> new_of) Sts) \<noteq> {}"
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((fset \<circ> new_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> fset (new_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> fset (new_of (lnth Sts j))"
+    by auto
+
+  have nfin: "\<not> lfinite Sts"
+  proof
+    assume "lfinite Sts"
+    then obtain k :: nat where
+      k: "enat (Suc k) = llength Sts"
+      by (metis lessE enat_ord_simps(2) i_lt lfinite_llength_enat)
+    hence k_lt: "enat k < llength Sts"
+      by (metis enat_ord_simps(2) lessI)
+    have inv_at_i: "fair_OL_invariant (lnth Sts k)"
+      by (rule chain_fair_OL_invariant_lnth[OF full_chain_imp_chain[OF full] inv k_lt])
+
+    have "\<exists>St'. lnth Sts k \<leadsto>OLf St'"
+      using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
+      by (metis bot_fset.rep_eq c_in' empty_iff enat_ord_simps(2) fst_conv i_lt
+          is_final_fair_OL_state.simps k k_lt linorder_not_less not_less_eq_eq)
+    thus False
+      using full_chain_lnth_not_rel[OF full k] by simp
+  qed
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (simp add: not_lfinite_llength)
+
+  have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
+    by (metis bot_fset.rep_eq c_in' enat_ord_code(4) equals0D nfin not_lfinite_llength that)
+  have new_sj: "new_of (lnth Sts (Suc j)) \<noteq> {||}" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that new_j by presburger
+
+  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
+
+  have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+    using new_nonempty_step_imp_\<mu>1 by (meson step j_ge new_j new_sj)
+  hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+    using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
+    using nfin by simp
+
+  show False
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>2"] wfP_\<mu>2 by blast
 qed
 
 lemma OLf_step_imp_passive_step:
