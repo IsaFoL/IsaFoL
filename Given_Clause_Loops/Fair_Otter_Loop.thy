@@ -924,7 +924,11 @@ next
     by blast
 next
   case (infer A C M P)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  have "\<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))"
+    unfolding defs by (auto intro!: subset_implies_multp)
+  thus ?thesis
+    unfolding \<mu>3_def by blast
 qed
 
 lemma fair_OL_Liminf_passive_empty:
