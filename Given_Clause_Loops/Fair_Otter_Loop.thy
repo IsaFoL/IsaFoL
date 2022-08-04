@@ -570,6 +570,7 @@ qed (use xx_i xx_si in auto)
 
 lemma fair_OL_Liminf_xx_empty:
   assumes
+    len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
@@ -587,35 +588,16 @@ proof (rule ccontr)
   hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
     by auto
 
-  have nfin: "\<not> lfinite Sts"
-  proof
-    assume "lfinite Sts"
-    then obtain k :: nat where
-      k: "enat (Suc k) = llength Sts"
-      by (metis lessE enat_ord_simps(2) i_lt lfinite_llength_enat)
-    hence k_lt: "enat k < llength Sts"
-      by (metis enat_ord_simps(2) lessI)
-    have inv_at_i: "fair_OL_invariant (lnth Sts k)"
-      by (rule chain_fair_OL_invariant_lnth[OF full_chain_imp_chain[OF full] inv k_lt])
-
-    have "\<exists>St'. lnth Sts k \<leadsto>OLf St'"
-      using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
-      by (metis c_in' elem_set enat_ord_simps(2) fair_otter_loop.is_final_fair_OL_state.cases
-          fair_otter_loop_axioms fst_conv i_lt k le_Suc_eq le_eq_less_or_eq lessI less_irrefl_nat
-          option.simps(3) snd_conv)
-    thus False
-      using full_chain_lnth_not_rel[OF full k] by simp
-  qed
-  hence si_lt: "enat (Suc i) < llength Sts"
-    by (simp add: not_lfinite_llength)
+  have si_lt: "enat (Suc i) < llength Sts"
+    unfolding len by auto
 
   have xx_j: "xx_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
-    by (metis c_in' enat_ord_code(4) ex_in_conv llength_eq_infty_conv_lfinite nfin option.simps(14)
-        j_ge)
+    using c_in' len j_ge by auto
   have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
     using le_Suc_eq that xx_j by presburger
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
-    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+    by blast
 
   have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
     using xx_nonempty_step_imp_\<mu>1 by (meson step j_ge xx_j xx_sj)
@@ -626,7 +608,7 @@ proof (rule ccontr)
     using chain_ldropn_lmapI[OF _ si_lt] by blast
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
-    using nfin by simp
+    using len by (simp add: llength_eq_infty_conv_lfinite)
 
   show False
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
@@ -721,6 +703,7 @@ qed (use new_i in auto)
 
 lemma fair_OL_Liminf_new_empty:
   assumes
+    inf: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
@@ -738,31 +721,14 @@ proof (rule ccontr)
   hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> fset (new_of (lnth Sts j))"
     by auto
 
-  have nfin: "\<not> lfinite Sts"
-  proof
-    assume "lfinite Sts"
-    then obtain k :: nat where
-      k: "enat (Suc k) = llength Sts"
-      by (metis lessE enat_ord_simps(2) i_lt lfinite_llength_enat)
-    hence k_lt: "enat k < llength Sts"
-      by (metis enat_ord_simps(2) lessI)
-    have inv_at_i: "fair_OL_invariant (lnth Sts k)"
-      by (rule chain_fair_OL_invariant_lnth[OF full_chain_imp_chain[OF full] inv k_lt])
-
-    have "\<exists>St'. lnth Sts k \<leadsto>OLf St'"
-      using is_final_fair_OL_state_iff_no_trans[OF inv_at_i]
-      by (metis bot_fset.rep_eq c_in' empty_iff enat_ord_simps(2) fst_conv i_lt
-          is_final_fair_OL_state.simps k k_lt linorder_not_less not_less_eq_eq)
-    thus False
-      using full_chain_lnth_not_rel[OF full k] by simp
-  qed
-  hence si_lt: "enat (Suc i) < llength Sts"
-    by (simp add: not_lfinite_llength)
+  have si_lt: "enat (Suc i) < llength Sts"
+    by (simp add: inf)
 
   have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
-    by (metis bot_fset.rep_eq c_in' enat_ord_code(4) equals0D nfin not_lfinite_llength that)
+    using c_in' inf that by fastforce
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
-    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel inf llength_eq_infty_conv_lfinite
+    by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
     using new_nonempty_step_imp_\<mu>2 by (meson step j_ge new_j)
@@ -772,7 +738,7 @@ proof (rule ccontr)
     using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
-    using nfin by simp
+    using inf lfinite_ldropn llength_eq_infty_conv_lfinite by blast
 
   show False
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>2"] wfP_\<mu>2 by blast
@@ -991,8 +957,8 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
-      using fair_OL_Liminf_new_empty[OF olf_full olf_inv]
-        fair_OL_Liminf_xx_empty[OF olf_full olf_inv]
+      using fair_OL_Liminf_new_empty[OF len olf_full olf_inv]
+        fair_OL_Liminf_xx_empty[OF len olf_full olf_inv]
         fair_OL_Liminf_passive_empty[OF len olf_full olf_init]
         fair_OL_Liminf_yy_empty[OF olf_full olf_inv]
       by simp
