@@ -142,7 +142,7 @@ proof cases
 next
   case (red_by_children C C')
   note defs = this(1-7) and c_in = this(8)
-  have il: "state ({}, {}, formulas P, {C}, fset A) \<leadsto>IL state (fset N', {}, formulas P, {}, fset A)"
+  have il: "state ({}, {}, elems P, {C}, fset A) \<leadsto>IL state (fset N', {}, elems P, {}, fset A)"
     by (rule IL.red_by_children[OF c_in])
   show ?thesis
     unfolding defs using il by auto
@@ -161,7 +161,7 @@ lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnst
 
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
-   mset_set (fset N) + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
+   mset_set (fset N) + mset_set (set_option X) + mset_set (elems P) + mset_set (set_option Y) +
    mset_set (fset A)"
 
 abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
@@ -294,12 +294,12 @@ proof cases
   case (simplify_fwd C' C P A N)
   note defs = this(1,2) and prec = this(3)
 
-  have aft: "add_mset C' (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
-    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C'#}"
+  have aft: "add_mset C' (mset_set (fset N) + mset_set (elems P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (elems P) + mset_set (fset A) + {#C'#}"
     (is "?old_aft = ?new_aft")
     by auto
-  have bef: "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
-    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C#}"
+  have bef: "add_mset C (mset_set (fset N) + mset_set (elems P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (elems P) + mset_set (fset A) + {#C#}"
     (is "?old_bef = ?new_bef")
     by auto
 
@@ -316,40 +316,40 @@ proof cases
 next
   case (delete_bwd_p C' P C N A)
   note defs = this(1,2) and c'_in = this(3)
-  have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
-    by (metis Diff_iff c'_in finite_fset finite_set_mset_mset_set formulas_remove insertCI
+  have "mset_set (elems P - {C'}) \<subset># mset_set (elems P)"
+    by (metis Diff_iff c'_in finite_fset finite_set_mset_mset_set elems_remove insertCI
         insert_Diff subset_imp_msubset_mset_set subset_insertI subset_mset.less_le)
   thus ?thesis
     unfolding defs using c'_in
-    by (auto simp: formulas_remove intro!: subset_implies_multp)
+    by (auto simp: elems_remove intro!: subset_implies_multp)
 next
   case (simplify_bwd_p C'' C' P C N A)
   note defs = this(1,2) and prec = this(3) and c'_in = this(4)
 
-  let ?old_aft = "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas (remove C' P)) +
+  let ?old_aft = "add_mset C (mset_set (insert C'' (fset N)) + mset_set (elems (remove C' P)) +
     mset_set (fset A))"
-  let ?old_bef = "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))"
+  let ?old_bef = "add_mset C (mset_set (fset N) + mset_set (elems P) + mset_set (fset A))"
 
   have "\<mu>1 ?old_aft ?old_bef"
   proof (cases "C'' \<in> fset N")
     case c''_in: True
 
-    have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
+    have "mset_set (elems P - {C'}) \<subset># mset_set (elems P)"
       by (metis c'_in finite_fset mset_set.remove multi_psub_of_add_self)
     thus ?thesis
       unfolding defs
-      by (auto simp: formulas_remove insert_absorb[OF c''_in] intro!: subset_implies_multp)
+      by (auto simp: elems_remove insert_absorb[OF c''_in] intro!: subset_implies_multp)
   next
     case c''_ni: False
 
-    have aft: "?old_aft = add_mset C (mset_set (fset N) + mset_set (formulas (remove C' P)) +
+    have aft: "?old_aft = add_mset C (mset_set (fset N) + mset_set (elems (remove C' P)) +
       mset_set (fset A)) + {#C''#}"
       (is "_ = ?new_aft")
       using c''_ni by auto
-    have bef: "?old_bef = add_mset C (mset_set (fset N) + mset_set (formulas (remove C' P)) +
+    have bef: "?old_bef = add_mset C (mset_set (fset N) + mset_set (elems (remove C' P)) +
       mset_set (fset A)) + {#C'#}"
       (is "_ = ?new_bef")
-      using c'_in by (auto simp: formulas_remove mset_set.remove)
+      using c'_in by (auto simp: elems_remove mset_set.remove)
 
     have "\<mu>1 ?new_aft ?new_bef"
       unfolding multp_def
@@ -372,13 +372,13 @@ next
   note defs = this(1,2) and prec = this(3) and c'_ni = this(4)
 
   have aft:
-    "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas P) + mset_set (fset A)) =
-     {#C#} + mset_set (formulas P) + mset_set (fset A) + mset_set (insert C'' (fset N))"
+    "add_mset C (mset_set (insert C'' (fset N)) + mset_set (elems P) + mset_set (fset A)) =
+     {#C#} + mset_set (elems P) + mset_set (fset A) + mset_set (insert C'' (fset N))"
     (is "?old_aft = ?new_aft")
     by auto
   have bef:
-    "add_mset C' (add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))) =
-     {#C#} + mset_set (formulas P) + mset_set (fset A) + ({#C'#} + mset_set (fset N))"
+    "add_mset C' (add_mset C (mset_set (fset N) + mset_set (elems P) + mset_set (fset A))) =
+     {#C#} + mset_set (elems P) + mset_set (fset A) + ({#C'#} + mset_set (fset N))"
     (is "?old_bef = ?new_bef")
     by auto
 
@@ -547,7 +547,7 @@ next
   case (transfer N C P A)
   note defs = this(1,2)
   show ?thesis
-  proof (cases "C \<in> formulas P")
+  proof (cases "C \<in> elems P")
     case c_in: True
     have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
       unfolding defs using c_in by (auto intro!: subset_implies_multp)
@@ -557,7 +557,7 @@ next
     case c_ni: False
 
     have mset_eq: "mset_of_fstate St' = mset_of_fstate St"
-      unfolding defs using c_ni by (auto simp: formulas_add)
+      unfolding defs using c_ni by (auto simp: elems_add)
     have new_mset_eq: "mset_set (fset (new_of St')) = mset_set (fset (new_of St))"
       unfolding defs using c_ni by auto
     have xx_lt: "\<mu>1 (mset_set (set_option (xx_of St'))) (mset_set (set_option (xx_of St)))"
@@ -694,7 +694,7 @@ next
   case (transfer N C P A)
   note defs = this(1,2)
   show ?thesis
-  proof (cases "C \<in> formulas P")
+  proof (cases "C \<in> elems P")
     case c_in: True
     show ?thesis
       unfolding defs by (auto simp: c_in intro: passive_step_idleI)
@@ -828,7 +828,7 @@ lemma fair_IL_Liminf_passive_empty:
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ILf) Sts" and
     init: "is_initial_fair_OL_state (lhd Sts)"
-  shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
+  shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain passive_step (lmap passive_of Sts)"
     using ILf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
@@ -886,7 +886,7 @@ proof -
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
     using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
 
-  have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
+  have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
   thus ?thesis
     by (simp add: llist.map_comp)
@@ -940,7 +940,7 @@ proof -
       unfolding is_final_fair_OL_state.simps by blast
     show ?thesis
       unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l fstate.simps state.simps
-      by (auto simp: fformulas_empty)
+      by (auto simp: felems_empty)
   next
     case False
     hence len: "llength Sts = \<infinity>"

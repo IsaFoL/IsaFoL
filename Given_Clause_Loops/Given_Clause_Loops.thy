@@ -8,7 +8,7 @@ section \<open>Given Clause Loops\<close>
 theory Given_Clause_Loops
   imports
     Fair_DISCOUNT_Loop
-    Fair_iProver_Loop
+    Fair_Otter_Loop_Complete
     Zipperposition_Loop
 begin
 end

@@ -86,36 +86,36 @@ locale passive_set =
     select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset"
+    felems :: "'p \<Rightarrow> 'f fset"
   assumes
-    fformulas_empty: "fformulas empty = {||}" and
-    fformula_not_empty: "P \<noteq> empty \<Longrightarrow> fformulas P \<noteq> {||}" and
-    select_in_fformulas: "P \<noteq> empty \<Longrightarrow> select P |\<in>| fformulas P" and
-    fformulas_add: "fformulas (add C P) = {|C|} |\<union>| fformulas P" and
-    fformulas_remove: "fformulas (remove C P) = fformulas P |-| {|C|}"
+    felems_empty: "felems empty = {||}" and
+    felems_not_empty: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
+    select_in_felems: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
+    felems_add: "felems (add C P) = {|C|} |\<union>| felems P" and
+    felems_remove: "felems (remove C P) = felems P |-| {|C|}"
 begin
 
-abbreviation formulas :: "'p \<Rightarrow> 'f set" where
-  "formulas P \<equiv> fset (fformulas P)"
+abbreviation elems :: "'p \<Rightarrow> 'f set" where
+  "elems P \<equiv> fset (felems P)"
 
-lemma formulas_empty: "formulas empty = {}"
-  by (simp add: fformulas_empty)
+lemma elems_empty: "elems empty = {}"
+  by (simp add: felems_empty)
 
-lemma formula_not_empty: "P \<noteq> empty \<Longrightarrow> formulas P \<noteq> {}"
-  by (metis bot_fset.rep_eq fformula_not_empty fset_cong)
+lemma formula_not_empty: "P \<noteq> empty \<Longrightarrow> elems P \<noteq> {}"
+  by (metis bot_fset.rep_eq felems_not_empty fset_cong)
 
-lemma select_in_formulas: "P \<noteq> empty \<Longrightarrow> select P \<in> formulas P"
-  by (metis fmember.rep_eq select_in_fformulas)
+lemma select_in_elems: "P \<noteq> empty \<Longrightarrow> select P \<in> elems P"
+  by (metis fmember.rep_eq select_in_felems)
 
-lemma formulas_add: "formulas (add C P) = {C} \<union> formulas P"
-  by (simp add: fformulas_add)
+lemma elems_add: "elems (add C P) = {C} \<union> elems P"
+  by (simp add: felems_add)
 
-lemma formulas_remove: "formulas (remove C P) = formulas P - {C}"
-  by (simp add: fformulas_remove)
+lemma elems_remove: "elems (remove C P) = elems P - {C}"
+  by (simp add: felems_remove)
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   passive_step_idleI: "passive_step P P"
-| passive_step_addI: "C \<notin> formulas P \<Longrightarrow> passive_step P (add C P)"
+| passive_step_addI: "C \<notin> elems P \<Longrightarrow> passive_step P (add C P)"
 | passive_step_removeI: "passive_step P (remove C P)"
 
 inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
@@ -123,20 +123,16 @@ inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
 
 end
 
-locale fair_passive_set = passive_set empty select add remove fformulas
+locale fair_passive_set = passive_set empty select add remove felems
   for
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset" +
+    felems :: "'p \<Rightarrow> 'f fset" +
   assumes fair: "chain passive_step Ps \<Longrightarrow> infinitely_often select_passive_step Ps \<Longrightarrow>
-    lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap formulas Ps) = {}"
+    lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap elems Ps) = {}"
 begin
-
-text \<open>In a fair derivation, the passive set starts empty. The initial formulas
-must be added explicitly.\<close>
-
 end
 
 
@@ -206,9 +202,9 @@ proof unfold_locales
       inf_sel: "infinitely_often select_passive_step Ps" and
       hd_emp: "lhd Ps = []"
 
-  show "Liminf_llist (lmap formulas Ps) = {}"
+  show "Liminf_llist (lmap elems Ps) = {}"
   proof (rule ccontr)
-    assume lim_nemp: "Liminf_llist (lmap formulas Ps) \<noteq> {}"
+    assume lim_nemp: "Liminf_llist (lmap elems Ps) \<noteq> {}"
 
     obtain i :: nat where
       i_lt: "enat i < llength Ps" and

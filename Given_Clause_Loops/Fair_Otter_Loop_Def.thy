@@ -18,7 +18,7 @@ type_synonym ('p, 'f) fair_OL_state = "'f fset \<times> 'f option \<times> 'p \<
 
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  fair_passive_set empty select add remove fformulas
+  fair_passive_set empty select add remove felems
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -36,7 +36,7 @@ locale fair_otter_loop =
     select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset" +
+    felems :: "'p \<Rightarrow> 'f fset" +
   fixes
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
@@ -68,15 +68,15 @@ abbreviation yy_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
 abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd (snd St)))"
 abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
-  "all_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> formulas (passive_of St) \<union>
+  "all_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> elems (passive_of St) \<union>
      set_option (yy_of St) \<union> fset (active_of St)"
 
 fun fstate :: "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset \<Rightarrow> ('f \<times> OL_label) set" where
-  "fstate (N, X, P, Y, A) = state (fset N, set_option X, formulas P, set_option Y, fset A)"
+  "fstate (N, X, P, Y, A) = state (fset N, set_option X, elems P, set_option Y, fset A)"
 
 lemma fstate_alt_def:
   "fstate St =
-   state (fset (fst St), set_option (fst (snd St)), formulas (fst (snd (snd St))),
+   state (fset (fst St), set_option (fst (snd St)), elems (fst (snd (snd St))),
      set_option (fst (snd (snd (snd St)))), fset (snd (snd (snd (snd St)))))"
   by (cases St) auto
 
@@ -86,7 +86,7 @@ where
   "Liminf_fstate Sts =
    (Liminf_llist (lmap (fset \<circ> new_of) Sts),
     Liminf_llist (lmap (set_option \<circ> xx_of) Sts),
-    Liminf_llist (lmap (formulas \<circ> passive_of) Sts),
+    Liminf_llist (lmap (elems \<circ> passive_of) Sts),
     Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
     Liminf_llist (lmap (fset \<circ> active_of) Sts))"
 
@@ -95,7 +95,7 @@ proof -
   have "Liminf_llist (lmap fstate Sts) =
     (\<lambda>C. (C, New)) ` Liminf_llist (lmap (fset \<circ> new_of) Sts) \<union>
     (\<lambda>C. (C, XX)) ` Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<union>
-    (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (formulas \<circ> passive_of) Sts) \<union>
+    (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (elems \<circ> passive_of) Sts) \<union>
     (\<lambda>C. (C, YY)) ` Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<union>
     (\<lambda>C. (C, Active)) ` Liminf_llist (lmap (fset \<circ> active_of) Sts)"
     unfolding fstate_alt_def state_alt_def
@@ -113,20 +113,20 @@ inductive
   fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
 where
   choose_n: "C |\<notin>| N \<Longrightarrow> (N |\<union>| {|C|}, None, P, None, A) \<leadsto>OLf (N, Some C, P, None, A)"
-| delete_fwd: "C \<in> no_labels.Red_F (formulas P \<union> fset A) \<or> (\<exists>C' \<in> formulas P \<union> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
+| delete_fwd: "C \<in> no_labels.Red_F (elems P \<union> fset A) \<or> (\<exists>C' \<in> elems P \<union> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, None, P, None, A)"
-| simplify_fwd: "C' \<prec>S C \<Longrightarrow> C \<in> no_labels.Red_F (formulas P \<union> fset A \<union> {C'}) \<Longrightarrow>
+| simplify_fwd: "C' \<prec>S C \<Longrightarrow> C \<in> no_labels.Red_F (elems P \<union> fset A \<union> {C'}) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C', P, None, A)"
-| delete_bwd_p: "C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
+| delete_bwd_p: "C' \<in> elems P \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, Some C, remove C' P, None, A)"
-| simplify_bwd_p: "C'' \<prec>S C' \<Longrightarrow> C' \<in> formulas P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd_p: "C'' \<prec>S C' \<Longrightarrow> C' \<in> elems P \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, remove C' P, None, A)"
 | delete_bwd_a: "C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N, Some C, P, None, A)"
 | simplify_bwd_a: "C'' \<prec>S C' \<Longrightarrow> C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, P, None, A)"
 | transfer:
-    "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> formulas P then P else add C P, None, A)"
+    "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> elems P then P else add C P, None, A)"
 | choose_p: "P \<noteq> empty \<Longrightarrow>
     ({||}, None, P, None, A) \<leadsto>OLf ({||}, None, remove (select P) P, Some (select P), A)"
 | infer: "no_labels.Inf_between (fset A) {C} \<subseteq> no_labels.Red_I (fset A \<union> {C} \<union> fset M) \<Longrightarrow>
@@ -211,7 +211,7 @@ proof
     fix St'
     assume "({||}, None, empty, None, A) \<leadsto>OLf St'"
     thus False
-      by cases (auto simp: fformulas_empty)
+      by cases (auto simp: felems_empty)
   qed
 next
   assume no_step: "\<forall>St'. \<not> St \<leadsto>OLf St'"
@@ -317,27 +317,27 @@ next
   case (delete_bwd_p C' C)
   note defs = this(1-7) and c'_in_p = this(8) and c'_red = this(9)
 
-  have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
-    unfolding fformulas_remove by (auto intro: c'_in_p)
-  have p_mns_c': "formulas P - {C'} = formulas (remove C' P)"
-    unfolding fformulas_remove by auto
+  have p_rm_c'_uni_c': "elems (remove C' P) \<union> {C'} = elems P"
+    unfolding felems_remove by (auto intro: c'_in_p)
+  have p_mns_c': "elems P - {C'} = elems (remove C' P)"
+    unfolding felems_remove by auto
 
   show ?thesis
     unfolding defs fstate.simps option.set
-    by (rule OL.delete_bwd_p[OF c'_red, of _ "formulas P - {C'}",
+    by (rule OL.delete_bwd_p[OF c'_red, of _ "elems P - {C'}",
           unfolded p_rm_c'_uni_c' p_mns_c'])
 next
   case (simplify_bwd_p C'' C' C)
   note defs = this(1-7) and c'_in_p = this(9) and c'_red = this(10)
 
-  have p_rm_c'_uni_c': "formulas (remove C' P) \<union> {C'} = formulas P"
-    unfolding fformulas_remove by (auto intro: c'_in_p)
-  have p_mns_c': "formulas P - {C'} = formulas (remove C' P)"
-    unfolding fformulas_remove by auto
+  have p_rm_c'_uni_c': "elems (remove C' P) \<union> {C'} = elems P"
+    unfolding felems_remove by (auto intro: c'_in_p)
+  have p_mns_c': "elems P - {C'} = elems (remove C' P)"
+    unfolding felems_remove by auto
 
   show ?thesis
     unfolding defs fstate.simps option.set
-    using OL.simplify_bwd_p[OF c'_red, of "fset N" "formulas P - {C'}",
+    using OL.simplify_bwd_p[OF c'_red, of "fset N" "elems P - {C'}",
         unfolded p_rm_c'_uni_c' p_mns_c']
     by simp
 next
@@ -354,26 +354,26 @@ next
   case (transfer C)
   note defs = this(1-7)
 
-  have p_uni_c: "formulas P \<union> {C} = formulas (if C \<in> formulas P then P else add C P)"
-    using fformulas_add by auto
+  have p_uni_c: "elems P \<union> {C} = elems (if C \<in> elems P then P else add C P)"
+    using felems_add by auto
 
   show ?thesis
     unfolding defs fstate.simps option.set
-    by (rule OL.transfer[of _ C "formulas P", unfolded p_uni_c])
+    by (rule OL.transfer[of _ C "elems P", unfolded p_uni_c])
 next
   case choose_p
   note defs = this(1-8) and p_nemp = this(9)
 
-  have sel_ni_rm: "select P \<notin> formulas (remove (select P) P)"
-    unfolding fformulas_remove by auto
+  have sel_ni_rm: "select P \<notin> elems (remove (select P) P)"
+    unfolding felems_remove by auto
 
-  have rm_sel_uni_sel: "formulas (remove (select P) P) \<union> {select P} = formulas P"
-    unfolding fformulas_remove using p_nemp select_in_fformulas
+  have rm_sel_uni_sel: "elems (remove (select P) P) \<union> {select P} = elems P"
+    unfolding felems_remove using p_nemp select_in_felems
     by (metis Un_insert_right finsert.rep_eq finsert_fminus sup_bot_right)
 
   show ?thesis
     unfolding defs fstate.simps option.set
-    using OL.choose_p[of "select P" "formulas (remove (select P) P)", OF sel_ni_rm,
+    using OL.choose_p[of "select P" "elems (remove (select P) P)", OF sel_ni_rm,
         unfolded rm_sel_uni_sel]
     by simp
 next
