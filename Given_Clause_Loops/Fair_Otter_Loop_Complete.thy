@@ -5,12 +5,14 @@
 
 section \<open>Completeness of Fair Otter Loop\<close>
 
+text \<open>The Otter loop is a special case of the iProver loop, with one rule less.
+We can therefore reuse the iProver completeness result to establish the
+completeness of the Otter loop.\<close>
+
 theory Fair_Otter_Loop_Complete
   imports Fair_iProver_Loop
 begin
 
-
-(* FIXME *)
 
 subsection \<open>Completeness\<close>
 
@@ -44,6 +46,9 @@ end
 
 
 subsection \<open>Specialization with FIFO Queue\<close>
+
+text \<open>As a proof of concept, we specialize the passive set to use a FIFO queue,
+thereby eliminating the locale assumptions about the passive set.\<close>
 
 locale fifo_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F

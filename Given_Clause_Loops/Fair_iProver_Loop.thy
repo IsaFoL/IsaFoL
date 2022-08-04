@@ -5,6 +5,10 @@
 
 section \<open>Fair iProver Loop\<close>
 
+text \<open>The iProver loop is a generalization of the Otter loop, with one more
+rule. By proving it complete, we also easily get (in a separate theory file) the
+completeness of the Otter loop.\<close>
+
 theory Fair_iProver_Loop
   imports
     Fair_Otter_Loop_Def
