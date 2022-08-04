@@ -32,8 +32,6 @@ begin
 
 subsection \<open>Definition and Lemmas\<close>
 
-thm IL.intros[no_vars]
-
 inductive
   fair_IL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>ILf" 50)
 where
@@ -158,6 +156,9 @@ lemma fair_IL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
+lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
+  using no_labels.entails_trans no_labels.subset_entailed by blast
+
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
    mset_set (fset N) + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
@@ -222,18 +223,15 @@ proof -
     unfolding wfP_def \<mu>3_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
-lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
-  using no_labels.entails_trans no_labels.subset_entailed by blast
-
-lemma fair_OL_Liminf_yy_empty:
+lemma fair_IL_Liminf_yy_empty:
   assumes
-    full: "full_chain (\<leadsto>OLf) Sts" and
+    full: "full_chain (\<leadsto>ILf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
 
-  have chain: "chain (\<leadsto>OLf) Sts"
+  have chain: "chain (\<leadsto>ILf) Sts"
     by (rule full_chain_imp_chain[OF full])
 
   obtain i :: nat where
@@ -242,7 +240,7 @@ proof (rule ccontr)
     using lim_nemp unfolding Liminf_llist_def by auto
 
   have inv_at_i: "fair_OL_invariant (lnth Sts i)"
-    by (simp add: chain chain_fair_OL_invariant_lnth i_lt inv)
+    by (simp add: chain chain_fair_IL_invariant_lnth i_lt inv)
 
   from inter_nemp obtain C :: 'f where
     c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
@@ -254,11 +252,11 @@ proof (rule ccontr)
     using c_in' i_lt by blast
   have new_at_i: "new_of (lnth Sts i) = {||}" and
     xx_at_i: "new_of (lnth Sts i) = {||}"
-    using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
+    using yy_at_i chain_fair_IL_invariant_lnth[OF chain inv i_lt]
     by (force simp: fair_OL_invariant.simps)+
 
-  have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
-    using is_final_fair_OL_state_iff_no_OL_step[OF inv_at_i]
+  have "\<exists>St'. lnth Sts i \<leadsto>ILf St'"
+    using is_final_fair_OL_state_iff_no_IL_step[OF inv_at_i]
     by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
   hence si_lt: "enat (Suc i) < llength Sts"
     by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
@@ -267,12 +265,20 @@ proof (rule ccontr)
     at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
     using fair_OL_invariant.simps inv_at_i yy_at_i by auto
 
-  have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
+  have "lnth Sts i \<leadsto>ILf lnth Sts (Suc i)"
     by (simp add: chain chain_lnth_rel si_lt)
-  hence "({||}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
+  hence "({||}, None, P, Some C, A) \<leadsto>ILf lnth Sts (Suc i)"
     unfolding at_i .
   hence "yy_of (lnth Sts (Suc i)) = None"
-    by cases simp
+  proof cases
+    case ol
+    then show ?thesis
+      by cases simp
+  next
+    case (red_by_children M C')
+    then show ?thesis
+      by simp
+  qed
   thus False
     using c_in' si_lt by simp
 qed
@@ -861,14 +867,11 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
-(*
       using fair_IL_Liminf_new_empty[OF len ilf_full olf_inv]
         fair_IL_Liminf_xx_empty[OF len ilf_full olf_inv]
         fair_IL_Liminf_passive_empty[OF len ilf_full olf_init]
         fair_IL_Liminf_yy_empty[OF ilf_full olf_inv]
       by simp
-*)
-      sorry
   qed
 
   have unsat': "fst ` lhd (lmap fstate Sts) \<Turnstile>\<inter>\<G> {B}"
