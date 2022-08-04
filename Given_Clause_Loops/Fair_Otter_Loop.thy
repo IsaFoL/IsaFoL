@@ -439,10 +439,10 @@ lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnst
 
 lemma xx_nonempty_step_imp_\<mu>1:
   assumes
-    step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
-    xx_i: "xx_of (lnth Sts i) \<noteq> None" and
-    xx_si: "xx_of (lnth Sts (Suc i)) \<noteq> None"
-  shows "\<mu>1 (mset_of_fstate (lnth Sts (Suc i))) (mset_of_fstate (lnth Sts i))"
+    step: "St \<leadsto>OLf St'" and
+    xx_i: "xx_of St \<noteq> None" and
+    xx_si: "xx_of St' \<noteq> None"
+  shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
   using step
 proof cases
   case (simplify_fwd C' C P A N)
@@ -634,11 +634,21 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
+lemma xx_nonempty_step_imp_\<mu>2:
+  assumes step: "(N, Some C, P, Y, A) \<leadsto>OLf (N', Some C', P', Y', A')" (is "?bef \<leadsto>OLf ?aft")
+  shows "\<mu>2 ?aft ?bef"
+proof -
+  have "\<mu>1 (mset_of_fstate ?aft) (mset_of_fstate ?bef)"
+    using xx_nonempty_step_imp_\<mu>1 by (metis fst_conv local.step option.distinct(1) snd_conv)
+  thus ?thesis
+    unfolding \<mu>2_def by blast
+qed
+
 lemma new_nonempty_step_imp_\<mu>2:
   assumes
-    step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
-    new_i: "new_of (lnth Sts i) \<noteq> {||}"
-  shows "\<mu>2 (lnth Sts (Suc i)) (lnth Sts i)"
+    step: "St \<leadsto>OLf St'" and
+    new_i: "new_of St \<noteq> {||}"
+  shows "\<mu>2 St' St"
   using step
 proof cases
   case (choose_n C N P A)
@@ -646,28 +656,35 @@ proof cases
     sorry
 next
   case (delete_fwd C P A N)
+  note defs = this(1,2)
   show ?thesis
+    unfolding defs
     sorry
 next
   case (simplify_fwd C' C P A N)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (delete_bwd_p C' P C N A)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (delete_bwd_a C' A C N P)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (simplify_bwd_a C'' C' A C N P)
+  note defs = this(1,2)
   show ?thesis
-    sorry
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
 next
   case (transfer N C P A)
   show ?thesis
