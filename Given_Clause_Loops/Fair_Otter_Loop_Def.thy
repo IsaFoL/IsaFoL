@@ -8,7 +8,7 @@ section \<open>Definition of Fair Otter Loop\<close>
 theory Fair_Otter_Loop_Def
   imports
     Otter_Loop
-    Fair_Loop_Basis
+    Passive_Set
 begin
 
 

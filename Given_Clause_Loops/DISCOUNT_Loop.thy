@@ -314,7 +314,7 @@ proof -
   then have "T' \<inter> no_labels.Inf_from (fst ` (active_subset ?\<N>)) = {}"
     using assms by simp
   then have "(T \<union> T', ?\<N>) \<leadsto>LGC (T, ?\<N>)"
-    using lgc.step.delete_orphans by blast
+    using lgc.step.delete_orphan_formulas by blast
   then show ?thesis
     by simp
 qed

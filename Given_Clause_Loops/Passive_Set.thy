@@ -1,14 +1,14 @@
-(* Title:        Basic Definitions for Stating and Proving the Fairness of Prover Loops
+(* Title:        Passive Set and Fairness
    Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
-section \<open>Basic Definitions for Stating and Proving the Fairness of Prover Loops\<close>
+section \<open>Passive Set and Fairness\<close>
 
 text \<open>This section covers concepts that can be shared across the different
 prover loops inspired by the literature (e.g., DISCOUNT, Otter).\<close>
 
-theory Fair_Loop_Basis
+theory Passive_Set
   imports
     "HOL-Library.FSet"
     Ordered_Resolution_Prover.Lazy_List_Chain
