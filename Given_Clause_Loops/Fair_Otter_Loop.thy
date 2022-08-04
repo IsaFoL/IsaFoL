@@ -652,10 +652,11 @@ proof -
     unfolding \<mu>2_def by blast
 qed
 
-lemma new_nonempty_step_imp_\<mu>2:
+lemma yy_empty_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>OLf St'" and
-    new: "new_of St \<noteq> {||}"
+    yy: "yy_of St = None" and
+    yy': "yy_of St' = None"
   shows "\<mu>2 St' St"
   using step
 proof cases
@@ -725,7 +726,7 @@ next
     show ?thesis
       unfolding \<mu>2_def using mset_eq new_mset_eq xx_lt by blast
   qed
-qed (use new in auto)
+qed (use yy yy' in auto)
 
 lemma fair_OL_Liminf_new_empty:
   assumes
@@ -752,12 +753,18 @@ proof (rule ccontr)
 
   have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
     using c_in' len that by fastforce
+
+  have yy: "yy_of (lnth Sts j) = None" if j_ge: "j \<ge> i" for j
+    by (smt (z3) chain_fair_OL_invariant_lnth enat_ord_code(4) fair_OL_invariant.cases fst_conv full
+        full_chain_imp_chain inv len new_j snd_conv j_ge)
+  hence yy': "yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
+    using j_ge by auto
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-    using new_nonempty_step_imp_\<mu>2 by (meson step j_ge new_j)
+    by (rule yy_empty_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge] yy'[OF j_ge]])
   hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
     using j_ge by blast
   hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
@@ -885,7 +892,6 @@ next
 next
   case (choose_p P A)
   note defs = this(1,2)
-
   have False
     using step yy unfolding defs by simp
   thus ?thesis
