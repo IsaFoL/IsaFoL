@@ -1,41 +1,32 @@
-(* Title:        Fairness of Otter Loop
+(* Title:        Fair iProver Loop
    Authors:      Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Jasmin Blancherte <j.c.blanchette at vu.nl>, 2022
 *)
 
-section \<open>Fairness of Otter Loop\<close>
+section \<open>Fair iProver Loop\<close>
 
 theory Fair_iProver_Loop
   imports
-    Fair_Otter_Loop
+    Fair_Otter_Loop_Def
     iProver_Loop
+    Weighted_Path_Order.Multiset_Extension_Pair
 begin
+
+
+subsection \<open>Setup and Utilities\<close>
+
+hide_const (open) Seq.chain
+
+lemma singletons_in_mult1: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult1 R"
+  by (metis add_mset_add_single insert_DiffM mult1I single_eq_add_mset)
+
+lemma singletons_in_mult: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult R"
+  by (simp add: mult_def singletons_in_mult1 trancl.intros(1))
 
 
 subsection \<open>Locale\<close>
 
-locale fair_iprover_loop =
-  fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
-    empty select add remove fformulas Prec_S
-  for
-    Bot_F :: "'f set" and
-    Inf_F :: "'f inference set" and
-    Bot_G :: "'g set" and
-    Q :: "'q set" and
-    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool" and
-    Inf_G_q :: "'q \<Rightarrow> 'g inference set" and
-    Red_I_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
-    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
-    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
-    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
-    empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f" and
-    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    fformulas :: "'p \<Rightarrow> 'f fset" and
-    Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
+context fair_otter_loop
 begin
 
 
@@ -167,36 +158,653 @@ lemma fair_IL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-lemma fair_IL_Liminf_yy_empty:
+fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
+  "mset_of_fstate (N, X, P, Y, A) =
+   mset_set (fset N) + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
+   mset_set (fset A)"
+
+abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
+  "\<mu>1 \<equiv> multp (\<prec>S)"
+
+lemma wfP_\<mu>1: "wfP \<mu>1"
+  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
+
+definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "\<mu>2 St' St \<equiv>
+   \<mu>1 (mset_of_fstate St') (mset_of_fstate St)
+   \<or> (mset_of_fstate St' = mset_of_fstate St
+      \<and> (\<mu>1 (mset_set (fset (new_of St'))) (mset_set (fset (new_of St)))
+         \<or> (mset_set (fset (new_of St')) = mset_set (fset (new_of St))
+            \<and> \<mu>1 (mset_set (set_option (xx_of St'))) (mset_set (set_option (xx_of St))))))"
+
+lemma wfP_\<mu>2: "wfP \<mu>2"
+proof -
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?triple_of =
+    "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (set_option (xx_of St)))"
+
+  have wf_\<mu>1set: "wf ?\<mu>1set"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set)"
+    by (rule wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_\<mu>1set]])
+
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
+    (?triple_of St', ?triple_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set"
+    unfolding \<mu>2_def by simp
+
+  show ?thesis
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
+qed
+
+definition \<mu>3 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "\<mu>3 St' St \<equiv>
+   \<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))
+   \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
+      \<and> \<mu>2 St' St)"
+
+lemma wfP_\<mu>3: "wfP \<mu>3"
+proof -
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?\<mu>2set = "{(St', St). \<mu>2 St' St}"
+  let ?pair_of = "\<lambda>St. (mset_set (set_option (yy_of St)), St)"
+
+  have wf_\<mu>1set: "wf ?\<mu>1set"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_\<mu>2set: "wf ?\<mu>2set"
+    using wfP_\<mu>2 wfP_def by auto
+  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>2set)"
+    by (rule wf_lex_prod[OF wf_\<mu>1set wf_\<mu>2set])
+
+  have \<mu>3_alt_def: "\<And>St' St. \<mu>3 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>2set"
+    unfolding \<mu>3_def by simp
+
+  show ?thesis
+    unfolding wfP_def \<mu>3_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
+qed
+
+lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
+  using no_labels.entails_trans no_labels.subset_entailed by blast
+
+lemma fair_OL_Liminf_yy_empty:
   assumes
-    full: "full_chain (\<leadsto>ILf) Sts" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
-  sorry
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
 
-lemma fair_IL_Liminf_xx_empty:
+  have chain: "chain (\<leadsto>OLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  have inv_at_i: "fair_OL_invariant (lnth Sts i)"
+    by (simp add: chain chain_fair_OL_invariant_lnth i_lt inv)
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
+    by auto
+
+  have yy_at_i: "yy_of (lnth Sts i) = Some C"
+    using c_in' i_lt by blast
+  have new_at_i: "new_of (lnth Sts i) = {||}" and
+    xx_at_i: "new_of (lnth Sts i) = {||}"
+    using yy_at_i chain_fair_OL_invariant_lnth[OF chain inv i_lt]
+    by (force simp: fair_OL_invariant.simps)+
+
+  have "\<exists>St'. lnth Sts i \<leadsto>OLf St'"
+    using is_final_fair_OL_state_iff_no_OL_step[OF inv_at_i]
+    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
+
+  obtain P :: 'p and A :: "'f fset" where
+    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
+    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+
+  have "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)"
+    by (simp add: chain chain_lnth_rel si_lt)
+  hence "({||}, None, P, Some C, A) \<leadsto>OLf lnth Sts (Suc i)"
+    unfolding at_i .
+  hence "yy_of (lnth Sts (Suc i)) = None"
+    by cases simp
+  thus False
+    using c_in' si_lt by simp
+qed
+
+lemma xx_nonempty_step_imp_\<mu>1:
+  assumes
+    step: "St \<leadsto>OLf St'" and
+    xx: "xx_of St \<noteq> None" and
+    xx': "xx_of St' \<noteq> None"
+  shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+  using step
+proof cases
+  case (simplify_fwd C' C P A N)
+  note defs = this(1,2) and prec = this(3)
+
+  have aft: "add_mset C' (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C'#}"
+    (is "?old_aft = ?new_aft")
+    by auto
+  have bef: "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A)) =
+    mset_set (fset N) + mset_set (formulas P) + mset_set (fset A) + {#C#}"
+    (is "?old_bef = ?new_bef")
+    by auto
+
+  have "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      by (simp add: multp_def prec singletons_in_mult)
+  qed
+  hence "\<mu>1 ?old_aft ?old_bef"
+    unfolding bef aft .
+  thus ?thesis
+    unfolding defs by auto
+next
+  case (delete_bwd_p C' P C N A)
+  note defs = this(1,2) and c'_in = this(3)
+  have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
+    by (metis Diff_iff c'_in finite_fset finite_set_mset_mset_set formulas_remove insertCI
+        insert_Diff subset_imp_msubset_mset_set subset_insertI subset_mset.less_le)
+  thus ?thesis
+    unfolding defs using c'_in
+    by (auto simp: formulas_remove intro!: subset_implies_multp)
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2) and prec = this(3) and c'_in = this(4)
+
+  let ?old_aft = "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas (remove C' P)) +
+    mset_set (fset A))"
+  let ?old_bef = "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))"
+
+  have "\<mu>1 ?old_aft ?old_bef"
+  proof (cases "C'' \<in> fset N")
+    case c''_in: True
+
+    have "mset_set (formulas P - {C'}) \<subset># mset_set (formulas P)"
+      by (metis c'_in finite_fset mset_set.remove multi_psub_of_add_self)
+    thus ?thesis
+      unfolding defs
+      by (auto simp: formulas_remove insert_absorb[OF c''_in] intro!: subset_implies_multp)
+  next
+    case c''_ni: False
+
+    have aft: "?old_aft = add_mset C (mset_set (fset N) + mset_set (formulas (remove C' P)) +
+      mset_set (fset A)) + {#C''#}"
+      (is "_ = ?new_aft")
+      using c''_ni by auto
+    have bef: "?old_bef = add_mset C (mset_set (fset N) + mset_set (formulas (remove C' P)) +
+      mset_set (fset A)) + {#C'#}"
+      (is "_ = ?new_bef")
+      using c'_in by (auto simp: formulas_remove mset_set.remove)
+
+    have "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    thus ?thesis
+      unfolding bef aft .
+  qed
+  thus ?thesis
+    unfolding defs by (auto simp: notin_fset)
+next
+  case (delete_bwd_a C' A C N P)
+  note defs = this(1,2) and c'_ni = this(3)
+  show ?thesis
+    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  note defs = this(1,2) and prec = this(3) and c'_ni = this(4)
+
+  have aft:
+    "add_mset C (mset_set (insert C'' (fset N)) + mset_set (formulas P) + mset_set (fset A)) =
+     {#C#} + mset_set (formulas P) + mset_set (fset A) + mset_set (insert C'' (fset N))"
+    (is "?old_aft = ?new_aft")
+    by auto
+  have bef:
+    "add_mset C' (add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))) =
+     {#C#} + mset_set (formulas P) + mset_set (fset A) + ({#C'#} + mset_set (fset N))"
+    (is "?old_bef = ?new_bef")
+    by auto
+
+  have "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 (mset_set (insert C'' (fset N))) ({#C'#} + mset_set (fset N))"
+    proof (cases "C'' \<in> fset N")
+      case True
+      hence ins: "insert C'' (fset N) = fset N"
+        by blast
+      show ?thesis
+        unfolding ins by (auto intro!: subset_implies_multp)
+    next
+      case c''_ni: False
+
+      have aft: "mset_set (insert C'' (fset N)) = mset_set (fset N) + {#C''#}"
+        using c''_ni by auto
+      have bef: "{#C'#} + mset_set (fset N) = mset_set (fset N) + {#C'#}"
+        by auto
+
+      show ?thesis
+        unfolding aft bef multp_def
+      proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+        show "\<mu>1 {#C''#} {#C'#}"
+          unfolding multp_def using prec by (auto intro: singletons_in_mult)
+      qed
+    qed
+  qed
+  hence "\<mu>1 ?old_aft ?old_bef"
+    unfolding bef aft .
+  thus ?thesis
+    unfolding defs using c'_ni by (auto simp: notin_fset)
+qed (use xx xx' in auto)
+
+lemma fair_OL_Liminf_xx_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>ILf) Sts" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
-  sorry
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
 
-lemma fair_IL_Liminf_new_empty:
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> xx_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (xx_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (xx_of (lnth Sts j))"
+    by auto
+
+  have si_lt: "enat (Suc i) < llength Sts"
+    unfolding len by auto
+
+  have xx_j: "xx_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using c_in' len j_ge by auto
+  have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that xx_j by presburger
+  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+    by blast
+
+  have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
+    using xx_nonempty_step_imp_\<mu>1 by (meson step j_ge xx_j xx_sj)
+  hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+    if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+    using chain_ldropn_lmapI[OF _ si_lt] by blast
+
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
+    using len by (simp add: llength_eq_infty_conv_lfinite)
+
+  show False
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
+      wfP_\<mu>1
+    by (metis lfinite_ldropn lfinite_lmap)
+qed
+
+lemma xx_nonempty_step_imp_\<mu>2:
+  assumes step: "(N, Some C, P, Y, A) \<leadsto>OLf (N', Some C', P', Y', A')" (is "?bef \<leadsto>OLf ?aft")
+  shows "\<mu>2 ?aft ?bef"
+proof -
+  have "\<mu>1 (mset_of_fstate ?aft) (mset_of_fstate ?bef)"
+    using xx_nonempty_step_imp_\<mu>1 by (metis fst_conv local.step option.distinct(1) snd_conv)
+  thus ?thesis
+    unfolding \<mu>2_def by blast
+qed
+
+lemma yy_empty_step_imp_\<mu>2:
+  assumes
+    step: "St \<leadsto>OLf St'" and
+    yy: "yy_of St = None" and
+    yy': "yy_of St' = None"
+  shows "\<mu>2 St' St"
+  using step
+proof cases
+  case (choose_n C N P A)
+  note defs = this(1,2) and c_ni = this(3)
+
+  have mset_eq: "mset_of_fstate St' = mset_of_fstate St"
+    unfolding defs using c_ni by (fastforce simp: fmember.rep_eq)
+  have new_lt: "\<mu>1 (mset_set (fset (new_of St'))) (mset_set (fset (new_of St)))"
+    unfolding defs using c_ni[unfolded fmember.rep_eq]
+    by (auto intro!: subset_implies_multp)
+
+  show ?thesis
+    unfolding \<mu>2_def using mset_eq new_lt by blast
+next
+  case (delete_fwd C P A N)
+  note defs = this(1,2)
+  have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+    unfolding defs by (auto intro: subset_implies_multp)
+  thus ?thesis
+    unfolding \<mu>2_def by blast
+next
+  case (simplify_fwd C' C P A N)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+next
+  case (delete_bwd_p C' P C N A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+next
+  case (delete_bwd_a C' A C N P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule xx_nonempty_step_imp_\<mu>2[OF step[unfolded defs]])
+next
+  case (transfer N C P A)
+  note defs = this(1,2)
+  show ?thesis
+  proof (cases "C \<in> formulas P")
+    case c_in: True
+    have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+      unfolding defs using c_in by (auto intro!: subset_implies_multp)
+    thus ?thesis
+      unfolding \<mu>2_def by blast
+  next
+    case c_ni: False
+
+    have mset_eq: "mset_of_fstate St' = mset_of_fstate St"
+      unfolding defs using c_ni by (auto simp: formulas_add)
+    have new_mset_eq: "mset_set (fset (new_of St')) = mset_set (fset (new_of St))"
+      unfolding defs using c_ni by auto
+    have xx_lt: "\<mu>1 (mset_set (set_option (xx_of St'))) (mset_set (set_option (xx_of St)))"
+      unfolding defs using c_ni[unfolded fmember.rep_eq] by (auto intro!: subset_implies_multp)
+
+    show ?thesis
+      unfolding \<mu>2_def using mset_eq new_mset_eq xx_lt by blast
+  qed
+qed (use yy yy' in auto)
+
+lemma fair_OL_Liminf_new_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>ILf) Sts" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
     inv: "fair_OL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
-  sorry
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (fset \<circ> new_of) Sts) \<noteq> {}"
 
-lemma fair_IL_Liminf_passive_empty:
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((fset \<circ> new_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> fset (new_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> fset (new_of (lnth Sts j))"
+    by auto
+
+  have si_lt: "enat (Suc i) < llength Sts"
+    by (simp add: len)
+
+  have new_j: "new_of (lnth Sts j) \<noteq> {||}" if j_ge: "j \<ge> i" for j
+    using c_in' len that by fastforce
+
+  have yy: "yy_of (lnth Sts j) = None" if j_ge: "j \<ge> i" for j
+    by (smt (z3) chain_fair_OL_invariant_lnth enat_ord_code(4) fair_OL_invariant.cases fst_conv full
+        full_chain_imp_chain inv len new_j snd_conv j_ge)
+  hence yy': "yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
+    using j_ge by auto
+  have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+    by blast
+
+  have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+    by (rule yy_empty_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge] yy'[OF j_ge]])
+  hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+    using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
+    using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+
+  show False
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>2"] wfP_\<mu>2 by blast
+qed
+
+lemma OLf_step_imp_passive_step:
+  assumes olf_step: "St \<leadsto>OLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using olf_step
+proof cases
+  case (choose_n C N P A)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (delete_fwd C P A N)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_fwd C' C P A N)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (delete_bwd_p C' P C N A)
+  note defs = this(1,2)
+  have pas: "passive_of St' = remove C' P"
+    unfolding defs by simp
+  show ?thesis
+    unfolding defs pas by (auto intro: passive_step_removeI)
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2)
+  have pas: "passive_of St' = remove C' P"
+    unfolding defs by simp
+  show ?thesis
+    unfolding defs pas by (auto intro: passive_step_removeI)
+next
+  case (delete_bwd_a C' A C N P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (transfer N C P A)
+  note defs = this(1,2)
+  show ?thesis
+  proof (cases "C \<in> formulas P")
+    case c_in: True
+    show ?thesis
+      unfolding defs by (auto simp: c_in intro: passive_step_idleI)
+  next
+    case c_ni: False
+    show ?thesis
+      unfolding defs by (auto simp: c_ni intro: passive_step_addI)
+  qed
+next
+  case (choose_p P A)
+  note defs = this(1,2)
+  have pas: "passive_of St' = remove (select P) P"
+    unfolding defs by simp
+  show ?thesis
+    unfolding defs pas by (auto intro: passive_step_removeI)
+next
+  case (infer A C M P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+qed
+
+lemma yy_empty_step_imp_\<mu>3:
+  assumes step: "(N, X, P, None, A) \<leadsto>OLf (N', X', P', None, A')" (is "?bef \<leadsto>OLf ?aft")
+  shows "\<mu>3 ?aft ?bef"
+proof -
+  have \<mu>2: "\<mu>2 ?aft ?bef"
+    using yy_empty_step_imp_\<mu>2 by (simp add: step)
+  show ?thesis
+    unfolding \<mu>3_def using \<mu>2 by force
+qed
+
+lemma non_choose_p_step_imp_\<mu>3:
+  assumes
+    step: "St \<leadsto>OLf St'" and
+    yy: "yy_of St' = None"
+  shows "\<mu>3 St' St"
+  using step
+proof cases
+  case (choose_n C N P A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (delete_fwd C P A N)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (simplify_fwd C' C P A N)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (delete_bwd_p C' P C N A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (simplify_bwd_p C'' C' P C N A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (delete_bwd_a C' A C N P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (simplify_bwd_a C'' C' A C N P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (transfer N C P A)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (rule yy_empty_step_imp_\<mu>3[OF step[unfolded defs]])
+next
+  case (choose_p P A)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (infer A C M P)
+  note defs = this(1,2)
+  have "\<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))"
+    unfolding defs by (auto intro!: subset_implies_multp)
+  thus ?thesis
+    unfolding \<mu>3_def by blast
+qed
+
+lemma fair_OL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>ILf) Sts" and
+    full: "full_chain (\<leadsto>OLf) Sts" and
     init: "is_initial_fair_OL_state (lhd Sts)"
   shows "Liminf_llist (lmap (formulas \<circ> passive_of) Sts) = {}"
-  sorry
+proof -
+  have chain_step: "chain passive_step (lmap passive_of Sts)"
+    using OLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+    by (metis (no_types, lifting))
+
+  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+  proof
+    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    then obtain i :: nat where
+      no_sel:
+        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+
+    have si_lt: "enat (Suc i) < llength Sts"
+      unfolding len by auto
+
+    have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+      using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+      by blast
+
+    have yy: "yy_of (lnth Sts (Suc j)) = None"
+      if j_ge: "j \<ge> i" for j
+      using step[OF j_ge]
+    proof cases
+      case (choose_p P A)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    qed auto
+
+    have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+      by (rule non_choose_p_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
+    hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using j_ge by blast
+    hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
+      using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+    have inf_i: "\<not> lfinite (ldropn i Sts)"
+      using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+
+    show False
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>3"] wfP_\<mu>3 by blast
+  qed
+
+  have hd_emp: "lhd (lmap passive_of Sts) = empty"
+    using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
+
+  have "Liminf_llist (lmap formulas (lmap passive_of Sts)) = {}"
+    by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
+  thus ?thesis
+    by (simp add: llist.map_comp)
+qed
 
 theorem
   assumes
@@ -253,11 +861,14 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
+(*
       using fair_IL_Liminf_new_empty[OF len ilf_full olf_inv]
         fair_IL_Liminf_xx_empty[OF len ilf_full olf_inv]
         fair_IL_Liminf_passive_empty[OF len ilf_full olf_init]
         fair_IL_Liminf_yy_empty[OF ilf_full olf_inv]
       by simp
+*)
+      sorry
   qed
 
   have unsat': "fst ` lhd (lmap fstate Sts) \<Turnstile>\<inter>\<G> {B}"
@@ -272,52 +883,5 @@ proof -
 qed
 
 end
-
-
-subsection \<open>Specialization with FIFO Queue\<close>
-
-print_locale fair_otter_loop
-
-locale fifo_otter_loop =
-  otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
-  for
-    Bot_F :: "'f set" and
-    Inf_F :: "'f inference set" and
-    Bot_G :: "'g set" and
-    Q :: "'q set" and
-    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool" and
-    Inf_G_q :: "'q \<Rightarrow> 'g inference set" and
-    Red_I_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
-    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
-    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
-    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) +
-  fixes
-    Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
-  assumes
-    wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
-    transp_Prec_S: "transp (\<prec>S)" and
-    finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
-begin
-
-sublocale fifo_passive_set
-  .
-
-sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F
-  Prec_F "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
-proof unfold_locales
-  show "po_on (\<prec>S) UNIV"
-    using wf_Prec_S minimal_element.po by blast
-next
-  show "wfp_on (\<prec>S) UNIV"
-    using wf_Prec_S minimal_element.wf by blast
-next
-  show "transp (\<prec>S)"
-    by (rule transp_Prec_S)
-next
-  show "\<And>A C. finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
-    by (fact finite_Inf_between)
-qed
 
 end
