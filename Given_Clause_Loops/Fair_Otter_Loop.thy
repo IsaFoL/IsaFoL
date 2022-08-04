@@ -395,16 +395,30 @@ lemma fair_OL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
-  using no_labels.entails_trans no_labels.subset_entailed by blast
-
-lemma wfP_multp_Prec_S: "wfP (multp (\<prec>S))"
-  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
-
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
    mset_set (fset N) + mset_set (set_option X) + mset_set (formulas P) + mset_set (set_option Y) +
    mset_set (fset A)"
+
+abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
+  "\<mu>1 \<equiv> multp (\<prec>S)"
+
+lemma wfP_\<mu>1: "wfP \<mu>1"
+  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
+
+find_theorems name: lex name: wf
+thm  Wellfounded.wf_mlex
+
+term "X <*mlex*> Y"
+
+definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+  "\<mu>2 St St' \<equiv>
+   \<mu>1 (mset_of_fstate St) (mset_of_fstate St')
+   \<or> (mset_of_fstate St = mset_of_fstate St'
+      \<and> multp (\<prec>S) (mset_set (fset (new_of St))) (mset_set (fset (new_of St'))))"
+
+lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
+  using no_labels.entails_trans no_labels.subset_entailed by blast
 
 lemma fair_OL_Liminf_new_empty:
   assumes
@@ -418,12 +432,12 @@ proof (rule ccontr)
     sorry
 qed
 
-lemma within_xx_step_imp_multp_Prec_S:
+lemma within_xx_step_imp_\<mu>1:
   assumes
     step: "lnth Sts i \<leadsto>OLf lnth Sts (Suc i)" and
     xx_i: "xx_of (lnth Sts i) \<noteq> None" and
     xx_si: "xx_of (lnth Sts (Suc i)) \<noteq> None"
-  shows "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc i))) (mset_of_fstate (lnth Sts i))"
+  shows "\<mu>1 (mset_of_fstate (lnth Sts (Suc i))) (mset_of_fstate (lnth Sts i))"
   using step
 proof cases
   case (simplify_fwd C' C P A N)
@@ -438,13 +452,13 @@ proof cases
     (is "?old_bef = ?new_bef")
     by auto
 
-  have "multp (\<prec>S) ?new_aft ?new_bef"
+  have "\<mu>1 ?new_aft ?new_bef"
     unfolding multp_def
   proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-    show "multp (\<prec>S) {#C'#} {#C#}"
+    show "\<mu>1 {#C'#} {#C#}"
       by (simp add: multp_def prec singletons_in_mult)
   qed
-  hence "multp (\<prec>S) ?old_aft ?old_bef"
+  hence "\<mu>1 ?old_aft ?old_bef"
     unfolding bef aft .
   thus ?thesis
     unfolding defs by auto
@@ -465,7 +479,7 @@ next
     mset_set (fset A))"
   let ?old_bef = "add_mset C (mset_set (fset N) + mset_set (formulas P) + mset_set (fset A))"
 
-  have "multp (\<prec>S) ?old_aft ?old_bef"
+  have "\<mu>1 ?old_aft ?old_bef"
   proof (cases "C'' \<in> fset N")
     case c''_in: True
 
@@ -486,10 +500,10 @@ next
       (is "_ = ?new_bef")
       using c'_in by (auto simp: formulas_remove mset_set.remove)
 
-    have "multp (\<prec>S) ?new_aft ?new_bef"
+    have "\<mu>1 ?new_aft ?new_bef"
       unfolding multp_def
     proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-      show "multp (\<prec>S) {#C''#} {#C'#}"
+      show "\<mu>1 {#C''#} {#C'#}"
         unfolding multp_def using prec by (auto intro: singletons_in_mult)
     qed
     thus ?thesis
@@ -517,10 +531,10 @@ next
     (is "?old_bef = ?new_bef")
     by auto
 
-  have "multp (\<prec>S) ?new_aft ?new_bef"
+  have "\<mu>1 ?new_aft ?new_bef"
     unfolding multp_def
   proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-    show "multp (\<prec>S) (mset_set (insert C'' (fset N))) ({#C'#} + mset_set (fset N))"
+    show "\<mu>1 (mset_set (insert C'' (fset N))) ({#C'#} + mset_set (fset N))"
     proof (cases "C'' \<in> fset N")
       case True
       hence ins: "insert C'' (fset N) = fset N"
@@ -538,12 +552,12 @@ next
       show ?thesis
         unfolding aft bef multp_def
       proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-        show "multp (\<prec>S) {#C''#} {#C'#}"
+        show "\<mu>1 {#C''#} {#C'#}"
           unfolding multp_def using prec by (auto intro: singletons_in_mult)
       qed
     qed
   qed
-  hence "multp (\<prec>S) ?old_aft ?old_bef"
+  hence "\<mu>1 ?old_aft ?old_bef"
     unfolding bef aft .
   thus ?thesis
     unfolding defs using c'_ni by (auto simp: notin_fset)
@@ -599,21 +613,21 @@ proof (rule ccontr)
   have step: "lnth Sts j \<leadsto>OLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel nfin by blast
 
-  have "multp (\<prec>S) (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
+  have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))"
     if j_ge: "j \<ge> i" for j
-    using within_xx_step_imp_multp_Prec_S by (meson step that xx_j xx_sj)
-  hence "(multp (\<prec>S))\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+    using within_xx_step_imp_\<mu>1 by (meson step that xx_j xx_sj)
+  hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
-  hence inf_down_chain: "chain (multp (\<prec>S))\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
     using chain_ldropn_lmapI[OF _ si_lt] by blast
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
     using nfin by simp
 
   show False
-    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "multp (\<prec>S)"]
-      wfP_multp_Prec_S
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
+      wfP_\<mu>1
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
