@@ -116,22 +116,19 @@ where
     (P, None, A) \<leadsto>DLf (remove (select P) P, Some C, A)"
 | delete_fwd: "C \<in> no_labels.Red_F (fset A) \<or> (\<exists>C' \<in> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     (P, Some C, A) \<leadsto>DLf (P, None, A)"
-| simplify_fwd: "C \<in> no_labels.Red_F (fset A \<union> {C'}) \<Longrightarrow> (P, Some C, A) \<leadsto>DLf (P, Some C', A)"
+| simplify_fwd: "C' \<prec>S C \<Longrightarrow> C \<in> no_labels.Red_F (fset A \<union> {C'}) \<Longrightarrow>
+    (P, Some C, A) \<leadsto>DLf (P, Some C', A)"
 | delete_bwd: "C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
     (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (P, Some C, A)"
-| simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd: "C'' \<prec>S C' \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (add (Passive_Formula C'') P, Some C, A)"
 | compute_infer: "P \<noteq> empty \<Longrightarrow> select P = Passive_Inference \<iota> \<Longrightarrow>
     \<iota> \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
     (P, None, A) \<leadsto>DLf (remove (select P) P, Some C, A)"
-(*
-TODO: Add these, plus the \<prec>S order:
-
-| schedule_infer: "T' = no_labels.Inf_between A {C} \<Longrightarrow>
-    state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
-| delete_orphan_formulas: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
-    state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
-*)
+| schedule_infer: "set \<iota>s = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
+    (P, Some C, A) \<leadsto>DLf (fold (add \<circ> Passive_Inference) \<iota>s P, None, A |\<union>| {|C|})"
+| delete_orphan_formulas: "set \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
+    (P, Y, A) \<leadsto>DLf (fold (remove \<circ> Passive_Inference) \<iota>s P, Y, A)"
 
 end
 
