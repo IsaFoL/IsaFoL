@@ -421,7 +421,18 @@ lemma xx_nonempty_ILf_step_imp_\<mu>1:
     xx': "xx_of St' \<noteq> None"
   shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
   using step
-  sorry
+proof cases
+  case ol
+  then show ?thesis
+    using xx_nonempty_OLf_step_imp_\<mu>1[OF _ xx xx'] by blast
+next
+  case (red_by_children C A M C' P)
+  note defs = this(1,2)
+  have False
+    using xx unfolding defs by simp
+  thus ?thesis
+    by blast
+qed
 
 lemma fair_IL_Liminf_xx_empty:
   assumes
@@ -563,7 +574,19 @@ lemma yy_empty_ILf_step_imp_\<mu>2:
     yy: "yy_of St = None" and
     yy': "yy_of St' = None"
   shows "\<mu>2 St' St"
-  sorry
+  using step
+proof cases
+  case ol
+  then show ?thesis
+    using yy_empty_OLf_step_imp_\<mu>2[OF _ yy yy'] by blast
+next
+  case (red_by_children C A M C' P)
+  note defs = this(1,2)
+  have False
+    using yy unfolding defs by simp
+  then show ?thesis
+    by blast
+qed
 
 lemma fair_IL_Liminf_new_empty:
   assumes
@@ -615,9 +638,9 @@ proof (rule ccontr)
 qed
 
 lemma OLf_step_imp_passive_step:
-  assumes olf_step: "St \<leadsto>OLf St'"
+  assumes step: "St \<leadsto>OLf St'"
   shows "passive_step (passive_of St) (passive_of St')"
-  using olf_step
+  using step
 proof cases
   case (choose_n C N P A)
   note defs = this(1,2)
@@ -697,9 +720,19 @@ next
 qed
 
 lemma ILf_step_imp_passive_step:
-  assumes ilf_step: "St \<leadsto>ILf St'"
+  assumes step: "St \<leadsto>ILf St'"
   shows "passive_step (passive_of St) (passive_of St')"
-  sorry
+  using step
+proof cases
+  case ol
+  then show ?thesis
+    using OLf_step_imp_passive_step by blast
+next
+  case (red_by_children C A M C' P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (auto intro: passive_step_idleI)
+qed
 
 lemma yy_empty_OLf_step_imp_\<mu>3:
   assumes step: "(N, X, P, None, A) \<leadsto>OLf (N', X', P', None, A')" (is "?bef \<leadsto>OLf ?aft")
