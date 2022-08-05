@@ -98,11 +98,43 @@ definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
 definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
   "passive_formulas_of P = {C. Passive_Formula C \<in> elems P}"
 
-lemma passive_inferences_of[simp]: "passive_inferences_of empty = {}"
+lemma passive_inferences_of_empty[simp]: "passive_inferences_of empty = {}"
   unfolding passive_inferences_of_def by simp
 
-lemma passive_formulas_of[simp]: "passive_formulas_of empty = {}"
+lemma passive_inferences_of_add_Passive_Inference[simp]:
+  "passive_inferences_of (add (Passive_Inference \<iota>) P) = {\<iota>} \<union> passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_add_Passive_Formula[simp]:
+  "passive_inferences_of (add (Passive_Formula C) P) = passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_remove_Passive_Inference[simp]:
+  "passive_inferences_of (remove (Passive_Inference \<iota>) P) = passive_inferences_of P - {\<iota>}"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_remove_Passive_Formula[simp]:
+  "passive_inferences_of (remove (Passive_Formula C) P) = passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_formulas_of_empty[simp]: "passive_formulas_of empty = {}"
   unfolding passive_formulas_of_def by simp
+
+lemma passive_formulas_of_add_Passive_Inference[simp]:
+  "passive_formulas_of (add (Passive_Inference \<iota>) P) = passive_formulas_of P"
+  unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_add_Passive_Formula[simp]:
+  "passive_formulas_of (add (Passive_Formula C) P) = {C} \<union> passive_formulas_of P"
+  unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_remove_Passive_Inference[simp]:
+  "passive_formulas_of (remove (Passive_Inference \<iota>) P) = passive_formulas_of P"
+  unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_remove_Passive_Formula[simp]:
+  "passive_formulas_of (remove (Passive_Formula C) P) = passive_formulas_of P - {C}"
+  unfolding passive_formulas_of_def by auto
 
 fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
@@ -320,7 +352,55 @@ lemma fair_DL_step_imp_DL_step:
   assumes dlf: "(P, Y, A) \<leadsto>DLf (P', Y', A')"
   shows "fstate (P, Y, A) \<leadsto>DL fstate (P', Y', A')"
   using dlf
-  sorry
+proof cases
+  case (compute_infer \<iota> C)
+  note defs = this(1-4) and p_nemp = this(5) and sel = this(6) and \<iota>_red = this(7)
+
+  have pas_min_\<iota>_uni_\<iota>: "passive_inferences_of P - {\<iota>} \<union> {\<iota>} = passive_inferences_of P"
+    by (metis Un_insert_right insert_Diff_single insert_absorb mem_Collect_eq p_nemp
+        passive_inferences_of_def sel select_in_elems sup_bot.right_neutral)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using DL.compute_infer[OF \<iota>_red,
+        of "passive_inferences_of (remove (select P) P)" "passive_formulas_of P"]
+    unfolding sel
+    by (simp only: prod.sel option.set passive_inferences_of_remove_Passive_Inference
+        passive_formulas_of_remove_Passive_Inference pas_min_\<iota>_uni_\<iota>)
+next
+  case (choose_p C)
+  note defs = this(1-4) and p_nemp = this(5) and sel = this(6)
+
+  have pas_min_c_uni_c: "passive_formulas_of P - {C} \<union> {C} = passive_formulas_of P"
+    by (metis Un_insert_right insert_Diff mem_Collect_eq p_nemp passive_formulas_of_def sel
+        select_in_elems sup_bot.right_neutral)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using DL.choose_p[of "passive_inferences_of P" "passive_formulas_of (remove (select P) P)" C
+        "fset A"]
+    unfolding sel
+    by (simp only: prod.sel option.set passive_formulas_of_remove_Passive_Formula
+        passive_inferences_of_remove_Passive_Formula pas_min_c_uni_c)
+next
+  case (delete_fwd C)
+  then show ?thesis sorry
+next
+  case (simplify_fwd C' C)
+  then show ?thesis sorry
+next
+  case (delete_bwd C' C)
+  then show ?thesis sorry
+next
+  case (simplify_bwd C'' C' C)
+  then show ?thesis sorry
+next
+  case (schedule_infer \<iota>s C)
+  then show ?thesis sorry
+next
+  case (delete_orphan_formulas \<iota>s)
+  then show ?thesis sorry
+qed
 
 lemma fair_DL_step_imp_GC_step:
   "(P, Y, A) \<leadsto>DLf (P', Y', A') \<Longrightarrow> fstate (P, Y, A) \<leadsto>LGC fstate (P', Y', A')"
