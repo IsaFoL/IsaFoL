@@ -82,8 +82,32 @@ definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
 lemma passive_inferences_of[simp]: "passive_inferences_of empty = {}"
   unfolding passive_inferences_of_def by simp
 
+lemma passive_inferences_of_add_Passive_Inference[simp]:
+  "passive_inferences_of (add (Passive_Inference \<iota>) P) = {\<iota>} \<union> passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_add_Passive_Formula[simp]:
+  "passive_inferences_of (add (Passive_Formula C) P) = passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_remove_Passive_Inference[simp]:
+  "passive_inferences_of (remove (Passive_Inference \<iota>) P) = passive_inferences_of P - {\<iota>}"
+  unfolding passive_inferences_of_def by auto
+
+lemma passive_inferences_of_remove_Passive_Formula[simp]:
+  "passive_inferences_of (remove (Passive_Formula C) P) = passive_inferences_of P"
+  unfolding passive_inferences_of_def by auto
+
 lemma passive_formulas_of[simp]: "passive_formulas_of empty = {}"
   unfolding passive_formulas_of_def by simp
+
+lemma passive_formulas_of_add_Passive_Inference[simp]:
+  "passive_formulas_of (add (Passive_Inference \<iota>) P) = passive_formulas_of P"
+  unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_add_Passive_Formula[simp]:
+  "passive_formulas_of (add (Passive_Formula C) P) = {C} \<union> passive_formulas_of P"
+  unfolding passive_formulas_of_def by auto
 
 fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
@@ -163,8 +187,24 @@ lemma step_fair_DL_invariant:
     inv: "fair_DL_invariant St" and
     step: "St \<leadsto>DLf St'"
   shows "fair_DL_invariant St'"
-  using step inv apply cases
-  apply (simp_all add: fair_DL_invariant.intros)
+  using step inv
+proof cases
+  case (compute_infer P \<iota> A C)
+  then show ?thesis sorry
+next
+  case (choose_p P C A)
+  then show ?thesis sorry
+next
+  case (schedule_infer \<iota>s A C P)
+  then show ?thesis sorry
+next
+  case (delete_orphan_formulas \<iota>s P A Y)
+  note defs = this(1,2)
+  show ?thesis
+    using inv unfolding defs
+    apply (auto simp: fair_DL_invariant.simps)
+    sorry
+qed (simp_all add: fair_DL_invariant.simps)
 
 lemma chain_fair_DL_invariant_lnth:
   assumes
