@@ -202,10 +202,10 @@ qed
 sublocale fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
 proof unfold_locales
   fix Ps :: "'f list llist"
-    assume
-      chain: "chain passive_step Ps" and
-      inf_sel: "infinitely_often select_passive_step Ps" and
-      hd_emp: "lhd Ps = []"
+  assume
+    chain: "chain passive_step Ps" and
+    inf_sel: "infinitely_often select_passive_step Ps" and
+    hd_emp: "lhd Ps = []"
 
   show "Liminf_llist (lmap elems Ps) = {}"
   proof (rule ccontr)
