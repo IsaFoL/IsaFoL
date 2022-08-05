@@ -82,32 +82,8 @@ definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
 lemma passive_inferences_of[simp]: "passive_inferences_of empty = {}"
   unfolding passive_inferences_of_def by simp
 
-lemma passive_inferences_of_add_Passive_Inference[simp]:
-  "passive_inferences_of (add (Passive_Inference \<iota>) P) = {\<iota>} \<union> passive_inferences_of P"
-  unfolding passive_inferences_of_def by auto
-
-lemma passive_inferences_of_add_Passive_Formula[simp]:
-  "passive_inferences_of (add (Passive_Formula C) P) = passive_inferences_of P"
-  unfolding passive_inferences_of_def by auto
-
-lemma passive_inferences_of_remove_Passive_Inference[simp]:
-  "passive_inferences_of (remove (Passive_Inference \<iota>) P) = passive_inferences_of P - {\<iota>}"
-  unfolding passive_inferences_of_def by auto
-
-lemma passive_inferences_of_remove_Passive_Formula[simp]:
-  "passive_inferences_of (remove (Passive_Formula C) P) = passive_inferences_of P"
-  unfolding passive_inferences_of_def by auto
-
 lemma passive_formulas_of[simp]: "passive_formulas_of empty = {}"
   unfolding passive_formulas_of_def by simp
-
-lemma passive_formulas_of_add_Passive_Inference[simp]:
-  "passive_formulas_of (add (Passive_Inference \<iota>) P) = passive_formulas_of P"
-  unfolding passive_formulas_of_def by auto
-
-lemma passive_formulas_of_add_Passive_Formula[simp]:
-  "passive_formulas_of (add (Passive_Formula C) P) = {C} \<union> passive_formulas_of P"
-  unfolding passive_formulas_of_def by auto
 
 fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
@@ -189,22 +165,14 @@ lemma step_fair_DL_invariant:
   shows "fair_DL_invariant St'"
   using step inv
 proof cases
-  case (compute_infer P \<iota> A C)
-  then show ?thesis sorry
-next
-  case (choose_p P C A)
-  then show ?thesis sorry
-next
   case (schedule_infer \<iota>s A C P)
-  then show ?thesis sorry
-next
-  case (delete_orphan_formulas \<iota>s P A Y)
-  note defs = this(1,2)
+  note defs = this(1,2) and \<iota>s_inf_betw = this(3)
+  have \<iota>s_inf: "set \<iota>s \<subseteq> Inf_F"
+    using \<iota>s_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   show ?thesis
-    using inv unfolding defs
-    apply (auto simp: fair_DL_invariant.simps)
-    sorry
-qed (simp_all add: fair_DL_invariant.simps)
+    using inv \<iota>s_inf unfolding defs
+    by (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
+qed (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
 
 lemma chain_fair_DL_invariant_lnth:
   assumes
@@ -219,9 +187,17 @@ proof (induct i)
     using fair_hd lhd_conv_lnth zero_enat_def by fastforce
 next
   case (Suc i)
-  thus ?case
-    using chain step_fair_DL_invariant
-    by (metis dual_order.refl fair_DL_invariant.intros fstate.cases)
+  note ih = this(1) and si_lt = this(2)
+
+  have "enat i < llength Sts"
+    using si_lt Suc_ile_eq nless_le by blast
+  hence inv_i: "fair_DL_invariant (lnth Sts i)"
+    by (rule ih)
+  have step: "lnth Sts i \<leadsto>DLf lnth Sts (Suc i)"
+    using chain chain_lnth_rel si_lt by blast
+
+  show ?case
+    by (rule step_fair_DL_invariant[OF inv_i step])
 qed
 
 lemma chain_fair_DL_invariant_llast:

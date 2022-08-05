@@ -107,11 +107,16 @@ lemma formula_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> elems P \<not
 lemma select_in_elems[simp]: "P \<noteq> empty \<Longrightarrow> select P \<in> elems P"
   by (metis fmember.rep_eq select_in_felems)
 
-lemma elems_add: "elems (add C P) = {C} \<union> elems P"
-  by simp
+lemma
+  elems_add: "elems (add C P) = {C} \<union> elems P" and
+  elems_remove: "elems (remove C P) = elems P - {C}"
+  by simp+
 
-lemma elems_remove: "elems (remove C P) = elems P - {C}"
-  by simp
+lemma elems_fold_add[simp]: "elems (fold add Cs P) = set Cs \<union> elems P"
+  by (induct Cs arbitrary: P) auto
+
+lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
+  by (induct Cs arbitrary: P) auto
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   passive_step_idleI: "passive_step P P"
