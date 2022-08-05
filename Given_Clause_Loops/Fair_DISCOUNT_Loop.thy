@@ -125,6 +125,14 @@ lemma passive_inferences_of_remove_Passive_Formula[simp]:
   "passive_inferences_of (remove (Passive_Formula C) P) = passive_inferences_of P"
   unfolding passive_inferences_of_def by auto
 
+lemma passive_inferences_of_fold_remove_Passive_Inference[simp]:
+  "passive_inferences_of (fold (remove \<circ> Passive_Inference) \<iota>s P) = passive_inferences_of P - set \<iota>s"
+  by (induct \<iota>s arbitrary: P) auto
+
+lemma passive_inferences_of_fold_remove_Passive_Formula[simp]:
+  "passive_inferences_of (fold (remove \<circ> Passive_Formula) Cs P) = passive_inferences_of P"
+  by (induct Cs arbitrary: P) auto
+
 lemma passive_formulas_of_empty[simp]: "passive_formulas_of empty = {}"
   unfolding passive_formulas_of_def by simp
 
@@ -151,6 +159,14 @@ lemma passive_formulas_of_remove_Passive_Inference[simp]:
 lemma passive_formulas_of_remove_Passive_Formula[simp]:
   "passive_formulas_of (remove (Passive_Formula C) P) = passive_formulas_of P - {C}"
   unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_fold_remove_Passive_Inference[simp]:
+  "passive_formulas_of (fold (remove \<circ> Passive_Inference) \<iota>s P) = passive_formulas_of P"
+  by (induct \<iota>s arbitrary: P) auto
+
+lemma passive_formulas_of_fold_remove_Passive_Formula[simp]:
+  "passive_formulas_of (fold (remove \<circ> Passive_Formula) Cs P) = passive_formulas_of P - set Cs"
+  by (induct Cs arbitrary: P) auto
 
 fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
@@ -425,7 +441,18 @@ next
     using DL.schedule_infer[OF \<iota>s, of "passive_inferences_of P" "passive_formulas_of P"] by simp
 next
   case (delete_orphan_formulas \<iota>s)
-  then show ?thesis sorry
+  note defs = this(1-3) and \<iota>s_ne = this(4) and \<iota>s_pas = this(5) and inter = this(6)
+
+  have pas_min_\<iota>s_uni_\<iota>s: "passive_inferences_of P - set \<iota>s \<union> set \<iota>s = passive_inferences_of P"
+    by (simp add: \<iota>s_pas set_eq_subset)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using DL.delete_orphan_formulas[OF inter,
+        of "passive_inferences_of (fold (remove \<circ> Passive_Inference) \<iota>s P)"
+        "passive_formulas_of P" "set_option Y"]
+    by (simp only: prod.sel passive_inferences_of_fold_remove_Passive_Inference
+        passive_formulas_of_fold_remove_Passive_Inference pas_min_\<iota>s_uni_\<iota>s)
 qed
 
 lemma fair_DL_step_imp_GC_step:
