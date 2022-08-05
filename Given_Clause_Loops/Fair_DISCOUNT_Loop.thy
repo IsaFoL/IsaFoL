@@ -314,6 +314,17 @@ next
 qed
 
 
+subsection \<open>Refinement\<close>
+
+lemma fair_DL_step_imp_DL_step:
+  assumes dlf: "(P, Y, A) \<leadsto>DLf (P', Y', A')"
+  shows "fstate (P, Y, A) \<leadsto>DL fstate (P', Y', A')"
+  using dlf
+  sorry
+
+lemma fair_DL_step_imp_GC_step:
+  "(P, Y, A) \<leadsto>DLf (P', Y', A') \<Longrightarrow> fstate (P, Y, A) \<leadsto>LGC fstate (P', Y', A')"
+  by (rule DL_step_imp_LGC_step[OF fair_DL_step_imp_DL_step])
 
 end
 
