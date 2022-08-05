@@ -469,6 +469,135 @@ subsection \<open>Completeness\<close>
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
+lemma fair_DL_Liminf_yy_empty:
+  assumes
+    full: "full_chain (\<leadsto>DLf) Sts" and
+    inv: "fair_DL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
+
+  have chain: "chain (\<leadsto>DLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  have inv_at_i: "fair_DL_invariant (lnth Sts i)"
+    by (simp add: chain chain_fair_DL_invariant_lnth i_lt inv)
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
+    by auto
+
+(*
+  have yy_at_i: "yy_of (lnth Sts i) = Some C"
+    using c_in' i_lt by blast
+  have new_at_i: "new_of (lnth Sts i) = {||}" and
+    xx_at_i: "new_of (lnth Sts i) = {||}"
+    using yy_at_i chain_fair_IL_invariant_lnth[OF chain inv i_lt]
+    by (force simp: fair_OL_invariant.simps)+
+
+  have "\<exists>St'. lnth Sts i \<leadsto>ILf St'"
+    using is_final_fair_OL_state_iff_no_ILf_step[OF inv_at_i]
+    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
+  hence si_lt: "enat (Suc i) < llength Sts"
+    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
+
+  obtain P :: 'p and A :: "'f fset" where
+    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
+    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+
+  have "lnth Sts i \<leadsto>ILf lnth Sts (Suc i)"
+    by (simp add: chain chain_lnth_rel si_lt)
+  hence "({||}, None, P, Some C, A) \<leadsto>ILf lnth Sts (Suc i)"
+    unfolding at_i .
+  hence "yy_of (lnth Sts (Suc i)) = None"
+  proof cases
+    case ol
+    then show ?thesis
+      by cases simp
+  next
+    case (red_by_children M C')
+    then show ?thesis
+      by simp
+  qed
+  thus False
+    using c_in' si_lt by simp
+*)
+  show False
+    sorry
+qed
+
+lemma fair_DL_Liminf_passive_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>DLf) Sts" and
+    init: "is_initial_fair_DL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
+proof -
+  have chain_step: "chain passive_step (lmap passive_of Sts)"
+    sorry
+(*
+    using DLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+    by (metis (no_types, lifting))
+*)
+
+  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+  proof
+    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    then obtain i :: nat where
+      no_sel:
+        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+
+    have si_lt: "enat (Suc i) < llength Sts"
+      unfolding len by auto
+
+    have step: "lnth Sts j \<leadsto>DLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+      using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+      by blast
+
+    have yy: "yy_of (lnth Sts (Suc j)) = None"
+      if j_ge: "j \<ge> i" for j
+      using step[OF j_ge]
+      sorry (* proof cases *)
+
+(*
+    have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+      by (rule non_choose_p_ILf_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
+    hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using j_ge by blast
+    hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
+      using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+*)
+
+    have inf_i: "\<not> lfinite (ldropn i Sts)"
+      using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+
+    show False
+      sorry
+(*
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>3"] wfP_\<mu>3 by blast
+*)
+  qed
+
+  have hd_emp: "lhd (lmap passive_of Sts) = empty"
+    sorry (* UNPROVABLE *)
+(*
+    using init full full_chain_not_lnull unfolding is_initial_fair_DL_state.simps by fastforce
+*)
+
+  have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
+    by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
+  thus ?thesis
+    by (simp add: llist.map_comp)
+qed
+
 theorem
   assumes
     full: "full_chain (\<leadsto>DLf) Sts" and
@@ -498,14 +627,12 @@ proof -
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
   have pas_fml: "passive_subset (Liminf_llist (lmap (snd \<circ> fstate) Sts)) = {}"
-    sorry
-(*
   proof (cases "lfinite Sts")
     case fin: True
 
-    have lim: "Liminf_llist (lmap fstate Sts) = fstate (llast Sts)"
+    have lim: "Liminf_llist (lmap (snd \<circ> fstate) Sts) = snd (fstate (llast Sts))"
       using lfinite_Liminf_llist fin nnul
-      by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
+      by (metis comp_eq_dest_lhs lfinite_lmap llast_lmap llist.map_disc_iff)
 
     have last_inv: "fair_DL_invariant (llast Sts)"
       by (rule chain_fair_DL_invariant_llast[OF chain inv fin])
@@ -515,7 +642,7 @@ proof -
     hence "is_final_fair_DL_state (llast Sts)"
       unfolding is_final_fair_DL_state_iff_no_DLf_step[OF last_inv] .
     then obtain A :: "'f fset" where
-      at_l: "llast Sts = ({||}, None, empty, None, A)"
+      at_l: "llast Sts = (empty, None, A)"
       unfolding is_final_fair_DL_state.simps by blast
     show ?thesis
       unfolding is_final_fair_DL_state.simps passive_subset_def lim at_l by auto
@@ -525,13 +652,10 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
-      using fair_DL_Liminf_new_empty[OF len full inv]
-        fair_DL_Liminf_xx_empty[OF len full inv]
-        fair_DL_Liminf_passive_empty[OF len full init]
+      using fair_DL_Liminf_passive_empty[OF len full init]
         fair_DL_Liminf_yy_empty[OF full inv]
       by simp
   qed
-*)
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap fstate Sts))"
     using inf_have_prems by blast
