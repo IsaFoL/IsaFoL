@@ -98,8 +98,9 @@ definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
 definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
   "passive_formulas_of P = {C. Passive_Formula C \<in> elems P}"
 
-fun all_formulas_of :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f set" where
-  "all_formulas_of (P, Y, A) = passive_formulas_of P \<union> set_option Y \<union> fset A"
+abbreviation all_formulas_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f set" where
+  "all_formulas_of St \<equiv> passive_formulas_of (passive_of St) \<union> set_option (yy_of St) \<union>
+     fset (active_of St)"
 
 lemma passive_inferences_of_empty[simp]: "passive_inferences_of empty = {}"
   unfolding passive_inferences_of_def by simp
@@ -549,9 +550,7 @@ proof -
   thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)"
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
   thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-    unfolding Liminf_fstate_def Liminf_llist_def
-    apply auto
-    sorry
+    unfolding Liminf_fstate_def Liminf_llist_def by auto
 qed
 
 end
