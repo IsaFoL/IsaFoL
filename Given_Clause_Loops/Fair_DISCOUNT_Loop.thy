@@ -543,19 +543,65 @@ proof -
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 *)
 
-  thm lgc_complete_Liminf
-
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> fstate) Sts)"
-    sorry
-(*
-    by (rule lgc_complete_Liminf[OF gc_chain act pas bot unsat'])
-*)
+    by (rule lgc_complete_Liminf[of "lmap fstate Sts", unfolded llist.map_comp,
+          OF lgc_chain act pas_fml no_prems_init pas_inf bot unsat'])
   thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)"
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
   thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
     unfolding Liminf_fstate_def Liminf_llist_def
     apply auto
     sorry
+qed
+
+end
+
+
+subsection \<open>Specialization with FIFO Queue\<close>
+
+text \<open>As a proof of concept, we specialize the passive set to use a FIFO queue,
+thereby eliminating the locale assumptions about the passive set.\<close>
+
+locale fifo_discount_loop =
+  discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool" and
+    Inf_G_q :: "'q \<Rightarrow> 'g inference set" and
+    Red_I_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
+    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
+    \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
+    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) +
+  fixes
+    Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
+  assumes
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    transp_Prec_S: "transp (\<prec>S)" and
+    finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
+begin
+
+sublocale fifo_passive_set
+  .
+
+sublocale fair_discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
+  Equiv_F Prec_F "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+proof unfold_locales
+  show "po_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.po by blast
+next
+  show "wfp_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.wf by blast
+next
+  show "transp (\<prec>S)"
+    by (rule transp_Prec_S)
+next
+  show "\<And>A C. finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
+    by (fact finite_Inf_between)
 qed
 
 end
