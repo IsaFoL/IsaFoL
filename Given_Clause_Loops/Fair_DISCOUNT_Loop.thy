@@ -13,9 +13,28 @@ theory Fair_DISCOUNT_Loop
 begin
 
 
-subsection \<open>Setup\<close>
+subsection \<open>Setup and Utility\<close>
 
 hide_const (open) Seq.chain
+
+lemma finite_imp_set_eq:
+  assumes fin: "finite A"
+  shows "\<exists>xs. set xs = A"
+  using fin
+proof (induct A rule: finite_induct)
+  case empty
+  then show ?case
+    by auto
+next
+  case (insert x B)
+  then obtain xs :: "'a list" where
+    "set xs = B"
+    by blast
+  then have "set (x # xs) = insert x B"
+    by auto
+  then show ?case
+    by blast
+qed
 
 
 section \<open>Locale\<close>
@@ -281,24 +300,14 @@ next
         y: "Y = Some C"
         by blast
 
-      have n: "N = {||}" and
-        x: "X = None"
-        using y inv' by blast+
-
-      let ?M = "concl_of ` no_labels.Inf_between (fset A) {C}"
-
-      have fin: "finite ?M"
-        by (simp add: finite_Inf_between)
-      have fset_abs_m: "fset (Abs_fset ?M) = ?M"
-        by (rule Abs_fset_inverse[simplified, OF fin])
-
-      have inf_red: "no_labels.Inf_between (fset A) {C}
-        \<subseteq> no_labels.Red_I_\<G> (fset A \<union> {C} \<union> fset (Abs_fset ?M))"
-        by (simp add: fset_abs_m no_labels.Inf_if_Inf_between no_labels.empty_ord.Red_I_of_Inf_to_N
-            subsetI)
+      have fin: "finite (no_labels.Inf_between (fset A) {C})"
+        by (rule finite_Inf_between[of "fset A", simplified])
+      obtain \<iota>s :: "'f inference list" where
+        \<iota>s: "set \<iota>s = no_labels.Inf_between (fset A) {C}"
+        using finite_imp_set_eq[OF fin] by blast
 
       have "\<exists>St'. St \<leadsto>DLf St'"
-        using fair_DL.infer[OF inf_red] unfolding st n x y by fast
+        using fair_DL.schedule_infer[OF \<iota>s] unfolding st y by fast
     } ultimately show False
       using no_step by force
   qed
