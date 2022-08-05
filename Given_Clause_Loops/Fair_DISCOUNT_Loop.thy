@@ -109,6 +109,14 @@ lemma passive_inferences_of_add_Passive_Formula[simp]:
   "passive_inferences_of (add (Passive_Formula C) P) = passive_inferences_of P"
   unfolding passive_inferences_of_def by auto
 
+lemma passive_inferences_of_fold_add_Passive_Inference[simp]:
+  "passive_inferences_of (fold (add \<circ> Passive_Inference) \<iota>s P) = passive_inferences_of P \<union> set \<iota>s"
+  by (induct \<iota>s arbitrary: P) auto
+
+lemma passive_inferences_of_fold_add_Passive_Formula[simp]:
+  "passive_inferences_of (fold (add \<circ> Passive_Formula) Cs P) = passive_inferences_of P"
+  by (induct Cs arbitrary: P) auto
+
 lemma passive_inferences_of_remove_Passive_Inference[simp]:
   "passive_inferences_of (remove (Passive_Inference \<iota>) P) = passive_inferences_of P - {\<iota>}"
   unfolding passive_inferences_of_def by auto
@@ -127,6 +135,14 @@ lemma passive_formulas_of_add_Passive_Inference[simp]:
 lemma passive_formulas_of_add_Passive_Formula[simp]:
   "passive_formulas_of (add (Passive_Formula C) P) = {C} \<union> passive_formulas_of P"
   unfolding passive_formulas_of_def by auto
+
+lemma passive_formulas_of_fold_add_Passive_Inference[simp]:
+  "passive_formulas_of (fold (add \<circ> Passive_Inference) \<iota>s P) = passive_formulas_of P"
+  by (induct \<iota>s arbitrary: P) auto
+
+lemma passive_formulas_of_fold_add_Passive_Formula[simp]:
+  "passive_formulas_of (fold (add \<circ> Passive_Formula) Cs P) = passive_formulas_of P \<union> set Cs"
+  by (induct Cs arbitrary: P) auto
 
 lemma passive_formulas_of_remove_Passive_Inference[simp]:
   "passive_formulas_of (remove (Passive_Inference \<iota>) P) = passive_formulas_of P"
@@ -379,24 +395,34 @@ next
     unfolding defs fstate_alt_def
     using DL.choose_p[of "passive_inferences_of P" "passive_formulas_of (remove (select P) P)" C
         "fset A"]
-    unfolding sel
-    by (simp only: prod.sel option.set passive_formulas_of_remove_Passive_Formula
+    unfolding sel by (simp only: prod.sel option.set passive_formulas_of_remove_Passive_Formula
         passive_inferences_of_remove_Passive_Formula pas_min_c_uni_c)
 next
   case (delete_fwd C)
-  then show ?thesis sorry
+  note defs = this(1-4) and c_in = this(5)
+  show ?thesis
+    unfolding defs fstate_alt_def using DL.delete_fwd[OF c_in] by simp
 next
   case (simplify_fwd C' C)
-  then show ?thesis sorry
+  note defs = this(1-4) and c_in = this(6)
+  show ?thesis
+    unfolding defs fstate_alt_def using DL.simplify_fwd[OF c_in] by simp
 next
   case (delete_bwd C' C)
-  then show ?thesis sorry
+  note defs = this(1-4) and c_in = this(5)
+  show ?thesis
+    unfolding defs fstate_alt_def using DL.delete_bwd[OF c_in] by simp
 next
   case (simplify_bwd C'' C' C)
-  then show ?thesis sorry
+  note defs = this(1-4) and c_in = this(6)
+  show ?thesis
+    unfolding defs fstate_alt_def using DL.simplify_bwd[OF c_in] by simp
 next
   case (schedule_infer \<iota>s C)
-  then show ?thesis sorry
+  note defs = this(1-4) and \<iota>s = this(5)
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using DL.schedule_infer[OF \<iota>s, of "passive_inferences_of P" "passive_formulas_of P"] by simp
 next
   case (delete_orphan_formulas \<iota>s)
   then show ?thesis sorry
