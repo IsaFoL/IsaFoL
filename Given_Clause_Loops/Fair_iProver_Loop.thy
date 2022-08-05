@@ -904,18 +904,18 @@ theorem
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
     IL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" and
-    IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
+    IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
 proof -
-  have ilf_chain: "chain (\<leadsto>ILf) Sts"
+  have chain: "chain (\<leadsto>ILf) Sts"
     by (rule full_chain_imp_chain[OF full])
   have gc_chain: "chain (\<leadsto>GC) (lmap fstate Sts)"
-    using ilf_chain fair_IL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
+    using chain fair_IL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
-  have olf_inv: "fair_OL_invariant (lhd Sts)"
+  have inv: "fair_OL_invariant (lhd Sts)"
     using init unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by fast
 
   have nnul: "\<not> lnull Sts"
-    using ilf_chain chain_not_lnull by blast
+    using chain chain_not_lnull by blast
   hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
     by (rule llist.map_sel(1))
 
@@ -933,7 +933,7 @@ proof -
       by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
 
     have last_inv: "fair_OL_invariant (llast Sts)"
-      by (rule chain_fair_IL_invariant_llast[OF ilf_chain olf_inv fin])
+      by (rule chain_fair_IL_invariant_llast[OF chain inv fin])
 
     have "\<forall>St'. \<not> llast Sts \<leadsto>ILf St'"
       using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
@@ -950,10 +950,10 @@ proof -
       by (simp add: not_lfinite_llength)
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
-      using fair_IL_Liminf_new_empty[OF len full olf_inv]
-        fair_IL_Liminf_xx_empty[OF len full olf_inv]
+      using fair_IL_Liminf_new_empty[OF len full inv]
+        fair_IL_Liminf_xx_empty[OF len full inv]
         fair_IL_Liminf_passive_empty[OF len full init]
-        fair_IL_Liminf_yy_empty[OF full olf_inv]
+        fair_IL_Liminf_yy_empty[OF full inv]
       by simp
   qed
 
@@ -964,7 +964,7 @@ proof -
     by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
   thus "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_of (lnth Sts i))"
+  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
     unfolding Liminf_fstate_def Liminf_llist_def by auto
 qed
 

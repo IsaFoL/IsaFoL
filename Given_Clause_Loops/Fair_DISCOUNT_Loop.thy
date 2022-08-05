@@ -98,6 +98,9 @@ definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
 definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
   "passive_formulas_of P = {C. Passive_Formula C \<in> elems P}"
 
+fun all_formulas_of :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f set" where
+  "all_formulas_of (P, Y, A) = passive_formulas_of P \<union> set_option Y \<union> fset A"
+
 lemma passive_inferences_of_empty[simp]: "passive_inferences_of empty = {}"
   unfolding passive_inferences_of_def by simp
 
@@ -185,7 +188,7 @@ where
     Liminf_llist (lmap (fset \<circ> active_of) Sts))"
 
 lemma Liminf_fstate_commute:
-  "Liminf_llist (lmap (snd \<circ> fstate) Sts) = formulas_of (Liminf_fstate Sts)"
+  "Liminf_llist (lmap (snd \<circ> fstate) Sts) = labeled_formulas_of (Liminf_fstate Sts)"
 proof -
   have "Liminf_llist (lmap (snd \<circ> fstate) Sts) =
     (\<lambda>C. (C, Passive)) ` Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts) \<union>
@@ -221,7 +224,7 @@ where
     (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (add (Passive_Formula C'') P, Some C, A)"
 | schedule_infer: "set \<iota>s = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
     (P, Some C, A) \<leadsto>DLf (fold (add \<circ> Passive_Inference) \<iota>s P, None, A |\<union>| {|C|})"
-| delete_orphan_formulas: "\<iota>s \<noteq> [] \<Longrightarrow> set \<iota>s \<subseteq> passive_inferences_of P \<Longrightarrow>
+| delete_orphan_infers: "\<iota>s \<noteq> [] \<Longrightarrow> set \<iota>s \<subseteq> passive_inferences_of P \<Longrightarrow>
     set \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (P, Y, A) \<leadsto>DLf (fold (remove \<circ> Passive_Inference) \<iota>s P, Y, A)"
 
@@ -440,7 +443,7 @@ next
     unfolding defs fstate_alt_def
     using DL.schedule_infer[OF \<iota>s, of "passive_inferences_of P" "passive_formulas_of P"] by simp
 next
-  case (delete_orphan_formulas \<iota>s)
+  case (delete_orphan_infers \<iota>s)
   note defs = this(1-3) and \<iota>s_ne = this(4) and \<iota>s_pas = this(5) and inter = this(6)
 
   have pas_min_\<iota>s_uni_\<iota>s: "passive_inferences_of P - set \<iota>s \<union> set \<iota>s = passive_inferences_of P"
@@ -448,7 +451,7 @@ next
 
   show ?thesis
     unfolding defs fstate_alt_def
-    using DL.delete_orphan_formulas[OF inter,
+    using DL.delete_orphan_infers[OF inter,
         of "passive_inferences_of (fold (remove \<circ> Passive_Inference) \<iota>s P)"
         "passive_formulas_of P" "set_option Y"]
     by (simp only: prod.sel passive_inferences_of_fold_remove_Passive_Inference
@@ -458,6 +461,102 @@ qed
 lemma fair_DL_step_imp_GC_step:
   "(P, Y, A) \<leadsto>DLf (P', Y', A') \<Longrightarrow> fstate (P, Y, A) \<leadsto>LGC fstate (P', Y', A')"
   by (rule DL_step_imp_LGC_step[OF fair_DL_step_imp_DL_step])
+
+
+subsection \<open>Completeness\<close>
+
+theorem
+  assumes
+    full: "full_chain (\<leadsto>DLf) Sts" and
+    init: "is_initial_fair_DL_state (lhd Sts)" and
+    bot: "B \<in> Bot_F" and
+    unsat: "concl_of ` passive_inferences_of (passive_of (lhd Sts)) \<union>
+      passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+  shows
+    DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" and
+    DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+proof -
+  have chain: "chain (\<leadsto>DLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
+  have lgc_chain: "chain (\<leadsto>LGC) (lmap fstate Sts)"
+    using chain fair_DL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
+
+  have inv: "fair_DL_invariant (lhd Sts)"
+    using init unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by fast
+
+  have nnul: "\<not> lnull Sts"
+    using chain chain_not_lnull by blast
+  hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
+    by (rule llist.map_sel(1))
+
+  have "active_of (lhd Sts) = {||}"
+    by (metis is_initial_fair_DL_state.cases init snd_conv)
+  hence act: "active_subset (snd (lhd (lmap fstate Sts))) = {}"
+    unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
+
+  have pas_fml: "passive_subset (Liminf_llist (lmap (snd \<circ> fstate) Sts)) = {}"
+    sorry
+(*
+  proof (cases "lfinite Sts")
+    case fin: True
+
+    have lim: "Liminf_llist (lmap fstate Sts) = fstate (llast Sts)"
+      using lfinite_Liminf_llist fin nnul
+      by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
+
+    have last_inv: "fair_DL_invariant (llast Sts)"
+      by (rule chain_fair_DL_invariant_llast[OF chain inv fin])
+
+    have "\<forall>St'. \<not> llast Sts \<leadsto>DLf St'"
+      using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
+    hence "is_final_fair_DL_state (llast Sts)"
+      unfolding is_final_fair_DL_state_iff_no_DLf_step[OF last_inv] .
+    then obtain A :: "'f fset" where
+      at_l: "llast Sts = ({||}, None, empty, None, A)"
+      unfolding is_final_fair_DL_state.simps by blast
+    show ?thesis
+      unfolding is_final_fair_DL_state.simps passive_subset_def lim at_l by auto
+  next
+    case False
+    hence len: "llength Sts = \<infinity>"
+      by (simp add: not_lfinite_llength)
+    show ?thesis
+      unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
+      using fair_DL_Liminf_new_empty[OF len full inv]
+        fair_DL_Liminf_xx_empty[OF len full inv]
+        fair_DL_Liminf_passive_empty[OF len full init]
+        fair_DL_Liminf_yy_empty[OF full inv]
+      by simp
+  qed
+*)
+
+  have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap fstate Sts))"
+    sorry
+  thm lgc_complete_Liminf
+
+  have pas_inf: "Liminf_llist (lmap (fst \<circ> fstate) Sts) = {}"
+    sorry
+
+  have unsat': "fst ` snd (lhd (lmap fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
+    sorry
+(*
+    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+*)
+
+  thm lgc_complete_Liminf
+
+  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> fstate) Sts)"
+    sorry
+(*
+    by (rule lgc_complete_Liminf[OF gc_chain act pas bot unsat'])
+*)
+  thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)"
+    unfolding Liminf_fstate_def Liminf_fstate_commute by auto
+  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+    unfolding Liminf_fstate_def Liminf_llist_def
+    apply auto
+    sorry
+qed
 
 end
 

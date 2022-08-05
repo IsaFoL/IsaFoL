@@ -67,8 +67,9 @@ abbreviation yy_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd (snd St)))"
 abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd (snd St)))"
-abbreviation all_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
-  "all_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> elems (passive_of St) \<union>
+
+abbreviation all_formulas_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+  "all_formulas_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> elems (passive_of St) \<union>
      set_option (yy_of St) \<union> fset (active_of St)"
 
 fun fstate :: "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset \<Rightarrow> ('f \<times> OL_label) set" where

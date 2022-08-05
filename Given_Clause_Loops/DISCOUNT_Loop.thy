@@ -93,18 +93,19 @@ abbreviation c_dot_succ :: "'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<c
 abbreviation sqsupset :: "DL_label \<Rightarrow> DL_label \<Rightarrow> bool" (infix "\<sqsupset>L" 50) where
   "l \<sqsupset>L l' \<equiv> l' \<sqsubset>L l"
 
-fun formulas_of :: " 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> DL_label) set " where
-  "formulas_of (P, Y, A) = {(C, Passive) | C. C \<in> P} \<union> {(C, YY) | C. C \<in> Y} \<union>
+fun labeled_formulas_of :: " 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> DL_label) set " where
+  "labeled_formulas_of (P, Y, A) = {(C, Passive) | C. C \<in> P} \<union> {(C, YY) | C. C \<in> Y} \<union>
      {(C, Active) | C. C \<in> A}"
 
-lemma formulas_of_alt_def:
-  "formulas_of (P, Y, A) = (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A"
+lemma labeled_formulas_of_alt_def:
+  "labeled_formulas_of (P, Y, A) =
+   (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A"
   by auto
 
 fun
   state :: "'f inference set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set"
 where
-  "state (T, P, Y, A) = (T, formulas_of (P, Y, A))"
+  "state (T, P, Y, A) = (T, labeled_formulas_of (P, Y, A))"
 
 lemma state_alt_def:
   "state (T, P, Y, A) = (T, (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A)"
@@ -127,31 +128,33 @@ where
     state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | schedule_infer: "T' = no_labels.Inf_between A {C} \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
-| delete_orphan_formulas: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
+| delete_orphan_infers: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
     state (T \<union> T', P, Y, A) \<leadsto>DL state (T, P, Y, A)"
 
-lemma If_f_in_A_then_fl_in_PYA: "C' \<in> A \<Longrightarrow> (C', Active) \<in> formulas_of (P, Y, A)"
+lemma If_f_in_A_then_fl_in_PYA: "C' \<in> A \<Longrightarrow> (C', Active) \<in> labeled_formulas_of (P, Y, A)"
   by auto
 
-lemma PYA_add_passive_formula [simp]:
-  "formulas_of (P, Y, A) \<union> {(C, Passive)} = formulas_of (P \<union> {C}, Y, A)"
+lemma PYA_add_passive_formula[simp]:
+  "labeled_formulas_of (P, Y, A) \<union> {(C, Passive)} = labeled_formulas_of (P \<union> {C}, Y, A)"
   by auto
 
-lemma P0A_add_y_formula [simp]: "formulas_of (P, {}, A) \<union> {(C, YY)} = formulas_of (P, {C}, A)"
+lemma P0A_add_y_formula[simp]:
+  "labeled_formulas_of (P, {}, A) \<union> {(C, YY)} = labeled_formulas_of (P, {C}, A)"
   by auto
 
-lemma PYA_add_active_formula [simp]:
-  "formulas_of (P, Y, A) \<union> {(C', Active)} = formulas_of (P, Y, A\<union>{C'})"
+lemma PYA_add_active_formula[simp]:
+  "labeled_formulas_of (P, Y, A) \<union> {(C', Active)} = labeled_formulas_of (P, Y, A \<union> {C'})"
   by auto
 
-lemma prj_active_subset_of_state: "fst ` active_subset (formulas_of (P, Y, A)) = A"
+lemma prj_active_subset_of_state: "fst ` active_subset (labeled_formulas_of (P, Y, A)) = A"
 proof -
   have "active_subset {(C, YY) | C. C \<in> Y} = {}" and
        "active_subset {(C, Passive) | C. C \<in> P} = {}"
     using active_subset_def by auto
   moreover have "active_subset {(C, Active) | C. C \<in> A} = {(C, Active) | C. C \<in> A}"
     using active_subset_def by fastforce
-  ultimately have "fst ` active_subset (formulas_of (P, Y, A)) = fst ` ({(C, Active) | C. C \<in> A})"
+  ultimately have "fst ` active_subset (labeled_formulas_of (P, Y, A)) =
+    fst ` ({(C, Active) | C. C \<in> A})"
     by simp
   then show ?thesis
     by simp
@@ -166,12 +169,12 @@ subsection \<open>Refinement\<close>
 
 lemma dl_choose_p_in_lgc: "state (T, P \<union> {C}, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
-  let ?\<N> = "formulas_of (P, {}, A)"
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
   have "Passive \<sqsupset>L YY"
     by (simp add: DL_Prec_L_def)
   then have "(T, ?\<N> \<union> {(C, Passive)}) \<leadsto>LGC (T, ?\<N> \<union> {(C, YY)})"
     using relabel_inactive by blast
-  then have "(T, formulas_of (P \<union> {C}, {}, A)) \<leadsto>LGC (T, formulas_of (P, {C}, A))"
+  then have "(T, labeled_formulas_of (P \<union> {C}, {}, A)) \<leadsto>LGC (T, labeled_formulas_of (P, {C}, A))"
      by (metis PYA_add_passive_formula P0A_add_y_formula)
   then show ?thesis
     by auto
@@ -183,9 +186,9 @@ lemma dl_delete_fwd_in_lgc:
   using assms
 proof
   assume c_in: "C \<in> no_labels.Red_F A"
-  then have "A \<subseteq> fst ` (formulas_of (P, {}, A))"
+  then have "A \<subseteq> fst ` (labeled_formulas_of (P, {}, A))"
     by simp
-  then have "C \<in> no_labels.Red_F (fst ` (formulas_of (P, {}, A)))"
+  then have "C \<in> no_labels.Red_F (fst ` (labeled_formulas_of (P, {}, A)))"
     by (metis (no_types, lifting) c_in in_mono no_labels.Red_F_of_subset)
   then show ?thesis
     using remove_redundant_no_label by auto
@@ -193,7 +196,7 @@ next
   assume "\<exists>C'\<in>A. C' \<preceq>\<cdot> C"
   then obtain C' where c'_in_and_c'_ls_c: "C' \<in> A \<and> C' \<preceq>\<cdot> C"
     by auto
-  then have "(C', Active) \<in> formulas_of (P, {}, A)"
+  then have "(C', Active) \<in> labeled_formulas_of (P, {}, A)"
     by auto
   then have "YY \<sqsupset>L Active"
     by (simp add: DL_Prec_L_def)
@@ -206,7 +209,7 @@ lemma dl_simplify_fwd_in_lgc:
   assumes "C \<in> no_labels.Red_F_\<G> (A \<union> {C'})"
   shows "state (T, P, {C}, A) \<leadsto>LGC state (T, P, {C'}, A)"
 proof -
-  let ?\<N> = "formulas_of (P, {}, A)"
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
   and ?\<M> = "{(C, YY)}"
   and ?\<M>'= "{(C', YY)}"
   have "A \<union> {C'} \<subseteq> fst` (?\<N> \<union> ?\<M>')"
@@ -219,8 +222,8 @@ proof -
     by simp
   moreover have "active_subset ?\<M>' = {}"
     using active_subset_of_setOfFormulasWithLabelDiffActive by blast
-  ultimately have "(T, formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
-    (T, formulas_of (P, {}, A) \<union> {(C', YY)})"
+  ultimately have "(T, labeled_formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
+    (T, labeled_formulas_of (P, {}, A) \<union> {(C', YY)})"
     using process[of _ _ "?\<M>" _ "?\<M>'"] by auto
   then show ?thesis
     by simp
@@ -231,7 +234,7 @@ lemma dl_delete_bwd_in_lgc:
   shows "state (T, P, {C}, A \<union> {C'}) \<leadsto>LGC state (T, P, {C}, A)"
   using assms
 proof
-  let ?\<N> = "formulas_of (P, {C}, A)"
+  let ?\<N> = "labeled_formulas_of (P, {C}, A)"
   assume c'_in: "C' \<in> no_labels.Red_F_\<G> {C}"
   have "{C} \<subseteq> fst ` ?\<N>"
     by simp
@@ -243,7 +246,7 @@ proof
     by (metis state.simps PYA_add_active_formula)
 next
   assume "C' \<cdot>\<succ> C"
-  moreover have "(C, YY) \<in> formulas_of (P, {C}, A)"
+  moreover have "(C, YY) \<in> labeled_formulas_of (P, {C}, A)"
     by simp
   ultimately show ?thesis
     by (metis remove_succ_F state.simps PYA_add_active_formula)
@@ -255,7 +258,7 @@ lemma dl_simplify_bwd_in_lgc:
 proof -
   let ?\<M> = "{(C', Active)}"
   and ?\<M>' = "{(C'', Passive)}"
-  and ?\<N> = "formulas_of (P, {C}, A)"
+  and ?\<N> = "labeled_formulas_of (P, {C}, A)"
 
   have "{C, C''} \<subseteq> fst` (?\<N> \<union> ?\<M>')"
     by simp
@@ -267,8 +270,8 @@ proof -
     using active_subset_def by auto
   then have "(T, ?\<N> \<union> ?\<M>) \<leadsto>LGC (T, ?\<N> \<union> ?\<M>')"
     using \<M>_included process[of _ _ "?\<M>" _ "?\<M>'"] by auto
-  moreover have "?\<N> \<union> ?\<M> = formulas_of(P, {C}, A \<union> {C'})"
-  and "?\<N> \<union> ?\<M>' = formulas_of(P \<union> {C''}, {C}, A)"
+  moreover have "?\<N> \<union> ?\<M> = labeled_formulas_of(P, {C}, A \<union> {C'})"
+  and "?\<N> \<union> ?\<M>' = labeled_formulas_of(P \<union> {C''}, {C}, A)"
     by auto
   ultimately show ?thesis
     by auto
@@ -278,9 +281,9 @@ lemma dl_compute_infer_in_lgc:
   assumes "\<iota> \<in> no_labels.Red_I_\<G> (A \<union> {C})"
   shows "state (T \<union> {\<iota>}, P, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
-  let ?\<N> = "formulas_of (P, {}, A)"
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
   and ?\<M> = "{(C, YY)}"
-  have "A \<union> {C} \<subseteq> fst` (formulas_of (P, {}, A) \<union> {(C, YY)})"
+  have "A \<union> {C} \<subseteq> fst` (labeled_formulas_of (P, {}, A) \<union> {(C, YY)})"
     by auto
   then have "\<iota> \<in> no_labels.Red_I_\<G> (fst` (?\<N> \<union> ?\<M>))"
     by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
@@ -288,7 +291,7 @@ proof -
     using active_subset_of_setOfFormulasWithLabelDiffActive by auto
   then have "(T \<union> {\<iota>}, ?\<N>) \<leadsto>LGC (T, ?\<N> \<union> ?\<M>)"
     using calculation lgc.step.compute_infer by blast
-  moreover have "?\<N> \<union> ?\<M> = formulas_of(P, {C}, A)"
+  moreover have "?\<N> \<union> ?\<M> = labeled_formulas_of (P, {C}, A)"
     by simp
   ultimately show ?thesis
     by auto
@@ -298,29 +301,29 @@ lemma dl_schedule_infer_in_lgc:
   assumes "T' = no_labels.Inf_between A {C}"
   shows "state (T, P, {C}, A) \<leadsto>LGC state (T \<union> T', P, {}, A \<union> {C})"
 proof -
-  let ?\<N> = "formulas_of (P, {}, A)"
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
   have "fst ` (active_subset ?\<N>) = A"
     using prj_active_subset_of_state by blast
   then have "T' = no_labels.Inf_between (fst ` (active_subset ?\<N>)) {C}"
     using assms by auto
-  then have "(T, formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
-    (T \<union> T', formulas_of (P, {}, A) \<union> {(C, Active)})"
+  then have "(T, labeled_formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
+    (T \<union> T', labeled_formulas_of (P, {}, A) \<union> {(C, Active)})"
     using lgc.step.schedule_infer by blast
   then show ?thesis
     by (metis state.simps P0A_add_y_formula PYA_add_active_formula)
 qed
 
-lemma dl_delete_orphan_formulas_in_lgc:
+lemma dl_delete_orphan_infers_in_lgc:
   assumes "T' \<inter> no_labels.Inf_from A = {}"
   shows "state (T \<union> T', P, Y, A) \<leadsto>LGC state (T, P, Y, A)"
 proof -
-  let ?\<N> = "formulas_of (P, Y, A)"
+  let ?\<N> = "labeled_formulas_of (P, Y, A)"
   have "fst ` (active_subset ?\<N>) = A"
     using prj_active_subset_of_state by blast
   then have "T' \<inter> no_labels.Inf_from (fst ` (active_subset ?\<N>)) = {}"
     using assms by simp
   then have "(T \<union> T', ?\<N>) \<leadsto>LGC (T, ?\<N>)"
-    using lgc.step.delete_orphan_formulas by blast
+    using lgc.step.delete_orphan_infers by blast
   then show ?thesis
     by simp
 qed
@@ -355,9 +358,9 @@ next
   then show ?case
     using dl_schedule_infer_in_lgc by blast
 next
-  case (delete_orphan_formulas T' A T P Y)
+  case (delete_orphan_infers T' A T P Y)
   then show ?case
-    using dl_delete_orphan_formulas_in_lgc by blast
+    using dl_delete_orphan_infers_in_lgc by blast
 qed
 
 

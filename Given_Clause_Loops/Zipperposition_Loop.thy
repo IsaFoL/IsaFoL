@@ -42,7 +42,7 @@ where
     zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
 | schedule_infer: "zl_inferences_of T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
-| delete_orphan_formulas: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>
+| delete_orphan_infers: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>
     zl_state (T \<union> {\<iota>s}, P, Y, A) \<leadsto>ZL zl_state (T, P, Y, A)"
 
 lemma flatten: " zl_inferences_of {(LCons \<iota>0 \<iota>s)} = zl_inferences_of {\<iota>s} \<union> { \<iota>0 }"
@@ -221,7 +221,7 @@ proof -
     using distr_zl_inferences_of_wrt_union zl_state.simps by presburger
 qed
 
-lemma zl_delete_orphan_formulas_in_lgc:
+lemma zl_delete_orphan_infers_in_lgc:
   assumes " \<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A"
   shows "zl_state (T \<union> {\<iota>s}, P, Y, A) \<leadsto>LGC zl_state (T, P, Y, A)"
 proof -
@@ -244,7 +244,7 @@ proof -
     using assms \<iota>s_orphans by auto
 
   have thesis_before_rewriting: "(?\<T> \<union> ?\<T>', ?\<N>) \<leadsto>LGC (?\<T>, ?\<N>)"
-    using \<iota>s_orphans step.delete_orphan_formulas by presburger
+    using \<iota>s_orphans step.delete_orphan_infers by presburger
 
   have "zl_inferences_of (T \<union> {\<iota>s}) = zl_inferences_of T \<union> zl_inferences_of {\<iota>s}"
     using distr_zl_inferences_of_wrt_union by auto
@@ -284,9 +284,9 @@ next
   then show ?case
     using zl_schedule_infer_in_lgc by blast
 next
-  case (delete_orphan_formulas \<iota>s A T P Y)
+  case (delete_orphan_infers \<iota>s A T P Y)
   then show ?case
-    using zl_delete_orphan_formulas_in_lgc by auto
+    using zl_delete_orphan_infers_in_lgc by auto
 qed
 
 
