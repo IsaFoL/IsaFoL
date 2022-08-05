@@ -144,14 +144,13 @@ subsection \<open>Invariant\<close>
 inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "(N = {||} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
 
-lemma initial_fair_OL_invariant:
-  "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
+lemma initial_fair_OL_invariant: "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
   unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by auto
 
 lemma step_fair_OL_invariant:
-  assumes "St \<leadsto>OLf St'"
+  assumes step: "St \<leadsto>OLf St'"
   shows "fair_OL_invariant St'"
-  using assms by cases (simp_all add: fair_OL_invariant.intros)
+  using step by cases (auto intro: fair_OL_invariant.intros)
 
 lemma chain_fair_OL_invariant_lnth:
   assumes
