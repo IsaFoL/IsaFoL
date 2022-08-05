@@ -466,13 +466,15 @@ lemma fair_DL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
+lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
+  using no_labels.entails_trans no_labels.subset_entailed by blast
+
 theorem
   assumes
     full: "full_chain (\<leadsto>DLf) Sts" and
     init: "is_initial_fair_DL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
-    unsat: "concl_of ` passive_inferences_of (passive_of (lhd Sts)) \<union>
-      passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
     DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" and
     DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
@@ -532,17 +534,13 @@ proof -
 *)
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap fstate Sts))"
-    sorry
-  thm lgc_complete_Liminf
+    using inf_have_prems by blast
 
   have pas_inf: "Liminf_llist (lmap (fst \<circ> fstate) Sts) = {}"
     sorry
 
   have unsat': "fst ` snd (lhd (lmap fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
-    sorry
-(*
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
-*)
 
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> fstate) Sts)"
     by (rule lgc_complete_Liminf[of "lmap fstate Sts", unfolded llist.map_comp,
