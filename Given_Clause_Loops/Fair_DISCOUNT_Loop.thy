@@ -233,8 +233,7 @@ where
 subsection \<open>Initial State\<close>
 
 inductive is_initial_fair_DL_state :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
-  "passive_inferences_of P = {\<iota> \<in> Inf_F. prems_of \<iota> = []} \<Longrightarrow>
-   is_initial_fair_DL_state (P, None, {||})"
+  "is_initial_fair_DL_state (empty, None, {||})"
 
 
 subsection \<open>Invariant\<close>
@@ -614,7 +613,7 @@ proof -
     using chain fair_DL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
   have inv: "fair_DL_invariant (lhd Sts)"
-    using init unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by fast
+    using init unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by auto
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
@@ -650,10 +649,12 @@ proof -
     case False
     hence len: "llength Sts = \<infinity>"
       by (simp add: not_lfinite_llength)
+
     show ?thesis
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
       using fair_DL_Liminf_passive_empty[OF len full init]
         fair_DL_Liminf_yy_empty[OF full inv]
+      apply auto
       by simp
   qed
 
