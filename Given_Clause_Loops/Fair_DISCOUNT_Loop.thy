@@ -953,7 +953,7 @@ sublocale fifo_passive_set
   .
 
 sublocale fair_discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
-  Equiv_F Prec_F "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list Prec_S
+  Equiv_F Prec_F "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list Prec_S
 proof unfold_locales
   show "po_on (\<prec>S) UNIV"
     using wf_Prec_S minimal_element.po by blast

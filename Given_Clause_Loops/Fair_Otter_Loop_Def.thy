@@ -126,8 +126,7 @@ where
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N, Some C, P, None, A)"
 | simplify_bwd_a: "C'' \<prec>S C' \<Longrightarrow> C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (N, Some C, P, None, A |\<union>| {|C'|}) \<leadsto>OLf (N |\<union>| {|C''|}, Some C, P, None, A)"
-| transfer:
-    "(N, Some C, P, None, A) \<leadsto>OLf (N, None, if C \<in> elems P then P else add C P, None, A)"
+| transfer: "(N, Some C, P, None, A) \<leadsto>OLf (N, None, add C P, None, A)"
 | choose_p: "P \<noteq> empty \<Longrightarrow>
     ({||}, None, P, None, A) \<leadsto>OLf ({||}, None, remove (select P) P, Some (select P), A)"
 | infer: "no_labels.Inf_between (fset A) {C} \<subseteq> no_labels.Red_I (fset A \<union> {C} \<union> fset M) \<Longrightarrow>
@@ -354,7 +353,7 @@ next
   case (transfer C)
   note defs = this(1-7)
 
-  have p_uni_c: "elems P \<union> {C} = elems (if C \<in> elems P then P else add C P)"
+  have p_uni_c: "elems P \<union> {C} = elems (add C P)"
     using felems_add by auto
 
   show ?thesis

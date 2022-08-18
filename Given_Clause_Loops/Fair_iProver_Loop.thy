@@ -548,7 +548,8 @@ next
   proof (cases "C \<in> elems P")
     case c_in: True
     have "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
-      unfolding defs using c_in by (auto intro!: subset_implies_multp)
+      unfolding defs using c_in add_again
+      by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
     thus ?thesis
       unfolding \<mu>2_def by blast
   next
@@ -695,7 +696,7 @@ next
   proof (cases "C \<in> elems P")
     case c_in: True
     show ?thesis
-      unfolding defs by (auto simp: c_in intro: passive_step_idleI)
+      unfolding defs using add_again by (auto simp: c_in fmember.rep_eq intro: passive_step_idleI)
   next
     case c_ni: False
     show ?thesis

@@ -168,7 +168,7 @@ locale passive_set =
     select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
     felems_add[simp]: "felems (add C P) = {|C|} |\<union>| felems P" and
     felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}" and
-    add_elem: "C |\<in>| felems P \<Longrightarrow> add C P = P"
+    add_again: "C |\<in>| felems P \<Longrightarrow> add C P = P"
 begin
 
 abbreviation elems :: "'p \<Rightarrow> 'f set" where
