@@ -707,10 +707,12 @@ proof -
 
   let ?g = "Set.filter is_passive_inference \<circ> elems \<circ> passive_of"
 
-  have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
-    unfolding inj_on_def
-    apply auto
-    sorry
+  have "inj_on passive_inference (Set.filter is_passive_inference (UNIV :: 'f passive_elem set))"
+    unfolding inj_on_def by (metis member_filter passive_elem.collapse(1))
+  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_inference UNIV"
+    unfolding Sup_llist_def by auto
+  ultimately have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
+    using inj_on_subset by blast
 
   have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_inference `
     (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) x) Sts) = {}"
