@@ -635,8 +635,43 @@ lemma DLf_step_imp_passive_step:
   assumes step: "St \<leadsto>DLf St'"
   shows "passive_step (passive_of St) (passive_of St')"
   using step
-(* proof cases *)
-  sorry
+proof cases
+  case (compute_infer P \<iota> A C)
+  then show ?thesis sorry
+next
+  case (choose_p P C A)
+  then show ?thesis sorry
+next
+  case (delete_fwd C A P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_fwd C' C A P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (delete_bwd C' A C P)
+  note defs = this(1,2)
+  have pas: "passive_of St' = passive_of St"
+    unfolding defs by simp
+  show ?thesis
+    unfolding pas by (rule passive_step_idleI)
+next
+  case (simplify_bwd C' A C'' C P)
+  then show ?thesis sorry
+next
+  case (schedule_infer \<iota>s A C P)
+  then show ?thesis sorry
+next
+  case (delete_orphan_infers \<iota>s P A Y)
+  then show ?thesis sorry
+qed
 
 lemma fair_DL_Liminf_passive_empty:
   assumes
