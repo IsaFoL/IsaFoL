@@ -631,9 +631,9 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
-lemma DLf_step_imp_passive_step:
+lemma DLf_step_imp_passive_steps:
   assumes step: "St \<leadsto>DLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
+  shows "passive_step\<^sup>+\<^sup>+ (passive_of St) (passive_of St')"
   using step
 proof cases
   case (compute_infer P \<iota> A C)
@@ -647,7 +647,10 @@ next
   have pas: "passive_of St' = passive_of St"
     unfolding defs by simp
   show ?thesis
+(*
     unfolding pas by (rule passive_step_idleI)
+*)
+    sorry
 next
   case (simplify_fwd C' C A P)
   note defs = this(1,2)
@@ -680,17 +683,25 @@ lemma fair_DL_Liminf_passive_empty:
     init: "is_initial_fair_DL_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
-  have chain_step: "chain passive_step (lmap passive_of Sts)"
-    using DLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+  have "chain (passive_step\<^sup>+\<^sup>+) (lmap passive_of Sts)"
+    using DLf_step_imp_passive_steps chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
+  then obtain Ps' :: "'p llist" where
+    chain_ps': "chain passive_step Ps'" and
+    emb_ps': "emb (lmap passive_of Sts) Ps'" and
+    hd_ps': "lhd Ps' = lhd (lmap passive_of Sts)" and
+    lst_ps': "llast Ps' = llast (lmap passive_of Sts)"
+    using chain_tranclp_imp_exists_chain by blast
 
-  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+  have len_ps': "llength Ps' = \<infinity>"
+    using len emb_lfinite[OF emb_ps'] by (simp add: llength_eq_infty_conv_lfinite)
+
+  have inf_oft: "infinitely_often select_passive_step Ps'"
   proof
-    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    assume "finitely_often select_passive_step Ps'"
     then obtain i :: nat where
-      no_sel:
-        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
-      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+      no_sel: "\<forall>j \<ge> i. \<not> select_passive_step (lnth Ps' j) (lnth Ps' (Suc j))"
+      unfolding finitely_often_def using len_ps' by auto
 
     have si_lt: "enat (Suc i) < llength Sts"
       unfolding len by auto
