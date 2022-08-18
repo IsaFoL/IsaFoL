@@ -17,6 +17,16 @@ subsection \<open>Setup and Utility\<close>
 
 hide_const (open) Seq.chain
 
+instance bool :: wellorder
+proof
+  fix P and b :: bool
+  assume "(\<And>y. y < b \<Longrightarrow> P y) \<Longrightarrow> P b" for b :: bool
+  hence "\<And>q. q \<le> b \<Longrightarrow> P q"
+    using less_bool_def by presburger
+  then show "P b"
+    by auto
+qed
+
 lemma finite_imp_set_eq:
   assumes fin: "finite A"
   shows "\<exists>xs. set xs = A"
@@ -503,6 +513,31 @@ abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool
 lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
+definition \<mu>2 :: "('p, 'f) fair_DL_state \<Rightarrow> ('p, 'f) fair_DL_state \<Rightarrow> bool" where
+  "\<mu>2 St' St \<equiv>
+   (yy_of St' = None \<and> yy_of St \<noteq> None)
+   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_fstate St') (mset_of_fstate St))"
+
+lemma wfP_\<mu>2: "wfP \<mu>2"
+proof -
+  let ?boolset = "{(b', b :: bool). b' < b}"
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?pair_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_fstate St)"
+
+  have wf_boolset: "wf ?boolset"
+    by (rule Wellfounded.wellorder_class.wf)
+  have wf_\<mu>1set: "wf ?\<mu>1set"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set)"
+    by (rule wf_lex_prod[OF wf_boolset wf_\<mu>1set])
+
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?boolset <*lex*> ?\<mu>1set"
+    unfolding \<mu>2_def by auto
+
+  show ?thesis
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
+qed
+
 lemma yy_nonempty_DLf_step_imp_\<mu>1:
   assumes
     step: "St \<leadsto>DLf St'" and
@@ -664,43 +699,18 @@ proof -
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
-(*
-    have yy: "yy_of (lnth Sts (Suc j)) = None"
-      if j_ge: "j \<ge> i" for j
-      using step[OF j_ge]
-    proof cases
-      case ol
-      then show ?thesis
-      proof cases
-        case (choose_p P A)
-        note defs = this(1,2) and p_ne = this(3)
-        have False
-          using no_sel defs p_ne select_passive_stepI that by fastforce
-        thus ?thesis
-          by blast
-      qed auto
-    next
-      case (red_by_children C A M C' P)
-      then show ?thesis
-        by simp
-    qed
-
-    have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_choose_p_ILf_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
-    hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+    have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+      by (rule non_compute_infer_choose_p_DLf_step_imp_\<mu>2[OF step[OF j_ge]])
+    hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
-    hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
+    hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
       using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
 
     have inf_i: "\<not> lfinite (ldropn i Sts)"
       using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
-*)
 
     show False
-      sorry
-(*
-      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>3"] wfP_\<mu>3 by blast
-*)
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"

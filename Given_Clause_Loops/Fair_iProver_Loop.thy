@@ -802,7 +802,7 @@ proof -
       using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
 
     show False
-      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>3"] wfP_\<mu>3 by blast
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>3] wfP_\<mu>3 by blast
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
