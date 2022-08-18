@@ -133,6 +133,12 @@ proof (induct ys arbitrary: xs)
   qed
 qed simp
 
+lemma fold_maybe_append_removeAll:
+  assumes "y \<in> set xs"
+  shows "fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll y ys) xs =
+    fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) ys xs"
+  using assms by (induct ys arbitrary: xs) auto
+
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
 
@@ -195,17 +201,16 @@ lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
   by (induct Cs arbitrary: P) auto
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  passive_stepI:
-    "distinct Cs \<Longrightarrow> set Cs \<inter> elems P = {} \<Longrightarrow> passive_step P (fold remove Ds (fold add Cs P))"
+  passive_stepI: "passive_step P (fold remove Ds (fold add Cs P))"
 
 lemma passive_step_idleI: "passive_step P P"
-  using passive_stepI[of "[]" _ "[]", simplified] .
+  using passive_stepI[of _ "[]" "[]", simplified] .
 
-lemma passive_step_addI: "C \<notin> elems P \<Longrightarrow> passive_step P (add C P)"
-  using passive_stepI[of "[C]" _ "[]", simplified] .
+lemma passive_step_addI: "passive_step P (add C P)"
+  using passive_stepI[of _ "[]" "[C]", simplified] .
 
 lemma passive_step_removeI: "passive_step P (remove C P)"
-  using passive_stepI[of "[]" _ "[C]", simplified] .
+  using passive_stepI[of _ "[C]" "[]", simplified] .
 
 inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_passive_stepI: "P \<noteq> empty \<Longrightarrow> select_passive_step P (remove (select P) P)"
@@ -261,30 +266,31 @@ lemma passive_step_preserves_distinct:
   shows "distinct P'"
   using step
 proof cases
-  case (passive_stepI Cs Ds)
-  note p' = this(1) and dist_c = this(2) and inter = this(3)
+  case (passive_stepI Ds Cs)
+  note p' = this(1)
 
   have "distinct (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P)"
-    using dist dist_c inter
+    using dist
   proof (induct Cs arbitrary: P)
     case Nil
     then show ?case
       using dist by auto
   next
     case (Cons C Cs)
-    note ih = this(1) and dist_p = this(2) and dist_cc = this(3) and inter = this(4)
-
-    have dist_pc: "distinct (P @ [C])"
-      using dist_p inter by force
-    have dist_c: "distinct Cs"
-      using dist_cc by simp
-    have inter_pc: "set Cs \<inter> elems (P @ [C]) = {}"
-      using inter dist dist_cc by simp
-    have inter_p: "set Cs \<inter> elems P = {}"
-      using inter dist dist_cc by simp
+    note ih = this(1) and dist_p = this(2)
 
     show ?case
-      using ih[OF dist_pc dist_c inter_pc] ih[OF dist_p dist_c inter_p] by simp
+    proof (cases "C \<in> set P")
+      case True
+      then show ?thesis
+        using ih[OF dist_p] by simp
+    next
+      case c_ni: False
+      have dist_pc: "distinct (P @ [C])"
+        using c_ni dist_p by auto
+      show ?thesis
+        using c_ni using ih[OF dist_pc] by simp
+    qed
   qed
   hence "distinct (fold removeAll Ds (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P))"
     by (rule distinct_fold_removeAll)
@@ -432,19 +438,31 @@ proof unfold_locales
                       enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
-                  case (passive_stepI Ds Es)
-                  note at_d = this(1) and dist_ds = this(2) and inter_ds = this(3)
+                  case (passive_stepI Es Ds)
+                  note at_d = this(1)
 
-                  have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
+                  have c_in: "C |\<in>| fset_of_list (lnth Ps (d - 1))"
                     by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
-                  hence c_ni: "C \<notin> set Ds"
-                    by (metis IntI emptyE inter_ds notin_fset)
-                  hence c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ Ds))"
-                    using ih_dm1 set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" Ds]
-                    by fast
+                  hence "C \<notin> set (drop (k + 1 - l)
+                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
+                       (lnth Ps (d - 1))))"
+                  proof -
+                    have "set (drop (k + 1 - l)
+                        (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
+                           (lnth Ps (d - 1)))) \<subseteq>
+                      set (drop (k + 1 - l) (lnth Ps (d - 1) @ removeAll C Ds))"
+                      using set_drop_fold_maybe_append_singleton .
+                    have "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
+                      using ih_dm1 by blast
+                    hence "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ removeAll C Ds))"
+                      using set_drop_append_subseteq by force
+                    thus ?thesis
+                      using set_drop_fold_maybe_append_singleton by force
+                  qed
                   hence "C \<notin> set (drop (k + 1 - l)
                     (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Ds (lnth Ps (d - 1))))"
-                    using set_drop_fold_maybe_append_singleton by fast
+                    using c_in fold_maybe_append_removeAll
+                    by (metis (mono_tags, lifting) fset_of_list_elem)
                   thus ?thesis
                     unfolding at_d using set_drop_fold_removeAll by fastforce
                 qed
