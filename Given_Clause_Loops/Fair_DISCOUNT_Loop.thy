@@ -637,20 +637,25 @@ lemma DLf_step_imp_passive_step:
   using step
 proof cases
   case (compute_infer P \<iota> A C)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  have pas: "passive_of St' = remove (select P) P"
+    unfolding defs by simp
+  show ?thesis
+    unfolding defs pas by (auto intro: passive_step_removeI)
 next
   case (choose_p P C A)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  have pas: "passive_of St' = remove (select P) P"
+    unfolding defs by simp
+  show ?thesis
+    unfolding defs pas by (auto intro: passive_step_removeI)
 next
   case (delete_fwd C A P)
   note defs = this(1,2)
   have pas: "passive_of St' = passive_of St"
     unfolding defs by simp
   show ?thesis
-(*
     unfolding pas by (rule passive_step_idleI)
-*)
-    sorry
 next
   case (simplify_fwd C' C A P)
   note defs = this(1,2)
@@ -667,7 +672,19 @@ next
     unfolding pas by (rule passive_step_idleI)
 next
   case (simplify_bwd C' A C'' C P)
-  then show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+  proof (cases "Passive_Formula C'' \<in> elems P")
+    case c_in: True
+    show ?thesis
+      unfolding defs apply (auto simp: c_in intro: passive_step_idleI)
+
+      sorry
+  next
+    case c_ni: False
+    show ?thesis
+      unfolding defs by (auto simp: c_ni intro: passive_step_addI)
+  qed
 next
   case (schedule_infer \<iota>s A C P)
   then show ?thesis sorry
