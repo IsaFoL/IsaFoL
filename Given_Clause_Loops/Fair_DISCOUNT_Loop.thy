@@ -623,6 +623,13 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
+lemma DLf_step_imp_passive_step:
+  assumes step: "St \<leadsto>DLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using step
+(* proof cases *)
+  sorry
+
 lemma fair_DL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -631,11 +638,8 @@ lemma fair_DL_Liminf_passive_empty:
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain passive_step (lmap passive_of Sts)"
-    sorry
-(*
     using DLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
-*)
 
   have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
   proof
