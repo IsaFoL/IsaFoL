@@ -98,6 +98,22 @@ definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
 definition passive_formulas_of :: "'p \<Rightarrow> 'f set" where
   "passive_formulas_of P = {C. Passive_Formula C \<in> elems P}"
 
+lemma finite_passive_inferences_of: "finite (passive_inferences_of P)"
+proof -
+  have inj_pi: "inj Passive_Inference"
+    unfolding inj_on_def by auto
+  show ?thesis
+    unfolding passive_inferences_of_def by (auto intro: finite_inverse_image[OF _ inj_pi])
+qed
+
+lemma finite_passive_formulas_of: "finite (passive_formulas_of P)"
+proof -
+  have inj_pi: "inj Passive_Formula"
+    unfolding inj_on_def by auto
+  show ?thesis
+    unfolding passive_formulas_of_def by (auto intro: finite_inverse_image[OF _ inj_pi])
+qed
+
 abbreviation all_formulas_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> passive_formulas_of (passive_of St) \<union> set_option (yy_of St) \<union>
      fset (active_of St)"
@@ -470,7 +486,7 @@ lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnst
 
 fun mset_of_fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (P, Y, A) =
-   mset_set (concl_of ` passive_inferences_of P) + mset_set (passive_formulas_of P) +
+   image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
    mset_set (set_option Y) + mset_set (fset A)"
 
 abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
@@ -488,7 +504,27 @@ lemma yy_nonempty_DLf_step_imp_\<mu>1:
   using step
 proof cases
   case (simplify_fwd C' C A P)
-  then show ?thesis sorry
+  note defs = this(1,2) and prec = this(3)
+
+  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+      mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
+    by simp
+  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+      mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
+    by simp
+
+  have "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      unfolding multp_def using prec by (auto intro: singletons_in_mult)
+  qed
+  thus ?thesis
+    unfolding defs by simp
 next
   case (delete_bwd C' A C P)
   note defs = this(1,2) and c'_ni = this(3)
@@ -496,10 +532,46 @@ next
     unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C P)
-  then show ?thesis sorry
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
+
+  show ?thesis
+  proof (cases "C'' \<in> passive_formulas_of P")
+    case c''_in: True
+    show ?thesis
+      sorry
+  next
+    case c''_in: False
+
+    have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (insert C' (fset A))) =
+      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C'#}" (is "?old_bef = ?new_bef")
+      using c'_ni by (simp add: notin_fset)
+    have aft: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (insert C'' (passive_formulas_of P)) + mset_set (fset A)) =
+      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
+      using c''_in finite_passive_formulas_of by auto
+
+    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    show ?thesis
+      unfolding defs by simp (auto simp only: bef aft intro: \<mu>1_new)
+  qed
 next
   case (delete_orphan_infers \<iota>s P A Y)
-  then show ?thesis sorry
+  note defs = this(1,2) and \<iota>s_nemp = this(3) and \<iota>s_sub = this(4)
+
+  have "passive_inferences_of P - set \<iota>s \<subset> passive_inferences_of P"
+    by (metis Diff_cancel Diff_subset \<iota>s_nemp \<iota>s_sub double_diff psubsetI set_empty)
+  hence "mset_set (passive_inferences_of P - set \<iota>s) \<subset># mset_set (passive_inferences_of P)"
+    using finite_passive_inferences_of by (simp add: subset_mset.less_le)
+  thus ?thesis
+    unfolding defs by (auto intro!: subset_implies_multp image_mset_subset_mono)
 qed (use yy yy' in auto)
 
 lemma fair_DL_Liminf_yy_empty:

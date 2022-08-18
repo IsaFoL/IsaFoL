@@ -7,7 +7,9 @@
 section \<open>Otter Loop\<close>
 
 theory Otter_Loop
-  imports More_Given_Clause_Architectures
+  imports
+    More_Given_Clause_Architectures
+    Given_Clause_Loops_Util
 begin
 
 datatype OL_label =

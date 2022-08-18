@@ -7,7 +7,9 @@
 section \<open>DISCOUNT Loop\<close>
 
 theory DISCOUNT_Loop
-  imports More_Given_Clause_Architectures
+  imports
+    More_Given_Clause_Architectures
+    Given_Clause_Loops_Util
 begin
 
 
