@@ -635,16 +635,8 @@ lemma DLf_step_imp_passive_step:
   assumes "St \<leadsto>DLf St'"
   shows "passive_step (passive_of St) (passive_of St')"
   using assms
-proof cases
-  case (schedule_infer \<iota>s A C P)
-  note defs = this(1,2)
-  show ?thesis
-    unfolding defs
-    sorry
-next
-  case (delete_orphan_infers \<iota>s P A Y)
-  then show ?thesis sorry
-qed (auto intro: passive_step_idleI passive_step_addI passive_step_removeI)
+  by cases (auto simp: fold_map[symmetric] intro: passive_step_idleI passive_step_addI
+      passive_step_removeI passive_step_fold_addI passive_step_fold_removeI)
 
 lemma fair_DL_Liminf_passive_empty:
   assumes

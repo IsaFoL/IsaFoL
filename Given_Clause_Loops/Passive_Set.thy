@@ -212,6 +212,12 @@ lemma passive_step_addI: "passive_step P (add C P)"
 lemma passive_step_removeI: "passive_step P (remove C P)"
   using passive_stepI[of _ "[C]" "[]", simplified] .
 
+lemma passive_step_fold_addI: "passive_step P (fold add Cs P)"
+  using passive_stepI[of _ "[]" Cs, simplified] .
+
+lemma passive_step_fold_removeI: "passive_step P (fold remove Cs P)"
+  using passive_stepI[of _ Cs "[]", simplified] .
+
 inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_passive_stepI: "P \<noteq> empty \<Longrightarrow> select_passive_step P (remove (select P) P)"
 
