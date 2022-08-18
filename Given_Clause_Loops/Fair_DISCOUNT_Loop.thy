@@ -673,6 +673,46 @@ lemma DLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive_step_idleI passive_step_addI
       passive_step_removeI passive_step_fold_addI passive_step_fold_removeI)
 
+lemma non_compute_infer_choose_p_DLf_step_imp_\<mu>2:
+  assumes
+    step: "St \<leadsto>DLf St'" and
+    yy: "yy_of St \<noteq> None \<or> yy_of St' = None"
+  shows "\<mu>3 St' St"
+  using step
+proof cases
+  case (compute_infer P \<iota> A C)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (choose_p P C A)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (delete_fwd C A P)
+  show ?thesis sorry
+next
+  case (simplify_fwd C' C A P)
+  show ?thesis sorry
+next
+  case (delete_bwd C' A C P)
+  show ?thesis sorry
+next
+  case (simplify_bwd C' A C'' C P)
+  show ?thesis sorry
+next
+  case (schedule_infer \<iota>s A C P)
+  show ?thesis sorry
+next
+  case (delete_orphan_infers \<iota>s P A Y)
+  show ?thesis sorry
+qed
+
 lemma fair_DL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -699,8 +739,26 @@ proof -
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
+    have yy: "yy_of (lnth Sts j) \<noteq> None \<or> yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
+      using step[OF j_ge]
+    proof cases
+      case (compute_infer P \<iota> A C)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    next
+      case (choose_p P C A)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    qed auto
+
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_compute_infer_choose_p_DLf_step_imp_\<mu>2[OF step[OF j_ge]])
+      by (rule non_compute_infer_choose_p_DLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
     hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"

@@ -771,8 +771,7 @@ proof -
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
-    have yy: "yy_of (lnth Sts (Suc j)) = None"
-      if j_ge: "j \<ge> i" for j
+    have yy: "yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
       using step[OF j_ge]
     proof cases
       case ol
