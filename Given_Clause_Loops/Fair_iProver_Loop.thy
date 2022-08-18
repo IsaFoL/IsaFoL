@@ -463,8 +463,8 @@ proof (rule ccontr)
 
   have xx_j: "xx_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
     using c_in' len j_ge by auto
-  have xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
-    using le_Suc_eq that xx_j by presburger
+  hence xx_sj: "xx_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that by presburger
   have step: "lnth Sts j \<leadsto>ILf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast

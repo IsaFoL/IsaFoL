@@ -219,9 +219,9 @@ where
     (P, Some C, A) \<leadsto>DLf (P, None, A)"
 | simplify_fwd: "C' \<prec>S C \<Longrightarrow> C \<in> no_labels.Red_F (fset A \<union> {C'}) \<Longrightarrow>
     (P, Some C, A) \<leadsto>DLf (P, Some C', A)"
-| delete_bwd: "C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
+| delete_bwd: "C' |\<notin>| A \<Longrightarrow> C' \<in> no_labels.Red_F {C} \<or> C' \<cdot>\<succ> C \<Longrightarrow>
     (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (P, Some C, A)"
-| simplify_bwd: "C'' \<prec>S C' \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
+| simplify_bwd: "C' |\<notin>| A \<Longrightarrow> C'' \<prec>S C' \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (P, Some C, A |\<union>| {|C'|}) \<leadsto>DLf (add (Passive_Formula C'') P, Some C, A)"
 | schedule_infer: "set \<iota>s = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
     (P, Some C, A) \<leadsto>DLf (fold (add \<circ> Passive_Inference) \<iota>s P, None, A |\<union>| {|C|})"
@@ -418,24 +418,24 @@ next
         passive_inferences_of_remove_Passive_Formula pas_min_c_uni_c)
 next
   case (delete_fwd C)
-  note defs = this(1-4) and c_in = this(5)
+  note defs = this(1-4) and c_red = this(5)
   show ?thesis
-    unfolding defs fstate_alt_def using DL.delete_fwd[OF c_in] by simp
+    unfolding defs fstate_alt_def using DL.delete_fwd[OF c_red] by simp
 next
   case (simplify_fwd C' C)
-  note defs = this(1-4) and c_in = this(6)
+  note defs = this(1-4) and c_red = this(6)
   show ?thesis
-    unfolding defs fstate_alt_def using DL.simplify_fwd[OF c_in] by simp
+    unfolding defs fstate_alt_def using DL.simplify_fwd[OF c_red] by simp
 next
   case (delete_bwd C' C)
-  note defs = this(1-4) and c_in = this(5)
+  note defs = this(1-4) and c'_red = this(6)
   show ?thesis
-    unfolding defs fstate_alt_def using DL.delete_bwd[OF c_in] by simp
+    unfolding defs fstate_alt_def using DL.delete_bwd[OF c'_red] by simp
 next
   case (simplify_bwd C'' C' C)
-  note defs = this(1-4) and c_in = this(6)
+  note defs = this(1-4) and c''_red = this(7)
   show ?thesis
-    unfolding defs fstate_alt_def using DL.simplify_bwd[OF c_in] by simp
+    unfolding defs fstate_alt_def using DL.simplify_bwd[OF c''_red] by simp
 next
   case (schedule_infer \<iota>s C)
   note defs = this(1-4) and \<iota>s = this(5)
@@ -468,24 +468,53 @@ subsection \<open>Completeness\<close>
 lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
   using no_labels.entails_trans no_labels.subset_entailed by blast
 
+fun mset_of_fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f multiset" where
+  "mset_of_fstate (P, Y, A) =
+   mset_set (concl_of ` passive_inferences_of P) + mset_set (passive_formulas_of P) +
+   mset_set (set_option Y) + mset_set (fset A)"
+
+abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
+  "\<mu>1 \<equiv> multp (\<prec>S)"
+
+lemma wfP_\<mu>1: "wfP \<mu>1"
+  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
+
+lemma yy_nonempty_DLf_step_imp_\<mu>1:
+  assumes
+    step: "St \<leadsto>DLf St'" and
+    yy: "yy_of St \<noteq> None" and
+    yy': "yy_of St' \<noteq> None"
+  shows "\<mu>1 (mset_of_fstate St') (mset_of_fstate St)"
+  using step
+proof cases
+  case (simplify_fwd C' C A P)
+  then show ?thesis sorry
+next
+  case (delete_bwd C' A C P)
+  note defs = this(1,2) and c'_ni = this(3)
+  show ?thesis
+    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
+next
+  case (simplify_bwd C' A C'' C P)
+  then show ?thesis sorry
+next
+  case (delete_orphan_infers \<iota>s P A Y)
+  then show ?thesis sorry
+qed (use yy yy' in auto)
+
 lemma fair_DL_Liminf_yy_empty:
   assumes
+    len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>DLf) Sts" and
     inv: "fair_DL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
 
-  have chain: "chain (\<leadsto>DLf) Sts"
-    by (rule full_chain_imp_chain[OF full])
-
   obtain i :: nat where
     i_lt: "enat i < llength Sts" and
     inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
     using lim_nemp unfolding Liminf_llist_def by auto
-
-  have inv_at_i: "fair_DL_invariant (lnth Sts i)"
-    by (simp add: chain chain_fair_DL_invariant_lnth i_lt inv)
 
   from inter_nemp obtain C :: 'f where
     c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
@@ -493,43 +522,32 @@ proof (rule ccontr)
   hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
     by auto
 
-(*
-  have yy_at_i: "yy_of (lnth Sts i) = Some C"
-    using c_in' i_lt by blast
-  have new_at_i: "new_of (lnth Sts i) = {||}" and
-    xx_at_i: "new_of (lnth Sts i) = {||}"
-    using yy_at_i chain_fair_IL_invariant_lnth[OF chain inv i_lt]
-    by (force simp: fair_OL_invariant.simps)+
+  have si_lt: "enat (Suc i) < llength Sts"
+    unfolding len by auto
 
-  have "\<exists>St'. lnth Sts i \<leadsto>ILf St'"
-    using is_final_fair_OL_state_iff_no_ILf_step[OF inv_at_i]
-    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
-  hence si_lt: "enat (Suc i) < llength Sts"
-    by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
+  have yy_j: "yy_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using c_in' len j_ge by auto
+  hence yy_sj: "yy_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that by presburger
+  have step: "lnth Sts j \<leadsto>DLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+    by blast
 
-  obtain P :: 'p and A :: "'f fset" where
-    at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
-    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+  have "\<mu>1 (mset_of_fstate (lnth Sts (Suc j))) (mset_of_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
+    using yy_nonempty_DLf_step_imp_\<mu>1 by (meson step j_ge yy_j yy_sj)
+  hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+    if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+    using chain_ldropn_lmapI[OF _ si_lt] by blast
 
-  have "lnth Sts i \<leadsto>ILf lnth Sts (Suc i)"
-    by (simp add: chain chain_lnth_rel si_lt)
-  hence "({||}, None, P, Some C, A) \<leadsto>ILf lnth Sts (Suc i)"
-    unfolding at_i .
-  hence "yy_of (lnth Sts (Suc i)) = None"
-  proof cases
-    case ol
-    then show ?thesis
-      by cases simp
-  next
-    case (red_by_children M C')
-    then show ?thesis
-      by simp
-  qed
-  thus False
-    using c_in' si_lt by simp
-*)
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
+    using len by (simp add: llength_eq_infty_conv_lfinite)
+
   show False
-    sorry
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
+      wfP_\<mu>1
+    by (metis lfinite_ldropn lfinite_lmap)
 qed
 
 lemma fair_DL_Liminf_passive_empty:
@@ -676,7 +694,7 @@ proof -
     have ?pas_fml
       unfolding Liminf_fstate_commute passive_subset_def Liminf_fstate_def
       using fair_DL_Liminf_passive_formulas_empty[OF len full init]
-        fair_DL_Liminf_yy_empty[OF full inv]
+        fair_DL_Liminf_yy_empty[OF len full inv]
       by simp
     moreover have ?t_inf
       unfolding fstate_alt_def using fair_DL_Liminf_passive_inferences_empty[OF len full init]
@@ -684,8 +702,8 @@ proof -
     ultimately show ?thesis
       by blast
   qed
-  note pas_fml = pas_fml_and_t_inf[THEN conjunct1]
-  note t_inf = pas_fml_and_t_inf[THEN conjunct2]
+  note pas_fml = pas_fml_and_t_inf[THEN conjunct1] and
+    t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap fstate Sts))"
     using inf_have_prems by blast
