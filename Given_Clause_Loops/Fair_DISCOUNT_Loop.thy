@@ -631,9 +631,9 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
-lemma DLf_step_imp_passive_steps:
+lemma DLf_step_imp_passive_step:
   assumes step: "St \<leadsto>DLf St'"
-  shows "passive_step\<^sup>+\<^sup>+ (passive_of St) (passive_of St')"
+  shows "passive_step (passive_of St) (passive_of St')"
   using step
 proof cases
   case (compute_infer P \<iota> A C)
@@ -683,25 +683,17 @@ lemma fair_DL_Liminf_passive_empty:
     init: "is_initial_fair_DL_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
-  have "chain (passive_step\<^sup>+\<^sup>+) (lmap passive_of Sts)"
-    using DLf_step_imp_passive_steps chain_lmap full_chain_imp_chain[OF full]
+  have chain_step: "chain passive_step (lmap passive_of Sts)"
+    using DLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
-  then obtain Ps' :: "'p llist" where
-    chain_ps': "chain passive_step Ps'" and
-    emb_ps': "emb (lmap passive_of Sts) Ps'" and
-    hd_ps': "lhd Ps' = lhd (lmap passive_of Sts)" and
-    lst_ps': "llast Ps' = llast (lmap passive_of Sts)"
-    using chain_tranclp_imp_exists_chain by blast
 
-  have len_ps': "llength Ps' = \<infinity>"
-    using len emb_lfinite[OF emb_ps'] by (simp add: llength_eq_infty_conv_lfinite)
-
-  have inf_oft: "infinitely_often select_passive_step Ps'"
+  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
   proof
-    assume "finitely_often select_passive_step Ps'"
+    assume "finitely_often select_passive_step (lmap passive_of Sts)"
     then obtain i :: nat where
-      no_sel: "\<forall>j \<ge> i. \<not> select_passive_step (lnth Ps' j) (lnth Ps' (Suc j))"
-      unfolding finitely_often_def using len_ps' by auto
+      no_sel:
+        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
 
     have si_lt: "enat (Suc i) < llength Sts"
       unfolding len by auto
@@ -710,22 +702,37 @@ proof -
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
+(*
     have yy: "yy_of (lnth Sts (Suc j)) = None"
       if j_ge: "j \<ge> i" for j
       using step[OF j_ge]
-      sorry (* proof cases *)
+    proof cases
+      case ol
+      then show ?thesis
+      proof cases
+        case (choose_p P A)
+        note defs = this(1,2) and p_ne = this(3)
+        have False
+          using no_sel defs p_ne select_passive_stepI that by fastforce
+        thus ?thesis
+          by blast
+      qed auto
+    next
+      case (red_by_children C A M C' P)
+      then show ?thesis
+        by simp
+    qed
 
-(*
     have "\<mu>3 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
       by (rule non_choose_p_ILf_step_imp_\<mu>3[OF step[OF j_ge] yy[OF j_ge]])
     hence "\<mu>3\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>3\<inverse>\<inverse> (ldropn i Sts)"
       using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
-*)
 
     have inf_i: "\<not> lfinite (ldropn i Sts)"
       using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+*)
 
     show False
       sorry
@@ -736,8 +743,6 @@ proof -
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
     using init full full_chain_not_lnull unfolding is_initial_fair_DL_state.simps by fastforce
-
-  thm emb_Liminf_llist_infinite
 
   have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
