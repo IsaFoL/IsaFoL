@@ -538,7 +538,8 @@ next
   proof (cases "C'' \<in> passive_formulas_of P")
     case c''_in: True
     show ?thesis
-      sorry
+      unfolding defs using c'_ni
+      by (auto simp: notin_fset insert_absorb[OF c''_in] intro!: subset_implies_multp)
   next
     case c''_in: False
 
