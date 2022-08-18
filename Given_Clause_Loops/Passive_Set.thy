@@ -55,8 +55,43 @@ next
   qed
 qed
 
+lemma set_drop_fold_removeAll: "set (drop k (fold removeAll ys xs)) \<subseteq> set (drop k xs)"
+proof (induct ys arbitrary: xs)
+  case (Cons y ys)
+  note ih = this(1)
+
+  have "set (drop k (fold removeAll ys (removeAll y xs))) \<subseteq> set (drop k (removeAll y xs))"
+    using ih[of "removeAll y xs"] .
+  also have "... \<subseteq> set (drop k xs)"
+    by (meson set_drop_removeAll)
+  finally show ?case
+    by simp
+qed simp
+
 lemma set_drop_append_subseteq: "set (drop n (xs @ ys)) \<subseteq> set (drop n xs) \<union> set ys"
   by (metis drop_append set_append set_drop_subset sup.idem sup.orderI sup_mono)
+
+lemma distinct_fold_removeAll:
+  assumes dist: "distinct xs"
+  shows "distinct (fold removeAll ys xs)"
+  using dist
+proof (induct ys arbitrary: xs)
+  case Nil
+  then show ?case
+    using dist by simp
+next
+  case (Cons y ys)
+  note ih = this(1) and dist_xs = this(2)
+
+  have dist_yxs: "distinct (removeAll y xs)"
+    using dist_xs by (simp add: distinct_removeAll)
+
+  show ?case
+    by simp (rule ih[OF dist_yxs])
+qed
+
+lemma fold_append_singleton: "fold (\<lambda>y xs. xs @ [y]) ys xs = xs @ ys"
+  by (induct ys arbitrary: xs) auto
 
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
@@ -119,9 +154,17 @@ lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
   by (induct Cs arbitrary: P) auto
 
 inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  passive_step_idleI: "passive_step P P"
-| passive_step_addI: "C \<notin> elems P \<Longrightarrow> passive_step P (add C P)"
-| passive_step_removeI: "passive_step P (remove C P)"
+  passive_stepI:
+    "distinct Cs \<Longrightarrow> set Cs \<inter> elems P = {} \<Longrightarrow> passive_step P (fold remove Ds (fold add Cs P))"
+
+lemma passive_step_idleI: "passive_step P P"
+  using passive_stepI[of "[]" _ "[]", simplified] .
+
+lemma passive_step_addI: "C \<notin> elems P \<Longrightarrow> passive_step P (add C P)"
+  using passive_stepI[of "[C]" _ "[]", simplified] .
+
+lemma passive_step_removeI: "passive_step P (remove C P)"
+  using passive_stepI[of "[]" _ "[C]", simplified] .
 
 inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_passive_stepI: "P \<noteq> empty \<Longrightarrow> select_passive_step P (remove (select P) P)"
@@ -172,9 +215,36 @@ lemma passive_step_preserves_distinct:
     dist: "distinct P" and
     step: "passive_step P P'"
   shows "distinct P'"
-  using step unfolding passive_step.simps
-  by (metis dist distinct.simps(2) distinct1_rotate distinct_removeAll fset_of_list.rep_eq
-      rotate1.simps(2))
+  using step
+proof cases
+  case (passive_stepI Cs Ds)
+  note p' = this(1) and dist_c = this(2) and inter = this(3)
+
+  have "distinct (fold (\<lambda>y xs. xs @ [y]) Cs P)"
+    using dist dist_c inter
+  proof (induct Cs arbitrary: P)
+    case Nil
+    then show ?case
+      using dist by auto
+  next
+    case (Cons C Cs)
+    note ih = this(1) and dist = this(2) and dist_cc = this(3) and inter = this(4)
+
+    have dist_pc: "distinct (P @ [C])"
+      using dist inter by force
+    have dist_c: "distinct Cs"
+      using dist_cc by simp
+    have inter_c: "set Cs \<inter> elems (P @ [C]) = {}"
+      using inter dist dist_cc by simp
+
+    show ?case
+      by simp (rule ih[OF dist_pc dist_c inter_c])
+  qed
+  hence "distinct (fold removeAll Ds (fold (\<lambda>y xs. xs @ [y]) Cs P))"
+    by (rule distinct_fold_removeAll)
+  thus ?thesis
+    unfolding p' .
+qed
 
 lemma chain_passive_step_preserves_distinct:
   assumes
@@ -280,7 +350,7 @@ proof unfold_locales
               using less.prems(1) by linarith
           next
             case False
-            then have d_ge: "d \<ge> i'"
+            hence d_ge: "d \<ge> i'"
               by simp
             then show ?thesis
             proof (cases "d > i''")
@@ -289,7 +359,7 @@ proof unfold_locales
                 using less.prems(2) linorder_not_less by blast
             next
               case False
-              then have d_le: "d \<le> i''"
+              hence d_le: "d \<le> i''"
                 by simp
 
               show ?thesis
@@ -315,32 +385,20 @@ proof unfold_locales
                       plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
-                  case passive_step_idleI
-                  then show ?thesis
-                    using ih_dm1 by presburger
-                next
-                  case (passive_step_addI D)
-                  note at_d = this(1) and d_ni = this(2)
+                  case (passive_stepI Ds Es)
+                  note at_d = this(1) and dist_ds = this(2) and inter_ds = this(3)
 
                   have "C |\<in>| fset_of_list (lnth Ps (d - 1))"
                     by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
-                  hence d_ne: "D \<noteq> C"
-                    using d_ni by (meson notin_fset)
-
-                  have "C \<notin> set [D]"
-                    using d_ne by simp
-                  then have c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ [D]))"
-                    using ih_dm1 set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" "[D]"]
+                  hence c_ni: "C \<notin> set Ds"
+                    by (metis IntI emptyE inter_ds notin_fset)
+                  hence c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ Ds))"
+                    using ih_dm1 set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" Ds]
                     by fast
-
-                  show ?thesis
-                    unfolding at_d by (rule c_ni_dm1)
-                next
-                  case (passive_step_removeI D)
-                  note at_d = this(1)
-
-                  show ?thesis
-                    unfolding at_d using ih_dm1 set_drop_removeAll by fast
+                  hence "C \<notin> set (drop (k + 1 - l) (fold (\<lambda>y xs. xs @ [y]) Ds (lnth Ps (d - 1))))"
+                    by (simp add: fold_append_singleton)
+                  thus ?thesis
+                    unfolding at_d using set_drop_fold_removeAll by fastforce
                 qed
               qed
             qed

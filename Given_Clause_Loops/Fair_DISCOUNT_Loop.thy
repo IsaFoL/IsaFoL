@@ -737,6 +737,8 @@ proof -
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
     using init full full_chain_not_lnull unfolding is_initial_fair_DL_state.simps by fastforce
 
+  thm emb_Liminf_llist_infinite
+
   have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
   thus ?thesis
