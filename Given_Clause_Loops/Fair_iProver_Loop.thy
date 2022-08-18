@@ -637,86 +637,9 @@ proof (rule ccontr)
 qed
 
 lemma OLf_step_imp_passive_step:
-  assumes step: "St \<leadsto>OLf St'"
+  assumes "St \<leadsto>OLf St'"
   shows "passive_step (passive_of St) (passive_of St')"
-  using step
-proof cases
-  case (choose_n C N P A)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-next
-  case (delete_fwd C P A N)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-next
-  case (simplify_fwd C' C P A N)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-next
-  case (delete_bwd_p C' P C N A)
-  note defs = this(1,2)
-  have pas: "passive_of St' = remove C' P"
-    unfolding defs by simp
-  show ?thesis
-    unfolding defs pas by (auto intro: passive_step_removeI)
-next
-  case (simplify_bwd_p C'' C' P C N A)
-  note defs = this(1,2)
-  have pas: "passive_of St' = remove C' P"
-    unfolding defs by simp
-  show ?thesis
-    unfolding defs pas by (auto intro: passive_step_removeI)
-next
-  case (delete_bwd_a C' A C N P)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-next
-  case (simplify_bwd_a C'' C' A C N P)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-next
-  case (transfer N C P A)
-  note defs = this(1,2)
-  show ?thesis
-  proof (cases "C \<in> elems P")
-    case c_in: True
-    show ?thesis
-      unfolding defs using add_again by (auto simp: c_in fmember.rep_eq intro: passive_step_idleI)
-  next
-    case c_ni: False
-    show ?thesis
-      unfolding defs by (auto simp: c_ni intro: passive_step_addI)
-  qed
-next
-  case (choose_p P A)
-  note defs = this(1,2)
-  have pas: "passive_of St' = remove (select P) P"
-    unfolding defs by simp
-  show ?thesis
-    unfolding defs pas by (auto intro: passive_step_removeI)
-next
-  case (infer A C M P)
-  note defs = this(1,2)
-  have pas: "passive_of St' = passive_of St"
-    unfolding defs by simp
-  show ?thesis
-    unfolding pas by (rule passive_step_idleI)
-qed
+  using assms by cases (auto intro: passive_step_idleI passive_step_addI passive_step_removeI)
 
 lemma ILf_step_imp_passive_step:
   assumes step: "St \<leadsto>ILf St'"
