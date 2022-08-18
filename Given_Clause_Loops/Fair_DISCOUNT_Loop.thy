@@ -681,10 +681,7 @@ proof -
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
-    sorry (* UNPROVABLE *)
-(*
     using init full full_chain_not_lnull unfolding is_initial_fair_DL_state.simps by fastforce
-*)
 
   have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
