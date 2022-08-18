@@ -49,6 +49,10 @@ lemma passive_inference_filter:
   "passive_inference ` Set.filter is_passive_inference N = {\<iota>. Passive_Inference \<iota> \<in> N}"
   by force
 
+lemma passive_formula_filter:
+  "passive_formula ` Set.filter is_passive_formula N = {C. Passive_Formula C \<in> N}"
+  by force
+
 locale fair_discount_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
   fair_passive_set empty select add remove felems
@@ -730,7 +734,30 @@ lemma fair_DL_Liminf_passive_formulas_empty:
     full: "full_chain (\<leadsto>DLf) Sts" and
     init: "is_initial_fair_DL_state (lhd Sts)"
   shows "Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts) = {}"
-  sorry
+proof -
+  have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_formula \<circ> elems \<circ> passive_of) Sts) = {}"
+    using fair_DL_Liminf_passive_empty Liminf_llist_subset
+    by (metis (no_types) empty_iff full init len llength_lmap llist.map_comp lnth_lmap member_filter
+        subsetI subset_antisym)
+
+  let ?g = "Set.filter is_passive_formula \<circ> elems \<circ> passive_of"
+
+  have "inj_on passive_formula (Set.filter is_passive_formula (UNIV :: 'f passive_elem set))"
+    unfolding inj_on_def by (metis member_filter passive_elem.collapse(2))
+  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_formula UNIV"
+    unfolding Sup_llist_def by auto
+  ultimately have inj_pi: "inj_on passive_formula (Sup_llist (lmap ?g Sts))"
+    using inj_on_subset by blast
+
+  have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_formula `
+    (Set.filter is_passive_formula \<circ> elems \<circ> passive_of) x) Sts) = {}"
+    using Liminf_llist_lmap_image[OF inj_pi] lim_filt by simp
+
+  have "Liminf_llist (lmap (\<lambda>St. {C. Passive_Formula C \<in> elems (passive_of St)}) Sts) = {}"
+    using lim_pass passive_formula_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
+  thus ?thesis
+    unfolding passive_formulas_of_def comp_apply .
+qed
 
 theorem
   assumes
