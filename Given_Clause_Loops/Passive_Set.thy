@@ -90,8 +90,48 @@ next
     by simp (rule ih[OF dist_yxs])
 qed
 
-lemma fold_append_singleton: "fold (\<lambda>y xs. xs @ [y]) ys xs = xs @ ys"
-  by (induct ys arbitrary: xs) auto
+lemma set_drop_append_cons: "set (drop n (xs @ ys)) \<subseteq> set (drop n (xs @ y # ys))"
+proof (induct n arbitrary: xs)
+  case 0
+  then show ?case
+    by auto
+next
+  case (Suc n)
+  note ih = this(1)
+
+  show ?case
+  proof (cases xs)
+    case Nil
+    then show ?thesis
+      using set_drop_subset_set_drop[of n "Suc n"] by force
+  next
+    case (Cons x xs')
+    note xs = this(1)
+
+    have "set (drop n (xs' @ ys)) \<subseteq> set (drop n (xs' @ y # ys))"
+      using ih .
+    thus ?thesis
+      unfolding xs by auto
+  qed
+qed
+
+lemma set_drop_fold_maybe_append_singleton:
+  "set (drop k (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) ys xs)) \<subseteq> set (drop k (xs @ ys))"
+proof (induct ys arbitrary: xs)
+  case (Cons y ys)
+  note ih = this(1)
+  show ?case
+  proof (cases "y \<in> set xs")
+    case True
+    thus ?thesis
+      using ih[of xs] set_drop_append_cons[of k xs ys y] by auto
+  next
+    case False
+    then show ?thesis
+      using ih[of "xs @ [y]"]
+      by simp
+  qed
+qed simp
 
 
 subsection \<open>More on Relational Chains over Lazy Lists\<close>
@@ -127,7 +167,8 @@ locale passive_set =
     felems_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
     select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
     felems_add[simp]: "felems (add C P) = {|C|} |\<union>| felems P" and
-    felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}"
+    felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}" and
+    add_elem: "C |\<in>| felems P \<Longrightarrow> add C P = P"
 begin
 
 abbreviation elems :: "'p \<Rightarrow> 'f set" where
@@ -192,7 +233,7 @@ passive set.\<close>
 locale fifo_passive_set
 begin
 
-sublocale passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
+sublocale passive_set "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list
 proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
@@ -203,10 +244,13 @@ next
   show "\<And>P. P \<noteq> [] \<Longrightarrow> hd P |\<in>| fset_of_list P"
     by (metis fset_of_list_elem list.set_sel(1))
 next
-  show "\<And>C P. fset_of_list (P @ [C]) = {|C|} |\<union>| fset_of_list P"
-    by (simp add: funion_commute)
+  show "\<And>C P. fset_of_list (if C \<in> set P then P else P @ [C]) = {|C|} |\<union>| fset_of_list P"
+    by (auto simp: funion_commute fset_of_list_elem)
 next
   show "\<And>C P. fset_of_list (removeAll C P) = fset_of_list P |-| {|C|}"
+    by (auto simp: fset_of_list_elem)
+next
+  show "\<And>C P. C |\<in>| fset_of_list P \<Longrightarrow> (if C \<in> set P then P else P @ [C]) = P"
     by (auto simp: fset_of_list_elem)
 qed
 
@@ -220,7 +264,7 @@ proof cases
   case (passive_stepI Cs Ds)
   note p' = this(1) and dist_c = this(2) and inter = this(3)
 
-  have "distinct (fold (\<lambda>y xs. xs @ [y]) Cs P)"
+  have "distinct (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P)"
     using dist dist_c inter
   proof (induct Cs arbitrary: P)
     case Nil
@@ -228,19 +272,21 @@ proof cases
       using dist by auto
   next
     case (Cons C Cs)
-    note ih = this(1) and dist = this(2) and dist_cc = this(3) and inter = this(4)
+    note ih = this(1) and dist_p = this(2) and dist_cc = this(3) and inter = this(4)
 
     have dist_pc: "distinct (P @ [C])"
-      using dist inter by force
+      using dist_p inter by force
     have dist_c: "distinct Cs"
       using dist_cc by simp
-    have inter_c: "set Cs \<inter> elems (P @ [C]) = {}"
+    have inter_pc: "set Cs \<inter> elems (P @ [C]) = {}"
+      using inter dist dist_cc by simp
+    have inter_p: "set Cs \<inter> elems P = {}"
       using inter dist dist_cc by simp
 
     show ?case
-      by simp (rule ih[OF dist_pc dist_c inter_c])
+      using ih[OF dist_pc dist_c inter_pc] ih[OF dist_p dist_c inter_p] by simp
   qed
-  hence "distinct (fold removeAll Ds (fold (\<lambda>y xs. xs @ [y]) Cs P))"
+  hence "distinct (fold removeAll Ds (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P))"
     by (rule distinct_fold_removeAll)
   thus ?thesis
     unfolding p' .
@@ -269,7 +315,8 @@ next
     using passive_step_preserves_distinct ih by blast
 qed
 
-sublocale fair_passive_set "[]" hd "\<lambda>y xs. xs @ [y]" removeAll fset_of_list
+sublocale fair_passive_set "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll
+  fset_of_list
 proof unfold_locales
   fix Ps :: "'f list llist"
   assume
@@ -380,9 +427,9 @@ proof unfold_locales
                   by (rule ih[OF dm1_bounds])
 
                 have "passive_step (lnth Ps (d - 1)) (lnth Ps d)"
-                  by (metis add_leE chain chain_lnth_rel dm1_bounds(1) enat_ord_code(4) le_refl
-                      less_imp_Suc_add ordered_cancel_comm_monoid_diff_class.add_diff_inverse
-                      plus_1_eq_Suc ps_inf)
+                  by (metis (no_types, lifting) One_nat_def add_diff_inverse_nat
+                      bot_nat_0.extremum_unique chain chain_lnth_rel d_ge d_ne_i' dm1_bounds(2)
+                      enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
                   case (passive_stepI Ds Es)
@@ -395,8 +442,9 @@ proof unfold_locales
                   hence c_ni_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ Ds))"
                     using ih_dm1 set_drop_append_subseteq[of "k + 1 - l" "lnth Ps (d - 1)" Ds]
                     by fast
-                  hence "C \<notin> set (drop (k + 1 - l) (fold (\<lambda>y xs. xs @ [y]) Ds (lnth Ps (d - 1))))"
-                    by (simp add: fold_append_singleton)
+                  hence "C \<notin> set (drop (k + 1 - l)
+                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Ds (lnth Ps (d - 1))))"
+                    using set_drop_fold_maybe_append_singleton by fast
                   thus ?thesis
                     unfolding at_d using set_drop_fold_removeAll by fastforce
                 qed
