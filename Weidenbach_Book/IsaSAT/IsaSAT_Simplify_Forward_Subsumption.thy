@@ -2140,6 +2140,293 @@ proof -
     done
 qed
 
+lemma subsumption_cases_lhs:
+  assumes
+    \<open>(a,a')\<in>Id\<close>
+    \<open>\<And>b b'. a = SUBSUMED_BY b \<Longrightarrow> a' = SUBSUMED_BY b' \<Longrightarrow> f b \<le> \<Down>S (f' b')\<close>
+    \<open>\<And>b b' c c'. a = STRENGTHENED_BY b c \<Longrightarrow> a' = STRENGTHENED_BY b' c' \<Longrightarrow> g b c \<le> \<Down>S (g' b' c')\<close>
+    \<open>\<And>b b' c c'. a = NONE \<Longrightarrow> a' = NONE \<Longrightarrow> h \<le> \<Down>S h'\<close>
+  shows \<open>(case a of SUBSUMED_BY b \<Rightarrow> f b | STRENGTHENED_BY b c \<Rightarrow> g b c | NONE \<Rightarrow> h) \<le>\<Down> S
+     (case a' of SUBSUMED_BY b \<Rightarrow> f' b| STRENGTHENED_BY b c \<Rightarrow> g' b c | NONE \<Rightarrow> h')\<close>
+  using assms by (auto split: subsumption.splits)
+
+
+definition arena_promote_st_wl :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl\<close>  where
+  \<open>arena_promote_st_wl = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) C.
+  (M, fmupd C (N \<propto> C, True) N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q))\<close>
+
+lemma clss_size_corr_restart_promote:
+  \<open>clss_size_corr_restart b d {#} f g h {#} j {#} (lcount) \<Longrightarrow>
+   \<not>irred b C \<Longrightarrow> C \<in># dom_m b \<Longrightarrow> 
+    clss_size_corr_restart (fmupd C (b \<propto> C, True) b) d {#} f g h {#} j {#}
+  (clss_size_decr_lcount (lcount))\<close>
+  unfolding clss_size_corr_restart_def
+  by (auto simp: clss_size_decr_lcount_def clss_size_def
+    learned_clss_l_mapsto_upd_in_irrelev size_remove1_mset_If)
+
+lemma vdom_m_promote_same:
+  \<open>C \<in># dom_m b \<Longrightarrow> vdom_m (all_init_atms b (d + f + h + j)) m (fmupd C (b \<propto> C, True) b) =
+  vdom_m (all_init_atms b (d + f + h + j)) m ( b)\<close>
+  by (auto simp: vdom_m_def)
+
+lemma mop_arena_promote_st_spec:
+  assumes T: \<open>(S, T) \<in> twl_st_heur_restart_occs' r u\<close> and
+   C: \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+    irred: \<open>\<not>irred (get_clauses_wl T) C\<close> and
+    eq: \<open>all_init_atms_st (arena_promote_st_wl T C) = all_init_atms_st T\<close>
+  shows \<open>mop_arena_promote_st S C \<le> SPEC (\<lambda>U. (U, arena_promote_st_wl T C)\<in>twl_st_heur_restart_occs' r u)\<close>
+proof -
+  have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close> and
+    size: \<open>clss_size_corr_restart (get_clauses_wl T)
+    (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#}
+    (IsaSAT_Setup.get_kept_unit_init_clss_wl T)
+    (IsaSAT_Setup.get_kept_unit_learned_clss_wl T) (get_subsumed_init_clauses_wl T) {#}
+    (get_init_clauses0_wl T) {#} (get_learned_count S)\<close>
+    using T unfolding twl_st_heur_restart_occs_def by fast+
+  then have irred': \<open>arena_status (get_clauses_wl_heur S) C \<noteq> IRRED\<close>
+    using irred by (simp add: C arena_lifting(24))
+  have 1: \<open>1 \<le> get_learned_count_number S\<close>
+    by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[OF T C irred'])
+  have 2: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur S) C\<close>
+    using C valid unfolding arena_is_valid_clause_vdom_def by auto
+  have valid': \<open>valid_arena (arena_set_status (get_clauses_wl_heur S) C IRRED)
+    (fmupd C (get_clauses_wl T \<propto> C, True) (get_clauses_wl T)) (set (get_vdom S))\<close>
+    by (rule valid_arena_arena_set_status[OF valid])
+      (use C in auto)
+  show ?thesis
+    unfolding mop_arena_promote_st_def mop_arena_set_status_def
+      nres_monad3
+    apply refine_vcg
+    subgoal by (rule 1)
+    subgoal by (rule 2)
+    subgoal
+      apply (cases T)
+      using eq[unfolded all_init_atms_st_def] T C valid' irred
+      by (auto simp add: twl_st_heur_restart_occs_def arena_promote_st_wl_def
+        vdom_m_promote_same
+        clss_size_corr_restart_promote simp flip: learned_clss_count_def)
+    done
+qed
+
+definition mark_garbage_wl2 :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
+  \<open>mark_garbage_wl2 = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q).
+  (M, fmdrop C N, D, NE, UE, NEk, UEk, (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
+     (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, WS, Q))\<close>
+
+lemma subsume_or_strengthen_wl_alt_def[unfolded Down_id_eq]:
+  \<open>\<Down>Id (subsume_or_strengthen_wl C s T) \<ge> do {
+   ASSERT(subsume_or_strengthen_wl_pre C s T);
+   (case s of
+     NONE \<Rightarrow> RETURN T
+  | SUBSUMED_BY C' \<Rightarrow> do {
+       let _ = C \<in>#dom_m (get_clauses_wl T);
+       let _ = C' \<in>#dom_m (get_clauses_wl T);
+       let U = mark_garbage_wl2 C T;
+       let V = (if \<not>irred (get_clauses_wl T) C' \<and> irred (get_clauses_wl T) C then arena_promote_st_wl U C' else U);
+       ASSERT (set_mset (all_init_atms_st V) = set_mset (all_init_atms_st T));
+       RETURN V
+     }
+   | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L T)
+         }\<close>
+   unfolding subsume_or_strengthen_wl_def
+      case_wl_split state_wl_recompose
+  apply (refine_vcg subsumption_cases_lhs)
+  subgoal by auto
+  subgoal
+    by (cases T)
+     (auto simp: arena_promote_st_wl_def mark_garbage_wl2_def state_wl_l_def fmdrop_fmupd
+      subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def)
+  subgoal
+    by (cases T)
+     (auto simp: arena_promote_st_wl_def mark_garbage_wl2_def state_wl_l_def fmdrop_fmupd
+      subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def)
+  subgoal by auto
+  done
+
+lemma mark_garbage_wl2_simp[simp]:
+  \<open>get_trail_wl (mark_garbage_wl2 C S) = get_trail_wl S\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_init_clss_wl (mark_garbage_wl2 C S) = IsaSAT_Setup.get_unkept_unit_init_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_init_clss_wl (mark_garbage_wl2 C S) = IsaSAT_Setup.get_kept_unit_init_clss_wl S\<close>
+  \<open>irred (get_clauses_wl S) C \<Longrightarrow>
+    get_subsumed_init_clauses_wl (mark_garbage_wl2 C S) = add_mset (mset (get_clauses_wl S \<propto> C)) (get_subsumed_init_clauses_wl S)\<close>
+  \<open>\<not>irred (get_clauses_wl S) C \<Longrightarrow>
+    get_subsumed_init_clauses_wl (mark_garbage_wl2 C S) = (get_subsumed_init_clauses_wl S)\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_learned_clss_wl (mark_garbage_wl2 C S) = IsaSAT_Setup.get_unkept_unit_learned_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_learned_clss_wl (mark_garbage_wl2 C S) = IsaSAT_Setup.get_kept_unit_learned_clss_wl S\<close>
+  \<open>irred (get_clauses_wl S) C \<Longrightarrow>
+  get_subsumed_learned_clauses_wl (mark_garbage_wl2 C S) = (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>\<not>irred (get_clauses_wl S) C \<Longrightarrow>
+  get_subsumed_learned_clauses_wl (mark_garbage_wl2 C S) = add_mset (mset (get_clauses_wl S \<propto> C)) (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>literals_to_update_wl (mark_garbage_wl2 C S) = literals_to_update_wl S\<close>
+  \<open>get_watched_wl (mark_garbage_wl2 C S) = get_watched_wl S\<close>
+  \<open>get_clauses_wl (mark_garbage_wl2 C S) = fmdrop C (get_clauses_wl S)\<close>
+  \<open>get_init_clauses0_wl (mark_garbage_wl2 C S) = get_init_clauses0_wl (S)\<close>
+  \<open>get_learned_clauses0_wl (mark_garbage_wl2 C S) = get_learned_clauses0_wl (S)\<close>
+  \<open>get_conflict_wl (mark_garbage_wl2 C S) = get_conflict_wl S\<close>
+  apply (solves \<open>cases S; auto simp: mark_garbage_wl2_def\<close>)+
+  done
+
+lemma
+  assumes
+    T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
+    x: \<open>(x2a, x2) \<in> Id\<close>
+  shows \<open>isa_subsume_or_strengthen_wl C x2a T
+    \<le> \<Down> (twl_st_heur_restart_occs' r u)
+    (subsume_or_strengthen_wl C x2 S)\<close>
+proof -
+
+    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
+      by auto
+    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
+      by auto
+
+    note cong =  trail_pol_cong heuristic_rel_cong
+      option_lookup_clause_rel_cong isa_vmtf_cong
+       vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
+      isasat_input_bounded_cong[THEN iffD1]
+       cach_refinement_empty_cong[THEN H']
+       phase_saving_cong[THEN H']
+       \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
+      D\<^sub>0_cong[THEN H]
+      map_fun_rel_D\<^sub>0_cong
+      vdom_m_cong[symmetric] \<L>\<^sub>a\<^sub>l\<^sub>l_cong isasat_input_nempty_cong
+
+  have atms_eq[symmetric]: \<open>C \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
+    irred (get_clauses_wl S) C \<Longrightarrow>
+    set_mset (all_init_atms (fmdrop C (get_clauses_wl S))
+      (add_mset (mset (get_clauses_wl S \<propto> C))
+     (IsaSAT_Setup.get_unkept_unit_init_clss_wl S + IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+      get_subsumed_init_clauses_wl S +
+    get_init_clauses0_wl S))) =
+    set_mset (all_init_atms (get_clauses_wl S)
+      (IsaSAT_Setup.get_unkept_unit_init_clss_wl S + IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+      get_subsumed_init_clauses_wl S +
+    get_init_clauses0_wl S))\<close>
+     \<open>C \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
+    \<not>irred (get_clauses_wl S) C \<Longrightarrow>
+    set_mset (all_init_atms (fmdrop C (get_clauses_wl S))
+      ((IsaSAT_Setup.get_unkept_unit_init_clss_wl S + IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+      get_subsumed_init_clauses_wl S +
+    get_init_clauses0_wl S))) =
+    set_mset (all_init_atms (get_clauses_wl S)
+      (IsaSAT_Setup.get_unkept_unit_init_clss_wl S + IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+      get_subsumed_init_clauses_wl S +
+    get_init_clauses0_wl S))\<close>
+    by (simp_all add: all_init_atms_fmdrop_add_mset_unit)
+  note cong1 = cong[OF this(1)] cong[OF this(2)]
+
+  have H: \<open>x2a = x2\<close>
+    using x by auto
+  have C_vdom: \<open>C \<in> set (get_vdom T)\<close> and
+    valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close> and
+    C'_vdom: \<open>x2 = SUBSUMED_BY C' \<Longrightarrow> C' \<in> set (get_vdom T)\<close> and
+    mark_garbage: \<open>mark_garbage_heur2 C T
+    \<le> SPEC (\<lambda>c. (c, mark_garbage_wl2 C S) \<in> twl_st_heur_restart_occs' r u)\<close>
+    if \<open>isa_subsume_or_strengthen_wl_pre C x2 T\<close> and
+      pre2: \<open>subsume_or_strengthen_wl_pre C x2 S\<close>
+    for C'
+  proof -
+    have C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+      using pre2 T unfolding isa_subsume_or_strengthen_wl_pre_def subsume_or_strengthen_wl_pre_def
+        subsume_or_strengthen_pre_def
+      apply - by normalize_goal+ simp
+    show valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close>
+      using T unfolding twl_st_heur_restart_occs_def by auto
+    have
+      ai: \<open>aivdom_inv_dec (get_aivdom T) (dom_m (get_clauses_wl S))\<close>
+      using T unfolding twl_st_heur_restart_occs_def by auto
+    then have H: \<open>C' \<in> set (get_vdom T)\<close> if \<open>C' \<in># dom_m (get_clauses_wl S)\<close> for C'
+      using ai that
+      by (smt (verit, ccfv_threshold) UnE aivdom_inv_dec_alt_def2 in_multiset_in_set mset_subset_eqD subsetD)
+    show \<open>C \<in> set (get_vdom T)\<close>
+      by (rule H[OF C])
+    have [simp]: \<open>(all_init_atms (fmdrop C (get_clauses_wl S))
+      (IsaSAT_Setup.get_unkept_unit_init_clss_wl S +
+    IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+    get_subsumed_init_clauses_wl (mark_garbage_wl2 C S) +
+      get_init_clauses0_wl S)) =
+      (all_init_atms ((get_clauses_wl S))
+      (IsaSAT_Setup.get_unkept_unit_init_clss_wl S +
+    IsaSAT_Setup.get_kept_unit_init_clss_wl S +
+    get_subsumed_init_clauses_wl (S) +
+      get_init_clauses0_wl (mark_garbage_wl2 C S)))\<close>
+      by (cases \<open>irred (get_clauses_wl S) C\<close>)
+       (use C in \<open>auto simp: all_init_atms_def all_init_lits_def image_mset_remove1_mset_if
+        simp del: all_init_atms_def[symmetric]\<close>)
+    have [simp]: \<open>valid_arena (extra_information_mark_to_delete (get_clauses_wl_heur T) C)
+      (fmdrop C (get_clauses_wl S)) (set (get_vdom T))\<close>
+      using valid C valid_arena_extra_information_mark_to_delete' by presburger
+    have [simp]: \<open>arena_status (get_clauses_wl_heur T) C = IRRED \<Longrightarrow>
+    clss_size_corr_restart ((get_clauses_wl S))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#}
+  (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl (S)) {#}
+      (get_init_clauses0_wl S) {#} (get_learned_count T) \<Longrightarrow>
+    clss_size_corr_restart (fmdrop C (get_clauses_wl S))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#}
+  (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl (mark_garbage_wl2 C S)) {#}
+      (get_init_clauses0_wl S) {#} (get_learned_count T)\<close>
+    \<open>arena_status (get_clauses_wl_heur T) C \<noteq> IRRED \<Longrightarrow>
+    clss_size_corr_restart ((get_clauses_wl S))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#}
+  (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl (S)) {#}
+      (get_init_clauses0_wl S) {#} (get_learned_count T) \<Longrightarrow>
+      clss_size_corr_restart (fmdrop C (get_clauses_wl S))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#}
+  (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl (mark_garbage_wl2 C S)) {#}
+  (get_init_clauses0_wl S) {#} (clss_size_decr_lcount (get_learned_count T))\<close>
+      using C arena_lifting(24)[OF valid C] by (auto simp add: clss_size_corr_restart_def clss_size_def
+        clss_size_decr_lcount_def size_remove1_mset_If split: prod.splits)
+    show \<open>mark_garbage_heur2 C T \<le> SPEC (\<lambda>c. (c, mark_garbage_wl2 C S) \<in> twl_st_heur_restart_occs' r u)\<close>
+      unfolding mark_garbage_heur2_def nres_monad3
+      apply refine_vcg
+      subgoal by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[OF T C])
+      subgoal
+        using T
+        by (auto simp add: twl_st_heur_restart_occs_def aivdom_inv_dec_remove_clause cong1
+          valid_arena_extra_information_mark_to_delete' arena_lifting clss_size_corr_restart_intro
+          simp flip: learned_clss_count_def learned_clss_count_def
+          simp del: isasat_input_nempty_def
+          dest: in_vdom_m_fmdropD)
+      done
+    
+    assume \<open>x2 = SUBSUMED_BY C'\<close>
+    then have C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close>
+      using pre2 T unfolding isa_subsume_or_strengthen_wl_pre_def subsume_or_strengthen_wl_pre_def
+        subsume_or_strengthen_pre_def
+      apply - by normalize_goal+ simp
+    show \<open>C' \<in> set (get_vdom T)\<close>
+      by (rule H[OF C'])
+  qed
+  show ?thesis
+    apply (rule order_trans)
+    defer
+    apply (rule ref_two_step'[OF subsume_or_strengthen_wl_alt_def])
+    unfolding isa_subsume_or_strengthen_wl_def
+      case_wl_split state_wl_recompose H
+    apply (refine_vcg subsumption_cases_lhs mop_arena_status2[where vdom = \<open>set (get_vdom T)\<close>]
+      mark_garbage mop_arena_promote_st_spec[where T=\<open>mark_garbage_wl2 C S\<close> and r=r and u=u])
+    subgoal using T unfolding isa_subsume_or_strengthen_wl_pre_def by fast
+    subgoal by auto
+    subgoal by auto
+    subgoal by (rule C_vdom)
+    subgoal by (rule valid)
+    subgoal by auto
+    subgoal by (rule C'_vdom)
+    subgoal by (rule valid)
+    subgoal by auto
+    subgoal by auto
+    subgoal apply auto sorry
+    subgoal by auto
+      term all_init_atms_st
+oops
 lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   assumes
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
