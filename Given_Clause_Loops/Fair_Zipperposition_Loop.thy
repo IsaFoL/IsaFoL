@@ -48,7 +48,8 @@ locale fair_discount_loop =
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
   assumes
     wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
-    transp_Prec_S: "transp (\<prec>S)"
+    transp_Prec_S: "transp (\<prec>S)" and
+    countable_Inf_between: "finite A \<Longrightarrow> countable (no_labels.Inf_between A {C})"
 begin
 
 lemma trans_Prec_S: "trans {(x, y). x \<prec>S y}"
@@ -312,9 +313,9 @@ next
         y: "Y = Some C"
         by blast
 
-      obtain \<iota>ss :: "'f inference llist list" where
-        \<iota>ss: "flat_inferences_of (set \<iota>ss) = no_labels.Inf_between (fset A) {C}"
-        sorry
+      obtain \<iota>s :: "'f inference llist" where
+        \<iota>ss: "flat_inferences_of (set [\<iota>s]) = no_labels.Inf_between (fset A) {C}"
+        using countable_imp_lset[OF countable_Inf_between[OF finite_fset]] by force
 
       have "\<exists>St'. St \<leadsto>ZLf St'"
         using fair_ZL.schedule_infer[OF \<iota>ss] unfolding st y by fast

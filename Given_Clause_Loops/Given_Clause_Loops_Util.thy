@@ -1,9 +1,19 @@
+(* Title:        Utilities for Given Clause Loops
+   Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+*)
+
+section \<open>Utilities for Given Clause Loops\<close>
+
 theory Given_Clause_Loops_Util
   imports
     "HOL-Library.Multiset"
     Ordered_Resolution_Prover.Lazy_List_Liminf
     Weighted_Path_Order.Multiset_Extension_Pair
 begin
+
+
+subsection \<open>Miscellaneous\<close>
 
 hide_const (open) Seq.chain
 
@@ -51,5 +61,28 @@ lemma Liminf_llist_subset:
   shows "Liminf_llist Xs \<subseteq> Liminf_llist Ys"
   unfolding Liminf_llist_def using assms
   by (smt INT_iff SUP_mono mem_Collect_eq subsetD subsetI)
+
+
+subsection \<open>Countability and Lazy Lists\<close>
+
+lemma countable_imp_lset:
+  assumes count: "countable A"
+  shows "\<exists>as. lset as = A"
+proof (cases "finite A")
+  case fin: True
+  have "\<exists>as. set as = A"
+    by (simp add: fin finite_imp_set_eq)
+  thus ?thesis
+    by (meson lset_llist_of)
+next
+  case inf: False
+
+  let ?as = "inf_llist (from_nat_into A)"
+
+  have "lset ?as = A"
+    by (simp add: inf infinite_imp_nonempty count)
+  thus ?thesis
+    by blast
+qed
 
 end
