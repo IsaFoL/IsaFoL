@@ -36,7 +36,7 @@ definition subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 
       lin \<leftarrow> mop_ch_in L D;
       if lin
       then RETURN (i+1, st)
-      else do {
+     else do {
       lin \<leftarrow> mop_ch_in (-L) D;
       if lin
       then if is_subsumed st
@@ -1485,333 +1485,6 @@ proof -
     by (auto simp: clss_size_corr_restart_def clss_size_def clss_size_lcount_def
       arena_lifting)
 qed
- 
-lemma
-  assumes
-    ST: \<open>(S,T) \<in> twl_st_heur_restart_occs' r u\<close> and
-    CD: \<open>(C,D)\<in>nat_rel\<close> and
-    st: \<open>(s,t)\<in>Id\<close>
-  shows
-    \<open>isa_subsume_or_strengthen_wl C s S \<le>\<Down>(twl_st_heur_restart_occs' r u)
-    (subsume_or_strengthen_wl D t T)\<close> (is \<open>?A \<le> \<Down>?R ?B\<close>)
-proof-
-  have eq: \<open>D=C\<close> \<open>t=s\<close>
-    using CD st by auto
-  define T1 where \<open>T1 irred1 irred2 =  (get_trail_wl T,  fmdrop D (get_clauses_wl T),
-           get_conflict_wl T, IsaSAT_Setup.get_unkept_unit_init_clss_wl T,
-           IsaSAT_Setup.get_unkept_unit_learned_clss_wl T,
-           IsaSAT_Setup.get_kept_unit_init_clss_wl T, IsaSAT_Setup.get_kept_unit_learned_clss_wl T,
-           apply_if irred2 (add_mset (mset (get_clauses_wl T \<propto> D))) (get_subsumed_init_clauses_wl T),
-           apply_if (\<not> irred2) (add_mset (mset (get_clauses_wl T \<propto> D))) (get_subsumed_learned_clauses_wl T),
-    get_init_clauses0_wl T, get_learned_clauses0_wl T, literals_to_update_wl T, get_watched_wl T)\<close> for irred1 irred2 :: bool
-  define T2 where
-    \<open>T2 irred1 irred2 C' = (let T1 = T1 irred1 irred2 in if \<not> irred1 \<and> irred2 then  (get_trail_wl T1,
-            fmupd C' (get_clauses_wl T1 \<propto> C', True) (get_clauses_wl T1),
-           get_conflict_wl T1,IsaSAT_Setup.get_unkept_unit_init_clss_wl T1,
-           IsaSAT_Setup.get_unkept_unit_learned_clss_wl T1,
-           IsaSAT_Setup.get_kept_unit_init_clss_wl T1,IsaSAT_Setup.get_kept_unit_learned_clss_wl T1,
-          (get_subsumed_init_clauses_wl T1),
-           (get_subsumed_learned_clauses_wl T1),
-           get_init_clauses0_wl T1,get_learned_clauses0_wl T1, literals_to_update_wl T1,
-           get_watched_wl T1)
-          else T1)\<close> for irred1 irred2 :: bool and C' :: nat
-
-    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
-      by auto
-    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
-      by auto
-
-    note cong =  trail_pol_cong heuristic_rel_cong
-      option_lookup_clause_rel_cong isa_vmtf_cong
-       vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
-      isasat_input_bounded_cong[THEN iffD1]
-       cach_refinement_empty_cong[THEN H']
-       phase_saving_cong[THEN H']
-       \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
-      D\<^sub>0_cong[THEN H]
-      map_fun_rel_D\<^sub>0_cong
-      vdom_m_cong[symmetric] \<L>\<^sub>a\<^sub>l\<^sub>l_cong isasat_input_nempty_cong
-
-  have atms_eq[symmetric]: \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-    irred (get_clauses_wl T) C \<Longrightarrow>
-    set_mset (all_init_atms (fmdrop C (get_clauses_wl T))
-      (add_mset (mset (get_clauses_wl T \<propto> C))
-     (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-      get_subsumed_init_clauses_wl T +
-    get_init_clauses0_wl T))) =
-    set_mset (all_init_atms (get_clauses_wl T)
-      (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-      get_subsumed_init_clauses_wl T +
-    get_init_clauses0_wl T))\<close>
-     \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-    \<not>irred (get_clauses_wl T) C \<Longrightarrow>
-    set_mset (all_init_atms (fmdrop C (get_clauses_wl T))
-      ((IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-      get_subsumed_init_clauses_wl T +
-    get_init_clauses0_wl T))) =
-    set_mset (all_init_atms (get_clauses_wl T)
-      (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-      get_subsumed_init_clauses_wl T +
-    get_init_clauses0_wl T))\<close>
-    by (simp_all add: all_init_atms_fmdrop_add_mset_unit)
-  note cong1 = cong[OF this(1)] cong[OF this(2)]
-
-  have in_dom: \<open>subsume_or_strengthen_wl_pre C s T \<Longrightarrow> C \<in># dom_m (get_clauses_wl T)\<close> and
-    subsumed_indom: \<open>subsume_or_strengthen_wl_pre C s T \<Longrightarrow> is_subsumed s \<Longrightarrow> subsumed_by s \<in># dom_m (get_clauses_wl T)\<close> and
-    subsumed_dist: \<open>subsume_or_strengthen_wl_pre C s T \<Longrightarrow> is_subsumed s \<Longrightarrow> C \<noteq> subsumed_by s\<close> for s
-    subgoal
-      unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      by normalize_goal+
-        (simp split: subsumption.splits if_splits add: fmdrop_fmupd)
-    subgoal
-      unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      by normalize_goal+
-        (simp split: subsumption.splits if_splits add: fmdrop_fmupd)
-    subgoal
-      unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      by normalize_goal+
-        (simp split: subsumption.splits if_splits add: fmdrop_fmupd)
-    done
-  have [unfolded Down_id_eq]: \<open>\<Down>Id ?B \<ge>
-      (do {
-      _ \<leftarrow> ASSERT (subsume_or_strengthen_wl_pre D t T);
-      case t of
-      SUBSUMED_BY C' \<Rightarrow> do {
-        let irred2 = irred (get_clauses_wl T) D;
-        let irred1 = irred (get_clauses_wl T) C';
-        ASSERT (set_mset (all_init_atms_st (T1 irred1 irred2)) = set_mset (all_init_atms_st T));
-        ASSERT (set_mset (all_init_atms_st (T2 irred1 irred2 C')) = set_mset (all_init_atms_st T));
-        T \<leftarrow> RETURN (T1 irred1 irred2);
-        RETURN (T2 irred1 irred2 C') }
-      | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl D C' L T | NONE \<Rightarrow> RETURN T
-    })\<close> (is \<open>_ \<ge> ?C\<close>)
-    unfolding subsume_or_strengthen_wl_def case_wl_split T1_def T2_def Let_def eq
-    unfolding state_wl_recompose Let_def
-    apply (refine_vcg case_subsumption_refine)
-    subgoal by auto
-    subgoal
-      by (simp add: T1_def all_init_atms_st_def atms_eq IsaSAT_Setup.get_unit_init_clss_wl_alt_def
-        in_dom
-        split: if_splits)
-    subgoal
-      unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      by normalize_goal+
-        (simp split: subsumption.splits if_splits add: fmdrop_fmupd)
-    subgoal
-      unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      by normalize_goal+ (auto split: if_splits simp add: fmdrop_fmupd)
-    done
-
-  also {
-    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
-      by auto
-    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
-      by auto
-
-  have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close>
-    using ST unfolding twl_st_heur_restart_occs_def by simp
-
-  have 1: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur S) C\<close> and
-    2: \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
-    3: \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close>
-      if \<open>is_subsumed s\<close> \<open>isa_subsume_or_strengthen_wl_pre C s S\<close>
-        \<open>subsume_or_strengthen_wl_pre C s T\<close>
-    subgoal
-      using that
-      unfolding arena_is_valid_clause_vdom_def subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-        isa_subsume_or_strengthen_wl_pre_def apply -
-      apply (rule exI[of _ \<open>get_clauses_wl T\<close>], rule exI[of _ \<open>set (get_vdom S)\<close>], normalize_goal+)
-      by (use ST in \<open>simp_all add: twl_st_heur_restart_occs_def
-        subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def split: subsumption.splits\<close>)
-    using that
-    unfolding arena_is_valid_clause_vdom_def subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def
-      isa_subsume_or_strengthen_wl_pre_def apply -
-    by (normalize_goal+; use ST in \<open>simp add: twl_st_heur_restart_occs_def
-        subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def split: subsumption.splits\<close>; fail)+
-
-    have [simp]: \<open>vdom_m
-  (all_init_atms (get_clauses_wl T)
-    (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-     get_subsumed_init_clauses_wl T +
-     get_init_clauses0_wl T))
-  (get_watched_wl T) (get_clauses_wl T)
-      \<subseteq> set (get_vdom S) \<Longrightarrow>
-      vdom_m
-  (all_init_atms (get_clauses_wl T)
-    (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-     get_subsumed_init_clauses_wl T +
-     get_init_clauses0_wl T))
-  (get_watched_wl T) (fmdrop C (get_clauses_wl T))
-      \<subseteq> set (get_vdom S)\<close>
-      using in_vdom_m_fmdropD by blast
-    have mark_garbage_heur2: \<open>C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-      mark_garbage_heur2 C S
-    \<le> SPEC
-    (\<lambda>c. (c, T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C))
-      \<in> {(U,V). (U,V)\<in>twl_st_heur_restart_occs' r u \<and> V = T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)})\<close>
-      (is \<open>_ \<Longrightarrow> _ \<le> SPEC (\<lambda>c. (c, _) \<in> ?R)\<close>) for s
-    unfolding mark_garbage_heur2_def nres_monad3 T1_def eq
-    apply refine_vcg
-    subgoal by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[OF ST])
-    subgoal
-      using ST
-       by (clarsimp simp add: twl_st_heur_restart_occs_def aivdom_inv_dec_remove_clause cong1
-        valid_arena_extra_information_mark_to_delete' arena_lifting clss_size_corr_restart_intro
-        simp flip: learned_clss_count_def
-         simp del: isasat_input_nempty_def) simp
-     done
-   have T2_simp[simp]: \<open>\<And>D E. get_trail_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_trail_wl T\<close>
-     \<open>\<And>E. get_trail_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_trail_wl T\<close>
-     \<open>\<And>D' E. C \<noteq> D' \<Longrightarrow> \<not>(irred (get_clauses_wl T) E) \<Longrightarrow> (irred (get_clauses_wl T) C) \<Longrightarrow>
-       get_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D') = fmupd D' (get_clauses_wl T \<propto> D', True) (fmdrop C (get_clauses_wl T))\<close>
-     \<open>\<And>D' E. C \<noteq> D' \<Longrightarrow> (irred (get_clauses_wl T) E) \<or>\<not>(irred (get_clauses_wl T) C) \<Longrightarrow>
-       get_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D') = (fmdrop D (get_clauses_wl T))\<close>
-     \<open>\<And>E. get_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = fmdrop D (get_clauses_wl T)\<close>
-     \<open>\<And>D E. get_conflict_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_conflict_wl T\<close>
-     \<open>\<And>E. get_conflict_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_conflict_wl T\<close> 
-     \<open>\<And>D E. literals_to_update_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = literals_to_update_wl T\<close>
-     \<open>\<And>E. literals_to_update_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = literals_to_update_wl T\<close> 
-     \<open>\<And>D E. get_watched_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_watched_wl T\<close>
-     \<open>\<And>E. get_watched_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_watched_wl T\<close> 
-     \<open>\<And>D E. IsaSAT_Setup.get_unkept_unit_init_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_unkept_unit_init_clss_wl T\<close>
-     \<open>\<And>E. IsaSAT_Setup.get_unkept_unit_init_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_unkept_unit_init_clss_wl T\<close> 
-     \<open>\<And>D E. IsaSAT_Setup.get_kept_unit_init_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_kept_unit_init_clss_wl T\<close>
-     \<open>\<And>E. IsaSAT_Setup.get_kept_unit_init_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_kept_unit_init_clss_wl T\<close> 
-     \<open>\<And>D E. IsaSAT_Setup.get_kept_unit_learned_clss_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = IsaSAT_Setup.get_kept_unit_learned_clss_wl T\<close>
-     \<open>\<And>E. IsaSAT_Setup.get_kept_unit_learned_clss_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = IsaSAT_Setup.get_kept_unit_learned_clss_wl T\<close> 
-     \<open>\<And>D E. get_init_clauses0_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_init_clauses0_wl T\<close>
-     \<open>\<And>E. get_init_clauses0_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = get_init_clauses0_wl T\<close> 
-     \<open>\<And>D E. get_subsumed_init_clauses_wl (T2 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C) D) = get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C))\<close> and
-     T2_if_simps:
-     \<open>\<And>D E. get_subsumed_init_clauses_wl (T1 (irred (get_clauses_wl T) E) (irred (get_clauses_wl T) C)) = apply_if (irred (get_clauses_wl T) C) (add_mset (mset (get_clauses_wl T \<propto> C))) (get_subsumed_init_clauses_wl T)\<close>
-     by (auto simp: T2_def T1_def Let_def eq; fail)+
-     (*  (IsaSAT_Setup.get_unkept_unit_init_clss_wl
-    (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
-  {#}
-  (IsaSAT_Setup.get_kept_unit_init_clss_wl
-    (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
-  (IsaSAT_Setup.get_kept_unit_learned_clss_wl
-    (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
-  (get_subsumed_init_clauses_wl
-    (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
-  {#}
-  (get_init_clauses0_wl
-    (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s)))
-  {#} (clss_size_decr_lcount (get_learned_count Sa))
-*)
-  have \<open>mop_arena_promote_st Sa (subsumed_by s)
-    \<le> SPEC
-    (\<lambda>c. (c, T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s))
-    \<in> twl_st_heur_restart_occs' r u)\<close>
-    if SaTa: \<open>(Sa, Ta) \<in> ?R s\<close> and
-      atms_eql2: \<open>set_mset (all_init_atms_st (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s))) =
-      set_mset (all_init_atms_st T)\<close> and
-      atms_eql1: \<open>set_mset (all_init_atms_st (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C))) =
-        set_mset (all_init_atms_st T)\<close> and
-      irred: \<open>\<not>irred (get_clauses_wl T) (subsumed_by s)\<close>
-          \<open>irred (get_clauses_wl T) C\<close> and
-      sub: \<open>is_subsumed s\<close> and
-      pre: \<open>subsume_or_strengthen_wl_pre C s T\<close>
-    for Sa Ta s
-  proof -
-    have [simp]: \<open>C \<noteq> subsumed_by s\<close> \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close> \<open>subsumed_by s \<noteq> C\<close>
-      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
-      apply normalize_goal+ apply (cases s; auto)
-      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
-      apply normalize_goal+ apply (cases s; auto)
-      using pre sub unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
-      apply normalize_goal+ apply (cases s; auto)
-      done
-    have valid: \<open>valid_arena (get_clauses_wl_heur Sa) (fmdrop C (get_clauses_wl T)) (set (get_vdom Sa))\<close> and
-       corr: \<open>clss_size_corr_restart (fmdrop C (get_clauses_wl T)) (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#}
-  (IsaSAT_Setup.get_kept_unit_init_clss_wl T) (IsaSAT_Setup.get_kept_unit_learned_clss_wl T)
-  (apply_if (irred (get_clauses_wl T) C) (add_mset (mset (get_clauses_wl T \<propto> C))) (get_subsumed_init_clauses_wl T)) {#}
-      (get_init_clauses0_wl T) {#} (get_learned_count Sa)\<close> and
-      vdom:  \<open>vdom_m
-                 (all_init_atms (fmdrop C (get_clauses_wl T))
-                   (IsaSAT_Setup.get_unkept_unit_init_clss_wl T + IsaSAT_Setup.get_kept_unit_init_clss_wl T +
-                    get_subsumed_init_clauses_wl
-                  (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)) +
-                    get_init_clauses0_wl T))
-                  (get_watched_wl T) (fmdrop C (get_clauses_wl T))
-      \<subseteq> set (get_vdom Sa)\<close> and
-      aivdom: \<open>aivdom_inv_dec (get_aivdom Sa) (remove1_mset C (dom_m (get_clauses_wl T)))\<close> and
-      u: \<open>learned_clss_count Sa \<le> u\<close>
-       using SaTa by (clarsimp_all split: if_splits simp: T2_if_simps twl_st_heur_restart_occs_def eq)
-     have [simp]: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur Sa) (subsumed_by s)\<close>
-       unfolding arena_is_valid_clause_vdom_def
-       by (intro exI conjI, rule valid)
-        auto
-    let ?Ta = \<open>T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)\<close>
-    let ?Tb = \<open>(T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C) (subsumed_by s))\<close>
-    have [simp]: \<open>get_clauses_wl (T2 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C)
-      (subsumed_by s)) =  fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T))\<close>
-      apply (subst T2_simp(3))
-      using irred SaTa apply (auto simp: T1_def eq split: if_splits)
-      done
-    have \<open>valid_arena (arena_set_status (get_clauses_wl_heur Sa) (subsumed_by s) IRRED)
-      (fmupd (subsumed_by s) (fmdrop C (get_clauses_wl T) \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
-      (set (get_vdom Sa))\<close>
-      by (rule valid_arena_arena_set_status) (use valid in \<open>auto\<close>)
-    then have [simp]: \<open>valid_arena (arena_set_status (get_clauses_wl_heur Sa) (subsumed_by s) IRRED)
-      (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
-      (set (get_vdom Sa))\<close>
-      by auto
-    have clss_size_corr_restart: \<open>clss_size_corr_restart (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
-  (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#} (IsaSAT_Setup.get_kept_unit_init_clss_wl T)
-  (IsaSAT_Setup.get_kept_unit_learned_clss_wl T)
-  (get_subsumed_init_clauses_wl ?Ta) {#}
-  (get_init_clauses0_wl T) {#} (clss_size_decr_lcount (get_learned_count Sa))\<close>
-      using irred corr apply -
-      by (auto simp add: clss_size_corr_restart_def clss_size_decr_lcount_def
-        clss_size_def learned_clss_l_mapsto_upd_in_irrelev size_Diff_singleton_if
-        learned_clss_l_l_fmdrop_irrelev)
-
-    have [simp]:  \<open>vdom_m (all_init_atms_st (T1 (irred (get_clauses_wl T) (subsumed_by s)) (irred (get_clauses_wl T) C))) (get_watched_wl T)
-  (fmupd (subsumed_by s) (get_clauses_wl T \<propto> subsumed_by s, True) (fmdrop C (get_clauses_wl T)))
-      \<subseteq> set (get_vdom Sa)\<close>
-      apply (subst vdom_m_cong[OF trans[OF atms_eql2 atms_eql1[symmetric],symmetric]])
-      using vdom irred apply (auto simp: T2_if_simps)
-      by (smt (z3) IsaSAT_Restart.all_init_atms_alt_def T2_if_simps \<L>\<^sub>a\<^sub>l\<^sub>l_cong \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close> all_init_atms_fmdrop_add_mset_unit(1) atms_eql2 dom_m_fmupd fmdrop_fmupd fmupd_same in_dom pre subsetD union_mset_add_mset_left union_mset_add_mset_right vdom_m_def)
-
-    have [simp]:  \<open>aivdom_inv_dec (get_aivdom Sa) (add_mset (subsumed_by s) (dom_m (get_clauses_wl T) - {#subsumed_by s, C#}))\<close>
-      using aivdom by (metis (no_types, lifting) \<open>subsumed_by s \<in># dom_m (get_clauses_wl T)\<close>
-        \<open>subsumed_by s \<noteq> C\<close> add_mset_diff_bothsides in_dom insert_noteq_member mset_add
-        multiset_add_sub_el_shuffle pre)
-    have [simp]: \<open>learned_clss_count Sa - Suc 0 \<le> u\<close>
-      using u by presburger
-    show ?thesis
-      using that(1) unfolding mop_arena_promote_st_def eq mop_arena_set_status_def nres_monad3
-      apply refine_vcg
-      subgoal
-        by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs2[of _ Ta r u  \<open>subsumed_by s\<close>])
-         (use that(3-) subsumed_dist[OF pre sub] ST in \<open>auto simp: T1_def T2_def subsumed_indom eq\<close>)
-      subgoal by simp
-      subgoal using subsumed_dist[OF pre sub]
-        by (clarsimp simp flip: learned_clss_count_def T2_def split: if_splits
-          simp add: twl_st_heur_restart_occs_def all_init_atms_alt_def cong[OF trans[OF atms_eql2 atms_eql1[symmetric], symmetric]]
-          clss_size_corr_restart
-          simp del: isasat_input_nempty_def)
-      done
-  qed
-  have \<open>\<Down>(?R s) ?C \<ge> ?A\<close> for s
-    unfolding isa_subsume_or_strengthen_wl_def subsume_or_strengthen_wl_def case_wl_split
-       nres_monad3 eq
-    unfolding state_wl_recompose
-    apply (refine_vcg case_subsumption_refine mop_arena_status3[where N=\<open>get_clauses_wl T\<close> and
-      vdom=\<open>set (get_vdom S)\<close>] mark_garbage_heur2)
-    subgoal using ST CD st unfolding isa_subsume_or_strengthen_wl_pre_def by fast
-    subgoal by auto
-    apply (rule IdI)
-    subgoal by (rule 2)
-    subgoal by (rule valid)
-    apply (rule IdI)
-    subgoal by (rule 3)
-    subgoal by (rule valid)
-    subgoal by (rule 2)
-    subgoal 
-    subgoal
-find_theorems "(?a,?a)\<in>Id"
 
 definition mop_cch_remove_one where
   \<open>mop_cch_remove_one L D = do {
@@ -1833,6 +1506,7 @@ lemma mop_cch_remove_one_mop_ch_remove_one:
     dest: bspec[of _ _ L])
   apply (cases L; auto)
   done
+
 definition mop_cch_remove_all_clauses where
   \<open>mop_cch_remove_all_clauses S C D = do {
      n \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
@@ -2157,7 +1831,7 @@ definition arena_promote_st_wl :: \<open>'v twl_st_wl \<Rightarrow> nat \<Righta
 
 lemma clss_size_corr_restart_promote:
   \<open>clss_size_corr_restart b d {#} f g h {#} j {#} (lcount) \<Longrightarrow>
-   \<not>irred b C \<Longrightarrow> C \<in># dom_m b \<Longrightarrow> 
+   \<not>irred b C \<Longrightarrow> C \<in># dom_m b \<Longrightarrow>
     clss_size_corr_restart (fmupd C (b \<propto> C, True) b) d {#} f g h {#} j {#}
   (clss_size_decr_lcount (lcount))\<close>
   unfolding clss_size_corr_restart_def
@@ -2165,17 +1839,37 @@ lemma clss_size_corr_restart_promote:
     learned_clss_l_mapsto_upd_in_irrelev size_remove1_mset_If)
 
 lemma vdom_m_promote_same:
-  \<open>C \<in># dom_m b \<Longrightarrow> vdom_m (all_init_atms b (d + f + h + j)) m (fmupd C (b \<propto> C, True) b) =
-  vdom_m (all_init_atms b (d + f + h + j)) m ( b)\<close>
+  \<open>C \<in># dom_m b \<Longrightarrow> vdom_m A m (fmupd C (b \<propto> C, True) b) =  vdom_m A m ( b)\<close>
   by (auto simp: vdom_m_def)
 
 lemma mop_arena_promote_st_spec:
   assumes T: \<open>(S, T) \<in> twl_st_heur_restart_occs' r u\<close> and
    C: \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
     irred: \<open>\<not>irred (get_clauses_wl T) C\<close> and
-    eq: \<open>all_init_atms_st (arena_promote_st_wl T C) = all_init_atms_st T\<close>
+    eq: \<open>set_mset (all_init_atms_st (arena_promote_st_wl T C)) = set_mset (all_init_atms_st T)\<close>
   shows \<open>mop_arena_promote_st S C \<le> SPEC (\<lambda>U. (U, arena_promote_st_wl T C)\<in>twl_st_heur_restart_occs' r u)\<close>
 proof -
+
+    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
+      by auto
+    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
+      by auto
+
+    note cong =  trail_pol_cong[of _ _ \<open>(get_trail_wl_heur S, get_trail_wl T)\<close>]
+      heuristic_rel_cong[of _ _ \<open>get_heur S\<close>]
+      option_lookup_clause_rel_cong[of _ _ \<open>(get_conflict_wl_heur S, get_conflict_wl T)\<close>]
+      isa_vmtf_cong[of _ _ \<open>get_vmtf_heur S\<close>]
+      vdom_m_cong[THEN H, of _ _ _ \<open>get_watched_wl T\<close> \<open>get_clauses_wl (T)\<close>]
+      isasat_input_nempty_cong[THEN iffD1]
+      isasat_input_bounded_cong[THEN iffD1]
+       cach_refinement_empty_cong[THEN H', of _ _ \<open>get_conflict_cach S\<close>]
+       phase_saving_cong[THEN H']
+       \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
+      D\<^sub>0_cong[THEN H]
+      map_fun_rel_D\<^sub>0_cong[of _ _ \<open>(get_watched_wl_heur S, get_watched_wl T)\<close>]
+      vdom_m_cong[symmetric, of _ _ \<open>get_watched_wl T\<close> \<open>get_clauses_wl (T)\<close>]
+      \<L>\<^sub>a\<^sub>l\<^sub>l_cong isasat_input_nempty_cong
+  note cong = cong[OF eq[symmetric]]
   have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close> and
     size: \<open>clss_size_corr_restart (get_clauses_wl T)
     (IsaSAT_Setup.get_unkept_unit_init_clss_wl T) {#}
@@ -2201,11 +1895,10 @@ proof -
     subgoal by (rule 2)
     subgoal
       apply (cases T)
-      using eq[unfolded all_init_atms_st_def] T C valid' irred
+      using T C valid' irred vdom_m_promote_same cong[unfolded all_init_atms_st_def] cong[unfolded all_init_atms_st_def]
       by (auto simp add: twl_st_heur_restart_occs_def arena_promote_st_wl_def
-        vdom_m_promote_same
-        clss_size_corr_restart_promote simp flip: learned_clss_count_def)
-    done
+        clss_size_corr_restart_promote vdom_m_promote_same simp flip: learned_clss_count_def )
+   done
 qed
 
 definition mark_garbage_wl2 :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
@@ -2266,6 +1959,14 @@ lemma mark_garbage_wl2_simp[simp]:
   apply (solves \<open>cases S; auto simp: mark_garbage_wl2_def\<close>)+
   done
 
+lemma mark_garbage_wl2_simp2[simp]:
+  \<open>C \<in>#dom_m (get_clauses_wl S) \<Longrightarrow> all_init_atms_st (mark_garbage_wl2 C S) = all_init_atms_st (S)\<close>
+  by (cases S)
+   (auto simp: mark_garbage_wl2_def all_init_atms_st_def all_init_atms_def all_init_lits_def
+    learned_clss_l_mapsto_upd_in_irrelev size_remove1_mset_If init_clss_l_fmdrop_if image_mset_remove1_mset_if
+    simp del: all_init_atms_def[symmetric]
+    cong: image_mset_cong2 filter_mset_cong2)
+
 lemma
   assumes
     T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
@@ -2318,15 +2019,17 @@ proof -
   have H: \<open>x2a = x2\<close>
     using x by auto
   have C_vdom: \<open>C \<in> set (get_vdom T)\<close> and
+    C_dom: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and
     valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close> and
     C'_vdom: \<open>x2 = SUBSUMED_BY C' \<Longrightarrow> C' \<in> set (get_vdom T)\<close> and
+    C'_dom: \<open>x2 = SUBSUMED_BY C' \<Longrightarrow> C' \<in># dom_m (get_clauses_wl S)\<close> and
     mark_garbage: \<open>mark_garbage_heur2 C T
     \<le> SPEC (\<lambda>c. (c, mark_garbage_wl2 C S) \<in> twl_st_heur_restart_occs' r u)\<close>
     if \<open>isa_subsume_or_strengthen_wl_pre C x2 T\<close> and
       pre2: \<open>subsume_or_strengthen_wl_pre C x2 S\<close>
     for C'
   proof -
-    have C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+    show C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
       using pre2 T unfolding isa_subsume_or_strengthen_wl_pre_def subsume_or_strengthen_wl_pre_def
         subsume_or_strengthen_pre_def
       apply - by normalize_goal+ simp
@@ -2396,9 +2099,8 @@ proof -
           simp del: isasat_input_nempty_def
           dest: in_vdom_m_fmdropD)
       done
-    
     assume \<open>x2 = SUBSUMED_BY C'\<close>
-    then have C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close>
+    then show C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close>
       using pre2 T unfolding isa_subsume_or_strengthen_wl_pre_def subsume_or_strengthen_wl_pre_def
         subsume_or_strengthen_pre_def
       apply - by normalize_goal+ simp
@@ -2423,8 +2125,10 @@ proof -
     subgoal by (rule valid)
     subgoal by auto
     subgoal by auto
-    subgoal apply auto sorry
+    subgoal by simp
     subgoal by auto
+    subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
+    subgoal 
       term all_init_atms_st
 oops
 lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
