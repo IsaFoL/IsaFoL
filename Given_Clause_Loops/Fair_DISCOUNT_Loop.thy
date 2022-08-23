@@ -700,7 +700,27 @@ next
     unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
 next
   case (simplify_fwd C' C A P)
-  show ?thesis sorry
+  note defs = this(1,2) and prec = this(3)
+
+  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+    mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
+    by auto
+  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+    mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
+    by auto
+
+  have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      unfolding multp_def using prec by (auto intro: singletons_in_mult)
+  qed
+  show ?thesis
+    unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
 next
   case (delete_bwd C' A C P)
   note defs = this(1,2) and c_ni = this(3)
