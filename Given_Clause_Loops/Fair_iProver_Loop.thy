@@ -33,7 +33,7 @@ where
   ({||}, None, P, Some C, A) \<leadsto>ILf (M, None, P, None, A)"
 
 
-subsection \<open>Invariant\<close>
+subsection \<open>Initial State and Invariant\<close>
 
 lemma step_fair_IL_invariant:
   assumes "St \<leadsto>ILf St'"

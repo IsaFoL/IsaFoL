@@ -230,13 +230,10 @@ where
     (P, Y, A) \<leadsto>DLf (fold (remove \<circ> Passive_Inference) \<iota>s P, Y, A)"
 
 
-subsection \<open>Initial State\<close>
+subsection \<open>Initial State and Invariant\<close>
 
 inductive is_initial_fair_DL_state :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
   "is_initial_fair_DL_state (empty, None, {||})"
-
-
-subsection \<open>Invariant\<close>
 
 inductive fair_DL_invariant :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
   "passive_inferences_of P \<subseteq> Inf_F \<Longrightarrow> fair_DL_invariant (P, Y, A)"

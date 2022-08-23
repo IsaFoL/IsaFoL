@@ -132,6 +132,20 @@ where
 | delete_orphan_infers: "\<iota>s \<in> todo.elems T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (T, P, Y, A) \<leadsto>ZLf (t_remove \<iota>s T, P, Y, A)"
 
+
+subsection \<open>Initial State and Invariant\<close>
+
+inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+  "flat_inferences_of (set \<iota>ss) = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
+   is_initial_fair_ZL_state (fold t_add \<iota>ss t_empty, p_empty, None, {||})"
+
+inductive fair_DL_invariant :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
+  "passive_inferences_of P \<subseteq> Inf_F \<Longrightarrow> fair_DL_invariant (P, Y, A)"
+
+lemma initial_fair_DL_invariant: "is_initial_fair_DL_state St \<Longrightarrow> fair_DL_invariant St"
+  unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by auto
+
+
 end
 
 end

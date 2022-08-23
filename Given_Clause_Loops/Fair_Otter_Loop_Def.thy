@@ -133,13 +133,10 @@ where
     ({||}, None, P, Some C, A) \<leadsto>OLf (M, None, P, None, A |\<union>| {|C|})"
 
 
-subsection \<open>Initial State\<close>
+subsection \<open>Initial State and Invariant\<close>
 
 inductive is_initial_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "is_initial_fair_OL_state (N, None, empty, None, {||})"
-
-
-subsection \<open>Invariant\<close>
 
 inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
   "(N = {||} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
