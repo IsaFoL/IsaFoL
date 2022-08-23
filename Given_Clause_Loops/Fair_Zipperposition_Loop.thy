@@ -408,6 +408,37 @@ fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" 
   "mset_of_zl_fstate (T, P, Y, A) =
    mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
 
+abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
+  "\<mu>1 \<equiv> multp (\<prec>S)"
+
+lemma wfP_\<mu>1: "wfP \<mu>1"
+  using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
+
+definition \<mu>2 :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+  "\<mu>2 St' St \<equiv>
+   (yy_of St' = None \<and> yy_of St \<noteq> None)
+   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St))"
+
+lemma wfP_\<mu>2: "wfP \<mu>2"
+proof -
+  let ?boolset = "{(b', b :: bool). b' < b}"
+  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?pair_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St)"
+
+  have wf_boolset: "wf ?boolset"
+    by (rule Wellfounded.wellorder_class.wf)
+  have wf_\<mu>1set: "wf ?\<mu>1set"
+    using wfP_\<mu>1 wfP_def by auto
+  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set)"
+    by (rule wf_lex_prod[OF wf_boolset wf_\<mu>1set])
+
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?boolset <*lex*> ?\<mu>1set"
+    unfolding \<mu>2_def by auto
+
+  show ?thesis
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
+qed
+
 lemma ZLf_step_imp_passive_step:
   assumes "St \<leadsto>ZLf St'"
   shows "passive.passive_step (passive_of St) (passive_of St')"
@@ -415,7 +446,7 @@ lemma ZLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
       passive.passive_step_addI passive.passive_step_removeI)
 
-lemma fair_DL_Liminf_passive_empty:
+lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
@@ -443,24 +474,14 @@ proof -
 
     have yy: "yy_of (lnth Sts j) \<noteq> None \<or> yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
       using step[OF j_ge]
-      sorry
-(*
     proof cases
-      case (compute_infer P \<iota> A C)
+      case (choose_p P T A)
       note defs = this(1,2) and p_ne = this(3)
       have False
         using no_sel defs p_ne passive.select_passive_stepI that by fastforce
       thus ?thesis
         by blast
-    next
-      case (choose_p P C A)
-      note defs = this(1,2) and p_ne = this(3)
-      have False
-        using no_sel defs p_ne select_passive_stepI that by fastforce
-      thus ?thesis
-        by blast
     qed auto
-*)
 
 (*
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
