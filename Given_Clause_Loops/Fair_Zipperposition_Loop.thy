@@ -380,29 +380,21 @@ next
   case (schedule_infer \<iota>ss C)
   note defs = this(1-5) and \<iota>ss = this(6)
   show ?thesis
-    unfolding defs zl_fstate_alt_def
-    using ZL.schedule_infer[OF \<iota>ss]
-    sorry
+    unfolding defs zl_fstate_alt_def prod.sel option.set
+    using ZL.schedule_infer[OF \<iota>ss, of "todo.elems T" "passive.elems P"]
+    by (simp add: Un_commute)
 next
   case (delete_orphan_infers \<iota>s)
+  note defs = this(1-4) and \<iota>s_todo = this(5) and inter = this(6)
 
-(*
-  note defs = this(1-3) and \<iota>s_ne = this(4) and \<iota>s_pas = this(5) and inter = this(6)
-
-  have pas_min_\<iota>s_uni_\<iota>s: "passive_inferences_of P - set \<iota>s \<union> set \<iota>s = passive_inferences_of P"
-    by (simp add: \<iota>s_pas set_eq_subset)
+  have elems_rem_\<iota>s_uni_\<iota>s: "todo.elems (t_remove \<iota>s T) \<union> {\<iota>s} = todo.elems T"
+    using \<iota>s_todo by auto
 
   show ?thesis
-    unfolding defs fstate_alt_def
-    using ZL.delete_orphan_infers[OF inter,
-        of "passive_inferences_of (fold (remove \<circ> Passive_Inference) \<iota>s P)"
-        "passive_formulas_of P" "set_option Y"]
-    by (simp only: prod.sel passive_inferences_of_fold_remove_Passive_Inference
-        passive_formulas_of_fold_remove_Passive_Inference pas_min_\<iota>s_uni_\<iota>s)
-*)
-
-  show ?thesis
-    sorry
+    unfolding defs zl_fstate_alt_def prod.sel option.set
+    using ZL.delete_orphan_infers[OF inter, of "todo.elems (t_remove \<iota>s T)" "passive.elems P"
+        "set_option Y"]
+    by (metis elems_rem_\<iota>s_uni_\<iota>s)
 qed
 
 lemma fair_ZL_step_imp_GC_step:
