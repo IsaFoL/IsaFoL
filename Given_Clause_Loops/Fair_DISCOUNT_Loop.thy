@@ -461,9 +461,6 @@ lemma fair_DL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
-  using no_labels.entails_trans no_labels.subset_entailed by blast
-
 fun mset_of_fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (P, Y, A) =
    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +

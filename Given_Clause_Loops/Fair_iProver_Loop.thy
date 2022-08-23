@@ -149,9 +149,6 @@ lemma fair_IL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-lemma no_labels_entails_mono_left: "M \<subseteq> N \<Longrightarrow> M \<Turnstile>\<inter>\<G> P \<Longrightarrow> N \<Turnstile>\<inter>\<G> P"
-  using no_labels.entails_trans no_labels.subset_entailed by blast
-
 fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
    mset_set (fset N) + mset_set (set_option X) + mset_set (elems P) + mset_set (set_option Y) +

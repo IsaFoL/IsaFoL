@@ -17,7 +17,7 @@ subsection \<open>Locale\<close>
 
 type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'p \<times> 'f option \<times> 'f fset"
 
-locale fair_discount_loop =
+locale fair_zipperposition_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
   todo: fair_passive_set t_empty t_select t_add t_remove t_felems +
   passive: fair_passive_set p_empty p_select p_add p_remove p_felems
@@ -73,8 +73,8 @@ abbreviation yy_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f option" where
 abbreviation active_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd St))"
 
-abbreviation formulas_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f set" where
-  "formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
+abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f set" where
+  "all_formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
 
 fun zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "zl_fstate (T, P, Y, A) = zl_state (todo.elems T, passive.elems P, set_option Y, fset A)"
@@ -404,6 +404,61 @@ lemma fair_ZL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
+fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" where
+  "mset_of_zl_fstate (T, P, Y, A) =
+   mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
+
+
+end
+
+
+subsection \<open>Specialization with FIFO Queue\<close>
+
+text \<open>As a proof of concept, we specialize the passive set to use a FIFO queue,
+thereby eliminating the locale assumptions about the passive set.\<close>
+
+locale fifo_zipperposition_loop =
+  discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool" and
+    Inf_G_q :: "'q \<Rightarrow> 'g inference set" and
+    Red_I_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
+    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
+    \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
+    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) +
+  fixes
+    Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
+  assumes
+    wf_Prec_S: "minimal_element (\<prec>S) UNIV" and
+    transp_Prec_S: "transp (\<prec>S)" and
+    countable_Inf_between: "finite A \<Longrightarrow> countable (no_labels.Inf_between A {C})"
+begin
+
+sublocale fifo_passive_set
+  .
+
+sublocale fair_zipperposition_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
+  Equiv_F Prec_F "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list "[]" hd
+  "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list Prec_S
+proof unfold_locales
+  show "po_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.po by blast
+next
+  show "wfp_on (\<prec>S) UNIV"
+    using wf_Prec_S minimal_element.wf by blast
+next
+  show "transp (\<prec>S)"
+    by (rule transp_Prec_S)
+next
+  show "\<And>A C. finite A \<Longrightarrow> countable (no_labels.Inf_between A {C})"
+    by (fact countable_Inf_between)
+qed
 
 end
 
