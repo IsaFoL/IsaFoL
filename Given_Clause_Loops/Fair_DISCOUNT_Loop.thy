@@ -874,6 +874,7 @@ qed
 
 theorem
   assumes
+    inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
     full: "full_chain (\<leadsto>DLf) Sts" and
     init: "is_initial_fair_DL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and

@@ -50,8 +50,7 @@ locale discount_loop = labeled_lifting_intersection Bot_F Inf_F Bot_G Q entails_
     equiv_F_grounding: "q \<in> Q \<Longrightarrow> C1 \<doteq> C2 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
     prec_F_grounding: "q \<in> Q \<Longrightarrow> C2 \<prec>\<cdot> C1 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
     static_ref_comp: "statically_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>\<G>)
-      no_labels.Red_I_\<G> no_labels.Red_F_\<G>_empty" and
-    inf_have_prems: "\<iota>F \<in> Inf_F \<Longrightarrow> prems_of \<iota>F \<noteq> []"
+      no_labels.Red_I_\<G> no_labels.Red_F_\<G>_empty"
 begin
 
 lemma po_on_DL_Prec_L: "po_on (\<sqsubset>L) UNIV"
