@@ -136,15 +136,27 @@ where
 subsection \<open>Initial State and Invariant\<close>
 
 inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
-  "flat_inferences_of (set \<iota>ss) = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
+  "flat_inferences_of (set \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
    is_initial_fair_ZL_state (fold t_add \<iota>ss t_empty, p_empty, None, {||})"
 
-inductive fair_DL_invariant :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
-  "passive_inferences_of P \<subseteq> Inf_F \<Longrightarrow> fair_DL_invariant (P, Y, A)"
+inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+  "flat_inferences_of (todo.elems T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, P, Y, A)"
 
-lemma initial_fair_DL_invariant: "is_initial_fair_DL_state St \<Longrightarrow> fair_DL_invariant St"
-  unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by auto
+lemma initial_fair_ZL_invariant:
+  assumes "is_initial_fair_ZL_state St"
+  shows "fair_ZL_invariant St"
+  using assms
+proof
+  fix \<iota>ss
+  assume
+    st: "St = (fold t_add \<iota>ss t_empty, p_empty, None, {||})" and
+    \<iota>ss: "flat_inferences_of (set \<iota>ss) = no_labels.Inf_from {}"
 
+  have "flat_inferences_of (todo.elems (fold t_add \<iota>ss t_empty)) \<subseteq> Inf_F"
+    using \<iota>ss no_labels.Inf_if_Inf_from by force
+  thus "fair_ZL_invariant St"
+    unfolding st by (rule fair_ZL_invariant.intros)
+qed
 
 end
 
