@@ -188,6 +188,53 @@ next
     using inv distr_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
 qed (auto simp: fair_ZL_invariant.simps)
 
+lemma chain_fair_ZL_invariant_lnth:
+  assumes
+    chain: "chain (\<leadsto>ZLf) Sts" and
+    fair_hd: "fair_ZL_invariant (lhd Sts)" and
+    i_lt: "enat i < llength Sts"
+  shows "fair_ZL_invariant (lnth Sts i)"
+  using i_lt
+proof (induct i)
+  case 0
+  thus ?case
+    using fair_hd lhd_conv_lnth zero_enat_def by fastforce
+next
+  case (Suc i)
+  note ih = this(1) and si_lt = this(2)
+
+  have "enat i < llength Sts"
+    using si_lt Suc_ile_eq nless_le by blast
+  hence inv_i: "fair_ZL_invariant (lnth Sts i)"
+    by (rule ih)
+  have step: "lnth Sts i \<leadsto>ZLf lnth Sts (Suc i)"
+    using chain chain_lnth_rel si_lt by blast
+
+  show ?case
+    by (rule step_fair_ZL_invariant[OF inv_i step])
+qed
+
+lemma chain_fair_ZL_invariant_llast:
+  assumes
+    chain: "chain (\<leadsto>ZLf) Sts" and
+    fair_hd: "fair_ZL_invariant (lhd Sts)" and
+    fin: "lfinite Sts"
+  shows "fair_ZL_invariant (llast Sts)"
+proof -
+  obtain i :: nat where
+    i: "llength Sts = enat i"
+    using lfinite_llength_enat[OF fin] by blast
+
+  have im1_lt: "enat (i - 1) < llength Sts"
+    using i by (metis chain chain_length_pos diff_less enat_ord_simps(2) less_numeral_extra(1)
+        zero_enat_def)
+
+  show ?thesis
+    using chain_fair_ZL_invariant_lnth[OF chain fair_hd im1_lt]
+    by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
+        zero_enat_def)
+qed
+
 end
 
 end
