@@ -92,7 +92,7 @@ where
     Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
     Liminf_llist (lmap (fset \<circ> active_of) Sts))"
 
-lemma Liminf_fstate_commute:
+lemma Liminf_zl_fstate_commute:
   "Liminf_llist (lmap (snd \<circ> zl_fstate) Sts) = labeled_formulas_of (Liminf_zl_fstate Sts)"
 proof -
   have "Liminf_llist (lmap (snd \<circ> zl_fstate) Sts) =
@@ -408,6 +408,105 @@ fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" 
   "mset_of_zl_fstate (T, P, Y, A) =
    mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
 
+theorem
+  assumes
+    inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
+    full: "full_chain (\<leadsto>ZLf) Sts" and
+    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    bot: "B \<in> Bot_F" and
+    unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+  shows
+    ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)" and
+    ZL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+proof -
+  have chain: "chain (\<leadsto>ZLf) Sts"
+    by (rule full_chain_imp_chain[OF full])
+  have lgc_chain: "chain (\<leadsto>LGC) (lmap zl_fstate Sts)"
+    using chain fair_ZL_step_imp_GC_step chain_lmap by (smt (verit) zl_fstate.cases)
+
+  have inv: "fair_ZL_invariant (lhd Sts)"
+    using init unfolding is_initial_fair_ZL_state.simps fair_ZL_invariant.simps
+    sorry
+    sorry (* by auto *)
+
+  have nnul: "\<not> lnull Sts"
+    using chain chain_not_lnull by blast
+  hence lhd_lmap: "\<And>f. lhd (lmap f Sts) = f (lhd Sts)"
+    by (rule llist.map_sel(1))
+
+  have "active_of (lhd Sts) = {||}"
+    by (metis is_initial_fair_ZL_state.cases init snd_conv)
+  hence act: "active_subset (snd (lhd (lmap zl_fstate Sts))) = {}"
+    unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
+
+  have pas_fml_and_t_inf: "passive_subset (Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)) = {} \<and>
+    Liminf_llist (lmap (fst \<circ> zl_fstate) Sts) = {}" (is "?pas_fml \<and> ?t_inf")
+  proof (cases "lfinite Sts")
+    case fin: True
+
+    have lim_fst: "Liminf_llist (lmap (fst \<circ> zl_fstate) Sts) = fst (zl_fstate (llast Sts))" and
+      lim_snd: "Liminf_llist (lmap (snd \<circ> zl_fstate) Sts) = snd (zl_fstate (llast Sts))"
+      using lfinite_Liminf_llist fin nnul
+      by (metis comp_eq_dest_lhs lfinite_lmap llast_lmap llist.map_disc_iff)+
+
+    have last_inv: "fair_ZL_invariant (llast Sts)"
+      by (rule chain_fair_ZL_invariant_llast[OF chain inv fin])
+
+    have "\<forall>St'. \<not> llast Sts \<leadsto>ZLf St'"
+      using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
+    hence "is_final_fair_ZL_state (llast Sts)"
+      unfolding is_final_fair_ZL_state_iff_no_ZLf_step[OF last_inv] .
+    then obtain A :: "'f fset" where
+      at_l: "llast Sts = (t_empty, p_empty, None, A)"
+      unfolding is_final_fair_ZL_state.simps by blast
+
+    have ?pas_fml
+      unfolding passive_subset_def lim_snd at_l by auto
+    moreover have ?t_inf
+      unfolding lim_fst at_l by simp
+    ultimately show ?thesis
+      by blast
+  next
+    case False
+    hence len: "llength Sts = \<infinity>"
+      by (simp add: not_lfinite_llength)
+
+    have ?pas_fml
+      unfolding Liminf_zl_fstate_commute passive_subset_def Liminf_zl_fstate_def
+(*
+      using fair_ZL_Liminf_passive_formulas_empty[OF len full init]
+        fair_ZL_Liminf_yy_empty[OF len full inv]
+      by simp
+*)
+      sorry
+    moreover have ?t_inf
+      unfolding zl_fstate_alt_def
+(*
+      using fair_ZL_Liminf_passive_inferences_empty[OF len full init]
+      by simp
+*)
+      sorry
+    ultimately show ?thesis
+      by blast
+  qed
+  note pas_fml = pas_fml_and_t_inf[THEN conjunct1] and
+    t_inf = pas_fml_and_t_inf[THEN conjunct2]
+
+  have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
+    using inf_have_prems by blast
+
+  have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
+    using unsat unfolding lhd_lmap (* by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left) *)
+    sorry
+
+  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
+    by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
+          OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
+  thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
+    unfolding Liminf_zl_fstate_def Liminf_zl_fstate_commute by auto
+  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+    unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+qed
 
 end
 
