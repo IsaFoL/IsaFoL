@@ -709,10 +709,45 @@ next
     by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C P)
-  show ?thesis sorry
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
+
+  show ?thesis
+  proof (cases "C'' \<in> passive_formulas_of P")
+    case c''_in: True
+    show ?thesis
+      unfolding defs \<mu>2_def using c'_ni
+      by (auto simp: fmember.rep_eq insert_absorb[OF c''_in] intro!: subset_implies_multp)
+  next
+    case c''_ni: False
+
+    have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (insert C' (fset A))) =
+      add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C'#}" (is "?old_bef = ?new_bef")
+      using c'_ni[simplified fmember.rep_eq] by auto
+    have aft: "add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (insert C'' (passive_formulas_of P)) + mset_set (fset A)) =
+      add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
+      using c''_ni by (simp add: finite_passive_formulas_of)
+
+    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    show ?thesis
+      unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+  qed
 next
   case (schedule_infer \<iota>s A C P)
-  show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs \<mu>2_def by auto
 next
   case (delete_orphan_infers \<iota>s P A Y)
   note defs = this(1,2) and \<iota>s_nnil = this(3) and \<iota>s_sub = this(4) and \<iota>s_inter = this(5)
