@@ -1394,6 +1394,7 @@ definition remove_lit_from_clause where
          RETURN (i+1, j+1, N)}
       else RETURN (i+1, j, N)
     }) (0, 0, N);
+   N \<leftarrow> mop_arena_shorten C (n-1) N;
    RETURN N
   }\<close>
 
@@ -1967,7 +1968,44 @@ lemma mark_garbage_wl2_simp2[simp]:
     simp del: all_init_atms_def[symmetric]
     cong: image_mset_cong2 filter_mset_cong2)
 
+definition remove_lit_from_clause_wl :: \<open>_\<close> where
+  \<open>remove_lit_from_clause_wl C L' = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
+  (M, fmupd C (remove1 (- L') (N \<propto> C), irred N C) N, D, NE, UE, NEk, UEk,
+    (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
+    (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W))\<close>
+
 lemma
+  \<open>\<Down>Id(strengthen_clause_wl C D L' S) \<ge> do {
+    let m = length (get_clauses_wl S \<propto> C);
+    let n = length (get_clauses_wl S \<propto> C);
+    let E = remove1 (- L') (get_clauses_wl S \<propto> C);
+    let T = remove_lit_from_clause_wl C L' S;
+     if m = n then do {
+      let U = (if \<not>irred (get_clauses_wl S) C' \<and> irred (get_clauses_wl S) C then arena_promote_st_wl T C' else T);
+      let U = mark_garbage_wl2 C U;
+      RETURN U
+     }
+    else RETURN T
+  }\<close>
+proof -
+  show ?thesis
+    unfolding strengthen_clause_wl_def
+    oops
+
+lemma
+  assumes
+    T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
+    x: \<open>(x2a, x2) \<in> Id\<close> and
+    \<open>length (get_clauses_wl S \<propto> C) > 2\<close>
+  shows \<open>isa_strengthen_clause_wl2 C D L T
+    \<le> \<Down> (twl_st_heur_restart_occs' r u)
+    (strengthen_clause_wl C' D' L' S)\<close>
+proof -
+  show ?thesis
+    unfolding isa_strengthen_clause_wl2_def
+  oops
+
+lemma isa_subsume_or_strengthen_wl_subsume_or_strengthen_wl:
   assumes
     T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
     x: \<open>(x2a, x2) \<in> Id\<close>

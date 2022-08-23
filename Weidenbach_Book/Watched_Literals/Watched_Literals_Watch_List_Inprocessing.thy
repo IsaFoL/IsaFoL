@@ -1572,6 +1572,7 @@ definition subsume_or_strengthen_wl_pre :: \<open>nat \<Rightarrow> 'v subsumpti
 definition strengthen_clause_wl :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow>
    'v twl_st_wl  \<Rightarrow>  'v twl_st_wl nres\<close> where
   \<open>strengthen_clause_wl = (\<lambda>C C' L (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+  ASSERT (subsume_or_strengthen_wl_pre C (STRENGTHENED_BY L C') (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
   E \<leftarrow> SPEC (\<lambda>E. mset E = mset (remove1 (-L) (N \<propto> C)));
   if length (N \<propto> C) = 2
   then do {
@@ -1630,12 +1631,13 @@ lemma image_mset_remove_add_mset: \<open>a \<in># M \<Longrightarrow> a \<notin>
   by (auto dest!: multi_member_split)
 
 lemma strengthen_clause_wl_strengthen_clause:
-  assumes 
+  assumes
     \<open>(C, C') \<in> nat_rel\<close> and
     \<open>(s, s') \<in> nat_rel\<close> and
     \<open>(t, t') \<in> Id\<close> and
     \<open>(S, S') \<in> state_wl_l None\<close> and
-    b: \<open>strengthen_clause_pre xs C s t S\<close>
+    b: \<open>strengthen_clause_pre xs C s t S\<close> and
+    pre2: \<open>subsume_or_strengthen_wl_pre C (STRENGTHENED_BY t' s') S\<close>
   shows \<open>strengthen_clause_wl C s t S
       \<le> \<Down> {(T, T').
         (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S}
@@ -1657,6 +1659,7 @@ proof -
     using assms
     unfolding strengthen_clause_wl_def strengthen_clause_def
     apply refine_vcg
+    subgoal using pre2 by fast
     subgoal by (auto simp: state_wl_l_def split: subsumption.splits)
     subgoal by (auto simp: state_wl_l_def split: subsumption.splits)
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j
