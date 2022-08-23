@@ -490,11 +490,13 @@ proof -
     t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
-    sorry
+    using init[unfolded is_initial_fair_ZL_state.simps no_labels.Inf_from_empty]
+    by (metis (no_types, lifting) bot_fset.rep_eq fst_conv lhd_lmap no_labels.Inf_from_empty
+        premise_free_inf_always_from sup_bot.right_neutral todo.elems_fold_add todo.felems_empty
+        zl_fstate.simps zl_state.simps)
 
   have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
-    using unsat unfolding lhd_lmap (* by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left) *)
-    sorry
+    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
     by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,

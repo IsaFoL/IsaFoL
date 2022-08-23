@@ -13,8 +13,6 @@ theory Given_Clause_Loops_Util
 begin
 
 
-subsection \<open>Miscellaneous\<close>
-
 hide_const (open) Seq.chain
 
 hide_fact (open) Abstract_Rewriting.chain_mono
@@ -61,9 +59,6 @@ lemma Liminf_llist_subset:
   shows "Liminf_llist Xs \<subseteq> Liminf_llist Ys"
   unfolding Liminf_llist_def using assms
   by (smt INT_iff SUP_mono mem_Collect_eq subsetD subsetI)
-
-
-subsection \<open>Countability and Lazy Lists\<close>
 
 lemma countable_imp_lset:
   assumes count: "countable A"

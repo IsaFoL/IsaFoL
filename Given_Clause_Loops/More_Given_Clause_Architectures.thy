@@ -11,6 +11,17 @@ theory More_Given_Clause_Architectures
 begin
 
 
+subsection \<open>Inference System\<close>
+
+context inference_system
+begin
+
+lemma Inf_from_empty: "Inf_from {} = {\<iota> \<in> Inf. prems_of \<iota> = []}"
+  using Inf_from_def by auto
+
+end
+
+
 subsection \<open>Given Clause Procedure Basis\<close>
 
 context given_clause_basis
@@ -228,7 +239,7 @@ lemma remove_redundant:
   assumes "(C, l) \<in> Red_F \<N>"
   shows "(T, \<N> \<union> {(C, l)}) \<leadsto>LGC (T, \<N>)"
 proof -
-  have "{(C, l)} \<subseteq> Red_F (\<N> \<union> {})"
+  have "{(C, l)} \<subseteq> Red_F \<N>"
     using assms by simp
   moreover have "active_subset {} = {}"
     using active_subset_def by simp
