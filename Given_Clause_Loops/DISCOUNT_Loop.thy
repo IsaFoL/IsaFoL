@@ -117,7 +117,9 @@ inductive
   DL :: "'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> bool"
   (infix "\<leadsto>DL" 50)
 where
-  choose_p: "state (T, P \<union> {C}, {}, A) \<leadsto>DL state (T, P, {C}, A)"
+  compute_infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
+    state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
+| choose_p: "state (T, P \<union> {C}, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
@@ -126,8 +128,6 @@ where
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P, {C}, A)"
 | simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     state (T, P, {C}, A \<union> {C'}) \<leadsto>DL state (T, P \<union> {C''}, {C}, A)"
-| compute_infer: "\<iota> \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-    state (T \<union> {\<iota>}, P, {}, A) \<leadsto>DL state (T, P, {C}, A)"
 | schedule_infer: "T' = no_labels.Inf_between A {C} \<Longrightarrow>
     state (T, P, {C}, A) \<leadsto>DL state (T \<union> T', P, {}, A \<union> {C})"
 | delete_orphan_infers: "T' \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
@@ -168,6 +168,26 @@ lemma active_subset_of_setOfFormulasWithLabelDiffActive:
 
 
 subsection \<open>Refinement\<close>
+
+lemma dl_compute_infer_in_lgc:
+  assumes "\<iota> \<in> no_labels.Red_I_\<G> (A \<union> {C})"
+  shows "state (T \<union> {\<iota>}, P, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
+proof -
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
+  and ?\<M> = "{(C, YY)}"
+  have "A \<union> {C} \<subseteq> fst` (labeled_formulas_of (P, {}, A) \<union> {(C, YY)})"
+    by auto
+  then have "\<iota> \<in> no_labels.Red_I_\<G> (fst` (?\<N> \<union> ?\<M>))"
+    by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
+  also have "active_subset ?\<M> = {}"
+    using active_subset_of_setOfFormulasWithLabelDiffActive by auto
+  then have "(T \<union> {\<iota>}, ?\<N>) \<leadsto>LGC (T, ?\<N> \<union> ?\<M>)"
+    using calculation lgc.step.compute_infer by blast
+  moreover have "?\<N> \<union> ?\<M> = labeled_formulas_of (P, {C}, A)"
+    by simp
+  ultimately show ?thesis
+    by auto
+qed
 
 lemma dl_choose_p_in_lgc: "state (T, P \<union> {C}, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
 proof -
@@ -279,26 +299,6 @@ proof -
     by auto
 qed
 
-lemma dl_compute_infer_in_lgc:
-  assumes "\<iota> \<in> no_labels.Red_I_\<G> (A \<union> {C})"
-  shows "state (T \<union> {\<iota>}, P, {}, A) \<leadsto>LGC state (T, P, {C}, A)"
-proof -
-  let ?\<N> = "labeled_formulas_of (P, {}, A)"
-  and ?\<M> = "{(C, YY)}"
-  have "A \<union> {C} \<subseteq> fst` (labeled_formulas_of (P, {}, A) \<union> {(C, YY)})"
-    by auto
-  then have "\<iota> \<in> no_labels.Red_I_\<G> (fst` (?\<N> \<union> ?\<M>))"
-    by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
-  also have "active_subset ?\<M> = {}"
-    using active_subset_of_setOfFormulasWithLabelDiffActive by auto
-  then have "(T \<union> {\<iota>}, ?\<N>) \<leadsto>LGC (T, ?\<N> \<union> ?\<M>)"
-    using calculation lgc.step.compute_infer by blast
-  moreover have "?\<N> \<union> ?\<M> = labeled_formulas_of (P, {C}, A)"
-    by simp
-  ultimately show ?thesis
-    by auto
-qed
-
 lemma dl_schedule_infer_in_lgc:
   assumes "T' = no_labels.Inf_between A {C}"
   shows "state (T, P, {C}, A) \<leadsto>LGC state (T \<union> T', P, {}, A \<union> {C})"
@@ -332,6 +332,10 @@ qed
 
 theorem DL_step_imp_LGC_step: "T\<M> \<leadsto>DL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
 proof (induction rule: DL.induct)
+  case (compute_infer \<iota> A C T P)
+  then show ?case
+    using dl_compute_infer_in_lgc by blast
+next
   case (choose_p T P C A)
   then show ?case
     using dl_choose_p_in_lgc by auto
@@ -351,10 +355,6 @@ next
   case (simplify_bwd C' C C'' T P A)
   then show ?case
     using dl_simplify_bwd_in_lgc by blast
-next
-  case (compute_infer \<iota> A C T P)
-  then show ?case
-    using dl_compute_infer_in_lgc by blast
 next
   case (schedule_infer T' A C T P)
   then show ?case

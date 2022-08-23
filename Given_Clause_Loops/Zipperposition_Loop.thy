@@ -16,20 +16,27 @@ begin
 
 subsection \<open>Definition and Lemmas\<close>
 
-fun zl_inferences_of :: "'f inference llist set \<Rightarrow> 'f inference set " where
-  "zl_inferences_of T = \<Union> {lset x |x. x \<in> T}"
+fun flat_inferences_of :: "'f inference llist set \<Rightarrow> 'f inference set " where
+  "flat_inferences_of T = \<Union> {lset x |x. x \<in> T}"
 
 fun
-  zl_state :: "'f inference llist set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow>
-    'f inference set \<times> ('f \<times> DL_label) set"
+  zl_state ::
+  "'f inference llist set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set"
 where
-  "zl_state (T, P, Y, A) = (zl_inferences_of T, labeled_formulas_of (P, Y, A))"
+  "zl_state (T, P, Y, A) = (flat_inferences_of T, labeled_formulas_of (P, Y, A))"
+
+lemma zl_state_alt_def:
+  "zl_state (T, P, Y, A) =
+   (flat_inferences_of T, (\<lambda>C. (C, Passive)) ` P \<union> (\<lambda>C. (C, YY)) ` Y \<union> (\<lambda>C. (C, Active)) ` A)"
+  by auto
 
 inductive
   ZL :: "'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set \<Rightarrow> bool"
   (infix "\<leadsto>ZL" 50)
 where
-  choose_p: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>ZL zl_state (T, P, {C}, A)"
+  compute_infer: "\<iota>0 \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
+    zl_state (T \<union> {LCons \<iota>0 \<iota>s}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
+| choose_p: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>ZL zl_state (T, P, {C}, A)"
 | delete_fwd: "C \<in> no_labels.Red_F A \<or> (\<exists>C' \<in> A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T, P, {}, A)"
 | simplify_fwd: "C \<in> no_labels.Red_F (A \<union> {C'}) \<Longrightarrow>
@@ -38,30 +45,54 @@ where
     zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P, {C}, A)"
 | simplify_bwd: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     zl_state (T, P, {C}, A \<union> {C'}) \<leadsto>ZL zl_state (T, P \<union> {C''}, {C}, A)"
-| compute_infer: "\<iota>0 \<in> no_labels.Red_I (A \<union> {C}) \<Longrightarrow>
-    zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>ZL zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
-| schedule_infer: "zl_inferences_of T' = (no_labels.Inf_between A {C}) \<Longrightarrow>
+| schedule_infer: "flat_inferences_of T' = no_labels.Inf_between A {C} \<Longrightarrow>
     zl_state (T, P, {C}, A) \<leadsto>ZL zl_state (T \<union> T', P, {}, A \<union> {C})"
-| delete_orphan_infers: "\<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A \<Longrightarrow>
+| delete_orphan_infers: "lset \<iota>s \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
     zl_state (T \<union> {\<iota>s}, P, Y, A) \<leadsto>ZL zl_state (T, P, Y, A)"
 
-lemma flatten: " zl_inferences_of {(LCons \<iota>0 \<iota>s)} = zl_inferences_of {\<iota>s} \<union> { \<iota>0 }"
+lemma flat_inferences_of_LCons: "flat_inferences_of {LCons \<iota>0 \<iota>s} = flat_inferences_of {\<iota>s} \<union> {\<iota>0}"
   by auto
 
-lemma distr_zl_inferences_of_wrt_union:
-  "zl_inferences_of (T \<union> T') = zl_inferences_of T \<union> zl_inferences_of T'"
+lemma distr_flat_inferences_of_wrt_union:
+  "flat_inferences_of (T \<union> T') = flat_inferences_of T \<union> flat_inferences_of T'"
   by auto
 
-lemma "zl_inferences_of (T \<union> {\<iota>s}) = zl_inferences_of T \<union> (lset \<iota>s)"
+lemma "flat_inferences_of (T \<union> {\<iota>s}) = flat_inferences_of T \<union> (lset \<iota>s)"
   by auto
 
 
 subsection \<open>Refinement\<close>
 
+lemma zl_compute_infer_in_lgc:
+  assumes "\<iota>0 \<in> no_labels.Red_I (A \<union> {C})"
+  shows "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
+proof -
+  let ?\<N> = "labeled_formulas_of (P, {}, A)"
+  and ?\<M> = "{(C, Passive)}"
+
+  have active_subset_of_\<M>: "active_subset ?\<M> = {}"
+    using active_subset_def by auto
+  moreover have "A \<union> {C} \<subseteq> fst ` (?\<N> \<union> ?\<M>)" by auto
+  ultimately have "\<iota>0 \<in> no_labels.Red_I (fst ` (?\<N> \<union> ?\<M>))"
+    by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
+  then have compute_one_infer:
+    "(flat_inferences_of (T \<union> {\<iota>s}) \<union> {\<iota>0}, labeled_formulas_of (P, {}, A)) \<leadsto>LGC
+     (flat_inferences_of (T \<union> {\<iota>s}), labeled_formulas_of (P, {}, A) \<union> {(C, Passive)})"
+    by (metis active_subset_of_\<M> step.compute_infer)
+  moreover have "flat_inferences_of (T \<union> {LCons \<iota>0 \<iota>s}) = flat_inferences_of (T \<union> {\<iota>s}) \<union> {\<iota>0}"
+    by (metis Un_assoc distr_flat_inferences_of_wrt_union flat_inferences_of_LCons)
+  moreover have "labeled_formulas_of (P, {}, A) \<union> {(C, Passive)} =
+    labeled_formulas_of (P \<union> {C}, {}, A)"
+    using PYA_add_passive_formula by blast
+  ultimately show "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC
+    zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
+    using zl_state.simps by auto
+qed
+
 lemma zl_choose_p_in_lgc: "zl_state (T, P \<union> {C}, {}, A) \<leadsto>LGC zl_state (T, P, {C}, A)"
 proof -
   let ?\<N> = "labeled_formulas_of (P, {}, A)"
-  and ?\<T> = "zl_inferences_of T"
+  and ?\<T> = "flat_inferences_of T"
   have "Passive \<sqsupset>L YY"
     by (simp add: DL_Prec_L_def)
   then have "(?\<T>, ?\<N> \<union> {(C, Passive)}) \<leadsto>LGC (?\<T>, ?\<N> \<union> {(C, YY)})"
@@ -113,8 +144,8 @@ proof -
     by simp
   moreover have "active_subset ?\<M>' = {}"
     using active_subset_def by auto
-  ultimately have "(zl_inferences_of T, labeled_formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
-    (zl_inferences_of T, labeled_formulas_of (P, {}, A) \<union> {(C', YY)})"
+  ultimately have "(flat_inferences_of T, labeled_formulas_of (P, {}, A) \<union> {(C, YY)}) \<leadsto>LGC
+    (flat_inferences_of T, labeled_formulas_of (P, {}, A) \<union> {(C', YY)})"
     using process[of _ _ "?\<M>" _ "?\<M>'"] by auto
   then show ?thesis
     by simp
@@ -132,12 +163,12 @@ proof
     by simp
   then have "C' \<in> no_labels.Red_F_\<G> (fst` ?\<N>)"
     by (metis (no_types, lifting) c'_in insert_Diff insert_subset no_labels.Red_F_of_subset)
-  then have "(zl_inferences_of T, ?\<N> \<union> {(C', Active)}) \<leadsto>LGC (zl_inferences_of T, ?\<N>)"
+  then have "(flat_inferences_of T, ?\<N> \<union> {(C', Active)}) \<leadsto>LGC (flat_inferences_of T, ?\<N>)"
     using remove_redundant_no_label by auto
 
   moreover have "?\<N> \<union> {(C', Active)} = labeled_formulas_of (P, {C}, A \<union> {C'})"
     using PYA_add_active_formula by blast
-  ultimately have "(zl_inferences_of T, labeled_formulas_of (P, {C}, A \<union> {C'})) \<leadsto>LGC
+  ultimately have "(flat_inferences_of T, labeled_formulas_of (P, {C}, A \<union> {C'})) \<leadsto>LGC
     zl_state (T, P, {C}, A)"
     by simp
   then show ?thesis by auto
@@ -164,7 +195,7 @@ proof -
     using no_labels_Red_F_imp_Red_F by auto
   have "active_subset ?\<M>' = {}"
     using active_subset_def by auto
-  then have "(zl_inferences_of T, ?\<N> \<union> ?\<M>) \<leadsto>LGC (zl_inferences_of T, ?\<N> \<union> ?\<M>')"
+  then have "(flat_inferences_of T, ?\<N> \<union> ?\<M>) \<leadsto>LGC (flat_inferences_of T, ?\<N> \<union> ?\<M>')"
     using \<M>_included process[of _ _ "?\<M>" _ "?\<M>'"] by auto
   moreover have "?\<N> \<union> ?\<M> = labeled_formulas_of(P, {C}, A \<union> {C'})"
   and "?\<N> \<union> ?\<M>' = labeled_formulas_of(P \<union> {C''}, {C}, A)"
@@ -173,69 +204,41 @@ proof -
     by auto
 qed
 
-lemma zl_compute_infer_in_lgc:
-  assumes "\<iota>0 \<in> no_labels.Red_I (A \<union> {C})"
-  shows "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
-proof -
-  let ?\<N> = "labeled_formulas_of (P, {}, A)"
-  and ?\<M> = "{(C, Passive)}"
-
-  have active_subset_of_\<M>: "active_subset ?\<M> = {}"
-    using active_subset_def by auto
-  moreover have "A \<union> {C} \<subseteq> fst ` (?\<N> \<union> ?\<M>)" by auto
-  ultimately have "\<iota>0 \<in> no_labels.Red_I (fst ` (?\<N> \<union> ?\<M>))"
-    by (meson assms no_labels.empty_ord.Red_I_of_subset subsetD)
-  then have compute_one_infer:
-    "(zl_inferences_of (T \<union> {\<iota>s}) \<union> {\<iota>0}, labeled_formulas_of (P, {}, A)) \<leadsto>LGC
-     (zl_inferences_of (T \<union> {\<iota>s}), labeled_formulas_of (P, {}, A) \<union> {(C, Passive)})"
-    by (metis active_subset_of_\<M> step.compute_infer)
-  moreover have "zl_inferences_of (T \<union> {(LCons \<iota>0 \<iota>s)}) = zl_inferences_of (T \<union> {\<iota>s}) \<union> {\<iota>0}"
-    by (metis Un_assoc distr_zl_inferences_of_wrt_union flatten)
-  moreover have "labeled_formulas_of (P, {}, A) \<union> {(C, Passive)} =
-    labeled_formulas_of (P \<union> {C}, {}, A)"
-    using PYA_add_passive_formula by blast
-  ultimately show "zl_state (T \<union> {(LCons \<iota>0 \<iota>s)}, P, {}, A) \<leadsto>LGC
-             zl_state (T \<union> {\<iota>s}, P \<union> {C}, {}, A)"
-    using zl_state.simps by auto
-qed
-
 lemma zl_schedule_infer_in_lgc:
-  assumes "zl_inferences_of T' = no_labels.Inf_between A {C}"
+  assumes "flat_inferences_of T' = no_labels.Inf_between A {C}"
   shows "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, {}, A \<union> {C})"
 proof -
   let ?\<N>= " labeled_formulas_of (P, {}, A) "
   have " fst ` (active_subset ?\<N>) = A "
     by (meson prj_active_subset_of_state)
-  then have "zl_inferences_of T' = (no_labels.Inf_between (fst ` (active_subset ?\<N>)) {C})"
+  then have "flat_inferences_of T' = (no_labels.Inf_between (fst ` (active_subset ?\<N>)) {C})"
     using assms by simp
-  then have "(zl_inferences_of T, ?\<N> \<union> {(C, YY)}) \<leadsto>LGC
-    (zl_inferences_of T \<union> zl_inferences_of T', ?\<N> \<union> {(C, Active)})"
+  then have "(flat_inferences_of T, ?\<N> \<union> {(C, YY)}) \<leadsto>LGC
+    (flat_inferences_of T \<union> flat_inferences_of T', ?\<N> \<union> {(C, Active)})"
     using step.schedule_infer by blast
   moreover have "labeled_formulas_of (P, {C}, A) = ?\<N> \<union> {(C, YY)}"
     by auto
   moreover have "labeled_formulas_of (P, {}, A \<union> {C}) = ?\<N> \<union> {(C, Active)}"
     by auto
-  ultimately have H0: "(zl_inferences_of T, labeled_formulas_of (P, {C}, A)) \<leadsto>LGC
-    (zl_inferences_of T \<union> zl_inferences_of T', labeled_formulas_of (P, {}, A \<union> {C}))"
+  ultimately have H0: "(flat_inferences_of T, labeled_formulas_of (P, {C}, A)) \<leadsto>LGC
+    (flat_inferences_of T \<union> flat_inferences_of T', labeled_formulas_of (P, {}, A \<union> {C}))"
     by presburger
   then show "zl_state (T, P, {C}, A) \<leadsto>LGC zl_state (T \<union> T', P, {}, A \<union> {C})"
-    using distr_zl_inferences_of_wrt_union zl_state.simps by presburger
+    using distr_flat_inferences_of_wrt_union zl_state.simps by presburger
 qed
 
 lemma zl_delete_orphan_infers_in_lgc:
-  assumes " \<forall>n \<in> {n. enat n < llength \<iota>s}. lnth \<iota>s n \<notin> no_labels.Inf_from A"
+  assumes "lset \<iota>s \<inter> no_labels.Inf_from A = {}"
   shows "zl_state (T \<union> {\<iota>s}, P, Y, A) \<leadsto>LGC zl_state (T, P, Y, A)"
 proof -
   let ?\<N> = "labeled_formulas_of (P, Y, A)"
   and ?\<T>' = "lset \<iota>s"
-  and ?\<T>  = "zl_inferences_of T"
+  and ?\<T>  = "flat_inferences_of T"
 
-  have " {lnth \<iota>s n |n. enat n < llength \<iota>s} \<inter> no_labels.Inf_from A = {}"
-    using assms by auto
-
+  have "{lnth \<iota>s n |n. enat n < llength \<iota>s} \<inter> no_labels.Inf_from A = {}"
+    using assms by (simp add: lset_conv_lnth)
   moreover have "{lnth \<iota>s n |n. enat n < llength \<iota>s} = lset \<iota>s"
     by (simp add: lset_conv_lnth)
-
   ultimately have \<iota>s_orphans: "?\<T>' \<inter> no_labels.Inf_from A = {}"
     by auto
 
@@ -247,9 +250,9 @@ proof -
   have thesis_before_rewriting: "(?\<T> \<union> ?\<T>', ?\<N>) \<leadsto>LGC (?\<T>, ?\<N>)"
     using \<iota>s_orphans step.delete_orphan_infers by presburger
 
-  have "zl_inferences_of (T \<union> {\<iota>s}) = zl_inferences_of T \<union> zl_inferences_of {\<iota>s}"
-    using distr_zl_inferences_of_wrt_union by auto
-  moreover have "zl_inferences_of (T \<union> {\<iota>s}) = ?\<T> \<union> (lset \<iota>s)"
+  have "flat_inferences_of (T \<union> {\<iota>s}) = flat_inferences_of T \<union> flat_inferences_of {\<iota>s}"
+    using distr_flat_inferences_of_wrt_union by auto
+  moreover have "flat_inferences_of (T \<union> {\<iota>s}) = ?\<T> \<union> (lset \<iota>s)"
     by auto
   ultimately show ?thesis
     using thesis_before_rewriting zl_state.simps by presburger
@@ -257,6 +260,10 @@ qed
 
 theorem ZL_step_imp_LGC_step: "T\<M> \<leadsto>ZL T\<M>' \<Longrightarrow> T\<M> \<leadsto>LGC T\<M>'"
 proof (induction rule: ZL.induct)
+  case (compute_infer \<iota>0 A C T \<iota>s P)
+  then show ?case
+    using zl_compute_infer_in_lgc by auto
+next
   case (choose_p T P C A)
   then show ?case
     using zl_choose_p_in_lgc by auto
@@ -276,10 +283,6 @@ next
   case (simplify_bwd C' C C'' T P A)
   then show ?case
     using zl_simplify_bwd_in_lgc by blast
-next
-  case (compute_infer \<iota>0 A C T \<iota>s P)
-  then show ?case
-    using zl_compute_infer_in_lgc by auto
 next
   case (schedule_infer T' A C T P)
   then show ?case

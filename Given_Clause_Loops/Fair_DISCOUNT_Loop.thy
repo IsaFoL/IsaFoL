@@ -172,7 +172,7 @@ lemma passive_formulas_of_fold_remove_Passive_Formula[simp]:
   "passive_formulas_of (fold (remove \<circ> Passive_Formula) Cs P) = passive_formulas_of P - set Cs"
   by (induct Cs arbitrary: P) auto
 
-fun fstate :: "'p \<times> 'f option \<times> 'f fset \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
+fun fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
 
 lemma fstate_alt_def:
