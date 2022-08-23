@@ -181,21 +181,12 @@ proof cases
     using inv unfolding defs fair_ZL_invariant.simps by force
 next
   case (schedule_infer \<iota>ss A C T P)
-  then show ?thesis sorry
+  note defs = this(1,2) and \<iota>ss_inf_betw = this(3)
+  have "flat_inferences_of (set \<iota>ss) \<subseteq> Inf_F"
+    using \<iota>ss_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
+  thus ?thesis
+    using inv distr_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
 qed (auto simp: fair_ZL_invariant.simps)
-
-(*
-proof cases
-  case (schedule_infer \<iota>s A C P)
-  note defs = this(1,2) and \<iota>s_inf_betw = this(3)
-  have \<iota>s_inf: "set \<iota>s \<subseteq> Inf_F"
-    using \<iota>s_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
-  show ?thesis
-    using inv \<iota>s_inf unfolding defs
-    by (auto simp: fair_ZL_invariant.simps passive_inferences_of_def fold_map[symmetric])
-qed (auto simp: fair_ZL_invariant.simps passive_inferences_of_def fold_map[symmetric])
-*)
-
 
 end
 

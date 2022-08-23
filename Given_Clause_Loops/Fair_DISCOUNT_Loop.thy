@@ -250,10 +250,10 @@ lemma step_fair_DL_invariant:
 proof cases
   case (schedule_infer \<iota>s A C P)
   note defs = this(1,2) and \<iota>s_inf_betw = this(3)
-  have \<iota>s_inf: "set \<iota>s \<subseteq> Inf_F"
+  have "set \<iota>s \<subseteq> Inf_F"
     using \<iota>s_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
-  show ?thesis
-    using inv \<iota>s_inf unfolding defs
+  thus ?thesis
+    using inv unfolding defs
     by (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
 qed (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
 
