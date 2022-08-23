@@ -716,10 +716,13 @@ next
 next
   case (delete_orphan_infers \<iota>s P A Y)
   note defs = this(1,2) and \<iota>s_nnil = this(3) and \<iota>s_sub = this(4) and \<iota>s_inter = this(5)
-  show ?thesis
-    unfolding defs \<mu>2_def
-    apply (auto intro!: subset_implies_multp)
-    sorry
+  have "image_mset concl_of (mset_set (passive_inferences_of P - set \<iota>s)) \<subset>#
+    image_mset concl_of (mset_set (passive_inferences_of P))"
+    by (metis Diff_empty Diff_subset \<iota>s_nnil \<iota>s_sub double_diff empty_subsetI
+        finite_passive_inferences_of finite_subset image_mset_subset_mono mset_set_eq_iff set_empty
+        subset_imp_msubset_mset_set subset_mset.nless_le)
+  thus ?thesis
+    unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
 qed
 
 lemma fair_DL_Liminf_passive_empty:
