@@ -8,8 +8,8 @@ section \<open>DISCOUNT Loop\<close>
 
 theory DISCOUNT_Loop
   imports
-    More_Given_Clause_Architectures
     Given_Clause_Loops_Util
+    More_Given_Clause_Architectures
 begin
 
 

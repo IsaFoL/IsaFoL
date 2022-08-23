@@ -11,15 +11,10 @@ completeness of the Otter loop.\<close>
 
 theory Fair_iProver_Loop
   imports
+    Given_Clause_Loops_Util
     Fair_Otter_Loop_Def
     iProver_Loop
-    Weighted_Path_Order.Multiset_Extension_Pair
 begin
-
-
-subsection \<open>Setup\<close>
-
-hide_const (open) Seq.chain
 
 
 subsection \<open>Locale\<close>
