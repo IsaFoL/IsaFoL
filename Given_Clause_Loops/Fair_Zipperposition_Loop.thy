@@ -439,6 +439,152 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
+lemma non_choose_p_DLf_step_imp_\<mu>2:
+  assumes
+    step: "St \<leadsto>ZLf St'" and
+    yy: "yy_of St \<noteq> None \<or> yy_of St' = None"
+  shows "\<mu>2 St' St"
+  using step
+proof cases
+  case (compute_infer T \<iota>0 \<iota>s A C P)
+  show ?thesis
+    sorry
+next
+  case (choose_p P T A)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (delete_fwd C A T P)
+  show ?thesis
+    sorry
+next
+  case (simplify_fwd C' C A T P)
+  show ?thesis
+    sorry
+next
+  case (delete_bwd C' A C T P)
+  show ?thesis
+    sorry
+next
+  case (simplify_bwd C' A C'' C T P)
+  show ?thesis
+    sorry
+next
+  case (schedule_infer \<iota>ss A C T P)
+  show ?thesis
+    sorry
+next
+  case (delete_orphan_infers \<iota>s T A P Y)
+  show ?thesis
+    sorry
+qed
+
+(* FIXME
+proof cases
+  case (compute_infer P \<iota> A C)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (choose_p P C A)
+  note defs = this(1,2)
+  have False
+    using step yy unfolding defs by simp
+  thus ?thesis
+    by blast
+next
+  case (delete_fwd C A P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
+next
+  case (simplify_fwd C' C A P)
+  note defs = this(1,2) and prec = this(3)
+
+  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+    mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
+    by auto
+  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+    mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
+    by auto
+
+  have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      unfolding multp_def using prec by (auto intro: singletons_in_mult)
+  qed
+  show ?thesis
+    unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+next
+  case (delete_bwd C' A C P)
+  note defs = this(1,2) and c_ni = this(3)
+  show ?thesis
+    unfolding defs \<mu>2_def using c_ni
+    by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
+next
+  case (simplify_bwd C' A C'' C P)
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
+
+  show ?thesis
+  proof (cases "C'' \<in> passive_formulas_of P")
+    case c''_in: True
+    show ?thesis
+      unfolding defs \<mu>2_def using c'_ni
+      by (auto simp: fmember.rep_eq insert_absorb[OF c''_in] intro!: subset_implies_multp)
+  next
+    case c''_ni: False
+
+    have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (insert C' (fset A))) =
+      add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C'#}" (is "?old_bef = ?new_bef")
+      using c'_ni[simplified fmember.rep_eq] by auto
+    have aft: "add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (insert C'' (passive_formulas_of P)) + mset_set (fset A)) =
+      add_mset C
+        (image_mset concl_of (mset_set (passive_inferences_of P)) +
+         mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
+      using c''_ni by (simp add: finite_passive_formulas_of)
+
+    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    show ?thesis
+      unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+  qed
+next
+  case (schedule_infer \<iota>s A C P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs \<mu>2_def by auto
+next
+  case (delete_orphan_infers \<iota>s P A Y)
+  note defs = this(1,2) and \<iota>s_nnil = this(3) and \<iota>s_sub = this(4) and \<iota>s_inter = this(5)
+  have "image_mset concl_of (mset_set (passive_inferences_of P - set \<iota>s)) \<subset>#
+    image_mset concl_of (mset_set (passive_inferences_of P))"
+    by (metis Diff_empty Diff_subset \<iota>s_nnil \<iota>s_sub double_diff empty_subsetI
+        finite_passive_inferences_of finite_subset image_mset_subset_mono mset_set_eq_iff set_empty
+        subset_imp_msubset_mset_set subset_mset.nless_le)
+  thus ?thesis
+    unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
+qed
+*)
+
 lemma ZLf_step_imp_passive_step:
   assumes "St \<leadsto>ZLf St'"
   shows "passive.passive_step (passive_of St) (passive_of St')"
@@ -483,9 +629,9 @@ proof -
         by blast
     qed auto
 
-(*
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_compute_infer_choose_p_DLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+      by (rule non_choose_p_ZLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+(*
     hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
