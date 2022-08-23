@@ -235,6 +235,81 @@ proof -
         zero_enat_def)
 qed
 
+
+subsection \<open>Final State\<close>
+
+inductive is_final_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+  "is_final_fair_ZL_state (t_empty, p_empty, None, A)"
+
+lemma is_final_fair_ZL_state_iff_no_ZLf_step:
+  assumes inv: "fair_ZL_invariant St"
+  shows "is_final_fair_ZL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ZLf St')"
+proof
+  assume "is_final_fair_ZL_state St"
+  then obtain A :: "'f fset" where
+    st: "St = (t_empty, p_empty, None, A)"
+    by (auto simp: is_final_fair_ZL_state.simps)
+  show "\<forall>St'. \<not> St \<leadsto>ZLf St'"
+    unfolding st
+  proof (intro allI notI)
+    fix St'
+    assume "(t_empty, p_empty, None, A) \<leadsto>ZLf St'"
+    thus False
+      by cases auto
+  qed
+next
+  assume no_step: "\<forall>St'. \<not> St \<leadsto>ZLf St'"
+  show "is_final_fair_ZL_state St"
+  proof (rule ccontr)
+    assume not_fin: "\<not> is_final_fair_ZL_state St"
+
+    obtain T :: 't and P :: 'p and Y :: "'f option" and A :: "'f fset" where
+      st: "St = (T, P, Y, A)"
+      by (cases St)
+
+    have "T \<noteq> t_empty \<or> P \<noteq> p_empty \<or> Y \<noteq> None"
+      using not_fin unfolding st is_final_fair_ZL_state.simps by auto
+    moreover {
+      assume
+        t: "T \<noteq> t_empty" and
+        y: "Y = None"
+
+(*
+      have \<iota>_inf: "\<iota> \<in> Inf_F"
+        using inv p unfolding st by (metis fair_ZL_invariant.cases fst_conv mem_Collect_eq
+            passive_inferences_of_def select_in_elems subset_iff)
+      have \<iota>_red: "\<iota> \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>})"
+        using \<iota>_inf no_labels.empty_ord.Red_I_of_Inf_to_N by auto
+*)
+      have "\<exists>St'. St \<leadsto>ZLf St'"
+        sorry
+(*
+        using fair_ZL.compute_infer[OF p sel \<iota>_red] unfolding st p y by blast
+*)
+    } moreover {
+      assume
+        p: "P \<noteq> p_empty" and
+        y: "Y = None"
+
+      have "\<exists>St'. St \<leadsto>ZLf St'"
+        using fair_ZL.choose_p[OF p] unfolding st p y by fast
+    } moreover {
+      assume "Y \<noteq> None"
+      then obtain C :: 'f where
+        y: "Y = Some C"
+        by blast
+
+      obtain \<iota>ss :: "'f inference llist list" where
+        \<iota>ss: "flat_inferences_of (set \<iota>ss) = no_labels.Inf_between (fset A) {C}"
+        sorry
+
+      have "\<exists>St'. St \<leadsto>ZLf St'"
+        using fair_ZL.schedule_infer[OF \<iota>ss] unfolding st y by fast
+    } ultimately show False
+      using no_step by force
+  qed
+qed
+
 end
 
 end
