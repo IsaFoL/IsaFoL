@@ -333,25 +333,16 @@ lemma fair_ZL_step_imp_ZL_step:
   using zlf
 proof cases
   case (compute_infer \<iota>0 \<iota>s C)
+  note defs = this(1-5) and t_nemp = this(6) and sel = this(7) and \<iota>_red = this(8)
 
-(*
-  note defs = this(1-4) and p_nemp = this(5) and sel = this(6) and \<iota>_red = this(7)
-
-  have pas_min_\<iota>_uni_\<iota>: "passive_inferences_of P - {\<iota>} \<union> {\<iota>} = passive_inferences_of P"
-    by (metis Un_insert_right insert_Diff_single insert_absorb mem_Collect_eq p_nemp
-        passive_inferences_of_def sel select_in_elems sup_bot.right_neutral)
+  have todo_min_\<iota>_uni_\<iota>: "todo.elems T - {LCons \<iota>0 \<iota>s} \<union> {LCons \<iota>0 \<iota>s} = todo.elems T"
+    by (metis Un_Diff_cancel Un_commute sel t_nemp todo.add_again todo.elems_add
+        todo.select_in_felems)
 
   show ?thesis
-    unfolding defs fstate_alt_def
-    using ZL.compute_infer[OF \<iota>_red,
-        of "passive_inferences_of (remove (select P) P)" "passive_formulas_of P"]
-    unfolding sel
-    by (simp only: prod.sel option.set passive_inferences_of_remove_Passive_Inference
-        passive_formulas_of_remove_Passive_Inference pas_min_\<iota>_uni_\<iota>)
-*)
-
-  show ?thesis
-    sorry
+    unfolding defs zl_fstate_alt_def sel prod.sel option.set
+    using ZL.compute_infer[OF \<iota>_red, of "todo.elems T - {LCons \<iota>0 \<iota>s}" \<iota>s "passive.elems P"]
+    by (metis todo_min_\<iota>_uni_\<iota> Un_commute passive.elems_add todo.elems_add todo.elems_remove)
 next
   case choose_p
 

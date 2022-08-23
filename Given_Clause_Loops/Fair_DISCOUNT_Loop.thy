@@ -396,8 +396,7 @@ proof cases
     unfolding defs fstate_alt_def
     using DL.compute_infer[OF \<iota>_red,
         of "passive_inferences_of (remove (select P) P)" "passive_formulas_of P"]
-    unfolding sel
-    by (simp only: prod.sel option.set passive_inferences_of_remove_Passive_Inference
+    by (simp only: sel prod.sel option.set passive_inferences_of_remove_Passive_Inference
         passive_formulas_of_remove_Passive_Inference pas_min_\<iota>_uni_\<iota>)
 next
   case (choose_p C)
