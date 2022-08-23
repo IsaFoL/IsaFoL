@@ -345,24 +345,17 @@ proof cases
     by (metis todo_min_\<iota>_uni_\<iota> Un_commute passive.elems_add todo.elems_add todo.elems_remove)
 next
   case choose_p
+  note defs = this(1-5) and p_nemp = this(6)
 
-(*
-  note defs = this(1-4) and p_nemp = this(5) and sel = this(6)
-
-  have pas_min_c_uni_c: "passive_formulas_of P - {C} \<union> {C} = passive_formulas_of P"
-    by (metis Un_insert_right insert_Diff mem_Collect_eq p_nemp passive_formulas_of_def sel
-        select_in_elems sup_bot.right_neutral)
+  have elems_rem_sel_uni_sel:
+    "passive.elems (p_remove (p_select P) P) \<union> {p_select P} = passive.elems P"
+    using p_nemp by force
 
   show ?thesis
-    unfolding defs fstate_alt_def
-    using ZL.choose_p[of "passive_inferences_of P" "passive_formulas_of (remove (select P) P)" C
+    unfolding defs zl_fstate_alt_def prod.sel option.set
+    using ZL.choose_p[of "todo.elems T" "passive.elems (p_remove (p_select P) P)" "p_select P"
         "fset A"]
-    unfolding sel by (simp only: prod.sel option.set passive_formulas_of_remove_Passive_Formula
-        passive_inferences_of_remove_Passive_Formula pas_min_c_uni_c)
-*)
-
-  show ?thesis
-    sorry
+    by (metis elems_rem_sel_uni_sel)
 next
   case (delete_fwd C)
   note defs = this(1-5) and c_red = this(6)
