@@ -628,26 +628,6 @@ proof (rule ccontr)
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>2"] wfP_\<mu>2 by blast
 qed
 
-lemma OLf_step_imp_passive_step:
-  assumes "St \<leadsto>OLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
-  using assms by cases (auto intro: passive_step_idleI passive_step_addI passive_step_removeI)
-
-lemma ILf_step_imp_passive_step:
-  assumes step: "St \<leadsto>ILf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
-  using step
-proof cases
-  case ol
-  then show ?thesis
-    using OLf_step_imp_passive_step by blast
-next
-  case (red_by_children C A M C' P)
-  note defs = this(1,2)
-  show ?thesis
-    unfolding defs by (auto intro: passive_step_idleI)
-qed
-
 lemma yy_empty_OLf_step_imp_\<mu>3:
   assumes step: "(N, X, P, None, A) \<leadsto>OLf (N', X', P', None, A')" (is "?bef \<leadsto>OLf ?aft")
   shows "\<mu>3 ?aft ?bef"
@@ -735,6 +715,26 @@ next
   note defs = this(1,2)
   show ?thesis
     unfolding defs \<mu>3_def by (simp add: subset_implies_multp)
+qed
+
+lemma OLf_step_imp_passive_step:
+  assumes "St \<leadsto>OLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using assms by cases (auto intro: passive_step_idleI passive_step_addI passive_step_removeI)
+
+lemma ILf_step_imp_passive_step:
+  assumes step: "St \<leadsto>ILf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using step
+proof cases
+  case ol
+  then show ?thesis
+    using OLf_step_imp_passive_step by blast
+next
+  case (red_by_children C A M C' P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs by (auto intro: passive_step_idleI)
 qed
 
 lemma fair_IL_Liminf_passive_empty:

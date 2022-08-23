@@ -625,13 +625,6 @@ proof (rule ccontr)
     by (metis lfinite_ldropn lfinite_lmap)
 qed
 
-lemma DLf_step_imp_passive_step:
-  assumes "St \<leadsto>DLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
-  using assms
-  by cases (auto simp: fold_map[symmetric] intro: passive_step_idleI passive_step_addI
-      passive_step_removeI passive_step_fold_addI passive_step_fold_removeI)
-
 lemma non_compute_infer_choose_p_DLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>DLf St'" and
@@ -739,6 +732,13 @@ next
     unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
 qed
 
+lemma DLf_step_imp_passive_step:
+  assumes "St \<leadsto>DLf St'"
+  shows "passive_step (passive_of St) (passive_of St')"
+  using assms
+  by cases (auto simp: fold_map[symmetric] intro: passive_step_idleI passive_step_addI
+      passive_step_removeI passive_step_fold_addI passive_step_fold_removeI)
+
 lemma fair_DL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -806,37 +806,6 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
-lemma fair_DL_Liminf_passive_inferences_empty:
-  assumes
-    len: "llength Sts = \<infinity>" and
-    full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_fair_DL_state (lhd Sts)"
-  shows "Liminf_llist (lmap (passive_inferences_of \<circ> passive_of) Sts) = {}"
-proof -
-  have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) Sts) = {}"
-    using fair_DL_Liminf_passive_empty Liminf_llist_subset
-    by (metis (no_types) empty_iff full init len llength_lmap llist.map_comp lnth_lmap member_filter
-        subsetI subset_antisym)
-
-  let ?g = "Set.filter is_passive_inference \<circ> elems \<circ> passive_of"
-
-  have "inj_on passive_inference (Set.filter is_passive_inference (UNIV :: 'f passive_elem set))"
-    unfolding inj_on_def by (metis member_filter passive_elem.collapse(1))
-  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_inference UNIV"
-    unfolding Sup_llist_def by auto
-  ultimately have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
-    using inj_on_subset by blast
-
-  have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_inference `
-    (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) x) Sts) = {}"
-    using Liminf_llist_lmap_image[OF inj_pi] lim_filt by simp
-
-  have "Liminf_llist (lmap (\<lambda>St. {\<iota>. Passive_Inference \<iota> \<in> elems (passive_of St)}) Sts) = {}"
-    using lim_pass passive_inference_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
-  thus ?thesis
-    unfolding passive_inferences_of_def comp_apply .
-qed
-
 lemma fair_DL_Liminf_passive_formulas_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -866,6 +835,37 @@ proof -
     using lim_pass passive_formula_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
   thus ?thesis
     unfolding passive_formulas_of_def comp_apply .
+qed
+
+lemma fair_DL_Liminf_passive_inferences_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>DLf) Sts" and
+    init: "is_initial_fair_DL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (passive_inferences_of \<circ> passive_of) Sts) = {}"
+proof -
+  have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) Sts) = {}"
+    using fair_DL_Liminf_passive_empty Liminf_llist_subset
+    by (metis (no_types) empty_iff full init len llength_lmap llist.map_comp lnth_lmap member_filter
+        subsetI subset_antisym)
+
+  let ?g = "Set.filter is_passive_inference \<circ> elems \<circ> passive_of"
+
+  have "inj_on passive_inference (Set.filter is_passive_inference (UNIV :: 'f passive_elem set))"
+    unfolding inj_on_def by (metis member_filter passive_elem.collapse(1))
+  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_inference UNIV"
+    unfolding Sup_llist_def by auto
+  ultimately have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
+    using inj_on_subset by blast
+
+  have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_inference `
+    (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) x) Sts) = {}"
+    using Liminf_llist_lmap_image[OF inj_pi] lim_filt by simp
+
+  have "Liminf_llist (lmap (\<lambda>St. {\<iota>. Passive_Inference \<iota> \<in> elems (passive_of St)}) Sts) = {}"
+    using lim_pass passive_inference_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
+  thus ?thesis
+    unfolding passive_inferences_of_def comp_apply .
 qed
 
 theorem

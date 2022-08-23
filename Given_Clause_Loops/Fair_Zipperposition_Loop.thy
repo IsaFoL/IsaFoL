@@ -408,6 +408,88 @@ fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" 
   "mset_of_zl_fstate (T, P, Y, A) =
    mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
 
+lemma ZLf_step_imp_passive_step:
+  assumes "St \<leadsto>ZLf St'"
+  shows "passive.passive_step (passive_of St) (passive_of St')"
+  using assms
+  by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
+      passive.passive_step_addI passive.passive_step_removeI)
+
+lemma fair_DL_Liminf_passive_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>ZLf) Sts" and
+    init: "is_initial_fair_ZL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
+proof -
+  have chain_step: "chain passive.passive_step (lmap passive_of Sts)"
+    using ZLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+    by (metis (no_types, lifting))
+
+  have inf_oft: "infinitely_often passive.select_passive_step (lmap passive_of Sts)"
+  proof
+    assume "finitely_often passive.select_passive_step (lmap passive_of Sts)"
+    then obtain i :: nat where
+      no_sel: "\<forall>j \<ge> i. \<not> passive.select_passive_step (passive_of (lnth Sts j))
+        (passive_of (lnth Sts (Suc j)))"
+      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+
+    have si_lt: "enat (Suc i) < llength Sts"
+      unfolding len by auto
+
+    have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+      using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+      by blast
+
+    have yy: "yy_of (lnth Sts j) \<noteq> None \<or> yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
+      using step[OF j_ge]
+      sorry
+(*
+    proof cases
+      case (compute_infer P \<iota> A C)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne passive.select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    next
+      case (choose_p P C A)
+      note defs = this(1,2) and p_ne = this(3)
+      have False
+        using no_sel defs p_ne select_passive_stepI that by fastforce
+      thus ?thesis
+        by blast
+    qed auto
+*)
+
+(*
+    have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+      by (rule non_compute_infer_choose_p_DLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+    hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using j_ge by blast
+    hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+      using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+    have inf_i: "\<not> lfinite (ldropn i Sts)"
+      using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+*)
+
+    show False
+      sorry
+(*
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
+*)
+  qed
+
+  have hd_emp: "lhd (lmap passive_of Sts) = p_empty"
+    using init full full_chain_not_lnull unfolding is_initial_fair_ZL_state.simps by fastforce
+
+  have "Liminf_llist (lmap passive.elems (lmap passive_of Sts)) = {}"
+    by (rule passive.fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
+  thus ?thesis
+    by (simp add: llist.map_comp)
+qed
+
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
@@ -470,12 +552,9 @@ proof -
 
     have ?pas_fml
       unfolding Liminf_zl_fstate_commute passive_subset_def Liminf_zl_fstate_def
-(*
-      using fair_ZL_Liminf_passive_formulas_empty[OF len full init]
+      using fair_ZL_Liminf_passive_empty[OF len full init]
         fair_ZL_Liminf_yy_empty[OF len full inv]
       by simp
-*)
-      sorry
     moreover have ?t_inf
       unfolding zl_fstate_alt_def
 (*
