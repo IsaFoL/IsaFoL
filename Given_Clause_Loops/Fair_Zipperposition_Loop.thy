@@ -324,6 +324,111 @@ next
   qed
 qed
 
+
+subsection \<open>Refinement\<close>
+
+lemma fair_ZL_step_imp_ZL_step:
+  assumes zlf: "(P, Y, A) \<leadsto>ZLf (P', Y', A')"
+  shows "zl_fstate (P, Y, A) \<leadsto>ZL zl_fstate (P', Y', A')"
+  using zlf
+proof cases
+  case (compute_infer \<iota>0 \<iota>s A C)
+  then show ?thesis
+    sorry
+next
+  case (choose_p A)
+  then show ?thesis
+    sorry
+next
+  case (delete_fwd C A)
+  note defs = this(1-4) and c_red = this(5)
+  show ?thesis
+    unfolding defs zl_fstate_alt_def using ZL.delete_fwd[OF c_red] by simp
+next
+  case (simplify_fwd C' C A)
+  note defs = this(1-4) and c_red = this(6)
+  show ?thesis
+    unfolding defs zl_fstate_alt_def using ZL.simplify_fwd[OF c_red] by simp
+next
+  case (delete_bwd C' A C)
+  note defs = this(1-4) and c'_red = this(6)
+  show ?thesis
+    unfolding defs zl_fstate_alt_def using ZL.delete_bwd[OF c'_red] by simp
+next
+  case (simplify_bwd C' A C'' C)
+  note defs = this(1-4) and c''_red = this(7)
+  show ?thesis
+    unfolding defs zl_fstate_alt_def using ZL.simplify_bwd[OF c''_red] by simp
+next
+  case (schedule_infer \<iota>ss A C)
+  note defs = this(1-4) and \<iota>ss = this(5)
+  show ?thesis
+    unfolding defs zl_fstate_alt_def
+    using ZL.schedule_infer[OF \<iota>ss]
+    sorry
+next
+  case (delete_orphan_infers \<iota>s A Y)
+  show ?thesis
+    sorry
+qed
+
+(*
+proof cases
+  case (compute_infer \<iota> C)
+  note defs = this(1-4) and p_nemp = this(5) and sel = this(6) and \<iota>_red = this(7)
+
+  have pas_min_\<iota>_uni_\<iota>: "passive_inferences_of P - {\<iota>} \<union> {\<iota>} = passive_inferences_of P"
+    by (metis Un_insert_right insert_Diff_single insert_absorb mem_Collect_eq p_nemp
+        passive_inferences_of_def sel select_in_elems sup_bot.right_neutral)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using ZL.compute_infer[OF \<iota>_red,
+        of "passive_inferences_of (remove (select P) P)" "passive_formulas_of P"]
+    unfolding sel
+    by (simp only: prod.sel option.set passive_inferences_of_remove_Passive_Inference
+        passive_formulas_of_remove_Passive_Inference pas_min_\<iota>_uni_\<iota>)
+next
+  case (choose_p C)
+  note defs = this(1-4) and p_nemp = this(5) and sel = this(6)
+
+  have pas_min_c_uni_c: "passive_formulas_of P - {C} \<union> {C} = passive_formulas_of P"
+    by (metis Un_insert_right insert_Diff mem_Collect_eq p_nemp passive_formulas_of_def sel
+        select_in_elems sup_bot.right_neutral)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using ZL.choose_p[of "passive_inferences_of P" "passive_formulas_of (remove (select P) P)" C
+        "fset A"]
+    unfolding sel by (simp only: prod.sel option.set passive_formulas_of_remove_Passive_Formula
+        passive_inferences_of_remove_Passive_Formula pas_min_c_uni_c)
+next
+
+next
+  case (delete_orphan_infers \<iota>s)
+  note defs = this(1-3) and \<iota>s_ne = this(4) and \<iota>s_pas = this(5) and inter = this(6)
+
+  have pas_min_\<iota>s_uni_\<iota>s: "passive_inferences_of P - set \<iota>s \<union> set \<iota>s = passive_inferences_of P"
+    by (simp add: \<iota>s_pas set_eq_subset)
+
+  show ?thesis
+    unfolding defs fstate_alt_def
+    using ZL.delete_orphan_infers[OF inter,
+        of "passive_inferences_of (fold (remove \<circ> Passive_Inference) \<iota>s P)"
+        "passive_formulas_of P" "set_option Y"]
+    by (simp only: prod.sel passive_inferences_of_fold_remove_Passive_Inference
+        passive_formulas_of_fold_remove_Passive_Inference pas_min_\<iota>s_uni_\<iota>s)
+qed
+*)
+
+lemma fair_ZL_step_imp_GC_step:
+  "(P, Y, A) \<leadsto>ZLf (P', Y', A') \<Longrightarrow> fstate (P, Y, A) \<leadsto>LGC fstate (P', Y', A')"
+  by (rule ZL_step_imp_LGC_step[OF fair_ZL_step_imp_ZL_step])
+
+
+subsection \<open>Completeness\<close>
+
+
 end
 
 end
