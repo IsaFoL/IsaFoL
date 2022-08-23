@@ -274,18 +274,31 @@ next
         t: "T \<noteq> t_empty" and
         y: "Y = None"
 
-(*
-      have \<iota>_inf: "\<iota> \<in> Inf_F"
-        using inv p unfolding st by (metis fair_ZL_invariant.cases fst_conv mem_Collect_eq
-            passive_inferences_of_def select_in_elems subset_iff)
-      have \<iota>_red: "\<iota> \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>})"
-        using \<iota>_inf no_labels.empty_ord.Red_I_of_Inf_to_N by auto
-*)
       have "\<exists>St'. St \<leadsto>ZLf St'"
-        sorry
-(*
-        using fair_ZL.compute_infer[OF p sel \<iota>_red] unfolding st p y by blast
-*)
+      proof (cases "t_select T")
+        case LNil
+
+        have nil_in: "LNil \<in> todo.elems T"
+          by (metis local.LNil t todo.select_in_elems)
+        have nil_inter: "lset LNil \<inter> no_labels.Inf_from (fset A) = {}"
+          by simp
+
+        show ?thesis
+          using fair_ZL.delete_orphan_infers[OF nil_in nil_inter] unfolding st t y by fast
+      next
+        case sel: (LCons \<iota>0 \<iota>s)
+
+        have \<iota>_inf: "\<iota>0 \<in> Inf_F"
+          using inv t unfolding st
+          by (metis (no_types, lifting) Un_iff distr_flat_inferences_of_wrt_union
+              fair_ZL_invariant.cases flat_inferences_of_LCons fst_conv insert_iff sel subset_iff
+              todo.add_again todo.elems_add todo.select_in_felems)
+        have \<iota>_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
+          using \<iota>_inf no_labels.empty_ord.Red_I_of_Inf_to_N by auto
+
+        show ?thesis
+          using fair_ZL.compute_infer[OF t sel \<iota>_red] unfolding st y by blast
+      qed
     } moreover {
       assume
         p: "P \<noteq> p_empty" and
