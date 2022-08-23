@@ -328,11 +328,11 @@ qed
 subsection \<open>Refinement\<close>
 
 lemma fair_ZL_step_imp_ZL_step:
-  assumes zlf: "(P, Y, A) \<leadsto>ZLf (P', Y', A')"
-  shows "zl_fstate (P, Y, A) \<leadsto>ZL zl_fstate (P', Y', A')"
+  assumes zlf: "(T, P, Y, A) \<leadsto>ZLf (T', P', Y', A')"
+  shows "zl_fstate (T, P, Y, A) \<leadsto>ZL zl_fstate (T', P', Y', A')"
   using zlf
 proof cases
-  case (compute_infer \<iota>0 \<iota>s A C)
+  case (compute_infer \<iota>0 \<iota>s C)
 
 (*
   note defs = this(1-4) and p_nemp = this(5) and sel = this(6) and \<iota>_red = this(7)
@@ -353,7 +353,7 @@ proof cases
   show ?thesis
     sorry
 next
-  case (choose_p A)
+  case choose_p
 
 (*
   note defs = this(1-4) and p_nemp = this(5) and sel = this(6)
@@ -373,34 +373,34 @@ next
   show ?thesis
     sorry
 next
-  case (delete_fwd C A)
-  note defs = this(1-4) and c_red = this(5)
+  case (delete_fwd C)
+  note defs = this(1-5) and c_red = this(6)
   show ?thesis
     unfolding defs zl_fstate_alt_def using ZL.delete_fwd[OF c_red] by simp
 next
-  case (simplify_fwd C' C A)
-  note defs = this(1-4) and c_red = this(6)
+  case (simplify_fwd C' C)
+  note defs = this(1-5) and c_red = this(7)
   show ?thesis
     unfolding defs zl_fstate_alt_def using ZL.simplify_fwd[OF c_red] by simp
 next
-  case (delete_bwd C' A C)
-  note defs = this(1-4) and c'_red = this(6)
+  case (delete_bwd C' C)
+  note defs = this(1-5) and c'_red = this(7)
   show ?thesis
     unfolding defs zl_fstate_alt_def using ZL.delete_bwd[OF c'_red] by simp
 next
-  case (simplify_bwd C' A C'' C)
-  note defs = this(1-4) and c''_red = this(7)
+  case (simplify_bwd C' C'' C)
+  note defs = this(1-5) and c''_red = this(8)
   show ?thesis
     unfolding defs zl_fstate_alt_def using ZL.simplify_bwd[OF c''_red] by simp
 next
-  case (schedule_infer \<iota>ss A C)
-  note defs = this(1-4) and \<iota>ss = this(5)
+  case (schedule_infer \<iota>ss C)
+  note defs = this(1-5) and \<iota>ss = this(6)
   show ?thesis
     unfolding defs zl_fstate_alt_def
     using ZL.schedule_infer[OF \<iota>ss]
     sorry
 next
-  case (delete_orphan_infers \<iota>s A Y)
+  case (delete_orphan_infers \<iota>s)
 
 (*
   note defs = this(1-3) and \<iota>s_ne = this(4) and \<iota>s_pas = this(5) and inter = this(6)
@@ -422,7 +422,7 @@ next
 qed
 
 lemma fair_ZL_step_imp_GC_step:
-  "(P, Y, A) \<leadsto>ZLf (P', Y', A') \<Longrightarrow> zl_fstate (P, Y, A) \<leadsto>LGC zl_fstate (P', Y', A')"
+  "(T, P, Y, A) \<leadsto>ZLf (T', P', Y', A') \<Longrightarrow> zl_fstate (T, P, Y, A) \<leadsto>LGC zl_fstate (T', P', Y', A')"
   by (rule ZL_step_imp_LGC_step[OF fair_ZL_step_imp_ZL_step])
 
 
