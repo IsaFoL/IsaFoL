@@ -410,7 +410,6 @@ fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" 
 
 theorem
   assumes
-    inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
@@ -425,9 +424,7 @@ proof -
     using chain fair_ZL_step_imp_GC_step chain_lmap by (smt (verit) zl_fstate.cases)
 
   have inv: "fair_ZL_invariant (lhd Sts)"
-    using init unfolding is_initial_fair_ZL_state.simps fair_ZL_invariant.simps
-    sorry
-    sorry (* by auto *)
+    using init initial_fair_ZL_invariant by auto
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
@@ -493,7 +490,7 @@ proof -
     t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
-    using inf_have_prems by blast
+    sorry
 
   have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
     using unsat unfolding lhd_lmap (* by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left) *)

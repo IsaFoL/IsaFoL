@@ -885,7 +885,7 @@ proof -
     using chain fair_DL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
   have inv: "fair_DL_invariant (lhd Sts)"
-    using init unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by auto
+    using init initial_fair_DL_invariant by auto
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
