@@ -677,7 +677,7 @@ lemma non_compute_infer_choose_p_DLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>DLf St'" and
     yy: "yy_of St \<noteq> None \<or> yy_of St' = None"
-  shows "\<mu>3 St' St"
+  shows "\<mu>2 St' St"
   using step
 proof cases
   case (compute_infer P \<iota> A C)
@@ -695,13 +695,18 @@ next
     by blast
 next
   case (delete_fwd C A P)
-  show ?thesis sorry
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
 next
   case (simplify_fwd C' C A P)
   show ?thesis sorry
 next
   case (delete_bwd C' A C P)
-  show ?thesis sorry
+  note defs = this(1,2) and c_ni = this(3)
+  show ?thesis
+    unfolding defs \<mu>2_def using c_ni
+    by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C P)
   show ?thesis sorry
@@ -710,7 +715,11 @@ next
   show ?thesis sorry
 next
   case (delete_orphan_infers \<iota>s P A Y)
-  show ?thesis sorry
+  note defs = this(1,2) and \<iota>s_nnil = this(3) and \<iota>s_sub = this(4) and \<iota>s_inter = this(5)
+  show ?thesis
+    unfolding defs \<mu>2_def
+    apply (auto intro!: subset_implies_multp)
+    sorry
 qed
 
 lemma fair_DL_Liminf_passive_empty:
