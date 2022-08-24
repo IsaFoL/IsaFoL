@@ -450,22 +450,25 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
-(* FIXME
-lemma non_choose_p_ZLf_step_imp_\<mu>2:
+lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
-    yy: "yy_of St \<noteq> None \<or> yy_of St' = None"
+    non_ci: "\<not> compute_infer_step St St'" and
+    non_cp: "\<not> choose_p_step St St'"
   shows "\<mu>2 St' St"
   using step
 proof cases
   case (compute_infer T \<iota>0 \<iota>s A C P)
-  show ?thesis
+  note defs = this(1,2)
+  have False
     sorry
+  thus ?thesis
+    by blast
 next
   case (choose_p P T A)
   note defs = this(1,2)
   have False
-    using step yy unfolding defs by simp
+    sorry
   thus ?thesis
     by blast
 next
@@ -493,7 +496,6 @@ next
   show ?thesis
     sorry
 qed
-*)
 
 (* old FIXME
 proof cases
@@ -625,57 +627,42 @@ proof -
     hence fin_ci: "finitely_often compute_infer_step Sts"
       using fair by blast
 
-    obtain i_cp :: nat where
-      no_sel: "\<forall>j \<ge> i_cp. \<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))"
-      using fin_cp
-      sorry
-    have sicp_lt: "enat (Suc i_cp) < llength Sts"
-      unfolding len by auto
-
     obtain i_ci :: nat where
-      no_sel: "\<forall>j \<ge> i_ci. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
+      i_ci: "\<forall>j \<ge> i_ci. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
       using fin_cp
       sorry
-    have sicp_lt: "enat (Suc i_ci) < llength Sts"
-      unfolding len by auto
+
+    obtain i_cp :: nat where
+      i_cp: "\<forall>j \<ge> i_cp. \<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))"
+      using fin_cp
+      sorry
 
     define i :: nat where
       i: "i = max i_cp i_ci"
+
+    have si_lt: "enat (Suc i) < llength Sts"
+      unfolding len by auto
+
+    have not_ci: "\<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using i i_ci j_ge by auto
+    have not_cp: "\<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      using i i_cp j_ge by auto
 
     have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
-(*
-    have yy: "yy_of (lnth Sts j) \<noteq> None \<or> yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
-      using step[OF j_ge]
-    proof cases
-      case (choose_p P T A)
-      note defs = this(1,2) and p_ne = this(3)
-      have False
-        using no_sel defs p_ne passive.select_passive_stepI that by fastforce
-      thus ?thesis
-        by blast
-    qed auto
-
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_choose_p_ZLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
-*)
-(*
+      by (rule non_compute_infer_choose_p_ZLf_step_imp_\<mu>2[OF step[OF j_ge] not_ci[OF j_ge]
+            not_cp[OF j_ge]])
     hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
       using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
-
     have inf_i: "\<not> lfinite (ldropn i Sts)"
       using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
-*)
-
     show False
-      sorry
-(*
       using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
-*)
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = p_empty"
