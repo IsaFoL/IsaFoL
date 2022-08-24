@@ -591,13 +591,11 @@ next
     unfolding defs \<mu>2_def by auto
 next
   case (delete_orphan_infers \<iota>s T A P Y)
-  note defs = this(1,2)
-  show ?thesis
-    unfolding defs \<mu>2_def
-    apply simp
-
-    apply (auto intro!: subset_implies_multp)
-    sorry
+  note defs = this(1,2) and \<iota>s = this(3)
+  have "fcard (t_felems T |-| {|\<iota>s|}) < fcard (t_felems T)"
+    using \<iota>s by (meson fcard_fminus1_less notin_fset)
+  thus ?thesis
+    unfolding defs \<mu>2_def by simp
 qed
 
 lemma ZLf_step_imp_passive_step:
