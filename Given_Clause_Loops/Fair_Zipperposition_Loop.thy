@@ -608,8 +608,15 @@ lemma ZLf_step_imp_passive_step:
       passive.passive_step_addI passive.passive_step_removeI)
 
 lemma choose_p_step_imp_select_passive_step:
-  "choose_p_step St St' \<Longrightarrow> passive.select_passive_step (passive_of St) (passive_of St')"
-  sorry
+  assumes "choose_p_step St St'"
+  shows "passive.select_passive_step (passive_of St) (passive_of St')"
+  using assms
+proof cases
+  case (1 P T A)
+  note defs = this(1,2) and p_nemp = this(3)
+  show ?thesis
+    unfolding defs prod.sel by (rule passive.select_passive_stepI[OF p_nemp])
+qed
 
 lemma fair_ZL_Liminf_passive_empty:
   assumes
