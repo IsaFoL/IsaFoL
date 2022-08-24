@@ -487,7 +487,7 @@ next
     show "\<mu>1 {#C'#} {#C#}"
       unfolding multp_def using prec by (auto intro: singletons_in_mult)
   qed
-  hence ?thesis
+  thus ?thesis
     unfolding defs \<mu>2_def by simp
 next
   case (delete_bwd C' A C T P)
