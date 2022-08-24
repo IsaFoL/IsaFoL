@@ -457,15 +457,96 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
-lemma fair_DL_Liminf_yy_empty:
+
+lemma yy_nonempty_ZLf_step_imp_\<mu>1:
+  assumes
+    step: "St \<leadsto>ZLf St'" and
+    yy: "yy_of St \<noteq> None" and
+    yy': "yy_of St' \<noteq> None"
+  shows "\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)"
+  using step
+  sorry
+(* FIXME
+proof cases
+  case (simplify_fwd C' C A P)
+  note defs = this(1,2) and prec = this(3)
+
+  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+      mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
+    by simp
+  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
+      mset_set (passive_formulas_of P) + mset_set (fset A)) =
+    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
+      mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
+    by simp
+
+  have "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      unfolding multp_def using prec by (auto intro: singletons_in_mult)
+  qed
+  thus ?thesis
+    unfolding defs by simp
+next
+  case (delete_bwd C' A C P)
+  note defs = this(1,2) and c'_ni = this(3)
+  show ?thesis
+    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
+next
+  case (simplify_bwd C' A C'' C P)
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
+
+  show ?thesis
+  proof (cases "C'' \<in> passive_formulas_of P")
+    case c''_in: True
+    show ?thesis
+      unfolding defs using c'_ni
+      by (auto simp: notin_fset insert_absorb[OF c''_in] intro!: subset_implies_multp)
+  next
+    case c''_in: False
+
+    have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (insert C' (fset A))) =
+      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C'#}" (is "?old_bef = ?new_bef")
+      using c'_ni by (simp add: notin_fset)
+    have aft: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (insert C'' (passive_formulas_of P)) + mset_set (fset A)) =
+      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
+        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
+      using c''_in finite_passive_formulas_of by auto
+
+    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    show ?thesis
+      unfolding defs by simp (auto simp only: bef aft intro: \<mu>1_new)
+  qed
+next
+  case (delete_orphan_infers \<iota>s P A Y)
+  note defs = this(1,2) and \<iota>s_nemp = this(3) and \<iota>s_sub = this(4)
+
+  have "passive_inferences_of P - set \<iota>s \<subset> passive_inferences_of P"
+    by (metis Diff_cancel Diff_subset \<iota>s_nemp \<iota>s_sub double_diff psubsetI set_empty)
+  hence "mset_set (passive_inferences_of P - set \<iota>s) \<subset># mset_set (passive_inferences_of P)"
+    using finite_passive_inferences_of by (simp add: subset_mset.less_le)
+  thus ?thesis
+    unfolding defs by (auto intro!: subset_implies_multp image_mset_subset_mono)
+qed (use yy yy' in auto)
+*)
+
+lemma fair_ZL_Liminf_yy_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    inv: "fair_DL_invariant (lhd Sts)"
+    inv: "fair_ZL_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
-  sorry
-
-(* FIXME
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
 
@@ -491,12 +572,13 @@ proof (rule ccontr)
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
-  have "\<mu>1 (mset_of_zl_fstate (lnth Sts (Suc j))) (mset_of_zl_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
+  have "\<mu>1 (mset_of_zl_fstate (lnth Sts (Suc j))) (mset_of_zl_fstate (lnth Sts j))"
+    if j_ge: "j \<ge> i" for j
     using yy_nonempty_ZLf_step_imp_\<mu>1 by (meson step j_ge yy_j yy_sj)
-  hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+  hence "\<mu>1\<inverse>\<inverse> (mset_of_zl_fstate (lnth Sts j)) (mset_of_zl_fstate (lnth Sts (Suc j)))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
-  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_zl_fstate Sts))"
     using chain_ldropn_lmapI[OF _ si_lt] by blast
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
@@ -507,7 +589,6 @@ proof (rule ccontr)
       wfP_\<mu>1
     by (metis lfinite_ldropn lfinite_lmap)
 qed
-*)
 
 lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
   assumes
@@ -744,11 +825,8 @@ proof -
     have ?pas_fml
       unfolding Liminf_zl_fstate_commute passive_subset_def Liminf_zl_fstate_def
       using fair_ZL_Liminf_passive_empty[OF len full init fair]
-(*
-        fair_ZL_Liminf_yy_empty[OF len full inv fair]
+        fair_ZL_Liminf_yy_empty[OF len full inv]
       by simp
-*)
-      sorry
     moreover have ?t_inf
       unfolding zl_fstate_alt_def
 (*
