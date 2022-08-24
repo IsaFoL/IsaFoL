@@ -459,16 +459,14 @@ lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
   using step
 proof cases
   case (compute_infer T \<iota>0 \<iota>s A C P)
-  note defs = this(1,2)
-  have False
-    sorry
+  hence False
+    using non_ci[unfolded compute_infer_step.simps] by blast
   thus ?thesis
     by blast
 next
   case (choose_p P T A)
-  note defs = this(1,2)
-  have False
-    sorry
+  hence False
+    using non_cp[unfolded choose_p_step.simps] by blast
   thus ?thesis
     by blast
 next
