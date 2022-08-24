@@ -457,17 +457,49 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
-
-lemma yy_nonempty_ZLf_step_imp_\<mu>1:
+lemma yy_nonempty_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
     yy: "yy_of St \<noteq> None" and
     yy': "yy_of St' \<noteq> None"
-  shows "\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)"
+  shows "\<mu>2 St' St"
   using step
-  sorry
-(* FIXME
 proof cases
+  case (simplify_fwd C' C A T P)
+  then show ?thesis sorry
+next
+  case (delete_bwd C' A C T P)
+  note defs = this(1,2) and c'_ni = this(3)
+  have "\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)"
+    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
+  thus ?thesis
+    unfolding \<mu>2_def using yy yy' by auto
+next
+  case (simplify_bwd C' A C'' C T P)
+  then show ?thesis sorry
+next
+  case (delete_orphan_infers \<iota>s T A P Y)
+  note defs = this(1,2) and \<iota>s_in = this(3) and \<iota>s_inter = this(4)
+
+  show ?thesis
+    unfolding defs
+    apply auto
+    apply (auto intro!: subset_implies_multp)
+    sorry
+
+(*
+
+  have "passive_inferences_of P - set \<iota>s \<subset> passive_inferences_of P"
+    by (metis Diff_cancel Diff_subset \<iota>s_nemp \<iota>s_sub double_diff psubsetI set_empty)
+  hence "mset_set (passive_inferences_of P - set \<iota>s) \<subset># mset_set (passive_inferences_of P)"
+    using finite_passive_inferences_of by (simp add: subset_mset.less_le)
+  thus ?thesis
+    unfolding defs by (auto intro!: subset_implies_multp image_mset_subset_mono)
+*)
+
+qed (use yy yy' in auto)
+
+(*
   case (simplify_fwd C' C A P)
   note defs = this(1,2) and prec = this(3)
 
@@ -490,11 +522,6 @@ proof cases
   qed
   thus ?thesis
     unfolding defs by simp
-next
-  case (delete_bwd C' A C P)
-  note defs = this(1,2) and c'_ni = this(3)
-  show ?thesis
-    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C P)
   note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
@@ -530,15 +557,6 @@ next
   qed
 next
   case (delete_orphan_infers \<iota>s P A Y)
-  note defs = this(1,2) and \<iota>s_nemp = this(3) and \<iota>s_sub = this(4)
-
-  have "passive_inferences_of P - set \<iota>s \<subset> passive_inferences_of P"
-    by (metis Diff_cancel Diff_subset \<iota>s_nemp \<iota>s_sub double_diff psubsetI set_empty)
-  hence "mset_set (passive_inferences_of P - set \<iota>s) \<subset># mset_set (passive_inferences_of P)"
-    using finite_passive_inferences_of by (simp add: subset_mset.less_le)
-  thus ?thesis
-    unfolding defs by (auto intro!: subset_implies_multp image_mset_subset_mono)
-qed (use yy yy' in auto)
 *)
 
 lemma fair_ZL_Liminf_yy_empty:
@@ -572,22 +590,19 @@ proof (rule ccontr)
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
-  have "\<mu>1 (mset_of_zl_fstate (lnth Sts (Suc j))) (mset_of_zl_fstate (lnth Sts j))"
-    if j_ge: "j \<ge> i" for j
-    using yy_nonempty_ZLf_step_imp_\<mu>1 by (meson step j_ge yy_j yy_sj)
-  hence "\<mu>1\<inverse>\<inverse> (mset_of_zl_fstate (lnth Sts j)) (mset_of_zl_fstate (lnth Sts (Suc j)))"
+  have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+    using yy_nonempty_ZLf_step_imp_\<mu>2 by (meson step j_ge yy_j yy_sj)
+  hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
-  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_zl_fstate Sts))"
-    using chain_ldropn_lmapI[OF _ si_lt] by blast
+  hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+    by (simp add: chain_ldropnI si_lt)
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
     using len by (simp add: llength_eq_infty_conv_lfinite)
 
   show False
-    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
-      wfP_\<mu>1
-    by (metis lfinite_ldropn lfinite_lmap)
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by metis
 qed
 
 lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:

@@ -620,7 +620,7 @@ proof (rule ccontr)
     using len by (simp add: llength_eq_infty_conv_lfinite)
 
   show False
-    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>1]
       wfP_\<mu>1
     by (metis lfinite_ldropn lfinite_lmap)
 qed
