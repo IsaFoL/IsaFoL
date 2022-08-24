@@ -584,7 +584,12 @@ next
     unfolding defs \<mu>2_def by auto
 next
   case (delete_orphan_infers \<iota>s T A P Y)
+  note defs = this(1,2)
   show ?thesis
+    unfolding defs \<mu>2_def
+    apply simp
+
+    apply (auto intro!: subset_implies_multp)
     sorry
 qed
 
