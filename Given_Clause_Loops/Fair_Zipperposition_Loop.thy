@@ -428,26 +428,33 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
 definition \<mu>2 :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<equiv>
    (yy_of St' = None \<and> yy_of St \<noteq> None)
-   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St))"
+   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None)
+      \<and> (\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
+         \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
+            \<and> fcard (t_felems (todo_of St')) < fcard (t_felems (todo_of St)))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
   let ?boolset = "{(b', b :: bool). b' < b}"
   let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
-  let ?pair_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St)"
+  let ?natset = "{(n', n :: nat). n' < n}"
+  let ?triple_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St, fcard (t_felems (todo_of St)))"
 
   have wf_boolset: "wf ?boolset"
     by (rule Wellfounded.wellorder_class.wf)
   have wf_\<mu>1set: "wf ?\<mu>1set"
     using wfP_\<mu>1 wfP_def by auto
-  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set)"
-    by (rule wf_lex_prod[OF wf_boolset wf_\<mu>1set])
+  have wf_natset: "wf ?natset"
+    by (rule Wellfounded.wellorder_class.wf)
+  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set <*lex*> ?natset)"
+    by (rule wf_lex_prod[OF wf_boolset wf_lex_prod[OF wf_\<mu>1set wf_natset]])
 
-  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?boolset <*lex*> ?\<mu>1set"
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
+    (?triple_of St', ?triple_of St) \<in> ?boolset <*lex*> ?\<mu>1set <*lex*> ?natset"
     unfolding \<mu>2_def by auto
 
   show ?thesis
-    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
 lemma fair_DL_Liminf_yy_empty:
