@@ -476,8 +476,19 @@ next
     unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
 next
   case (simplify_fwd C' C A T P)
-  show ?thesis
-    sorry
+  note defs = this(1,2) and prec = this(3)
+
+  let ?new_bef = "mset_set (passive.elems P) + mset_set (fset A) + {#C#}"
+  let ?new_aft = "mset_set (passive.elems P) + mset_set (fset A) + {#C'#}"
+
+  have "\<mu>1 ?new_aft ?new_bef"
+    unfolding multp_def
+  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+    show "\<mu>1 {#C'#} {#C#}"
+      unfolding multp_def using prec by (auto intro: singletons_in_mult)
+  qed
+  hence ?thesis
+    unfolding defs \<mu>2_def by simp
 next
   case (delete_bwd C' A C T P)
   note defs = this(1,2) and c_ni = this(3)

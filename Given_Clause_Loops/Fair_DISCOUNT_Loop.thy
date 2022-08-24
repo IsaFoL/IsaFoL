@@ -654,16 +654,10 @@ next
   case (simplify_fwd C' C A P)
   note defs = this(1,2) and prec = this(3)
 
-  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-      mset_set (passive_formulas_of P) + mset_set (fset A)) =
-    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
-    mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
-    by auto
-  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
-      mset_set (passive_formulas_of P) + mset_set (fset A)) =
-    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
-    mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
-    by auto
+  let ?new_bef = "image_mset concl_of (mset_set (passive_inferences_of P)) +
+    mset_set (passive_formulas_of P) + mset_set (fset A) + {#C#}"
+  let ?new_aft = "image_mset concl_of (mset_set (passive_inferences_of P)) +
+    mset_set (passive_formulas_of P) + mset_set (fset A) + {#C'#}"
 
   have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
     unfolding multp_def
@@ -671,14 +665,13 @@ next
     show "\<mu>1 {#C'#} {#C#}"
       unfolding multp_def using prec by (auto intro: singletons_in_mult)
   qed
-  show ?thesis
-    unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+  thus ?thesis
+    unfolding defs \<mu>2_def by simp
 next
   case (delete_bwd C' A C P)
   note defs = this(1,2) and c_ni = this(3)
   show ?thesis
-    unfolding defs \<mu>2_def using c_ni
-    by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
+    unfolding defs \<mu>2_def using c_ni by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C P)
   note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
