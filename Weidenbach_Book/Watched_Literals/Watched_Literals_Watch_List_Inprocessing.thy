@@ -1567,7 +1567,8 @@ proof -
 qed
 
 definition subsume_or_strengthen_wl_pre :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>subsume_or_strengthen_wl_pre C s S = (\<exists>T. (S, T) \<in> state_wl_l None \<and> subsume_or_strengthen_pre C s T)\<close>
+  \<open>subsume_or_strengthen_wl_pre C s S \<longleftrightarrow> (\<exists>T. (S, T) \<in> state_wl_l None \<and>
+     subsume_or_strengthen_pre C s T \<and> length (get_clauses_wl S \<propto> C) > 2)\<close>
 
 definition strengthen_clause_wl :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow>
    'v twl_st_wl  \<Rightarrow>  'v twl_st_wl nres\<close> where
@@ -1689,14 +1690,14 @@ lemma case_subsumption_refine:
   by (cases a) auto
 
 lemma subsume_or_strengthen_wl_subsume_or_strengthen:
-  assumes 
+  assumes
     \<open>(C, C') \<in> nat_rel\<close> and
     \<open>(s, s') \<in> Id\<close> and
     \<open>(S, S') \<in> state_wl_l None\<close> and
-    \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+    \<open>C \<in># dom_m (get_clauses_wl S)\<close> \<open>length (get_clauses_wl S \<propto> C) > 2\<close>
   shows \<open>subsume_or_strengthen_wl C s S \<le> \<Down>{(T, T'). (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S}
     (subsume_or_strengthen C' s' S')\<close>
-    using assms
+  using assms
   unfolding subsume_or_strengthen_wl_def subsume_or_strengthen_def Let_def
   apply (refine_vcg strengthen_clause_wl_strengthen_clause case_subsumption_refine)
   subgoal unfolding subsume_or_strengthen_wl_pre_def by fast
@@ -1842,6 +1843,8 @@ proof -
       apply - apply normalize_goal+ 
       by (simp add: try_to_subsume_def
         forward_subsumption_one_inv_def subsume_or_strengthen_pre_def split: subsumption.splits)
+    subgoal unfolding forward_subsumption_one_wl_pre_def forward_subsumption_one_pre_def
+      by normalize_goal+ auto
     subgoal using assms(3) SS' by (force simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def
       watched_by_alt_def)
     subgoal using SS' by auto

@@ -1386,18 +1386,23 @@ definition  mop_arena_promote_st where
 definition remove_lit_from_clause where
   \<open>remove_lit_from_clause N C L = do {
     n \<leftarrow> mop_arena_length N C;
-   (i, j, N) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, j, N). i < n)
+   (i, j, N) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, j, N). j < n)
      (\<lambda>(i, j, N). do {
        K \<leftarrow> mop_arena_lit2 N C j;
        if K \<noteq> L then do {
          N \<leftarrow> mop_arena_swap C i j N;
          RETURN (i+1, j+1, N)}
-      else RETURN (i+1, j, N)
+      else RETURN (i, j+1, N)
     }) (0, 0, N);
-   N \<leftarrow> mop_arena_shorten C (n-1) N;
+   N \<leftarrow> mop_arena_shorten C i N;
    RETURN N
   }\<close>
 
+definition remove_lit_from_clause_st :: \<open>_\<close> where
+  \<open>remove_lit_from_clause_st T C L = do {
+    N \<leftarrow> remove_lit_from_clause (get_clauses_wl_heur T) C L;
+    RETURN (set_clauses_wl_heur N T)
+}\<close>
 (*
 TODO the wasted bits should be incremented in the deletion functions
 TODO rename the mark_garbage_heurX functions with proper name like below
@@ -1424,10 +1429,9 @@ definition isa_strengthen_clause_wl2 where
   \<open>isa_strengthen_clause_wl2 C C' L S = do {
     m \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
     n \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C';
-    N \<leftarrow> remove_lit_from_clause (get_clauses_wl_heur S) C (-L);
+    S \<leftarrow> remove_lit_from_clause_st S C (-L);
     st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
     st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
-    let S = set_clauses_wl_heur N S;
 
     if m = n
     then do {
@@ -1970,39 +1974,253 @@ lemma mark_garbage_wl2_simp2[simp]:
 
 definition remove_lit_from_clause_wl :: \<open>_\<close> where
   \<open>remove_lit_from_clause_wl C L' = (\<lambda>(M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W).
-  (M, fmupd C (remove1 (- L') (N \<propto> C), irred N C) N, D, NE, UE, NEk, UEk,
+  (M, fmupd C (remove1 L' (N \<propto> C), irred N C) N, D, NE, UE, NEk, UEk,
     (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
     (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W))\<close>
 
-lemma
+lemma strengthen_clause_wl_alt_def[unfolded Down_id_eq]:
   \<open>\<Down>Id(strengthen_clause_wl C D L' S) \<ge> do {
+    ASSERT (subsume_or_strengthen_wl_pre C (STRENGTHENED_BY L' D) S);
     let m = length (get_clauses_wl S \<propto> C);
-    let n = length (get_clauses_wl S \<propto> C);
+    let n = length (get_clauses_wl S \<propto> D);
     let E = remove1 (- L') (get_clauses_wl S \<propto> C);
-    let T = remove_lit_from_clause_wl C L' S;
-     if m = n then do {
-      let U = (if \<not>irred (get_clauses_wl S) C' \<and> irred (get_clauses_wl S) C then arena_promote_st_wl T C' else T);
-      let U = mark_garbage_wl2 C U;
+    let T = remove_lit_from_clause_wl C (-L') S;
+    if False then RETURN T
+    else if m = n then do {
+      let U = (if \<not>irred (get_clauses_wl S) C \<and> irred (get_clauses_wl S) D then arena_promote_st_wl T C else T);
+      let U = mark_garbage_wl2 D U;
       RETURN U
      }
     else RETURN T
   }\<close>
 proof -
+  have le2: \<open>length (get_clauses_wl S \<propto> C) \<noteq> 2\<close> and
+    CD: \<open>C \<noteq> D\<close>
+    if \<open>subsume_or_strengthen_wl_pre C (STRENGTHENED_BY L' D) S\<close>
+  proof -
+    show \<open>length (get_clauses_wl S \<propto> C) \<noteq> 2\<close> and \<open>C \<noteq> D\<close>
+      using that unfolding subsume_or_strengthen_wl_pre_def
+        subsume_or_strengthen_pre_def apply -
+      by normalize_goal+ auto
+  qed
   show ?thesis
-    unfolding strengthen_clause_wl_def
-    oops
+    unfolding strengthen_clause_wl_def case_wl_split state_wl_recompose Let_def [of \<open>length _\<close>]
+    apply refine_vcg
+    subgoal by auto
+    subgoal using le2 by blast
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      using CD
+      by (cases S)
+        (auto simp: mark_garbage_wl2_def arena_promote_st_wl_def remove_lit_from_clause_wl_def)
+    subgoal
+      by (cases S) (auto simp: remove_lit_from_clause_wl_def)
+    done
+qed
 
-lemma
+(*TODO Move*)
+fun set_clauses_wl :: \<open>_ \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
+  \<open>set_clauses_wl N (M, _, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) =
+    (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) \<close>
+fun add_clause_to_subsumed :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
+  \<open>add_clause_to_subsumed b E (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, WS, Q) =
+    (M, N, D, NE, UE, NEk, UEk, (if b then add_mset E else id) NS,
+    (if \<not>b then add_mset E else id) US, N0, U0, WS, Q) \<close>
+
+(*TODO Move*)
+lemma fmap_eq_iff_dom_m_lookup: \<open>f = g \<longleftrightarrow> (dom_m f = dom_m g \<and> (\<forall>k\<in>#dom_m f. fmlookup f k = fmlookup g k))\<close>
+  by (metis fmap_ext in_dom_m_lookup_iff)
+
+lemma mop_arena_shorten:
+  assumes \<open>valid_arena N N' vdom\<close> and
+    \<open>(i,j)\<in>nat_rel\<close> and
+    \<open>(C,C')\<in>nat_rel\<close> and
+    \<open>C \<in># dom_m N'\<close> and
+    \<open>i\<ge>2\<close> \<open>i \<le> length (N' \<propto> C)\<close>
+  shows
+    \<open>mop_arena_shorten C i N
+    \<le> SPEC (\<lambda>c. (c, N'(C' \<hookrightarrow> take j (N' \<propto> C')))
+    \<in> {(N,N'). valid_arena N N' vdom})\<close>
+proof -
+  show ?thesis
+    unfolding mop_arena_shorten_def
+    apply refine_vcg
+    subgoal using assms unfolding arena_shorten_pre_def arena_is_valid_clause_idx_def
+      by (auto intro!: exI[of _ N'] simp: arena_lifting)
+    subgoal
+      using assms by (auto intro!: valid_arena_arena_shorten simp: arena_lifting)
+    done
+qed
+
+lemma count_list_distinct_If: \<open>distinct xs \<Longrightarrow> count_list xs x = (if x \<in> set xs then 1 else 0)\<close>
+  by (simp add: count_mset_count_list distinct_count_atmost_1)
+
+lemma remove_lit_from_clause_st:
+  assumes
+    T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
+    LL': \<open>(L,L')\<in>nat_lit_lit_rel\<close> and
+    CC': \<open>(C,C')\<in>nat_rel\<close> and
+    C_dom: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and
+    dist: \<open>distinct (get_clauses_wl S \<propto> C)\<close>and
+    le: \<open>length (get_clauses_wl S \<propto> C) > 2\<close>
+ shows
+  \<open>remove_lit_from_clause_st T C L
+   \<le> SPEC (\<lambda>c. (c, remove_lit_from_clause_wl C' L' S) \<in> twl_st_heur_restart_occs' r u)\<close>
+proof -
+  define I where
+    \<open>I = (\<lambda>(i,j,N). dom_m N = dom_m (get_clauses_wl S) \<and>
+    (\<forall>D\<in>#dom_m (get_clauses_wl S). D \<noteq> C \<longrightarrow> fmlookup N D = fmlookup (get_clauses_wl S) D) \<and>
+       (take i (N \<propto> C) = (removeAll L (take j (get_clauses_wl S \<propto> C')))) \<and>
+       (\<forall>k < length (N \<propto> C). k \<ge> j \<longrightarrow> (N \<propto> C) !k = (get_clauses_wl S \<propto> C') ! k) \<and>
+       (length (N \<propto> C) = length (get_clauses_wl S \<propto> C')) \<and>
+       irred N C = irred (get_clauses_wl S) C \<and>
+    i \<le> j \<and> j \<le> length (get_clauses_wl S \<propto> C'))\<close>
+  define \<Phi> where
+    \<open>\<Phi> = (\<lambda>(i,j,N). dom_m N = dom_m (get_clauses_wl S) \<and>
+    (\<forall>D\<in>#dom_m (get_clauses_wl S). D \<noteq> C \<longrightarrow> fmlookup N D = fmlookup (get_clauses_wl S) D) \<and>
+       j = length (get_clauses_wl S \<propto> C') \<and>
+       (take i (N \<propto> C) = (removeAll L (get_clauses_wl S \<propto> C'))) \<and>
+       (length (N \<propto> C) = length (get_clauses_wl S \<propto> C')) \<and>
+       irred N C = irred (get_clauses_wl S) C \<and> C' \<in># dom_m N \<and>
+       i \<le> j \<and> j = length (get_clauses_wl S \<propto> C'))\<close>
+  have ge: \<open>\<Down>Id (RETURN (remove_lit_from_clause_wl C' L' S)) \<ge>  do {
+   let n = length (get_clauses_wl S \<propto> C');
+   (i, j, N) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, j, N). j < n)
+     (\<lambda>(i, j, N). do {
+       K \<leftarrow> mop_clauses_at N C j;
+       if K \<noteq> L then do {
+         N \<leftarrow> mop_clauses_swap N C i j;
+         RETURN (i+1, j+1, N)}
+      else RETURN (i, j+1, N)
+    }) (0, 0, get_clauses_wl S);
+   ASSERT (C' \<in># dom_m N);
+   ASSERT (i \<le> length (N \<propto> C'));
+   ASSERT (i \<ge> 2);
+   let N = N(C' \<hookrightarrow> take i (N \<propto> C'));
+   RETURN (set_clauses_wl N (add_clause_to_subsumed (irred (get_clauses_wl S) C') (mset (get_clauses_wl S \<propto> C')) S))
+     }\<close>
+     unfolding Let_def
+     apply (refine_vcg)
+     apply (rule WHILET_rule[where I= \<open>I\<close> and R = \<open>measure (\<lambda>(i,j,N). length (get_clauses_wl S \<propto> C') - j)\<close> and \<Phi>=\<Phi>, THEN order_trans])
+     subgoal by auto
+     subgoal using CC' unfolding I_def by auto
+     subgoal
+       unfolding mop_clauses_at_def nres_monad3 mop_clauses_swap_def
+       apply (refine_vcg)
+       subgoal using C_dom by (auto simp: I_def)
+       subgoal using CC' by (auto simp: I_def)
+       subgoal using CC' by (auto simp: I_def)
+       subgoal unfolding I_def prod.simps apply (intro conjI)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal
+         using CC' apply (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+         by (metis order_mono_setup.refl take_update take_update_cancel)+
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       done
+     subgoal by (auto simp: I_def)
+     subgoal by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+     subgoal by (auto simp: I_def)
+     done
+   subgoal using C_dom CC' unfolding \<Phi>_def I_def by auto
+   subgoal using dist CC' LL' le
+     unfolding \<Phi>_def by (cases S)  (auto 4 4 simp: remove_lit_from_clause_wl_def distinct_remove1_removeAll
+       fmap_eq_iff_dom_m_lookup count_list_distinct_If length_removeAll_count_list
+       intro!: ASSERT_leI dest: arg_cong[of \<open>take _ _\<close> _ length])
+    done
+  have valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close>
+    using T unfolding twl_st_heur_restart_occs_def by fast
+  have [refine]: \<open>((0, 0, get_clauses_wl_heur T), 0, 0, get_clauses_wl S) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(N,N'). valid_arena N N' (set (get_vdom T))}\<close>
+    using valid by auto
+  show ?thesis
+   unfolding conc_fun_RETURN[symmetric]
+   apply (rule ref_two_step)
+   defer apply (rule ge[unfolded Down_id_eq])
+   unfolding remove_lit_from_clause_st_def remove_lit_from_clause_def nres_monad3
+   apply (refine_vcg mop_arena_length[of \<open>set (get_vdom T)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
+     mop_arena_lit2[of _ _ \<open>set (get_vdom T)\<close>] mop_arena_swap[of _ _ \<open>set (get_vdom T)\<close>]
+     mop_arena_shorten[of _ _ _ _ _ C C'])
+   subgoal using C_dom CC' by auto
+   subgoal using CC' valid by auto
+   subgoal using CC' C_dom by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   apply (solves auto)[]
+   apply (solves auto)[]
+   subgoal using CC' by auto
+   subgoal using CC' by auto
+   subgoal by auto
+   subgoal using CC' by auto
+   apply assumption
+   subgoal apply (simp add: twl_st_heur_restart_occs_def)
+     (*now: cong rules and a lot of fun!*)
+     sorry
+   done
+qed
+
+lemma isa_strengthen_clause_wl2:
   assumes
     T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
     x: \<open>(x2a, x2) \<in> Id\<close> and
-    \<open>length (get_clauses_wl S \<propto> C) > 2\<close>
+    CC': \<open>(C,C')\<in>nat_rel\<close>and
+    DD': \<open>(D,D')\<in>nat_rel\<close> and
+    LL': \<open>(L,L')\<in>nat_lit_lit_rel\<close>
   shows \<open>isa_strengthen_clause_wl2 C D L T
     \<le> \<Down> (twl_st_heur_restart_occs' r u)
     (strengthen_clause_wl C' D' L' S)\<close>
 proof -
+  have arena: \<open>((get_clauses_wl_heur T, C), get_clauses_wl S, C')
+    \<in> {(N, N'). valid_arena N N' (set (get_vdom T))} \<times>\<^sub>f nat_rel\<close>
+    \<open>((get_clauses_wl_heur T, D), get_clauses_wl S, D')
+    \<in> {(N, N'). valid_arena N N' (set (get_vdom T))} \<times>\<^sub>f nat_rel\<close>
+    using T CC' DD' unfolding twl_st_heur_restart_occs_def
+    by auto
+  have C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and D': \<open>D' \<in># dom_m (get_clauses_wl S)\<close> and
+    C'_in_dom: \<open>(get_clauses_wl S, C') = (x1, x2) \<Longrightarrow> x2 \<in># dom_m x1\<close> and
+    D'_in_dom: \<open>(get_clauses_wl S, D') = (x1, x2) \<Longrightarrow> x2 \<in># dom_m x1\<close>
+    if pre: \<open>subsume_or_strengthen_wl_pre C' (STRENGTHENED_BY L' D') S\<close>
+    for x1 x2
+  proof -
+    show \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and D': \<open>D' \<in># dom_m (get_clauses_wl S)\<close>
+      using pre unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
+      by (normalize_goal+; auto)+
+    then show \<open>x2 \<in># dom_m x1\<close> if \<open>(get_clauses_wl S, C') = (x1, x2)\<close>
+      using that by auto
+    show \<open>x2 \<in># dom_m x1\<close> if \<open>(get_clauses_wl S, D') = (x1, x2)\<close>
+      using D' that by auto
+  qed
   show ?thesis
     unfolding isa_strengthen_clause_wl2_def
+    apply (rule ref_two_step[OF _ strengthen_clause_wl_alt_def])
+    unfolding if_False Let_def[of \<open>remove1 _ _\<close>]
+    apply (refine_vcg mop_arena_length[of \<open>set (get_vdom T)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
+      remove_lit_from_clause_st T)
+    subgoal by (rule C'_in_dom)
+    subgoal by (rule arena)
+    subgoal by (rule D'_in_dom)
+    subgoal by (rule arena)
+    subgoal using LL' by auto
+    subgoal using CC' by auto
+    subgoal using C' CC' by auto
+    subgoal sorry
+    subgoal sorry
+    subgoal
+    
+find_theorems mop_arena_length SPEC length
+
   oops
 
 lemma isa_subsume_or_strengthen_wl_subsume_or_strengthen_wl:
