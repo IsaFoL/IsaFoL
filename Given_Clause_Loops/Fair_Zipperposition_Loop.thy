@@ -689,6 +689,41 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
+lemma fair_ZL_Liminf_passive_inferences_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>ZLf) Sts" and
+    init: "is_initial_fair_ZL_state (lhd Sts)"
+  shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
+  sorry
+
+(* FIXME
+proof -
+  have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) Sts) = {}"
+    using fair_DL_Liminf_passive_empty Liminf_llist_subset
+    by (metis (no_types) empty_iff full init len llength_lmap llist.map_comp lnth_lmap member_filter
+        subsetI subset_antisym)
+
+  let ?g = "Set.filter is_passive_inference \<circ> elems \<circ> passive_of"
+
+  have "inj_on passive_inference (Set.filter is_passive_inference (UNIV :: 'f passive_elem set))"
+    unfolding inj_on_def by (metis member_filter passive_elem.collapse(1))
+  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_inference UNIV"
+    unfolding Sup_llist_def by auto
+  ultimately have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
+    using inj_on_subset by blast
+
+  have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_inference `
+    (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) x) Sts) = {}"
+    using Liminf_llist_lmap_image[OF inj_pi] lim_filt by simp
+
+  have "Liminf_llist (lmap (\<lambda>St. {\<iota>. Passive_Inference \<iota> \<in> elems (passive_of St)}) Sts) = {}"
+    using lim_pass passive_inference_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
+  thus ?thesis
+    unfolding passive_inferences_of_def comp_apply .
+qed
+*)
+
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
@@ -756,9 +791,9 @@ proof -
         fair_ZL_Liminf_yy_empty[OF len full inv]
       by simp
     moreover have ?t_inf
-      unfolding zl_fstate_alt_def
-(*
+      unfolding zl_fstate_alt_def comp_def zl_state.simps prod.sel
       using fair_ZL_Liminf_passive_inferences_empty[OF len full init]
+(*
       by simp
 *)
       sorry
