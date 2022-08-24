@@ -439,7 +439,7 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
-(* FIXME *)
+(* FIXME
 lemma non_choose_p_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
@@ -482,8 +482,9 @@ next
   show ?thesis
     sorry
 qed
+*)
 
-(* FIXME
+(* old FIXME
 proof cases
   case (compute_infer P \<iota> A C)
   note defs = this(1,2)
@@ -593,7 +594,7 @@ lemma ZLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
       passive.passive_step_addI passive.passive_step_removeI)
 
-(* FIXME *)
+(* FIXME
 lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -658,6 +659,7 @@ proof -
   thus ?thesis
     by (simp add: llist.map_comp)
 qed
+*)
 
 theorem
   assumes
