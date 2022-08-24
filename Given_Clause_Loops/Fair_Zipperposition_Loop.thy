@@ -552,105 +552,14 @@ lemma yy_nonempty_ZLf_step_imp_\<mu>2:
     yy: "yy_of St \<noteq> None" and
     yy': "yy_of St' \<noteq> None"
   shows "\<mu>2 St' St"
-  using non_compute_infer_choose_p_ZLf_step_imp_\<mu>2
-
-proof cases
-  case (simplify_fwd C' C A T P)
-  then show ?thesis sorry
-next
-  case (delete_bwd C' A C T P)
-  note defs = this(1,2) and c'_ni = this(3)
-  have "\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)"
-    unfolding defs using c'_ni by (auto simp: notin_fset intro!: subset_implies_multp)
-  thus ?thesis
-    unfolding \<mu>2_def using yy yy' by auto
-next
-  case (simplify_bwd C' A C'' C T P)
-  then show ?thesis sorry
-next
-  case (delete_orphan_infers \<iota>s T A P Y)
-  note defs = this(1,2) and \<iota>s_in = this(3) and \<iota>s_inter = this(4)
-
-  have "fcard (t_felems T |-| {|\<iota>s|}) < fcard (t_felems T)"
-sorry
-
-  show ?thesis
-    unfolding defs \<mu>2_def
-    apply auto
-    apply (auto intro!: subset_implies_multp)
-    sorry
-
-(*
-
-  have "passive_inferences_of P - set \<iota>s \<subset> passive_inferences_of P"
-    by (metis Diff_cancel Diff_subset \<iota>s_nemp \<iota>s_sub double_diff psubsetI set_empty)
-  hence "mset_set (passive_inferences_of P - set \<iota>s) \<subset># mset_set (passive_inferences_of P)"
-    using finite_passive_inferences_of by (simp add: subset_mset.less_le)
-  thus ?thesis
-    unfolding defs by (auto intro!: subset_implies_multp image_mset_subset_mono)
-*)
-
-qed (use yy yy' in auto)
-
-(*
-  case (simplify_fwd C' C A P)
-  note defs = this(1,2) and prec = this(3)
-
-  have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-      mset_set (passive_formulas_of P) + mset_set (fset A)) =
-    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
-      mset_set (fset A) + {#C#}" (is "?old_bef = ?new_bef")
-    by simp
-  have aft: "add_mset C' (image_mset concl_of (mset_set (passive_inferences_of P)) +
-      mset_set (passive_formulas_of P) + mset_set (fset A)) =
-    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
-      mset_set (fset A) + {#C'#}" (is "?old_aft = ?new_aft")
-    by simp
-
-  have "\<mu>1 ?new_aft ?new_bef"
-    unfolding multp_def
-  proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-    show "\<mu>1 {#C'#} {#C#}"
-      unfolding multp_def using prec by (auto intro: singletons_in_mult)
-  qed
-  thus ?thesis
-    unfolding defs by simp
-next
-  case (simplify_bwd C' A C'' C P)
-  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
-
-  show ?thesis
-  proof (cases "C'' \<in> passive_formulas_of P")
-    case c''_in: True
-    show ?thesis
-      unfolding defs using c'_ni
-      by (auto simp: notin_fset insert_absorb[OF c''_in] intro!: subset_implies_multp)
-  next
-    case c''_in: False
-
-    have bef: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-        mset_set (passive_formulas_of P) + mset_set (insert C' (fset A))) =
-      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C'#}" (is "?old_bef = ?new_bef")
-      using c'_ni by (simp add: notin_fset)
-    have aft: "add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-        mset_set (insert C'' (passive_formulas_of P)) + mset_set (fset A)) =
-      add_mset C (image_mset concl_of (mset_set (passive_inferences_of P)) +
-        mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
-      using c''_in finite_passive_formulas_of by auto
-
-    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
-      unfolding multp_def
-    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-      show "\<mu>1 {#C''#} {#C'#}"
-        unfolding multp_def using prec by (auto intro: singletons_in_mult)
-    qed
-    show ?thesis
-      unfolding defs by simp (auto simp only: bef aft intro: \<mu>1_new)
-  qed
-next
-  case (delete_orphan_infers \<iota>s P A Y)
-*)
+proof -
+  have "\<not> compute_infer_step St St'"
+    using yy unfolding compute_infer_step.simps by auto
+  moreover have "\<not> choose_p_step St St'"
+    using yy unfolding choose_p_step.simps by auto
+  ultimately show ?thesis
+    using non_compute_infer_choose_p_ZLf_step_imp_\<mu>2[OF step] by blast
+qed
 
 lemma fair_ZL_Liminf_yy_empty:
   assumes
