@@ -493,12 +493,38 @@ next
   case (delete_bwd C' A C T P)
   note defs = this(1,2) and c_ni = this(3)
   show ?thesis
-    unfolding defs \<mu>2_def using c_ni
-    by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
+    unfolding defs \<mu>2_def using c_ni by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C T P)
+  note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
+
   show ?thesis
-    sorry
+  proof (cases "C'' \<in> passive.elems P")
+    case c''_in: True
+    show ?thesis
+      unfolding defs \<mu>2_def using c'_ni
+      by (auto simp: fmember.rep_eq insert_absorb[OF c''_in] intro!: subset_implies_multp)
+  next
+    case c''_ni: False
+
+    have bef: "add_mset C (mset_set (passive.elems P) + mset_set (insert C' (fset A))) =
+      add_mset C (mset_set (passive.elems P) + mset_set (fset A)) + {#C'#}"
+      (is "?old_bef = ?new_bef")
+      using c'_ni[simplified fmember.rep_eq] by auto
+    have aft: "add_mset C (mset_set (insert C'' (passive.elems P)) + mset_set (fset A)) =
+      add_mset C (mset_set (passive.elems P) + mset_set (fset A)) + {#C''#}"
+      (is "?old_aft = ?new_aft")
+      using c''_ni by simp
+
+    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+      unfolding multp_def
+    proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
+      show "\<mu>1 {#C''#} {#C'#}"
+        unfolding multp_def using prec by (auto intro: singletons_in_mult)
+    qed
+    show ?thesis
+      unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+  qed
 next
   case (schedule_infer \<iota>ss A C T P)
   note defs = this(1,2)
