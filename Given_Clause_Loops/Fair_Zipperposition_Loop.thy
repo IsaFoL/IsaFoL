@@ -605,12 +605,12 @@ lemma ZLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
       passive.passive_step_addI passive.passive_step_removeI)
 
-(* FIXME
 lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)"
+    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    fair: "infinitely_often compute_infer_step Sts \<Longrightarrow> infinitely_often choose_p_step Sts"
   shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain passive.passive_step (lmap passive_of Sts)"
@@ -620,18 +620,33 @@ proof -
   have inf_oft: "infinitely_often passive.select_passive_step (lmap passive_of Sts)"
   proof
     assume "finitely_often passive.select_passive_step (lmap passive_of Sts)"
-    then obtain i :: nat where
-      no_sel: "\<forall>j \<ge> i. \<not> passive.select_passive_step (passive_of (lnth Sts j))
-        (passive_of (lnth Sts (Suc j)))"
-      by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
+    hence fin_cp: "finitely_often choose_p_step Sts"
+      sorry
+    hence fin_ci: "finitely_often compute_infer_step Sts"
+      using fair by blast
 
-    have si_lt: "enat (Suc i) < llength Sts"
+    obtain i_cp :: nat where
+      no_sel: "\<forall>j \<ge> i_cp. \<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))"
+      using fin_cp
+      sorry
+    have sicp_lt: "enat (Suc i_cp) < llength Sts"
       unfolding len by auto
+
+    obtain i_ci :: nat where
+      no_sel: "\<forall>j \<ge> i_ci. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
+      using fin_cp
+      sorry
+    have sicp_lt: "enat (Suc i_ci) < llength Sts"
+      unfolding len by auto
+
+    define i :: nat where
+      i: "i = max i_cp i_ci"
 
     have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
+(*
     have yy: "yy_of (lnth Sts j) \<noteq> None \<or> yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
       using step[OF j_ge]
     proof cases
@@ -645,6 +660,7 @@ proof -
 
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
       by (rule non_choose_p_ZLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+*)
 (*
     hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
@@ -670,7 +686,6 @@ proof -
   thus ?thesis
     by (simp add: llist.map_comp)
 qed
-*)
 
 theorem
   assumes
@@ -734,10 +749,10 @@ proof -
       by (simp add: not_lfinite_llength)
 
     have ?pas_fml
-(*
       unfolding Liminf_zl_fstate_commute passive_subset_def Liminf_zl_fstate_def
-      using fair_ZL_Liminf_passive_empty[OF len full init]
-        fair_ZL_Liminf_yy_empty[OF len full inv]
+      using fair_ZL_Liminf_passive_empty[OF len full init fair]
+(*
+        fair_ZL_Liminf_yy_empty[OF len full inv fair]
       by simp
 *)
       sorry
