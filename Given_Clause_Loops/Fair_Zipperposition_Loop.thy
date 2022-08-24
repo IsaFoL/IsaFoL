@@ -607,6 +607,10 @@ lemma ZLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
       passive.passive_step_addI passive.passive_step_removeI)
 
+lemma choose_p_step_imp_select_passive_step:
+  "choose_p_step St St' \<Longrightarrow> passive.select_passive_step (passive_of St) (passive_of St')"
+  sorry
+
 lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -623,20 +627,17 @@ proof -
   proof
     assume "finitely_often passive.select_passive_step (lmap passive_of Sts)"
     hence fin_cp: "finitely_often choose_p_step Sts"
-      sorry
+      unfolding finitely_often_def choose_p_step_imp_select_passive_step
+      by (smt choose_p_step_imp_select_passive_step enat_ord_code(4) len llength_lmap lnth_lmap)
     hence fin_ci: "finitely_often compute_infer_step Sts"
       using fair by blast
 
     obtain i_ci :: nat where
       i_ci: "\<forall>j \<ge> i_ci. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
-      using fin_cp
-      sorry
-
+      using fin_ci len unfolding finitely_often_def by auto
     obtain i_cp :: nat where
       i_cp: "\<forall>j \<ge> i_cp. \<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))"
-      using fin_cp
-      sorry
-
+      using fin_cp len unfolding finitely_often_def by auto
     define i :: nat where
       i: "i = max i_cp i_ci"
 
