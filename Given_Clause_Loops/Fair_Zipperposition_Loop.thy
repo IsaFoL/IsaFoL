@@ -450,6 +450,58 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
+lemma fair_DL_Liminf_yy_empty:
+  assumes
+    len: "llength Sts = \<infinity>" and
+    full: "full_chain (\<leadsto>ZLf) Sts" and
+    inv: "fair_DL_invariant (lhd Sts)"
+  shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
+  sorry
+
+(* FIXME
+proof (rule ccontr)
+  assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
+
+  obtain i :: nat where
+    i_lt: "enat i < llength Sts" and
+    inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
+    using lim_nemp unfolding Liminf_llist_def by auto
+
+  from inter_nemp obtain C :: 'f where
+    c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
+    by auto
+  hence c_in': "\<forall>j \<ge> i. enat j < llength Sts \<longrightarrow> C \<in> set_option (yy_of (lnth Sts j))"
+    by auto
+
+  have si_lt: "enat (Suc i) < llength Sts"
+    unfolding len by auto
+
+  have yy_j: "yy_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using c_in' len j_ge by auto
+  hence yy_sj: "yy_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
+    using le_Suc_eq that by presburger
+  have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+    using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+    by blast
+
+  have "\<mu>1 (mset_of_zl_fstate (lnth Sts (Suc j))) (mset_of_zl_fstate (lnth Sts j))" if j_ge: "j \<ge> i" for j
+    using yy_nonempty_ZLf_step_imp_\<mu>1 by (meson step j_ge yy_j yy_sj)
+  hence "\<mu>1\<inverse>\<inverse> (mset_of_fstate (lnth Sts j)) (mset_of_fstate (lnth Sts (Suc j)))"
+    if j_ge: "j \<ge> i" for j
+    using j_ge by blast
+  hence inf_down_chain: "chain \<mu>1\<inverse>\<inverse> (ldropn i (lmap mset_of_fstate Sts))"
+    using chain_ldropn_lmapI[OF _ si_lt] by blast
+
+  have inf_i: "\<not> lfinite (ldropn i Sts)"
+    using len by (simp add: llength_eq_infty_conv_lfinite)
+
+  show False
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "\<mu>1"]
+      wfP_\<mu>1
+    by (metis lfinite_ldropn lfinite_lmap)
+qed
+*)
+
 lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
