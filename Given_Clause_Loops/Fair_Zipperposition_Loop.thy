@@ -439,7 +439,8 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?pair_of] wf_lex_prod by blast
 qed
 
-lemma non_choose_p_DLf_step_imp_\<mu>2:
+(* FIXME *)
+lemma non_choose_p_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
     yy: "yy_of St \<noteq> None \<or> yy_of St' = None"
@@ -592,6 +593,7 @@ lemma ZLf_step_imp_passive_step:
   by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
       passive.passive_step_addI passive.passive_step_removeI)
 
+(* FIXME *)
 lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -718,10 +720,13 @@ proof -
       by (simp add: not_lfinite_llength)
 
     have ?pas_fml
+(*
       unfolding Liminf_zl_fstate_commute passive_subset_def Liminf_zl_fstate_def
       using fair_ZL_Liminf_passive_empty[OF len full init]
         fair_ZL_Liminf_yy_empty[OF len full inv]
       by simp
+*)
+      sorry
     moreover have ?t_inf
       unfolding zl_fstate_alt_def
 (*
