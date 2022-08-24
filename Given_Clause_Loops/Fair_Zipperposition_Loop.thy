@@ -133,6 +133,17 @@ where
 | delete_orphan_infers: "\<iota>s \<in> todo.elems T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (T, P, Y, A) \<leadsto>ZLf (t_remove \<iota>s T, P, Y, A)"
 
+inductive
+  compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
+where
+  "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow> \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
+   compute_infer_step (T, P, None, A) (t_add \<iota>s (t_remove (t_select T) T), p_add C P, None, A)"
+
+inductive
+  choose_p_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
+where
+  "P \<noteq> p_empty \<Longrightarrow> choose_p_step (T, P, None, A) (T, p_remove (p_select P) P, Some (p_select P), A)"
+
 
 subsection \<open>Initial State and Invariant\<close>
 
@@ -665,6 +676,7 @@ theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)" and
+    fair: "infinitely_often compute_infer_step Sts \<Longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
