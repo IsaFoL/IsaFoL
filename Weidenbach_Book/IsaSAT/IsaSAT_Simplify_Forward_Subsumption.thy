@@ -1429,14 +1429,14 @@ definition isa_strengthen_clause_wl2 where
   \<open>isa_strengthen_clause_wl2 C C' L S = do {
     m \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
     n \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C';
-    S \<leftarrow> remove_lit_from_clause_st S C (-L);
     st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
     st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
+    S \<leftarrow> remove_lit_from_clause_st S C (-L);
 
     if m = n
     then do {
+      S \<leftarrow> (if st1 = LEARNED \<and> st2 = IRRED then mop_arena_promote_st S C else RETURN S);
       S \<leftarrow> mark_garbage_heur_as_subsumed C' S;
-      S \<leftarrow> (if st1 = LEARNED \<and> st2 = IRRED \<and> m=n then mop_arena_promote_st S C else RETURN S);
       RETURN S
     }
     else
@@ -1978,12 +1978,37 @@ definition remove_lit_from_clause_wl :: \<open>_\<close> where
     (if irred N C then add_mset (mset (N \<propto> C)) else id) NS,
     (if \<not>irred N C then add_mset (mset (N \<propto> C)) else id) US, N0, U0, Q, W))\<close>
 
+lemma remove_lit_from_clauses_wl_simp[simp]:
+  \<open>C \<in># dom_m (get_clauses_wl S) \<Longrightarrow> dom_m (get_clauses_wl (remove_lit_from_clause_wl C L' S)) = dom_m (get_clauses_wl S)\<close>
+  \<open>get_trail_wl (remove_lit_from_clause_wl C L' S) = get_trail_wl S\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_init_clss_wl (remove_lit_from_clause_wl C L' S) = IsaSAT_Setup.get_unkept_unit_init_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_init_clss_wl (remove_lit_from_clause_wl C L' S) = IsaSAT_Setup.get_kept_unit_init_clss_wl S\<close>
+  \<open>irred (get_clauses_wl S) C \<Longrightarrow>
+    get_subsumed_init_clauses_wl (remove_lit_from_clause_wl C L' S) = add_mset (mset (get_clauses_wl S \<propto> C)) (get_subsumed_init_clauses_wl S)\<close>
+  \<open>\<not>irred (get_clauses_wl S) C \<Longrightarrow>
+    get_subsumed_init_clauses_wl (remove_lit_from_clause_wl C L' S) = (get_subsumed_init_clauses_wl S)\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_learned_clss_wl (remove_lit_from_clause_wl C L' S) = IsaSAT_Setup.get_unkept_unit_learned_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_learned_clss_wl (remove_lit_from_clause_wl C L' S) = IsaSAT_Setup.get_kept_unit_learned_clss_wl S\<close>
+  \<open>irred (get_clauses_wl S) C \<Longrightarrow>
+    get_subsumed_learned_clauses_wl (remove_lit_from_clause_wl C L' S) = (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>\<not>irred (get_clauses_wl S) C \<Longrightarrow>
+     get_subsumed_learned_clauses_wl (remove_lit_from_clause_wl C L' S) = add_mset (mset (get_clauses_wl S \<propto> C)) (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>literals_to_update_wl (remove_lit_from_clause_wl C L' S) = literals_to_update_wl S\<close>
+  \<open>get_watched_wl (remove_lit_from_clause_wl C L' S) = get_watched_wl S\<close>
+  \<open>get_clauses_wl (remove_lit_from_clause_wl C L' S) = (get_clauses_wl S) (C \<hookrightarrow> remove1 L' (get_clauses_wl S \<propto> C))\<close>
+  \<open>get_init_clauses0_wl (remove_lit_from_clause_wl C L' S) = get_init_clauses0_wl (S)\<close>
+  \<open>get_learned_clauses0_wl (remove_lit_from_clause_wl C L' S) = get_learned_clauses0_wl (S)\<close>
+  \<open>get_conflict_wl (remove_lit_from_clause_wl C L' S) = get_conflict_wl S\<close>
+  by (solves \<open>cases S; auto simp: remove_lit_from_clause_wl_def\<close>)+
+
 lemma strengthen_clause_wl_alt_def[unfolded Down_id_eq]:
   \<open>\<Down>Id(strengthen_clause_wl C D L' S) \<ge> do {
     ASSERT (subsume_or_strengthen_wl_pre C (STRENGTHENED_BY L' D) S);
     let m = length (get_clauses_wl S \<propto> C);
     let n = length (get_clauses_wl S \<propto> D);
     let E = remove1 (- L') (get_clauses_wl S \<propto> C);
+    let _ = C \<in># dom_m (get_clauses_wl S);
+    let _ = D \<in># dom_m (get_clauses_wl S);
     let T = remove_lit_from_clause_wl C (-L') S;
     if False then RETURN T
     else if m = n then do {
@@ -2041,7 +2066,7 @@ lemma mop_arena_shorten:
   shows
     \<open>mop_arena_shorten C i N
     \<le> SPEC (\<lambda>c. (c, N'(C' \<hookrightarrow> take j (N' \<propto> C')))
-    \<in> {(N,N'). valid_arena N N' vdom})\<close>
+    \<in> {(N\<^sub>1,N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' vdom \<and> length N\<^sub>1 = length N})\<close>
 proof -
   show ?thesis
     unfolding mop_arena_shorten_def
@@ -2055,6 +2080,46 @@ qed
 
 lemma count_list_distinct_If: \<open>distinct xs \<Longrightarrow> count_list xs x = (if x \<in> set xs then 1 else 0)\<close>
   by (simp add: count_mset_count_list distinct_count_atmost_1)
+
+lemma set_clauses_wl_simp[simp]:
+  \<open>get_trail_wl (set_clauses_wl N S) = get_trail_wl S\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_init_clss_wl (set_clauses_wl N S) = IsaSAT_Setup.get_unkept_unit_init_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_init_clss_wl (set_clauses_wl N S) = IsaSAT_Setup.get_kept_unit_init_clss_wl S\<close>
+  \<open>get_subsumed_init_clauses_wl (set_clauses_wl N S) = (get_subsumed_init_clauses_wl S)\<close>
+  \<open>get_subsumed_init_clauses_wl (set_clauses_wl N S) = (get_subsumed_init_clauses_wl S)\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_learned_clss_wl (set_clauses_wl N S) = IsaSAT_Setup.get_unkept_unit_learned_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_learned_clss_wl (set_clauses_wl N S) = IsaSAT_Setup.get_kept_unit_learned_clss_wl S\<close>
+  \<open>get_subsumed_learned_clauses_wl (set_clauses_wl N S) = (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>get_subsumed_learned_clauses_wl (set_clauses_wl N S) = (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>literals_to_update_wl (set_clauses_wl N S) = literals_to_update_wl S\<close>
+  \<open>get_watched_wl (set_clauses_wl N S) = get_watched_wl S\<close>
+  \<open>get_clauses_wl (set_clauses_wl N S) = N\<close>
+  \<open>get_init_clauses0_wl (set_clauses_wl N S) = get_init_clauses0_wl (S)\<close>
+  \<open>get_learned_clauses0_wl (set_clauses_wl N S) = get_learned_clauses0_wl (S)\<close>
+  \<open>get_conflict_wl (set_clauses_wl N S) = get_conflict_wl S\<close>
+  apply (solves \<open>cases S; auto simp: \<close>)+
+  done
+
+
+lemma add_clause_to_subsumed_simp[simp]:
+  \<open>get_trail_wl (add_clause_to_subsumed b N S) = get_trail_wl S\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_init_clss_wl (add_clause_to_subsumed b N S) = IsaSAT_Setup.get_unkept_unit_init_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_init_clss_wl (add_clause_to_subsumed b N S) = IsaSAT_Setup.get_kept_unit_init_clss_wl S\<close>
+  \<open>b \<Longrightarrow> get_subsumed_init_clauses_wl (add_clause_to_subsumed b N S) = add_mset N (get_subsumed_init_clauses_wl S)\<close>
+  \<open>\<not>b \<Longrightarrow> get_subsumed_init_clauses_wl (add_clause_to_subsumed b N S) = (get_subsumed_init_clauses_wl S)\<close>
+  \<open>IsaSAT_Setup.get_unkept_unit_learned_clss_wl (add_clause_to_subsumed b N S) = IsaSAT_Setup.get_unkept_unit_learned_clss_wl S\<close>
+  \<open>IsaSAT_Setup.get_kept_unit_learned_clss_wl (add_clause_to_subsumed b N S) = IsaSAT_Setup.get_kept_unit_learned_clss_wl S\<close>
+  \<open>b \<Longrightarrow>
+  get_subsumed_learned_clauses_wl (add_clause_to_subsumed b N S) = (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>\<not>b \<Longrightarrow> get_subsumed_learned_clauses_wl (add_clause_to_subsumed b N S) = add_mset N (get_subsumed_learned_clauses_wl S)\<close>
+  \<open>literals_to_update_wl (add_clause_to_subsumed b N S) = literals_to_update_wl S\<close>
+  \<open>get_watched_wl (add_clause_to_subsumed b N S) = get_watched_wl S\<close>
+  \<open>get_clauses_wl (add_clause_to_subsumed b N S) = get_clauses_wl S\<close>
+  \<open>get_init_clauses0_wl (add_clause_to_subsumed b N S) = get_init_clauses0_wl (S)\<close>
+  \<open>get_learned_clauses0_wl (add_clause_to_subsumed b N S) = get_learned_clauses0_wl (S)\<close>
+  \<open>get_conflict_wl (add_clause_to_subsumed b N S) = get_conflict_wl S\<close>
+  apply (solves \<open>cases S; auto simp: \<close>)+
+  done
 
 lemma remove_lit_from_clause_st:
   assumes
@@ -2098,6 +2163,7 @@ proof -
    ASSERT (i \<le> length (N \<propto> C'));
    ASSERT (i \<ge> 2);
    let N = N(C' \<hookrightarrow> take i (N \<propto> C'));
+   ASSERT (N = (get_clauses_wl S)(C' \<hookrightarrow> removeAll L (get_clauses_wl S \<propto> C')));
    RETURN (set_clauses_wl N (add_clause_to_subsumed (irred (get_clauses_wl S) C') (mset (get_clauses_wl S \<propto> C')) S))
      }\<close>
      unfolding Let_def
@@ -2133,17 +2199,72 @@ proof -
        fmap_eq_iff_dom_m_lookup count_list_distinct_If length_removeAll_count_list
        intro!: ASSERT_leI dest: arg_cong[of \<open>take _ _\<close> _ length])
     done
-  have valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close>
-    using T unfolding twl_st_heur_restart_occs_def by fast
-  have [refine]: \<open>((0, 0, get_clauses_wl_heur T), 0, 0, get_clauses_wl S) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(N,N'). valid_arena N N' (set (get_vdom T))}\<close>
+  have valid: \<open>valid_arena (get_clauses_wl_heur T) (get_clauses_wl S) (set (get_vdom T))\<close> and
+   corr: \<open>clss_size_corr_restart (get_clauses_wl S)
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#} (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl S)
+  {#} (get_init_clauses0_wl S) {#} (get_learned_count T)\<close>
+    using T unfolding twl_st_heur_restart_occs_def by fast+
+  have [refine]: \<open>((0, 0, get_clauses_wl_heur T), 0, 0, get_clauses_wl S) \<in> nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r {(N,N'). valid_arena N N' (set (get_vdom T)) \<and> length N = length (get_clauses_wl_heur T)}\<close>
     using valid by auto
+    have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
+      by auto
+    have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
+      by auto
+
+    note cong =  trail_pol_cong heuristic_rel_cong
+      option_lookup_clause_rel_cong isa_vmtf_cong
+       vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
+      isasat_input_bounded_cong[THEN iffD1]
+       cach_refinement_empty_cong[THEN H']
+       phase_saving_cong[THEN H']
+       \<L>\<^sub>a\<^sub>l\<^sub>l_cong[THEN H]
+      D\<^sub>0_cong[THEN H]
+      map_fun_rel_D\<^sub>0_cong
+      vdom_m_cong[symmetric] \<L>\<^sub>a\<^sub>l\<^sub>l_cong isasat_input_nempty_cong
+
+    have mset_removeAll_subseteq: \<open>mset (removeAll L M) \<subseteq># mset M\<close> for L M
+      by (subst mset_removeAll[symmetric]) (rule diff_subset_eq_self)
+    have [simp]: \<open>    C' \<in># dom_m b \<Longrightarrow> irred b C' \<Longrightarrow>
+   set_mset (all_lits_of_mm
+        (add_mset (mset (removeAll L (b \<propto> C')))
+       ({#mset (fst x). x \<in># init_clss_l b#} + dj))) =
+   set_mset (all_lits_of_mm
+       ({#mset (fst x). x \<in># init_clss_l b#} + dj))\<close> for b dj i
+    using all_lits_of_m_mono[of \<open>mset (removeAll L (b \<propto> C'))\<close> \<open>mset (b \<propto> C')\<close>]
+    by (auto simp: all_lits_of_mm_add_mset ran_m_def mset_take_subseteq mset_removeAll_subseteq
+        dest!: multi_member_split[of C'])
+
+  have \<open>set_mset (all_init_atms_st (set_clauses_wl ((get_clauses_wl S)(C' \<hookrightarrow> removeAll L (get_clauses_wl S \<propto> C')))
+    (add_clause_to_subsumed (irred (get_clauses_wl S) C') (mset (get_clauses_wl S \<propto> C')) S))) =
+    set_mset (all_init_atms_st S)\<close> for i
+    using C_dom CC'
+    by (cases S)
+     (auto simp: all_init_atms_st_def simp del: all_init_atms_def[symmetric]
+      simp: all_init_lits_def all_init_atms_def init_clss_l_fmdrop_if init_clss_l_mapsto_upd init_clss_l_clause_upd
+      image_mset_remove1_mset_if add_mset_commute[of _ \<open>mset (removeAll _ _)\<close>] init_clss_l_mapsto_upd_irrel)
+  note cong1 = cong[OF this(1)[symmetric]]
+
+  have [simp]: \<open>clss_size_corr_restart ((get_clauses_wl S)(C' \<hookrightarrow> removeAll L (get_clauses_wl S \<propto> C')))
+  (IsaSAT_Setup.get_unkept_unit_init_clss_wl S) {#} (IsaSAT_Setup.get_kept_unit_init_clss_wl S)
+  (IsaSAT_Setup.get_kept_unit_learned_clss_wl S)
+  (get_subsumed_init_clauses_wl
+    (add_clause_to_subsumed (irred (get_clauses_wl S) C') (mset (get_clauses_wl S \<propto> C')) S))
+  {#} (get_init_clauses0_wl S) {#} (get_learned_count T)\<close>
+    using C_dom CC' corr by (auto simp: clss_size_corr_restart_def clss_size_def)
+  have[simp]:
+    \<open>vdom_m (all_init_atms_st S) (get_watched_wl S) ((get_clauses_wl S)(C' \<hookrightarrow> removeAll L (get_clauses_wl S \<propto> C'))) =
+     vdom_m (all_init_atms_st S) (get_watched_wl S) ((get_clauses_wl S))\<close>
+    using C_dom CC' by (auto simp: vdom_m_def)
+
   show ?thesis
    unfolding conc_fun_RETURN[symmetric]
    apply (rule ref_two_step)
    defer apply (rule ge[unfolded Down_id_eq])
    unfolding remove_lit_from_clause_st_def remove_lit_from_clause_def nres_monad3
    apply (refine_vcg mop_arena_length[of \<open>set (get_vdom T)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
-     mop_arena_lit2[of _ _ \<open>set (get_vdom T)\<close>] mop_arena_swap[of _ _ \<open>set (get_vdom T)\<close>]
+     mop_arena_lit2[of _ _ \<open>set (get_vdom T)\<close>] mop_arena_swap2[of _ _ \<open>set (get_vdom T)\<close>]
      mop_arena_shorten[of _ _ _ _ _ C C'])
    subgoal using C_dom CC' by auto
    subgoal using CC' valid by auto
@@ -2165,12 +2286,13 @@ proof -
    subgoal by auto
    subgoal using CC' by auto
    apply assumption
-   subgoal apply (simp add: twl_st_heur_restart_occs_def)
-     (*now: cong rules and a lot of fun!*)
-     sorry
+   subgoal using T CC' C_dom
+     by (clarsimp simp add: twl_st_heur_restart_occs_def cong1 IsaSAT_Restart.all_init_atms_alt_def
+       simp del: isasat_input_nempty_def)
    done
 qed
 
+lemma \<open>(S, remove_lit_from_clause_wl C' L' T)\<close>
 lemma isa_strengthen_clause_wl2:
   assumes
     T: \<open>(T, S) \<in> twl_st_heur_restart_occs' r u\<close> and
@@ -2190,35 +2312,69 @@ proof -
     by auto
   have C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and D': \<open>D' \<in># dom_m (get_clauses_wl S)\<close> and
     C'_in_dom: \<open>(get_clauses_wl S, C') = (x1, x2) \<Longrightarrow> x2 \<in># dom_m x1\<close> and
-    D'_in_dom: \<open>(get_clauses_wl S, D') = (x1, x2) \<Longrightarrow> x2 \<in># dom_m x1\<close>
+    D'_in_dom: \<open>(get_clauses_wl S, D') = (x1, x2) \<Longrightarrow> x2 \<in># dom_m x1\<close> and
+    C'_vdom: \<open>C' \<in> set (get_vdom T)\<close> and
+    D'_vdom: \<open>D' \<in> set (get_vdom T)\<close>
     if pre: \<open>subsume_or_strengthen_wl_pre C' (STRENGTHENED_BY L' D') S\<close>
     for x1 x2
   proof -
-    show \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and D': \<open>D' \<in># dom_m (get_clauses_wl S)\<close>
+    show C': \<open>C' \<in># dom_m (get_clauses_wl S)\<close> and D': \<open>D' \<in># dom_m (get_clauses_wl S)\<close>
       using pre unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
       by (normalize_goal+; auto)+
     then show \<open>x2 \<in># dom_m x1\<close> if \<open>(get_clauses_wl S, C') = (x1, x2)\<close>
       using that by auto
     show \<open>x2 \<in># dom_m x1\<close> if \<open>(get_clauses_wl S, D') = (x1, x2)\<close>
       using D' that by auto
+    have
+      ai: \<open>aivdom_inv_dec (get_aivdom T) (dom_m (get_clauses_wl S))\<close>
+      using T unfolding twl_st_heur_restart_occs_def by auto
+    then have H: \<open>C' \<in> set (get_vdom T)\<close> if \<open>C' \<in># dom_m (get_clauses_wl S)\<close> for C'
+      using ai that
+      by (smt (verit, ccfv_threshold) UnE aivdom_inv_dec_alt_def2 in_multiset_in_set mset_subset_eqD subsetD)
+    show \<open>C' \<in> set (get_vdom T)\<close> and \<open>D' \<in> set (get_vdom T)\<close>
+      using H[OF C'] H[OF D'] CC' DD'
+      by auto
+    have \<open>distinct (get_clauses_wl S \<propto> C)\<close>
+      using pre unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def apply -
+      apply normalize_goal+
+      sorry
   qed
+  have H: \<open>(x, y') \<in> R \<Longrightarrow> y=y' \<Longrightarrow> (x, y) \<in> R\<close> for x y y' R
+     by auto
   show ?thesis
     unfolding isa_strengthen_clause_wl2_def
     apply (rule ref_two_step[OF _ strengthen_clause_wl_alt_def])
     unfolding if_False Let_def[of \<open>remove1 _ _\<close>]
     apply (refine_vcg mop_arena_length[of \<open>set (get_vdom T)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
-      remove_lit_from_clause_st T)
+      remove_lit_from_clause_st T mop_arena_status2[of _ _ \<open>set (get_vdom T)\<close>]
+      mop_arena_promote_st_spec[where r=r and u=u])
     subgoal by (rule C'_in_dom)
     subgoal by (rule arena)
     subgoal by (rule D'_in_dom)
     subgoal by (rule arena)
+    subgoal using CC' by auto
+    subgoal using CC' C'_vdom by auto
+    subgoal using arena by auto
+    subgoal using DD' by auto
+    subgoal using DD' D'_vdom by auto
+    subgoal using arena by auto
     subgoal using LL' by auto
     subgoal using CC' by auto
     subgoal using C' CC' by auto
     subgoal sorry
     subgoal sorry
-    subgoal
-    
+    subgoal using CC' by auto
+    apply assumption
+    subgoal using CC' C' by auto
+    subgoal by auto
+    subgoal  sorry
+    apply (rule H, assumption)
+    subgoal using DD' CC' by auto
+    apply (rule H, assumption)
+    subgoal using DD' CC' C' D' arena by (auto simp: arena_lifting)
+    subgoal premises p
+      using p(10-) 
+find_theorems mark_garbage_heur_as_subsumed
 find_theorems mop_arena_length SPEC length
 
   oops
