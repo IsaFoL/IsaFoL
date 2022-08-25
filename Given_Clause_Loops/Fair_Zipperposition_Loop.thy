@@ -706,7 +706,6 @@ proof cases
   note defs = this(1,2)
   show ?thesis
     unfolding defs prod.sel
-    using todo.queue_stepI
     sorry
 qed (auto intro: todo.queue_step_idleI todo.queue_step_fold_addI todo.queue_step_addI
     todo.queue_step_removeI)
