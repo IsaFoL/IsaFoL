@@ -8,7 +8,7 @@ section \<open>Utilities for Given Clause Loops\<close>
 theory Given_Clause_Loops_Util
   imports
     "HOL-Library.Multiset"
-    Ordered_Resolution_Prover.Lazy_List_Liminf
+    Ordered_Resolution_Prover.Lazy_List_Chain
     Weighted_Path_Order.Multiset_Extension_Pair
 begin
 
@@ -59,6 +59,26 @@ lemma Liminf_llist_subset:
   shows "Liminf_llist Xs \<subseteq> Liminf_llist Ys"
   unfolding Liminf_llist_def using assms
   by (smt INT_iff SUP_mono mem_Collect_eq subsetD subsetI)
+
+lemma full_chain_lmap:
+  assumes
+    equiv: "\<forall>x y. R x y \<longleftrightarrow> R' (f x) (f y)" and
+    full: "full_chain R xs"
+  shows "full_chain R' (lmap f xs)"
+proof -
+  have chain: "chain R xs"
+    using full full_chain_iff_chain by blast
+  hence chain': "chain R' (lmap f xs)"
+    using chain_lmap equiv by metis
+
+  have no_step: "lfinite xs \<longrightarrow> (\<forall>y. \<not> R (llast xs) y)"
+    using full unfolding full_chain_iff_chain by blast
+  hence no_step': "lfinite (lmap f xs) \<longrightarrow> (\<forall>y. \<not> R' (llast (lmap f xs)) y)"
+    using equiv
+    sorry
+  thus ?thesis
+    using chain' unfolding full_chain_iff_chain by blast
+qed
 
 lemma countable_imp_lset:
   assumes count: "countable A"
