@@ -159,24 +159,26 @@ proof -
     st0: "lhd Sts = wo_ghosts_of St0"
     by (metis eq_fst_iff wo_ghosts_of.simps)
 
-  let ?Sts0 = "LCons St0 (witness_w_ghosts St0 (ltl Sts))"
+  define Sts0 where
+    sts0: "Sts0 = LCons St0 (witness_w_ghosts St0 (ltl Sts))"
 
-  have sts: "Sts = lmap wo_ghosts_of ?Sts0"
-  proof (coinduction arbitrary: Sts rule: llist.coinduct)
+  have sts: "Sts = Sts'" if "Sts' = lmap wo_ghosts_of Sts0" for Sts'
+    using that
+  proof (coinduction arbitrary: Sts Sts' rule: llist.coinduct)
     case Eq_llist
 
-    have "lnull Sts = lnull (lmap wo_ghosts_of ?Sts0)"
+    have "lnull Sts = lnull (lmap wo_ghosts_of Sts0)"
       using sts0
       sorry
     moreover
     {
       assume
         "\<not> lnull Sts"
-        "\<not> lnull (lmap wo_ghosts_of ?Sts0)"
+        "\<not> lnull (lmap wo_ghosts_of Sts0)"
 
       have
-        "lhd Sts = lhd (lmap wo_ghosts_of ?Sts0)" (is ?thesis1) and
-        "\<exists>Sts' Sts0'. ltl Sts = Sts' \<and> ltl (lmap wo_ghosts_of Sts0') = lmap wo_ghosts_of ?Sts0"
+        "lhd Sts = lhd (lmap wo_ghosts_of Sts0)" (is ?thesis1) and
+        "\<exists>Sts' Sts0'. ltl Sts = Sts' \<and> ltl (lmap wo_ghosts_of Sts0') = lmap wo_ghosts_of Sts0"
           (is ?thesis2)
       proof -
         show ?thesis1
