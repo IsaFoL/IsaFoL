@@ -133,29 +133,12 @@ lemma fair_ZL_step_imp_fair_ZL_wo_ghosts_step:
   shows "wo_ghosts_of St \<leadsto>ZLfw wo_ghosts_of St'"
   sorry
 
-lemma chain_fair_ZL_step_imp_chain_fair_ZL_wo_ghosts_step:
-  assumes chain: "chain (\<leadsto>ZLf) Sts"
-  shows "chain (\<leadsto>ZLfw) (lmap wo_ghosts_of Sts)"
+lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
+  assumes
+    "St \<leadsto>ZLfw St'" and
+    "wo_ghosts_of St0 = St"
+  shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"
   sorry
-
-lemma full_chain_fair_ZL_step_imp_full_chain_fair_ZL_wo_ghosts_step:
-  assumes full: "full_chain (\<leadsto>ZLf) Sts"
-  shows "full_chain (\<leadsto>ZLfw) (lmap wo_ghosts_of Sts)"
-proof -
-  have chain: "chain (\<leadsto>ZLf) Sts"
-    using full full_chain_iff_chain by blast
-  hence chain': "chain (\<leadsto>ZLfw) (lmap wo_ghosts_of Sts)"
-    using chain_lmap fair_ZL_step_imp_fair_ZL_wo_ghosts_step by blast
-
-  have no_step: "lfinite Sts \<longrightarrow> (\<forall>St'. \<not> llast Sts \<leadsto>ZLf St')"
-    using full unfolding full_chain_iff_chain by blast
-  hence no_step': "lfinite (lmap wo_ghosts_of Sts) \<longrightarrow> (\<forall>St'. \<not> llast (lmap wo_ghosts_of Sts) \<leadsto>ZLfw St')"
-    using equiv
-    sorry
-  thus ?thesis
-    using chain' unfolding full_chain_iff_chain by blast
-qed
-
 
 
 subsection \<open>Completeness\<close>
@@ -173,11 +156,14 @@ theorem
     fair_ZL_wo_ghosts_complete:
       "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))" (is ?thesis2)
 proof -
+  thm full_chain_lmap_left_total[of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)" _]
+
+
   obtain Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
     full0: "full_chain (\<leadsto>ZLf) Sts0" and
     sts: "Sts = lmap wo_ghosts_of Sts0"
-    using fair_ZL_step_imp_fair_ZL_wo_ghosts_step
-    find_theorems "chain" lmap
+    using fair_ZL_step_imp_fair_ZL_wo_ghosts_step fair_ZL_wo_ghosts_step_imp_fair_ZL_step
+
     sorry
 
   have init0: "w_ghosts.is_initial_fair_ZL_state (lhd Sts0)"
