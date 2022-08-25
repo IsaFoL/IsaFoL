@@ -1,10 +1,10 @@
-(* Title:        Zipperposition Loop
+(* Title:        Zipperposition Loop with Ghost State
    Authors:      Qi Qiu, 2021
                  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021
 *)
 
-section \<open>Zipperposition Loop\<close>
+section \<open>Zipperposition Loop with Ghost State\<close>
 
 theory Zipperposition_Loop
   imports DISCOUNT_Loop

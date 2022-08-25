@@ -9,6 +9,6 @@ theory Given_Clause_Loops
   imports
     Fair_DISCOUNT_Loop
     Fair_Otter_Loop_Complete
-    Fair_Zipperposition_Loop
+    Fair_Zipperposition_Loop_without_Ghosts
 begin
 end
