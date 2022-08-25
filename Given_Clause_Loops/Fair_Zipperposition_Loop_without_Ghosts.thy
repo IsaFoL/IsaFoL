@@ -163,7 +163,31 @@ proof -
     "Sts0 = LCons St0 (witness_w_ghosts St0 (ltl Sts))"
 
   have sts: "Sts = lmap wo_ghosts_of Sts0"
-    sorry
+  proof (coinduction arbitrary: Sts Sts0 rule: llist.coinduct)
+    case Eq_llist
+
+    have "lnull Sts = lnull (lmap wo_ghosts_of Sts0)"
+      sorry
+    moreover
+    {
+      assume
+        "\<not> lnull Sts"
+        "\<not> lnull (lmap wo_ghosts_of Sts0)"
+
+      have
+        "lhd Sts = lhd (lmap wo_ghosts_of Sts0)" (is ?thesis1) and
+        "\<exists>Sts Sts0. ltl Sts = Sts \<and> ltl (lmap wo_ghosts_of Sts0) = lmap wo_ghosts_of Sts0"
+          (is ?thesis2)
+      proof -
+        show ?thesis1
+          sorry
+        show ?thesis2
+          sorry
+      qed
+    }
+    ultimately show ?case
+      by fastforce
+  qed
 
   have chain0: "chain (\<leadsto>ZLf) Sts0"
     sorry
