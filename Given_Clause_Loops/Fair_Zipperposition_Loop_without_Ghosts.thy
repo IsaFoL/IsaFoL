@@ -141,15 +141,15 @@ lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
   sorry
 
 primcorec
-  witness :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
+  witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
     ('t, 'p, 'f) fair_ZL_state llist"
 where
-  "witness prev_St0 Sts =
+  "witness_w_ghosts prev_St0 Sts =
    (case Sts of
      LNil \<Rightarrow> LNil
    | LCons St Sts' \<Rightarrow>
      let curr_St = (SOME St0. St = wo_ghosts_of St0 \<and> prev_St0 \<leadsto>ZLf St0) in
-       LCons curr_St (witness curr_St Sts'))"
+       LCons curr_St (witness_w_ghosts curr_St Sts'))"
 
 lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   assumes "chain (\<leadsto>ZLfw) Sts"
