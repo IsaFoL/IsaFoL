@@ -9,7 +9,7 @@ theory Fair_DISCOUNT_Loop
   imports
     Given_Clause_Loops_Util
     DISCOUNT_Loop
-    Passive_Set
+    Prover_Queue
 begin
 
 
@@ -31,7 +31,7 @@ lemma passive_formula_filter:
 
 locale fair_discount_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  fair_passive_set empty select add remove felems
+  fair_prover_queue empty select add remove felems
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -655,12 +655,12 @@ proof (rule ccontr)
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by metis
 qed
 
-lemma DLf_step_imp_passive_step:
+lemma DLf_step_imp_queue_step:
   assumes "St \<leadsto>DLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
+  shows "queue_step (passive_of St) (passive_of St')"
   using assms
-  by cases (auto simp: fold_map[symmetric] intro: passive_step_idleI passive_step_addI
-      passive_step_removeI passive_step_fold_addI passive_step_fold_removeI)
+  by cases (auto simp: fold_map[symmetric] intro: queue_step_idleI queue_step_addI
+      queue_step_removeI queue_step_fold_addI queue_step_fold_removeI)
 
 lemma fair_DL_Liminf_passive_empty:
   assumes
@@ -669,16 +669,16 @@ lemma fair_DL_Liminf_passive_empty:
     init: "is_initial_fair_DL_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
-  have chain_step: "chain passive_step (lmap passive_of Sts)"
-    using DLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+  have chain_step: "chain queue_step (lmap passive_of Sts)"
+    using DLf_step_imp_queue_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
 
-  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+  have inf_oft: "infinitely_often select_queue_step (lmap passive_of Sts)"
   proof
-    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    assume "finitely_often select_queue_step (lmap passive_of Sts)"
     then obtain i :: nat where
       no_sel:
-        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+        "\<forall>j \<ge> i. \<not> select_queue_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
       by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
 
     have si_lt: "enat (Suc i) < llength Sts"
@@ -694,14 +694,14 @@ proof -
       case (compute_infer P \<iota> A C)
       note defs = this(1,2) and p_ne = this(3)
       have False
-        using no_sel defs p_ne select_passive_stepI that by fastforce
+        using no_sel defs p_ne select_queue_stepI that by fastforce
       thus ?thesis
         by blast
     next
       case (choose_p P C A)
       note defs = this(1,2) and p_ne = this(3)
       have False
-        using no_sel defs p_ne select_passive_stepI that by fastforce
+        using no_sel defs p_ne select_queue_stepI that by fastforce
       thus ?thesis
         by blast
     qed auto
@@ -913,7 +913,7 @@ locale fifo_discount_loop =
     finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
 
-sublocale fifo_passive_set
+sublocale fifo_prover_queue
   .
 
 sublocale fair_discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q

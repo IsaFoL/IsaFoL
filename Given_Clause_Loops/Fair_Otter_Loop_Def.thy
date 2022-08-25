@@ -8,7 +8,7 @@ section \<open>Definition of Fair Otter Loop\<close>
 theory Fair_Otter_Loop_Def
   imports
     Otter_Loop
-    Passive_Set
+    Prover_Queue
 begin
 
 
@@ -18,7 +18,7 @@ type_synonym ('p, 'f) fair_OL_state = "'f fset \<times> 'f option \<times> 'p \<
 
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  fair_passive_set empty select add remove felems
+  fair_prover_queue empty select add remove felems
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and

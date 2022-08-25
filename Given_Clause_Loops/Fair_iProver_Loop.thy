@@ -717,24 +717,24 @@ next
     unfolding defs \<mu>3_def by (simp add: subset_implies_multp)
 qed
 
-lemma OLf_step_imp_passive_step:
+lemma OLf_step_imp_queue_step:
   assumes "St \<leadsto>OLf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
-  using assms by cases (auto intro: passive_step_idleI passive_step_addI passive_step_removeI)
+  shows "queue_step (passive_of St) (passive_of St')"
+  using assms by cases (auto intro: queue_step_idleI queue_step_addI queue_step_removeI)
 
-lemma ILf_step_imp_passive_step:
+lemma ILf_step_imp_queue_step:
   assumes step: "St \<leadsto>ILf St'"
-  shows "passive_step (passive_of St) (passive_of St')"
+  shows "queue_step (passive_of St) (passive_of St')"
   using step
 proof cases
   case ol
   then show ?thesis
-    using OLf_step_imp_passive_step by blast
+    using OLf_step_imp_queue_step by blast
 next
   case (red_by_children C A M C' P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs by (auto intro: passive_step_idleI)
+    unfolding defs by (auto intro: queue_step_idleI)
 qed
 
 lemma fair_IL_Liminf_passive_empty:
@@ -744,16 +744,16 @@ lemma fair_IL_Liminf_passive_empty:
     init: "is_initial_fair_OL_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
-  have chain_step: "chain passive_step (lmap passive_of Sts)"
-    using ILf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+  have chain_step: "chain queue_step (lmap passive_of Sts)"
+    using ILf_step_imp_queue_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
 
-  have inf_oft: "infinitely_often select_passive_step (lmap passive_of Sts)"
+  have inf_oft: "infinitely_often select_queue_step (lmap passive_of Sts)"
   proof
-    assume "finitely_often select_passive_step (lmap passive_of Sts)"
+    assume "finitely_often select_queue_step (lmap passive_of Sts)"
     then obtain i :: nat where
       no_sel:
-        "\<forall>j \<ge> i. \<not> select_passive_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
+        "\<forall>j \<ge> i. \<not> select_queue_step (passive_of (lnth Sts j)) (passive_of (lnth Sts (Suc j)))"
       by (metis (no_types, lifting) enat_ord_code(4) finitely_often_def len llength_lmap lnth_lmap)
 
     have si_lt: "enat (Suc i) < llength Sts"
@@ -772,7 +772,7 @@ proof -
         case (choose_p P A)
         note defs = this(1,2) and p_ne = this(3)
         have False
-          using no_sel defs p_ne select_passive_stepI that by fastforce
+          using no_sel defs p_ne select_queue_stepI that by fastforce
         thus ?thesis
           by blast
       qed auto

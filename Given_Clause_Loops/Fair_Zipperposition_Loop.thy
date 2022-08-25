@@ -9,7 +9,7 @@ theory Fair_Zipperposition_Loop
   imports
     Given_Clause_Loops_Util
     Zipperposition_Loop
-    Passive_Set
+    Prover_Queue
 begin
 
 
@@ -19,8 +19,8 @@ type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'f inference set \<times>
 
 locale fair_zipperposition_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  todo: fair_passive_set t_empty t_select t_add t_remove t_felems +
-  passive: fair_passive_set p_empty p_select p_add p_remove p_felems
+  todo: fair_prover_queue t_empty t_select t_add t_remove t_felems +
+  passive: fair_prover_queue p_empty p_select p_add p_remove p_felems
   for
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
@@ -614,22 +614,22 @@ proof (rule ccontr)
     using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by metis
 qed
 
-lemma ZLf_step_imp_passive_step:
+lemma ZLf_step_imp_passive_queue_step:
   assumes "St \<leadsto>ZLf St'"
-  shows "passive.passive_step (passive_of St) (passive_of St')"
+  shows "passive.queue_step (passive_of St) (passive_of St')"
   using assms
-  by cases (auto intro: passive.passive_step_idleI passive.passive_step_addI
-      passive.passive_step_removeI)
+  by cases (auto intro: passive.queue_step_idleI passive.queue_step_addI
+      passive.queue_step_removeI)
 
-lemma choose_p_step_imp_select_passive_step:
+lemma choose_p_step_imp_select_passive_queue_step:
   assumes "choose_p_step St St'"
-  shows "passive.select_passive_step (passive_of St) (passive_of St')"
+  shows "passive.select_queue_step (passive_of St) (passive_of St')"
   using assms
 proof cases
   case (1 P T D A)
   note defs = this(1,2) and p_nemp = this(3)
   show ?thesis
-    unfolding defs prod.sel by (rule passive.select_passive_stepI[OF p_nemp])
+    unfolding defs prod.sel by (rule passive.select_queue_stepI[OF p_nemp])
 qed
 
 lemma fair_ZL_Liminf_passive_empty:
@@ -640,16 +640,17 @@ lemma fair_ZL_Liminf_passive_empty:
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts"
   shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
 proof -
-  have chain_step: "chain passive.passive_step (lmap passive_of Sts)"
-    using ZLf_step_imp_passive_step chain_lmap full_chain_imp_chain[OF full]
+  have chain_step: "chain passive.queue_step (lmap passive_of Sts)"
+    using ZLf_step_imp_passive_queue_step chain_lmap full_chain_imp_chain[OF full]
     by (metis (no_types, lifting))
 
-  have inf_oft: "infinitely_often passive.select_passive_step (lmap passive_of Sts)"
+  have inf_oft: "infinitely_often passive.select_queue_step (lmap passive_of Sts)"
   proof
-    assume "finitely_often passive.select_passive_step (lmap passive_of Sts)"
+    assume "finitely_often passive.select_queue_step (lmap passive_of Sts)"
     hence fin_cp: "finitely_often choose_p_step Sts"
-      unfolding finitely_often_def choose_p_step_imp_select_passive_step
-      by (smt choose_p_step_imp_select_passive_step enat_ord_code(4) len llength_lmap lnth_lmap)
+      unfolding finitely_often_def choose_p_step_imp_select_passive_queue_step
+      by (smt choose_p_step_imp_select_passive_queue_step enat_ord_code(4) len llength_lmap
+          lnth_lmap)
     hence fin_ci: "finitely_often compute_infer_step Sts"
       using fair by blast
 
@@ -696,19 +697,19 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
-lemma ZLf_step_imp_todo_step:
+lemma ZLf_step_imp_todo_queue_step:
   assumes "St \<leadsto>ZLf St'"
-  shows "todo.passive_step (todo_of St) (todo_of St')"
+  shows "todo.queue_step (todo_of St) (todo_of St')"
   using assms
 proof cases
   case (compute_infer T \<iota>0 \<iota>s A C D P)
   note defs = this(1,2)
   show ?thesis
     unfolding defs prod.sel
-    using todo.passive_stepI
+    using todo.queue_stepI
     sorry
-qed (auto intro: todo.passive_step_idleI todo.passive_step_fold_addI todo.passive_step_addI
-    todo.passive_step_removeI)
+qed (auto intro: todo.queue_step_idleI todo.queue_step_fold_addI todo.queue_step_addI
+    todo.queue_step_removeI)
 
 lemma fair_ZL_Liminf_todo_empty:
   assumes
@@ -721,10 +722,10 @@ proof -
   define Ts where
     ts: "Ts = LCons t_empty (lmap todo_of Sts)"
 
-  have chain_step: "chain todo.passive_step Ts"
+  have chain_step: "chain todo.queue_step Ts"
     sorry
 
-  have inf_oft: "infinitely_often todo.select_passive_step Ts"
+  have inf_oft: "infinitely_often todo.select_queue_step Ts"
     sorry
 
   have hd: "lhd Ts = t_empty"

@@ -1,14 +1,14 @@
-(* Title:        Passive Set and Fairness
+(* Title:        Prover Queue and Fairness
    Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
-section \<open>Passive Set and Fairness\<close>
+section \<open>Prover Queue and Fairness\<close>
 
 text \<open>This section covers concepts that can be shared across the different
 prover loops inspired by the literature (e.g., DISCOUNT, Otter).\<close>
 
-theory Passive_Set
+theory Prover_Queue
   imports
     "HOL-Library.FSet"
     Ordered_Resolution_Prover.Lazy_List_Chain
@@ -155,13 +155,13 @@ lemma infinitely_often_alt_def:
   unfolding finitely_often_def by blast
 
 
-subsection \<open>Passive Set\<close>
+subsection \<open>Prover Queue\<close>
 
 text \<open>The passive set of a given clause prover can be organized in different
 ways—e.g., as a priority queue or as a list of queues. This locale abstracts
 over the specific data structure.\<close>
 
-locale passive_set =
+locale prover_queue =
   fixes
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f" and
@@ -200,37 +200,37 @@ lemma elems_fold_add[simp]: "elems (fold add Cs P) = set Cs \<union> elems P"
 lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
   by (induct Cs arbitrary: P) auto
 
-inductive passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  passive_stepI: "passive_step P (fold remove Ds (fold add Cs P))"
+inductive queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  queue_stepI: "queue_step P (fold remove Ds (fold add Cs P))"
 
-lemma passive_step_idleI: "passive_step P P"
-  using passive_stepI[of _ "[]" "[]", simplified] .
+lemma queue_step_idleI: "queue_step P P"
+  using queue_stepI[of _ "[]" "[]", simplified] .
 
-lemma passive_step_addI: "passive_step P (add C P)"
-  using passive_stepI[of _ "[]" "[C]", simplified] .
+lemma queue_step_addI: "queue_step P (add C P)"
+  using queue_stepI[of _ "[]" "[C]", simplified] .
 
-lemma passive_step_removeI: "passive_step P (remove C P)"
-  using passive_stepI[of _ "[C]" "[]", simplified] .
+lemma queue_step_removeI: "queue_step P (remove C P)"
+  using queue_stepI[of _ "[C]" "[]", simplified] .
 
-lemma passive_step_fold_addI: "passive_step P (fold add Cs P)"
-  using passive_stepI[of _ "[]" Cs, simplified] .
+lemma queue_step_fold_addI: "queue_step P (fold add Cs P)"
+  using queue_stepI[of _ "[]" Cs, simplified] .
 
-lemma passive_step_fold_removeI: "passive_step P (fold remove Cs P)"
-  using passive_stepI[of _ Cs "[]", simplified] .
+lemma queue_step_fold_removeI: "queue_step P (fold remove Cs P)"
+  using queue_stepI[of _ Cs "[]", simplified] .
 
-inductive select_passive_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  select_passive_stepI: "P \<noteq> empty \<Longrightarrow> select_passive_step P (remove (select P) P)"
+inductive select_queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
+  select_queue_stepI: "P \<noteq> empty \<Longrightarrow> select_queue_step P (remove (select P) P)"
 
 end
 
-locale fair_passive_set = passive_set empty select add remove felems
+locale fair_prover_queue = prover_queue empty select add remove felems
   for
     empty :: "'p" and
     select :: "'p \<Rightarrow> 'f" and
     add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     felems :: "'p \<Rightarrow> 'f fset" +
-  assumes fair: "chain passive_step Ps \<Longrightarrow> infinitely_often select_passive_step Ps \<Longrightarrow>
+  assumes fair: "chain queue_step Ps \<Longrightarrow> infinitely_often select_queue_step Ps \<Longrightarrow>
     lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap elems Ps) = {}"
 begin
 end
@@ -241,10 +241,10 @@ subsection \<open>Instantiation with FIFO Queue\<close>
 text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
 passive set.\<close>
 
-locale fifo_passive_set
+locale fifo_prover_queue
 begin
 
-sublocale passive_set "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list
+sublocale prover_queue "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list
 proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
@@ -265,14 +265,14 @@ next
     by (auto simp: fset_of_list_elem)
 qed
 
-lemma passive_step_preserves_distinct:
+lemma queue_step_preserves_distinct:
   assumes
     dist: "distinct P" and
-    step: "passive_step P P'"
+    step: "queue_step P P'"
   shows "distinct P'"
   using step
 proof cases
-  case (passive_stepI Ds Cs)
+  case (queue_stepI Ds Cs)
   note p' = this(1)
 
   have "distinct (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P)"
@@ -304,9 +304,9 @@ proof cases
     unfolding p' .
 qed
 
-lemma chain_passive_step_preserves_distinct:
+lemma chain_queue_step_preserves_distinct:
   assumes
-    chain: "chain passive_step Ps" and
+    chain: "chain queue_step Ps" and
     dist_hd: "distinct (lhd Ps)" and
     i_lt: "enat i < llength Ps"
   shows "distinct (lnth Ps i)"
@@ -321,19 +321,19 @@ next
   have ih: "distinct (lnth Ps i)"
     using Suc.hyps Suc.prems Suc_ile_eq order_less_imp_le by blast
 
-  have "passive_step (lnth Ps i) (lnth Ps (Suc i))"
+  have "queue_step (lnth Ps i) (lnth Ps (Suc i))"
     by (rule chain_lnth_rel[OF chain Suc.prems])
   then show ?case
-    using passive_step_preserves_distinct ih by blast
+    using queue_step_preserves_distinct ih by blast
 qed
 
-sublocale fair_passive_set "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll
+sublocale fair_prover_queue "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll
   fset_of_list
 proof unfold_locales
   fix Ps :: "'f list llist"
   assume
-    chain: "chain passive_step Ps" and
-    inf_sel: "infinitely_often select_passive_step Ps" and
+    chain: "chain queue_step Ps" and
+    inf_sel: "infinitely_often select_queue_step Ps" and
     hd_emp: "lhd Ps = []"
 
   show "Liminf_llist (lmap elems Ps) = {}"
@@ -371,7 +371,7 @@ proof unfold_locales
       by (meson in_set_conv_nth le_refl)
 
     have dist: "distinct (lnth Ps i)"
-      by (simp add: chain_passive_step_preserves_distinct hd_emp i_lt chain)
+      by (simp add: chain_queue_step_preserves_distinct hd_emp i_lt chain)
 
     have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Ps i'))"
     proof -
@@ -392,7 +392,7 @@ proof unfold_locales
         obtain i'' :: nat where
           i''_ge: "i'' \<ge> i'" and
           i''_lt: "enat (Suc i'') < llength Ps" and
-          sel_step: "select_passive_step (lnth Ps i'') (lnth Ps (Suc i''))"
+          sel_step: "select_queue_step (lnth Ps i'') (lnth Ps (Suc i''))"
           using inf_sel[unfolded infinitely_often_alt_def] by blast
 
         have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
@@ -438,13 +438,13 @@ proof unfold_locales
                 have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
                   by (rule ih[OF dm1_bounds])
 
-                have "passive_step (lnth Ps (d - 1)) (lnth Ps d)"
+                have "queue_step (lnth Ps (d - 1)) (lnth Ps d)"
                   by (metis (no_types, lifting) One_nat_def add_diff_inverse_nat
                       bot_nat_0.extremum_unique chain chain_lnth_rel d_ge d_ne_i' dm1_bounds(2)
                       enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
-                  case (passive_stepI Es Ds)
+                  case (queue_stepI Es Ds)
                   note at_d = this(1)
 
                   have c_in: "C |\<in>| fset_of_list (lnth Ps (d - 1))"
@@ -482,14 +482,14 @@ proof unfold_locales
         moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Ps (Suc i'')))"
           using sel_step
         proof cases
-          case select_passive_stepI
+          case select_queue_stepI
           note at_si'' = this(1) and at_i''_nemp = this(2)
 
           have at_i''_nnil: "lnth Ps i'' \<noteq> []"
             using at_i''_nemp by auto
 
           have dist_i'': "distinct (lnth Ps i'')"
-            by (simp add: chain_passive_step_preserves_distinct hd_emp chain ps_inf)
+            by (simp add: chain_queue_step_preserves_distinct hd_emp chain ps_inf)
 
           have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps i''))"
             using c_ni_i'_i'' i''_ge by blast

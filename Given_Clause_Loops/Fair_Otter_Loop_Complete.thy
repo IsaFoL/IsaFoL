@@ -74,7 +74,7 @@ locale fifo_otter_loop =
     finite_Inf_between: "finite A \<Longrightarrow> finite (no_labels.Inf_between A {C})"
 begin
 
-sublocale fifo_passive_set
+sublocale fifo_prover_queue
   .
 
 sublocale fair_otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
