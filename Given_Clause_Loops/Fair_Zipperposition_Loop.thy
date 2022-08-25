@@ -719,6 +719,8 @@ proof -
   have "Liminf_llist (lmap todo.elems Ts) = {}"
     by (rule todo.fair[OF chain_step inf_oft hd])
 
+  (* rest goes here *)
+
   show ?thesis
     sorry
 qed
