@@ -184,7 +184,7 @@ proof cases
     flat_inferences_of (todo.elems (t_add \<iota>s T))"
     by auto
   also have "... \<subseteq> flat_inferences_of (todo.elems T)"
-    by (metis (no_types) Un_iff distr_flat_inferences_of_wrt_union flat_inferences_of_LCons sel
+    by (metis (no_types) Un_iff distrib_flat_inferences_of_wrt_union flat_inferences_of_LCons sel
         subsetI t'_ne todo.add_again todo.elems_add todo.select_in_felems)
   finally have "flat_inferences_of (todo.elems (t_add \<iota>s (t_remove (t_select T) T))) \<subseteq>
     flat_inferences_of (todo.elems T)"
@@ -197,7 +197,7 @@ next
   have "flat_inferences_of (set \<iota>ss) \<subseteq> Inf_F"
     using \<iota>ss_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   thus ?thesis
-    using inv distr_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
+    using inv distrib_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
 qed (auto simp: fair_ZL_invariant.simps)
 
 lemma chain_fair_ZL_invariant_lnth:
@@ -302,7 +302,7 @@ next
 
         have \<iota>_inf: "\<iota>0 \<in> Inf_F"
           using inv t unfolding st
-          by (metis (no_types, lifting) Un_iff distr_flat_inferences_of_wrt_union
+          by (metis (no_types, lifting) Un_iff distrib_flat_inferences_of_wrt_union
               fair_ZL_invariant.cases flat_inferences_of_LCons fst_conv insert_iff sel subset_iff
               todo.add_again todo.elems_add todo.select_in_felems)
         have \<iota>_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
