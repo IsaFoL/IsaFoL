@@ -1689,9 +1689,13 @@ definition strengthen_clause :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v li
   })\<close>
 
 definition subsume_or_strengthen_pre :: \<open>nat \<Rightarrow> 'v subsumption \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>subsume_or_strengthen_pre = (\<lambda>C s S. length (get_clauses_l S \<propto> C) \<ge> 2 \<and> C \<in># dom_m (get_clauses_l S) \<and>
+  \<open>subsume_or_strengthen_pre = (\<lambda>C s S. \<exists>S'.  length (get_clauses_l S \<propto> C) \<ge> 2 \<and> C \<in># dom_m (get_clauses_l S) \<and>
   count_decided (get_trail_l S) = 0 \<and> distinct (get_clauses_l S \<propto> C) \<and> (\<forall>L\<in>set (get_clauses_l S \<propto> C). undefined_lit (get_trail_l S) L) \<and> get_conflict_l S = None \<and>
   C \<notin> set (get_all_mark_of_propagated (get_trail_l S)) \<and> clauses_to_update_l S = {#} \<and>
+  twl_list_invs S \<and>
+  (S,S')\<in>twl_st_l None \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S') \<and> 
+    twl_struct_invs S' \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
    (case s of
     NONE \<Rightarrow> True
   | SUBSUMED_BY C' \<Rightarrow> mset (get_clauses_l S \<propto> C') \<subseteq># mset (get_clauses_l S \<propto> C) \<and> C \<notin> set (get_all_mark_of_propagated (get_trail_l S)) \<and> distinct ((get_clauses_l S) \<propto> C') \<and> C \<noteq> C' \<and> \<not>tautology (mset ((get_clauses_l S) \<propto> C')) \<and> C' \<in># dom_m (get_clauses_l S)
@@ -3025,7 +3029,7 @@ proof -
     st_inv: \<open>twl_st_inv x\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
     C: \<open>C \<in># dom_m (get_clauses_l S)\<close> and
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of x)\<close> and
+    all_struct_x: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of x)\<close> and
     clss: \<open>clauses_to_update_l S = {#}\<close> \<open>get_conflict_l S = None\<close> and
     no_annot: \<open>set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0}\<close> and
     init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of x)\<close> and
@@ -3079,8 +3083,11 @@ proof -
       by (auto simp: tautology_add_subset tautology_add_mset)
 
     have \<open>subsume_or_strengthen_pre C xb S\<close>
-      using undef_C le_C dec clss C_annot subs H xa C H[of C] unfolding subsume_or_strengthen_pre_def
-      by (auto simp: try_to_subsume_def split: subsumption.splits)
+      using undef_C le_C dec clss C_annot subs H xa C Sx struct init all_struct_x st_inv list_invs 
+        H[of C] unfolding subsume_or_strengthen_pre_def
+      apply -
+      apply (rule exI[of _ x])
+      by (auto simp: try_to_subsume_def split: subsumption.splits intro!: exI[of _ x])
     then show ?thesis
       using inv
       unfolding forward_subsumption_one_inv_def prod.simps st apply -
@@ -3098,8 +3105,9 @@ proof -
     subgoal using assms by auto
     subgoal for ax
       unfolding forward_subsumption_one_inv_def prod.simps forward_subsumption_one_select_def
-      apply (rule_tac x=x in exI)
-      using Sx H struct st_inv C init by (auto simp add: subsume_or_strengthen_pre_def forward_subsumption_one_pre_def)
+        subsume_or_strengthen_pre_def ex_simps[symmetric]
+      apply (rule_tac x=x in exI)+
+      using all_struct_x Sx H struct st_inv C init by (auto simp add: subsume_or_strengthen_pre_def forward_subsumption_one_pre_def )
    subgoal for xs
      unfolding simplify_clause_with_unit_st_pre_def forward_subsumption_one_inv_def case_prod_beta
      apply normalize_goal+
