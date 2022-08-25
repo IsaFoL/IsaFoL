@@ -152,9 +152,25 @@ where
        LCons curr_St (witness_w_ghosts curr_St Sts'))"
 
 lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
-  assumes "chain (\<leadsto>ZLfw) Sts"
+  assumes chain: "chain (\<leadsto>ZLfw) Sts"
   shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> chain (\<leadsto>ZLf) Sts0"
-  sorry
+proof -
+  obtain St0 :: "('t, 'p, 'f) fair_ZL_state" where
+    st0: "lhd Sts = wo_ghosts_of St0"
+    by (metis eq_fst_iff wo_ghosts_of.simps)
+
+  define Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
+    "Sts0 = LCons St0 (witness_w_ghosts St0 (ltl Sts))"
+
+  have sts: "Sts = lmap wo_ghosts_of Sts0"
+    sorry
+
+  have chain0: "chain (\<leadsto>ZLf) Sts0"
+    sorry
+
+  show ?thesis
+    using sts chain0 by blast
+qed
 
 lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
   assumes "full_chain (\<leadsto>ZLfw) Sts"
