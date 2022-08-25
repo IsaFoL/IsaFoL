@@ -691,7 +691,7 @@ proof -
     using init full full_chain_not_lnull unfolding is_initial_fair_ZL_state.simps by fastforce
 
   have "Liminf_llist (lmap passive.elems (lmap passive_of Sts)) = {}"
-    by (rule passive.fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
+    by (rule passive.fair[OF chain_step inf_oft hd_emp])
   thus ?thesis
     by (simp add: llist.map_comp)
 qed
@@ -703,34 +703,25 @@ lemma fair_ZL_Liminf_todo_empty:
     init: "is_initial_fair_ZL_state (lhd Sts)"
   shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (todo.elems (todo_of St)) - done_of St) Sts) =
     {}"
-  sorry
-
-(* FIXME
 proof -
-  have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) Sts) = {}"
-    using fair_DL_Liminf_passive_empty Liminf_llist_subset
-    by (metis (no_types) empty_iff full init len llength_lmap llist.map_comp lnth_lmap member_filter
-        subsetI subset_antisym)
+  define Ts where
+    ts: "Ts = LCons t_empty (lmap todo_of Sts)"
 
-  let ?g = "Set.filter is_passive_inference \<circ> elems \<circ> passive_of"
+  have chain_step: "chain todo.passive_step Ts"
+    sorry
 
-  have "inj_on passive_inference (Set.filter is_passive_inference (UNIV :: 'f passive_elem set))"
-    unfolding inj_on_def by (metis member_filter passive_elem.collapse(1))
-  moreover have "Sup_llist (lmap ?g Sts) \<subseteq> Set.filter is_passive_inference UNIV"
-    unfolding Sup_llist_def by auto
-  ultimately have inj_pi: "inj_on passive_inference (Sup_llist (lmap ?g Sts))"
-    using inj_on_subset by blast
+  have inf_oft: "infinitely_often todo.select_passive_step Ts"
+    sorry
 
-  have lim_pass: "Liminf_llist (lmap (\<lambda>x. passive_inference `
-    (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) x) Sts) = {}"
-    using Liminf_llist_lmap_image[OF inj_pi] lim_filt by simp
+  have hd: "lhd Ts = t_empty"
+    sorry
 
-  have "Liminf_llist (lmap (\<lambda>St. {\<iota>. Passive_Inference \<iota> \<in> elems (passive_of St)}) Sts) = {}"
-    using lim_pass passive_inference_filter by (smt (verit) Collect_cong comp_apply llist.map_cong)
-  thus ?thesis
-    unfolding passive_inferences_of_def comp_apply .
+  have "Liminf_llist (lmap todo.elems Ts) = {}"
+    by (rule todo.fair[OF chain_step inf_oft hd])
+
+  show ?thesis
+    sorry
 qed
-*)
 
 theorem
   assumes
