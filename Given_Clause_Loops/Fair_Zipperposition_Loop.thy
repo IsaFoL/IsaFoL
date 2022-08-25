@@ -618,8 +618,8 @@ lemma ZLf_step_imp_passive_step:
   assumes "St \<leadsto>ZLf St'"
   shows "passive.passive_step (passive_of St) (passive_of St')"
   using assms
-  by cases (auto simp: fold_map[symmetric] intro: passive.passive_step_idleI
-      passive.passive_step_addI passive.passive_step_removeI)
+  by cases (auto intro: passive.passive_step_idleI passive.passive_step_addI
+      passive.passive_step_removeI)
 
 lemma choose_p_step_imp_select_passive_step:
   assumes "choose_p_step St St'"
@@ -696,6 +696,20 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
+lemma ZLf_step_imp_todo_step:
+  assumes "St \<leadsto>ZLf St'"
+  shows "todo.passive_step (todo_of St) (todo_of St')"
+  using assms
+proof cases
+  case (compute_infer T \<iota>0 \<iota>s A C D P)
+  note defs = this(1,2)
+  show ?thesis
+    unfolding defs prod.sel
+    using todo.passive_stepI
+    sorry
+qed (auto intro: todo.passive_step_idleI todo.passive_step_fold_addI todo.passive_step_addI
+    todo.passive_step_removeI)
+
 lemma fair_ZL_Liminf_todo_empty:
   assumes
     len: "llength Sts = \<infinity>" and
@@ -714,7 +728,7 @@ proof -
     sorry
 
   have hd: "lhd Ts = t_empty"
-    sorry
+    unfolding ts by simp
 
   have "Liminf_llist (lmap todo.elems Ts) = {}"
     by (rule todo.fair[OF chain_step inf_oft hd])
