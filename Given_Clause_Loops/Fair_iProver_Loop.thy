@@ -23,7 +23,7 @@ context fair_otter_loop
 begin
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definition\<close>
 
 inductive
   fair_IL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>ILf" 50)
@@ -812,8 +812,9 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    fair_IL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" and
+    fair_IL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" (is ?thesis1) and
     fair_IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      (is ?thesis2)
 proof -
   have chain: "chain (\<leadsto>ILf) Sts"
     by (rule full_chain_imp_chain[OF full])
@@ -871,9 +872,9 @@ proof -
 
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
     by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
-  thus "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
+  thus ?thesis1
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+  thus ?thesis2
     unfolding Liminf_fstate_def Liminf_llist_def by auto
 qed
 

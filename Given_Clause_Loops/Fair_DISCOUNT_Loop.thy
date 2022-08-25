@@ -68,7 +68,7 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
   by (metis CollectD case_prod_conv irrefl_def irreflp_Prec_S irreflp_def)
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 abbreviation passive_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst St"
@@ -799,8 +799,9 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    fair_DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" and
+    fair_DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" (is ?thesis1) and
     fair_DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      (is ?thesis2)
 proof -
   have chain: "chain (\<leadsto>DLf) Sts"
     by (rule full_chain_imp_chain[OF full])
@@ -875,9 +876,9 @@ proof -
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> fstate) Sts)"
     by (rule lgc_complete_Liminf[of "lmap fstate Sts", unfolded llist.map_comp,
           OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
-  thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)"
+  thus ?thesis1
     unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+  thus ?thesis2
     unfolding Liminf_fstate_def Liminf_llist_def by auto
 qed
 

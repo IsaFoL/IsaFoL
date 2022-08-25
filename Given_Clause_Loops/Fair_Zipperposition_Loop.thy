@@ -62,7 +62,7 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
   by (metis CollectD case_prod_conv irrefl_def irreflp_Prec_S irreflp_def)
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 abbreviation todo_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 't" where
   "todo_of St \<equiv> fst St"
@@ -637,7 +637,7 @@ lemma fair_ZL_Liminf_passive_empty:
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)" and
-    fair: "infinitely_often compute_infer_step Sts \<Longrightarrow> infinitely_often choose_p_step Sts"
+    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts"
   shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain passive.passive_step (lmap passive_of Sts)"
@@ -735,12 +735,14 @@ theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)" and
-    fair: "infinitely_often compute_infer_step Sts \<Longrightarrow> infinitely_often choose_p_step Sts" and
+    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    fair_ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)" and
+    fair_ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
+      (is ?thesis1) and
     fair_ZL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      (is ?thesis2)
 proof -
   have chain: "chain (\<leadsto>ZLf) Sts"
     by (rule full_chain_imp_chain[OF full])
@@ -825,9 +827,9 @@ proof -
   have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
     by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
           OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
-  thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
+  thus ?thesis1
     unfolding Liminf_zl_fstate_def Liminf_zl_fstate_commute by auto
-  thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+  thus ?thesis2
     unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
 qed
 

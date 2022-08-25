@@ -87,7 +87,7 @@ sublocale lgc?: lazy_given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q 
 notation lgc.step (infix "\<leadsto>LGC" 50)
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 abbreviation c_dot_succ :: "'f \<Rightarrow> 'f \<Rightarrow> bool " (infix "\<cdot>\<succ>" 50) where
   "C \<cdot>\<succ> C' \<equiv> C' \<prec>\<cdot> C"

@@ -55,7 +55,7 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
   by (metis CollectD case_prod_conv irrefl_def irreflp_Prec_S irreflp_def)
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 abbreviation new_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
   "new_of St \<equiv> fst St"

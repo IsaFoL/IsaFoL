@@ -14,7 +14,7 @@ context discount_loop
 begin
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 fun flat_inferences_of :: "'f inference llist set \<Rightarrow> 'f inference set" where
   "flat_inferences_of T = \<Union> {lset x |x. x \<in> T}"

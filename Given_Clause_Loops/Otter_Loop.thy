@@ -86,7 +86,7 @@ sublocale gc?: given_clause Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_
 notation gc.step (infix "\<leadsto>GC" 50)
 
 
-subsection \<open>Definition and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
 fun state :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> ('f \<times> OL_label) set" where
   "state (N, X, P, Y, A) =

@@ -12,7 +12,7 @@ begin
 
 subsection \<open>Locale\<close>
 
-type_synonym ('t, 'p, 'f) fair_ZL_state_wo_ghosts = "'t \<times> 'p \<times> 'f option \<times> 'f fset"
+type_synonym ('t, 'p, 'f) fair_ZL_wo_ghosts_state = "'t \<times> 'p \<times> 'f option \<times> 'f fset"
 
 locale fair_zipperposition_loop_wo_ghosts =
   w_ghosts?: fair_zipperposition_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q
@@ -46,7 +46,7 @@ begin
 
 inductive
   fair_ZL_wo_ghosts ::
-  "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> ('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> bool"
+  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
   (infix "\<leadsto>ZLfw" 50)
 where
   compute_infer: "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow>
@@ -69,7 +69,7 @@ where
 
 inductive
   compute_infer_step ::
-  "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> ('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> bool"
+  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
 where
   "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow> \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
    compute_infer_step (T, P, None, A)
@@ -77,28 +77,28 @@ where
 
 inductive
   choose_p_step ::
-  "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> ('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> bool"
+  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
 where
   "P \<noteq> p_empty \<Longrightarrow>
    choose_p_step (T, P, None, A) (T, p_remove (p_select P) P, Some (p_select P), A)"
 
 
-subsection \<open>Definitions and Lemmas\<close>
+subsection \<open>Basic Definitions and Lemmas\<close>
 
-abbreviation todo_of :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> 't" where
+abbreviation todo_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 't" where
   "todo_of St \<equiv> fst St"
-abbreviation passive_of :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> 'p" where
+abbreviation passive_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst (snd St)"
-abbreviation yy_of :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> 'f option" where
+abbreviation yy_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd St))"
-abbreviation active_of :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> 'f fset" where
+abbreviation active_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd St))"
 
-abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> 'f set" where
+abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
 
 definition
-  Liminf_zl_fstate :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
+  Liminf_zl_fstate :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
 where
   "Liminf_zl_fstate Sts =
    (Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts),
@@ -108,12 +108,25 @@ where
 
 subsection \<open>Initial States and Invariants\<close>
 
-inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> bool" where
+inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (set \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
    is_initial_fair_ZL_state (fold t_add \<iota>ss t_empty, p_empty, None, {||})"
 
-inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_state_wo_ghosts \<Rightarrow> bool" where
+inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (todo.elems T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, P, Y, A)"
+
+
+subsection \<open>Ghost–Ghostless Conversions\<close>
+
+fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
+  "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
+
+lemma
+  todo_of_wo_ghosts_of[simp]: "todo_of (wo_ghosts_of St) = w_ghosts.todo_of St" and
+  passive_of_wo_ghosts_of[simp]: "passive_of (wo_ghosts_of St) = w_ghosts.passive_of St" and
+  yy_of_wo_ghosts_of[simp]: "yy_of (wo_ghosts_of St) = w_ghosts.yy_of St" and
+  active_of_wo_ghosts_of[simp]: "active_of (wo_ghosts_of St) = w_ghosts.active_of St"
+  by (cases St; simp)+
 
 
 subsection \<open>Completeness\<close>
@@ -122,14 +135,37 @@ theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)" and
-    fair: "infinitely_often compute_infer_step Sts \<Longrightarrow>
-      infinitely_often choose_p_step Sts" and
+    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    fair_ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)" and
-    fair_ZL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-  sorry
+    fair_ZL_wo_ghosts_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
+      (is ?thesis1) and
+    fair_ZL_wo_ghosts_complete:
+      "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))" (is ?thesis2)
+proof -
+  obtain Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
+    full0: "full_chain (\<leadsto>ZLf) Sts0" and
+    sts: "Sts = lmap wo_ghosts_of Sts0"
+    sorry
+
+  have init0: "w_ghosts.is_initial_fair_ZL_state (lhd Sts0)"
+    sorry
+
+  have fair0: "infinitely_often w_ghosts.compute_infer_step Sts0 \<longrightarrow>
+    infinitely_often w_ghosts.choose_p_step Sts0"
+    sorry
+
+  have unsat0: "passive.elems (w_ghosts.passive_of (lhd Sts0)) \<Turnstile>\<inter>\<G> {B}"
+    sorry
+
+  have "\<exists>B \<in> Bot_F. B \<in> formulas_union (w_ghosts.Liminf_zl_fstate Sts0)"
+    by (rule fair_ZL_complete_Liminf[OF full0 init0 fair0 bot unsat0])
+  thus ?thesis1
+    unfolding w_ghosts.Liminf_zl_fstate_def Liminf_zl_fstate_def sts by (simp add: llist.map_comp)
+  thus ?thesis2
+    unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+qed
 
 end
 

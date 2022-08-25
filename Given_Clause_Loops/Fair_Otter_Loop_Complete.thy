@@ -26,8 +26,9 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    fair_OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" and
+    fair_OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" (is ?thesis1) and
     fair_OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      (is ?thesis2)
 proof -
   have ilf_chain: "chain (\<leadsto>ILf) Sts"
     using Lazy_List_Chain.chain_mono fair_IL.ol full_chain_imp_chain full by blast
@@ -36,9 +37,9 @@ proof -
         is_final_fair_OL_state_iff_no_ILf_step is_final_fair_OL_state_iff_no_OLf_step full
         init)
 
-  show "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
+  show ?thesis1
     by (rule fair_IL_complete_Liminf[OF ilf_full init bot unsat])
-  show "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+  show ?thesis2
     by (rule fair_IL_complete[OF ilf_full init bot unsat])
 qed
 
