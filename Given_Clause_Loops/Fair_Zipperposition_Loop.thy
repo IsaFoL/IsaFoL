@@ -696,12 +696,13 @@ proof -
     by (simp add: llist.map_comp)
 qed
 
-lemma fair_ZL_Liminf_passive_inferences_empty:
+lemma fair_ZL_Liminf_todo_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)"
-  shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
+  shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (todo.elems (todo_of St)) - done_of St) Sts) =
+    {}"
   sorry
 
 (* FIXME
@@ -801,25 +802,23 @@ proof -
       by simp
     moreover have ?t_inf
       unfolding zl_fstate_alt_def comp_def zl_state.simps prod.sel
-      using fair_ZL_Liminf_passive_inferences_empty[OF len full init]
-(*
-      by simp
-*)
-      sorry
+      using fair_ZL_Liminf_todo_empty[OF len full init] .
     ultimately show ?thesis
       by blast
   qed
   note pas_fml = pas_fml_and_t_inf[THEN conjunct1] and
     t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
+  obtain \<iota>ss :: "'f inference llist list" where
+    hd: "lhd Sts = (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})" and
+    infs: "flat_inferences_of (set \<iota>ss) = {\<iota> \<in> Inf_F. prems_of \<iota> = []}"
+    using init[unfolded is_initial_fair_ZL_state.simps no_labels.Inf_from_empty] by blast
+
+  have hd': "lhd (lmap zl_fstate Sts) = zl_fstate (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})"
+    using hd by (simp add: lhd_lmap)
+
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
-    using init[unfolded is_initial_fair_ZL_state.simps no_labels.Inf_from_empty]
-    sorry (* FIXME: What happened? *)
-(*
-    by (metis (no_types, lifting) bot_fset.rep_eq fst_conv lhd_lmap no_labels.Inf_from_empty
-        premise_free_inf_always_from sup_bot.right_neutral todo.elems_fold_add todo.felems_empty
-        zl_fstate.simps zl_state.simps)
-*)
+    unfolding zl_fstate_alt_def hd' zl_state_alt_def prod.sel using infs by simp
 
   have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
     using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
