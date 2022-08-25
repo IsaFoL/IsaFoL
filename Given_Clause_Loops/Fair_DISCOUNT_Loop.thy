@@ -799,8 +799,8 @@ theorem
     bot: "B \<in> Bot_F" and
     unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
-    DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" and
-    DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+    fair_DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" and
+    fair_DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
 proof -
   have chain: "chain (\<leadsto>DLf) Sts"
     by (rule full_chain_imp_chain[OF full])
