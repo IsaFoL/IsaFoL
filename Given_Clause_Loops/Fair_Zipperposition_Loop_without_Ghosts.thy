@@ -140,6 +140,16 @@ lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
   shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"
   sorry
 
+lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
+  assumes "chain (\<leadsto>ZLfw) Sts"
+  shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> chain (\<leadsto>ZLf) Sts0"
+  sorry
+
+lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
+  assumes "full_chain (\<leadsto>ZLfw) Sts"
+  shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> full_chain (\<leadsto>ZLf) Sts0"
+  sorry
+
 
 subsection \<open>Completeness\<close>
 
@@ -156,15 +166,10 @@ theorem
     fair_ZL_wo_ghosts_complete:
       "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))" (is ?thesis2)
 proof -
-  thm full_chain_lmap_left_total[of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)" _]
-
-
   obtain Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
     full0: "full_chain (\<leadsto>ZLf) Sts0" and
     sts: "Sts = lmap wo_ghosts_of Sts0"
-    using fair_ZL_step_imp_fair_ZL_wo_ghosts_step fair_ZL_wo_ghosts_step_imp_fair_ZL_step
-
-    sorry
+    using full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step[OF full] by blast
 
   have init0: "w_ghosts.is_initial_fair_ZL_state (lhd Sts0)"
     sorry
