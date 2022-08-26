@@ -19,19 +19,16 @@ locale prover_llist_queue =
   fixes
     empty :: 'q and
     add_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
-    pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and (* FIXME *)
     remove_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
+    pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
     llists :: "'q \<Rightarrow> 'e llist multiset"
   assumes
     llists_empty[simp]: "llists empty = {#}" and
     llists_not_empty: "Q \<noteq> empty \<Longrightarrow> llists Q \<noteq> {#}" and
-    llists_add[simp]: "llists (add_llist es Q) = llists Q + {#es#}"
-(*
-    pick_elem
-    select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
-    felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}" and
-    add_again: "C |\<in>| felems P \<Longrightarrow> add C P = P"
-*)
+    llists_add[simp]: "llists (add_llist es Q) = llists Q + {#es#}" and
+    llists_pick_elem: "(\<exists>es. es \<noteq> LNil \<and> es \<in># llists Q) \<Longrightarrow>
+      \<exists>e es. LCons e es \<in># llists Q \<and> fst (pick_elem Q) = e
+        \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
 begin
 
 
