@@ -183,7 +183,7 @@ lemma step_fair_ZL_invariant:
   using step inv
 proof cases
   case (compute_infer T \<iota>0 T' A C D P)
-  note defs = this(1,2) and ex_cons = this(3) and pick = this(4)
+  note defs = this(1,2) and has_el = this(3) and pick = this(4)
 
   have t': "T' = snd (t_pick_elem T)"
     using pick by simp
@@ -191,7 +191,7 @@ proof cases
   obtain \<iota>s' where
     \<iota>0\<iota>s'_in: "LCons \<iota>0 \<iota>s' \<in># t_llists T" and
     lists_t': "t_llists T' = t_llists T - {#LCons \<iota>0 \<iota>s'#} + {#\<iota>s'#}"
-    using todo.llists_pick_elem[OF ex_cons, folded t'] pick by auto
+    using todo.llists_pick_elem[OF has_el, folded t'] pick by auto
 
   let ?II = "{lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T}"
   let ?I = "\<Union> ?II"
@@ -213,9 +213,9 @@ proof cases
   also have "... \<subseteq> ?I"
   proof -
     have "\<iota>0 \<in> ?I"
-      using todo.llists_pick_elem[OF ex_cons, folded t'] pick by auto
+      using todo.llists_pick_elem[OF has_el, folded t'] pick by auto
     moreover have "lset \<iota>s' \<subseteq> ?I"
-      using todo.llists_pick_elem[OF ex_cons, folded t'] pick \<iota>0\<iota>s'_in by auto
+      using todo.llists_pick_elem[OF has_el, folded t'] pick \<iota>0\<iota>s'_in by auto
     ultimately show ?thesis
       by blast
   qed
@@ -325,29 +325,37 @@ next
         y: "Y = None"
 
       have "\<exists>St'. St \<leadsto>ZLf St'"
-      proof (cases "t_select T")
-        case LNil
+      proof (cases "todo.has_elem T")
+        case has_el: True
 
-        have nil_in: "LNil \<in> todo.elems T"
-          by (metis local.LNil t todo.select_in_elems)
+        obtain \<iota>0 :: "'f inference" and T' :: 't where
+          pick: "t_pick_elem T = (\<iota>0, T')"
+          sorry
+
+        obtain \<iota>s' where
+          \<iota>0\<iota>s'_in: "LCons \<iota>0 \<iota>s' \<in># t_llists T" and
+          lists_t': "t_llists T' = t_llists T - {#LCons \<iota>0 \<iota>s'#} + {#\<iota>s'#}"
+          using todo.llists_pick_elem[OF has_el] pick by auto
+
+        have "\<iota>0 \<in> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
+          using \<iota>0\<iota>s'_in by auto
+        hence "\<iota>0 \<in> Inf_F"
+          using inv t unfolding st fair_ZL_invariant.simps by auto
+        hence \<iota>0_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
+          using no_labels.empty_ord.Red_I_of_Inf_to_N by auto
+
+        show ?thesis
+          using fair_ZL.compute_infer[OF has_el pick \<iota>0_red] unfolding st y by blast
+      next
+        case has_no_el: False
+
+        have nil_in: "LNil \<in># t_llists T"
+          by (metis has_no_el multiset_nonemptyE t todo.llists_not_empty)
         have nil_inter: "lset LNil \<inter> no_labels.Inf_from (fset A) = {}"
           by simp
 
         show ?thesis
           using fair_ZL.delete_orphan_infers[OF nil_in nil_inter] unfolding st t y by fast
-      next
-        case sel: (LCons \<iota>0 \<iota>s)
-
-        have \<iota>_inf: "\<iota>0 \<in> Inf_F"
-          using inv t unfolding st
-          by (metis (no_types, lifting) Un_iff distrib_flat_inferences_of_wrt_union
-              fair_ZL_invariant.cases flat_inferences_of_LCons fst_conv insert_iff sel subset_iff
-              todo.add_again todo.elems_add todo.select_in_felems)
-        have \<iota>_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
-          using \<iota>_inf no_labels.empty_ord.Red_I_of_Inf_to_N by auto
-
-        show ?thesis
-          using fair_ZL.compute_infer[OF t sel \<iota>_red] unfolding st y by blast
       qed
     } moreover {
       assume
@@ -363,7 +371,7 @@ next
         by blast
 
       obtain \<iota>s :: "'f inference llist" where
-        \<iota>ss: "flat_inferences_of (set [\<iota>s]) = no_labels.Inf_between (fset A) {C}"
+        \<iota>ss: "flat_inferences_of (mset [\<iota>s]) = no_labels.Inf_between (fset A) {C}"
         using countable_imp_lset[OF countable_Inf_between[OF finite_fset]] by force
 
       have "\<exists>St'. St \<leadsto>ZLf St'"

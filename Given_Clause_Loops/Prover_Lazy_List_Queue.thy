@@ -32,6 +32,9 @@ locale prover_lazy_list_queue =
         \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
 begin
 
+abbreviation has_elem :: "'q \<Rightarrow> bool" where
+  "has_elem Q \<equiv> \<exists>es \<in># llists Q. es \<noteq> LNil"
+
 inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
   lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist Cs Q)"
 | lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist Cs Q)"
