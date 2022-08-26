@@ -412,7 +412,7 @@ next
 
   show ?thesis
     unfolding defs zl_fstate_alt_def prod.sel option.set
-    using ZL.choose_p[of "todo.elems T" D "passive.elems (p_remove (p_select P) P)" "p_select P"
+    using ZL.choose_p[of "t_llists T" D "passive.elems (p_remove (p_select P) P)" "p_select P"
         "fset A"]
     by (metis elems_rem_sel_uni_sel)
 next
@@ -440,20 +440,18 @@ next
   note defs = this(1-6) and \<iota>ss = this(7)
   show ?thesis
     unfolding defs zl_fstate_alt_def prod.sel option.set
-    using ZL.schedule_infer[OF \<iota>ss, of "todo.elems T" D "passive.elems P"]
+    using ZL.schedule_infer[OF \<iota>ss, of "t_llists T" D "passive.elems P"]
     by (simp add: Un_commute)
 next
   case (delete_orphan_infers \<iota>s)
-  note defs = this(1-5) and \<iota>s_todo = this(6) and inter = this(7)
-
-  have elems_rem_\<iota>s_uni_\<iota>s: "todo.elems (t_remove \<iota>s T) \<union> {\<iota>s} = todo.elems T"
-    using \<iota>s_todo by auto
+  note defs = this(1-5) and \<iota>s_in = this(6) and inter = this(7)
 
   show ?thesis
-    unfolding defs zl_fstate_alt_def prod.sel option.set
-    using ZL.delete_orphan_infers[OF inter, of "todo.elems (t_remove \<iota>s T)" D "passive.elems P"
+    unfolding defs zl_fstate_alt_def todo.llist_remove prod.sel option.set
+    using ZL.delete_orphan_infers[OF inter, of "t_llists T - {#\<iota>s#}" D "passive.elems P"
         "set_option Y"]
-    by (metis elems_rem_\<iota>s_uni_\<iota>s)
+      \<iota>s_in
+    by simp
 qed
 
 lemma fair_ZL_step_imp_GC_step:
