@@ -90,7 +90,7 @@ fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
 sublocale prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
 proof
   fix Q :: "'e llist list"
-  assume ex_cons: "\<exists>es. es \<noteq> LNil \<and> es \<in># mset Q"
+  assume ex_cons: "\<exists>es \<in># mset Q. es \<noteq> LNil"
   show "\<exists>e es. LCons e es \<in># mset Q \<and> fst (pick_elem Q) = e
       \<and> mset (snd (pick_elem Q)) = mset Q - {#LCons e es#} + {#es#}"
     using ex_cons

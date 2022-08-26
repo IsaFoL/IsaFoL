@@ -224,18 +224,17 @@ proof cases
     using inv unfolding defs fair_ZL_invariant.simps by (simp add: lists_t')
 next
   case (schedule_infer \<iota>ss A C T D P)
-(*
   note defs = this(1,2) and \<iota>ss_inf_betw = this(3)
-  have "flat_inferences_of (set \<iota>ss) \<subseteq> Inf_F"
+  have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in> set \<iota>ss} \<subseteq> Inf_F"
     using \<iota>ss_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   thus ?thesis
-    using inv distrib_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
-*)
-  show ?thesis
-    sorry
+    using inv unfolding defs fair_ZL_invariant.simps by simp blast
 next
   case (delete_orphan_infers \<iota>s T A D P Y)
+  note defs = this(1,2)
   show ?thesis
+    using inv unfolding defs fair_ZL_invariant.simps
+    apply simp
     sorry
 qed (auto simp: fair_ZL_invariant.simps)
 
