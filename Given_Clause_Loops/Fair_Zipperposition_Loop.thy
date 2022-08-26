@@ -204,12 +204,11 @@ proof cases
     by auto
   also have "... \<subseteq> ?I \<union> {\<iota>0} \<union> lset \<iota>s'"
   proof -
-    have sub: "t_llists T - {#LCons \<iota>0 \<iota>s'#} \<subseteq># t_llists T"
-      by simp
-    have sub': "{lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}} \<subseteq> ?II"
-      by (rule Collect_mono) (use sub in \<open>metis in_diffD\<close>)
-    show ?thesis
-      using Union_mono[OF sub'] by blast
+    have "\<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}} \<subseteq> \<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T}"
+      using Union_Setcompr_member_mset_mono[of "t_llists T - {#LCons \<iota>0 \<iota>s'#}" "t_llists T" lset]
+      by auto
+    thus ?thesis
+      by blast
   qed
   also have "... \<subseteq> ?I"
   proof -
@@ -232,10 +231,10 @@ next
 next
   case (delete_orphan_infers \<iota>s T A D P Y)
   note defs = this(1,2)
-  show ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps
-    apply simp
-    sorry
+  have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T - {#\<iota>s#}} \<subseteq> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
+    using Union_Setcompr_member_mset_mono[of "t_llists T - {#\<iota>s#}" "t_llists T" lset] by auto
+  thus ?thesis
+    using inv unfolding defs fair_ZL_invariant.simps by simp
 qed (auto simp: fair_ZL_invariant.simps)
 
 lemma chain_fair_ZL_invariant_lnth:

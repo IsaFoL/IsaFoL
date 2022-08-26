@@ -49,6 +49,16 @@ next
     by blast
 qed
 
+lemma Union_Setcompr_member_mset_mono:
+  assumes sub: "P \<subseteq># Q"
+  shows "\<Union> {f x |x. x \<in># P} \<subseteq> \<Union> {f x |x. x \<in># Q}"
+proof -
+  have "{f x |x. x \<in># P} \<subseteq> {f x |x. x \<in># Q}"
+    by (rule Collect_mono) (metis sub mset_subset_eqD)
+  thus ?thesis
+    by (simp add: Sup_subset_mono)
+qed
+
 lemma singletons_in_mult1: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult1 R"
   by (metis add_mset_add_single insert_DiffM mult1I single_eq_add_mset)
 
