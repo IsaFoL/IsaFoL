@@ -1,9 +1,9 @@
-(* Title:        Prover Queue and Fairness
+(* Title:        Qrover Queue and Fairness
    Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
-section \<open>Prover Queues and Fairness\<close>
+section \<open>Qrover Queues and Fairness\<close>
 
 text \<open>This section covers the passive set data structure that arises in
 different prover loops in the literature (e.g., DISCOUNT, Otter).\<close>
@@ -57,7 +57,7 @@ lemma infinitely_often_alt_def:
   unfolding finitely_often_def by blast
 
 
-subsection \<open>Prover Queue\<close>
+subsection \<open>Locales\<close>
 
 text \<open>The passive set of a given clause prover can be organized in different
 ways—e.g., as a priority queue or as a list of queues. This locale abstracts
@@ -65,70 +65,70 @@ over the specific data structure.\<close>
 
 locale prover_queue =
   fixes
-    empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f" and
-    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    felems :: "'p \<Rightarrow> 'f fset"
+    empty :: 'q and
+    select :: "'q \<Rightarrow> 'e" and
+    add :: "'e \<Rightarrow> 'q \<Rightarrow> 'q" and
+    remove :: "'e \<Rightarrow> 'q \<Rightarrow> 'q" and
+    felems :: "'q \<Rightarrow> 'e fset"
   assumes
     felems_empty[simp]: "felems empty = {||}" and
-    felems_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
-    select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
-    felems_add[simp]: "felems (add C P) = {|C|} |\<union>| felems P" and
-    felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}" and
-    add_again: "C |\<in>| felems P \<Longrightarrow> add C P = P"
+    felems_not_empty[simp]: "Q \<noteq> empty \<Longrightarrow> felems Q \<noteq> {||}" and
+    select_in_felems[simp]: "Q \<noteq> empty \<Longrightarrow> select Q |\<in>| felems Q" and
+    felems_add[simp]: "felems (add C Q) = {|C|} |\<union>| felems Q" and
+    felems_remove[simp]: "felems (remove C Q) = felems Q |-| {|C|}" and
+    add_again: "C |\<in>| felems Q \<Longrightarrow> add C Q = Q"
 begin
 
-abbreviation elems :: "'p \<Rightarrow> 'f set" where
-  "elems P \<equiv> fset (felems P)"
+abbreviation elems :: "'q \<Rightarrow> 'e set" where
+  "elems Q \<equiv> fset (felems Q)"
 
 lemma elems_empty: "elems empty = {}"
   by simp
 
-lemma formula_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> elems P \<noteq> {}"
+lemma formula_not_empty[simp]: "Q \<noteq> empty \<Longrightarrow> elems Q \<noteq> {}"
   by (metis bot_fset.rep_eq felems_not_empty fset_cong)
 
-lemma select_in_elems[simp]: "P \<noteq> empty \<Longrightarrow> select P \<in> elems P"
+lemma select_in_elems[simp]: "Q \<noteq> empty \<Longrightarrow> select Q \<in> elems Q"
   by (metis fmember.rep_eq select_in_felems)
 
 lemma
-  elems_add: "elems (add C P) = {C} \<union> elems P" and
-  elems_remove: "elems (remove C P) = elems P - {C}"
+  elems_add: "elems (add C Q) = {C} \<union> elems Q" and
+  elems_remove: "elems (remove C Q) = elems Q - {C}"
   by simp+
 
-lemma elems_fold_add[simp]: "elems (fold add Cs P) = set Cs \<union> elems P"
-  by (induct Cs arbitrary: P) auto
+lemma elems_fold_add[simp]: "elems (fold add Cs Q) = set Cs \<union> elems Q"
+  by (induct Cs arbitrary: Q) auto
 
-lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
-  by (induct Cs arbitrary: P) auto
+lemma elems_fold_remove[simp]: "elems (fold remove Cs Q) = elems Q - set Cs"
+  by (induct Cs arbitrary: Q) auto
 
-inductive queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  queue_step_fold_addI: "queue_step P (fold add Cs P)"
-| queue_step_fold_removeI: "queue_step P (fold remove Cs P)"
+inductive queue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
+  queue_step_fold_addI: "queue_step Q (fold add Cs Q)"
+| queue_step_fold_removeI: "queue_step Q (fold remove Cs Q)"
 
-lemma queue_step_idleI: "queue_step P P"
+lemma queue_step_idleI: "queue_step Q Q"
   using queue_step_fold_addI[of _ "[]", simplified] .
 
-lemma queue_step_addI: "queue_step P (add C P)"
+lemma queue_step_addI: "queue_step Q (add C Q)"
   using queue_step_fold_addI[of _ "[C]", simplified] .
 
-lemma queue_step_removeI: "queue_step P (remove C P)"
+lemma queue_step_removeI: "queue_step Q (remove C Q)"
   using queue_step_fold_removeI[of _ "[C]", simplified] .
 
-inductive select_queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  select_queue_stepI: "P \<noteq> empty \<Longrightarrow> select_queue_step P (remove (select P) P)"
+inductive select_queue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
+  select_queue_stepI: "Q \<noteq> empty \<Longrightarrow> select_queue_step Q (remove (select Q) Q)"
 
 end
 
 locale fair_prover_queue = prover_queue empty select add remove felems
   for
-    empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f" and
-    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    felems :: "'p \<Rightarrow> 'f fset" +
-  assumes fair: "chain queue_step Ps \<Longrightarrow> infinitely_often select_queue_step Ps \<Longrightarrow>
-    lhd Ps = empty \<Longrightarrow> Liminf_llist (lmap elems Ps) = {}"
+    empty :: "'q" and
+    select :: "'q \<Rightarrow> 'e" and
+    add :: "'e \<Rightarrow> 'q \<Rightarrow> 'q" and
+    remove :: "'e \<Rightarrow> 'q \<Rightarrow> 'q" and
+    felems :: "'q \<Rightarrow> 'e fset" +
+  assumes fair: "chain queue_step Qs \<Longrightarrow> infinitely_often select_queue_step Qs \<Longrightarrow>
+    lhd Qs = empty \<Longrightarrow> Liminf_llist (lmap elems Qs) = {}"
 begin
 end
 
@@ -146,27 +146,27 @@ proof
   show "fset_of_list [] = {||}"
     by (auto simp: fset_of_list_elem)
 next
-  show "\<And>P. P \<noteq> [] \<Longrightarrow> fset_of_list P \<noteq> {||}"
+  show "\<And>Q. Q \<noteq> [] \<Longrightarrow> fset_of_list Q \<noteq> {||}"
     by (metis fset_of_list.rep_eq fset_simps(1) set_empty)
 next
-  show "\<And>P. P \<noteq> [] \<Longrightarrow> hd P |\<in>| fset_of_list P"
+  show "\<And>Q. Q \<noteq> [] \<Longrightarrow> hd Q |\<in>| fset_of_list Q"
     by (metis fset_of_list_elem list.set_sel(1))
 next
-  show "\<And>C P. fset_of_list (if C \<in> set P then P else P @ [C]) = {|C|} |\<union>| fset_of_list P"
+  show "\<And>C Q. fset_of_list (if C \<in> set Q then Q else Q @ [C]) = {|C|} |\<union>| fset_of_list Q"
     by (auto simp: funion_commute fset_of_list_elem)
 next
-  show "\<And>C P. fset_of_list (removeAll C P) = fset_of_list P |-| {|C|}"
+  show "\<And>C Q. fset_of_list (removeAll C Q) = fset_of_list Q |-| {|C|}"
     by (auto simp: fset_of_list_elem)
 next
-  show "\<And>C P. C |\<in>| fset_of_list P \<Longrightarrow> (if C \<in> set P then P else P @ [C]) = P"
+  show "\<And>C Q. C |\<in>| fset_of_list Q \<Longrightarrow> (if C \<in> set Q then Q else Q @ [C]) = Q"
     by (auto simp: fset_of_list_elem)
 qed
 
 lemma queue_step_preserves_distinct:
   assumes
-    dist: "distinct P" and
-    step: "queue_step P P'"
-  shows "distinct P'"
+    dist: "distinct Q" and
+    step: "queue_step Q Q'"
+  shows "distinct Q'"
   using step
 proof cases
   case (queue_step_fold_addI Cs)
@@ -174,7 +174,7 @@ proof cases
   show ?thesis
     unfolding p'
     using dist
-  proof (induct Cs arbitrary: P)
+  proof (induct Cs arbitrary: Q)
     case Nil
     then show ?case
       using dist by auto
@@ -183,13 +183,13 @@ proof cases
     note ih = this(1) and dist_p = this(2)
 
     show ?case
-    proof (cases "C \<in> set P")
+    proof (cases "C \<in> set Q")
       case True
       then show ?thesis
         using ih[OF dist_p] by simp
     next
       case c_ni: False
-      have dist_pc: "distinct (P @ [C])"
+      have dist_pc: "distinct (Q @ [C])"
         using c_ni dist_p by auto
       show ?thesis
         using c_ni using ih[OF dist_pc] by simp
@@ -204,10 +204,10 @@ qed
 
 lemma chain_queue_step_preserves_distinct:
   assumes
-    chain: "chain queue_step Ps" and
-    dist_hd: "distinct (lhd Ps)" and
-    i_lt: "enat i < llength Ps"
-  shows "distinct (lnth Ps i)"
+    chain: "chain queue_step Qs" and
+    dist_hd: "distinct (lhd Qs)" and
+    i_lt: "enat i < llength Qs"
+  shows "distinct (lnth Qs i)"
   using i_lt
 proof (induct i)
   case 0
@@ -216,10 +216,10 @@ proof (induct i)
 next
   case (Suc i)
 
-  have ih: "distinct (lnth Ps i)"
+  have ih: "distinct (lnth Qs i)"
     using Suc.hyps Suc.prems Suc_ile_eq order_less_imp_le by blast
 
-  have "queue_step (lnth Ps i) (lnth Ps (Suc i))"
+  have "queue_step (lnth Qs i) (lnth Qs (Suc i))"
     by (rule chain_lnth_rel[OF chain Suc.prems])
   then show ?case
     using queue_step_preserves_distinct ih by blast
@@ -228,55 +228,55 @@ qed
 sublocale fair_prover_queue "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll
   fset_of_list
 proof unfold_locales
-  fix Ps :: "'f list llist"
+  fix Qs :: "'e list llist"
   assume
-    chain: "chain queue_step Ps" and
-    inf_sel: "infinitely_often select_queue_step Ps" and
-    hd_emp: "lhd Ps = []"
+    chain: "chain queue_step Qs" and
+    inf_sel: "infinitely_often select_queue_step Qs" and
+    hd_emp: "lhd Qs = []"
 
-  show "Liminf_llist (lmap elems Ps) = {}"
+  show "Liminf_llist (lmap elems Qs) = {}"
   proof (rule ccontr)
-    assume lim_nemp: "Liminf_llist (lmap elems Ps) \<noteq> {}"
+    assume lim_nemp: "Liminf_llist (lmap elems Qs) \<noteq> {}"
 
     obtain i :: nat where
-      i_lt: "enat i < llength Ps" and
-      inter_nemp: "\<Inter> ((set \<circ> lnth Ps) ` {j. i \<le> j \<and> enat j < llength Ps}) \<noteq> {}"
+      i_lt: "enat i < llength Qs" and
+      inter_nemp: "\<Inter> ((set \<circ> lnth Qs) ` {j. i \<le> j \<and> enat j < llength Qs}) \<noteq> {}"
       using lim_nemp unfolding Liminf_llist_def by auto
 
-    from inter_nemp obtain C :: 'f where
-      "\<forall>P \<in> lnth Ps ` {j. i \<le> j \<and> enat j < llength Ps}. C \<in> set P"
+    from inter_nemp obtain C :: 'e where
+      "\<forall>Q \<in> lnth Qs ` {j. i \<le> j \<and> enat j < llength Qs}. C \<in> set Q"
       by auto
-    hence c_in: "\<forall>j \<ge> i. enat j < llength Ps \<longrightarrow> C \<in> set (lnth Ps j)"
+    hence c_in: "\<forall>j \<ge> i. enat j < llength Qs \<longrightarrow> C \<in> set (lnth Qs j)"
       by auto
 
-    have ps_inf: "llength Ps = \<infinity>"
+    have ps_inf: "llength Qs = \<infinity>"
     proof (rule ccontr)
-      assume "llength Ps \<noteq> \<infinity>"
+      assume "llength Qs \<noteq> \<infinity>"
       obtain n :: nat where
-        n: "enat n = llength Ps"
-        using \<open>llength Ps \<noteq> \<infinity>\<close> by force
+        n: "enat n = llength Qs"
+        using \<open>llength Qs \<noteq> \<infinity>\<close> by force
 
       show False
         using inf_sel[unfolded infinitely_often_alt_def]
         by (metis Suc_lessD enat_ord_simps(2) less_le_not_le n)
     qed
 
-    have c_in': "\<forall>j \<ge> i. C \<in> set (lnth Ps j)"
+    have c_in': "\<forall>j \<ge> i. C \<in> set (lnth Qs j)"
       by (simp add: c_in ps_inf)
     then obtain k :: nat where
-      k_lt: "k < length (lnth Ps i)" and
-      at_k: "lnth Ps i ! k = C"
+      k_lt: "k < length (lnth Qs i)" and
+      at_k: "lnth Qs i ! k = C"
       by (meson in_set_conv_nth le_refl)
 
-    have dist: "distinct (lnth Ps i)"
+    have dist: "distinct (lnth Qs i)"
       by (simp add: chain_queue_step_preserves_distinct hd_emp i_lt chain)
 
-    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Ps i'))"
+    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Qs i'))"
     proof -
-      have "\<exists>i' \<ge> i. C \<notin> set (drop (k + 1 - l) (lnth Ps i'))" for l
+      have "\<exists>i' \<ge> i. C \<notin> set (drop (k + 1 - l) (lnth Qs i'))" for l
       proof (induct l)
         case 0
-        have "C \<notin> set (drop (k + 1) (lnth Ps i))"
+        have "C \<notin> set (drop (k + 1) (lnth Qs i))"
           by (simp add: at_k dist distinct_imp_notin_set_drop_Suc k_lt)
         then show ?case
           by auto
@@ -284,16 +284,16 @@ proof unfold_locales
         case (Suc l)
         then obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          c_ni_i': "C \<notin> set (drop (k + 1 - l) (lnth Ps i'))"
+          c_ni_i': "C \<notin> set (drop (k + 1 - l) (lnth Qs i'))"
           by blast
 
         obtain i'' :: nat where
           i''_ge: "i'' \<ge> i'" and
-          i''_lt: "enat (Suc i'') < llength Ps" and
-          sel_step: "select_queue_step (lnth Ps i'') (lnth Ps (Suc i''))"
+          i''_lt: "enat (Suc i'') < llength Qs" and
+          sel_step: "select_queue_step (lnth Qs i'') (lnth Qs (Suc i''))"
           using inf_sel[unfolded infinitely_often_alt_def] by blast
 
-        have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps j))"
+        have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Qs j))"
           if j_ge: "j \<ge> i'" and j_le: "j \<le> i''" for j
           using j_ge j_le
         proof (induct j rule: less_induct)
@@ -333,10 +333,10 @@ proof unfold_locales
                   "i' \<le> d - 1"
                   "d - 1 \<le> i''"
                   using d_ge d_le d_ne_i' by auto
-                have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
+                have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
                   by (rule ih[OF dm1_bounds])
 
-                have "queue_step (lnth Ps (d - 1)) (lnth Ps d)"
+                have "queue_step (lnth Qs (d - 1)) (lnth Qs d)"
                   by (metis (no_types, lifting) One_nat_def add_diff_inverse_nat
                       bot_nat_0.extremum_unique chain chain_lnth_rel d_ge d_ne_i' dm1_bounds(2)
                       enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
@@ -346,26 +346,26 @@ proof unfold_locales
 
                   note at_d = this(1)
 
-                  have c_in: "C |\<in>| fset_of_list (lnth Ps (d - 1))"
+                  have c_in: "C |\<in>| fset_of_list (lnth Qs (d - 1))"
                     by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
                   hence "C \<notin> set (drop (k + 1 - l)
                     (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
-                       (lnth Ps (d - 1))))"
+                       (lnth Qs (d - 1))))"
                   proof -
                     have "set (drop (k + 1 - l)
                         (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
-                           (lnth Ps (d - 1)))) \<subseteq>
-                      set (drop (k + 1 - l) (lnth Ps (d - 1) @ removeAll C Ds))"
+                           (lnth Qs (d - 1)))) \<subseteq>
+                      set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll C Ds))"
                       using set_drop_fold_maybe_append_singleton .
-                    have "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1)))"
+                    have "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
                       using ih_dm1 by blast
-                    hence "C \<notin> set (drop (k + 1 - l) (lnth Ps (d - 1) @ removeAll C Ds))"
+                    hence "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll C Ds))"
                       using set_drop_append_subseteq by force
                     thus ?thesis
                       using set_drop_fold_maybe_append_singleton by force
                   qed
                   hence "C \<notin> set (drop (k + 1 - l)
-                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Ds (lnth Ps (d - 1))))"
+                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Ds (lnth Qs (d - 1))))"
                     using c_in fold_maybe_append_removeAll
                     by (metis (mono_tags, lifting) fset_of_list_elem)
                   thus ?thesis
@@ -383,19 +383,19 @@ proof unfold_locales
 
         have "Suc i'' > i"
           using i''_ge i'_ge by linarith
-        moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Ps (Suc i'')))"
+        moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Qs (Suc i'')))"
           using sel_step
         proof cases
           case select_queue_stepI
           note at_si'' = this(1) and at_i''_nemp = this(2)
 
-          have at_i''_nnil: "lnth Ps i'' \<noteq> []"
+          have at_i''_nnil: "lnth Qs i'' \<noteq> []"
             using at_i''_nemp by auto
 
-          have dist_i'': "distinct (lnth Ps i'')"
+          have dist_i'': "distinct (lnth Qs i'')"
             by (simp add: chain_queue_step_preserves_distinct hd_emp chain ps_inf)
 
-          have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Ps i''))"
+          have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Qs i''))"
             using c_ni_i'_i'' i''_ge by blast
 
           show ?thesis
@@ -412,7 +412,7 @@ proof unfold_locales
     qed
     then obtain i' :: nat where
       "i' \<ge> i"
-      "C \<notin> set (lnth Ps i')"
+      "C \<notin> set (lnth Qs i')"
       by fastforce
     then show False
       using c_in' by auto
