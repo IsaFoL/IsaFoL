@@ -13,17 +13,6 @@ theory Fair_Zipperposition_Loop
 begin
 
 
-lemma fooxxx:
-  assumes "\<forall>x. P x \<longrightarrow> Q x"
-  shows "{f x |x. P x} \<subseteq> {f x |x. Q x}"
-  using assms
-  apply auto
-  sorry
-
-
-
-
-
 subsection \<open>Locale\<close>
 
 type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'f inference set \<times> 'p \<times> 'f option \<times> 'f fset"
@@ -218,7 +207,7 @@ proof cases
     have sub: "t_llists T - {#LCons \<iota>0 \<iota>s'#} \<subseteq># t_llists T"
       by simp
     have sub': "{lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}} \<subseteq> ?II"
-      by (rule fooxxx) (use sub in \<open>meson in_diffD\<close>)
+      by (rule Collect_mono) (use sub in \<open>metis in_diffD\<close>)
     show ?thesis
       using Union_mono[OF sub'] by blast
   qed
@@ -232,11 +221,7 @@ proof cases
       by blast
   qed
   finally show ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps
-    apply simp
-    unfolding lists_t'
-    apply simp
-    by simp
+    using inv unfolding defs fair_ZL_invariant.simps by (simp add: lists_t')
 next
   case (schedule_infer \<iota>ss A C T D P)
 (*
