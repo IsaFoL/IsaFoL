@@ -389,17 +389,19 @@ lemma fair_ZL_step_imp_ZL_step:
   shows "zl_fstate (T, D, P, Y, A) \<leadsto>ZL zl_fstate (T', D', P', Y', A')"
   using zlf
 proof cases
-  case (compute_infer \<iota>0 \<iota>s C)
-  note defs = this(1-6) and t_nemp = this(7) and sel = this(8) and \<iota>_red = this(9)
-  have todo_min_\<iota>_uni_\<iota>: "todo.elems T - {LCons \<iota>0 \<iota>s} \<union> {LCons \<iota>0 \<iota>s} = todo.elems T"
-    by (metis Un_Diff_cancel Un_commute sel t_nemp todo.add_again todo.elems_add
-        todo.select_in_felems)
+  case (compute_infer \<iota>0 C)
+  note defs = this(1-5) and has_el = this(6) and pick = this(7) and \<iota>_red = this(8)
+
+  obtain \<iota>s' where
+    \<iota>0\<iota>s'_in: "LCons \<iota>0 \<iota>s' \<in># t_llists T" and
+    lists_t': "t_llists T' = t_llists T - {#LCons \<iota>0 \<iota>s'#} + {#\<iota>s'#}"
+    using todo.llists_pick_elem[OF has_el] pick by auto
 
   show ?thesis
-    unfolding defs zl_fstate_alt_def sel prod.sel option.set
-    using ZL.compute_infer[OF \<iota>_red, of "todo.elems T - {LCons \<iota>0 \<iota>s}" \<iota>s D "passive.elems P"]
-    by (metis (no_types) todo_min_\<iota>_uni_\<iota> Un_commute passive.elems_add todo.elems_add
-        todo.elems_remove)
+    unfolding defs zl_fstate_alt_def prod.sel option.set lists_t'
+    using ZL.compute_infer[OF \<iota>_red, of "t_llists T - {#LCons \<iota>0 \<iota>s'#}" \<iota>s' D "passive.elems P"]
+      \<iota>0\<iota>s'_in
+    by auto
 next
   case choose_p
   note defs = this(1-6) and p_nemp = this(7)
