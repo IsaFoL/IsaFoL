@@ -756,26 +756,9 @@ lemma fair_ZL_Liminf_todo_empty:
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_fair_ZL_state (lhd Sts)"
-  shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (todo.elems (todo_of St)) - done_of St) Sts) =
+  shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts) =
     {}"
 proof -
-  define Ts where
-    ts: "Ts = LCons t_empty (lmap todo_of Sts)"
-
-  have chain_step: "chain todo.queue_step Ts"
-    sorry
-
-  have inf_oft: "infinitely_often todo.select_queue_step Ts"
-    sorry
-
-  have hd: "lhd Ts = t_empty"
-    unfolding ts by simp
-
-  have "Liminf_llist (lmap todo.elems Ts) = {}"
-    by (rule todo.fair[OF chain_step inf_oft hd])
-
-  (* rest goes here *)
-
   show ?thesis
     sorry
 qed
@@ -858,11 +841,12 @@ proof -
     t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
   obtain \<iota>ss :: "'f inference llist list" where
-    hd: "lhd Sts = (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})" and
-    infs: "flat_inferences_of (set \<iota>ss) = {\<iota> \<in> Inf_F. prems_of \<iota> = []}"
+    hd: "lhd Sts = (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})" and
+    infs: "flat_inferences_of (mset \<iota>ss) = {\<iota> \<in> Inf_F. prems_of \<iota> = []}"
     using init[unfolded is_initial_fair_ZL_state.simps no_labels.Inf_from_empty] by blast
 
-  have hd': "lhd (lmap zl_fstate Sts) = zl_fstate (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})"
+  have hd': "lhd (lmap zl_fstate Sts) =
+    zl_fstate (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})"
     using hd by (simp add: lhd_lmap)
 
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
