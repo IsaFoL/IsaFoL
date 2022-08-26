@@ -38,7 +38,7 @@ abbreviation has_elem :: "'q \<Rightarrow> bool" where
 inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
   lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist ess Q)"
 | lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist ess Q)"
-| lqueue_step_pick_elemI: "lqueue_step Q (snd (pick_elem Q))"
+| lqueue_step_pick_elemI: "has_elem Q \<Longrightarrow> lqueue_step Q (snd (pick_elem Q))"
 
 lemma lqueue_step_idleI: "lqueue_step Q Q"
   using lqueue_step_fold_add_llistI[of _ "[]", simplified] .

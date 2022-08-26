@@ -743,16 +743,13 @@ lemma ZLf_step_imp_todo_queue_step:
   using assms
 proof cases
   case (compute_infer T \<iota>0 T' A C D P)
-  note defs = this(1,2)
+  note defs = this(1,2) and has_el = this(3) and pick = this(4)
+  have t': "T' = snd (t_pick_elem T)"
+    using pick by simp
   show ?thesis
-    unfolding defs prod.sel
-    sorry
+    unfolding defs prod.sel t' using todo.lqueue_step_pick_elemI[OF has_el] .
 qed (auto intro: todo.lqueue_step_idleI todo.lqueue_step_fold_add_llistI
   todo.lqueue_step_remove_llistI)
-
-(*(auto intro: todo.lqueue_step_idleI todo.lqueue_step_fold_addI todo.queue_step_addI
-    todo.queue_step_removeI)
-*)
 
 lemma fair_ZL_Liminf_todo_empty:
   assumes
