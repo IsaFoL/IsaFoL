@@ -15,7 +15,7 @@ begin
 
 subsection \<open>Locales\<close>
 
-locale prover_llist_queue =
+locale prover_lqueue =
   fixes
     empty :: 'q and
     add_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
@@ -31,5 +31,36 @@ locale prover_llist_queue =
         \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
 begin
 
+inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
+  lqueue_step_fold_addI: "lqueue_step Q (fold add_llist Cs Q)"
+| lqueue_step_fold_removeI: "lqueue_step Q (fold remove_llist Cs Q)"
+| queue_step_pick_elemI: "lqueue_step Q (snd (pick_elem Q))"
+
+lemma lqueue_step_idleI: "lqueue_step Q Q"
+  using lqueue_step_fold_addI[of _ "[]", simplified] .
+
+inductive pick_lqueue_step_aux :: "'q \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<Rightarrow> bool" where
+  pick_lqueue_step_auxI: "LCons e es \<in># llists Q \<Longrightarrow>
+    fst (pick_elem Q) = e \<Longrightarrow>
+    llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#} \<Longrightarrow>
+    pick_lqueue_step_aux Q e es (snd (pick_elem Q))"
+
+inductive pick_lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
+  "pick_lqueue_step_aux Q e es Q' \<Longrightarrow> pick_lqueue_step Q Q'"
+
+end
+
+locale fair_prover_lqueue = prover_lqueue empty add_llist remove_llist pick_elem llists
+  for
+    empty :: 'q and
+    add_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
+    remove_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
+    pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
+    llists :: "'q \<Rightarrow> 'e llist multiset" +
+  assumes fair: "chain lqueue_step Qs \<Longrightarrow> infinitely_often pick_lqueue_step Qs \<Longrightarrow>
+    enat i < llength Qs \<Longrightarrow> LCons e es \<in># llists (lnth Qs i) \<Longrightarrow>
+    \<exists>j \<ge> i. enat (Suc j) < llength Qs \<and> pick_lqueue_step_aux (lnth Qs j) e es (lnth Qs (Suc j))"
+begin
+end
 
 end
