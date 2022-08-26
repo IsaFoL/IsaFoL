@@ -85,7 +85,7 @@ fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
 | "pick_elem (LNil # ess) =
    (let (e, ess') = pick_elem ess in
       (e, ess' @ [LNil]))"
-| "pick_elem (LCons e es # ess) = (e, es # ess)"
+| "pick_elem (LCons e es # ess) = (e, ess @ [es])"
 
 sublocale prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
 proof
