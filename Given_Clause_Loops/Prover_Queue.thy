@@ -201,22 +201,17 @@ lemma elems_fold_remove[simp]: "elems (fold remove Cs P) = elems P - set Cs"
   by (induct Cs arbitrary: P) auto
 
 inductive queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
-  queue_stepI: "queue_step P (fold remove Ds (fold add Cs P))"
+  queue_step_fold_addI: "queue_step P (fold add Cs P)"
+| queue_step_fold_removeI: "queue_step P (fold remove Cs P)"
 
 lemma queue_step_idleI: "queue_step P P"
-  using queue_stepI[of _ "[]" "[]", simplified] .
+  using queue_step_fold_addI[of _ "[]", simplified] .
 
 lemma queue_step_addI: "queue_step P (add C P)"
-  using queue_stepI[of _ "[]" "[C]", simplified] .
+  using queue_step_fold_addI[of _ "[C]", simplified] .
 
 lemma queue_step_removeI: "queue_step P (remove C P)"
-  using queue_stepI[of _ "[C]" "[]", simplified] .
-
-lemma queue_step_fold_addI: "queue_step P (fold add Cs P)"
-  using queue_stepI[of _ "[]" Cs, simplified] .
-
-lemma queue_step_fold_removeI: "queue_step P (fold remove Cs P)"
-  using queue_stepI[of _ Cs "[]", simplified] .
+  using queue_step_fold_removeI[of _ "[C]", simplified] .
 
 inductive select_queue_step :: "'p \<Rightarrow> 'p \<Rightarrow> bool" where
   select_queue_stepI: "P \<noteq> empty \<Longrightarrow> select_queue_step P (remove (select P) P)"
@@ -272,10 +267,10 @@ lemma queue_step_preserves_distinct:
   shows "distinct P'"
   using step
 proof cases
-  case (queue_stepI Ds Cs)
+  case (queue_step_fold_addI Cs)
   note p' = this(1)
-
-  have "distinct (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P)"
+  show ?thesis
+    unfolding p'
     using dist
   proof (induct Cs arbitrary: P)
     case Nil
@@ -298,10 +293,11 @@ proof cases
         using c_ni using ih[OF dist_pc] by simp
     qed
   qed
-  hence "distinct (fold removeAll Ds (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Cs P))"
-    by (rule distinct_fold_removeAll)
-  thus ?thesis
-    unfolding p' .
+next
+  case (queue_step_fold_removeI Cs)
+  note p' = this(1)
+  show ?thesis
+    unfolding p' using dist by (simp add: distinct_fold_removeAll)
 qed
 
 lemma chain_queue_step_preserves_distinct:
@@ -444,7 +440,8 @@ proof unfold_locales
                       enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
-                  case (queue_stepI Es Ds)
+                  case (queue_step_fold_addI Ds)
+
                   note at_d = this(1)
 
                   have c_in: "C |\<in>| fset_of_list (lnth Ps (d - 1))"
@@ -470,7 +467,12 @@ proof unfold_locales
                     using c_in fold_maybe_append_removeAll
                     by (metis (mono_tags, lifting) fset_of_list_elem)
                   thus ?thesis
-                    unfolding at_d using set_drop_fold_removeAll by fastforce
+                    unfolding at_d by fastforce
+                next
+                  case (queue_step_fold_removeI Ds)
+                  note at_d = this(1)
+                  show ?thesis
+                    unfolding at_d using ih_dm1 set_drop_fold_removeAll by fastforce
                 qed
               qed
             qed
