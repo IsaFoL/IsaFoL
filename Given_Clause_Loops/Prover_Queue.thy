@@ -72,7 +72,7 @@ locale prover_queue =
     felems :: "'q \<Rightarrow> 'e fset"
   assumes
     felems_empty[simp]: "felems empty = {||}" and
-    felems_not_empty[simp]: "Q \<noteq> empty \<Longrightarrow> felems Q \<noteq> {||}" and
+    felems_not_empty: "Q \<noteq> empty \<Longrightarrow> felems Q \<noteq> {||}" and
     select_in_felems[simp]: "Q \<noteq> empty \<Longrightarrow> select Q |\<in>| felems Q" and
     felems_add[simp]: "felems (add C Q) = {|C|} |\<union>| felems Q" and
     felems_remove[simp]: "felems (remove C Q) = felems Q |-| {|C|}" and

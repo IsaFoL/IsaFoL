@@ -19,24 +19,16 @@ locale prover_llist_queue =
   fixes
     empty :: 'q and
     add_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
-    pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
+    pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and (* FIXME *)
     remove_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
     llists :: "'q \<Rightarrow> 'e llist multiset"
   assumes
     llists_empty[simp]: "llists empty = {#}" and
-    llists_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
+    llists_not_empty: "Q \<noteq> empty \<Longrightarrow> llists Q \<noteq> {#}" and
+    llists_add[simp]: "llists (add_llist es Q) = llists Q + {#es#}"
 (*
-  fixes
-    empty :: "'p" and
-    select :: "'p \<Rightarrow> 'f" and
-    add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
-    felems :: "'p \<Rightarrow> 'f fset"
-  assumes
-    felems_empty[simp]: "felems empty = {||}" and
-    felems_not_empty[simp]: "P \<noteq> empty \<Longrightarrow> felems P \<noteq> {||}" and
+    pick_elem
     select_in_felems[simp]: "P \<noteq> empty \<Longrightarrow> select P |\<in>| felems P" and
-    felems_add[simp]: "felems (add C P) = {|C|} |\<union>| felems P" and
     felems_remove[simp]: "felems (remove C P) = felems P |-| {|C|}" and
     add_again: "C |\<in>| felems P \<Longrightarrow> add C P = P"
 *)
