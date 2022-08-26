@@ -13,6 +13,17 @@ theory Fair_Zipperposition_Loop
 begin
 
 
+lemma fooxxx:
+  assumes "\<forall>x. P x \<longrightarrow> Q x"
+  shows "{f x |x. P x} \<subseteq> {f x |x. Q x}"
+  using assms
+  apply auto
+  sorry
+
+
+
+
+
 subsection \<open>Locale\<close>
 
 type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'f inference set \<times> 'p \<times> 'f option \<times> 'f fset"
@@ -188,16 +199,44 @@ proof cases
   have t': "T' = snd (t_pick_elem T)"
     using pick by simp
 
-  obtain e es where
-   ees_in: "LCons e es \<in># t_llists T" and
-   lists_t': "t_llists T' = t_llists T - {#LCons e es#} + {#es#}"
-    using todo.llists_pick_elem[OF ex_cons, folded t'] by blast
+  obtain \<iota>s' where
+    \<iota>0\<iota>s'_in: "LCons \<iota>0 \<iota>s' \<in># t_llists T" and
+    lists_t': "t_llists T' = t_llists T - {#LCons \<iota>0 \<iota>s'#} + {#\<iota>s'#}"
+    using todo.llists_pick_elem[OF ex_cons, folded t'] pick by auto
 
-  have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T'} \<subseteq> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
+  let ?II = "{lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T}"
+  let ?I = "\<Union> ?II"
+
+  have "\<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#} + {#\<iota>s'#}} =
+    (\<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}}) \<union> lset \<iota>s'"
+    by auto
+  also have "... \<subseteq> (\<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}}) \<union> {\<iota>0} \<union> lset \<iota>s'"
     unfolding lists_t'
-    sorry
-  thus ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps by simp
+    by auto
+  also have "... \<subseteq> ?I \<union> {\<iota>0} \<union> lset \<iota>s'"
+  proof -
+    have sub: "t_llists T - {#LCons \<iota>0 \<iota>s'#} \<subseteq># t_llists T"
+      by simp
+    have sub': "{lset \<iota>s |\<iota>s. \<iota>s \<in># t_llists T - {#LCons \<iota>0 \<iota>s'#}} \<subseteq> ?II"
+      by (rule fooxxx) (use sub in \<open>meson in_diffD\<close>)
+    show ?thesis
+      using Union_mono[OF sub'] by blast
+  qed
+  also have "... \<subseteq> ?I"
+  proof -
+    have "\<iota>0 \<in> ?I"
+      using todo.llists_pick_elem[OF ex_cons, folded t'] pick by auto
+    moreover have "lset \<iota>s' \<subseteq> ?I"
+      using todo.llists_pick_elem[OF ex_cons, folded t'] pick \<iota>0\<iota>s'_in by auto
+    ultimately show ?thesis
+      by blast
+  qed
+  finally show ?thesis
+    using inv unfolding defs fair_ZL_invariant.simps
+    apply simp
+    unfolding lists_t'
+    apply simp
+    by simp
 next
   case (schedule_infer \<iota>ss A C T D P)
 (*
