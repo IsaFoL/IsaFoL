@@ -7,6 +7,7 @@ section \<open>Utilities for Given Clause Loops\<close>
 
 theory Given_Clause_Loops_Util
   imports
+    "HOL-Library.FSet"
     "HOL-Library.Multiset"
     Ordered_Resolution_Prover.Lazy_List_Chain
     Weighted_Path_Order.Multiset_Extension_Pair
@@ -16,6 +17,8 @@ begin
 hide_const (open) Seq.chain
 
 hide_fact (open) Abstract_Rewriting.chain_mono
+
+declare fset_of_list.rep_eq [simp]
 
 instance bool :: wellorder
 proof
@@ -78,6 +81,102 @@ next
     by (simp add: inf infinite_imp_nonempty count)
   thus ?thesis
     by blast
+qed
+
+lemma distinct_imp_notin_set_drop_Suc:
+  assumes
+    "distinct xs"
+    "i < length xs"
+    "xs ! i = x"
+  shows "x \<notin> set (drop (Suc i) xs)"
+  by (metis Cons_nth_drop_Suc assms distinct.simps(2) distinct_drop)
+
+lemma distinct_set_drop_removeAll_hd:
+  assumes
+    "distinct xs"
+    "xs \<noteq> []"
+  shows "set (drop n (removeAll (hd xs) xs)) = set (drop (Suc n) xs)"
+  using assms
+  by (metis distinct.simps(2) drop_Suc list.exhaust_sel removeAll.simps(2) removeAll_id)
+
+lemma set_drop_removeAll: "set (drop n (removeAll y xs)) \<subseteq> set (drop n xs)"
+proof (induct n arbitrary: xs)
+  case 0
+  then show ?case
+    by auto
+next
+  case (Suc n)
+  then show ?case
+  proof (cases xs)
+    case Nil
+    then show ?thesis
+      by auto
+  next
+    case (Cons x xs')
+    then show ?thesis
+      by (metis Suc Suc_n_not_le_n drop_Suc_Cons nat_le_linear removeAll.simps(2)
+          set_drop_subset_set_drop subset_code(1))
+  qed
+qed
+
+lemma set_drop_fold_removeAll: "set (drop k (fold removeAll ys xs)) \<subseteq> set (drop k xs)"
+proof (induct ys arbitrary: xs)
+  case (Cons y ys)
+  note ih = this(1)
+
+  have "set (drop k (fold removeAll ys (removeAll y xs))) \<subseteq> set (drop k (removeAll y xs))"
+    using ih[of "removeAll y xs"] .
+  also have "... \<subseteq> set (drop k xs)"
+    by (meson set_drop_removeAll)
+  finally show ?case
+    by simp
+qed simp
+
+lemma set_drop_append_subseteq: "set (drop n (xs @ ys)) \<subseteq> set (drop n xs) \<union> set ys"
+  by (metis drop_append set_append set_drop_subset sup.idem sup.orderI sup_mono)
+
+lemma distinct_fold_removeAll:
+  assumes dist: "distinct xs"
+  shows "distinct (fold removeAll ys xs)"
+  using dist
+proof (induct ys arbitrary: xs)
+  case Nil
+  then show ?case
+    using dist by simp
+next
+  case (Cons y ys)
+  note ih = this(1) and dist_xs = this(2)
+
+  have dist_yxs: "distinct (removeAll y xs)"
+    using dist_xs by (simp add: distinct_removeAll)
+
+  show ?case
+    by simp (rule ih[OF dist_yxs])
+qed
+
+lemma set_drop_append_cons: "set (drop n (xs @ ys)) \<subseteq> set (drop n (xs @ y # ys))"
+proof (induct n arbitrary: xs)
+  case 0
+  then show ?case
+    by auto
+next
+  case (Suc n)
+  note ih = this(1)
+
+  show ?case
+  proof (cases xs)
+    case Nil
+    then show ?thesis
+      using set_drop_subset_set_drop[of n "Suc n"] by force
+  next
+    case (Cons x xs')
+    note xs = this(1)
+
+    have "set (drop n (xs' @ ys)) \<subseteq> set (drop n (xs' @ y # ys))"
+      using ih .
+    thus ?thesis
+      unfolding xs by auto
+  qed
 qed
 
 end
