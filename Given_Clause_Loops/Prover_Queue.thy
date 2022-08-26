@@ -1,9 +1,9 @@
-(* Title:        Qrover Queue and Fairness
+(* Title:        Prover Queue and Fairness
    Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
    Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
-section \<open>Qrover Queues and Fairness\<close>
+section \<open>Prover Queues and Fairness\<close>
 
 text \<open>This section covers the passive set data structure that arises in
 different prover loops in the literature (e.g., DISCOUNT, Otter).\<close>
@@ -136,31 +136,16 @@ end
 subsection \<open>Instantiation with FIFO Queue\<close>
 
 text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
-passive set.\<close>
+prover queue.\<close>
 
 locale fifo_prover_queue
 begin
 
 sublocale prover_queue "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list
 proof
-  show "fset_of_list [] = {||}"
-    by (auto simp: fset_of_list_elem)
-next
   show "\<And>Q. Q \<noteq> [] \<Longrightarrow> fset_of_list Q \<noteq> {||}"
     by (metis fset_of_list.rep_eq fset_simps(1) set_empty)
-next
-  show "\<And>Q. Q \<noteq> [] \<Longrightarrow> hd Q |\<in>| fset_of_list Q"
-    by (metis fset_of_list_elem list.set_sel(1))
-next
-  show "\<And>C Q. fset_of_list (if C \<in> set Q then Q else Q @ [C]) = {|C|} |\<union>| fset_of_list Q"
-    by (auto simp: funion_commute fset_of_list_elem)
-next
-  show "\<And>C Q. fset_of_list (removeAll C Q) = fset_of_list Q |-| {|C|}"
-    by (auto simp: fset_of_list_elem)
-next
-  show "\<And>C Q. C |\<in>| fset_of_list Q \<Longrightarrow> (if C \<in> set Q then Q else Q @ [C]) = Q"
-    by (auto simp: fset_of_list_elem)
-qed
+qed (auto simp: fset_of_list_elem)
 
 lemma queue_step_preserves_distinct:
   assumes
