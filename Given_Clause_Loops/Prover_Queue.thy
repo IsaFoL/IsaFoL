@@ -74,9 +74,9 @@ locale prover_queue =
     felems_empty[simp]: "felems empty = {||}" and
     felems_not_empty: "Q \<noteq> empty \<Longrightarrow> felems Q \<noteq> {||}" and
     select_in_felems[simp]: "Q \<noteq> empty \<Longrightarrow> select Q |\<in>| felems Q" and
-    felems_add[simp]: "felems (add C Q) = {|C|} |\<union>| felems Q" and
-    felems_remove[simp]: "felems (remove C Q) = felems Q |-| {|C|}" and
-    add_again: "C |\<in>| felems Q \<Longrightarrow> add C Q = Q"
+    felems_add[simp]: "felems (add e Q) = {|e|} |\<union>| felems Q" and
+    felems_remove[simp]: "felems (remove e Q) = felems Q |-| {|e|}" and
+    add_again: "e |\<in>| felems Q \<Longrightarrow> add e Q = Q"
 begin
 
 abbreviation elems :: "'q \<Rightarrow> 'e set" where
@@ -92,28 +92,28 @@ lemma select_in_elems[simp]: "Q \<noteq> empty \<Longrightarrow> select Q \<in> 
   by (metis fmember.rep_eq select_in_felems)
 
 lemma
-  elems_add: "elems (add C Q) = {C} \<union> elems Q" and
-  elems_remove: "elems (remove C Q) = elems Q - {C}"
+  elems_add: "elems (add e Q) = {e} \<union> elems Q" and
+  elems_remove: "elems (remove e Q) = elems Q - {e}"
   by simp+
 
-lemma elems_fold_add[simp]: "elems (fold add Cs Q) = set Cs \<union> elems Q"
-  by (induct Cs arbitrary: Q) auto
+lemma elems_fold_add[simp]: "elems (fold add es Q) = set es \<union> elems Q"
+  by (induct es arbitrary: Q) auto
 
-lemma elems_fold_remove[simp]: "elems (fold remove Cs Q) = elems Q - set Cs"
-  by (induct Cs arbitrary: Q) auto
+lemma elems_fold_remove[simp]: "elems (fold remove es Q) = elems Q - set es"
+  by (induct es arbitrary: Q) auto
 
 inductive queue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
-  queue_step_fold_addI: "queue_step Q (fold add Cs Q)"
-| queue_step_fold_removeI: "queue_step Q (fold remove Cs Q)"
+  queue_step_fold_addI: "queue_step Q (fold add es Q)"
+| queue_step_fold_removeI: "queue_step Q (fold remove es Q)"
 
 lemma queue_step_idleI: "queue_step Q Q"
   using queue_step_fold_addI[of _ "[]", simplified] .
 
-lemma queue_step_addI: "queue_step Q (add C Q)"
-  using queue_step_fold_addI[of _ "[C]", simplified] .
+lemma queue_step_addI: "queue_step Q (add e Q)"
+  using queue_step_fold_addI[of _ "[e]", simplified] .
 
-lemma queue_step_removeI: "queue_step Q (remove C Q)"
-  using queue_step_fold_removeI[of _ "[C]", simplified] .
+lemma queue_step_removeI: "queue_step Q (remove e Q)"
+  using queue_step_fold_removeI[of _ "[e]", simplified] .
 
 inductive select_queue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
   select_queue_stepI: "Q \<noteq> empty \<Longrightarrow> select_queue_step Q (remove (select Q) Q)"
@@ -154,34 +154,34 @@ lemma queue_step_preserves_distinct:
   shows "distinct Q'"
   using step
 proof cases
-  case (queue_step_fold_addI Cs)
+  case (queue_step_fold_addI es)
   note p' = this(1)
   show ?thesis
     unfolding p'
     using dist
-  proof (induct Cs arbitrary: Q)
+  proof (induct es arbitrary: Q)
     case Nil
     then show ?case
       using dist by auto
   next
-    case (Cons C Cs)
+    case (Cons e es)
     note ih = this(1) and dist_p = this(2)
 
     show ?case
-    proof (cases "C \<in> set Q")
+    proof (cases "e \<in> set Q")
       case True
       then show ?thesis
         using ih[OF dist_p] by simp
     next
       case c_ni: False
-      have dist_pc: "distinct (Q @ [C])"
+      have dist_pc: "distinct (Q @ [e])"
         using c_ni dist_p by auto
       show ?thesis
         using c_ni using ih[OF dist_pc] by simp
     qed
   qed
 next
-  case (queue_step_fold_removeI Cs)
+  case (queue_step_fold_removeI es)
   note p' = this(1)
   show ?thesis
     unfolding p' using dist by (simp add: distinct_fold_removeAll)
@@ -228,10 +228,10 @@ proof unfold_locales
       inter_nemp: "\<Inter> ((set \<circ> lnth Qs) ` {j. i \<le> j \<and> enat j < llength Qs}) \<noteq> {}"
       using lim_nemp unfolding Liminf_llist_def by auto
 
-    from inter_nemp obtain C :: 'e where
-      "\<forall>Q \<in> lnth Qs ` {j. i \<le> j \<and> enat j < llength Qs}. C \<in> set Q"
+    from inter_nemp obtain e :: 'e where
+      "\<forall>Q \<in> lnth Qs ` {j. i \<le> j \<and> enat j < llength Qs}. e \<in> set Q"
       by auto
-    hence c_in: "\<forall>j \<ge> i. enat j < llength Qs \<longrightarrow> C \<in> set (lnth Qs j)"
+    hence c_in: "\<forall>j \<ge> i. enat j < llength Qs \<longrightarrow> e \<in> set (lnth Qs j)"
       by auto
 
     have ps_inf: "llength Qs = \<infinity>"
@@ -246,22 +246,22 @@ proof unfold_locales
         by (metis Suc_lessD enat_ord_simps(2) less_le_not_le n)
     qed
 
-    have c_in': "\<forall>j \<ge> i. C \<in> set (lnth Qs j)"
+    have c_in': "\<forall>j \<ge> i. e \<in> set (lnth Qs j)"
       by (simp add: c_in ps_inf)
     then obtain k :: nat where
       k_lt: "k < length (lnth Qs i)" and
-      at_k: "lnth Qs i ! k = C"
+      at_k: "lnth Qs i ! k = e"
       by (meson in_set_conv_nth le_refl)
 
     have dist: "distinct (lnth Qs i)"
       by (simp add: chain_queue_step_preserves_distinct hd_emp i_lt chain)
 
-    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. C \<notin> set (drop k' (lnth Qs i'))"
+    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. e \<notin> set (drop k' (lnth Qs i'))"
     proof -
-      have "\<exists>i' \<ge> i. C \<notin> set (drop (k + 1 - l) (lnth Qs i'))" for l
+      have "\<exists>i' \<ge> i. e \<notin> set (drop (k + 1 - l) (lnth Qs i'))" for l
       proof (induct l)
         case 0
-        have "C \<notin> set (drop (k + 1) (lnth Qs i))"
+        have "e \<notin> set (drop (k + 1) (lnth Qs i))"
           by (simp add: at_k dist distinct_imp_notin_set_drop_Suc k_lt)
         then show ?case
           by auto
@@ -269,7 +269,7 @@ proof unfold_locales
         case (Suc l)
         then obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          c_ni_i': "C \<notin> set (drop (k + 1 - l) (lnth Qs i'))"
+          c_ni_i': "e \<notin> set (drop (k + 1 - l) (lnth Qs i'))"
           by blast
 
         obtain i'' :: nat where
@@ -278,7 +278,7 @@ proof unfold_locales
           sel_step: "select_queue_step (lnth Qs i'') (lnth Qs (Suc i''))"
           using inf_sel[unfolded infinitely_often_alt_def] by blast
 
-        have c_ni_i'_i'': "C \<notin> set (drop (k + 1 - l) (lnth Qs j))"
+        have c_ni_i'_i'': "e \<notin> set (drop (k + 1 - l) (lnth Qs j))"
           if j_ge: "j \<ge> i'" and j_le: "j \<le> i''" for j
           using j_ge j_le
         proof (induct j rule: less_induct)
@@ -318,7 +318,7 @@ proof unfold_locales
                   "i' \<le> d - 1"
                   "d - 1 \<le> i''"
                   using d_ge d_le d_ne_i' by auto
-                have ih_dm1: "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
+                have ih_dm1: "e \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
                   by (rule ih[OF dm1_bounds])
 
                 have "queue_step (lnth Qs (d - 1)) (lnth Qs d)"
@@ -327,36 +327,36 @@ proof unfold_locales
                       enat_ord_code(4) le_less_Suc_eq nat_diff_split plus_1_eq_Suc ps_inf)
                 then show ?thesis
                 proof cases
-                  case (queue_step_fold_addI Ds)
+                  case (queue_step_fold_addI es)
 
                   note at_d = this(1)
 
-                  have c_in: "C |\<in>| fset_of_list (lnth Qs (d - 1))"
+                  have c_in: "e |\<in>| fset_of_list (lnth Qs (d - 1))"
                     by (meson c_in' dm1_bounds(2) fset_of_list_elem i'_ge order_trans)
-                  hence "C \<notin> set (drop (k + 1 - l)
-                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
+                  hence "e \<notin> set (drop (k + 1 - l)
+                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll e es)
                        (lnth Qs (d - 1))))"
                   proof -
                     have "set (drop (k + 1 - l)
-                        (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll C Ds)
+                        (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) (removeAll e es)
                            (lnth Qs (d - 1)))) \<subseteq>
-                      set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll C Ds))"
+                      set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll e es))"
                       using set_drop_fold_maybe_append_singleton .
-                    have "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
+                    have "e \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1)))"
                       using ih_dm1 by blast
-                    hence "C \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll C Ds))"
+                    hence "e \<notin> set (drop (k + 1 - l) (lnth Qs (d - 1) @ removeAll e es))"
                       using set_drop_append_subseteq by force
                     thus ?thesis
                       using set_drop_fold_maybe_append_singleton by force
                   qed
-                  hence "C \<notin> set (drop (k + 1 - l)
-                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) Ds (lnth Qs (d - 1))))"
+                  hence "e \<notin> set (drop (k + 1 - l)
+                    (fold (\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]) es (lnth Qs (d - 1))))"
                     using c_in fold_maybe_append_removeAll
                     by (metis (mono_tags, lifting) fset_of_list_elem)
                   thus ?thesis
                     unfolding at_d by fastforce
                 next
-                  case (queue_step_fold_removeI Ds)
+                  case (queue_step_fold_removeI es)
                   note at_d = this(1)
                   show ?thesis
                     unfolding at_d using ih_dm1 set_drop_fold_removeAll by fastforce
@@ -368,7 +368,7 @@ proof unfold_locales
 
         have "Suc i'' > i"
           using i''_ge i'_ge by linarith
-        moreover have "C \<notin> set (drop (k + 1 - Suc l) (lnth Qs (Suc i'')))"
+        moreover have "e \<notin> set (drop (k + 1 - Suc l) (lnth Qs (Suc i'')))"
           using sel_step
         proof cases
           case select_queue_stepI
@@ -380,7 +380,7 @@ proof unfold_locales
           have dist_i'': "distinct (lnth Qs i'')"
             by (simp add: chain_queue_step_preserves_distinct hd_emp chain ps_inf)
 
-          have c_ni_i'': "C \<notin> set (drop (k + 1 - l) (lnth Qs i''))"
+          have c_ni_i'': "e \<notin> set (drop (k + 1 - l) (lnth Qs i''))"
             using c_ni_i'_i'' i''_ge by blast
 
           show ?thesis
@@ -397,7 +397,7 @@ proof unfold_locales
     qed
     then obtain i' :: nat where
       "i' \<ge> i"
-      "C \<notin> set (lnth Qs i')"
+      "e \<notin> set (lnth Qs i')"
       by fastforce
     then show False
       using c_in' by auto

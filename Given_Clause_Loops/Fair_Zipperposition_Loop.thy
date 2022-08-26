@@ -153,11 +153,11 @@ where
 subsection \<open>Initial State and Invariant\<close>
 
 inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
-  "flat_inferences_of (set \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_state (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})"
+  "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
+   is_initial_fair_ZL_state (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})"
 
 inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
-  "flat_inferences_of (todo.elems T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, D, P, Y, A)"
+  "flat_inferences_of (t_llists T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, D, P, Y, A)"
 
 lemma initial_fair_ZL_invariant:
   assumes "is_initial_fair_ZL_state St"
@@ -166,13 +166,13 @@ lemma initial_fair_ZL_invariant:
 proof
   fix \<iota>ss
   assume
-    st: "St = (fold t_add \<iota>ss t_empty, {}, p_empty, None, {||})" and
-    \<iota>ss: "flat_inferences_of (set \<iota>ss) = no_labels.Inf_from {}"
+    st: "St = (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})" and
+    \<iota>ss: "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {}"
 
-  have "flat_inferences_of (todo.elems (fold t_add \<iota>ss t_empty)) \<subseteq> Inf_F"
+  have "flat_inferences_of (t_llists (fold t_add_llist \<iota>ss t_empty)) \<subseteq> Inf_F"
     using \<iota>ss no_labels.Inf_if_Inf_from by force
   thus "fair_ZL_invariant St"
-    unfolding st by (rule fair_ZL_invariant.intros)
+    unfolding st using fair_ZL_invariant.intros by blast
 qed
 
 lemma step_fair_ZL_invariant:
@@ -182,27 +182,37 @@ lemma step_fair_ZL_invariant:
   shows "fair_ZL_invariant St'"
   using step inv
 proof cases
-  case (compute_infer T \<iota>0 \<iota>s A C D P)
-  note defs = this(1,2) and t'_ne = this(3) and sel = this(4)
+  case (compute_infer T \<iota>0 T' A C D P)
+  note defs = this(1,2) and ex_cons = this(3) and pick = this(4)
 
-  have "flat_inferences_of (todo.elems (t_add \<iota>s (t_remove (t_select T) T))) \<subseteq>
-    flat_inferences_of (todo.elems (t_add \<iota>s T))"
-    by auto
-  also have "... \<subseteq> flat_inferences_of (todo.elems T)"
-    by (metis (no_types) Un_iff distrib_flat_inferences_of_wrt_union flat_inferences_of_LCons sel
-        subsetI t'_ne todo.add_again todo.elems_add todo.select_in_felems)
-  finally have "flat_inferences_of (todo.elems (t_add \<iota>s (t_remove (t_select T) T))) \<subseteq>
-    flat_inferences_of (todo.elems T)"
-    by auto
+  have t': "T' = snd (t_pick_elem T)"
+    using pick by simp
+
+  obtain e es where
+   ees_in: "LCons e es \<in># t_llists T" and
+   lists_t': "t_llists T' = t_llists T - {#LCons e es#} + {#es#}"
+    using todo.llists_pick_elem[OF ex_cons, folded t'] by blast
+
+  have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T'} \<subseteq> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
+    unfolding lists_t'
+    sorry
   thus ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps by force
+    using inv unfolding defs fair_ZL_invariant.simps by simp
 next
   case (schedule_infer \<iota>ss A C T D P)
+(*
   note defs = this(1,2) and \<iota>ss_inf_betw = this(3)
   have "flat_inferences_of (set \<iota>ss) \<subseteq> Inf_F"
     using \<iota>ss_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   thus ?thesis
     using inv distrib_flat_inferences_of_wrt_union unfolding defs fair_ZL_invariant.simps by auto
+*)
+  show ?thesis
+    sorry
+next
+  case (delete_orphan_infers \<iota>s T A D P Y)
+  show ?thesis
+    sorry
 qed (auto simp: fair_ZL_invariant.simps)
 
 lemma chain_fair_ZL_invariant_lnth:

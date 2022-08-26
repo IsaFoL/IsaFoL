@@ -33,12 +33,18 @@ locale prover_lazy_list_queue =
 begin
 
 inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
-  lqueue_step_fold_addI: "lqueue_step Q (fold add_llist Cs Q)"
-| lqueue_step_fold_removeI: "lqueue_step Q (fold remove_llist Cs Q)"
+  lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist Cs Q)"
+| lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist Cs Q)"
 | queue_step_pick_elemI: "lqueue_step Q (snd (pick_elem Q))"
 
 lemma lqueue_step_idleI: "lqueue_step Q Q"
-  using lqueue_step_fold_addI[of _ "[]", simplified] .
+  using lqueue_step_fold_add_llistI[of _ "[]", simplified] .
+
+lemma llists_fold_add_llist[simp]: "llists (fold add_llist es Q) = mset es + llists Q"
+  by (induct es arbitrary: Q) auto
+
+lemma llists_fold_remove_llist[simp]: "llists (fold remove_llist es Q) = llists Q - mset es"
+  by (induct es arbitrary: Q) auto
 
 inductive pick_lqueue_step_aux :: "'q \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<Rightarrow> bool" where
   pick_lqueue_step_auxI: "LCons e es \<in># llists Q \<Longrightarrow>
