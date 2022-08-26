@@ -76,15 +76,41 @@ begin
 
 fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
   "pick_elem [] = undefined"
-| "pick_elem (LNil # ess) = pick_elem ess"
+| "pick_elem (LNil # ess) =
+   (let (e, ess') = pick_elem ess in
+      (e, ess' @ [LNil]))"
 | "pick_elem (LCons e es # ess) = (e, es # ess)"
 
 sublocale prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
 proof
-  show "\<And>Q. \<exists>es. es \<noteq> LNil \<and> es \<in># mset Q \<Longrightarrow>
-    \<exists>e es. LCons e es \<in># mset Q \<and> fst (pick_elem Q) = e
+  fix Q :: "'e llist list"
+  assume ex_cons: "\<exists>es. es \<noteq> LNil \<and> es \<in># mset Q"
+  show "\<exists>e es. LCons e es \<in># mset Q \<and> fst (pick_elem Q) = e
       \<and> mset (snd (pick_elem Q)) = mset Q - {#LCons e es#} + {#es#}"
-    sorry
+    using ex_cons
+  proof (induct Q rule: pick_elem.induct)
+    case 1
+    note ex_cons = this(1)
+    have False
+      using ex_cons by simp
+    thus ?case
+      by blast
+  next
+    case (2 ess)
+    note ih = this(1) and ex_cons = this(2)
+
+    obtain e :: 'e and es :: "'e llist" where
+      "LCons e es \<in># mset ess" and
+      "fst (pick_elem ess) = e" and
+      "mset (snd (pick_elem ess)) = mset ess - {#LCons e es#} + {#es#}"
+      using ih ex_cons by auto
+    thus ?case
+      by (auto simp: case_prod_beta)
+  next
+    case (3 e es ess)
+    show ?case
+      using add_mset_diff_bothsides by auto
+  qed
 qed simp+
 
 end
