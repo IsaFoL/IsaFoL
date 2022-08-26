@@ -27,7 +27,7 @@ locale prover_lazy_list_queue =
     llists_not_empty: "Q \<noteq> empty \<Longrightarrow> llists Q \<noteq> {#}" and
     llists_add[simp]: "llists (add_llist es Q) = llists Q + {#es#}" and
     llist_remove[simp]: "llists (remove_llist es Q) = llists Q - {#es#}" and
-    llists_pick_elem: "(\<exists>es. es \<noteq> LNil \<and> es \<in># llists Q) \<Longrightarrow>
+    llists_pick_elem: "(\<exists>es \<in># llists Q. es \<noteq> LNil) \<Longrightarrow>
       \<exists>e es. LCons e es \<in># llists Q \<and> fst (pick_elem Q) = e
         \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
 begin

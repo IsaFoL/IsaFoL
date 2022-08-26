@@ -9,7 +9,7 @@ theory Fair_Zipperposition_Loop
   imports
     Given_Clause_Loops_Util
     Zipperposition_Loop
-    Prover_Queue
+    Prover_Lazy_List_Queue
 begin
 
 
@@ -19,7 +19,7 @@ type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'f inference set \<times>
 
 locale fair_zipperposition_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
-  todo: fair_prover_queue t_empty t_select t_add t_remove t_felems +
+  todo: fair_prover_lazy_list_queue t_empty t_add_llist t_remove_llist t_pick_elem t_llists +
   passive: fair_prover_queue p_empty p_select p_add p_remove p_felems
   for
     Bot_F :: "'f set" and
@@ -32,14 +32,14 @@ locale fair_zipperposition_loop =
     Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
-    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
-    t_empty :: "'t" and
-    t_select :: "'t \<Rightarrow> 'f inference llist" and
-    t_add :: "'f inference llist \<Rightarrow> 't \<Rightarrow> 't" and
-    t_remove :: "'f inference llist \<Rightarrow> 't \<Rightarrow> 't" and
-    t_felems :: "'t \<Rightarrow> 'f inference llist fset" and
-    p_empty :: "'p" and
+    Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) and
+    t_empty :: 't and
+    t_add_llist :: "'f inference llist \<Rightarrow> 't \<Rightarrow> 't" and
+    t_remove_llist :: "'f inference llist \<Rightarrow> 't \<Rightarrow> 't" and
+    t_pick_elem :: "'t \<Rightarrow> 'f inference \<times> 't" and
+    t_llists :: "'t \<Rightarrow> 'f inference llist multiset" and
+    p_empty :: 'p and
     p_select :: "'p \<Rightarrow> 'f" and
     p_add :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
     p_remove :: "'f \<Rightarrow> 'p \<Rightarrow> 'p" and
@@ -79,10 +79,10 @@ abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f set
   "all_formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
 
 fun zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
-  "zl_fstate (T, D, P, Y, A) = zl_state (todo.elems T, D, passive.elems P, set_option Y, fset A)"
+  "zl_fstate (T, D, P, Y, A) = zl_state (t_llists T, D, passive.elems P, set_option Y, fset A)"
 
 lemma zl_fstate_alt_def:
-  "zl_fstate St = zl_state (todo.elems (fst St), fst (snd St), passive.elems (fst (snd (snd St))),
+  "zl_fstate St = zl_state (t_llists (fst St), fst (snd St), passive.elems (fst (snd (snd St))),
      set_option (fst (snd (snd (snd St)))), fset (snd (snd (snd (snd St)))))"
   by (cases St) auto
 
@@ -117,9 +117,9 @@ inductive
   fair_ZL :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
   (infix "\<leadsto>ZLf" 50)
 where
-  compute_infer: "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow>
+  compute_infer: "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
     \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
-    (T, D, P, None, A) \<leadsto>ZLf (t_add \<iota>s (t_remove (t_select T) T), D \<union> {\<iota>0}, p_add C P, None, A)"
+    (T, D, P, None, A) \<leadsto>ZLf (T', D \<union> {\<iota>0}, p_add C P, None, A)"
 | choose_p: "P \<noteq> p_empty \<Longrightarrow>
     (T, D, P, None, A) \<leadsto>ZLf (T, D, p_remove (p_select P) P, Some (p_select P), A)"
 | delete_fwd: "C \<in> no_labels.Red_F (fset A) \<or> (\<exists>C' \<in> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
@@ -130,18 +130,18 @@ where
     (T, D, P, Some C, A |\<union>| {|C'|}) \<leadsto>ZLf (T, D, P, Some C, A)"
 | simplify_bwd: "C' |\<notin>| A \<Longrightarrow> C'' \<prec>S C' \<Longrightarrow> C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     (T, D, P, Some C, A |\<union>| {|C'|}) \<leadsto>ZLf (T, D, p_add C'' P, Some C, A)"
-| schedule_infer: "flat_inferences_of (set \<iota>ss) = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
+| schedule_infer: "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_between (fset A) {C} \<Longrightarrow>
     (T, D, P, Some C, A) \<leadsto>ZLf
-    (fold t_add \<iota>ss T, D - flat_inferences_of (set \<iota>ss), P, None, A |\<union>| {|C|})"
-| delete_orphan_infers: "\<iota>s \<in> todo.elems T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
-    (T, D, P, Y, A) \<leadsto>ZLf (t_remove \<iota>s T, D, P, Y, A)"
+    (fold t_add_llist \<iota>ss T, D - flat_inferences_of (mset \<iota>ss), P, None, A |\<union>| {|C|})"
+| delete_orphan_infers: "\<iota>s \<in># t_llists T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
+    (T, D, P, Y, A) \<leadsto>ZLf (t_remove_llist \<iota>s T, D, P, Y, A)"
 
 inductive
   compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
 where
-  "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow> \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
-   compute_infer_step (T, D, P, None, A)
-     (t_add \<iota>s (t_remove (t_select T) T), D \<union> {\<iota>0}, p_add C P, None, A)"
+  "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
+   \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
+   compute_infer_step (T, D, P, None, A) (T', D \<union> {\<iota>0}, p_add C P, None, A)"
 
 inductive
   choose_p_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
