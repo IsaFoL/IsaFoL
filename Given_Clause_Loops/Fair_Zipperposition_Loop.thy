@@ -478,14 +478,14 @@ definition \<mu>2 :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair
    \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None)
       \<and> (\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
          \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
-            \<and> fcard (t_felems (todo_of St')) < fcard (t_felems (todo_of St)))))"
+            \<and> size (t_llists (todo_of St')) < size (t_llists (todo_of St)))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
   let ?boolset = "{(b', b :: bool). b' < b}"
   let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
   let ?natset = "{(n', n :: nat). n' < n}"
-  let ?triple_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St, fcard (t_felems (todo_of St)))"
+  let ?triple_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St, size (t_llists (todo_of St)))"
 
   have wf_boolset: "wf ?boolset"
     by (rule Wellfounded.wellorder_class.wf)
@@ -587,8 +587,8 @@ next
 next
   case (delete_orphan_infers \<iota>s T A D P Y)
   note defs = this(1,2) and \<iota>s = this(3)
-  have "fcard (t_felems T |-| {|\<iota>s|}) < fcard (t_felems T)"
-    using \<iota>s by (meson fcard_fminus1_less notin_fset)
+  have "size (t_llists T - {#\<iota>s#}) < size (t_llists T)"
+    using \<iota>s by (simp add: size_Diff1_less)
   thus ?thesis
     unfolding defs \<mu>2_def by simp
 qed
@@ -739,16 +739,20 @@ qed
 
 lemma ZLf_step_imp_todo_queue_step:
   assumes "St \<leadsto>ZLf St'"
-  shows "todo.queue_step (todo_of St) (todo_of St')"
+  shows "todo.lqueue_step (todo_of St) (todo_of St')"
   using assms
 proof cases
-  case (compute_infer T \<iota>0 \<iota>s A C D P)
+  case (compute_infer T \<iota>0 T' A C D P)
   note defs = this(1,2)
   show ?thesis
     unfolding defs prod.sel
     sorry
-qed (auto intro: todo.queue_step_idleI todo.queue_step_fold_addI todo.queue_step_addI
+qed (auto intro: todo.lqueue_step_idleI todo.lqueue_step_fold_add_llistI
+  todo.lqueue_step_remove_llistI)
+
+(*(auto intro: todo.lqueue_step_idleI todo.lqueue_step_fold_addI todo.queue_step_addI
     todo.queue_step_removeI)
+*)
 
 lemma fair_ZL_Liminf_todo_empty:
   assumes

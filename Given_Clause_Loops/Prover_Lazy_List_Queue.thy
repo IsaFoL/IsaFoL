@@ -36,12 +36,18 @@ abbreviation has_elem :: "'q \<Rightarrow> bool" where
   "has_elem Q \<equiv> \<exists>es \<in># llists Q. es \<noteq> LNil"
 
 inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
-  lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist Cs Q)"
-| lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist Cs Q)"
-| queue_step_pick_elemI: "lqueue_step Q (snd (pick_elem Q))"
+  lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist ess Q)"
+| lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist ess Q)"
+| lqueue_step_pick_elemI: "lqueue_step Q (snd (pick_elem Q))"
 
 lemma lqueue_step_idleI: "lqueue_step Q Q"
   using lqueue_step_fold_add_llistI[of _ "[]", simplified] .
+
+lemma lqueue_step_add_llistI: "lqueue_step Q (add_llist es Q)"
+  using lqueue_step_fold_add_llistI[of _ "[es]", simplified] .
+
+lemma lqueue_step_remove_llistI: "lqueue_step Q (remove_llist es Q)"
+  using lqueue_step_fold_remove_llistI[of _ "[es]", simplified] .
 
 lemma llists_fold_add_llist[simp]: "llists (fold add_llist es Q) = mset es + llists Q"
   by (induct es arbitrary: Q) auto
