@@ -759,7 +759,22 @@ lemma fair_ZL_Liminf_todo_empty:
   shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts) =
     {}"
 proof -
-  show ?thesis
+  let ?Is = "lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
+
+  {
+    fix i \<iota>
+    assume
+      i_lt: "enat i < llength Sts" and
+      \<iota>_in: "\<iota> \<in> lnth ?Is i"
+
+    thm todo.fair
+
+    have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth ?Is j"
+      sorry
+  }
+  thus ?thesis
+    unfolding Liminf_llist_def
+    apply simp
     sorry
 qed
 
