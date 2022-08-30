@@ -147,22 +147,72 @@ primcorec
   witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
     ('t, 'p, 'f) fair_ZL_state llist"
 where
-  "witness_w_ghosts prev_St0 Sts =
+  "witness_w_ghosts next_St0 Sts =
    (case Sts of
      LNil \<Rightarrow> LNil
    | LCons St Sts' \<Rightarrow>
-     let curr_St = (SOME St0. St = wo_ghosts_of St0 \<and> prev_St0 \<leadsto>ZLf St0) in
-       LCons curr_St (witness_w_ghosts curr_St Sts'))"
+     LCons next_St0 (witness_w_ghosts
+       (SOME St0. St = wo_ghosts_of St0 \<and> next_St0 \<leadsto>ZLf St0) Sts'))"
+
+lemma
+  "witness_w_ghosts next_St0 LNil = LNil"
+  sorry
+
+lemma
+  assumes "wo_ghosts_of next_St0 \<leadsto>ZLfw St"
+  shows
+    "\<exists>St0. St = wo_ghosts_of St0 \<and> next_St0 \<leadsto>ZLf St0 \<and>
+       witness_w_ghosts next_St0 (LCons St Sts') =
+       LCons next_St0 (witness_w_ghosts St0 Sts')"
+  sorry (* use Hilbert choice here, avoid it elsewhere *)
 
 lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   assumes chain: "chain (\<leadsto>ZLfw) Sts"
   shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
 proof -
-  define St0 :: "('t, 'p, 'f) fair_ZL_state" where
-    "St0 = (todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
+  let ?St0 = "(todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
+  let ?Sts0 = "witness_w_ghosts ?St0 Sts"
 
-  define Sts0 where
-    sts0: "Sts0 = LCons St0 (witness_w_ghosts St0 (ltl Sts))"
+  show ?thesis
+  proof (rule exI[of _ ?Sts0], intro conjI)
+    {
+      have "Sts = Sts'" if "Sts' = lmap wo_ghosts_of ?Sts0" for Sts'
+        using that
+        apply (coinduct rule: llist.coinduct)
+        apply clarsimp
+      proof (intro conjI)
+        fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
+        assume "\<not> lnull Sts"
+        show "lhd Sts = wo_ghosts_of (case Sts of
+          LCons St Sts' \<Rightarrow> (local.todo_of (lhd Sts), {}, snd (lhd Sts)))"
+          sorry
+      next
+        fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
+        assume "\<not> lnull Sts"
+        show "lmap wo_ghosts_of (case Sts of LCons St Sts' \<Rightarrow>
+            witness_w_ghosts (SOME St0. St = wo_ghosts_of St0
+              \<and> (local.todo_of (lhd Sts), {}, snd (lhd Sts)) \<leadsto>ZLf St0) Sts') =
+          lmap wo_ghosts_of (witness_w_ghosts (local.todo_of (lhd (ltl Sts)), {},
+            snd (lhd (ltl Sts))) (ltl Sts))"
+          sorry
+      qed
+    }
+    show "Sts = lmap wo_ghosts_of ?Sts0"
+      sorry
+  next
+    define Sts0 where "Sts0 = ?Sts0"
+    then have "chain (\<leadsto>ZLf) Sts0"
+      apply (coinduct rule: chain.coinduct)
+      apply auto
+      sorry
+
+    show "chain (\<leadsto>ZLf) ?Sts0"
+      sorry
+  next
+    show "done_of (lhd ?Sts0) = {}"
+      (* easy *)
+      sorry
+  qed
 
 (*
 
