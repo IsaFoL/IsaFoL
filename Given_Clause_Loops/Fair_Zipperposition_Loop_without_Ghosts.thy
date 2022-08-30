@@ -147,24 +147,21 @@ primcorec
   witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
     ('t, 'p, 'f) fair_ZL_state llist"
 where
-  "witness_w_ghosts next_St0 Sts =
+  "witness_w_ghosts this_St0 Sts =
    (case Sts of
      LNil \<Rightarrow> LNil
    | LCons St Sts' \<Rightarrow>
-     LCons next_St0 (witness_w_ghosts
-       (SOME St0. St = wo_ghosts_of St0 \<and> next_St0 \<leadsto>ZLf St0) Sts'))"
+     LCons this_St0 (witness_w_ghosts
+       (SOME next_St0. St = wo_ghosts_of next_St0 \<and> this_St0 \<leadsto>ZLf next_St0) Sts'))"
 
-lemma
-  "witness_w_ghosts next_St0 LNil = LNil"
+lemma witness_w_ghosts_LCons:
+  assumes "\<not> lnull Sts"
+  shows "\<exists>next_St0. St = wo_ghosts_of next_St0 \<and> this_St0 \<leadsto>ZLf next_St0 \<and>
+    ltl (witness_w_ghosts this_St0 Sts) =
+    (case Sts of LCons St Sts' \<Rightarrow> witness_w_ghosts next_St0 Sts')"
   sorry
 
-lemma
-  assumes "wo_ghosts_of next_St0 \<leadsto>ZLfw St"
-  shows
-    "\<exists>St0. St = wo_ghosts_of St0 \<and> next_St0 \<leadsto>ZLf St0 \<and>
-       witness_w_ghosts next_St0 (LCons St Sts') =
-       LCons next_St0 (witness_w_ghosts St0 Sts')"
-  sorry (* use Hilbert choice here, avoid it elsewhere *)
+declare witness_w_ghosts.simps(4) [simp del]
 
 lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   assumes chain: "chain (\<leadsto>ZLfw) Sts"
@@ -192,18 +189,33 @@ proof -
       next
         fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
         assume nnul: "\<not> lnull Sts"
-        show "lmap wo_ghosts_of (case Sts of LCons St Sts' \<Rightarrow>
-            witness_w_ghosts (SOME St0. St = wo_ghosts_of St0
-              \<and> (local.todo_of (lhd Sts), {}, snd (lhd Sts)) \<leadsto>ZLf St0) Sts') =
+        show "lmap wo_ghosts_of (ltl (witness_w_ghosts (local.todo_of (lhd Sts), {},
+            snd (lhd Sts)) Sts)) =
           lmap wo_ghosts_of (witness_w_ghosts (local.todo_of (lhd (ltl Sts)), {},
             snd (lhd (ltl Sts))) (ltl Sts))"
         proof (cases Sts)
           case (LCons St Sts')
           note sts = this
-          show ?thesis
-            unfolding sts
-            apply simp
-            sorry
+
+          have "ltl (witness_w_ghosts (local.todo_of St, {}, snd St) Sts) =
+            witness_w_ghosts (local.todo_of (lhd Sts'), {}, snd (lhd Sts')) Sts'"
+            using witness_w_ghosts_LCons[of Sts St]
+          proof -
+            obtain next_St0 where
+              st: "St = wo_ghosts_of next_St0" and
+              step: "(local.todo_of St, {}, snd St) \<leadsto>ZLf next_St0" and
+              tl: "ltl (witness_w_ghosts (local.todo_of St, {}, snd St) Sts) =
+               (case Sts of LCons St Sts' \<Rightarrow> witness_w_ghosts next_St0 Sts')"
+              sorry
+            show ?thesis
+              apply (subst tl)
+              unfolding sts
+              apply auto
+
+              sorry
+          qed
+          thus ?thesis
+            unfolding sts by simp
         qed (use nnul in auto)
       qed
     }
