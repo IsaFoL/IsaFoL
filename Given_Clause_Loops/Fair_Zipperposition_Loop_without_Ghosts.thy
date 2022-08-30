@@ -147,12 +147,12 @@ primcorec
   witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
     ('t, 'p, 'f) fair_ZL_state llist"
 where
-  "witness_w_ghosts this_St0 Sts =
+  "witness_w_ghosts prev_St0 Sts =
    (case Sts of
      LNil \<Rightarrow> LNil
    | LCons St Sts' \<Rightarrow>
-     LCons this_St0 (witness_w_ghosts
-       (SOME next_St0. St = wo_ghosts_of next_St0 \<and> this_St0 \<leadsto>ZLf next_St0) Sts'))"
+     let curr_St = (SOME St0. St = wo_ghosts_of St0 \<and> prev_St0 \<leadsto>ZLf St0) in
+       LCons curr_St (witness_w_ghosts curr_St Sts'))"
 
 lemma witness_w_ghosts_LCons:
   assumes "\<not> lnull Sts"
@@ -168,7 +168,7 @@ lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
 proof -
   let ?St0 = "(todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
-  let ?Sts0 = "witness_w_ghosts ?St0 Sts"
+  let ?Sts0 = "LCons St0 (witness_w_ghosts St0 (ltl Sts))" (* FIXME HERE *)
 
   show ?thesis
   proof (rule exI[of _ ?Sts0], intro conjI)
