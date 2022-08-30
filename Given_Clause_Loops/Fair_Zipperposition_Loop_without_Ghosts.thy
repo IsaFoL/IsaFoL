@@ -178,23 +178,33 @@ proof -
     {
       have "Sts = Sts'" if "Sts' = lmap wo_ghosts_of ?Sts0" for Sts'
         using that
-        apply (coinduct rule: llist.coinduct)
-        apply clarsimp
-      proof (intro conjI)
+      proof (coinduct rule: llist.coinduct, clarsimp, intro conjI)
         fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
-        assume "\<not> lnull Sts"
+        assume nnul: "\<not> lnull Sts"
         show "lhd Sts = wo_ghosts_of (case Sts of
           LCons St Sts' \<Rightarrow> (local.todo_of (lhd Sts), {}, snd (lhd Sts)))"
-          sorry
+        proof (cases Sts)
+          case (LCons St Sts')
+          note sts = this
+          show ?thesis
+            unfolding sts by simp (metis prod.collapse wo_ghosts_of.simps)
+        qed (use nnul in auto)
       next
         fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
-        assume "\<not> lnull Sts"
+        assume nnul: "\<not> lnull Sts"
         show "lmap wo_ghosts_of (case Sts of LCons St Sts' \<Rightarrow>
             witness_w_ghosts (SOME St0. St = wo_ghosts_of St0
               \<and> (local.todo_of (lhd Sts), {}, snd (lhd Sts)) \<leadsto>ZLf St0) Sts') =
           lmap wo_ghosts_of (witness_w_ghosts (local.todo_of (lhd (ltl Sts)), {},
             snd (lhd (ltl Sts))) (ltl Sts))"
-          sorry
+        proof (cases Sts)
+          case (LCons St Sts')
+          note sts = this
+          show ?thesis
+            unfolding sts
+            apply simp
+            sorry
+        qed (use nnul in auto)
       qed
     }
     show "Sts = lmap wo_ghosts_of ?Sts0"
