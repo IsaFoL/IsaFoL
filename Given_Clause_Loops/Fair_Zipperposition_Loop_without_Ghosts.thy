@@ -131,54 +131,91 @@ locale bisim =
   fixes erase :: "'state0 \<Rightarrow> 'state"
   and R :: "'state \<Rightarrow> 'state \<Rightarrow> bool" (infix "\<leadsto>" 60)
   and R0 :: "'state0 \<Rightarrow> 'state0 \<Rightarrow> bool" (infix "\<leadsto>0" 60)
-  assumes simul: "\<And>st0 st'. erase st0 \<leadsto> st' \<Longrightarrow> \<exists>st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0'"
+  assumes simul: "\<And>St0 St'. erase St0 \<leadsto> St' \<Longrightarrow> \<exists>St0'. erase St0' = St' \<and> St0 \<leadsto>0 St0'"
 begin
 
 definition lift :: "'state0 \<Rightarrow> 'state \<Rightarrow> 'state0" where
-  "lift st0 st' = (SOME st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0')"
+  "lift St0 St' = (SOME St0'. erase St0' = St' \<and> St0 \<leadsto>0 St0')"
 
-lemma lift: "erase st0 \<leadsto> st' \<Longrightarrow> erase (lift st0 st') = st' \<and> st0 \<leadsto>0 lift st0 st'"
+lemma lift: "erase St0 \<leadsto> St' \<Longrightarrow> erase (lift St0 St') = St' \<and> St0 \<leadsto>0 lift St0 St'"
   by (smt (verit) lift_def simul someI)
 
 lemmas erase_lift = lift[THEN conjunct1]
 lemmas R0_lift = lift[THEN conjunct2]
 
 primcorec theSts0 :: "'state0 \<Rightarrow> 'state llist \<Rightarrow> 'state0 llist" where
-  "theSts0 st0 sts =
-   (case sts of
-     LNil \<Rightarrow> LCons st0 LNil
-   | LCons st sts' \<Rightarrow> LCons st0 (theSts0 (lift st0 st) sts'))"
+  "theSts0 St0 Sts =
+   (case Sts of
+     LNil \<Rightarrow> LCons St0 LNil
+   | LCons St Sts' \<Rightarrow> LCons St0 (theSts0 (lift St0 St) Sts'))"
 
-lemma theSts0_LNil[simp]: "theSts0 st0 LNil = LCons st0 LNil"
+lemma theSts0_LNil[simp]: "theSts0 St0 LNil = LCons St0 LNil"
   by (subst theSts0.code) auto
 
-lemma theSts0_LCons[simp]: "theSts0 st0 (LCons st sts') = LCons st0 (theSts0 (lift st0 st) sts')"
+lemma theSts0_LCons[simp]: "theSts0 St0 (LCons St Sts') = LCons St0 (theSts0 (lift St0 St) Sts')"
   by (subst theSts0.code) auto
 
-lemma simul_chain:
-  assumes chain: "lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts"
-  shows "\<exists>sts0. lhd sts0 = st0 \<and> sts = lmap erase (ltl sts0) \<and> chain (\<leadsto>0) sts0"
-proof(rule exI[of _ "theSts0 st0 sts"], safe)
-  show "lhd (theSts0 st0 sts) = st0"
+lemma simul_chain0:
+  assumes chain: "lnull Sts \<or> (chain (\<leadsto>) Sts \<and> erase St0 \<leadsto> lhd Sts)"
+  shows "\<exists>Sts0. lhd Sts0 = St0 \<and> Sts = lmap erase (ltl Sts0) \<and> chain (\<leadsto>0) Sts0"
+proof(rule exI[of _ "theSts0 St0 Sts"], safe)
+  show "lhd (theSts0 St0 Sts) = St0"
     by (simp add: llist.case_eq_if)
-  show "sts = lmap erase (ltl (theSts0 st0 sts))"
+  show "Sts = lmap erase (ltl (theSts0 St0 Sts))"
     using chain
-    apply(coinduction arbitrary: sts st0)
-    using lift
-    by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
+    apply (coinduction arbitrary: Sts St0)
+    using lift by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
   {
-    fix sts'
-    assume "\<exists>st0 sts. (lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts) \<and> sts' = theSts0 st0 sts"
-    hence "chain (\<leadsto>0) sts'"
+    fix Sts'
+    assume "\<exists>St0 Sts. (lnull Sts \<or> chain (\<leadsto>) Sts \<and> erase St0 \<leadsto> lhd Sts) \<and> Sts' = theSts0 St0 Sts"
+    hence "chain (\<leadsto>0) Sts'"
       apply (coinduct rule: chain.coinduct)
-      apply auto
+      apply clarsimp
+      apply (erule disjE)
        apply (metis lnull_def theSts0_LNil)
       by (smt (verit, ccfv_threshold) R0_lift chain.simps erase_lift lhd_LCons theSts0_LCons
-         theSts0_LNil)
+          theSts0_LNil)
   }
-  thus "chain (\<leadsto>0) (theSts0 st0 sts)"
+  thus "chain (\<leadsto>0) (theSts0 St0 Sts)"
     using assms by auto
 qed
+
+lemma simul_chain:
+  assumes
+    chain: "chain (\<leadsto>) Sts" and
+    hd: "lhd Sts = erase St0"
+  shows "\<exists>Sts0. lmap erase Sts0 = Sts \<and> chain (\<leadsto>0) Sts0 \<and> lhd Sts0 = St0"
+proof -
+  show ?thesis
+    sorry
+qed
+
+(*
+  {
+    assume "\<not> lnull (ltl Sts)"
+    have "chain (\<leadsto>ZLfw) (ltl Sts) \<and> wo_ghosts_of St0 \<leadsto>ZLfw lhd (ltl Sts)"
+      (is "?thesis1 \<and> ?thesis2")
+    proof
+      show ?thesis1
+        sorry
+    next
+      show ?thesis2
+        sorry
+    qed
+  }
+  hence nil_or_chain:
+    "lnull (ltl Sts) \<or> (chain (\<leadsto>ZLfw) (ltl Sts) \<and> wo_ghosts_of St0 \<leadsto>ZLfw lhd (ltl Sts))"
+    by blast
+
+  obtain Sts0 where
+    hd_sts0: "lhd Sts0 = St0" and
+    tl_sts0: "ltl Sts = lmap wo_ghosts_of (ltl Sts0)" and
+    chain_sts0: "chain (\<leadsto>ZLf) Sts0"
+    using bisim.simul_chain[OF nil_or_chain] by blast
+  show ?thesis
+    apply (rule exI[of _ Sts0])
+    using hd_sts0 tl_sts0 chain_sts0
+*)
 
 end
 
@@ -205,149 +242,27 @@ lemma fair_ZL_step_imp_fair_ZL_wo_ghosts_step:
 
 lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
   assumes "wo_ghosts_of St0 \<leadsto>ZLfw St'"
-  shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"  (* "\<and> done_of St0' = D"? *)
+  shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"
   sorry
 
-interpretation bisim wo_ghosts_of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)"
-  proof qed (fact fair_ZL_wo_ghosts_step_imp_fair_ZL_step)
-
-
-subsection \<open>Ghost–Ghostless Conversion\<close>
-
-
-primcorec
-  witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
-    ('t, 'p, 'f) fair_ZL_state llist"
-where
-  "witness_w_ghosts prev_St0 Sts =
-   (case Sts of
-     LNil \<Rightarrow> LNil
-   | LCons St Sts' \<Rightarrow>
-     let curr_St = (SOME St0. St = wo_ghosts_of St0 \<and> prev_St0 \<leadsto>ZLf St0) in
-       LCons curr_St (witness_w_ghosts curr_St Sts'))"
-
-lemma witness_w_ghosts_LCons:
-  assumes "\<not> lnull Sts"
-  shows "\<exists>next_St0. St = wo_ghosts_of next_St0 \<and> this_St0 \<leadsto>ZLf next_St0 \<and>
-    ltl (witness_w_ghosts this_St0 Sts) =
-    (case Sts of LCons St Sts' \<Rightarrow> witness_w_ghosts next_St0 Sts')"
-  sorry
-
-declare witness_w_ghosts.simps(4) [simp del]
+interpretation bisim: bisim wo_ghosts_of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)"
+proof qed (fact fair_ZL_wo_ghosts_step_imp_fair_ZL_step)
 
 lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   assumes chain: "chain (\<leadsto>ZLfw) Sts"
-  shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
+  shows "\<exists>Sts0. lmap wo_ghosts_of Sts0 = Sts \<and> chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
 proof -
-  let ?St0 = "(todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
-  let ?Sts0 = "LCons St0 (witness_w_ghosts St0 (ltl Sts))" (* FIXME HERE *)
+  define St0 :: "('t, 'p, 'f) fair_ZL_state"  where
+    "St0 = (todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
 
-  show ?thesis
-  proof (rule exI[of _ ?Sts0], intro conjI)
-    {
-      have "Sts = Sts'" if "Sts' = lmap wo_ghosts_of ?Sts0" for Sts'
-        using that
-      proof (coinduct rule: llist.coinduct, clarsimp, intro conjI)
-        fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
-        assume nnul: "\<not> lnull Sts"
-        show "lhd Sts = wo_ghosts_of (case Sts of
-          LCons St Sts' \<Rightarrow> (local.todo_of (lhd Sts), {}, snd (lhd Sts)))"
-        proof (cases Sts)
-          case (LCons St Sts')
-          note sts = this
-          show ?thesis
-            unfolding sts by simp (metis prod.collapse wo_ghosts_of.simps)
-        qed (use nnul in auto)
-      next
-        fix Sts :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist"
-        assume nnul: "\<not> lnull Sts"
-        show "lmap wo_ghosts_of (ltl (witness_w_ghosts (local.todo_of (lhd Sts), {},
-            snd (lhd Sts)) Sts)) =
-          lmap wo_ghosts_of (witness_w_ghosts (local.todo_of (lhd (ltl Sts)), {},
-            snd (lhd (ltl Sts))) (ltl Sts))"
-        proof (cases Sts)
-          case (LCons St Sts')
-          note sts = this
-
-          have "ltl (witness_w_ghosts (local.todo_of St, {}, snd St) Sts) =
-            witness_w_ghosts (local.todo_of (lhd Sts'), {}, snd (lhd Sts')) Sts'"
-            using witness_w_ghosts_LCons[of Sts St]
-          proof -
-            obtain next_St0 where
-              st: "St = wo_ghosts_of next_St0" and
-              step: "(local.todo_of St, {}, snd St) \<leadsto>ZLf next_St0" and
-              tl: "ltl (witness_w_ghosts (local.todo_of St, {}, snd St) Sts) =
-               (case Sts of LCons St Sts' \<Rightarrow> witness_w_ghosts next_St0 Sts')"
-              sorry
-            show ?thesis
-              apply (subst tl)
-              unfolding sts
-              apply auto
-
-              sorry
-          qed
-          thus ?thesis
-            unfolding sts by simp
-        qed (use nnul in auto)
-      qed
-    }
-    show "Sts = lmap wo_ghosts_of ?Sts0"
-      sorry
-  next
-    define Sts0 where "Sts0 = ?Sts0"
-    then have "chain (\<leadsto>ZLf) Sts0"
-      apply (coinduct rule: chain.coinduct)
-      apply auto
-      sorry
-
-    show "chain (\<leadsto>ZLf) ?Sts0"
-      sorry
-  next
-    show "done_of (lhd ?Sts0) = {}"
-      (* easy *)
-      sorry
-  qed
-
-(*
-
-
-  have sts: "Sts = Sts'" if "Sts' = lmap wo_ghosts_of Sts0" for Sts'
-    using that
-  proof (coinduction arbitrary: Sts Sts' rule: llist.coinduct)
-    case Eq_llist
-
-    have "lnull Sts = lnull (lmap wo_ghosts_of Sts0)"
-      using sts0
-      sorry
-    moreover
-    {
-      assume
-        "\<not> lnull Sts"
-        "\<not> lnull (lmap wo_ghosts_of Sts0)"
-
-      have
-        "lhd Sts = lhd (lmap wo_ghosts_of Sts0)" (is ?thesis1) and
-        "\<exists>Sts' Sts0'. ltl Sts = Sts' \<and> ltl (lmap wo_ghosts_of Sts0') = lmap wo_ghosts_of Sts0"
-          (is ?thesis2)
-      proof -
-        show ?thesis1
-          sorry
-        show ?thesis2
-          sorry
-      qed
-    }
-    ultimately show ?case
-      by fastforce
-  qed
-    sorry
-
-  have chain0: "chain (\<leadsto>ZLf) Sts0"
+  have hd: "lhd Sts = wo_ghosts_of St0"
     sorry
 
   show ?thesis
-    using sts chain0 by blast
-*)
+    using bisim.simul_chain[OF chain hd]
+    sorry
 qed
+
 
 lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
   assumes "full_chain (\<leadsto>ZLfw) Sts"
