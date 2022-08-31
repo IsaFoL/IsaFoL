@@ -267,11 +267,26 @@ proof cases
     sorry
 next
   case (choose_p P T A)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T, D, p_remove (p_select P) P, Some (p_select P), A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, None, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.choose_p[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (delete_fwd C A T P)
-  note wo_st0 = this(1) and st' = this(2) and c_in = this(3)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3)
 
   define D :: "'f inference set" where
     "D = done_of St0"
@@ -284,17 +299,32 @@ next
   have st0: "St0 = (T, D, P, Some C, A)"
     using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
   have step0: "St0 \<leadsto>ZLf St0'"
-    unfolding st0 St0'_def by (rule fair_ZL.delete_fwd[OF c_in])
+    unfolding st0 St0'_def by (rule fair_ZL.delete_fwd[OF rest])
 
   show ?thesis
     by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (simplify_fwd C' C A T P)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3,4)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T, D, P, Some C', A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Some C, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.simplify_fwd[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (delete_bwd C' A C T P)
-  note wo_st0 = this(1) and st' = this(2) and c'_ni = this(3) and c_in = this(4)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3,4)
 
   define D :: "'f inference set" where
     "D = done_of St0"
@@ -307,18 +337,48 @@ next
   have st0: "St0 = (T, D, P, Some C, A |\<union>| {|C'|})"
     using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
   have step0: "St0 \<leadsto>ZLf St0'"
-    unfolding st0 St0'_def by (rule fair_ZL.delete_bwd[OF c'_ni c_in])
+    unfolding st0 St0'_def by (rule fair_ZL.delete_bwd[OF rest])
 
   show ?thesis
     by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (simplify_bwd C' A C'' C T P)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3-5)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T, D, p_add C'' P, Some C, A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Some C, A |\<union>| {|C'|})"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.simplify_bwd[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (schedule_infer \<iota>ss A C T P)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (fold t_add_llist \<iota>ss T, D - flat_inferences_of (mset \<iota>ss), P, None, A |\<union>| {|C|})"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Some C, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.schedule_infer[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (delete_orphan_infers \<iota>s T A P Y)
   show ?thesis
