@@ -109,9 +109,9 @@ where
 
 subsection \<open>Initial States and Invariants\<close>
 
-inductive is_initial_fair_ZL_wo_ghosts_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
+inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_wo_ghosts_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
+   is_initial_fair_ZL_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
 
 end
 
@@ -255,12 +255,75 @@ lemma
 lemma fair_ZL_step_imp_fair_ZL_wo_ghosts_step:
   assumes "St \<leadsto>ZLf St'"
   shows "wo_ghosts_of St \<leadsto>ZLfw wo_ghosts_of St'"
-  sorry
+  using assms by cases (use fair_ZL_wo_ghosts.intros in auto)
 
 lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
   assumes "wo_ghosts_of St0 \<leadsto>ZLfw St'"
   shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"
-  sorry
+  using assms
+proof cases
+  case (compute_infer T \<iota>0 T' A C P)
+  show ?thesis
+    sorry
+next
+  case (choose_p P T A)
+  show ?thesis
+    sorry
+next
+  case (delete_fwd C A T P)
+  note wo_st0 = this(1) and st' = this(2) and c_in = this(3)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T, D, P, None, A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Some C, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.delete_fwd[OF c_in])
+
+  show ?thesis
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
+next
+  case (simplify_fwd C' C A T P)
+  show ?thesis
+    sorry
+next
+  case (delete_bwd C' A C T P)
+  note wo_st0 = this(1) and st' = this(2) and c'_ni = this(3) and c_in = this(4)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T, D, P, Some C, A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Some C, A |\<union>| {|C'|})"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.delete_bwd[OF c'_ni c_in])
+
+  show ?thesis
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
+next
+  case (simplify_bwd C' A C'' C T P)
+  show ?thesis
+    sorry
+next
+  case (schedule_infer \<iota>ss A C T P)
+  show ?thesis
+    sorry
+next
+  case (delete_orphan_infers \<iota>s T A P Y)
+  show ?thesis
+    sorry
+qed
 
 interpretation bisim: bisim wo_ghosts_of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)"
 proof qed (fact fair_ZL_wo_ghosts_step_imp_fair_ZL_step)
@@ -301,7 +364,7 @@ subsection \<open>Completeness\<close>
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
-    init: "is_initial_fair_ZL_wo_ghosts_state (lhd Sts)" and
+    init: "is_initial_fair_ZL_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
