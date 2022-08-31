@@ -68,16 +68,14 @@ inductive
 | delete_orphan_infers: "\<iota>s \<in># t_llists T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (T, P, Y, A) \<leadsto>ZLfw (t_remove_llist \<iota>s T, P, Y, A)"
 
-(* FIXME later *)
 inductive
   compute_infer_step ::
   "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
 where
-  "T \<noteq> t_empty \<Longrightarrow> t_select T = LCons \<iota>0 \<iota>s \<Longrightarrow> \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
-   compute_infer_step (T, P, None, A)
-     (t_add \<iota>s (t_remove (t_select T) T), p_add C P, None, A)"
+  "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
+   \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
+   compute_infer_step (T, P, None, A) (T', p_add C P, None, A)"
 
-(* FIXME later *)
 inductive
   choose_p_step ::
   "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
@@ -111,14 +109,9 @@ where
 
 subsection \<open>Initial States and Invariants\<close>
 
-(* FIXME
-inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+inductive is_initial_fair_ZL_wo_ghosts_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
-
-inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
-  "flat_inferences_of (todo.elems T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, P, Y, A)"
-*)
+   is_initial_fair_ZL_wo_ghosts_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
 
 end
 
@@ -274,7 +267,9 @@ qed
 lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
   assumes "full_chain (\<leadsto>ZLfw) Sts"
   shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> full_chain (\<leadsto>ZLf) Sts0"
-  sorry
+  by (smt (verit) assms chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step empty_def
+      fair_ZL_step_imp_fair_ZL_wo_ghosts_step full_chain_iff_chain full_chain_not_lnull lfinite_lmap
+      llast_lmap llist.map_disc_iff passive.felems_empty todo.llists_empty)
 
 
 subsection \<open>Completeness\<close>
@@ -282,7 +277,7 @@ subsection \<open>Completeness\<close>
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    init: "is_initial_fair_ZL_wo_ghosts_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
@@ -349,8 +344,11 @@ begin
 sublocale fifo_prover_queue
   .
 
+sublocale fifo_prover_lazy_list_queue
+  .
+
 sublocale fair_zipperposition_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
-  Equiv_F Prec_F "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list "[]" hd
+  Equiv_F Prec_F "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset "[]" hd
   "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list Prec_S
 proof unfold_locales
   show "po_on (\<prec>S) UNIV"
