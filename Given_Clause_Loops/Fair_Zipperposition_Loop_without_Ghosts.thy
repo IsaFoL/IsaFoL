@@ -256,13 +256,20 @@ proof -
     "St0 = (todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
 
   have hd: "lhd Sts = wo_ghosts_of St0"
-    sorry
+    unfolding St0_def by (cases "lhd Sts") auto
+
+  obtain Sts0 where
+    wog0: "lmap wo_ghosts_of Sts0 = Sts" and
+    chain0: "chain (\<leadsto>ZLf) Sts0" and
+    hd0: "lhd Sts0 = St0"
+    using bisim.simul_chain[OF chain hd] by blast
+
+  have don0: "done_of (lhd Sts0) = {}"
+    unfolding hd0 St0_def by simp
 
   show ?thesis
-    using bisim.simul_chain[OF chain hd]
-    sorry
+    using wog0 chain0 don0 by blast
 qed
-
 
 lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
   assumes "full_chain (\<leadsto>ZLfw) Sts"
