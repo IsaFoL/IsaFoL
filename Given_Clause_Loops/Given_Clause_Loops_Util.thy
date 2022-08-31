@@ -189,4 +189,7 @@ next
   qed
 qed
 
+lemma chain_ltl: "chain R sts \<Longrightarrow> \<not> lnull (ltl sts) \<Longrightarrow> chain R (ltl sts)"
+  by (metis chain.simps eq_LConsD lnull_def)
+
 end

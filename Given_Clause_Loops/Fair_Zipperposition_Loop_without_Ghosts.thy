@@ -1,5 +1,6 @@
 (* Title:        Fair Zipperposition Loop without Ghosts
    Authors:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
+                 Andrei Popescu <a.popescu at sheffield.ac.uk>, 2022
    Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
@@ -119,7 +120,69 @@ inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarro
   "flat_inferences_of (todo.elems T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, P, Y, A)"
 *)
 
-subsection \<open>Ghost–Ghostless Conversions\<close>
+end
+
+
+subsection \<open>Abstract Nonsense for Ghost–Ghostless Conversion\<close>
+
+text \<open>This subsection was originally contributed by Andrei Popescu.\<close>
+
+locale bisim =
+  fixes erase :: "'state0 \<Rightarrow> 'state"
+  and R :: "'state \<Rightarrow> 'state \<Rightarrow> bool" (infix "\<leadsto>" 60)
+  and R0 :: "'state0 \<Rightarrow> 'state0 \<Rightarrow> bool" (infix "\<leadsto>0" 60)
+  assumes simul: "\<And>st0 st'. erase st0 \<leadsto> st' \<Longrightarrow> \<exists>st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0'"
+begin
+
+definition lift where
+  "lift st0 st' = (SOME st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0')"
+
+lemma lift: "erase st0 \<leadsto> st' \<Longrightarrow> erase (lift st0 st') = st' \<and> st0 \<leadsto>0 (lift st0 st')"
+  by (smt (verit, ccfv_SIG) lift_def simul someI)
+
+lemmas erase_lift = lift[THEN conjunct1]
+lemmas R0_lift = lift[THEN conjunct2]
+
+primcorec theSts0 :: "'state0 \<Rightarrow> 'state llist \<Rightarrow> 'state0 llist" where
+  "theSts0 st0 sts =
+   (case sts of
+     LNil \<Rightarrow> LCons st0 LNil
+   | LCons st sts' \<Rightarrow> LCons st0 (theSts0 (lift st0 st) sts'))"
+
+lemma theSts0_LNil[simp]: "theSts0 st0 LNil = LCons st0 LNil"
+  by (subst theSts0.code) auto
+
+lemma theSts0_LCons[simp]: "theSts0 st0 (LCons st sts') = LCons st0 (theSts0 (lift st0 st) sts')"
+  by (subst theSts0.code) auto
+
+lemma simul_chain:
+  assumes c: "lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts"
+  shows "\<exists>sts0. lhd sts0 = st0 \<and> sts = lmap erase (ltl sts0) \<and> chain (\<leadsto>0) sts0"
+proof(rule exI[of _ "theSts0 st0 sts"], safe)
+  show "lhd (theSts0 st0 sts) = st0"
+    by (simp add: llist.case_eq_if)
+  show "sts = lmap erase (ltl (theSts0 st0 sts))"
+  using c apply(coinduction arbitrary: sts st0)
+  using lift
+  by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
+  {fix sts'
+   assume "\<exists>st0 sts. (lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts) \<and> sts' = theSts0 st0 sts"
+   hence "chain (\<leadsto>0) sts'"
+   apply(coinduct rule: chain.coinduct)
+   apply auto
+     apply (metis lnull_def theSts0_LNil)
+     by (smt (verit, ccfv_threshold) R0_lift chain.simps erase_lift lhd_LCons theSts0_LCons theSts0_LNil)
+  }
+  thus "chain (\<leadsto>0) (theSts0 st0 sts)" using assms by auto
+qed
+
+end
+
+
+subsection \<open>Ghost–Ghostless Conversions, the Concrete Version\<close>
+
+context fair_zipperposition_loop_wo_ghosts
+begin
 
 fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
   "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
@@ -137,11 +200,16 @@ lemma fair_ZL_step_imp_fair_ZL_wo_ghosts_step:
   sorry
 
 lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
-  assumes
-    "St \<leadsto>ZLfw St'" and
-    "St = wo_ghosts_of St0"
-  shows "\<exists>St0'. St' = wo_ghosts_of St0' \<and> St0 \<leadsto>ZLf St0' \<and> done_of St0' = D"
+  assumes "wo_ghosts_of St0 \<leadsto>ZLfw St'"
+  shows "\<exists>St0'. wo_ghosts_of St0' = St' \<and> St0 \<leadsto>ZLf St0'"  (* "\<and> done_of St0' = D"? *)
   sorry
+
+interpretation bisim wo_ghosts_of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)"
+  proof qed (fact fair_ZL_wo_ghosts_step_imp_fair_ZL_step)
+
+
+subsection \<open>Ghost–Ghostless Conversion\<close>
+
 
 primcorec
   witness_w_ghosts :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow>
