@@ -263,8 +263,23 @@ lemma fair_ZL_wo_ghosts_step_imp_fair_ZL_step:
   using assms
 proof cases
   case (compute_infer T \<iota>0 T' A C P)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3-5)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (T', D \<union> {\<iota>0}, p_add C P, None, A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, None, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.compute_infer[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (choose_p P T A)
   note wo_st0 = this(1) and st' = this(2) and rest = this(3)
@@ -381,8 +396,23 @@ next
     by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 next
   case (delete_orphan_infers \<iota>s T A P Y)
+  note wo_st0 = this(1) and st' = this(2) and rest = this(3,4)
+
+  define D :: "'f inference set" where
+    "D = done_of St0"
+  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+    "St0' = (t_remove_llist \<iota>s T, D, P, Y, A)"
+
+  have wo_st0': "wo_ghosts_of St0' = St'"
+    unfolding St0'_def st' by simp
+
+  have st0: "St0 = (T, D, P, Y, A)"
+    using wo_st0 by (smt (verit) D_def fst_conv snd_conv wo_ghosts_of.elims)
+  have step0: "St0 \<leadsto>ZLf St0'"
+    unfolding st0 St0'_def by (rule fair_ZL.delete_orphan_infers[OF rest])
+
   show ?thesis
-    sorry
+    by (rule exI[of _ St0']) (use wo_st0' step0 in blast)
 qed
 
 interpretation bisim: bisim wo_ghosts_of "(\<leadsto>ZLfw)" "(\<leadsto>ZLf)"
