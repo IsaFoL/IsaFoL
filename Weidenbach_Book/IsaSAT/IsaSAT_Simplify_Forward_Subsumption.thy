@@ -801,13 +801,15 @@ definition populate_occs_spec where
 definition all_lit_clause_unset :: \<open>_\<close> where
   \<open>all_lit_clause_unset S C = do {
     ASSERT (forward_subsumption_all_wl_pre S);
-    if C \<notin># dom_m (get_clauses_wl S) then RETURN False
+    let b = C \<in># dom_m (get_clauses_wl S);
+    if \<not>b then RETURN False
     else do {
        let n = length (get_clauses_wl S \<propto> C);
       (i, all_undef) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, all_undef). i < n \<and> all_undef)
         (\<lambda>(i, _). do {
           ASSERT (i<n);
           L \<leftarrow> mop_clauses_at (get_clauses_wl S) C i;
+         ASSERT (L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S));
           val \<leftarrow> mop_polarity_wl S L;
           RETURN (i+1, val = None)
        }) (0, True);
@@ -823,7 +825,6 @@ lemma forward_subsumption_all_wl_preD: \<open>forward_subsumption_all_wl_pre S \
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
   by normalize_goal+ simp
 
-
 lemma all_lit_clause_unset_spec:
   \<open>forward_subsumption_all_wl_pre S \<Longrightarrow>
   all_lit_clause_unset S C \<le> SPEC (\<lambda>b. b \<longrightarrow> C\<in>#dom_m (get_clauses_wl S) \<and> (\<forall>L\<in>set (get_clauses_wl S \<propto> C). undefined_lit (get_trail_wl S) L))\<close>
@@ -838,6 +839,12 @@ lemma all_lit_clause_unset_spec:
   subgoal by auto
   subgoal by auto
   subgoal by auto
+  subgoal
+    using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of S, THEN \<L>\<^sub>a\<^sub>l\<^sub>l_cong]
+    unfolding forward_subsumption_all_wl_pre_def
+      forward_subsumption_all_pre_def apply -
+    by normalize_goal+
+     (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms)
   subgoal by auto
   subgoal by (auto dest: forward_subsumption_all_wl_preD)
   subgoal by (auto dest: forward_subsumption_all_wl_preD)
@@ -855,27 +862,40 @@ definition populate_occs :: \<open>nat twl_st_wl \<Rightarrow> _ nres\<close> wh
     let n = size xs;
     occs \<leftarrow> mop_occ_list_create (set_mset (all_init_atms_st S));
     let cands = [];
-    (xs, occs, cands) \<leftarrow> WHILE\<^sub>T\<^bsup>populate_occs_inv S xs\<^esup> (\<lambda>(i, occs, cands). i < n)
+    (_, occs, cands) \<leftarrow> WHILE\<^sub>T\<^bsup>populate_occs_inv S xs\<^esup> (\<lambda>(i, occs, cands). i < n)
     (\<lambda>(i, occs, cands). do {
       let C = xs ! i;
       all_undef \<leftarrow> all_lit_clause_unset S C;
       if \<not>all_undef then
         RETURN (i+1, occs, cands)
-      else if length (get_clauses_wl S \<propto> C) = 2 then do {
-        occs \<leftarrow> push_to_occs_list2 C S occs;
-        RETURN (i+1, occs, cands)
-      }
-      else  do {
-        cand \<leftarrow> SPEC (\<lambda>b. b \<longrightarrow> C \<in># dom_m (get_clauses_wl S) \<and> length (get_clauses_wl S \<propto> C) > 2);
-        if cand then RETURN (i+1, occs, cands @ [C])
-        else RETURN (i+1, occs, cands)
+      else do {
+        ASSERT(C \<in># dom_m (get_clauses_wl S));
+        let le = length (get_clauses_wl S \<propto> C) in
+        if le = 2 then do {
+          occs \<leftarrow> push_to_occs_list2 C S occs;
+          RETURN (i+1, occs, cands)
+        }
+        else  do {
+          ASSERT(C \<in># dom_m (get_clauses_wl S));
+          cand \<leftarrow> RES (UNIV::bool set);
+          if cand then RETURN (i+1, occs, cands @ [C])
+          else RETURN (i+1, occs, cands)
+          }
         }
       }
       )
       (0, occs, cands);
+     ASSERT (\<forall>C\<in>set cands. C\<in>#dom_m(get_clauses_wl S) \<and> C\<in>set xs\<and> length (get_clauses_wl S \<propto> C) > 2);
      cands \<leftarrow> SPEC (\<lambda>cands'. mset cands' = mset cands \<and> sorted_wrt (\<lambda>a b. length (get_clauses_wl S \<propto> a) \<le> length (get_clauses_wl S \<propto> b)) cands');
      RETURN (occs, cands)
   }\<close>
+
+lemma forward_subsumption_all_wl_pre_length_ge2:
+  \<open>forward_subsumption_all_wl_pre S \<Longrightarrow> C \<in>#dom_m (get_clauses_wl S) \<Longrightarrow> length (get_clauses_wl S \<propto> C) \<ge> 2\<close>
+  unfolding forward_subsumption_all_wl_pre_def forward_subsumption_all_pre_def
+    twl_struct_invs_def twl_st_inv_alt_def
+  by normalize_goal+
+   simp
 
 lemma populate_occs_populate_occs_spec:
   assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close> \<open>forward_subsumption_all_wl_pre S\<close>
@@ -935,8 +955,8 @@ proof -
     subgoal unfolding populate_occs_inv_def by (auto simp: occurrence_list_def take_Suc_conv_app_nth Cons_nth_drop_Suc[symmetric]
       dest: subset_mset_imp_subset_add_mset intro: correct_occurence_list_mono_candsI2)
     subgoal by auto
-    apply (rule correct_occurence_list; assumption)
     subgoal by auto
+    apply (rule correct_occurence_list; assumption)
     subgoal by auto
     subgoal using assms by auto
     subgoal by auto
@@ -949,11 +969,13 @@ proof -
     subgoal by auto
     subgoal for x xa s a b aa ba xb xc
       unfolding populate_occs_inv_def by (auto simp: take_Suc_conv_app_nth Cons_nth_drop_Suc[symmetric]
-      intro: correct_occurence_list_mono_candsI2 intro!: G')
+      intro: correct_occurence_list_mono_candsI2 dest: forward_subsumption_all_wl_pre_length_ge2 intro!: G')
     subgoal by auto
     subgoal unfolding populate_occs_inv_def by (auto simp: take_Suc_conv_app_nth Cons_nth_drop_Suc[symmetric]
       intro: correct_occurence_list_mono_candsI2 dest: subset_mset_imp_subset_add_mset)
     subgoal by auto
+    subgoal by (auto simp: populate_occs_inv_def populate_occs_spec_def correct_occurence_list_def
+      dest: mset_eq_setD simp flip: distinct_mset_mset_distinct)
     subgoal by (auto simp: populate_occs_inv_def populate_occs_spec_def correct_occurence_list_def
       dest: mset_eq_setD simp flip: distinct_mset_mset_distinct)
     done
@@ -1859,8 +1881,10 @@ lemma isa_push_to_occs_list_st_push_to_occs_list2:
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
     C: \<open>C \<in> set (get_vdom S)\<close>
   shows \<open>isa_push_to_occs_list_st C S
-    \<le> \<Down> {(S, occs'). (get_occs S, occs') \<in> occurrence_list_ref \<and> (S, S') \<in> twl_st_heur_restart_occs' r u} (push_to_occs_list2 C S' occs)\<close>
+    \<le> \<Down> {(U, occs'). (get_occs U, occs') \<in> occurrence_list_ref \<and> (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S} (push_to_occs_list2 C' S' occs)\<close>
 proof -
+  have eq: \<open>C' = C\<close>
+    using CC' by auto
   have  push_to_occs_list2_alt_def:
   \<open>push_to_occs_list2 C S occs = do {
      ASSERT (push_to_occs_list2_pre C S occs);
@@ -1872,7 +1896,7 @@ proof -
   have valid: \<open>valid_occs (get_occs S) (get_vdom S)\<close>
     using SS' unfolding twl_st_heur_restart_occs_def by auto
   show ?thesis
-    unfolding isa_push_to_occs_list_st_def push_to_occs_list2_alt_def
+    unfolding isa_push_to_occs_list_st_def push_to_occs_list2_alt_def eq
     apply (refine_vcg find_best_subsumption_candidate[OF SS' _ occs]
       mop_cocc_list_append_mop_occ_list_append occs)
     subgoal by auto
@@ -3150,6 +3174,7 @@ proof -
       forward_subsumption_one_pre_def
       by normalize_goal+ auto
     subgoal by auto
+    subgoal by auto
     subgoal using C_vdom by fast
     subgoal using SS' occs by auto
     subgoal by auto
@@ -3266,19 +3291,90 @@ definition isa_populate_occs_inv where
   (\<exists>T r u occs. (S,T)\<in>twl_st_heur_restart_occs' r u \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
     populate_occs_inv T xs (i, occs, cands)))\<close>
 
+definition isa_all_lit_clause_unset_pre :: \<open>_\<close> where
+  \<open>isa_all_lit_clause_unset_pre C S \<longleftrightarrow> (C\<in>set (get_vdom S)) \<close>
 
 definition isa_all_lit_clause_unset where
   \<open>isa_all_lit_clause_unset C S = do {
-  n \<leftarrow> mop_arena_length_st S C;
-  (i, unset) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, unset). unset \<and> i < n)
-  (\<lambda>(i, unset). do {
-    L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
-    val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
-    RETURN (i+1, val = None)
-  }) (0, True);
-  RETURN unset
+  ASSERT (isa_all_lit_clause_unset_pre C S);
+  not_garbage \<leftarrow> mop_clause_not_marked_to_delete_heur S C;
+  if \<not>not_garbage then RETURN False
+  else do {
+    n \<leftarrow> mop_arena_length_st S C;
+    (i, unset) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, unset). unset \<and> i < n)
+    (\<lambda>(i, unset). do {
+      L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
+      val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
+      RETURN (i+1, val = None)
+    }) (0, True);
+    RETURN unset
+  }
   }\<close>
 
+definition clause_not_marked_to_delete_init_pre where
+  \<open>clause_not_marked_to_delete_init_pre =
+    (\<lambda>(S, C). C \<in> vdom_m (all_init_atms_st S) (get_watched_wl S) (get_clauses_wl S))\<close>
+
+lemma clause_not_marked_to_delete_rel_occs:
+  \<open>(S,T)\<in>twl_st_heur_restart_occs \<Longrightarrow> (C,C')\<in>nat_rel \<Longrightarrow> C \<in> set(get_vdom S) \<Longrightarrow>
+  (clause_not_marked_to_delete_heur S C, clause_not_marked_to_delete T C') \<in> bool_rel\<close>
+    by (cases S, cases T)
+     (use arena_dom_status_iff[of \<open>get_clauses_wl_heur S\<close> \<open>get_clauses_wl T\<close>
+      \<open>set (get_vdom S)\<close> \<open>C\<close>] in_dom_in_vdom in
+      \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_restart_occs_def Let_def
+        clause_not_marked_to_delete_heur_def all_init_atms_st_def
+        clause_not_marked_to_delete_init_pre_def ac_simps; blast\<close>)
+
+lemma mop_polarity_pol_mop_polarity_wl:
+  \<open>(S,T)\<in>twl_st_heur_restart_occs \<Longrightarrow> (L,L')\<in>nat_lit_lit_rel\<Longrightarrow>L'\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)\<Longrightarrow>
+  mop_polarity_pol (get_trail_wl_heur S) L \<le> \<Down>Id (mop_polarity_wl T L')\<close>
+  unfolding mop_polarity_pol_def mop_polarity_wl_def
+  apply refine_vcg
+  subgoal
+    by (rule polarity_pol_pre[of _ \<open>get_trail_wl T\<close> \<open>all_init_atms_st T\<close>])
+     (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def)
+  subgoal
+    by (auto intro!: polarity_pol_polarity[of \<open>(all_init_atms_st T)\<close>, unfolded option_rel_id_simp, THEN fref_to_Down_unRET_uncurry_Id] simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms IsaSAT_Restart.all_init_atms_alt_def twl_st_heur_restart_occs_def)
+      done
+
+
+lemma isa_all_lit_clause_unset_all_lit_clause_unset:
+  assumes \<open>(S, T) \<in> twl_st_heur_restart_occs' r u\<close> \<open>(C,C')\<in>nat_rel\<close> and
+    \<open>isa_all_lit_clause_unset_pre C S\<close>
+  shows
+    \<open>isa_all_lit_clause_unset C S \<le> \<Down> bool_rel (all_lit_clause_unset T C')\<close>
+proof -
+  have [refine]: \<open>((0,True), (0,True))\<in>nat_rel \<times>\<^sub>f bool_rel\<close>
+    by auto
+  show ?thesis
+    unfolding isa_all_lit_clause_unset_def all_lit_clause_unset_def mop_clause_not_marked_to_delete_heur_def
+      nres_monad3 clause_not_marked_to_delete_def[symmetric] mop_arena_length_st_def
+    apply (refine_vcg clause_not_marked_to_delete_rel_occs mop_arena_lit[where vdom=\<open>set (get_vdom S)\<close>]
+      mop_polarity_pol_mop_polarity_wl
+      mop_arena_length[THEN fref_to_Down_curry, unfolded comp_def, of _ _ \<open>get_clauses_wl_heur S\<close> _ \<open>set (get_vdom S)\<close> for S])
+    subgoal using assms by fast
+    subgoal using assms unfolding clause_not_marked_to_delete_heur_pre_def isa_all_lit_clause_unset_pre_def
+      by (auto simp: arena_is_valid_clause_vdom_def twl_st_heur_restart_occs_def
+        intro!: exI[of _ \<open>get_clauses_wl T\<close>]
+        exI[of _ \<open>set (get_vdom S)\<close>])
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms unfolding clause_not_marked_to_delete_init_pre_def
+      by (auto simp: isa_all_lit_clause_unset_pre_def)
+    subgoal using assms by auto
+    subgoal by (auto simp: clause_not_marked_to_delete_def)
+    subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
+    subgoal by auto
+    subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
+    subgoal using assms by fast
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+(*TODO: fix heuristic! + test is actually useless*)
 definition isa_good_candidate_for_subsumption where
   \<open>isa_good_candidate_for_subsumption S C = do {
       RETURN True
@@ -3300,10 +3396,9 @@ definition isa_populate_occs :: \<open>isasat \<Rightarrow> _ nres\<close> where
     let cands = [];
     (xs,  cands, S) \<leftarrow> WHILE\<^sub>T\<^bsup>isa_populate_occs_inv S xs\<^esup> (\<lambda>(i, cands, S). i < n)
     (\<lambda>(i, cands, S). do {
-      let C = xs ! i;
+      let C = get_avdom_aivdom (get_aivdom S) ! i;
       all_undef \<leftarrow> isa_all_lit_clause_unset C S;
-      not_garbage \<leftarrow> mop_clause_not_marked_to_delete_heur S C;
-      if \<not>not_garbage \<or> \<not>all_undef then
+      if \<not>all_undef then
         RETURN (i+1, cands, S)
       else do {
         n \<leftarrow> mop_arena_length_st S C;
@@ -3338,6 +3433,18 @@ proof -
     map_fun_rel_def cocc_content_set_def)
 qed
 
+lemma twl_st_heur_restart_occs'_avdom_nth_vdom:
+  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow> i < length (get_avdom S) \<Longrightarrow>
+  get_avdom S ! i \<in> set (get_vdom S)\<close>
+  using nth_mem[of i \<open>get_avdom S\<close>]
+  by (auto simp: twl_st_heur_restart_occs_def aivdom_inv_dec_alt_def simp del: nth_mem)
+
+lemma isa_good_candidate_for_subsumption:
+  \<open>isa_good_candidate_for_subsumption S C \<le> \<Down> bool_rel (RES UNIV)\<close>
+  unfolding isa_good_candidate_for_subsumption_def
+  by (auto intro!: RETURN_SPEC_refine)
+
+  
 lemma isa_populate_occs:
   assumes SS': \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_populate_occs S \<le> \<Down>{((cands, S),(occs, cands')). (S, S') \<in> twl_st_heur_restart_occs' r u \<and>
@@ -3354,20 +3461,54 @@ proof -
     by (auto simp: mop_occ_list_create_def empty_occs_list_def)
   have [refine]: \<open>(get_occs S, occs) \<in> occurrence_list_ref \<Longrightarrow>
     ((0, [], S), 0, occs, []) \<in> {((w, cands, U), (w', occs, cands')).
+      get_aivdom U = get_aivdom S \<and>
       (w,w')\<in>nat_rel \<and> (cands, cands')\<in>Id \<and> (get_occs U, occs)\<in>occurrence_list_ref \<and>
     (U, S')\<in>twl_st_heur_restart_occs' r u \<and> get_avdom U = get_avdom S}\<close> (is \<open>_ \<Longrightarrow> _ \<in> ?loop\<close>) for occs xs
    using SS'' by simp
 
   show ?thesis
-    unfolding isa_populate_occs_def populate_occs_def
-    apply (refine_vcg)
+    unfolding isa_populate_occs_def populate_occs_def mop_arena_length_st_def
+    apply (refine_vcg isa_all_lit_clause_unset_all_lit_clause_unset[where r=r and u=u]
+      mop_arena_length[where vdom=\<open>set(get_vdom S)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
+      isa_push_to_occs_list_st_push_to_occs_list2[where r=r and u=u]
+      isa_good_candidate_for_subsumption)
     subgoal using aivdom unfolding aivdom_inv_dec_alt_def by (auto dest: distinct_mset_mono)
     subgoal for xs xs' x x' unfolding isa_populate_occs_inv_def case_prod_beta
       by (rule exI[of _ S'], rule exI[of _ r], rule exI[of _ u], rule exI[of _ \<open>fst (snd (x'))\<close>])
        (use SS'' in auto)
     subgoal by auto
-    subgoal 
-    sorry
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      unfolding isa_all_lit_clause_unset_pre_def
+      by (rule twl_st_heur_restart_occs'_avdom_nth_vdom) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: twl_st_heur_restart_occs_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal
+      unfolding isa_all_lit_clause_unset_pre_def
+      by (rule twl_st_heur_restart_occs'_avdom_nth_vdom) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding sort_cands_by_length_def
+      apply (auto intro!: ASSERT_leI)
+      defer
+      apply (rule sorted_wrt_mono_rel)
+      prefer 2
+      apply assumption
+      by (auto simp: arena_lifting twl_st_heur_restart_occs_def
+        arena_is_valid_clause_idx_def
+        intro!: exI[of _ \<open>get_clauses_wl S'\<close>] exI[of _ \<open>set (get_vdom S)\<close>]
+        dest: mset_eq_setD)
+    subgoal by auto
+    done
 qed
 
 definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
@@ -3407,7 +3548,7 @@ definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<clo
   ASSERT (isa_forward_subsumption_pre_all S);
   (cands, S) \<leftarrow> isa_populate_occs S;
   let m = length cands;
-  D \<leftarrow> mop_cch_create (length (get_clauses_wl_heur S));
+  D \<leftarrow> mop_cch_create (length (get_watched_wl_heur S));
   (_, D, S) \<leftarrow>
     WHILE\<^sub>T\<^bsup> isa_forward_subsumption_all_wl_inv S cands \<^esup> (\<lambda>(i, D, S). i < m \<and> get_conflict_wl_is_None_heur S)
     (\<lambda>(i, D, S). do {
@@ -3421,6 +3562,102 @@ definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<clo
   }
 )\<close>
 
+
+lemma all_init_lits_of_wl_Pos_Neg_def:
+  \<open>set_mset (all_init_lits_of_wl S') = Pos ` set_mset (all_init_atms_st S') \<union> Neg ` set_mset (all_init_atms_st S')\<close>
+  apply (auto simp: all_init_atms_st_alt_def image_image)
+  using literal.exhaust_sel apply blast
+  apply (simp add: in_all_lits_of_wl_ain_atms_of_iff)
+  apply (simp add: in_all_lits_of_wl_ain_atms_of_iff)
+  done
+
+thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart
+lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs:
+  \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
+    twl_st_heur_restart_occs \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
+  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
+  by (auto simp: twl_st_heur_restart_occs_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
+      option_lookup_clause_rel_def
+     split: option.splits)
+
+lemma
+  assumes  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> \<open>(C,C')\<in>nat_rel\<close>
+    \<open>(D, D')\<in>clause_hash\<close> and \<open>C'\<in>#dom_m (get_clauses_wl S')\<close>
+  shows \<open>mop_cch_add_all_clause S C D \<le> \<Down>clause_hash (mop_ch_add_all (mset (get_clauses_wl S' \<propto> C')) D')\<close>
+proof -
+  have \<open>mop_ch_add_all_clause S' C' D' \<le>\<Down>Id (mop_ch_add_all (mset (get_clauses_wl S' \<propto> C')) D')\<close>
+    unfolding mop_ch_add_all_clause_def mop_ch_add_all_def mop_clauses_at_def mop_ch_add_def
+    apply (refine_vcg
+      WHILET_rule[where I=\<open>\<lambda>(i, D). i \<le> length (get_clauses_wl S' \<propto> C') \<and>
+      D=ch_add_all (mset (take i (get_clauses_wl S' \<propto> C'))) D'\<close> and
+      R = \<open>measure (\<lambda>(i,_). length (get_clauses_wl S' \<propto> C') - i)\<close>])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: ch_add_all_def)
+    subgoal by auto
+    subgoal unfolding ch_add_pre_def ch_add_all_pre_def ch_add_all_def
+      apply auto
+      apply (meson disjunct_not_in nth_mem_mset)
+      sorry
+    subgoal by auto
+    subgoal by (auto simp: ch_add_all_def take_Suc_conv_app_nth ch_add_def case_prod_beta)
+    subgoal by auto
+    subgoal by auto
+        
+      thm mop_ch_add
+      find_theorems mop_ch_add
+thm WHILET_rule[where I=\<open>\<lambda>(i, D). i \<le> length (get_clauses_wl S' \<propto> C') \<and>
+  D=ch_add_all (mset (take i (get_clauses_wl S' \<propto> C'))) D'\<close>]
+  show ?thesis
+    unfolding mop_cch_add_all_clause_def mop_ch_add_all_def mop_arena_length_st_def
+    apply (refine_vcg mop_arena_length[where vdom = \<open>set (get_vdom S)\<close>,THEN fref_to_Down_curry, THEN order_trans, of \<open>get_clauses_wl S'\<close> C'])
+    subgoal using assms by auto
+    subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
+    subgoal
+      apply refine_vcg
+    sorry
+lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_forward_subsumption_all_wl2 S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl2 S')\<close>
+proof -
+  have [refine]: \<open> (get_occs x2a, occs) \<in> occurrence_list_ref \<and> (D, D') \<in>clause_hash \<and> (x2a, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
+   ((0, D, x2a), 0, occs, D', S', 2) \<in>
+    {((m, D, S), (n, occs, D', S', _)). (m,n)\<in>nat_rel \<and> (D,D')\<in>clause_hash \<and> (get_occs S, occs) \<in> occurrence_list_ref \<and>
+    (S, S') \<in> twl_st_heur_restart_occs' r u}\<close> for x2a occs D D'
+    by auto
+  have H: \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
+    \<forall>L\<in>fst ` D\<^sub>1 (set_mset (all_init_atms_st S')). L < length (get_watched_wl_heur S)\<close> for S S'
+    apply (intro ballI impI)
+    unfolding  twl_st_heur_restart_occs_def map_fun_rel_def IsaSAT_Restart.all_init_atms_alt_def
+        in_pair_collect_simp \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) all_init_lits_of_wl_Pos_Neg_def[symmetric]
+      by normalize_goal+ auto
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding isa_forward_subsumption_all_wl2_def
+      forward_subsumption_all_wl2_def
+    apply (refine_vcg ref_two_step[OF isa_populate_occs populate_occs_populate_occs_spec,
+      unfolded Down_id_eq, of _ _ r u]
+      mop_cch_create_mop_cch_create
+      isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2[where r=r and u=u])
+    subgoal using assms unfolding isa_forward_subsumption_pre_all_def by blast
+    subgoal using assms by fast
+    subgoal unfolding forward_subsumption_all_wl_pre_def by blast
+    subgoal by (rule H) auto
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding isa_forward_subsumption_all_wl_inv_def by fast
+    subgoal by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs[THEN fref_to_Down_unRET_Id])
+      (auto simp: get_conflict_wl_is_None_def)
+    subgoal sorry
+      
+oops
+
+thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart
+
+find_theorems get_conflict_wl_is_None_heur get_conflict_wl_is_None
 definition append_clause_to_occs_pre where
   \<open>append_clause_to_occs_pre C S occs =
   (\<exists>S' r u. (S, S')\<in>twl_st_heur_restart_ana' r u \<and> C \<in># dom_m (get_clauses_wl S') \<and>

@@ -1960,7 +1960,7 @@ qed
 
 definition forward_subsumption_all_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_wl_pre S = 
-  (\<exists>T. (S, T) \<in> state_wl_l None \<and> forward_subsumption_all_pre T)\<close>
+  (\<exists>T. (S, T) \<in> state_wl_l None \<and> forward_subsumption_all_pre T \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition forward_subsumption_all_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> nat multiset \<Rightarrow> nat multiset \<times> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>forward_subsumption_all_wl_inv = (\<lambda>S cands (xs, s).

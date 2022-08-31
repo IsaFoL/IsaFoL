@@ -431,7 +431,7 @@ definition ch_add_all :: \<open>nat clause \<Rightarrow> clause_hash \<Rightarro
   \<open>ch_add_all D =  (\<lambda>(\<A>, C). (\<A>, C + D))\<close>
 
 definition ch_add_all_pre :: \<open>nat clause \<Rightarrow> clause_hash \<Rightarrow> bool\<close> where
-  \<open>ch_add_all_pre D  = (\<lambda>(\<A>, C).  atms_of D \<subseteq> \<A> \<and> C \<inter># D = {#})\<close>
+  \<open>ch_add_all_pre D  = (\<lambda>(\<A>, C).  atms_of D \<subseteq> \<A> \<and> C \<inter># D = {#} \<and> distinct_mset D)\<close>
 
 definition mop_ch_add_all :: \<open>nat clause \<Rightarrow> clause_hash \<Rightarrow> clause_hash nres\<close> where
   \<open>mop_ch_add_all L C = do {
@@ -455,7 +455,8 @@ lemma mop_ch_add:
   done
 
 lemma mop_ch_add_all:
-  assumes \<open>(C, D) \<in> clause_hash_ref \<A>\<close> and \<open>atms_of L \<subseteq> set_mset \<A>\<close> and \<open>(L,L')\<in>Id\<close> \<open>D \<inter># L' = {#}\<close>
+  assumes \<open>(C, D) \<in> clause_hash_ref \<A>\<close> and \<open>atms_of L \<subseteq> set_mset \<A>\<close> and \<open>(L,L')\<in>Id\<close> \<open>D \<inter># L' = {#}\<close> and
+    \<open>distinct_mset L'\<close>
   shows \<open>mop_ch_add_all L C \<le> SPEC(\<lambda>c. (c, L' + D) \<in> clause_hash_ref \<A>)\<close>
   using assms unfolding mop_ch_add_all_def
   apply refine_vcg
