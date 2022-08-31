@@ -134,11 +134,11 @@ locale bisim =
   assumes simul: "\<And>st0 st'. erase st0 \<leadsto> st' \<Longrightarrow> \<exists>st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0'"
 begin
 
-definition lift where
+definition lift :: "'state0 \<Rightarrow> 'state \<Rightarrow> 'state0" where
   "lift st0 st' = (SOME st0'. erase st0' = st' \<and> st0 \<leadsto>0 st0')"
 
-lemma lift: "erase st0 \<leadsto> st' \<Longrightarrow> erase (lift st0 st') = st' \<and> st0 \<leadsto>0 (lift st0 st')"
-  by (smt (verit, ccfv_SIG) lift_def simul someI)
+lemma lift: "erase st0 \<leadsto> st' \<Longrightarrow> erase (lift st0 st') = st' \<and> st0 \<leadsto>0 lift st0 st'"
+  by (smt (verit) lift_def simul someI)
 
 lemmas erase_lift = lift[THEN conjunct1]
 lemmas R0_lift = lift[THEN conjunct2]
@@ -156,24 +156,28 @@ lemma theSts0_LCons[simp]: "theSts0 st0 (LCons st sts') = LCons st0 (theSts0 (li
   by (subst theSts0.code) auto
 
 lemma simul_chain:
-  assumes c: "lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts"
+  assumes chain: "lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts"
   shows "\<exists>sts0. lhd sts0 = st0 \<and> sts = lmap erase (ltl sts0) \<and> chain (\<leadsto>0) sts0"
 proof(rule exI[of _ "theSts0 st0 sts"], safe)
   show "lhd (theSts0 st0 sts) = st0"
     by (simp add: llist.case_eq_if)
   show "sts = lmap erase (ltl (theSts0 st0 sts))"
-  using c apply(coinduction arbitrary: sts st0)
-  using lift
-  by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
-  {fix sts'
-   assume "\<exists>st0 sts. (lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts) \<and> sts' = theSts0 st0 sts"
-   hence "chain (\<leadsto>0) sts'"
-   apply(coinduct rule: chain.coinduct)
-   apply auto
-     apply (metis lnull_def theSts0_LNil)
-     by (smt (verit, ccfv_threshold) R0_lift chain.simps erase_lift lhd_LCons theSts0_LCons theSts0_LNil)
+    using chain
+    apply(coinduction arbitrary: sts st0)
+    using lift
+    by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
+  {
+    fix sts'
+    assume "\<exists>st0 sts. (lnull sts \<or> chain (\<leadsto>) sts \<and> erase st0 \<leadsto> lhd sts) \<and> sts' = theSts0 st0 sts"
+    hence "chain (\<leadsto>0) sts'"
+      apply (coinduct rule: chain.coinduct)
+      apply auto
+       apply (metis lnull_def theSts0_LNil)
+      by (smt (verit, ccfv_threshold) R0_lift chain.simps erase_lift lhd_LCons theSts0_LCons
+         theSts0_LNil)
   }
-  thus "chain (\<leadsto>0) (theSts0 st0 sts)" using assms by auto
+  thus "chain (\<leadsto>0) (theSts0 st0 sts)"
+    using assms by auto
 qed
 
 end
