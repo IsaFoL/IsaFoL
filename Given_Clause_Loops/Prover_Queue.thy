@@ -212,7 +212,7 @@ qed
 
 sublocale fair_prover_queue "[]" hd "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll
   fset_of_list
-proof unfold_locales
+proof
   fix Qs :: "'e list llist"
   assume
     chain: "chain queue_step Qs" and

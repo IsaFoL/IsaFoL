@@ -128,6 +128,22 @@ proof
   qed
 qed simp+
 
+sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
+proof
+  fix
+    Qs :: "'a llist list llist" and
+    i :: nat and
+    e :: 'a and
+    es :: "'a llist"
+  assume
+    "chain lqueue_step Qs" and
+    "infinitely_often pick_lqueue_step Qs" and
+    "enat i < llength Qs" and
+    "LCons e es \<in># mset (lnth Qs i)"
+  show "\<exists>j \<ge> i. enat (Suc j) < llength Qs \<and> pick_lqueue_step_aux (lnth Qs j) e es (lnth Qs (Suc j))"
+    sorry
+qed
+
 end
 
 end
