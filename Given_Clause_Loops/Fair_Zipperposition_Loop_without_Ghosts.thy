@@ -150,14 +150,16 @@ lemma theSts0_LCons[simp]: "theSts0 St0 (LCons St Sts') = LCons St0 (theSts0 (li
 
 lemma simul_chain0:
   assumes chain: "lnull Sts \<or> (chain (\<leadsto>) Sts \<and> erase St0 \<leadsto> lhd Sts)"
-  shows "\<exists>Sts0. lhd Sts0 = St0 \<and> Sts = lmap erase (ltl Sts0) \<and> chain (\<leadsto>0) Sts0"
+  shows "\<exists>Sts0. lhd Sts0 = St0 \<and> lmap erase (ltl Sts0) = Sts \<and> chain (\<leadsto>0) Sts0"
 proof(rule exI[of _ "theSts0 St0 Sts"], safe)
   show "lhd (theSts0 St0 Sts) = St0"
     by (simp add: llist.case_eq_if)
-  show "Sts = lmap erase (ltl (theSts0 St0 Sts))"
+next
+  show "lmap erase (ltl (theSts0 St0 Sts)) = Sts"
     using chain
     apply (coinduction arbitrary: Sts St0)
     using lift by (auto simp: llist.case_eq_if) (metis chain.simps eq_LConsD lnull_def)
+next
   {
     fix Sts'
     assume "\<exists>St0 Sts. (lnull Sts \<or> chain (\<leadsto>) Sts \<and> erase St0 \<leadsto> lhd Sts) \<and> Sts' = theSts0 St0 Sts"
@@ -177,38 +179,60 @@ lemma simul_chain:
   assumes
     chain: "chain (\<leadsto>) Sts" and
     hd: "lhd Sts = erase St0"
-  shows "\<exists>Sts0. lmap erase Sts0 = Sts \<and> chain (\<leadsto>0) Sts0 \<and> lhd Sts0 = St0"
+  shows "\<exists>Sts0. lhd Sts0 = St0 \<and> lmap erase Sts0 = Sts \<and> chain (\<leadsto>0) Sts0"
 proof -
-  show ?thesis
-    sorry
-qed
-
-(*
   {
-    assume "\<not> lnull (ltl Sts)"
-    have "chain (\<leadsto>ZLfw) (ltl Sts) \<and> wo_ghosts_of St0 \<leadsto>ZLfw lhd (ltl Sts)"
+    assume nnul: "\<not> lnull (ltl Sts)"
+    have "chain (\<leadsto>) (ltl Sts) \<and> erase St0 \<leadsto> lhd (ltl Sts)"
       (is "?thesis1 \<and> ?thesis2")
     proof
       show ?thesis1
-        sorry
+        by (simp add: nnul chain chain_ltl)
     next
       show ?thesis2
-        sorry
+        by (metis chain chain_consE hd lhd_LCons_ltl lnull_def lnull_ltlI nnul)
     qed
   }
-  hence nil_or_chain:
-    "lnull (ltl Sts) \<or> (chain (\<leadsto>ZLfw) (ltl Sts) \<and> wo_ghosts_of St0 \<leadsto>ZLfw lhd (ltl Sts))"
+  hence nil_or_chain: "lnull (ltl Sts) \<or> (chain (\<leadsto>) (ltl Sts) \<and> erase St0 \<leadsto> lhd (ltl Sts))"
     by blast
 
   obtain Sts0 where
     hd_sts0: "lhd Sts0 = St0" and
-    tl_sts0: "ltl Sts = lmap wo_ghosts_of (ltl Sts0)" and
-    chain_sts0: "chain (\<leadsto>ZLf) Sts0"
-    using bisim.simul_chain[OF nil_or_chain] by blast
+    erase_tl_sts0: "lmap erase (ltl Sts0) = ltl Sts" and
+    chain_sts0: "chain (\<leadsto>0) Sts0"
+    using simul_chain0[OF nil_or_chain] by blast
+
+  have erase_hd_sts0: "erase (lhd Sts0) = lhd Sts"
+    by (simp add: hd hd_sts0)
+
+  have erase_sts0: "lmap erase Sts0 = Sts"
+  proof (cases Sts0 rule: llist.exhaust_sel)
+    case LNil
+    hence False
+      using chain_LNil chain_sts0 by blast
+    thus ?thesis
+      by blast
+  next
+    case LCons
+    note sts0 = this
+    show ?thesis
+    proof (cases Sts rule: llist.exhaust_sel)
+      case LNil
+      hence False
+        using chain chain_LNil by blast
+      thus ?thesis
+        by blast
+    next
+      case LCons
+      note sts = this
+      show ?thesis
+        by (subst sts0, subst sts, simp add: erase_hd_sts0 erase_tl_sts0)
+    qed
+  qed
+
   show ?thesis
-    apply (rule exI[of _ Sts0])
-    using hd_sts0 tl_sts0 chain_sts0
-*)
+    by (rule exI[of _ Sts0]) (use hd_sts0 erase_sts0 chain_sts0 in blast)
+qed
 
 end
 
