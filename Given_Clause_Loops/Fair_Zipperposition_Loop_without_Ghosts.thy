@@ -48,12 +48,6 @@ begin
 fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
   "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
 
-fun
-  w_ghosts_of ::
-  "'f inference set \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state"
-where
-  "w_ghosts_of D (T, P, Y, A) = (T, D, P, Y, A)"
-
 inductive
   fair_ZL_wo_ghosts ::
   "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
@@ -98,9 +92,21 @@ lemma w_ghosts_compute_infer_step_imp_compute_infer_step:
   using assms by cases (simp add: compute_infer_step.intros)
 
 lemma choose_p_step_imp_w_ghosts_choose_p_step:
-  assumes "choose_p_step St St'"
-  shows "w_ghosts.choose_p_step (w_ghosts_of D St) (w_ghosts_of D St')"
-  using assms by cases (simp add: w_ghosts.choose_p_step.intros)
+  assumes "choose_p_step (wo_ghosts_of St) (wo_ghosts_of St')"
+  shows "w_ghosts.choose_p_step St St'"
+  using assms
+proof cases
+  case (1 P T A)
+  note wg_st = this(1) and wg_st' = this(2) and rest = this(3)
+
+  have st: "St = (T, done_of St, P, None, A)"
+    using wg_st by (smt (verit) fst_conv snd_conv wo_ghosts_of.elims)
+  have st': "St' = (T, done_of St', p_remove (p_select P) P, Some (p_select P), A)"
+    using wg_st' by (smt (verit) fst_conv snd_conv wo_ghosts_of.elims)
+
+  show ?thesis
+    by (subst st, subst st', simp add: rest w_ghosts.choose_p_step.intros)
+qed
 
 
 subsection \<open>Basic Definitions and Lemmas\<close>
@@ -520,8 +526,6 @@ proof -
         (use w_ghosts_compute_infer_step_imp_compute_infer_step in auto)
     hence inf_cp: "infinitely_often choose_p_step Sts"
       by (simp add: fair)
-
-    thm choose_p_step_imp_w_ghosts_choose_p_step
 
     show "infinitely_often w_ghosts.choose_p_step Sts0"
       apply (rule infinitely_often_lifting[of _ _ _ "\<lambda>x. x", unfolded llist.map_ident,

@@ -136,18 +136,23 @@ where
 | delete_orphan_infers: "\<iota>s \<in># t_llists T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (T, D, P, Y, A) \<leadsto>ZLf (t_remove_llist \<iota>s T, D, P, Y, A)"
 
+text \<open>The steps below are slightly more general than the corresponding steps
+above, in the way they handle the @{text done} component. They are still precise
+enough to uniquely identify the steps among those above. The extra generality
+simplifies some arguments later.\<close>
+
 inductive
   compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
 where
   "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
    \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
-   compute_infer_step (T, D, P, None, A) (T', D \<union> {\<iota>0}, p_add C P, None, A)"
+   compute_infer_step (T, D, P, None, A) (T', D', p_add C P, None, A)"
 
 inductive
   choose_p_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
 where
   "P \<noteq> p_empty \<Longrightarrow>
-   choose_p_step (T, D, P, None, A) (T, D, p_remove (p_select P) P, Some (p_select P), A)"
+   choose_p_step (T, D, P, None, A) (T, D', p_remove (p_select P) P, Some (p_select P), A)"
 
 
 subsection \<open>Initial State and Invariant\<close>
