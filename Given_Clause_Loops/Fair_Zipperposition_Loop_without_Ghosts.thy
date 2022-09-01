@@ -109,9 +109,26 @@ where
 
 subsection \<open>Initial States and Invariants\<close>
 
-inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
+fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
+  "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
+
+inductive is_initial_fair_ZL_wo_ghosts_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
+   is_initial_fair_ZL_wo_ghosts_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
+
+lemma is_initial_fair_ZL_state_imp_is_initial_fair_ZL_wo_ghosts_state:
+  assumes "is_initial_fair_ZL_state St"
+  shows "is_initial_fair_ZL_wo_ghosts_state (wo_ghosts_of St)"
+  using assms by cases (auto intro: is_initial_fair_ZL_wo_ghosts_state.intros)
+
+lemma is_initial_fair_ZL_wo_ghosts_state_imp_is_initial_fair_ZL_state:
+  assumes
+    init: "is_initial_fair_ZL_wo_ghosts_state (wo_ghosts_of St)" and
+    don: "done_of St = {}"
+  shows "is_initial_fair_ZL_state St"
+  using init
+  by cases (smt don is_initial_fair_ZL_state.simps old.prod.inject prod.exhaust_sel
+      wo_ghosts_of.elims)
 
 end
 
@@ -241,9 +258,6 @@ subsection \<open>Ghost–Ghostless Conversions, the Concrete Version\<close>
 
 context fair_zipperposition_loop_wo_ghosts
 begin
-
-fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
-  "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
 
 lemma
   todo_of_wo_ghosts_of[simp]: "todo_of (wo_ghosts_of St) = w_ghosts.todo_of St" and
@@ -443,7 +457,7 @@ qed
 
 lemma full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step:
   assumes "full_chain (\<leadsto>ZLfw) Sts"
-  shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> full_chain (\<leadsto>ZLf) Sts0"
+  shows "\<exists>Sts0. Sts = lmap wo_ghosts_of Sts0 \<and> full_chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
   by (smt (verit) assms chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step empty_def
       fair_ZL_step_imp_fair_ZL_wo_ghosts_step full_chain_iff_chain full_chain_not_lnull lfinite_lmap
       llast_lmap llist.map_disc_iff passive.felems_empty todo.llists_empty)
@@ -454,7 +468,7 @@ subsection \<open>Completeness\<close>
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    init: "is_initial_fair_ZL_wo_ghosts_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
@@ -466,11 +480,18 @@ theorem
 proof -
   obtain Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
     full0: "full_chain (\<leadsto>ZLf) Sts0" and
-    sts: "Sts = lmap wo_ghosts_of Sts0"
+    sts0: "lmap wo_ghosts_of Sts0 = Sts" and
+    don0: "done_of (lhd Sts0) = {}"
     using full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step[OF full] by blast
 
-  have init0: "w_ghosts.is_initial_fair_ZL_state (lhd Sts0)"
-    sorry
+  have init0: "is_initial_fair_ZL_state (lhd Sts0)"
+  proof -
+    have hd: "lhd (lmap wo_ghosts_of Sts0) = wo_ghosts_of (lhd Sts0)"
+      using full0 full_chain_not_lnull llist.map_sel(1) by blast
+    show ?thesis
+      by (rule is_initial_fair_ZL_wo_ghosts_state_imp_is_initial_fair_ZL_state[OF
+            init[unfolded sts0[symmetric] hd] don0])
+  qed
 
   have fair0: "infinitely_often w_ghosts.compute_infer_step Sts0 \<longrightarrow>
     infinitely_often w_ghosts.choose_p_step Sts0"
