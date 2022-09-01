@@ -335,7 +335,7 @@ next
 
         obtain \<iota>0 :: "'f inference" and T' :: 't where
           pick: "t_pick_elem T = (\<iota>0, T')"
-          sorry
+          by fastforce
 
         obtain \<iota>s' where
           \<iota>0\<iota>s'_in: "LCons \<iota>0 \<iota>s' \<in># t_llists T" and
@@ -764,23 +764,29 @@ lemma fair_ZL_Liminf_todo_empty:
   shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts) =
     {}"
 proof -
-  let ?Is = "lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
+  define Is where
+    "Is = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
+  define Ts where
+    "Ts = lmap todo_of Sts"
 
   {
     fix i \<iota>
     assume
       i_lt: "enat i < llength Sts" and
-      \<iota>_in: "\<iota> \<in> lnth ?Is i"
+      \<iota>_in: "\<iota> \<in> lnth Is i"
 
-    thm todo.fair
 
-    have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth ?Is j"
+
+    thm todo.fair_strong[of Ts]
+
+    have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Is j"
       sorry
   }
   thus ?thesis
+    unfolding Is_def[symmetric]
     unfolding Liminf_llist_def
-    apply simp
-    sorry
+    by clarsimp (smt Collect_empty_eq INT_iff Inf_set_def Is_def dual_order.refl llength_lmap
+        mem_Collect_eq)
 qed
 
 theorem

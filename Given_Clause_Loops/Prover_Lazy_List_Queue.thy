@@ -78,6 +78,18 @@ locale fair_prover_lazy_list_queue =
     enat i < llength Qs \<Longrightarrow> LCons e es \<in># llists (lnth Qs i) \<Longrightarrow>
     \<exists>j \<ge> i. enat (Suc j) < llength Qs \<and> pick_lqueue_step_aux (lnth Qs j) e es (lnth Qs (Suc j))"
 begin
+
+lemma fair_strong:
+  assumes
+    "chain lqueue_step Qs"
+    "infinitely_often pick_lqueue_step Qs"
+    "enat i < llength Qs"
+    "es \<in># llists (lnth Qs i)"
+    "enat k < llength es"
+  shows "\<exists>j \<ge> i. enat (Suc j) < llength Qs
+    \<and> pick_lqueue_step_aux (lnth Qs j) (lnth es k) (ldrop (k + 1) es) (lnth Qs (Suc j))"
+  sorry
+
 end
 
 

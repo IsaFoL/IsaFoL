@@ -149,8 +149,7 @@ lemma is_initial_fair_ZL_wo_ghosts_state_imp_is_initial_fair_ZL_state:
     don: "done_of St = {}"
   shows "is_initial_fair_ZL_state St"
   using init
-  by cases (smt don is_initial_fair_ZL_state.simps old.prod.inject prod.exhaust_sel
-      wo_ghosts_of.elims)
+  by cases (smt don is_initial_fair_ZL_state.simps prod.inject prod.exhaust_sel wo_ghosts_of.elims)
 
 end
 
@@ -528,18 +527,26 @@ proof -
       by (simp add: fair)
 
     show "infinitely_often w_ghosts.choose_p_step Sts0"
-      apply (rule infinitely_often_lifting[of _ _ _ "\<lambda>x. x", unfolded llist.map_ident,
+      by (rule infinitely_often_lifting[of _ _ _ "\<lambda>x. x", unfolded llist.map_ident,
             OF _ inf_cp[unfolded sts0[symmetric]]])
-      apply (use choose_p_step_imp_w_ghosts_choose_p_step in auto)
+        (use choose_p_step_imp_w_ghosts_choose_p_step in auto)
   qed
 
   have unsat0: "passive.elems (w_ghosts.passive_of (lhd Sts0)) \<Turnstile>\<inter>\<G> {B}"
-    sorry
+  proof -
+    have "lhd (lmap wo_ghosts_of Sts0) = wo_ghosts_of (lhd Sts0)"
+      using full0 full_chain_not_lnull llist.map_sel(1) by blast
+    hence "passive_of (lhd (lmap wo_ghosts_of Sts0)) = w_ghosts.passive_of (lhd Sts0)"
+      by simp
+    thus ?thesis
+      using unsat unfolding sts0[symmetric] by auto
+  qed
 
   have "\<exists>B \<in> Bot_F. B \<in> formulas_union (w_ghosts.Liminf_zl_fstate Sts0)"
     by (rule fair_ZL_complete_Liminf[OF full0 init0 fair0 bot unsat0])
   thus ?thesis1
-    unfolding w_ghosts.Liminf_zl_fstate_def Liminf_zl_fstate_def sts by (simp add: llist.map_comp)
+    unfolding w_ghosts.Liminf_zl_fstate_def Liminf_zl_fstate_def sts0[symmetric]
+    by (simp add: llist.map_comp)
   thus ?thesis2
     unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
 qed
