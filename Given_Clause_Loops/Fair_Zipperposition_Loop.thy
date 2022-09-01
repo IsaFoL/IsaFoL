@@ -12,6 +12,8 @@ theory Fair_Zipperposition_Loop
     Prover_Lazy_List_Queue
 begin
 
+ML_file \<open>~/Desktop/monomorph.ML\<close>
+
 
 subsection \<open>Locale\<close>
 
@@ -51,6 +53,75 @@ locale fair_zipperposition_loop =
     transp_Prec_S: "transp (\<prec>S)" and
     countable_Inf_between: "finite A \<Longrightarrow> countable (no_labels.Inf_between A {C})"
 begin
+
+declare [[monomorph_max_schematics = 24]]
+
+ML \<open>
+val max_mono_iters = NONE
+val good_max_mono_iters = 1
+val max_new_mono_instances = NONE
+val good_max_new_mono_instances = 5
+val hyp_ts = []
+val concl_t = @{prop True}
+val mono_max_privileged_facts = 10
+
+fun monomorphize_facts facts =
+  let
+    val ctxt = @{context}
+    val thy = @{theory}
+    val ctxt =
+      ctxt
+      |> Sledgehammer_Prover.repair_monomorph_context max_mono_iters good_max_mono_iters max_new_mono_instances
+          good_max_new_mono_instances
+            (* pseudo-theorem involving the same constants as the subgoal *)
+            val subgoal_th =
+              Logic.list_implies (hyp_ts, concl_t) |> Skip_Proof.make_thm thy
+            val rths =
+              facts |> chop mono_max_privileged_facts
+                    |>> map (pair 1 o snd)
+                    ||> map (pair 2 o snd)
+                    |> op @
+                    |> cons (0, subgoal_th)
+          in
+            Monomorph.monomorph ATP_Problem_Generate.atp_schematic_consts_of ctxt rths
+            |> tl |> curry ListPair.zip (map fst facts)
+            |> maps (fn (name, rths) => map (pair name o zero_var_indexes o snd) rths)
+          end
+\<close>
+
+lemma lgc_complete':
+"chain (\<leadsto>LGC) Ns \<Longrightarrow>
+  Liminf_llist (lmap fst Ns) = {} \<Longrightarrow>
+  B \<in> Bot_F \<Longrightarrow> fst ` snd (lhd Ns) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow> \<exists>i. enat i < llength Ns \<and> (\<exists>BL\<in>std.Bot_FL. BL \<in> snd (lnth Ns i))"
+  sorry
+
+lemma discount_loop_DL_complete':
+" discount_loop TYPE('a) Bot_Fa Inf_Fa Bot_Ga Qa entails_qa Inf_G_qa Red_I_qa Red_F_qa \<G>_F_qa \<G>_I_qa Equiv_Fa Prec_Fa \<Longrightarrow>
+  chain (discount_loop.DL Inf_Fa Qa Red_I_qa Red_F_qa \<G>_F_qa \<G>_I_qa Equiv_Fa Prec_Fa) Sts \<Longrightarrow>
+  given_clause_basis.active_subset Active (snd (lhd Sts)) = {} \<Longrightarrow>
+  given_clause_basis.passive_subset Active (Liminf_llist (lmap snd Sts)) = {} \<Longrightarrow>
+  \<forall>\<iota>\<in>Inf_Fa. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd Sts) \<Longrightarrow>
+  Liminf_llist (lmap fst Sts) = {} \<Longrightarrow>
+  B \<in> Bot_Fa \<Longrightarrow>
+  consequence_relation_family.entails Qa (\<lambda>q N1 N2. entails_qa q (\<Union> (\<G>_F_qa q ` N1)) (\<Union> (\<G>_F_qa q ` N2))) (fst ` snd (lhd Sts))
+   {B} \<Longrightarrow>
+  \<exists>i. enat i < llength Sts \<and> (\<exists>BL\<in>Bot_Fa \<times> UNIV. BL \<in> snd (lnth Sts i))"
+  sorry
+
+ML \<open>
+val thms = @{thms lgc_complete' discount_loop_DL_complete'}
+
+val res = monomorphize_facts (map_index I thms)
+\<close>
+
+
+lemma False
+  slexdgehammer[debug, overlord, dont_slice, e, mepo, dont_learn, timeout = 2] (lgc_complete discount_loop.DL_complete)
+
+
+
+
+
 
 lemma trans_Prec_S: "trans {(x, y). x \<prec>S y}"
   using transp_Prec_S transp_trans by blast
@@ -776,14 +847,15 @@ proof -
       \<iota>_in: "\<iota> \<in> lnth Is i"
 
     have chain_ts: "chain todo.lqueue_step Ts"
-      sorry
+      unfolding Ts_def using ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
+      by blast
 
     have inf_ts: "infinitely_often todo.pick_lqueue_step Ts"
       (* big proof showing that all the other steps decrease *)
       sorry
 
     have i_lt: "enat i < llength Ts"
-      unfolding Ts_def
+      unfolding Ts_def using i_lts
       sorry
 
     obtain \<iota>s where
