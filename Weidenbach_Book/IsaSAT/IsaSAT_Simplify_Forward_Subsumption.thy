@@ -991,11 +991,13 @@ definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> _ n
     WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S, n). i < m \<and> get_conflict_wl S = None)
     (\<lambda>(i, occs, D, S, n). do {
        let C = xs!i;
+       ASSERT(C\<in>#dom_m (get_clauses_wl S));
        D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl S \<propto> C)) D;
        (occs, D, T) \<leftarrow> try_to_forward_subsume_wl2 C occs (mset (drop (i) xs)) D S;
        RETURN (i+1, occs, D, T, (length (get_clauses_wl S \<propto> C)))
     })
     (0, occs, D, S, 2);
+  ASSERT (fst occs = set_mset (all_init_atms_st S));
   RETURN S
   }
 )\<close>
@@ -1153,6 +1155,20 @@ proof -
       in_all_lits_in_cls[of _ _ \<open>x2 ! x1b\<close>])
     done
   done
+have distinct: \<open>forward_subsumption_all_wl_pre S \<Longrightarrow>
+    forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
+    x' = (x1a, x2a) \<Longrightarrow>
+   (C', C) \<in> nat_rel \<Longrightarrow>
+    C' \<in># dom_m (get_clauses_wl x2a) \<Longrightarrow> 
+  distinct_mset (mset (get_clauses_wl x2a \<propto> C))\<close>
+  for x' x1a x2a xa x1b x2b x1c x2c x1d x2d x1e x2e x2 C xs C'
+  unfolding forward_subsumption_all_wl_inv_alt_def case_prod_beta
+    forward_subsumption_all_inv_def
+  apply normalize_goal+
+  apply (elim rtranclp_cdcl_twl_inprocessing_l_twl_st_l)
+  apply assumption+
+  unfolding  twl_struct_invs_def twl_st_inv_alt_def
+  by (simp add: mset_take_mset_drop_mset')
 
   show ?thesis
     unfolding forward_subsumption_all_wl_alt_def forward_subsumption_all_wl2_def
@@ -1163,10 +1179,18 @@ proof -
     subgoal unfolding forward_subsumption_all_wl2_inv_def loop_inv_def by auto
     subgoal by (auto simp: loop_inv_def)
     subgoal by (auto simp: in_set_dropI loop_inv_def)
+    subgoal
+      unfolding loop_inv_def populate_occs_spec_def mem_Collect_eq
+        forward_subsumption_all_inv_def forward_subsumption_all_wl_inv_alt_def
+        forward_subsumption_all_wl2_inv_def case_prod_beta apply normalize_goal+
+      by (auto simp add: forward_subsumption_wl_all_cands_def
+          simp flip: Cons_nth_drop_Suc dest: mset_subset_eq_insertD)
     apply (solves \<open>auto simp: loop_inv_def\<close>)
     subgoal by (rule in_atms)
     subgoal by (auto simp: loop_inv_def)
     subgoal by auto
+    subgoal apply (rule distinct)
+      by  assumption+ (simp add: loop_inv_def)
     apply (subst clause_hash_ref_cong)
     defer apply assumption
     apply (rule try_to_forward_subsume_wl2_pre0; assumption)
@@ -1174,6 +1198,7 @@ proof -
     subgoal by (auto simp: loop_inv_def)
     subgoal for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db xb Sa a b aa ba
       by (rule subsumed_postinv)
+    subgoal by (auto simp: loop_inv_def correct_occurence_list_def)
     subgoal by (auto simp: loop_inv_def)
     subgoal by (auto simp: loop_inv_def)
     done
@@ -3224,7 +3249,6 @@ lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     CC': \<open>(C,C')\<in>nat_rel\<close> and
     DD': \<open>(D,D')\<in>clause_hash\<close> and
-    \<open>(L,L')\<in>Id\<close> and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close>
   shows \<open>isa_try_to_forward_subsume_wl2 C D S \<le>
     \<Down>{((D, S), (occs, D', S')). (D,D')\<in>clause_hash \<and> (get_occs S, occs) \<in> occurrence_list_ref \<and>
@@ -3543,6 +3567,23 @@ definition mop_ch_add_all_clause :: \<open>_\<close> where
     RETURN D
 }\<close>
 
+definition empty_occs_st :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>empty_occs_st S = do {
+    let D = get_occs S;
+    let D = replicate (length D) [];
+    RETURN (set_occs_wl_heur D S)
+  }\<close>
+
+lemma empty_occs_st:
+  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
+  fst occs = set_mset (all_init_atms_st S') \<Longrightarrow>
+  (get_occs S, occs) \<in> occurrence_list_ref \<Longrightarrow>
+  empty_occs_st S\<le>SPEC(\<lambda>c. (c,S')\<in>twl_st_heur_restart_ana' r u)\<close>
+  unfolding empty_occs_st_def twl_st_heur_restart_occs_def twl_st_heur_restart_ana_def IsaSAT_Restart.all_init_atms_alt_def
+    twl_st_heur_restart_def occurrence_list_ref_def empty_occs_list_def
+  by (auto, auto simp: map_fun_rel_def)
+
+
 definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<close> where
   \<open>isa_forward_subsumption_all_wl2 = (\<lambda>S. do {
   ASSERT (isa_forward_subsumption_pre_all S);
@@ -3558,7 +3599,7 @@ definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<clo
        RETURN (i+1, D, T)
     })
     (0, D, S);
-  RETURN S
+  empty_occs_st S
   }
 )\<close>
 
@@ -3571,7 +3612,6 @@ lemma all_init_lits_of_wl_Pos_Neg_def:
   apply (simp add: in_all_lits_of_wl_ain_atms_of_iff)
   done
 
-thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur_restart_occs \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -3581,12 +3621,12 @@ lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs:
       option_lookup_clause_rel_def
      split: option.splits)
 
-lemma
+lemma mop_cch_add_all_clause_mop_ch_add_all:
   assumes  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> \<open>(C,C')\<in>nat_rel\<close>
     \<open>(D, D')\<in>clause_hash\<close> and \<open>C'\<in>#dom_m (get_clauses_wl S')\<close>
   shows \<open>mop_cch_add_all_clause S C D \<le> \<Down>clause_hash (mop_ch_add_all (mset (get_clauses_wl S' \<propto> C')) D')\<close>
 proof -
-  have \<open>mop_ch_add_all_clause S' C' D' \<le>\<Down>Id (mop_ch_add_all (mset (get_clauses_wl S' \<propto> C')) D')\<close>
+  have 1: \<open>mop_ch_add_all_clause S' C' D' \<le>\<Down>Id (mop_ch_add_all (mset (get_clauses_wl S' \<propto> C')) D')\<close>
     unfolding mop_ch_add_all_clause_def mop_ch_add_all_def mop_clauses_at_def mop_ch_add_def
     apply (refine_vcg
       WHILET_rule[where I=\<open>\<lambda>(i, D). i \<le> length (get_clauses_wl S' \<propto> C') \<and>
@@ -3598,27 +3638,34 @@ proof -
     subgoal by (auto simp: ch_add_all_def)
     subgoal by auto
     subgoal unfolding ch_add_pre_def ch_add_all_pre_def ch_add_all_def
-      apply auto
-      apply (meson disjunct_not_in nth_mem_mset)
-      sorry
+      by (auto simp: take_Suc_conv_app_nth distinct_in_set_take_iff)
+       (meson disjunct_not_in nth_mem_mset)
     subgoal by auto
     subgoal by (auto simp: ch_add_all_def take_Suc_conv_app_nth ch_add_def case_prod_beta)
     subgoal by auto
     subgoal by auto
-        
-      thm mop_ch_add
-      find_theorems mop_ch_add
-thm WHILET_rule[where I=\<open>\<lambda>(i, D). i \<le> length (get_clauses_wl S' \<propto> C') \<and>
-  D=ch_add_all (mset (take i (get_clauses_wl S' \<propto> C'))) D'\<close>]
+    done
+  have [refine]: \<open>((0, D), 0, D') \<in> nat_rel \<times>\<^sub>r clause_hash\<close>
+    using assms by auto
   show ?thesis
-    unfolding mop_cch_add_all_clause_def mop_ch_add_all_def mop_arena_length_st_def
-    apply (refine_vcg mop_arena_length[where vdom = \<open>set (get_vdom S)\<close>,THEN fref_to_Down_curry, THEN order_trans, of \<open>get_clauses_wl S'\<close> C'])
+    apply (rule ref_two_step[OF _ 1[unfolded Down_id_eq]])
+    unfolding mop_cch_add_all_clause_def mop_ch_add_all_clause_def mop_arena_length_st_def
+    apply (refine_vcg mop_arena_length[where vdom = \<open>set (get_vdom S)\<close>,THEN fref_to_Down_curry, unfolded comp_def, of \<open>get_clauses_wl S'\<close> C']
+      mop_arena_lit[where vdom=\<open>set (get_vdom S)\<close>] mop_cch_add_mop_cch_add)
     subgoal using assms by auto
     subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
-    subgoal
-      apply refine_vcg
-    sorry
-lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
+    subgoal by auto
+    subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+(*TODO: this is the real thing, no the lemma below!*)
+lemma isa_forward_subsumption_all_forward_subsumption_wl_all_tmp:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_forward_subsumption_all_wl2 S \<le>
     \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl2 S')\<close>
@@ -3639,8 +3686,9 @@ proof -
     unfolding isa_forward_subsumption_all_wl2_def
       forward_subsumption_all_wl2_def
     apply (refine_vcg ref_two_step[OF isa_populate_occs populate_occs_populate_occs_spec,
-      unfolded Down_id_eq, of _ _ r u]
+      unfolded Down_id_eq, of _ _ r u] empty_occs_st[where r=r and u=u]
       mop_cch_create_mop_cch_create
+      mop_cch_add_all_clause_mop_ch_add_all[where r=r and u=u]
       isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2[where r=r and u=u])
     subgoal using assms unfolding isa_forward_subsumption_pre_all_def by blast
     subgoal using assms by fast
@@ -3651,13 +3699,19 @@ proof -
     subgoal unfolding isa_forward_subsumption_all_wl_inv_def by fast
     subgoal by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs[THEN fref_to_Down_unRET_Id])
       (auto simp: get_conflict_wl_is_None_def)
-    subgoal sorry
-      
-oops
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    done
+qed
 
-thm get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart
-
-find_theorems get_conflict_wl_is_None_heur get_conflict_wl_is_None
 definition append_clause_to_occs_pre where
   \<open>append_clause_to_occs_pre C S occs =
   (\<exists>S' r u. (S, S')\<in>twl_st_heur_restart_ana' r u \<and> C \<in># dom_m (get_clauses_wl S') \<and>

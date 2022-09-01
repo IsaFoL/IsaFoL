@@ -3458,8 +3458,14 @@ definition forward_subsumption_all_pre :: \<open>'v twl_st_l \<Rightarrow> bool\
     count_decided (get_trail_l S) = 0 \<and>
     set (get_all_mark_of_propagated (get_trail_l S)) \<subseteq> {0})\<close>
 
+
 definition forward_subsumption_all_inv :: \<open>'v twl_st_l \<Rightarrow> nat multiset \<times> 'v twl_st_l \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S) \<and>
+  \<open>forward_subsumption_all_inv S = (\<lambda>(xs, T). \<exists>S'. (S,S')\<in> twl_st_l None \<and>  cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T \<and> xs \<subseteq># dom_m (get_clauses_l S) \<and>
+    twl_struct_invs S' \<and>
+    twl_list_invs S \<and>
+    clauses_to_update_l S = {#} \<and>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S') \<and>
+    count_decided (get_trail_l S) = 0 \<and>
     get_trail_l T = get_trail_l S \<and> (\<forall>C\<in>#xs. get_clauses_l T \<propto> C = get_clauses_l S \<propto> C) \<and> xs \<subseteq># dom_m (get_clauses_l T))\<close>
 
 definition forward_subsumption_all_cands where
@@ -3611,7 +3617,8 @@ proof -
       forward_subsumption_one[THEN order_trans])
     subgoal using assms by (auto simp: forward_subsumption_all_cands_def)
     subgoal by auto
-    subgoal by (auto simp: forward_subsumption_all_inv_def)
+    subgoal unfolding forward_subsumption_all_pre_def forward_subsumption_all_inv_def case_prod_beta apply normalize_goal+
+      by (rename_tac xa, rule_tac x=xa in exI) (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: forward_subsumption_all_inv_def)
     subgoal by (auto simp: size_mset_remove1_mset_le_iff)
     apply (rule try_to_forward_subsume[THEN order_trans])
