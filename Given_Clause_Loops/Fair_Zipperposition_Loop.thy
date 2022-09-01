@@ -768,8 +768,8 @@ proof -
     "Infs = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
   define flat_Ts where
     "flat_Ts = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St))) Sts"
-  define Ts where
-    "Ts = lmap todo_of Sts"
+  define TDs where
+    "TDs = lmap (\<lambda>St. (todo_of St, done_of St)) Sts"
 
   {
     fix i \<iota>
@@ -778,24 +778,29 @@ proof -
     have lt_sts: "enat i < llength Sts"
       by (simp add: len)
 
-    have chain_ts: "chain todo.lqueue_step Ts"
-      unfolding Ts_def using ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
-      by blast
+    have chain_ts: "chain todo.lqueue_step (lmap fst TDs)"
+    proof -
+      have fst_tds: "lmap fst TDs = lmap todo_of Sts"
+        unfolding TDs_def  by (simp add: llist.map_comp)
+      show ?thesis
+        unfolding fst_tds using ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
+        by blast
+    qed
 
-    have inf_ts: "infinitely_often todo.pick_lqueue_step Ts"
+    have inf_ts: "infinitely_often todo.pick_lqueue_step TDs"
       (* big proof showing that all the other steps decrease *)
       sorry
 
-    have lt_ts: "enat i < llength Ts" for i
-      by (simp add: Ts_def len)
+    have lt_tds: "enat i < llength TDs" for i
+      by (simp add: TDs_def len)
 
     have "\<iota> \<in> lnth flat_Ts i"
       using \<iota>_in_infs unfolding Infs_def flat_Ts_def by (simp add: lt_sts)
     then obtain \<iota>s :: "'f inference llist" where
-      \<iota>s_in: "\<iota>s \<in># t_llists (lnth Ts i)" and
+      \<iota>s_in: "\<iota>s \<in># t_llists (fst (lnth TDs i))" and
       \<iota>_in_\<iota>s: "\<iota> \<in> lset \<iota>s"
-      using lnth_lmap[OF lt_sts] unfolding flat_Ts_def Ts_def
-      by (smt Union_iff flat_inferences_of.elims mem_Collect_eq)
+      using lnth_lmap[OF lt_sts] unfolding flat_Ts_def TDs_def
+      by (smt Union_iff flat_inferences_of.elims fst_conv mem_Collect_eq)
 
     obtain k :: nat where
       k_lt: "enat k < llength \<iota>s" and
@@ -804,9 +809,9 @@ proof -
 
     obtain j :: nat where
       j_ge: "j \<ge> i" and
-      pick_step: "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
-        (lnth Ts (Suc j))"
-      using todo.fair_strong[OF chain_ts inf_ts lt_ts \<iota>s_in k_lt] by blast
+      pick_step: "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
+        (lnth TDs (Suc j))"
+      using todo.fair_strong[OF chain_ts inf_ts lt_tds \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ j], intro conjI)
@@ -829,7 +834,8 @@ proof -
         case (choose_p P T D A)
         have False
           using pick_step[unfolded todo.pick_lqueue_step_aux.simps]
-          unfolding Ts_def lnth_lmap[OF lt_sts]
+          unfolding TDs_def lnth_lmap[OF lt_sts]
+          sledgehammer
 
           sorry
 

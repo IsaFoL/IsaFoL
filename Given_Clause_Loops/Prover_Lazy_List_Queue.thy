@@ -55,14 +55,14 @@ lemma llists_fold_add_llist[simp]: "llists (fold add_llist es Q) = mset es + lli
 lemma llists_fold_remove_llist[simp]: "llists (fold remove_llist es Q) = llists Q - mset es"
   by (induct es arbitrary: Q) auto
 
-inductive pick_lqueue_step_aux :: "'q \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<Rightarrow> bool" where
+inductive pick_lqueue_step_aux :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   pick_lqueue_step_auxI: "LCons e es \<in># llists Q \<Longrightarrow>
     fst (pick_elem Q) = e \<Longrightarrow>
     llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#} \<Longrightarrow>
-    pick_lqueue_step_aux Q e es (snd (pick_elem Q))"
+    pick_lqueue_step_aux (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
 
-inductive pick_lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
-  "pick_lqueue_step_aux Q e es Q' \<Longrightarrow> pick_lqueue_step Q Q'"
+inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
+  "pick_lqueue_step_aux QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
 end
 
@@ -74,20 +74,20 @@ locale fair_prover_lazy_list_queue =
     remove_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
     pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
     llists :: "'q \<Rightarrow> 'e llist multiset" +
-  assumes fair: "chain lqueue_step Qs \<Longrightarrow> infinitely_often pick_lqueue_step Qs \<Longrightarrow>
-    enat i < llength Qs \<Longrightarrow> LCons e es \<in># llists (lnth Qs i) \<Longrightarrow>
-    \<exists>j \<ge> i. enat (Suc j) < llength Qs \<and> pick_lqueue_step_aux (lnth Qs j) e es (lnth Qs (Suc j))"
+  assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
+    enat i < llength QDs \<Longrightarrow> LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
+    \<exists>j \<ge> i. enat (Suc j) < llength QDs \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
   assumes
-    "chain lqueue_step Qs"
-    "infinitely_often pick_lqueue_step Qs"
-    "enat i < llength Qs"
-    "es \<in># llists (lnth Qs i)"
+    "chain lqueue_step (lmap fst QDs)"
+    "infinitely_often pick_lqueue_step QDs"
+    "enat i < llength QDs"
+    "es \<in># llists (fst (lnth QDs i))"
     "enat k < llength es"
-  shows "\<exists>j \<ge> i. enat (Suc j) < llength Qs
-    \<and> pick_lqueue_step_aux (lnth Qs j) (lnth es k) (ldrop (Suc k) es) (lnth Qs (Suc j))"
+  shows "\<exists>j \<ge> i. enat (Suc j) < llength QDs
+    \<and> pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   sorry
 
 end
@@ -143,16 +143,17 @@ qed simp+
 sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
 proof
   fix
-    Qs :: "'a llist list llist" and
+    QDs :: "('e llist list \<times> 'e set) llist" and
     i :: nat and
-    e :: 'a and
-    es :: "'a llist"
+    e :: 'e and
+    es :: "'e llist"
   assume
-    "chain lqueue_step Qs" and
-    "infinitely_often pick_lqueue_step Qs" and
-    "enat i < llength Qs" and
-    "LCons e es \<in># mset (lnth Qs i)"
-  show "\<exists>j \<ge> i. enat (Suc j) < llength Qs \<and> pick_lqueue_step_aux (lnth Qs j) e es (lnth Qs (Suc j))"
+    "chain lqueue_step (lmap fst QDs)" and
+    "infinitely_often pick_lqueue_step QDs" and
+    "enat i < llength QDs" and
+    "LCons e es \<in># mset (fst (lnth QDs i))"
+  show "\<exists>j \<ge> i. enat (Suc j) < llength QDs
+    \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
     sorry
 qed
 
