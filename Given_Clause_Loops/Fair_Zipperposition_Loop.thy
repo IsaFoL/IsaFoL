@@ -764,16 +764,19 @@ lemma fair_ZL_Liminf_todo_empty:
   shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts) =
     {}"
 proof -
-  define Is where
-    "Is = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
+  define Infs where
+    "Infs = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts"
+  define flat_Ts where
+    "flat_Ts = lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St))) Sts"
   define Ts where
     "Ts = lmap todo_of Sts"
 
   {
     fix i \<iota>
-    assume
-      i_lt: "enat i < llength Sts" and
-      \<iota>_in: "\<iota> \<in> lnth Is i"
+    assume \<iota>_in_infs: "\<iota> \<in> lnth Infs i"
+
+    have lt_sts: "enat i < llength Sts"
+      by (simp add: len)
 
     have chain_ts: "chain todo.lqueue_step Ts"
       unfolding Ts_def using ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
@@ -783,30 +786,42 @@ proof -
       (* big proof showing that all the other steps decrease *)
       sorry
 
-    have i_lt: "enat i < llength Ts"
-      unfolding Ts_def using i_lts
-      sorry
+    have lt_ts: "enat i < llength Ts" for i
+      by (simp add: Ts_def len)
 
-    obtain \<iota>s where
+    have "\<iota> \<in> lnth flat_Ts i"
+      using \<iota>_in_infs unfolding Infs_def flat_Ts_def by (simp add: lt_sts)
+    then obtain \<iota>s :: "'f inference llist" where
       \<iota>s_in: "\<iota>s \<in># t_llists (lnth Ts i)" and
-      \<iota>_in: "\<iota> \<in> lset \<iota>s"
-      sorry
+      \<iota>_in_\<iota>s: "\<iota> \<in> lset \<iota>s"
+      using lnth_lmap[OF lt_sts] unfolding flat_Ts_def Ts_def
+      by (smt Union_iff flat_inferences_of.elims mem_Collect_eq)
 
-    obtain k where
-      k_lt: "enat k < llength \<iota>s"
-      sorry
+    obtain k :: nat where
+      k_lt: "enat k < llength \<iota>s" and
+      at_k: "lnth \<iota>s k = \<iota>"
+      using \<iota>_in_\<iota>s by (meson in_lset_conv_lnth)
 
-    have fair_strong: "\<exists>j \<ge> i. enat (Suc j) < llength Ts \<and>
-      todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s) (lnth Ts (Suc j))"
-      by (rule todo.fair_strong[OF chain_ts inf_ts i_lt \<iota>s_in k_lt])
+    obtain j :: nat where
+      j_ge: "j \<ge> i" and
+      "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s) (lnth Ts (Suc j))"
+      using todo.fair_strong[OF chain_ts inf_ts lt_ts \<iota>s_in k_lt] by blast
 
-    have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Is j"
-      sorry
+    have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
+    proof (rule exI[of _ j], intro conjI)
+      show "i \<le> j"
+        by (rule j_ge)
+    next
+      show "enat j < llength Sts"
+        by (simp add: len)
+    next
+      show "\<iota> \<notin> lnth Infs j"
+        sorry
+    qed
   }
   thus ?thesis
-    unfolding Is_def[symmetric]
-    unfolding Liminf_llist_def
-    by clarsimp (smt Collect_empty_eq INT_iff Inf_set_def Is_def dual_order.refl llength_lmap
+    unfolding Infs_def[symmetric] Liminf_llist_def
+    by clarsimp (smt Infs_def Collect_empty_eq INT_iff Inf_set_def dual_order.refl llength_lmap
         mem_Collect_eq)
 qed
 
