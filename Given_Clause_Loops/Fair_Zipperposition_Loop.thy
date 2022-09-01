@@ -804,7 +804,8 @@ proof -
 
     obtain j :: nat where
       j_ge: "j \<ge> i" and
-      "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s) (lnth Ts (Suc j))"
+      pick_step: "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s)
+        (lnth Ts (Suc j))"
       using todo.fair_strong[OF chain_ts inf_ts lt_ts \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
@@ -815,6 +816,15 @@ proof -
       show "enat j < llength Sts"
         by (simp add: len)
     next
+(*
+      have "lnth Ts j \
+
+
+      thm fair_ZL.compute_infer
+
+      have step: "(
+*)
+
       show "\<iota> \<notin> lnth Infs j"
         sorry
     qed
