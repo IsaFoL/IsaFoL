@@ -804,7 +804,7 @@ proof -
 
     obtain j :: nat where
       j_ge: "j \<ge> i" and
-      pick_step: "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s)
+      pick_step: "todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
         (lnth Ts (Suc j))"
       using todo.fair_strong[OF chain_ts inf_ts lt_ts \<iota>s_in k_lt] by blast
 
@@ -816,17 +816,50 @@ proof -
       show "enat j < llength Sts"
         by (simp add: len)
     next
-(*
-      have "lnth Ts j \
-
-
-      thm fair_ZL.compute_infer
-
-      have step: "(
-*)
-
+      have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)"
+        using full full_chain_imp_chain infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
+        by blast
       show "\<iota> \<notin> lnth Infs j"
-        sorry
+        using step
+      proof cases
+        case (compute_infer T \<iota>0 T' A C D P)
+        show ?thesis
+          sorry
+      next
+        case (choose_p P T D A)
+        have False
+          using pick_step[unfolded todo.pick_lqueue_step_aux.simps]
+          unfolding Ts_def lnth_lmap[OF lt_sts]
+
+          sorry
+
+        show ?thesis
+          sorry
+      next
+        case (delete_fwd C A T D P)
+        show ?thesis
+          sorry
+      next
+        case (simplify_fwd C' C A T D P)
+        show ?thesis
+          sorry
+      next
+        case (delete_bwd C' A C T D P)
+        show ?thesis
+          sorry
+      next
+        case (simplify_bwd C' A C'' C T D P)
+        show ?thesis
+          sorry
+      next
+        case (schedule_infer \<iota>ss A C T D P)
+        show ?thesis
+          sorry
+      next
+        case (delete_orphan_infers \<iota>s T A D P Y)
+        show ?thesis
+          sorry
+      qed
     qed
   }
   thus ?thesis

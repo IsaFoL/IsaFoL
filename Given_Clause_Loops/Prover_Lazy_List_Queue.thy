@@ -87,7 +87,7 @@ lemma fair_strong:
     "es \<in># llists (lnth Qs i)"
     "enat k < llength es"
   shows "\<exists>j \<ge> i. enat (Suc j) < llength Qs
-    \<and> pick_lqueue_step_aux (lnth Qs j) (lnth es k) (ldrop (k + 1) es) (lnth Qs (Suc j))"
+    \<and> pick_lqueue_step_aux (lnth Qs j) (lnth es k) (ldrop (Suc k) es) (lnth Qs (Suc j))"
   sorry
 
 end
