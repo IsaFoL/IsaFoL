@@ -48,6 +48,12 @@ begin
 fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
   "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
 
+fun
+  w_ghosts_of ::
+  "'f inference set \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state"
+where
+  "w_ghosts_of D (T, P, Y, A) = (T, D, P, Y, A)"
+
 inductive
   fair_ZL_wo_ghosts ::
   "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
@@ -92,25 +98,9 @@ lemma w_ghosts_compute_infer_step_imp_compute_infer_step:
   using assms by cases (simp add: compute_infer_step.intros)
 
 lemma choose_p_step_imp_w_ghosts_choose_p_step:
-  assumes "choose_p_step (wo_ghosts_of St) (wo_ghosts_of St')"
-  shows "w_ghosts.choose_p_step St St'"
-  using assms
-proof cases
-  case (1 P T A)
-  note wg_st = this(1) and wg_st' = this(2) and rest = this(3)
-
-  define D :: "'f inference set" where
-    "D = done_of St"
-
-  have st: "St = (T, D, P, None, A)"
-    sorry
-  have st': "St' = (T, D, p_remove (p_select P) P, Some (p_select P), A)"
-    sorry
-
-  show ?thesis
-
-    sorry
-qed
+  assumes "choose_p_step St St'"
+  shows "w_ghosts.choose_p_step (w_ghosts_of D St) (w_ghosts_of D St')"
+  using assms by cases (simp add: w_ghosts.choose_p_step.intros)
 
 
 subsection \<open>Basic Definitions and Lemmas\<close>
@@ -531,10 +521,12 @@ proof -
     hence inf_cp: "infinitely_often choose_p_step Sts"
       by (simp add: fair)
 
+    thm choose_p_step_imp_w_ghosts_choose_p_step
+
     show "infinitely_often w_ghosts.choose_p_step Sts0"
-      by (rule infinitely_often_lifting[of _ _ _ "\<lambda>x. x", unfolded llist.map_ident,
+      apply (rule infinitely_often_lifting[of _ _ _ "\<lambda>x. x", unfolded llist.map_ident,
             OF _ inf_cp[unfolded sts0[symmetric]]])
-        (use choose_p_step_imp_w_ghosts_choose_p_step in auto)
+      apply (use choose_p_step_imp_w_ghosts_choose_p_step in auto)
   qed
 
   have unsat0: "passive.elems (w_ghosts.passive_of (lhd Sts0)) \<Turnstile>\<inter>\<G> {B}"
