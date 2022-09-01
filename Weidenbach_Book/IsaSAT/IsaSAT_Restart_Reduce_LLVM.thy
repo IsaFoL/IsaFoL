@@ -55,7 +55,7 @@ sepref_def find_local_restart_target_level_fast_code
 
 
 definition find_local_restart_target_level_st_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-  \<open>find_local_restart_target_level_st_fast_code = (read_all_st_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N))\<close>
+  \<open>find_local_restart_target_level_st_fast_code = (read_all_st_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N))\<close>
 
 global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
   P = \<open>\<lambda>_ _. True\<close> and
@@ -63,8 +63,8 @@ global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
   f = \<open>find_local_restart_target_level_fast_code\<close> and
   x_assn = \<open>uint32_nat_assn\<close>
   rewrites
-    \<open>(read_all_st (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_int M N)) = find_local_restart_target_level_st\<close> and
-    \<open>(read_all_st_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N)) = find_local_restart_target_level_st_fast_code\<close>
+    \<open>(read_all_st (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_int M N)) = find_local_restart_target_level_st\<close> and
+    \<open>(read_all_st_code (\<lambda>M _ _ _ _ N _ _ _ _ _ _ _ _ _ _ _. find_local_restart_target_level_fast_code M N)) = find_local_restart_target_level_st_fast_code\<close>
   apply unfold_locales
   apply (subst lambda_comp_true)
   apply (rule find_local_restart_target_level_fast_code.refine)

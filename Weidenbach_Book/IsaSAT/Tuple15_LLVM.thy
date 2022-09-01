@@ -69,25 +69,23 @@ end
 
 subsubsection \<open>Setup for LLVM code export\<close>
 text \<open>Declare structure to code generator.\<close>
-lemma to_val_tuple15[ll_to_val]: "to_val x = LL_STRUCT [
-  to_val (Tuple15_a x),
-  to_val (Tuple15_b x),
-  to_val (Tuple15_c x),
-  to_val (Tuple15_d x),
-  to_val (Tuple15_e x),
-  to_val (Tuple15_f x),
-  to_val (Tuple15_g x),
-  to_val (Tuple15_h x),
-  to_val (Tuple15_i x),
-  to_val (Tuple15_j x),
-  to_val (Tuple15_k x),
-  to_val (Tuple15_l x),
-  to_val (Tuple15_m x),
-  to_val (Tuple15_n x),
-  to_val (Tuple15_o x)]"
-  apply (cases x)
-  apply (auto simp: to_val_tuple15_def)
-  done
+lemma to_val_tuple17[ll_struct_of]: "struct_of TYPE(('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o) tuple15) = VS_STRUCT [
+  struct_of TYPE('a::llvm_rep),
+  struct_of TYPE('b::llvm_rep),
+  struct_of TYPE('c::llvm_rep),
+  struct_of TYPE('d::llvm_rep),
+  struct_of TYPE('e::llvm_rep),
+  struct_of TYPE('f::llvm_rep),
+  struct_of TYPE('g::llvm_rep),
+  struct_of TYPE('h::llvm_rep),
+  struct_of TYPE('i::llvm_rep),
+  struct_of TYPE('j::llvm_rep),
+  struct_of TYPE('k::llvm_rep),
+  struct_of TYPE('l::llvm_rep),
+  struct_of TYPE('m::llvm_rep),
+  struct_of TYPE('n::llvm_rep),
+  struct_of TYPE('o::llvm_rep)]"
+  by (auto)
 
 lemma node_insert_value:
   "ll_insert_value (Tuple15 M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts) M' 0 = Mreturn (Tuple15 M' N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts)"

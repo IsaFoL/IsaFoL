@@ -535,7 +535,7 @@ lemma read_all_refine:
   (Tuple15_n S)
   (Tuple15_o S))]\<^sub>a tuple15_int_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k\<rightarrow> x_assn\<close>
   apply (rule add_pure_parameter2)
-  unfolding isasat_int.case_distrib case_isasat_int_split_getter
+  unfolding tuple15.case_distrib case_isasat_int_split_getter
   apply (rule read_all_st_code_refine)
   apply (rule not_deleted_code_refine_tmp)
   apply assumption

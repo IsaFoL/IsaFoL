@@ -90,6 +90,9 @@ abbreviation IsaSAT where
 lemmas isasat_int_splits = Tuple17.tuple17.splits
 hide_fact tuple17.splits
 
+abbreviation case_isasat_int :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\<close> where
+  \<open>case_isasat_int \<equiv> case_tuple17\<close>
+
 abbreviation get_trail_wl_heur :: \<open>isasat \<Rightarrow> trail_pol\<close> where
   \<open>get_trail_wl_heur \<equiv> Tuple17_get_a\<close>
 

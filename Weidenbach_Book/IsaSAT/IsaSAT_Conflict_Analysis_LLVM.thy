@@ -28,7 +28,7 @@ global_interpretation is_decided_hd: read_trail_param_adder0 where
   P = \<open>(\<lambda>S. fst S \<noteq> [] \<and> last_trail_pol_pre S)\<close>
   rewrites \<open>read_trail_wl_heur is_decided_trail = RETURN o is_decided_hd_trail_wl_heur\<close> and
   \<open>read_trail_wl_heur_code is_decided_trail_impl = is_decided_hd_trail_wl_fast_code\<close> and
-  \<open>case_isasat_int (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. fst M \<noteq> [] \<and> last_trail_pol_pre M) = is_decided_hd_trail_wl_heur_pre\<close>
+  \<open>case_isasat_int (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. fst M \<noteq> [] \<and> last_trail_pol_pre M) = is_decided_hd_trail_wl_heur_pre\<close>
   apply unfold_locales
   apply (rule is_decided_trail_impl.refine)
   subgoal

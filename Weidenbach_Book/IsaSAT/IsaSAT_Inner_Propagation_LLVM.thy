@@ -57,7 +57,7 @@ definition isa_find_unset_lit_st where
 definition isasat_find_unset_lit_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_find_unset_lit_st_impl = (\<lambda>N C D E.
      read_all_st_code
-      (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N)\<close>
+      (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N)\<close>
 
 global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs where
   R = \<open>snat_rel' (TYPE(64))\<close> and
@@ -69,10 +69,10 @@ global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs wh
   P = \<open>\<lambda>C C' C'' M N. length N \<le> sint64_max\<close>
   rewrites
   \<open>(\<lambda>N C D E.
-  read_all_st (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unset_lit M N C D E) N) = isa_find_unset_lit_st\<close> and
+  read_all_st (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unset_lit M N C D E) N) = isa_find_unset_lit_st\<close> and
   \<open>(\<lambda>N C D E.
      read_all_st_code
-      (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N) = isasat_find_unset_lit_st_impl\<close>
+      (\<lambda>M N _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. isa_find_unwatched_between_fast_code M N C D E) N) = isasat_find_unset_lit_st_impl\<close>
   apply (unfold_locales)
   apply (subst (9) uncurry_def)+
   apply (rule isa_find_unwatched_between_fast_code.refine)

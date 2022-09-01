@@ -1098,7 +1098,7 @@ lemma (in -) case_isasat_int_split_getter: \<open>P (get_trail_wl_heur S)
   (get_aivdom S)
   (get_learned_count S)
   (get_opts S)
-  (get_old_arena S) (get_occs S) = case_tuple17 P S\<close>
+  (get_old_arena S) (get_occs S) = case_isasat_int P S\<close>
   by (auto split: isasat_int_splits)
 
 lemma refine:
@@ -2619,7 +2619,7 @@ lemmas [sepref_fr_rules] =
 
 
 lemma lambda_comp_true: \<open>(\<lambda>S. True) \<circ> f = (\<lambda>_. True)\<close> \<open>uncurry (\<lambda>a b. True) = (\<lambda>_. True)\<close>  \<open>uncurry2 (\<lambda>a b c. True) = (\<lambda>_. True)\<close>
-  \<open>case_tuple17 (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. True) = (\<lambda>_. True)\<close>
+  \<open>case_isasat_int (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. True) = (\<lambda>_. True)\<close>
   by (auto intro!: ext split: isasat_int_splits)
 
 named_theorems state_extractors \<open>Definition of all functions modifying the state\<close>
