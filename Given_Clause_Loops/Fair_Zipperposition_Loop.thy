@@ -779,9 +779,11 @@ proof -
       sorry
 
     have inf_ts: "infinitely_often todo.pick_lqueue_step Ts"
+      (* big proof showing that all the other steps decrease *)
       sorry
 
     have i_lt: "enat i < llength Ts"
+      unfolding Ts_def
       sorry
 
     obtain \<iota>s where
