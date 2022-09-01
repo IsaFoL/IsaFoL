@@ -56,6 +56,14 @@ lemma infinitely_often_alt_def:
    (\<forall>i. \<exists>j. i \<le> j \<and> enat (Suc j) < llength xs \<and> R (lnth xs j) (lnth xs (Suc j)))"
   unfolding finitely_often_def by blast
 
+lemma infinitely_often_lifting:
+  assumes
+    r_imp_s: "\<forall>x x'. R (f x) (f x') \<longrightarrow> S (g x) (g x')" and
+    inf_r: "infinitely_often R (lmap f xs)"
+  shows "infinitely_often S (lmap g xs)"
+  using inf_r unfolding infinitely_often_alt_def
+  by (metis Suc_ile_eq llength_lmap lnth_lmap order_less_imp_le r_imp_s)
+
 
 subsection \<open>Locales\<close>
 
