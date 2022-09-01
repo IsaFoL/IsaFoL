@@ -775,8 +775,10 @@ proof -
     fix i \<iota>
     assume \<iota>_in_infs: "\<iota> \<in> lnth Infs i"
 
-    have lt_sts: "enat i < llength Sts"
+    have lt_sts: "enat n < llength Sts" for n
       by (simp add: len)
+    have lt_tds: "enat n < llength TDs" for n
+      by (simp add: TDs_def len)
 
     have chain_ts: "chain todo.lqueue_step (lmap fst TDs)"
     proof -
@@ -790,9 +792,6 @@ proof -
     have inf_ts: "infinitely_often todo.pick_lqueue_step TDs"
       (* big proof showing that all the other steps decrease *)
       sorry
-
-    have lt_tds: "enat i < llength TDs" for i
-      by (simp add: TDs_def len)
 
     have "\<iota> \<in> lnth flat_Ts i"
       using \<iota>_in_infs unfolding Infs_def flat_Ts_def by (simp add: lt_sts)
@@ -814,59 +813,20 @@ proof -
       using todo.fair_strong[OF chain_ts inf_ts lt_tds \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
-    proof (rule exI[of _ j], intro conjI)
-      show "i \<le> j"
-        by (rule j_ge)
-    next
-      show "enat j < llength Sts"
-        by (simp add: len)
-    next
-      have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)"
-        using full full_chain_imp_chain infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
-        by blast
-      show "\<iota> \<notin> lnth Infs j"
-        using step
+    proof (rule exI[of _ "Suc j"], intro conjI)
+      show "\<iota> \<notin> lnth Infs (Suc j)"
+        using pick_step
       proof cases
-        case (compute_infer T \<iota>0 T' A C D P)
-        show ?thesis
-          sorry
-      next
-        case (choose_p P T D A)
-        have False
-          using pick_step[unfolded todo.pick_lqueue_step_aux.simps]
-          unfolding TDs_def lnth_lmap[OF lt_sts]
-          sledgehammer
+        case (pick_lqueue_step_auxI Q D)
+        note at_j = this(1) and at_sj = this(2)
 
-          sorry
-
+        have don: "done_of (lnth Sts (Suc j)) = D \<union> {\<iota>}"
+          using at_sj at_k by (simp add: TDs_def len)
+        
         show ?thesis
-          sorry
-      next
-        case (delete_fwd C A T D P)
-        show ?thesis
-          sorry
-      next
-        case (simplify_fwd C' C A T D P)
-        show ?thesis
-          sorry
-      next
-        case (delete_bwd C' A C T D P)
-        show ?thesis
-          sorry
-      next
-        case (simplify_bwd C' A C'' C T D P)
-        show ?thesis
-          sorry
-      next
-        case (schedule_infer \<iota>ss A C T D P)
-        show ?thesis
-          sorry
-      next
-        case (delete_orphan_infers \<iota>s T A D P Y)
-        show ?thesis
-          sorry
+          unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
       qed
-    qed
+    qed (use j_ge lt_sts in auto)
   }
   thus ?thesis
     unfolding Infs_def[symmetric] Liminf_llist_def
