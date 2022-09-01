@@ -775,9 +775,27 @@ proof -
       i_lt: "enat i < llength Sts" and
       \<iota>_in: "\<iota> \<in> lnth Is i"
 
+    have chain_ts: "chain todo.lqueue_step Ts"
+      sorry
 
+    have inf_ts: "infinitely_often todo.pick_lqueue_step Ts"
+      sorry
 
-    thm todo.fair_strong[of Ts]
+    have i_lt: "enat i < llength Ts"
+      sorry
+
+    obtain \<iota>s where
+      \<iota>s_in: "\<iota>s \<in># t_llists (lnth Ts i)" and
+      \<iota>_in: "\<iota> \<in> lset \<iota>s"
+      sorry
+
+    obtain k where
+      k_lt: "enat k < llength \<iota>s"
+      sorry
+
+    have fair_strong: "\<exists>j \<ge> i. enat (Suc j) < llength Ts \<and>
+      todo.pick_lqueue_step_aux (lnth Ts j) (lnth \<iota>s k) (ldrop (enat (k + 1)) \<iota>s) (lnth Ts (Suc j))"
+      by (rule todo.fair_strong[OF chain_ts inf_ts i_lt \<iota>s_in k_lt])
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Is j"
       sorry
