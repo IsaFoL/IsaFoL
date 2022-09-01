@@ -64,7 +64,7 @@ lemma isasat_current_status_alt_def:
        curr_phase = current_restart_phase (heur);
         stats = (isasat_current_information curr_phase stats lcount)
      in RETURN (update_stats_wl_heur stats (update_heur_wl_heur heur (update_lcount_wl_heur lcount S))))\<close>
-  by (auto simp: isasat_current_status_def state_extractors split: isasat_int.splits intro!: ext)
+  by (auto simp: isasat_current_status_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_def isasat_current_status_fast_code
   is \<open>isasat_current_status\<close>

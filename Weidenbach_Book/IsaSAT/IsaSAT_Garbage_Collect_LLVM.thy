@@ -120,7 +120,7 @@ lemma isasat_GC_clauses_prog_wl_alt_def:
       })\<close>
       by (auto simp: isasat_GC_clauses_prog_wl_def state_extractors recombine_vmtf_def split_vmtf_def
          Let_def intro!: ext bind_cong[OF refl]
-        split: isasat_int.splits)
+        split: isasat_int_splits)
 
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
 sepref_def isasat_GC_clauses_prog_wl_code
@@ -165,7 +165,7 @@ lemma rewatch_heur_and_reorder_st_alt_def:
   W \<leftarrow> rewatch_heur_and_reorder (get_tvdom_aivdom vdom) N W;
   RETURN (update_watchlist_wl_heur W (update_arena_wl_heur N (update_vdom_wl_heur vdom S)))
   })\<close>
-  by (auto simp: rewatch_heur_and_reorder_st_def state_extractors split: isasat_int.splits intro!: ext)
+  by (auto simp: rewatch_heur_and_reorder_st_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_register rewatch_heur_and_reorder rewatch_heur_and_reorder_vdom
 sepref_def rewatch_heur_st_code
@@ -189,7 +189,7 @@ lemma reset_added_heur_st_alt_def:
            _ = isasat_print_progress (if should_inprocess then 105 else 103) bc stats (lcount);
            S = update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)) in
   S)\<close>
-  by (auto simp: reset_added_heur_st_def state_extractors split: isasat_int.splits
+  by (auto simp: reset_added_heur_st_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 (*TODO Move*)

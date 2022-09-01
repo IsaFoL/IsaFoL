@@ -14,7 +14,7 @@ lemma decide_lit_wl_heur_alt_def:
       let S = update_trail_wl_heur M S;
       let S = update_stats_wl_heur stats S;
         RETURN S})\<close>
-   by (auto simp: decide_lit_wl_heur_def state_extractors split: isasat_int.splits intro!: ext)
+   by (auto simp: decide_lit_wl_heur_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_def decide_lit_wl_fast_code
   is \<open>uncurry decide_lit_wl_heur\<close>
@@ -58,7 +58,7 @@ lemma find_unassigned_lit_wl_D_heur2_alt_def:
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
       RETURN (update_heur_wl_heur (set_fully_propagated_heur heur) (update_trail_wl_heur M (update_vmtf_wl_heur vm S)), L)
     })\<close>
-   by (auto simp: find_unassigned_lit_wl_D_heur2_def state_extractors split: isasat_int.splits intro!: ext)
+   by (auto simp: find_unassigned_lit_wl_D_heur2_def state_extractors split: isasat_int_splits intro!: ext)
 sepref_register find_unassigned_lit_wl_D_heur2
 sepref_def find_unassigned_lit_wl_D_heur_impl
   is \<open>find_unassigned_lit_wl_D_heur2\<close>
@@ -90,7 +90,7 @@ global_interpretation get_next_phase: read_heur_param_adder2 where
   apply unfold_locales
   apply (rule get_next_phase_heur_stats_impl'.refine[unfolded get_next_phase_heur_stats_impl'_def])
   subgoal by (auto simp: get_next_phase_st'_impl_def)
-  subgoal by (auto simp: read_all_st_def get_next_phase_st_def get_next_phase_st'_def split: isasat_int.splits
+  subgoal by (auto simp: read_all_st_def get_next_phase_st_def get_next_phase_st'_def split: isasat_int_splits
     intro!: ext)
   done
 

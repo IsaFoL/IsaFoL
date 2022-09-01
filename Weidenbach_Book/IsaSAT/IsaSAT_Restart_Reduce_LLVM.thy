@@ -11,7 +11,7 @@ no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0
 
 lemma schedule_next_reduce_st_alt_def:
   \<open>schedule_next_reduce_st b S = (let (heur, S) = extract_heur_wl_heur S; heur = schedule_next_reduce b heur in update_heur_wl_heur heur S)\<close>
-  by (auto simp: schedule_next_reduce_st_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+  by (auto simp: schedule_next_reduce_st_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_def schedule_next_reduce_st_impl
   is \<open>uncurry (RETURN oo schedule_next_reduce_st)\<close>
@@ -69,7 +69,7 @@ global_interpretation find_restart_lvl: read_trail_vmtf_param_adder0 where
   apply (subst lambda_comp_true)
   apply (rule find_local_restart_target_level_fast_code.refine)
   subgoal by (auto simp: read_all_st_def find_local_restart_target_level_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: find_local_restart_target_level_st_fast_code_def)
   done
 
@@ -83,7 +83,7 @@ lemma empty_Q_alt_def:
   j \<leftarrow> mop_isa_length_trail M;
   RETURN (update_heur_wl_heur (restart_info_restart_done_heur heur) (update_literals_to_update_wl_heur j (update_trail_wl_heur M S)))
     })\<close>
-  by (auto simp: state_extractors empty_Q_def intro!: ext split: isasat_int.splits)
+  by (auto simp: state_extractors empty_Q_def intro!: ext split: isasat_int_splits)
 
 sepref_def empty_Q_fast_code
   is \<open>empty_Q\<close>
@@ -282,7 +282,7 @@ lemma sort_vdom_heur_alt_def:
     vdom \<leftarrow> sort_clauses_by_score arena' vdom;
     RETURN (update_arena_wl_heur arena' (update_vdom_wl_heur vdom (update_trail_wl_heur M' S)))
     })\<close>
-   by (auto intro!: ext split: isasat_int.splits simp: sort_vdom_heur_def state_extractors)
+   by (auto intro!: ext split: isasat_int_splits simp: sort_vdom_heur_def state_extractors)
 
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>

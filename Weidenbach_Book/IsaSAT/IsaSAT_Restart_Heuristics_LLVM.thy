@@ -56,7 +56,7 @@ global_interpretation end_of_restart_phase: read_heur_param_adder0 where
   apply unfold_locales
   apply (rule end_of_restart_phase_impl_refine)
   subgoal by (auto simp: read_all_st_def end_of_restart_phase_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: end_of_restart_phase_st_impl_def)
   done
  
@@ -73,7 +73,7 @@ global_interpretation end_of_rephasing_phase: read_heur_param_adder0 where
   apply unfold_locales
   apply (rule heur_refine)
   subgoal by (auto simp: read_all_st_def end_of_rephasing_phase_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: end_of_rephasing_phase_st_impl_def)
   done
 
@@ -94,7 +94,7 @@ lemma update_restart_phases_alt_def:
      heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (update_heur_wl_heur heur S)
   })\<close>
-  by (auto simp: update_restart_phases_def state_extractors split: isasat_int.splits intro!: ext)
+  by (auto simp: update_restart_phases_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_def update_restart_phases_impl
   is \<open>update_restart_phases\<close>
@@ -186,7 +186,7 @@ lemma isasat_replace_annot_in_trail_alt_def:
     RETURN (update_trail_wl_heur M (update_lcount_wl_heur lcount S))
   })\<close>
   by (auto simp: isasat_replace_annot_in_trail_def state_extractors
-        intro!: ext split: isasat_int.splits)
+        intro!: ext split: isasat_int_splits)
 sepref_register isasat_replace_annot_in_trail
 sepref_def isasat_replace_annot_in_trail_code
   is \<open>uncurry2 isasat_replace_annot_in_trail\<close>

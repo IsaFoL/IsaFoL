@@ -18,7 +18,7 @@ lemma isa_save_pos_alt_def:
     })
   \<close>
   by (auto simp: isa_save_pos_def state_extractors
-    split: isasat_int.splits intro!: ext)
+    split: isasat_int_splits intro!: ext)
 
 sepref_def isa_save_pos_fast_code
   is \<open>uncurry2 isa_save_pos\<close>
@@ -76,7 +76,7 @@ global_interpretation find_unset_lit: read_trail_arena_param_adder2_threeargs wh
   apply (unfold_locales)
   apply (subst (9) uncurry_def)+
   apply (rule isa_find_unwatched_between_fast_code.refine)
-  subgoal by (auto simp: read_all_st_def isa_find_unset_lit_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: read_all_st_def isa_find_unset_lit_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: isasat_find_unset_lit_st_impl_def)
   done
 
@@ -160,7 +160,7 @@ lemma update_clause_wl_heur_alt_def:
      RETURN (j, w+1, S)
    })\<close>
    by (auto intro!: ext simp: state_extractors update_clause_wl_heur_def
-         split: isasat_int.splits)
+         split: isasat_int_splits)
 
 sepref_def update_clause_wl_fast_code
   is \<open>uncurry7 update_clause_wl_heur\<close>
@@ -205,7 +205,7 @@ lemma propagate_lit_wl_heur_alt_def:
       RETURN S
   })\<close>
         by (auto intro!: ext simp: state_extractors propagate_lit_wl_heur_def
-          split: isasat_int.splits)
+          split: isasat_int_splits)
       
 sepref_def propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
@@ -239,7 +239,7 @@ lemma propagate_lit_wl_bin_heur_alt_def:
       RETURN S
   })\<close>
   by (auto intro!: ext simp: state_extractors propagate_lit_wl_bin_heur_def
-      split: isasat_int.splits)
+      split: isasat_int_splits)
 
 sepref_def propagate_lit_wl_bin_fast_code
   is \<open>uncurry2 propagate_lit_wl_bin_heur\<close>
@@ -268,7 +268,7 @@ lemma update_blit_wl_heur_alt_def:
      RETURN (j+1, w+1, update_watchlist_wl_heur W S)
   })\<close>
   by (auto intro!: ext simp: state_extractors update_blit_wl_heur_def
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 sepref_def update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
@@ -298,7 +298,7 @@ lemma keep_watch_heur_alt_def:
      RETURN (update_watchlist_wl_heur W S)
    })\<close>
   by (auto intro!: ext simp: state_extractors keep_watch_heur_def
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 sepref_def keep_watch_heur_fast_code
   is \<open>uncurry3 keep_watch_heur\<close>
@@ -339,7 +339,7 @@ lemma set_conflict_wl_heur_alt_def:
     let S = update_arena_wl_heur N S;
     RETURN S})\<close>
   by (auto intro!: ext simp: state_extractors set_conflict_wl_heur_def Let_def
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 sepref_def set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>

@@ -86,6 +86,10 @@ type_synonym isasat = \<open>(trail_pol, arena,
 abbreviation IsaSAT where
   \<open>IsaSAT a b c d e f g h i j k l m n xo p occs \<equiv> Tuple17 a b c d e f g h i j k l m n xo p occs :: isasat\<close>
 
+
+lemmas isasat_int_splits = Tuple17.tuple17.splits
+hide_fact tuple17.splits
+
 abbreviation get_trail_wl_heur :: \<open>isasat \<Rightarrow> trail_pol\<close> where
   \<open>get_trail_wl_heur \<equiv> Tuple17_get_a\<close>
 
@@ -1501,6 +1505,7 @@ lemma print_trail_st_print_trail_st2_rel:
 named_theorems isasat_state_simp
 
 lemma [isasat_state_simp]:
+  \<open>learned_clss_count (Tuple17.set_q occs S) = learned_clss_count S\<close>
   \<open>learned_clss_count (Tuple17.set_p old_arena S) = learned_clss_count S\<close>
   \<open>learned_clss_count (Tuple17.set_o opts S) = learned_clss_count S\<close>
   \<open>learned_clss_count (Tuple17.set_n lcount S) = learned_clss_count_lcount lcount\<close>
@@ -1533,6 +1538,7 @@ lemma [isasat_state_simp]:
   \<open>get_learned_count (set_learned_count_wl_heur lcount S) = lcount\<close>
   \<open>get_opts (set_learned_count_wl_heur lcount S) = get_opts S\<close>
   \<open>get_old_arena (set_learned_count_wl_heur lcount S) = get_old_arena S\<close>
+  \<open>get_occs (set_learned_count_wl_heur lcount S) = get_occs S\<close>
   by (solves \<open>cases S; auto simp: learned_clss_count_def\<close>)+
 
 lemmas [isasat_state_simp] = tuple17_state_simp

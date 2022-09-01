@@ -153,7 +153,7 @@ lemma [twl_st_heur_restart]:
     mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
     all_init_atms_def get_init_clauses0_wl.simps tuple17.inject get_unkept_unit_init_clss_wl.simps
     get_kept_unit_init_clss_wl.simps
-    get_subsumed_init_clauses_wl.simps split: tuple17.splits)
+    get_subsumed_init_clauses_wl.simps split: isasat_int_splits)
 
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>

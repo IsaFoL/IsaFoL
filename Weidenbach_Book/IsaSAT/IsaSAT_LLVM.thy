@@ -88,7 +88,7 @@ lemma extract_model_of_state_stat_alt_def:
         RETURN (False, M, get_content stats)
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?fr\<close>
   unfolding aivdom_assn_def code_hider_assn_def by synthesize_free+
@@ -111,7 +111,7 @@ lemma extract_state_stat_alt_def:
          mop_free vdom; mop_free opts;
          mop_free old_arena; mop_free lcount;
         RETURN (True, [], get_content stats)})\<close>
-  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits intro!: ext)
+  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int_splits intro!: ext)
 
 sepref_def extract_state_stat
   is \<open>RETURN o extract_state_stat\<close>
