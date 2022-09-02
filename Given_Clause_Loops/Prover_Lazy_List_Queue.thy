@@ -87,20 +87,33 @@ lemma fair_strong:
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i.
     pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
-  using es_in k_lt
+  using k_lt
 proof (induct k)
   case 0
-  note es_in = this(1) and zero_lt = this(2)
+  note zero_lt = this
   have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
     using es_in by (metis zero_lt ldrop_0 ldrop_enat ldropn_Suc_conv_ldropn zero_enat_def)
   show ?case
     using fair[OF chain inf es_in'] by (simp add: ldrop_enat ldropn_Suc_conv_ldropn)
 next
   case (Suc k)
-  note ih = this(1) and  es_in = this(2) and sk_lt = this(3)
+  note ih = this(1) and sk_lt = this(2)
+
+  have k_lt: "enat k < llength es"
+    using sk_lt Suc_ile_eq order_less_imp_le by blast
+
+  thm ih[OF k_lt]
+
+  obtain j :: nat where
+    j_ge: "j \<ge> i" and
+    pick: "pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
+      (lnth QDs (Suc j))"
+    sorry
+
+  thm fair[OF chain inf]
 
   show ?case
-    using ih
+    
     sorry
 qed
 
