@@ -509,11 +509,10 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?quad_of] wf_lex_prod by blast
 qed
 
-lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
+lemma non_compute_infer_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
-    non_ci: "\<not> compute_infer_step St St'" and
-    non_cp: "\<not> choose_p_step St St'"
+    non_ci: "\<not> compute_infer_step St St'"
   shows "\<mu>2 St' St"
   using step
 proof cases
@@ -524,10 +523,8 @@ proof cases
     by blast
 next
   case (choose_p P T D A)
-  hence False
-    using non_cp[unfolded choose_p_step.simps] by blast
   thus ?thesis
-    by blast
+    sorry
 next
   case (delete_fwd C A T D P)
   note defs = this(1,2)
@@ -603,16 +600,13 @@ qed
 lemma yy_nonempty_ZLf_step_imp_\<mu>2:
   assumes
     step: "St \<leadsto>ZLf St'" and
-    yy: "yy_of St \<noteq> None" and
-    yy': "yy_of St' \<noteq> None"
+    yy: "yy_of St \<noteq> None"
   shows "\<mu>2 St' St"
 proof -
   have "\<not> compute_infer_step St St'"
     using yy unfolding compute_infer_step.simps by auto
-  moreover have "\<not> choose_p_step St St'"
-    using yy unfolding choose_p_step.simps by auto
-  ultimately show ?thesis
-    using non_compute_infer_choose_p_ZLf_step_imp_\<mu>2[OF step] by blast
+  thus ?thesis
+    using non_compute_infer_ZLf_step_imp_\<mu>2[OF step] by blast
 qed
 
 lemma fair_ZL_Liminf_yy_empty:
@@ -640,14 +634,12 @@ proof (rule ccontr)
 
   have yy_j: "yy_of (lnth Sts j) \<noteq> None" if j_ge: "j \<ge> i" for j
     using c_in' len j_ge by auto
-  hence yy_sj: "yy_of (lnth Sts (Suc j)) \<noteq> None" if j_ge: "j \<ge> i" for j
-    using le_Suc_eq that by presburger
   have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
   have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-    using yy_nonempty_ZLf_step_imp_\<mu>2 by (meson step j_ge yy_j yy_sj)
+    using yy_nonempty_ZLf_step_imp_\<mu>2 by (meson step j_ge yy_j)
   hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
@@ -723,8 +715,7 @@ proof -
       by blast
 
     have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_compute_infer_choose_p_ZLf_step_imp_\<mu>2[OF step[OF j_ge] not_ci[OF j_ge]
-            not_cp[OF j_ge]])
+      by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] not_ci[OF j_ge]])
     hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
     hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
@@ -801,8 +792,46 @@ proof -
       have si_lt: "enat (Suc i) < llength Sts"
         unfolding len by auto
 
+      have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
+        using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len
+          llength_eq_infty_conv_lfinite
+        by blast
+
+      have non_ci: "\<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      proof -
+        {
+          assume "compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
+          hence "\<exists>j \<ge> i. todo.pick_lqueue_step (lnth TDs j) (lnth TDs (Suc j))"
+            using assms
+          proof cases
+            case (1 T \<iota>0 T' A C D P D')
+
+            have "lnth TDs j = (T, D)"
+              sorry
+            have "lnth TDs (Suc j) = (snd (t_pick_elem T), insert ?e3 D)"
+              sorry
+            have "LCons ?e3 ?es3 \<in># t_llists T"
+              sorry
+            have "fst (t_pick_elem T) = ?e3"
+              sorry
+            have "t_llists (snd (t_pick_elem T)) = add_mset ?es3 (t_llists T - {#LCons ?e3 ?es3#})"
+              sorry
+
+            show ?thesis
+              apply (rule exI[of _ j])
+              apply (intro conjI)
+              apply (rule j_ge)
+              apply (rule todo.pick_lqueue_step.intros)
+              apply (simp add: todo.pick_lqueue_step_aux.simps)
+              done
+          qed
+        }
+        thus ?thesis
+          using no_pick by blast
+      qed
+
       have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-        by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+        by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] non_ci[OF j_ge]])
       hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
         using j_ge sorry
       hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
