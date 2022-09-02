@@ -139,7 +139,8 @@ where
 text \<open>The steps below are slightly more general than the corresponding steps
 above, in the way they handle the @{text done} component. They are still precise
 enough to uniquely identify the steps among those above. The extra generality
-simplifies some arguments later.\<close>
+simplifies some arguments later, when we erase the second, ghost component of
+the state.\<close>
 
 inductive
   compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
@@ -523,8 +524,16 @@ proof cases
     by blast
 next
   case (choose_p P T D A)
-  thus ?thesis
-    sorry
+  note defs = this(1,2)
+
+  have all: "add_mset (p_select P) (mset_set (passive.elems P - {p_select P})) =
+    mset_set (passive.elems P)"
+    by (metis finite_fset local.choose_p(3) mset_set.remove passive.select_in_elems)
+  have pas: "\<mu>1 (mset_set (passive.elems P - {p_select P})) (mset_set (passive.elems P))"
+    by (metis all multi_psub_of_add_self subset_implies_multp)
+
+  show ?thesis
+    unfolding defs \<mu>2_def by (simp add: all pas)
 next
   case (delete_fwd C A T D P)
   note defs = this(1,2)
@@ -803,6 +812,8 @@ proof -
           assume "compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
           hence "\<exists>j \<ge> i. todo.pick_lqueue_step (lnth TDs j) (lnth TDs (Suc j))"
             using assms
+            sorry
+(*
           proof cases
             case (1 T \<iota>0 T' A C D P D')
 
@@ -825,6 +836,7 @@ proof -
               apply (simp add: todo.pick_lqueue_step_aux.simps)
               done
           qed
+*)
         }
         thus ?thesis
           using no_pick by blast
