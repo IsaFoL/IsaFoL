@@ -76,7 +76,7 @@ locale fair_prover_lazy_list_queue =
     llists :: "'q \<Rightarrow> 'e llist multiset" +
   assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
-    \<exists>j \<ge> i. enat (Suc j) < llength QDs \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
+    \<exists>j \<ge> i. pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
@@ -85,10 +85,10 @@ lemma fair_strong:
     inf: "infinitely_often pick_lqueue_step QDs" and
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
-  shows "\<exists>j \<ge> i. enat (Suc j) < llength QDs
-    \<and> pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
+  shows "\<exists>j \<ge> i.
+    pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using es_in k_lt
-proof (induct k arbitrary: i es)
+proof (induct k)
   case 0
   note es_in = this(1) and zero_lt = this(2)
   have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
@@ -98,18 +98,6 @@ proof (induct k arbitrary: i es)
 next
   case (Suc k)
   note ih = this(1) and  es_in = this(2) and sk_lt = this(3)
-
-  have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
-    using es_in by (metis gr_zeroI ldrop_enat ldropn_0 ldropn_Suc_conv_ldropn not_less_zero sk_lt
-        zero_enat_def)
-
-  obtain j :: nat where
-    j_gt: "j \<ge> i" and
-    sj_lt: "enat (Suc j) < llength QDs" and
-    pick: "pick_lqueue_step_aux (lnth QDs j) (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es)
-      (lnth QDs (Suc j))"
-    using fair[OF chain inf es_in']
-    sorry
 
   show ?case
     using ih
@@ -177,8 +165,7 @@ proof
     "chain lqueue_step (lmap fst QDs)" and
     "infinitely_often pick_lqueue_step QDs" and
     "LCons e es \<in># mset (fst (lnth QDs i))"
-  show "\<exists>j \<ge> i. enat (Suc j) < llength QDs
-    \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
+  show "\<exists>j \<ge> i. pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
     sorry
 qed
 

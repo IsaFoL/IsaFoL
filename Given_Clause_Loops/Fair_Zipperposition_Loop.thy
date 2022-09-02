@@ -152,7 +152,7 @@ inductive
   choose_p_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
 where
   "P \<noteq> p_empty \<Longrightarrow>
-   choose_p_step (T, D, P, None, A) (T, D, p_remove (p_select P) P, Some (p_select P), A)"
+   choose_p_step (T, D, P, None, A) (T, D', p_remove (p_select P) P, Some (p_select P), A)"
 
 
 subsection \<open>Initial State and Invariant\<close>
