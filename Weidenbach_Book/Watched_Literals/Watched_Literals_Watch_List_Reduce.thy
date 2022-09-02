@@ -92,7 +92,7 @@ proof -
     apply (rule distinct_mset_remove1_All)
     using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
-  have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
+  have [simp]: \<open>filter_mset (\<lambda>i. i \<noteq> C \<and> i \<in># (dom_m N)) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
@@ -175,7 +175,7 @@ proof -
     apply (rule distinct_mset_remove1_All)
     using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
-  have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
+  have [simp]: \<open>filter_mset (\<lambda>i. i \<noteq> C \<and> i \<in># dom_m N) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
@@ -258,7 +258,7 @@ proof -
     apply (rule distinct_mset_remove1_All)
     using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
-  have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
+  have [simp]: \<open>filter_mset (\<lambda>i. i \<noteq> C \<and> i \<in># (dom_m N)) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
@@ -337,7 +337,7 @@ proof -
     apply (rule distinct_mset_remove1_All)
     using distinct_mset_dom[of N]
     by (auto intro: distinct_mset_filter)
-  have [simp]: \<open>filter_mset (\<lambda>i. i \<in># remove1_mset C (dom_m N)) A  =
+  have [simp]: \<open>filter_mset (\<lambda>i. i \<noteq> C \<and> i \<in># dom_m N) A  =
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)

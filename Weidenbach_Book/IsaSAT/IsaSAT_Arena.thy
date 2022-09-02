@@ -1811,6 +1811,16 @@ lemma mop_arena_swap[mop_arena_lit]:
   by refine_rcg
     (auto simp: arena_lifting valid_arena_swap_lits)
 
+(*TODO: replace the previous version by this?*)
+lemma mop_arena_swap2:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close> \<open>(j, j') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_swap C i j arena \<le> \<Down>{(N', N). valid_arena N' N vdom \<and> length N' = length arena} (mop_clauses_swap N C' i' j')\<close>
+  using assms unfolding mop_clauses_swap_def mop_arena_swap_def swap_lits_pre_def
+  by refine_rcg
+    (auto simp: arena_lifting valid_arena_swap_lits)
+
 
 subsection \<open>Position Saving\<close>
 

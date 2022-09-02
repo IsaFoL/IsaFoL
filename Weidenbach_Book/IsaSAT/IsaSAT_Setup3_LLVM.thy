@@ -16,7 +16,7 @@ global_interpretation wasted_of: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code wasted_of_stats_impl = wasted_bytes_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: wasted_bytes_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: wasted_bytes_st_def read_all_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: wasted_bytes_st_impl_def)
   done
 
@@ -33,7 +33,7 @@ global_interpretation current_restart_phase: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code current_restart_phase_impl = get_restart_phase_imp\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: get_restart_phase_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: get_restart_phase_def read_all_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: get_restart_phase_imp_def)
   done
 
@@ -50,7 +50,7 @@ global_interpretation next_inprocessing_schedule: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code next_inprocessing_schedule_info_stats_impl = next_inprocessing_schedule_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: next_inprocessing_schedule_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: next_inprocessing_schedule_st_def read_all_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: next_inprocessing_schedule_st_impl_def)
   done
 
@@ -67,7 +67,7 @@ global_interpretation next_reduce_schedule: read_heur_param_adder0 where
     \<open>read_heur_wl_heur_code next_reduce_schedule_info_stats_impl = next_reduce_schedule_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: next_reduce_schedule_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: next_reduce_schedule_st_def read_all_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: next_reduce_schedule_st_impl_def)
   done
 
@@ -110,7 +110,7 @@ global_interpretation trail_nth: read_trail_param_adder where
   apply (subst lambda_comp_true)
   apply (rule isa_trail_nth_impl.refine)
   subgoal by (auto simp: isasat_trail_nth_st_def read_all_st_def isasat_length_trail_st_def
-      intro!: ext split: isasat_int.splits)
+      intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: isasat_trail_nth_st_code_def)
   done
 
@@ -131,7 +131,7 @@ global_interpretation last_trail: read_trail_param_adder0 where
   apply (subst trail_nth_precond_simp)
   apply (rule lit_of_last_trail_fast_code.refine)
   subgoal by (auto simp: lit_of_hd_trail_st_heur_def lit_of_last_trail_pol_def read_all_st_def read_trail_param_adder0_ops.mop_def
-      intro!: ext split: isasat_int.splits)
+      intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: lit_of_hd_trail_st_heur_fast_code_def)
   done
 
@@ -151,7 +151,7 @@ global_interpretation propagation_reason: read_trail_param_adder where
   apply (subst lambda_comp_true)
   apply (rule get_the_propagation_reason_fast_code.refine)
   subgoal by (auto simp: get_the_propagation_reason_pol_st_def lit_of_last_trail_pol_def read_all_st_def read_trail_param_adder0_ops.mop_def
-      intro!: ext split: isasat_int.splits)
+      intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: get_the_propagation_reason_pol_st_code_def)
   done
 
@@ -169,7 +169,7 @@ global_interpretation is_fully_proped: read_heur_param_adder0 where
   apply unfold_locales
   apply (rule heur_refine)
   subgoal by (auto simp: is_fully_propagated_heur_def is_fully_propagated_heur_st_def read_all_st_def
-      intro!: ext split: isasat_int.splits)
+      intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: is_fully_propagated_heur_st_code_def)
   done
 
@@ -186,7 +186,7 @@ global_interpretation heuristic_reluctant_triggered2: read_heur_param_adder0 whe
     \<open>read_heur_wl_heur_code heuristic_reluctant_triggered2_stats_impl = heuristic_reluctant_triggered2_st_impl\<close>
   apply unfold_locales
   apply (rule heur_refine)
-  subgoal by (auto simp: read_all_st_def heuristic_reluctant_triggered2_st_def heuristic_reluctant_triggered2_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: read_all_st_def heuristic_reluctant_triggered2_st_def heuristic_reluctant_triggered2_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: heuristic_reluctant_triggered2_st_impl_def)
   done
 
@@ -196,7 +196,7 @@ lemma heuristic_reluctant_untrigger_st_alt_def:
     heur = heuristic_reluctant_untrigger heur;
     S = update_heur_wl_heur heur S in
   S)\<close>
-  by (auto simp: heuristic_reluctant_untrigger_st_def state_extractors split: isasat_int.splits
+  by (auto simp: heuristic_reluctant_untrigger_st_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 sepref_def heuristic_reluctant_untrigger_st_impl
@@ -233,7 +233,7 @@ lemma incr_restart_stat_alt_def:
      let S = update_stats_wl_heur stats S;
      RETURN S
   })\<close>
-  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int.splits
+  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 sepref_def incr_restart_stat_fast_code
@@ -253,7 +253,7 @@ lemma incr_reduction_stat_alt_def:
      let S = update_stats_wl_heur stats S;
      RETURN S
   })\<close>
-  by (auto simp: incr_reduction_stat_def state_extractors split: isasat_int.splits
+  by (auto simp: incr_reduction_stat_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 sepref_def incr_reduction_stat_fast_code
@@ -271,7 +271,7 @@ lemma mark_unused_st_heur_alt_def:
     let N' = mark_unused N C;
     let S = update_arena_wl_heur N' S;
     RETURN S})\<close>
-    by (auto simp: mark_unused_st_heur_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+    by (auto simp: mark_unused_st_heur_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_def mark_unused_st_fast_code
   is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
@@ -296,7 +296,7 @@ lemma empty_US_heur_alt_def:
   let lcount = clss_size_resetUS0 lcount in
   let S = update_lcount_wl_heur lcount S in S
   )\<close>
-    by (auto simp: empty_US_heur_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+    by (auto simp: empty_US_heur_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_def empty_US_heur_code
   is \<open>RETURN o empty_US_heur\<close>
@@ -315,7 +315,7 @@ lemma mark_garbage_heur2_alt_def:
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     let lcount = (if st then lcount else clss_size_decr_lcount lcount);
     RETURN (update_lcount_wl_heur lcount (update_arena_wl_heur N' S))})\<close>
-    by (auto simp: mark_garbage_heur2_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+    by (auto simp: mark_garbage_heur2_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_register mark_garbage_heur2 mark_garbage_heur4
 sepref_def mark_garbage_heur2_code
@@ -346,7 +346,7 @@ lemma mark_garbage_heur4_alt_def:
     RETURN S
    }\<close>
     by (cases S\<^sub>0)
-     (auto simp: mark_garbage_heur4_def state_extractors  Let_def intro!: ext split: isasat_int.splits)
+     (auto simp: mark_garbage_heur4_def state_extractors  Let_def intro!: ext split: isasat_int_splits)
 
 sepref_def mark_garbage_heur4_code
   is \<open>uncurry mark_garbage_heur4\<close>
@@ -379,9 +379,9 @@ global_interpretation avdom_aivdom_at: read_vdom_param_adder where
   apply unfold_locales
   apply (subst (3) uncurry_def)
   apply (rule avdom_aivdom_at_impl_refine)
-  subgoal by (auto simp: access_avdom_at_def read_all_st_def avdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_avdom_at_def read_all_st_def avdom_aivdom_at_def split: isasat_int_splits intro!: ext)
   subgoal by (auto simp: access_avdom_at_fast_code_def)
-  subgoal by (auto simp :access_avdom_at_pre_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp :access_avdom_at_pre_def split: isasat_int_splits intro!: ext)
   done
 
 definition access_ivdom_at_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
@@ -400,9 +400,9 @@ global_interpretation ivdom_aivdom_at: read_vdom_param_adder where
   apply unfold_locales
   apply (subst (3) uncurry_def)
   apply (rule ivdom_aivdom_at_impl_refine)
-  subgoal by (auto simp: access_ivdom_at_def read_all_st_def ivdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_ivdom_at_def read_all_st_def ivdom_aivdom_at_def split: isasat_int_splits intro!: ext)
   subgoal by (auto simp: access_ivdom_at_fast_code_def)
-  subgoal by (auto simp :access_ivdom_at_pre_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp :access_ivdom_at_pre_def split: isasat_int_splits intro!: ext)
   done
 
 definition access_tvdom_at_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
@@ -421,9 +421,9 @@ global_interpretation tvdom_aivdom_at: read_vdom_param_adder where
   apply unfold_locales
   apply (subst (3) uncurry_def)
   apply (rule tvdom_aivdom_at_impl_refine)
-  subgoal by (auto simp: access_tvdom_at_def read_all_st_def tvdom_aivdom_at_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: access_tvdom_at_def read_all_st_def tvdom_aivdom_at_def split: isasat_int_splits intro!: ext)
   subgoal by (auto simp: access_tvdom_at_fast_code_def)
-  subgoal by (auto simp :access_tvdom_at_pre_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp :access_tvdom_at_pre_def split: isasat_int_splits intro!: ext)
   done
 
 
@@ -481,7 +481,7 @@ global_interpretation print_trail: read_trail_param_adder0 where
   apply unfold_locales
   apply (rule print_trail_code.refine)
   subgoal by (auto simp: print_trail_st_def read_all_st_def print_trail_def
-      intro!: ext split: isasat_int.splits)
+      intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: print_trail_st_code_def)
   done
 
@@ -535,7 +535,7 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
   unfolding watched_by_app_helper
   apply (rule access_watchlist_impl.refine)
   subgoal
-    by (auto intro!: ext split: isasat_int.split
+    by (auto intro!: ext split: tuple17.split
       simp: read_all_st_def watched_by_app_heur_def access_watchlist_def
       nth_rll_def)
   subgoal by (auto simp: watched_by_app_heur_fast_code_def)
@@ -544,7 +544,7 @@ global_interpretation watched_by_app: read_watchlist_param_adder_twoargs where
 
 lemma mop_watched_by_app_heur_alt_def: \<open>mop_watched_by_app_heur = (\<lambda>N C' D'. watched_by_app.XX.XX.mop N (C', D'))\<close>
    by (auto simp: mop_watched_by_app_heur_def read_all_param_adder_ops.mop_def summarize_ASSERT_conv
-    read_all_st_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int.splits)
+    read_all_st_def access_watchlist_def conj_commute nth_rll_def intro!: ext intro: bind_cong split: isasat_int_splits)
 definition mop_watched_by_app_heur_fast_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>mop_watched_by_app_heur_fast_impl = (\<lambda>N C D. read_watchlist_wl_heur_code (case (C, D) of (C, D) \<Rightarrow> \<lambda>N. access_watchlist_impl N C D) N) \<close>
 lemma split_snd_pure_arg':
@@ -618,7 +618,7 @@ global_interpretation watchlist_length_raw: read_watchlist_param_adder0 where
   subgoal
      by (auto intro!: ext simp: length_watchlist_raw_def read_all_st_def length_watchlist_def
          length_ll_def
-       split: isasat_int.splits)
+       split: isasat_int_splits)
   subgoal by (auto simp: length_watchlist_raw_code_def)
   done
 
@@ -642,7 +642,7 @@ global_interpretation restart_count: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule get_restart_count_impl_refine; assumption)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_restart_count_st_impl_def)
   done
 
@@ -660,7 +660,7 @@ global_interpretation reduction_count: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule get_reduction_count_impl_refine)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_reductions_count_fast_code_def)
   done
 
@@ -678,7 +678,7 @@ global_interpretation irredandant_count: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule get_irredundant_count_impl_refine)
   subgoal by (auto simp: read_all_st_def get_irredundant_count_st_def stats_conflicts_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_irredundant_count_st_code_def)
   done
 
@@ -721,7 +721,7 @@ global_interpretation slow_ema: read_heur_param_adder0 where
   apply (rule get_slow_ema_heur_full_impl.refine)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_slow_ema_heur_st_def
       get_slow_ema_heur_full_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_slow_ema_heur_st_impl_def)
   done
 
@@ -736,7 +736,7 @@ global_interpretation fast_ema: read_heur_param_adder0 where
   apply (rule get_fast_ema_heur_full_impl.refine)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_fast_ema_heur_st_def
       get_fast_ema_heur_full_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_fast_ema_heur_st_impl_def)
   done
 

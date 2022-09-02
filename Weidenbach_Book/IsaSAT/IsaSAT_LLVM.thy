@@ -75,20 +75,20 @@ sepref_def split_trail_impl
   by sepref
 
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case S of IsaSAT_int MM' N' D' j W' vm clvls cach lbd
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>S. case S of Tuple17 MM' N' D' j W' vm clvls cach lbd
     outl stats
-    heur vdom lcount opts old_arena \<Rightarrow>
+    heur vdom lcount opts old_arena occs \<Rightarrow>
     do {_ \<leftarrow> print_trail2 (MM');
         (M,M') \<leftarrow> RETURN (split_trail MM');
         mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
-         mop_free old_arena; mop_free lcount;
+         mop_free old_arena; mop_free lcount; mop_free occs;
         RETURN (False, M, get_content stats)
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE aivdom_assn ?fr\<close>
   unfolding aivdom_assn_def code_hider_assn_def by synthesize_free+
@@ -102,16 +102,16 @@ sepref_def extract_model_of_state_stat
   by sepref
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>S. case S of IsaSAT_int M N' D' j W' vm clvls cach lbd outl stats
-       heur vdom lcount opts old_arena \<Rightarrow>
+  \<open>RETURN o extract_state_stat = (\<lambda>S. case S of Tuple17 M N' D' j W' vm clvls cach lbd outl stats
+       heur vdom lcount opts old_arena occs \<Rightarrow>
      do {
         mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
-         mop_free old_arena; mop_free lcount;
+         mop_free old_arena; mop_free lcount;  mop_free occs;
         RETURN (True, [], get_content stats)})\<close>
-  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int.splits intro!: ext)
+  by (auto simp: extract_state_stat_def mop_free_def split: isasat_int_splits intro!: ext)
 
 sepref_def extract_state_stat
   is \<open>RETURN o extract_state_stat\<close>
@@ -466,7 +466,7 @@ function array_of_version where
   \<open>array_of_version i str arr =
     (if i \<ge> length str then arr
     else array_of_version (i+1) str (arr[i := str ! i]))\<close>
-by pat_completeness auto
+  by pat_completeness auto
 termination
   apply (relation \<open>measure (\<lambda>(i,str, arr). length str - i)\<close>)
   apply auto

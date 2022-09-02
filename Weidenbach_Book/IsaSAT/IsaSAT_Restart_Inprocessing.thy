@@ -7,6 +7,7 @@ theory IsaSAT_Restart_Inprocessing
     IsaSAT_Restart
     IsaSAT_Simplify_Binaries
     IsaSAT_Simplify_Pure_Literals
+    IsaSAT_Simplify_Forward_Subsumption
 begin
 
 definition isa_pure_literal_elimination_round_wl where
@@ -22,6 +23,7 @@ definition isa_pure_literal_elimination_round_wl where
       else RETURN (0, S)}
     else RETURN (0, S)
 }\<close>
+
 lemma isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl:
   assumes \<open>(S,S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows
@@ -69,11 +71,10 @@ proof -
 qed
 
 
-(*This is a placeholder doing nothing to have a working version faster*)
-
 definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
   \<open>isa_pure_literal_elimination_wl_pre S = (\<exists>T u r.
     (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_pre T)\<close>
+
 definition isa_pure_literal_elimination_wl_inv :: \<open>_\<close> where
   \<open>isa_pure_literal_elimination_wl_inv S max_rounds = (\<lambda>(T,m,abort). \<exists>S' T' u r.
   (S, S') \<in> twl_st_heur_restart_ana' r u \<and>

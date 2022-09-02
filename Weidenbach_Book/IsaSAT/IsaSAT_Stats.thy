@@ -1,5 +1,5 @@
 theory IsaSAT_Stats
-  imports IsaSAT_Literals IsaSAT_EMA IsaSAT_Rephase IsaSAT_Reluctant
+  imports IsaSAT_Literals IsaSAT_EMA IsaSAT_Rephase IsaSAT_Reluctant Tuple16
 begin
 
 

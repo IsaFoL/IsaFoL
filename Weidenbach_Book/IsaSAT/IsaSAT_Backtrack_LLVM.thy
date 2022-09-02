@@ -26,7 +26,7 @@ lemma mop_mark_added_heur_st_alt_def:
   RETURN (update_heur_wl_heur heur S)
   }\<close>
   unfolding mop_mark_added_heur_st_def
-  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int.splits
+  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 sepref_def mop_mark_added_heur_iml
@@ -200,7 +200,7 @@ lemma propagate_unit_bt_wl_D_int_alt_def:
       let S = update_vmtf_wl_heur vm S;
       let _ = log_unit_clause (-L);
         RETURN S})\<close>
-  by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors log_unit_clause_def intro!: ext split: isasat_int.splits)
+  by (auto simp: propagate_unit_bt_wl_D_int_def state_extractors log_unit_clause_def intro!: ext split: isasat_int_splits)
 
 sepref_register cons_trail_Propagated_tr update_heur_wl_heur
 sepref_def propagate_unit_bt_wl_D_fast_code
@@ -302,7 +302,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
           propagate_bt_wl_D_heur_extract_def nres_monad3
   by (auto simp: propagate_bt_wl_D_heur_def Let_def state_extractors propagate_bt_wl_D_heur_update_def
           propagate_bt_wl_D_heur_extract_def intro!: ext bind_cong[OF refl]
-          split: isasat_int.splits)
+          split: isasat_int_splits)
 
 lemmas [sepref_bounds_simps] =
   max_snat_def[of 64, simplified]
@@ -369,7 +369,7 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
   })\<close>
   unfolding extract_shorter_conflict_list_heur_st_def
   by (auto simp: the_lookup_conflict_def Let_def state_extractors intro!: ext bind_cong[OF refl]
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
     empty_conflict_and_extract_clause_heur

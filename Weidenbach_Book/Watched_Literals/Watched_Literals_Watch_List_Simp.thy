@@ -58,6 +58,7 @@ definition cdcl_twl_full_restart_inprocess_wl_prog where
   S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp_wl S';
   T \<leftarrow> mark_duplicated_binary_clauses_as_garbage_wl S';
+  T \<leftarrow> forward_subsumption_all_wl T;
   T \<leftarrow> pure_literal_elimination_wl T;
   T \<leftarrow> simplify_clauses_with_units_st_wl T;
   if get_conflict_wl T \<noteq> None then do {
@@ -97,6 +98,7 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
     cdcl_GC_clauses_wl_cdcl_GC_clauses[THEN fref_to_Down]
     mark_duplicated_binary_clauses_as_garbage_wl
     pure_literal_elimination_wl
+    forward_subsumption_all_wl
     simplify_clauses_with_units_st_wl_simplify_clause_with_units_st2)
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'_nobin)
@@ -108,26 +110,29 @@ lemma cdcl_twl_full_restart_inprocess_wl_prog:
   subgoal by auto
   subgoal by auto
   subgoal by auto
-  subgoal for x y S' S'a T Ta U Ua V Va W Wa
-    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Wa W]
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal for x y S' S'a T Ta U Ua V Va W Wa Y Ya
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Ya Y]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_confl_def apply -
-    by (rule exI[of _ y], rule exI[of _ Wa])
+    by (rule exI[of _ y], rule exI[of _ Ya])
       (smt (verit, best) all_lits_st_alt_def basic_trans_rules(31) in_pair_collect_simp
          literals_are_\<L>\<^sub>i\<^sub>n'_def set_mset_set_mset_eq_iff union_iff)
   subgoal by auto
-  subgoal for x y S' S'a S'b S'c T S'd Ta S'e W Wa
+  subgoal for x y S' S'a S'b S'c T S'd Ta S'e W Wa Y Ya
     unfolding mark_to_delete_clauses_GC_wl_pre_def
-    by (rule_tac x= Wa in exI) simp
+    by (rule_tac x= Ya in exI) simp
   subgoal for x y S S' T Ta U Ua
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
       mark_to_delete_clause_GC_wl_pre_alt_def
     by fast
-  subgoal for x y S S' T Ta U Ua V Va W Wa X Xa Y Ya
-    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Ya Y]
+  subgoal for x y S S' T Ta U Ua V Va W Wa X Xa Y Ya Z Za
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Za Z]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
     by fast
-  subgoal for x y S' S'a T Ta U Ua V Va W Wa X Xa Y Ya
-    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Ya Y]
+  subgoal for x y S' S'a T Ta U Ua V Va W Wa X Xa Y Ya Z Za
+    using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Za Z]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
     by fast
   done

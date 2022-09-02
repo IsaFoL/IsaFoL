@@ -129,7 +129,7 @@ lemma isa_simplify_clause_with_unit_st2_alt_def:
    }
   })\<close>
   unfolding isa_simplify_clause_with_unit_st2_def
-  apply (auto simp: state_extractors Let_def split: isasat_int.splits intro!: ext bind_cong[OF refl])
+  apply (auto simp: state_extractors Let_def split: isasat_int_splits intro!: ext bind_cong[OF refl])
   done
 
 (*TODO Move and generalise*)
@@ -137,7 +137,7 @@ lemma [simp]:
   \<open>get_clauses_wl_heur (update_trail_wl_heur M S) = get_clauses_wl_heur S\<close>
   \<open>get_clauses_wl_heur (update_lcount_wl_heur lc S) = get_clauses_wl_heur S\<close>
   \<open>get_clauses_wl_heur (update_arena_wl_heur N S) = N\<close>
-  by (cases S) (auto simp: update_a_def update_b_def update_n_def split: isasat_int.splits)
+  by (cases S) (auto simp: update_a_def update_b_def update_n_def split: isasat_int_splits)
 
 sepref_def isa_simplify_clause_with_unit_st2_code
   is \<open>uncurry isa_simplify_clause_with_unit_st2\<close>

@@ -244,7 +244,7 @@ lemma isa_clause_remove_duplicate_clause_wl_alt_def:
     RETURN S
    })\<close>
     by (auto simp: isa_clause_remove_duplicate_clause_wl_def
-        state_extractors split: isasat_int.splits)
+        state_extractors split: isasat_int_splits)
 
 
 sepref_def isa_clause_remove_duplicate_clause_wl_impl
@@ -283,7 +283,7 @@ lemma isa_binary_clause_subres_wl_alt_def:
         }\<close>
   apply (subst Let_def[of \<open>log_unit_clause L\<close>])
   by (auto simp: isa_binary_clause_subres_wl_def learned_clss_count_def
-        state_extractors split: isasat_int.splits)
+        state_extractors split: isasat_int_splits)
 
 sepref_def isa_binary_clause_subres_wl_impl
   is \<open>uncurry3 isa_binary_clause_subres_wl\<close>

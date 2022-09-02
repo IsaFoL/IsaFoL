@@ -41,7 +41,7 @@ lemma mark_lbd_from_conflict_alt_def:
      lbd \<leftarrow> mark_lbd_from_list_heur M outl lbd;
      RETURN (update_lbd_wl_heur lbd (update_trail_wl_heur M (update_outl_wl_heur outl S)))
     })\<close>
-  by (auto simp: state_extractors mark_lbd_from_conflict_def split: isasat_int.splits)
+  by (auto simp: state_extractors mark_lbd_from_conflict_def split: isasat_int_splits)
 
 sepref_def mark_lbd_from_conflict_impl
   is \<open>mark_lbd_from_conflict\<close>

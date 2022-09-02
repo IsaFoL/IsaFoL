@@ -16,7 +16,7 @@ global_interpretation opts_restart: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: opts_restart_st_def read_all_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_restart_st_fast_code_def)
   done
 
@@ -33,7 +33,7 @@ global_interpretation opts_reduce: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: opts_reduction_st_fast_code_def read_all_st_def opts_reduction_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_reduction_st_fast_code_def)
   done
 
@@ -50,7 +50,7 @@ global_interpretation opts_unbounded_mode: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: read_all_st_def opts_unbounded_mode_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_unbounded_mode_st_fast_code_def)
   done
 
@@ -67,7 +67,7 @@ global_interpretation opts_minimum_between_restart: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: read_all_st_def opts_minimum_between_restart_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_minimum_between_restart_st_fast_code_def)
   done
 
@@ -84,7 +84,7 @@ global_interpretation opts_restart_coeff1: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: read_all_st_def opts_minimum_between_restart_st_def opts_restart_coeff1_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_restart_coeff1_st_fast_code_def)
   done
 
@@ -101,7 +101,7 @@ global_interpretation opts_restart_coeff2: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine; assumption)
   subgoal by (auto simp: read_all_st_def opts_minimum_between_restart_st_def opts_restart_coeff2_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: opts_restart_coeff2_st_fast_code_def)
   done
 
@@ -118,7 +118,7 @@ global_interpretation units_since_last_GC: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule stats_refine; assumption)
   subgoal by (auto simp: read_all_st_def units_since_last_GC_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: units_since_last_GC_st_code_def)
   done
 
@@ -135,7 +135,7 @@ global_interpretation units_since_beginning: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule stats_refine; assumption)
   subgoal by (auto simp: read_all_st_def units_since_beginning_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: units_since_beginning_st_code_def)
   done
 
@@ -152,7 +152,7 @@ global_interpretation opts_GC_units_lim: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine)
   subgoal by (auto simp: read_all_st_def get_GC_units_opt_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_GC_units_opt_code_def)
   done
 
@@ -169,7 +169,7 @@ global_interpretation get_target_opts: read_opts_param_adder0 where
   apply unfold_locales
   apply (rule opts_refine)
   subgoal by (auto simp: get_target_opts_def read_all_st_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_target_opts_impl_def)
   done
 thm get_target_opts_def
@@ -196,7 +196,7 @@ global_interpretation trail_length: read_trail_param_adder0 where
   apply unfold_locales
   apply (rule isa_length_trail_fast_code.refine)
   subgoal by (auto simp: isa_length_trail_def read_all_st_def isasat_length_trail_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: isasat_length_trail_st_code_def)
   done
 
@@ -228,7 +228,7 @@ global_interpretation pos_of_level_in_trail: read_trail_param_adder where
   apply (subst lambda_comp_true)+
   apply (rule get_pos_of_level_in_trail_imp_code.refine)
   subgoal by (auto simp: get_pos_of_level_in_trail_imp_st_def read_all_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: get_pos_of_level_in_trail_imp_st_code_def)
   done
 
@@ -245,7 +245,7 @@ global_interpretation stats_conflict: read_stats_param_adder0 where
   apply unfold_locales
   apply (rule stats_refine; assumption)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_global_conflict_count_def intro!: ext
-    split: isasat_int.splits)
+    split: isasat_int_splits)
   subgoal by (auto simp: get_global_conflict_count_impl_def)
   done
 
@@ -291,7 +291,7 @@ lemma reset_units_since_last_GC_st_alt_def:
   let stats = reset_units_since_last_GC stats in
   let S = update_stats_wl_heur stats S in S
   )\<close>
-  by (auto simp: reset_units_since_last_GC_st_def state_extractors split: isasat_int.splits)
+  by (auto simp: reset_units_since_last_GC_st_def state_extractors split: isasat_int_splits)
 
 
 sepref_def reset_units_since_last_GC_st_code
@@ -337,10 +337,10 @@ global_interpretation arena_is_valid: read_arena_param_adder where
   apply unfold_locales
   apply (rule arena_status_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_st_def arena_status_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: arena_status_st_impl_def)
   subgoal by (auto simp: read_arena_param_adder_ops.mop_def mop_arena_status_st_def mop_arena_status_def read_all_st_def arena_status_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: clause_not_marked_to_delete_heur_pre_def)
   done
 
@@ -367,11 +367,11 @@ global_interpretation arena_length_clause: read_arena_param_adder where
   apply unfold_locales
   apply (rule arena_length_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_st_def arena_status_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: arena_length_st_impl_def)
   subgoal
     by (auto simp: read_arena_param_adder_ops.mop_def mop_arena_length_st_def mop_arena_length_def read_all_st_def
-      split: isasat_int.splits intro!: ext)
+      split: isasat_int_splits intro!: ext)
   done
 
 lemmas [sepref_fr_rules] = arena_length_clause.mop_refine
@@ -396,7 +396,7 @@ global_interpretation arena_full_length: read_arena_param_adder0 where
   apply unfold_locales
   apply (rule arena_full_length_impl.refine)
   subgoal by (auto simp: mop_arena_status_st_def read_all_st_def full_arena_length_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: full_arena_length_st_impl_def)
   done
 
@@ -406,7 +406,7 @@ lemma incr_wasted_st_alt_def:
   let heur = incr_wasted waste heur in
   let S = update_heur_wl_heur heur S in S
   })\<close>
-    by (auto simp: incr_wasted_st_def state_extractors intro!: ext split: isasat_int.splits)
+    by (auto simp: incr_wasted_st_def state_extractors intro!: ext split: isasat_int_splits)
 
 sepref_def incr_wasted_st_impl
   is \<open>uncurry (RETURN oo incr_wasted_st)\<close>
@@ -431,7 +431,7 @@ global_interpretation get_count_max_lvls: read_ccount_param_adder0 where
   apply unfold_locales
   apply (rule id_clvls_assn)
   subgoal by (auto simp: read_all_st_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: get_count_max_lvls_heur_impl_def)
   done
 
@@ -448,7 +448,7 @@ lemma clss_size_resetUS0_st_alt_def:
   let S = update_lcount_wl_heur stats S in S
   )\<close>
   by (auto simp: clss_size_resetUS0_st_def state_extractors
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 sepref_def clss_size_resetUS0_st
   is \<open>RETURN o clss_size_resetUS0_st\<close>
@@ -482,11 +482,11 @@ global_interpretation watched_by_app: read_watchlist_param_adder where
   subgoal
      by (auto intro!: ext simp: length_ll_fs_heur_def read_all_st_def length_watchlist_def
          length_ll_def
-       split: isasat_int.splits)
+       split: isasat_int_splits)
   subgoal by (auto simp: length_ll_fs_heur_fast_code_def)
   subgoal
     by (auto simp: mop_length_watched_by_int_def read_all_param_adder_ops.mop_def read_all_st_def
-        length_watchlist_def length_ll_def split: isasat_int.splits
+        length_watchlist_def length_ll_def split: isasat_int_splits
       intro!: ext)
   done
 
@@ -519,7 +519,7 @@ global_interpretation vmtf_fst: read_vmtf_param_adder0 where
   apply (rule vmtf_heur_fst_code.refine)
   subgoal
      by (auto intro!: ext simp: get_vmtf_heur_fst_def read_all_st_def vmtf_heur_fst_def
-       split: isasat_int.splits)
+       split: isasat_int_splits)
   subgoal by (auto simp: get_vmtf_heur_fst_impl_def)
   done
 
@@ -557,7 +557,7 @@ global_interpretation vmtf_array_nth: read_vmtf_param_adder where
   subgoal
     by (auto intro!: ext simp: get_vmtf_heur_array_nth_def read_all_st_def vmtf_heur_array_nth_def
         get_vmtf_heur_array_def
-       split: isasat_int.splits)
+       split: isasat_int_splits)
   subgoal by (auto simp: get_vmtf_heur_array_nth_impl_def[abs_def])
   done
 
