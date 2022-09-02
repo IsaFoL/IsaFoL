@@ -479,34 +479,34 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
 
 definition \<mu>2 :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<equiv>
-   (yy_of St' = None \<and> yy_of St \<noteq> None)
-   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None)
-      \<and> (\<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
-         \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
-            \<and> size (t_llists (todo_of St')) < size (t_llists (todo_of St)))))"
+   \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
+   \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
+      \<and> (\<mu>1 (mset_set (passive.elems (passive_of St'))) (mset_set (passive.elems (passive_of St)))
+         \<or> (passive.elems (passive_of St') = passive.elems (passive_of St)
+            \<and> (\<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))
+               \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
+                  \<and> size (t_llists (todo_of St')) < size (t_llists (todo_of St)))))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
-  let ?boolset = "{(b', b :: bool). b' < b}"
   let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
   let ?natset = "{(n', n :: nat). n' < n}"
-  let ?triple_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_zl_fstate St, size (t_llists (todo_of St)))"
+  let ?quad_of = "\<lambda>St. (mset_of_zl_fstate St, mset_set (passive.elems (passive_of St)),
+    mset_set (set_option (yy_of St)), size (t_llists (todo_of St)))"
 
-  have wf_boolset: "wf ?boolset"
-    by (rule Wellfounded.wellorder_class.wf)
   have wf_\<mu>1set: "wf ?\<mu>1set"
     using wfP_\<mu>1 wfP_def by auto
   have wf_natset: "wf ?natset"
     by (rule Wellfounded.wellorder_class.wf)
-  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set <*lex*> ?natset)"
-    by (rule wf_lex_prod[OF wf_boolset wf_lex_prod[OF wf_\<mu>1set wf_natset]])
+  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?natset)"
+    by (rule wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_natset]]])
 
   have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
-    (?triple_of St', ?triple_of St) \<in> ?boolset <*lex*> ?\<mu>1set <*lex*> ?natset"
+    (?quad_of St', ?quad_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?natset"
     unfolding \<mu>2_def by auto
 
   show ?thesis
-    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
+    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?quad_of] wf_lex_prod by blast
 qed
 
 lemma non_compute_infer_choose_p_ZLf_step_imp_\<mu>2:
@@ -582,13 +582,15 @@ next
         unfolding multp_def using prec by (auto intro: singletons_in_mult)
     qed
     show ?thesis
-      unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+      unfolding defs \<mu>2_def by simp (use \<mu>1_new in \<open>simp add: bef aft\<close>)
   qed
 next
   case (schedule_infer \<iota>ss A C T D P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs \<mu>2_def by auto
+    unfolding defs \<mu>2_def
+    by simp (metis finite_fset insert_absorb mset_set.insert multi_psub_of_add_self
+        subset_implies_multp)
 next
   case (delete_orphan_infers \<iota>s T A D P Y)
   note defs = this(1,2) and \<iota>s = this(3)
@@ -789,9 +791,29 @@ proof -
         by blast
     qed
 
-    have inf_ts: "infinitely_often todo.pick_lqueue_step TDs"
-      (* big proof showing that all the other steps decrease *)
-      sorry
+    have inf_oft: "infinitely_often todo.pick_lqueue_step TDs"
+    proof
+      assume "finitely_often todo.pick_lqueue_step TDs"
+      then obtain i :: nat where
+        no_pick: "\<forall>j \<ge> i. \<not> todo.pick_lqueue_step (lnth TDs j) (lnth TDs (Suc j))"
+        by (metis infinitely_often_alt_def lt_tds)
+
+      have si_lt: "enat (Suc i) < llength Sts"
+        unfolding len by auto
+
+      have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
+        by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] yy[OF j_ge]])
+      hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+        using j_ge sorry
+      hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+        using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
+
+      have inf_i: "\<not> lfinite (ldropn i Sts)"
+        using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
+
+      show False
+        using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
+    qed
 
     have "\<iota> \<in> lnth flat_Ts i"
       using \<iota>_in_infs unfolding Infs_def flat_Ts_def by (simp add: lt_sts)
@@ -810,7 +832,7 @@ proof -
       j_ge: "j \<ge> i" and
       pick_step: "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
         (lnth TDs (Suc j))"
-      using todo.fair_strong[OF chain_ts inf_ts lt_tds \<iota>s_in k_lt] by blast
+      using todo.fair_strong[OF chain_ts inf_oft lt_tds \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ "Suc j"], intro conjI)
