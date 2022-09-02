@@ -75,7 +75,7 @@ locale fair_prover_lazy_list_queue =
     pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
     llists :: "'q \<Rightarrow> 'e llist multiset" +
   assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
-    enat i < llength QDs \<Longrightarrow> LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
+    LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
     \<exists>j \<ge> i. enat (Suc j) < llength QDs \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
@@ -83,22 +83,21 @@ lemma fair_strong:
   assumes
     chain: "chain lqueue_step (lmap fst QDs)" and
     inf: "infinitely_often pick_lqueue_step QDs" and
-    i_lt: "enat i < llength QDs" and
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i. enat (Suc j) < llength QDs
     \<and> pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
-  using i_lt es_in k_lt
+  using es_in k_lt
 proof (induct k arbitrary: i es)
   case 0
-  note i_lt = this(1) and es_in = this(2) and zero_lt = this(3)
+  note es_in = this(1) and zero_lt = this(2)
   have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
     using es_in by (metis zero_lt ldrop_0 ldrop_enat ldropn_Suc_conv_ldropn zero_enat_def)
   show ?case
-    using fair[OF chain inf i_lt es_in'] by (simp add: ldrop_enat ldropn_Suc_conv_ldropn)
+    using fair[OF chain inf es_in'] by (simp add: ldrop_enat ldropn_Suc_conv_ldropn)
 next
   case (Suc k)
-  note ih = this(1) and i_lt = this(2) and es_in = this(3) and sk_lt = this(4)
+  note ih = this(1) and  es_in = this(2) and sk_lt = this(3)
 
   have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
     using es_in by (metis gr_zeroI ldrop_enat ldropn_0 ldropn_Suc_conv_ldropn not_less_zero sk_lt
@@ -109,7 +108,7 @@ next
     sj_lt: "enat (Suc j) < llength QDs" and
     "pick_lqueue_step_aux (lnth QDs j) (lnth es 0) (ldrop (enat (Suc 0)) es) (lnth QDs (Suc j))"
     sorry
-  thm fair[OF chain inf i_lt es_in']
+  thm fair[OF chain inf es_in']
 
   show ?case
     sorry
@@ -175,7 +174,6 @@ proof
   assume
     "chain lqueue_step (lmap fst QDs)" and
     "infinitely_often pick_lqueue_step QDs" and
-    "enat i < llength QDs" and
     "LCons e es \<in># mset (fst (lnth QDs i))"
   show "\<exists>j \<ge> i. enat (Suc j) < llength QDs
     \<and> pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"

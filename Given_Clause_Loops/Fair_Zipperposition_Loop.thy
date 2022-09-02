@@ -880,7 +880,7 @@ proof -
       j_ge: "j \<ge> i" and
       pick_step: "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
         (lnth TDs (Suc j))"
-      using todo.fair_strong[OF chain_ts inf_oft lt_tds \<iota>s_in k_lt] by blast
+      using todo.fair_strong[OF chain_ts inf_oft \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ "Suc j"], intro conjI)
