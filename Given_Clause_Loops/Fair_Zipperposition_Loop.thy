@@ -811,31 +811,39 @@ proof -
           assume "compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
           hence "\<exists>j \<ge> i. todo.pick_lqueue_step (lnth TDs j) (lnth TDs (Suc j))"
             using assms
-            sorry
-(*
           proof cases
-            case (1 T \<iota>0 T' A C D P D')
+            case (1 T \<iota>0 T' A C D P)
+            note sts_at_j = this(1) and sts_at_sj = this(2) and has_el = this(3) and pick = this(4)
 
-            have "lnth TDs j = (T, D)"
-              sorry
-            have "lnth TDs (Suc j) = (snd (t_pick_elem T), insert ?e3 D)"
-              sorry
-            have "LCons ?e3 ?es3 \<in># t_llists T"
-              sorry
-            have "fst (t_pick_elem T) = ?e3"
-              sorry
-            have "t_llists (snd (t_pick_elem T)) = add_mset ?es3 (t_llists T - {#LCons ?e3 ?es3#})"
-              sorry
+            obtain \<iota>0' :: "'f inference" and \<iota>s :: "'f inference llist" where
+              cons_in0: "LCons \<iota>0' \<iota>s \<in># t_llists T" and
+              fst0: "fst (t_pick_elem T) = \<iota>0'" and
+              snd0: "t_llists (snd (t_pick_elem T)) = t_llists T - {#LCons \<iota>0' \<iota>s#} + {#\<iota>s#}"
+              using todo.llists_pick_elem[OF has_el] by blast
+
+            have \<iota>0': "\<iota>0' = \<iota>0"
+              using pick fst0 by auto
+
+            have
+              cons_in: "LCons \<iota>0 \<iota>s \<in># t_llists T" and
+              fst: "fst (t_pick_elem T) = \<iota>0" and
+              snd: "t_llists (snd (t_pick_elem T)) = t_llists T - {#LCons \<iota>0 \<iota>s#} + {#\<iota>s#}"
+              unfolding \<iota>0'[symmetric] by (auto simp: cons_in0 fst0 snd0)
+
+            have td_at_j: "lnth TDs j = (T, D)"
+              using sts_at_j TDs_def lt_tds by auto
+            have td_at_sj: "lnth TDs (Suc j) = (snd (t_pick_elem T), insert \<iota>0 D)"
+              using sts_at_sj TDs_def lt_tds pick by force
 
             show ?thesis
               apply (rule exI[of _ j])
               apply (intro conjI)
               apply (rule j_ge)
-              apply (rule todo.pick_lqueue_step.intros)
-              apply (simp add: todo.pick_lqueue_step_aux.simps)
+              apply (simp add: todo.pick_lqueue_step.simps todo.pick_lqueue_step_aux.simps,
+                  rule exI[of _ \<iota>s], rule exI[of _ T], rule exI[of _ D],
+                  simp add: td_at_j td_at_sj cons_in fst snd)
               done
           qed
-*)
         }
         thus ?thesis
           using no_pick by blast
@@ -844,7 +852,7 @@ proof -
       have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
         by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] non_ci[OF j_ge]])
       hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
-        using j_ge sorry
+        using j_ge by blast
       hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
         using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
 
