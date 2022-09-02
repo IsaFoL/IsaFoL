@@ -95,13 +95,11 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
-lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+
+lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple17_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [split] =  isasat_int_splits
   unfolding isasat_bounded_assn_def
-  apply sepref_to_hoare
-  apply (vcg')
-  done
-
+  by sepref_to_hoare vcg'
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
