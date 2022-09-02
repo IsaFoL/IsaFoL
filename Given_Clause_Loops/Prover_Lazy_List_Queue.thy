@@ -106,11 +106,13 @@ next
   obtain j :: nat where
     j_gt: "j \<ge> i" and
     sj_lt: "enat (Suc j) < llength QDs" and
-    "pick_lqueue_step_aux (lnth QDs j) (lnth es 0) (ldrop (enat (Suc 0)) es) (lnth QDs (Suc j))"
+    pick: "pick_lqueue_step_aux (lnth QDs j) (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es)
+      (lnth QDs (Suc j))"
+    using fair[OF chain inf es_in']
     sorry
-  thm fair[OF chain inf es_in']
 
   show ?case
+    using ih
     sorry
 qed
 
