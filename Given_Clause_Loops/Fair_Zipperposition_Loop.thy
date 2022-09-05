@@ -888,26 +888,36 @@ proof -
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ "Suc j"], intro conjI)
       {
-        assume "\<exists>k' \<le> k. (\<exists>\<iota>ss. ldrop (enat k') \<iota>s \<in> set \<iota>ss \<and> todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss
-             (lnth TDs (Suc j)))"
-        then obtain k' :: nat and \<iota>ss' where
-          "todo.remove_lqueue_step_details (fst (lnth TDs j)) (ldrop (enat k') \<iota>s) (fst (lnth TDs (Suc j)))"
+        assume "\<exists>k' \<le> k. \<exists>\<iota>ss. ldrop (enat k') \<iota>s \<in> set \<iota>ss
+          \<and> todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss (lnth TDs (Suc j))"
+        then obtain k' :: nat and \<iota>ss where
+          k'_le: "k' \<le> k" and
+          in_\<iota>ss: "ldrop (enat k') \<iota>s \<in> set \<iota>ss" and
+          rem_step: "todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss (lnth TDs (Suc j))"
           by blast
-        hence "\<iota> \<notin> lnth Infs (Suc j)"
+
+        have "\<iota> \<notin> lnth Infs (Suc j)"
+          using rem_step
         proof cases
-          case (remove_lqueue_stepI ess)
-          note at_sk = this(1) and drop = this(2)
+          case (remove_lqueue_stepI Q D)
+          note at_j = this(1) and at_sj = this(2)
 
-          have \<iota>_in: "\<iota> \<in> lset \<iota>s"
-            sorry
+          have don: "done_of (lnth Sts (Suc j)) = D \<union> \<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in> set \<iota>ss}"
+            unfolding at_sj using TDs_def at_sj len by auto
 
-          have "done_of (lnth Sts (Suc j)) = DUMMY"
-            using TDs_def
-            sorry
-
-          show ?thesis
-            unfolding Infs_def lnth_lmap[OF lt_sts]
-            sorry
+          have "\<iota> \<in> lset (ldrop (enat k') \<iota>s)"
+          proof -
+            have nth_drop: "lnth (ldrop (enat k') \<iota>s) (k - k') = \<iota>"
+              by (simp add: at_k k'_le k_lt)
+            thus ?thesis
+              using at_k k'_le k_lt by (smt (verit, del_insts) enat.distinct(1)
+                  enat_diff_cancel_left enat_minus_mono1 enat_ord_simps(1) idiff_enat_enat
+                  in_lset_conv_lnth llength_ldrop nless_le order_le_less_subst2)
+          qed
+          hence "\<iota> \<in> \<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in> set \<iota>ss}"
+            using in_\<iota>ss by blast
+          thus ?thesis
+            unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
         qed
       } moreover {
         assume "todo.pick_lqueue_step_details (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
