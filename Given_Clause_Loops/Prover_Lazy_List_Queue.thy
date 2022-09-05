@@ -97,14 +97,14 @@ lemma fair_strong:
          \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
        \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using k_lt
-(* FIXME
 proof (induct k)
   case 0
   note zero_lt = this
   have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># llists (fst (lnth QDs i))"
     using es_in by (metis zero_lt ldrop_0 ldrop_enat ldropn_Suc_conv_ldropn zero_enat_def)
   show ?case
-    using fair[OF chain inf es_in'] by (simp add: ldrop_enat ldropn_Suc_conv_ldropn)
+    using fair[OF chain inf es_in']
+    by (metis dual_order.refl ldrop_enat ldropn_Suc_conv_ldropn zero_lt)
 next
   case (Suc k)
   note ih = this(1) and sk_lt = this(2)
@@ -114,20 +114,38 @@ next
 
   obtain j :: nat where
     j_ge: "j \<ge> i" and
-    pick: "pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
-      (lnth QDs (Suc j))"
+    rem_or_pick_step: "(\<exists>k' \<le> k. \<exists>ess. ldrop (enat k') es \<in> set ess
+        \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
+      \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
+        (lnth QDs (Suc j))"
     using ih[OF k_lt] by blast
 
-  have cons_in:
+  let ?cons_in =
     "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es) \<in># llists (fst (lnth QDs (Suc j)))"
-    using pick unfolding pick_lqueue_step_details.simps using sk_lt
-    by simp (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_single_eq_member)
+  {
+    assume rem_step: "(\<exists>k'\<le>k. \<exists>ess. ldrop (enat k') es \<in> set ess
+      \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))"
+
+    have ?cons_in
+      sorry
+  }
+  moreover
+  {
+    assume pick_step: "pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
+      (lnth QDs (Suc j))"
+
+    have ?cons_in
+      using pick_step unfolding pick_lqueue_step_details.simps using sk_lt
+      by (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_mset_add_mset_right union_single_eq_member)
+  }
+  ultimately have cons_in: ?cons_in
+    using rem_or_pick_step by blast
 
   show ?case
-    using fair[OF chain inf cons_in] j_ge by (meson dual_order.trans le_Suc_eq)
+    using fair[OF chain inf cons_in] j_ge
+      sorry
+    (* by (meson dual_order.trans le_Suc_eq) *)
 qed
-*)
-  sorry
 
 end
 

@@ -362,14 +362,18 @@ next
         show ?thesis
           using fair_ZL.delete_orphan_infers[OF nil_in nil_inter] unfolding st t y by fast
       qed
-    } moreover {
+    }
+    moreover
+    {
       assume
         p: "P \<noteq> p_empty" and
         y: "Y = None"
 
       have "\<exists>St'. St \<leadsto>ZLf St'"
         using fair_ZL.choose_p[OF p] unfolding st p y by fast
-    } moreover {
+    }
+    moreover
+    {
       assume "Y \<noteq> None"
       then obtain C :: 'f where
         y: "Y = Some C"
@@ -919,7 +923,9 @@ proof -
           thus ?thesis
             unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
         qed
-      } moreover {
+      }
+      moreover
+      {
         assume "todo.pick_lqueue_step_details (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
           (lnth TDs (Suc j))"
         hence "\<iota> \<notin> lnth Infs (Suc j)"
@@ -933,7 +939,8 @@ proof -
           show ?thesis
             unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
         qed
-      } ultimately show "\<iota> \<notin> lnth Infs (Suc j)"
+      }
+      ultimately show "\<iota> \<notin> lnth Infs (Suc j)"
         using rem_or_pick_step by blast
     qed (use j_ge lt_sts in auto)
   }
