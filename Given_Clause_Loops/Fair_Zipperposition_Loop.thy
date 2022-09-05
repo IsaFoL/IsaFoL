@@ -749,7 +749,7 @@ qed
 
 lemma ZLf_step_imp_todo_queue_step:
   assumes "St \<leadsto>ZLf St'"
-  shows "todo.lqueue_step (todo_of St) (todo_of St')"
+  shows "todo.lqueue_step (todo_of St, done_of St) (todo_of St', done_of St')"
   using assms
 proof cases
   case (compute_infer T \<iota>0 T' A C D P)
@@ -757,7 +757,12 @@ proof cases
   have t': "T' = snd (t_pick_elem T)"
     using pick by simp
   show ?thesis
-    unfolding defs prod.sel t' using todo.lqueue_step_pick_elemI[OF has_el] .
+    unfolding defs prod.sel t' using todo.lqueue_step_pick_elemI[OF has_el] by (simp add: pick)
+next
+  case (schedule_infer \<iota>ss A C T D P)
+  note defs = this(1,2) and betw = this(3)
+  show ?thesis
+    unfolding defs prod.sel using todo.lqueue_step_fold_add_llistI[of T D \<iota>ss] by simp
 qed (auto intro: todo.lqueue_step_idleI todo.lqueue_step_fold_add_llistI
   todo.lqueue_step_remove_llistI)
 
@@ -785,13 +790,16 @@ proof -
     have lt_tds: "enat n < llength TDs" for n
       by (simp add: TDs_def len)
 
-    have chain_ts: "chain todo.lqueue_step (lmap fst TDs)"
+    have chain_ts: "chain todo.lqueue_step TDs"
     proof -
       have fst_tds: "lmap fst TDs = lmap todo_of Sts"
-        unfolding TDs_def  by (simp add: llist.map_comp)
+        unfolding TDs_def by (simp add: llist.map_comp)
+      have snd_tds: "lmap snd TDs = lmap done_of Sts"
+        unfolding TDs_def by (simp add: llist.map_comp)
       show ?thesis
-        unfolding fst_tds using ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
-        by blast
+        unfolding fst_tds
+        using TDs_def ZLf_step_imp_todo_queue_step chain_lmap full full_chain_imp_chain
+        by (metis (lifting))
     qed
 
     have inf_oft: "infinitely_often todo.pick_lqueue_step TDs"

@@ -35,19 +35,22 @@ begin
 abbreviation has_elem :: "'q \<Rightarrow> bool" where
   "has_elem Q \<equiv> \<exists>es \<in># llists Q. es \<noteq> LNil"
 
-inductive lqueue_step :: "'q \<Rightarrow> 'q \<Rightarrow> bool" where
-  lqueue_step_fold_add_llistI: "lqueue_step Q (fold add_llist ess Q)"
-| lqueue_step_fold_remove_llistI: "lqueue_step Q (fold remove_llist ess Q)"
-| lqueue_step_pick_elemI: "has_elem Q \<Longrightarrow> lqueue_step Q (snd (pick_elem Q))"
+inductive lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
+  lqueue_step_fold_add_llistI:
+  "lqueue_step (Q, D) (fold add_llist ess Q, D - \<Union> {lset es |es. es \<in> set ess})"
+| lqueue_step_fold_remove_llistI:
+  "lqueue_step (Q, D) (fold remove_llist ess Q, D \<union> \<Union> {lset es |es. es \<in> set ess})"
+| lqueue_step_pick_elemI: "has_elem Q \<Longrightarrow>
+  lqueue_step (Q, D) (snd (pick_elem Q), D \<union> {fst (pick_elem Q)})"
 
-lemma lqueue_step_idleI: "lqueue_step Q Q"
-  using lqueue_step_fold_add_llistI[of _ "[]", simplified] .
+lemma lqueue_step_idleI: "lqueue_step QD QD"
+  using lqueue_step_fold_add_llistI[of "fst QD" "snd QD" "[]", simplified] .
 
-lemma lqueue_step_add_llistI: "lqueue_step Q (add_llist es Q)"
-  using lqueue_step_fold_add_llistI[of _ "[es]", simplified] .
+lemma lqueue_step_add_llistI: "lqueue_step (Q, D) (add_llist es Q, D - lset es)"
+  using lqueue_step_fold_add_llistI[of _ _ "[es]", simplified] .
 
-lemma lqueue_step_remove_llistI: "lqueue_step Q (remove_llist es Q)"
-  using lqueue_step_fold_remove_llistI[of _ "[es]", simplified] .
+lemma lqueue_step_remove_llistI: "lqueue_step (Q, D) (remove_llist es Q, D \<union> lset es)"
+  using lqueue_step_fold_remove_llistI[of _ _ "[es]", simplified] .
 
 lemma llists_fold_add_llist[simp]: "llists (fold add_llist es Q) = mset es + llists Q"
   by (induct es arbitrary: Q) auto
@@ -56,8 +59,7 @@ lemma llists_fold_remove_llist[simp]: "llists (fold remove_llist es Q) = llists 
   by (induct es arbitrary: Q) auto
 
 inductive pick_lqueue_step_details :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  pick_lqueue_step_detailsI: "LCons e es \<in># llists Q \<Longrightarrow>
-    fst (pick_elem Q) = e \<Longrightarrow>
+  pick_lqueue_step_detailsI: "LCons e es \<in># llists Q \<Longrightarrow> fst (pick_elem Q) = e \<Longrightarrow>
     llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#} \<Longrightarrow>
     pick_lqueue_step_details (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
 
@@ -79,7 +81,7 @@ locale fair_prover_lazy_list_queue =
     remove_llist :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
     pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
     llists :: "'q \<Rightarrow> 'e llist multiset" +
-  assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
+  assumes fair: "chain lqueue_step QDs \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
     \<exists>j \<ge> i. (\<exists>ess. LCons e es \<in> set ess
         \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
@@ -88,7 +90,7 @@ begin
 
 lemma fair_strong:
   assumes
-    chain: "chain lqueue_step (lmap fst QDs)" and
+    chain: "chain lqueue_step QDs" and
     inf: "infinitely_often pick_lqueue_step QDs" and
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
@@ -202,7 +204,7 @@ proof
     e :: 'e and
     es :: "'e llist"
   assume
-    chain: "chain lqueue_step (lmap fst QDs)" and
+    chain: "chain lqueue_step QDs" and
     inf_pick: "infinitely_often pick_lqueue_step QDs" and
     cons_in: "LCons e es \<in># mset (fst (lnth QDs i))"
 
@@ -258,8 +260,10 @@ proof
         by (metis hd add_mset_add_mset_same_iff cons_in insert_DiffM list.exhaust_sel
             llists_add mset.simps(2) snd_conv)
 
+(* FIXME
       have "lqueue_step (fst (lnth QDs i') (lnth QDs (Suc i))"
         sorry
+*)
 
       have fst_at_si': "fst (lnth QDs (Suc i')) = snd (pick_elem (fst (lnth QDs i')))"
         sorry
