@@ -839,7 +839,7 @@ proof -
               apply (rule exI[of _ j])
               apply (intro conjI)
               apply (rule j_ge)
-              apply (simp add: todo.pick_lqueue_step.simps todo.pick_lqueue_step_aux.simps,
+              apply (simp add: todo.pick_lqueue_step.simps todo.pick_lqueue_step_details.simps,
                   rule exI[of _ \<iota>s], rule exI[of _ T], rule exI[of _ D],
                   simp add: td_at_j td_at_sj cons_in fst snd)
               done
@@ -878,19 +878,20 @@ proof -
 
     obtain j :: nat where
       j_ge: "j \<ge> i" and
-      rem_or_pick_step: "(\<exists>k' \<le> k. todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s)
-          (fst (lnth TDs (Suc j))))
-        \<or> todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
+      rem_or_pick_step: "(\<exists>k' \<le> k. \<exists>\<iota>ss.
+          ldrop (enat k') \<iota>s \<in> set \<iota>ss \<and> todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss
+             (lnth TDs (Suc j)))
+        \<or> todo.pick_lqueue_step_details (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
           (lnth TDs (Suc j))"
       using todo.fair_strong[OF chain_ts inf_oft \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ "Suc j"], intro conjI)
       {
-        assume "(\<exists>k' \<le> k. todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s)
-          (fst (lnth TDs (Suc j))))"
-        then obtain k' :: nat where
-          "todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s) (fst (lnth TDs (Suc j)))"
+        assume "\<exists>k' \<le> k. (\<exists>\<iota>ss. ldrop (enat k') \<iota>s \<in> set \<iota>ss \<and> todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss
+             (lnth TDs (Suc j)))"
+        then obtain k' :: nat and \<iota>ss' where
+          "todo.remove_lqueue_step_details (fst (lnth TDs j)) (ldrop (enat k') \<iota>s) (fst (lnth TDs (Suc j)))"
           by blast
         hence "\<iota> \<notin> lnth Infs (Suc j)"
         proof cases
@@ -909,11 +910,11 @@ proof -
             sorry
         qed
       } moreover {
-        assume "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
+        assume "todo.pick_lqueue_step_details (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
           (lnth TDs (Suc j))"
         hence "\<iota> \<notin> lnth Infs (Suc j)"
         proof cases
-          case (pick_lqueue_step_auxI Q D)
+          case (pick_lqueue_step_detailsI Q D)
           note at_j = this(1) and at_sj = this(2)
 
           have don: "done_of (lnth Sts (Suc j)) = D \<union> {\<iota>}"
