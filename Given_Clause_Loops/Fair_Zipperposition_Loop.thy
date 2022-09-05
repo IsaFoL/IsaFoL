@@ -894,7 +894,7 @@ proof -
       {
         assume "\<exists>k' \<le> k. \<exists>\<iota>ss. ldrop (enat k') \<iota>s \<in> set \<iota>ss
           \<and> todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss (lnth TDs (Suc j))"
-        then obtain k' :: nat and \<iota>ss where
+        then obtain k' :: nat and \<iota>ss :: "'f inference llist list" where
           k'_le: "k' \<le> k" and
           in_\<iota>ss: "ldrop (enat k') \<iota>s \<in> set \<iota>ss" and
           rem_step: "todo.remove_lqueue_step_details (lnth TDs j) \<iota>ss (lnth TDs (Suc j))"
