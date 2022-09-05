@@ -227,6 +227,7 @@ proof
         qed
       next
         case (Suc l)
+        (* non_rem_step comes into play here *)
         show ?case
           sorry
       qed
@@ -235,21 +236,34 @@ proof
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
-      cons_in: "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      cons_in_take: "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
       by auto
 
     have "\<exists>j \<ge> i. pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof (rule exI[of _ i'], intro conjI i'_ge)
-
       have cons_in: "LCons e es \<in># mset (fst (lnth QDs i'))"
-        sorry
-      have fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
-        sorry
-      have snd_pick: "mset (snd (pick_elem (fst (lnth QDs i')))) =
+        by (meson cons_in_take in_multiset_in_set in_set_takeD)
+      hence hd: "hd (fst (lnth QDs i')) = LCons e es"
+        using cons_in_take
+        by (metis One_nat_def empty_iff empty_set hd_conv_nth length_greater_0_conv 
+            self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
+      hence fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
+        by (metis cons_in empty_iff empty_set list.sel(1) neq_Nil_conv pick_elem.simps(3) prod.sel(1) set_mset_mset)
+
+      have "fst (lnth QDs i') \<noteq> []"
+        using cons_in by fastforce
+      hence snd_pick: "mset (snd (pick_elem (fst (lnth QDs i')))) =
         mset (fst (lnth QDs i')) - {#LCons e es#} + {#es#}"
+        using pick_elem.simps(3)
+        by (metis hd add_mset_add_mset_same_iff cons_in insert_DiffM list.exhaust_sel
+            llists_add mset.simps(2) snd_conv)
+
+      have "lqueue_step (fst (lnth QDs i') (lnth QDs (Suc i))"
         sorry
+
       have fst_at_si': "fst (lnth QDs (Suc i')) = snd (pick_elem (fst (lnth QDs i')))"
         sorry
+
       have snd_at_si': "snd (lnth QDs (Suc i')) = snd (lnth QDs i') \<union> {e}"
         sorry
 
