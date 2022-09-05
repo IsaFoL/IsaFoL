@@ -255,7 +255,8 @@ proof
         by (metis One_nat_def empty_iff empty_set hd_conv_nth length_greater_0_conv 
             self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
       hence fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
-        by (metis cons_in empty_iff empty_set list.sel(1) neq_Nil_conv pick_elem.simps(3) prod.sel(1) set_mset_mset)
+        by (metis cons_in empty_iff empty_set list.sel(1) neq_Nil_conv pick_elem.simps(3)
+            prod.sel(1) set_mset_mset)
 
       have "fst (lnth QDs i') \<noteq> []"
         using cons_in by fastforce
