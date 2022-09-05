@@ -208,6 +208,11 @@ proof
     inf_pick: "infinitely_often pick_lqueue_step QDs" and
     cons_in: "LCons e es \<in># mset (fst (lnth QDs i))"
 
+  have len: "llength QDs = \<infinity>"
+    using inf_pick unfolding infinitely_often_alt_def
+    by (metis Suc_ile_eq dual_order.strict_implies_order enat.exhaust enat_ord_simps(2)
+        verit_comp_simplify1(3))
+
   {
     assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
       \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))"
@@ -257,23 +262,36 @@ proof
       hence snd_pick: "mset (snd (pick_elem (fst (lnth QDs i')))) =
         mset (fst (lnth QDs i')) - {#LCons e es#} + {#es#}"
         using pick_elem.simps(3)
-        by (metis hd add_mset_add_mset_same_iff cons_in insert_DiffM list.exhaust_sel
-            llists_add mset.simps(2) snd_conv)
+        by (metis hd add_mset_add_mset_same_iff cons_in insert_DiffM list.exhaust_sel llists_add
+            mset.simps(2) snd_conv)
 
-(* FIXME
-      have "lqueue_step (fst (lnth QDs i') (lnth QDs (Suc i))"
-        sorry
-*)
+      have step: "lqueue_step (lnth QDs i') (lnth QDs (Suc i'))"
+        by (simp add: chain chain_lnth_rel len)
 
-      have fst_at_si': "fst (lnth QDs (Suc i')) = snd (pick_elem (fst (lnth QDs i')))"
-        sorry
-
-      have snd_at_si': "snd (lnth QDs (Suc i')) = snd (lnth QDs i') \<union> {e}"
-        sorry
+      have at_si': "lnth QDs (Suc i') =
+        (snd (pick_elem (fst (lnth QDs i'))), snd (lnth QDs i') \<union> {e})"
+        using step
+      proof cases
+        case (lqueue_step_fold_add_llistI Q D ess)
+        have False
+          sorry
+        thus ?thesis
+          by blast
+      next
+        case (lqueue_step_fold_remove_llistI Q D ess)
+        have False
+          sorry
+        thus ?thesis
+          by blast
+      next
+        case (lqueue_step_pick_elemI Q D)
+        thus ?thesis
+          sorry
+      qed
 
       show "pick_lqueue_step_details (lnth QDs i') e es (lnth QDs (Suc i'))"
         using pick_lqueue_step_detailsI[OF cons_in fst_pick snd_pick, of "snd (lnth QDs i')"]
-        unfolding fst_at_si'[symmetric] snd_at_si'[symmetric] by simp
+        unfolding at_si'[symmetric] by simp
     qed
   }
   thus "\<exists>j \<ge> i.
