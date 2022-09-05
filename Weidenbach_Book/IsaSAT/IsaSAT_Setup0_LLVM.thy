@@ -990,7 +990,6 @@ lemma mop_refine:
   done
 
 end
-typ isasat
 
 locale read_all_param_adder_ops =
   fixes f' :: \<open>'a \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow>
@@ -2291,7 +2290,7 @@ abbreviation read_occs_wl_heur :: \<open>_ \<Rightarrow> isasat \<Rightarrow> _\
   \<open>read_occs_wl_heur f \<equiv> read_all_st  (\<lambda>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ M. f M)\<close>
 
 locale read_occs_param_adder =
-  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R
   assumes not_deleted_code_refine: \<open>(uncurry (\<lambda>S C. f C S), uncurry (\<lambda>S C'. f' C' S)) \<in> [uncurry (\<lambda>S C. P C S)]\<^sub>a occs_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k \<rightarrow> x_assn\<close>
 begin
 
@@ -2347,6 +2346,36 @@ sublocale XX: read_occs_param_adder where
   using not_deleted_code_refine[THEN remove_component_right] .
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
+end
+
+locale read_occs_param_adder2 =
+  fixes f and f' and x_assn :: \<open>'r \<Rightarrow> 'q \<Rightarrow> assn\<close> and P and R and R'
+  assumes not_deleted_code_refine: \<open>(uncurry2 (\<lambda>S C D. f C D S), uncurry2 (\<lambda>S C' D'. f' C' D' S)) \<in> [uncurry2 (\<lambda>S C D. P C D S)]\<^sub>a occs_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k*\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+begin
+
+sublocale XX: read_occs_param_adder where
+  f = \<open>\<lambda>(C,D) N. f C D N\<close> and
+  f' = \<open>\<lambda>(C,D) N. f' C D N\<close> and
+  P = \<open>\<lambda>(C,D) N. P C D N\<close> and
+  R = \<open>R \<times>\<^sub>f R'\<close>
+  apply unfold_locales
+  using not_deleted_code_refine[THEN merge_second_pure_argument] .
+
+lemma refine:
+  \<open>(uncurry2 (\<lambda>N C D. read_occs_wl_heur_code (f C D) N),
+    uncurry2 (\<lambda>N C' D. read_occs_wl_heur (f' C' D) N))
+  \<in> [uncurry2 (\<lambda>S C D. P C D (get_occs S))]\<^sub>a isasat_bounded_assn\<^sup>k  *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow> x_assn\<close>
+  by (rule XX.refine[THEN split_snd_pure_arg, unfolded prod.case])
+
+lemma mop_refine:
+  \<open>(uncurry2 (\<lambda>N C D. read_occs_wl_heur_code (f C D) N), uncurry2 (\<lambda>N C D. XX.XX.mop N (C,D))) \<in>
+  isasat_bounded_assn\<^sup>k *\<^sub>a (pure R)\<^sup>k *\<^sub>a (pure R')\<^sup>k \<rightarrow>\<^sub>a x_assn\<close>
+  unfolding mop_def XX.XX.mop_def
+  apply (rule refine_ASSERT_move_to_pre2)
+  unfolding prod.simps
+  apply (rule refine[unfolded comp_def])
+  done
+
 end
 
 
@@ -2517,6 +2546,7 @@ lemma mop_refine:
   apply (rule refine_ASSERT_move_to_pre3)
   apply (rule refine)
   done
+
 end
 
 
@@ -2585,6 +2615,7 @@ sublocale XX: read_trail_vmtf_param_adder where
 
 lemmas refine = XX.refine[THEN remove_unused_unit_parameter]
 end
+
 
 
 lemma Mreturn_comp_IsaSAT_int:

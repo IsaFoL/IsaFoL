@@ -168,7 +168,7 @@ definition cocc_list_at :: \<open>occurences_ref \<Rightarrow> nat literal \<Rig
 
 
 definition cocc_list_at_pre :: \<open>occurences_ref \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>cocc_list_at_pre = (\<lambda>xs L i. i < length (xs ! nat_of_lit L))\<close>
+  \<open>cocc_list_at_pre = (\<lambda>xs L i. i < length (xs ! nat_of_lit L) \<and> nat_of_lit L < length xs)\<close>
 
 definition mop_cocc_list_at :: \<open>occurences_ref \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>mop_cocc_list_at = (\<lambda>\<A>xs L i. do {
