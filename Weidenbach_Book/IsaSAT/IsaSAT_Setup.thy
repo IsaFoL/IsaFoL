@@ -1756,4 +1756,24 @@ fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
 definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>
 
+(*TODO Move*)
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (push_to_tvdom C aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_vdom_aivdom (push_to_tvdom C aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (push_to_tvdom C aivdom) = get_ivdom_aivdom aivdom\<close>
+  \<open>get_tvdom_aivdom (push_to_tvdom C aivdom) = get_tvdom_aivdom aivdom @ [C]\<close>
+  by (cases aivdom; auto simp: push_to_tvdom_def push_to_tvdom_int_def; fail)+
+
+lemma aivdom_inv_dec_empty_tvdom[intro!]:
+  \<open>aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (empty_tvdom aivdom) d\<close>
+  by (cases aivdom) (auto simp: aivdom_inv_dec_alt_def empty_tvdom_def)
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (empty_tvdom aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_vdom_aivdom (empty_tvdom aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (empty_tvdom aivdom) = get_ivdom_aivdom aivdom\<close>
+  \<open>get_tvdom_aivdom (empty_tvdom aivdom) = []\<close>
+  by (cases aivdom; auto simp: empty_tvdom_def; fail)+
+
 end

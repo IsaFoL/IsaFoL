@@ -483,7 +483,8 @@ lemma aivdom_inv_push_to_tvdom_int:
   by (auto dest: subset_mset_imp_subset_add_mset simp: add_learned_clause_aivdom_strong_int_def
     split: code_hider.splits)
 
-lemma \<open>C \<in> set (get_vdom_aivdom aivdom) \<Longrightarrow> C \<notin> set (get_tvdom_aivdom aivdom) \<Longrightarrow> aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (push_to_tvdom C aivdom) d\<close>
+lemma aivdom_push_to_tvdom:
+  \<open>C \<in> set (get_vdom_aivdom aivdom) \<Longrightarrow> C \<notin> set (get_tvdom_aivdom aivdom) \<Longrightarrow> aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (push_to_tvdom C aivdom) d\<close>
   using aivdom_inv_push_to_tvdom_int[of C \<open>get_vdom_aivdom aivdom\<close> \<open>get_tvdom_aivdom aivdom\<close>
     \<open>get_avdom_aivdom aivdom\<close> \<open>get_ivdom_aivdom aivdom\<close> d]
   by (cases aivdom)

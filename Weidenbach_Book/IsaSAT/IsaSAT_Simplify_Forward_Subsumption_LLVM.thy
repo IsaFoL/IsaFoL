@@ -41,7 +41,6 @@ lemma rdomp_isasat_bounded_assn_length_avdomD:
 sepref_register isa_all_lit_clause_unset isa_push_to_occs_list_st
   find_best_subsumption_candidate 
 
-(*TODO: missing get_occs setup*)
 sepref_def find_best_subsumption_candidate_code
   is \<open>uncurry find_best_subsumption_candidate\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
@@ -49,8 +48,40 @@ sepref_def find_best_subsumption_candidate_code
   unfolding find_best_subsumption_candidate_def
     mop_access_lit_in_clauses_heur_def[symmetric]
     tri_bool_eq_def[symmetric] UNSET_def[symmetric]
+    length_occs_def[symmetric]
+    get_occs_list_at_def[symmetric]
+    length_occs_at_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-oops
+  by sepref
+
+lemma isa_push_to_occs_list_st_alt_def:
+    \<open>isa_push_to_occs_list_st C S = do {
+     L \<leftarrow> find_best_subsumption_candidate C S;
+     let (occs, S) = extract_occs_wl_heur S;
+     occs \<leftarrow> mop_cocc_list_append C occs L;
+     RETURN (update_occs_wl_heur occs S)
+  }\<close>
+  by (auto simp: isa_push_to_occs_list_st_def state_extractors
+         split: isasat_int_splits)
+
+sepref_register mop_cocc_list_append
+sepref_def mop_cocc_list_append_impl
+  is \<open>uncurry2 mop_cocc_list_append\<close>
+  :: \<open>[\<lambda>((C,occs), L). Suc (length (occs ! nat_of_lit L)) < max_snat 64]\<^sub>a
+    sint64_nat_assn\<^sup>k *\<^sub>a occs_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> occs_assn\<close>
+  unfolding mop_cocc_list_append_def cocc_list_append_pre_def cocc_list_append_def
+    fold_op_list_list_push_back
+  by sepref
+
+sepref_def isa_push_to_occs_list_st_impl
+  is \<open>uncurry isa_push_to_occs_list_st\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding isa_push_to_occs_list_st_alt_def
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+subgoal premises p
 
 sepref_def isa_populate_occs_code
   is isa_populate_occs
@@ -60,14 +91,11 @@ sepref_def isa_populate_occs_code
   unfolding isa_populate_occs_def access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     al_fold_custom_empty[where 'l=64] Let_def[of \<open>get_avdom _\<close>] Let_def[of \<open>get_occs _\<close>]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-(*  apply sepref_dbg_keep
+  apply sepref_dbg_keep
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
   apply sepref_dbg_side_unfold
-  subgoal
-    apply (auto dest!: rdomp_isasat_bounded_assn_length_avdomD)
-try0
-  *)
+  subgoal premises p
   oops
 
 thm isa_populate_occs_def

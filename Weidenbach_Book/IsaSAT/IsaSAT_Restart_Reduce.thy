@@ -366,24 +366,6 @@ definition remove_deleted_clauses_from_avdom_inv :: \<open>_\<close> where
   length (get_tvdom_aivdom avdom) \<le> i \<and>
    (\<forall>C \<in> set (get_tvdom_aivdom avdom). C \<in># dom_m N \<and> \<not>irred N C \<and> length (N \<propto> C) \<noteq> 2))\<close>
 
-lemma [simp]:
-  \<open>get_avdom_aivdom (push_to_tvdom C aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_vdom_aivdom (push_to_tvdom C aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (push_to_tvdom C aivdom) = get_ivdom_aivdom aivdom\<close>
-  \<open>get_tvdom_aivdom (push_to_tvdom C aivdom) = get_tvdom_aivdom aivdom @ [C]\<close>
-  by (cases aivdom; auto simp: push_to_tvdom_def push_to_tvdom_int_def; fail)+
-
-lemma aivdom_inv_dec_empty_tvdom[intro!]:
-  \<open>aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (empty_tvdom aivdom) d\<close>
-  by (cases aivdom) (auto simp: aivdom_inv_dec_alt_def empty_tvdom_def)
-
-lemma [simp]:
-  \<open>get_avdom_aivdom (empty_tvdom aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_vdom_aivdom (empty_tvdom aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (empty_tvdom aivdom) = get_ivdom_aivdom aivdom\<close>
-  \<open>get_tvdom_aivdom (empty_tvdom aivdom) = []\<close>
-  by (cases aivdom; auto simp: empty_tvdom_def; fail)+
-
 definition is_candidate_for_removal where
   \<open>is_candidate_for_removal C N = do {
     ASSERT (C \<in># dom_m N);
