@@ -102,19 +102,19 @@ next
   have k_lt: "enat k < llength es"
     using sk_lt Suc_ile_eq order_less_imp_le by blast
 
-  thm ih[OF k_lt]
-
   obtain j :: nat where
     j_ge: "j \<ge> i" and
     pick: "pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
       (lnth QDs (Suc j))"
-    sorry
+    using ih[OF k_lt] by blast
 
-  thm fair[OF chain inf]
+  have cons_in:
+    "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es) \<in># llists (fst (lnth QDs (Suc j)))"
+    using pick unfolding pick_lqueue_step_aux.simps using sk_lt
+    by simp (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_single_eq_member)
 
   show ?case
-    
-    sorry
+    using fair[OF chain inf cons_in] j_ge by (meson dual_order.trans le_Suc_eq)
 qed
 
 end
