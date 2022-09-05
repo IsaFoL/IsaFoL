@@ -436,7 +436,7 @@ next
   define D :: "'f inference set" where
     "D = done_of St0"
   define St0' :: "('t, 'p, 'f) fair_ZL_state" where
-    "St0' = (t_remove_llist \<iota>s T, D, P, Y, A)"
+    "St0' = (t_remove_llist \<iota>s T, D \<union> lset \<iota>s, P, Y, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
     unfolding St0'_def st' by simp
