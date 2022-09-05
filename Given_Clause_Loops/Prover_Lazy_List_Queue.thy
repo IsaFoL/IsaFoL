@@ -93,8 +93,9 @@ lemma fair_strong:
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i.
-    (\<exists>k' \<le> k. remove_lqueue_step (fst (lnth QDs j)) (ldrop k' es) (fst (lnth QDs (Suc j))))
-    \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
+    (\<exists>k' \<le> k. \<exists>ess. ldrop k' es \<in> set ess
+         \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
+       \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using k_lt
 (* FIXME
 proof (induct k)
