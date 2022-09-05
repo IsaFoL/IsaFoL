@@ -120,36 +120,28 @@ next
         (lnth QDs (Suc j))"
     using ih[OF k_lt] by blast
 
-  let ?cons_in =
-    "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es) \<in># llists (fst (lnth QDs (Suc j)))"
   {
     assume "\<exists>k' \<le> k. \<exists>ess. ldrop (enat k') es \<in> set ess
       \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j))"
-    then obtain k' :: nat and ess where
-      k'_le: "k' \<le> k" and
-      in_ess: "ldrop (enat k') es \<in> set ess" and
-      rem_step: "remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j))"
-      sorry
-
-    have ?cons_in
-      sorry
+    hence ?case
+      using j_ge le_SucI by blast
   }
   moreover
   {
     assume "pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
       (lnth QDs (Suc j))"
-    hence ?cons_in
+    hence cons_in: "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es)
+      \<in># llists (fst (lnth QDs (Suc j)))"
       unfolding pick_lqueue_step_details.simps using sk_lt
       by (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_mset_add_mset_right
           union_single_eq_member)
-  }
-  ultimately have cons_in: ?cons_in
-    using rem_or_pick_step by blast
 
-  show ?case
-    using fair[OF chain inf cons_in] j_ge
-      sorry
-    (* by (meson dual_order.trans le_Suc_eq) *)
+    have ?case
+      using fair[OF chain inf cons_in] j_ge
+      by (smt (z3) dual_order.trans ldrop_enat ldropn_Suc_conv_ldropn le_Suc_eq sk_lt)
+  }
+  ultimately show ?case
+    using rem_or_pick_step by blast
 qed
 
 end
