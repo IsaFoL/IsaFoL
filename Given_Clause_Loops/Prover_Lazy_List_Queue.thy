@@ -82,7 +82,7 @@ locale fair_prover_lazy_list_queue =
   assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
     \<exists>j \<ge> i. (\<exists>ess. LCons e es \<in> set ess
-        \<and> remove_lqueue_step_details (lnth QDs j) ees (lnth QDs (Suc j)))
+        \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
       \<or>  pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
@@ -195,7 +195,6 @@ proof
 qed simp+
 
 sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
-(* FIXME
 proof
   fix
     QDs :: "('e llist list \<times> 'e set) llist" and
@@ -207,36 +206,42 @@ proof
     inf_pick: "infinitely_often pick_lqueue_step QDs" and
     cons_in: "LCons e es \<in># mset (fst (lnth QDs i))"
 
-  obtain k :: nat where
-    k_lt: "k < length (fst (lnth QDs i))" and
-    at_k: "fst (lnth QDs i) ! k = LCons e es"
-    using cons_in by (metis in_set_conv_nth set_mset_mset)
+  {
+    assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
+      \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
-  have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. LCons e es \<in># mset (take k' (fst (lnth QDs i')))"
-  proof -
-    have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))" for l
-    proof (induct l)
-      case 0
-      show ?case
-      proof (rule exI[of _ i]; simp)
-        show "LCons e es \<in> set (take (Suc k) (fst (lnth QDs i)))"
-          by (simp add: at_k k_lt take_Suc_conv_app_nth)
+    obtain k :: nat where
+      k_lt: "k < length (fst (lnth QDs i))" and
+      at_k: "fst (lnth QDs i) ! k = LCons e es"
+      using cons_in by (metis in_set_conv_nth set_mset_mset)
+
+    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. LCons e es \<in># mset (take k' (fst (lnth QDs i')))"
+    proof -
+      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))" for l
+      proof (induct l)
+        case 0
+        show ?case
+        proof (rule exI[of _ i]; simp)
+          show "LCons e es \<in> set (take (Suc k) (fst (lnth QDs i)))"
+            by (simp add: at_k k_lt take_Suc_conv_app_nth)
+        qed
+      next
+        case (Suc l)
+        show ?case
+          sorry
       qed
-    next
-      case (Suc l)
-      show ?case
-        sorry
+      thus ?thesis
+        by (metis diff_diff_cancel)
     qed
-    thus ?thesis
-      by (metis diff_diff_cancel)
-  qed
 
-  show "\<exists>j \<ge> i. pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
-
-    sorry
+    have "\<exists>j \<ge> i. pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      sorry
+  }
+  thus "\<exists>j \<ge> i.
+      (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
+    \<or> pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
+    by blast
 qed
-*)
-  sorry
 
 end
 
