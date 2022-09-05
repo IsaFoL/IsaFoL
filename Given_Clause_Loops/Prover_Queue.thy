@@ -400,7 +400,7 @@ proof
         ultimately show ?case
           by (rule_tac x = "Suc i''" in exI) auto
       qed
-      then show ?thesis
+      thus ?thesis
         by (metis diff_add_zero drop0 in_set_dropD)
     qed
     then obtain i' :: nat where

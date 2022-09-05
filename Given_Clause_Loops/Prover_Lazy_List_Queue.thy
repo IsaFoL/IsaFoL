@@ -175,9 +175,33 @@ proof
     e :: 'e and
     es :: "'e llist"
   assume
-    "chain lqueue_step (lmap fst QDs)" and
-    "infinitely_often pick_lqueue_step QDs" and
-    "LCons e es \<in># mset (fst (lnth QDs i))"
+    chain: "chain lqueue_step (lmap fst QDs)" and
+    inf_pick: "infinitely_often pick_lqueue_step QDs" and
+    cons_in: "LCons e es \<in># mset (fst (lnth QDs i))"
+
+  obtain k :: nat where
+    k_lt: "k < length (fst (lnth QDs i))" and
+    at_k: "fst (lnth QDs i) ! k = LCons e es"
+    using cons_in by (metis in_set_conv_nth set_mset_mset)
+
+  have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. LCons e es \<in># mset (take k' (fst (lnth QDs i')))"
+  proof -
+    have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))" for l
+    proof (induct l)
+      case 0
+      show ?case
+      proof (rule exI[of _ i]; simp)
+        show "LCons e es \<in> set (take (Suc k) (fst (lnth QDs i)))"
+          by (simp add: at_k k_lt take_Suc_conv_app_nth)
+      qed
+    next
+      case (Suc l)
+      show ?case
+        sorry
+    qed
+    thus ?thesis
+      by (metis diff_diff_cancel)
+  qed
   show "\<exists>j \<ge> i. pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
     sorry
 qed
