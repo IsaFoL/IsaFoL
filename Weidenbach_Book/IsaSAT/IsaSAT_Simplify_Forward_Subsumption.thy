@@ -1211,7 +1211,7 @@ qed
 
 subsection \<open>Refinement to isasat.\<close>
 definition valid_occs where \<open>valid_occs occs vdom \<longleftrightarrow> cocc_content_set occs \<subseteq> set (get_vdom_aivdom vdom) \<and>
-  distinct_mset (cocc_content occs) \<and> cocc_content_set occs \<subseteq> set (get_tvdom_aivdom vdom)\<close>
+  distinct_mset (cocc_content occs)\<close>
 
 text \<open>This version is equivalent to \<^term>\<open>twl_st_heur_restart\<close>, without any information on the occurrence list.\<close>
 definition twl_st_heur_restart_occs :: \<open>(isasat \<times> nat twl_st_wl) set\<close> where
@@ -1720,10 +1720,8 @@ proof -
 qed
 
 lemma valid_occs_in_vdomI:
-  \<open>valid_occs occs (get_aivdom S) \<Longrightarrow>
-  x1 < length (occs ! nat_of_lit L) \<Longrightarrow>
-     nat_of_lit L < length occs \<Longrightarrow> 
-  cocc_list_at occs L x1 \<in> set (get_vdom S)\<close>
+  \<open>valid_occs occs (get_aivdom S) \<Longrightarrow> x1 < length (occs ! nat_of_lit L) \<Longrightarrow>
+  nat_of_lit L < length occs \<Longrightarrow> cocc_list_at occs L x1 \<in> set (get_vdom S)\<close>
   apply (drule nth_mem)
   unfolding valid_occs_def cocc_list_at_def Union_eq subset_iff
   by (auto dest: spec[of _ \<open>occs ! nat_of_lit L ! x1\<close>] simp: cocc_content_set_def)
@@ -1884,7 +1882,7 @@ lemma twl_st_heur_restart_occs_set_occsI:
 
 
 lemma valid_occs_append:
-  \<open>C \<in> set (get_vdom_aivdom vdm) \<Longrightarrow> C \<in> set (get_tvdom_aivdom vdm) \<Longrightarrow>
+  \<open>C \<in> set (get_vdom_aivdom vdm) \<Longrightarrow>
   C \<notin># cocc_content coccs \<Longrightarrow> valid_occs coccs vdm \<Longrightarrow> nat_of_lit La < length coccs \<Longrightarrow> valid_occs (cocc_list_append C coccs La) vdm\<close>
   by (auto simp: valid_occs_def in_set_upd_eq[of \<open>nat_of lit La\<close> coccs])
 
@@ -1912,7 +1910,7 @@ lemma isa_push_to_occs_list_st_push_to_occs_list2:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     CC': \<open>(C,C')\<in>nat_rel\<close>and
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    C: \<open>C \<in> set (get_vdom S)\<close> \<open>C\<in> set(get_tvdom S)\<close> and
+    C: \<open>C \<in> set (get_vdom S)\<close> and
     length: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
   shows \<open>isa_push_to_occs_list_st C S
     \<le> \<Down> {(U, occs'). (get_occs U, occs') \<in> occurrence_list_ref \<and> (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S} (push_to_occs_list2 C' S' occs)\<close>
@@ -1955,11 +1953,9 @@ Better alternative: the occurence lists are a subset of all the candidates, whic
     subgoal using length by auto
     subgoal by (rule length_bounded)
     subgoal by auto
-    subgoal using SS' C valid apply (auto intro!: twl_st_heur_restart_occs_set_occsI valid_occs_append
-      simp: notin_all_occurrences_notin_cocc push_to_occs_list2_pre_def)
-      apply (subst (asm) notin_all_occurrences_notin_cocc[OF occs])
-      apply auto
-      done
+    subgoal using SS' C valid by (auto 9 2 intro!: twl_st_heur_restart_occs_set_occsI
+      intro: valid_occs_append
+      simp: notin_all_occurrences_notin_cocc[OF occs] push_to_occs_list2_pre_def)
     done
 qed
 
@@ -1998,7 +1994,6 @@ lemma mop_arena_promote_st_spec:
     eq: \<open>set_mset (all_init_atms_st (arena_promote_st_wl T C)) = set_mset (all_init_atms_st T)\<close>
   shows \<open>mop_arena_promote_st S C \<le> SPEC (\<lambda>U. (U, arena_promote_st_wl T C)\<in>{(U,V). (U,V)\<in>twl_st_heur_restart_occs' r u \<and> get_occs U = get_occs S \<and> get_aivdom U = get_aivdom S})\<close>
 proof -
-
     have H: \<open>A = B \<Longrightarrow> x \<in> A \<Longrightarrow> x \<in> B\<close> for A B x
       by auto
     have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
@@ -3148,8 +3143,7 @@ lemma isa_forward_subsumption_one_forward_subsumption_wl_one:
     CC': \<open>(C,C')\<in>nat_rel\<close> and
     DD': \<open>(D,D')\<in>clause_hash\<close> and
     \<open>(L,L')\<in>Id\<close> and
-    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    C_tvdom: \<open>C\<in>set(get_tvdom S)\<close>
+    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close>
   shows \<open>isa_forward_subsumption_one_wl C D L S \<le>
     \<Down>{((U, changed, E), (S', changed', occs', E')). (get_occs U, occs') \<in> occurrence_list_ref \<and>
           get_aivdom U = get_aivdom S \<and>
@@ -3258,7 +3252,6 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using C_vdom by fast
-    subgoal using C_tvdom by fast
     subgoal
       using assms(1,2,3,4) simple_clss_size_upper_div2[of \<open>all_init_atms_st S'\<close> \<open>mset (get_clauses_wl S' \<propto> C)\<close>, OF _ lits dist tauto]
       by (auto simp del: isasat_input_bounded_def simp: clause_not_marked_to_delete_def
@@ -3311,8 +3304,7 @@ lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     CC': \<open>(C,C')\<in>nat_rel\<close> and
     DD': \<open>(D,D')\<in>clause_hash\<close> and
-    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
-    C_tvdom: \<open>C\<in>set(get_tvdom S)\<close>
+    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close>
   shows \<open>isa_try_to_forward_subsume_wl2 C D S \<le>
     \<Down>{((D, U), (occs, D', S')). (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
        (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S}
@@ -3668,8 +3660,6 @@ proof -
           aivdom_inv_dec_alt_def simp del: distinct_mset_mset_distinct
           simp flip: distinct_mset_mset_distinct dest: mset_eq_setD)
         apply (simp add: valid_occs_def)
-        apply (drule mset_eq_setD)
-        apply simp
         done
      done
    done
@@ -3708,13 +3698,11 @@ proof -
     subgoal
       unfolding isa_all_lit_clause_unset_pre_def
       by (rule twl_st_heur_restart_occs'_avdom_nth_vdom) auto
-    subgoal  sorry
+    subgoal by simp
     subgoal by (auto simp: uint32_max_def)
     subgoal by auto
     subgoal by auto
-    subgoal apply (auto intro!: aivdom_push_to_tvdom simp: twl_st_heur_restart_occs_def)
-apply (rule aivdom_push_to_tvdom)
-sorry
+    subgoal by (auto intro!: aivdom_push_to_tvdom simp: twl_st_heur_restart_occs_def)
     subgoal by auto
       apply (rule sorted; assumption)
     subgoal for xs occs x x' x1 x2 x1a x2a x1b x2b V sorted_cands
@@ -3892,6 +3880,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal sorry
     subgoal by auto
     subgoal by auto
     apply assumption
