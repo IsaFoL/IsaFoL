@@ -64,6 +64,9 @@ inductive pick_lqueue_step_aux :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightar
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   "pick_lqueue_step_aux QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
+inductive remove_lqueue_step :: "'q \<Rightarrow> 'e llist \<Rightarrow> 'q \<Rightarrow> bool" where
+  "es \<in> set ess \<Longrightarrow> remove_lqueue_step Q es (fold remove_llist ess Q)"
+
 end
 
 locale fair_prover_lazy_list_queue =
@@ -76,7 +79,8 @@ locale fair_prover_lazy_list_queue =
     llists :: "'q \<Rightarrow> 'e llist multiset" +
   assumes fair: "chain lqueue_step (lmap fst QDs) \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
-    \<exists>j \<ge> i. pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
+    \<exists>j \<ge> i. remove_lqueue_step (fst (lnth QDs j)) (LCons e es) (fst (lnth QDs (Suc j)))
+      \<or>  pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
@@ -86,8 +90,10 @@ lemma fair_strong:
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i.
-    pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
+    (\<exists>k' \<le> k. remove_lqueue_step (fst (lnth QDs j)) (ldrop k es) (fst (lnth QDs (Suc j))))
+    \<or> pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using k_lt
+(* FIXME
 proof (induct k)
   case 0
   note zero_lt = this
@@ -116,6 +122,8 @@ next
   show ?case
     using fair[OF chain inf cons_in] j_ge by (meson dual_order.trans le_Suc_eq)
 qed
+*)
+  sorry
 
 end
 
@@ -168,6 +176,7 @@ proof
 qed simp+
 
 sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
+(* FIXME
 proof
   fix
     QDs :: "('e llist list \<times> 'e set) llist" and
@@ -202,9 +211,13 @@ proof
     thus ?thesis
       by (metis diff_diff_cancel)
   qed
+
   show "\<exists>j \<ge> i. pick_lqueue_step_aux (lnth QDs j) e es (lnth QDs (Suc j))"
+
     sorry
 qed
+*)
+  sorry
 
 end
 
