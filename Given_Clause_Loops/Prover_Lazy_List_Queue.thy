@@ -215,7 +215,7 @@ proof
       at_k: "fst (lnth QDs i) ! k = LCons e es"
       using cons_in by (metis in_set_conv_nth set_mset_mset)
 
-    have "\<forall>k' \<le> k + 1. \<exists>i' \<ge> i. LCons e es \<in># mset (take k' (fst (lnth QDs i')))"
+    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (fst (lnth QDs i')))"
     proof -
       have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))" for l
       proof (induct l)
@@ -231,11 +231,32 @@ proof
           sorry
       qed
       thus ?thesis
-        by (metis diff_diff_cancel)
+        by (metis diff_add_zero empty_iff list.set(1) set_mset_mset take0)
     qed
+    then obtain i' :: nat where
+      i'_ge: "i' \<ge> i" and
+      cons_in: "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      by auto
 
     have "\<exists>j \<ge> i. pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      sorry
+    proof (rule exI[of _ i'], intro conjI i'_ge)
+
+      have cons_in: "LCons e es \<in># mset (fst (lnth QDs i'))"
+        sorry
+      have fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
+        sorry
+      have snd_pick: "mset (snd (pick_elem (fst (lnth QDs i')))) =
+        mset (fst (lnth QDs i')) - {#LCons e es#} + {#es#}"
+        sorry
+      have fst_at_si': "fst (lnth QDs (Suc i')) = snd (pick_elem (fst (lnth QDs i')))"
+        sorry
+      have snd_at_si': "snd (lnth QDs (Suc i')) = snd (lnth QDs i') \<union> {e}"
+        sorry
+
+      show "pick_lqueue_step_details (lnth QDs i') e es (lnth QDs (Suc i'))"
+        using pick_lqueue_step_detailsI[OF cons_in fst_pick snd_pick, of "snd (lnth QDs i')"]
+        unfolding fst_at_si'[symmetric] snd_at_si'[symmetric] by simp
+    qed
   }
   thus "\<exists>j \<ge> i.
       (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
