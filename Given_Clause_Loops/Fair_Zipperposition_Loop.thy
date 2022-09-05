@@ -134,7 +134,7 @@ where
     (T, D, P, Some C, A) \<leadsto>ZLf
     (fold t_add_llist \<iota>ss T, D - flat_inferences_of (mset \<iota>ss), P, None, A |\<union>| {|C|})"
 | delete_orphan_infers: "\<iota>s \<in># t_llists T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
-    (T, D, P, Y, A) \<leadsto>ZLf (t_remove_llist \<iota>s T, D, P, Y, A)"
+    (T, D, P, Y, A) \<leadsto>ZLf (t_remove_llist \<iota>s T, D \<union> lset \<iota>s, P, Y, A)"
 
 inductive
   compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
@@ -878,24 +878,52 @@ proof -
 
     obtain j :: nat where
       j_ge: "j \<ge> i" and
-      pick_step: "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
-        (lnth TDs (Suc j))"
+      rem_or_pick_step: "(\<exists>k' \<le> k. todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s)
+          (fst (lnth TDs (Suc j))))
+        \<or> todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
+          (lnth TDs (Suc j))"
       using todo.fair_strong[OF chain_ts inf_oft \<iota>s_in k_lt] by blast
 
     have "\<exists>j. j \<ge> i \<and> j < llength Sts \<and> \<iota> \<notin> lnth Infs j"
     proof (rule exI[of _ "Suc j"], intro conjI)
-      show "\<iota> \<notin> lnth Infs (Suc j)"
-        using pick_step
-      proof cases
-        case (pick_lqueue_step_auxI Q D)
-        note at_j = this(1) and at_sj = this(2)
+      {
+        assume "(\<exists>k' \<le> k. todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s)
+          (fst (lnth TDs (Suc j))))"
+        then obtain k' :: nat where
+          "todo.remove_lqueue_step (fst (lnth TDs j)) (ldrop (enat k') \<iota>s) (fst (lnth TDs (Suc j)))"
+          by blast
+        hence "\<iota> \<notin> lnth Infs (Suc j)"
+        proof cases
+          case (remove_lqueue_stepI ess)
+          note at_sk = this(1) and drop = this(2)
 
-        have don: "done_of (lnth Sts (Suc j)) = D \<union> {\<iota>}"
-          using at_sj at_k by (simp add: TDs_def len)
-        
-        show ?thesis
-          unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
-      qed
+          have \<iota>_in: "\<iota> \<in> lset \<iota>s"
+            sorry
+
+          have "done_of (lnth Sts (Suc j)) = DUMMY"
+            using TDs_def
+            sorry
+
+          show ?thesis
+            unfolding Infs_def lnth_lmap[OF lt_sts]
+            sorry
+        qed
+      } moreover {
+        assume "todo.pick_lqueue_step_aux (lnth TDs j) (lnth \<iota>s k) (ldrop (enat (Suc k)) \<iota>s)
+          (lnth TDs (Suc j))"
+        hence "\<iota> \<notin> lnth Infs (Suc j)"
+        proof cases
+          case (pick_lqueue_step_auxI Q D)
+          note at_j = this(1) and at_sj = this(2)
+
+          have don: "done_of (lnth Sts (Suc j)) = D \<union> {\<iota>}"
+            using at_sj at_k by (simp add: TDs_def len)
+
+          show ?thesis
+            unfolding Infs_def lnth_lmap[OF lt_sts] don by auto
+        qed
+      } ultimately show "\<iota> \<notin> lnth Infs (Suc j)"
+        using rem_or_pick_step by blast
     qed (use j_ge lt_sts in auto)
   }
   thus ?thesis

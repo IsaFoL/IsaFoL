@@ -48,7 +48,7 @@ where
 | schedule_infer: "flat_inferences_of T' = no_labels.Inf_between A {C} \<Longrightarrow>
     zl_state (T, D, P, {C}, A) \<leadsto>ZL zl_state (T + T', D - flat_inferences_of T', P, {}, A \<union> {C})"
 | delete_orphan_infers: "lset \<iota>s \<inter> no_labels.Inf_from A = {} \<Longrightarrow>
-    zl_state (T + {#\<iota>s#}, D, P, Y, A) \<leadsto>ZL zl_state (T, D, P, Y, A)"
+    zl_state (T + {#\<iota>s#}, D, P, Y, A) \<leadsto>ZL zl_state (T, D \<union> lset \<iota>s, P, Y, A)"
 
 
 subsection \<open>Refinement\<close>
@@ -234,11 +234,12 @@ qed
 
 lemma zl_delete_orphan_infers_in_lgc:
   assumes inter: "lset \<iota>s \<inter> no_labels.Inf_from A = {}"
-  shows "zl_state (T + {#\<iota>s#}, D, P, Y, A) \<leadsto>LGC zl_state (T, D, P, Y, A)"
+  shows "zl_state (T + {#\<iota>s#}, D, P, Y, A) \<leadsto>LGC zl_state (T, D \<union> lset \<iota>s, P, Y, A)"
 proof -
   let ?\<N> = "labeled_formulas_of (P, Y, A)"
 
-  have inf: "(flat_inferences_of T \<union> lset \<iota>s - D, ?\<N>) \<leadsto>LGC (flat_inferences_of T - D, ?\<N>)"
+  have inf: "(flat_inferences_of T \<union> lset \<iota>s - D, ?\<N>)
+    \<leadsto>LGC (flat_inferences_of T - (D \<union> lset \<iota>s), ?\<N>)"
     by (rule step.delete_orphan_infers[of _ _ "lset \<iota>s - D"])
       (use inter prj_active_subset_of_state in auto)
 

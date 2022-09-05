@@ -62,10 +62,10 @@ inductive pick_lqueue_step_aux :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightar
     pick_lqueue_step_aux (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
 
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  "pick_lqueue_step_aux QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
+  pick_lqueue_stepI: "pick_lqueue_step_aux QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
 inductive remove_lqueue_step :: "'q \<Rightarrow> 'e llist \<Rightarrow> 'q \<Rightarrow> bool" where
-  "es \<in> set ess \<Longrightarrow> remove_lqueue_step Q es (fold remove_llist ess Q)"
+  remove_lqueue_stepI: "es \<in> set ess \<Longrightarrow> remove_lqueue_step Q es (fold remove_llist ess Q)"
 
 end
 
@@ -90,7 +90,7 @@ lemma fair_strong:
     es_in: "es \<in># llists (fst (lnth QDs i))" and
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i.
-    (\<exists>k' \<le> k. remove_lqueue_step (fst (lnth QDs j)) (ldrop k es) (fst (lnth QDs (Suc j))))
+    (\<exists>k' \<le> k. remove_lqueue_step (fst (lnth QDs j)) (ldrop k' es) (fst (lnth QDs (Suc j))))
     \<or> pick_lqueue_step_aux (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using k_lt
 (* FIXME
