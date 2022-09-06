@@ -58,17 +58,17 @@ lemma llists_fold_add_llist[simp]: "llists (fold add_llist es Q) = mset es + lli
 lemma llists_fold_remove_llist[simp]: "llists (fold remove_llist es Q) = llists Q - mset es"
   by (induct es arbitrary: Q) auto
 
-inductive pick_lqueue_step_details :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  pick_lqueue_step_detailsI: "LCons e es \<in># llists Q \<Longrightarrow> fst (pick_elem Q) = e \<Longrightarrow>
+inductive pick_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
+  pick_lqueue_step_w_detailsI: "LCons e es \<in># llists Q \<Longrightarrow> fst (pick_elem Q) = e \<Longrightarrow>
     llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#} \<Longrightarrow>
-    pick_lqueue_step_details (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
+    pick_lqueue_step_w_details (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
 
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  pick_lqueue_stepI: "pick_lqueue_step_details QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
+  pick_lqueue_stepI: "pick_lqueue_step_w_details QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
-inductive remove_lqueue_step_details :: "'q \<times> 'e set \<Rightarrow> 'e llist list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
+inductive remove_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e llist list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   remove_lqueue_stepI:
-    "remove_lqueue_step_details (Q, D) ess
+    "remove_lqueue_step_w_details (Q, D) ess
        (fold remove_llist ess Q, D \<union> \<Union> {lset es |es. es \<in> set ess})"
 
 end
@@ -84,8 +84,8 @@ locale fair_prover_lazy_list_queue =
   assumes fair: "chain lqueue_step QDs \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
     \<exists>j \<ge> i. (\<exists>ess. LCons e es \<in> set ess
-        \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
-      \<or>  pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
+        \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
+      \<or>  pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
@@ -96,8 +96,8 @@ lemma fair_strong:
     k_lt: "enat k < llength es"
   shows "\<exists>j \<ge> i.
     (\<exists>k' \<le> k. \<exists>ess. ldrop k' es \<in> set ess
-         \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
-       \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
+         \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
+       \<or> pick_lqueue_step_w_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
   using k_lt
 proof (induct k)
   case 0
@@ -117,24 +117,24 @@ next
   obtain j :: nat where
     j_ge: "j \<ge> i" and
     rem_or_pick_step: "(\<exists>k' \<le> k. \<exists>ess. ldrop (enat k') es \<in> set ess
-        \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
-      \<or> pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
+        \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
+      \<or> pick_lqueue_step_w_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
         (lnth QDs (Suc j))"
     using ih[OF k_lt] by blast
 
   {
     assume "\<exists>k' \<le> k. \<exists>ess. ldrop (enat k') es \<in> set ess
-      \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j))"
+      \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j))"
     hence ?case
       using j_ge le_SucI by blast
   }
   moreover
   {
-    assume "pick_lqueue_step_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
+    assume "pick_lqueue_step_w_details (lnth QDs j) (lnth es k) (ldrop (enat (Suc k)) es)
       (lnth QDs (Suc j))"
     hence cons_in: "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es)
       \<in># llists (fst (lnth QDs (Suc j)))"
-      unfolding pick_lqueue_step_details.simps using sk_lt
+      unfolding pick_lqueue_step_w_details.simps using sk_lt
       by (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_mset_add_mset_right
           union_single_eq_member)
 
@@ -215,7 +215,7 @@ proof
 
   {
     assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
-      \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))"
+      \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
     obtain k :: nat where
       k_lt: "k < length (fst (lnth QDs i))" and
@@ -243,15 +243,66 @@ proof
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
-      cons_in_take: "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
       by auto
+    then obtain j :: nat where
+      j_ge: "j \<ge> i'" and
+      "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
+      using inf_pick unfolding infinitely_often_alt_def by auto
+    hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      unfolding pick_lqueue_step.simps by simp
+    have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+    proof -
+      have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
+      proof -
+        have "LCons e es \<in># mset (take 1 (fst (lnth QDs (i' + l))))" if i'l_le: "i' + l \<le> j" for l
+        proof (induct l)
+          case (Suc l)
+          note ih = this
 
-    have "\<exists>j \<ge> i. pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
+          have step: "lqueue_step (lnth QDs (i' + l)) (lnth QDs (i' + Suc l))"
+            by (simp add: chain chain_lnth_rel len)
+
+          show ?case
+            using step
+          proof cases
+            case (lqueue_step_fold_add_llistI Q D ess)
+            then show ?thesis sorry
+          next
+            case (lqueue_step_fold_remove_llistI Q D ess)
+            then show ?thesis sorry
+          next
+            case (lqueue_step_pick_elemI Q D)
+            then show ?thesis sorry
+          qed
+
+
+            sorry
+        qed (use cons_at_i' in auto)
+        thus ?thesis
+          by (metis dual_order.refl j_ge nat_le_iff_add)
+      qed
+      hence cons_in_fst: "LCons e es \<in># mset (fst (lnth QDs j))"
+        using in_set_takeD by force
+
+      have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
+        sorry
+
+      have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
+        mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
+        sorry
+
+      show ?thesis
+        using cons_in_fst fst_pick snd_pick
+        by (smt (verit, ccfv_SIG) pick_step fst_conv pick_lqueue_step_w_details.simps)
+    qed
+
+    have "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof (rule exI[of _ i'], intro conjI i'_ge)
       have cons_in: "LCons e es \<in># mset (fst (lnth QDs i'))"
-        by (meson cons_in_take in_multiset_in_set in_set_takeD)
+        by (meson cons_at_i' in_multiset_in_set in_set_takeD)
       hence hd: "hd (fst (lnth QDs i')) = LCons e es"
-        using cons_in_take
+        using cons_at_i'
         by (metis One_nat_def empty_iff empty_set hd_conv_nth length_greater_0_conv 
             self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
       hence fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
@@ -290,14 +341,14 @@ proof
           sorry
       qed
 
-      show "pick_lqueue_step_details (lnth QDs i') e es (lnth QDs (Suc i'))"
-        using pick_lqueue_step_detailsI[OF cons_in fst_pick snd_pick, of "snd (lnth QDs i')"]
+      show "pick_lqueue_step_w_details (lnth QDs i') e es (lnth QDs (Suc i'))"
+        using pick_lqueue_step_w_detailsI[OF cons_in fst_pick snd_pick, of "snd (lnth QDs i')"]
         unfolding at_si'[symmetric] by simp
     qed
   }
   thus "\<exists>j \<ge> i.
-      (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_details (lnth QDs j) ess (lnth QDs (Suc j)))
-    \<or> pick_lqueue_step_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
+    \<or> pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     by blast
 qed
 
