@@ -380,55 +380,8 @@ proof
         using cons_in_fst fst_pick snd_pick
         by (smt (verit, ccfv_SIG) pick_step fst_conv pick_lqueue_step_w_details.simps)
     qed
-
-    have "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-    proof (rule exI[of _ i'], intro conjI i'_ge)
-      have cons_in: "LCons e es \<in># mset (fst (lnth QDs i'))"
-        by (meson cons_at_i' in_multiset_in_set in_set_takeD)
-      hence hd: "hd (fst (lnth QDs i')) = LCons e es"
-        using cons_at_i'
-        by (metis One_nat_def empty_iff empty_set hd_conv_nth length_greater_0_conv 
-            self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
-      hence fst_pick: "fst (pick_elem (fst (lnth QDs i'))) = e"
-        by (metis cons_in empty_iff empty_set list.sel(1) neq_Nil_conv pick_elem.simps(3)
-            prod.sel(1) set_mset_mset)
-
-      have "fst (lnth QDs i') \<noteq> []"
-        using cons_in by fastforce
-      hence snd_pick: "mset (snd (pick_elem (fst (lnth QDs i')))) =
-        mset (fst (lnth QDs i')) - {#LCons e es#} + {#es#}"
-        using pick_elem.simps(3)
-        by (metis hd add_mset_add_mset_same_iff cons_in insert_DiffM list.exhaust_sel llists_add
-            mset.simps(2) snd_conv)
-
-      have step: "lqueue_step (lnth QDs i') (lnth QDs (Suc i'))"
-        by (simp add: chain chain_lnth_rel len)
-
-      have at_si': "lnth QDs (Suc i') =
-        (snd (pick_elem (fst (lnth QDs i'))), snd (lnth QDs i') \<union> {e})"
-        using step
-      proof cases
-        case (lqueue_step_fold_add_llistI Q D ess)
-        have False
-          sorry
-        thus ?thesis
-          by blast
-      next
-        case (lqueue_step_fold_remove_llistI Q D ess)
-        have False
-          sorry
-        thus ?thesis
-          by blast
-      next
-        case (lqueue_step_pick_elemI Q D)
-        thus ?thesis
-          sorry
-      qed
-
-      show "pick_lqueue_step_w_details (lnth QDs i') e es (lnth QDs (Suc i'))"
-        using pick_lqueue_step_w_detailsI[OF cons_in fst_pick snd_pick, of "snd (lnth QDs i')"]
-        unfolding at_si'[symmetric] by simp
-    qed
+    hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      using i'_ge j_ge le_trans by blast
   }
   thus "\<exists>j \<ge> i.
       (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
