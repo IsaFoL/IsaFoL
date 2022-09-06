@@ -347,11 +347,8 @@ proof
             proof -
               have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + l)) e es
                 (lnth QDs (Suc (i' + l)))"
-                unfolding defs
-                using pick_lqueue_step_w_detailsI
-
-                using pick_lqueue_stepI
-                sorry
+                unfolding defs using pick_lqueue_step_w_detailsI
+                by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
               thus ?thesis
                 using pick_lqueue_stepI by fast
             qed
