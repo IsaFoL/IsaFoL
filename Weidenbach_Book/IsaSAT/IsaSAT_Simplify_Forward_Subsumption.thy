@@ -1304,7 +1304,7 @@ definition find_best_subsumption_candidate where
 definition isa_push_to_occs_list_st where
   \<open>isa_push_to_occs_list_st C S = do {
      L \<leftarrow> find_best_subsumption_candidate C S;
-     ASSERT (length (get_occs S ! nat_of_lit L) < length (get_clauses_wl_heur S));
+     ASSERT (length (get_occs S ! nat_of_lit L) \<le> length (get_clauses_wl_heur S));
      occs \<leftarrow> mop_cocc_list_append C (get_occs S) L;
      RETURN (set_occs_wl_heur occs S)
   }\<close>
@@ -1905,6 +1905,9 @@ lemma notin_all_occurrences_notin_cocc: \<open>(occs, occs') \<in> occurrence_li
     by (auto split: if_splits dest: spec[of _ ia])
   done
 
+lemma set_mset_cocc_content_set[simp]: \<open>set_mset (cocc_content occs) = cocc_content_set occs\<close>
+  by (auto simp: cocc_content_set_def in_mset_sum_list_iff)
+
 lemma isa_push_to_occs_list_st_push_to_occs_list2:
   assumes
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
@@ -1927,7 +1930,7 @@ proof -
     unfolding push_to_occs_list2_def by auto
   have valid: \<open>valid_occs (get_occs S) (get_aivdom S)\<close>
     using SS' unfolding twl_st_heur_restart_occs_def by auto
-  have length_bounded: \<open>length (get_occs S ! nat_of_lit L) < length (get_clauses_wl_heur S)\<close>
+  have length_bounded: \<open>length (get_occs S ! nat_of_lit L) \<le> length (get_clauses_wl_heur S)\<close>
     if
       \<open>push_to_occs_list2_pre C S' occs\<close> and
       \<open>(L, La) \<in> nat_lit_lit_rel\<close> and
@@ -1940,11 +1943,24 @@ had initially.
 
 Better alternative: the occurence lists are a subset of all the candidates, which should be in tvdom anyway
 *)
-    have \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close> and
-      \<open>valid_occs (get_occs S) (get_aivdom S)\<close>
+    define n where \<open>n = get_occs S ! nat_of_lit L\<close>
+    have arena: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl S') (set (get_vdom S))\<close> and
+      occs: \<open>valid_occs (get_occs S) (get_aivdom S)\<close> and
+      aivdom: \<open>aivdom_inv_dec (get_aivdom S) (dom_m (get_clauses_wl S'))\<close>
       using SS' unfolding twl_st_heur_restart_occs_def
       by fast+
-    show ?thesis sorry
+    have H: \<open>(cocc_content (get_occs S)) \<subseteq># mset (get_vdom S)\<close>
+      using occs unfolding valid_occs_def apply -
+      by (subst distinct_subseteq_iff[symmetric]) auto
+    have \<open>nat_of_lit L < length (get_occs S)\<close>
+      sorry
+    from nth_mem[OF this] have \<open>length (get_occs S ! nat_of_lit L) \<le> length (get_vdom S)\<close>
+      using multi_member_split[of \<open>get_occs S ! nat_of_lit L\<close> \<open>mset (get_occs S)\<close>] H[THEN size_mset_mono]
+      by (auto dest!: split_list simp: n_def[symmetric])
+    moreover have \<open>length (get_vdom S) \<le> length (get_clauses_wl_heur S)\<close>
+      using valid_arena_vdom_le(2)[OF arena] aivdom unfolding aivdom_inv_dec_alt_def
+      by (simp add: distinct_card)
+    finally show ?thesis .
   qed
   show ?thesis
     unfolding isa_push_to_occs_list_st_def push_to_occs_list2_alt_def eq
@@ -1953,9 +1969,10 @@ Better alternative: the occurence lists are a subset of all the candidates, whic
     subgoal using length by auto
     subgoal by (rule length_bounded)
     subgoal by auto
-    subgoal using SS' C valid by (auto 9 2 intro!: twl_st_heur_restart_occs_set_occsI
-      intro: valid_occs_append
-      simp: notin_all_occurrences_notin_cocc[OF occs] push_to_occs_list2_pre_def)
+    subgoal using SS' C valid notin_all_occurrences_notin_cocc[OF occs, of C]
+      by (auto 9 2 intro!: twl_st_heur_restart_occs_set_occsI
+      intro!: valid_occs_append
+      simp: push_to_occs_list2_pre_def)
     done
 qed
 
@@ -3350,7 +3367,6 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal using C_tvdom by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3698,7 +3714,6 @@ proof -
     subgoal
       unfolding isa_all_lit_clause_unset_pre_def
       by (rule twl_st_heur_restart_occs'_avdom_nth_vdom) auto
-    subgoal by simp
     subgoal by (auto simp: uint32_max_def)
     subgoal by auto
     subgoal by auto
@@ -3880,8 +3895,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal sorry
-    subgoal by auto
+    subgoal by simp
     subgoal by auto
     apply assumption
     subgoal by auto
