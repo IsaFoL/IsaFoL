@@ -245,16 +245,18 @@ proof
       i'_ge: "i' \<ge> i" and
       cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
       by auto
+    then obtain j0 :: nat where
+      j_ge: "j0 \<ge> i'" and
+      "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
+      using inf_pick unfolding infinitely_often_alt_def by auto
     then obtain j :: nat where
       j_ge: "j \<ge> i'" and
       "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
-      using inf_pick unfolding infinitely_often_alt_def by auto
-
-
-
-    have pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      unfolding pick_lqueue_step.simps
-      sorry (* by simp *)
+      "\<forall>j. j \<ge> i' \<longrightarrow> j < j0 \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
+      using wf_eq_minimal
+      sorry
+    hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
       have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
@@ -271,17 +273,36 @@ proof
             using step
           proof cases
             case (lqueue_step_fold_add_llistI Q D ess)
-            then show ?thesis sorry
+            note defs = this
+
+            have len_q: "length Q \<ge> 1"
+              by (metis Suc Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
+                  list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1) set_mset_mset
+                  take.simps(1))
+
+            have take: "take (Suc 0) (fold (\<lambda>es ess. ess @ [es]) ess Q) = take (Suc 0) Q"
+              using len_q
+            proof (induct ess arbitrary: Q)
+              case (Cons es ess)
+              note ih = this(1) and len_q = this(2)
+              show ?case
+                using len_q by (simp add: ih)
+            qed auto
+
+            show ?thesis
+              unfolding defs
+              using take
+              by simp (metis One_nat_def Suc local.lqueue_step_fold_add_llistI(1) prod.sel(1)
+                  set_mset_mset)
           next
             case (lqueue_step_fold_remove_llistI Q D ess)
-            then show ?thesis sorry
+            show ?thesis
+              using not_rem_step
+              sorry
           next
             case (lqueue_step_pick_elemI Q D)
             then show ?thesis sorry
           qed
-
-
-            sorry
         qed (use cons_at_i' in auto)
         thus ?thesis
           by (metis dual_order.refl j_ge nat_le_iff_add)
