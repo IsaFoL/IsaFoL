@@ -249,8 +249,12 @@ proof
       j_ge: "j \<ge> i'" and
       "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
       using inf_pick unfolding infinitely_often_alt_def by auto
-    hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      unfolding pick_lqueue_step.simps by simp
+
+
+
+    have pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      unfolding pick_lqueue_step.simps
+      sorry (* by simp *)
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
       have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
