@@ -344,8 +344,17 @@ proof
             note defs = this(1,2) and rest = this(3)
 
             have "pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
-              unfolding defs
-              sorry
+            proof -
+              have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + l)) e es
+                (lnth QDs (Suc (i' + l)))"
+                unfolding defs
+                using pick_lqueue_step_w_detailsI
+
+                using pick_lqueue_stepI
+                sorry
+              thus ?thesis
+                using pick_lqueue_stepI by fast
+            qed
             moreover have "\<not> pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
               using pick_step_min[rule_format, OF le_add1 i'l_lt] .
             ultimately show ?thesis
