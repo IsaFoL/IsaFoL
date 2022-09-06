@@ -253,8 +253,9 @@ proof
       using inf_pick unfolding infinitely_often_alt_def by auto
     then obtain j :: nat where
       j_ge: "j \<ge> i'" and
-      "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
-      "\<forall>j. j \<ge> i' \<longrightarrow> j < j0 \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
+      pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" and
+      pick_step_min:
+        "\<forall>j'. j' \<ge> i' \<longrightarrow> j' < j \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j') (lnth QDs (Suc j'))"
       using wf_eq_minimal
       sorry
     hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
@@ -264,9 +265,14 @@ proof
       have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
       proof -
         have "LCons e es \<in># mset (take 1 (fst (lnth QDs (i' + l))))" if i'l_le: "i' + l \<le> j" for l
+          using i'l_le
         proof (induct l)
           case (Suc l)
-          note ih = this
+          note ih = this(1) and i'sl_le = this(2)
+
+          have i'l_le: "i' + l \<le> j"
+            using i'sl_le by auto
+          note ih = ih[OF i'l_le]
 
           have step: "lqueue_step (lnth QDs (i' + l)) (lnth QDs (i' + Suc l))"
             by (simp add: chain chain_lnth_rel len)
@@ -278,7 +284,7 @@ proof
             note defs = this
 
             have len_q: "length Q \<ge> 1"
-              by (metis Suc Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
+              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
                   list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1) set_mset_mset
                   take.simps(1))
 
@@ -292,10 +298,8 @@ proof
             qed auto
 
             show ?thesis
-              unfolding defs
-              using take
-              by simp (metis One_nat_def Suc local.lqueue_step_fold_add_llistI(1) prod.sel(1)
-                  set_mset_mset)
+              unfolding defs using ih take
+              by simp (metis local.lqueue_step_fold_add_llistI(1) prod.sel(1))
           next
             case (lqueue_step_fold_remove_llistI Q D ess)
             note defs = this
@@ -310,9 +314,9 @@ proof
 
             obtain Q' :: "'e llist list" where
               q: "Q = LCons e es # Q'"
-              by (metis One_nat_def Suc fst_eqD in_set_member in_set_takeD length_pos_if_in_set
-                  list.exhaust_sel local.lqueue_step_fold_remove_llistI(1) member_rec(1)
-                  member_rec(2) nth_Cons_0 set_mset_mset take0 take_Suc_conv_app_nth)
+              using ih by (metis One_nat_def fst_eqD in_set_member in_set_takeD length_pos_if_in_set
+                  list.exhaust_sel lqueue_step_fold_remove_llistI(1) member_rec nth_Cons_0
+                  set_mset_mset take0 take_Suc_conv_app_nth)
 
             have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
               unfolding q using ees_ni
@@ -331,11 +335,39 @@ proof
             qed auto
 
             show ?thesis
-              unfolding defs using take_1 by simp (metis One_nat_def Suc
-                  lqueue_step_fold_remove_llistI(1) prod.sel(1) set_mset_mset)
+              unfolding defs using ih take_1
+              by simp (metis lqueue_step_fold_remove_llistI(1) prod.sel(1))
           next
             case (lqueue_step_pick_elemI Q D)
-            then show ?thesis sorry
+            note defs = this(1,2) and rest = this(3)
+
+            show ?thesis
+            proof (cases "i' + l < j")
+              case i'l_lt: True
+
+              have pick_step: "pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
+                unfolding defs
+                sorry
+              have not_pick_step: "\<not> pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
+              proof -
+                have i'_lt: "i' \<le> i' + l"
+                  by force
+                show ?thesis
+                  using pick_step_min[rule_format, OF i'_lt i'l_lt] .
+              qed
+
+              have False
+                using pick_step not_pick_step by blast
+              thus ?thesis
+                by blast
+            next
+              case False
+              hence il_eq: "i' + l = j"
+                using i'l_le by auto
+
+              show ?thesis
+                sorry
+            qed
           qed
         qed (use cons_at_i' in auto)
         thus ?thesis
