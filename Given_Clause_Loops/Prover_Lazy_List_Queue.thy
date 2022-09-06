@@ -365,7 +365,10 @@ proof
         using in_set_takeD by force
 
       have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
-        sorry
+        by (smt (verit, del_insts) One_nat_def cons_at_j empty_iff empty_set fst_conv
+            in_multiset_in_set length_pos_if_in_set llist.inject llist.simps(3) nth_Cons_0
+            pick_elem.elims pick_lqueue_step_w_details.cases pick_step self_append_conv2 set_ConsD
+            take0 take_Suc_conv_app_nth)
 
       have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
         mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
