@@ -364,15 +364,17 @@ proof
       hence cons_in_fst: "LCons e es \<in># mset (fst (lnth QDs j))"
         using in_set_takeD by force
 
-      have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
-        by (smt (verit, del_insts) One_nat_def cons_at_j empty_iff empty_set fst_conv
-            in_multiset_in_set length_pos_if_in_set llist.inject llist.simps(3) nth_Cons_0
-            pick_elem.elims pick_lqueue_step_w_details.cases pick_step self_append_conv2 set_ConsD
-            take0 take_Suc_conv_app_nth)
+      obtain Q' :: "'e llist list" where
+        fst_at_j: "fst (lnth QDs j) = LCons e es # Q'"
+        using cons_at_j by (metis (no_types, lifting) One_nat_def cons_in_fst empty_iff empty_set
+            fifo_prover_lazy_list_queue.pick_elem.elims length_pos_if_in_set nth_Cons_0
+            self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
 
+      have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
+        unfolding fst_at_j by simp
       have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
         mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-        sorry
+        unfolding fst_at_j by simp
 
       show ?thesis
         using cons_in_fst fst_pick snd_pick
