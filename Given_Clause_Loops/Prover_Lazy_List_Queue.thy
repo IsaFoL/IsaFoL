@@ -310,11 +310,13 @@ proof
 
             obtain Q' :: "'e llist list" where
               q: "Q = LCons e es # Q'"
-              sorry
+              by (metis One_nat_def Suc fst_eqD in_set_member in_set_takeD length_pos_if_in_set
+                  list.exhaust_sel local.lqueue_step_fold_remove_llistI(1) member_rec(1)
+                  member_rec(2) nth_Cons_0 set_mset_mset take0 take_Suc_conv_app_nth)
 
             have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
               unfolding q using ees_ni
-            proof (induct ess arbitrary: Q)
+            proof (induct ess arbitrary: Q')
               case (Cons es' ess')
               note ih = this(1) and ees_ni = this(2)
 
@@ -324,8 +326,8 @@ proof
 
               have "es' \<noteq> LCons e es"
                 using ees_ni by auto
-              show ?case
-                sorry
+              thus ?case
+                using ih by simp
             qed auto
 
             show ?thesis
