@@ -911,7 +911,7 @@ proof -
         have "\<iota> \<notin> lnth Infs (Suc j)"
           using rem_step
         proof cases
-          case (remove_lqueue_stepI Q D)
+          case (remove_lqueue_step_w_detailsI Q D)
           note at_j = this(1) and at_sj = this(2)
 
           have don: "done_of (lnth Sts (Suc j)) = D \<union> \<Union> {lset \<iota>s |\<iota>s. \<iota>s \<in> set \<iota>ss}"

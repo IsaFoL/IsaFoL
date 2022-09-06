@@ -66,8 +66,10 @@ inductive pick_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e \<R
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   pick_lqueue_stepI: "pick_lqueue_step_w_details QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
-inductive remove_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e llist list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  remove_lqueue_stepI:
+inductive
+  remove_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e llist list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool"
+where
+  remove_lqueue_step_w_detailsI:
     "remove_lqueue_step_w_details (Q, D) ess
        (fold remove_llist ess Q, D \<union> \<Union> {lset es |es. es \<in> set ess})"
 
@@ -85,7 +87,7 @@ locale fair_prover_lazy_list_queue =
     LCons e es \<in># llists (fst (lnth QDs i)) \<Longrightarrow>
     \<exists>j \<ge> i. (\<exists>ess. LCons e es \<in> set ess
         \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
-      \<or>  pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+      \<or> pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
@@ -296,9 +298,39 @@ proof
                   set_mset_mset)
           next
             case (lqueue_step_fold_remove_llistI Q D ess)
-            show ?thesis
-              using not_rem_step
+            note defs = this
+
+            have "remove_lqueue_step_w_details (lnth QDs (i' + l)) ess (lnth QDs (i' + Suc l))"
+              unfolding defs by (rule remove_lqueue_step_w_detailsI)
+            moreover have "\<not> (\<exists>ess. LCons e es \<in> set ess
+              \<and> remove_lqueue_step_w_details (lnth QDs (i' + l)) ess (lnth QDs (i' + Suc l)))"
+              using not_rem_step add_Suc_right i'_ge trans_le_add1 by presburger
+            ultimately have ees_ni: "LCons e es \<notin> set ess"
+              by blast
+
+            obtain Q' :: "'e llist list" where
+              q: "Q = LCons e es # Q'"
               sorry
+
+            have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
+              unfolding q using ees_ni
+            proof (induct ess arbitrary: Q)
+              case (Cons es' ess')
+              note ih = this(1) and ees_ni = this(2)
+
+              have ees_ni': "LCons e es \<notin> set ess'"
+                using ees_ni by simp
+              note ih = ih[OF ees_ni']
+
+              have "es' \<noteq> LCons e es"
+                using ees_ni by auto
+              show ?case
+                sorry
+            qed auto
+
+            show ?thesis
+              unfolding defs using take_1 by simp (metis One_nat_def Suc
+                  lqueue_step_fold_remove_llistI(1) prod.sel(1) set_mset_mset)
           next
             case (lqueue_step_pick_elemI Q D)
             then show ?thesis sorry
