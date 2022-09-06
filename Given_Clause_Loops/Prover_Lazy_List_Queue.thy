@@ -270,8 +270,10 @@ proof
           case (Suc l)
           note ih = this(1) and i'sl_le = this(2)
 
+          have i'l_lt: "i' + l < j"
+            using i'sl_le by linarith
           have i'l_le: "i' + l \<le> j"
-            using i'sl_le by auto
+            using i'sl_le by linarith
           note ih = ih[OF i'l_le]
 
           have step: "lqueue_step (lnth QDs (i' + l)) (lnth QDs (i' + Suc l))"
@@ -341,33 +343,13 @@ proof
             case (lqueue_step_pick_elemI Q D)
             note defs = this(1,2) and rest = this(3)
 
-            show ?thesis
-            proof (cases "i' + l < j")
-              case i'l_lt: True
-
-              have pick_step: "pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
-                unfolding defs
-                sorry
-              have not_pick_step: "\<not> pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
-              proof -
-                have i'_lt: "i' \<le> i' + l"
-                  by force
-                show ?thesis
-                  using pick_step_min[rule_format, OF i'_lt i'l_lt] .
-              qed
-
-              have False
-                using pick_step not_pick_step by blast
-              thus ?thesis
-                by blast
-            next
-              case False
-              hence il_eq: "i' + l = j"
-                using i'l_le by auto
-
-              show ?thesis
-                sorry
-            qed
+            have "pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
+              unfolding defs
+              sorry
+            moreover have "\<not> pick_lqueue_step (lnth QDs (i' + l)) (lnth QDs (Suc (i' + l)))"
+              using pick_step_min[rule_format, OF le_add1 i'l_lt] .
+            ultimately show ?thesis
+              by blast
           qed
         qed (use cons_at_i' in auto)
         thus ?thesis
