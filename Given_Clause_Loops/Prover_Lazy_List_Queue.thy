@@ -244,7 +244,26 @@ proof
           using sl_le by linarith
         note ih = ih[OF l_le_k]
 
-        (* non_rem_step comes into play here *)
+        obtain i' :: nat where
+          i'_ge: "i' \<ge> i" and
+          cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+          using ih by blast
+        then obtain j0 :: nat where
+          j_ge: "j0 \<ge> i'" and
+          "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
+          using inf_pick unfolding infinitely_often_alt_def by auto
+        then obtain j :: nat where
+          j_ge: "j \<ge> i'" and
+          pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" and
+          pick_step_min:
+          "\<forall>j'. j' \<ge> i' \<longrightarrow> j' < j \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j') (lnth QDs (Suc j'))"
+          using wfP_exists_minimal[OF wfP_less, of
+              "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
+          by blast
+
+
+
+
         show ?case
           using ih
           sorry
@@ -268,8 +287,7 @@ proof
       using wfP_exists_minimal[OF wfP_less, of
          "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
       by blast
-
-    hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+    hence pick_step_det: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
       unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
@@ -389,7 +407,7 @@ proof
 
       show ?thesis
         using cons_in_fst fst_pick snd_pick
-        by (smt (verit, ccfv_SIG) pick_step fst_conv pick_lqueue_step_w_details.simps)
+        by (smt (verit, ccfv_SIG) pick_step_det fst_conv pick_lqueue_step_w_details.simps)
     qed
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
       using i'_ge j_ge le_trans by blast
