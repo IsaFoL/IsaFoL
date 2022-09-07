@@ -226,7 +226,9 @@ proof
 
     have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (fst (lnth QDs i')))"
     proof -
-      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))" for l
+      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+        if l_le: "l \<le> k" for l
+        using l_le
       proof (induct l)
         case 0
         show ?case
@@ -236,12 +238,19 @@ proof
         qed
       next
         case (Suc l)
+        note ih = this(1) and sl_le = this(2)
+
+        have l_le_k: "l \<le> k"
+          using sl_le by linarith
+        note ih = ih[OF l_le_k]
+
         (* non_rem_step comes into play here *)
         show ?case
+          using ih
           sorry
       qed
       thus ?thesis
-        by (metis diff_add_zero empty_iff list.set(1) set_mset_mset take0)
+        by (metis Suc_eq_plus1 add_right_mono diff_Suc_Suc diff_diff_cancel diff_le_self)
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
