@@ -412,10 +412,20 @@ proof
           show "i \<le> Suc j"
             using i'_ge j_ge by linarith
         next
-          show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
-            using cons_at_le_j
+          obtain Q :: "'e llist list" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
+            at_j: "lnth QDs j = (Q, D)" and
+            at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
+            ees'_in: "LCons e' es' \<in># mset Q" and
+            fst: "fst (pick_elem Q) = e'" and
+            snd: "mset (snd (pick_elem Q)) = mset Q - {#LCons e' es'#} + {#es'#}"
+            using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
+            by blast
 
-            using pick_step
+          have cons_at_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j)))"
+            using cons_at_le_j[of j] j_ge by blast
+
+          show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
+            using cons_at_j unfolding at_j at_sj
             sorry
         qed
       qed
