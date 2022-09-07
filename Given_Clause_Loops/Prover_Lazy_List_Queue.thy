@@ -15,13 +15,13 @@ begin
 
 subsection \<open>Basic Lemmas\<close>
 
-lemma
+lemma ne_and_in_set_take_imp_in_set_take_remove:
   assumes
     "z \<noteq> y" and
     "z \<in> set (take m xs)"
   shows "z \<in> set (take m (remove1 y xs))"
   using assms
-proof (induct xs)
+proof (induct xs arbitrary: m)
   case (Cons x xs)
   note ih = this(1) and z_ne_y = this(2) and z_in_take_xxs = this(3)
 
@@ -36,20 +36,29 @@ proof (induct xs)
 
     have z_in_take_xs: "z \<in> set (take m xs)"
       using z_in_take_xxs z_ne_x
-      by (smt (verit, del_insts) butlast_take in_set_butlastD in_set_takeD le_cases3 set_ConsD take_Cons' take_all)
-    note ih = ih[OF z_ne_y z_in_take_xs]
+      by (smt (verit, del_insts) butlast_take in_set_butlastD in_set_takeD le_cases3 set_ConsD
+          take_Cons' take_all)
 
     show ?thesis
     proof (cases "y = x")
-      case True
-      thus ?thesis
-        by (simp add: z_in_take_xs)
+      case y_eq_x: True
+      show ?thesis
+        using y_eq_x by (simp add: z_in_take_xs)
     next
       case y_ne_x: False
-      thus ?thesis
-        using ih
-        apply auto
-        sorry
+
+      have "m > 0"
+        by (metis gr0I list.set_cases list.simps(3) take_Cons' z_in_take_xxs)
+      then obtain m' :: nat where
+        m: "m = Suc m'"
+        using gr0_implies_Suc by presburger
+
+      have z_in_take_xs': "z \<in> set (take m' xs)"
+        using z_in_take_xs z_in_take_xxs z_ne_x by (simp add: m)
+      note ih = ih[OF z_ne_y z_in_take_xs']
+
+      show ?thesis
+        using y_ne_x ih unfolding m by simp
     qed
   qed
 qed simp
@@ -59,7 +68,7 @@ lemma in_set_take_imp_in_set_take_fold_append_single:
   shows "x \<in> set (take n (fold (\<lambda>y ys. ys @ [y]) ys xs))"
   using assms by (induct ys arbitrary: xs) auto
 
-lemma notin_set_and_in_set_take_imp_in_set_Take_fold_remove1:
+lemma notin_set_and_in_set_take_imp_in_set_take_fold_remove1:
   assumes
     "x \<notin> set ys" and
     "x \<in> set (take m xs)"
@@ -75,9 +84,7 @@ proof (induct ys arbitrary: xs)
   have x_ni_ys: "x \<notin> set ys"
     using x_ni_yys by simp
   have x_in_take_rem_y_xs: "x \<in> set (take m (remove1 y xs))"
-    using x_in_take_xs x_ne_y
-
-    sorry
+    using x_in_take_xs x_ne_y using ne_and_in_set_take_imp_in_set_take_remove by fast
   note ih = ih[OF x_ni_ys x_in_take_rem_y_xs]
 
   show ?case
@@ -357,10 +364,8 @@ proof
               hence "LCons e es \<notin> set ess"
                 using not_rem_step i'_ge by force
               thus ?thesis
-                using ih unfolding defs apply simp
-                using notin_set_and_in_set_take_imp_in_set_Take_fold_remove1
-                  [of "LCons e es" Q "Suc k - l" ess]
-                sorry
+                using ih unfolding defs
+                by (auto intro: notin_set_and_in_set_take_imp_in_set_take_fold_remove1)
             next
               case (lqueue_step_pick_elemI Q D)
               note defs = this
