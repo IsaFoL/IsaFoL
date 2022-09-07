@@ -360,7 +360,7 @@ proof
               case (lqueue_step_fold_remove_llistI Q D ess)
               note defs = this
               have "remove_lqueue_step_w_details (lnth QDs (i' + m)) ess (lnth QDs (i' + Suc m))"
-                sorry
+                unfolding defs by (rule remove_lqueue_step_w_detailsI)
               hence "LCons e es \<notin> set ess"
                 using not_rem_step i'_ge by force
               thus ?thesis
