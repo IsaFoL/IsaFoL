@@ -426,6 +426,9 @@ proof
 
           show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
             using cons_at_j unfolding at_j at_sj
+(*
+characterize "snd (pick_elem Q)" using an inductive lemma
+*)
             sorry
         qed
       qed
