@@ -219,6 +219,12 @@ proof
     assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
       \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
+    {
+      assume "\<exists>k > 0. \<forall>i' \<ge> i. LCons e es \<notin> set (take k (fst (lnth QDs i')))"
+      have False
+        sorry
+
+(*
     obtain k :: nat where
       k_lt: "k < length (fst (lnth QDs i))" and
       at_k: "fst (lnth QDs i) ! k = LCons e es"
@@ -262,8 +268,6 @@ proof
           by blast
 
 
-
-
         show ?case
           using ih
           sorry
@@ -271,6 +275,13 @@ proof
       thus ?thesis
         by (metis Suc_eq_plus1 add_right_mono diff_Suc_Suc diff_diff_cancel diff_le_self)
     qed
+    then obtain i' :: nat where
+      i'_ge: "i' \<ge> i" and
+      cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      by auto
+*)
+    
+    }
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
       cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
