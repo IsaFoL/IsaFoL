@@ -354,6 +354,8 @@ proof
             case (Suc m)
             note ih = this(1) and i'sm_le = this(2)
 
+            have i'm_lt: "i' + m < j"
+              using i'sm_le by linarith
             have i'm_le: "i' + m \<le> j"
               using i'sm_le by linarith
             note ih = ih[OF i'm_le]
@@ -383,35 +385,26 @@ proof
               case (lqueue_step_pick_elemI Q D)
               note defs = this(1,2) and rest = this(3)
 
-              {
-                assume i'm_lt: "i' + m < j"
-
-                have "pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
-                proof -
-                  have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + m)) e es
+              have "pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+              proof -
+                have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + m)) e es
                   (lnth QDs (i' + Suc m))"
-                    unfolding defs using pick_lqueue_step_w_detailsI
-                    by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
-                  thus ?thesis
-                    using pick_lqueue_stepI by fast
-                qed
-                moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
-                  using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
-                ultimately have ?thesis
-                  by blast
-              }
-              moreover
-              {
-                assume i'm_eq: "i' + m = j"
-                have ?thesis
-                  sorry
-              }
+                  unfolding defs using pick_lqueue_step_w_detailsI
+                  by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
+                thus ?thesis
+                  using pick_lqueue_stepI by fast
+              qed
+
+              thm pick_step_min[rule_format, OF le_add1]
+
+              moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+                using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
               ultimately show ?thesis
-                using i'm_le order_le_less by blast
+                by blast
             qed
           qed
           thus ?thesis
-            sorry
+            by (metis j'_ge j'_le nat_le_iff_add)
         qed
 
         show ?case
