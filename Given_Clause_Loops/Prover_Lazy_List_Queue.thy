@@ -248,23 +248,23 @@ proof
           i'_ge: "i' \<ge> i" and
           cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
           using ih by blast
-        then obtain j0 :: nat where
-          j_ge: "j0 \<ge> i'" and
-          "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
-          using inf_pick unfolding infinitely_often_alt_def by auto
         then obtain j :: nat where
           j_ge: "j \<ge> i'" and
-          pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" and
-          pick_step_min:
-          "\<forall>j'. j' \<ge> i' \<longrightarrow> j' < j \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j') (lnth QDs (Suc j'))"
-          using wfP_exists_minimal[OF wfP_less, of
-              "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
-          by blast
+          "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
+          using inf_pick unfolding infinitely_often_alt_def by auto
 
+        have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
+          if j'_ge: "j' \<ge> i" and j'_le: "j' \<le> j" for j'
+          sorry
 
         show ?case
-          using ih
-          sorry
+        proof (rule exI[of _ "Suc j"], intro conjI)
+          show "i \<le> Suc j"
+            sorry
+        next
+          show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
+            sorry
+        qed
       qed
       thus ?thesis
         by (metis Suc_eq_plus1 add_right_mono diff_Suc_Suc diff_diff_cancel diff_le_self)
