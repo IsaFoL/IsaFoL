@@ -340,23 +340,23 @@ proof
               "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
           by blast
 
-        have cons_at_lt_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
-          if j'_ge: "j' \<ge> i'" and j'_le: "j' < j" for j'
+        have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
+          if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
         proof -
           have "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs (i' + m))))"
-            if m_le: "i' + m < j" for m
-            using m_le
+            if i'm_le: "i' + m \<le> j" for m
+            using i'm_le
           proof (induct m)
             case 0
             then show ?case
               using cons_at_i' by fastforce
           next
             case (Suc m)
-            note ih = this(1) and i'sm_lt = this(2)
+            note ih = this(1) and i'sm_le = this(2)
 
-            have i'm_lt: "i' + m < j"
-              using i'sm_lt by linarith
-            note ih = ih[OF i'm_lt]
+            have i'm_le: "i' + m \<le> j"
+              using i'sm_le by linarith
+            note ih = ih[OF i'm_le]
 
             have step: "lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
               by (simp add: chain chain_lnth_rel len)
@@ -383,23 +383,35 @@ proof
               case (lqueue_step_pick_elemI Q D)
               note defs = this(1,2) and rest = this(3)
 
-              have "pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
-              proof -
-                have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + m)) e es
+              {
+                assume i'm_lt: "i' + m < j"
+
+                have "pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+                proof -
+                  have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + m)) e es
                   (lnth QDs (i' + Suc m))"
-                  unfolding defs using pick_lqueue_step_w_detailsI
-                  by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
-                thus ?thesis
-                  using pick_lqueue_stepI by fast
-              qed
-              moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
-                using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
+                    unfolding defs using pick_lqueue_step_w_detailsI
+                    by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
+                  thus ?thesis
+                    using pick_lqueue_stepI by fast
+                qed
+                moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+                  using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
+                ultimately have ?thesis
+                  by blast
+              }
+              moreover
+              {
+                assume i'm_eq: "i' + m = j"
+                have ?thesis
+                  sorry
+              }
               ultimately show ?thesis
-                by blast
+                using i'm_le order_le_less by blast
             qed
           qed
           thus ?thesis
-            by (metis j'_ge j'_le le_add_diff_inverse)
+            sorry
         qed
 
         show ?case
@@ -408,6 +420,9 @@ proof
             using i'_ge j_ge by linarith
         next
           show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
+            using cons_at_le_j
+
+            using pick_step
             sorry
         qed
       qed
