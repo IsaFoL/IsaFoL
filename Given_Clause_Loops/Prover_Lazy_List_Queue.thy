@@ -256,8 +256,10 @@ proof
       pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" and
       pick_step_min:
         "\<forall>j'. j' \<ge> i' \<longrightarrow> j' < j \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j') (lnth QDs (Suc j'))"
-      using wf_eq_minimal
-      sorry
+      using wfP_exists_minimal[OF wfP_less, of
+         "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
+      by blast
+
     hence pick_step: "\<exists>e es. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
       unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"

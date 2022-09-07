@@ -11,6 +11,7 @@ theory Given_Clause_Loops_Util
     "HOL-Library.Multiset"
     Ordered_Resolution_Prover.Lazy_List_Chain
     Weighted_Path_Order.Multiset_Extension_Pair
+    Lambda_Free_RPOs.Lambda_Free_Util
 begin
 
 
