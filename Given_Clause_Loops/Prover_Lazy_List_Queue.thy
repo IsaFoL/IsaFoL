@@ -13,6 +13,14 @@ theory Prover_Lazy_List_Queue
 begin
 
 
+subsection \<open>Basic Lemmas\<close>
+
+lemma in_set_take_imp_in_set_take_fold_append_single:
+  assumes "x \<in> set (take n xs)"
+  shows "x \<in> set (take n (fold (\<lambda>y ys. ys @ [y]) ess xs))"
+  using assms
+  by (induct ess arbitrary: xs) auto
+
 subsection \<open>Locales\<close>
 
 locale prover_lazy_list_queue =
@@ -266,22 +274,28 @@ proof
             case (Suc m)
             note ih = this
 
-            have step: "lqueue_step (lnth QDs (i' + m)) (lnth QDs (Suc (i' + m)))"
+            have step: "lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
               by (simp add: chain chain_lnth_rel len)
 
             show ?case
               using step
             proof cases
               case (lqueue_step_fold_add_llistI Q D ess)
+              note defs = this
               show ?thesis
-                sorry
+                using ih unfolding defs
+                by (auto intro: in_set_take_imp_in_set_take_fold_append_single)
             next
               case (lqueue_step_fold_remove_llistI Q D ess)
+              note defs = this
               show ?thesis
+                unfolding defs
                 sorry
             next
               case (lqueue_step_pick_elemI Q D)
+              note defs = this
               show ?thesis
+                unfolding defs
                 sorry
             qed
           qed
