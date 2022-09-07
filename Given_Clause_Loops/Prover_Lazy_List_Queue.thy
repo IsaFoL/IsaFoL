@@ -327,23 +327,36 @@ proof
           i'_ge: "i' \<ge> i" and
           cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
           using ih by blast
+        then obtain j0 :: nat where
+          "j0 \<ge> i'" and
+          "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
+          using inf_pick unfolding infinitely_often_alt_def by auto
         then obtain j :: nat where
           j_ge: "j \<ge> i'" and
-          pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
-          using inf_pick unfolding infinitely_often_alt_def by auto
+          pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" and
+          pick_step_min:
+          "\<forall>j'. j' \<ge> i' \<longrightarrow> j' < j \<longrightarrow> \<not> pick_lqueue_step (lnth QDs j') (lnth QDs (Suc j'))"
+          using wfP_exists_minimal[OF wfP_less, of
+              "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
+          by blast
 
-        have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
-          if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
+        have cons_at_lt_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
+          if j'_ge: "j' \<ge> i'" and j'_le: "j' < j" for j'
         proof -
           have "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs (i' + m))))"
-            if m_le: "i' + m \<le> j" for m
+            if m_le: "i' + m < j" for m
+            using m_le
           proof (induct m)
             case 0
             then show ?case
               using cons_at_i' by fastforce
           next
             case (Suc m)
-            note ih = this
+            note ih = this(1) and i'sm_lt = this(2)
+
+            have i'm_lt: "i' + m < j"
+              using i'sm_lt by linarith
+            note ih = ih[OF i'm_lt]
 
             have step: "lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
               by (simp add: chain chain_lnth_rel len)
@@ -368,10 +381,21 @@ proof
                 by (auto intro: notin_set_and_in_set_take_imp_in_set_take_fold_remove1)
             next
               case (lqueue_step_pick_elemI Q D)
-              note defs = this
-              show ?thesis
-                unfolding defs
-                sorry
+              note defs = this(1,2) and rest = this(3)
+
+              have "pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+              proof -
+                have "\<exists>e es. pick_lqueue_step_w_details (lnth QDs (i' + m)) e es
+                  (lnth QDs (i' + Suc m))"
+                  unfolding defs using pick_lqueue_step_w_detailsI
+                  by (metis add_Suc_right llists_pick_elem lqueue_step_pick_elemI(2) rest)
+                thus ?thesis
+                  using pick_lqueue_stepI by fast
+              qed
+              moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
+                using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
+              ultimately show ?thesis
+                by blast
             qed
           qed
           thus ?thesis
@@ -395,7 +419,7 @@ proof
       cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
       by auto
     then obtain j0 :: nat where
-      j_ge: "j0 \<ge> i'" and
+      "j0 \<ge> i'" and
       "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
       using inf_pick unfolding infinitely_often_alt_def by auto
     then obtain j :: nat where
