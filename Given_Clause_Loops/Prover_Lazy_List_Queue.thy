@@ -250,17 +250,49 @@ proof
           using ih by blast
         then obtain j :: nat where
           j_ge: "j \<ge> i'" and
-          "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
+          pick_step: "pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))"
           using inf_pick unfolding infinitely_often_alt_def by auto
 
         have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
-          if j'_ge: "j' \<ge> i" and j'_le: "j' \<le> j" for j'
-          sorry
+          if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
+        proof -
+          have "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs (i' + m))))"
+            if m_le: "i' + m \<le> j" for m
+          proof (induct m)
+            case 0
+            then show ?case
+              using cons_at_i' by fastforce
+          next
+            case (Suc m)
+            note ih = this
+
+            have step: "lqueue_step (lnth QDs (i' + m)) (lnth QDs (Suc (i' + m)))"
+              by (simp add: chain chain_lnth_rel len)
+
+            show ?case
+              using step
+            proof cases
+              case (lqueue_step_fold_add_llistI Q D ess)
+              show ?thesis
+                sorry
+            next
+              case (lqueue_step_fold_remove_llistI Q D ess)
+              show ?thesis
+                sorry
+            next
+              case (lqueue_step_pick_elemI Q D)
+              show ?thesis
+                sorry
+            qed
+          qed
+          thus ?thesis
+            by (metis j'_ge j'_le le_add_diff_inverse)
+        qed
 
         show ?case
         proof (rule exI[of _ "Suc j"], intro conjI)
           show "i \<le> Suc j"
-            sorry
+            using i'_ge j_ge by linarith
         next
           show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
             sorry
