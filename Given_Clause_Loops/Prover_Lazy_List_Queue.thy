@@ -26,6 +26,7 @@ locale prover_lazy_list_queue =
     streams :: "'q \<Rightarrow> 's multiset"
   assumes
     llist_nil[simp]: "llist nil = LNil" and
+    exists_stream: "\<exists>s. llist s = xs" and
     streams_empty[simp]: "streams empty = {#}" and
     streams_not_empty: "Q \<noteq> empty \<Longrightarrow> streams Q \<noteq> {#}" and
     streams_add[simp]: "streams (add_stream es Q) = streams Q + {#es#}" and
@@ -63,19 +64,17 @@ lemma streams_fold_remove_stream[simp]: "streams (fold remove_stream ss Q) = str
   by (induct ss arbitrary: Q) auto
 
 inductive
-  pick_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 's \<Rightarrow> 's \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool"
+  pick_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e \<Rightarrow> 'e llist \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool"
 where
   pick_lqueue_step_w_detailsI: "s \<in># streams Q \<Longrightarrow> llist s \<noteq> LNil \<Longrightarrow> llist s' = ltl (llist s) \<Longrightarrow>
     fst (pick_elem Q) = lhd (llist s) \<Longrightarrow>
     streams (snd (pick_elem Q)) = streams Q - {#s#} + {#s'#} \<Longrightarrow>
-    pick_lqueue_step_w_details (Q, D) e es s s' (snd (pick_elem Q), D \<union> {e})"
+    pick_lqueue_step_w_details (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
 
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
-  pick_lqueue_stepI: "pick_lqueue_step_w_details QD e es s s' QD' \<Longrightarrow> pick_lqueue_step QD QD'"
+  pick_lqueue_stepI: "pick_lqueue_step_w_details QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
 
-inductive
-  remove_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 'e llist list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool"
-where
+inductive remove_lqueue_step_w_details :: "'q \<times> 'e set \<Rightarrow> 's list \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   remove_lqueue_step_w_detailsI:
     "remove_lqueue_step_w_details (Q, D) ss
        (fold remove_stream ss Q, D \<union> \<Union> {lset (llist s) |s. s \<in> set ss})"
@@ -83,44 +82,77 @@ where
 end
 
 locale fair_prover_lazy_list_queue =
-  prover_lazy_list_queue empty add_stream remove_stream pick_elem streams
+  prover_lazy_list_queue nil llist empty add_stream remove_stream pick_elem streams
   for
+    nil :: 's and
+    llist :: "'s \<Rightarrow> 'e llist" and
     empty :: 'q and
-    add_stream :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
-    remove_stream :: "'e llist \<Rightarrow> 'q \<Rightarrow> 'q" and
+    add_stream :: "'s \<Rightarrow> 'q \<Rightarrow> 'q" and
+    remove_stream :: "'s \<Rightarrow> 'q \<Rightarrow> 'q" and
     pick_elem :: "'q \<Rightarrow> 'e \<times> 'q" and
-    streams :: "'q \<Rightarrow> 'e llist multiset" +
+    streams :: "'q \<Rightarrow> 's multiset" +
   assumes fair: "chain lqueue_step QDs \<Longrightarrow> infinitely_often pick_lqueue_step QDs \<Longrightarrow>
-    LCons e es \<in># streams (fst (lnth QDs i)) \<Longrightarrow>
-    \<exists>j \<ge> i. (\<exists>ess. LCons e es \<in> set ess
-        \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
-      \<or> pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
+    s \<in># streams (fst (lnth QDs i)) \<Longrightarrow> llist s \<noteq> LNil \<Longrightarrow> llist s' = ltl (llist s) \<Longrightarrow>
+    \<exists>j \<ge> i. (\<exists>ss. s \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j) ss (lnth QDs (Suc j)))
+      \<or> pick_lqueue_step_w_details (lnth QDs j) (lhd (llist s)) (ltl (llist s)) (lnth QDs (Suc j))"
 begin
 
 lemma fair_strong:
   assumes
     chain: "chain lqueue_step QDs" and
     inf: "infinitely_often pick_lqueue_step QDs" and
-    es_in: "es \<in># streams (fst (lnth QDs i))" and
-    k_lt: "enat k < llength es"
+    es_in: "s \<in># streams (fst (lnth QDs i))" and
+    k_lt: "enat k < llength (llist s)"
   shows "\<exists>j \<ge> i.
-    (\<exists>k' \<le> k. \<exists>ess. ldrop k' es \<in> set ess
-         \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
-       \<or> pick_lqueue_step_w_details (lnth QDs j) (lnth es k) (ldrop (Suc k) es) (lnth QDs (Suc j))"
+    (\<exists>k' \<le> k. \<exists>ss. ldrop k' (llist s) \<in> set (map llist ss)
+       \<and> remove_lqueue_step_w_details (lnth QDs j) ss (lnth QDs (Suc j)))
+    \<or> pick_lqueue_step_w_details (lnth QDs j) (lnth (llist s) k) (ldrop (Suc k) (llist s))
+      (lnth QDs (Suc j))"
   using k_lt
 proof (induct k)
   case 0
   note zero_lt = this
-  have es_in': "LCons (lnth es 0) (ldrop (Suc 0) es) \<in># streams (fst (lnth QDs i))"
-    using es_in by (metis zero_lt ldrop_0 ldrop_enat ldropn_Suc_conv_ldropn zero_enat_def)
-  show ?case
-    using fair[OF chain inf es_in']
-    by (metis dual_order.refl ldrop_enat ldropn_Suc_conv_ldropn zero_lt)
+
+  have nnil: "llist s \<noteq> LNil"
+    using zero_lt by force
+
+  obtain s' :: 's where
+    s': "llist s' = ltl (llist s)"
+    using exists_stream by blast
+
+  obtain j where
+    j_ge: "j \<ge> i" and
+    rem_or_pick:
+      "(\<exists>ss. s \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j) ss (lnth QDs (Suc j)))
+       \<or> pick_lqueue_step_w_details (lnth QDs j) (lhd (llist s)) (ltl (llist s)) (lnth QDs (Suc j))"
+    using fair[OF chain inf es_in nnil s'] by blast
+
+  {
+    assume "\<exists>ss. s \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j) ss (lnth QDs (Suc j))"
+    hence "\<exists>ss. ldrop (enat 0) (llist s) \<in> llist ` set ss
+      \<and> remove_lqueue_step_w_details (lnth QDs j) ss (lnth QDs (Suc j))"
+      using zero_enat_def by auto
+    hence ?case
+      using j_ge by auto
+  }
+  moreover
+  {
+    assume "pick_lqueue_step_w_details (lnth QDs j) (lhd (llist s)) (ltl (llist s))
+      (lnth QDs (Suc j))"
+    hence "pick_lqueue_step_w_details (lnth QDs j) (lnth (llist s) 0)
+      (ldrop (enat (Suc 0)) (llist s)) (lnth QDs (Suc j))"
+      by (smt (verit) the_enat_0 ldrop_0 lhd_ldrop pick_lqueue_step_w_details.cases
+          pick_lqueue_step_w_detailsI zero_enat_def zero_lt)
+    hence ?case
+      using j_ge by auto
+  }
+  ultimately show ?case
+    using rem_or_pick by blast
 next
   case (Suc k)
   note ih = this(1) and sk_lt = this(2)
 
-  have k_lt: "enat k < llength es"
+  have k_lt: "enat k < llength (llist s)"
     using sk_lt Suc_ile_eq order_less_imp_le by blast
 
   obtain j :: nat where
