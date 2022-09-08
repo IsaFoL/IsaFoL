@@ -69,7 +69,8 @@ where
   pick_lqueue_step_w_detailsI: "s \<in># streams Q \<Longrightarrow> llist s \<noteq> LNil \<Longrightarrow> llist s' = ltl (llist s) \<Longrightarrow>
     fst (pick_elem Q) = lhd (llist s) \<Longrightarrow>
     streams (snd (pick_elem Q)) = streams Q - {#s#} + {#s'#} \<Longrightarrow>
-    pick_lqueue_step_w_details (Q, D) e es (snd (pick_elem Q), D \<union> {e})"
+    pick_lqueue_step_w_details (Q, D) (lhd (llist s)) (ltl (llist s))
+      (snd (pick_elem Q), D \<union> {lhd (llist s)})"
 
 inductive pick_lqueue_step :: "'q \<times> 'e set \<Rightarrow> 'q \<times> 'e set \<Rightarrow> bool" where
   pick_lqueue_stepI: "pick_lqueue_step_w_details QD e es QD' \<Longrightarrow> pick_lqueue_step QD QD'"
@@ -175,6 +176,9 @@ next
       (ldrop (enat (Suc k)) (llist s)) (lnth QDs (Suc j))"
 
     obtain s' :: 's where
+      s_at_k: "lnth (llist s) k = e" and
+      s_from_sk: "ldrop (enat (Suc k)) (llist s) = es" ans
+
       s'_in: "s' \<in># streams (fst (lnth QDs j))" and
       s'_nnil: "llist s' \<noteq> LNil"
       using pick_step unfolding pick_lqueue_step_w_details.simps by (metis fst_conv)
@@ -183,7 +187,7 @@ next
       using exists_stream by blast
 
     obtain j' where
-      "j' \<ge> j" and
+      j'_ge: "j' \<ge> j" and
       rem_or_pick: "(\<exists>ss. s' \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j') ss
           (lnth QDs (Suc j')))
         \<or> pick_lqueue_step_w_details (lnth QDs j') (lhd (llist s')) (ltl (llist s'))
@@ -193,8 +197,14 @@ next
     {
       assume rem_step': "\<exists>ss. s' \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j') ss
         (lnth QDs (Suc j'))"
-      hence ?case
+
+      have "\<exists>k' \<le> Suc k. \<exists>ss.
+        ldrop (enat k') (llist s) \<in> set (map llist ss) \<and>
+        remove_lqueue_step_w_details (lnth QDs j') ss (lnth QDs (Suc j'))"
+        apply (rule exI[of _ 0])
         sorry
+      hence ?case
+        using j'_ge j_ge order.trans by blast
     }
     moreover
     {
