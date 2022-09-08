@@ -150,32 +150,4 @@ qed
 
 end
 
-
-subsection \<open>Instantiation with FIFO Queue\<close>
-
-text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
-prover lazy list queue.\<close>
-
-locale fifo_prover_lazy_list_queue
-begin
-
-partial_function (tailrec)
-  pick_elem ::
-  "'e option llist list \<Rightarrow> 'e option llist list \<Rightarrow> 'e \<times> 'e option llist list" where
-  "pick_elem accum ess =
-   (case ess of
-     [] \<Rightarrow> (undefined, accum)
-   | LNil # ess \<Rightarrow> pick_elem (accum @ [LNil]) ess
-   | LCons None es # ess \<Rightarrow> pick_elem accum (es # ess)
-   | LCons (Some e) es # ess \<Rightarrow> (e, accum @ ess @ [es]))"
-
-sublocale prover_lazy_list_queue "[] :: 'e option llist list" "\<lambda>es ess. ess @ [es]" remove1
-  "pick_elem []"
-
-(* "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset *)
-
-qed
-
-end
-
 end
