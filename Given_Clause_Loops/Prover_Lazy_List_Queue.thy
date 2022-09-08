@@ -15,80 +15,101 @@ begin
 
 subsection \<open>Basic Lemmas\<close>
 
+abbreviation drop_LNils :: "'e llist list \<Rightarrow> 'e llist list" where
+  "drop_LNils \<equiv> dropWhile (\<lambda>xs. xs = LNil)"
+
+lemma LCons_in_mset_drop_LNils_iff: "LCons x xs \<in># mset (drop_LNils xss) \<longleftrightarrow> LCons x xs \<in># mset xss"
+  by (induct xss) auto
+
+lemma in_set_take_drop_LNils_imp_in_set_take_drop_LNils_fold_append_single:
+  assumes "xs \<in> set (take n (drop_LNils xss))"
+  shows "xs \<in> set (take n (drop_LNils (fold (\<lambda>ys yss. yss @ [ys]) yss xss)))"
+  using assms
+  by (induct yss arbitrary: xss, simp)
+    (metis (no_types, lifting) Un_iff fold_simps(2) prefix_def prefix_dropWhile set_append
+      take_append)
+
 lemma ne_and_in_set_take_imp_in_set_take_remove:
   assumes
-    "z \<noteq> y" and
-    "z \<in> set (take m xs)"
-  shows "z \<in> set (take m (remove1 y xs))"
+    "LCons z zs \<noteq> ys" and
+    "LCons z zs \<in> set (take m (drop_LNils xss))"
+  shows "LCons z zs \<in> set (take m (drop_LNils (remove1 ys xss)))"
   using assms
-proof (induct xs arbitrary: m)
-  case (Cons x xs)
-  note ih = this(1) and z_ne_y = this(2) and z_in_take_xxs = this(3)
+proof (induct xss arbitrary: m)
+  case (Cons xs xss)
+  note ih = this(1) and zzs_ne_ys = this(2) and zzs_in_take_xsxss = this(3)
 
   show ?case
-  proof (cases "z = x")
+  proof (cases "LCons z zs = xs")
     case True
     thus ?thesis
+      sorry
+(*
       by (metis (no_types, lifting) List.hd_in_set gr_zeroI hd_take in_set_remove1 list.sel(1)
           remove1.simps(2) take_eq_Nil z_in_take_xxs z_ne_y)
+*)
   next
-    case z_ne_x: False
+    case zzs_ne_xs: False
 
-    have z_in_take_xs: "z \<in> set (take m xs)"
-      using z_in_take_xxs z_ne_x
+    have zzs_in_take_xss: "LCons z zs \<in> set (take m (drop_LNils xss))"
+      using zzs_in_take_xsxss zzs_ne_xs
+      sorry
+(*
       by (smt (verit, del_insts) butlast_take in_set_butlastD in_set_takeD le_cases3 set_ConsD
           take_Cons' take_all)
+*)
 
     show ?thesis
-    proof (cases "y = x")
-      case y_eq_x: True
+    proof (cases "ys = xs")
+      case ys_eq_xs: True
       show ?thesis
-        using y_eq_x by (simp add: z_in_take_xs)
+        using ys_eq_xs by (simp add: zzs_in_take_xss)
     next
-      case y_ne_x: False
+      case ys_ne_xs: False
 
       have "m > 0"
+        sorry
+(*
         by (metis gr0I list.set_cases list.simps(3) take_Cons' z_in_take_xxs)
+*)
       then obtain m' :: nat where
         m: "m = Suc m'"
         using gr0_implies_Suc by presburger
 
-      have z_in_take_xs': "z \<in> set (take m' xs)"
-        using z_in_take_xs z_in_take_xxs z_ne_x by (simp add: m)
-      note ih = ih[OF z_ne_y z_in_take_xs']
+      have zzs_in_take_xss': "LCons z zs \<in> set (take m' (drop_LNils xss))"
+        using zzs_in_take_xss zzs_in_take_xsxss zzs_ne_xs
+        sorry (* by (simp add: m) *)
+      note ih = ih[OF zzs_ne_ys zzs_in_take_xss']
 
       show ?thesis
-        using y_ne_x ih unfolding m by simp
+        using ys_ne_xs ih unfolding m
+        sorry
+        (* by simp *)
     qed
   qed
 qed simp
 
-lemma in_set_take_imp_in_set_take_fold_append_single:
-  assumes "x \<in> set (take n xs)"
-  shows "x \<in> set (take n (fold (\<lambda>y ys. ys @ [y]) ys xs))"
-  using assms by (induct ys arbitrary: xs) auto
-
-lemma notin_set_and_in_set_take_imp_in_set_take_fold_remove1:
+lemma LCons_notin_set_and_in_set_take_drop_LNils_imp_in_set_take_drop_LNils_fold_remove1:
   assumes
-    "x \<notin> set ys" and
-    "x \<in> set (take m xs)"
-  shows "x \<in> set (take m (fold remove1 ys xs))"
+    "LCons z zs \<notin> set yss" and
+    "LCons z zs \<in> set (take m (drop_LNils xss))"
+  shows "LCons z zs \<in> set (take m (drop_LNils (fold remove1 yss xss)))"
   using assms
-proof (induct ys arbitrary: xs)
-  case (Cons y ys xs)
-  note ih = this(1) and x_ni_yys = this(2) and x_in_take_xs = this(3)
+proof (induct yss arbitrary: xss)
+  case (Cons ys yss xss)
+  note ih = this(1) and zzs_ni_yys = this(2) and zzs_in_take_xs = this(3)
 
-  have x_ne_y: "x \<noteq> y"
-    using x_ni_yys by simp
+  have zzs_ne_y: "LCons z zs \<noteq> ys"
+    using zzs_ni_yys by simp
 
-  have x_ni_ys: "x \<notin> set ys"
-    using x_ni_yys by simp
-  have x_in_take_rem_y_xs: "x \<in> set (take m (remove1 y xs))"
-    using x_in_take_xs x_ne_y using ne_and_in_set_take_imp_in_set_take_remove by fast
-  note ih = ih[OF x_ni_ys x_in_take_rem_y_xs]
+  have zzs_ni_ys: "LCons z zs \<notin> set yss"
+    using zzs_ni_yys by simp
+  have zzs_in_take_rem_y_xs: "LCons z zs \<in> set (take m (drop_LNils (remove1 ys xss)))"
+    using zzs_in_take_xs zzs_ne_y using ne_and_in_set_take_imp_in_set_take_remove by fast
+  note ih = ih[OF zzs_ni_ys zzs_in_take_rem_y_xs]
 
   show ?case
-    using ih by simp
+    using ih  by simp
 qed simp
 
 
@@ -238,9 +259,6 @@ prover lazy list queue.\<close>
 locale fifo_prover_lazy_list_queue
 begin
 
-definition drop_LNils :: "'e llist list \<Rightarrow> 'e llist list" where
-  "drop_LNils = dropWhile (\<lambda>xs. xs = LNil)"
-
 fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
   "pick_elem [] = undefined"
 | "pick_elem (LNil # ess) =
@@ -302,21 +320,21 @@ proof
       \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
     obtain k :: nat where
-      k_lt: "k < length (fst (lnth QDs i))" and
-      at_k: "fst (lnth QDs i) ! k = LCons e es"
-      using cons_in by (metis in_set_conv_nth set_mset_mset)
+      k_lt: "k < length (drop_LNils (fst (lnth QDs i)))" and
+      at_k: "drop_LNils (fst (lnth QDs i)) ! k = LCons e es"
+      using cons_in LCons_in_mset_drop_LNils_iff by (metis in_set_conv_nth set_mset_mset)
 
     have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (drop_LNils (fst (lnth QDs i'))))"
     proof -
-      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (drop_LNils (fst (lnth QDs i'))))"
         if l_le: "l \<le> k" for l
         using l_le
       proof (induct l)
         case 0
         show ?case
         proof (rule exI[of _ i]; simp)
-          show "LCons e es \<in> set (take (Suc k) (fst (lnth QDs i)))"
-            by (simp add: at_k k_lt take_Suc_conv_app_nth)
+          show "LCons e es \<in> set (take (Suc k) (drop_LNils (fst (lnth QDs i))))"
+            using at_k k_lt take_Suc_conv_app_nth by (simp add: at_k k_lt take_Suc_conv_app_nth)
         qed
       next
         case (Suc l)
@@ -328,7 +346,7 @@ proof
 
         obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+          cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (drop_LNils (fst (lnth QDs i'))))"
           using ih by blast
 
         obtain j0 :: nat where
@@ -347,7 +365,7 @@ proof
         have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
           if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
         proof -
-          have "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs (i' + m))))"
+          have "LCons e es \<in># mset (take (k + 1 - l) (drop_LNils (fst (lnth QDs (i' + m)))))"
             if i'm_le: "i' + m \<le> j" for m
             using i'm_le
           proof (induct m)
@@ -374,7 +392,8 @@ proof
               note defs = this
               show ?thesis
                 using ih unfolding defs
-                by (auto intro: in_set_take_imp_in_set_take_fold_append_single)
+                by (auto intro:
+                    in_set_take_drop_LNils_imp_in_set_take_drop_LNils_fold_append_single)
             next
               case (lqueue_step_fold_remove_llistI Q D ess)
               note defs = this
@@ -384,7 +403,8 @@ proof
                 using not_rem_step i'_ge by force
               thus ?thesis
                 using ih unfolding defs
-                by (auto intro: notin_set_and_in_set_take_imp_in_set_take_fold_remove1)
+                by (auto intro:
+                    notin_set_and_in_set_take_drop_LNils_imp_in_set_take_drop_LNils_fold_remove1)
             next
               case (lqueue_step_pick_elemI Q D)
               note defs = this(1,2) and rest = this(3)
