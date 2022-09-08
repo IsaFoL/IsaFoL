@@ -29,7 +29,7 @@ lemma in_set_take_drop_LNils_imp_in_set_take_drop_LNils_fold_append_single:
     (metis (no_types, lifting) Un_iff fold_simps(2) prefix_def prefix_dropWhile set_append
       take_append)
 
-lemma ne_and_in_set_take_imp_in_set_take_remove:
+lemma ne_and_in_set_take_drop_LNils_imp_in_set_take_drop_LNils_remove:
   assumes
     "LCons z zs \<noteq> ys" and
     "LCons z zs \<in> set (take m (drop_LNils xss))"
@@ -43,16 +43,15 @@ proof (induct xss arbitrary: m)
   proof (cases "LCons z zs = xs")
     case True
     thus ?thesis
-      sorry
-(*
-      by (metis (no_types, lifting) List.hd_in_set gr_zeroI hd_take in_set_remove1 list.sel(1)
-          remove1.simps(2) take_eq_Nil z_in_take_xxs z_ne_y)
-*)
+      by (metis (full_types) dropWhile.simps(2) list.set_intros(1) llist.distinct(1)
+          remove1.simps(2) take_Cons' zzs_in_take_xsxss zzs_ne_ys)
   next
     case zzs_ne_xs: False
 
     have zzs_in_take_xss: "LCons z zs \<in> set (take m (drop_LNils xss))"
       using zzs_in_take_xsxss zzs_ne_xs
+      apply (cases "xs")
+       apply simp_all
       sorry
 (*
       by (smt (verit, del_insts) butlast_take in_set_butlastD in_set_takeD le_cases3 set_ConsD
@@ -105,7 +104,7 @@ proof (induct yss arbitrary: xss)
   have zzs_ni_ys: "LCons z zs \<notin> set yss"
     using zzs_ni_yys by simp
   have zzs_in_take_rem_y_xs: "LCons z zs \<in> set (take m (drop_LNils (remove1 ys xss)))"
-    using zzs_in_take_xs zzs_ne_y using ne_and_in_set_take_imp_in_set_take_remove by fast
+    using zzs_in_take_xs zzs_ne_y using ne_and_in_set_take_drop_LNils_imp_in_set_take_drop_LNils_remove by fast
   note ih = ih[OF zzs_ni_ys zzs_in_take_rem_y_xs]
 
   show ?case
