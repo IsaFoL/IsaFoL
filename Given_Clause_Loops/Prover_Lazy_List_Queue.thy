@@ -238,6 +238,9 @@ prover lazy list queue.\<close>
 locale fifo_prover_lazy_list_queue
 begin
 
+definition drop_LNils :: "'e llist list \<Rightarrow> 'e llist list" where
+  "drop_LNils = dropWhile (\<lambda>xs. xs = LNil)"
+
 fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
   "pick_elem [] = undefined"
 | "pick_elem (LNil # ess) =
@@ -303,7 +306,7 @@ proof
       at_k: "fst (lnth QDs i) ! k = LCons e es"
       using cons_in by (metis in_set_conv_nth set_mset_mset)
 
-    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (fst (lnth QDs i')))"
+    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (drop_LNils (fst (lnth QDs i'))))"
     proof -
       have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
         if l_le: "l \<le> k" for l
@@ -327,7 +330,8 @@ proof
           i'_ge: "i' \<ge> i" and
           cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
           using ih by blast
-        then obtain j0 :: nat where
+
+        obtain j0 :: nat where
           "j0 \<ge> i'" and
           "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
           using inf_pick unfolding infinitely_often_alt_def by auto
@@ -426,20 +430,23 @@ proof
 
           show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
             using cons_at_j unfolding at_j at_sj
-(*
-characterize "snd (pick_elem Q)" using an inductive lemma
-*)
+            apply simp
+            (* characterize "snd (pick_elem Q)" using an inductive lemma *)
             sorry
         qed
       qed
       thus ?thesis
+(*
         by (metis Suc_eq_plus1 add_right_mono diff_Suc_Suc diff_diff_cancel diff_le_self)
+*)
+        sorry
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
-      cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      cons_at_i': "LCons e es \<in># mset (take 1 (drop_LNils (fst (lnth QDs i'))))"
       by auto
-    then obtain j0 :: nat where
+
+    obtain j0 :: nat where
       "j0 \<ge> i'" and
       "pick_lqueue_step (lnth QDs j0) (lnth QDs (Suc j0))"
       using inf_pick unfolding infinitely_often_alt_def by auto
@@ -455,9 +462,10 @@ characterize "snd (pick_elem Q)" using an inductive lemma
       unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
-      have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
+      have cons_at_j: "LCons e es \<in># mset (take 1 (drop_LNils (fst (lnth QDs j))))"
       proof -
-        have "LCons e es \<in># mset (take 1 (fst (lnth QDs (i' + l))))" if i'l_le: "i' + l \<le> j" for l
+        have "LCons e es \<in># mset (take 1 (drop_LNils (fst (lnth QDs (i' + l)))))"
+          if i'l_le: "i' + l \<le> j" for l
           using i'l_le
         proof (induct l)
           case (Suc l)
@@ -479,9 +487,13 @@ characterize "snd (pick_elem Q)" using an inductive lemma
             note defs = this
 
             have len_q: "length Q \<ge> 1"
-              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
+              using ih
+                sorry
+              (*
+              by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
                   list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1) set_mset_mset
                   take.simps(1))
+*)
 
             have take: "take (Suc 0) (fold (\<lambda>es ess. ess @ [es]) ess Q) = take (Suc 0) Q"
               using len_q
@@ -494,7 +506,10 @@ characterize "snd (pick_elem Q)" using an inductive lemma
 
             show ?thesis
               unfolding defs using ih take
+              sorry
+(*
               by simp (metis local.lqueue_step_fold_add_llistI(1) prod.sel(1))
+*)
           next
             case (lqueue_step_fold_remove_llistI Q D ess)
             note defs = this
@@ -509,11 +524,15 @@ characterize "snd (pick_elem Q)" using an inductive lemma
 
             obtain Q' :: "'e llist list" where
               q: "Q = LCons e es # Q'"
-              using ih by (metis One_nat_def fst_eqD in_set_member in_set_takeD length_pos_if_in_set
+              using ih
+              sorry
+(*
+              by (metis One_nat_def fst_eqD in_set_member in_set_takeD length_pos_if_in_set
                   list.exhaust_sel lqueue_step_fold_remove_llistI(1) member_rec nth_Cons_0
                   set_mset_mset take0 take_Suc_conv_app_nth)
+*)
 
-            have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
+            have take_1: "take 1 (drop_LNils (fold remove1 ess Q)) = take 1 (drop_LNils Q)"
               unfolding q using ees_ni
             proof (induct ess arbitrary: Q')
               case (Cons es' ess')
@@ -526,7 +545,9 @@ characterize "snd (pick_elem Q)" using an inductive lemma
               have "es' \<noteq> LCons e es"
                 using ees_ni by auto
               thus ?case
-                using ih by simp
+                using ih
+                sorry
+                (* by simp *)
             qed auto
 
             show ?thesis
@@ -555,19 +576,23 @@ characterize "snd (pick_elem Q)" using an inductive lemma
           by (metis dual_order.refl j_ge nat_le_iff_add)
       qed
       hence cons_in_fst: "LCons e es \<in># mset (fst (lnth QDs j))"
-        using in_set_takeD by force
+        using in_set_takeD sorry (* by force *)
 
       obtain Q' :: "'e llist list" where
-        fst_at_j: "fst (lnth QDs j) = LCons e es # Q'"
-        using cons_at_j by (metis (no_types, lifting) One_nat_def cons_in_fst empty_iff empty_set
+        fst_at_j: "drop_LNils (fst (lnth QDs j)) = LCons e es # Q'"
+        using cons_at_j
+        sorry
+(*
+        by (metis (no_types, lifting) One_nat_def cons_in_fst empty_iff empty_set
             fifo_prover_lazy_list_queue.pick_elem.elims length_pos_if_in_set nth_Cons_0
             self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
+*)
 
       have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
-        unfolding fst_at_j by simp
+        unfolding fst_at_j sorry
       have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
         mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-        unfolding fst_at_j by simp
+        unfolding fst_at_j sorry
 
       show ?thesis
         using cons_in_fst fst_pick snd_pick
