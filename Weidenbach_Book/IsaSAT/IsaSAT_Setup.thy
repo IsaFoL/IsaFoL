@@ -1776,4 +1776,10 @@ lemma [simp]:
   \<open>get_tvdom_aivdom (empty_tvdom aivdom) = []\<close>
   by (cases aivdom; auto simp: empty_tvdom_def; fail)+
 
+definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
+
+definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
+
 end
