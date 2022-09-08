@@ -173,17 +173,6 @@ next
   {
     assume pick_step: "pick_lqueue_step_w_details (lnth QDs j) (lnth (llist s) k)
       (ldrop (enat (Suc k)) (llist s)) (lnth QDs (Suc j))"
-(*
-    hence cons_in: "LCons (lnth es (Suc k)) (ldrop (enat (Suc (Suc k))) es)
-      \<in># streams (fst (lnth QDs (Suc j)))"
-      unfolding pick_lqueue_step_w_details.simps using sk_lt
-      by (metis fst_conv ldrop_enat ldropn_Suc_conv_ldropn union_mset_add_mset_right
-          union_single_eq_member)
-
-    have ?case
-      using fair[OF chain inf cons_in] j_ge
-      by (smt (z3) dual_order.trans ldrop_enat ldropn_Suc_conv_ldropn le_Suc_eq sk_lt)
-*)
 
     obtain s' :: 's where
       s'_in: "s' \<in># streams (fst (lnth QDs j))" and
@@ -193,13 +182,32 @@ next
       s'': "llist s'' = ltl (llist s')"
       using exists_stream by blast
 
-    have "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) (lnth (llist s) (Suc k))
-      (ldrop (enat (Suc (Suc k))) (llist s)) (lnth QDs (Suc j))"
-      using fair[OF chain inf s'_in s'_nnil s'']
+    obtain j' where
+      "j' \<ge> j" and
+      rem_or_pick: "(\<exists>ss. s' \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j') ss
+          (lnth QDs (Suc j')))
+        \<or> pick_lqueue_step_w_details (lnth QDs j') (lhd (llist s')) (ltl (llist s'))
+          (lnth QDs (Suc j'))"
+      using fair[OF chain inf s'_in s'_nnil s''] by blast
 
-      sorry
-    hence ?case
-      by blast
+    {
+      assume rem_step': "\<exists>ss. s' \<in> set ss \<and> remove_lqueue_step_w_details (lnth QDs j') ss
+        (lnth QDs (Suc j'))"
+      hence ?case
+        sorry
+    }
+    moreover
+    {
+      assume pick_step': "pick_lqueue_step_w_details (lnth QDs j') (lhd (llist s')) (ltl (llist s'))
+        (lnth QDs (Suc j'))"
+      have "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) (lnth (llist s) (Suc k))
+        (ldrop (enat (Suc (Suc k))) (llist s)) (lnth QDs (Suc j))"
+        sorry
+      hence ?case
+        sorry
+    }
+    ultimately have ?case
+      using rem_or_pick by blast
   }
   ultimately show ?case
     using rem_or_pick_step by blast
