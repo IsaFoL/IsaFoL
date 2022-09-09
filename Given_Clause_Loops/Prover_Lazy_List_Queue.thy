@@ -264,21 +264,44 @@ fun llists :: "'e fifo \<Rightarrow> 'e llist multiset" where
 
 sublocale prover_lazy_list_queue empty add_llist remove_llist pick_elem llists
 proof
-  show "llists local.empty = {#}"
-    sorry
+  show "llists empty = {#}"
+    unfolding empty_def by simp
 next
   fix Q :: "'e fifo"
-  assume "Q \<noteq> local.empty"
-  show "llists Q \<noteq> {#}"
-    sorry
+  assume nemp: "Q \<noteq> empty"
+  thus "llists Q \<noteq> {#}"
+  proof (cases Q)
+    case q: (Pair num_nils ps)
+    show ?thesis
+      using nemp unfolding q empty_def by auto
+  qed
 next
   fix es :: "'e llist" and Q :: "'e fifo"
   show "llists (add_llist es Q) = llists Q + {#es#}"
-    sorry
+    by (cases Q, cases es) auto
 next
   fix es :: "'e llist" and Q :: "'e fifo"
   show "llists (remove_llist es Q) = llists Q - {#es#}"
-    sorry
+  proof (cases Q)
+    case q: (Pair num_nils ps)
+    show ?thesis
+    proof (cases es)
+      case LNil
+      then show ?thesis
+        unfolding q
+        sorry
+    next
+      case (LCons e es')
+      then show ?thesis
+        unfolding q
+        apply (auto simp: multiset_union_diff_assoc)
+        apply (rule injD[of "image_mset (\<lambda>es. case es of LCons e es' \<Rightarrow> (e, es'))"])
+        defer
+        apply (simp add: case_prod_beta image_mset.compositionality multiset.map_ident_strong)
+
+        sorry
+    qed
+  qed
 next
   fix Q :: "'e fifo"
   assume "\<exists>es \<in># llists Q. es \<noteq> LNil"

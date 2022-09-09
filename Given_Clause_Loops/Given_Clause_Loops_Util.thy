@@ -66,6 +66,12 @@ lemma singletons_in_mult1: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in
 lemma singletons_in_mult: "(x, y) \<in> R \<Longrightarrow> ({#x#}, {#y#}) \<in> mult R"
   by (simp add: mult_def singletons_in_mult1 trancl.intros(1))
 
+lemma multiset_union_diff_assoc:
+  fixes A B C :: "'a multiset"
+  assumes "A \<inter># C = {#}"
+  shows "A + B - C = A + (B - C)"
+  by (metis assms multiset_union_diff_commute union_commute)
+
 lemma Liminf_llist_subset:
   assumes
     "llength Xs = llength Ys" and
