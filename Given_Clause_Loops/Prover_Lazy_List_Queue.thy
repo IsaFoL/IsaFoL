@@ -235,21 +235,56 @@ subsection \<open>Instantiation with FIFO Queue\<close>
 text \<open>As a proof of concept, we show that a FIFO queue can serve as a fair
 prover lazy list queue.\<close>
 
-(* TODO: Separate between nils and cons, use a counter to represent nils, use a pair to represent
-cons. *)
+type_synonym 'e fifo = "nat \<times> ('e \<times> 'e llist) list"
 
 locale fifo_prover_lazy_list_queue
 begin
 
-fun pick_elem :: "'e llist list \<Rightarrow> 'e \<times> 'e llist list" where
-  "pick_elem [] = undefined"
-| "pick_elem (LNil # ess) =
-   (let (e, ess') = pick_elem ess in
-      (e, ess' @ [LNil]))"
-| "pick_elem (LCons e es # ess) = (e, ess @ [es])"
+definition empty :: "'e fifo" where
+  "empty = (0, [])"
 
-sublocale prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
+fun add_llist :: "'e llist \<Rightarrow> 'e fifo \<Rightarrow> 'e fifo" where
+  "add_llist LNil (num_nils, ps) = (num_nils + 1, ps)"
+| "add_llist (LCons e es) (num_nils, ps) = (num_nils, ps @ [(e, es)])"
+
+fun remove_llist :: "'e llist \<Rightarrow> 'e fifo \<Rightarrow> 'e fifo" where
+  "remove_llist LNil (num_nils, ps) = (num_nils - 1, ps)"
+| "remove_llist (LCons e es) (num_nils, ps) = (num_nils, remove1 (e, es) ps)"
+
+fun pick_elem :: "'e fifo \<Rightarrow> 'e \<times> 'e fifo" where
+  "pick_elem (_, []) = undefined"
+| "pick_elem (num_nils, (e, es) # ps) =
+   (e,
+    (case es of
+      LNil \<Rightarrow> (num_nils + 1, ps)
+    | LCons e' es' \<Rightarrow> (num_nils, ps @ [(e', es')])))"
+
+fun llists :: "'e fifo \<Rightarrow> 'e llist multiset" where
+  "llists (num_nils, ps) = replicate_mset num_nils LNil + mset (map (\<lambda>(e, es). LCons e es) ps)"
+
+sublocale prover_lazy_list_queue empty add_llist remove_llist pick_elem llists
 proof
+  show "llists local.empty = {#}"
+    sorry
+next
+  fix Q :: "'e fifo"
+  assume "Q \<noteq> local.empty"
+  show "llists Q \<noteq> {#}"
+    sorry
+next
+  fix es :: "'e llist" and Q :: "'e fifo"
+  show "llists (add_llist es Q) = llists Q + {#es#}"
+    sorry
+next
+  fix es :: "'e llist" and Q :: "'e fifo"
+  show "llists (remove_llist es Q) = llists Q - {#es#}"
+    sorry
+next
+  fix Q :: "'e fifo"
+  assume "\<exists>es \<in># llists Q. es \<noteq> LNil"
+  show "\<exists>e es. LCons e es \<in># llists Q \<and> fst (pick_elem Q) = e \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
+    sorry
+(*
   fix Q :: "'e llist list"
   assume ex_cons: "\<exists>es \<in># mset Q. es \<noteq> LNil"
   show "\<exists>e es. LCons e es \<in># mset Q \<and> fst (pick_elem Q) = e
@@ -278,7 +313,8 @@ proof
     show ?case
       using add_mset_diff_bothsides by auto
   qed
-qed simp+
+*)
+qed
 
 sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
 proof
