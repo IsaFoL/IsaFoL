@@ -650,11 +650,7 @@ sepref_def isa_forward_subsumption_one_wl_impl
 lemma isa_try_to_forward_subsume_wl_invI:
   \<open>isa_try_to_forward_subsume_wl_inv S C (i, changed, break, D, T)\<Longrightarrow> isasat_fast_relaxed S \<Longrightarrow> isasat_fast_relaxed T\<close>
   unfolding isa_try_to_forward_subsume_wl_inv_def prod.simps
-apply normalize_goal+
-apply (auto simp add: isasat_fast_relaxed_def)
-sorry
-
-
+  by normalize_goal+ (auto simp add: isasat_fast_relaxed_def)
 
 sepref_def isa_try_to_forward_subsume_wl2_impl
   is \<open>uncurry2 isa_try_to_forward_subsume_wl2\<close>
@@ -664,23 +660,20 @@ sepref_def isa_try_to_forward_subsume_wl2_impl
   supply [[goals_limit=1]]
   supply [intro] = isa_try_to_forward_subsume_wl_invI
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-subgoal premises p
-using p(5-9,30-34)
-apply (auto simp: max_snat_def uint32_max_def)
-oops
+  by sepref
 
 
-
-end
-term isa_try_to_forward_subsume_wl2
+lemma isa_forward_subsumption_all_wl_invI:
+  \<open>isa_forward_subsumption_all_wl_inv R S (i, D, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
+  unfolding isa_forward_subsumption_all_wl_inv_def prod.simps
+  apply normalize_goal+
+  by (auto simp: isasat_fast_relaxed_def)
 
 sepref_def isa_forward_subsumption_all_wl2_impl
   is isa_forward_subsumption_all_wl2
   :: \<open>[isasat_fast_relaxed]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  supply [intro] = isa_forward_subsumption_all_wl_invI
   unfolding isa_forward_subsumption_all_wl2_def
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     length_watchlist_raw_def[symmetric]
@@ -689,9 +682,15 @@ sepref_def isa_forward_subsumption_all_wl2_impl
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
   apply sepref_dbg_side_unfold
-subgoal premises p
+subgoal
+apply auto
+apply (rule isa_forward_subsumption_all_wl_invI)
+apply assumption
+
+
 oops
-  
+
+thm isasat_bounded_assn_length_arenaD
 sepref_def isa_forward_subsumption_all
   is \<open>isa_forward_subsumption_all\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
