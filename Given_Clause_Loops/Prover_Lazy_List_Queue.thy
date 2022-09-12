@@ -295,28 +295,17 @@ next
       note es = this
       show ?thesis
       proof (cases "(e, es') \<in># mset ps")
-        case ees'_in: True
+        case pair_in: True
         show ?thesis
-          unfolding q es using ees'_in by (auto simp: multiset_union_diff_assoc image_mset_Diff)
+          unfolding q es using pair_in by (auto simp: multiset_union_diff_assoc image_mset_Diff)
       next
-        case False
+        case pair_ni: False
+        have cons_ni:
+          "LCons e es' \<notin># replicate_mset num_nils LNil + {#LCons x y. (x, y) \<in># mset ps#}"
+          using pair_ni by auto
         show ?thesis
-          sorry
+          unfolding q es using pair_ni cons_ni by (auto simp: diff_single_trivial)
       qed
-
-      
-      case (LCons e es')
-      then show ?thesis
-        unfolding q
-        apply (auto simp: multiset_union_diff_assoc)
-        apply (subst image_mset_Diff)
-(*
-        apply (auto simp: multiset_union_diff_assoc)
-        apply (rule injD[of "image_mset (\<lambda>es. case es of LCons e es' \<Rightarrow> (e, es'))"])
-        defer
-        apply (simp add: case_prod_beta image_mset.compositionality multiset.map_ident_strong)
-*)
-        sorry
     qed
   qed
 next
@@ -494,7 +483,7 @@ proof
           obtain Q :: "'e llist list" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
             at_j: "lnth QDs j = (Q, D)" and
             at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
-            ees'_in: "LCons e' es' \<in># mset Q" and
+            pair_in: "LCons e' es' \<in># mset Q" and
             fst: "fst (pick_elem Q) = e'" and
             snd: "mset (snd (pick_elem Q)) = mset Q - {#LCons e' es'#} + {#es'#}"
             using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
