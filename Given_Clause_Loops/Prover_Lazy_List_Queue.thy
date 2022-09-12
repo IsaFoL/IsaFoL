@@ -292,13 +292,30 @@ next
         sorry
     next
       case (LCons e es')
+      note es = this
+      show ?thesis
+      proof (cases "(e, es') \<in># mset ps")
+        case ees'_in: True
+        show ?thesis
+          unfolding q es using ees'_in by (auto simp: multiset_union_diff_assoc image_mset_Diff)
+      next
+        case False
+        show ?thesis
+          sorry
+      qed
+
+      
+      case (LCons e es')
       then show ?thesis
         unfolding q
+        apply (auto simp: multiset_union_diff_assoc)
+        apply (subst image_mset_Diff)
+(*
         apply (auto simp: multiset_union_diff_assoc)
         apply (rule injD[of "image_mset (\<lambda>es. case es of LCons e es' \<Rightarrow> (e, es'))"])
         defer
         apply (simp add: case_prod_beta image_mset.compositionality multiset.map_ident_strong)
-
+*)
         sorry
     qed
   qed
