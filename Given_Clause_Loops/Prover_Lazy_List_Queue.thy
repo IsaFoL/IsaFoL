@@ -287,9 +287,21 @@ next
     show ?thesis
     proof (cases es)
       case LNil
-      then show ?thesis
-        unfolding q
-        sorry
+      note es = this
+      have inter_emp: "{#LCons x y. (x, y) \<in># mset ps#} \<inter># {#LNil#} = {#}"
+        by auto
+      show ?thesis
+      proof (cases num_nils)
+        case num_nils: 0
+        have nil_ni: "LNil \<notin># {#LCons x y. (x, y) \<in># mset ps#}"
+          by auto
+        show ?thesis
+          unfolding q es num_nils by (auto simp: diff_single_trivial[OF nil_ni])
+      next
+        case num_nils: (Suc n)
+        show ?thesis
+          unfolding q es num_nils by auto
+      qed
     next
       case (LCons e es')
       note es = this
