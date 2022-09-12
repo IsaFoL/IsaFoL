@@ -1854,7 +1854,7 @@ qed
 
 
 definition try_to_forward_subsume_wl_pre :: \<open>nat \<Rightarrow> nat multiset \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>try_to_forward_subsume_wl_pre C cands S = (\<exists>T. (S,T)\<in>state_wl_l None \<and> try_to_forward_subsume_pre C cands T \<and> no_lost_clause_in_WL S)\<close>
+  \<open>try_to_forward_subsume_wl_pre C cands S = (\<exists>T. (S,T)\<in>state_wl_l None \<and> try_to_forward_subsume_pre C cands T \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> no_lost_clause_in_WL S)\<close>
 
 definition try_to_forward_subsume_wl_inv :: \<open>_\<close> where
   \<open>try_to_forward_subsume_wl_inv S cands C = (\<lambda>(i,break, T).

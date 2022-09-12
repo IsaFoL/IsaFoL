@@ -1079,6 +1079,7 @@ definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasa
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>S. do{
+    ASSERT (mark_garbage_pre (get_clauses_wl_heur S, C));
     let N' = get_clauses_wl_heur S;
     let st = arena_status N' C = IRRED;
     let N' = extra_information_mark_to_delete N' C;
@@ -1782,4 +1783,14 @@ definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
 definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
 
+
+definition  mop_arena_promote_st where
+  \<open>mop_arena_promote_st S C = do {
+    let N' = get_clauses_wl_heur S;
+    let lcount = get_learned_count S;
+    ASSERT(clss_size_lcount lcount \<ge> 1);
+    let lcount = clss_size_decr_lcount lcount;
+    N' \<leftarrow> mop_arena_set_status N' C IRRED;
+    RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
+  }\<close>
 end

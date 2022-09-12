@@ -1075,6 +1075,31 @@ sepref_def status_neq_impl is [] \<open>uncurry (RETURN oo (\<noteq>))\<close>
 
 lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
+
+sepref_register mop_arena_set_status
+
+lemma arena_is_valid_clause_idxI:
+  \<open>arena_is_valid_clause_idx arena C \<Longrightarrow> get_clause_LBD_pre arena C\<close>
+  \<open>arena_is_valid_clause_idx arena C \<Longrightarrow> C \<ge> 2\<close>
+  \<open>arena_is_valid_clause_idx arena C \<Longrightarrow> rdomp (al_assn arena_el_impl_assn) arena \<Longrightarrow> arena_lbd arena C << 5 < max_unat 32\<close>
+  \<open>arena_is_valid_clause_idx arena C \<Longrightarrow> C - 2 < length arena\<close>
+  using valid_arena_arena_lbd_shift_le[of arena C]
+  unfolding arena_is_valid_clause_vdom_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+  apply (auto simp: arena_lifting)
+  using STATUS_SHIFT_def arena_lifting(16) apply auto[1]
+    defer
+  using arena_lifting(2) less_imp_diff_less apply blast
+  done
+
+sepref_def mop_arena_set_status_impl
+  is \<open>uncurry2 mop_arena_set_status\<close>
+  :: \<open>arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a status_impl_assn\<^sup>k \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  supply [intro] = arena_is_valid_clause_idxI
+  unfolding mop_arena_set_status_def arena_set_status_def LBD_SHIFT_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
 experiment begin
 export_llvm
   MAX_LENGTH_SHORT_CLAUSE_impl

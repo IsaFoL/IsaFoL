@@ -1,3 +1,4 @@
+
 theory IsaSAT_Simplify_Forward_Subsumption
   imports IsaSAT_Setup
     Watched_Literals.Watched_Literals_Watch_List_Inprocessing
@@ -1372,140 +1373,14 @@ definition isa_subsume_or_strengthen_wl_pre :: \<open>_\<close> where
   \<open>isa_subsume_or_strengthen_wl_pre C s S \<longleftrightarrow>
    (\<exists>T r u.  (S,T)\<in>twl_st_heur_restart_occs' r u \<and> subsume_or_strengthen_wl_pre C s T)\<close>
 
-(*TODO Move to arena definitions*)
-definition arena_set_status where
-  \<open>arena_set_status arena C b= do {
-    (arena[C - STATUS_SHIFT := AStatus b (arena_used arena C) (arena_lbd arena C)])
-  }\<close>
-
-lemma length_arena_set_status[simp]:
-  \<open>length (arena_set_status arena C b) = length arena\<close>
-  by (auto simp: arena_set_status_def)
-
-lemma valid_arena_arena_set_status:
-  assumes
-    valid: \<open>valid_arena arena N vdm\<close> and
-    C: \<open>C \<in># dom_m N\<close> and
-    b: \<open>b = IRRED \<or> b = LEARNED\<close> and
-    b': \<open>b' \<longleftrightarrow> b = IRRED\<close>
-  shows \<open>valid_arena (arena_set_status arena C b) (fmupd C (N \<propto> C, b') N) vdm\<close>
-proof -
-  have [simp]: \<open>i - 2 \<le> length arena\<close> and
-    [simp]: \<open>C - 2 = i - 2 \<longleftrightarrow> C =i\<close> if \<open>i \<in> vdm\<close> for i
-    apply (meson less_imp_diff_less less_imp_le_nat that valid valid_arena_def)
-    by (metis C STATUS_SHIFT_def add_diff_inverse_nat arena_lifting(16) that valid valid_arena_in_vdom_le_arena(2) verit_comp_simplify1(3))
-  have [iff]: \<open>arena_dead_clause (Misc.slice (i - 2) i (arena_set_status arena C b)) \<longleftrightarrow>
-    arena_dead_clause (Misc.slice (i - 2) i arena)\<close>
-    if \<open>i \<notin># dom_m N\<close> and \<open>i \<in> vdm\<close> for i
-    using minimal_difference_between_invalid_index2[OF valid C that(1) _ that(2)]
-      minimal_difference_between_invalid_index[OF valid C that(1) _ that(2)]
-      that
-    by (cases \<open>i < C\<close>)
-      (auto simp: extra_information_mark_to_delete_def drop_update_swap
-      arena_dead_clause_def SHIFTS_def arena_set_status_def ac_simps nth_list_update' nth_drop
-       Misc.slice_def header_size_def split: if_splits)
-
-  have [simp]: \<open>header_size (N \<propto> C) - POS_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
-     \<open>header_size (N \<propto> C) - STATUS_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
-     \<open>header_size (N \<propto> C) - SIZE_SHIFT < C + length (N \<propto> C) - (C - header_size (N \<propto> C))\<close>
-    apply (smt (verit, ccfv_threshold) C add.right_neutral add_diff_inverse_nat diff_is_0_eq' le_zero_eq
-      length_greater_0_conv less_diff_conv less_imp_diff_less list.size(3) nat.simps(3)
-      nat_add_left_cancel_less numeral_2_eq_2 valid valid_arena_def xarena_active_clause_alt_def)
-    apply (smt (verit, ccfv_SIG) C Nat.diff_add_assoc2 STATUS_SHIFT_def arena_lifting(1)
-      arena_shift_distinct(16) diff_diff_cancel diff_is_0_eq nat.simps(3) nat_le_linear
-      not_add_less1 not_gr0 numeral_2_eq_2 valid zero_less_diff)
-      using C SIZE_SHIFT_def arena_lifting(1) valid verit_comp_simplify1(3) by fastforce
-
-  have [iff]: \<open>C - header_size (N \<propto> C) \<le> length arena\<close>
-    by (meson C arena_lifting(2) less_imp_diff_less less_imp_le_nat valid)
-  have  \<open>C \<ge> header_size (N \<propto> C)\<close> \<open>C < length arena\<close>
-    using arena_lifting[OF valid C] by auto
-  then have [iff]: \<open>C - LBD_SHIFT < length arena\<close>
-     \<open>C - SIZE_SHIFT < length arena\<close>
-    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> header_size (N \<propto> C) \<ge> POS_SHIFT\<close> and
-    [simp]: \<open>C - header_size (N \<propto> C) + header_size (N \<propto> C) = C\<close>
-    by (auto simp: LBD_SHIFT_def SIZE_SHIFT_def header_size_def POS_SHIFT_def split: if_splits)
-
-
-  have [simp]: \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close>
-    \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - SIZE_SHIFT) = C - SIZE_SHIFT\<close>
-    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> C - header_size (N \<propto> C) + header_size (N \<propto> C) - POS_SHIFT = C - POS_SHIFT\<close>
-    apply (smt (verit, best) C Nat.add_diff_assoc2 add.right_neutral add_diff_cancel_right
-      add_diff_inverse_nat arena_lifting(1) arena_shift_distinct(16) diff_is_0_eq' less_imp_le_nat
-      order_mono_setup.refl valid)
-    apply (metis Nat.diff_add_assoc One_nat_def SIZE_SHIFT_def STATUS_SHIFT_def \<open>header_size (N \<propto> C) \<le> C\<close>
-      arena_shift_distinct(10) diff_is_0_eq le_add_diff_inverse2 lessI less_or_eq_imp_le nat_le_linear numeral_2_eq_2)
-    using SHIFTS_alt_def(1) header_size_Suc_def by presburger
-  have [iff]: \<open>C - LBD_SHIFT = C - SIZE_SHIFT \<longleftrightarrow> False\<close>
-    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> C - LBD_SHIFT = C - POS_SHIFT \<longleftrightarrow> False\<close>
-    \<open>C - LBD_SHIFT < C\<close>
-    apply (metis \<open>header_size (N \<propto> C) \<le> C\<close> arena_shift_distinct(10))
-    using \<open>header_size (N \<propto> C) \<le> C\<close> arena_shift_distinct(13) apply presburger
-    by (metis STATUS_SHIFT_def \<open>header_size (N \<propto> C) \<le> C\<close> diff_less header_size_Suc_def le_zero_eq nat.simps(3) not_gr0 numeral_2_eq_2)
-
-  let ?s = \<open>clause_slice (arena_set_status arena C b) N C\<close>
-  let ?t = \<open>clause_slice arena N C\<close>
-  have [simp]: \<open>is_Pos (?s ! (header_size (N \<propto> C) - POS_SHIFT)) = is_Pos (?t ! (header_size (N \<propto> C) - POS_SHIFT))\<close>
-    \<open>is_Status (?s ! (header_size (N \<propto> C) - STATUS_SHIFT))\<close>
-    \<open>xarena_status (?s ! (header_size (N \<propto> C) - LBD_SHIFT)) = b\<close>
-    \<open>is_Size (?s ! (header_size (N \<propto> C) - SIZE_SHIFT)) = is_Size (?t ! (header_size (N \<propto> C) - SIZE_SHIFT))\<close>
-    \<open>xarena_length (?s ! (header_size (N \<propto> C) - SIZE_SHIFT)) = xarena_length (?t ! (header_size (N \<propto> C) - SIZE_SHIFT))\<close>
-    \<open>is_long_clause (N \<propto> C) \<Longrightarrow> xarena_pos (?s ! (header_size (N \<propto> C) - POS_SHIFT)) = xarena_pos (?t ! (header_size (N \<propto> C) - POS_SHIFT))\<close>
-    \<open>length ?s = length ?t\<close>
-    \<open>Misc.slice C (C + length (N \<propto> C)) (arena_set_status arena C b) = Misc.slice C (C + length (N \<propto> C)) arena\<close>
-    apply (auto simp: arena_set_status_def Misc.slice_def nth_list_update')
-    apply (metis C arena_el.distinct_disc(11) arena_lifting(14) valid)
-    done
-  have \<open>xarena_active_clause (clause_slice arena N C) (the (fmlookup N C))\<close>
-    using assms(1,2) unfolding valid_arena_def by (auto dest!: multi_member_split)
-  then have [simp]: \<open>xarena_active_clause (clause_slice (arena_set_status arena C b) N C) (N \<propto> C, b')\<close>
-    using b' b unfolding xarena_active_clause_def case_prod_beta
-    by (auto simp: xarena_active_clause_def)
-  have [simp]: \<open>(clause_slice (arena_set_status arena C b) N i) = (clause_slice arena N i)\<close>
-    if \<open>C \<noteq> i\<close> and \<open>i \<in># dom_m N\<close> for i
-    using 
-      valid_minimal_difference_between_valid_index[OF valid that(2) C]
-      valid_minimal_difference_between_valid_index[OF valid C that(2)]
-      that
-    apply (cases \<open>C > i\<close>)
-    apply (auto simp: Misc.slice_def arena_set_status_def)
-    apply (subst drop_update_swap)
-    using \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close> apply linarith
-    apply (subst take_update_cancel)
-    using \<open>C - header_size (N \<propto> C) + (header_size (N \<propto> C) - LBD_SHIFT) = C - LBD_SHIFT\<close> apply linarith
-    apply auto
-    apply (subst drop_upd_irrelevant)
-    using \<open>C - LBD_SHIFT < C\<close> apply linarith
-    apply auto
-    done
-
-  show ?thesis
-    using assms(1,2)
-    unfolding valid_arena_def
-    by auto
-qed
-
-definition mop_arena_set_status where
-  \<open>mop_arena_set_status arena C b= do {
-    ASSERT(arena_is_valid_clause_vdom arena C);
-    RETURN(arena_set_status arena C b)
-  }\<close>
-
-definition  mop_arena_promote_st where
-  \<open>mop_arena_promote_st S C = do {
-    let N' = get_clauses_wl_heur S;
-    let lcount = get_learned_count S;
-    ASSERT( clss_size_lcount lcount \<ge> 1);
-    let lcount = clss_size_decr_lcount lcount;
-    N' \<leftarrow> mop_arena_set_status N' C IRRED;
-    RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
-  }\<close>
 
 definition remove_lit_from_clause where
   \<open>remove_lit_from_clause N C L = do {
     n \<leftarrow> mop_arena_length N C;
    (i, j, N) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, j, N). j < n)
      (\<lambda>(i, j, N). do {
+       ASSERT (i < n);
+       ASSERT (j < n);
        K \<leftarrow> mop_arena_lit2 N C j;
        if K \<noteq> L then do {
          N \<leftarrow> mop_arena_swap C i j N;
@@ -1528,7 +1403,9 @@ TODO rename the mark_garbage_heurX functions with proper name like below
 definition mark_garbage_heur_as_subsumed :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur_as_subsumed C S = (do{
     let N' = get_clauses_wl_heur S;
+    ASSERT (arena_is_valid_clause_vdom N' C);
     let st = arena_status N' C = IRRED;
+    ASSERT (mark_garbage_pre (N', C));
     let N' = extra_information_mark_to_delete (N') C;
     size \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
     let lcount = get_learned_count S;
@@ -1635,7 +1512,7 @@ definition mop_cch_remove_all_clauses where
   \<open>mop_cch_remove_all_clauses S C D = do {
      n \<leftarrow> mop_arena_length (get_clauses_wl_heur S) C;
      (_, D) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, D). i < n)
-       (\<lambda>(i, D). do {L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i; D \<leftarrow> mop_cch_remove_one L D; RETURN (i+1, D)})
+       (\<lambda>(i, D). do {ASSERT (i < length (get_clauses_wl_heur S)); L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i; D \<leftarrow> mop_cch_remove_one L D; RETURN (i+1, D)})
       (0, D);
     RETURN D
   } \<close>
@@ -1644,10 +1521,11 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   \<open>isa_forward_subsumption_one_wl = (\<lambda>C D L S. do {
   ASSERT (isa_forward_subsumption_one_wl_pre C L S);
   ASSERT (nat_of_lit L < length (get_occs S));
-  let n = length (get_occs S ! nat_of_lit L);
+  n \<leftarrow> mop_cocc_list_length (get_occs S) L;
   (_, s) \<leftarrow>
     WHILE\<^sub>T\<^bsup> isa_forward_subsumption_one_wl2_inv S C L \<^esup> (\<lambda>(i, s). i < n \<and> s = NONE)
     (\<lambda>(i, s). do {
+      ASSERT (i < n);
       C' \<leftarrow> mop_cocc_list_at (get_occs S) L i;
       status \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
       if status = DELETED
@@ -1795,6 +1673,7 @@ proof -
       by (rule exI[of _ \<open>get_clauses_wl S'\<close>], auto intro!: exI[of _ \<open>get_vdom S\<close>])
    subgoal using DD' by auto
    subgoal using valid by (auto simp: arena_lifting C)
+   subgoal using valid arena_lifting(4,7)[OF valid C] by (force simp:  C)
    apply (rule mop_arena_lit[THEN order_trans])
    apply (rule valid)
    apply (rule C)
@@ -2042,8 +1921,8 @@ proof -
     using irred by (simp add: C arena_lifting(24))
   have 1: \<open>1 \<le> get_learned_count_number S\<close>
     by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[OF T C irred'])
-  have 2: \<open>arena_is_valid_clause_vdom (get_clauses_wl_heur S) C\<close>
-    using C valid unfolding arena_is_valid_clause_vdom_def by auto
+  have 2: \<open>arena_is_valid_clause_idx (get_clauses_wl_heur S) C\<close>
+    using C valid unfolding arena_is_valid_clause_idx_def by auto
   have valid': \<open>valid_arena (arena_set_status (get_clauses_wl_heur S) C IRRED)
     (fmupd C (get_clauses_wl T \<propto> C, True) (get_clauses_wl T)) (set (get_vdom S))\<close>
     by (rule valid_arena_arena_set_status[OF valid])
@@ -2058,7 +1937,7 @@ proof -
       apply (cases T)
       using T C valid' irred vdom_m_promote_same cong[unfolded all_init_atms_st_def] cong[unfolded all_init_atms_st_def]
       by (auto simp add: twl_st_heur_restart_occs_def arena_promote_st_wl_def
-        clss_size_corr_restart_promote vdom_m_promote_same simp flip: learned_clss_count_def )
+        clss_size_corr_restart_promote vdom_m_promote_same simp flip: learned_clss_count_def)
    done
 qed
 
@@ -2620,6 +2499,8 @@ proof -
    let n = length (get_clauses_wl S \<propto> C');
    (i, j, N) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, j, N). j < n)
      (\<lambda>(i, j, N). do {
+         ASSERT (i < n);
+         ASSERT (j < n);
        K \<leftarrow> mop_clauses_at N C j;
        if K \<noteq> L then do {
          N \<leftarrow> mop_clauses_swap N C i j;
@@ -2643,7 +2524,9 @@ proof -
        apply (refine_vcg)
        subgoal using C_dom by (auto simp: I_def)
        subgoal using CC' by (auto simp: I_def)
-       subgoal using CC' by (auto simp: I_def)
+       subgoal using CC' C_dom by (auto simp: I_def)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
+       subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
        subgoal unfolding I_def prod.simps apply (intro conjI)
        subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
        subgoal using CC' by (auto simp: I_def swap_only_first_relevant take_Suc_conv_app_nth)
@@ -2736,6 +2619,8 @@ proof -
    subgoal using C_dom CC' by auto
    subgoal using CC' valid by auto
    subgoal using CC' C_dom by auto
+   subgoal by auto
+   subgoal by auto
    subgoal by auto
    subgoal by auto
    subgoal by auto
@@ -2857,6 +2742,9 @@ proof -
     unfolding twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def
       mark_garbage_heur_as_subsumed_def mop_arena_length_def nres_monad3
     apply refine_vcg
+    subgoal
+      using arena D unfolding arena_is_valid_clause_vdom_def by auto
+    subgoal using arena D unfolding mark_garbage_pre_def by simp
     subgoal
       using arena red_in_dom_number_of_learned_ge1[of C \<open>get_clauses_wl T\<close>] assms assms
         red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[of S T r u C]
@@ -3106,6 +2994,13 @@ proof -
     show \<open>mark_garbage_heur2 C T \<le> SPEC(\<lambda>c. (c, mark_garbage_wl2 C S) \<in> {(U,V). (U,V)\<in>twl_st_heur_restart_occs' r u \<and> get_occs U=get_occs T \<and> get_aivdom U = get_aivdom T})\<close>
       unfolding mark_garbage_heur2_def nres_monad3
       apply refine_vcg
+      subgoal 
+        using T C unfolding mark_garbage_pre_def arena_is_valid_clause_idx_def
+        by (auto simp add: twl_st_heur_restart_occs_def aivdom_inv_dec_remove_clause cong1
+          valid_arena_extra_information_mark_to_delete' arena_lifting clss_size_corr_restart_intro
+          simp flip: learned_clss_count_def learned_clss_count_def
+          simp del: isasat_input_nempty_def
+          dest: in_vdom_m_fmdropD)
       subgoal by (rule red_in_dom_number_of_learned_ge1_twl_st_heur_restart_occs[OF T C])
       subgoal
         using T
@@ -3241,14 +3136,18 @@ proof -
      (auto simp: forward_subsumption_one_wl2_pre_def occ_list_def occurrence_list_ref_def map_fun_rel_def
       dest: bspec[of _ _ L])
   show ?thesis
-    unfolding isa_forward_subsumption_one_wl_def forward_subsumption_one_wl2_alt_def eq Let_def
+    unfolding isa_forward_subsumption_one_wl_def forward_subsumption_one_wl2_alt_def eq Let_def mop_cocc_list_length_def nres_monad3
+      cocc_list_length_def
+      bind_to_let_conv[of \<open>length (get_occs _ ! _)\<close>]
     apply (refine_vcg mop_cocc_list_at_mop_occ_list_at occs mop_arena_status2[where arena=\<open>get_clauses_wl_heur S\<close> and vdom=\<open>set (get_vdom S)\<close> and
       N=\<open>get_clauses_wl S'\<close>] isa_subsume_clauses_match2_subsume_clauses_match2 SS' mop_cch_remove_all_clauses_mop_ch_remove_all_clauses CC' DD'
       isa_push_to_occs_list_st_push_to_occs_list2
       isa_subsume_or_strengthen_wl_subsume_or_strengthen_wl[where r=r and u=u])
     subgoal using assms unfolding isa_forward_subsumption_one_wl_pre_def by fast
     subgoal using occs by (cases L) (auto simp: occurrence_list_ref_def map_fun_rel_def dest: bspec[of _ _ \<open>L\<close>])
+    subgoal by (auto simp: cocc_list_length_pre_def)
     subgoal using assms H unfolding isa_forward_subsumption_one_wl2_inv_def apply - by (rule exI[of _ S']) auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3289,26 +3188,31 @@ definition isa_try_to_forward_subsume_wl_pre :: \<open>_\<close> where
 
 definition isa_try_to_forward_subsume_wl_inv :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<times> bool \<times> bool \<times> bool list \<times> isasat \<Rightarrow> bool\<close> where
   \<open>isa_try_to_forward_subsume_wl_inv S C = (\<lambda>(i, changed, break, D, T).
-  (\<exists>S' T' r u cands occs' D'. (S,S')\<in>twl_st_heur_restart_occs' r u \<and> (T,T')\<in>twl_st_heur_restart_occs' r u \<and>
+  (\<exists>S' T' cands occs' D'. (S,S')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S) \<and>
+    (T,T')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S)\<and>
   (get_occs T, occs') \<in> occurrence_list_ref \<and>
   (D,D') \<in>clause_hash \<and>
   try_to_forward_subsume_wl2_inv S' cands C (i, changed, break, occs', D', T')))\<close>
 
   (*TODO: Missing ticks*)
+definition isa_try_to_forward_subsume_wl2_break :: \<open>isasat \<Rightarrow> bool nres\<close> where
+  \<open>isa_try_to_forward_subsume_wl2_break S = RETURN False\<close>
 
 definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list \<Rightarrow> isasat \<Rightarrow> (bool list \<times> isasat) nres\<close> where
   \<open>isa_try_to_forward_subsume_wl2 C D S = do {
   ASSERT (isa_try_to_forward_subsume_wl_pre C S);
   n \<leftarrow> mop_arena_length_st S C;
+  ASSERT (n \<le> Suc (uint32_max div 2));
   let n = 2 * n;
-  ebreak \<leftarrow> RES {_::bool. True};
+  ebreak \<leftarrow> isa_try_to_forward_subsume_wl2_break S;
   (_, changed, _, D, S) \<leftarrow> WHILE\<^sub>T\<^bsup> isa_try_to_forward_subsume_wl_inv S C\<^esup>
     (\<lambda>(i, changed, break, D, S). \<not>break \<and> i < n)
     (\<lambda>(i, changed, break, D, S). do {
+      ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C (i div 2);
       let L = (if i mod 2 = 0 then L else - L);
       (S, subs, D) \<leftarrow> isa_forward_subsumption_one_wl C D L S;
-      ebreak \<leftarrow> RES {_::bool. True};
+      ebreak \<leftarrow> isa_try_to_forward_subsume_wl2_break S;
       RETURN (i+1, subs, subs \<or> ebreak, D, S)
     })
   (0, False, ebreak, D, S);
@@ -3327,23 +3231,58 @@ lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
        (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S}
     (try_to_forward_subsume_wl2 C' occs cands D' S')\<close>
 proof -
+  have le: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
+    if \<open>try_to_forward_subsume_wl2_pre C' cands S'\<close>
+  proof -
+
+    have lits:  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_init_atms_st S') (mset (get_clauses_wl S' \<propto> C'))\<close> and
+      dist: \<open>distinct_mset (mset (get_clauses_wl S' \<propto> C'))\<close> and
+      tauto: \<open>\<not> tautology (mset (get_clauses_wl S' \<propto> C'))\<close>
+      using that unfolding try_to_forward_subsume_wl2_pre_def try_to_forward_subsume_wl_pre_def
+        try_to_forward_subsume_pre_def
+      apply -
+      subgoal
+        apply normalize_goal+
+        apply (frule literals_are_\<L>\<^sub>i\<^sub>n'_all_init_atms_alt_def)
+        apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth)
+        apply (simp add: literals_are_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n'_def)
+        apply (simp add: literals_are_in_\<L>\<^sub>i\<^sub>n_nth literals_are_\<L>\<^sub>i\<^sub>n_cong
+          literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff)
+        done
+      subgoal
+        apply normalize_goal+
+        unfolding twl_struct_invs_def twl_st_inv_alt_def
+        by (simp add:mset_take_mset_drop_mset')
+      subgoal
+        apply normalize_goal+
+        unfolding twl_list_invs_def
+        by (simp add:mset_take_mset_drop_mset')
+      done
+    have \<open>isasat_input_bounded (all_init_atms_st S')\<close>
+      using SS' unfolding twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def
+      by (simp del: isasat_input_bounded_def)
+    then show ?thesis
+      using simple_clss_size_upper_div2[of \<open>all_init_atms_st S'\<close> \<open>mset (get_clauses_wl S' \<propto> C')\<close>, OF _ lits dist tauto] CC'
+      by auto
+  qed
   have loop_rel: \<open>(ebreak, ebreaka) \<in> bool_rel \<Longrightarrow>
     try_to_forward_subsume_wl2_inv S' cands C' (0, False, ebreaka, occs, D', S') \<Longrightarrow>
     ((0, False, ebreak, D, S), 0, False, ebreaka, occs, D', S') \<in> 
     {((m, b, brk, D, U),(m', b', brk', occs, D', V)). (m,m')\<in>nat_rel \<and> (b,b')\<in>bool_rel \<and> (brk,brk')\<in>bool_rel \<and>
-    (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and> (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and> (U, V) \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S) \<and>
     get_aivdom U = get_aivdom S}\<close>
     for ebreak ebreaka
     using assms by auto
-
+  have [refine]: \<open>isa_try_to_forward_subsume_wl2_break S \<le> SPEC (\<lambda>_. True)\<close> for S
+    unfolding isa_try_to_forward_subsume_wl2_break_def by auto
   show ?thesis
     supply [[goals_limit=1]]
     unfolding isa_try_to_forward_subsume_wl2_def
       try_to_forward_subsume_wl2_def mop_arena_length_st_def
     apply (refine_vcg mop_arena_lit[of \<open>get_clauses_wl_heur S\<close> _ \<open>set (get_vdom S)\<close> for S]
       mop_arena_length[THEN fref_to_Down_curry, of _ _ _ _ \<open>set (get_vdom S)\<close>, unfolded comp_def] loop_rel
-      isa_forward_subsumption_one_forward_subsumption_wl_one[where r=r and u=u]
-      mop_cch_remove_all_clauses_mop_ch_remove_all_clauses[where r=r and u=u])
+      isa_forward_subsumption_one_forward_subsumption_wl_one[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
+      mop_cch_remove_all_clauses_mop_ch_remove_all_clauses[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>])
     subgoal
       using assms unfolding isa_try_to_forward_subsume_wl_pre_def apply -
       by (rule exI[of _ S'], rule exI[of _ r], rule exI[of _ u], rule exI[of _ cands], rule exI[of _ occs])
@@ -3352,11 +3291,13 @@ proof -
       try_to_forward_subsume_pre_def
       by - (normalize_goal+; auto)
     subgoal using SS' CC' unfolding twl_st_heur_restart_occs_def by simp
+    subgoal using le CC' by auto
     subgoal for n ebreak ebreaka x x' using CC' SS' unfolding isa_try_to_forward_subsume_wl_inv_def case_prod_beta apply -
-      by (rule exI[of _ S'], rule exI[of _ \<open>snd (snd (snd (snd (snd (x')))))\<close>], rule exI[of _ r], rule exI[of _ u],
+      by (rule exI[of _ S'], rule exI[of _ \<open>snd (snd (snd (snd (snd (x')))))\<close>],
         rule exI[of _ cands], rule exI[of _ \<open>fst ((snd (snd (snd (x')))))\<close>], rule exI[of _ \<open>fst (snd (snd (snd (snd (x')))))\<close>])
         simp
     subgoal by simp
+    subgoal by auto
     subgoal for n ebreak ebreaka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g
       x2g x1h x2h
       by (auto simp: twl_st_heur_restart_occs_def)
@@ -3374,7 +3315,7 @@ proof -
     subgoal by auto
     subgoal using CC' by auto
     subgoal by auto
-    subgoal by auto
+    subgoal using SS' by auto
     done
 qed
 
@@ -3803,8 +3744,10 @@ definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
 definition mop_cch_add_all_clause :: \<open>_\<close> where
   \<open>mop_cch_add_all_clause S C D = do {
     n \<leftarrow> mop_arena_length_st S C;
+    ASSERT (n \<le> length (get_clauses_wl_heur S));
     (_, D) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, D). i < n)
     (\<lambda>(i,D). do {
+      ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
       D \<leftarrow> mop_cch_add L D;
       RETURN (i+1, D)
@@ -3851,6 +3794,7 @@ definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<clo
   (_, D, S) \<leftarrow>
     WHILE\<^sub>T\<^bsup> isa_forward_subsumption_all_wl_inv S \<^esup> (\<lambda>(i, D, S). i < m \<and> get_conflict_wl_is_None_heur S)
     (\<lambda>(i, D, S). do {
+       ASSERT (access_tvdom_at_pre S i);
        let C = get_tvdom S!i;
        D \<leftarrow> mop_cch_add_all_clause S C D;
        (D, T) \<leftarrow> isa_try_to_forward_subsume_wl2 C D S;
@@ -3912,6 +3856,10 @@ proof -
       mop_arena_lit[where vdom=\<open>set (get_vdom S)\<close>] mop_cch_add_mop_cch_add)
     subgoal using assms by auto
     subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
+    subgoal
+      using arena_lifting(10)[of \<open>get_clauses_wl_heur S\<close> \<open>get_clauses_wl S'\<close> \<open>set (get_vdom S)\<close> C] assms
+      unfolding twl_st_heur_restart_occs_def by (auto simp: arena_lifting)
+    subgoal by auto
     subgoal by auto
     subgoal using assms unfolding twl_st_heur_restart_occs_def by auto
     subgoal using assms by auto
@@ -3958,6 +3906,7 @@ proof -
       unfolding isa_forward_subsumption_all_wl_inv_def by fast
     subgoal by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs[THEN fref_to_Down_unRET_Id])
       (auto simp: get_conflict_wl_is_None_def)
+    subgoal by (auto simp: access_tvdom_at_pre_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
