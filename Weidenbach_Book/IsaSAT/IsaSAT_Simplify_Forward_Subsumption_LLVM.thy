@@ -158,7 +158,7 @@ sepref_def sort_cands_by_length_impl
   by sepref
 
 (*TODO: kill mop_arena_lit2_st*)
-sepref_def isa_all_lit_clause_unset
+sepref_def isa_all_lit_clause_unset_impl
   is \<open>uncurry isa_all_lit_clause_unset\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
@@ -248,10 +248,14 @@ sepref_def isa_push_to_occs_list_st_impl
   unfolding isa_push_to_occs_list_st_alt_def isasat_fast_relaxed_def
   by sepref
 
+
+(*TODD move to Setup1*)
+lemmas [sepref_fr_rules] = arena_get_lbd.mop_refine
 sepref_def isa_good_candidate_for_subsumption_impl
   is \<open>uncurry isa_good_candidate_for_subsumption\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isa_good_candidate_for_subsumption_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma push_to_tvdom_st_alt_def:
@@ -282,11 +286,11 @@ sepref_def isa_populate_occs_code
   is isa_populate_occs
   :: \<open>[isasat_fast_relaxed]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  supply [dest] = rdomp_isasat_bounded_assn_length_avdomD
+  supply [dest] = rdomp_isasat_bounded_assn_length_avdomD isasat_bounded_assn_length_arenaD
   supply [intro] = isa_populate_occs_inv_isasat_fast_relaxedI
-  unfolding isa_populate_occs_def access_avdom_at_def[symmetric] length_avdom_def[symmetric]
-    al_fold_custom_empty[where 'l=64] Let_def[of \<open>get_avdom _\<close>] Let_def[of \<open>get_occs _\<close>]
-    Let_def[of \<open>get_tvdom _\<close>]
+  unfolding isa_populate_occs_def access_avdom_at_def[symmetric] length_avdom_def[symmetric] length_ivdom_def[symmetric]
+    al_fold_custom_empty[where 'l=64] Let_def[of \<open>get_avdom _ @ get_ivdom _\<close>] Let_def[of \<open>get_occs _\<close>]
+    Let_def[of \<open>get_tvdom _\<close>] nth_append length_append access_ivdom_at_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
