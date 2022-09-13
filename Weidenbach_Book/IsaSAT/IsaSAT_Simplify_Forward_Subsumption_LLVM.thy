@@ -157,6 +157,7 @@ sepref_def sort_cands_by_length_impl
   unfolding sort_cands_by_length_alt_def
   by sepref
 
+sepref_register mop_is_marked_added_heur_st
 (*TODO: kill mop_arena_lit2_st*)
 sepref_def isa_all_lit_clause_unset_impl
   is \<open>uncurry isa_all_lit_clause_unset\<close>

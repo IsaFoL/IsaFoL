@@ -814,7 +814,8 @@ definition all_lit_clause_unset :: \<open>_\<close> where
           val \<leftarrow> mop_polarity_wl S L;
           RETURN (i+1, val = None)
        }) (0, True);
-      RETURN all_undef
+      other \<leftarrow> SPEC (\<lambda>_. True);
+      RETURN (all_undef \<and> other)
    }
   }\<close>
 
@@ -3318,15 +3319,17 @@ definition isa_all_lit_clause_unset where
   if \<not>not_garbage then RETURN False
   else do {
     n \<leftarrow> mop_arena_length_st S C;
-    (i, unset) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, unset). unset \<and> i < n)
-    (\<lambda>(i, unset). do {
+    (i, unset, added) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, unset, _). unset \<and> i < n)
+    (\<lambda>(i, unset, added). do {
       ASSERT (i+1 \<le> Suc (uint32_max div 2));
       ASSERT(Suc i \<le> uint32_max);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur S) C i;
       val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
-      RETURN (i+1, val = None)
-    }) (0, True);
-    RETURN unset
+      is_added \<leftarrow> mop_is_marked_added_heur_st S (atm_of L);
+      RETURN (i+1, val = None, if is_added then added + 1 else added)
+    }) (0, True, 0::64 word);
+    let a = (added \<ge> 2);
+    RETURN (unset \<and> a)
   }
   }\<close>
 
@@ -3363,7 +3366,7 @@ lemma isa_all_lit_clause_unset_all_lit_clause_unset:
   shows
     \<open>isa_all_lit_clause_unset C S \<le> \<Down> bool_rel (all_lit_clause_unset T C')\<close>
 proof -
-  have [refine]: \<open>((0,True), (0,True))\<in>nat_rel \<times>\<^sub>f bool_rel\<close>
+  have [refine]: \<open>((0,True, added), (0,True))\<in>{((a,b,c), (d,e)). ((a,b), (d,e))\<in>nat_rel \<times>\<^sub>f bool_rel}\<close> for added
     by auto
   have lits:  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_init_atms_st T) (mset (get_clauses_wl T \<propto> C))\<close> and
     dist: \<open>distinct_mset (mset (get_clauses_wl T \<propto> C))\<close> and
@@ -3387,11 +3390,16 @@ proof -
       apply normalize_goal+
       unfolding twl_list_invs_def
       by (simp add:mset_take_mset_drop_mset')
-   done
-
+    done
+  have \<open>heuristic_rel (all_init_atms_st T) (get_heur S)\<close>
+    using assms unfolding twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def by fast
+  then have is_marked_added_heur_pre_stats: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T) \<Longrightarrow>is_marked_added_heur_pre (get_heur S) (atm_of L)\<close> for L
+    by (auto simp: is_marked_added_heur_pre_stats_def heuristic_rel_def heuristic_rel_stats_def phase_saving_def is_marked_added_heur_pre_def
+      dest!: multi_member_split)
   show ?thesis
     unfolding isa_all_lit_clause_unset_def all_lit_clause_unset_def mop_clause_not_marked_to_delete_heur_def
       nres_monad3 clause_not_marked_to_delete_def[symmetric] mop_arena_length_st_def
+      mop_is_marked_added_heur_st_def mop_is_marked_added_heur_def
     apply (refine_vcg clause_not_marked_to_delete_rel_occs mop_arena_lit[where vdom=\<open>set (get_vdom S)\<close>]
       mop_polarity_pol_mop_polarity_wl
       mop_arena_length[THEN fref_to_Down_curry, unfolded comp_def, of _ _ \<open>get_clauses_wl_heur S\<close> _ \<open>set (get_vdom S)\<close> for S])
@@ -3417,6 +3425,8 @@ proof -
     subgoal using assms by fast
     subgoal by auto
     subgoal using assms by auto
+    subgoal by (rule is_marked_added_heur_pre_stats) auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     done
