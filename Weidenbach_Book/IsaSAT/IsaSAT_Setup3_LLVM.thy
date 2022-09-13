@@ -306,6 +306,7 @@ sepref_def empty_US_heur_code
 
 lemma mark_garbage_heur2_alt_def:
   \<open>mark_garbage_heur2 C = (\<lambda>S\<^sub>0. do{
+    ASSERT (mark_garbage_pre (get_clauses_wl_heur S\<^sub>0, C));
     let (N, S) = extract_arena_wl_heur S\<^sub>0;
     ASSERT (N = get_clauses_wl_heur S\<^sub>0);
     let st = arena_status N C = IRRED;
@@ -317,12 +318,17 @@ lemma mark_garbage_heur2_alt_def:
     RETURN (update_lcount_wl_heur lcount (update_arena_wl_heur N' S))})\<close>
     by (auto simp: mark_garbage_heur2_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
+lemma mark_garbage_preD:
+  \<open>mark_garbage_pre (N, C) \<Longrightarrow> arena_is_valid_clause_vdom N C\<close>
+  by (auto simp: mark_garbage_pre_def arena_is_valid_clause_idx_def arena_is_valid_clause_vdom_def)
+
 sepref_register mark_garbage_heur2 mark_garbage_heur4
+
 sepref_def mark_garbage_heur2_code
   is \<open>uncurry mark_garbage_heur2\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>(C, S). True]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
+  supply [intro] = mark_garbage_preD
   unfolding mark_garbage_heur2_alt_def
   by sepref
 

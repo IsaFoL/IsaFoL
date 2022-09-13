@@ -125,4 +125,22 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   length_occs_impl_def[unfolded read_all_st_code_def]
   length_occs_at_impl_def[unfolded read_all_st_code_def]
 
+lemma mop_arena_promote_st_alt_def:
+    \<open>mop_arena_promote_st S C = do {
+    let (N', S) = extract_arena_wl_heur S;
+    let (lcount, S) = extract_lcount_wl_heur S;
+    ASSERT(clss_size_lcount lcount \<ge> 1);
+    let lcount = clss_size_decr_lcount lcount;
+    N' \<leftarrow> mop_arena_set_status N' C IRRED;
+    RETURN (update_arena_wl_heur N' (update_lcount_wl_heur lcount S))
+  }\<close>
+  by (auto simp: mop_arena_promote_st_def state_extractors split: isasat_int_splits)
+
+sepref_def mop_arena_promote_st_impl
+  is \<open>uncurry mop_arena_promote_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mop_arena_promote_st_alt_def
+  by sepref
+
+
 end

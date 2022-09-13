@@ -15,7 +15,6 @@ sepref_register 0 1
 sepref_register mop_arena_update_lit
 
 
-
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -32,11 +31,22 @@ sepref_def isa_pure_literal_elimination_wl_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+(*TODO Move*)
+lemmas [llvm_code] = is_NONE_impl_def is_subsumed_impl_def is_strengthened_impl_def
+  STRENGTHENED_BY_impl_def SUBSUMED_BY_impl_def NONE_impl_def subsumed_by_impl_def
+  strengthened_on_lit_impl_def 
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code]  =
+  get_occs_list_at_impl_def[unfolded read_all_st_code_def]
+(*end move*)
 experiment
 begin
+  export_llvm isa_forward_subsumption_all_wl2_impl
+
  export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
+    isa_forward_subsumption_all_wl2_impl
 end
 
 end

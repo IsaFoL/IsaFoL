@@ -1079,6 +1079,7 @@ definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasa
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>S. do{
+    ASSERT (mark_garbage_pre (get_clauses_wl_heur S, C));
     let N' = get_clauses_wl_heur S;
     let st = arena_status N' C = IRRED;
     let N' = extra_information_mark_to_delete N' C;
@@ -1756,4 +1757,40 @@ fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
 definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>
 
+(*TODO Move*)
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (push_to_tvdom C aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_vdom_aivdom (push_to_tvdom C aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (push_to_tvdom C aivdom) = get_ivdom_aivdom aivdom\<close>
+  \<open>get_tvdom_aivdom (push_to_tvdom C aivdom) = get_tvdom_aivdom aivdom @ [C]\<close>
+  by (cases aivdom; auto simp: push_to_tvdom_def push_to_tvdom_int_def; fail)+
+
+lemma aivdom_inv_dec_empty_tvdom[intro!]:
+  \<open>aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (empty_tvdom aivdom) d\<close>
+  by (cases aivdom) (auto simp: aivdom_inv_dec_alt_def empty_tvdom_def)
+
+lemma [simp]:
+  \<open>get_avdom_aivdom (empty_tvdom aivdom) = get_avdom_aivdom aivdom\<close>
+  \<open>get_vdom_aivdom (empty_tvdom aivdom) = get_vdom_aivdom aivdom\<close>
+  \<open>get_ivdom_aivdom (empty_tvdom aivdom) = get_ivdom_aivdom aivdom\<close>
+  \<open>get_tvdom_aivdom (empty_tvdom aivdom) = []\<close>
+  by (cases aivdom; auto simp: empty_tvdom_def; fail)+
+
+definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
+
+definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
+
+
+definition  mop_arena_promote_st where
+  \<open>mop_arena_promote_st S C = do {
+    let N' = get_clauses_wl_heur S;
+    let lcount = get_learned_count S;
+    ASSERT(clss_size_lcount lcount \<ge> 1);
+    let lcount = clss_size_decr_lcount lcount;
+    N' \<leftarrow> mop_arena_set_status N' C IRRED;
+    RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
+  }\<close>
 end

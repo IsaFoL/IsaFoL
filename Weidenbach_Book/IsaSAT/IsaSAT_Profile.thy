@@ -18,6 +18,9 @@ begin
   qualified definition REDUCE :: \<open>8 word\<close> where \<open>REDUCE = 3\<close>
   qualified definition INITIALISATION :: \<open>8 word\<close> where \<open>INITIALISATION = 4\<close>
   qualified definition MINIMIZATION :: \<open>8 word\<close> where \<open>MINIMIZATION = 5\<close>
+  qualified definition SUBSUMPTION :: \<open>8 word\<close> where \<open>SUBSUMPTION = 6\<close>
+  qualified definition PURE_LITERAL :: \<open>8 word\<close> where \<open>PURE_LITERAL = 7\<close>
+  qualified definition BINARY_SIMP :: \<open>8 word\<close> where \<open>BINARY_SIMP = 8\<close>
 
 qualified abbreviation start_propagate :: \<open>unit\<close> where
   \<open>start_propagate \<equiv> IsaSAT_Profile.start IsaSAT_Profile.PROPAGATE\<close>
@@ -46,6 +49,21 @@ qualified abbreviation start_minimization :: \<open>unit\<close> where
   \<open>start_minimization \<equiv> IsaSAT_Profile.start IsaSAT_Profile.MINIMIZATION\<close>
 qualified abbreviation stop_minimization :: \<open>unit\<close> where
   \<open>stop_minimization \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.MINIMIZATION\<close>
+
+qualified abbreviation start_subsumption :: \<open>unit\<close> where
+  \<open>start_subsumption \<equiv> IsaSAT_Profile.start IsaSAT_Profile.SUBSUMPTION\<close>
+qualified abbreviation stop_subsumption :: \<open>unit\<close> where
+  \<open>stop_subsumption \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.SUBSUMPTION\<close>
+
+qualified abbreviation start_binary_simp :: \<open>unit\<close> where
+  \<open>start_binary_simp \<equiv> IsaSAT_Profile.start IsaSAT_Profile.BINARY_SIMP\<close>
+qualified abbreviation stop_binary_simp :: \<open>unit\<close> where
+  \<open>stop_binary_simp \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.BINARY_SIMP\<close>
+
+qualified abbreviation start_pure_literal :: \<open>unit\<close> where
+  \<open>start_pure_literal \<equiv> IsaSAT_Profile.start IsaSAT_Profile.PURE_LITERAL\<close>
+qualified abbreviation stop_pure_literal :: \<open>unit\<close> where
+  \<open>stop_pure_literal \<equiv> IsaSAT_Profile.stop IsaSAT_Profile.PURE_LITERAL\<close>
 
 end
 
