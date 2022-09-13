@@ -15,7 +15,6 @@ sepref_register 0 1
 sepref_register mop_arena_update_lit
 
 
-
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
@@ -37,6 +36,7 @@ begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
+    isa_forward_subsumption_all
 end
 
 end

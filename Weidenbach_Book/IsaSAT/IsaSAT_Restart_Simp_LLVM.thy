@@ -34,6 +34,7 @@ sepref_def cdcl_twl_full_restart_wl_D_inprocess_heur_prog_fast_code
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
+  supply [simp] = isasat_fast_relaxed_def
   unfolding cdcl_twl_full_restart_wl_D_inprocess_heur_prog_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref

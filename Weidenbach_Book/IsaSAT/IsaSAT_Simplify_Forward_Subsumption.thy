@@ -3776,6 +3776,49 @@ definition empty_occs_st :: \<open>isasat \<Rightarrow> isasat nres\<close> wher
     RETURN (set_occs_wl_heur D S)
   }\<close>
 
+definition empty_occs2 where
+  \<open>empty_occs2 occs\<^sub>0 = do {
+  let n = length occs\<^sub>0;
+  (_, occs)\<leftarrow> WHILE\<^sub>T (\<lambda>(i,occs). i < n)
+  (\<lambda>(i,occs). do {
+     ASSERT (i < n \<and> length occs = length occs\<^sub>0);
+     RETURN (i+1, occs[i := take 0 (occs ! i)])
+  }) (0, occs\<^sub>0);
+  RETURN occs
+  }\<close>
+
+lemma empty_occs2_replicate_empty: \<open>empty_occs2 occs \<le> SPEC (\<lambda>c. (c, replicate (length occs) []) \<in> Id)\<close>
+proof -
+  show ?thesis
+    unfolding empty_occs2_def
+    apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i,_). length occs -i)\<close> and
+      I = \<open> \<lambda>(i, occs'). i \<le> length occs \<and> length occs = length occs' \<and> take i occs' = replicate i []\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: take_Suc_conv_app_nth replicate_Suc_conv_snoc list_update_append simp del: replicate_Suc)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition empty_occs2_st :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>empty_occs2_st S = do {
+    let D = get_occs S;
+    D \<leftarrow> empty_occs2 D;
+    RETURN (set_occs_wl_heur D S)
+  }\<close>
+
+lemma empty_occs2_st_empty_occs_st: \<open>empty_occs2_st S \<le> \<Down>Id (empty_occs_st S)\<close>
+  unfolding empty_occs2_st_def empty_occs_st_def
+  by (refine_vcg empty_occs2_replicate_empty) auto
+
 lemma empty_occs_st:
   \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
   fst occs = set_mset (all_init_atms_st S') \<Longrightarrow>
@@ -3785,6 +3828,14 @@ lemma empty_occs_st:
     twl_st_heur_restart_def occurrence_list_ref_def empty_occs_list_def
   by (auto, auto simp: map_fun_rel_def)
 
+lemma empty_occs2_st:
+  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
+  fst occs = set_mset (all_init_atms_st S') \<Longrightarrow>
+  (get_occs S, occs) \<in> occurrence_list_ref \<Longrightarrow>
+  empty_occs2_st S\<le>SPEC(\<lambda>c. (c,S')\<in>twl_st_heur_restart_ana' r u)\<close>
+  apply (rule order_trans[OF empty_occs2_st_empty_occs_st])
+  apply (subst Down_id_eq)
+  by (rule empty_occs_st)
 
 definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<close> where
   \<open>isa_forward_subsumption_all_wl2 = (\<lambda>S\<^sub>0. do {
@@ -3804,7 +3855,7 @@ definition isa_forward_subsumption_all_wl2 :: \<open>_ \<Rightarrow> _ nres\<clo
        RETURN (i+1, D, T)
     })
     (0, D, S);
-  empty_occs_st S
+  empty_occs2_st S
   }
 )\<close>
 
@@ -3873,8 +3924,7 @@ proof -
     done
 qed
 
-(*TODO: this is the real thing, no the lemma below!*)
-lemma isa_forward_subsumption_all_forward_subsumption_wl_all_tmp:
+lemma isa_forward_subsumption_all_forward_subsumption_wl_all2:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_forward_subsumption_all_wl2 S \<le>
     \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl2 S')\<close>
@@ -3901,7 +3951,7 @@ proof -
       forward_subsumption_all_wl2_def Let_def
     apply (refine_vcg ref_two_step[OF isa_populate_occs populate_occs_populate_occs_spec,
       unfolded Down_id_eq, of _ _ \<open>length (get_clauses_wl_heur S)\<close>  \<open>(learned_clss_count S)\<close>]
-      empty_occs_st[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
+      empty_occs2_st[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
       mop_cch_create_mop_cch_create
       mop_cch_add_all_clause_mop_ch_add_all[where r=\<open>length (get_clauses_wl_heur S)\<close> and u=\<open>(learned_clss_count S)\<close>]
       isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>])
@@ -3936,34 +3986,19 @@ proof -
     done
 qed
 
-
-definition isa_forward_subsumption_all where
-  \<open>isa_forward_subsumption_all S = do {
-    ASSERT (isa_forward_subsumption_pre_all S);
-    RETURN S
-  }\<close>
-
-
 lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
-  shows \<open>isa_forward_subsumption_all S \<le>
+  shows \<open>isa_forward_subsumption_all_wl2 S \<le>
     \<Down>(twl_st_heur_restart_ana' r u) (forward_subsumption_all_wl S')\<close>
-proof -
-  have isa_forward_subsumption_all_def: \<open>isa_forward_subsumption_all S = do {
-    ASSERT (isa_forward_subsumption_pre_all S);
-    let xs = ({#} :: nat multiset);
-    RETURN S
-  }\<close>
-  unfolding isa_forward_subsumption_all_def by auto
-  show ?thesis
-    unfolding isa_forward_subsumption_all_def forward_subsumption_all_wl_def
-    apply (refine_vcg)
-    subgoal using assms unfolding isa_forward_subsumption_pre_all_def by fast
-    subgoal unfolding forward_subsumption_wl_all_cands_def by auto
-    subgoal
-      by (subst WHILEIT_unfold)
-       (use assms in auto)
-    done
-qed
+  apply (rule ref_two_step)
+  apply (rule isa_forward_subsumption_all_forward_subsumption_wl_all2)
+  apply (rule assms)
+  apply (rule forward_subsumption_all_wl2_forward_subsumption_all_wl[unfolded Down_id_eq])
+  done
+
+(*TODO kill!*)
+abbreviation isa_forward_subsumption_all :: \<open>_\<close> where
+  \<open>isa_forward_subsumption_all \<equiv> isa_forward_subsumption_all_wl2\<close>
+
 
 end

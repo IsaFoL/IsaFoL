@@ -292,8 +292,7 @@ sepref_def isa_populate_occs_code
 
 sepref_register isa_forward_subsumption_all_wl2 isa_populate_occs
 
-sepref_register isa_forward_subsumption_all mop_cch_create mop_cch_add_all_clause
-  mop_cch_add mop_cch_in
+sepref_register mop_cch_create mop_cch_add_all_clause mop_cch_add mop_cch_in
 
 
 abbreviation cch_assn where
@@ -663,6 +662,30 @@ sepref_def isa_try_to_forward_subsume_wl2_impl
   by sepref
 
 
+lemma empty_occs2_st_alt_def:
+  \<open>empty_occs2_st S = do {
+  let (occs, S) = extract_occs_wl_heur S;
+  occs \<leftarrow> empty_occs2 occs;
+  RETURN (update_occs_wl_heur occs S)
+  }\<close>
+  by (auto simp: empty_occs2_st_def Let_def state_extractors
+    intro!: bind_cong[OF refl]
+    split: isasat_int_splits)
+
+
+sepref_def empty_occs2_impl
+  is \<open>empty_occs2\<close>
+  :: \<open>occs_assn\<^sup>d \<rightarrow>\<^sub>a occs_assn\<close>
+  unfolding empty_occs2_def fold_op_list_list_take op_list_list_len_def[symmetric]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def empty_occs2_st_impl
+  is \<open>empty_occs2_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding empty_occs2_st_alt_def
+  by sepref
+
 lemma isa_forward_subsumption_all_wl_invI:
   \<open>isa_forward_subsumption_all_wl_inv R S (i, D, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
   unfolding isa_forward_subsumption_all_wl_inv_def prod.simps
@@ -678,23 +701,6 @@ sepref_def isa_forward_subsumption_all_wl2_impl
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     length_watchlist_raw_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-subgoal
-apply auto
-apply (rule isa_forward_subsumption_all_wl_invI)
-apply assumption
-
-
-oops
-
-thm isasat_bounded_assn_length_arenaD
-sepref_def isa_forward_subsumption_all
-  is \<open>isa_forward_subsumption_all\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding isa_forward_subsumption_all_def
   by sepref
 
 end
