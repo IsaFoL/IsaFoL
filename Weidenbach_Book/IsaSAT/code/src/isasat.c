@@ -597,7 +597,7 @@ struct PROFILE {
 };
 
 struct PROFILE propagate_prof, analyze_prof, gc_prof, reduce_prof, total_prof, parsing_prof,
-  init_prof, minimization_prof, inprocessing_prof;
+  init_prof, minimization_prof, subsumption_prof, pure_lits_prof, binary_simp_prof;
 
 void init_profiles () {
   propagate_prof.total = 0;
@@ -643,9 +643,17 @@ void IsaSAT_Profile_LLVM_start_profile(uint8_t t) {
   }
   else if (t == IsaSAT_Profile_INITIALISATION ()) {
     start_profile(&init_prof);
-  } else if (t == IsaSAT_Profile_INPROCESSING ()) {
-    start_profile(&inprocessing_prof);
-  } else {
+  }
+  else if (t == IsaSAT_Profile_SUBSUMPTION ()) {
+    start_profile(&subsumption_prof);
+  }
+  else if (t == IsaSAT_Profile_BINARY_SIMP ()) {
+    start_profile(&binary_simp_prof);
+  }
+  else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
+    start_profile(&pure_lits_prof);
+  }
+  else {
 #ifdef PRINTSTATS
     printf("c unrecognised profile, ignoring\n");
 #endif
@@ -686,9 +694,17 @@ void IsaSAT_Profile_LLVM_stop_profile(uint8_t t) {
   }
   else if (t == IsaSAT_Profile_INITIALISATION ()) {
     stop_profile(&init_prof);
-  }  else if (t == IsaSAT_Profile_INPROCESSING ()) {
-    stop_profile(&inprocessing_prof);
-  } else {
+  }
+  else if (t == IsaSAT_Profile_SUBSUMPTION ()) {
+    stop_profile(&subsumption_prof);
+  }
+  else if (t == IsaSAT_Profile_BINARY_SIMP ()) {
+    stop_profile(&binary_simp_prof);
+  }
+  else if (t == IsaSAT_Profile_PURE_LITERAL ()) {
+    stop_profile(&pure_lits_prof);
+  }
+  else {
     printf("c unrecognised profile, ignoring\n");
   }
 #endif
@@ -879,12 +895,14 @@ READ_FILE:
 
 #ifdef PRINTSTATS
   const long double total_measure = propagate_prof.total + analyze_prof.total + minimization_prof.total + reduce_prof.total + gc_prof.total +
-    init_prof.total;
+    init_prof.total + subsumption_prof.total + pure_lits_prof.total + binary_simp_prof.total;
   printf("c propagate           : %.2Lf%% (%.2Lf s)\n", 100. * propagate_prof.total / total_prof.total, propagate_prof.total / 1000000.);
   printf("c analyze             : %.2Lf%% (%.2Lf s)\n", 100. * analyze_prof.total / total_prof.total, analyze_prof.total / 1000000.);
   printf("c minimization        : %.2Lf%% (%.2Lf s)\n", 100. * minimization_prof.total / total_prof.total, minimization_prof.total / 1000000.);
   printf("c reduce              : %.2Lf%% (%.2Lf s)\n", 100. * reduce_prof.total / total_prof.total, reduce_prof.total / 1000000.);
-  printf("c inprocessing        : %.2Lf%% (%.2Lf s)\n", 100. * inprocessing_prof.total / total_prof.total, inprocessing_prof.total / 1000000.);
+  printf("c subsumption         : %.2Lf%% (%.2Lf s)\n", 100. * subsumption_prof.total / total_prof.total, subsumption_prof.total / 1000000.);
+  printf("c pure_lits           : %.2Lf%% (%.2Lf s)\n", 100. * pure_lits_prof.total / total_prof.total, pure_lits_prof.total / 1000000.);
+  printf("c binary_simp         : %.2Lf%% (%.2Lf s)\n", 100. * binary_simp_prof.total / total_prof.total, binary_simp_prof.total / 1000000.);
   printf("c GC                  : %.2Lf%% (%.2Lf s)\n", 100. * gc_prof.total / total_prof.total, gc_prof.total / 1000000.);
   printf("c initialisation      : %.2Lf%% (%.2Lf s)\n", 100. * init_prof.total / total_prof.total, init_prof.total / 1000000.);
   printf("c ==================================================================\n");

@@ -61,10 +61,22 @@ sepref_def IsaSAT_Profile_INITIALISATION
   unfolding IsaSAT_Profile.INITIALISATION_def
   by sepref
 
-sepref_def IsaSAT_Profile_INPROCESSING
-  is \<open>uncurry0 (RETURN IsaSAT_Profile.INPROCESSING)\<close>
+sepref_def IsaSAT_Profile_PURE_LITERAL
+  is \<open>uncurry0 (RETURN IsaSAT_Profile.PURE_LITERAL)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding IsaSAT_Profile.INPROCESSING_def
+  unfolding IsaSAT_Profile.PURE_LITERAL_def
+  by sepref
+
+sepref_def IsaSAT_Profile_BINARY_SIMP
+  is \<open>uncurry0 (RETURN IsaSAT_Profile.BINARY_SIMP)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding IsaSAT_Profile.BINARY_SIMP_def
+  by sepref
+
+sepref_def IsaSAT_Profile_SUBSUMPTION
+  is \<open>uncurry0 (RETURN IsaSAT_Profile.SUBSUMPTION)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding IsaSAT_Profile.SUBSUMPTION_def
   by sepref
 
 experiment begin
@@ -76,7 +88,9 @@ export_llvm
     IsaSAT_Profile_ANALYZE is \<open>PROFILE_CST IsaSAT_Profile_ANALYZE()\<close>
     IsaSAT_Profile_MINIMIZATION is \<open>PROFILE_CST IsaSAT_Profile_MINIMIZATION()\<close>
     IsaSAT_Profile_INITIALISATION is \<open>PROFILE_CST IsaSAT_Profile_INITIALISATION()\<close>
-    IsaSAT_Profile_INPROCESSING is \<open>PROFILE_CST IsaSAT_Profile_INPROCESSING()\<close>
+    IsaSAT_Profile_SUBSUMPTION is \<open>PROFILE_CST IsaSAT_Profile_SUBSUMPTION()\<close>
+    IsaSAT_Profile_PURE_LITERAL is \<open>PROFILE_CST IsaSAT_Profile_PURE_LITERAL()\<close>
+    IsaSAT_Profile_BINARY_SIMP is \<open>PROFILE_CST IsaSAT_Profile_BINARY_SIMP()\<close>
     defines \<open>
        typedef int8_t PROFILE_CST;
   \<close>

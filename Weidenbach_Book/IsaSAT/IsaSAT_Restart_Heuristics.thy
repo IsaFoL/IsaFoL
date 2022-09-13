@@ -250,7 +250,7 @@ thm cdcl_twl_full_restart_inprocess_wl_prog_def
 
 definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog S0 = do {
-    _ \<leftarrow> RETURN (IsaSAT_Profile.start_inprocessing);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_reduce);
     S \<leftarrow> do {
       if count_decided_st_heur S0 > 0
       then do {
@@ -261,19 +261,27 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
     ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count S \<le> learned_clss_count S0);
     T \<leftarrow> remove_one_annot_true_clause_imp_wl_D_heur S;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_reduce);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_binary_simp);
     T \<leftarrow> isa_mark_duplicated_binary_clauses_as_garbage_wl2 T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_binary_simp);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_subsumption);
     T \<leftarrow> isa_forward_subsumption_all T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_subsumption);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_pure_literal);
     T \<leftarrow> isa_pure_literal_elimination_wl T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_pure_literal);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_reduce);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
-    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_inprocessing);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_reduce);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     if \<not>get_conflict_wl_is_None_heur T then RETURN T
