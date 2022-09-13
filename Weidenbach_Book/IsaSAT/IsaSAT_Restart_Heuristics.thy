@@ -250,7 +250,7 @@ thm cdcl_twl_full_restart_inprocess_wl_prog_def
 
 definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
 \<open>cdcl_twl_full_restart_wl_D_inprocess_heur_prog S0 = do {
-    _ \<leftarrow> RETURN (IsaSAT_Profile.start_GC);
+    _ \<leftarrow> RETURN (IsaSAT_Profile.start_inprocessing);
     S \<leftarrow> do {
       if count_decided_st_heur S0 > 0
       then do {
@@ -273,10 +273,12 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
+    _ \<leftarrow> RETURN (IsaSAT_Profile.stop_inprocessing);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     if \<not>get_conflict_wl_is_None_heur T then RETURN T
     else do {
+      _ \<leftarrow> RETURN (IsaSAT_Profile.start_GC);
       U \<leftarrow> mark_to_delete_clauses_GC_wl_D_heur T;
       ASSERT(length (get_clauses_wl_heur U) = length (get_clauses_wl_heur S0));
       ASSERT(learned_clss_count U \<le> learned_clss_count S0);

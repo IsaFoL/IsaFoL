@@ -511,6 +511,7 @@ lemmas [llvm_code del] = units_since_last_GC_st_code_def
     IsaSAT_Profile_ANALYZE is \<open>PROFILE_CST IsaSAT_Profile_ANALYZE()\<close>
     IsaSAT_Profile_MINIMIZATION is \<open>PROFILE_CST IsaSAT_Profile_MINIMIZATION()\<close>
     IsaSAT_Profile_INITIALISATION is \<open>PROFILE_CST IsaSAT_Profile_INITIALISATION()\<close>
+    IsaSAT_Profile_INPROCESSING is \<open>PROFILE_CST IsaSAT_Profile_INPROCESSING()\<close>
   defines \<open>
      typedef int8_t CBOOL;
      typedef int8_t PROFILE_CST;
