@@ -1033,7 +1033,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_restart_stat T
+    incr_reduction_stat T
   })\<close>
 
 
@@ -1082,7 +1082,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_reduction_stat T
+    incr_restart_stat T
   })\<close>
 
 lemma mark_to_delete_clauses_wl_D_heur_alt_def:
