@@ -322,39 +322,45 @@ next
   qed
 next
   fix Q :: "'e fifo"
-  assume "\<exists>es \<in># llists Q. es \<noteq> LNil"
+  assume nnil: "\<exists>es \<in># llists Q. es \<noteq> LNil"
   show "\<exists>e es. LCons e es \<in># llists Q \<and> fst (pick_elem Q) = e \<and> llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
-    sorry
-(*
-  fix Q :: "'e llist list"
-  assume ex_cons: "\<exists>es \<in># mset Q. es \<noteq> LNil"
-  show "\<exists>e es. LCons e es \<in># mset Q \<and> fst (pick_elem Q) = e
-      \<and> mset (snd (pick_elem Q)) = mset Q - {#LCons e es#} + {#es#}"
-    using ex_cons
-  proof (induct Q rule: pick_elem.induct)
-    case 1
-    note ex_cons = this(1)
-    have False
-      using ex_cons by simp
-    thus ?case
-      by blast
-  next
-    case (2 ess)
-    note ih = this(1) and ex_cons = this(2)
-
-    obtain e :: 'e and es :: "'e llist" where
-      "LCons e es \<in># mset ess" and
-      "fst (pick_elem ess) = e" and
-      "mset (snd (pick_elem ess)) = mset ess - {#LCons e es#} + {#es#}"
-      using ih ex_cons by auto
-    thus ?case
-      by (auto simp: case_prod_beta)
-  next
-    case (3 e es ess)
-    show ?case
-      using add_mset_diff_bothsides by auto
+    using nnil
+  proof (cases Q)
+    case q: (Pair num_nils ps)
+    show ?thesis
+    proof (cases ps)
+      case ps: Nil
+      have False
+        using nnil unfolding q ps by (cases "num_nils = 0") auto
+      thus ?thesis
+        by blast
+    next
+      case ps: (Cons p ps')
+      show ?thesis
+      proof (rule exI[of _ "fst p"], rule exI[of _ "snd p"]; intro conjI)
+        show "LCons (fst p) (snd p) \<in># llists Q"
+          unfolding q ps by (cases p) auto
+      next
+        show "fst (pick_elem Q) = fst p"
+          unfolding q ps by (cases p) auto
+      next
+        show "llists (snd (pick_elem Q)) = llists Q - {#LCons (fst p) (snd p)#} + {#snd p#}"
+        proof (cases p)
+          case p: (Pair e es)
+          show ?thesis
+          proof (cases es)
+            case es: LNil
+            show ?thesis
+              unfolding q ps p es by simp
+          next
+            case es: (LCons e' es')
+            show ?thesis
+              unfolding q ps p es by simp
+          qed
+        qed
+      qed
+    qed
   qed
-*)
 qed
 
 sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
