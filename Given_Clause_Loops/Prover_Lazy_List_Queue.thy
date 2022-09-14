@@ -363,17 +363,17 @@ next
   qed
 qed
 
-sublocale fair_prover_lazy_list_queue "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset
+sublocale fair_prover_lazy_list_queue empty add_llist remove_llist pick_elem llists
 proof
   fix
-    QDs :: "('e llist list \<times> 'e set) llist" and
-    i :: nat and
+    QDs :: "('e fifo \<times> 'e set) llist" and
     e :: 'e and
-    es :: "'e llist"
+    es :: "'e llist" and
+    i :: nat
   assume
     chain: "chain lqueue_step QDs" and
     inf_pick: "infinitely_often pick_lqueue_step QDs" and
-    cons_in: "LCons e es \<in># mset (fst (lnth QDs i))"
+    cons_in: "LCons e es \<in># llists (fst (lnth QDs i))"
 
   have len: "llength QDs = \<infinity>"
     using inf_pick unfolding infinitely_often_alt_def
@@ -384,6 +384,7 @@ proof
     assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
       \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
+(*
     obtain k :: nat where
       k_lt: "k < length (fst (lnth QDs i))" and
       at_k: "fst (lnth QDs i) ! k = LCons e es"
@@ -512,9 +513,7 @@ proof
 
           show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
             using cons_at_j unfolding at_j at_sj
-(*
-characterize "snd (pick_elem Q)" using an inductive lemma
-*)
+
             sorry
         qed
       qed
@@ -659,8 +658,10 @@ characterize "snd (pick_elem Q)" using an inductive lemma
         using cons_in_fst fst_pick snd_pick
         by (smt (verit, ccfv_SIG) pick_step_det fst_conv pick_lqueue_step_w_details.simps)
     qed
+*)
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      using i'_ge j_ge le_trans by blast
+      (* using i'_ge j_ge le_trans by blast *)
+      sorry
   }
   thus "\<exists>j \<ge> i.
       (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
