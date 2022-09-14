@@ -63,29 +63,6 @@ proof (induct xs arbitrary: m)
   qed
 qed simp
 
-lemma notin_set_and_in_set_take_imp_in_set_take_fold_remove1:
-  assumes
-    "x \<notin> set ys" and
-    "x \<in> set (take m xs)"
-  shows "x \<in> set (take m (fold remove1 ys xs))"
-  using assms
-proof (induct ys arbitrary: xs)
-  case (Cons y ys xs)
-  note ih = this(1) and x_ni_yys = this(2) and x_in_take_xs = this(3)
-
-  have x_ne_y: "x \<noteq> y"
-    using x_ni_yys by simp
-
-  have x_ni_ys: "x \<notin> set ys"
-    using x_ni_yys by simp
-  have x_in_take_rem_y_xs: "x \<in> set (take m (remove1 y xs))"
-    using x_in_take_xs x_ne_y using ne_and_in_set_take_imp_in_set_take_remove by fast
-  note ih = ih[OF x_ni_ys x_in_take_rem_y_xs]
-
-  show ?case
-    using ih by simp
-qed simp
-
 
 subsection \<open>Locales\<close>
 
@@ -484,19 +461,35 @@ proof
 
               show ?thesis
                 using ih unfolding defs by (auto intro: in_set_fold_add)
-
-(*
-
             next
               case (lqueue_step_fold_remove_llistI Q D ess)
               note defs = this
+
+              have notin_set_remove: "(e, es) \<in> set (take n (snd (fold remove_llist ess Q)))"
+                if "LCons e es \<notin> set ess" and "(e, es) \<in> set (take n (snd Q))" for n
+                using that
+              proof (induct ess arbitrary: Q)
+                case (Cons es' ess')
+                note ih = this(1) and ni_es'ess' = this(2) and in_q = this(3)
+                have ni_ess': "LCons e es \<notin> set ess'"
+                  using ni_es'ess' by auto
+                have in_rem: "(e, es) \<in> set (take n (snd (remove_llist es' Q)))"
+                  by (smt (verit, best) fifo_prover_lazy_list_queue.remove_llist.elims fst_conv in_q
+                      list.set_intros(1) ne_and_in_set_take_imp_in_set_take_remove ni_es'ess'
+                      snd_conv)
+                show ?case
+                  using ih[OF ni_ess' in_rem] by auto
+              qed simp
+
               have "remove_lqueue_step_w_details (lnth QDs (i' + m)) ess (lnth QDs (i' + Suc m))"
                 unfolding defs by (rule remove_lqueue_step_w_detailsI)
               hence "LCons e es \<notin> set ess"
                 using not_rem_step i'_ge by force
               thus ?thesis
-                using ih unfolding defs
-                by (auto intro: notin_set_and_in_set_take_imp_in_set_take_fold_remove1)
+                using ih unfolding defs by (auto intro: notin_set_remove)
+
+(*
+
             next
               case (lqueue_step_pick_elemI Q D)
               note defs = this(1,2) and rest = this(3)
