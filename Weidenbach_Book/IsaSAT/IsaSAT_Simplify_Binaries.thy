@@ -379,14 +379,13 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
          if st = DELETED \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
-            val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L';
+           val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L';
            if val \<noteq> UNSET then do {
              S \<leftarrow> isa_simplify_clause_with_unit_st2 C S;
              val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
              RETURN (val \<noteq> UNSET, i+1, CS, S)
            }
            else do {
-             st \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
              m \<leftarrow> is_marked CS (L');
              n \<leftarrow> (if m then get_marked CS L' else RETURN (1, True));
              if m \<and> (\<not>snd n \<longrightarrow> st = LEARNED) then do {
@@ -400,7 +399,7 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
                }
                else do {
                  CS \<leftarrow> set_marked CS (L') (C, st = IRRED);
-               RETURN (abort, i+1, CS, S)
+                 RETURN (abort, i+1, CS, S)
              }
             }
           }
@@ -481,10 +480,9 @@ lemma deduplicate_binary_clauses_wl_alt_def:
              RETURN (defined_lit (get_trail_wl U) L, i+1, CS, U)
            }
            else do {
-             let st  = irred (get_clauses_wl S) C;
              let c = CS L';
              let _ = CS L';
-             if c \<noteq> None \<and> (\<not>snd (the c) \<longrightarrow> \<not>st)then do {
+             if c \<noteq> None \<and> (\<not>snd (the c) \<longrightarrow> \<not>irred (get_clauses_wl S) C)then do {
                S \<leftarrow> clause_remove_duplicate_clause_wl C S;
                RETURN (abort, i+1, CS, S)
              } else do {
@@ -824,11 +822,6 @@ proof -
         by (metis (no_types, lifting) trail_pol_cong)
     subgoal
       by (auto simp: twl_st_heur_restart_ana_state_simp polarity_def)
-    apply (rule watched_in_vdom; assumption)[]
-    apply (rule watched_in_vdom; assumption)[]
-    apply (solves \<open>rule twl_st_heur_restart_ana_stateD, simp only: prod.simps in_pair_collect_simp prod_rel_iff,
-      normalize_goal+, assumption\<close>)
-    apply (rule irred_status; assumption)
     apply (rule is_markedI)
     subgoal by simp
     subgoal by simp
