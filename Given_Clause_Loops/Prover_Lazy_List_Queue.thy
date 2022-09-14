@@ -63,11 +63,6 @@ proof (induct xs arbitrary: m)
   qed
 qed simp
 
-lemma in_set_take_imp_in_set_take_fold_append_single:
-  assumes "x \<in> set (take n xs)"
-  shows "x \<in> set (take n (fold (\<lambda>y ys. ys @ [y]) ys xs))"
-  using assms by (induct ys arbitrary: xs) auto
-
 lemma notin_set_and_in_set_take_imp_in_set_take_fold_remove1:
   assumes
     "x \<notin> set ys" and
@@ -384,22 +379,27 @@ proof
     assume not_rem_step: "\<not> (\<exists>j \<ge> i. \<exists>ess. LCons e es \<in> set ess
       \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))"
 
-(*
-    obtain k :: nat where
-      k_lt: "k < length (fst (lnth QDs i))" and
-      at_k: "fst (lnth QDs i) ! k = LCons e es"
-      using cons_in by (metis in_set_conv_nth set_mset_mset)
+    obtain num_nils :: nat and ps :: "('e \<times> 'e llist) list" where
+      fst_at_i: "fst (lnth QDs i) = (num_nils, ps)"
+      by fastforce
 
-    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. LCons e es \<in># mset (take (Suc k') (fst (lnth QDs i')))"
+    obtain k :: nat where
+      k_lt: "k < length (snd (fst (lnth QDs i)))" and
+      at_k: "snd (fst (lnth QDs i)) ! k = (e, es)"
+      using cons_in unfolding fst_at_i
+      by simp (smt (verit) empty_iff imageE in_set_conv_nth llist.distinct(1) llist.inject
+          prod.collapse singleton_iff split_beta)
+
+    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. (e, es) \<in># mset (take (Suc k') (snd (fst (lnth QDs i'))))"
     proof -
-      have "\<exists>i' \<ge> i. LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+      have "\<exists>i' \<ge> i. (e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
         if l_le: "l \<le> k" for l
         using l_le
       proof (induct l)
         case 0
         show ?case
         proof (rule exI[of _ i]; simp)
-          show "LCons e es \<in> set (take (Suc k) (fst (lnth QDs i)))"
+          show "(e, es) \<in> set (take (Suc k) (snd (fst (lnth QDs i))))"
             by (simp add: at_k k_lt take_Suc_conv_app_nth)
         qed
       next
@@ -412,7 +412,7 @@ proof
 
         obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          cons_at_i': "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs i')))"
+          cons_at_i': "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
           using ih by blast
         then obtain j0 :: nat where
           "j0 \<ge> i'" and
@@ -427,10 +427,10 @@ proof
               "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
           by blast
 
-        have cons_at_le_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j')))"
+        have cons_at_le_j: "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs j'))))"
           if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
         proof -
-          have "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs (i' + m))))"
+          have "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs (i' + m)))))"
             if i'm_le: "i' + m \<le> j" for m
             using i'm_le
           proof (induct m)
@@ -455,9 +455,38 @@ proof
             proof cases
               case (lqueue_step_fold_add_llistI Q D ess)
               note defs = this
+
+              have in_set_fold_add: "(e, es) \<in> set (take n (snd (fold add_llist ess Q)))"
+                if "(e, es) \<in> set (take n (snd Q))" for n
+                using that
+              proof (induct ess arbitrary: Q)
+                case (Cons es' ess')
+                note ih = this(1) and in_q = this(2)
+
+                have in_add: "(e, es) \<in> set (take n (snd (add_llist es' Q)))"
+                proof (cases Q)
+                  case q: (Pair num_nils ps)
+                  show ?thesis
+                  proof (cases es')
+                    case es': LNil
+                    show ?thesis
+                      using in_q unfolding q es' by simp
+                  next
+                    case es': (LCons e'' es'')
+                    show ?thesis
+                      using in_q unfolding q es' by simp
+                  qed
+                qed
+
+                show ?case
+                  using ih[OF in_add] by simp
+              qed simp
+
               show ?thesis
-                using ih unfolding defs
-                by (auto intro: in_set_take_imp_in_set_take_fold_append_single)
+                using ih unfolding defs by (auto intro: in_set_fold_add)
+
+(*
+
             next
               case (lqueue_step_fold_remove_llistI Q D ess)
               note defs = this
