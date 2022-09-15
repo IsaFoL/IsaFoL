@@ -487,9 +487,6 @@ proof
                 using not_rem_step i'_ge by force
               thus ?thesis
                 using ih unfolding defs by (auto intro: notin_set_remove)
-
-(*
-
             next
               case (lqueue_step_pick_elemI Q D)
               note defs = this(1,2) and rest = this(3)
@@ -503,9 +500,6 @@ proof
                 thus ?thesis
                   using pick_lqueue_stepI by fast
               qed
-
-              thm pick_step_min[rule_format, OF le_add1]
-
               moreover have "\<not> pick_lqueue_step (lnth QDs (i' + m)) (lnth QDs (i' + Suc m))"
                 using pick_step_min[rule_format, OF le_add1 i'm_lt] by simp
               ultimately show ?thesis
@@ -520,6 +514,7 @@ proof
         proof (rule exI[of _ "Suc j"], intro conjI)
           show "i \<le> Suc j"
             using i'_ge j_ge by linarith
+(*
         next
           obtain Q :: "'e llist list" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
             at_j: "lnth QDs j = (Q, D)" and
