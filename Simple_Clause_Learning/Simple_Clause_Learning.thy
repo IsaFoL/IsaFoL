@@ -1265,6 +1265,9 @@ definition adapt_subst_to_renaming where
     else
       Var x)"
 
+lemma adapt_subst_to_renaming_Var_eq[simp]: "adapt_subst_to_renaming \<rho> Var = Var"
+  by (rule ext) (simp add: adapt_subst_to_renaming_def)
+
 lemma subst_lit_renaming_subst_adapted:
   assumes ren_\<rho>: "is_renaming \<rho>" and vars_L: "vars_lit L \<subseteq> subst_domain \<sigma>"
   shows "L \<cdot>l \<rho> \<cdot>l adapt_subst_to_renaming \<rho> \<sigma> = L \<cdot>l \<sigma>"
@@ -2067,9 +2070,10 @@ inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Righ
 
 inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  conflictI: "D \<in> N \<union> U \<Longrightarrow> D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D \<Longrightarrow>
-    subst_domain \<sigma> \<subseteq> vars_cls D' \<Longrightarrow> is_ground_cls (D' \<cdot> \<sigma>) \<Longrightarrow> trail_false_cls \<Gamma> (D' \<cdot> \<sigma>) \<Longrightarrow>
-    conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D', \<sigma>))"
+  conflictI: "D \<in> N \<union> U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
+    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
+    \<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma> \<Longrightarrow>
+    conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
 inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -2238,27 +2242,20 @@ proof (rule notI)
   qed
 
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U,
-    Some (C \<cdot> \<rho>, restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)))"
-  proof (rule conflictI[of C N U "C \<cdot> \<rho>" \<Gamma>
-        "restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)" \<beta>])
-    from C_in show "C \<in> N \<union> U"
-      by (simp add: S_def)
+    Some (C \<cdot> \<rho>, adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C) \<gamma>)))"
+  proof (rule conflictI)
+    show "C \<in> N \<union> U"
+      using C_in by (simp add: S_def)
   next
-    show "C \<cdot> \<rho> = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
-      by (simp add: \<rho>_def rename_clause_def)
+    show "subst_domain (restrict_subst (vars_cls C) \<gamma>) \<subseteq> vars_cls C"
+      by (simp add: subst_domain_restrict_subst)
   next
-    show "subst_domain (restrict_subst (vars_cls (C \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)) \<subseteq>
-      vars_cls (C \<cdot> \<rho>)"
-      by (rule subst_domain_restrict_subst)
+    show "is_ground_cls (C \<cdot> restrict_subst (vars_cls C) \<gamma>)"
+      using gr_C_\<gamma> by (simp add: subst_cls_restrict_subst_idem)
   next
-    from gr_C_\<gamma> show "is_ground_cls (C \<cdot> \<rho> \<cdot> restrict_subst (vars_cls (C \<cdot> \<rho>))
-      (adapt_subst_to_renaming \<rho> \<gamma>))"
-      by (simp add: C_\<rho>_adapt_\<gamma>_simp subst_cls_restrict_subst_idem)
-  next
-    from tr_false show "trail_false_cls \<Gamma> (C \<cdot> \<rho> \<cdot> restrict_subst (vars_cls (C \<cdot> \<rho>))
-      (adapt_subst_to_renaming \<rho> \<gamma>))"
-      by (simp add: S_def C_\<rho>_adapt_\<gamma>_simp subst_cls_restrict_subst_idem)
-  qed
+    show "trail_false_cls \<Gamma> (C \<cdot> restrict_subst (vars_cls C) \<gamma>)"
+      using tr_false by (simp add: S_def subst_cls_restrict_subst_idem)
+  qed (simp_all add: \<rho>_def)
   with no_conf show False
     by (simp add: S_def)
 qed
@@ -3058,11 +3055,10 @@ lemma conflict_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: conflict.cases)
-  case (conflictI D U D' \<Gamma> \<sigma>)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
   hence
     D_in: "D \<in> N \<union> U" and
-    D'_def: "D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D" and
-    "is_ground_cls (D' \<cdot> \<sigma>)"
+    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
     by simp_all
   
   from conflictI(1) sound have
@@ -3073,21 +3069,23 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     N_entails_U: "N \<TTurnstile>\<G>e U"
     unfolding sound_state_def by auto
 
-  from fin_N fin_U have fin_N_U: "finite (N \<union> U)" by simp
-  with disj_N_U D'_def have disj_N_U_D': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars D' C"
-    using disjoint_vars_set_insert_rename_clause
-    by (smt (verit) UN_I Un_iff disjoint_iff disjoint_vars_iff_inter_empty finite_UN finite_UnI
-        finite_clss_of_trail finite_vars_cls rename_clause_def vars_cls_subst_renaming_disj)
+  have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>"
+    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close>
+    by (metis \<rho>_def fin_N fin_U finite_Un finite_clss_of_trail is_renaming_renaming_wrt conflictI(5)
+        subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
 
-  moreover have N_entails_D': "N \<TTurnstile>\<G>e {D'}"
+  from fin_N fin_U have fin_N_U: "finite (N \<union> U)" by simp
+  hence disj_N_U_D': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D \<cdot> \<rho>) C"
+    by (metis \<rho>_def finite_clss_of_trail infinite_Un disjoint_vars_rename_clause rename_clause_def)
+
+  moreover have N_entails_D': "N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
   proof (intro allI impI)
     fix I
     assume valid_N: "I \<TTurnstile>s grounding_of_clss N"
-    moreover have "grounding_of_cls D' = grounding_of_cls D"
-      unfolding D'_def
-      using grounding_of_cls_rename_clause fin_N_U
-      by (metis finite_UnI finite_clss_of_trail)
-    ultimately show "I \<TTurnstile>s grounding_of_clss {D'}"
+    moreover have "grounding_of_cls (D \<cdot> \<rho>) = grounding_of_cls D"
+      by (metis \<rho>_def fin_N_U finite_clss_of_trail infinite_Un grounding_of_cls_rename_clause
+          rename_clause_def)
+    ultimately show "I \<TTurnstile>s grounding_of_clss {D \<cdot> \<rho>}"
       using D_in
       by (metis (mono_tags, lifting) N_entails_U UN_I UnE grounding_of_clss_def
           grounding_of_clss_singleton true_clss_def)
@@ -3096,10 +3094,33 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   moreover have "trail_atoms_lt \<beta> S'"
     using assms conflict_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
 
+  moreover have "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> vars_cls (D \<cdot> \<rho>)"
+  proof (rule Set.subsetI)
+    fix x assume "x \<in> subst_domain \<gamma>\<^sub>\<rho>"
+    hence "adapt_subst_to_renaming \<rho> \<gamma> x \<noteq> Var x"
+      unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> subst_domain_def mem_Collect_eq by assumption
+    hence x_in: "x \<in> the_Var ` \<rho> ` subst_domain \<gamma>" and "\<gamma> (the_inv \<rho> (Var x)) \<noteq> Var x"
+      unfolding adapt_subst_to_renaming_def by metis+
+
+    from x_in obtain x' where x'_in: "x' \<in> subst_domain \<gamma>" and \<rho>_x': "\<rho> x' = Var x"
+      using \<rho>_def is_renaming_iff by auto
+    hence "x' \<in> vars_cls D"
+      using \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close>[THEN subsetD] by metis
+    thus "x \<in> vars_cls (D \<cdot> \<rho>)"
+      using \<rho>_x' vars_subst_cls_eq by fastforce
+  qed
+
+  moreover have "is_ground_cls (D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>)"
+    unfolding \<open>D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>\<close>
+    using conflictI by simp
+
+  moreover have "trail_false_cls \<Gamma> (D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>)"
+    unfolding \<open>D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>\<close>
+    using conflictI by simp
+
   ultimately show ?thesis
-    unfolding conflictI sound_state_def
-    using fin_N fin_U disj_N_U disj_N_U_D' sound_\<Gamma> N_entails_U conflictI
-    by simp
+    unfolding conflictI(1,2) sound_state_def
+    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
 lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
@@ -3532,34 +3553,6 @@ theorem scl_sound_state:
     factorize_sound_state resolve_sound_state backtrack_sound_state
   by metis
 
-lemma assumes "sound_state N \<beta> S" and "conflict N \<beta> S S'"
-  shows "(\<exists>\<gamma>. state_conflict S' = Some ({#}, \<gamma>)) \<or> (\<exists>S''. backtrack N \<beta> S' S'')"
-proof -
-  from \<open>conflict N \<beta> S S'\<close> obtain D U D' \<Gamma> \<sigma> where
-       "S = (\<Gamma>, U, None)" and
-       S'_def: "S' = (\<Gamma>, U, Some (D', \<sigma>))" and
-       "D \<in> N \<union> U"
-       "D' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D"
-       "subst_domain \<sigma> \<subseteq> vars_cls D'"
-       "is_ground_cls (D' \<cdot> \<sigma>)"
-       "trail_false_cls \<Gamma> (D' \<cdot> \<sigma>)"
-    by (auto elim: conflict.cases)
-
-  then show ?thesis
-  proof (cases "D' = {#}")
-    assume "D' = {#}"
-    with S'_def show ?thesis by simp
-  next
-    assume "D' \<noteq> {#}"
-    then obtain D'' L where "D' = D'' + {#L#}"
-      by (metis add_mset_add_single multi_nonempty_split)
-    have "(\<exists>S''. backtrack N \<beta> S' S'')"
-      unfolding S'_def \<open>D' = D'' + {#L#}\<close>
-    proof (rule exI)
-      show "backtrack N \<beta> (\<Gamma>, U, Some (D'' + {#L#}, \<sigma>))
-        (trail_backtrack \<Gamma> (trail_level_cls \<Gamma> (D'' \<cdot> \<sigma>)), U \<union> {D'' + {#L#}}, None)"
-  oops
-
 
 section \<open>Reasonable And Regular Runs\<close>
 
@@ -3673,9 +3666,12 @@ proof -
 
   show ?thesis
     unfolding S_def state_trail_simp state_learned_simp
-  proof (rule conflictI[of "{#}" N _ _ _ Var])
+  proof (rule conflictI[of "{#}" N _  Var _ _, unfolded subst_cls_empty])
     from assms(1) show "{#} \<in> N \<union> U"
       by simp
+  next
+    show "Var = adapt_subst_to_renaming (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) Var"
+      by (rule ext) (simp add: adapt_subst_to_renaming_def)
   qed simp_all
 qed
 
@@ -3688,21 +3684,22 @@ lemma conflict_initial_state_only_with_mempty:
   shows "S = ([], {}, Some ({#}, Var))"
   using assms(1)
 proof (cases rule: conflict.cases)
-  case (conflictI D D' \<sigma>)
+  case (conflictI D \<gamma> \<rho> \<gamma>\<^sub>\<rho>)
 
-  from \<open>trail_false_cls [] (D' \<cdot> \<sigma>)\<close> have "D' \<cdot> \<sigma> = {#}"
+  from \<open>trail_false_cls [] (D \<cdot> \<gamma>)\<close> have "D \<cdot> \<gamma> = {#}"
     using not_trail_false_Nil(2) by blast
-  hence "D' = {#}"
+  hence "D = {#}"
     by simp
-  moreover with \<open>subst_domain \<sigma> \<subseteq> vars_cls D'\<close> have "\<sigma> = Var"
+  moreover with \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close> have "\<gamma> = Var"
     using subst_ident_if_not_in_domain by fastforce
   ultimately show ?thesis
-    using \<open>S = ([], {}, Some (D', \<sigma>))\<close> by simp
+    using \<open>S = ([], {}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> by simp
 qed
 
 lemma no_more_step_if_conflict_mempty:
   assumes "state_conflict S = Some ({#}, \<gamma>)"
-  shows "\<not> (\<exists>S'. scl N \<beta> S S')"
+  shows "\<nexists>S'. scl N \<beta> S S'"
   apply (rule notI)
   unfolding scl_def
   apply (insert assms)
@@ -3745,38 +3742,29 @@ lemma ex_conflict_if_trail_false_cls:
     tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (N \<union> U)"
   shows "\<exists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
 proof -
-  from D_in obtain D' \<gamma> where
-    D'_in: "D' \<in> N \<union> U" and D_def: "D = D' \<cdot> \<gamma>" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>)"
+  from D_in obtain D' \<gamma>' where
+    D'_in: "D' \<in> N \<union> U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
     unfolding grounding_of_clss_def grounding_of_cls_def by force
+
+  define \<gamma> where
+    "\<gamma> \<equiv> restrict_subst (vars_cls D') \<gamma>'"
 
   define \<rho> where
     "\<rho> \<equiv> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
 
-  define \<gamma>' where
-    "\<gamma>' \<equiv> restrict_subst (vars_cls (D' \<cdot> \<rho>)) (adapt_subst_to_renaming \<rho> \<gamma>)"
-
-  have "D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>"
-    unfolding \<gamma>'_def using fin
-    by (metis \<rho>_def finite_UnI finite_clss_of_trail gr_D_\<gamma> is_renaming_renaming_wrt order_refl
-        subst_cls_restrict_subst_idem subst_renaming_subst_adapted
-        vars_cls_subset_subst_domain_if_grounding)
-
-  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, \<gamma>'))"
+  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, adapt_subst_to_renaming \<rho> \<gamma>))"
   proof (rule conflictI[OF D'_in])
-    show "D' \<cdot> \<rho> = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D'"
-      by (simp add: rename_clause_def \<rho>_def)
+    show "subst_domain \<gamma> \<subseteq> vars_cls D'"
+      by (simp add: \<gamma>_def subst_domain_restrict_subst)
   next
-    show "subst_domain \<gamma>' \<subseteq> vars_cls (D' \<cdot> \<rho>)"
-      by (simp add: \<gamma>'_def subst_domain_restrict_subst)
+    show "is_ground_cls (D' \<cdot> \<gamma>)"
+      using gr_D_\<gamma> by (simp add: \<gamma>_def subst_cls_restrict_subst_idem)
   next
-    show "is_ground_cls (D' \<cdot> \<rho> \<cdot> \<gamma>')"
-      unfolding \<open>D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>\<close> by (rule gr_D_\<gamma>)
-  next
-    show "trail_false_cls \<Gamma> (D' \<cdot> \<rho> \<cdot> \<gamma>')"
-      unfolding \<open>D' \<cdot> \<rho> \<cdot> \<gamma>' = D' \<cdot> \<gamma>\<close> D_def[symmetric]
-      by (rule tr_false_\<Gamma>_D)
-  qed
-  thus ?thesis by auto
+    show "trail_false_cls \<Gamma> (D' \<cdot> \<gamma>)"
+      using tr_false_\<Gamma>_D by (simp add: D_def \<gamma>_def subst_cls_restrict_subst_idem)
+  qed (simp_all add: \<rho>_def)
+  thus ?thesis
+    by auto
 qed
 
 end

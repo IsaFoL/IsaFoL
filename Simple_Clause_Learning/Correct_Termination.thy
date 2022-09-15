@@ -29,79 +29,130 @@ proof -
     "atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>"
     by (elim decide.cases) blast
   
-  from conf S\<^sub>2_def obtain D D' \<sigma> where
-    S\<^sub>3_def: "S\<^sub>3 = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, Some (D', \<sigma>))" and
+  from conf S\<^sub>2_def obtain D \<sigma> \<rho> \<sigma>\<^sub>\<rho> where
+    S\<^sub>3_def: "S\<^sub>3 = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, Some (D \<cdot> \<rho>, \<sigma>\<^sub>\<rho>))" and
     D_in: "D \<in> N \<union> U" and
-    D'_def: "D' = rename_clause (N \<union> U \<union> clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>))) D" and
-    dom_\<sigma>_subset:"subst_domain \<sigma> \<subseteq> vars_cls D'" and
-    ground_D'_\<sigma>: "is_ground_cls (D' \<cdot> \<sigma>)" and
-    tr_\<Gamma>_L_false_D': "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D' \<cdot> \<sigma>)"
+    dom_\<sigma>_subset:"subst_domain \<sigma> \<subseteq> vars_cls D" and
+    ground_D_\<sigma>: "is_ground_cls (D \<cdot> \<sigma>)" and
+    tr_\<Gamma>_L_false_D: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<sigma>)" and
+    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>)))" and
+    \<sigma>\<^sub>\<rho>_def: "\<sigma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<sigma>"
     by (elim conflict.cases) blast
 
-  from D'_def ground_D'_\<sigma> tr_\<Gamma>_L_false_D' obtain \<sigma>' where
-    "is_ground_cls (D \<cdot> \<sigma>')" and "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (D \<cdot> \<sigma>')"
-    unfolding trail_decide_def by (metis rename_clause_def subst_cls_comp_subst)
-  moreover hence "\<not> trail_false_cls \<Gamma> (D \<cdot> \<sigma>')"
-    using not_trail_false_ground_cls_if_no_conflict[OF fin_N fin_learned no_conf]
-    using D_in by (simp add: S\<^sub>0_def)
-  ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<sigma>'"
-    using subtrail_falseI by metis
-  then obtain D'' L' where D_def: "D = add_mset L' D''" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'"
-    by (meson Melem_subst_cls multi_member_split)
+  have ren_\<rho>: "is_renaming \<rho>"
+    unfolding \<rho>_def
+    by (rule is_renaming_renaming_wrt)
+      (metis S\<^sub>0_def fin_N fin_learned finite_UnI finite_clss_of_trail state_learned_simp)
 
-  have tr_false_C\<^sub>1: "trail_false_cls \<Gamma> ({#K \<in># D''. K \<cdot>l \<sigma>' \<noteq> L' \<cdot>l \<sigma>'#} \<cdot> \<sigma>')"
-  proof (rule subtrail_falseI)
-    show "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) ({#K \<in># D''. K \<cdot>l \<sigma>' \<noteq> L' \<cdot>l \<sigma>'#} \<cdot> \<sigma>')"
-      unfolding trail_false_cls_def
-      apply (rule ballI)
-      apply (rule \<open>trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (D \<cdot> \<sigma>')\<close>[unfolded D_def trail_false_cls_def, rule_format])
-      by auto
-  next
-    show "- (L \<cdot>l \<gamma>) \<notin># {#K \<in># D''. K \<cdot>l \<sigma>' \<noteq> L' \<cdot>l \<sigma>'#} \<cdot> \<sigma>'"
-      unfolding \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'\<close> by auto
+  moreover have "vars_cls D \<subseteq> subst_domain \<sigma>"
+    using ground_D_\<sigma> vars_cls_subset_subst_domain_if_grounding by blast
+
+  ultimately have "D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>"
+    unfolding \<sigma>\<^sub>\<rho>_def by (rule subst_renaming_subst_adapted)
+
+  have gr_D_\<rho>_\<sigma>\<^sub>\<rho>: "is_ground_cls (D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+    unfolding \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> by (rule ground_D_\<sigma>)
+
+  have tr_false_D_\<rho>_\<sigma>\<^sub>\<rho>: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+    unfolding \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> by (rule tr_\<Gamma>_L_false_D)
+
+  moreover have "\<not> trail_false_cls \<Gamma> (D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+    using not_trail_false_ground_cls_if_no_conflict[OF fin_N fin_learned no_conf] D_in
+    by (simp add: S\<^sub>0_def \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> ground_D_\<sigma>)
+
+  ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>"
+    by (metis subtrail_falseI trail_decide_def)
+
+  then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<gamma>) = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>"
+    by (metis Melem_subst_cls multi_member_split)
+
+  define C\<^sub>0 where
+    "C\<^sub>0 = {#K \<in># D'. K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> \<noteq> L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>#}"
+
+  define C\<^sub>1 where
+    "C\<^sub>1 = {#K \<in># D'. K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>#}"
+
+  have ball_atms_lt_\<beta>: "\<forall>K \<in># D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>. atm_of K \<prec>\<^sub>B \<beta>"
+  proof (rule ballI)
+    fix K assume "K \<in># D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>"
+    hence "K = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> \<or> (K \<in># D' \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+      by (simp add: D_def)
+    thus "atm_of K \<prec>\<^sub>B \<beta>"
+    proof (rule disjE)
+      assume "K = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>"
+      thus ?thesis
+        apply simp
+        by (metis \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>\<close> \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close> atm_of_eq_uminus_if_lit_eq
+            atm_of_subst_lit)
+    next
+      have trail_lt_\<beta>': "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
+        using trail_lt_\<beta> by (simp add: trail_atoms_lt_def S\<^sub>2_def)
+
+      assume K_in: "K \<in># D' \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>"
+      hence "atm_of K \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
+        using tr_false_D_\<rho>_\<sigma>\<^sub>\<rho>[unfolded D_def]
+        by (metis D_def \<open>K \<in># D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
+            trail_false_cls_def trail_false_lit_def)
+      moreover from trail_lt_\<beta> have "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
+        by (simp add: trail_atoms_lt_def S\<^sub>2_def)
+      ultimately show ?thesis
+        by blast
+    qed
   qed
 
-  have not_def_L'_\<sigma>': "\<not> trail_defined_lit \<Gamma> (L' \<cdot>l \<sigma>')"
-    using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close> \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'\<close>
-    by (metis trail_defined_lit_iff_defined_uminus)
+  have tr_false_C\<^sub>1: "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+  proof (rule subtrail_falseI)
+    show "trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (C\<^sub>0 \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
+      unfolding C\<^sub>0_def trail_false_cls_def
+      apply (rule ballI)
+      apply (rule tr_false_D_\<rho>_\<sigma>\<^sub>\<rho>[unfolded D_def trail_false_cls_def trail_decide_def, rule_format])
+      by auto
+  next
+    show "- (L \<cdot>l \<gamma>) \<notin># C\<^sub>0 \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>"
+      unfolding C\<^sub>0_def
+      using \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>\<close> by fastforce
+  qed
 
-  obtain xs where "mset xs = add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#}"
+  have not_def_L'_\<rho>_\<sigma>\<^sub>\<rho>: "\<not> trail_defined_lit \<Gamma> (L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>)"
+    using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close> \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close>[unfolded D_def]
+    by (metis \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>\<close> trail_defined_lit_iff_defined_uminus)
+
+  obtain xs where "mset xs = add_mset L' C\<^sub>1"
     using ex_mset by auto
   hence set_xs_conv:
-    "set xs = set_mset (add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#})"
+    "set xs = set_mset (add_mset L' C\<^sub>1)"
     by (metis set_mset_mset)
 
   have "unifiers (set (pairs (map atm_of xs))) \<noteq> {}"
   proof (rule not_empty_if_mem)
     have "set (pairs (map atm_of xs)) =
-      atm_of ` set_mset (add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#}) \<times>
-      atm_of ` set_mset (add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#})"
+      atm_of ` set_mset (add_mset L' C\<^sub>1) \<times> atm_of ` set_mset (add_mset L' C\<^sub>1)"
       unfolding set_pairs list.set_map set_xs_conv by simp
     also have "\<dots> =
-      atm_of ` insert L' (set_mset {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#}) \<times>
-      atm_of ` insert L' (set_mset {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#})"
+      atm_of ` insert L' (set_mset C\<^sub>1) \<times> atm_of ` insert L' (set_mset C\<^sub>1)"
       unfolding set_mset_add_mset_insert by simp
     also have "\<dots> =
-      atm_of ` insert L' {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'} \<times>
-      atm_of ` insert L' {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'}"
-      unfolding set_mset_filter by simp
+      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>} \<times>
+      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>}"
+      unfolding C\<^sub>1_def set_mset_filter by simp
     finally have set_pairs_xs_simp: "set (pairs (map atm_of xs)) =
-      atm_of ` insert L' {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'} \<times>
-      atm_of ` insert L' {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'}"
+      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>} \<times>
+      atm_of ` insert L' {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>}"
       by assumption
       
-    show "\<sigma>' \<in> unifiers (set (pairs (map atm_of xs)))"
+    show "\<rho> \<odot> \<sigma>\<^sub>\<rho> \<in> unifiers (set (pairs (map atm_of xs)))"
       unfolding unifiers_def mem_Collect_eq
     proof (rule ballI)
       fix p assume p_in: "p \<in> set (pairs (map atm_of xs))"
       then obtain K1 K2 where p_def: "p = (atm_of K1, atm_of K2)" and
-        "K1 = L' \<or> K1 \<in> {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'}" and
-        "K2 = L' \<or> K2 \<in> {K. K \<in># D'' \<and> K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'}"
+        "K1 = L' \<or> K1 \<in> {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>}" and
+        "K2 = L' \<or> K2 \<in> {K. K \<in># D' \<and> K \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>}"
         by (auto simp: set_pairs_xs_simp)
-      hence "K1 \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>' \<and> K2 \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'"
+      hence "K1 \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> \<and> K2 \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho> = L' \<cdot>l \<rho> \<cdot>l \<sigma>\<^sub>\<rho>"
         by auto
-      thus "fst p \<cdot>a \<sigma>' = snd p \<cdot>a \<sigma>'"
-        unfolding p_def prod.sel by (metis subst_atm_of_eqI)
+      thus "fst p \<cdot>a (\<rho> \<odot> \<sigma>\<^sub>\<rho>) = snd p \<cdot>a (\<rho> \<odot> \<sigma>\<^sub>\<rho>)"
+        unfolding p_def prod.sel subst_atm_comp_subst
+        by (metis atm_of_subst_lit)
     qed
   qed
   then obtain ys where
@@ -111,46 +162,19 @@ proof -
   define \<mu> where
     "\<mu> = subst_of ys"
 
-  have mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#})}"
+  have mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
   proof (intro is_mimgu_if_mgu_sets[unfolded mgu_sets_def] exI conjI)
-    show "set (map set [(map atm_of xs)]) =
-      {atm_of ` set_mset (add_mset L' {#K \<in># D''. K \<cdot>l \<sigma>' = L' \<cdot>l \<sigma>'#})}"
+    show "set (map set [(map atm_of xs)]) = {atm_of ` set_mset (add_mset L' C\<^sub>1)}"
       by (simp add: set_xs_conv)
   next
     show "map_option subst_of (unify (concat (map pairs [map atm_of xs])) []) = Some \<mu>"
       by (simp add: unify_pairs \<mu>_def)
   qed
 
-  have ball_atms_lt_\<beta>: "\<forall>K\<in>#D \<cdot> \<sigma>'. atm_of K \<prec>\<^sub>B \<beta>"
-  proof (rule ballI)
-    fix K assume "K \<in># D \<cdot> \<sigma>'"
-    hence "K = L' \<cdot>l \<sigma>' \<or> (K \<in># D'' \<cdot> \<sigma>')"
-      by (simp add: D_def)
-    thus "atm_of K \<prec>\<^sub>B \<beta>"
-    proof (rule disjE)
-      assume "K = L' \<cdot>l \<sigma>'"
-      thus ?thesis
-        apply simp
-        by (metis \<open>- (L \<cdot>l \<gamma>) = L' \<cdot>l \<sigma>'\<close> \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close> atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
-    next
-      from trail_lt_\<beta> have trail_lt_\<beta>': "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
-        by (simp add: trail_atoms_lt_def S\<^sub>2_def)
-
-      assume "K \<in># D'' \<cdot> \<sigma>'"
-      hence "atm_of K \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
-        using \<open>trail_false_cls ((L \<cdot>l \<gamma>, None) # \<Gamma>) (D \<cdot> \<sigma>')\<close>[unfolded D_def]
-        by (metis D_def \<open>K \<in># D \<cdot> \<sigma>'\<close> atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
-            trail_decide_def trail_false_cls_def trail_false_lit_def)
-      moreover from trail_lt_\<beta> have "\<forall>atm \<in> atm_of ` fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm \<prec>\<^sub>B \<beta>"
-        by (simp add: trail_atoms_lt_def S\<^sub>2_def)
-      ultimately show ?thesis
-        by blast
-    qed
-  qed
-
   show ?thesis
-    using propagateI[OF D_in D_def \<open>is_ground_cls (D \<cdot> \<sigma>')\<close> ball_atms_lt_\<beta> refl refl tr_false_C\<^sub>1
-      not_def_L'_\<sigma>' mimgu_\<mu> refl refl refl]
+    using propagateI[OF D_in, of _ _ "\<rho> \<odot> \<sigma>\<^sub>\<rho>", unfolded subst_cls_comp_subst subst_lit_comp_subst,
+      OF D_def gr_D_\<rho>_\<sigma>\<^sub>\<rho> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> mimgu_\<mu> refl refl
+      refl]
     unfolding S\<^sub>0_def by blast
 qed
 
@@ -311,41 +335,28 @@ proof -
         next
           assume "trail_false_cls \<Gamma> C"
 
-          define C'' where
-            "C'' = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C'"
           define \<rho> :: "'v \<Rightarrow> ('f, 'v) term" where
             "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
-          define \<gamma>' where
-            "\<gamma>' = adapt_subst_to_renaming \<rho> \<gamma>"
 
-          have C''_conv: "C'' = C' \<cdot> \<rho>"
-            by (simp add: C''_def rename_clause_def \<rho>_def)
+          define \<gamma>\<^sub>\<rho> where
+            "\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C') \<gamma>)"
 
-          have C''_restricted_\<gamma>': "C'' \<cdot> restrict_subst (vars_cls C'') \<gamma>' = C' \<cdot> \<gamma>"
-            unfolding subst_cls_restrict_subst_idem[OF subset_refl] C''_conv \<gamma>'_def
-          proof (rule subst_renaming_subst_adapted)
-            show "is_renaming \<rho>"
-              unfolding \<rho>_def
-              by (metis S_def fin_N fin_learned_S finite_Un finite_clss_of_trail
-                  is_renaming_renaming_wrt state_learned_simp)
-          next
-            show "vars_cls C' \<subseteq> subst_domain \<gamma>"
-              using C_def C_in grounding_ground vars_cls_subset_subst_domain_if_grounding by blast
-          qed
-          
-          have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (C'', restrict_subst (vars_cls C'') \<gamma>'))"
+          have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (C' \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
           proof (rule conflictI)
             show "C' \<in> N \<union> U"
               using C'_in by simp
           next
-            show "is_ground_cls (C'' \<cdot> restrict_subst (vars_cls C'') \<gamma>')"
-              unfolding C''_restricted_\<gamma>'
-              using C_def C_in grounding_ground by blast
+            show "subst_domain (restrict_subst (vars_cls C') \<gamma>) \<subseteq> vars_cls C'"
+              by (simp add: subst_domain_restrict_subst)
           next
-            show "trail_false_cls \<Gamma> (C'' \<cdot> restrict_subst (vars_cls C'') \<gamma>')"
-              unfolding C''_restricted_\<gamma>'
-              using C_def \<open>trail_false_cls \<Gamma> C\<close> by blast
-          qed (simp_all add: C''_def subst_domain_restrict_subst)
+            show "is_ground_cls (C' \<cdot> restrict_subst (vars_cls C') \<gamma>)"
+              using \<open>is_ground_cls C\<close>[unfolded C_def]
+              by (simp add: subst_cls_restrict_subst_idem)
+          next
+            show "trail_false_cls \<Gamma> (C' \<cdot> restrict_subst (vars_cls C') \<gamma>)"
+              using \<open>trail_false_cls \<Gamma> C\<close>[unfolded C_def]
+              by (simp add: subst_cls_restrict_subst_idem)
+          qed (simp_all add: \<rho>_def \<gamma>\<^sub>\<rho>_def)
           with no_new_conflict have False
             by (simp add: S_def u_def)
           thus "trail_true_cls \<Gamma> C" ..
