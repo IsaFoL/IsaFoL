@@ -72,7 +72,7 @@ lemma propagate_initial_lits_generalized_learned_lits:
   "propagate N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
     initial_lits_generalized_learned_lits N S'"
 proof (induction S S' rule: propagate.induct)
-  case (propagateI C U C' L \<Gamma> \<gamma> C\<^sub>0 C\<^sub>1 \<mu> \<gamma>')
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
 
   from propagateI.prems have
     fin: "finite N" "finite U" and
@@ -80,49 +80,42 @@ proof (induction S S' rule: propagate.induct)
     unfolding initial_lits_generalized_learned_lits_def by simp_all
 
   from propagateI.hyps have C_in: "C \<in> N \<union> U" by simp
-  from propagateI.hyps have rename_C: "C' + {#L#} = rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C"
-    by simp
+  from propagateI.hyps have C_def: "C = add_mset L C'" by simp
 
-  have "clss_lits_generalize_clss_lits N
-    (insert (add_mset L C\<^sub>0 \<cdot> \<mu>) (U \<union> clss_of_trail \<Gamma>))"
+  have "clss_lits_generalize_clss_lits N (insert (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) (U \<union> clss_of_trail \<Gamma>))"
   proof -
-    from C_in have "clss_lits_generalize_clss_lits N {rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) C}"
+    from C_in have generalize_N_C: "clss_lits_generalize_clss_lits N {C}"
     proof (unfold Un_iff, elim disjE)
-      assume "C \<in> N "
-      thus ?thesis
-        using fin by (auto intro: clss_lits_generalize_clss_lits_rename_clause)
+      show "C \<in> N \<Longrightarrow> ?thesis"
+        by force
     next
-      assume "C \<in> U"
-      thus ?thesis
-        using fin
-        by (auto intro!: clss_lits_generalize_clss_lits_trans[OF N_superset_lits]
-            intro: clss_lits_generalize_clss_lits_rename_clause)
+      show "C \<in> U \<Longrightarrow> ?thesis"
+        by (metis N_superset_lits UnI1 insert_absorb clss_lits_generalize_clss_lits_insert)
     qed
-    hence *: "clss_lits_generalize_clss_lits N {add_mset L C'}"
-      unfolding rename_C[simplified] by assumption
+(*     hence *: "clss_lits_generalize_clss_lits N {add_mset L C'}"
+      unfolding rename_C[simplified] by simp *)
 
-    have "clss_lits_generalize_clss_lits N {add_mset L C\<^sub>0 \<cdot> \<mu>}"
+    have "clss_lits_generalize_clss_lits N {add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>}"
       unfolding clss_lits_generalize_clss_lits_def
     proof (rule ballI)
-      fix K assume "K \<in> \<Union> (set_mset ` {add_mset L C\<^sub>0 \<cdot> \<mu>})"
-      hence "K = L \<cdot>l \<mu> \<or> (\<exists>M. M \<in># C\<^sub>0 \<and> K = M \<cdot>l \<mu>)"
-        by simp
+      fix K assume "K \<in> \<Union> (set_mset ` {add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>})"
+      hence "K = L \<cdot>l \<mu> \<cdot>l \<rho> \<or> (\<exists>M. M \<in># C\<^sub>0 \<and> K = M \<cdot>l \<mu> \<cdot>l \<rho>)"
+        by auto
       then show "\<exists>K'\<in>\<Union> (set_mset ` N). generalizes_lit K' K"
       proof (elim disjE exE conjE)
-        assume "K = L \<cdot>l \<mu>"
-        thus ?thesis
-          apply simp
-          using *[unfolded clss_lits_generalize_clss_lits_def, rule_format, simplified]
-          by (metis generalizes_lit_def subst_lit_comp_subst)
+        assume K_def: "K = L \<cdot>l \<mu> \<cdot>l \<rho>"
+        show ?thesis
+          using generalize_N_C[unfolded C_def clss_lits_generalize_clss_lits_def,
+              rule_format, of L, simplified]
+          by (metis (no_types, opaque_lifting) K_def UN_I subst_lit_comp_subst generalizes_lit_def)
       next
-        fix K' assume "K' \<in># C\<^sub>0" and K_def: "K = K' \<cdot>l \<mu>"
-        hence "K' \<in># C'"
-          by (simp add: propagateI.hyps(5))
-        then obtain D K'' where "D\<in>N" and "K''\<in>#D" and "generalizes_lit K'' K'"
-          using *[unfolded clss_lits_generalize_clss_lits_def, simplified] by blast
+        fix K' assume "K' \<in># C\<^sub>0" and K_def: "K = K' \<cdot>l \<mu> \<cdot>l \<rho>"
+        then obtain D K'' where "D \<in> N" and "K'' \<in># D" and "generalizes_lit K'' K'"
+          using generalize_N_C[unfolded C_def clss_lits_generalize_clss_lits_def,
+              rule_format, of K', simplified]
+          using propagateI.hyps(5) by auto
         thus ?thesis
-          unfolding K_def
-          by (metis UN_I generalizes_lit_def subst_lit_comp_subst)
+          unfolding K_def by (metis UN_I generalizes_lit_def subst_lit_comp_subst)
       qed
     qed
     thus ?thesis
@@ -143,28 +136,49 @@ proof (induction S S' rule: decide.induct)
 qed
 
 lemma conflict_initial_lits_generalized_learned_lits:
-  "conflict N \<beta> S S' \<Longrightarrow> initial_lits_generalized_learned_lits N S \<Longrightarrow>
-    initial_lits_generalized_learned_lits N S'"
-proof (induction S S' rule: conflict.induct)
-  case (conflictI D U D' \<Gamma> \<sigma>)
-  moreover have "clss_lits_generalize_clss_lits N {rename_clause (N \<union> U \<union> clss_of_trail \<Gamma>) D}"
-    using \<open>D \<in> N \<union> U\<close>
-  proof (elim Set.UnE)
-    assume "D \<in> N"
-    then show ?thesis
-      using clss_lits_generalize_clss_lits_rename_clause
-      by (metis finite_UnI finite_clss_of_trail initial_lits_generalized_learned_lits_def local.conflictI(6)
-          state_learned_simp)
-  next
-    assume "D \<in> U"
-    then show ?thesis
-      using clss_lits_generalize_clss_lits_rename_clause
-      by (smt (verit) UnCI clss_lits_generalize_clss_lits_trans finite_UnI finite_clss_of_trail
-          initial_lits_generalized_learned_lits_def local.conflictI(6) state_learned_simp)
+  assumes "conflict N \<beta> S S'" and "initial_lits_generalized_learned_lits N S"
+  shows "initial_lits_generalized_learned_lits N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+  from assms(2) have "clss_lits_generalize_clss_lits N (U \<union> clss_of_trail \<Gamma>)"
+    unfolding conflictI(1) by (simp add: initial_lits_generalized_learned_lits_def)
+  hence ball_U_\<Gamma>_generalize:
+    "\<And>L. L \<in> \<Union> (set_mset ` (U \<union> clss_of_trail \<Gamma>)) \<Longrightarrow> \<exists>K\<in>\<Union> (set_mset ` N). generalizes_lit K L"
+    unfolding clss_lits_generalize_clss_lits_def by simp
+
+  have "clss_lits_generalize_clss_lits N (insert (D \<cdot> \<rho>) (U \<union> clss_of_trail \<Gamma>))"
+    unfolding clss_lits_generalize_clss_lits_def
+  proof (rule ballI)
+    fix L assume "L \<in> \<Union> (set_mset ` insert (D \<cdot> \<rho>) (U \<union> clss_of_trail \<Gamma>))"
+    hence "L \<in> set_mset (D \<cdot> \<rho>) \<or> L \<in> \<Union> (set_mset ` (U \<union> clss_of_trail \<Gamma>))"
+      by simp
+    thus "\<exists>K\<in>\<Union> (set_mset ` N). generalizes_lit K L"
+    proof (elim disjE)
+      assume L_in: "L \<in># D \<cdot> \<rho>"
+      then obtain L' where "L = L' \<cdot>l \<rho>" and "L' \<in># D"
+        using Melem_subst_cls by blast
+      show "?thesis"
+        using \<open>D \<in> N \<union> U\<close>[unfolded Set.Un_iff]
+      proof (elim disjE)
+        show "D \<in> N \<Longrightarrow> ?thesis"
+          using L_in by (metis Melem_subst_cls UN_I generalizes_lit_def)
+      next
+        assume "D \<in> U"
+        hence "\<exists>K\<in>\<Union> (set_mset ` N). generalizes_lit K L'"
+          using L_in ball_U_\<Gamma>_generalize[of L'] \<open>L' \<in># D\<close> by blast
+        thus ?thesis
+          by (metis \<open>L = L' \<cdot>l \<rho>\<close> generalizes_lit_def subst_lit_comp_subst)
+      qed
+    next
+      show "L \<in> \<Union> (set_mset ` (U \<union> clss_of_trail \<Gamma>)) \<Longrightarrow> ?thesis"
+        using ball_U_\<Gamma>_generalize by simp
+    qed
   qed
-  ultimately show ?case
-    unfolding initial_lits_generalized_learned_lits_def
-    using clss_lits_generalize_clss_lits_insert by auto
+  then show ?thesis
+    using assms(2)
+    unfolding conflictI(1,2)
+    by (simp add: initial_lits_generalized_learned_lits_def)
 qed
 
 lemma clss_lits_generalize_clss_lits_subset:
