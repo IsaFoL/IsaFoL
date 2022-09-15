@@ -123,10 +123,13 @@ lemma [sepref_fr_rules]:
   done
   done
 
+lemma encoded_irred_index_get_int_alt_def:
+  \<open>encoded_irred_index_get_int a = do {ASSERT (a \<le> int sint64_max \<and> -a \<le> int sint64_max); RETURN (if a > 0 then nat a else nat (0-a))}\<close>
+  unfolding encoded_irred_index_get_int_def by auto
 sepref_def encoded_irred_index_irred_get_impl
   is \<open>encoded_irred_index_get_int\<close>
   :: \<open>(sint_assn' TYPE(64))\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding encoded_irred_index_get_int_def
+  unfolding encoded_irred_index_get_int_alt_def
   apply (annot_sint_const \<open>TYPE(64)\<close>)
   by sepref
 

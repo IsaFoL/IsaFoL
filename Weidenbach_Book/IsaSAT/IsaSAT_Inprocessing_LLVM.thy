@@ -41,8 +41,6 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code]  =
 (*end move*)
 experiment
 begin
-  export_llvm isa_forward_subsumption_all_wl2_impl
-
  export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
