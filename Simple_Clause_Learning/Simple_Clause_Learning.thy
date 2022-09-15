@@ -1922,7 +1922,7 @@ lemma not_in_trail_interp_if_not_in_trail: "t \<notin> atm_of ` fst ` set \<Gamm
       literal.sel(2) mem_Collect_eq trail_interp_conv)
 
 inductive trail_consistent where
-  Nil: "trail_consistent []" |
+  Nil[simp]: "trail_consistent []" |
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> trail_consistent \<Gamma> \<Longrightarrow> trail_consistent ((L, u) # \<Gamma>)"
 
 lemma trail_interp_lit_if_trail_true:
@@ -2061,6 +2061,23 @@ inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<R
     \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)"
+
+term is_renaming
+
+term "K \<cdot>l \<gamma> = L \<cdot>l \<gamma>"
+
+definition trail_closures_from_clauses where
+  "trail_closures_from_clauses N S \<longleftrightarrow>
+    (\<forall>Ln \<in> set (state_trail S).
+      (case snd Ln of
+        None \<Rightarrow> True
+      | Some (D, L\<^sub>D, \<gamma>') \<Rightarrow> \<exists>C \<in> N \<union> state_learned S. \<exists>C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu>.
+        C' + {#L#} = rename_clause (N \<union> state_learned S \<union> clss_of_trail (state_trail S)) C \<and>
+        subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L \<and> is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>) \<and>
+        C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<and> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<and>
+        is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<and>
+        \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<and>
+        D = C\<^sub>0 \<cdot> \<mu> \<and> L\<^sub>D = L \<cdot>l \<mu>))"
 
 inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -2510,6 +2527,70 @@ lemma scl_preserves_trail_trail_lits_ground:
   by metis
 
 
+subsection \<open>Trail Literals Are Defined Only Once\<close>
+
+definition trail_lits_consistent where
+  "trail_lits_consistent S \<longleftrightarrow> trail_consistent (state_trail S)"
+
+lemma trail_lits_consistent_initial_state: "trail_lits_consistent initial_state"
+  by (simp add: trail_lits_consistent_def)
+
+lemma propagate_preserves_trail_lits_consistent:
+  assumes "propagate N \<beta> S S'" and
+    fin: "finite N" "finite (state_learned S)" and
+    "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+  
+  have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
+    unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+    by (rule subst_lit_restrict_subst_idem) simp
+  also have  "... = L \<cdot>l \<gamma>"
+  proof -
+    have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
+      by (smt (verit, del_insts) finite_imageI finite_set_mset image_iff insert_iff is_unifier_alt
+          is_unifiers_def local.propagateI(8) mem_Collect_eq set_mset_add_mset_insert
+          set_mset_filter singletonD subst_atm_of_eqI)
+    hence "\<gamma> = \<mu> \<odot> \<gamma>"
+      using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+      by (simp add: is_mimgu_def is_imgu_def)
+    thus ?thesis
+      by (metis subst_lit_comp_subst)
+  qed
+  finally have "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
+    using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close> by metis
+  
+  moreover from assms(4) have "trail_consistent \<Gamma>"
+    by (simp add: propagateI(1) trail_lits_consistent_def)
+
+  moreover have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
+    unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+  proof (rule subst_lit_renaming_subst_adapted)
+    show "is_renaming \<rho>"
+      unfolding \<open>\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close>
+      by (rule is_renaming_renaming_wrt) (use fin propagateI(1) in simp)
+  next
+    have "vars_lit (L \<cdot>l \<gamma>) = {}"
+      using \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>
+      by (simp add: \<open>C = add_mset L C'\<close> is_ground_cls_iff_vars_empty)
+    hence "vars_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>') = {}"
+      by (simp add: \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close> \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>\<close>)
+    hence "{} = vars_lit (L \<cdot>l \<mu>) - subst_domain \<gamma>' \<union> (\<Union>x\<in>vars_lit (L \<cdot>l \<mu>). vars_term (\<gamma>' x))"
+      unfolding vars_subst_lit_eq by argo
+    hence "{} = vars_lit (L \<cdot>l \<mu>) - subst_domain \<gamma>'"
+      by blast
+    then show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
+      by blast
+  qed
+
+  ultimately show ?thesis
+    by (auto simp: propagateI(2) trail_propagate_def trail_lits_consistent_def
+        intro: trail_consistent.Cons)
+qed
+
+
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 definition trail_atoms_lt where
@@ -2638,6 +2719,59 @@ lemma scl_preserves_trail_atoms_lt:
   by metis
 
 
+subsection \<open>Learned Clauses Are Non-empty\<close>
+
+definition learned_nonempty where
+  "learned_nonempty S \<longleftrightarrow> {#} \<notin> state_learned S"
+
+lemma learned_nonempty_initial_state: "learned_nonempty initial_state"
+  by (simp add: learned_nonempty_def)
+
+lemma propagate_preserves_learned_nonempty:
+  assumes "propagate N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: propagate.cases) (simp add: learned_nonempty_def)
+
+lemma decide_preserves_learned_nonempty:
+  assumes "decide N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: decide.cases) (simp add: learned_nonempty_def)
+
+lemma conflict_preserves_learned_nonempty:
+  assumes "conflict N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: conflict.cases) (simp add: learned_nonempty_def)
+
+lemma skip_preserves_learned_nonempty:
+  assumes "skip N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: skip.cases) (simp add: learned_nonempty_def)
+
+lemma factorize_preserves_learned_nonempty:
+  assumes "factorize N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: factorize.cases) (simp add: learned_nonempty_def)
+
+lemma resolve_preserves_learned_nonempty:
+  assumes "resolve N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: resolve.cases) (simp add: learned_nonempty_def)
+
+lemma backtrack_preserves_learned_nonempty:
+  assumes "backtrack N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms by (cases rule: backtrack.cases) (simp add: learned_nonempty_def)
+
+lemma scl_preserves_learned_nonempty:
+  assumes "scl N \<beta> S S'" and "learned_nonempty S"
+  shows "learned_nonempty S'"
+  using assms unfolding scl_def
+  using propagate_preserves_learned_nonempty decide_preserves_learned_nonempty
+    conflict_preserves_learned_nonempty skip_preserves_learned_nonempty
+    factorize_preserves_learned_nonempty resolve_preserves_learned_nonempty
+    backtrack_preserves_learned_nonempty
+  by metis
+
 section \<open>Soundness\<close>
 
 
@@ -2656,7 +2790,7 @@ inductive sound_trail for N U where
     sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U ((L, u) # \<Gamma>)"
 
 lemma trail_consistent_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
-  by (induction \<Gamma> rule: sound_trail.induct) (simp_all add: trail_consistent.intros)
+  by (induction \<Gamma> rule: sound_trail.induct) (simp_all add: trail_consistent.Cons)
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
   by (meson grounding_of_clss_mono true_clss_mono)
@@ -2764,7 +2898,7 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term 
 
 subsection \<open>Miscellaneous Lemmas\<close>
 
-lemma trail_lt_if_sound_state:
+lemma trail_atoms_lt_if_sound_state:
   "sound_state N \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S"
   unfolding sound_state_def by auto
 
@@ -2827,7 +2961,7 @@ next
 qed
 
 lemma propagate_sound_state:
-  assumes "propagate N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "propagate N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
@@ -3019,7 +3153,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms propagate_preserves_trail_atoms_lt trail_lt_if_sound_state fin
+    using fin step[THEN propagate_preserves_trail_atoms_lt]
+      sound[THEN trail_atoms_lt_if_sound_state]
     by (simp add: S_def)
 
   ultimately show ?thesis
@@ -3044,7 +3179,7 @@ proof (cases N \<beta> S S' rule: decide.cases)
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms decide_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+    using assms decide_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding decideI sound_state_def by simp
@@ -3092,7 +3227,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms conflict_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+    using assms conflict_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   moreover have "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> vars_cls (D \<cdot> \<rho>)"
   proof (rule Set.subsetI)
@@ -3218,7 +3353,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms factorize_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+    using assms factorize_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
@@ -3478,7 +3613,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     using \<Gamma>_def sound_\<Gamma> by blast
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms resolve_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+    using assms resolve_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding resolveI sound_state_def
@@ -3538,7 +3673,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms backtrack_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+    using assms backtrack_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   ultimately show ?thesis
     unfolding backtrackI sound_state_def

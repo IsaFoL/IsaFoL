@@ -184,12 +184,6 @@ qed
 lemma Multiset_equalityI: "A \<subseteq># B \<Longrightarrow> B \<subseteq># A \<Longrightarrow> A = B"
   by (rule subset_mset.antisym)
 
-lemma
-  assumes "inj_on f (set_mset M1 \<union> set_mset M2)"
-  shows "image_mset f M1 = image_mset f M2 \<longleftrightarrow> M1 = M2"
-  using assms
-  by (metis (mono_tags, lifting) UnCI inj_onD multiset.inj_map_strong)
-
 lemma monotone_list_all2_list_all2_map:
   assumes "monotone R S f"
   shows "monotone (list_all2 R) (list_all2 S) (map f)"
@@ -4549,6 +4543,60 @@ lemma lifting_lemma_derivable_list:
   unfolding derivable_list_def
   by metis
 
+lemma map2_cong0: "(\<And>x y. (x, y) \<in> set (zip xs ys) \<Longrightarrow> f x y = g x y) \<Longrightarrow> map2 f xs ys = map2 g xs ys"
+  by (auto intro: list.map_cong0)
+
+lemma map2_ap_ap: "map2 (\<lambda>x y. f (g x y)) xs ys = map f (map2 g xs ys)"
+  by auto
+
+lemma ex_conj_swap: "(\<exists>x y. f y \<and> g x y) \<longleftrightarrow> (\<exists>y. f y \<and> (\<exists>x. g x y))"
+  by blast
+
+lemma derivable_list_no_trms:
+  assumes "derivable_list C P \<sigma> k C'"
+  shows "\<exists>trms. derivable_list (Ecl (subst_cl C' \<sigma>) trms) (map (\<lambda>x. Ecl (cl_ecl x) {}) P) \<sigma> k C'"
+  using assms[unfolded derivable_list_def]
+proof (elim disjE exE conjE)
+  fix P1
+  assume "P = [P1]" and "SuperCalc.reflexion P1 C \<sigma> k C'"
+  hence "\<exists>trms. SuperCalc.reflexion (Ecl (cl_ecl P1) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
+    unfolding SuperCalc.reflexion_def
+    apply safe
+    apply simp
+    using SuperCalc.eligible_literal_def by auto
+  thus ?thesis
+    using \<open>P = [P1]\<close> by (auto simp: derivable_list_def)
+next
+  fix P1
+  assume "P = [P1]" and "SuperCalc.factorization P1 C \<sigma> k C'"
+  hence "\<exists>trms. SuperCalc.factorization (Ecl (cl_ecl P1) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
+    unfolding SuperCalc.factorization_def
+    apply safe
+    apply simp
+    by (metis (no_types, lifting) SuperCalc.eligible_literal_def cl_ecl.simps)
+  thus ?thesis
+    using \<open>P = [P1]\<close> by (auto simp: derivable_list_def)
+next
+  fix P1 P2
+  assume "P = [P2, P1]" and "SuperCalc.superposition P1 P2 C \<sigma> k C'"
+  hence "\<exists>trms. SuperCalc.superposition (Ecl (cl_ecl P1) {}) (Ecl (cl_ecl P2) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
+    unfolding SuperCalc.superposition_def
+    apply (elim exE conjE)
+    subgoal for L _ _ _ _ M _ _ _ _ _ _ u'
+      apply (simp add: ex_conj_swap)
+      apply (rule exI[of _ L])
+      apply simp
+      apply (rule exI[of _ M])
+      apply (simp add: SuperCalc.eligible_literal_def variable_disjoint_def)
+      apply (rule exI[of _ u'])
+      apply (simp add: SuperCalc.allowed_redex_def)
+      by (metis (no_types, lifting) SuperCalc.strictly_maximal_literal_def cl_ecl.simps)
+    done
+  thus ?thesis
+    using \<open>P = [P2, P1]\<close> by (auto simp: derivable_list_def)
+qed
+    
+
 sublocale statically_complete_calculus "{{||}}" F_Inf "(\<TTurnstile>e)" F.Red_I_\<G> F.Red_F_\<G>
 proof unfold_locales
   show "\<And>N. F.Red_I_\<G> N \<subseteq> F_Inf"
@@ -4618,7 +4666,6 @@ next
     using saturated_N'[unfolded F.saturated_def F.Inf_from_def F.Red_I_\<G>_def
           F.Red_I_\<G>_q_def, simplified, unfolded subset_iff mem_Collect_eq, rule_format]
     unfolding SuperCalc.ground_inference_saturated_def
-    
   proof (intro allI impI)
     fix C P \<sigma> C'
     assume
@@ -4628,6 +4675,9 @@ next
 
     from deriv_C_P have P_subset: "P \<subseteq> (\<lambda>C. Ecl (fset C) {}) ` N'"
       by (simp add: SuperCalc.derivable_premisses)
+
+    hence ball_fin_P: "\<forall>D \<in> P. finite (cl_ecl D)"
+      using all_finite_N' by blast
 
     from deriv_C_P obtain Ps
       where P_eq: "P = set Ps" and deriv_C_Ps: "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
@@ -4688,22 +4738,48 @@ next
     qed
 
     obtain E \<sigma>\<^sub>E E' where
-      "derivable_list E (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))
-        \<sigma>\<^sub>E SuperCalc.FirstOrder E' \<and> renaming_cl D E"
+      deriv_E: "derivable_list E (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))
+        \<sigma>\<^sub>E SuperCalc.FirstOrder E'" and "renaming_cl D E"
       using derivable_list_if_renaming[OF deriv_D all2_renaming_Ps fin_Ps]
       by blast
 
     define \<iota> where
       "\<iota> \<equiv> Infer (map (Abs_fset \<circ> cl_ecl) Ps) (Abs_fset (subst_cl E' \<sigma>\<^sub>E))"
 
+    have map2_map: "map2 f (map h xs) ys = map2 (\<lambda>x. f (h x)) xs ys" for f h xs ys
+      using map_zip_map
+      by (simp add: map_zip_map)
+
+    have
+      "map2 (\<lambda>x y. Ecl (subst_cl (fset x) y) {}) (map (Abs_fset \<circ> cl_ecl) Ps)
+        (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)) =
+       map2 (\<lambda>x y. Ecl (subst_cl (fset (Abs_fset (cl_ecl x))) y) {}) Ps
+        (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
+      by (simp add: map2_map comp_def)
+    also have "... = map2 (\<lambda>x y. Ecl (subst_cl (cl_ecl x) y) {}) Ps
+      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
+      apply (rule map2_cong0)
+      apply simp
+      using Abs_fset_inverse[simplified, OF ball_fin_P[unfolded P_eq, rule_format]]
+      by (metis set_zip_leftD)
+    also have "... = map2 (\<lambda>x y. Ecl (cl_ecl (subst_ecl x y)) {}) Ps
+      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
+      by (simp add: cl_ecl_subst_ecl_distrib[symmetric])
+    also have "... = map (\<lambda>x. Ecl (cl_ecl x) {}) (map2 subst_ecl Ps
+      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))"
+      by auto
+    finally have FOO:
+      "map2 (\<lambda>x y. Ecl (subst_cl (fset x) y) {})
+        (map (Abs_fset \<circ> cl_ecl) Ps) (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)) =
+       map (\<lambda>x. Ecl (cl_ecl x) {})
+        (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))"
+      by simp
+
     have "\<iota> \<in> F_Inf"
       unfolding F_Inf_def mem_Collect_eq Let_def \<iota>_def
       apply simp
-      apply (rule exI[of _ "Ecl (subst_cl E' \<sigma>\<^sub>E) {}"])
-      apply (rule exI[of _ \<sigma>\<^sub>E])
-      apply (rule exI[of _ E'])
-      apply simp
-      sorry
+      using derivable_list_no_trms[OF deriv_E, unfolded FOO[symmetric]]
+      by blast
 
     moreover have all_prems_in_N': "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
     proof -
@@ -4712,7 +4788,6 @@ next
 
       from x_in P_subset have "x \<in> (\<lambda>C. Ecl (fset C) {}) ` N'"
         by auto
-
       then show ?thesis
         unfolding image_iff C_eq by (auto simp add: fset_inverse)
     qed

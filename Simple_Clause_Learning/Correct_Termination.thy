@@ -379,7 +379,7 @@ proof -
       fix S' S''
       assume deci: "decide N \<beta> S S'" and conf: "conflict N \<beta> S' S''"
       moreover have "trail_atoms_lt \<beta> S'"
-        by (rule decide_sound_state[OF deci sound_S, THEN trail_lt_if_sound_state])
+        by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
         using propagate_if_conflict_follows_decide[OF fin_N fin_learned_S _ no_new_conflict]
         by simp

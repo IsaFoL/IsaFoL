@@ -1,0 +1,566 @@
+diff --git a/Simple_Clause_Learning/Correct_Termination.thy b/Simple_Clause_Learning/Correct_Termination.thy
+index e8c607d3..56666480 100644
+--- a/Simple_Clause_Learning/Correct_Termination.thy
++++ b/Simple_Clause_Learning/Correct_Termination.thy
+@@ -16,7 +16,7 @@ qed
+ lemma propagate_if_conflict_follows_decide:
+   assumes
+     fin_N: "finite N" and fin_learned: "finite (state_learned S\<^sub>0)" and
+-    trail_lt_\<beta>: "\<forall>L \<in> fst ` set (state_trail S\<^sub>2). atm_of L \<prec>\<^sub>B \<beta>" and
++    trail_lt_\<beta>: "trail_atoms_lt \<beta> S\<^sub>2" and
+     no_conf: "\<nexists>S\<^sub>1. conflict N \<beta> S\<^sub>0 S\<^sub>1" and deci: "decide N \<beta> S\<^sub>0 S\<^sub>2" and conf: "conflict N \<beta> S\<^sub>2 S\<^sub>3"
+   shows "\<exists>S\<^sub>4. propagate N \<beta> S\<^sub>0 S\<^sub>4"
+ proof -
+@@ -240,7 +240,7 @@ proof -
+   have 7: "\<forall>K\<in>#add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>'''. atm_of K \<prec>\<^sub>B \<beta>"
+   proof (rule ballI)
+     from trail_lt_\<beta> have trail_lt_\<beta>': "\<forall>K \<in> fst ` set (trail_decide \<Gamma> (L \<cdot>l \<gamma>)). atm_of K \<prec>\<^sub>B \<beta>"
+-      by (simp add: S\<^sub>2_def)
++      by (simp add: trail_atoms_lt_def S\<^sub>2_def)
+     
+     fix K assume "K\<in>#add_mset (L' \<cdot>l \<rho>) (D'' \<cdot> \<rho>) \<cdot> \<sigma>'''"
+ 
+@@ -486,8 +486,8 @@ proof -
+     next
+       fix S' S''
+       assume deci: "decide N \<beta> S S'" and conf: "conflict N \<beta> S' S''"
+-      moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-        by (rule decide_sound_state[OF deci sound_S, THEN trail_lt_if_sound_state])
++      moreover have "trail_atoms_lt \<beta> S'"
++        by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
+       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
+         using propagate_if_conflict_follows_decide[OF fin_N fin_learned_S _ no_new_conflict]
+         by simp
+diff --git a/Simple_Clause_Learning/Non_Redundancy.thy b/Simple_Clause_Learning/Non_Redundancy.thy
+index fa3ff9a6..af2b87c0 100644
+--- a/Simple_Clause_Learning/Non_Redundancy.thy
++++ b/Simple_Clause_Learning/Non_Redundancy.thy
+@@ -8,6 +8,89 @@ context scl begin
+ 
+ section \<open>Resolve in Regular Runs\<close>
+ 
++definition almost_no_conflict where
++  "almost_no_conflict N U \<Gamma> \<longleftrightarrow> \<Gamma> = [] \<or>
++    (\<exists>Ln \<Gamma>'. \<Gamma> = Ln # \<Gamma>' \<and> (\<nexists>C \<gamma>. C \<in> N \<union> U \<and> is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>' (C \<cdot> \<gamma>)))"
++
++lemma before_regular_conflict:
++  assumes
++    fin: "finite N" and
++    almost_no_conf: "almost_no_conflict N (state_learned S1) (state_trail S1)" and
++    invars:
++      "trail_lits_from_clauses N S1"
++      "trail_lits_ground S1"
++      "\<forall>L \<in> fst ` set (state_trail S1). atm_of L \<prec>\<^sub>B \<beta>" and
++    conf: "conflict N \<beta> S1 S2"
++  shows "{#} \<in> N \<union> state_learned S1 \<or> (\<exists>S0. propagate N \<beta> S0 S1) \<or> (\<exists>S0. decide N \<beta> S0 S1)"
++  using conf
++proof (cases N \<beta> S1 S2 rule: conflict.cases)
++  case (conflictI D U D' \<Gamma> \<sigma>)
++  with almost_no_conf have "almost_no_conflict N U \<Gamma>"
++    by simp
++  then show ?thesis
++    unfolding almost_no_conflict_def
++  proof (elim disjE exE conjE)
++    assume "\<Gamma> = []"
++    hence "D' = {#}"
++      using conflictI by (simp add: trail_false_cls_def)
++    hence "D = {#}"
++      using conflictI by (simp add: rename_clause_def)
++    hence "{#} \<in> N \<union> U"
++      using conflictI by simp
++    thus ?thesis
++      using conflictI by simp
++  next
++    fix Ln \<Gamma>'
++    assume
++      \<Gamma>_def: "\<Gamma> = Ln # \<Gamma>'" and
++      "\<nexists>C \<gamma>. C \<in> N \<union> U \<and> is_ground_cls (C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma>' (C \<cdot> \<gamma>)"
++    with invars(3) have "atm_of (fst Ln) \<prec>\<^sub>B \<beta>"
++      using conflictI by simp
++    show ?thesis
++    proof (cases "is_decision_lit Ln")
++      case True
++      then show ?thesis
++        unfolding conflictI \<Gamma>_def
++        using invars
++        using decideI[of _ N _ \<Gamma>' \<beta> U(* unfolded trail_decide_def *)]
++        sorry
++    next
++      case False
++      then show ?thesis sorry
++    qed
++  qed
++qed
++
++lemma before_regular_conflict:
++  assumes
++    fin: "finite N" and
++    conf_after_prop: "(\<exists>S2. conflict N \<beta> S1 S2) \<longrightarrow>
++      S1 = initial_state \<and> {#} \<in> N \<or> (\<exists>\<Gamma> L C \<gamma>. state_trail S1 = trail_propagate \<Gamma> L C \<gamma>)" and
++    conf: "conflict N \<beta> S1 S2"
++  shows "S1 = initial_state \<and> {#} \<in> N \<or>
++    (\<exists>S0. regular_scl N \<beta> S0 S1 \<and>
++    (propagate N \<beta> S0 S1))"
++  (is "?lhs \<or> ?rhs")
++  using conf_after_prop[unfolded imp_ex, rule_format, OF conf]
++proof (elim disjE exE)
++  assume "S1 = initial_state \<and> {#} \<in> N"
++  thus ?thesis
++    by simp
++next
++  fix \<Gamma> L C \<gamma>
++  assume "state_trail S1 = trail_propagate \<Gamma> L C \<gamma>"
++
++  from conf obtain \<Gamma> U C \<gamma> where
++    S1_def: "S1 = (\<Gamma>, U, None)" and
++    S2_def: "S2 = (\<Gamma>, U, Some (C, \<gamma>))"
++    unfolding conflict.simps by auto
++  thus ?thesis
++    apply -
++    apply (rule disjI2)
++    
++    sorry
++qed
++
+ lemma before_regular_conflict:
+   assumes
+     fin: "finite N" and
+@@ -405,17 +488,16 @@ lemma not_trail_true_and_false_cls: "sound_trail N U \<Gamma> \<Longrightarrow>
+ lemma
+   assumes
+     fin_N: "finite N" and disj_vars_N: "disjoint_vars_set N" and
+-    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
++    (* regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and *)
+     conflict: "conflict N \<beta> S0 S1" and
+     resolution: "(\<lambda>S S'. skip N \<beta> S S' \<or> factorize N \<beta> S S' \<or> resolve N \<beta> S S')\<^sup>+\<^sup>+ S1 Sn" and
+     backtrack: "backtrack N \<beta> Sn Sn'" and
+-    "transp lt" (* and
+-    total_on_ground_lt: "totalp_on {L. is_ground_lit L} lt" *)
++    "transp lt"
+   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
+     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+       \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1)))) (N \<union> state_learned S1) C)"
+ proof -
+-  from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
++  (* from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+     by (meson regular_scl_def rtranclp.simps)
+   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
+     using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by fast
+@@ -429,7 +511,7 @@ proof -
+       unfolding regular_scl_def
+       by (smt (verit) conflict.simps option.simps(3) backtrack.cases state_conflict_simp)
+   qed
+-  finally have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'" by assumption
++  finally have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'" by assumption *)
+ 
+   from conflict obtain C1 \<gamma>1 where conflict_S1: "state_conflict S1 = Some (C1, \<gamma>1)"
+     by (smt (verit, best) conflict.simps state_conflict_simp)
+diff --git a/Simple_Clause_Learning/Simple_Clause_Learning.thy b/Simple_Clause_Learning/Simple_Clause_Learning.thy
+index c4977527..69bcbd5c 100644
+--- a/Simple_Clause_Learning/Simple_Clause_Learning.thy
++++ b/Simple_Clause_Learning/Simple_Clause_Learning.thy
+@@ -2482,12 +2482,15 @@ lemma scl_preserves_trail_trail_lits_ground:
+ 
+ subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
+ 
+-lemma ball_trail_lt_initial_state: "\<forall>L\<in>fst ` set (state_trail initial_state). atm_of L \<prec>\<^sub>B \<beta>"
+-  by simp
++definition trail_atoms_lt where
++  "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>)"
++
++lemma ball_trail_lt_initial_state: "trail_atoms_lt \<beta> initial_state"
++  by (simp add: trail_atoms_lt_def)
+ 
+-lemma ball_trail_lt_propagate:
+-  assumes "propagate N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
++lemma propagate_preserves_trail_atoms_lt:
++  assumes "propagate N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
+ proof -
+   from \<open>propagate N \<beta> S S'\<close> obtain \<Gamma> U  C C' L C\<^sub>0 C\<^sub>1 \<mu> \<gamma> \<gamma>' where
+     S_def: "S = (\<Gamma>, U, None)" and
+@@ -2516,46 +2519,46 @@ proof -
+   ultimately have "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' \<prec>\<^sub>B \<beta>"
+     by simp
+   with assms(2) show ?thesis
+-    by (simp add: S_def S'_def trail_propagate_def)
+-qed
+-
+-lemma ball_trail_lt_decide:
+-  assumes "decide N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto simp add: trail_decide_def elim!: decide.cases)
+-
+-lemma ball_trail_lt_conflict:
+-  assumes "conflict N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto elim!: conflict.cases)
+-
+-lemma ball_trail_lt_skip:
+-  assumes "skip N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto elim!: skip.cases)
+-
+-lemma ball_trail_lt_factorize:
+-  assumes "factorize N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto elim!: factorize.cases)
+-
+-lemma ball_trail_lt_resolve:
+-  assumes "resolve N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto elim!: resolve.cases)
+-
+-lemma ball_trail_lt_backtrack:
+-  assumes "backtrack N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-  using assms by (auto simp add: trail_decide_def elim!: backtrack.cases)
+-
+-lemma ball_trail_lt_scl:
+-  assumes "scl N \<beta> S S'" and "\<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
+-  shows "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
++    by (simp add: trail_atoms_lt_def S_def S'_def trail_propagate_def)
++qed
++
++lemma decide_preserves_trail_atoms_lt:
++  assumes "decide N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: decide.cases)
++
++lemma conflict_preserves_trail_atoms_lt:
++  assumes "conflict N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def elim!: conflict.cases)
++
++lemma skip_preserves_trail_atoms_lt:
++  assumes "skip N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def elim!: skip.cases)
++
++lemma factorize_preserves_trail_atoms_lt:
++  assumes "factorize N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def elim!: factorize.cases)
++
++lemma resolve_preserves_trail_atoms_lt:
++  assumes "resolve N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def elim!: resolve.cases)
++
++lemma backtrack_preserves_trail_atoms_lt:
++  assumes "backtrack N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
++  using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: backtrack.cases)
++
++lemma scl_preserves_trail_atoms_lt:
++  assumes "scl N \<beta> S S'" and "trail_atoms_lt \<beta> S"
++  shows "trail_atoms_lt \<beta> S'"
+   using assms unfolding scl_def
+-  using ball_trail_lt_propagate ball_trail_lt_decide ball_trail_lt_conflict ball_trail_lt_skip
+-    ball_trail_lt_factorize ball_trail_lt_resolve ball_trail_lt_backtrack
+-  by presburger
++  using propagate_preserves_trail_atoms_lt decide_preserves_trail_atoms_lt conflict_preserves_trail_atoms_lt skip_preserves_trail_atoms_lt
++    factorize_preserves_trail_atoms_lt resolve_preserves_trail_atoms_lt backtrack_preserves_trail_atoms_lt
++  by metis
+ 
+ 
+ section \<open>Soundness\<close>
+@@ -2675,7 +2678,7 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term
+     finite N \<and> finite U \<and>
+     disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>) \<and>
+     (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> N \<union> U  \<union> clss_of_trail \<Gamma>. disjoint_vars C D) \<and>
+-    sound_trail N U \<Gamma> \<and> (\<forall>L\<in>fst ` set \<Gamma>. atm_of L \<prec>\<^sub>B \<beta>) \<and>
++    sound_trail N U \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
+     N \<TTurnstile>\<G>e U \<and>
+     (case u of None \<Rightarrow> True
+     | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
+@@ -2685,7 +2688,7 @@ definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term
+ subsection \<open>Miscellaneous Lemmas\<close>
+ 
+ lemma trail_lt_if_sound_state:
+-  "sound_state N \<beta> S \<Longrightarrow> \<forall>L\<in>fst ` set (state_trail S). atm_of L \<prec>\<^sub>B \<beta>"
++  "sound_state N \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S"
+   unfolding sound_state_def by auto
+ 
+ lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
+@@ -2730,7 +2733,7 @@ subsection \<open>Initial State Is Sound\<close>
+ 
+ lemma sound_initial_state[simp]:
+   "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N \<beta> initial_state"
+-  by (simp add: sound_state_def)
++  by (simp add: sound_state_def trail_atoms_lt_def)
+ 
+ 
+ subsection \<open>SCL Rules Preserve Soundness\<close>
+@@ -2760,7 +2763,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
+     fin: "finite N" "finite U" and
+     disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
+     sound_\<Gamma>: "sound_trail N U \<Gamma>" and
+-    trail_lt_\<beta>: "\<forall>L\<in>fst ` set \<Gamma>. atm_of L \<prec>\<^sub>B \<beta>" and
+     N_entails_U: "N \<TTurnstile>\<G>e U"
+     unfolding sound_state_def S_def by auto
+ 
+@@ -2883,8 +2885,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
+       by simp
+   qed
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_propagate trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms propagate_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding S'_def sound_state_def
+@@ -2907,8 +2909,8 @@ proof (cases N \<beta> S S' rule: decide.cases)
+   moreover have "sound_trail N U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
+     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_decide trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms decide_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding decideI sound_state_def by simp
+@@ -2954,8 +2956,8 @@ proof (cases N \<beta> S S' rule: conflict.cases)
+           grounding_of_clss_singleton true_clss_def)
+   qed
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_conflict trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms conflict_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding conflictI sound_state_def
+@@ -2967,7 +2969,8 @@ lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N \<b
+ proof (induction S S' rule: skip.induct)
+   case (skipI L D \<sigma> Cl \<Gamma> U)
+   thus ?case
+-    by (auto simp: sound_state_def clss_of_trail_Cons[of _ \<Gamma>] elim!: subtrail_falseI)
++    by (auto simp: sound_state_def trail_atoms_lt_def clss_of_trail_Cons[of _ \<Gamma>]
++        elim!: subtrail_falseI)
+ qed
+ 
+ lemma factorize_sound_state:
+@@ -3056,8 +3059,8 @@ proof (cases N \<beta> S S' rule: factorize.cases)
+       by simp
+   qed
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_factorize trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms factorize_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding factorizeI sound_state_def
+@@ -3316,8 +3319,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
+   moreover have "sound_trail N U (trail_propagate \<Gamma>' L C \<delta>)"
+     using \<Gamma>_def sound_\<Gamma> by blast
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_resolve trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms resolve_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding resolveI sound_state_def
+@@ -3376,8 +3379,8 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
+   moreover have "N \<TTurnstile>\<G>e (U \<union> {D + {#L#}})"
+     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
+ 
+-  moreover have "\<forall>L\<in>fst ` set (state_trail S'). atm_of L \<prec>\<^sub>B \<beta>"
+-    using assms ball_trail_lt_backtrack trail_lt_if_sound_state by simp
++  moreover have "trail_atoms_lt \<beta> S'"
++    using assms backtrack_preserves_trail_atoms_lt trail_lt_if_sound_state by simp
+ 
+   ultimately show ?thesis
+     unfolding backtrackI sound_state_def
+diff --git a/Superposition_Prover/Prover.thy b/Superposition_Prover/Prover.thy
+index 810eeae5..d4c4d1ce 100644
+--- a/Superposition_Prover/Prover.thy
++++ b/Superposition_Prover/Prover.thy
+@@ -184,12 +184,6 @@ qed
+ lemma Multiset_equalityI: "A \<subseteq># B \<Longrightarrow> B \<subseteq># A \<Longrightarrow> A = B"
+   by (rule subset_mset.antisym)
+ 
+-lemma
+-  assumes "inj_on f (set_mset M1 \<union> set_mset M2)"
+-  shows "image_mset f M1 = image_mset f M2 \<longleftrightarrow> M1 = M2"
+-  using assms
+-  by (metis (mono_tags, lifting) UnCI inj_onD multiset.inj_map_strong)
+-
+ lemma monotone_list_all2_list_all2_map:
+   assumes "monotone R S f"
+   shows "monotone (list_all2 R) (list_all2 S) (map f)"
+@@ -4549,6 +4543,60 @@ lemma lifting_lemma_derivable_list:
+   unfolding derivable_list_def
+   by metis
+ 
++lemma map2_cong0: "(\<And>x y. (x, y) \<in> set (zip xs ys) \<Longrightarrow> f x y = g x y) \<Longrightarrow> map2 f xs ys = map2 g xs ys"
++  by (auto intro: list.map_cong0)
++
++lemma map2_ap_ap: "map2 (\<lambda>x y. f (g x y)) xs ys = map f (map2 g xs ys)"
++  by auto
++
++lemma ex_conj_swap: "(\<exists>x y. f y \<and> g x y) \<longleftrightarrow> (\<exists>y. f y \<and> (\<exists>x. g x y))"
++  by blast
++
++lemma derivable_list_no_trms:
++  assumes "derivable_list C P \<sigma> k C'"
++  shows "\<exists>trms. derivable_list (Ecl (subst_cl C' \<sigma>) trms) (map (\<lambda>x. Ecl (cl_ecl x) {}) P) \<sigma> k C'"
++  using assms[unfolded derivable_list_def]
++proof (elim disjE exE conjE)
++  fix P1
++  assume "P = [P1]" and "SuperCalc.reflexion P1 C \<sigma> k C'"
++  hence "\<exists>trms. SuperCalc.reflexion (Ecl (cl_ecl P1) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
++    unfolding SuperCalc.reflexion_def
++    apply safe
++    apply simp
++    using SuperCalc.eligible_literal_def by auto
++  thus ?thesis
++    using \<open>P = [P1]\<close> by (auto simp: derivable_list_def)
++next
++  fix P1
++  assume "P = [P1]" and "SuperCalc.factorization P1 C \<sigma> k C'"
++  hence "\<exists>trms. SuperCalc.factorization (Ecl (cl_ecl P1) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
++    unfolding SuperCalc.factorization_def
++    apply safe
++    apply simp
++    by (metis (no_types, lifting) SuperCalc.eligible_literal_def cl_ecl.simps)
++  thus ?thesis
++    using \<open>P = [P1]\<close> by (auto simp: derivable_list_def)
++next
++  fix P1 P2
++  assume "P = [P2, P1]" and "SuperCalc.superposition P1 P2 C \<sigma> k C'"
++  hence "\<exists>trms. SuperCalc.superposition (Ecl (cl_ecl P1) {}) (Ecl (cl_ecl P2) {}) (Ecl (subst_cl C' \<sigma>) trms) \<sigma> k C'"
++    unfolding SuperCalc.superposition_def
++    apply (elim exE conjE)
++    subgoal for L _ _ _ _ M _ _ _ _ _ _ u'
++      apply (simp add: ex_conj_swap)
++      apply (rule exI[of _ L])
++      apply simp
++      apply (rule exI[of _ M])
++      apply (simp add: SuperCalc.eligible_literal_def variable_disjoint_def)
++      apply (rule exI[of _ u'])
++      apply (simp add: SuperCalc.allowed_redex_def)
++      by (metis (no_types, lifting) SuperCalc.strictly_maximal_literal_def cl_ecl.simps)
++    done
++  thus ?thesis
++    using \<open>P = [P2, P1]\<close> by (auto simp: derivable_list_def)
++qed
++    
++
+ sublocale statically_complete_calculus "{{||}}" F_Inf "(\<TTurnstile>e)" F.Red_I_\<G> F.Red_F_\<G>
+ proof unfold_locales
+   show "\<And>N. F.Red_I_\<G> N \<subseteq> F_Inf"
+@@ -4618,7 +4666,6 @@ next
+     using saturated_N'[unfolded F.saturated_def F.Inf_from_def F.Red_I_\<G>_def
+           F.Red_I_\<G>_q_def, simplified, unfolded subset_iff mem_Collect_eq, rule_format]
+     unfolding SuperCalc.ground_inference_saturated_def
+-    
+   proof (intro allI impI)
+     fix C P \<sigma> C'
+     assume
+@@ -4629,6 +4676,9 @@ next
+     from deriv_C_P have P_subset: "P \<subseteq> (\<lambda>C. Ecl (fset C) {}) ` N'"
+       by (simp add: SuperCalc.derivable_premisses)
+ 
++    hence ball_fin_P: "\<forall>D \<in> P. finite (cl_ecl D)"
++      using all_finite_N' by blast
++
+     from deriv_C_P obtain Ps
+       where P_eq: "P = set Ps" and deriv_C_Ps: "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
+       by (auto dest: derivable_list_if_SuperCalc_derivable)
+@@ -4688,22 +4738,48 @@ next
+     qed
+ 
+     obtain E \<sigma>\<^sub>E E' where
+-      "derivable_list E (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))
+-        \<sigma>\<^sub>E SuperCalc.FirstOrder E' \<and> renaming_cl D E"
++      deriv_E: "derivable_list E (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))
++        \<sigma>\<^sub>E SuperCalc.FirstOrder E'" and "renaming_cl D E"
+       using derivable_list_if_renaming[OF deriv_D all2_renaming_Ps fin_Ps]
+       by blast
+ 
+     define \<iota> where
+       "\<iota> \<equiv> Infer (map (Abs_fset \<circ> cl_ecl) Ps) (Abs_fset (subst_cl E' \<sigma>\<^sub>E))"
+ 
++    have map2_map: "map2 f (map h xs) ys = map2 (\<lambda>x. f (h x)) xs ys" for f h xs ys
++      using map_zip_map
++      by (simp add: map_zip_map)
++
++    have
++      "map2 (\<lambda>x y. Ecl (subst_cl (fset x) y) {}) (map (Abs_fset \<circ> cl_ecl) Ps)
++        (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)) =
++       map2 (\<lambda>x y. Ecl (subst_cl (fset (Abs_fset (cl_ecl x))) y) {}) Ps
++        (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
++      by (simp add: map2_map comp_def)
++    also have "... = map2 (\<lambda>x y. Ecl (subst_cl (cl_ecl x) y) {}) Ps
++      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
++      apply (rule map2_cong0)
++      apply simp
++      using Abs_fset_inverse[simplified, OF ball_fin_P[unfolded P_eq, rule_format]]
++      by (metis set_zip_leftD)
++    also have "... = map2 (\<lambda>x y. Ecl (cl_ecl (subst_ecl x y)) {}) Ps
++      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps))"
++      by (simp add: cl_ecl_subst_ecl_distrib[symmetric])
++    also have "... = map (\<lambda>x. Ecl (cl_ecl x) {}) (map2 subst_ecl Ps
++      (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))"
++      by auto
++    finally have FOO:
++      "map2 (\<lambda>x y. Ecl (subst_cl (fset x) y) {})
++        (map (Abs_fset \<circ> cl_ecl) Ps) (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)) =
++       map (\<lambda>x. Ecl (cl_ecl x) {})
++        (map2 subst_ecl Ps (renamings_apart (map (Abs_fset \<circ> cl_ecl) Ps)))"
++      by simp
++
+     have "\<iota> \<in> F_Inf"
+       unfolding F_Inf_def mem_Collect_eq Let_def \<iota>_def
+       apply simp
+-      apply (rule exI[of _ "Ecl (subst_cl E' \<sigma>\<^sub>E) {}"])
+-      apply (rule exI[of _ \<sigma>\<^sub>E])
+-      apply (rule exI[of _ E'])
+-      apply simp
+-      sorry
++      using derivable_list_no_trms[OF deriv_E, unfolded FOO[symmetric]]
++      by blast
+ 
+     moreover have all_prems_in_N': "C \<in> N'" if C_in: "C \<in> set (prems_of \<iota>)" for C
+     proof -
+@@ -4712,7 +4788,6 @@ next
+ 
+       from x_in P_subset have "x \<in> (\<lambda>C. Ecl (fset C) {}) ` N'"
+         by auto
+-
+       then show ?thesis
+         unfolding image_iff C_eq by (auto simp add: fset_inverse)
+     qed
+diff --git a/Weidenbach_Book/CDCL/CDCL_W_Termination.thy b/Weidenbach_Book/CDCL/CDCL_W_Termination.thy
+index 7fe245e1..0cc75fff 100644
+--- a/Weidenbach_Book/CDCL/CDCL_W_Termination.thy
++++ b/Weidenbach_Book/CDCL/CDCL_W_Termination.thy
+@@ -87,6 +87,8 @@ proof (rule ccontr)
+     \<open>clauses S \<Turnstile>pm add_mset L D'\<close>
+     using cdcl by (auto elim!: rulesE)
+ 
++  from decomp have \<open>trail S = M2 @ Decided K # M1\<close>
++
+   obtain M2' where M2': \<open>trail S = (M2' @ M2) @ Decided K # M1\<close>
+     using decomp by auto
+   have inv_T: \<open>cdcl\<^sub>W_all_struct_inv T\<close>
+diff --git a/Weidenbach_Book/ROOTS b/Weidenbach_Book/ROOTS
+index effdd7d3..b369fd2d 100644
+--- a/Weidenbach_Book/ROOTS
++++ b/Weidenbach_Book/ROOTS
+@@ -2,9 +2,6 @@ Entailment_Definition
+ CDCL
+ Normalisation
+ Resolution_Superposition
+-Watched_Literals
+-IsaSAT
+ Weidenbach_Book_Base
+ CDCL_Extensions
+ More_Refinement_Libs
+-More_Sepref
