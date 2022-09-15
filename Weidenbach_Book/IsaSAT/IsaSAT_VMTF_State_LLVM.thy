@@ -10,7 +10,7 @@ lemma find_decomp_wl_st_int_alt_def:
      let S = update_vmtf_wl_heur vm S;
      RETURN S
   })\<close>
-  by (auto simp: find_decomp_wl_st_int_def state_extractors intro!: ext split: isasat_int.splits)
+  by (auto simp: find_decomp_wl_st_int_def state_extractors intro!: ext split: isasat_int_splits)
 
 sepref_def find_decomp_wl_imp'_fast_code
   is \<open>uncurry find_decomp_wl_st_int\<close>

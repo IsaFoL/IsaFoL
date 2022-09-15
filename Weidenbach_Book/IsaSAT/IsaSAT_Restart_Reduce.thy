@@ -366,24 +366,6 @@ definition remove_deleted_clauses_from_avdom_inv :: \<open>_\<close> where
   length (get_tvdom_aivdom avdom) \<le> i \<and>
    (\<forall>C \<in> set (get_tvdom_aivdom avdom). C \<in># dom_m N \<and> \<not>irred N C \<and> length (N \<propto> C) \<noteq> 2))\<close>
 
-lemma [simp]:
-  \<open>get_avdom_aivdom (push_to_tvdom C aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_vdom_aivdom (push_to_tvdom C aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (push_to_tvdom C aivdom) = get_ivdom_aivdom aivdom\<close>
-  \<open>get_tvdom_aivdom (push_to_tvdom C aivdom) = get_tvdom_aivdom aivdom @ [C]\<close>
-  by (cases aivdom; auto simp: push_to_tvdom_def push_to_tvdom_int_def; fail)+
-
-lemma aivdom_inv_dec_empty_tvdom[intro!]:
-  \<open>aivdom_inv_dec aivdom d \<Longrightarrow> aivdom_inv_dec (empty_tvdom aivdom) d\<close>
-  by (cases aivdom) (auto simp: aivdom_inv_dec_alt_def empty_tvdom_def)
-
-lemma [simp]:
-  \<open>get_avdom_aivdom (empty_tvdom aivdom) = get_avdom_aivdom aivdom\<close>
-  \<open>get_vdom_aivdom (empty_tvdom aivdom) = get_vdom_aivdom aivdom\<close>
-  \<open>get_ivdom_aivdom (empty_tvdom aivdom) = get_ivdom_aivdom aivdom\<close>
-  \<open>get_tvdom_aivdom (empty_tvdom aivdom) = []\<close>
-  by (cases aivdom; auto simp: empty_tvdom_def; fail)+
-
 definition is_candidate_for_removal where
   \<open>is_candidate_for_removal C N = do {
     ASSERT (C \<in># dom_m N);
@@ -950,7 +932,7 @@ proof -
   note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-      isasat_input_bounded_cong
+      isasat_input_bounded_cong empty_occs_list_cong
 
   show ?A if ?pre
     using that apply -
@@ -1051,7 +1033,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_restart_stat T
+    incr_reduction_stat T
   })\<close>
 
 
@@ -1100,7 +1082,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_reduction_stat T
+    incr_restart_stat T
   })\<close>
 
 lemma mark_to_delete_clauses_wl_D_heur_alt_def:
@@ -1159,7 +1141,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-         incr_restart_stat T
+         incr_reduction_stat T
         })\<close>
     unfolding mark_to_delete_clauses_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1220,7 +1202,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-          incr_reduction_stat T
+          incr_restart_stat T
         })\<close>
     unfolding mark_to_delete_clauses_GC_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1548,14 +1530,14 @@ proof -
   subgoal using that by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena simp: arena_lifting)
   done
 
-  have incr_restart_stat: \<open>incr_restart_stat T
+  have incr_restart_stat: \<open>incr_reduction_stat T
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
     if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
     using that
     by (cases S; cases T)
       (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
-      remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def
+      remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def incr_reduction_stat_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
       clss_size_resetUS_def clss_size_lcount_def clss_size_lcountU0_def 
         RES_RETURN_RES)
@@ -2161,7 +2143,7 @@ proof -
     subgoal
       using that by (auto simp: twl_st_heur_restart arena_lifting dest: twl_st_heur_restart(2) dest!: twl_st_heur_restart_anaD)
     done
-  have incr_reduction_stat: \<open>incr_reduction_stat T
+  have incr_reduction_stat: \<open>incr_restart_stat T
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
     if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
     using that
@@ -2985,7 +2967,7 @@ definition twl_st_heur_restart_strong_aivdom :: \<open>(isasat \<times> nat twl_
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -3009,7 +2991,8 @@ definition twl_st_heur_restart_strong_aivdom :: \<open>(isasat \<times> nat twl_
     isasat_input_bounded (all_init_atms N (NE+NEk+NS+N0)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NEk+NS+N0)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur
+      heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur \<and>
+    (occs, empty_occs_list (all_init_atms N (NE+NEk+NS+N0))) \<in> occurrence_list_ref
   }\<close>
 
 lemma isasat_GC_clauses_prog_wl:

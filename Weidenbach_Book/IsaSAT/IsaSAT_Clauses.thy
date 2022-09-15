@@ -81,12 +81,6 @@ definition fm_add_new where
     RETURN (N, l + header_size C)
   }\<close>
 
-lemma header_size_Suc_def:
-  \<open>header_size C =
-    (if is_short_clause C then (Suc (Suc 0)) else (Suc (Suc (Suc 0))))\<close>
-  unfolding header_size_def
-  by auto
-
 lemma nth_append_clause:
   \<open>a < length C \<Longrightarrow> append_clause b C N ! (length N + header_size C + a) = ALit (C ! a)\<close>
   unfolding append_clause_def header_size_Suc_def append_clause_skeleton_def

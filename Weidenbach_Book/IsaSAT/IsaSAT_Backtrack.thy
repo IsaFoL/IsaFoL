@@ -1923,7 +1923,8 @@ proof -
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
       dist_vdom: \<open>distinct (get_vdom_aivdom ?aivdom)\<close> and
-      heur: \<open>heuristic_rel (all_atms_st U') ?heur\<close>
+      heur: \<open>heuristic_rel (all_atms_st U') ?heur\<close> and
+      occs: \<open>(get_occs U, empty_occs_list (all_atms_st U')) \<in> occurrence_list_ref\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U' all_atms_def[symmetric]
         aivdom_inv_dec_alt_def)
     have [simp]: \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
@@ -2215,6 +2216,8 @@ proof -
         insert x' (vdom_m (all_atms N ?NUE_after) W N)\<close> (is ?K)
       \<open>heuristic_rel ((all_atms (fmupd x' (C', b) N) ?NUE_before)) =
         heuristic_rel (all_atms N ?NUE_after)\<close> (is ?L)
+      \<open>empty_occs_list ((all_atms (fmupd x' (C', b) N) ?NUE_before)) =
+        empty_occs_list (all_atms N ?NUE_after)\<close> (is ?M)
       if \<open>x' \<notin># dom_m N\<close> and C: \<open>C' = C\<close> for b x' C'
     proof -
       show A: ?A
@@ -2231,7 +2234,7 @@ proof -
         set_mset (all_atms N ?NUE_after)\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
 
-      show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J and ?L
+      show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J and ?L and ?M
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def
@@ -2241,7 +2244,7 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
           isasat_input_nempty_def cach_refinement_nonull_def
-          heuristic_rel_def phase_save_heur_rel_def heuristic_rel_stats_def
+          heuristic_rel_def phase_save_heur_rel_def heuristic_rel_stats_def empty_occs_list_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2258,7 +2261,7 @@ proof -
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric]
           isasat_input_nempty_def[symmetric]
-          heuristic_rel_def[symmetric]
+          heuristic_rel_def[symmetric] empty_occs_list_def[symmetric]
           heuristic_rel_def[symmetric] phase_save_heur_rel_def[symmetric] heuristic_rel_stats_def[symmetric]
         apply auto
         done
@@ -2363,7 +2366,7 @@ proof -
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom aivdom M1'_M1 bounded nempty r r' arena_le
-          set_mset_mono[OF ivdom]
+          set_mset_mono[OF ivdom] occs
         by (clarsimp_all simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
@@ -2509,7 +2512,8 @@ proof -
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
       dist_vdom: \<open>distinct (get_vdom_aivdom ?aivdom)\<close> and
       aivdom: \<open>aivdom_inv_dec ?aivdom (dom_m N)\<close> and
-      heur: \<open>heuristic_rel (all_atms_st U') ?heur\<close>
+      heur: \<open>heuristic_rel (all_atms_st U') ?heur\<close> and
+      occs: \<open>(get_occs U, empty_occs_list (all_atms_st U')) \<in> occurrence_list_ref\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U' all_atms_def[symmetric]
         aivdom_inv_dec_alt_def)
     have [simp]: \<open>C ! 0 = - lit_of (hd M)\<close> and
@@ -2603,7 +2607,9 @@ proof -
       \<open>vdom_m (all_atms N ?NE) W (N) =
         (vdom_m (all_atms N ?NE_after) W N)\<close> (is ?K)
       \<open>heuristic_rel ((all_atms (N) (?NE))) =
-        heuristic_rel ((all_atms N ?NE_after))\<close> (is ?L)
+      heuristic_rel ((all_atms N ?NE_after))\<close> (is ?L)
+      \<open>empty_occs_list  ((all_atms (N) (?NE))) =
+         empty_occs_list ((all_atms N ?NE_after))\<close> (is ?M)
       for b x' C'
     proof -
       show A: ?A
@@ -2622,7 +2628,7 @@ proof -
         set_mset (all_atms N ?NE_after)\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
 
-      show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K and ?L
+      show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K and ?L and ?M
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def heuristic_rel_stats_def
@@ -2632,7 +2638,7 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def heuristic_rel_def
           isasat_input_nempty_def cach_refinement_nonull_def vdom_m_def
-          phase_save_heur_rel_def phase_saving_def
+          phase_save_heur_rel_def phase_saving_def empty_occs_list_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2649,7 +2655,7 @@ proof -
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric] cach_refinement_nonull_def[symmetric]
           isasat_input_nempty_def[symmetric] heuristic_rel_def[symmetric] heuristic_rel_stats_def[symmetric]
-          phase_save_heur_rel_def[symmetric] phase_saving_def[symmetric]
+          phase_save_heur_rel_def[symmetric] phase_saving_def[symmetric] empty_occs_list_def[symmetric]
         apply auto
         done
     qed
@@ -2698,7 +2704,7 @@ proof -
            intro!: vmtf_consD
            simp del: isasat_input_bounded_def isasat_input_nempty_def)
      subgoal
-       using bounded nempty dist_vdom r' heur aivdom
+       using bounded nempty dist_vdom r' heur aivdom occs
        by (auto simp: U' lit_of_hd_trail_st_heur_def RETURN_def
            single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
          RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES

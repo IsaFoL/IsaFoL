@@ -28,7 +28,7 @@ lemma save_phase_st_alt_def:
       heur \<leftarrow> save_rephase_heur n heur;
       RETURN (update_trail_wl_heur M' (update_heur_wl_heur heur S))
    })\<close>
-  by (auto simp: save_phase_st_def state_extractors split: isasat_int.splits intro!: ext)
+  by (auto simp: save_phase_st_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_def save_phase_heur_st
   is save_phase_st
@@ -71,7 +71,7 @@ lemma rephase_heur_st_alt_def:
                   b stats (lcount);
       RETURN (update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)))
    })\<close>
-  by (auto simp: rephase_heur_st_def state_extractors split: isasat_int.splits intro!: ext)
+  by (auto simp: rephase_heur_st_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_register rephase_heur
 sepref_def rephase_heur_st_impl

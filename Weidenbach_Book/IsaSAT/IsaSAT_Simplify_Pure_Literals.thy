@@ -336,6 +336,8 @@ proof -
        isa_vmtf_cong[THEN isa_vmtf_consD2]
        isasat_input_nempty_cong[THEN iffD1]
        isasat_input_bounded_cong[THEN iffD1]
+    note subst = empty_occs_list_cong
+  
       let ?T = \<open>(Propagated L 0 # M, N, D, NE, UE, add_mset {#L'#} NEk, UEk, NS, US, N0, U0,
         add_mset (- L') Q, WS)\<close>
       have \<open>L' \<in># all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l N#} + (NE + NEk) + NS + N0)\<close> and
@@ -348,8 +350,8 @@ proof -
           all_lits_of_mm_add_mset all_lits_of_m_add_mset in_all_lits_of_mm_uminus_iff)
       then have H: \<open>set_mset (all_init_atms_st ?T) = set_mset (all_init_atms_st T)\<close>
         unfolding all_init_atms_st_alt_def by auto
-      note _ = D undef cong[OF H[symmetric]]
-  } note cong = this(3-) and D = this(1) and undef = this(2)
+      note _ = D undef subst[OF H] cong[OF H[symmetric]]
+  } note cong = this(4-) and subst = this(3) and D = this(1) and undef = this(2)
 
     show ?thesis
     supply [simp del] = isasat_input_nempty_def isasat_input_bounded_def
@@ -370,7 +372,7 @@ proof -
         state_wl_l_def twl_st_l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_lits_of_wl_def all_init_lits_of_l_def
         get_init_clss_l_def T\<close>)
     subgoal using assms D undef unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def
-      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_st_alt_def all_init_atms_alt_def T
+      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms all_init_atms_st_alt_def all_init_atms_alt_def T subst
       unfolding all_init_atms_st_alt_def[symmetric] apply -
       apply (simp only: in_pair_collect_simp)
       apply (intro conjI)
@@ -405,9 +407,10 @@ proof -
       subgoal by simp (use cong T in fast)
       subgoal by simp
       subgoal by simp (use cong T in fast)
-      subgoal by simp
+      subgoal using subst by (simp add: T all_init_atms_st_def)
       subgoal by (simp add: learned_clss_count_def)
-      subgoal by simp
+      subgoal by (simp add: learned_clss_count_def)
+      subgoal by (simp add: subst)
       done
     done
 qed

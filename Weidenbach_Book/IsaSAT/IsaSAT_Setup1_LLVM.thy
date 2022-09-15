@@ -13,7 +13,7 @@ sepref_definition not_deleted_code
 lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda> S C'. read_arena_wl_heur (\<lambda>N. do {status \<leftarrow> RETURN (arena_status N C'); RETURN (status \<noteq> DELETED)}) S)\<close>
   by (auto intro!: ext simp: clause_not_marked_to_delete_heur_def read_all_st_def
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 definition clause_not_marked_to_delete_heur_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _ \<Rightarrow> _\<close> where
   \<open>clause_not_marked_to_delete_heur_code S C' = read_arena_wl_heur_code (\<lambda>N. not_deleted_code N C') S\<close>
@@ -61,7 +61,7 @@ lemma conflict_is_None_code_refine[sepref_fr_rules]:
 
 lemma get_conflict_wl_is_None_heur_alt_def: \<open>read_conflict_wl_heur conflict_is_None = RETURN \<circ> get_conflict_wl_is_None_heur\<close>
   by (auto simp: read_all_st_def get_conflict_wl_is_None_heur_def conflict_is_None_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 definition get_conflict_wl_is_None_heur2 where
   \<open>get_conflict_wl_is_None_heur2 = RETURN o get_conflict_wl_is_None_heur\<close>
@@ -90,7 +90,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 lemma count_decided_st_heur_alt_def:
   \<open>RETURN o count_decided_st_heur = read_trail_wl_heur (RETURN \<circ> count_decided_pol)\<close>
   by (auto intro!: ext simp: count_decided_st_heur_def count_decided_pol_def
-    read_all_st_def split: isasat_int.splits)
+    read_all_st_def split: isasat_int_splits)
 
 definition count_decided_st_heur_impl where
   \<open>count_decided_st_heur_impl = read_trail_wl_heur_code count_decided_pol_impl\<close>
@@ -113,7 +113,7 @@ global_interpretation count_decided: read_trail_param_adder0 where
   apply (rule count_decided_pol_impl.refine)
   subgoal
     by (auto simp: read_all_st_def isa_count_decided_st_def intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: isa_count_decided_st_fast_code_def)
   done
@@ -140,7 +140,7 @@ global_interpretation mop_count_decided: read_trail_param_adder where
     by (auto simp: polarity_st_heur_pol_fast_def)
   subgoal
     by (auto simp: mop_polarity_st_heur_def read_all_st_def
-      split: isasat_int.splits intro!: ext)
+      split: isasat_int_splits intro!: ext)
   done
 
 lemmas [sepref_fr_rules] = mop_count_decided.refine[unfolded lambda_comp_true]
@@ -173,7 +173,7 @@ qed
 
 lemma access_lit_in_clauses_heur_alt_def:
   \<open>RETURN ooo access_lit_in_clauses_heur = (\<lambda>N C' D. read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C' + D))) N)\<close>
-  by (auto intro!: ext simp: read_all_st_def access_lit_in_clauses_heur_def split: isasat_int.splits)
+  by (auto intro!: ext simp: read_all_st_def access_lit_in_clauses_heur_def split: isasat_int_splits)
 
 lemma access_lit_in_clauses_heur_pre:
   \<open>uncurry2
@@ -235,7 +235,7 @@ lemma refine_ASSERT_move_to_pre2':
 
 lemma arena_lit_arena_lit_read_arena_wl_heur_arena_lit:
   \<open>RETURN (arena_lit (get_clauses_wl_heur N) (C + C')) = read_arena_wl_heur (\<lambda>N. RETURN (arena_lit N (C + C'))) N\<close>
-  by (auto intro!: ext simp: read_all_st_def access_lit_in_clauses_heur_def split: isasat_int.splits)
+  by (auto intro!: ext simp: read_all_st_def access_lit_in_clauses_heur_def split: isasat_int_splits)
 
 sepref_register mop_access_lit_in_clauses_heur
 lemma mop_access_lit_in_clauses_heur_refine[sepref_fr_rules]:
@@ -255,7 +255,7 @@ lemma isasat_bounded_assn_length_arenaD: \<open>rdomp isasat_bounded_assn a \<Lo
   unfolding rdomp_def
   apply normalize_goal+
   by (cases a, case_tac xa)
-   (auto simp: isasat_bounded_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int.splits
+   (auto simp: isasat_bounded_assn_def rdomp_def sint64_max_def max_snat_def split: isasat_int_splits
     dest!: al_assn_boundD2 mod_starD)
 
 sepref_def mop_access_lit_in_clauses_heur_impl
@@ -306,7 +306,7 @@ lemma rewatch_heur_st_fast_alt_def:
   RETURN S
   })\<close>
   by (auto simp: rewatch_heur_st_fast_def rewatch_heur_st_def state_extractors
-    split: isasat_int.splits
+    split: isasat_int_splits
     intro!: ext)
 
 sepref_def rewatch_heur_st_fast_code
@@ -330,7 +330,7 @@ global_interpretation length_ivdom_aivdom: read_vdom_param_adder0 where
   apply (rule vdom_ref)
   subgoal
     by (auto simp: read_all_st_def length_ivdom_aivdom_def length_ivdom_def intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: length_ivdom_fast_code_def)
   done
@@ -349,7 +349,7 @@ global_interpretation length_avdom_aivdom: read_vdom_param_adder0 where
   apply (rule vdom_ref)
   subgoal
     by (auto simp: read_all_st_def length_avdom_aivdom_def length_avdom_def intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: length_avdom_fast_code_def)
   done
@@ -369,7 +369,7 @@ global_interpretation length_tvdom_aivdom: read_vdom_param_adder0 where
   apply (rule vdom_ref)
   subgoal
     by (auto simp: read_all_st_def length_tvdom_aivdom_def length_tvdom_def intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: length_tvdom_fast_code_def)
   done
@@ -400,7 +400,7 @@ definition clause_is_learned_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Right
 
 lemma clause_is_learned_heur_alt_def: \<open>RETURN oo clause_is_learned_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> is_learned) C C') N)\<close>
   by (auto simp: clause_is_learned_heur_def read_all_st_def is_learned_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 global_interpretation arena_is_learned: read_arena_param_adder where
   R = \<open>(snat_rel' TYPE(64))\<close> and
@@ -424,7 +424,7 @@ definition clause_lbd_heur_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> 
 
 lemma clause_lbd_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_lbd_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>C. (RETURN \<circ>\<circ> arena_lbd) C C') N)\<close>
-  by (auto simp: clause_lbd_heur_def read_all_st_def arena_lbd_def split: isasat_int.splits intro!: ext)
+  by (auto simp: clause_lbd_heur_def read_all_st_def arena_lbd_def split: isasat_int_splits intro!: ext)
 
 global_interpretation arena_get_lbd: read_arena_param_adder where
   R = \<open>(snat_rel' TYPE(64))\<close> and
@@ -441,7 +441,7 @@ global_interpretation arena_get_lbd: read_arena_param_adder where
   subgoal by (auto simp: clause_lbd_heur_code2_def intro!: ext)
   subgoal by (subst clause_lbd_heur_alt_def, rule refl)
   subgoal by (auto simp: mop_arena_lbd_st_def mop_arena_lbd_def read_arena_param_adder_ops.mop_def
-    read_all_st_def split: isasat_int.splits
+    read_all_st_def split: isasat_int_splits
     intro!: ext)
   done
 
@@ -464,7 +464,7 @@ global_interpretation arena_get_pos: read_arena_param_adder where
   apply (rule arena_pos_impl.refine)
   subgoal by (subst clause_pos_heur_code2_def, rule refl)
   subgoal by (auto simp: mop_arena_pos_st_def mop_arena_pos_def read_arena_param_adder_ops.mop_def
-    read_all_st_def split: isasat_int.splits
+    read_all_st_def split: isasat_int_splits
     intro!: ext)
   done
 
@@ -498,7 +498,7 @@ lemma mop_mark_garbage_heur_alt_def:
     RETURN (update_lcount_wl_heur lcount S)
       })\<close>
       unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
-   by (auto intro!: ext simp: state_extractors split: isasat_int.splits)
+   by (auto intro!: ext simp: state_extractors split: isasat_int_splits)
 
 
 sepref_def mop_mark_garbage_heur_impl
@@ -524,7 +524,7 @@ lemma mark_garbage_heur_alt_def: \<open>RETURN ooo mark_garbage_heur =
     RETURN (update_lcount_wl_heur lcount S)})\<close>
       unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
    by (auto intro!: ext simp: state_extractors
-        split: isasat_int.splits)
+        split: isasat_int_splits)
   
 sepref_def mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
@@ -554,7 +554,7 @@ lemma mop_mark_garbage_heur3_alt_def:
    })\<close>
       unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
    by (auto intro!: ext simp: state_extractors
-        split: isasat_int.splits)
+        split: isasat_int_splits)
 
 sepref_def mop_mark_garbage_heur3_impl
   is \<open>uncurry2 mop_mark_garbage_heur3\<close>
@@ -572,7 +572,7 @@ lemma delete_index_vdom_heur_alt_def: \<open>RETURN oo delete_index_vdom_heur = 
   RETURN (update_vdom_wl_heur vdom S)
     })\<close>
   by (auto simp: state_extractors delete_index_vdom_heur_def
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 sepref_def delete_index_vdom_heur_fast_code2
   is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
@@ -586,7 +586,7 @@ sepref_def delete_index_vdom_heur_fast_code2
 lemma access_length_heur_alt_def:
   \<open>RETURN oo access_length_heur = (\<lambda>N C'. read_arena_wl_heur (\<lambda>N. RETURN (arena_length N C')) N)\<close>
   by (auto intro!: ext simp: read_all_st_def access_length_heur_def
-    split: isasat_int.splits)
+    split: isasat_int_splits)
 
 definition access_length_heur_fast_code2 :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>access_length_heur_fast_code2 = (\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. arena_length_impl N C) N)\<close>
@@ -615,7 +615,7 @@ lemma get_slow_ema_heur_alt_def:
     \<open>RETURN o get_slow_ema_heur = read_heur_wl_heur (RETURN o slow_ema_of)\<close> and
   get_fast_ema_heur_alt_def:
     \<open>RETURN o get_fast_ema_heur = read_heur_wl_heur (RETURN o fast_ema_of)\<close> 
-  by (auto simp: read_all_st_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_st_def intro!: ext split: isasat_int_splits)
 
 definition get_slow_ema_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_slow_ema_heur_fast_code = read_heur_wl_heur_code slow_ema_of_stats_impl\<close>
@@ -657,7 +657,7 @@ find_theorems get_conflict_count_since_last_restart RETURN
 lemma get_conflict_count_since_last_restart_heur_alt_def:
   \<open>RETURN o get_conflict_count_since_last_restart_heur =
   read_heur_wl_heur (RETURN \<circ> get_conflict_count_since_last_restart)\<close>
-  by (auto simp: read_all_st_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_st_def intro!: ext split: isasat_int_splits)
 
 definition get_conflict_count_since_last_restart_heur_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_conflict_count_since_last_restart_heur_fast_code = read_heur_wl_heur_code get_conflict_count_since_last_restart_stats_impl\<close>
@@ -682,7 +682,7 @@ lemma id_lcount_assn: \<open>(Mreturn, RETURN) \<in> (lcount_assn)\<^sup>k \<rig
   by sepref_to_hoare vcg
 
 lemma get_learned_count_alt_def: \<open>RETURN o get_learned_count = read_lcount_wl_heur RETURN\<close>
-  by (auto simp: read_all_st_def intro!: ext split: isasat_int.splits)
+  by (auto simp: read_all_st_def intro!: ext split: isasat_int_splits)
 
 definition get_learned_count_fast_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>get_learned_count_fast_code = read_lcount_wl_heur_code Mreturn\<close>
@@ -714,7 +714,7 @@ global_interpretation get_learned_count_number: read_lcount_param_adder0 where
     \<open>read_lcount_wl_heur_code clss_size_lcount_fast_code = get_learned_count_number_fast_code\<close>
   apply unfold_locales
   apply (rule clss_size_lcount_fast_code.refine)
-  subgoal by (auto simp: read_all_st_def split: isasat_int.splits intro!: ext)
+  subgoal by (auto simp: read_all_st_def split: isasat_int_splits intro!: ext)
   subgoal by (auto simp: get_learned_count_number_fast_code_def)
   done
 
@@ -756,7 +756,7 @@ global_interpretation marked_used: read_arena_param_adder where
   \<open>(\<lambda>N C. read_arena_wl_heur_code (\<lambda>N. marked_as_used_impl N C) N) = marked_as_used_st_fast_code\<close>
   apply unfold_locales
   apply (rule marked_as_used_impl.refine[unfolded comp_def])
-  subgoal by (auto simp: marked_as_used_st_def read_all_st_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: marked_as_used_st_def read_all_st_def intro!: ext split: isasat_int_splits)
   subgoal by (auto simp: marked_as_used_st_fast_code_def)
   done
 
@@ -766,7 +766,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   marked_as_used_st_fast_code_def[unfolded read_all_st_code_def]
 
 lemma mop_marked_as_used_st_alt_def: \<open>mop_marked_as_used_st = marked_used.mop\<close>
-  by (auto intro!: ext split: isasat_int.splits simp: mop_marked_as_used_st_def marked_used.mop_def
+  by (auto intro!: ext split: isasat_int_splits simp: mop_marked_as_used_st_def marked_used.mop_def
     mop_marked_as_used_def read_all_st_def)
 
 lemmas [sepref_fr_rules] =

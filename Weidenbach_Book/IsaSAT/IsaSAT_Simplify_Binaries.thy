@@ -318,7 +318,7 @@ proof -
     by auto
   note cong = trail_pol_cong option_lookup_clause_rel_cong map_fun_rel_D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
     cach_refinement_empty_cong' vdom_m_cong' vdom_m_cong'' isasat_input_bounded_cong[THEN iffD1] isasat_input_nempty_cong[THEN iffD1]
-    heuristic_rel_cong
+    heuristic_rel_cong empty_occs_list_cong'
   show ?thesis
     unfolding isa_binary_clause_subres_wl_def binary_clause_subres_wl_alt_def uncurry_def Let_def
       mop_arena_status_def nres_monad3
@@ -900,7 +900,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<R
     RETURN S
   })\<close>
 
-lemma lambda_split_second: \<open>(\<lambda>(a, x). f a x) = (\<lambda>(a,b,c:: (_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)isasat_int). f a (b,c))\<close>
+lemma lambda_split_second: \<open>(\<lambda>(a, x). f a x) = (\<lambda>(a,b,c:: isasat). f a (b,c))\<close>
   by (auto intro!: ext)
 
 lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def:

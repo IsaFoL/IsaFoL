@@ -52,7 +52,7 @@ lemma cut_watch_list_heur2_alt_def:
   RETURN (update_watchlist_wl_heur W S)
 })\<close>
   unfolding cut_watch_list_heur2_inv_def  cut_watch_list_heur2_def
-  by (auto simp: state_extractors Let_def intro!: ext split: isasat_int.splits)
+  by (auto simp: state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 lemma cut_watch_list_heur2I:
   \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
@@ -95,13 +95,11 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   supply [[goals_limit=1]]
   unfolding PR_CONST_def unit_propagation_inner_loop_wl_D_heur_def
   by sepref
-lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple16_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  supply [split] =  isasat_int.splits
-  unfolding isasat_bounded_assn_def
-  apply sepref_to_hoare
-  apply (vcg')
-  done
 
+lemma [sepref_fr_rules]: \<open>(Mreturn o Tuple17_get_d, RETURN o literals_to_update_wl_heur) \<in> isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [split] =  isasat_int_splits
+  unfolding isasat_bounded_assn_def
+  by sepref_to_hoare vcg'
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
 \<open>select_and_remove_from_literals_to_update_wl_heur S = do {
@@ -113,7 +111,7 @@ lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
     RETURN (update_literals_to_update_wl_heur (j + 1) T, -L)
   }\<close>
   by (cases S) (auto simp: select_and_remove_from_literals_to_update_wl_heur_def state_extractors
-    intro!: ext split: isasat_int.splits)
+    intro!: ext split: isasat_int_splits)
 
 sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>

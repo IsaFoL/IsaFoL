@@ -869,7 +869,7 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -894,7 +894,8 @@ lemma twl_st_heur_restart_alt_def[unfolded Let_def]:
     isasat_input_bounded \<A>  \<and>
     isasat_input_nempty \<A>  \<and>
     old_arena = [] \<and>
-    heuristic_rel \<A>  heur
+      heuristic_rel \<A>  heur \<and>
+    (occs, empty_occs_list \<A>) \<in> occurrence_list_ref
     }\<close>
     unfolding twl_st_heur_restart_def all_init_atms_st_def Let_def by auto
 
@@ -1010,6 +1011,7 @@ proof -
     D\<^sub>0_cong[OF sym]
     vdom_m_cong[THEN H'']
     vdom_m_cong2
+    empty_occs_list_cong
   have set_conflict_to_false: \<open>(a, None) \<in> option_lookup_clause_rel \<A> \<Longrightarrow>
     (set_conflict_to_false a, Some {#}) \<in> option_lookup_clause_rel \<A>\<close> for a \<A>
     by (auto simp: option_lookup_clause_rel_def set_conflict_to_false_def
@@ -1081,6 +1083,7 @@ proof -
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
         \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>] clss_size_corr_restart_def isasat_state_simp
         clss_size_def clss_size_incr_lcountUE_def learned_clss_count_def aivdom_inv_dec_mono
+        empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, (If _ _ _) _, _)\<close>]
         clss_size_decr_lcount_def accessors_def)
        (auto split: if_splits intro: aivdom_inv_dec_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
@@ -1098,9 +1101,9 @@ proof -
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2 clss_size_corr_restart_def
-        clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono
+        clss_size_def clss_size_incr_lcountUEk_def learned_clss_count_def aivdom_inv_dec_mono empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, (If _ _ _) _, _)\<close>]
         clss_size_decr_lcount_def)
-       (auto split: if_splits intro: aivdom_inv_dec_mono simp:
+      (auto split: if_splits intro: aivdom_inv_dec_mono simp:
         clss_size_decr_lcount_def clss_size_lcount_def clss_size_lcountUS_def
         clss_size_lcountU0_def clss_size_lcountUE_def clss_size_lcountUEk_def)
    subgoal by simp
@@ -1115,7 +1118,7 @@ proof -
        \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2
        clss_size_def clss_size_incr_lcountUE_def clss_size_incr_lcountUS_def
        clss_size_incr_lcountU0_def
-       clss_size_decr_lcount_def clss_size_corr_restart_def
+       clss_size_decr_lcount_def clss_size_corr_restart_def empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>]
        option_lookup_clause_rel_cong[of
        \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
@@ -1130,7 +1133,7 @@ proof -
    subgoal state_conv for x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p
      x2p x1q x2q x1r x2r x1s x2s x1t x2t x1u
      apply (clarsimp simp only: twl_st_heur_restart_alt_def in_pair_collect_simp prod.simps
-       prod_rel_iff TrueI refl accessors_def isasat_state_simp
+       prod_rel_iff TrueI refl accessors_def isasat_state_simp empty_occs_list_cong[of  \<open>all_init_atms_st (_, _, _, _, _, _, _,(If _ _ _) _, _)\<close>]
        cong[of \<open>all_init_atms_st (x1, x1a, None, x1c, x1d, x1e, x1f, x1g, x1h,
          x1i, x1j, uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev x1)), x2k)\<close>
        \<open>all_init_atms_st (_, _, _, _, _, _, _, (If _ _ _) _, _)\<close>] isa_vmtf_consD2

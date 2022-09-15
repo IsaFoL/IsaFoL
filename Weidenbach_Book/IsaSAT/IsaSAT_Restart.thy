@@ -5,7 +5,7 @@ theory IsaSAT_Restart
 begin
 
 chapter \<open>Restarts\<close>
-
+term occurrence_list_ref
 lemma twl_st_heur_change_subsumed_clauses:
   fixes lcount lcount' :: clss_size
   assumes \<open>(S,
@@ -18,7 +18,7 @@ proof -
   note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong isa_vmtf_cong heuristic_rel_cong
   note cong2 = D\<^sub>0_cong phase_saving_cong cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-    isasat_input_bounded_cong
+    isasat_input_bounded_cong empty_occs_list_cong
   show ?thesis
     supply[[goals_limit=1]]
     supply [dest!] = cong[OF assms(2)]
@@ -36,7 +36,6 @@ proof -
     apply ((drule cong[OF assms(2)])+; assumption)+
     done
 qed
-
 
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future
@@ -66,7 +65,7 @@ definition twl_st_heur_restart :: \<open>(isasat \<times> nat twl_st_wl) set\<cl
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -90,7 +89,8 @@ definition twl_st_heur_restart :: \<open>(isasat \<times> nat twl_st_wl) set\<cl
     isasat_input_bounded (all_init_atms N (NE+NEk+NS+N0)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NEk+NS+N0)) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur
+      heuristic_rel (all_init_atms N (NE+NEk+NS+N0)) heur \<and>
+    (occs, empty_occs_list (all_init_atms N (NE+NEk+NS+N0))) \<in> occurrence_list_ref
   }\<close>
 
 
@@ -151,9 +151,9 @@ lemma [twl_st_heur_restart]:
   using assms by (cases S; cases T)
    (simp only: twl_st_heur_restart_def get_trail_wl.simps
     mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps all_init_atms_st_def
-    all_init_atms_def get_init_clauses0_wl.simps isasat_int.inject get_unkept_unit_init_clss_wl.simps
+    all_init_atms_def get_init_clauses0_wl.simps tuple17.inject get_unkept_unit_init_clss_wl.simps
     get_kept_unit_init_clss_wl.simps
-    get_subsumed_init_clauses_wl.simps split: isasat_int.splits)
+    get_subsumed_init_clauses_wl.simps split: isasat_int_splits)
 
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>
@@ -1209,7 +1209,7 @@ lemma mark_garbage_heur4_remove_and_add_cls_l:
     supply [[goals_limit=1]]
     apply (auto simp: learned_clss_count_def)
     apply (clarsimp simp add: twl_st_heur_restart_ana_def twl_st_heur_restart_def
-        arena_lifting
+        arena_lifting isasat_state_simp
      valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
       learned_clss_l_l_fmdrop_irrelev aivdom_inv_dec_remove_clause
@@ -1953,6 +1953,17 @@ lemma mop_arena_status2:
     (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
      arena_lifting)
 
+lemma mop_arena_status3:
+  assumes \<open>(C,C')\<in>nat_rel\<close> \<open>C \<in># dom_m N\<close>
+    \<open>valid_arena arena N vdom\<close>
+  shows
+    \<open>mop_arena_status arena C
+    \<le> SPEC
+    (\<lambda>c. (c, irred N C)
+    \<in> {(a,b). (a = IRRED \<longleftrightarrow> irred N C) \<and> (a = LEARNED \<longleftrightarrow> \<not>irred N C) \<and> b = (irred N C)\<and>  (a \<noteq> DELETED)})\<close>
+  using assms arena_dom_status_iff[of arena N vdom C] unfolding mop_arena_status_def
+  by (auto intro!: ASSERT_leI simp: arena_is_valid_clause_vdom_def
+     arena_lifting)
 (*END Move*)
 (*TODO Move*)
 lemma mop_arena_status_vdom:
@@ -2021,7 +2032,7 @@ lemma twl_st_heur_restart_alt_def2:
     cach = get_conflict_cach S; clvls = get_count_max_lvls_heur S;
     vm = get_vmtf_heur S;
     vdom = get_aivdom S; heur = get_heur S; old_arena = get_old_arena S;
-    lcount = get_learned_count S in
+    lcount = get_learned_count S; occs = get_occs S in
     let M = get_trail_wl T; N = get_clauses_wl T;  D = get_conflict_wl T;
       Q = literals_to_update_wl T;
       W = get_watched_wl T; N0 = get_init_clauses0_wl T; U0 = get_learned_clauses0_wl T;
@@ -2045,10 +2056,11 @@ lemma twl_st_heur_restart_alt_def2:
     isasat_input_bounded (all_init_atms_st T) \<and>
     isasat_input_nempty (all_init_atms_st T) \<and>
     old_arena = [] \<and>
-    heuristic_rel (all_init_atms_st T) heur
+      heuristic_rel (all_init_atms_st T) heur \<and>
+    (occs, empty_occs_list (all_init_atms_st T)) \<in> occurrence_list_ref
   }\<close>
   unfolding twl_st_heur_restart_def Let_def
-  by (auto simp: all_init_atms_st_def )
+  by (auto simp: all_init_atms_st_def)
 
 lemma length_watched_le_ana:
   assumes
@@ -2115,3 +2127,4 @@ lemma cach_refinement_empty_cong': "set_mset \<A> = set_mset \<B> \<Longrightarr
   by (subst (asm) cach_refinement_empty_cong, assumption)
 
 end
+ 

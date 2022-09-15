@@ -1,7 +1,6 @@
 session "Splitting_Framework" = Saturation_Framework +
-  options [timeout=300]
+  options [timeout=300, quick_and_dirty=true]
   sessions
     "HOL-Library"
   theories
-    Preliminaries
-	Preliminaries_With_Zorn
+	  Preliminaries_With_Zorn

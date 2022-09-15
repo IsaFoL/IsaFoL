@@ -43,7 +43,7 @@ lemma isa_propagate_pure_bt_wl_alt_def:
       let _ = log_unit_clause L;
       RETURN S})\<close>
   unfolding isa_propagate_pure_bt_wl_def log_unit_clause_def
-  by (auto simp: empty_US_heur_def state_extractors Let_def intro!: ext split: isasat_int.splits)
+  by (auto simp: empty_US_heur_def state_extractors Let_def intro!: ext split: isasat_int_splits)
 
 sepref_register isa_propagate_pure_bt_wl cons_trail_Propagated_tr
 sepref_def isa_propagate_pure_bt_wl_code

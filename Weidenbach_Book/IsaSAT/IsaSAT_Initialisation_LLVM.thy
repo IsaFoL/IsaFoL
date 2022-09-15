@@ -882,9 +882,10 @@ lemma finalise_init_code_alt_def:
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
-  RETURN (IsaSAT_int M' N' D' Q' W' vm
+  let occs =  replicate (length W') [];
+  RETURN (IsaSAT M' N' D' Q' W' vm
     clvls cach lbd (take 1(replicate 160 (Pos 0))) init_stats
-    (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [])
+    (Restart_Heuristics heur) (AIvdom_init vdom [] ivdom) lcount opts [] occs)
     })\<close>
     unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def split_vmtf2_def
     by (auto simp: Let_def recombine_vmtf_def split: prod.splits tuple15.splits intro!: ext)
@@ -902,13 +903,15 @@ sepref_def finalise_init_code'
     stats_int_assn_alt_def[symmetric]]
   unfolding finalise_init_code_alt_def isasat_init_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
-     phase_heur_assn_def
+     phase_heur_assn_def op_list_list_len_def[symmetric]
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>AIvdom_init _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite at \<open>IsaSAT _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \<hole>\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>IsaSAT _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \<hole> _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
+  apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
+  apply (rewrite at \<open>let vm = recombine_vmtf _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>occs_assn\<close>])
   by sepref
 
 sepref_register initialise_VMTF

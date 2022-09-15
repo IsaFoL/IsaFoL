@@ -3,7 +3,7 @@ theory Tuple16
 begin
 
 
-datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int = IsaSAT_int
+datatype ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 = Tuple16
   (Tuple16_get_a: 'a)
   (Tuple16_get_b: 'b)
   (Tuple16_get_c: 'c)
@@ -25,53 +25,53 @@ paragraph \<open>Accessors\<close>
 
 context
 begin
-qualified fun set_a :: \<open>'a \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_a M (IsaSAT_int _ N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+qualified fun set_a :: \<open>'a \<Rightarrow> ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_a M (Tuple16 _ N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_b :: \<open>'b \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_b N (IsaSAT_int M _ D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_b :: \<open>'b \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_b N (Tuple16 M _ D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_c :: \<open>'c \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_c D (IsaSAT_int M N _ i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_c :: \<open>'c \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_c D (Tuple16 M N _ i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_d :: \<open>'d \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_d i (IsaSAT_int M N D _ W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_d :: \<open>'d \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_d i (Tuple16 M N D _ W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_e :: \<open>'e \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_e W (IsaSAT_int M N D i _ ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_e :: \<open>'e \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_e W (Tuple16 M N D i _ ivmtf icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_f :: \<open>'f \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_f ivmtf (IsaSAT_int M N D i W _ icount ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_f :: \<open>'f \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_f ivmtf (Tuple16 M N D i W _ icount ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_g :: \<open>'g \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_g icount (IsaSAT_int M N D i W ivmtf _ ccach lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_g :: \<open>'g \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_g icount (Tuple16 M N D i W ivmtf _ ccach lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_h :: \<open>'h \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_h ccach (IsaSAT_int M N D i W ivmtf icount _ lbd outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_h :: \<open>'h \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_h ccach (Tuple16 M N D i W ivmtf icount _ lbd outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_i :: \<open>'i \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_i lbd (IsaSAT_int M N D i W ivmtf icount ccach _ outl heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_i :: \<open>'i \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_i lbd (Tuple16 M N D i W ivmtf icount ccach _ outl heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_j :: \<open>'j \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_j outl (IsaSAT_int M N D i W ivmtf icount ccach lbd _ heur stats aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_j :: \<open>'j \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_j outl (Tuple16 M N D i W ivmtf icount ccach lbd _ heur stats aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_k :: \<open>'k \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_k stats (IsaSAT_int M N D i W ivmtf icount ccach lbd outl _ heur aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
+fun set_k :: \<open>'k \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_k stats (Tuple16 M N D i W ivmtf icount ccach lbd outl _ heur aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
 
-fun set_l :: \<open>'l \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_l heur (IsaSAT_int M N D i W ivmtf icount ccach lbd outl stats _ aivdom clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
+fun set_l :: \<open>'l \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_l heur (Tuple16 M N D i W ivmtf icount ccach lbd outl stats _ aivdom clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)\<close>
 
-fun set_m :: \<open>'m \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_m aivdom (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats _ clss opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_m :: \<open>'m \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_m aivdom (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats _ clss opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_n :: \<open>'n \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_n clss (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom _ opts arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_n :: \<open>'n \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_n clss (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom _ opts arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_o :: \<open>'o \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_o opts (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss _ arena) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_o :: \<open>'o \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_o opts (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss _ arena) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
-fun set_p :: \<open>'p \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) isasat_int \<Rightarrow> _\<close> where
-  \<open>set_p arena (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts _) = (IsaSAT_int M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
+fun set_p :: \<open>'p \<Rightarrow>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
+  \<open>set_p arena (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts _) = (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena)\<close>
 
 end
 

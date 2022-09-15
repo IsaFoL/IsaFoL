@@ -158,12 +158,146 @@ global_interpretation LBD_it: parameterized_sort_impl_context
   done
 
 
+definition idx_clause_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
+ \<open>idx_clause_cdom arena \<equiv> {i. arena_is_valid_clause_idx arena i}\<close>
+
+sepref_def (in -) arena_length_code
+  is \<open>uncurry (RETURN oo arena_length)\<close>
+  :: \<open>[uncurry arena_is_valid_clause_idx]\<^sub>a
+      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_alt_def uint64_max_def[simplified]
+  by sepref
+
+sepref_def (in -) clause_size_ordering_code
+  is \<open>uncurry (RETURN oo (\<le>))\<close>
+  :: \<open>(sint64_nat_assn)\<^sup>k *\<^sub>a (sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding clause_score_ordering_def
+  by sepref
+
+definition clause_size_less where
+  \<open>clause_size_less arena i j = (arena_length arena i < arena_length arena j)\<close>
+
+definition mop_clause_size_less where
+  \<open>mop_clause_size_less arena i j = do {
+    ASSERT(arena_is_valid_clause_idx arena i);
+    ASSERT(arena_is_valid_clause_idx arena j);
+    RETURN (clause_size_less arena i j)
+  }\<close>
+
+sepref_def mop_clause_size_less_impl
+  is \<open>uncurry2 mop_clause_size_less\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding mop_clause_size_less_def clause_size_less_def
+  by sepref
+
+
+interpretation Size_Ordering: weak_ordering_on_lt where
+  C = \<open>idx_clause_cdom vs\<close> and
+  less = \<open>clause_size_less vs\<close>
+  by unfold_locales
+   (auto simp: clause_size_less_def clause_score_extract_def
+      clause_score_ordering_def split: if_splits)
+
+interpretation Size_Ordering: parameterized_weak_ordering idx_clause_cdom clause_size_less
+    mop_clause_size_less
+  by unfold_locales
+   (auto simp: mop_clause_size_less_def
+     idx_clause_cdom_def clause_size_less_def)
+
+global_interpretation Size_Ordering: parameterized_sort_impl_context
+  \<open>woarray_assn snat_assn\<close> \<open>eoarray_assn snat_assn\<close> snat_assn
+  Mreturn Mreturn
+  eo_extract_impl
+  array_upd
+  idx_clause_cdom clause_size_less mop_clause_size_less mop_clause_size_less_impl
+  \<open>arena_fast_assn\<close>
+  defines
+          Size_Ordering_is_guarded_insert_impl = Size_Ordering.is_guarded_param_insert_impl
+      and Size_Ordering_is_unguarded_insert_impl = Size_Ordering.is_unguarded_param_insert_impl
+      and Size_Ordering_unguarded_insertion_sort_impl = Size_Ordering.unguarded_insertion_sort_param_impl
+      and Size_Ordering_guarded_insertion_sort_impl = Size_Ordering.guarded_insertion_sort_param_impl
+      and Size_Ordering_final_insertion_sort_impl = Size_Ordering.final_insertion_sort_param_impl
+      (*and Size_Ordering_mop_lchild_impl  = Size_Ordering.mop_lchild_impl
+      and Size_Ordering_mop_rchild_impl  = Size_Ordering.mop_rchild_impl
+      and Size_Ordering_has_rchild_impl  = Size_Ordering.has_rchild_impl
+      and Size_Ordering_has_lchild_impl  = Size_Ordering.has_lchild_impl *)
+
+      and Size_Ordering_pcmpo_idxs_impl  = Size_Ordering.pcmpo_idxs_impl
+      and Size_Ordering_pcmpo_v_idx_impl  = Size_Ordering.pcmpo_v_idx_impl
+      and Size_Ordering_pcmpo_idx_v_impl  = Size_Ordering.pcmpo_idx_v_impl
+      and Size_Ordering_pcmp_idxs_impl  = Size_Ordering.pcmp_idxs_impl
+
+      and Size_Ordering_mop_geth_impl    = Size_Ordering.mop_geth_impl
+      and Size_Ordering_mop_seth_impl    = Size_Ordering.mop_seth_impl
+      and Size_Ordering_sift_down_impl   = Size_Ordering.sift_down_impl
+      and Size_Ordering_heapify_btu_impl = Size_Ordering.heapify_btu_impl
+      and Size_Ordering_heapsort_impl    = Size_Ordering.heapsort_param_impl
+      and Size_Ordering_qsp_next_l_impl       = Size_Ordering.qsp_next_l_impl
+      and Size_Ordering_qsp_next_h_impl       = Size_Ordering.qsp_next_h_impl
+      and Size_Ordering_qs_partition_impl     = Size_Ordering.qs_partition_impl
+(*      and Size_Ordering_qs_partitionXXX_impl     = Size_Ordering.qs_partitionXXX_impl *)
+      and Size_Ordering_partition_pivot_impl  = Size_Ordering.partition_pivot_impl
+      and Size_Ordering_introsort_aux_impl = Size_Ordering.introsort_aux_param_impl
+      and Size_Ordering_introsort_impl        = Size_Ordering.introsort_param_impl
+      and Size_Ordering_move_median_to_first_impl = Size_Ordering.move_median_to_first_param_impl
+
+  apply unfold_locales
+  unfolding GEN_ALGO_def refines_param_relp_def (* TODO: thm gen_refines_param_relpI *)
+  by (rule mop_clause_size_less_impl.refine)
+
+global_interpretation Size_Ordering_it: parameterized_sort_impl_context
+  vdom_fast_assn \<open>LBD_it.eo_assn\<close> sint64_nat_assn
+  Mreturn Mreturn
+  LBD_it_eo_extract_impl
+  arl_upd
+  idx_clause_cdom clause_size_less mop_clause_size_less mop_clause_size_less_impl
+  \<open>arena_fast_assn\<close>
+  defines
+          Size_Ordering_it_is_guarded_insert_impl = Size_Ordering_it.is_guarded_param_insert_impl
+      and Size_Ordering_it_is_unguarded_insert_impl = Size_Ordering_it.is_unguarded_param_insert_impl
+      and Size_Ordering_it_unguarded_insertion_sort_impl = Size_Ordering_it.unguarded_insertion_sort_param_impl
+      and Size_Ordering_it_guarded_insertion_sort_impl = Size_Ordering_it.guarded_insertion_sort_param_impl
+      and Size_Ordering_it_final_insertion_sort_impl = Size_Ordering_it.final_insertion_sort_param_impl
+      (*and Size_Ordering_it_mop_lchild_impl  = Size_Ordering_it.mop_lchild_impl
+      and Size_Ordering_it_mop_rchild_impl  = Size_Ordering_it.mop_rchild_impl
+      and Size_Ordering_it_has_rchild_impl  = Size_Ordering_it.has_rchild_impl
+      and Size_Ordering_it_has_lchild_impl  = Size_Ordering_it.has_lchild_impl *)
+
+      and Size_Ordering_it_pcmpo_idxs_impl  = Size_Ordering_it.pcmpo_idxs_impl
+      and Size_Ordering_it_pcmpo_v_idx_impl  = Size_Ordering_it.pcmpo_v_idx_impl
+      and Size_Ordering_it_pcmpo_idx_v_impl  = Size_Ordering_it.pcmpo_idx_v_impl
+      and Size_Ordering_it_pcmp_idxs_impl  = Size_Ordering_it.pcmp_idxs_impl
+
+      and Size_Ordering_it_mop_geth_impl    = Size_Ordering_it.mop_geth_impl
+      and Size_Ordering_it_mop_seth_impl    = Size_Ordering_it.mop_seth_impl
+      and Size_Ordering_it_sift_down_impl   = Size_Ordering_it.sift_down_impl
+      and Size_Ordering_it_heapify_btu_impl = Size_Ordering_it.heapify_btu_impl
+      and Size_Ordering_it_heapsort_impl    = Size_Ordering_it.heapsort_param_impl
+      and Size_Ordering_it_qsp_next_l_impl       = Size_Ordering_it.qsp_next_l_impl
+      and Size_Ordering_it_qsp_next_h_impl       = Size_Ordering_it.qsp_next_h_impl
+      and Size_Ordering_it_qs_partition_impl     = Size_Ordering_it.qs_partition_impl
+(*      and Size_Ordering_it_qs_partitionXXX_impl     = Size_Ordering_it.qs_partitionXXX_impl *)
+      and Size_Ordering_it_partition_pivot_impl  = Size_Ordering_it.partition_pivot_impl
+      and Size_Ordering_it_introsort_aux_impl = Size_Ordering_it.introsort_aux_param_impl
+      and Size_Ordering_it_introsort_impl        = Size_Ordering_it.introsort_param_impl
+      and Size_Ordering_it_move_median_to_first_impl = Size_Ordering_it.move_median_to_first_param_impl
+
+  apply unfold_locales
+  unfolding GEN_ALGO_def refines_param_relp_def (* TODO: thm gen_refines_param_relpI *)
+  apply (rule mop_clause_size_less_impl.refine)
+  done
+
+
 
 lemmas [llvm_inline] = LBD_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta_fun_cong]
 
 export_llvm
   \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
+  \<open>Size_Ordering_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
+  \<open>Size_Ordering_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
 
 
 type_synonym virtual_vdom_fast_assn = \<open>64 word\<close>

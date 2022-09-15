@@ -28,16 +28,16 @@ global_interpretation is_decided_hd: read_trail_param_adder0 where
   P = \<open>(\<lambda>S. fst S \<noteq> [] \<and> last_trail_pol_pre S)\<close>
   rewrites \<open>read_trail_wl_heur is_decided_trail = RETURN o is_decided_hd_trail_wl_heur\<close> and
   \<open>read_trail_wl_heur_code is_decided_trail_impl = is_decided_hd_trail_wl_fast_code\<close> and
-  \<open>case_isasat_int (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. fst M \<noteq> [] \<and> last_trail_pol_pre M) = is_decided_hd_trail_wl_heur_pre\<close>
+  \<open>case_isasat_int (\<lambda>M _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _. fst M \<noteq> [] \<and> last_trail_pol_pre M) = is_decided_hd_trail_wl_heur_pre\<close>
   apply unfold_locales
   apply (rule is_decided_trail_impl.refine)
   subgoal
     by (auto simp: read_all_st_def is_decided_hd_trail_wl_heur_def is_decided_trail_def last_trail_pol_def Let_def
       intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: is_decided_hd_trail_wl_fast_code_def)
-  subgoal by (auto simp: is_decided_hd_trail_wl_heur_pre_def intro!: ext split: isasat_int.splits)
+  subgoal by (auto simp: is_decided_hd_trail_wl_heur_pre_def intro!: ext split: isasat_int_splits)
   done
 
 
@@ -69,7 +69,7 @@ global_interpretation lit_and_of_proped_lit: read_trail_param_adder0 where
   subgoal
     by (auto simp: read_all_st_def lit_and_ann_of_propagated_st_heur_def lit_and_ann_of_propagated_trail_heur_def last_trail_pol_def Let_def
       intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: lit_and_ann_of_propagated_st_heur_fast_code_def)
   done
@@ -107,7 +107,7 @@ global_interpretation atm_in_conflict: read_conflict_param_adder where
   subgoal
     by (auto simp: read_all_st_def atm_is_in_conflict_st_heur'_def atm_is_in_conflict_confl_heur_def Let_def
       intro!: ext
-      split: isasat_int.splits)
+      split: isasat_int_splits)
   subgoal
     by (auto simp: atm_is_in_conflict_st_heur_fast_code_def)
   done
@@ -143,7 +143,7 @@ lemma tl_state_wl_heur_alt_def:
        let S = update_vmtf_wl_heur (isa_vmtf_unset (atm_of L) vm) S;
        RETURN (False, S)
   })\<close>
-  by (auto simp: tl_state_wl_heur_def state_extractors intro!: ext split: isasat_int.splits)
+  by (auto simp: tl_state_wl_heur_def state_extractors intro!: ext split: isasat_int_splits)
 
 sepref_def tl_state_wl_heur_fast_code
   is \<open>tl_state_wl_heur\<close>
@@ -204,7 +204,7 @@ lemma update_confl_tl_wl_heur_alt_def:
    })\<close>
   unfolding update_confl_tl_wl_heur_def
   by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def
-    extract_values_of_lookup_conflict_def Let_def state_extractors split: isasat_int.splits)
+    extract_values_of_lookup_conflict_def Let_def state_extractors split: isasat_int_splits)
 
 sepref_def update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>

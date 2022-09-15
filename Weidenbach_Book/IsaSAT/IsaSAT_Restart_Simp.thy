@@ -522,12 +522,6 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> ((the D) = C)\<close>
   by auto
 
-definition isasat_fast_relaxed :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_relaxed S \<longleftrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max\<close>
-
-definition isasat_fast_relaxed2 :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_relaxed2 S n  \<longleftrightarrow> isasat_fast_relaxed S \<and> n < uint64_max\<close>
-
 definition cdcl_twl_stgy_restart_prog_bounded_wl_heur
    :: \<open>isasat \<Rightarrow> (bool \<times> isasat) nres\<close>
 where
