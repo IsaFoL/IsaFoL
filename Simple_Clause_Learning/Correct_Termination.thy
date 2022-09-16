@@ -15,7 +15,7 @@ qed
 
 lemma propagate_if_conflict_follows_decide:
   assumes
-    fin_N: "finite N" and fin_learned: "finite (state_learned S\<^sub>0)" and
+    fin_N: "finite N" and
     trail_lt_\<beta>: "trail_atoms_lt \<beta> S\<^sub>2" and
     no_conf: "\<nexists>S\<^sub>1. conflict N \<beta> S\<^sub>0 S\<^sub>1" and deci: "decide N \<beta> S\<^sub>0 S\<^sub>2" and conf: "conflict N \<beta> S\<^sub>2 S\<^sub>3"
   shows "\<exists>S\<^sub>4. propagate N \<beta> S\<^sub>0 S\<^sub>4"
@@ -31,18 +31,17 @@ proof -
   
   from conf S\<^sub>2_def obtain D \<sigma> \<rho> \<sigma>\<^sub>\<rho> where
     S\<^sub>3_def: "S\<^sub>3 = (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, Some (D \<cdot> \<rho>, \<sigma>\<^sub>\<rho>))" and
-    D_in: "D \<in> N \<union> U" and
+    D_in: "D \<in> N \<union> fset U" and
     dom_\<sigma>_subset:"subst_domain \<sigma> \<subseteq> vars_cls D" and
     ground_D_\<sigma>: "is_ground_cls (D \<cdot> \<sigma>)" and
     tr_\<Gamma>_L_false_D: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<sigma>)" and
-    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>)))" and
+    \<rho>_def: "\<rho> = renaming_wrt (N \<union> fset U \<union> clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>)))" and
     \<sigma>\<^sub>\<rho>_def: "\<sigma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<sigma>"
     by (elim conflict.cases) blast
 
   have ren_\<rho>: "is_renaming \<rho>"
     unfolding \<rho>_def
-    by (rule is_renaming_renaming_wrt)
-      (metis S\<^sub>0_def fin_N fin_learned finite_UnI finite_clss_of_trail state_learned_simp)
+    by (rule is_renaming_renaming_wrt) (metis fin_N finite_fset finite_UnI finite_clss_of_trail)
 
   moreover have "vars_cls D \<subseteq> subst_domain \<sigma>"
     using ground_D_\<sigma> vars_cls_subset_subst_domain_if_grounding by blast
@@ -57,7 +56,7 @@ proof -
     unfolding \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> by (rule tr_\<Gamma>_L_false_D)
 
   moreover have "\<not> trail_false_cls \<Gamma> (D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
-    using not_trail_false_ground_cls_if_no_conflict[OF fin_N fin_learned no_conf] D_in
+    using not_trail_false_ground_cls_if_no_conflict[OF fin_N no_conf] D_in
     by (simp add: S\<^sub>0_def \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> ground_D_\<sigma>)
 
   ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>"
@@ -184,7 +183,7 @@ definition trail_propagated_wf where
       None \<Rightarrow> True
     | Some (_, L, \<gamma>) \<Rightarrow> L\<^sub>\<gamma> = L \<cdot>l \<gamma>)"
 
-lemma trail_propagated_wf_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
+lemma trail_propagated_wf_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_propagated_wf \<Gamma>"
 proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   then show ?case
@@ -201,7 +200,7 @@ definition trail_minimal_subst_domains where
       None \<Rightarrow> True
     | Some (C, L, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C))"
 
-lemma trail_minimal_subst_domains_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_minimal_subst_domains \<Gamma>"
+lemma trail_minimal_subst_domains_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_minimal_subst_domains \<Gamma>"
 proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   then show ?case
@@ -218,7 +217,7 @@ definition trail_groundings where
       None \<Rightarrow> True
     | Some (C, L, \<gamma>) \<Rightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>))"
 
-lemma trail_groundings_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_groundings \<Gamma>"
+lemma trail_groundings_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_groundings \<Gamma>"
 proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   then show ?case
@@ -235,7 +234,7 @@ definition conflict_minimal_subst_domain where
 
 lemma
   assumes
-    fin_N: "finite N" and fin_learned_S: "finite (state_learned S)" and
+    fin_N: "finite N" and
     disj_N: "disjoint_vars_set N" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     no_more_regular_step: "\<nexists>S'. regular_scl N \<beta> S S'"
@@ -248,7 +247,7 @@ proof -
     show "\<And>a b. regular_scl N \<beta> a b \<Longrightarrow> scl N \<beta> a b"
       by (rule scl_if_reasonable[OF reasonable_if_regular])
   qed
-  hence mempty_not_in_learned_S: "{#} \<notin> state_learned S"
+  hence mempty_not_in_learned_S: "{#} |\<notin>| state_learned S"
     by (induction S rule: rtranclp_induct) (simp_all add: scl_mempty_not_in_sate_learned)
 
   obtain \<Gamma> U u where S_def: "S = (\<Gamma>, U, u)"
@@ -256,7 +255,7 @@ proof -
 
   have sound_S: "sound_state N \<beta> S"
     using regular_run_sound_state[OF regular_run] sound_initial_state[OF fin_N disj_N] by blast
-  hence sound_\<Gamma>: "sound_trail N U \<Gamma>"
+  hence sound_\<Gamma>: "sound_trail N \<Gamma>"
     by (simp add: S_def sound_state_def)
 
   from no_more_regular_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
@@ -336,14 +335,14 @@ proof -
           assume "trail_false_cls \<Gamma> C"
 
           define \<rho> :: "'v \<Rightarrow> ('f, 'v) term" where
-            "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+            "\<rho> = renaming_wrt (N \<union> fset U \<union> clss_of_trail \<Gamma>)"
 
           define \<gamma>\<^sub>\<rho> where
             "\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C') \<gamma>)"
 
           have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (C' \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
           proof (rule conflictI)
-            show "C' \<in> N \<union> U"
+            show "C' \<in> N \<union> fset U"
               using C'_in by simp
           next
             show "subst_domain (restrict_subst (vars_cls C') \<gamma>) \<subseteq> vars_cls C'"
@@ -381,7 +380,7 @@ proof -
       moreover have "trail_atoms_lt \<beta> S'"
         by (rule decide_sound_state[OF deci sound_S, THEN trail_atoms_lt_if_sound_state])
       ultimately have "\<exists>S\<^sub>4. propagate N \<beta> S S\<^sub>4"
-        using propagate_if_conflict_follows_decide[OF fin_N fin_learned_S _ no_new_conflict]
+        using propagate_if_conflict_follows_decide[OF fin_N _ no_new_conflict]
         by simp
       with no_new_propagate have False
         by blast
@@ -391,7 +390,7 @@ proof -
     case (Some Cl)
     then obtain C \<gamma> where u_def: "u = Some (C, \<gamma>)" by force
 
-    from sound_S have disj_vars_conflict: "\<forall>D \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars C D"
+    from sound_S have disj_vars_conflict: "\<forall>D \<in> N \<union> fset U \<union> clss_of_trail \<Gamma>. disjoint_vars C D"
       by (simp add: S_def u_def sound_state_def)
 
     from sound_S have domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C"
@@ -442,16 +441,16 @@ proof -
             from \<Gamma>_def have \<Gamma>_def': "\<Gamma> = trail_decide (\<Gamma>' @ []) (- (K \<cdot>l \<gamma>))"
               by auto
 
-            have no_new_new_conflict: "\<nexists>S'. conflict N \<beta> ([], insert (add_mset K C') U, None) S'"
+            have no_new_new_conflict: "\<nexists>S'. conflict N \<beta> ([], finsert (add_mset K C') U, None) S'"
               apply simp
               apply (intro allI notI)
               apply (erule conflict.cases)
-              apply (simp add: )
+              apply simp
               using mempty_not_in_N mempty_not_in_learned_S[unfolded S_def, simplified]
-              by (metis C_def C_not_empty add_mset_add_single insertE not_trail_false_Nil(2)
-                  rename_clause_def subst_cls_empty_iff)
+              by (metis empty_not_add_mset finsertE not_trail_false_Nil(2) notin_fset
+                  subst_cls_empty_iff)
 
-            have "backtrack N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) ([], insert (add_mset K C') U, None)"
+            have "backtrack N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) ([], finsert (add_mset K C') U, None)"
               by (rule backtrackI[OF \<Gamma>_def' no_new_new_conflict])
 
             with no_more_regular_step have False
@@ -477,7 +476,7 @@ proof -
               by (simp add: S_def trail_groundings_def 1 trail_propagate_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
-              "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {C' + {#K#}})"
+              "\<rho> = renaming_wrt (N \<union> fset U \<union> clss_of_trail \<Gamma> \<union> {C' + {#K#}})"
 
             have *: "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset K C') = {}"
               using disj_vars_conflict[unfolded C_def 1]
