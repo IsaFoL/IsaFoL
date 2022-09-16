@@ -2047,9 +2047,6 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
   assumes transp_less_B: "transp (\<prec>\<^sub>B)"
 begin
 
-term adapt_subst_to_renaming
-term restrict_subst
-
 inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   propagateI: "C \<in> N \<union> U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
@@ -2058,26 +2055,9 @@ inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<R
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
-    \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
+    is_renaming \<rho> \<Longrightarrow> range_vars \<rho> \<inter> vars_clss (N \<union> U \<union> clss_of_trail \<Gamma>) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)"
-
-term is_renaming
-
-term "K \<cdot>l \<gamma> = L \<cdot>l \<gamma>"
-
-definition trail_closures_from_clauses where
-  "trail_closures_from_clauses N S \<longleftrightarrow>
-    (\<forall>Ln \<in> set (state_trail S).
-      (case snd Ln of
-        None \<Rightarrow> True
-      | Some (D, L\<^sub>D, \<gamma>') \<Rightarrow> \<exists>C \<in> N \<union> state_learned S. \<exists>C' L \<gamma> C\<^sub>0 C\<^sub>1 \<mu>.
-        C' + {#L#} = rename_clause (N \<union> state_learned S \<union> clss_of_trail (state_trail S)) C \<and>
-        subst_domain \<gamma> \<subseteq> vars_cls C' \<union> vars_lit L \<and> is_ground_cls ((C' + {#L#}) \<cdot> \<gamma>) \<and>
-        C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<and> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<and>
-        is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<and>
-        \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<and>
-        D = C\<^sub>0 \<cdot> \<mu> \<and> L\<^sub>D = L \<cdot>l \<mu>))"
 
 inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -2441,9 +2421,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     by (simp add: subst_lit_restrict_subst_idem)
 
   moreover have "is_renaming \<rho>"
-    unfolding \<open>\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close>
-    apply (rule is_renaming_renaming_wrt)
-    using fin by (simp add: propagateI(1))
+    using propagateI by argo
 
   moreover have "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
   proof -
@@ -2569,8 +2547,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
   proof (rule subst_lit_renaming_subst_adapted)
     show "is_renaming \<rho>"
-      unfolding \<open>\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close>
-      by (rule is_renaming_renaming_wrt) (use fin propagateI(1) in simp)
+      using propagateI by argo
   next
     have "vars_lit (L \<cdot>l \<gamma>) = {}"
       using \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>
@@ -2622,7 +2599,8 @@ inductive trail_propagated_or_decided for N \<beta> where
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
-    \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
+    is_renaming \<rho> \<Longrightarrow>
+    range_vars \<rho> \<inter> vars_clss (N \<union> U \<union> clss_of_trail \<Gamma>) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')" |
@@ -2717,7 +2695,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   then show ?thesis
     unfolding backtrackI(2)
     apply simp
-    sledgehammer [verbose, timeout = 120, slices = 16]
+    (* sledgehammer [verbose, timeout = 120, slices = 16] *)
     sorry
 qed
 
