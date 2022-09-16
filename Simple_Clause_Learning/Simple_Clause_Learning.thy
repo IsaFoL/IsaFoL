@@ -2591,6 +2591,137 @@ proof (cases N \<beta> S S' rule: propagate.cases)
 qed
 
 
+subsection \<open>Trail Propagated Literals Are Well-formed\<close>
+
+(* definition trail_propagated_wf where
+  "trail_propagated_wf S \<longleftrightarrow> (\<forall>Ln \<in> set (state_trail S).
+    \<not> is_decision_lit Ln \<longrightarrow> (\<exists>L \<gamma>\<^sub>L C. Ln = (L \<cdot>l \<gamma>\<^sub>L, Some (C, L, \<gamma>\<^sub>L))))" *)
+
+
+subsection \<open>Trail Propagated Literals Were Propagated\<close>
+
+thm decideI[no_vars]
+
+(*
+L \<in> \<Union> (set_mset ` N) \<Longrightarrow>
+is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
+\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
+atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow> decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)
+*)
+
+inductive trail_propagated_or_decided for N \<beta> where
+  Nil: "trail_propagated_or_decided N \<beta> U []" |
+  Propagate: "
+    C \<in> N \<union> U \<Longrightarrow>
+    C = add_mset L C' \<Longrightarrow>
+    is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
+    \<forall>K\<in>#C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow>
+    C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
+    trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
+    is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
+    \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
+    \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
+    \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
+    trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
+    trail_propagated_or_decided N \<beta> U (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')" |
+  Decide: "
+    L \<in> \<Union> (set_mset ` N) \<Longrightarrow>
+    is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
+    atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+    trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
+    trail_propagated_or_decided N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
+
+abbreviation trail_propagated_or_decided' where
+  "trail_propagated_or_decided' N \<beta> S \<equiv>
+    trail_propagated_or_decided N \<beta> (state_learned S) (state_trail S)"
+
+lemma trail_propagated_or_decided_initial_state: "trail_propagated_or_decided' N \<beta> initial_state"
+  by (auto intro: trail_propagated_or_decided.Nil)
+
+lemma propagate_preserves_trail_propagated_or_decided:
+  assumes "propagate N \<beta> S S'" and "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+
+  from propagateI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
+    by simp
+
+  show ?thesis
+    unfolding propagateI(2)
+    apply simp
+    by (rule trail_propagated_or_decided.Propagate[rotated -1, OF IH])
+      (rule propagateI)+
+qed
+
+lemma decide_preserves_trail_propagated_or_decided:
+  assumes "decide N \<beta> S S'" and "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: decide.cases)
+  case (decideI L \<gamma> \<Gamma> U)
+
+  from decideI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
+    by simp
+  show ?thesis
+    unfolding decideI(2)
+    apply simp
+    by (rule trail_propagated_or_decided.Decide[rotated -1, OF IH])
+      (rule decideI)+
+qed
+
+lemma conflict_preserves_trail_propagated_or_decided:
+  assumes "conflict N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms by (auto elim: conflict.cases)
+
+lemma skip_preserves_trail_propagated_or_decided:
+  assumes "skip N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: skip.cases)
+  case (skipI L D \<sigma> n \<Gamma> U)
+
+  from invar have "trail_propagated_or_decided N \<beta> U ((L, n) # \<Gamma>)"
+    unfolding skipI(1) by simp
+  hence "trail_propagated_or_decided N \<beta> U \<Gamma>"
+    by (cases N \<beta> U "(L, n) # \<Gamma>" rule: trail_propagated_or_decided.cases)
+      (simp_all add: trail_propagate_def trail_decide_def)
+  thus ?thesis
+    unfolding skipI(2) by simp
+qed
+
+lemma factorize_preserves_trail_propagated_or_decided:
+  assumes "factorize N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms by (auto elim: factorize.cases)
+
+lemma resolve_preserves_trail_propagated_or_decided:
+  assumes "resolve N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms by (auto elim: resolve.cases)
+
+lemma backtrack_preserves_trail_propagated_or_decided:
+  assumes "backtrack N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: backtrack.cases)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+
+  from invar have "trail_propagated_or_decided N \<beta> U (trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
+    unfolding backtrackI by simp
+  then show ?thesis
+    unfolding backtrackI(2)
+    apply simp
+    sledgehammer [verbose, timeout = 120, slices = 16]
+    sorry
+qed
+
+
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 
 definition trail_atoms_lt where
