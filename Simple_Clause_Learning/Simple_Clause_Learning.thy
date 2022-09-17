@@ -1,6 +1,7 @@
 theory Simple_Clause_Learning
   imports
     Main
+    "HOL-Library.FSet"
     Saturation_Framework.Calculus
     Saturation_Framework_Extensions.Clausal_Calculus
     Ordered_Resolution_Prover.Clausal_Logic
@@ -805,6 +806,9 @@ definition vars_cls :: "('f, 'v) term clause \<Rightarrow> 'v set" where
 definition vars_clss :: "('f, 'v) term clause set \<Rightarrow> 'v set" where
   "vars_clss N = (\<Union>C \<in> N. vars_cls C)"
 
+lemma vars_clss_insert[simp]: "vars_clss (insert C N) = vars_cls C \<union> vars_clss N"
+  by (simp add: vars_clss_def)
+
 lemma vars_cls_empty[simp]: "vars_cls {#} = {}"
   unfolding vars_cls_def by simp
 
@@ -1496,6 +1500,11 @@ lemma vars_term_subst_term_Var_comp_renaming_disj:
   using is_renaming_Var_comp_renaming[OF fin_V] renaming_correct[OF fin_V]
   by (induction t) auto
 
+lemma vars_term_subst_term_Var_comp_renaming_disj':
+  assumes fin_V: "finite V1" and sub: "V2 \<subseteq> V1"
+  shows "vars_term (t \<cdot>a (Var \<circ> renaming V1)) \<inter> V2 = {}"
+  by (meson disjoint_iff fin_V sub subsetD vars_term_subst_term_Var_comp_renaming_disj)
+
 lemma vars_lit_subst_renaming_disj:
   assumes fin_V: "finite V"
   shows "vars_lit (L \<cdot>l (Var \<circ> renaming V)) \<inter> V = {}"
@@ -1629,13 +1638,13 @@ type_synonym ('f, 'v) closure_with_lit =
   "('f, 'v) term clause \<times> ('f, 'v) term literal \<times> ('f, 'v) subst"
 type_synonym ('f, 'v) trail = "(('f, 'v) term literal \<times> ('f, 'v) closure_with_lit option) list"
 type_synonym ('f, 'v) state =
-  "('f, 'v) trail \<times> ('f, 'v) term clause set \<times> ('f, 'v) closure option"
+  "('f, 'v) trail \<times> ('f, 'v) term clause fset \<times> ('f, 'v) closure option"
 
 text \<open>Note that, in contrast to Bromberger, Schwarz, and Weidenbach, the level is not part of the
 state. It would be redundant because it can always be computed from the trail.\<close>
 
 abbreviation initial_state :: "('f, 'v) state" where
-  "initial_state \<equiv> ([], {}, None)"
+  "initial_state \<equiv> ([], {||}, None)"
 
 definition state_trail :: "('f, 'v) state \<Rightarrow> ('f, 'v) trail" where
   "state_trail S = fst S"
@@ -1643,7 +1652,7 @@ definition state_trail :: "('f, 'v) state \<Rightarrow> ('f, 'v) trail" where
 lemma state_trail_simp[simp]: "state_trail (\<Gamma>, U, u) = \<Gamma>"
   by (simp add: state_trail_def)
 
-definition state_learned :: "('f, 'v) state \<Rightarrow> ('f, 'v) term clause set" where
+definition state_learned :: "('f, 'v) state \<Rightarrow> ('f, 'v) term clause fset" where
   "state_learned S = fst (snd S)"
 
 lemma state_learned_simp[simp]: "state_learned (\<Gamma>, U, u) = U"
@@ -1655,30 +1664,27 @@ definition state_conflict :: "('f, 'v) state \<Rightarrow> ('f, 'v) closure opti
 lemma state_conflict_simp[simp]: "state_conflict (\<Gamma>, U, u) = u"
   by (simp add: state_conflict_def)
 
+lemmas state_proj_simp = state_trail_simp state_learned_simp state_conflict_simp
+
 lemma state_simp[simp]: "(state_trail S, state_learned S, state_conflict S) = S"
   by (simp add: state_conflict_def state_learned_def state_trail_def)
 
-definition clss_of_trail :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause set" where
-  "clss_of_trail \<Gamma> = (\<Union>Ln \<in> set \<Gamma>. case snd Ln of None \<Rightarrow> {} | Some (C, L, _) \<Rightarrow> {C + {#L#}})"
+fun clss_of_trail_lit where
+  "clss_of_trail_lit (_, None) = {||}" |
+  "clss_of_trail_lit (_, Some (C, L, _)) = {|add_mset L C|}"
 
-lemma clss_of_trail_Nil[simp]: "clss_of_trail [] = {}"
-  by (simp add: clss_of_trail_def)
+primrec clss_of_trail :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term clause fset" where
+  "clss_of_trail [] = {||}" |
+  "clss_of_trail (Ln # \<Gamma>) = clss_of_trail_lit Ln |\<union>| clss_of_trail \<Gamma>"
 
-lemma clss_of_trail_Cons: "clss_of_trail (Ln # \<Gamma>) = clss_of_trail [Ln] \<union> clss_of_trail \<Gamma>"
-  by (simp add: clss_of_trail_def)
+hide_fact clss_of_trail_def
 
-lemma clss_of_trail_append: "clss_of_trail (\<Gamma>\<^sub>0 @ \<Gamma>\<^sub>1) = clss_of_trail \<Gamma>\<^sub>0 \<union> clss_of_trail \<Gamma>\<^sub>1"
-  by (simp add: clss_of_trail_def)
+lemma clss_of_trail_append: "clss_of_trail (\<Gamma>\<^sub>0 @ \<Gamma>\<^sub>1) = clss_of_trail \<Gamma>\<^sub>0 |\<union>| clss_of_trail \<Gamma>\<^sub>1"
+  by (induction \<Gamma>\<^sub>0) (simp_all add: funion_assoc)
 
-lemma finite_clss_of_trail[simp]: "finite (clss_of_trail \<Gamma>)"
-  unfolding clss_of_trail_def
-proof (induction \<Gamma>)
-  case Nil
-  show ?case by simp
-next
-  case (Cons Ln \<Gamma>)
-  then show ?case by (simp add: option.case_eq_if prod.case_eq_if)
-qed
+fun clss_of_closure where
+  "clss_of_closure None = {||}" |
+  "clss_of_closure (Some (C, _)) = {|C|}"
 
 definition trail_propagate ::
   "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) term clause \<Rightarrow> ('f, 'v) subst \<Rightarrow>
@@ -1690,15 +1696,15 @@ lemma suffix_trail_propagate[simp]: "suffix \<Gamma> (trail_propagate \<Gamma> L
   by simp
 
 lemma clss_of_trail_trail_propagate[simp]:
-  "clss_of_trail (trail_propagate \<Gamma> L C \<gamma>) = clss_of_trail \<Gamma> \<union> {C + {#L#}}"
-  unfolding trail_propagate_def clss_of_trail_def by simp
+  "clss_of_trail (trail_propagate \<Gamma> L C \<gamma>) = finsert (add_mset L C) (clss_of_trail \<Gamma>)"
+  unfolding trail_propagate_def by simp
 
 definition trail_decide :: "('f, 'v) trail \<Rightarrow> ('f, 'v) term literal \<Rightarrow> ('f, 'v) trail" where
   "trail_decide \<Gamma> L = (L, None) # \<Gamma>"
 
 lemma clss_of_trail_trail_decide[simp]:
   "clss_of_trail (trail_decide \<Gamma> L) = clss_of_trail \<Gamma>"
-  unfolding trail_decide_def clss_of_trail_def by simp
+  unfolding trail_decide_def by simp
 
 definition is_decision_lit
   :: "('f, 'v) term literal \<times> ('f, 'v) closure_with_lit option \<Rightarrow> bool" where
@@ -1740,9 +1746,9 @@ lemma trail_backtrack_suffix: "suffix (trail_backtrack \<Gamma> level) \<Gamma>"
   by (induction \<Gamma>) (simp_all add: suffix_ConsI)
 
 lemma clss_of_trail_trail_decide_subset:
-  "clss_of_trail (trail_backtrack \<Gamma> n) \<subseteq> clss_of_trail \<Gamma>"
-  unfolding trail_decide_def clss_of_trail_def
-  by (simp add: SUP_subset_mono set_mono_suffix trail_backtrack_suffix)
+  "clss_of_trail (trail_backtrack \<Gamma> n) |\<subseteq>| clss_of_trail \<Gamma>"
+  using trail_backtrack_suffix
+  by (metis (no_types, opaque_lifting) clss_of_trail_append le_sup_iff order_refl suffix_def)
 
 lemma ball_set_trail_backtrackI: "\<forall>x \<in> set \<Gamma>. P x \<Longrightarrow> \<forall>x \<in> set (trail_backtrack \<Gamma> level). P x"
   by (meson set_mono_suffix subset_eq trail_backtrack_suffix)
@@ -2047,57 +2053,60 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
   assumes transp_less_B: "transp (\<prec>\<^sub>B)"
 begin
 
-inductive propagate :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+term subst_domain
+
+inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  propagateI: "C \<in> N \<union> U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
+  propagateI: "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
     \<forall>K \<in># C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
     C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#} \<Longrightarrow> C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#} \<Longrightarrow>
     trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
-    is_renaming \<rho> \<Longrightarrow> range_vars \<rho> \<inter> vars_clss (N \<union> U \<union> clss_of_trail \<Gamma>) = {} \<Longrightarrow>
+    is_renaming \<rho> \<Longrightarrow>
+    vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)"
 
-inductive decide :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  decideI: "L \<in> \<Union>(set_mset ` N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow> \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-    atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
+  decideI: "L \<in> \<Union>(set_mset ` fset N) \<Longrightarrow> is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
+    \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow> atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
     decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)"
 
-inductive conflict :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  conflictI: "D \<in> N \<union> U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
-    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>) \<Longrightarrow>
+  conflictI: "D |\<in>| N |\<union>| U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
+    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> \<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<Longrightarrow>
     \<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
-inductive skip :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow> D \<noteq> {#} \<Longrightarrow>
     skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
-inductive factorize :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     \<sigma>' = restrict_subst (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
     factorize N \<beta> (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
 
-inductive resolve :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow>
-    \<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma> \<union> {D + {#L'#}}) \<Longrightarrow>
+    \<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
-inductive backtrack :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+inductive backtrack :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   backtrackI: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)) \<Longrightarrow>
-    \<nexists>S'. conflict N \<beta> (\<Gamma>'', insert (add_mset L D) U, None) S' \<Longrightarrow>
-    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>)) (\<Gamma>'', insert (add_mset L D) U, None)"
+    \<nexists>S'. conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S' \<Longrightarrow>
+    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>)) (\<Gamma>'', finsert (add_mset L D) U, None)"
 
-definition scl :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
+definition scl :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" where
   "scl N \<beta> S S' \<longleftrightarrow> propagate N \<beta> S S' \<or> decide N \<beta> S S' \<or> conflict N \<beta> S S' \<or> skip N \<beta> S S' \<or>
     factorize N \<beta> S S' \<or> resolve N \<beta> S S' \<or> backtrack N \<beta> S S'"
@@ -2212,10 +2221,9 @@ subsection \<open>Miscellaneous Lemmas\<close>
 
 lemma not_trail_false_ground_cls_if_no_conflict:
   assumes
-    fin: "finite N" "finite (state_learned S)" and
     no_conf: "\<nexists>S'. conflict N \<beta> S S'" and
     could_conf: "state_conflict S = None" and
-    C_in: "C \<in> N \<union> state_learned S" and
+    C_in: "C |\<in>| N |\<union>| state_learned S" and
     gr_C_\<gamma>: "is_ground_cls (C \<cdot> \<gamma>)"
   shows "\<not> trail_false_cls (state_trail S) (C \<cdot> \<gamma>)"
 proof (rule notI)
@@ -2225,14 +2233,13 @@ proof (rule notI)
     by (metis prod_cases3 state_conflict_simp)
 
   define \<rho> where
-    "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+    "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
   have C_\<rho>_adapt_\<gamma>_simp: "C \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<gamma> = C \<cdot> \<gamma>"
   proof (rule subst_renaming_subst_adapted)
-    from fin show "is_renaming \<rho>"
+    show "is_renaming \<rho>"
       unfolding \<rho>_def
-      using is_renaming_renaming_wrt
-      by (metis S_def finite_Un finite_clss_of_trail state_learned_simp)
+      using is_renaming_renaming_wrt by (metis (opaque_lifting) finite_fset)
   next
     from gr_C_\<gamma> show "vars_cls C \<subseteq> subst_domain \<gamma>"
       by (rule vars_cls_subset_subst_domain_if_grounding)
@@ -2241,7 +2248,7 @@ proof (rule notI)
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U,
     Some (C \<cdot> \<rho>, adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C) \<gamma>)))"
   proof (rule conflictI)
-    show "C \<in> N \<union> U"
+    show "C |\<in>| N |\<union>| U"
       using C_in by (simp add: S_def)
   next
     show "subst_domain (restrict_subst (vars_cls C) \<gamma>) \<subseteq> vars_cls C"
@@ -2261,12 +2268,121 @@ qed
 section \<open>Invariants\<close>
 
 
+subsection \<open>Conflict Has Disjoint Variables\<close>
+
+definition conflict_disjoint_vars where
+  "conflict_disjoint_vars N S \<longleftrightarrow> (\<forall>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<longrightarrow>
+    vars_cls C \<inter> vars_clss (fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S))) = {})"
+
+lemma conflict_disjoint_vars_initial_state:
+  "conflict_disjoint_vars N initial_state"
+  by (simp add: conflict_disjoint_vars_def)
+
+lemma propagate_preserves_conflict_disjoint_vars:
+  assumes "propagate N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms
+  by (auto simp add: conflict_disjoint_vars_def elim: propagate.cases)
+
+lemma decide_preserves_conflict_disjoint_vars:
+  assumes "decide N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms
+  by (auto simp add: conflict_disjoint_vars_def elim: decide.cases)
+
+lemma conflict_preserves_conflict_disjoint_vars:
+  assumes "conflict N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+  thus ?thesis
+    unfolding conflictI(2)
+    unfolding conflict_disjoint_vars_def
+    unfolding state_trail_simp state_learned_simp state_conflict_simp option.inject prod.inject
+    by (metis finite_UN finite_fset finite_vars_cls vars_cls_subst_renaming_disj vars_clss_def)
+qed
+
+lemma skip_preserves_conflict_disjoint_vars:
+  assumes "skip N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: skip.cases)
+  case (skipI L D \<sigma> n \<Gamma> U)
+  thus ?thesis
+    using invar
+    unfolding skipI(1,2)    
+    unfolding conflict_disjoint_vars_def
+    unfolding state_trail_simp state_learned_simp state_conflict_simp option.inject prod.inject
+    by (smt (verit) Int_emptyI Int_iff UN_Un Un_iff clss_of_trail.simps(2) not_empty_if_mem
+        union_fset vars_clss_def)
+qed
+
+lemma factorize_preserves_conflict_disjoint_vars:
+  assumes "factorize N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: factorize.cases)
+  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  
+  from invar have "vars_cls (add_mset L (add_mset L' D)) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    unfolding factorizeI(1)
+    by (auto simp add: conflict_disjoint_vars_def)
+
+  moreover have "vars_cls (add_mset L (add_mset L' D) \<cdot> \<mu>) \<subseteq> vars_cls (add_mset L (add_mset L' D))"
+    using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>[unfolded is_mimgu_def, THEN conjunct2]
+    using vars_subst_cls_subset_weak
+    by fastforce
+
+  ultimately have "vars_cls (add_mset L D \<cdot> \<mu>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    by auto
+  thus ?thesis
+    unfolding factorizeI(2)
+    by (simp add: conflict_disjoint_vars_def)
+qed
+
+lemma resolve_preserves_conflict_disjoint_vars:
+  assumes "resolve N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: resolve.cases)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+
+  from invar have "vars_cls (add_mset L' D) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    unfolding resolveI(1)
+    by (auto simp add: conflict_disjoint_vars_def)
+  hence "vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    using \<open>\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|}))\<close>
+    by (smt (verit) Int_Un_distrib2 Int_Un_eq(1) Int_assoc UN_Un finite_UN finite_fset
+        finite_vars_cls inf_sup_absorb union_fset vars_cls_subst_renaming_disj vars_clss_def)
+  thus ?thesis
+    unfolding resolveI(2)
+    by (simp add: conflict_disjoint_vars_def)
+qed
+
+lemma backtrack_preserves_conflict_disjoint_vars:
+  assumes "backtrack N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms
+  by (auto simp add: conflict_disjoint_vars_def elim: backtrack.cases)
+
+lemma scl_preserves_conflict_disjoint_vars:
+  assumes "scl N \<beta> S S'" and "conflict_disjoint_vars N S"
+  shows "conflict_disjoint_vars N S'"
+  using assms unfolding scl_def
+  using propagate_preserves_conflict_disjoint_vars decide_preserves_conflict_disjoint_vars
+    conflict_preserves_conflict_disjoint_vars skip_preserves_conflict_disjoint_vars
+    factorize_preserves_conflict_disjoint_vars resolve_preserves_conflict_disjoint_vars
+    backtrack_preserves_conflict_disjoint_vars
+  by metis
+
+
 subsection \<open>Trail Literals Come From Clauses\<close>
 
 definition trail_lits_from_clauses where
   "trail_lits_from_clauses N S \<longleftrightarrow>
     (\<forall>L \<in> fst ` set (state_trail S).
-      \<exists>L' \<in> \<Union>(set_mset ` (N \<union> state_learned S)). generalizes_lit L' L)"
+      \<exists>L' \<in> \<Union>(set_mset ` (fset N \<union> fset (state_learned S))). generalizes_lit L' L)"
 
 lemma trail_lits_from_clauses_initial_state:
   "trail_lits_from_clauses N initial_state"
@@ -2279,16 +2395,17 @@ lemma propagate_preserves_trail_lits_from_clauses:
 proof (cases N \<beta> S S' rule: propagate.cases)
   case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
 
-  have "\<exists>L'\<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
+  have "\<exists>L'\<in> \<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
   proof (rule bexI[of _ L])
-    show "L \<in> \<Union> (set_mset ` (N \<union> U))"
-      using \<open>C \<in> N \<union> U\<close> \<open>C = add_mset L C'\<close> by (metis Union_iff imageI union_single_eq_member)
+    show "L \<in> \<Union> (fset (set_mset |`| (N |\<union>| U)))"
+      using \<open>C |\<in>| N |\<union>| U\<close> \<open>C = add_mset L C'\<close>
+      by (meson Union_iff fimage_eqI notin_fset union_single_eq_member)
   next
     show "generalizes_lit L (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
       unfolding generalizes_lit_def by (metis subst_lit_comp_subst)
   qed
 
-  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' L"
     using assms(2) unfolding propagateI by (simp add: trail_lits_from_clauses_def)
 
   ultimately show ?thesis
@@ -2302,10 +2419,10 @@ lemma decide_preserves_trail_lits_from_clauses:
 proof (cases N \<beta> S S' rule: decide.cases)
   case (decideI L \<gamma> \<Gamma> U)
 
-  hence "\<exists>L'\<in>\<Union> (set_mset ` (N \<union> U)). generalizes_lit L' (L \<cdot>l \<gamma>)"
+  hence "\<exists>L'\<in>\<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' (L \<cdot>l \<gamma>)"
     by (auto simp: generalizes_lit_def)
 
-  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' L"
     using assms(2) unfolding decideI by (simp add: trail_lits_from_clauses_def)
 
   ultimately show ?thesis
@@ -2363,14 +2480,14 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   hence "set \<Gamma>'' \<subseteq> set \<Gamma>"
     by (simp add: set_mono_suffix)
 
-  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+  moreover have "\<forall>L \<in> fst ` set \<Gamma>. \<exists>L' \<in> \<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' L"
     using assms(2) unfolding backtrackI by (simp add: trail_lits_from_clauses_def)
 
-  ultimately have "\<forall>L \<in> fst ` set \<Gamma>''. \<exists>L' \<in> \<Union> (set_mset ` (N \<union> U)). generalizes_lit L' L"
+  ultimately have "\<forall>L \<in> fst ` set \<Gamma>''. \<exists>L' \<in> \<Union> (fset (set_mset |`| (N |\<union>| U))). generalizes_lit L' L"
     by fast
   thus ?thesis
     unfolding trail_lits_from_clauses_def backtrackI(1,2) state_trail_simp state_learned_simp
-    by fast
+    by auto
 qed
 
 lemma scl_preserves_trail_lits_from_clauses:
@@ -2394,10 +2511,7 @@ lemma trail_lits_ground_initial_state:
   by (simp add: trail_lits_ground_def)
 
 lemma propagate_preserves_trail_lits_ground:
-  assumes
-    "propagate N \<beta> S S'" and
-    fin: "finite N" "finite (state_learned S)" and
-    "trail_lits_ground S"
+  assumes "propagate N \<beta> S S'" and "trail_lits_ground S"
   shows "trail_lits_ground S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
@@ -2493,9 +2607,7 @@ lemma backtrack_preserves_trail_lits_ground:
   using assms by (auto simp: trail_lits_ground_def trail_decide_def elim!: backtrack.cases)
 
 lemma scl_preserves_trail_trail_lits_ground:
-  assumes "scl N \<beta> S S'" and
-    fin: "finite N" "finite (state_learned S)" and
-    "trail_lits_ground S"
+  assumes "scl N \<beta> S S'" and "trail_lits_ground S"
   shows "trail_lits_ground S'"
   using assms unfolding scl_def
   using propagate_preserves_trail_lits_ground decide_preserves_trail_lits_ground
@@ -2514,9 +2626,7 @@ lemma trail_lits_consistent_initial_state: "trail_lits_consistent initial_state"
   by (simp add: trail_lits_consistent_def)
 
 lemma propagate_preserves_trail_lits_consistent:
-  assumes "propagate N \<beta> S S'" and
-    fin: "finite N" "finite (state_learned S)" and
-    "trail_lits_consistent S"
+  assumes "propagate N \<beta> S S'" and "trail_lits_consistent S"
   shows "trail_lits_consistent S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
@@ -2540,7 +2650,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   finally have "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
     using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close> by metis
   
-  moreover from assms(4) have "trail_consistent \<Gamma>"
+  moreover from assms(2) have "trail_consistent \<Gamma>"
     by (simp add: propagateI(1) trail_lits_consistent_def)
 
   moreover have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
@@ -2568,28 +2678,12 @@ proof (cases N \<beta> S S' rule: propagate.cases)
 qed
 
 
-subsection \<open>Trail Propagated Literals Are Well-formed\<close>
+subsection \<open>Trail Literals Were Propagated or Decided\<close>
 
-(* definition trail_propagated_wf where
-  "trail_propagated_wf S \<longleftrightarrow> (\<forall>Ln \<in> set (state_trail S).
-    \<not> is_decision_lit Ln \<longrightarrow> (\<exists>L \<gamma>\<^sub>L C. Ln = (L \<cdot>l \<gamma>\<^sub>L, Some (C, L, \<gamma>\<^sub>L))))" *)
-
-
-subsection \<open>Trail Propagated Literals Were Propagated\<close>
-
-thm decideI[no_vars]
-
-(*
-L \<in> \<Union> (set_mset ` N) \<Longrightarrow>
-is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
-\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
-atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow> decide N \<beta> (\<Gamma>, U, None) (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None)
-*)
-
-inductive trail_propagated_or_decided for N \<beta> where
+inductive trail_propagated_or_decided for N \<beta> U where
   Nil: "trail_propagated_or_decided N \<beta> U []" |
   Propagate: "
-    C \<in> N \<union> U \<Longrightarrow>
+    C |\<in>| N |\<union>| U \<Longrightarrow>
     C = add_mset L C' \<Longrightarrow>
     is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
     \<forall>K\<in>#C \<cdot> \<gamma>. atm_of K \<prec>\<^sub>B \<beta> \<Longrightarrow>
@@ -2600,12 +2694,12 @@ inductive trail_propagated_or_decided for N \<beta> where
     is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)} \<Longrightarrow>
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     is_renaming \<rho> \<Longrightarrow>
-    range_vars \<rho> \<inter> vars_clss (N \<union> U \<union> clss_of_trail \<Gamma>) = {} \<Longrightarrow>
+    vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')" |
   Decide: "
-    L \<in> \<Union> (set_mset ` N) \<Longrightarrow>
+    L \<in> \<Union> (set_mset ` fset N) \<Longrightarrow>
     is_ground_lit (L \<cdot>l \<gamma>) \<Longrightarrow>
     \<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>) \<Longrightarrow>
     atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta> \<Longrightarrow>
@@ -2615,6 +2709,86 @@ inductive trail_propagated_or_decided for N \<beta> where
 abbreviation trail_propagated_or_decided' where
   "trail_propagated_or_decided' N \<beta> S \<equiv>
     trail_propagated_or_decided N \<beta> (state_learned S) (state_trail S)"
+
+lemma trail_propagated_or_decided_learned_finsert:
+  assumes "trail_propagated_or_decided N \<beta> U \<Gamma>" and
+    "vars_cls C \<inter> vars_clss (fset (clss_of_trail \<Gamma>)) = {}"
+  shows "trail_propagated_or_decided N \<beta> (finsert C U) \<Gamma>"
+  using assms
+proof (induction \<Gamma> rule: trail_propagated_or_decided.induct)
+  case Nil
+  show ?case by (simp add: trail_propagated_or_decided.Nil)
+next
+  case (Propagate D L D' \<gamma> D\<^sub>0 D\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+  
+  from Propagate.hyps have D_in: "D |\<in>| N |\<union>| finsert C U"
+    by simp
+
+  from Propagate.prems have "vars_cls C \<inter> vars_cls (add_mset L D\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) = {}"
+    by (simp_all add: Int_Un_distrib)
+  with Propagate.hyps(12) have renamed_distinct:
+    "vars_cls (add_mset L D\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| finsert C U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    by auto
+
+  have IH: "trail_propagated_or_decided N \<beta> (finsert C U) \<Gamma>"
+  proof (rule Propagate.IH)
+    show "vars_cls C \<inter> vars_clss (fset (clss_of_trail \<Gamma>)) = {}"
+      using Propagate.prems by (simp add: Int_Un_distrib)
+  qed
+
+  show ?case
+    by (rule trail_propagated_or_decided.Propagate[OF D_in Propagate.hyps(2,3,4,5,6,7,8,9,10,11)
+          renamed_distinct Propagate.hyps(13) IH])
+next
+  case (Decide L \<gamma> \<Gamma>)
+  then show ?case
+    by (simp add: trail_propagated_or_decided.Decide)
+qed
+
+lemma trail_propagated_or_decided_trail_append:
+  assumes "trail_propagated_or_decided N \<beta> U (\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2)"
+  shows "trail_propagated_or_decided N \<beta> U \<Gamma>\<^sub>2"
+  using assms
+proof (induction "\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2" arbitrary: \<Gamma>\<^sub>1 \<Gamma>\<^sub>2 rule: trail_propagated_or_decided.induct)
+  case Nil
+  thus ?case
+    by (simp add: trail_propagated_or_decided.Nil)
+next
+  case (Propagate C L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+  hence tr_prop_eq_\<Gamma>\<^sub>1_\<Gamma>\<^sub>2:
+    "\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2 = trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'"
+    by simp
+  thus ?case
+    unfolding trail_propagate_def append_eq_Cons_conv
+  proof (elim disjE conjE exE)
+    assume "\<Gamma>\<^sub>1 = []" and \<Gamma>\<^sub>2_def: "\<Gamma>\<^sub>2 = (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>', Some (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>, L \<cdot>l \<mu> \<cdot>l \<rho>, \<gamma>\<^sub>\<rho>')) # \<Gamma>"
+    show ?thesis
+      unfolding \<Gamma>\<^sub>2_def
+      by (rule trail_propagated_or_decided.Propagate[unfolded trail_propagate_def];
+          rule Propagate.hyps)
+  next
+    fix \<Gamma>\<^sub>1'
+    assume "\<Gamma>\<^sub>1 = (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>', Some (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>, L \<cdot>l \<mu> \<cdot>l \<rho>, \<gamma>\<^sub>\<rho>')) # \<Gamma>\<^sub>1'" and "\<Gamma>\<^sub>1' @ \<Gamma>\<^sub>2 = \<Gamma>"
+    thus ?thesis
+      using Propagate.hyps by blast
+  qed
+next
+  case (Decide L \<gamma> \<Gamma>)
+  hence "\<Gamma>\<^sub>1 @ \<Gamma>\<^sub>2 = trail_decide \<Gamma> (L \<cdot>l \<gamma>)"
+    by simp
+  thus ?case
+    unfolding trail_decide_def append_eq_Cons_conv
+  proof (elim disjE conjE exE)
+    assume "\<Gamma>\<^sub>1 = []" and \<Gamma>\<^sub>2_def: "\<Gamma>\<^sub>2 = (L \<cdot>l \<gamma>, None) # \<Gamma>"
+    show ?thesis
+      unfolding \<Gamma>\<^sub>2_def
+      by (rule trail_propagated_or_decided.Decide[unfolded trail_decide_def]; rule Decide.hyps)
+  next
+    fix \<Gamma>\<^sub>1' assume "\<Gamma>\<^sub>1 = (L \<cdot>l \<gamma>, None) # \<Gamma>\<^sub>1'" and "\<Gamma>\<^sub>1' @ \<Gamma>\<^sub>2 = \<Gamma>"
+    then show ?thesis
+      using Decide.hyps by blast
+  qed
+qed
 
 lemma trail_propagated_or_decided_initial_state: "trail_propagated_or_decided' N \<beta> initial_state"
   by (auto intro: trail_propagated_or_decided.Nil)
@@ -2683,21 +2857,53 @@ lemma resolve_preserves_trail_propagated_or_decided:
   shows "trail_propagated_or_decided' N \<beta> S'"
   using assms by (auto elim: resolve.cases)
 
+lemma disjoint_vars_set_insert_iff:
+  "disjoint_vars_set (insert C N) \<longleftrightarrow> vars_cls C \<inter> vars_clss (N - {C}) = {} \<and> disjoint_vars_set N"
+  by (rule iffI) (auto simp add: disjoint_vars_set_def vars_clss_def disjoint_vars_iff_inter_empty)  
+
 lemma backtrack_preserves_trail_propagated_or_decided:
-  assumes "backtrack N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
+  assumes "backtrack N \<beta> S S'" and
+    invars: "trail_propagated_or_decided' N \<beta> S" "conflict_disjoint_vars N S"
   shows "trail_propagated_or_decided' N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
 
-  from invar have "trail_propagated_or_decided N \<beta> U (trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
+  from invars(2)
+  have "vars_cls (add_mset L D) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    unfolding backtrackI(1)
+    by (simp add: conflict_disjoint_vars_def)
+  hence vars_distinct':
+    "vars_cls (add_mset L D) \<inter> vars_clss (fset (clss_of_trail \<Gamma>)) = {}"
+    by (simp add: Int_Un_distrib vars_clss_def)
+
+  have "trail_propagated_or_decided N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
+  proof (rule trail_propagated_or_decided_learned_finsert)
+    from invars(1) have "trail_propagated_or_decided N \<beta> U (trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
+      unfolding backtrackI by simp
+    then show "trail_propagated_or_decided N \<beta> U \<Gamma>''"
+      by (induction "(trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
+          rule: trail_propagated_or_decided.induct)
+        (simp_all add: trail_decide_def trail_propagate_def
+          trail_propagated_or_decided_trail_append)
+  next
+    show "vars_cls (add_mset L D) \<inter> vars_clss (fset (clss_of_trail \<Gamma>'')) = {}"
+      using vars_distinct'
+      unfolding backtrackI by (simp add: clss_of_trail_append Int_Un_distrib vars_clss_def)
+  qed
+  thus ?thesis
     unfolding backtrackI by simp
-  then show ?thesis
-    unfolding backtrackI(2)
-    apply simp
-    (* sledgehammer [verbose, timeout = 120, slices = 16] *)
-    sorry
 qed
+
+lemma scl_preserves_trail_propagated_or_decided:
+  assumes "scl N \<beta> S S'" and "trail_propagated_or_decided' N \<beta> S" "conflict_disjoint_vars N S"
+  shows "trail_propagated_or_decided' N \<beta> S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_propagated_or_decided decide_preserves_trail_propagated_or_decided
+    conflict_preserves_trail_propagated_or_decided skip_preserves_trail_propagated_or_decided
+    factorize_preserves_trail_propagated_or_decided resolve_preserves_trail_propagated_or_decided
+    backtrack_preserves_trail_propagated_or_decided
+  by metis
 
 
 subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
@@ -2709,9 +2915,7 @@ lemma ball_trail_lt_initial_state: "trail_atoms_lt \<beta> initial_state"
   by (simp add: trail_atoms_lt_def)
 
 lemma propagate_preserves_trail_atoms_lt:
-  assumes "propagate N \<beta> S S'" and
-    fin: "finite N" "finite (state_learned S)" and
-    "trail_atoms_lt \<beta> S"
+  assumes "propagate N \<beta> S S'" and "trail_atoms_lt \<beta> S"
   shows "trail_atoms_lt \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
@@ -2737,9 +2941,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   have "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>'"
   proof -
     have "is_renaming \<rho>"
-      unfolding \<open>\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close>
-      apply (rule is_renaming_renaming_wrt)
-      using fin by (simp add: propagateI(1))
+      using propagateI by argo
 
     moreover have "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
     proof -
@@ -2818,20 +3020,20 @@ lemma backtrack_preserves_trail_atoms_lt:
   using assms by (auto simp: trail_atoms_lt_def trail_decide_def elim!: backtrack.cases)
 
 lemma scl_preserves_trail_atoms_lt:
-  assumes "scl N \<beta> S S'" and
-    fin: "finite N" "finite (state_learned S)" and
-    "trail_atoms_lt \<beta> S"
+  assumes "scl N \<beta> S S'" and "trail_atoms_lt \<beta> S"
   shows "trail_atoms_lt \<beta> S'"
   using assms unfolding scl_def
-  using propagate_preserves_trail_atoms_lt decide_preserves_trail_atoms_lt conflict_preserves_trail_atoms_lt skip_preserves_trail_atoms_lt
-    factorize_preserves_trail_atoms_lt resolve_preserves_trail_atoms_lt backtrack_preserves_trail_atoms_lt
+  using propagate_preserves_trail_atoms_lt decide_preserves_trail_atoms_lt
+    conflict_preserves_trail_atoms_lt skip_preserves_trail_atoms_lt
+    factorize_preserves_trail_atoms_lt resolve_preserves_trail_atoms_lt
+    backtrack_preserves_trail_atoms_lt
   by metis
 
 
 subsection \<open>Learned Clauses Are Non-empty\<close>
 
 definition learned_nonempty where
-  "learned_nonempty S \<longleftrightarrow> {#} \<notin> state_learned S"
+  "learned_nonempty S \<longleftrightarrow> {#} |\<notin>| state_learned S"
 
 lemma learned_nonempty_initial_state: "learned_nonempty initial_state"
   by (simp add: learned_nonempty_def)
@@ -2889,22 +3091,22 @@ subsection \<open>Sound Trail\<close>
 abbreviation entails_\<G> (infix "\<TTurnstile>\<G>e" 50) where
   "entails_\<G> N U \<equiv> grounding_of_clss N \<TTurnstile>e grounding_of_clss U"
 
-inductive sound_trail for N U where
-  Nil[simp]: "sound_trail N U []" |
+inductive sound_trail for N where
+  Nil[simp]: "sound_trail N []" |
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
     (case u of
       None \<Rightarrow> True |
       Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
-        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C + {#L'#}}) \<Longrightarrow>
-    sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U ((L, u) # \<Gamma>)"
+        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C + {#L'#}}) \<Longrightarrow>
+    sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
 
-lemma trail_consistent_if_sound: "sound_trail N U \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
+lemma trail_consistent_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
   by (induction \<Gamma> rule: sound_trail.induct) (simp_all add: trail_consistent.Cons)
 
 lemma entails_\<G>_mono: "N \<TTurnstile>\<G>e U \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> NN \<TTurnstile>\<G>e U"
   by (meson grounding_of_clss_mono true_clss_mono)
 
-lemma sound_trail_supersetI: "sound_trail N U \<Gamma> \<Longrightarrow> N \<subseteq> NN \<Longrightarrow> U \<subseteq> UU \<Longrightarrow> sound_trail NN UU \<Gamma>"
+lemma sound_trail_supersetI: "sound_trail N \<Gamma> \<Longrightarrow> N |\<subseteq>| NN \<Longrightarrow> sound_trail NN \<Gamma>"
 proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   thus ?case by simp
@@ -2916,7 +3118,7 @@ next
       "case u of
         None \<Rightarrow> True
       | Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
-          is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> NN \<TTurnstile>\<G>e {C + {#L'#}}"
+          is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {C + {#L'#}}"
     proof (cases u)
       case None
       then show ?thesis by simp
@@ -2924,14 +3126,14 @@ next
       case (Some Cl)
       moreover obtain C L' \<gamma> where Cl_def: "Cl = (C, L', \<gamma>)"
         using prod_cases3 by blast
-      moreover have "NN \<TTurnstile>\<G>e {C + {#L'#}}"
+      moreover have "fset NN \<TTurnstile>\<G>e {C + {#L'#}}"
       proof -
-        have "N \<TTurnstile>\<G>e {C + {#L'#}}"
+        have "fset N \<TTurnstile>\<G>e {C + {#L'#}}"
           using Cons.hyps
           by (auto simp: Some Cl_def)
         thus ?thesis
           apply (rule entails_\<G>_mono)
-          using Cons.prems by simp
+          using Cons.prems by (simp add: less_eq_fset.rep_eq)
       qed
       ultimately show ?thesis
         using Cons by simp
@@ -2939,10 +3141,10 @@ next
   qed (use Cons in simp_all)
 qed
 
-lemma sound_subtrailI[intro]: "sound_trail N U (Ln # \<Gamma>) \<Longrightarrow> sound_trail N U \<Gamma>"
+lemma sound_subtrailI[intro]: "sound_trail N (Ln # \<Gamma>) \<Longrightarrow> sound_trail N \<Gamma>"
   by (auto elim: sound_trail.cases)
 
-lemma ball_ground_lit_if_sound_trail: "sound_trail N U \<Gamma> \<Longrightarrow> \<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+lemma ball_ground_lit_if_sound_trail: "sound_trail N \<Gamma> \<Longrightarrow> \<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
 proof (induction \<Gamma> rule: sound_trail.induct)
   case Nil
   show ?case by simp
@@ -2951,21 +3153,21 @@ next
   thus ?case by auto
 qed 
 
-lemma sound_trail_appendD: "sound_trail N U (\<Gamma> @ \<Gamma>') \<Longrightarrow> sound_trail N U \<Gamma>'"
+lemma sound_trail_appendD: "sound_trail N (\<Gamma> @ \<Gamma>') \<Longrightarrow> sound_trail N \<Gamma>'"
   by (induction \<Gamma>) auto
 
-lemma sound_trail_backtrackI: "sound_trail N U \<Gamma> \<Longrightarrow> sound_trail N U (trail_backtrack \<Gamma> level)"
+lemma sound_trail_backtrackI: "sound_trail N \<Gamma> \<Longrightarrow> sound_trail N (trail_backtrack \<Gamma> level)"
   by (induction \<Gamma> rule: sound_trail.induct) (auto intro: sound_trail.intros)
 
 lemma sound_trail_propagate:
   assumes
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
     not_tr_def_\<Gamma>_L_\<sigma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)" and
     domain_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls C \<union> vars_lit L" and
     gr_C_L_\<sigma>: "is_ground_cls ((C + {#L#}) \<cdot> \<sigma>)" and
     tr_false_\<Gamma>_C_\<sigma>: "trail_false_cls \<Gamma> (C \<cdot> \<sigma>)" and
-    N_entails_C_L: "N \<TTurnstile>\<G>e {C + {#L#}}"
-  shows "sound_trail N U (trail_propagate \<Gamma> L C \<sigma>)"
+    N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}"
+  shows "sound_trail N (trail_propagate \<Gamma> L C \<sigma>)"
   unfolding trail_propagate_def
 proof (rule sound_trail.Cons; (unfold option.case prod.case)?)
   show "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<sigma>)"
@@ -2975,34 +3177,33 @@ next
     using gr_C_L_\<sigma>
     by (metis Melem_subst_cls is_ground_cls_def mset_subset_eq_add_right single_subset_iff)
 next
-  show "sound_trail N U \<Gamma>"
+  show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
 next
   show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> subst_domain \<sigma> \<subseteq> vars_cls C \<union> vars_lit L \<and>
-    is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> N \<TTurnstile>\<G>e {C + {#L#}}"
+    is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {C + {#L#}}"
     using domain_\<sigma> gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> N_entails_C_L by simp
 qed
 
 lemma sound_trail_decide:
-  "sound_trail N U \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
-  sound_trail N U (trail_decide \<Gamma> L)"
+  "sound_trail N \<Gamma> \<Longrightarrow> \<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
+  sound_trail N (trail_decide \<Gamma> L)"
   unfolding trail_decide_def
   by (auto intro: sound_trail.Cons)
 
 
 subsection \<open>Sound State\<close>
 
-definition sound_state :: "('f, 'v) term clause set \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
+definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow> (\<exists>\<Gamma> U u.
     S = (\<Gamma>, U, u) \<and>
-    finite N \<and> finite U \<and>
-    disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>) \<and>
-    (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> N \<union> U  \<union> clss_of_trail \<Gamma>. disjoint_vars C D) \<and>
-    sound_trail N U \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
-    N \<TTurnstile>\<G>e U \<and>
+    disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<and>
+    (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars C D) \<and>
+    sound_trail N \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
+    fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
-      trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> N \<TTurnstile>\<G>e {C}))"
+      trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
@@ -3012,7 +3213,7 @@ lemma trail_atoms_lt_if_sound_state:
   unfolding sound_state_def by auto
 
 lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
-  assumes sound_\<Gamma>: "sound_trail N U \<Gamma>"
+  assumes sound_\<Gamma>: "sound_trail N \<Gamma>"
   shows "level < trail_level \<Gamma> \<Longrightarrow> level < trail_level_lit \<Gamma> L \<Longrightarrow>
   \<not> trail_defined_lit (trail_backtrack \<Gamma> level) L"
   using sound_\<Gamma>
@@ -3052,7 +3253,7 @@ qed
 subsection \<open>Initial State Is Sound\<close>
 
 lemma sound_initial_state[simp]:
-  "finite N \<Longrightarrow> disjoint_vars_set N \<Longrightarrow> sound_state N \<beta> initial_state"
+  "disjoint_vars_set (fset N) \<Longrightarrow> sound_state N \<beta> initial_state"
   by (simp add: sound_state_def trail_atoms_lt_def)
 
 
@@ -3069,6 +3270,10 @@ next
     by (smt (verit, best) Term.term.simps(17) UN_iff image_eqI singletonD term.collapse(1))
 qed
 
+lemma mem_vars_cls_subst_clsD: "x' \<in> vars_cls (C \<cdot> \<rho>) \<Longrightarrow> \<exists>x\<in>vars_cls C. x' \<in> vars_term (\<rho> x)"
+  unfolding vars_subst_cls_eq
+  using subst_domain_def by force
+
 lemma propagate_sound_state:
   assumes step: "propagate N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
@@ -3078,7 +3283,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   hence
     S_def: "S = (\<Gamma>, U, None)" and
     S'_def: "S' = (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)" and
-    C_in: "C \<in> N \<union> U" and
+    C_in: "C |\<in>| N |\<union>| U" and
     C_def: "C = add_mset L C'" and
     gr_C_\<gamma>: "is_ground_cls (C \<cdot> \<gamma>)" and
     C\<^sub>0_def: "C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}" and
@@ -3087,19 +3292,17 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     undef_\<Gamma>_L_\<gamma>: "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)" and
     is_mimgu_\<mu>: "is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}" and
     \<gamma>'_def: "\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>" and
-    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)" and
+    ren_\<rho>: "is_renaming \<rho>" and
+    vars_L_C\<^sub>0_\<mu>_\<rho>: "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter>
+      vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}" and
     \<gamma>\<^sub>\<rho>'_def: "\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'"
     by simp_all
 
   from sound have
-    fin: "finite N" "finite U" and
-    disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    disj_N_U_\<Gamma>: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def S_def by auto
-
-  have fin_N_U_\<Gamma>: "finite (N \<union> U \<union> clss_of_trail \<Gamma>)"
-    using fin by simp
 
   from is_mimgu_\<mu> have range_vars_\<mu>: "range_vars \<mu> \<subseteq> vars_lit L \<union> vars_cls C\<^sub>1"
     by (simp add: is_mimgu_def vars_cls_def)
@@ -3125,14 +3328,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
 
   have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma> = C\<^sub>0 \<cdot> \<gamma>"
     using \<mu>_\<gamma>_simp by (metis subst_cls_comp_subst)
-
-  have ren_\<rho>: "is_renaming \<rho>"
-    unfolding \<open>\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)\<close>
-    apply (rule is_renaming_renaming_wrt)
-    using fin by (simp add: propagateI(1))
-
-  have "subst_domain \<rho> = UNIV"
-    by (metis \<rho>_def fin_N_U_\<Gamma> subst_domain_renaming_wrt)
 
   have "\<forall>x. is_Var (\<rho> x)"
     using is_renaming_iff ren_\<rho> by fastforce
@@ -3161,18 +3356,18 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>"
     by (simp add: \<gamma>'_def subst_cls_restrict_subst_idem)
 
-  have "disjoint_vars_set (insert (add_mset (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)) (N \<union> U \<union> clss_of_trail \<Gamma>))"
+  have "disjoint_vars_set (insert (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)
+    (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)))"
   proof (intro disjoint_vars_set_insertI[OF disj_N_U_\<Gamma>] ballI impI)
-    fix D assume D_in: "D \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
-    thus "disjoint_vars (add_mset (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)) D"
-      unfolding disjoint_vars_iff_inter_empty \<rho>_def
-      by (metis disjoint_vars_iff_inter_empty disjoint_vars_rename_clause fin(1) fin(2) finite_Un
-          finite_clss_of_trail rename_clause_def subst_cls_add_mset)
+    fix D assume D_in: "D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)"
+    thus "disjoint_vars (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) D"
+      unfolding disjoint_vars_iff_inter_empty
+      using vars_L_C\<^sub>0_\<mu>_\<rho> by (smt (verit, best) UN_I disjoint_iff vars_clss_def)
   qed
 
-  moreover have "sound_trail N U (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')"
+  moreover have "sound_trail N (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')"
   proof (rule sound_trail_propagate)
-    show "sound_trail N U \<Gamma>"
+    show "sound_trail N \<Gamma>"
       by (rule sound_\<Gamma>)
   next
     have "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<gamma>)"
@@ -3189,8 +3384,15 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     also have "\<dots> = (\<Union>x\<in>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>). vars_term (\<rho> x))"
       by (rule image_the_Var_image_subst_renaming_eq[OF \<open>\<forall>x. is_Var (\<rho> x)\<close>])
     also have "\<dots> = vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)"
-      using vars_subst_cls_eq[of "add_mset L C\<^sub>0 \<cdot> \<mu>" \<rho>]
-      by (simp add: \<open>subst_domain \<rho> = UNIV\<close>)
+    proof (rule Set.equalityI)
+      show "(\<Union>x\<in>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>). vars_term (\<rho> x)) \<subseteq> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)"
+        by (metis order_refl sup.coboundedI2 vars_subst_cls_eq)
+    next
+      show "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<subseteq> (\<Union>x\<in>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>). vars_term (\<rho> x))"
+        apply (rule subsetI)
+        unfolding UN_iff
+        by (erule mem_vars_cls_subst_clsD)
+    qed
     finally show "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> vars_cls (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_lit (L \<cdot>l \<mu> \<cdot>l \<rho>)"
       unfolding \<gamma>\<^sub>\<rho>'_def
       using subst_domain_adapt_subst_to_renaming_subset
@@ -3212,14 +3414,15 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     thus "trail_false_cls \<Gamma> (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>')"
       by (simp add: \<open>C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>'\<close> \<open>C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>\<close>)
   next
-    from C_in N_entails_U have "N \<TTurnstile>\<G>e {C}"
-      by (meson Un_iff empty_subsetI grounding_of_clss_mono insert_subset true_clss_mono)
-    hence "N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1)}"
+    from C_in N_entails_U have "fset N \<TTurnstile>\<G>e {C}"
+      by (metis (no_types, opaque_lifting) empty_subsetI funion_iff grounding_of_clss_mono
+          insert_subset notin_fset true_clss_mono)
+    hence "fset N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1)}"
       by (simp add: C_def C\<^sub>0_def C\<^sub>1_def)
-    hence "N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1) \<cdot> \<mu>}"
+    hence "fset N \<TTurnstile>\<G>e {add_mset L (C\<^sub>0 + C\<^sub>1) \<cdot> \<mu>}"
       by (metis (no_types, opaque_lifting) grounding_of_clss_singleton
           subst_cls_eq_grounding_of_cls_subset_eq true_clss_mono)
-    hence "N \<TTurnstile>\<G>e {add_mset L C\<^sub>0 \<cdot> \<mu>}"
+    hence "fset N \<TTurnstile>\<G>e {add_mset L C\<^sub>0 \<cdot> \<mu>}"
     proof (rule entails_trans)
       have "\<exists>C\<in>grounding_of_clss {(C\<^sub>0 + C\<^sub>1 + {#L#}) \<cdot> \<mu>}. set_mset D = set_mset C"
         if D_in: "D \<in> grounding_of_clss {(C\<^sub>0 + {#L#}) \<cdot> \<mu>}" for I D
@@ -3256,19 +3459,18 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       then show "{add_mset L (C\<^sub>0 + C\<^sub>1) \<cdot> \<mu>} \<TTurnstile>\<G>e {add_mset L C\<^sub>0 \<cdot> \<mu>}"
         by (auto elim: true_clss_if_set_mset_eq[rotated])
     qed
-    thus "N \<TTurnstile>\<G>e {C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> + {#L \<cdot>l \<mu> \<cdot>l \<rho>#}}"
-      by (metis (no_types, lifting) add_mset_add_single grounding_of_clss_singleton
+    thus "fset N \<TTurnstile>\<G>e {C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> + {#L \<cdot>l \<mu> \<cdot>l \<rho>#}}"
+      by (metis (no_types, opaque_lifting) add_mset_add_single grounding_of_clss_singleton
           grounding_of_subst_cls_subset subst_cls_add_mset true_clss_mono)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using fin step[THEN propagate_preserves_trail_atoms_lt]
-      sound[THEN trail_atoms_lt_if_sound_state]
-    by (simp add: S_def)
+    using step[THEN propagate_preserves_trail_atoms_lt] sound[THEN trail_atoms_lt_if_sound_state]
+    by argo
 
   ultimately show ?thesis
     unfolding S'_def sound_state_def
-    using fin N_entails_U by simp
+    using N_entails_U by simp
 qed
 
 lemma decide_sound_state:
@@ -3278,13 +3480,12 @@ lemma decide_sound_state:
 proof (cases N \<beta> S S' rule: decide.cases)
   case (decideI L \<gamma> \<Gamma> U)
   from decideI(1) sound have
-    fin: "finite N" "finite U" and
-    disj_N_U_\<Gamma>: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    disj_N_U_\<Gamma>: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def by auto
 
-  moreover have "sound_trail N U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
+  moreover have "sound_trail N (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
 
   moreover have "trail_atoms_lt \<beta> S'"
@@ -3301,38 +3502,35 @@ lemma conflict_sound_state:
 proof (cases N \<beta> S S' rule: conflict.cases)
   case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
   hence
-    D_in: "D \<in> N \<union> U" and
-    \<rho>_def: "\<rho> = renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+    D_in: "D |\<in>| N |\<union>| U" and
+    \<rho>_def: "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
     by simp_all
   
   from conflictI(1) sound have
-    fin_N: "finite N" and
-    fin_U: "finite U" and
-    disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U"
+    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def by auto
 
   have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>"
     unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close>
-    by (metis \<rho>_def fin_N fin_U finite_Un finite_clss_of_trail is_renaming_renaming_wrt conflictI(5)
+    by (metis (opaque_lifting) \<rho>_def finite_fset is_renaming_renaming_wrt conflictI(5)
         subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
 
-  from fin_N fin_U have fin_N_U: "finite (N \<union> U)" by simp
-  hence disj_N_U_D': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D \<cdot> \<rho>) C"
-    by (metis \<rho>_def finite_clss_of_trail infinite_Un disjoint_vars_rename_clause rename_clause_def)
+  have disj_N_U_D': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D \<cdot> \<rho>) C"
+    by (metis \<rho>_def finite_fset disjoint_vars_rename_clause rename_clause_def)
 
-  moreover have N_entails_D': "N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
+  moreover have N_entails_D': "fset N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
   proof (intro allI impI)
     fix I
-    assume valid_N: "I \<TTurnstile>s grounding_of_clss N"
+    assume valid_N: "I \<TTurnstile>s grounding_of_clss (fset N)"
     moreover have "grounding_of_cls (D \<cdot> \<rho>) = grounding_of_cls D"
-      by (metis \<rho>_def fin_N_U finite_clss_of_trail infinite_Un grounding_of_cls_rename_clause
-          rename_clause_def)
+      by (metis (opaque_lifting) \<rho>_def finite_fset grounding_of_cls_rename_clause rename_clause_def)
     ultimately show "I \<TTurnstile>s grounding_of_clss {D \<cdot> \<rho>}"
       using D_in
-      by (metis (mono_tags, lifting) N_entails_U UN_I UnE grounding_of_clss_def
-          grounding_of_clss_singleton true_clss_def)
+      unfolding grounding_of_clss_singleton
+      by (metis (mono_tags, opaque_lifting) N_entails_U UN_I funion_iff grounding_of_clss_def
+          notin_fset true_clss_def)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
@@ -3364,15 +3562,14 @@ proof (cases N \<beta> S S' rule: conflict.cases)
 
   ultimately show ?thesis
     unfolding conflictI(1,2) sound_state_def
-    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U by simp
+    using disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
 lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
 proof (induction S S' rule: skip.induct)
   case (skipI L D \<sigma> Cl \<Gamma> U)
   thus ?case
-    by (auto simp: sound_state_def trail_atoms_lt_def clss_of_trail_Cons[of _ \<Gamma>]
-        elim!: subtrail_falseI)
+    by (auto simp: sound_state_def trail_atoms_lt_def elim!: subtrail_falseI)
 qed
 
 lemma factorize_sound_state:
@@ -3383,15 +3580,14 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
 
   from factorizeI(1) sound have
-    fin_N: "finite N" and fin_U: "finite U" and
-    disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    disj_N_U_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L, L'#}) C" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    disj_N_U_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L, L'#}) C" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L, L'#})" and
     gr_D_L_L'_\<sigma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
-    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L, L'#}}"
+    N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
     unfolding sound_state_def by simp_all
 
   from factorizeI have
@@ -3412,7 +3608,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     apply (simp add: is_unifier_alt)
     by (metis L_eq_L'_\<sigma> atm_of_subst_lit literal.expand subst_lit_is_neg)
 
-  have "disjoint_vars ((D + {#L#}) \<cdot> \<mu>) C" if C_in: "C \<in> N \<union> U \<union> clss_of_trail \<Gamma>" for C
+  have "disjoint_vars ((D + {#L#}) \<cdot> \<mu>) C" if C_in: "C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for C
     using disj_N_U_D_L_L'[rule_format, OF C_in]
     unfolding disjoint_vars_iff_inter_empty
     using range_vars_\<mu> vars_subst_cls_subset_weak[of "D + {#L#}" \<mu>]
@@ -3441,9 +3637,9 @@ proof (cases N \<beta> S S' rule: factorize.cases)
       by (metis subsetI)
   qed
 
-  moreover have "N \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
+  moreover have "fset N \<TTurnstile>\<G>e {(D + {#L#}) \<cdot> \<mu>}"
   proof (rule entails_trans)
-    show "N \<TTurnstile>\<G>e {D + {#L, L'#}}"
+    show "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
       by (rule N_entails_D_L_L')
   next
     have *: "{(D + {#L, L'#}) \<cdot> \<mu>} = {D \<cdot> \<mu> + {#L \<cdot>l \<mu>, L \<cdot>l \<mu>#}}"
@@ -3466,7 +3662,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
 
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
-    using fin_N fin_U disj_N_U sound_\<Gamma> N_entails_U by simp
+    using disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
 lemma trail_false_cls_plus_subst_mgu_before_groundings:
@@ -3522,26 +3718,24 @@ lemma resolve_sound_state:
 proof (cases N \<beta> S S' rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
   from resolveI(1) sound have
-    fin: "finite N" "finite U" and
-    disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L'#}) C" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
     gr_D_L'_\<sigma>: "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
-    N_entails_D_L': "N \<TTurnstile>\<G>e {D + {#L'#}}"
+    N_entails_D_L': "fset N \<TTurnstile>\<G>e {D + {#L'#}}"
     unfolding sound_state_def by simp_all
 
   from resolveI have L_eq_comp_L': "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" by simp
   from resolveI have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
   hence is_imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" by (simp add: is_mimgu_def)
   from resolveI have \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" by simp
-  from resolveI fin have is_renaming_\<rho>: "is_renaming \<rho>"
-    using is_renaming_renaming_wrt
-    by (metis finite.emptyI finite.insertI finite_UnI finite_clss_of_trail)
+  from resolveI have is_renaming_\<rho>: "is_renaming \<rho>"
+    using is_renaming_renaming_wrt by (metis finite_fset)
 
-  have "C + {#L#} \<in> clss_of_trail \<Gamma>"
+  have "C + {#L#} |\<in>| clss_of_trail \<Gamma>"
     unfolding \<Gamma>_def by simp
 
   from sound_\<Gamma> \<Gamma>_def have tr_undef_\<Gamma>'_L_\<delta>: "\<not> trail_defined_lit \<Gamma>' (L \<cdot>l \<delta>)"
@@ -3555,9 +3749,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   from sound_\<Gamma> have
     gr_C_L_\<delta>: "is_ground_cls ((C + {#L#}) \<cdot> \<delta>)" and
     tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" and
-    N_entails_C_L: "N \<TTurnstile>\<G>e {C + {#L#}}" and
+    N_entails_C_L: "fset N \<TTurnstile>\<G>e {C + {#L#}}" and
     dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (C + {#L#})"
-    unfolding sound_trail.simps[of _ _ \<Gamma>]
+    unfolding sound_trail.simps[of _ \<Gamma>]
     unfolding \<Gamma>_def trail_propagate_def
     by auto
 
@@ -3581,36 +3775,39 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
     by (simp add: is_unifiers_def is_unifier_def subst_atms_def)
 
-  have "disjoint_vars_set (insert (add_mset L C) (N \<union> U \<union> clss_of_trail \<Gamma>'))"
+  have "disjoint_vars_set (insert (add_mset L C) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>')))"
     using \<Gamma>_def disj_N_U by fastforce
 
-  moreover have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E" if E_in: "E \<in> N \<union> U \<union> clss_of_trail \<Gamma>" for E
+  moreover have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E"
+    if E_in: "E \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for E
   proof -
     have
       inter_D_E: "vars_cls D \<inter> vars_cls E = {}" and
       inter_L'_E: "vars_cls {#L'#} \<inter> vars_cls E = {}"
-        using disj_N_U_\<Gamma>_D_L_L'[rule_format, OF E_in]
-        unfolding disjoint_vars_plus_iff
-        unfolding disjoint_vars_iff_inter_empty
-        by simp_all
+      using disj_N_U_\<Gamma>_D_L_L'[rule_format, OF E_in]
+      unfolding disjoint_vars_plus_iff
+      unfolding disjoint_vars_iff_inter_empty
+      by simp_all
 
     have inter_L_\<rho>_E: "vars_term (atm_of L \<cdot>a \<rho>) \<inter> vars_cls E = {}"
-        by (smt (verit, ccfv_threshold) E_in UN_I UN_Un Un_empty disjoint_iff fin finite.intros
-            finite_UN finite_UnI finite_clss_of_trail finite_vars_cls inf_sup_distrib1
-            vars_lit_subst_renaming_disj resolveI(4) atm_of_subst_lit)
+      unfolding resolveI(4)
+      apply (rule vars_term_subst_term_Var_comp_renaming_disj'[of "\<Union> (vars_cls ` N)" for N])
+      using E_in by auto
 
     show ?thesis
       unfolding subst_cls_union disjoint_vars_plus_iff
     proof (rule conjI)
       show "disjoint_vars (D \<cdot> \<mu> \<cdot> \<rho>) E"
         unfolding disjoint_vars_iff_inter_empty
-        by (smt (verit) E_in UN_I Un_iff disjoint_iff fin finite.intros finite_UN finite_UnI
-            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI(4))
+        by (smt (verit, ccfv_SIG) Int_Un_distrib2 Int_commute UnI1 Union_image_insert finite_UN
+            finite_fset finite_vars_cls inf.bounded_iff insert_absorb inter_L'_E resolveI(4)
+            set_eq_subset sup.order_iff that union_fset vars_cls_subst_renaming_disj)
     next
       show "disjoint_vars (C \<cdot> \<mu> \<cdot> \<rho>) E"
         unfolding disjoint_vars_iff_inter_empty
-        by (smt (verit) E_in UN_I Un_iff disjoint_iff fin finite.intros finite_UN finite_UnI
-            finite_clss_of_trail finite_vars_cls vars_cls_subst_renaming_disj resolveI(4))
+        by (smt (verit, ccfv_SIG) Int_Un_distrib2 Int_commute UnI1 Union_image_insert finite_UN
+            finite_fset finite_vars_cls inf.bounded_iff insert_absorb inter_L'_E resolveI(4)
+            set_eq_subset sup.order_iff that union_fset vars_cls_subst_renaming_disj)
     qed
   qed
 
@@ -3652,7 +3849,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   proof -
     have "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
       using sound_\<Gamma>
-      unfolding sound_trail.simps[of _ _ \<Gamma>]
+      unfolding sound_trail.simps[of _ \<Gamma>]
       unfolding \<Gamma>_def trail_propagate_def
       by simp
     moreover have "suffix \<Gamma>' \<Gamma>"
@@ -3662,21 +3859,21 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       by (auto intro: trail_false_cls_plus_subst_mgu_before_groundings[simplified])
   qed
 
-  moreover have "N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
+  moreover have "fset N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
   proof -
-    from N_entails_C_L have *: "N \<TTurnstile>\<G>e {(C + {#L#}) \<cdot> \<mu>}"
+    from N_entails_C_L have *: "fset N \<TTurnstile>\<G>e {(C + {#L#}) \<cdot> \<mu>}"
       using grounding_of_subst_cls_subset
       by (metis (no_types, lifting) grounding_of_clss_singleton true_clss_mono)
 
-    have **: "N \<TTurnstile>\<G>e {(D + {#L'#}) \<cdot> \<mu>}"
+    have **: "fset N \<TTurnstile>\<G>e {(D + {#L'#}) \<cdot> \<mu>}"
       using N_entails_D_L' grounding_of_subst_cls_subset
       by (metis (no_types, lifting) grounding_of_clss_singleton true_clss_mono)
 
-    have "N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu>}"
+    have "fset N \<TTurnstile>\<G>e {(D + C) \<cdot> \<mu>}"
       unfolding true_clss_def
     proof (intro allI impI ballI)
       fix I E
-      assume I_entails: "\<forall>E \<in> grounding_of_clss N. I \<TTurnstile> E" and
+      assume I_entails: "\<forall>E \<in> grounding_of_clss (fset N). I \<TTurnstile> E" and
         E_in: "E \<in> grounding_of_clss {(D + C) \<cdot> \<mu>}"
 
       from E_in have E_in': "E \<in> grounding_of_cls ((D + C) \<cdot> \<mu>)"
@@ -3718,7 +3915,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
           true_clss_mono)
   qed
 
-  moreover have "sound_trail N U (trail_propagate \<Gamma>' L C \<delta>)"
+  moreover have "sound_trail N (trail_propagate \<Gamma>' L C \<delta>)"
     using \<Gamma>_def sound_\<Gamma> by blast
 
   moreover have "trail_atoms_lt \<beta> S'"
@@ -3726,7 +3923,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   ultimately show ?thesis
     unfolding resolveI sound_state_def
-    using fin N_entails_U by simp
+    using N_entails_U by simp
 qed
 
 lemma backtrack_sound_state:
@@ -3736,61 +3933,61 @@ lemma backtrack_sound_state:
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   from backtrackI(1) sound have
-    fin: "finite N" "finite U" and
-    disj_N_U: "disjoint_vars_set (N \<union> U \<union> clss_of_trail \<Gamma>)" and
-    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> N \<union> U \<union> clss_of_trail \<Gamma>. disjoint_vars (D + {#L#}) C" and
-    sound_\<Gamma>: "sound_trail N U \<Gamma>" and
-    N_entails_U: "N \<TTurnstile>\<G>e U" and
+    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
+    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L#}) C" and
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
     gr_D_L_\<sigma>: "is_ground_cls ((D + {#L#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<sigma>)" and
-    N_entails_D_L_L': "N \<TTurnstile>\<G>e {D + {#L#}}"
+    N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L#}}"
     unfolding sound_state_def by simp_all
 
   from backtrackI have \<Gamma>_def: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>))" by simp
 
-  have "disjoint_vars_set (insert (add_mset L D) (N \<union> U \<union> clss_of_trail \<Gamma>''))"
+  have "disjoint_vars_set (insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>'')))"
     unfolding disjoint_vars_set_def
   proof (intro ballI impI)
     fix C E
     assume
-      C_in: "C \<in> insert (add_mset L D) (N \<union> U \<union> clss_of_trail \<Gamma>'')" and
-      E_in: "E \<in> insert (add_mset L D) (N \<union> U \<union> clss_of_trail \<Gamma>'')" and
+      C_in: "C \<in> insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>''))" and
+      E_in: "E \<in> insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>''))" and
       C_neq_E: "C \<noteq> E"
 
-    from C_in have C_in': "C = add_mset L D \<or> C \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
-      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append by fastforce
+    from C_in have C_in': "C = add_mset L D \<or> C |\<in>| N |\<union>| U |\<union>| clss_of_trail \<Gamma>"
+      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append
+      using notin_fset by fastforce
 
-    from E_in have E_in': "E = add_mset L D \<or> E \<in> N \<union> U \<union> clss_of_trail \<Gamma>"
-      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append by fastforce
+    from E_in have E_in': "E = add_mset L D \<or> E |\<in>| N |\<union>| U |\<union>| clss_of_trail \<Gamma>"
+      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append
+      using notin_fset by fastforce
 
     from C_in' E_in' C_neq_E show "disjoint_vars C E"
       using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
       using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym
-      by (metis add_mset_add_single)
+      by (metis add_mset_add_single notin_fset)
   qed
 
-  moreover have "sound_trail N (insert (add_mset L D) U) \<Gamma>''"
+  moreover have "sound_trail N \<Gamma>''"
   proof -
-    from sound_\<Gamma> have "sound_trail N (insert (add_mset L D) U) \<Gamma>"
+    from sound_\<Gamma> have "sound_trail N \<Gamma>"
       by (rule sound_trail_supersetI) auto
     then show ?thesis
       by (auto simp: \<Gamma>_def trail_decide_def intro: sound_trail_appendD)
   qed
 
-  moreover have "N \<TTurnstile>\<G>e (U \<union> {D + {#L#}})"
+  moreover have "fset N \<TTurnstile>\<G>e (fset U \<union> {D + {#L#}})"
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
   moreover have "trail_atoms_lt \<beta> S'"
     using assms backtrack_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
 
   ultimately show ?thesis
-    unfolding backtrackI sound_state_def
-    using fin by simp
+    unfolding backtrackI sound_state_def by simp
 qed
 
 theorem scl_sound_state:
-  fixes N :: "('f, 'v) Term.term clause set"
+  fixes N :: "('f, 'v) Term.term clause fset"
   shows "scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   unfolding scl_def
   using propagate_sound_state decide_sound_state conflict_sound_state skip_sound_state
@@ -3895,14 +4092,14 @@ proof -
 
 
 lemma scl_mempty_not_in_sate_learned:
-  "scl N \<beta> S S' \<Longrightarrow> {#} \<notin> state_learned S \<Longrightarrow> {#} \<notin> state_learned S'"
+  "scl N \<beta> S S' \<Longrightarrow> {#} |\<notin>| state_learned S \<Longrightarrow> {#} |\<notin>| state_learned S'"
   unfolding scl_def
   by (elim disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
       resolve.cases backtrack.cases) simp_all
 
 
 lemma conflict_if_mempty_in_initial_clauses_and_no_conflict:
-  assumes "{#} \<in> N" and "state_conflict S = None"
+  assumes "{#} |\<in>| N" and "state_conflict S = None"
   shows "conflict N \<beta> S (state_trail S, state_learned S, Some ({#}, Var))"
 proof -
   from assms(2) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
@@ -3911,21 +4108,21 @@ proof -
   show ?thesis
     unfolding S_def state_trail_simp state_learned_simp
   proof (rule conflictI[of "{#}" N _  Var _ _, unfolded subst_cls_empty])
-    from assms(1) show "{#} \<in> N \<union> U"
+    from assms(1) show "{#} |\<in>| N |\<union>| U"
       by simp
   next
-    show "Var = adapt_subst_to_renaming (renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)) Var"
+    show "Var = adapt_subst_to_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
       by (rule ext) (simp add: adapt_subst_to_renaming_def)
   qed simp_all
 qed
 
 lemma conflict_initial_state_if_mempty_in_intial_clauses:
-  "{#} \<in> N \<Longrightarrow> conflict N \<beta> initial_state ([], {}, Some ({#}, Var))"
+  "{#} |\<in>| N \<Longrightarrow> conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
   using conflict_if_mempty_in_initial_clauses_and_no_conflict by auto
 
 lemma conflict_initial_state_only_with_mempty:
   assumes "conflict N \<beta> initial_state S"
-  shows "S = ([], {}, Some ({#}, Var))"
+  shows "S = ([], {||}, Some ({#}, Var))"
   using assms(1)
 proof (cases rule: conflict.cases)
   case (conflictI D \<gamma> \<rho> \<gamma>\<^sub>\<rho>)
@@ -3937,7 +4134,7 @@ proof (cases rule: conflict.cases)
   moreover with \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close> have "\<gamma> = Var"
     using subst_ident_if_not_in_domain by fastforce
   ultimately show ?thesis
-    using \<open>S = ([], {}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
+    using \<open>S = ([], {||}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
     unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> by simp
 qed
 
@@ -3952,28 +4149,28 @@ lemma no_more_step_if_conflict_mempty:
 
 lemma mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict:
   assumes "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}"
-  shows "{#} \<notin> N"
+  shows "{#} |\<notin>| N"
 proof (rule notI)
   from assms(2) have "initial_state \<noteq> S" by fastforce
   then obtain S' where
     reg_scl_init_S': "regular_scl N \<beta> initial_state S'" and "(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S"
     by (metis assms(1) converse_rtranclpE)
 
-  assume "{#} \<in> N"
-  hence "conflict N \<beta> initial_state ([], {}, Some ({#}, Var))"
+  assume "{#} |\<in>| N"
+  hence "conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
     by (rule conflict_initial_state_if_mempty_in_intial_clauses)
-  hence conf_init: "regular_scl N \<beta> initial_state ([], {}, Some ({#}, Var))"
+  hence conf_init: "regular_scl N \<beta> initial_state ([], {||}, Some ({#}, Var))"
     using regular_scl_def by blast
-  hence S'_def: "S' = ([], {}, Some ({#}, Var))"
+  hence S'_def: "S' = ([], {||}, Some ({#}, Var))"
     using reg_scl_init_S'
     unfolding regular_scl_def
-    using \<open>conflict N \<beta> initial_state ([], {}, Some ({#}, Var))\<close>
+    using \<open>conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))\<close>
       conflict_initial_state_only_with_mempty
     by blast
 
-  have "\<nexists>S'. scl N \<beta> ([], {}, Some ({#}, Var)) S'"
+  have "\<nexists>S'. scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
     by (rule no_more_step_if_conflict_mempty) simp
-  hence "\<nexists>S'. regular_scl N \<beta> ([], {}, Some ({#}, Var)) S'"
+  hence "\<nexists>S'. regular_scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
     using scl_if_reasonable[OF reasonable_if_regular] by blast
   hence "S = S'"
     using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S\<close> unfolding S'_def
@@ -3982,19 +4179,20 @@ proof (rule notI)
 qed
 
 lemma ex_conflict_if_trail_false_cls:
-  assumes fin: "finite N" "finite U" and
-    tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (N \<union> U)"
+  assumes tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)"
   shows "\<exists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
 proof -
   from D_in obtain D' \<gamma>' where
-    D'_in: "D' \<in> N \<union> U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
-    unfolding grounding_of_clss_def grounding_of_cls_def by force
+    D'_in: "D' |\<in>| N |\<union>| U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
+    unfolding grounding_of_clss_def grounding_of_cls_def
+    by (smt (verit, ccfv_threshold) D_in UN_iff grounding_ground mem_Collect_eq notin_fset
+        union_fset)
 
   define \<gamma> where
     "\<gamma> \<equiv> restrict_subst (vars_cls D') \<gamma>'"
 
   define \<rho> where
-    "\<rho> \<equiv> renaming_wrt (N \<union> U \<union> clss_of_trail \<Gamma>)"
+    "\<rho> \<equiv> renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, adapt_subst_to_renaming \<rho> \<gamma>))"
   proof (rule conflictI[OF D'_in])
