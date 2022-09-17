@@ -3083,6 +3083,46 @@ lemma scl_preserves_learned_nonempty:
     backtrack_preserves_learned_nonempty
   by metis
 
+
+subsection \<open>Miscellaneous Lemmas\<close>
+
+lemma before_conflict:
+  assumes "conflict N \<beta> S1 S2" and
+    invars: "learned_nonempty S1" "trail_propagated_or_decided' N \<beta> S1"
+  shows "{#} |\<in>| N \<or> (\<exists>S0. propagate N \<beta> S0 S1) \<or> (\<exists>S0. decide N \<beta> S0 S1)"
+  using assms
+proof (cases N \<beta> S1 S2 rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+  with invars(2) have "trail_propagated_or_decided N \<beta> U \<Gamma>"
+    by simp
+  thus ?thesis
+  proof (cases N \<beta> U \<Gamma> rule: trail_propagated_or_decided.cases)
+    case Nil
+    hence "D \<cdot> \<gamma> = {#}"
+      using \<open>trail_false_cls \<Gamma> (D \<cdot> \<gamma>)\<close> not_trail_false_Nil(2) by blast
+    hence "D = {#}"
+      by (simp add: local.conflictI(4) rename_clause_def)
+    moreover from invars(1) have "{#} |\<notin>| U"
+      by (simp add: conflictI(1) learned_nonempty_def)
+    ultimately have "{#} |\<in>| N"
+      using \<open>D |\<in>| N |\<union>| U\<close> by simp
+    thus ?thesis by simp
+  next
+    case (Propagate C L C' \<gamma>\<^sub>C C\<^sub>0 C\<^sub>1 \<Gamma>' \<mu> \<gamma>\<^sub>C' \<rho>\<^sub>C \<gamma>\<^sub>C'\<rho>\<^sub>C)
+    hence "\<exists>S0. propagate N \<beta> S0 S1"
+      unfolding conflictI(1)
+      using propagateI by blast
+    thus ?thesis by simp
+  next
+    case (Decide L \<gamma>\<^sub>L \<Gamma>')
+    hence "\<exists>S0. decide N \<beta> S0 S1"
+      unfolding conflictI(1)
+      using decideI by blast
+    thus ?thesis by simp
+  qed
+qed
+
+
 section \<open>Soundness\<close>
 
 
