@@ -11,22 +11,26 @@ section \<open>Simplification of binary clauses\<close>
 text \<open>Special handling of binary clauses is required to avoid special cases of units in the general
 forward subsumption algorithm (which, as of writing, does not exist).\<close>
 
-definition array_hash_map_rel :: \<open>('a :: zero \<times> 'b) set \<Rightarrow> _\<close> where
-  \<open>array_hash_map_rel R = {(xs, (ys, m)). m = length xs \<and>
-     (\<forall>L. nat_of_lit L < m \<longrightarrow> (ys L = None \<longleftrightarrow> xs ! nat_of_lit L = 0)) \<and>
+type_synonym 'a ahm = \<open>'a list \<times> nat list\<close>
+
+definition array_hash_map_rel :: \<open>('a :: zero \<times> 'b) set \<Rightarrow> ('a ahm \<times> _) set\<close> where
+  \<open>array_hash_map_rel R = {((xs, support), (ys, m)). m = length xs \<and>
+      (set support =nat_of_lit ` dom ys) \<and>
+      (\<forall>i\<in>set support. i < m) \<and> distinct support \<and>
+      (\<forall>L. nat_of_lit L < m \<longrightarrow> (ys L = None \<longleftrightarrow> xs ! nat_of_lit L = 0)) \<and>
      (\<forall>L. nat_of_lit L < m \<longrightarrow> (\<forall>a. ys L = Some a \<longrightarrow> xs ! nat_of_lit L \<noteq> 0 \<and> (xs ! nat_of_lit L, a) \<in> R))}\<close>
 
 definition is_marked :: \<open>(nat literal \<Rightarrow> 'a option) \<times> nat \<Rightarrow> nat literal \<Rightarrow> _\<close>   where
-  \<open>is_marked C L = do {
+  \<open>is_marked C L =  do {
      ASSERT(nat_of_lit L < snd C);
      RETURN (fst C L \<noteq> None)
   }\<close>
 
-definition ahm_is_marked :: \<open>'a :: zero list \<Rightarrow> nat literal \<Rightarrow> _\<close> where
-  \<open>ahm_is_marked C L = do {
+definition ahm_is_marked :: \<open>'a::zero ahm \<Rightarrow> nat literal \<Rightarrow> _\<close> where
+  \<open>ahm_is_marked = (\<lambda>(C,stamp) L. do {
      ASSERT(nat_of_lit L < length C);
      RETURN (C!nat_of_lit L \<noteq> 0)
-  }\<close>
+  })\<close>
 
 lemma ahm_is_marked_is_marked:
    \<open>(uncurry ahm_is_marked, uncurry is_marked)
@@ -37,7 +41,7 @@ lemma ahm_is_marked_is_marked:
   apply (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
     intro!: ASSERT_leI)[]
   apply simp
-  by(auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
+  by (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
     intro!: ASSERT_leI)
 
 
@@ -47,11 +51,11 @@ definition get_marked :: \<open>(nat literal \<Rightarrow> 'a option) \<times> n
      RETURN (the (fst C L))
   }\<close>
 
-definition ahm_get_marked :: \<open>'a :: zero list \<Rightarrow> nat literal \<Rightarrow> _\<close> where
-  \<open>ahm_get_marked C L = do {
+definition ahm_get_marked :: \<open>'a::zero ahm \<Rightarrow> nat literal \<Rightarrow> _\<close> where
+  \<open>ahm_get_marked = (\<lambda>(C,stamp) L. do {
      ASSERT(nat_of_lit L < length C);
      RETURN (C!nat_of_lit L)
-  }\<close>
+  })\<close>
 
 lemma ahm_get_marked_get_marked:
    \<open>(uncurry ahm_get_marked, uncurry get_marked)
@@ -69,26 +73,76 @@ lemma ahm_get_marked_get_marked:
 definition set_marked :: \<open>(nat literal \<Rightarrow> _ option) \<times> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>
   ((nat literal \<Rightarrow> _ option) \<times> nat) nres\<close> where
   \<open>set_marked C L v = do {
-     ASSERT (nat_of_lit L < snd C);
+     ASSERT (nat_of_lit L < snd C \<and> (fst C)L = None);
      RETURN ((fst C)(L := Some v), snd C)
   }\<close>
 
-definition ahm_set_marked :: \<open>'a :: zero list \<Rightarrow> nat literal \<Rightarrow> _\<close> where
-  \<open>ahm_set_marked C L v = do {
-     ASSERT(nat_of_lit L < length C);
-     RETURN (C[nat_of_lit L := v])
-  }\<close>
+definition ahm_set_marked :: \<open>'a :: zero ahm \<Rightarrow> nat literal \<Rightarrow> _\<close> where
+  \<open>ahm_set_marked= (\<lambda>(C,stamp) L v. do {
+     ASSERT(nat_of_lit L < length C \<and> Suc (length stamp) \<le> length C);
+     RETURN (C[nat_of_lit L := v], stamp @ [nat_of_lit L])
+  })\<close>
 
 
 lemma ahm_set_marked_set_marked:
   assumes [simp]: \<open>\<And>a. (0, a) \<notin> R\<close>
   shows \<open>(uncurry2 ahm_set_marked, uncurry2 set_marked)
     \<in>  (array_hash_map_rel R) \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f R \<rightarrow>\<^sub>f \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
-  unfolding ahm_set_marked_def set_marked_def uncurry_def
+proof -
+  have [intro!]: \<open>Suc (length x2b) \<le> length x1d\<close>
+    if
+      \<open>nat_of_lit x2 < length x1d\<close> and
+      \<open>x1d ! nat_of_lit x2 = 0\<close> and
+      \<open>set x2b = nat_of_lit ` {a. \<exists>y. ac a = Some y}\<close> and
+      \<open>\<forall>i. (\<exists>y. ac i = Some y) \<longrightarrow> nat_of_lit i < length x1d\<close> and
+      dist: \<open>distinct x2b\<close> and
+      \<open>\<forall>L. nat_of_lit L < length x1d \<longrightarrow> (ac L = None) = (x1d ! nat_of_lit L = 0)\<close> 
+    for ac :: \<open>nat literal \<Rightarrow> 'a option\<close> and x2 :: \<open>nat literal\<close> and x2a :: 'a and x1d :: \<open>'b list\<close> and x2b :: \<open>nat list\<close> and x2d :: 'b
+  proof -
+    have \<open>(set x2b) \<subseteq> nat_of_lit ` (dom ac) \<inter> {0..<length x1d}\<close>
+      using that by (auto simp add: dom_def)
+    moreover have \<open>nat_of_lit x2 \<in>  {0..<length x1d}\<close>  and notin: \<open>nat_of_lit x2 \<notin> set x2b\<close>
+      using that by auto
+    ultimately have H: \<open>insert (nat_of_lit x2) (set x2b) \<subseteq> {0..<length x1d}\<close>
+      by blast
+    show ?thesis
+      using card_mono[OF _ H] notin dist
+      by (auto simp: distinct_card)
+  qed
+  show ?thesis
+    unfolding ahm_set_marked_def set_marked_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply refine_vcg
+    apply (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def dom_def
+      intro!: ASSERT_leI)
+   done
+qed
+
+
+definition update_marked :: \<open>(nat literal \<Rightarrow> _ option) \<times> nat \<Rightarrow> nat literal \<Rightarrow> _ \<Rightarrow>
+  ((nat literal \<Rightarrow> _ option) \<times> nat) nres\<close> where
+  \<open>update_marked C L v = do {
+     ASSERT (nat_of_lit L < snd C \<and> (fst C)L \<noteq> None);
+     RETURN ((fst C)(L := Some v), snd C)
+  }\<close>
+
+definition ahm_update_marked :: \<open>'a :: zero ahm \<Rightarrow> nat literal \<Rightarrow> _\<close> where
+  \<open>ahm_update_marked= (\<lambda>(C,stamp) L v. do {
+     ASSERT(nat_of_lit L < length C);
+     RETURN (C[nat_of_lit L := v], stamp)
+  })\<close>
+
+
+lemma ahm_update_marked_update_marked:
+  assumes [simp]: \<open>\<And>a. (0, a) \<notin> R\<close>
+  shows \<open>(uncurry2 ahm_update_marked, uncurry2 update_marked)
+    \<in>  (array_hash_map_rel R) \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f R \<rightarrow>\<^sub>f \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
+  unfolding ahm_update_marked_def update_marked_def uncurry_def
   apply (intro frefI nres_relI)
   by refine_vcg
-    (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
+   (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def dom_def
     intro!: ASSERT_leI)
+
 
 definition create :: \<open>nat \<Rightarrow> _\<close>   where
   \<open>create m = do {
@@ -96,9 +150,9 @@ definition create :: \<open>nat \<Rightarrow> _\<close>   where
   }\<close>
 
 
-definition ahm_create :: \<open>nat \<Rightarrow> _\<close> where
+definition ahm_create :: \<open>nat \<Rightarrow> 'a::zero ahm nres\<close> where
   \<open>ahm_create m = do {
-     RETURN (replicate m 0)
+     RETURN (replicate m 0, [])
   }\<close>
 
 
@@ -116,33 +170,56 @@ definition empty :: \<open>(nat literal \<Rightarrow> 'b option) \<times> nat \<
   })\<close>
 
 
-definition ahm_empty :: \<open>'a::zero list \<Rightarrow> 'a list nres\<close> where
-  \<open>ahm_empty CS = do {
-    let n = length CS;
+definition ahm_empty :: \<open>'a::zero ahm \<Rightarrow> 'a ahm nres\<close> where
+  \<open>ahm_empty = (\<lambda>(CS, support). do {
+    let n = length support;
     (_, CS) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, CS). i < n)
-      (\<lambda>(i, CS). do {ASSERT (i < length CS); RETURN (i+1, CS[i := 0])})
+      (\<lambda>(i, CS). do {ASSERT (i < length support \<and> support ! i < length CS); RETURN (i+1, CS[support ! i := 0])})
       (0, CS);
-    RETURN CS
-  }\<close>
+    RETURN (CS, take 0 support)
+  })\<close>
 
 
 lemma ahm_empty_empty:
-   \<open>(ahm_empty, empty) \<in> (array_hash_map_rel R) \<rightarrow> \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
-  unfolding ahm_empty_def empty_def uncurry_def fref_param1
-  apply (intro ext frefI nres_relI)
-  subgoal for x y
-    apply (refine_vcg WHILET_rule[where I = \<open>\<lambda>(i, CS). (\<forall>j<i. CS!j = 0) \<and> length CS = length x\<close> and R = \<open>measure (\<lambda>(i,_). length x -i)\<close>])
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: array_hash_map_rel_def)
+  \<open>(ahm_empty, empty) \<in> (array_hash_map_rel R) \<rightarrow> \<langle>array_hash_map_rel R\<rangle>nres_rel\<close>
+proof -
+  have [simp]: \<open>dom (\<lambda>aa. if nat_of_lit aa \<in> xs then None else m aa) =
+    dom m - {a. nat_of_lit a \<in> xs}\<close> for xs m
+    by (auto split: if_splits)
+  have [simp]: \<open>nat_of_lit ` dom x1 = set x2a \<Longrightarrow> distinct x2a \<Longrightarrow>
+    nat_of_lit ` (dom x1 - {aa. nat_of_lit aa \<in> set (take a x2a)}) = set (drop a x2a)\<close> for x2a a x1
+    apply (drule eq_commute[of _ "set x2a", THEN iffD1])
+    apply (auto simp: dom_def)
+    apply (metis (mono_tags, lifting) Reversed_Bit_Lists.atd_lem UnE image_subset_iff mem_Collect_eq set_append set_mset_mono set_mset_mset subset_mset.dual_order.refl)
+    apply (frule in_set_dropD)
+    apply simp
+    by (smt (verit, ccfv_threshold) DiffI IntI Reversed_Bit_Lists.atd_lem distinct_append empty_iff image_iff mem_Collect_eq)
+
+  show ?thesis
+    unfolding ahm_empty_def empty_def uncurry_def fref_param1
+    apply (intro ext frefI nres_relI)
+    subgoal for x y
+      apply (refine_vcg WHILET_rule[where I = \<open>\<lambda>(i, CS).  ((CS, drop i (snd x)), (\<lambda>a. if nat_of_lit a \<in> set (take i (snd x)) then None else fst y a, snd y)) \<in>array_hash_map_rel R\<close> and
+        R = \<open>measure (\<lambda>(i,_). length (snd x) -i)\<close>])
+      subgoal by auto
+      subgoal by auto
+      subgoal by (clarsimp simp: array_hash_map_rel_def)
+      subgoal by (auto simp: array_hash_map_rel_def)
+      subgoal premises p for x1 x2 x1a x2a s a b x1b x2b
+        using p
+        by (clarsimp simp: array_hash_map_rel_def less_Suc_eq  eq_commute[of _ \<open>nat_of_lit ` dom _\<close>]
+          simp flip: Cons_nth_drop_Suc)
+          (auto simp: take_Suc_conv_app_nth)
+      subgoal by (auto simp: nth_list_update' less_Suc_eq array_hash_map_rel_def)
+      subgoal for x1 x2 x1a x2a s a b
+        apply (auto simp: array_hash_map_rel_def)
+        apply (drule_tac x=L in spec)
+        apply (auto split: if_splits)
+        done
+      done
     done
-  done
+qed
 
  lemma all_atms_st_add_remove[simp]:
    \<open>C \<in># dom_m N \<Longrightarrow> all_atms_st (M, fmdrop C N, D, NE, UE, NEk, UEk, add_mset (mset (N \<propto> C)) NS, US,  N0, U0, Q, W) =
@@ -379,18 +456,19 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
          if st = DELETED \<or> \<not>b then
            RETURN (abort, i+1, CS, S)
          else do {
-            val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L';
+           val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L';
            if val \<noteq> UNSET then do {
              S \<leftarrow> isa_simplify_clause_with_unit_st2 C S;
              val \<leftarrow> mop_polarity_pol (get_trail_wl_heur S) L;
              RETURN (val \<noteq> UNSET, i+1, CS, S)
            }
            else do {
-             st \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
              m \<leftarrow> is_marked CS (L');
              n \<leftarrow> (if m then get_marked CS L' else RETURN (1, True));
-             if m \<and> (\<not>snd n \<longrightarrow> st = LEARNED) then do {
-               S \<leftarrow> isa_clause_remove_duplicate_clause_wl C S;
+             if m then do {
+               let C' = (if \<not>snd n \<longrightarrow> st = LEARNED then C else fst n);
+               CS \<leftarrow> (if \<not>snd n \<longrightarrow> st = LEARNED then RETURN CS else update_marked CS (L') (C, st = IRRED));
+               S \<leftarrow> isa_clause_remove_duplicate_clause_wl C' S;
                RETURN (abort, i+1, CS, S)
              } else do {
                m \<leftarrow> is_marked CS (-L') ;
@@ -400,7 +478,7 @@ definition isa_deduplicate_binary_clauses_wl :: \<open>nat literal \<Rightarrow>
                }
                else do {
                  CS \<leftarrow> set_marked CS (L') (C, st = IRRED);
-               RETURN (abort, i+1, CS, S)
+                 RETURN (abort, i+1, CS, S)
              }
             }
           }
@@ -481,11 +559,13 @@ lemma deduplicate_binary_clauses_wl_alt_def:
              RETURN (defined_lit (get_trail_wl U) L, i+1, CS, U)
            }
            else do {
-             let st  = irred (get_clauses_wl S) C;
              let c = CS L';
              let _ = CS L';
-             if c \<noteq> None \<and> (\<not>snd (the c) \<longrightarrow> \<not>st)then do {
-               S \<leftarrow> clause_remove_duplicate_clause_wl C S;
+             if c \<noteq> None then do {
+               let C' = (if \<not>snd (the c) \<longrightarrow> \<not>irred (get_clauses_wl S) C then C else fst (the c));
+               let CS = (if \<not>snd (the c) \<longrightarrow> \<not>irred (get_clauses_wl S) C then CS else CS (L' := Some (C, irred (get_clauses_wl S) C)));
+               ASSERT (C' \<in># dom_m (get_clauses_wl S));
+               S \<leftarrow> clause_remove_duplicate_clause_wl C' S;
                RETURN (abort, i+1, CS, S)
              } else do {
                let c = CS (-L');
@@ -508,9 +588,10 @@ proof -
   have H: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> \<open>x =y \<Longrightarrow> x \<le> \<Down>Id y\<close> for a b x y
     by auto
   have \<open>?A \<le> \<Down> Id ?B\<close>
+    supply [[goals_limit=1]]
     unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv mop_watched_by_at_init_def
       nres_monad3
-    by (refine_vcg H(1); (rule H)?; simp_all)
+    by (refine_vcg H(1); (rule H refl)?; simp)
   moreover have \<open>?B \<le> \<Down>Id ?A\<close>
     unfolding Let_def deduplicate_binary_clauses_wl_def bind_to_let_conv mop_watched_by_at_init_def
       nres_monad3
@@ -573,6 +654,11 @@ proof -
       by presburger
     subgoal by auto
     subgoal by auto
+    subgoal
+      unfolding case_prod_beta deduplicate_binary_clauses_inv_wl_def
+      deduplicate_binary_clauses_inv_def deduplicate_binary_clauses_correctly_marked_def
+      by normalize_goal+
+         (auto split: if_splits)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -729,6 +815,7 @@ proof -
     \<le> SPEC
     (\<lambda>c. (c, x1e' x1i') \<in> {(a,b). b \<noteq> None \<longrightarrow> a = the b})\<close>
     \<open>(x1e, x1e') \<in> ?CS \<Longrightarrow> (x1i, x1i') \<in> nat_lit_lit_rel \<Longrightarrow> x1i' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S') \<Longrightarrow> (x, x') \<in> Id \<Longrightarrow>
+    (m, x1e' x1i') \<in> {(a,b). a \<longleftrightarrow> b\<noteq>None} \<Longrightarrow> \<not>m \<Longrightarrow>
     set_marked x1e x1i x \<le> SPEC (\<lambda>c. (c, x1e'(x1i' \<mapsto> x')) \<in> ?CS)\<close>
     for x1e x1e' x1i x1i' m x x'
     using assms(1)
@@ -744,6 +831,58 @@ proof -
       twl_st_heur_restart_def map_fun_rel_def watched_by_alt_def intro!: ASSERT_leI)
   have [refine0]: \<open>(CS, a) \<in> ?CS \<Longrightarrow> empty CS \<le> SPEC (\<lambda>u. (u, Map.empty) \<in> ?CS)\<close> for a CS
     by (auto simp: empty_def)
+
+  have update_marked: \<open>(if \<not> snd n \<longrightarrow> st = LEARNED then RETURN x1e else update_marked x1e x1i (x1h, st = IRRED))
+     \<le> SPEC
+        (\<lambda>c. (c, if \<not> snd (the (x1b x1g)) \<longrightarrow> \<not> irred (get_clauses_wl x2b) x1f then x1b
+           else x1b(x1g \<mapsto> (x1f, irred (get_clauses_wl x2b) x1f)))
+          \<in> ?CS)\<close>
+    if
+      loop: \<open>(x, x') \<in> ?loop\<close> and
+      \<open>case x' of
+    (abort, i, a, T) \<Rightarrow>
+      deduplicate_binary_clauses_inv_wl S' L' (abort, i, a, T) \<and>
+      set_mset (all_init_atms_st T) = set_mset (all_init_atms_st S') \<and>
+      set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S'))\<close> and
+      st: \<open>x2a = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>x2c = (x1d, x2d)\<close>
+        \<open>x = (x1c, x2c)\<close> 
+        \<open>x2f = (x1g, x2g)\<close>
+        \<open>x'a = (x1f, x2f)\<close>
+        \<open>x2h = (x1i, x2i)\<close>
+        \<open>xa = (x1h, x2h)\<close> and
+      \<open>x1d < l\<close> and
+      \<open>(xa, x'a)
+    \<in> {(a, b).
+       a = b \<and>
+       a = get_watched_wl_heur x2e ! nat_of_lit L ! x1d \<and>
+       b = watched_by x2b L' ! x1a \<and> fst a \<in> set (get_vdom x2e)}\<close> and
+      \<open>x1g \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x2b)\<close> and
+      \<open>0 < x1h \<and> x1h < length (get_clauses_wl_heur x2e)\<close> and
+      \<open>(st, x1f \<in># dom_m (get_clauses_wl x2b))
+    \<in> {(a, b).
+       (a \<noteq> DELETED) = b \<and>
+       (a = IRRED) = (irred (get_clauses_wl x2b) x1f \<and> b) \<and>
+       (a = LEARNED) = (\<not> irred (get_clauses_wl x2b) x1f \<and> b)}\<close> and
+      \<open>\<not> (st = DELETED \<or> \<not> x2i)\<close> and
+      \<open>\<not> (x1f \<notin># dom_m (get_clauses_wl x2b) \<or> \<not> x2g)\<close> and
+      m: \<open>(m, x1b x1g) \<in> {a. case a of (a, b) \<Rightarrow> a = (b \<noteq> None)}\<close> m and
+      \<open>(n, x1b x1g) \<in> {a. case a of (a, b) \<Rightarrow> b \<noteq> None \<longrightarrow> a = the b}\<close> and
+      \<open>x1b x1g \<noteq> None\<close>
+      for l val x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e xa x'a x1f x2f x1g x2g x1h x2h x1i x2i st
+    vala m n
+  proof -
+    have \<open>(get_watched_wl_heur S, get_watched_wl S') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st S'))\<close>
+      using assms
+      by (auto intro!: ASSERT_leI simp: st twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+    then show ?thesis
+      using that
+      unfolding update_marked_def
+      by (auto intro!: ASSERT_leI simp: st map_fun_rel_def)
+  qed
   show ?thesis
     supply [[goals_limit=1]]
     using assms
@@ -824,11 +963,6 @@ proof -
         by (metis (no_types, lifting) trail_pol_cong)
     subgoal
       by (auto simp: twl_st_heur_restart_ana_state_simp polarity_def)
-    apply (rule watched_in_vdom; assumption)[]
-    apply (rule watched_in_vdom; assumption)[]
-    apply (solves \<open>rule twl_st_heur_restart_ana_stateD, simp only: prod.simps in_pair_collect_simp prod_rel_iff,
-      normalize_goal+, assumption\<close>)
-    apply (rule irred_status; assumption)
     apply (rule is_markedI)
     subgoal by simp
     subgoal by simp
@@ -839,15 +973,8 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by auto
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    apply (rule is_markedI)
-    subgoal by simp
-    subgoal by simp
-    subgoal by (simp add: uminus_\<A>\<^sub>i\<^sub>n_iff)
-    subgoal by simp
-    subgoal by simp
+    apply (rule update_marked; assumption)
+    subgoal by (auto split: if_splits)
     subgoal by simp
     subgoal by simp
     apply (rule is_markedI)
@@ -856,6 +983,16 @@ proof -
     subgoal by (simp add: uminus_\<A>\<^sub>i\<^sub>n_iff)
     subgoal by simp
     subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    apply (rule is_markedI)
+    subgoal by simp
+    subgoal by simp
+    subgoal by (simp add: uminus_\<A>\<^sub>i\<^sub>n_iff)
+    subgoal by simp
+    apply assumption
+    subgoal by auto
+    apply (solves auto)
     apply (solves auto)
     subgoal by auto
     done

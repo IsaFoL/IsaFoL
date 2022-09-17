@@ -791,8 +791,10 @@ definition deduplicate_binary_clauses_wl :: \<open>'v literal \<Rightarrow> 'v t
              ASSERT (set_mset (all_init_atms_st U) = set_mset (all_init_atms_st S));
              RETURN (defined_lit (get_trail_wl U) L, i+1, CS, U)
            }
-           else if CS L' \<noteq> None \<and> (\<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C)then do {
-             S \<leftarrow> clause_remove_duplicate_clause_wl C S;
+           else if CS L' \<noteq> None then do {
+             let C' = (if \<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C then C else fst (the (CS L')));
+             let CS = (if \<not>snd (the (CS L')) \<longrightarrow> \<not>irred (get_clauses_wl S) C then CS else CS (L' := Some (C, irred (get_clauses_wl S) C)));
+             S \<leftarrow> clause_remove_duplicate_clause_wl C' S;
              RETURN (abort, i+1, CS, S)
            } else if CS (-L') \<noteq> None then do {
              S \<leftarrow> binary_clause_subres_wl C L (-L') S;
@@ -1232,7 +1234,7 @@ proof -
     \<le> \<Down> {((C, K, b), C'). C=C' \<and>
            (C \<in># dom_m (get_clauses_wl x2e) \<longrightarrow> b = (length (get_clauses_wl x2e \<propto> C) = 2) \<and> K \<noteq> L \<and> K \<in> set (get_clauses_wl x2e \<propto> C) \<and> L \<in> set (get_clauses_wl x2e \<propto> C))}
     (SPEC (\<lambda>C. C \<in># x1a))\<close> (is \<open>_ \<le> \<Down>?watch _\<close>)
-    if 
+    if
       LL': \<open>(L, L') \<in> Id\<close> and
       SS': \<open>(S, S') \<in> state_wl_l None\<close> and
       \<open>correct_watching'_leaking_bin S\<close> and
