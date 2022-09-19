@@ -543,8 +543,39 @@ proof
               using cons_at_le_j[of j] j_ge by blast
 
             show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs (Suc j)))))"
-              using cons_at_j unfolding at_j at_sj using ne_ees
-              sorry
+            proof (cases Q)
+              case q: (Pair num_nils ps)
+              show ?thesis
+              proof (cases ps)
+                case Nil
+                hence False
+                  using at_j cons_at_j q by force
+                thus ?thesis
+                  by blast
+              next
+                case ps: (Cons p' ps')
+                show ?thesis
+                proof (cases p')
+                  case p': (Pair e' es')
+
+                  have hd_at_j: "hd (snd (fst (lnth QDs j))) = (e', es')"
+                    by (simp add: at_j p' ps q)
+
+                  show ?thesis
+                  proof (cases es')
+                    case es': LNil
+                    show ?thesis
+                      using cons_at_j ne_ees Suc_diff_le l_le_k
+                      unfolding q ps p' es' at_j at_sj hd_at_j by force
+                  next
+                    case es': (LCons e'' es'')
+                    show ?thesis
+                      using cons_at_j ne_ees Suc_diff_le l_le_k
+                      unfolding q ps p' es' at_j at_sj hd_at_j by force
+                  qed
+                qed
+              qed
+            qed
           qed
         qed
       qed
