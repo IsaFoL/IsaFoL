@@ -1,7 +1,7 @@
 (* Title:        Otter Loop
    Authors:      Qi Qiu, 2021
                  Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2021
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
 section \<open>Otter Loop\<close>
