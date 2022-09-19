@@ -877,7 +877,7 @@ lemma finalise_init_code_alt_def:
   lbd vdom ivdom failed lcount mark \<Rightarrow> do {
   let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-  let init_stats = empty_stats;
+  let init_stats = empty_stats_clss (length ivdom);
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
@@ -995,7 +995,7 @@ sepref_definition init_state_wl_D'_code
   :: \<open>(arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply[[goals_limit=1]]
   unfolding init_state_wl_D'_alt_def PR_CONST_def init_trail_D_fast_def[symmetric]  Suc_eq_plus1_left
-    NoMark_def[symmetric] empty_mark_struct_def[symmetric]
+    NoMark_def[symmetric] empty_mark_struct_def[symmetric] of_nat_snat[sepref_import_param]
   apply (rewrite at \<open>let _ = 1 + \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>let _ = combine_ccach (_, \<hole>) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>let _ = combine_ccach (\<hole>,_) in _\<close> annotate_assn[where A= \<open>array_assn minimize_status_assn\<close>])

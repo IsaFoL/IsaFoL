@@ -586,6 +586,70 @@ sepref_register Search_Stats_fixed Search_Stats_incr_irred Search_Stats_decr_irr
   Search_Stats_reductions Search_Stats_restarts
   Search_Stats_irred Search_Stats_propagations Search_Stats_gcs
 
+sepref_def Search_Stats_decisions_impl
+  is \<open>RETURN o Search_Stats_decisions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_decisions_def
+  by sepref
+
+sepref_def Binary_stats_rounds_impl
+  is \<open>RETURN o Binary_Stats_rounds\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_rounds_def
+  by sepref
+
+sepref_def Binary_stats_units_impl
+  is \<open>RETURN o Binary_Stats_units\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_units_def
+  by sepref
+
+sepref_def Binary_stats_removed_impl
+  is \<open>RETURN o Binary_Stats_removed\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_removed_def
+  by sepref
+
+sepref_def Pure_Lits_Stats_removed_impl
+  is \<open>RETURN o Pure_Lits_Stats_removed\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_Lits_Stats_removed_def
+  by sepref
+
+sepref_def Pure_Lits_Stats_removed_rounds_impl
+  is \<open>RETURN o Pure_Lits_Stats_rounds\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_Lits_Stats_rounds_def
+  by sepref
+
+sepref_register Search_Stats_decisions Pure_Lits_Stats_rounds Pure_Lits_Stats_removed
+  Binary_Stats_removed Binary_Stats_rounds Binary_Stats_units
+sepref_def stats_decisions_impl
+  is \<open>RETURN o stats_decisions\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_decisions_def stats_code_unfold by sepref
+
+sepref_def stats_irred_impl
+  is \<open>RETURN o stats_irred\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_irred_def stats_code_unfold by sepref
+
+sepref_def stats_binary_units_impl
+  is \<open>RETURN o stats_binary_units\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_units_def stats_code_unfold by sepref
+
+sepref_def stats_binary_removed_impl
+  is \<open>RETURN o stats_binary_removed\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_removed_def stats_code_unfold by sepref
+sepref_def stats_binary_rounds_impl
+  is \<open>RETURN o stats_binary_rounds\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_rounds_def stats_code_unfold by sepref
+
+sepref_def stats_pure_lits_rounds_impl
+  is \<open>RETURN o stats_pure_lits_rounds\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_pure_lits_rounds_def stats_code_unfold by sepref
+
+sepref_def stats_pure_lits_removed_impl
+  is \<open>RETURN o stats_pure_lits_removed\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_pure_lits_removed_def stats_code_unfold by sepref
 
 sepref_def units_since_beginning_stats_impl
   is \<open>(RETURN o units_since_beginning)\<close>
@@ -745,6 +809,24 @@ sepref_def empty_stats_impl
   is \<open>uncurry0 (RETURN empty_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding empty_stats_def empty_search_stats_def[symmetric]
+  unfolding empty_subsumption_stats_def[symmetric]
+  unfolding empty_binary_stats_def[symmetric]
+  unfolding empty_pure_lits_stats_def[symmetric]
+  by sepref
+
+definition empty_search_stats_clss where
+  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n)\<close>
+
+sepref_def empty_search_stats_clss_impl
+  is \<open>(RETURN o empty_search_stats_clss)\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def empty_search_stats_clss_def
+  by sepref
+
+sepref_def empty_stats_clss_impl
+  is \<open>(RETURN o empty_stats_clss)\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding empty_stats_clss_def empty_search_stats_clss_def[symmetric]
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
   unfolding empty_pure_lits_stats_def[symmetric]
