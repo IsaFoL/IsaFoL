@@ -116,7 +116,7 @@ global_interpretation units_since_last_GC: read_stats_param_adder0 where
   rewrites \<open>read_stats_wl_heur (RETURN o units_since_last_GC) = RETURN o units_since_last_GC_st\<close> and
     \<open>read_stats_wl_heur_code units_since_last_GC_stats_impl = units_since_last_GC_st_code\<close>
   apply unfold_locales
-  apply (rule stats_refine; assumption)
+  apply (rule units_since_last_GC_stats_impl.refine; assumption)
   subgoal by (auto simp: read_all_st_def units_since_last_GC_st_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: units_since_last_GC_st_code_def)
@@ -133,7 +133,7 @@ global_interpretation units_since_beginning: read_stats_param_adder0 where
   rewrites \<open>read_stats_wl_heur (RETURN o units_since_beginning) = RETURN o units_since_beginning_st\<close> and
     \<open>read_stats_wl_heur_code units_since_beginning_stats_impl = units_since_beginning_st_code\<close>
   apply unfold_locales
-  apply (rule stats_refine; assumption)
+  apply (rule units_since_beginning_stats_impl.refine; assumption)
   subgoal by (auto simp: read_all_st_def units_since_beginning_st_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: units_since_beginning_st_code_def)
@@ -172,16 +172,6 @@ global_interpretation get_target_opts: read_opts_param_adder0 where
     split: isasat_int_splits)
   subgoal by (auto simp: get_target_opts_impl_def)
   done
-thm get_target_opts_def
-  find_theorems opts_target RETURN
-(*
-sepref_def get_opts_impl
-  is \<open>RETURN o get_opts\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
-  unfolding get_opts_alt_def isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
-*)
-
 
 definition isasat_length_trail_st_code :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
   \<open>isasat_length_trail_st_code = read_trail_wl_heur_code isa_length_trail_fast_code\<close>
@@ -233,17 +223,17 @@ global_interpretation pos_of_level_in_trail: read_trail_param_adder where
   done
 
 definition get_global_conflict_count_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
-   \<open>get_global_conflict_count_impl = read_stats_wl_heur_code stats_conflicts_stats_impl\<close>
+   \<open>get_global_conflict_count_impl = read_stats_wl_heur_code stats_conflicts_impl\<close>
 
 global_interpretation stats_conflict: read_stats_param_adder0 where
   f' = \<open>RETURN o stats_conflicts\<close> and
-  f = stats_conflicts_stats_impl and
+  f = stats_conflicts_impl and
   x_assn = word_assn and
   P = \<open>\<lambda>_. True\<close>
   rewrites \<open>read_stats_wl_heur (RETURN o stats_conflicts) = RETURN o get_global_conflict_count\<close> and
-    \<open>read_stats_wl_heur_code stats_conflicts_stats_impl = get_global_conflict_count_impl\<close>
+    \<open>read_stats_wl_heur_code stats_conflicts_impl = get_global_conflict_count_impl\<close>
   apply unfold_locales
-  apply (rule stats_refine; assumption)
+  apply (rule stats_conflicts_impl.refine; assumption)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_global_conflict_count_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: get_global_conflict_count_impl_def)
@@ -570,10 +560,10 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 
 experiment
 begin
+term empty_search_stats_impl
 export_llvm opts_reduction_st_fast_code opts_restart_st_fast_code opts_unbounded_mode_st_fast_code
   opts_minimum_between_restart_st_fast_code mop_arena_status_st_impl full_arena_length_st_impl
   get_global_conflict_count_impl get_count_max_lvls_heur_impl clss_size_resetUS0_st
 end
-
 
 end

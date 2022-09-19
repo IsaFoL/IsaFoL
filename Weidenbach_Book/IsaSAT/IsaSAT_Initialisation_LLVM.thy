@@ -877,8 +877,7 @@ lemma finalise_init_code_alt_def:
   lbd vdom ivdom failed lcount mark \<Rightarrow> do {
   let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-  let init_stats = Stats (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word,0::64 word,
-    of_nat (length ivdom)::64 word, 0::64 word,0::64 word, 0::64 word,0::64 word, ema_fast_init);
+  let init_stats = empty_stats;
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
@@ -890,17 +889,12 @@ lemma finalise_init_code_alt_def:
     unfolding finalise_init_code_def mop_free_def empty_heuristics_stats_def split_vmtf2_def
     by (auto simp: Let_def recombine_vmtf_def split: prod.splits tuple15.splits intro!: ext)
 
-lemma stats_int_assn_alt_def: \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
-  by auto
 
 sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply  [[goals_limit=1]]  of_nat_snat[sepref_import_param]
-  supply [sepref_fr_rules] = hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel,
-    unfolded stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
-    stats_int_assn_alt_def[symmetric]]
   unfolding finalise_init_code_alt_def isasat_init_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
      phase_heur_assn_def op_list_list_len_def[symmetric]

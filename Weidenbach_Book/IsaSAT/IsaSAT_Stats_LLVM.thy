@@ -63,7 +63,7 @@ definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightar
 definition empty_search_stats where
   \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0)\<close>
 
-sepref_definition empty_search_stats_impl
+sepref_def empty_search_stats_impl
   is \<open>uncurry0 (RETURN empty_search_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
   unfolding search_stats_assn_def empty_search_stats_def
@@ -73,7 +73,7 @@ sepref_definition empty_search_stats_impl
 definition empty_binary_stats :: \<open>inprocessing_binary_stats\<close> where
   \<open>empty_binary_stats = (0,0,0)\<close>
 
-sepref_definition empty_binary_stats_impl
+sepref_def empty_binary_stats_impl
   is \<open>uncurry0 (RETURN empty_binary_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
   unfolding binary_stats_assn_def empty_binary_stats_def
@@ -82,7 +82,7 @@ sepref_definition empty_binary_stats_impl
 definition empty_subsumption_stats :: \<open>inprocessing_subsumption_stats\<close> where
   \<open>empty_subsumption_stats = (0,0,0,0)\<close>
 
-sepref_definition empty_subsumption_stats_impl
+sepref_def empty_subsumption_stats_impl
   is \<open>uncurry0 (RETURN empty_subsumption_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
   unfolding subsumption_stats_assn_def empty_subsumption_stats_def
@@ -91,7 +91,7 @@ sepref_definition empty_subsumption_stats_impl
 definition empty_pure_lits_stats :: \<open>inprocessing_pure_lits_stats\<close> where
   \<open>empty_pure_lits_stats = (0,0)\<close>
 
-sepref_definition empty_pure_lits_stats_impl
+sepref_def empty_pure_lits_stats_impl
   is \<open>uncurry0 (RETURN empty_pure_lits_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
   unfolding pure_lits_stats_assn_def empty_pure_lits_stats_def
@@ -463,7 +463,130 @@ sepref_def reset_units_since_last_GC_stats_impl
   unfolding reset_units_since_last_GC_def stats_code_unfold
   by sepref
 
-sepref_register Search_Stats_fixed
+sepref_def Search_Stats_incr_irred_impl
+  is \<open>RETURN o Search_Stats_incr_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_irred_def
+  by sepref
+
+sepref_def Search_Stats_decr_irred_impl
+  is \<open>RETURN o Search_Stats_decr_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_decr_irred_def
+  by sepref
+
+sepref_def Search_Stats_incr_propagation_impl
+  is \<open>RETURN o Search_Stats_incr_propagation\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_propagation_def
+  by sepref
+
+sepref_def Search_Stats_incr_conflicts_impl
+  is \<open>RETURN o Search_Stats_incr_conflicts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_conflicts_def
+  by sepref
+
+sepref_def Search_Stats_incr_decisions_impl
+  is \<open>RETURN o Search_Stats_incr_decisions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_decisions_def
+  by sepref
+
+sepref_def Search_Stats_incr_restarts_impl
+  is \<open>RETURN o Search_Stats_incr_restarts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_restarts_def
+  by sepref
+
+sepref_def Search_Stats_incr_reductions_impl
+  is \<open>RETURN o Search_Stats_incr_reductions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_reductions_def
+  by sepref
+
+sepref_def Search_Stats_incr_fixed_impl
+  is \<open>RETURN o Search_Stats_incr_fixed\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_fixed_def
+  by sepref
+
+sepref_def Search_Stats_incr_gcs_impl
+  is \<open>RETURN o Search_Stats_incr_gcs\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_gcs_def
+  by sepref
+
+sepref_def Search_Stats_incr_units_since_gc_impl
+  is \<open>RETURN o Search_Stats_incr_units_since_gc\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_units_since_gc_def
+  by sepref
+
+sepref_def Pure_lits_Stats_incr_rounds_impl
+  is \<open>RETURN o Pure_lits_Stats_incr_rounds\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_lits_Stats_incr_rounds_def
+  by sepref
+
+sepref_def Pure_lits_Stats_incr_removed_impl
+  is \<open>RETURN o Pure_lits_Stats_incr_removed\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_lits_Stats_incr_removed_def
+  by sepref
+
+sepref_def Binary_Stats_incr_units_impl
+  is \<open>RETURN o Binary_Stats_incr_units\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_incr_units_def
+  by sepref
+
+sepref_def Binary_Stats_incr_removed_def
+  is \<open>RETURN o Binary_Stats_incr_removed\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
+  unfolding Binary_Stats_incr_removed_def binary_stats_assn_def
+  by sepref
+
+sepref_def Search_Stats_restarts_impl
+  is \<open>RETURN o Search_Stats_restarts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_restarts_def
+  by sepref
+
+sepref_def Search_Stats_reductions_impl
+  is \<open>RETURN o Search_Stats_reductions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_reductions_def
+  by sepref
+
+sepref_def Search_Stats_irred_impl
+  is \<open>RETURN o Search_Stats_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_irred_def
+  by sepref
+
+sepref_def Search_Stats_propagations_impl
+  is \<open>RETURN o Search_Stats_propagations\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_propagations_def
+  by sepref
+
+sepref_def Search_Stats_gcs_impl
+  is \<open>RETURN o Search_Stats_gcs\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_gcs_def
+  by sepref
+
+sepref_register Search_Stats_fixed Search_Stats_incr_irred Search_Stats_decr_irred
+  Search_Stats_incr_propagation Search_Stats_incr_conflicts
+  Search_Stats_incr_decisions Search_Stats_incr_restarts
+  Search_Stats_incr_reductions Search_Stats_incr_fixed Search_Stats_incr_gcs
+  Pure_lits_Stats_incr_rounds Pure_lits_Stats_incr_removed
+  Binary_Stats_incr_removed Binary_Stats_incr_units
+  Search_Stats_reductions Search_Stats_restarts
+  Search_Stats_irred Search_Stats_propagations Search_Stats_gcs
+
+
 sepref_def units_since_beginning_stats_impl
   is \<open>(RETURN o units_since_beginning)\<close>
   :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -471,128 +594,166 @@ sepref_def units_since_beginning_stats_impl
   by sepref
 
 sepref_def incr_irred_clss_stats_impl
-  is \<open>RETURN o incr_irred_clss_stats\<close>
+  is \<open>RETURN o incr_irred_clss\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_irred_clss_stats_def
+  unfolding incr_irred_clss_def stats_code_unfold
   by sepref
 
 sepref_def decr_irred_clss_stats_impl
-  is \<open>RETURN o decr_irred_clss_stats\<close>
+  is \<open>RETURN o decr_irred_clss\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding decr_irred_clss_stats_def
+  unfolding decr_irred_clss_def stats_code_unfold
   by sepref
 
 sepref_def incr_propagation_stats_impl
-  is \<open>RETURN o incr_propagation_stats\<close>
+  is \<open>RETURN o incr_propagation\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_propagation_stats_def
+  unfolding incr_propagation_def stats_code_unfold
   by sepref
 
 sepref_def incr_conflict_stats_impl
-  is \<open>RETURN o incr_conflict_stats\<close>
+  is \<open>RETURN o incr_conflict\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_conflict_stats_def
+  unfolding incr_conflict_def stats_code_unfold
   by sepref
 
 sepref_def incr_decision_stats_impl
-  is \<open>RETURN o incr_decision_stats\<close>
+  is \<open>RETURN o incr_decision\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_decision_stats_def
+  unfolding incr_decision_def stats_code_unfold
   by sepref
 
 sepref_def incr_restart_stats_impl
-  is \<open>RETURN o incr_restart_stats\<close>
+  is \<open>RETURN o incr_restart\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_restart_stats_def
+  unfolding incr_restart_def stats_code_unfold
   by sepref
 
 sepref_def incr_reduction_stats_impl
-  is \<open>RETURN o incr_reduction_stats\<close>
+  is \<open>RETURN o incr_reduction\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_reduction_stats_def
+  unfolding incr_reduction_def stats_code_unfold
   by sepref
 
 sepref_def incr_uset_stats_impl
-  is \<open>RETURN o incr_uset_stats\<close>
+  is \<open>RETURN o incr_uset\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_uset_stats_def
+  unfolding incr_uset_def stats_code_unfold
   by sepref
 
 sepref_def incr_GC_stats_impl
-  is \<open>RETURN o incr_GC_stats\<close>
+  is \<open>RETURN o incr_GC\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_GC_stats_def
+  unfolding incr_GC_def stats_code_unfold
   by sepref
 
-sepref_def stats_conflicts_stats_impl
-  is \<open>RETURN o stats_conflicts_stats\<close>
+sepref_def stats_conflicts_impl
+  is \<open>RETURN o stats_conflicts\<close>
   :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding stats_conflicts_stats_def
+  unfolding stats_conflicts_def stats_code_unfold
     by sepref
 
-sepref_def incr_units_since_last_GC_stats_impl
-  is \<open>RETURN o incr_units_since_last_GC_stats\<close>
+sepref_def incr_units_since_last_GC_impl
+  is \<open>RETURN o incr_units_since_last_GC\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_units_since_last_GC_stats_def
+  unfolding incr_units_since_last_GC_def stats_code_unfold
   by sepref
 
-sepref_def incr_purelit_rounds_stats_impl
-  is \<open>RETURN o incr_purelit_rounds_stats\<close>
+sepref_def incr_purelit_rounds_impl
+  is \<open>RETURN o incr_purelit_rounds\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_purelit_rounds_stats_def
+  unfolding incr_purelit_rounds_def stats_code_unfold
   by sepref
 
 sepref_def incr_purelit_elim_stats_impl
-  is \<open>RETURN o incr_purelit_elim_stats\<close>
+  is \<open>RETURN o incr_purelit_elim\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_purelit_elim_stats_def
+  unfolding incr_purelit_elim_def stats_code_unfold
   by sepref
 
 sepref_def incr_binary_red_removed_impl
   is \<open>RETURN o incr_binary_red_removed\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_binary_red_removed_def
+  unfolding incr_binary_red_removed_def stats_code_unfold
   by sepref
 
 sepref_def incr_binary_unit_derived_impl
   is \<open>RETURN o incr_binary_unit_derived\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_binary_unit_derived_def
+  unfolding incr_binary_unit_derived_def stats_code_unfold
   by sepref
 
-lemma stats_assn_alt_def: \<open>stats_assn = hr_comp isasat_stats_assn stats_rel\<close>
-  \<open>isasat_stats_assn = hr_comp isasat_stats_assn stats_int_rel\<close>
-  by (auto simp: stats_assn_def code_hider_assn_def)
+sepref_def get_reduction_count_impl
+  is \<open>RETURN o get_reduction_count\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_reduction_count_def stats_code_unfold
+  by sepref
 
-context
-  notes [fcomp_norm_unfold] = stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
-begin
+sepref_def get_restart_count_impl
+  is \<open>RETURN o get_restart_count\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_restart_count_def stats_code_unfold
+  by sepref
 
-lemmas stats_refine[sepref_fr_rules] =
-  add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
-  get_conflict_count_stats_impl.refine[FCOMP get_conflict_count_stats_get_conflict_count]
-  units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]
-  units_since_beginning_stats_impl.refine[FCOMP units_since_beginning_stats_units_since_beginning]
-  reset_units_since_last_GC_stats_impl.refine[FCOMP reset_units_since_last_GC_stats_reset_units_since_last_GC]
-  incr_irred_clss_stats_impl.refine[FCOMP incr_irred_clss_stats_incr_irred_clss]
-  decr_irred_clss_stats_impl.refine[FCOMP decr_irred_clss_stats_decr_irred_clss]
-  incr_propagation_stats_impl.refine[FCOMP incr_propagation_stats_incr_propagation]
-  incr_decision_stats_impl.refine[FCOMP incr_decision_stats_incr_decision]
-  incr_restart_stats_impl.refine[FCOMP incr_restart_stats_incr_restart]
-  incr_reduction_stats_impl.refine[FCOMP incr_reduction_stats_incr_reduction]
-  incr_uset_stats_impl.refine[FCOMP incr_uset_stats_incr_uset]
-  incr_conflict_stats_impl.refine[FCOMP incr_conflict_stats_incr_conflict]
-  incr_GC_stats_impl.refine[FCOMP incr_GC_stats_incr_GC]
-  stats_conflicts_stats_impl.refine[FCOMP stats_conflicts_stats_stats_conflicts]
-  incr_units_since_last_GC_stats_impl.refine[FCOMP incr_units_since_last_GC_stats_incr_units_since_last_GC]
-  incr_purelit_rounds_stats_impl.refine[FCOMP incr_purelit_rounds_stats_incr_purelit_rounds]
-  incr_purelit_elim_stats_impl.refine[FCOMP incr_purelit_elim_stats_incr_purelit_elim]
-  hn_id[FCOMP Constructor_hnr, of isasat_stats_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
-  hn_id[FCOMP get_content_hnr, of isasat_stats_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
-  incr_binary_unit_derived_impl.refine[FCOMP incr_binary_unit_derived_incr_binary_unit_derived_clss]
-  incr_binary_red_removed_impl.refine[FCOMP incr_binary_red_removed_incr_binary_red_removed_clss]
 
-end
+sepref_def get_irredundant_count_impl
+  is \<open>RETURN o irredundant_clss\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding irredundant_clss_def stats_code_unfold
+  by sepref
+
+sepref_def stats_propagations_impl
+  is \<open>RETURN o stats_propagations\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_propagations_def stats_code_unfold
+  by sepref
+
+sepref_def stats_restarts_impl
+  is \<open>RETURN o stats_restarts\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_restarts_def stats_code_unfold
+  by sepref
+
+sepref_def stats_reductions_impl
+  is \<open>RETURN o stats_reductions\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_reductions_def stats_code_unfold
+  by sepref
+
+sepref_def stats_fixed_impl
+  is \<open>RETURN o stats_fixed\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_fixed_def stats_code_unfold
+  by sepref
+
+sepref_def stats_gcs_impl
+  is \<open>RETURN o stats_gcs\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_gcs_def stats_code_unfold
+  by sepref
+
+sepref_def stats_avg_lbd_mpl
+  is \<open>RETURN o stats_avg_lbd\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding stats_avg_lbd_def stats_code_unfold
+  by sepref
+
+lemmas [llvm_inline] = Mreturn_comp_Tuple16
+
+sepref_register empty_stats
+sepref_def empty_stats_impl
+  is \<open>uncurry0 (RETURN empty_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding empty_stats_def empty_search_stats_def[symmetric]
+  unfolding empty_subsumption_stats_def[symmetric]
+  unfolding empty_binary_stats_def[symmetric]
+  unfolding empty_pure_lits_stats_def[symmetric]
+  by sepref
+
+export_llvm empty_stats_impl
+
+sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
+
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 abbreviation (input) restart_info_assn where
@@ -845,8 +1006,6 @@ sepref_def next_reduce_schedule_info_impl
   :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding next_reduce_schedule_info_def
   by sepref
-
-
 
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
@@ -1315,50 +1474,6 @@ sepref_def incr_restart_phase_impl
   unfolding incr_restart_phase_def
   by sepref
 
-sepref_def get_restart_count_impl
-  is \<open>RETURN o get_restart_count_stats\<close>
-  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_count_stats_def
-  by sepref
-
-lemma get_restart_count_stats_get_restart_count:
-  \<open>(get_restart_count_stats, get_restart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_restart_count_def)
-
-lemmas get_restart_count_impl_refine[sepref_fr_rules] =
-  get_restart_count_impl.refine[FCOMP get_restart_count_stats_get_restart_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def get_reduction_count_impl
-  is \<open>RETURN o get_reduction_count_stats\<close>
-  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_reduction_count_stats_def
-  by sepref
-
-lemma get_reduction_count_stats_get_reduction_count:
-  \<open>(get_reduction_count_stats, get_reduction_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_reduction_count_def)
-
-lemmas get_reduction_count_impl_refine[sepref_fr_rules] =
-  get_reduction_count_impl.refine[FCOMP get_reduction_count_stats_get_reduction_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def get_irredundant_count_impl
-  is \<open>RETURN o irredundant_clss_stats\<close>
-  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding irredundant_clss_stats_def
-  by sepref
-
-lemma get_irredundant_count_stats_get_irredundant_count:
-  \<open>(irredundant_clss_stats, get_irredundant_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_irredundant_count_def)
-
-lemmas get_irredundant_count_impl_refine[sepref_fr_rules] =
-  get_irredundant_count_impl.refine[FCOMP get_irredundant_count_stats_get_irredundant_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
-
 sepref_def reset_added_heur_stats2_impl
   is reset_added_heur_stats2
   :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
@@ -1470,6 +1585,5 @@ sepref_def mop_reset_added_heur_impl
   :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding mop_reset_added_heur_def
   by sepref
-
 
 end

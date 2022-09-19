@@ -1754,6 +1754,10 @@ lemma get_vdom_mark_garbage[simp]:
 fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_reductions_count S = get_reduction_count (get_stats_heur S)\<close>
 
+(*TODO kill*)
+abbreviation get_irredundant_count where
+  \<open>get_irredundant_count \<equiv> irredundant_clss\<close>
+
 definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>
 

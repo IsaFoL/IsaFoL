@@ -219,6 +219,38 @@ definition incr_forward_strengethening :: \<open>isasat_stats \<Rightarrow> isas
 
 definition incr_forward_subsumed :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_forward_subsumed S = set_subsumption_stats (Subsumption_Stats_incr_subsumed (get_subsumption_stats S)) S\<close>
+
+definition get_restart_count where
+  \<open>get_restart_count S = Search_Stats_restarts (get_search_stats S)\<close>
+
+definition get_reduction_count where
+  \<open>get_reduction_count S = Search_Stats_reductions (get_search_stats S)\<close>
+
+
+definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_open_colour _ = ()\<close>
+
+definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_close_colour _ = ()\<close>
+
+definition stats_propagations :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_propagations = Search_Stats_propagations o get_search_stats\<close>
+
+definition stats_restarts :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_restarts = Search_Stats_restarts o get_search_stats\<close>
+
+definition stats_reductions :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_reductions = Search_Stats_reductions o get_search_stats\<close>
+
+definition stats_fixed :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_fixed = Search_Stats_fixed o get_search_stats\<close>
+
+definition stats_gcs :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_gcs = Search_Stats_gcs o get_search_stats\<close>
+
+definition stats_avg_lbd :: \<open>isasat_stats \<Rightarrow> ema\<close> where
+  \<open>stats_avg_lbd = get_avg_lbd_stats\<close>
+
 (*
 definition set_max_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_max_lbd = (\<lambda>lbd (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, max_kept_lbd, ticks, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, lbd, ticks, lbds))\<close>
@@ -292,6 +324,10 @@ definition schedule_next_reduce_info :: \<open>64 word \<Rightarrow> schedule_in
 definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 word\<close> where
   \<open>next_reduce_schedule_info = (\<lambda>(inprocess, reduce). reduce)\<close>
 
+definition empty_stats :: \<open>isasat_stats\<close> where
+  \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0)::search_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
+  (ema_slow_init::ema) ((0,0)::inprocessing_pure_lits_stats) 0 0 0 0 0 0 0 0 0 0 0\<close>
 
 section \<open>Heuristics\<close>
 

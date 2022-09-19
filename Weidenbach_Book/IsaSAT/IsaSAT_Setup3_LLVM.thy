@@ -646,7 +646,7 @@ global_interpretation restart_count: read_stats_param_adder0 where
   rewrites \<open>read_stats_wl_heur (RETURN o get_restart_count) = RETURN o get_restart_count_st\<close> and
     \<open>read_stats_wl_heur_code get_restart_count_impl = get_restart_count_st_impl\<close>
   apply unfold_locales
-  apply (rule get_restart_count_impl_refine; assumption)
+  apply (rule get_restart_count_impl.refine; assumption)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def get_restart_count_st_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: get_restart_count_st_impl_def)
@@ -664,7 +664,7 @@ global_interpretation reduction_count: read_stats_param_adder0 where
   rewrites \<open>read_stats_wl_heur (RETURN o get_reduction_count) = RETURN o get_reductions_count\<close> and
     \<open>read_stats_wl_heur_code get_reduction_count_impl = get_reductions_count_fast_code\<close>
   apply unfold_locales
-  apply (rule get_reduction_count_impl_refine)
+  apply (rule get_reduction_count_impl.refine)
   subgoal by (auto simp: read_all_st_def stats_conflicts_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: get_reductions_count_fast_code_def)
@@ -682,7 +682,7 @@ global_interpretation irredandant_count: read_stats_param_adder0 where
   rewrites \<open>read_stats_wl_heur (RETURN o get_irredundant_count) = RETURN o get_irredundant_count_st\<close> and
     \<open>read_stats_wl_heur_code get_irredundant_count_impl = get_irredundant_count_st_code\<close>
   apply unfold_locales
-  apply (rule get_irredundant_count_impl_refine)
+  apply (rule get_irredundant_count_impl.refine)
   subgoal by (auto simp: read_all_st_def get_irredundant_count_st_def stats_conflicts_def intro!: ext
     split: isasat_int_splits)
   subgoal by (auto simp: get_irredundant_count_st_code_def)
