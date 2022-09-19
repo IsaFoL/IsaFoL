@@ -1331,8 +1331,10 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
   \<open>isa_subsume_clauses_match2 C' C N D = do {
   ASSERT (isa_subsume_clauses_match2_pre C' C N D);
   n \<leftarrow> mop_arena_length_st N C';
+  ASSERT (n \<le> length (get_clauses_wl_heur N));
   (i, st) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i,s). True\<^esup> (\<lambda>(i, st). i < n\<and> st \<noteq> NONE)
     (\<lambda>(i, st). do {
+      ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur N) C' i;
       lin \<leftarrow> mop_cch_in L D;
       if lin
@@ -1341,9 +1343,9 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
       lin \<leftarrow> mop_cch_in (-L) D;
       if lin
       then if is_subsumed st
-      then RETURN (i+1, STRENGTHENED_BY L C')
-      else RETURN (i+1, NONE)
-      else RETURN (i+1, NONE)
+      then do {RETURN (i+1, STRENGTHENED_BY L C')}
+      else do {RETURN (i+1, NONE)}
+      else do {RETURN (i+1, NONE)}
     }})
      (0, SUBSUMED_BY C');
   RETURN st
@@ -1558,7 +1560,11 @@ proof -
     subgoal unfolding subsume_clauses_match2_pre_def subsume_clauses_match_pre_def
       by auto
     subgoal using SS' CC' EE' by (auto simp: twl_st_heur_restart_occs_def)
+    subgoal using SS' CC' arena_lifting(10)[of \<open>get_clauses_wl_heur S\<close> \<open>get_clauses_wl S'\<close> \<open>set (get_vdom S)\<close> C] apply -
+      unfolding isa_subsume_clauses_match2_pre_def subsume_clauses_match2_pre_def subsume_clauses_match_pre_def
+      by normalize_goal+ (simp add: twl_st_heur_restart_occs_def)
     subgoal using EE' by auto
+    subgoal by auto
     subgoal by auto
     subgoal using SS' CC' by (auto simp: twl_st_heur_restart_occs_def)
     subgoal using CC' by auto

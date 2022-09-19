@@ -444,7 +444,7 @@ lemma isa_subsume_clauses_match2_alt_def:
   \<open>isa_subsume_clauses_match2 C' C N D = do {
   ASSERT (isa_subsume_clauses_match2_pre C' C N D);
   n \<leftarrow> mop_arena_length_st N C';
-  ASSERT (n < Suc (uint32_max div 2));
+  ASSERT (n \<le> length (get_clauses_wl_heur N));
   (i, st) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i,s). True\<^esup> (\<lambda>(i, st). i < n\<and> st \<noteq> NONE)
     (\<lambda>(i, st). do {
       ASSERT (i < n);
@@ -462,8 +462,9 @@ lemma isa_subsume_clauses_match2_alt_def:
     }})
      (0, SUBSUMED_BY C');
   RETURN st
-        }\<close>
-   unfolding isa_subsume_clauses_match2_def sorry
+  }\<close>
+  unfolding isa_subsume_clauses_match2_def mop_free_def bind_to_let_conv Let_def
+  by auto
 
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE subsumption_assn ?fr\<close>
   unfolding subsumption_assn_def by synthesize_free+
