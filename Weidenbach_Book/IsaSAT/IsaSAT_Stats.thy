@@ -4,15 +4,6 @@ begin
 
 
 section \<open>Statistics\<close>
-datatype 'a code_hider = Constructor (get_content: 'a)
-
-definition code_hider_rel where code_hider_rel_def_internal:
-  \<open>code_hider_rel R = {(a,b). (a, get_content b) \<in> R}\<close>
-
-lemma code_hider_rel_def[refine_rel_defs]:
-  "\<langle>R\<rangle>code_hider_rel \<equiv> {(a,b). (a, get_content b) \<in> R}"
-  by (simp add: code_hider_rel_def_internal relAPP_def)
-
 
 text \<open>
 We do some statistics on the run.
@@ -22,151 +13,244 @@ overflow), there are just there to look for regressions, do some comparisons (e.
 we are propagating slower than the other solvers), or to test different option combinations.
 \<close>
 
-type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>
-  64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema\<close>
+type_synonym limit = \<open>64 word \<times> 64 word\<close>
 
-type_synonym isasat_stats = \<open>stats code_hider\<close>
+text \<open>The statistics have the following meaning:
 
-abbreviation Stats :: \<open>stats \<Rightarrow> isasat_stats\<close> where
-  \<open>Stats a \<equiv> Constructor a\<close>
+  \<^enum> search information
+  (propagations, conflicts, decision, restarts,
+  reductions, fixed variables, GCs,
+  units since last GC, fixed irredundant clss),
 
-abbreviation get_stats :: \<open>isasat_stats \<Rightarrow> stats\<close> where
-  \<open>get_stats a \<equiv> get_content a\<close>
-
-definition incr_propagation_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_propagation_stats = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
-
-definition incr_conflict_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_conflict_stats = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
-
-definition incr_decision_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_decision_stats = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
-
-definition incr_restart_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_restart_stats = (\<lambda>(propa, confl, dec, res, reduction). (propa, confl, dec, res + 1, reduction))\<close>
-
-definition incr_reduction_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_reduction_stats = (\<lambda>(propa, confl, dec, res, reduction, uset). (propa, confl, dec, res, reduction + 1, uset))\<close>
-
-definition incr_uset_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_uset_stats = (\<lambda>(propa, confl, dec, res, reduction, (uset, gcs)). (propa, confl, dec, res, reduction, uset + 1, gcs))\<close>
-
-definition incr_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, lbds). (propa, confl, dec, res, reduction, uset, gcs + 1, lbds))\<close>
-
-definition stats_conflicts_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>stats_conflicts_stats = (\<lambda>(propa, confl, dec). confl)\<close>
-
-definition incr_binary_unit_derived :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_binary_unit_derived = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit+1, binary_red_removed, lbds))\<close>
-
-definition incr_binary_red_removed :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_binary_red_removed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed+1, lbds))\<close>
-
-definition add_lbd_stats :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd_stats lbd = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, ema_update (unat lbd) lbds))\<close>
-
-definition units_since_last_GC_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). units)\<close>
-
-definition units_since_beginning_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_beginning_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). uset)\<close>
-
-definition incr_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, lbds). (propa, confl, dec, res, reduction, uset, gcs, units + 1, lbds))\<close>
+  \<^enum> binary simplification (binary unit, binary red removed),
+  \<^enum> pure literals (purelit removed, purelit rounds),
+  \<^enum> forward subsumption (forward rounds, forward strengthen, forward subsumed)
+  \<^enum> other: max kept lbd, 
+  \<^enum> ticks
+  \<^enum> average lbds
+  \<^enum> heuristics
 
 
-definition incr_purelit_elim_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_elim_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds::ema). (propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim + 1, purelit_rount, lbds))\<close>
+At first we used a tuple that became longer and longer. We even had statistics bug because we changed
+the wrong element of the tuple. Therefore, we changed to a structure and kept some free spots.
+\<close>
 
-definition incr_purelit_rounds_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_purelit_rounds_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_rount+1, lbds))\<close>
+type_synonym search_stats = \<open>64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word\<close>
+
+definition Search_Stats_propagations :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_propagations = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). propa)\<close>
+
+definition Search_Stats_incr_propagation :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_propagation = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa+1, confl, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_conflicts :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). propa)\<close>
+
+definition Search_Stats_incr_conflicts :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl+1, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_decisions :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). dec)\<close>
+
+definition Search_Stats_incr_decisions :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec+1, res, reduction, uset, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_restarts :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). res)\<close>
+
+definition Search_Stats_incr_restarts :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res+1, reduction, uset, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_reductions :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). reduction)\<close>
+
+definition Search_Stats_incr_reductions :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction+1, uset, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_fixed :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). uset)\<close>
+
+definition Search_Stats_incr_fixed :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset+1, gcs, units, irred_cls))\<close>
+
+definition Search_Stats_gcs :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). gcs)\<close>
+
+definition Search_Stats_incr_gcs :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs+1, units, irred_cls))\<close>
+
+definition Search_Stats_reset_units_since_gc :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_reset_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, 0, irred_cls))\<close>
+
+definition Search_Stats_units_since_gcs :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_units_since_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, units_since_gcs, units, irred_cls). units_since_gcs)\<close>
+
+definition Search_Stats_incr_units_since_gc :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units+1, irred_cls))\<close>
+
+definition Search_Stats_incr_irred :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls+1))\<close>
+
+definition Search_Stats_decr_irred :: \<open>search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_decr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls-1))\<close>
+
+definition Search_Stats_irred :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). irred_cls)\<close>
+
+type_synonym inprocessing_binary_stats = \<open>64 word \<times> 64 word \<times> 64 word\<close>
+
+definition Binary_Stats_incr_rounds :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats\<close> where
+  \<open>Binary_Stats_incr_rounds = (\<lambda>(rounds, units, removed). (rounds + 1, units, removed))\<close>
+
+definition Binary_Stats_incr_units :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats\<close> where
+  \<open>Binary_Stats_incr_units = (\<lambda>(rounds, units, removed). (rounds, units+1, removed))\<close>
+
+definition Binary_Stats_incr_removed :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats\<close> where
+  \<open>Binary_Stats_incr_removed = (\<lambda>(rounds, units, removed). (rounds, units, removed+1))\<close>
 
 
-definition reset_units_since_last_GC_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>reset_units_since_last_GC_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, a, b, c, purelit_elim, purelit_round, lbds::ema). (propa, confl, dec, res, reduction, uset, gcs, 0, a, b, c, purelit_elim, purelit_round, lbds))\<close>
 
-definition incr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss+1, lbds))\<close>
+type_synonym inprocessing_subsumption_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
-definition decr_irred_clss_stats :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>decr_irred_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss-1, lbds))\<close>
+definition Subsumption_Stats_incr_rounds :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_rounds = (\<lambda>(rounds, units, removed, ticks). (rounds + 1, units, removed, ticks))\<close>
 
-definition irredundant_clss_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>irredundant_clss_stats = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). irred_clss)\<close>
+definition Subsumption_Stats_incr_strengthening :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_strengthening = (\<lambda>(rounds, units, removed). (rounds, units+1, removed))\<close>
+
+definition Subsumption_Stats_incr_subsumed :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_subsumed = (\<lambda>(rounds, units, removed, ticks). (rounds, units, removed+1, ticks))\<close>
+
+definition Subsumption_Stats_set_ticks_limit :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_set_ticks_limit = (\<lambda>ticks (rounds, units, removed, _). (rounds, units, removed+1, ticks))\<close>
+
+definition Subsumption_Stats_ticks_limit :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_ticks_limit = (\<lambda>(rounds, units, removed, ticks). ticks)\<close>
+
+  type_synonym inprocessing_pure_lits_stats = \<open>64 word \<times> 64 word\<close>
+
+definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
+  \<open>Pure_lits_Stats_incr_rounds = (\<lambda>(rounds, removed). (rounds + 1, removed))\<close>
+
+definition Pure_lits_Stats_incr_removed :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
+  \<open>Pure_lits_Stats_incr_removed = (\<lambda>(rounds, removed). (rounds, removed+1))\<close>
+
+type_synonym isasat_stats = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
+  inprocessing_pure_lits_stats, 64 word,64 word, 64 word,
+  64 word, 64 word,64 word, 64 word,
+  64 word, 64 word, 32 word, 64 word) tuple16\<close>
+
+
+
+abbreviation Stats :: \<open>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow>_ \<Rightarrow> _ \<Rightarrow> isasat_stats\<close> where
+  \<open>Stats \<equiv> Tuple16\<close>
+
+definition get_search_stats :: \<open>isasat_stats \<Rightarrow> search_stats\<close> where
+  \<open>get_search_stats \<equiv> Tuple16.Tuple16_get_a\<close>
+
+definition get_binary_stats :: \<open>isasat_stats \<Rightarrow> inprocessing_binary_stats\<close> where
+  \<open>get_binary_stats \<equiv> Tuple16.Tuple16_get_b\<close>
+
+definition get_subsumption_stats :: \<open>isasat_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>get_subsumption_stats \<equiv> Tuple16.Tuple16_get_c\<close>
+
+definition get_avg_lbd_stats :: \<open>isasat_stats \<Rightarrow> ema\<close> where
+  \<open>get_avg_lbd_stats \<equiv> Tuple16.Tuple16_get_d\<close>
+
+definition get_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
+  \<open>get_pure_lits_stats \<equiv> Tuple16.Tuple16_get_e\<close>
+
+definition set_propagation_stats :: \<open>search_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_propagation_stats \<equiv> Tuple16.set_a\<close>
+
+definition set_binary_stats :: \<open>inprocessing_binary_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_binary_stats \<equiv> Tuple16.set_b\<close>
+
+definition set_subsumption_stats :: \<open>inprocessing_subsumption_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_subsumption_stats \<equiv> Tuple16.set_c\<close>
+
+definition set_avg_lbd_stats :: \<open>ema \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_avg_lbd_stats \<equiv> Tuple16.set_d\<close>
+
+definition set_pure_lits_stats :: \<open>inprocessing_pure_lits_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_pure_lits_stats \<equiv> Tuple16.set_e\<close>
 
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_propagation = Stats o incr_propagation_stats o get_stats\<close>
-
-definition irredundant_clss :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>irredundant_clss = irredundant_clss_stats o get_stats\<close>
+  \<open>incr_propagation S = (set_propagation_stats (Search_Stats_incr_propagation (get_search_stats S)) S)\<close>
 
 definition incr_conflict :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_conflict = Stats o incr_conflict_stats o get_stats\<close>
+  \<open>incr_conflict S = (set_propagation_stats (Search_Stats_incr_conflicts (get_search_stats S)) S)\<close>
 
 definition incr_decision :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_decision = Stats o incr_decision_stats o get_stats\<close>
+  \<open>incr_decision S = (set_propagation_stats (Search_Stats_incr_decisions (get_search_stats S)) S)\<close>
 
 definition incr_restart :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_restart = Stats o incr_restart_stats o get_stats\<close>
+  \<open>incr_restart S = (set_propagation_stats (Search_Stats_incr_restarts (get_search_stats S)) S)\<close>
 
 definition incr_reduction :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_reduction = Stats o incr_reduction_stats o get_stats\<close>
+  \<open>incr_reduction S = (set_propagation_stats (Search_Stats_incr_reductions (get_search_stats S)) S)\<close>
 
 definition incr_uset :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_uset = Stats o incr_uset_stats o get_stats\<close>
+  \<open>incr_uset S = (set_propagation_stats (Search_Stats_incr_fixed (get_search_stats S)) S)\<close>
 
 definition incr_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_GC = Stats o incr_GC_stats o get_stats\<close>
-
-definition stats_conflicts :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>stats_conflicts = stats_conflicts_stats o get_stats\<close>
-
-definition add_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>add_lbd lbd = Stats o add_lbd_stats lbd o get_stats\<close>
+  \<open>incr_GC S = (set_propagation_stats (Search_Stats_incr_gcs (get_search_stats S)) S)\<close>
 
 definition units_since_last_GC :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_last_GC = units_since_last_GC_stats o get_stats\<close>
+  \<open>units_since_last_GC = Search_Stats_units_since_gcs o get_search_stats\<close>
 
 definition units_since_beginning :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>units_since_beginning = units_since_beginning_stats o get_stats\<close>
+  \<open>units_since_beginning = Search_Stats_fixed o get_search_stats\<close>
 
 definition incr_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_units_since_last_GC = Stats o incr_units_since_last_GC_stats o get_stats\<close>
+  \<open>incr_units_since_last_GC S = (set_propagation_stats (Search_Stats_incr_units_since_gc (get_search_stats S)) S)\<close>
 
-definition reset_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>reset_units_since_last_GC = Stats o reset_units_since_last_GC_stats o get_stats\<close>
+definition stats_conflicts :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_conflicts = Search_Stats_conflicts o get_search_stats\<close>
 
-definition incr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_irred_clss = Stats o incr_irred_clss_stats o get_stats\<close>
+definition incr_binary_unit_derived :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_binary_unit_derived S = set_binary_stats (Binary_Stats_incr_units (get_binary_stats S)) S\<close>
 
-definition decr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>decr_irred_clss = Stats o decr_irred_clss_stats o get_stats\<close>
+definition incr_binary_red_removed :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_binary_red_removed S = set_binary_stats (Binary_Stats_incr_removed (get_binary_stats S)) S\<close>
 
-definition incr_binary_unit_derived_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_binary_unit_derived_clss = Stats o incr_binary_unit_derived o get_stats\<close>
+definition incr_forward_strengethening :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_forward_strengethening S = set_subsumption_stats (Subsumption_Stats_incr_strengthening (get_subsumption_stats S)) S\<close>
 
-definition incr_binary_red_removed_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_binary_red_removed_clss = Stats o incr_binary_red_removed o get_stats\<close>
+definition incr_forward_subsumed :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_forward_subsumed S = set_subsumption_stats (Subsumption_Stats_incr_subsumed (get_subsumption_stats S)) S\<close>
+(*
+definition set_max_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_max_lbd = (\<lambda>lbd (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, max_kept_lbd, ticks, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, lbd, ticks, lbds))\<close>
+
+definition add_ticks_stats :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>add_ticks_stats tick = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, max_kept_lbd, ticks, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, max_kept_lbd, ticks + tick, lbds))\<close>
+*)
+
+definition add_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>add_lbd lbd S = set_avg_lbd_stats (ema_update (unat lbd) (get_avg_lbd_stats S)) S\<close>
 
 definition incr_purelit_elim :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_purelit_elim = Stats o incr_purelit_elim_stats o get_stats\<close>
+  \<open>incr_purelit_elim S = set_pure_lits_stats (Pure_lits_Stats_incr_removed (get_pure_lits_stats S)) S\<close>
 
 definition incr_purelit_rounds :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
-  \<open>incr_purelit_rounds = Stats o incr_purelit_rounds_stats o get_stats\<close>
+  \<open>incr_purelit_rounds S = set_pure_lits_stats (Pure_lits_Stats_incr_rounds (get_pure_lits_stats S)) S\<close>
 
-definition get_conflict_count_stats :: \<open>stats \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_stats =  (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, lbds). confl)\<close>
 
-definition get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count =  get_conflict_count_stats o get_stats\<close>
+definition reset_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>reset_units_since_last_GC S = (set_propagation_stats (Search_Stats_reset_units_since_gc (get_search_stats S)) S)\<close>
 
-definition get_restart_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_restart_count_stats = (\<lambda>(props, decs, confl, restarts, _). restarts)\<close>
-definition get_restart_count where \<open>get_restart_count = get_restart_count_stats o get_content\<close>
-definition get_reduction_count_stats :: \<open>stats \<Rightarrow> _\<close> where \<open>get_reduction_count_stats = (\<lambda>(props, decs, confl, restarts, reduction, _). reduction)\<close>
-definition get_reduction_count where \<open>get_reduction_count = get_reduction_count_stats o get_content\<close>
-definition get_irredundant_count where \<open>get_irredundant_count = irredundant_clss_stats o get_content\<close>
+definition incr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_irred_clss S = set_propagation_stats (Search_Stats_incr_irred (get_search_stats S)) S\<close>
 
+definition decr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>decr_irred_clss S = set_propagation_stats (Search_Stats_decr_irred (get_search_stats S)) S\<close>
+
+definition irredundant_clss :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>irredundant_clss = Search_Stats_irred o get_search_stats\<close>
+
+abbreviation (input) get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count \<equiv> stats_conflicts\<close>
 
 section \<open>Information related to restarts\<close>
 
@@ -210,6 +294,15 @@ definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 wo
 
 
 section \<open>Heuristics\<close>
+
+datatype 'a code_hider = Constructor (get_content: 'a)
+
+definition code_hider_rel where code_hider_rel_def_internal:
+  \<open>code_hider_rel R = {(a,b). (a, get_content b) \<in> R}\<close>
+
+lemma code_hider_rel_def[refine_rel_defs]:
+  "\<langle>R\<rangle>code_hider_rel \<equiv> {(a,b). (a, get_content b) \<in> R}"
+  by (simp add: code_hider_rel_def_internal relAPP_def)
 
 type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool \<times> phase_saver \<times> schedule_info\<close>
 
