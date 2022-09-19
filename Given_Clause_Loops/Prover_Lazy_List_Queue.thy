@@ -15,7 +15,7 @@ begin
 
 subsection \<open>Basic Lemmas\<close>
 
-lemma ne_and_in_set_take_imp_in_set_take_remove:
+lemma ne_and_in_set_take_imp_in_set_take_remove1:
   assumes
     "z \<noteq> y" and
     "z \<in> set (take m xs)"
@@ -475,7 +475,7 @@ proof
                   using ni_es'ess' by auto
                 have in_rem: "(e, es) \<in> set (take n (snd (remove_llist es' Q)))"
                   by (smt (verit, best) fifo_prover_lazy_list_queue.remove_llist.elims fst_conv in_q
-                      list.set_intros(1) ne_and_in_set_take_imp_in_set_take_remove ni_es'ess'
+                      list.set_intros(1) ne_and_in_set_take_imp_in_set_take_remove1 ni_es'ess'
                       snd_conv)
                 show ?case
                   using ih[OF ni_ess' in_rem] by auto
