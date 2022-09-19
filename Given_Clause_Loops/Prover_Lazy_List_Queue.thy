@@ -724,7 +724,6 @@ proof
           using at_j fst_pick by force
       next
         show "llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
-          sledgehammer
           using at_j snd_pick by fastforce
       qed (rule refl at_j)+
     qed
