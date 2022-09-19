@@ -702,22 +702,31 @@ proof
         using fst_at_j by (metis fst_conv pick_elem.simps(2) surjective_pairing)
       have snd_pick: "llists (snd (pick_elem (fst (lnth QDs j)))) =
         llists (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-      proof (subst surjective_pairing[of "fst (lnth QDs j)"], unfold fst_at_j)
-        have rep: "replicate_mset (fst (fst (lnth QDs j))) LNil
-          + {#LCons x y. (x, y) \<in># mset ps'#} =
-          llists (fst (lnth QDs j)) - {#LCons e es#}"
-          sorry
-        thus "llists (snd (pick_elem (fst (fst (lnth QDs j)), (e, es) # ps'))) =
-          llists (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-          by (cases es) auto
-      qed
+        by (subst (1 2) surjective_pairing[of "fst (lnth QDs j)"], unfold fst_at_j, cases es, auto)
+
+      obtain Q :: "'e fifo" and D :: "'e set" where
+        at_j: "lnth QDs j = (Q, D)"
+        by fastforce
 
       show ?thesis
-        using cons_in_fst fst_pick snd_pick
-        sorry
-(*
-        by (smt (verit, ccfv_SIG) pick_step_det fst_conv pick_lqueue_step_w_details.simps)
-*)
+        unfolding pick_lqueue_step_w_details.simps
+      proof (rule exI[of _ e], rule exI[of _ es], rule exI[of _ Q], rule exI[of _ D], intro conjI)
+        show "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e})"
+          by (smt (verit, best) at_j fst_conv fst_pick pick_lqueue_step_w_details.simps
+              pick_step_det snd_conv)
+      next
+        have "LCons e es \<in># llists (fst (lnth QDs j))"
+          by (subst surjective_pairing) (auto simp: fst_at_j)
+        thus "LCons e es \<in># llists Q"
+          unfolding at_j by simp
+      next
+        show "fst (pick_elem Q) = e"
+          using at_j fst_pick by force
+      next
+        show "llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
+          sledgehammer
+          using at_j snd_pick by fastforce
+      qed (rule refl at_j)+
     qed
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
       (* using i'_ge j_ge le_trans by blast *)
