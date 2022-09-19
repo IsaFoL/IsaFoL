@@ -629,15 +629,20 @@ proof
             ultimately have ees_ni: "LCons e es \<notin> set ess"
               by blast
 
-            obtain Q' :: "'e llist list" where
-              q: "Q = LCons e es # Q'"
-              using ih by (metis One_nat_def fst_eqD in_set_member in_set_takeD length_pos_if_in_set
-                  list.exhaust_sel lqueue_step_fold_remove_llistI(1) member_rec nth_Cons_0
-                  set_mset_mset take0 take_Suc_conv_app_nth)
+            obtain ps' :: "('e \<times> 'e llist) list" where
+              snd_q: "snd Q = (e, es) # ps'"
+              using ih by (metis (no_types, opaque_lifting) One_nat_def fst_eqD in_set_member
+                  in_set_takeD length_pos_if_in_set list.exhaust_sel
+                  lqueue_step_fold_remove_llistI(1) member_rec(1) member_rec(2) nth_Cons_0 take0
+                  take_Suc_conv_app_nth)
 
-            have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
+            obtain num_nils' :: nat where
+              q: "Q = (num_nils', (e, es) # ps')"
+              by (metis prod.collapse snd_q)
+
+            have take_1: "take 1 (snd (fold remove_llist ess Q)) = take 1 (snd Q)"
               unfolding q using ees_ni
-            proof (induct ess arbitrary: Q')
+            proof (induct ess arbitrary: num_nils' ps')
               case (Cons es' ess')
               note ih = this(1) and ees_ni = this(2)
 
@@ -645,10 +650,19 @@ proof
                 using ees_ni by simp
               note ih = ih[OF ees_ni']
 
-              have "es' \<noteq> LCons e es"
+              have es'_ne: "es' \<noteq> LCons e es"
                 using ees_ni by auto
-              thus ?case
-                using ih by simp
+
+              show ?case
+              proof (cases es')
+                case LNil
+                then show ?thesis
+                  using ih by auto
+              next
+                case es': (LCons e'' es'')
+                show ?thesis
+                  using ih es'_ne unfolding es' by auto
+              qed
             qed auto
 
             show ?thesis
