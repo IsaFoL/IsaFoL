@@ -729,8 +729,7 @@ proof
       qed (rule refl at_j)+
     qed
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      (* using i'_ge j_ge le_trans by blast *)
-      sorry
+      using i'_ge j_ge le_trans by blast
   }
   thus "\<exists>j \<ge> i.
       (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))
