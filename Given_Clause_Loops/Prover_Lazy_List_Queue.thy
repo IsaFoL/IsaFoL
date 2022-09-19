@@ -511,25 +511,41 @@ proof
         qed
 
         show ?case
-        proof (rule exI[of _ "Suc j"], intro conjI)
-          show "i \<le> Suc j"
-            using i'_ge j_ge by linarith
+        proof (cases "hd (snd (fst (lnth QDs j))) = (e, es)")
+          case eq_ees: True
+          show ?thesis
+          proof (rule exI[of _ j]; intro conjI)
+            show "i \<le> j"
+              using i'_ge j_ge le_trans by blast
+          next
+            show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs j))))"
+              by (metis (no_types, lifting) List.hd_in_set Suc_eq_plus1 cons_at_le_j diff_is_0_eq
+                  eq_ees hd_take j_ge le_imp_less_Suc nle_le not_less_eq_eq sl_le take_eq_Nil2
+                  zero_less_diff)
+          qed
         next
-          obtain Q :: "'e fifo" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
-            at_j: "lnth QDs j = (Q, D)" and
-            at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
-            pair_in: "LCons e' es' \<in># llists Q" and
-            fst: "fst (pick_elem Q) = e'" and
-            snd: "llists (snd (pick_elem Q)) = llists Q - {#LCons e' es'#} + {#es'#}"
-            using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
-            by blast
+          case ne_ees: False
+          show ?thesis
+          proof (rule exI[of _ "Suc j"], intro conjI)
+            show "i \<le> Suc j"
+              using i'_ge j_ge by linarith
+          next
+            obtain Q :: "'e fifo" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
+              at_j: "lnth QDs j = (Q, D)" and
+              at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
+              pair_in: "LCons e' es' \<in># llists Q" and
+              fst: "fst (pick_elem Q) = e'" and
+              snd: "llists (snd (pick_elem Q)) = llists Q - {#LCons e' es'#} + {#es'#}"
+              using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
+              by blast
 
-          have cons_at_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j))))"
-            using cons_at_le_j[of j] j_ge by blast
+            have cons_at_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j))))"
+              using cons_at_le_j[of j] j_ge by blast
 
-          show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs (Suc j)))))"
-            using cons_at_j unfolding at_j at_sj
-            sorry
+            show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs (Suc j)))))"
+              using cons_at_j unfolding at_j at_sj using ne_ees
+              sorry
+          qed
         qed
       qed
       thus ?thesis
