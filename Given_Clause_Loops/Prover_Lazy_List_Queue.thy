@@ -690,26 +690,35 @@ proof
         thus ?thesis
           by (metis dual_order.refl j_ge nat_le_iff_add)
       qed
-      hence cons_in_fst: "LCons e es \<in># mset (fst (lnth QDs j))"
+      hence cons_in_fst: "(e, es) \<in> set (snd (fst (lnth QDs j)))"
         using in_set_takeD by force
 
-      obtain Q' :: "'e llist list" where
-        fst_at_j: "fst (lnth QDs j) = LCons e es # Q'"
-        using cons_at_j by (metis (no_types, lifting) One_nat_def cons_in_fst empty_iff empty_set
-            fifo_prover_lazy_list_queue.pick_elem.elims length_pos_if_in_set nth_Cons_0
-            self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
+      obtain ps' :: "('e \<times> 'e llist) list" where
+        fst_at_j: "snd (fst (lnth QDs j)) = (e, es) # ps'"
+        using cons_at_j by (metis One_nat_def cons_in_fst empty_iff empty_set length_pos_if_in_set
+            list.set_cases nth_Cons_0 self_append_conv2 set_ConsD take0 take_Suc_conv_app_nth)
 
       have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
-        unfolding fst_at_j by simp
-      have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
-        mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-        unfolding fst_at_j by simp
+        using fst_at_j by (metis fst_conv pick_elem.simps(2) surjective_pairing)
+      have snd_pick: "llists (snd (pick_elem (fst (lnth QDs j)))) =
+        llists (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
+      proof (subst surjective_pairing[of "fst (lnth QDs j)"], unfold fst_at_j)
+        have rep: "replicate_mset (fst (fst (lnth QDs j))) LNil
+          + {#LCons x y. (x, y) \<in># mset ps'#} =
+          llists (fst (lnth QDs j)) - {#LCons e es#}"
+          sorry
+        thus "llists (snd (pick_elem (fst (fst (lnth QDs j)), (e, es) # ps'))) =
+          llists (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
+          by (cases es) auto
+      qed
 
       show ?thesis
         using cons_in_fst fst_pick snd_pick
+        sorry
+(*
         by (smt (verit, ccfv_SIG) pick_step_det fst_conv pick_lqueue_step_w_details.simps)
-    qed
 *)
+    qed
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
       (* using i'_ge j_ge le_trans by blast *)
       sorry
