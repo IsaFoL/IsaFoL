@@ -367,9 +367,9 @@ proof
       by simp (smt (verit) empty_iff imageE in_set_conv_nth llist.distinct(1) llist.inject
           prod.collapse singleton_iff split_beta)
 
-    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. (e, es) \<in># mset (take (Suc k') (snd (fst (lnth QDs i'))))"
+    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. (e, es) \<in> set (take (Suc k') (snd (fst (lnth QDs i'))))"
     proof -
-      have "\<exists>i' \<ge> i. (e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
+      have "\<exists>i' \<ge> i. (e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
         if l_le: "l \<le> k" for l
         using l_le
       proof (induct l)
@@ -389,7 +389,7 @@ proof
 
         obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          cons_at_i': "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
+          cons_at_i': "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
           using ih by blast
         then obtain j0 :: nat where
           "j0 \<ge> i'" and
@@ -404,10 +404,10 @@ proof
               "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
           by blast
 
-        have cons_at_le_j: "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs j'))))"
+        have cons_at_le_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j'))))"
           if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
         proof -
-          have "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs (i' + m)))))"
+          have "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs (i' + m)))))"
             if i'm_le: "i' + m \<le> j" for m
             using i'm_le
           proof (induct m)
@@ -514,23 +514,21 @@ proof
         proof (rule exI[of _ "Suc j"], intro conjI)
           show "i \<le> Suc j"
             using i'_ge j_ge by linarith
-(*
         next
-          obtain Q :: "'e llist list" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
+          obtain Q :: "'e fifo" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
             at_j: "lnth QDs j = (Q, D)" and
             at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
-            pair_in: "LCons e' es' \<in># mset Q" and
+            pair_in: "LCons e' es' \<in># llists Q" and
             fst: "fst (pick_elem Q) = e'" and
-            snd: "mset (snd (pick_elem Q)) = mset Q - {#LCons e' es'#} + {#es'#}"
+            snd: "llists (snd (pick_elem Q)) = llists Q - {#LCons e' es'#} + {#es'#}"
             using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
             by blast
 
-          have cons_at_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j)))"
+          have cons_at_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j))))"
             using cons_at_le_j[of j] j_ge by blast
 
-          show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
+          show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs (Suc j)))))"
             using cons_at_j unfolding at_j at_sj
-
             sorry
         qed
       qed
@@ -539,7 +537,7 @@ proof
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
-      cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      cons_at_i': "(e, es) \<in> set (take 1 (snd (fst (lnth QDs i'))))"
       by auto
     then obtain j0 :: nat where
       "j0 \<ge> i'" and
@@ -557,9 +555,9 @@ proof
       unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
-      have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
+      have cons_at_j: "(e, es) \<in> set (take 1 (snd (fst (lnth QDs j))))"
       proof -
-        have "LCons e es \<in># mset (take 1 (fst (lnth QDs (i' + l))))" if i'l_le: "i' + l \<le> j" for l
+        have "(e, es) \<in> set (take 1 (snd (fst (lnth QDs (i' + l)))))" if i'l_le: "i' + l \<le> j" for l
           using i'l_le
         proof (induct l)
           case (Suc l)
@@ -580,19 +578,41 @@ proof
             case (lqueue_step_fold_add_llistI Q D ess)
             note defs = this
 
-            have len_q: "length Q \<ge> 1"
-              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
-                  list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1) set_mset_mset
+            have len_q: "length (snd Q) \<ge> 1"
+              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv
+                  list.set(1) list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1)
                   take.simps(1))
 
-            have take: "take (Suc 0) (fold (\<lambda>es ess. ess @ [es]) ess Q) = take (Suc 0) Q"
+            have take: "take (Suc 0) (snd (fold add_llist ess Q)) = take (Suc 0) (snd Q)"
               using len_q
             proof (induct ess arbitrary: Q)
-              case (Cons es ess)
-              note ih = this(1) and len_q = this(2)
+              case Nil
               show ?case
-                using len_q by (simp add: ih)
-            qed auto
+                by (cases Q) auto
+            next
+              case (Cons es' ess')
+              note ih = this(1) and len_q = this(2)
+
+              have len_add: "length (snd (add_llist es' Q)) \<ge> 1"
+              proof (cases Q)
+                case q: (Pair num_nils ps)
+                show ?thesis
+                proof (cases es')
+                  case es': LNil
+                  show ?thesis
+                    using len_q unfolding q es' by simp
+                next
+                  case es': (LCons e'' es'')
+                  show ?thesis
+                    using len_q unfolding q es' by simp
+                qed
+              qed
+
+              note ih = ih[OF len_add]
+
+              show ?case
+                using len_q by (simp add: ih, cases Q, cases es', auto)
+            qed
 
             show ?thesis
               unfolding defs using ih take
