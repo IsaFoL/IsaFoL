@@ -44,7 +44,7 @@ definition Search_Stats_incr_propagation :: \<open>search_stats \<Rightarrow> se
   \<open>Search_Stats_incr_propagation = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa+1, confl, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
 
 definition Search_Stats_conflicts :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). propa)\<close>
+  \<open>Search_Stats_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). confl)\<close>
 
 definition Search_Stats_incr_conflicts :: \<open>search_stats \<Rightarrow> search_stats\<close> where
   \<open>Search_Stats_incr_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl+1, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
@@ -251,6 +251,42 @@ definition stats_gcs :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
 definition stats_avg_lbd :: \<open>isasat_stats \<Rightarrow> ema\<close> where
   \<open>stats_avg_lbd = get_avg_lbd_stats\<close>
 
+
+definition stats_decisions :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_decisions = Search_Stats_decisions o get_search_stats\<close>
+
+definition stats_irred :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_irred = Search_Stats_irred o get_search_stats\<close>
+
+definition Binary_Stats_rounds :: \<open>inprocessing_binary_stats \<Rightarrow> 64 word\<close> where
+  \<open>Binary_Stats_rounds = (\<lambda>(rounds, units, removed). rounds)\<close>
+
+definition stats_binary_rounds :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_binary_rounds = Binary_Stats_rounds o get_binary_stats\<close>
+
+definition Binary_Stats_units :: \<open>inprocessing_binary_stats \<Rightarrow> 64 word\<close> where
+  \<open>Binary_Stats_units = (\<lambda>(units, units, removed). units)\<close>
+
+definition stats_binary_units :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_binary_units = Binary_Stats_units o get_binary_stats\<close>
+
+definition Binary_Stats_removed :: \<open>inprocessing_binary_stats \<Rightarrow> 64 word\<close> where
+  \<open>Binary_Stats_removed = (\<lambda>(removed, units, removed). removed)\<close>
+
+definition stats_binary_removed :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_binary_removed = Binary_Stats_removed o get_binary_stats\<close>
+
+definition Pure_Lits_Stats_removed :: \<open>inprocessing_pure_lits_stats \<Rightarrow> 64 word\<close> where
+  \<open>Pure_Lits_Stats_removed = (\<lambda>(removed, removed). removed)\<close>
+
+definition stats_pure_lits_removed :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_pure_lits_removed = Pure_Lits_Stats_removed o get_pure_lits_stats\<close>
+
+definition Pure_Lits_Stats_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> 64 word\<close> where
+  \<open>Pure_Lits_Stats_rounds = (\<lambda>(rounds, rounds). rounds)\<close> 
+
+definition stats_pure_lits_rounds :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_pure_lits_rounds = Pure_Lits_Stats_rounds o get_pure_lits_stats\<close>
 (*
 definition set_max_lbd :: \<open>32 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_max_lbd = (\<lambda>lbd (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed, purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, max_kept_lbd, ticks, lbds). (propa, confl, dec, res, reduction, uset, gcs, units, irred_clss, binary_unit, binary_red_removed,  purelit_removed, purelit_rounds, forward_strengthen, forward_subsumed, lbd, ticks, lbds))\<close>
@@ -328,6 +364,12 @@ definition empty_stats :: \<open>isasat_stats\<close> where
   \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
   (ema_slow_init::ema) ((0,0)::inprocessing_pure_lits_stats) 0 0 0 0 0 0 0 0 0 0 0\<close>
+
+definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
+  \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n)::search_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
+  (ema_slow_init::ema) ((0,0)::inprocessing_pure_lits_stats) 0 0 0 0 0 0 0 0 0 0 0\<close>
+
 
 section \<open>Heuristics\<close>
 
