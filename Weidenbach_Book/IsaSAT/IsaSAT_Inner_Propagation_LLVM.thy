@@ -2,6 +2,7 @@ theory IsaSAT_Inner_Propagation_LLVM
   imports IsaSAT_Setup_LLVM
     IsaSAT_Inner_Propagation
     IsaSAT_VMTF_LLVM
+    IsaSAT_LBD_LLVM
 begin
 
 sepref_register isa_save_pos
@@ -334,9 +335,12 @@ lemma mark_conflict_to_rescore_alt_def:
       RETURN (i+1, vm)
      })
       (0, vm);
+    let (lbd, S) = extract_lbd_wl_heur S;
+    (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
     let S = update_trail_wl_heur M S;
     let S = update_arena_wl_heur N S;
     let S = update_vmtf_wl_heur vm S;
+    let S = update_lbd_wl_heur lbd S;
     RETURN S }\<close>
   by (auto intro!: ext simp: state_extractors mark_conflict_to_rescore_def Let_def
     split: isasat_int_splits)

@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation
   imports IsaSAT_Setup
-     IsaSAT_Clauses IsaSAT_VMTF
+     IsaSAT_Clauses IsaSAT_VMTF IsaSAT_LBD
 begin
 
 chapter \<open>Propagation: Inner Loop\<close>
@@ -535,7 +535,11 @@ definition mark_conflict_to_rescore :: \<open>nat \<Rightarrow> isasat \<Rightar
     RETURN (i+1, vm)
    })
     (0, vm);
+  let lbd = get_lbd S;
+  (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
   let S = set_vmtf_wl_heur vm S;
+  let S = set_clauses_wl_heur N S;
+  let S = set_lbd_wl_heur lbd S;
   RETURN S
 }\<close>
 
@@ -619,12 +623,16 @@ proof -
         done
       done
     done
+  have H': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st T) (mset (get_clauses_wl T \<propto> C))\<close>
+    by (simp add: C literals_are_in_\<L>\<^sub>i\<^sub>n_nth2)
   show ?thesis
     unfolding mark_conflict_to_rescore_def mop_arena_length_def nres_monad3 mop_arena_lit2_def
     apply (refine_vcg WHILET_rule[where \<Phi> = \<open>\<lambda>(i,vm). vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
       I = \<open>\<lambda>(i,vm). i \<le> length (get_clauses_wl T \<propto> C) \<and> vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
       R = \<open>measure (\<lambda>(i,vm). length (get_clauses_wl T \<propto> C) -i)\<close>] trail bounded valid
-      isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans])
+      isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans]
+      calculate_LBD_heur_st_calculate_LBD_st[where
+        vdom = \<open>set (get_vdom (S))\<close> and \<A> = \<open>all_atms_st T\<close> and C'=C, unfolded calculate_LBD_st_def conc_fun_RES RETURN_def, THEN order_trans])
     subgoal using C valid unfolding arena_is_valid_clause_idx_def by auto
     subgoal using valid C arena_lifting(7)[OF valid C, of \<open>length (get_clauses_wl T \<propto> C) - 1\<close>] by (auto simp: arena_lifting)
     subgoal by auto
@@ -640,6 +648,9 @@ proof -
     subgoal using valid C by (auto simp: arena_lifting)
     subgoal by auto
     subgoal using valid C by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal using C by auto
+    subgoal by (rule H')
     subgoal by auto
     subgoal using assms unfolding twl_st_heur'_def twl_st_heur_def by auto
     done
