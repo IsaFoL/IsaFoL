@@ -877,7 +877,7 @@ lemma finalise_init_code_alt_def:
   lbd vdom ivdom failed lcount mark \<Rightarrow> do {
   let ((ns, m, fst_As, lst_As, next_search), to_remove) = split_vmtf2 vm;
    ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
-  let init_stats = empty_stats_clss (length ivdom);
+  let init_stats = empty_stats_clss (of_nat(length ivdom));
   let heur = empty_heuristics_stats opts \<phi>;
     mop_free mark; mop_free failed;
   let vm = recombine_vmtf ((ns, m, the fst_As, the lst_As, next_search), to_remove);
