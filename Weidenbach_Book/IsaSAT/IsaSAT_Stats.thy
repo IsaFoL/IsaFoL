@@ -135,8 +135,19 @@ definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<
 definition Pure_lits_Stats_incr_removed :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
   \<open>Pure_lits_Stats_incr_removed = (\<lambda>(rounds, removed). (rounds, removed+1))\<close>
 
+type_synonym lbd_size_limit_stats = \<open>64 word \<times> 64 word\<close>
+
+definition LSize_Stats_lbd where
+  \<open>LSize_Stats_lbd = (\<lambda>(lbd, size). lbd)\<close>
+
+definition LSize_Stats_size where
+  \<open>LSize_Stats_size = (\<lambda>(lbd, size). size)\<close>
+
+definition LSize_Stats where
+  \<open>LSize_Stats lbd size' = (lbd, size')\<close>
+
 type_synonym isasat_stats = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
-  inprocessing_pure_lits_stats, 64 word,64 word, 64 word,
+  inprocessing_pure_lits_stats, lbd_size_limit_stats, 64 word, 64 word,
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
 
@@ -160,6 +171,9 @@ definition get_avg_lbd_stats :: \<open>isasat_stats \<Rightarrow> ema\<close> wh
 definition get_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
   \<open>get_pure_lits_stats \<equiv> Tuple16.Tuple16_get_e\<close>
 
+definition get_lsize_limit_stats :: \<open>isasat_stats \<Rightarrow> lbd_size_limit_stats\<close> where
+  \<open>get_lsize_limit_stats \<equiv> Tuple16.Tuple16_get_f\<close>
+
 definition set_propagation_stats :: \<open>search_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_propagation_stats \<equiv> Tuple16.set_a\<close>
 
@@ -174,6 +188,9 @@ definition set_avg_lbd_stats :: \<open>ema \<Rightarrow> isasat_stats \<Rightarr
 
 definition set_pure_lits_stats :: \<open>inprocessing_pure_lits_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_pure_lits_stats \<equiv> Tuple16.set_e\<close>
+
+definition set_lsize_limit_stats :: \<open>lbd_size_limit_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_lsize_limit_stats \<equiv> Tuple16.set_f\<close>
 
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation S = (set_propagation_stats (Search_Stats_incr_propagation (get_search_stats S)) S)\<close>
@@ -320,6 +337,16 @@ definition irredundant_clss :: \<open>isasat_stats \<Rightarrow> 64 word\<close>
 abbreviation (input) get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count \<equiv> stats_conflicts\<close>
 
+definition stats_lbd_limit :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_lbd_limit = LSize_Stats_lbd o get_lsize_limit_stats\<close>
+
+definition stats_size_limit :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_size_limit = LSize_Stats_size o get_lsize_limit_stats\<close>
+
+definition set_stats_size_limit :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_stats_size_limit lbd size' = set_lsize_limit_stats (lbd, size')\<close>
+
+
 section \<open>Information related to restarts\<close>
 
 definition NORMAL_PHASE :: \<open>64 word\<close> where
@@ -363,12 +390,12 @@ definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 wo
 definition empty_stats :: \<open>isasat_stats\<close> where
   \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) 0 0 0 0 0 0 0 0 0 0 0\<close>
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
   \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) 0 0 0 0 0 0 0 0 0 0 0\<close>
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 
 
 section \<open>Heuristics\<close>

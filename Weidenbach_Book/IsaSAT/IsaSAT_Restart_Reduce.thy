@@ -991,6 +991,73 @@ proof -
 
 qed
 
+definition find_largest_lbd_and_size
+  :: \<open>nat \<Rightarrow> isasat \<Rightarrow> (nat \<times> nat) nres\<close>
+where
+\<open>find_largest_lbd_and_size  = (\<lambda>l S. do {
+    ASSERT(length (get_tvdom S) \<le> length (get_clauses_wl_heur S));
+    (i, lbd, sze) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, _ :: nat, _::nat). i \<le> length (get_tvdom S)\<^esup>
+      (\<lambda>(i, lbd, sze). i < l \<and> i < length (get_tvdom S))
+      (\<lambda>(i, lbd, sze). do {
+        ASSERT(i < length (get_tvdom S));
+        ASSERT(access_tvdom_at_pre S i);
+        let C = get_tvdom S ! i;
+        ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
+        b \<leftarrow> mop_clause_not_marked_to_delete_heur S C;
+        if \<not>b then RETURN (i+1, lbd, sze)
+        else do {
+          lbd2 \<leftarrow> mop_arena_lbd_st S C;
+          sze' \<leftarrow> mop_arena_length_st S C;
+          RETURN (i+1, max lbd (lbd2), max sze sze')
+        }
+      })
+      (0, 0 :: nat , 0 :: nat);
+    RETURN (lbd, sze)
+  })\<close>
+
+lemma find_largest_lbd_and_size:
+  assumes
+    \<open>(S,T) \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>find_largest_lbd_and_size l S \<le>SPEC (\<lambda>_. True)\<close>
+proof -
+  have arena: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close> and
+    avdom: \<open>aivdom_inv_dec (get_aivdom S) (dom_m (get_clauses_wl T))\<close>
+    using assms unfolding twl_st_heur_restart_ana_def twl_st_heur_restart_def by auto
+
+  have [intro!]: \<open>clause_not_marked_to_delete_heur_pre (S, get_tvdom S ! i)\<close>
+    \<open>\<not> \<not> clause_not_marked_to_delete_heur S (get_tvdom S ! i) \<Longrightarrow> get_clause_LBD_pre (get_clauses_wl_heur S) (get_tvdom S ! i)\<close>
+    \<open>\<not> \<not> clause_not_marked_to_delete_heur S (get_tvdom S ! i) \<Longrightarrow> arena_is_valid_clause_idx (get_clauses_wl_heur S) (get_tvdom S ! i)\<close>
+    if \<open>i < length (get_tvdom S)\<close>
+    for i
+    using arena avdom multi_member_split[of \<open>get_tvdom S ! i\<close> \<open>mset (get_tvdom S)\<close>] that
+      arena_dom_status_iff(1)[OF arena, of \<open>get_tvdom S ! i\<close>]
+    unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
+      aivdom_inv_dec_alt_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+      clause_not_marked_to_delete_heur_def
+    by (auto intro!: exI[of _ \<open>get_clauses_wl T\<close>] exI[of _ \<open>set (get_vdom S)\<close>]
+      simp: arena_lifting)
+  have le: \<open>length (get_tvdom S) \<le> length (get_clauses_wl_heur S)\<close>
+    using avdom valid_arena_vdom_le[OF arena] unfolding aivdom_inv_dec_alt_def by (auto simp: distinct_card dest: size_mset_mono)
+
+  show ?thesis
+    unfolding find_largest_lbd_and_size_def mop_clause_not_marked_to_delete_heur_def nres_monad3
+      mop_arena_lbd_st_def mop_arena_lbd_def mop_arena_length_st_def mop_arena_length_def
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _, _). length (get_tvdom S) - i)\<close>])
+    subgoal by (rule le)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: access_tvdom_at_pre_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 definition mark_to_delete_clauses_wl_D_heur
   :: \<open>isasat \<Rightarrow> isasat nres\<close>
@@ -999,6 +1066,7 @@ where
     ASSERT(mark_to_delete_clauses_wl_D_heur_pre S0);
     S \<leftarrow> sort_vdom_heur S0;
     l \<leftarrow> number_clss_to_keep S;
+    (lbd, sze) \<leftarrow> find_largest_lbd_and_size l S;
     ASSERT(length (get_tvdom S) \<le> length (get_clauses_wl_heur S0));
     (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_tvdom S))
@@ -1051,6 +1119,7 @@ where
     ASSERT(mark_to_delete_clauses_GC_wl_D_heur_pre S0);
     S \<leftarrow> sort_vdom_heur S0;
     l \<leftarrow> number_clss_to_keep S;
+    (lbd, sze) \<leftarrow> find_largest_lbd_and_size l S;
     ASSERT(length (get_tvdom S) \<le> length (get_clauses_wl_heur S0));
     (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_tvdom S))
@@ -1091,6 +1160,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
           S \<leftarrow> sort_vdom_heur S0;
           _ \<leftarrow> RETURN (get_tvdom S);
           l \<leftarrow> number_clss_to_keep S;
+          (lbd, sze) \<leftarrow> find_largest_lbd_and_size l S;
           ASSERT
                (length (get_tvdom S) \<le> length (get_clauses_wl_heur S0));
           (i, T) \<leftarrow>
@@ -1150,12 +1220,14 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       incr_wasted_st_twl_st
     by (auto intro!: ext bind_cong[OF refl])
 
+
 lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
     \<open>mark_to_delete_clauses_GC_wl_D_heur  = (\<lambda>S0. do {
           ASSERT (mark_to_delete_clauses_GC_wl_D_heur_pre S0);
           S \<leftarrow> sort_vdom_heur S0;
           _ \<leftarrow> RETURN (get_tvdom S);
           l \<leftarrow> number_clss_to_keep S;
+          (lbd, sze) \<leftarrow> find_largest_lbd_and_size l S;
           ASSERT
                (length (get_tvdom S) \<le> length (get_clauses_wl_heur S0));
           (i, T) \<leftarrow>
@@ -1227,6 +1299,7 @@ proof -
       S \<leftarrow> reorder_vdom_wl S0;
       xs \<leftarrow> collect_valid_indices_wl S;
       l \<leftarrow> SPEC(\<lambda>_::nat. True);
+      _ \<leftarrow> SPEC(\<lambda>_::nat\<times>nat. True);
       (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv S xs\<^esup>
         (\<lambda>(i, T, xs). i < length xs)
         (\<lambda>(i, T, xs). do {
@@ -1753,22 +1826,23 @@ proof -
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
       access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_restart_stat)
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_restart_stat find_largest_lbd_and_size)
     subgoal
       unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
     apply assumption
     subgoal by auto
     subgoal for x y S T unfolding number_clss_to_keep_def by (cases S) (auto)
+    apply (solves auto)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
        dest!: valid_arena_vdom_subset size_mset_mono)
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: access_tvdom_at_pre_def)
-    subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
-      by (rule exI[of _ \<open>get_clauses_wl x2a\<close>], rule exI[of _ \<open>set (get_vdom x2d)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
          (auto simp: twl_st_heur_restart
         intro!: twl_st_heur_restart_valid_arena[simplified]
         dest: twl_st_heur_restart_get_tvdom_nth_get_vdom[simplified])
@@ -1777,11 +1851,11 @@ proof -
       by (auto simp: twl_st_heur_restart)
     subgoal
       by (rule already_deleted)
-    subgoal for x y _ _ _ _ _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
-      by (rule bex_leI[of _ \<open>get_tvdom x2a ! x1a\<close>], simp add: aivdom_inv_dec_alt_def,
-        rule exI[of _ \<open>get_clauses_wl x1\<close>])
+      by (rule bex_leI[of _ \<open>get_tvdom x2b ! x1b\<close>], simp add: aivdom_inv_dec_alt_def,
+        rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>])
         (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal premises p using p(7-)
@@ -1789,10 +1863,10 @@ proof -
         dest!: valid_arena_vdom_subset size_mset_mono)
       apply (rule mop_access_lit_in_clauses_heur; assumption)
       apply (rule get_the_propagation_reason; assumption)
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart dest:twl_st_heur_restart_get_avdom_nth_get_vdom
         intro!: twl_st_heur_restart_valid_arena[simplified])
     subgoal
@@ -1808,14 +1882,14 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding prod.simps mark_garbage_pre_def
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def apply -
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
        (auto simp: twl_st_heur_restart twl_st_heur_restart_ana_def dest: twl_st_heur_restart_valid_arena)
     subgoal premises that
-      using get_learned_count_ge[OF that(2-12, 14-31)] that(32-)
-      using only_irred[OF that(2-12, 14-31)]
+      using get_learned_count_ge[OF that(2-8,12-15,17-33)] that(32-)
+      using only_irred[OF that(2-8,12-15,17-33)]
       by auto
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
       by (rule length_filter_le)
@@ -1825,7 +1899,7 @@ proof -
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>] dest!: set_mset_mono mset_subset_eqD)
-    subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1c x2c b ba L x2b
       using size_mset_mono[of \<open>mset (get_tvdom x2b)\<close> \<open>mset (get_vdom x2b)\<close>]
       by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
         dest!: valid_arena_vdom_subset)
@@ -1931,7 +2005,8 @@ proof -
       ASSERT(mark_to_delete_clauses_GC_wl_pre S0);
       S \<leftarrow> reorder_vdom_wl S0;
       xs \<leftarrow> collect_valid_indices_wl S;
-      l \<leftarrow> SPEC(\<lambda>_::nat. True);
+      l \<leftarrow> SPEC (\<lambda>_::nat. True);
+      _ \<leftarrow> SPEC (\<lambda>_::nat\<times>nat. True);
       (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_GC_wl_inv S xs\<^esup>
         (\<lambda>(i, T, xs). i < length xs)
         (\<lambda>(i, T, xs). do {
@@ -2318,22 +2393,23 @@ proof -
     unfolding mark_to_delete_clauses_GC_wl_D_heur_alt_def mark_to_delete_clauses_GC_wl_D_alt_def
       access_lit_in_clauses_heur_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_reduction_stat)
+    apply (refine_vcg sort_vdom_heur_reorder_vdom_wl[THEN fref_to_Down] incr_reduction_stat find_largest_lbd_and_size)
     subgoal
       unfolding mark_to_delete_clauses_GC_wl_D_heur_pre_def by fast
     apply assumption
     subgoal by auto
     subgoal for x y S T unfolding number_clss_to_keep_def by (cases S) (auto)
+    apply (solves auto)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
        dest!: valid_arena_vdom_subset size_mset_mono)
     apply (rule init; solves auto)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: access_tvdom_at_pre_def)
-    subgoal for x y S xs l la xa x' xz x1 x2 x1a x2a x2b x2c x2d
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding clause_not_marked_to_delete_heur_pre_def arena_is_valid_clause_vdom_def
         prod.simps
-      by (rule exI[of _ \<open>get_clauses_wl x2a\<close>], rule exI[of _ \<open>set (get_vdom x2d)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
          (auto simp: twl_st_heur_restart
           intro!: twl_st_heur_restart_valid_arena[simplified]
           dest: twl_st_heur_restart_get_tvdom_nth_get_vdom[simplified])
@@ -2342,20 +2418,20 @@ proof -
       by (auto simp: twl_st_heur_restart)
     subgoal
       by (rule already_deleted)
-    subgoal for x y _ _ _ _ _ xs l la xa x' x1 x2 x1a x2a
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding access_lit_in_clauses_heur_pre_def prod.simps arena_lit_pre_def
         arena_is_valid_clause_idx_and_access_def
-      by (rule bex_leI[of _ \<open>get_tvdom x2a ! x1a\<close>], simp add: aivdom_inv_dec_alt_def,
-        rule exI[of _ \<open>get_clauses_wl x1\<close>])
+      by (rule bex_leI[of _ \<open>get_tvdom x2b ! x1b\<close>], simp add: aivdom_inv_dec_alt_def,
+        rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>])
         (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal premises p using p(7-)
       by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
         dest!: valid_arena_vdom_subset size_mset_mono)
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding prod.simps
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+      by (rule exI[of _ \<open>get_clauses_wl (fst x2c)\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart intro!: twl_st_heur_restart_valid_arena[simplified]
         dest: twl_st_heur_restart_get_avdom_nth_get_vdom)
     subgoal
@@ -2365,10 +2441,10 @@ proof -
       by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena[simplified]
         simp: arena_lifting)
     subgoal by fast
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding mop_arena_length_st_def
       apply (rule mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,
-        of \<open>get_clauses_wl x1a\<close> \<open>get_tvdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
+        of \<open>get_clauses_wl (fst x2c)\<close> \<open>get_tvdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
       subgoal
         by auto
       subgoal
@@ -2382,7 +2458,7 @@ proof -
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>] dest!: set_mset_mono mset_subset_eqD)
-    subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b
+    subgoal for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1c x2c b ba L x2b
       using size_mset_mono[of \<open>mset (get_tvdom x2b)\<close> \<open>mset (get_vdom x2b)\<close>]
       by (clarsimp simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def aivdom_inv_dec_alt_def
         dest!: valid_arena_vdom_subset)

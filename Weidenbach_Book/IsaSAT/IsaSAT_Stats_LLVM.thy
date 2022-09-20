@@ -97,6 +97,18 @@ sepref_def empty_pure_lits_stats_impl
   unfolding pure_lits_stats_assn_def empty_pure_lits_stats_def
   by sepref
 
+definition lbd_size_limit_assn where
+  \<open>lbd_size_limit_assn = word64_assn \<times>\<^sub>a word64_assn\<close>
+
+definition empty_lsize_limit_stats :: \<open>lbd_size_limit_stats\<close> where
+  \<open>empty_lsize_limit_stats = (0,0)\<close>
+
+sepref_def empty_lsize_limit_stats_impl
+  is \<open>uncurry0 (RETURN empty_lsize_limit_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  unfolding lbd_size_limit_assn_def empty_lsize_limit_stats_def
+  by sepref
+
 definition ema_init_bottom :: \<open>ema\<close> where
   \<open>ema_init_bottom = ema_init 0\<close>
 
@@ -174,7 +186,7 @@ lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a 
 
 definition isasat_stats_assn :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>isasat_stats_assn = tuple16_assn search_stats_assn binary_stats_assn subsumption_stats_assn ema_assn
- pure_lits_stats_assn word64_assn word64_assn word64_assn word64_assn word64_assn
+ pure_lits_stats_assn lbd_size_limit_assn word64_assn word64_assn word64_assn word64_assn
  word64_assn word64_assn word64_assn word64_assn word32_assn word64_assn\<close>
 
 definition extract_search_strategy_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
@@ -192,13 +204,16 @@ definition extract_avg_lbd :: \<open>isasat_stats \<Rightarrow> _\<close> where
 definition extract_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>extract_pure_lits_stats = tuple16_ops.remove_e empty_pure_lits_stats\<close>
 
+definition extract_lbd_size_limit_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_lbd_size_limit_stats = tuple16_ops.remove_f empty_lsize_limit_stats\<close>
+
 global_interpretation tuple16 where
   a_assn = search_stats_assn and
   b_assn = binary_stats_assn and
   c_assn = subsumption_stats_assn and
   d_assn = ema_assn and
   e_assn = pure_lits_stats_assn and
-  f_assn = word64_assn and
+  f_assn = lbd_size_limit_assn and
   g_assn = word64_assn and
   h_assn = word64_assn and
   i_assn = word64_assn and
@@ -219,8 +234,8 @@ global_interpretation tuple16 where
   d = ema_init_bottom_impl and
   e_default = empty_pure_lits_stats and
   e = empty_pure_lits_stats_impl and
-  f_default = \<open>0\<close> and
-  f = \<open>Mreturn 0\<close> and
+  f_default = \<open>empty_lsize_limit_stats\<close> and
+  f = \<open>empty_lsize_limit_stats_impl\<close> and
   g_default = \<open>0\<close> and
   g = \<open>Mreturn 0\<close> and
   h_default = \<open>0\<close> and
@@ -246,7 +261,7 @@ global_interpretation tuple16 where
   c_free = free_subsumption_stats_assn and
   d_free = free_ema_assn and
   e_free = free_pure_lits_stats_assn and
-  f_free = free_word64_assn and
+  f_free = free_pure_lits_stats_assn and
   g_free = free_word64_assn and
   h_free = free_word64_assn and
   i_free = free_word64_assn and
@@ -262,7 +277,8 @@ global_interpretation tuple16 where
     \<open>remove_b = extract_binary_stats\<close> and
     \<open>remove_c = extract_subsumption_stats\<close> and
     \<open>remove_d = extract_avg_lbd\<close> and
-    \<open>remove_e = extract_pure_lits_stats\<close>
+    \<open>remove_e = extract_pure_lits_stats\<close> and
+    \<open>remove_f = extract_lbd_size_limit_stats\<close>
   apply unfold_locales
   apply (rule empty_search_stats_impl.refine empty_binary_stats_impl.refine
     empty_subsumption_stats_impl.refine ema_init_bottom_impl.refine empty_pure_lits_stats_impl.refine
@@ -271,6 +287,8 @@ global_interpretation tuple16 where
     free_subsumption_stats_assn.refine[THEN mop_free_hnr']
     free_ema_assn.refine[THEN mop_free_hnr']
     free_pure_lits_stats_assn.refine[THEN mop_free_hnr']
+    empty_lsize_limit_stats_impl.refine
+    free_pure_lits_stats_assn.refine[THEN mop_free_hnr', unfolded lbd_size_limit_assn_def[symmetric] pure_lits_stats_assn_def]
     free_word64_assn.refine[THEN mop_free_hnr']
     free_word32_assn.refine[THEN mop_free_hnr']
     )+
@@ -280,6 +298,7 @@ global_interpretation tuple16 where
   subgoal unfolding extract_subsumption_stats_def ..
   subgoal unfolding extract_avg_lbd_def ..
   subgoal unfolding extract_pure_lits_stats_def ..
+  subgoal unfolding extract_lbd_size_limit_stats_def ..
   done
 
 sepref_register
@@ -331,7 +350,7 @@ lemma "is_pure R \<Longrightarrow> R\<^sup>k = R\<^sup>d"
 
 lemma isasat_stats_assn_pure_keep:
   \<open>isasat_stats_assn\<^sup>d = isasat_stats_assn\<^sup>k\<close>
-  unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def
+  unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def lbd_size_limit_assn_def
     prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def
     binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy ..
 
@@ -341,6 +360,7 @@ lemmas [unfolded isasat_stats_assn_pure_keep, sepref_fr_rules] =
   remove_c_code.refine
   remove_d_code.refine
   remove_e_code.refine
+  remove_f_code.refine
 
 named_theorems stats_extractors \<open>Definition of all functions modifying the state\<close>
 
@@ -372,15 +392,18 @@ lemma stats_code_unfold:
   \<open>get_subsumption_stats x = fst (extract_subsumption_stats x)\<close>
   \<open>get_pure_lits_stats x = fst (extract_pure_lits_stats x)\<close>
   \<open>get_avg_lbd_stats x = fst (extract_avg_lbd x)\<close>
+  \<open>get_lsize_limit_stats x = fst (extract_lbd_size_limit_stats x)\<close>
   \<open>set_propagation_stats a x = update_a a x\<close>
   \<open>set_binary_stats b x = update_b b x\<close>
   \<open>set_subsumption_stats c x = update_c c x\<close>
   \<open>set_avg_lbd_stats lbd x = update_d lbd x\<close>
   \<open>set_pure_lits_stats e x = update_e e x\<close>
+  \<open>set_lsize_limit_stats f x = update_f f x\<close>
   by (cases x; auto simp: get_search_stats_def get_avg_lbd_stats_def
     set_avg_lbd_stats_def set_propagation_stats_def set_binary_stats_def
-    set_subsumption_stats_def set_pure_lits_stats_def
-    get_subsumption_stats_def get_pure_lits_stats_def
+    set_subsumption_stats_def set_pure_lits_stats_def get_lsize_limit_stats_def
+    extract_lbd_size_limit_stats_def
+    get_subsumption_stats_def get_pure_lits_stats_def set_lsize_limit_stats_def
     get_binary_stats_def stats_extractors; fail)+
 
 lemma Mreturn_comp_Tuple16:
@@ -397,7 +420,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure isasat_stats_assn\<close>
   unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def
-    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def
+    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def lbd_size_limit_assn_def
     binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy by auto
 
 lemma id_unat[sepref_fr_rules]:
@@ -622,6 +645,25 @@ sepref_def Pure_Lits_Stats_removed_rounds_impl
   unfolding pure_lits_stats_assn_def Pure_Lits_Stats_rounds_def
   by sepref
 
+sepref_def LSize_Stats_lbd_impl
+  is \<open>RETURN o LSize_Stats_lbd\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding  LSize_Stats_lbd_def lbd_size_limit_assn_def
+  by sepref
+
+sepref_def LSize_Stats_size_impl
+  is \<open>RETURN o LSize_Stats_size\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding  LSize_Stats_size_def lbd_size_limit_assn_def
+  by sepref
+
+sepref_def LSize_Stats_impl
+  is \<open>uncurry (RETURN oo LSize_Stats)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  unfolding  LSize_Stats_def lbd_size_limit_assn_def
+  by sepref
+
+
 sepref_register Search_Stats_decisions Pure_Lits_Stats_rounds Pure_Lits_Stats_removed
   Binary_Stats_removed Binary_Stats_rounds Binary_Stats_units
 sepref_def stats_decisions_impl
@@ -802,6 +844,19 @@ sepref_def stats_avg_lbd_mpl
   unfolding stats_avg_lbd_def stats_code_unfold
   by sepref
 
+sepref_register LSize_Stats_lbd LSize_Stats_size LSize_Stats
+sepref_def stats_lbd_limit_impl
+  is \<open>RETURN o stats_lbd_limit\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_lbd_limit_def stats_code_unfold
+  by sepref
+
+sepref_def stats_size_limit_impl
+  is \<open>RETURN o stats_size_limit\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_size_limit_def stats_code_unfold
+  by sepref
+
 lemmas [llvm_inline] = Mreturn_comp_Tuple16
 
 sepref_register empty_stats
@@ -811,7 +866,8 @@ sepref_def empty_stats_impl
   unfolding empty_stats_def empty_search_stats_def[symmetric]
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
-  unfolding empty_pure_lits_stats_def[symmetric]
+  apply (subst empty_pure_lits_stats_def[symmetric])
+  apply (subst empty_lsize_limit_stats_def[symmetric])
   by sepref
 
 definition empty_search_stats_clss where
@@ -829,7 +885,8 @@ sepref_def empty_stats_clss_impl
   unfolding empty_stats_clss_def empty_search_stats_clss_def[symmetric]
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
-  unfolding empty_pure_lits_stats_def[symmetric]
+  apply (subst empty_pure_lits_stats_def[symmetric])
+  apply (subst empty_lsize_limit_stats_def[symmetric])
   by sepref
 
 export_llvm empty_stats_impl
