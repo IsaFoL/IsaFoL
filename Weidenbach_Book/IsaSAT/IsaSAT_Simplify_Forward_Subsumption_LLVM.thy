@@ -256,7 +256,6 @@ sepref_def isa_good_candidate_for_subsumption_impl
   is \<open>uncurry isa_good_candidate_for_subsumption\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isa_good_candidate_for_subsumption_def
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma push_to_tvdom_st_alt_def:

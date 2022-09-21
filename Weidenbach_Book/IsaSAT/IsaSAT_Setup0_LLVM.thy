@@ -42,7 +42,7 @@ type_synonym twl_st_wll_trail_fast2 =
   \<open>(trail_pol_fast_assn, arena_assn, option_lookup_clause_assn,
     64 word, watched_wl_uint32, vmtf_remove_assn,
     32 word, cach_refinement_l_assn, lbd_assn, out_learned_assn,
-    isasat_stats, heur_assn,
+    isasat_stats_assn, heur_assn,
    aivdom_assn, (64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word),
   opts_assn, arena_assn, occs_assn) tuple17\<close>
 

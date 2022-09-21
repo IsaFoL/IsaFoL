@@ -3441,9 +3441,11 @@ qed
 (*TODO: fix heuristic! + test is actually useless*)
 definition isa_good_candidate_for_subsumption :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>isa_good_candidate_for_subsumption S C = do {
-     lbd \<leftarrow> mop_arena_lbd_st S C;
+      let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;
+      lbd \<leftarrow> mop_arena_lbd_st S C;
+      sze \<leftarrow> mop_arena_length_st S C;
       st \<leftarrow> mop_arena_status_st S C;
-      RETURN (st = IRRED \<or> lbd < 6)
+      RETURN (st = IRRED \<or> (sze \<le> size_limit \<and> lbd \<le> lbd_limit))
   }\<close>
 
 definition sort_cands_by_length where
@@ -3546,10 +3548,13 @@ proof -
   then show ?thesis
     unfolding isa_good_candidate_for_subsumption_def
       mop_arena_lbd_st_def mop_arena_lbd_def mop_arena_status_st_def nres_monad3
-      mop_arena_status_def bind_to_let_conv
+      mop_arena_status_def bind_to_let_conv mop_arena_length_st_def
+      mop_arena_length_def
     apply refine_vcg
     subgoal
       using assms by (auto simp: get_clause_LBD_pre_def arena_is_valid_clause_idx_def)
+    subgoal
+      using assms by (auto simp: arena_is_valid_clause_idx_def)
     subgoal
       using assms by (auto simp: arena_is_valid_clause_vdom_def)
     subgoal

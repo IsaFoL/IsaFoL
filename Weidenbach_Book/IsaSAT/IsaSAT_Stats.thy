@@ -135,7 +135,7 @@ definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<
 definition Pure_lits_Stats_incr_removed :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
   \<open>Pure_lits_Stats_incr_removed = (\<lambda>(rounds, removed). (rounds, removed+1))\<close>
 
-type_synonym lbd_size_limit_stats = \<open>64 word \<times> 64 word\<close>
+type_synonym lbd_size_limit_stats = \<open>nat \<times> nat\<close>
 
 definition LSize_Stats_lbd where
   \<open>LSize_Stats_lbd = (\<lambda>(lbd, size). lbd)\<close>
@@ -337,13 +337,13 @@ definition irredundant_clss :: \<open>isasat_stats \<Rightarrow> 64 word\<close>
 abbreviation (input) get_conflict_count :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count \<equiv> stats_conflicts\<close>
 
-definition stats_lbd_limit :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+definition stats_lbd_limit :: \<open>isasat_stats \<Rightarrow> nat\<close> where
   \<open>stats_lbd_limit = LSize_Stats_lbd o get_lsize_limit_stats\<close>
 
-definition stats_size_limit :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+definition stats_size_limit :: \<open>isasat_stats \<Rightarrow> nat\<close> where
   \<open>stats_size_limit = LSize_Stats_size o get_lsize_limit_stats\<close>
 
-definition set_stats_size_limit :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+definition set_stats_size_limit :: \<open>nat \<Rightarrow> nat \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_stats_size_limit lbd size' = set_lsize_limit_stats (lbd, size')\<close>
 
 

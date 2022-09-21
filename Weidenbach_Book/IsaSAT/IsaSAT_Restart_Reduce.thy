@@ -1,4 +1,6 @@
-theory IsaSAT_Restart_Reduce imports IsaSAT_Restart begin
+theory IsaSAT_Restart_Reduce
+imports IsaSAT_Restart
+begin
 
 text \<open>
   We first fix the function that proves termination. We don't take the ``smallest'' function
@@ -1101,7 +1103,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_reduction_stat T
+    incr_reduction_stat (set_stats_size_limit_st lbd sze T)
   })\<close>
 
 
@@ -1151,7 +1153,7 @@ where
       })
       (l, S);
     ASSERT(length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-    incr_restart_stat T
+    incr_restart_stat (set_stats_size_limit_st lbd sze T)
   })\<close>
 
 lemma mark_to_delete_clauses_wl_D_heur_alt_def:
@@ -1211,7 +1213,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-         incr_reduction_stat T
+         incr_reduction_stat (set_stats_size_limit_st lbd sze T)
         })\<close>
     unfolding mark_to_delete_clauses_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1274,7 +1276,7 @@ lemma mark_to_delete_clauses_GC_wl_D_heur_alt_def:
              (l, S);
           ASSERT
                (length (get_tvdom T) \<le> length (get_clauses_wl_heur S0));
-          incr_restart_stat T
+          incr_restart_stat (set_stats_size_limit_st lbd sze T)
         })\<close>
     unfolding mark_to_delete_clauses_GC_wl_D_heur_def
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
@@ -1603,12 +1605,12 @@ proof -
   subgoal using that by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena simp: arena_lifting)
   done
 
-  have incr_restart_stat: \<open>incr_reduction_stat T
+  have incr_restart_stat: \<open>incr_reduction_stat (set_stats_size_limit_st lbd sze T)
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
-    if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
+    if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u  lbd sze
     using that
     by (cases S; cases T)
-      (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def
+      (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def set_stats_size_limit_st_def
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
       remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def incr_reduction_stat_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
@@ -2218,12 +2220,12 @@ proof -
     subgoal
       using that by (auto simp: twl_st_heur_restart arena_lifting dest: twl_st_heur_restart(2) dest!: twl_st_heur_restart_anaD)
     done
-  have incr_reduction_stat: \<open>incr_restart_stat T
+  have incr_reduction_stat: \<open>incr_restart_stat (set_stats_size_limit_st lbd sze T)
     \<le> \<Down> (twl_st_heur_restart_ana' r u) (remove_all_learned_subsumed_clauses_wl S)\<close>
-    if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u 
+    if \<open>(T, S) \<in> twl_st_heur_restart_ana' r u\<close> for S T i u lbd sze
     using that
     by (cases S; cases T)
-      (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def
+      (auto simp: conc_fun_RES incr_restart_stat_def learned_clss_count_def set_stats_size_limit_st_def
         twl_st_heur_restart_ana_def twl_st_heur_restart_def
       remove_all_learned_subsumed_clauses_wl_def clss_size_corr_def
       clss_size_lcountUE_def clss_size_lcountUS_def clss_size_def
@@ -2444,7 +2446,7 @@ proof -
     subgoal for x y S Sa u xs l la _ _ x1 x2 xb x' x1c x2c x1a x2a x1b x2b
       unfolding mop_arena_length_st_def
       apply (rule mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,
-        of \<open>get_clauses_wl (fst x2c)\<close> \<open>get_tvdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
+        of \<open>get_clauses_wl x1a\<close> \<open>get_tvdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
       subgoal
         by auto
       subgoal

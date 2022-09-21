@@ -1797,4 +1797,15 @@ definition  mop_arena_promote_st where
     N' \<leftarrow> mop_arena_set_status N' C IRRED;
     RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
   }\<close>
+
+definition set_stats_size_limit_st where
+  \<open>set_stats_size_limit_st lbd sze T = (
+     let stats = get_stats_heur T;
+         stats = set_stats_size_limit lbd sze stats
+     in set_stats_wl_heur stats T
+)\<close>
+
+definition get_lsize_limit_stats_st :: \<open>_\<close> where
+  \<open>get_lsize_limit_stats_st T = get_lsize_limit_stats (get_stats_heur T)\<close>
+
 end

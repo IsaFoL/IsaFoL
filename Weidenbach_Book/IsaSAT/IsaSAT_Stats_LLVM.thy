@@ -98,7 +98,7 @@ sepref_def empty_pure_lits_stats_impl
   by sepref
 
 definition lbd_size_limit_assn where
-  \<open>lbd_size_limit_assn = word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>lbd_size_limit_assn = uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
 
 definition empty_lsize_limit_stats :: \<open>lbd_size_limit_stats\<close> where
   \<open>empty_lsize_limit_stats = (0,0)\<close>
@@ -107,6 +107,8 @@ sepref_def empty_lsize_limit_stats_impl
   is \<open>uncurry0 (RETURN empty_lsize_limit_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
   unfolding lbd_size_limit_assn_def empty_lsize_limit_stats_def
+  apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(\<hole>, _)\<close> unat_const_fold[where 'a=32])
   by sepref
 
 definition ema_init_bottom :: \<open>ema\<close> where
@@ -167,6 +169,12 @@ sepref_def free_word32_assn
   by sepref
 
 
+sepref_def free_lbd_size_limit_assn
+  is \<open>mop_free\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding lbd_size_limit_assn_def
+  by sepref
+
 lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a unit_assn \<Longrightarrow> MK_FREE R f\<close>
   unfolding mop_free_def
   apply (rule MK_FREEI)
@@ -184,7 +192,13 @@ lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a 
     done
   done
 
-definition isasat_stats_assn :: \<open>isasat_stats \<Rightarrow> _\<close> where
+
+type_synonym isasat_stats_assn = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
+  inprocessing_pure_lits_stats, 32 word \<times> 64 word, 64 word, 64 word,
+  64 word, 64 word,64 word, 64 word,
+  64 word, 64 word, 32 word, 64 word) tuple16\<close>
+
+definition isasat_stats_assn :: \<open>isasat_stats \<Rightarrow> isasat_stats_assn \<Rightarrow> _ \<Rightarrow> bool\<close> where
   \<open>isasat_stats_assn = tuple16_assn search_stats_assn binary_stats_assn subsumption_stats_assn ema_assn
  pure_lits_stats_assn lbd_size_limit_assn word64_assn word64_assn word64_assn word64_assn
  word64_assn word64_assn word64_assn word64_assn word32_assn word64_assn\<close>
@@ -261,7 +275,7 @@ global_interpretation tuple16 where
   c_free = free_subsumption_stats_assn and
   d_free = free_ema_assn and
   e_free = free_pure_lits_stats_assn and
-  f_free = free_pure_lits_stats_assn and
+  f_free = free_lbd_size_limit_assn and
   g_free = free_word64_assn and
   h_free = free_word64_assn and
   i_free = free_word64_assn and
@@ -291,6 +305,7 @@ global_interpretation tuple16 where
     free_pure_lits_stats_assn.refine[THEN mop_free_hnr', unfolded lbd_size_limit_assn_def[symmetric] pure_lits_stats_assn_def]
     free_word64_assn.refine[THEN mop_free_hnr']
     free_word32_assn.refine[THEN mop_free_hnr']
+    free_lbd_size_limit_assn.refine[THEN mop_free_hnr']
     )+
   subgoal unfolding isasat_stats_assn_def tuple16_ops.isasat_assn_def ..
   subgoal unfolding extract_search_strategy_stats_def ..
@@ -417,6 +432,7 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   remove_c_code_alt_def[unfolded tuple16.remove_c_code_alt_def Mreturn_comp_Tuple16]
   remove_d_code_alt_def[unfolded tuple16.remove_d_code_alt_def Mreturn_comp_Tuple16]
   remove_e_code_alt_def[unfolded tuple16.remove_e_code_alt_def Mreturn_comp_Tuple16]
+  remove_f_code_alt_def[unfolded tuple16.remove_f_code_alt_def Mreturn_comp_Tuple16]
 
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure isasat_stats_assn\<close>
   unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def
@@ -647,19 +663,19 @@ sepref_def Pure_Lits_Stats_removed_rounds_impl
 
 sepref_def LSize_Stats_lbd_impl
   is \<open>RETURN o LSize_Stats_lbd\<close>
-  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding  LSize_Stats_lbd_def lbd_size_limit_assn_def
   by sepref
 
 sepref_def LSize_Stats_size_impl
   is \<open>RETURN o LSize_Stats_size\<close>
-  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding  LSize_Stats_size_def lbd_size_limit_assn_def
   by sepref
 
 sepref_def LSize_Stats_impl
   is \<open>uncurry (RETURN oo LSize_Stats)\<close>
-  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
   unfolding  LSize_Stats_def lbd_size_limit_assn_def
   by sepref
 
@@ -847,13 +863,13 @@ sepref_def stats_avg_lbd_mpl
 sepref_register LSize_Stats_lbd LSize_Stats_size LSize_Stats
 sepref_def stats_lbd_limit_impl
   is \<open>RETURN o stats_lbd_limit\<close>
-  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding stats_lbd_limit_def stats_code_unfold
   by sepref
 
 sepref_def stats_size_limit_impl
   is \<open>RETURN o stats_size_limit\<close>
-  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding stats_size_limit_def stats_code_unfold
   by sepref
 
