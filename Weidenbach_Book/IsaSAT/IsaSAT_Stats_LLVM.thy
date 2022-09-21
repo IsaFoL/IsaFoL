@@ -1,6 +1,7 @@
 theory IsaSAT_Stats_LLVM
-imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM
+imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM Tuple16_LLVM
 begin
+
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 hide_const (open) NEMonad.RETURN NEMonad.ASSERT
@@ -47,67 +48,396 @@ lemma Constructor_hnr[sepref_fr_rules]:
   unfolding code_hider_rel_def
   by (auto simp: intro!: frefI)
 
-abbreviation stats_int_rel :: \<open>(stats \<times> stats) set\<close> where
-  \<open>stats_int_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
-     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
+definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \<Rightarrow> _\<close> where
+  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
-abbreviation stats_int_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_int_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a
-     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
+definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
+  \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
-abbreviation stats_rel :: \<open>(stats \<times> isasat_stats) set\<close> where
-  \<open>stats_rel \<equiv> \<langle>stats_int_rel\<rangle>code_hider_rel\<close>
+definition binary_stats_assn :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats \<Rightarrow> _\<close> where
+  \<open>binary_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
-definition stats_assn :: \<open>isasat_stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_assn = code_hider_assn stats_int_assn Id\<close>
+definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats \<Rightarrow> _\<close> where
+  \<open>pure_lits_stats_assn = word64_assn \<times>\<^sub>a word64_assn\<close>
 
-lemma [sepref_import_param]:
-  \<open>(incr_propagation_stats,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(stats_conflicts_stats,stats_conflicts) \<in> stats_rel \<rightarrow> word_rel\<close>
-  \<open>(incr_conflict_stats,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_decision_stats,incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_restart_stats,incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_reduction_stats,incr_reduction) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_uset_stats,incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_GC_stats,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(add_lbd_stats,add_lbd) \<in> word32_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(units_since_last_GC_stats,units_since_last_GC)\<in> stats_rel \<rightarrow> word_rel\<close>
-  \<open>(units_since_beginning_stats,units_since_beginning)\<in> stats_rel \<rightarrow> word_rel\<close>
-  \<open>(decr_irred_clss_stats,decr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_irred_clss_stats,incr_irred_clss)\<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_purelit_elim_stats, incr_purelit_elim) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_purelit_rounds_stats, incr_purelit_rounds) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word64_rel\<close>
-  \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  by (auto simp: incr_propagation_def code_hider_rel_def
-    stats_conflicts_def incr_purelit_elim_def incr_purelit_rounds_def
-    incr_conflict_def incr_decision_def
-    incr_reduction_def incr_uset_def units_since_beginning_def
-    incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
-    units_since_last_GC_def incr_binary_unit_derived_clss_def
-    incr_restart_def incr_irred_clss_def get_conflict_count_def
-    decr_irred_clss_def incr_units_since_last_GC_def)
+definition empty_search_stats where
+  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0)\<close>
 
-lemmas [llvm_inline] =
-  incr_propagation_stats_def
-  incr_conflict_stats_def
-  incr_decision_stats_def
-  incr_restart_stats_def
-  incr_reduction_stats_def
-  incr_uset_stats_def
-  incr_GC_stats_def
-  stats_conflicts_stats_def
-  units_since_last_GC_stats_def
-  decr_irred_clss_stats_def
-  incr_irred_clss_stats_def
-  incr_units_since_last_GC_stats_def
-  get_conflict_count_stats_def
-  incr_binary_unit_derived_def
-  incr_binary_red_removed_def
+sepref_def empty_search_stats_impl
+  is \<open>uncurry0 (RETURN empty_search_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def empty_search_stats_def
+  by sepref
 
+
+definition empty_binary_stats :: \<open>inprocessing_binary_stats\<close> where
+  \<open>empty_binary_stats = (0,0,0)\<close>
+
+sepref_def empty_binary_stats_impl
+  is \<open>uncurry0 (RETURN empty_binary_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
+  unfolding binary_stats_assn_def empty_binary_stats_def
+  by sepref
+
+definition empty_subsumption_stats :: \<open>inprocessing_subsumption_stats\<close> where
+  \<open>empty_subsumption_stats = (0,0,0,0)\<close>
+
+sepref_def empty_subsumption_stats_impl
+  is \<open>uncurry0 (RETURN empty_subsumption_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding subsumption_stats_assn_def empty_subsumption_stats_def
+  by sepref
+
+definition empty_pure_lits_stats :: \<open>inprocessing_pure_lits_stats\<close> where
+  \<open>empty_pure_lits_stats = (0,0)\<close>
+
+sepref_def empty_pure_lits_stats_impl
+  is \<open>uncurry0 (RETURN empty_pure_lits_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
+  unfolding pure_lits_stats_assn_def empty_pure_lits_stats_def
+  by sepref
+
+definition lbd_size_limit_assn where
+  \<open>lbd_size_limit_assn = uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
+
+definition empty_lsize_limit_stats :: \<open>lbd_size_limit_stats\<close> where
+  \<open>empty_lsize_limit_stats = (0,0)\<close>
+
+sepref_def empty_lsize_limit_stats_impl
+  is \<open>uncurry0 (RETURN empty_lsize_limit_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  unfolding lbd_size_limit_assn_def empty_lsize_limit_stats_def
+  apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(\<hole>, _)\<close> unat_const_fold[where 'a=32])
+  by sepref
+
+definition ema_init_bottom :: \<open>ema\<close> where
+  \<open>ema_init_bottom = ema_init 0\<close>
+
+sepref_def ema_init_bottom_impl
+  is \<open>uncurry0 (RETURN ema_init_bottom)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding ema_init_bottom_def by sepref
+
+lemma stats_bottom:
+  \<open>(uncurry0 (return\<^sub>M 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  \<open>(uncurry0 (return\<^sub>M 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a word32_assn\<close>
+  by (sepref_to_hoare; vcg; fail)+
+
+schematic_goal mk_free_search_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE search_stats_assn ?fr\<close> and
+  mk_free_binary_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE binary_stats_assn ?fr2\<close> and
+  mk_free_subsumption_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE subsumption_stats_assn ?fr3\<close> and
+  mk_free_ema_assn[sepref_frame_free_rules]: \<open>MK_FREE ema_assn ?fr4\<close>and
+  mk_free_pure_lits_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE pure_lits_stats_assn ?fr5\<close>
+  unfolding search_stats_assn_def binary_stats_assn_def subsumption_stats_assn_def
+    pure_lits_stats_assn_def
+  by synthesize_free+
+
+sepref_def free_search_stats_assn
+  is \<open>mop_free\<close>
+  :: \<open>search_stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_binary_stats_assn
+  is \<open>mop_free\<close>
+  :: \<open>binary_stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_subsumption_stats_assn
+  is \<open>mop_free\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_pure_lits_stats_assn
+  is \<open>mop_free\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_ema_assn
+  is \<open>mop_free\<close>
+  :: \<open>ema_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_word64_assn
+  is \<open>mop_free\<close>
+  :: \<open>word64_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+sepref_def free_word32_assn
+  is \<open>mop_free\<close>
+  :: \<open>word32_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
+
+sepref_def free_lbd_size_limit_assn
+  is \<open>mop_free\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding lbd_size_limit_assn_def
+  by sepref
+
+lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a unit_assn \<Longrightarrow> MK_FREE R f\<close>
+  unfolding mop_free_def
+  apply (rule MK_FREEI)
+  apply simp
+  subgoal for a c
+    apply (drule hfrefD[of _ _ _ _ _ _ _ a c])
+    apply (rule TrueI)
+    apply (rule TrueI)
+    apply (drule hn_refineD)
+    apply simp
+    apply (rule htriple_pure_preI[of ])
+    unfolding fst_conv snd_conv hf_pres.simps
+    apply (clarsimp 
+      simp: hn_ctxt_def pure_def sep_algebra_simps invalid_assn_def)
+    done
+  done
+
+
+type_synonym isasat_stats_assn = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
+  inprocessing_pure_lits_stats, 32 word \<times> 64 word, 64 word, 64 word,
+  64 word, 64 word,64 word, 64 word,
+  64 word, 64 word, 32 word, 64 word) tuple16\<close>
+
+definition isasat_stats_assn :: \<open>isasat_stats \<Rightarrow> isasat_stats_assn \<Rightarrow> _ \<Rightarrow> bool\<close> where
+  \<open>isasat_stats_assn = tuple16_assn search_stats_assn binary_stats_assn subsumption_stats_assn ema_assn
+ pure_lits_stats_assn lbd_size_limit_assn word64_assn word64_assn word64_assn word64_assn
+ word64_assn word64_assn word64_assn word64_assn word32_assn word64_assn\<close>
+
+definition extract_search_strategy_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_search_strategy_stats = tuple16_ops.remove_a empty_search_stats\<close>
+
+definition extract_binary_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_binary_stats = tuple16_ops.remove_b empty_binary_stats\<close>
+
+definition extract_subsumption_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_subsumption_stats = tuple16_ops.remove_c empty_subsumption_stats\<close>
+
+definition extract_avg_lbd :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_avg_lbd = tuple16_ops.remove_d ema_init_bottom\<close>
+
+definition extract_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_pure_lits_stats = tuple16_ops.remove_e empty_pure_lits_stats\<close>
+
+definition extract_lbd_size_limit_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_lbd_size_limit_stats = tuple16_ops.remove_f empty_lsize_limit_stats\<close>
+
+global_interpretation tuple16 where
+  a_assn = search_stats_assn and
+  b_assn = binary_stats_assn and
+  c_assn = subsumption_stats_assn and
+  d_assn = ema_assn and
+  e_assn = pure_lits_stats_assn and
+  f_assn = lbd_size_limit_assn and
+  g_assn = word64_assn and
+  h_assn = word64_assn and
+  i_assn = word64_assn and
+  j_assn = word64_assn and
+  k_assn = word64_assn and
+  l_assn = word64_assn and
+  m_assn = word64_assn and
+  n_assn = word64_assn and
+  o_assn = word32_assn and
+  p_assn = word64_assn and
+  a_default = empty_search_stats and
+  a = empty_search_stats_impl and
+  b_default = empty_binary_stats and
+  b = empty_binary_stats_impl and
+  c_default = empty_subsumption_stats and
+  c = empty_subsumption_stats_impl and
+  d_default = ema_init_bottom and
+  d = ema_init_bottom_impl and
+  e_default = empty_pure_lits_stats and
+  e = empty_pure_lits_stats_impl and
+  f_default = \<open>empty_lsize_limit_stats\<close> and
+  f = \<open>empty_lsize_limit_stats_impl\<close> and
+  g_default = \<open>0\<close> and
+  g = \<open>Mreturn 0\<close> and
+  h_default = \<open>0\<close> and
+  h = \<open>Mreturn 0\<close> and
+  i_default = \<open>0\<close> and
+  i = \<open>Mreturn 0\<close> and
+  j_default = \<open>0\<close> and
+  j = \<open>Mreturn 0\<close> and
+  k_default = \<open>0\<close> and
+  k = \<open>Mreturn 0\<close> and
+  l_default = \<open>0\<close> and
+  l = \<open>Mreturn 0\<close> and
+  m_default = \<open>0\<close> and
+  m = \<open>Mreturn 0\<close> and
+  n_default = \<open>0\<close> and
+  n = \<open>Mreturn 0\<close> and
+  ko_default = \<open>0\<close> and
+  ko = \<open>Mreturn 0\<close> and
+  p_default = \<open>0\<close> and
+  p = \<open>Mreturn 0\<close> and
+  a_free = free_search_stats_assn and
+  b_free = free_binary_stats_assn and
+  c_free = free_subsumption_stats_assn and
+  d_free = free_ema_assn and
+  e_free = free_pure_lits_stats_assn and
+  f_free = free_lbd_size_limit_assn and
+  g_free = free_word64_assn and
+  h_free = free_word64_assn and
+  i_free = free_word64_assn and
+  j_free = free_word64_assn and
+  k_free = free_word64_assn and
+  l_free = free_word64_assn and
+  m_free = free_word64_assn and
+  n_free = free_word64_assn and
+  o_free = free_word32_assn and
+  p_free = free_word64_assn
+  rewrites \<open>isasat_assn = isasat_stats_assn\<close> and
+    \<open>remove_a = extract_search_strategy_stats\<close> and
+    \<open>remove_b = extract_binary_stats\<close> and
+    \<open>remove_c = extract_subsumption_stats\<close> and
+    \<open>remove_d = extract_avg_lbd\<close> and
+    \<open>remove_e = extract_pure_lits_stats\<close> and
+    \<open>remove_f = extract_lbd_size_limit_stats\<close>
+  apply unfold_locales
+  apply (rule empty_search_stats_impl.refine empty_binary_stats_impl.refine
+    empty_subsumption_stats_impl.refine ema_init_bottom_impl.refine empty_pure_lits_stats_impl.refine
+    stats_bottom  free_search_stats_assn.refine[THEN mop_free_hnr']
+    free_binary_stats_assn.refine[THEN mop_free_hnr']
+    free_subsumption_stats_assn.refine[THEN mop_free_hnr']
+    free_ema_assn.refine[THEN mop_free_hnr']
+    free_pure_lits_stats_assn.refine[THEN mop_free_hnr']
+    empty_lsize_limit_stats_impl.refine
+    free_pure_lits_stats_assn.refine[THEN mop_free_hnr', unfolded lbd_size_limit_assn_def[symmetric] pure_lits_stats_assn_def]
+    free_word64_assn.refine[THEN mop_free_hnr']
+    free_word32_assn.refine[THEN mop_free_hnr']
+    free_lbd_size_limit_assn.refine[THEN mop_free_hnr']
+    )+
+  subgoal unfolding isasat_stats_assn_def tuple16_ops.isasat_assn_def ..
+  subgoal unfolding extract_search_strategy_stats_def ..
+  subgoal unfolding extract_binary_stats_def ..
+  subgoal unfolding extract_subsumption_stats_def ..
+  subgoal unfolding extract_avg_lbd_def ..
+  subgoal unfolding extract_pure_lits_stats_def ..
+  subgoal unfolding extract_lbd_size_limit_stats_def ..
+  done
+
+sepref_register
+  remove_a remove_b remove_c remove_d
+  remove_e remove_f remove_g remove_h
+  remove_i remove_j remove_k remove_l
+  remove_m remove_n remove_o remove_p
+
+
+fun tuple16_rel :: \<open>
+  ('a \<times> _ ) set \<Rightarrow>
+  ('b \<times> _ ) set \<Rightarrow>
+  ('c \<times> _ ) set \<Rightarrow>
+  ('d \<times> _ ) set \<Rightarrow>
+  ('e \<times> _ ) set \<Rightarrow>
+  ('f \<times> _ ) set \<Rightarrow>
+  ('g \<times> _ ) set \<Rightarrow>
+  ('h \<times> _ ) set \<Rightarrow>
+  ('i \<times> _ ) set \<Rightarrow>
+  ('j \<times> _ ) set \<Rightarrow>
+  ('k \<times> _ ) set \<Rightarrow>
+  ('l \<times> _ ) set \<Rightarrow>
+  ('m \<times> _ ) set \<Rightarrow>
+  ('n \<times> _ ) set \<Rightarrow>
+  ('o \<times> _ ) set \<Rightarrow>
+  ('p \<times> _ ) set \<Rightarrow>
+  (('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
+     'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<times> _)set\<close> where
+  \<open>tuple16_rel a_assn b_assn' c_assn d_assn e_assn f_assn g_assn h_assn i_assn j_assn k_assn l_assn m_assn n_assn o_assn p_assn =
+   {(S, T). case (S, T) of
+  (Tuple16 M N D i W ivmtf icount ccach lbd outl heur stats aivdom clss opts arena,
+   Tuple16 M' N' D' i' W' ivmtf' icount' ccach' lbd' outl' heur' stats' aivdom' clss' opts' arena')
+     \<Rightarrow>
+ ((M, M')\<in>a_assn \<and> (N, N')\<in>b_assn' \<and>  (D, D')\<in>c_assn  \<and>  (i,i')\<in>d_assn \<and>
+  (W, W')\<in>e_assn \<and>   (ivmtf, ivmtf')\<in>f_assn \<and>  (icount, icount')\<in> g_assn \<and>  (ccach,ccach')\<in> h_assn\<and>
+  (lbd,lbd')\<in>i_assn \<and>   (outl,outl')\<in> j_assn\<and>   (heur,heur')\<in>k_assn  \<and>   (stats,stats')\<in> l_assn\<and>
+     (aivdom,aivdom')\<in> m_assn\<and>  (clss,clss')\<in> n_assn\<and>   (opts,opts')\<in>o_assn  \<and>  (arena,arena')\<in>p_assn)
+  }\<close>
+
+lemma tuple16_assn_tuple16_rel:
+  \<open>tuple16_assn (pure A) (pure B)(pure C)(pure D)(pure E)(pure F)(pure G)(pure H)(pure I)(pure J)(pure K)(pure L)(pure M)(pure N)(pure KO)(pure P) =
+  pure (tuple16_rel A B C D E F G H I J K L M N KO P)\<close>
+  by (auto intro!: ext simp: pure_def import_param_3(1) split: tuple16.splits)
+
+lemma pure_keep_detroy: "(pure R)\<^sup>k = (pure R)\<^sup>d"
+  by (auto intro!: ext simp: invalid_pure_recover)
+lemma "is_pure R \<Longrightarrow> R\<^sup>k = R\<^sup>d"
+  by (metis is_pure_conv pure_keep_detroy)
+
+lemma isasat_stats_assn_pure_keep:
+  \<open>isasat_stats_assn\<^sup>d = isasat_stats_assn\<^sup>k\<close>
+  unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def lbd_size_limit_assn_def
+    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def
+    binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy ..
+
+lemmas [unfolded isasat_stats_assn_pure_keep, sepref_fr_rules] =
+  remove_a_code.refine
+  remove_b_code.refine
+  remove_c_code.refine
+  remove_d_code.refine
+  remove_e_code.refine
+  remove_f_code.refine
+
+named_theorems stats_extractors \<open>Definition of all functions modifying the state\<close>
+
+lemmas [stats_extractors] =
+  extract_search_strategy_stats_def
+  extract_binary_stats_def
+  extract_subsumption_stats_def
+  extract_avg_lbd_def
+  extract_pure_lits_stats_def
+  tuple16_ops.remove_a_def
+  tuple16_ops.remove_b_def
+  tuple16_ops.remove_c_def
+  tuple16_ops.remove_d_def
+  tuple16_ops.remove_e_def
+  tuple16_ops.remove_f_def
+  tuple16_ops.update_a_def
+  tuple16_ops.update_b_def
+  tuple16_ops.update_c_def
+  tuple16_ops.update_d_def
+  tuple16_ops.update_e_def
+  tuple16_ops.update_f_def
+
+
+text \<open>We do some cheating to simplify code generation, instead of using our alternative definitions
+  as for the states.\<close>
+lemma stats_code_unfold:
+  \<open>get_search_stats x = fst (extract_search_strategy_stats x)\<close>
+  \<open>get_binary_stats x = fst (extract_binary_stats x)\<close>
+  \<open>get_subsumption_stats x = fst (extract_subsumption_stats x)\<close>
+  \<open>get_pure_lits_stats x = fst (extract_pure_lits_stats x)\<close>
+  \<open>get_avg_lbd_stats x = fst (extract_avg_lbd x)\<close>
+  \<open>get_lsize_limit_stats x = fst (extract_lbd_size_limit_stats x)\<close>
+  \<open>set_propagation_stats a x = update_a a x\<close>
+  \<open>set_binary_stats b x = update_b b x\<close>
+  \<open>set_subsumption_stats c x = update_c c x\<close>
+  \<open>set_avg_lbd_stats lbd x = update_d lbd x\<close>
+  \<open>set_pure_lits_stats e x = update_e e x\<close>
+  \<open>set_lsize_limit_stats f x = update_f f x\<close>
+  by (cases x; auto simp: get_search_stats_def get_avg_lbd_stats_def
+    set_avg_lbd_stats_def set_propagation_stats_def set_binary_stats_def
+    set_subsumption_stats_def set_pure_lits_stats_def get_lsize_limit_stats_def
+    extract_lbd_size_limit_stats_def
+    get_subsumption_stats_def get_pure_lits_stats_def set_lsize_limit_stats_def
+    get_binary_stats_def stats_extractors; fail)+
+
+lemma Mreturn_comp_Tuple16:
+  \<open>(Mreturn o\<^sub>1\<^sub>6 Tuple16) a b c d e f g h i j k l m n ko p =
+  Mreturn (Tuple16 a b c d e f g h i j k l m n ko p)\<close>
+  by auto
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  remove_a_code_alt_def[unfolded tuple16.remove_a_code_alt_def Mreturn_comp_Tuple16]
+  remove_b_code_alt_def[unfolded tuple16.remove_b_code_alt_def Mreturn_comp_Tuple16]
+  remove_c_code_alt_def[unfolded tuple16.remove_c_code_alt_def Mreturn_comp_Tuple16]
+  remove_d_code_alt_def[unfolded tuple16.remove_d_code_alt_def Mreturn_comp_Tuple16]
+  remove_e_code_alt_def[unfolded tuple16.remove_e_code_alt_def Mreturn_comp_Tuple16]
+  remove_f_code_alt_def[unfolded tuple16.remove_f_code_alt_def Mreturn_comp_Tuple16]
+
+lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure isasat_stats_assn\<close>
+  unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def
+    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def lbd_size_limit_assn_def
+    binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy by auto
 
 lemma id_unat[sepref_fr_rules]:
   \<open>(Mreturn o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -116,210 +446,469 @@ lemma id_unat[sepref_fr_rules]:
   by (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps
     pred_lift_def pure_true_conv)
 
-sepref_def add_lbd_stats_impl
-  is \<open>uncurry (RETURN oo add_lbd_stats)\<close>
-  :: \<open>word32_assn\<^sup>k *\<^sub>a stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding add_lbd_stats_def
+lemma [sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure B \<Longrightarrow> (Mreturn o (\<lambda>(a,b). a), RETURN o fst) \<in> (A \<times>\<^sub>a B)\<^sup>d \<rightarrow>\<^sub>a A\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (auto simp: ENTAILS_def)
+  by (smt (verit, best) entails_def fri_startI_extended(3) is_pure_iff_pure_assn pure_part_pure_eq pure_part_split_conj pure_true_conv sep_conj_aci(5))
+
+sepref_def Search_Stats_conflicts_impl
+  is \<open>RETURN o Search_Stats_conflicts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_conflicts_def
   by sepref
 
-lemma add_lbd_stats_add_lbd:
-  \<open>(add_lbd_stats, add_lbd) \<in> word_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close> and
-  get_conflict_count_stats_get_conflict_count:
-  \<open>(get_conflict_count_stats, get_conflict_count) \<in> stats_rel \<rightarrow> word_rel\<close> and
-  units_since_last_GC_stats_units_since_last_GC:
-  \<open>(units_since_last_GC_stats, units_since_last_GC) \<in> stats_rel \<rightarrow> word_rel\<close> and
-  units_since_beginning_stats_units_since_beginning:
-  \<open>(units_since_beginning_stats, units_since_beginning) \<in> stats_rel \<rightarrow> word_rel\<close> and
-  reset_units_since_last_GC_stats_reset_units_since_last_GC:
-  \<open>(reset_units_since_last_GC_stats, reset_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  incr_irred_clss_stats_incr_irred_clss:
-  \<open>(incr_irred_clss_stats, incr_irred_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  decr_irred_clss_stats_decr_irred_clss:
-  \<open>(decr_irred_clss_stats, decr_irred_clss) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  incr_propagation_stats_incr_propagation:
-  \<open>(incr_propagation_stats, incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_conflict_stats_incr_conflict:
-  \<open>(incr_conflict_stats, incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_decision_stats_incr_decision:
-  \<open>(incr_decision_stats, incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_GC_stats_incr_GC:
-  \<open>(incr_GC_stats, incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_uset_stats_incr_uset:
-  \<open>(incr_uset_stats, incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_restart_stats_incr_restart:
-  \<open>(incr_restart_stats, incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_reduction_stats_incr_reduction:
-  \<open>(incr_reduction_stats, incr_reduction) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  stats_conflicts_stats_stats_conflicts:
-  \<open>(stats_conflicts_stats, stats_conflicts)\<in> stats_rel \<rightarrow> word_rel\<close> and
-  incr_units_since_last_GC_stats_incr_units_since_last_GC:
-  \<open>(incr_units_since_last_GC_stats, incr_units_since_last_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>and
-  incr_purelit_elim_stats_incr_purelit_elim:
-  \<open>(incr_purelit_elim_stats, incr_purelit_elim) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  incr_purelit_rounds_stats_incr_purelit_rounds:
-  \<open>(incr_purelit_rounds_stats, incr_purelit_rounds) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  incr_binary_unit_derived_incr_binary_unit_derived_clss:
-    \<open>(incr_binary_unit_derived, incr_binary_unit_derived_clss) \<in> stats_rel \<rightarrow> stats_rel\<close> and
-  incr_binary_red_removed_incr_binary_red_removed_clss:
-    \<open>(incr_binary_red_removed, incr_binary_red_removed_clss) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  by (auto simp: incr_propagation_def code_hider_rel_def
-    stats_conflicts_def
-    incr_conflict_def incr_decision_def incr_purelit_elim_def incr_purelit_rounds_def
-    incr_reduction_def incr_uset_def units_since_beginning_def
-    reset_units_since_last_GC_def
-    incr_GC_def add_lbd_def add_lbd_def incr_binary_red_removed_clss_def
-    units_since_last_GC_def incr_binary_unit_derived_clss_def
-    incr_restart_def incr_irred_clss_def get_conflict_count_def
-    decr_irred_clss_def incr_units_since_last_GC_def)
+sepref_def Search_Stats_units_since_gcs_impl
+  is \<open>RETURN o Search_Stats_units_since_gcs\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_units_since_gcs_def
+  by sepref
+
+sepref_def Search_Stats_reset_units_since_gc_impl
+  is \<open>RETURN o Search_Stats_reset_units_since_gc\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_reset_units_since_gc_def
+  by sepref
+
+sepref_def Search_Stats_fixed_impl
+  is \<open>RETURN o Search_Stats_fixed\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_fixed_def
+  by sepref
+
+sepref_def add_lbd_stats_impl
+  is \<open>uncurry (RETURN oo add_lbd)\<close>
+  :: \<open>word32_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding add_lbd_def stats_code_unfold
+  by sepref
 
 sepref_def get_conflict_count_stats_impl
-  is \<open>(RETURN o get_conflict_count_stats)\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_conflict_count_stats_def
+  is \<open>(RETURN o get_conflict_count)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_conflicts_def stats_code_unfold
   by sepref
 
 
 sepref_def units_since_last_GC_stats_impl
-  is \<open>(RETURN o units_since_last_GC_stats)\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding units_since_last_GC_stats_def
+  is \<open>(RETURN o units_since_last_GC)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding units_since_last_GC_def stats_code_unfold
   by sepref
 
 sepref_def reset_units_since_last_GC_stats_impl
-  is \<open>(RETURN o reset_units_since_last_GC_stats)\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding reset_units_since_last_GC_stats_def
+  is \<open>(RETURN o reset_units_since_last_GC)\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding reset_units_since_last_GC_def stats_code_unfold
   by sepref
 
+sepref_def Search_Stats_incr_irred_impl
+  is \<open>RETURN o Search_Stats_incr_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_irred_def
+  by sepref
+
+sepref_def Search_Stats_decr_irred_impl
+  is \<open>RETURN o Search_Stats_decr_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_decr_irred_def
+  by sepref
+
+sepref_def Search_Stats_incr_propagation_impl
+  is \<open>RETURN o Search_Stats_incr_propagation\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_propagation_def
+  by sepref
+
+sepref_def Search_Stats_incr_conflicts_impl
+  is \<open>RETURN o Search_Stats_incr_conflicts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_conflicts_def
+  by sepref
+
+sepref_def Search_Stats_incr_decisions_impl
+  is \<open>RETURN o Search_Stats_incr_decisions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_decisions_def
+  by sepref
+
+sepref_def Search_Stats_incr_restarts_impl
+  is \<open>RETURN o Search_Stats_incr_restarts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_restarts_def
+  by sepref
+
+sepref_def Search_Stats_incr_reductions_impl
+  is \<open>RETURN o Search_Stats_incr_reductions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_reductions_def
+  by sepref
+
+sepref_def Search_Stats_incr_fixed_impl
+  is \<open>RETURN o Search_Stats_incr_fixed\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_fixed_def
+  by sepref
+
+sepref_def Search_Stats_incr_gcs_impl
+  is \<open>RETURN o Search_Stats_incr_gcs\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_gcs_def
+  by sepref
+
+sepref_def Search_Stats_incr_units_since_gc_impl
+  is \<open>RETURN o Search_Stats_incr_units_since_gc\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_units_since_gc_def
+  by sepref
+
+sepref_def Pure_lits_Stats_incr_rounds_impl
+  is \<open>RETURN o Pure_lits_Stats_incr_rounds\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_lits_Stats_incr_rounds_def
+  by sepref
+
+sepref_def Pure_lits_Stats_incr_removed_impl
+  is \<open>RETURN o Pure_lits_Stats_incr_removed\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a pure_lits_stats_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_lits_Stats_incr_removed_def
+  by sepref
+
+sepref_def Binary_Stats_incr_units_impl
+  is \<open>RETURN o Binary_Stats_incr_units\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_incr_units_def
+  by sepref
+
+sepref_def Binary_Stats_incr_removed_def
+  is \<open>RETURN o Binary_Stats_incr_removed\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a binary_stats_assn\<close>
+  unfolding Binary_Stats_incr_removed_def binary_stats_assn_def
+  by sepref
+
+sepref_def Search_Stats_restarts_impl
+  is \<open>RETURN o Search_Stats_restarts\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_restarts_def
+  by sepref
+
+sepref_def Search_Stats_reductions_impl
+  is \<open>RETURN o Search_Stats_reductions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_reductions_def
+  by sepref
+
+sepref_def Search_Stats_irred_impl
+  is \<open>RETURN o Search_Stats_irred\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_irred_def
+  by sepref
+
+sepref_def Search_Stats_propagations_impl
+  is \<open>RETURN o Search_Stats_propagations\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_propagations_def
+  by sepref
+
+sepref_def Search_Stats_gcs_impl
+  is \<open>RETURN o Search_Stats_gcs\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_gcs_def
+  by sepref
+
+sepref_register Search_Stats_fixed Search_Stats_incr_irred Search_Stats_decr_irred
+  Search_Stats_incr_propagation Search_Stats_incr_conflicts
+  Search_Stats_incr_decisions Search_Stats_incr_restarts
+  Search_Stats_incr_reductions Search_Stats_incr_fixed Search_Stats_incr_gcs
+  Pure_lits_Stats_incr_rounds Pure_lits_Stats_incr_removed
+  Binary_Stats_incr_removed Binary_Stats_incr_units
+  Search_Stats_reductions Search_Stats_restarts
+  Search_Stats_irred Search_Stats_propagations Search_Stats_gcs
+
+sepref_def Search_Stats_decisions_impl
+  is \<open>RETURN o Search_Stats_decisions\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_decisions_def
+  by sepref
+
+sepref_def Binary_stats_rounds_impl
+  is \<open>RETURN o Binary_Stats_rounds\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_rounds_def
+  by sepref
+
+sepref_def Binary_stats_units_impl
+  is \<open>RETURN o Binary_Stats_units\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_units_def
+  by sepref
+
+sepref_def Binary_stats_removed_impl
+  is \<open>RETURN o Binary_Stats_removed\<close>
+  :: \<open>binary_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding binary_stats_assn_def Binary_Stats_removed_def
+  by sepref
+
+sepref_def Pure_Lits_Stats_removed_impl
+  is \<open>RETURN o Pure_Lits_Stats_removed\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_Lits_Stats_removed_def
+  by sepref
+
+sepref_def Pure_Lits_Stats_removed_rounds_impl
+  is \<open>RETURN o Pure_Lits_Stats_rounds\<close>
+  :: \<open>pure_lits_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding pure_lits_stats_assn_def Pure_Lits_Stats_rounds_def
+  by sepref
+
+sepref_def LSize_Stats_lbd_impl
+  is \<open>RETURN o LSize_Stats_lbd\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding  LSize_Stats_lbd_def lbd_size_limit_assn_def
+  by sepref
+
+sepref_def LSize_Stats_size_impl
+  is \<open>RETURN o LSize_Stats_size\<close>
+  :: \<open>lbd_size_limit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding  LSize_Stats_size_def lbd_size_limit_assn_def
+  by sepref
+
+sepref_def LSize_Stats_impl
+  is \<open>uncurry (RETURN oo LSize_Stats)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  unfolding  LSize_Stats_def lbd_size_limit_assn_def
+  by sepref
+
+
+sepref_register Search_Stats_decisions Pure_Lits_Stats_rounds Pure_Lits_Stats_removed
+  Binary_Stats_removed Binary_Stats_rounds Binary_Stats_units
+sepref_def stats_decisions_impl
+  is \<open>RETURN o stats_decisions\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_decisions_def stats_code_unfold by sepref
+
+sepref_def stats_irred_impl
+  is \<open>RETURN o stats_irred\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_irred_def stats_code_unfold by sepref
+
+sepref_def stats_binary_units_impl
+  is \<open>RETURN o stats_binary_units\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_units_def stats_code_unfold by sepref
+
+sepref_def stats_binary_removed_impl
+  is \<open>RETURN o stats_binary_removed\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_removed_def stats_code_unfold by sepref
+sepref_def stats_binary_rounds_impl
+  is \<open>RETURN o stats_binary_rounds\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_binary_rounds_def stats_code_unfold by sepref
+
+sepref_def stats_pure_lits_rounds_impl
+  is \<open>RETURN o stats_pure_lits_rounds\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_pure_lits_rounds_def stats_code_unfold by sepref
+
+sepref_def stats_pure_lits_removed_impl
+  is \<open>RETURN o stats_pure_lits_removed\<close> :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+ unfolding stats_pure_lits_removed_def stats_code_unfold by sepref
+
 sepref_def units_since_beginning_stats_impl
-  is \<open>(RETURN o units_since_beginning_stats)\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding units_since_beginning_stats_def
+  is \<open>(RETURN o units_since_beginning)\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding units_since_beginning_def stats_code_unfold
   by sepref
 
 sepref_def incr_irred_clss_stats_impl
-  is \<open>RETURN o incr_irred_clss_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_irred_clss_stats_def
+  is \<open>RETURN o incr_irred_clss\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_irred_clss_def stats_code_unfold
   by sepref
 
 sepref_def decr_irred_clss_stats_impl
-  is \<open>RETURN o decr_irred_clss_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding decr_irred_clss_stats_def
+  is \<open>RETURN o decr_irred_clss\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding decr_irred_clss_def stats_code_unfold
   by sepref
 
 sepref_def incr_propagation_stats_impl
-  is \<open>RETURN o incr_propagation_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_propagation_stats_def
+  is \<open>RETURN o incr_propagation\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_propagation_def stats_code_unfold
   by sepref
 
 sepref_def incr_conflict_stats_impl
-  is \<open>RETURN o incr_conflict_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_conflict_stats_def
+  is \<open>RETURN o incr_conflict\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_conflict_def stats_code_unfold
   by sepref
 
 sepref_def incr_decision_stats_impl
-  is \<open>RETURN o incr_decision_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_decision_stats_def
+  is \<open>RETURN o incr_decision\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_decision_def stats_code_unfold
   by sepref
 
 sepref_def incr_restart_stats_impl
-  is \<open>RETURN o incr_restart_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_restart_stats_def
+  is \<open>RETURN o incr_restart\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_restart_def stats_code_unfold
   by sepref
 
 sepref_def incr_reduction_stats_impl
-  is \<open>RETURN o incr_reduction_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_reduction_stats_def
+  is \<open>RETURN o incr_reduction\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_reduction_def stats_code_unfold
   by sepref
 
 sepref_def incr_uset_stats_impl
-  is \<open>RETURN o incr_uset_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_uset_stats_def
+  is \<open>RETURN o incr_uset\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_uset_def stats_code_unfold
   by sepref
 
 sepref_def incr_GC_stats_impl
-  is \<open>RETURN o incr_GC_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_GC_stats_def
+  is \<open>RETURN o incr_GC\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_GC_def stats_code_unfold
   by sepref
 
-sepref_def stats_conflicts_stats_impl
-  is \<open>RETURN o stats_conflicts_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding stats_conflicts_stats_def
+sepref_def stats_conflicts_impl
+  is \<open>RETURN o stats_conflicts\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_conflicts_def stats_code_unfold
     by sepref
 
-sepref_def incr_units_since_last_GC_stats_impl
-  is \<open>RETURN o incr_units_since_last_GC_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_units_since_last_GC_stats_def
+sepref_def incr_units_since_last_GC_impl
+  is \<open>RETURN o incr_units_since_last_GC\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_units_since_last_GC_def stats_code_unfold
   by sepref
 
-sepref_def incr_purelit_rounds_stats_impl
-  is \<open>RETURN o incr_purelit_rounds_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_purelit_rounds_stats_def
+sepref_def incr_purelit_rounds_impl
+  is \<open>RETURN o incr_purelit_rounds\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_purelit_rounds_def stats_code_unfold
   by sepref
 
 sepref_def incr_purelit_elim_stats_impl
-  is \<open>RETURN o incr_purelit_elim_stats\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_purelit_elim_stats_def
+  is \<open>RETURN o incr_purelit_elim\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_purelit_elim_def stats_code_unfold
   by sepref
 
 sepref_def incr_binary_red_removed_impl
   is \<open>RETURN o incr_binary_red_removed\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_binary_red_removed_def
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_binary_red_removed_def stats_code_unfold
   by sepref
 
 sepref_def incr_binary_unit_derived_impl
   is \<open>RETURN o incr_binary_unit_derived\<close>
-  :: \<open>stats_int_assn\<^sup>d \<rightarrow>\<^sub>a stats_int_assn\<close>
-  unfolding incr_binary_unit_derived_def
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_binary_unit_derived_def stats_code_unfold
   by sepref
 
-lemma stats_assn_alt_def: \<open>stats_assn = hr_comp stats_int_assn stats_rel\<close>
-  \<open>stats_int_assn = hr_comp stats_int_assn stats_int_rel\<close>
-  by (auto simp: stats_assn_def code_hider_assn_def)
+sepref_def get_reduction_count_impl
+  is \<open>RETURN o get_reduction_count\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_reduction_count_def stats_code_unfold
+  by sepref
 
-context
-  notes [fcomp_norm_unfold] = stats_assn_alt_def[symmetric] stats_assn_def[symmetric]
-begin
+sepref_def get_restart_count_impl
+  is \<open>RETURN o get_restart_count\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_restart_count_def stats_code_unfold
+  by sepref
 
-lemmas stats_refine[sepref_fr_rules] =
-  add_lbd_stats_impl.refine[FCOMP add_lbd_stats_add_lbd]
-  get_conflict_count_stats_impl.refine[FCOMP get_conflict_count_stats_get_conflict_count]
-  units_since_last_GC_stats_impl.refine[FCOMP units_since_last_GC_stats_units_since_last_GC]
-  units_since_beginning_stats_impl.refine[FCOMP units_since_beginning_stats_units_since_beginning]
-  reset_units_since_last_GC_stats_impl.refine[FCOMP reset_units_since_last_GC_stats_reset_units_since_last_GC]
-  incr_irred_clss_stats_impl.refine[FCOMP incr_irred_clss_stats_incr_irred_clss]
-  decr_irred_clss_stats_impl.refine[FCOMP decr_irred_clss_stats_decr_irred_clss]
-  incr_propagation_stats_impl.refine[FCOMP incr_propagation_stats_incr_propagation]
-  incr_decision_stats_impl.refine[FCOMP incr_decision_stats_incr_decision]
-  incr_restart_stats_impl.refine[FCOMP incr_restart_stats_incr_restart]
-  incr_reduction_stats_impl.refine[FCOMP incr_reduction_stats_incr_reduction]
-  incr_uset_stats_impl.refine[FCOMP incr_uset_stats_incr_uset]
-  incr_conflict_stats_impl.refine[FCOMP incr_conflict_stats_incr_conflict]
-  incr_GC_stats_impl.refine[FCOMP incr_GC_stats_incr_GC]
-  stats_conflicts_stats_impl.refine[FCOMP stats_conflicts_stats_stats_conflicts]
-  incr_units_since_last_GC_stats_impl.refine[FCOMP incr_units_since_last_GC_stats_incr_units_since_last_GC]
-  incr_purelit_rounds_stats_impl.refine[FCOMP incr_purelit_rounds_stats_incr_purelit_rounds]
-  incr_purelit_elim_stats_impl.refine[FCOMP incr_purelit_elim_stats_incr_purelit_elim]
-  hn_id[FCOMP Constructor_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
-  hn_id[FCOMP get_content_hnr, of stats_int_assn stats_int_rel, unfolded stats_assn_alt_def[symmetric]]
-  incr_binary_unit_derived_impl.refine[FCOMP incr_binary_unit_derived_incr_binary_unit_derived_clss]
-  incr_binary_red_removed_impl.refine[FCOMP incr_binary_red_removed_incr_binary_red_removed_clss]
 
-end
+sepref_def get_irredundant_count_impl
+  is \<open>RETURN o irredundant_clss\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding irredundant_clss_def stats_code_unfold
+  by sepref
+
+sepref_def stats_propagations_impl
+  is \<open>RETURN o stats_propagations\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_propagations_def stats_code_unfold
+  by sepref
+
+sepref_def stats_restarts_impl
+  is \<open>RETURN o stats_restarts\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_restarts_def stats_code_unfold
+  by sepref
+
+sepref_def stats_reductions_impl
+  is \<open>RETURN o stats_reductions\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_reductions_def stats_code_unfold
+  by sepref
+
+sepref_def stats_fixed_impl
+  is \<open>RETURN o stats_fixed\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_fixed_def stats_code_unfold
+  by sepref
+
+sepref_def stats_gcs_impl
+  is \<open>RETURN o stats_gcs\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding stats_gcs_def stats_code_unfold
+  by sepref
+
+sepref_def stats_avg_lbd_mpl
+  is \<open>RETURN o stats_avg_lbd\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding stats_avg_lbd_def stats_code_unfold
+  by sepref
+
+sepref_register LSize_Stats_lbd LSize_Stats_size LSize_Stats
+sepref_def stats_lbd_limit_impl
+  is \<open>RETURN o stats_lbd_limit\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding stats_lbd_limit_def stats_code_unfold
+  by sepref
+
+sepref_def stats_size_limit_impl
+  is \<open>RETURN o stats_size_limit\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding stats_size_limit_def stats_code_unfold
+  by sepref
+
+lemmas [llvm_inline] = Mreturn_comp_Tuple16
+
+sepref_register empty_stats
+sepref_def empty_stats_impl
+  is \<open>uncurry0 (RETURN empty_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding empty_stats_def empty_search_stats_def[symmetric]
+  unfolding empty_subsumption_stats_def[symmetric]
+  unfolding empty_binary_stats_def[symmetric]
+  apply (subst empty_pure_lits_stats_def[symmetric])
+  apply (subst empty_lsize_limit_stats_def[symmetric])
+  by sepref
+
+definition empty_search_stats_clss where
+  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n)\<close>
+
+sepref_def empty_search_stats_clss_impl
+  is \<open>(RETURN o empty_search_stats_clss)\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def empty_search_stats_clss_def
+  by sepref
+
+sepref_def empty_stats_clss_impl
+  is \<open>(RETURN o empty_stats_clss)\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding empty_stats_clss_def empty_search_stats_clss_def[symmetric]
+  unfolding empty_subsumption_stats_def[symmetric]
+  unfolding empty_binary_stats_def[symmetric]
+  apply (subst empty_pure_lits_stats_def[symmetric])
+  apply (subst empty_lsize_limit_stats_def[symmetric])
+  by sepref
+
+export_llvm empty_stats_impl
+
+sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
+
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 abbreviation (input) restart_info_assn where
@@ -572,8 +1161,6 @@ sepref_def next_reduce_schedule_info_impl
   :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding next_reduce_schedule_info_def
   by sepref
-
-
 
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
@@ -1042,50 +1629,6 @@ sepref_def incr_restart_phase_impl
   unfolding incr_restart_phase_def
   by sepref
 
-sepref_def get_restart_count_impl
-  is \<open>RETURN o get_restart_count_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_count_stats_def
-  by sepref
-
-lemma get_restart_count_stats_get_restart_count:
-  \<open>(get_restart_count_stats, get_restart_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_restart_count_def)
-
-lemmas get_restart_count_impl_refine[sepref_fr_rules] =
-  get_restart_count_impl.refine[FCOMP get_restart_count_stats_get_restart_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def get_reduction_count_impl
-  is \<open>RETURN o get_reduction_count_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_reduction_count_stats_def
-  by sepref
-
-lemma get_reduction_count_stats_get_reduction_count:
-  \<open>(get_reduction_count_stats, get_reduction_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_reduction_count_def)
-
-lemmas get_reduction_count_impl_refine[sepref_fr_rules] =
-  get_reduction_count_impl.refine[FCOMP get_reduction_count_stats_get_reduction_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_def get_irredundant_count_impl
-  is \<open>RETURN o irredundant_clss_stats\<close>
-  :: \<open>stats_int_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding irredundant_clss_stats_def
-  by sepref
-
-lemma get_irredundant_count_stats_get_irredundant_count:
-  \<open>(irredundant_clss_stats, get_irredundant_count) \<in> stats_rel \<rightarrow> word_rel\<close>
-  by (auto simp: code_hider_rel_def get_irredundant_count_def)
-
-lemmas get_irredundant_count_impl_refine[sepref_fr_rules] =
-  get_irredundant_count_impl.refine[FCOMP get_irredundant_count_stats_get_irredundant_count,
-  unfolded stats_assn_alt_def[symmetric]]
-
-sepref_register unset_fully_propagated_heur is_fully_propagated_heur set_fully_propagated_heur
-
 sepref_def reset_added_heur_stats2_impl
   is reset_added_heur_stats2
   :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
@@ -1197,6 +1740,5 @@ sepref_def mop_reset_added_heur_impl
   :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding mop_reset_added_heur_def
   by sepref
-
 
 end

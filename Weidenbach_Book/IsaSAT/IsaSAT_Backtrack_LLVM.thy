@@ -230,7 +230,7 @@ definition propagate_bt_wl_D_heur_extract where
 sepref_def propagate_bt_wl_D_heur_extract_impl
   is \<open>propagate_bt_wl_D_heur_extract\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn \<times>\<^sub>a aivdom_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
-  watchlist_fast_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a heuristic_assn \<times>\<^sub>a stats_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a lcount_assn \<times>\<^sub>a heuristic_assn \<times>\<^sub>a isasat_stats_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a
   vmtf_remove_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding propagate_bt_wl_D_heur_extract_def
   by sepref
@@ -253,7 +253,7 @@ definition propagate_bt_wl_D_heur_update where
 sepref_def propagate_bt_wl_D_heur_update_impl
   is \<open>uncurry10 propagate_bt_wl_D_heur_update\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a
-  watchlist_fast_assn\<^sup>d *\<^sub>a lcount_assn\<^sup>d *\<^sub>a heuristic_assn\<^sup>d *\<^sub>a stats_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>d *\<^sub>a
+  watchlist_fast_assn\<^sup>d *\<^sub>a lcount_assn\<^sup>d *\<^sub>a heuristic_assn\<^sup>d *\<^sub>a isasat_stats_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>d *\<^sub>a
   vmtf_remove_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow>\<^sub>a  isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding propagate_bt_wl_D_heur_update_def

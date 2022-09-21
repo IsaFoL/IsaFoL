@@ -142,5 +142,62 @@ sepref_def mop_arena_promote_st_impl
   unfolding mop_arena_promote_st_alt_def
   by sepref
 
+sepref_def get_lsize_limit_stats_impl
+  is \<open>RETURN o get_lsize_limit_stats\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a lbd_size_limit_assn\<close>
+  unfolding stats_code_unfold
+  by sepref
+
+definition get_lsize_limit_stats_st_impl :: \<open>twl_st_wll_trail_fast2 \<Rightarrow> _\<close> where
+  \<open>get_lsize_limit_stats_st_impl = read_stats_wl_heur_code get_lsize_limit_stats_impl\<close>
+
+global_interpretation lsize_limit: read_stats_param_adder0 where
+  f' = \<open>RETURN o get_lsize_limit_stats\<close> and
+  f = get_lsize_limit_stats_impl and
+  x_assn = \<open>uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close> and
+  P = \<open>\<lambda>_. True\<close>
+  rewrites \<open>read_stats_wl_heur (RETURN o get_lsize_limit_stats) = RETURN o get_lsize_limit_stats_st\<close> and
+    \<open>read_stats_wl_heur_code get_lsize_limit_stats_impl = get_lsize_limit_stats_st_impl\<close>
+  apply unfold_locales
+  apply (rule get_lsize_limit_stats_impl.refine[unfolded lbd_size_limit_assn_def]; assumption)
+  subgoal by (auto simp: read_all_st_def get_lsize_limit_stats_def get_lsize_limit_stats_def get_lsize_limit_stats_st_def
+    intro!: ext
+    split: isasat_int_splits)
+  subgoal by (auto simp: get_lsize_limit_stats_st_impl_def)
+  done
+
+lemmas [sepref_fr_rules] = lsize_limit.refine
+
+lemmas [unfolded inline_direct_return_node_case, llvm_code] =
+  get_lsize_limit_stats_st_impl_def[unfolded read_all_st_code_def]
+
+
+lemma set_stats_size_limit_st_alt_def:
+  \<open>RETURN ooo set_stats_size_limit_st = (\<lambda>lbd sze T.
+     let (stats, T) = extract_stats_wl_heur T;
+         stats = set_stats_size_limit lbd sze stats
+     in RETURN (update_stats_wl_heur stats T)
+)\<close>
+  by (auto simp: set_stats_size_limit_st_def state_extractors split: isasat_int_splits intro!: ext)
+
+sepref_register \<open>LSize_Stats :: nat \<Rightarrow> nat \<Rightarrow> _\<close>
+  IsaSAT_Stats_LLVM.update_f set_stats_size_limit_st
+
+lemma set_stats_size_limit_alt_def:
+  \<open>RETURN ooo set_stats_size_limit = (\<lambda>lbd size' stats. RETURN (set_lsize_limit_stats (LSize_Stats lbd size') stats))\<close>
+  unfolding set_stats_size_limit_def LSize_Stats_def
+  by (auto intro!: ext)
+
+sepref_def set_stats_size_limit_impl
+  is \<open>uncurry2 (RETURN ooo set_stats_size_limit)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding set_stats_size_limit_alt_def stats_code_unfold
+  by sepref
+
+sepref_def set_stats_size_limit_st_impl
+  is \<open>uncurry2 (RETURN ooo set_stats_size_limit_st)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding set_stats_size_limit_st_alt_def
+  by sepref
 
 end

@@ -1331,8 +1331,10 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
   \<open>isa_subsume_clauses_match2 C' C N D = do {
   ASSERT (isa_subsume_clauses_match2_pre C' C N D);
   n \<leftarrow> mop_arena_length_st N C';
+  ASSERT (n \<le> length (get_clauses_wl_heur N));
   (i, st) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i,s). True\<^esup> (\<lambda>(i, st). i < n\<and> st \<noteq> NONE)
     (\<lambda>(i, st). do {
+      ASSERT (i < n);
       L \<leftarrow> mop_arena_lit2 (get_clauses_wl_heur N) C' i;
       lin \<leftarrow> mop_cch_in L D;
       if lin
@@ -1341,9 +1343,9 @@ definition isa_subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarr
       lin \<leftarrow> mop_cch_in (-L) D;
       if lin
       then if is_subsumed st
-      then RETURN (i+1, STRENGTHENED_BY L C')
-      else RETURN (i+1, NONE)
-      else RETURN (i+1, NONE)
+      then do {RETURN (i+1, STRENGTHENED_BY L C')}
+      else do {RETURN (i+1, NONE)}
+      else do {RETURN (i+1, NONE)}
     }})
      (0, SUBSUMED_BY C');
   RETURN st
@@ -1413,10 +1415,10 @@ definition isa_strengthen_clause_wl2 where
       S \<leftarrow> RETURN S;
       S \<leftarrow> (if st1 = LEARNED \<and> st2 = IRRED then mop_arena_promote_st S C else RETURN S);
       S \<leftarrow> mark_garbage_heur_as_subsumed C' S;
-      RETURN S
+       RETURN (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)
     }
     else
-    RETURN S
+     RETURN (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)
   }\<close>
 
 definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumption \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
@@ -1428,7 +1430,9 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
      S \<leftarrow> mark_garbage_heur2 C S;
-     (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S)
+     S \<leftarrow> (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S);
+     let S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S);
+     RETURN S
   }
    | STRENGTHENED_BY L C' \<Rightarrow> isa_strengthen_clause_wl2 C C' L S)
   })\<close>
@@ -1558,7 +1562,11 @@ proof -
     subgoal unfolding subsume_clauses_match2_pre_def subsume_clauses_match_pre_def
       by auto
     subgoal using SS' CC' EE' by (auto simp: twl_st_heur_restart_occs_def)
+    subgoal using SS' CC' arena_lifting(10)[of \<open>get_clauses_wl_heur S\<close> \<open>get_clauses_wl S'\<close> \<open>set (get_vdom S)\<close> C] apply -
+      unfolding isa_subsume_clauses_match2_pre_def subsume_clauses_match2_pre_def subsume_clauses_match_pre_def
+      by normalize_goal+ (simp add: twl_st_heur_restart_occs_def)
     subgoal using EE' by auto
+    subgoal by auto
     subgoal by auto
     subgoal using SS' CC' by (auto simp: twl_st_heur_restart_occs_def)
     subgoal using CC' by auto
@@ -1946,6 +1954,7 @@ lemma subsume_or_strengthen_wl_alt_def[unfolded Down_id_eq]:
        let U = mark_garbage_wl2 C T;
        let V = (if \<not>irred (get_clauses_wl T) C' \<and> irred (get_clauses_wl T) C then arena_promote_st_wl U C' else U);
        ASSERT (set_mset (all_init_atms_st V) = set_mset (all_init_atms_st T));
+       let V = V;
        RETURN V
      }
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L T)
@@ -2807,6 +2816,15 @@ proof -
       using CC' pre unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def subsumption.simps apply -
       by (solves \<open>normalize_goal+; simp\<close>)+
   qed
+  have [refine]: \<open>(Sa, U)     \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T} \<Longrightarrow>
+    (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur Sa)) Sa, U)
+    \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
+  by (auto simp: twl_st_heur_restart_occs_def)
+
   have H: \<open>(x, y') \<in> R \<Longrightarrow> y=y' \<Longrightarrow> (x, y) \<in> R\<close> for x y y' R
      by auto
   show ?thesis
@@ -2847,7 +2865,7 @@ proof -
     subgoal using DD' by simp
     subgoal premises p
       using p(17,20) by simp
-    subgoal by auto
+    subgoal by simp
     done
 qed
 
@@ -2998,11 +3016,20 @@ proof -
     show \<open>C' \<in> set (get_vdom T)\<close>
       by (rule H[OF C'])
   qed
+
+  have [refine, intro!]: \<open>(Sa, U)     \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T} \<Longrightarrow>
+    (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur Sa)) Sa, U)
+    \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
+    by (auto simp: twl_st_heur_restart_occs_def)
   show ?thesis
     apply (rule order_trans)
     defer
     apply (rule ref_two_step'[OF subsume_or_strengthen_wl_alt_def])
-    unfolding isa_subsume_or_strengthen_wl_def
+    unfolding isa_subsume_or_strengthen_wl_def Let_def[of \<open>If _ _ _\<close>]
       case_wl_split state_wl_recompose H
     apply (refine_vcg subsumption_cases_lhs mop_arena_status2[where vdom = \<open>set (get_vdom T)\<close>]
       mark_garbage mop_arena_promote_st_spec[where T=\<open>mark_garbage_wl2 C S\<close> and r=r and u=u]
@@ -3017,8 +3044,8 @@ proof -
     subgoal by (rule valid)
     subgoal by auto
     subgoal by auto
-    subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal by auto
+    subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using T by auto
@@ -3435,9 +3462,11 @@ qed
 (*TODO: fix heuristic! + test is actually useless*)
 definition isa_good_candidate_for_subsumption :: \<open>isasat \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>isa_good_candidate_for_subsumption S C = do {
-     lbd \<leftarrow> mop_arena_lbd_st S C;
+      let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;
+      lbd \<leftarrow> mop_arena_lbd_st S C;
+      sze \<leftarrow> mop_arena_length_st S C;
       st \<leftarrow> mop_arena_status_st S C;
-      RETURN (st = IRRED \<or> lbd < 6)
+      RETURN (st = IRRED \<or> (sze \<le> size_limit \<and> lbd \<le> lbd_limit))
   }\<close>
 
 definition sort_cands_by_length where
@@ -3540,10 +3569,13 @@ proof -
   then show ?thesis
     unfolding isa_good_candidate_for_subsumption_def
       mop_arena_lbd_st_def mop_arena_lbd_def mop_arena_status_st_def nres_monad3
-      mop_arena_status_def bind_to_let_conv
+      mop_arena_status_def bind_to_let_conv mop_arena_length_st_def
+      mop_arena_length_def
     apply refine_vcg
     subgoal
       using assms by (auto simp: get_clause_LBD_pre_def arena_is_valid_clause_idx_def)
+    subgoal
+      using assms by (auto simp: arena_is_valid_clause_idx_def)
     subgoal
       using assms by (auto simp: arena_is_valid_clause_vdom_def)
     subgoal

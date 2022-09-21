@@ -1754,6 +1754,10 @@ lemma get_vdom_mark_garbage[simp]:
 fun get_reductions_count :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_reductions_count S = get_reduction_count (get_stats_heur S)\<close>
 
+(*TODO kill*)
+abbreviation get_irredundant_count where
+  \<open>get_irredundant_count \<equiv> irredundant_clss\<close>
+
 definition get_irredundant_count_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_irredundant_count_st S = get_irredundant_count (get_stats_heur S)\<close>
 
@@ -1793,4 +1797,15 @@ definition  mop_arena_promote_st where
     N' \<leftarrow> mop_arena_set_status N' C IRRED;
     RETURN (set_clauses_wl_heur N' (set_learned_count_wl_heur lcount S))
   }\<close>
+
+definition set_stats_size_limit_st where
+  \<open>set_stats_size_limit_st lbd sze T = (
+     let stats = get_stats_heur T;
+         stats = set_stats_size_limit lbd sze stats
+     in set_stats_wl_heur stats T
+)\<close>
+
+definition get_lsize_limit_stats_st :: \<open>_\<close> where
+  \<open>get_lsize_limit_stats_st T = get_lsize_limit_stats (get_stats_heur T)\<close>
+
 end
