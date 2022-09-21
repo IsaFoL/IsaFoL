@@ -1415,10 +1415,10 @@ definition isa_strengthen_clause_wl2 where
       S \<leftarrow> RETURN S;
       S \<leftarrow> (if st1 = LEARNED \<and> st2 = IRRED then mop_arena_promote_st S C else RETURN S);
       S \<leftarrow> mark_garbage_heur_as_subsumed C' S;
-      RETURN S
+       RETURN (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)
     }
     else
-    RETURN S
+     RETURN (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)
   }\<close>
 
 definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumption \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
@@ -1430,7 +1430,9 @@ definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumpt
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
      S \<leftarrow> mark_garbage_heur2 C S;
-     (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S)
+     S \<leftarrow> (if st1 = IRRED \<and> st2 = LEARNED then mop_arena_promote_st S C' else RETURN S);
+     let S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S);
+     RETURN S
   }
    | STRENGTHENED_BY L C' \<Rightarrow> isa_strengthen_clause_wl2 C C' L S)
   })\<close>
@@ -1952,6 +1954,7 @@ lemma subsume_or_strengthen_wl_alt_def[unfolded Down_id_eq]:
        let U = mark_garbage_wl2 C T;
        let V = (if \<not>irred (get_clauses_wl T) C' \<and> irred (get_clauses_wl T) C then arena_promote_st_wl U C' else U);
        ASSERT (set_mset (all_init_atms_st V) = set_mset (all_init_atms_st T));
+       let V = V;
        RETURN V
      }
    | STRENGTHENED_BY L C' \<Rightarrow> strengthen_clause_wl C C' L T)
@@ -2813,6 +2816,15 @@ proof -
       using CC' pre unfolding subsume_or_strengthen_wl_pre_def subsume_or_strengthen_pre_def subsumption.simps apply -
       by (solves \<open>normalize_goal+; simp\<close>)+
   qed
+  have [refine]: \<open>(Sa, U)     \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T} \<Longrightarrow>
+    (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur Sa)) Sa, U)
+    \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
+  by (auto simp: twl_st_heur_restart_occs_def)
+
   have H: \<open>(x, y') \<in> R \<Longrightarrow> y=y' \<Longrightarrow> (x, y) \<in> R\<close> for x y y' R
      by auto
   show ?thesis
@@ -2853,7 +2865,7 @@ proof -
     subgoal using DD' by simp
     subgoal premises p
       using p(17,20) by simp
-    subgoal by auto
+    subgoal by simp
     done
 qed
 
@@ -3004,11 +3016,20 @@ proof -
     show \<open>C' \<in> set (get_vdom T)\<close>
       by (rule H[OF C'])
   qed
+
+  have [refine, intro!]: \<open>(Sa, U)     \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T} \<Longrightarrow>
+    (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur Sa)) Sa, U)
+    \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
+    by (auto simp: twl_st_heur_restart_occs_def)
   show ?thesis
     apply (rule order_trans)
     defer
     apply (rule ref_two_step'[OF subsume_or_strengthen_wl_alt_def])
-    unfolding isa_subsume_or_strengthen_wl_def
+    unfolding isa_subsume_or_strengthen_wl_def Let_def[of \<open>If _ _ _\<close>]
       case_wl_split state_wl_recompose H
     apply (refine_vcg subsumption_cases_lhs mop_arena_status2[where vdom = \<open>set (get_vdom T)\<close>]
       mark_garbage mop_arena_promote_st_spec[where T=\<open>mark_garbage_wl2 C S\<close> and r=r and u=u]
@@ -3023,8 +3044,8 @@ proof -
     subgoal by (rule valid)
     subgoal by auto
     subgoal by auto
-    subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal by auto
+    subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using valid C'_dom C_dom by (auto simp add: arena_lifting)
     subgoal using T by auto

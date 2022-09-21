@@ -332,6 +332,15 @@ definition print_purelit_rounds :: \<open>64 word \<Rightarrow> unit\<close> whe
 definition print_lbds :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_lbds _ = ()\<close>
 
+definition print_forward_rounds :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_rounds _ = ()\<close>
+
+definition print_forward_subsumed :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_subsumed _ = ()\<close>
+
+definition print_forward_strengthened :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_strengthened _ = ()\<close>
+
 sepref_def print_propa_impl
   is \<open>RETURN o print_propa\<close>
   :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
@@ -407,6 +416,77 @@ sepref_def print_binary_red_removed_impl
   unfolding print_binary_red_removed_def
   by sepref
 
+sepref_def print_forward_rounds_impl
+  is \<open>RETURN o print_forward_rounds\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_rounds_def
+  by sepref
+
+sepref_def print_forward_subsumed_impl
+  is \<open>RETURN o print_forward_subsumed\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_subsumed_def
+  by sepref
+
+sepref_def print_forward_strengthened_impl
+  is \<open>RETURN o print_forward_strengthened\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_strengthened_def
+  by sepref
+
+
+(*TODO Move*)
+definition Subsumption_Stats_rounds where
+  \<open>Subsumption_Stats_rounds = (\<lambda>(rounds, strengthened, subsumed, _). rounds)\<close>
+definition Subsumption_Stats_subsumed where
+  \<open>Subsumption_Stats_subsumed = (\<lambda>(subsumed, strengthened, subsumed, _). subsumed)\<close>
+definition Subsumption_Stats_strengthened where
+  \<open>Subsumption_Stats_strengthened = (\<lambda>(rounds, strengethened, subsumed, _). strengethened)\<close>
+
+definition stats_forward_rounds :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_rounds = Subsumption_Stats_rounds o get_subsumption_stats\<close>
+
+definition stats_forward_subsumed :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_subsumed = Subsumption_Stats_subsumed o get_subsumption_stats\<close>
+
+definition stats_forward_strengthened :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_strengthened = Subsumption_Stats_strengthened o get_subsumption_stats\<close>
+
+sepref_def Subsumption_Stats_rounds_impl
+  is \<open>RETURN o Subsumption_Stats_rounds\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_rounds_def
+  by sepref
+sepref_def Subsumption_Stats_strengthened_impl
+  is \<open>RETURN o Subsumption_Stats_strengthened\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_strengthened_def
+  by sepref
+sepref_def Subsumption_Stats_subsumed_impl
+  is \<open>RETURN o Subsumption_Stats_subsumed\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_subsumed_def
+  by sepref
+sepref_def stats_forward_rounds_impl
+  is \<open>RETURN o stats_forward_rounds\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_rounds_def stats_code_unfold
+  by sepref
+sepref_def stats_forward_subsumed_impl
+  is \<open>RETURN o stats_forward_subsumed\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_subsumed_def stats_code_unfold
+  by sepref
+
+sepref_def stats_forward_strengthened_impl
+  is \<open>RETURN o stats_forward_strengthened\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_strengthened_def stats_code_unfold
+  by sepref
+(*End Move*)
+
+sepref_register print_forward_rounds print_forward_subsumed print_forward_strengthened
+
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
@@ -431,6 +511,9 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let _ = print_binary_red_removed (stats_binary_removed stats);
       let _ = print_purelit_elim (stats_pure_lits_removed stats);
       let _ = print_purelit_rounds (stats_pure_lits_rounds stats);
+      let _ = print_forward_rounds (stats_forward_rounds stats);
+      let _ = print_forward_subsumed (stats_forward_subsumed stats);
+      let _ = print_forward_strengthened (stats_forward_strengthened stats);
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 
