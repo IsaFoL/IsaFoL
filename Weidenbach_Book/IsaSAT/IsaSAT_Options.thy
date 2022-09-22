@@ -32,8 +32,8 @@ datatype opts =
 definition TARGET_NEVER :: \<open>opts_target\<close> where
   \<open>TARGET_NEVER = 0\<close>
 
-definition TARGET_QUIET_ONLY :: \<open>opts_target\<close> where
-  \<open>TARGET_QUIET_ONLY = 1\<close>
+definition TARGET_STABLE_ONLY :: \<open>opts_target\<close> where
+  \<open>TARGET_STABLE_ONLY = 1\<close>
 
 definition TARGET_ALWAYS :: \<open>opts_target\<close> where
   \<open>TARGET_ALWAYS = 2\<close>

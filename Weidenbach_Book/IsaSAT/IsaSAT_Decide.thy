@@ -258,7 +258,7 @@ proof -
 qed
 
 
-
+(*TODO used?*)
 definition lit_of_found_atm_D
   :: \<open>isasat_restart_heuristics \<Rightarrow>  nat option \<Rightarrow> (nat literal option)nres\<close> where
   \<open>lit_of_found_atm_D = (\<lambda>heur L. do{
@@ -452,7 +452,7 @@ definition decide_wl_or_skip_D_heur' where
      | Some L \<Rightarrow> do {
         L \<leftarrow> do {
             b \<leftarrow> get_next_phase_st (get_target_opts S = TARGET_ALWAYS \<or>
-                   (get_target_opts S = TARGET_QUIET_ONLY \<and> get_restart_phase S = STABLE_MODE)) L S;
+                   (get_target_opts S = TARGET_STABLE_ONLY \<and> get_restart_phase S = STABLE_MODE)) L S;
               RETURN (if b then Pos L else Neg L)};
         T \<leftarrow> decide_lit_wl_heur L S;
         RETURN (False, T)
