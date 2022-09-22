@@ -30,7 +30,7 @@ definition restart_required_heur :: \<open>isasat \<Rightarrow> nat \<Rightarrow
     let should_inprocess = should_inprocess_or_unit_reduce_st S should_GC;
 
     if (\<not>can_res \<and> \<not>can_GC) \<or> \<not>opt_res \<or> \<not>opt_red \<or> \<not>fully_proped then RETURN FLAG_no_restart
-    else if curr_phase = QUIET_PHASE
+    else if curr_phase = STABLE_MODE
     then do {
       if should_reduce
       then if should_inprocess

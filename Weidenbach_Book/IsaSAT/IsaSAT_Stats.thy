@@ -349,11 +349,11 @@ definition set_stats_size_limit :: \<open>nat \<Rightarrow> nat \<Rightarrow> is
 
 section \<open>Information related to restarts\<close>
 
-definition NORMAL_PHASE :: \<open>64 word\<close> where
-  \<open>NORMAL_PHASE = 0\<close>
+definition FOCUSED_MODE :: \<open>64 word\<close> where
+  \<open>FOCUSED_MODE = 0\<close>
 
-definition QUIET_PHASE :: \<open>64 word\<close> where
-  \<open>QUIET_PHASE = 1\<close>
+definition STABLE_MODE :: \<open>64 word\<close> where
+  \<open>STABLE_MODE = 1\<close>
 
 definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
   \<open>DEFAULT_INIT_PHASE = 10000\<close>
@@ -368,7 +368,7 @@ definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_i
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0, NORMAL_PHASE, DEFAULT_INIT_PHASE, 1000)\<close>
+  \<open>restart_info_init = (0, 0, FOCUSED_MODE, DEFAULT_INIT_PHASE, 1000)\<close>
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>

@@ -575,7 +575,7 @@ begin
 
   lemmas [llvm_inline] =
     unit_propagation_inner_loop_body_wl_fast_heur_code_def
-    NORMAL_PHASE_def DEFAULT_INIT_PHASE_def QUIET_PHASE_def
+    FOCUSED_MODE_def DEFAULT_INIT_PHASE_def STABLE_MODE_def
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
 

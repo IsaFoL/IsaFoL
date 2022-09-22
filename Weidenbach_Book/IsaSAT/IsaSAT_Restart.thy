@@ -1896,7 +1896,7 @@ definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<clo
      let heur = get_heur S;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
-     heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (set_heur_wl_heur heur S)
   })\<close>
 

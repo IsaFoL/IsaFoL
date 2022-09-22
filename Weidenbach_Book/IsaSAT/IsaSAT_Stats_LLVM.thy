@@ -943,18 +943,18 @@ lemma schedule_info_params[sepref_import_param]:
     word64_rel \<rightarrow> schedule_info_rel \<rightarrow> schedule_info_rel"
   by (auto)
 
-sepref_register NORMAL_PHASE QUIET_PHASE DEFAULT_INIT_PHASE
+sepref_register FOCUSED_MODE STABLE_MODE DEFAULT_INIT_PHASE
 
-sepref_def NORMAL_PHASE_impl
-  is \<open>uncurry0 (RETURN NORMAL_PHASE)\<close>
+sepref_def FOCUSED_MODE_impl
+  is \<open>uncurry0 (RETURN FOCUSED_MODE)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding NORMAL_PHASE_def
+  unfolding FOCUSED_MODE_def
   by sepref
 
-sepref_def QUIET_PHASE_impl
-  is \<open>uncurry0 (RETURN QUIET_PHASE)\<close>
+sepref_def STABLE_MODE_impl
+  is \<open>uncurry0 (RETURN STABLE_MODE)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding QUIET_PHASE_def
+  unfolding STABLE_MODE_def
   by sepref
 
 definition lcount_assn :: \<open>clss_size \<Rightarrow> _ \<Rightarrow> assn\<close> where

@@ -2675,7 +2675,7 @@ lemmas [state_extractors] =
 
 lemmas [llvm_inline] =
   DEFAULT_INIT_PHASE_def
-  NORMAL_PHASE_def
+  FOCUSED_MODE_def
 
 lemma from_bool1: "from_bool True = 1"
   by auto

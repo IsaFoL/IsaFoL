@@ -265,7 +265,7 @@ definition lit_of_found_atm_D
       case L of
         None \<Rightarrow> RETURN None
       | Some L \<Rightarrow> do {
-          b \<leftarrow> get_next_phase_heur (current_restart_phase heur = QUIET_PHASE) L heur;
+          b \<leftarrow> get_next_phase_heur (current_restart_phase heur = FOCUSED_MODE) L heur;
           if b
           then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
         }
@@ -452,7 +452,7 @@ definition decide_wl_or_skip_D_heur' where
      | Some L \<Rightarrow> do {
         L \<leftarrow> do {
             b \<leftarrow> get_next_phase_st (get_target_opts S = TARGET_ALWAYS \<or>
-                   (get_target_opts S = TARGET_QUIET_ONLY \<and> get_restart_phase S = QUIET_PHASE)) L S;
+                   (get_target_opts S = TARGET_QUIET_ONLY \<and> get_restart_phase S = STABLE_MODE)) L S;
               RETURN (if b then Pos L else Neg L)};
         T \<leftarrow> decide_lit_wl_heur L S;
         RETURN (False, T)
