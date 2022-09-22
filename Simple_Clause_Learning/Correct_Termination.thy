@@ -233,20 +233,17 @@ next
     by (cases u) (auto simp add: trail_groundings_def)
 qed
 
-definition conflict_minimal_subst_domain where
-  "conflict_minimal_subst_domain u \<longleftrightarrow>
-    (case u of None \<Rightarrow> True | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C)"
-
-lemma
+(* add a "defines" for the ugly definition! *)
+theorem correct_termination:
   assumes
     disj_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     no_more_regular_step: "\<nexists>S'. regular_scl N \<beta> S S'"
+  defines "gnds \<equiv> {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
   shows "\<not> satisfiable (grounding_of_clss (fset N)) \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
-    satisfiable {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>} \<and>
-      trail_true_clss (state_trail S) {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+    satisfiable gnds \<and> trail_true_clss (state_trail S) gnds"
 proof -
-  from regular_run have scl_run: "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+  from regular_run have "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
   proof (rule mono_rtranclp[rule_format, rotated])
     show "\<And>a b. regular_scl N \<beta> a b \<Longrightarrow> scl N \<beta> a b"
       by (rule scl_if_reasonable[OF reasonable_if_regular])

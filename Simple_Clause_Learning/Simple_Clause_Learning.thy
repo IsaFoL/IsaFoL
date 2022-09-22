@@ -2053,8 +2053,6 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
   assumes transp_less_B: "transp (\<prec>\<^sub>B)"
 begin
 
-term subst_domain
-
 inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   propagateI: "C |\<in>| N |\<union>| U \<Longrightarrow> C = add_mset L C' \<Longrightarrow> is_ground_cls (C \<cdot> \<gamma>) \<Longrightarrow>
@@ -2067,6 +2065,8 @@ inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
     vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)"
+
+(* Whatch out for equality! *)
 
 inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -2081,11 +2081,13 @@ inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<R
     \<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
+(* Why is there this supplementary assumption "D noq {#}? " *)
 inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow> D \<noteq> {#} \<Longrightarrow>
     skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
+(* replace \<sigma> by \<gamma> *)
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
@@ -2099,6 +2101,8 @@ inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Ri
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
+
+(* Think about showing that the more specific rule from the paper is an instance of this generic rule. *)
 
 inductive backtrack :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -3234,6 +3238,8 @@ lemma sound_trail_decide:
 
 subsection \<open>Sound State\<close>
 
+(* Send a list of invariants that are implicit in the paper to Simon Schwarz et al.! *)
+
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow> (\<exists>\<Gamma> U u.
     S = (\<Gamma>, U, u) \<and>
@@ -4038,7 +4044,8 @@ theorem scl_sound_state:
 section \<open>Reasonable And Regular Runs\<close>
 
 definition reasonable_scl where
-  "reasonable_scl N \<beta> S S' \<longleftrightarrow> scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
+  "reasonable_scl N \<beta> S S' \<longleftrightarrow>
+    scl N \<beta> S S' \<and> (decide N \<beta> S S' \<longrightarrow> \<not>(\<exists>S''. conflict N \<beta> S' S''))"
 
 lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   unfolding reasonable_scl_def scl_def by simp

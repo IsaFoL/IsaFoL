@@ -149,6 +149,15 @@ lemma factorize_state_trail: "factorize N \<beta> S S' \<Longrightarrow> state_t
 lemma resolve_state_trail: "resolve N \<beta> S S' \<Longrightarrow> state_trail S' = state_trail S"
   by (auto elim: resolve.cases)
 
+(*
+after conflict, one can apply factorize arbitrarily often,
+but resolve must be applied at least once.
+
+Prove this lemma!
+conflict in reg run \<Longrightarrow> ALL following runs have the following shape:
+  factorize* then resolve then (skip or factorize or resolve)*
+*)
+
 lemma conflict_with_literal_gets_resolved:
   assumes
     disj_vars_N: "disjoint_vars_set (fset N)" and
@@ -205,10 +214,12 @@ qed
 section \<open>Clause Redundancy\<close>
 
 definition ground_redundant where
-  "ground_redundant lt N C \<longleftrightarrow> is_ground_clss N \<and> is_ground_cls C \<and> {D \<in> N. lt\<^sup>=\<^sup>= D C} \<TTurnstile>e {C}"
+  "ground_redundant lt N C \<longleftrightarrow>
+    is_ground_clss N \<and> is_ground_cls C \<and> {D \<in> N. lt\<^sup>=\<^sup>= D C} \<TTurnstile>e {C}"
 
 definition redundant where
-  "redundant lt N C \<longleftrightarrow> (\<forall>C' \<in> grounding_of_cls C. ground_redundant lt (grounding_of_clss N) C')"
+  "redundant lt N C \<longleftrightarrow>
+    (\<forall>C' \<in> grounding_of_cls C. ground_redundant lt (grounding_of_clss N) C')"
 
 lemma ground_redundant_mono_strong:
   "ground_redundant R N C \<Longrightarrow> (\<And>x. x \<in> N \<Longrightarrow> x \<noteq> C \<Longrightarrow> R x C \<Longrightarrow> S x C) \<Longrightarrow> ground_redundant S N C"
@@ -406,7 +417,9 @@ lemma not_trail_true_and_false_cls: "sound_trail N \<Gamma> \<Longrightarrow> \<
   using not_trail_true_and_false_lit
   by (metis trail_false_cls_def trail_true_cls_def)
 
-lemma
+(* add U defines? *)
+(* add a defines for the ugly ordering relation *)
+theorem learned_clauses_in_regular_runs:
   assumes
     disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
@@ -414,10 +427,11 @@ lemma
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
     "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
-    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
-      \<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
-        (fset N \<union> fset (state_learned S1)) C)"
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
@@ -870,6 +884,7 @@ proof -
   qed
 
   with conflict_Sn show ?thesis
+    unfolding trail_ord_def U_def
     using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'\<close>
     by simp
 qed
