@@ -233,15 +233,17 @@ next
     by (cases u) (auto simp add: trail_groundings_def)
 qed
 
-(* add a "defines" for the ugly definition! *)
 theorem correct_termination:
+  fixes gnd_N and gnd_N_lt_\<beta>
   assumes
     disj_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     no_more_regular_step: "\<nexists>S'. regular_scl N \<beta> S S'"
-  defines "gnds \<equiv> {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
-  shows "\<not> satisfiable (grounding_of_clss (fset N)) \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
-    satisfiable gnds \<and> trail_true_clss (state_trail S) gnds"
+  defines
+    "gnd_N \<equiv> grounding_of_clss (fset N)" and
+    "gnd_N_lt_\<beta> \<equiv> {C \<in> gnd_N. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
+  shows "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>)) \<or>
+    satisfiable gnd_N_lt_\<beta> \<and> trail_true_clss (state_trail S) gnd_N_lt_\<beta>"
 proof -
   from regular_run have "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
   proof (rule mono_rtranclp[rule_format, rotated])
@@ -289,8 +291,8 @@ proof -
     proof (elim disjE exE conjE)
       assume no_new_decide: "\<nexists>S'. decide N \<beta> S S'"
 
-      have tr_true: "trail_true_clss \<Gamma> {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
-        unfolding trail_true_clss_def
+      have tr_true: "trail_true_clss \<Gamma> gnd_N_lt_\<beta>"
+        unfolding trail_true_clss_def gnd_N_lt_\<beta>_def gnd_N_def
       proof (rule ballI, unfold mem_Collect_eq, erule conjE)
         fix C assume C_in: "C \<in> grounding_of_clss (fset N)" and C_lt_\<beta>: "\<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>"
 
@@ -363,14 +365,14 @@ proof -
           thus "trail_true_cls \<Gamma> C" ..
         qed
       qed
-      moreover have "satisfiable {C \<in> grounding_of_clss (fset N). \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>}"
-        unfolding true_clss_def
+      moreover have "satisfiable gnd_N_lt_\<beta>"
+        unfolding true_clss_def gnd_N_lt_\<beta>_def
       proof (intro exI ballI, unfold mem_Collect_eq, elim conjE)
         fix C
         have "trail_consistent \<Gamma>"
           using S_def trail_consistent by auto
-        show "C \<in> grounding_of_clss (fset N) \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
-          using tr_true[unfolded S_def, simplified]
+        show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
+          using tr_true[unfolded gnd_N_lt_\<beta>_def S_def, simplified]
           using trail_interp_cls_if_trail_true[OF \<open>trail_consistent \<Gamma>\<close>]
           by (simp add: trail_true_clss_def)
       qed
@@ -404,8 +406,9 @@ proof -
     show ?thesis
     proof (cases "C = {#}")
       case True
-      hence "\<not> satisfiable (grounding_of_clss (fset N)) \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
-        using S_def u_def not_satisfiable_if_sound_state_conflict_bottom[OF sound_S] by simp
+      hence "\<not> satisfiable gnd_N \<and> (\<exists>\<gamma>. state_conflict S = Some ({#}, \<gamma>))"
+        using S_def u_def not_satisfiable_if_sound_state_conflict_bottom[OF sound_S]
+        by (simp add: gnd_N_def)
       thus ?thesis by simp
     next
       case C_not_empty: False

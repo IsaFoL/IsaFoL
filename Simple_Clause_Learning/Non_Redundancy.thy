@@ -417,8 +417,6 @@ lemma not_trail_true_and_false_cls: "sound_trail N \<Gamma> \<Longrightarrow> \<
   using not_trail_true_and_false_lit
   by (metis trail_false_cls_def trail_true_cls_def)
 
-(* add U defines? *)
-(* add a defines for the ugly ordering relation *)
 theorem learned_clauses_in_regular_runs:
   assumes
     disj_vars_N: "disjoint_vars_set (fset N)" and
