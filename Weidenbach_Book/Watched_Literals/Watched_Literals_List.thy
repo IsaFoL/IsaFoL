@@ -877,7 +877,7 @@ definition find_unwatched_l :: \<open>('v, _) ann_lits \<Rightarrow> _ \<Rightar
 definition set_conflict_l_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 \<open>set_conflict_l_pre C S \<longleftrightarrow>
   get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and> \<not>tautology (mset (get_clauses_l S \<propto> C)) \<and> distinct (get_clauses_l S \<propto> C) \<and>
-  get_trail_l S \<Turnstile>as CNot (mset (get_clauses_l S \<propto> C)) \<and>
+  get_trail_l S \<Turnstile>as CNot (mset (get_clauses_l S \<propto> C)) \<and> twl_list_invs S \<and>
   (\<exists>S' b. (set_clauses_to_update_l (clauses_to_update_l S + {#C#}) S, S') \<in> twl_st_l b \<and> twl_struct_invs S' \<and> twl_stgy_invs S')\<close>
 
 definition set_conflict_l :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
@@ -1301,11 +1301,11 @@ proof -
 
   have pre: \<open>set_conflict_l_pre C (M, N, None, NE, UE, NEk, UEk, NS, US, N0, U0, remove1_mset C WS, Q)\<close>
     if \<open>M \<Turnstile>as CNot (mset (N \<propto> C))\<close>
-     using pre_inv C_N_U dist_C that
+     using pre_inv C_N_U dist_C that assms(5)
      unfolding set_conflict_l_pre_def unit_propagation_inner_loop_body_l_inv_def apply -
      apply normalize_goal+
      apply (intro conjI)
-     apply (auto simp: S true_annots_true_cls dest: consistent_CNot_not_tautology distinct_consistent_interp)[5]
+     apply (auto simp: S true_annots_true_cls twl_list_invs_def dest: consistent_CNot_not_tautology distinct_consistent_interp dest: in_diffD)[6]
      apply (rule_tac x=x in exI, rule_tac x = \<open>Some L\<close> in exI)
      apply (simp add: S)
      done

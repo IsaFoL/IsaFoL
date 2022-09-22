@@ -50,26 +50,26 @@ end
 
 subsubsection \<open>Setup for LLVM code export\<close>
 text \<open>Declare structure to code generator.\<close>
-lemma to_val_tuple16[ll_struct_of]: "to_val x = LL_STRUCT [
-  to_val (Tuple16_get_a x),
-  to_val (Tuple16_get_b x),
-  to_val (Tuple16_get_c x),
-  to_val (Tuple16_get_d x),
-  to_val (Tuple16_get_e x),
-  to_val (Tuple16_get_f x),
-  to_val (Tuple16_get_g x),
-  to_val (Tuple16_get_h x),
-  to_val (Tuple16_get_i x),
-  to_val (Tuple16_get_j x),
-  to_val (Tuple16_get_k x),
-  to_val (Tuple16_get_l x),
-  to_val (Tuple16_get_m x),
-  to_val (Tuple16_get_n x),
-  to_val (Tuple16_get_o x),
-  to_val (Tuple16_get_p x)]"
-  apply (cases x)
-  apply (auto simp: to_val_tuple16_def)
-  done
+
+lemma to_val_tuple16[ll_struct_of]: "struct_of TYPE(('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) tuple16) = VS_STRUCT [
+  struct_of TYPE('a::llvm_rep),
+  struct_of TYPE('b::llvm_rep),
+  struct_of TYPE('c::llvm_rep),
+  struct_of TYPE('d::llvm_rep),
+  struct_of TYPE('e::llvm_rep),
+  struct_of TYPE('f::llvm_rep),
+  struct_of TYPE('g::llvm_rep),
+  struct_of TYPE('h::llvm_rep),
+  struct_of TYPE('i::llvm_rep),
+  struct_of TYPE('j::llvm_rep),
+  struct_of TYPE('k::llvm_rep),
+  struct_of TYPE('l::llvm_rep),
+  struct_of TYPE('m::llvm_rep),
+  struct_of TYPE('n::llvm_rep),
+  struct_of TYPE('o::llvm_rep),
+  struct_of TYPE('p::llvm_rep)]"
+  by (auto)
+
 
 lemma node_insert_value:
   "ll_insert_value (Tuple16 M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena) M' 0 = Mreturn (Tuple16 M' N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena)"
@@ -252,7 +252,7 @@ fun tuple16_assn :: \<open>
   \<close>
 
 
-locale isasat_state_ops =
+locale tuple16_ops =
   fixes
     a_assn :: \<open>'a \<Rightarrow> 'xa :: llvm_rep \<Rightarrow> assn\<close> and
     b_assn :: \<open>'b \<Rightarrow> 'xb:: llvm_rep \<Rightarrow> assn\<close> and
@@ -590,8 +590,8 @@ lemma ho_tuple16_move[sepref_preproc]: \<open>case_tuple16 (\<lambda>a1 a2 a3 a4
   (\<lambda>p x. case_tuple16 (f x) p)\<close>
   by (auto split: tuple16.splits)
 
-locale isasat_state =
-  isasat_state_ops a_assn b_assn c_assn d_assn e_assn
+locale tuple16 =
+  tuple16_ops a_assn b_assn c_assn d_assn e_assn
   f_assn g_assn h_assn i_assn j_assn
   k_assn l_assn m_assn n_assn o_assn p_assn
   a_default a
@@ -1192,10 +1192,25 @@ lemma update_a_code_alt_def: \<open>\<And>x. update_a_code x xi = do\<^sub>M {
   by (solves \<open>cases xi, rewrite in \<open>Mreturn (\<hole>)\<close> llvm_rep_class.from_to_id'[symmetric],
     simp flip: from_val_tuple16_def\<close>)+
 
+lemma tuple15_free[sepref_frame_free_rules]:
+  shows
+  \<open>MK_FREE (tuple16_assn a_assn b_assn c_assn d_assn e_assn f_assn g_assn h_assn i_assn j_assn
+    k_assn l_assn m_assn n_assn o_assn p_assn) (\<lambda>S. case S of Tuple16 a b c d e f g h i j k l m n ko p \<Rightarrow> do\<^sub>M {
+  a_free a; b_free b; c_free c; d_free d; e_free e; f_free f; g_free g; h_free h; i_free i; j_free j;
+  k_free k; l_free l; m_free m; n_free n; o_free ko; p_free p
+  })\<close>
+  supply [vcg_rules] = a_free[THEN MK_FREED] b_free[THEN MK_FREED] c_free[THEN MK_FREED] d_free[THEN MK_FREED]
+    e_free[THEN MK_FREED] f_free[THEN MK_FREED] g_free[THEN MK_FREED] h_free[THEN MK_FREED]
+    i_free[THEN MK_FREED] j_free[THEN MK_FREED] k_free[THEN MK_FREED] l_free[THEN MK_FREED]
+    m_free[THEN MK_FREED] n_free[THEN MK_FREED]  o_free[THEN MK_FREED] p_free[THEN MK_FREED]
+  apply (rule)+
+  apply (clarsimp split: tuple16.splits)
+  by vcg'
+
 end
 
 
-context isasat_state
+context tuple16
 begin
 lemma reconstruct_isasat[sepref_frame_match_rules]:
   \<open>hn_ctxt
@@ -1220,7 +1235,7 @@ definition read_all_st_code :: \<open>_\<close> where
 
 definition read_all_st :: \<open>('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j,
      'k, 'l, 'm, 'n, 'o, 'p) tuple16 \<Rightarrow> _\<close> where
-  \<open>read_all_st tuple16 = (case tuple16 of Tuple16 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 \<Rightarrow>
+  \<open>read_all_st t = (case t of Tuple16 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 \<Rightarrow>
   read_all a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16)\<close>
 
 context
@@ -1282,21 +1297,21 @@ lemmas [unfolded Let_def, tuple16_getters_setters] =
 end
 
 lemmas [tuple16_getters_setters] =
-  isasat_state_ops.remove_a_def
-  isasat_state_ops.remove_b_def
-  isasat_state_ops.remove_c_def
-  isasat_state_ops.remove_d_def
-  isasat_state_ops.remove_e_def
-  isasat_state_ops.remove_f_def
-  isasat_state_ops.remove_g_def
-  isasat_state_ops.remove_h_def
-  isasat_state_ops.remove_i_def
-  isasat_state_ops.remove_j_def
-  isasat_state_ops.remove_k_def
-  isasat_state_ops.remove_l_def
-  isasat_state_ops.remove_m_def
-  isasat_state_ops.remove_n_def
-  isasat_state_ops.remove_o_def
-  isasat_state_ops.remove_p_def
+  tuple16_ops.remove_a_def
+  tuple16_ops.remove_b_def
+  tuple16_ops.remove_c_def
+  tuple16_ops.remove_d_def
+  tuple16_ops.remove_e_def
+  tuple16_ops.remove_f_def
+  tuple16_ops.remove_g_def
+  tuple16_ops.remove_h_def
+  tuple16_ops.remove_i_def
+  tuple16_ops.remove_j_def
+  tuple16_ops.remove_k_def
+  tuple16_ops.remove_l_def
+  tuple16_ops.remove_m_def
+  tuple16_ops.remove_n_def
+  tuple16_ops.remove_o_def
+  tuple16_ops.remove_p_def
 
 end

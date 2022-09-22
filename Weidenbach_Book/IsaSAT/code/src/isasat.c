@@ -313,6 +313,23 @@ void IsaSAT_LLVM_print_purelit_rounds_impl(int64_t props) {
 #endif
 }
 
+void IsaSAT_LLVM_print_forward_rounds_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c forward rounds %ld\n", props);
+#endif
+}
+
+void IsaSAT_LLVM_print_forward_subsumed_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c forward subsumed %ld\n", props);
+#endif
+}
+void IsaSAT_LLVM_print_forward_strengthened_impl(int64_t props) {
+#ifdef PRINTSTATS
+  printf("c forward strengthened %ld\n", props);
+#endif
+}
+
 void print_phase(int8_t phase) {
 #ifdef PRINTSTATS
   if(phase == 1)

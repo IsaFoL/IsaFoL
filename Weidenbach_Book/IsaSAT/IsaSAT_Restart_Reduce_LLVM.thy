@@ -292,6 +292,19 @@ sepref_def sort_vdom_heur_fast_code
   unfolding sort_vdom_heur_alt_def EQ_def
   by sepref
 
+sepref_def find_largest_lbd_and_size_impl
+  is \<open>uncurry find_largest_lbd_and_size\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
+  supply [simp] = length_tvdom_def[symmetric]
+  supply [dest] = isasat_bounded_assn_length_arenaD
+  supply [sepref_fr_rules] = arena_get_lbd.mop_refine (*TODO: Should in IsaSAT_Setup1*)
+  unfolding find_largest_lbd_and_size_def access_tvdom_at_def[symmetric]
+    length_tvdom_def[symmetric] max_def
+  apply (rewrite at \<open>(_, _, \<hole>)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(\<hole>, _)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 experiment
 begin

@@ -13,20 +13,18 @@ hide_const (open)IICF_Multiset.mset_rel
 chapter \<open>Code of Full IsaSAT\<close>
 
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
+  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a isasat_stats_assn\<close>
 
 abbreviation model_stat_assn\<^sub>0 ::
     \<open>bool \<times>
      nat literal list \<times>
-     64 word \<times>
-     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times>  64 word\<times> 64 word\<times>  64 word\<times> 64 word \<times> ema
+     isasat_stats
      \<Rightarrow> 1 word \<times>
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
-       64 word \<times>
-       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<times> 64 word \<times> 64 word\<times> 64 word\<times>  64 word\<times> 64 word\<times> ema
+       _
        \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close>
 where
-  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_int_assn\<close>
+  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a isasat_stats_assn\<close>
 
 abbreviation lits_with_max_assn :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
@@ -85,7 +83,7 @@ lemma extract_model_of_state_stat_alt_def:
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
          mop_free old_arena; mop_free lcount; mop_free occs;
-        RETURN (False, M, get_content stats)
+        RETURN (False, M, stats)
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def print_trail2_def split_trail_def
     intro!: ext split: isasat_int_splits)
@@ -110,7 +108,7 @@ lemma extract_state_stat_alt_def:
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free opts;
          mop_free old_arena; mop_free lcount;  mop_free occs;
-        RETURN (True, [], get_content stats)})\<close>
+        RETURN (True, [], stats)})\<close>
   by (auto simp: extract_state_stat_def mop_free_def split: isasat_int_splits intro!: ext)
 
 sepref_def extract_state_stat
@@ -334,6 +332,15 @@ definition print_purelit_rounds :: \<open>64 word \<Rightarrow> unit\<close> whe
 definition print_lbds :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_lbds _ = ()\<close>
 
+definition print_forward_rounds :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_rounds _ = ()\<close>
+
+definition print_forward_subsumed :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_subsumed _ = ()\<close>
+
+definition print_forward_strengthened :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_strengthened _ = ()\<close>
+
 sepref_def print_propa_impl
   is \<open>RETURN o print_propa\<close>
   :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
@@ -409,8 +416,80 @@ sepref_def print_binary_red_removed_impl
   unfolding print_binary_red_removed_def
   by sepref
 
+sepref_def print_forward_rounds_impl
+  is \<open>RETURN o print_forward_rounds\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_rounds_def
+  by sepref
+
+sepref_def print_forward_subsumed_impl
+  is \<open>RETURN o print_forward_subsumed\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_subsumed_def
+  by sepref
+
+sepref_def print_forward_strengthened_impl
+  is \<open>RETURN o print_forward_strengthened\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_forward_strengthened_def
+  by sepref
+
+
+(*TODO Move*)
+definition Subsumption_Stats_rounds where
+  \<open>Subsumption_Stats_rounds = (\<lambda>(rounds, strengthened, subsumed, _). rounds)\<close>
+definition Subsumption_Stats_subsumed where
+  \<open>Subsumption_Stats_subsumed = (\<lambda>(subsumed, strengthened, subsumed, _). subsumed)\<close>
+definition Subsumption_Stats_strengthened where
+  \<open>Subsumption_Stats_strengthened = (\<lambda>(rounds, strengethened, subsumed, _). strengethened)\<close>
+
+definition stats_forward_rounds :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_rounds = Subsumption_Stats_rounds o get_subsumption_stats\<close>
+
+definition stats_forward_subsumed :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_subsumed = Subsumption_Stats_subsumed o get_subsumption_stats\<close>
+
+definition stats_forward_strengthened :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_strengthened = Subsumption_Stats_strengthened o get_subsumption_stats\<close>
+
+sepref_def Subsumption_Stats_rounds_impl
+  is \<open>RETURN o Subsumption_Stats_rounds\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_rounds_def
+  by sepref
+sepref_def Subsumption_Stats_strengthened_impl
+  is \<open>RETURN o Subsumption_Stats_strengthened\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_strengthened_def
+  by sepref
+sepref_def Subsumption_Stats_subsumed_impl
+  is \<open>RETURN o Subsumption_Stats_subsumed\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_subsumed_def
+  by sepref
+sepref_def stats_forward_rounds_impl
+  is \<open>RETURN o stats_forward_rounds\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_rounds_def stats_code_unfold
+  by sepref
+sepref_def stats_forward_subsumed_impl
+  is \<open>RETURN o stats_forward_subsumed\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_subsumed_def stats_code_unfold
+  by sepref
+
+sepref_def stats_forward_strengthened_impl
+  is \<open>RETURN o stats_forward_strengthened\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_strengthened_def stats_code_unfold
+  by sepref
+(*End Move*)
+
+sepref_register print_forward_rounds print_forward_subsumed print_forward_strengthened
+
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
+
 
 definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
   8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
@@ -419,19 +498,22 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
          fema sema units;
-      (b, (b', (_, propa, confl, dec, res, reduction, uset, gcs, _, irred_clss, binary_unit, binary_red_removed, purelit_elim, purelit_rounds, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
-      let _ = print_propa propa;
-      let _ = print_confl confl;
-      let _ = print_dec dec;
-      let _ = print_res res;
-      let _ = print_lres reduction;
-      let _ = print_uset uset;
-      let _ = print_gcs gcs;
-      let _ = print_irred_clss irred_clss;
-      let _ = print_binary_unit binary_unit;
-      let _ = print_binary_red_removed binary_red_removed;
-      let _ = print_purelit_elim purelit_elim;
-      let _ = print_purelit_rounds purelit_rounds;
+      (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      let _ = print_propa (stats_propagations stats);
+      let _ = print_confl (stats_conflicts stats);
+      let _ = print_dec (stats_decisions stats);
+      let _ = print_res (stats_restarts stats);
+      let _ = print_lres (stats_reductions stats);
+      let _ = print_uset (stats_fixed stats);
+      let _ = print_gcs (stats_gcs stats);
+      let _ = print_irred_clss (stats_irred stats);
+      let _ = print_binary_unit (stats_binary_units stats);
+      let _ = print_binary_red_removed (stats_binary_removed stats);
+      let _ = print_purelit_elim (stats_pure_lits_removed stats);
+      let _ = print_purelit_rounds (stats_pure_lits_rounds stats);
+      let _ = print_forward_rounds (stats_forward_rounds stats);
+      let _ = print_forward_subsumed (stats_forward_subsumed stats);
+      let _ = print_forward_strengthened (stats_forward_strengthened stats);
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 
@@ -493,7 +575,7 @@ begin
 
   lemmas [llvm_inline] =
     unit_propagation_inner_loop_body_wl_fast_heur_code_def
-    NORMAL_PHASE_def DEFAULT_INIT_PHASE_def QUIET_PHASE_def
+    FOCUSED_MODE_def DEFAULT_INIT_PHASE_def STABLE_MODE_def
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
 

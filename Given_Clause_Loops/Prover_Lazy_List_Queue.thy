@@ -15,7 +15,7 @@ begin
 
 subsection \<open>Basic Lemmas\<close>
 
-lemma ne_and_in_set_take_imp_in_set_take_remove:
+lemma ne_and_in_set_take_imp_in_set_take_remove1:
   assumes
     "z \<noteq> y" and
     "z \<in> set (take m xs)"
@@ -367,9 +367,9 @@ proof
       by simp (smt (verit) empty_iff imageE in_set_conv_nth llist.distinct(1) llist.inject
           prod.collapse singleton_iff split_beta)
 
-    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. (e, es) \<in># mset (take (Suc k') (snd (fst (lnth QDs i'))))"
+    have "\<forall>k' \<le> k. \<exists>i' \<ge> i. (e, es) \<in> set (take (Suc k') (snd (fst (lnth QDs i'))))"
     proof -
-      have "\<exists>i' \<ge> i. (e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
+      have "\<exists>i' \<ge> i. (e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
         if l_le: "l \<le> k" for l
         using l_le
       proof (induct l)
@@ -389,7 +389,7 @@ proof
 
         obtain i' :: nat where
           i'_ge: "i' \<ge> i" and
-          cons_at_i': "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
+          cons_at_i': "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs i'))))"
           using ih by blast
         then obtain j0 :: nat where
           "j0 \<ge> i'" and
@@ -404,10 +404,10 @@ proof
               "\<lambda>j. j \<ge> i' \<and> pick_lqueue_step (lnth QDs j) (lnth QDs (Suc j))" j0 "\<lambda>j. j"]
           by blast
 
-        have cons_at_le_j: "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs j'))))"
+        have cons_at_le_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j'))))"
           if j'_ge: "j' \<ge> i'" and j'_le: "j' \<le> j" for j'
         proof -
-          have "(e, es) \<in># mset (take (k + 1 - l) (snd (fst (lnth QDs (i' + m)))))"
+          have "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs (i' + m)))))"
             if i'm_le: "i' + m \<le> j" for m
             using i'm_le
           proof (induct m)
@@ -475,7 +475,7 @@ proof
                   using ni_es'ess' by auto
                 have in_rem: "(e, es) \<in> set (take n (snd (remove_llist es' Q)))"
                   by (smt (verit, best) fifo_prover_lazy_list_queue.remove_llist.elims fst_conv in_q
-                      list.set_intros(1) ne_and_in_set_take_imp_in_set_take_remove ni_es'ess'
+                      list.set_intros(1) ne_and_in_set_take_imp_in_set_take_remove1 ni_es'ess'
                       snd_conv)
                 show ?case
                   using ih[OF ni_ess' in_rem] by auto
@@ -511,27 +511,72 @@ proof
         qed
 
         show ?case
-        proof (rule exI[of _ "Suc j"], intro conjI)
-          show "i \<le> Suc j"
-            using i'_ge j_ge by linarith
-(*
+        proof (cases "hd (snd (fst (lnth QDs j))) = (e, es)")
+          case eq_ees: True
+          show ?thesis
+          proof (rule exI[of _ j]; intro conjI)
+            show "i \<le> j"
+              using i'_ge j_ge le_trans by blast
+          next
+            show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs j))))"
+              by (metis (no_types, lifting) List.hd_in_set Suc_eq_plus1 cons_at_le_j diff_is_0_eq
+                  eq_ees hd_take j_ge le_imp_less_Suc nle_le not_less_eq_eq sl_le take_eq_Nil2
+                  zero_less_diff)
+          qed
         next
-          obtain Q :: "'e llist list" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
-            at_j: "lnth QDs j = (Q, D)" and
-            at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
-            pair_in: "LCons e' es' \<in># mset Q" and
-            fst: "fst (pick_elem Q) = e'" and
-            snd: "mset (snd (pick_elem Q)) = mset Q - {#LCons e' es'#} + {#es'#}"
-            using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
-            by blast
+          case ne_ees: False
+          show ?thesis
+          proof (rule exI[of _ "Suc j"], intro conjI)
+            show "i \<le> Suc j"
+              using i'_ge j_ge by linarith
+          next
+            obtain Q :: "'e fifo" and D :: "'e set" and e' :: 'e and es' :: "'e llist" where
+              at_j: "lnth QDs j = (Q, D)" and
+              at_sj: "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e'})" and
+              pair_in: "LCons e' es' \<in># llists Q" and
+              fst: "fst (pick_elem Q) = e'" and
+              snd: "llists (snd (pick_elem Q)) = llists Q - {#LCons e' es'#} + {#es'#}"
+              using pick_step unfolding pick_lqueue_step.simps pick_lqueue_step_w_details.simps
+              by blast
 
-          have cons_at_j: "LCons e es \<in># mset (take (k + 1 - l) (fst (lnth QDs j)))"
-            using cons_at_le_j[of j] j_ge by blast
+            have cons_at_j: "(e, es) \<in> set (take (k + 1 - l) (snd (fst (lnth QDs j))))"
+              using cons_at_le_j[of j] j_ge by blast
 
-          show "LCons e es \<in># mset (take (k + 1 - Suc l) (fst (lnth QDs (Suc j))))"
-            using cons_at_j unfolding at_j at_sj
+            show "(e, es) \<in> set (take (k + 1 - Suc l) (snd (fst (lnth QDs (Suc j)))))"
+            proof (cases Q)
+              case q: (Pair num_nils ps)
+              show ?thesis
+              proof (cases ps)
+                case Nil
+                hence False
+                  using at_j cons_at_j q by force
+                thus ?thesis
+                  by blast
+              next
+                case ps: (Cons p' ps')
+                show ?thesis
+                proof (cases p')
+                  case p': (Pair e' es')
 
-            sorry
+                  have hd_at_j: "hd (snd (fst (lnth QDs j))) = (e', es')"
+                    by (simp add: at_j p' ps q)
+
+                  show ?thesis
+                  proof (cases es')
+                    case es': LNil
+                    show ?thesis
+                      using cons_at_j ne_ees Suc_diff_le l_le_k
+                      unfolding q ps p' es' at_j at_sj hd_at_j by force
+                  next
+                    case es': (LCons e'' es'')
+                    show ?thesis
+                      using cons_at_j ne_ees Suc_diff_le l_le_k
+                      unfolding q ps p' es' at_j at_sj hd_at_j by force
+                  qed
+                qed
+              qed
+            qed
+          qed
         qed
       qed
       thus ?thesis
@@ -539,7 +584,7 @@ proof
     qed
     then obtain i' :: nat where
       i'_ge: "i' \<ge> i" and
-      cons_at_i': "LCons e es \<in># mset (take 1 (fst (lnth QDs i')))"
+      cons_at_i': "(e, es) \<in> set (take 1 (snd (fst (lnth QDs i'))))"
       by auto
     then obtain j0 :: nat where
       "j0 \<ge> i'" and
@@ -557,9 +602,9 @@ proof
       unfolding pick_lqueue_step.simps by simp
     have "pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
     proof -
-      have cons_at_j: "LCons e es \<in># mset (take 1 (fst (lnth QDs j)))"
+      have cons_at_j: "(e, es) \<in> set (take 1 (snd (fst (lnth QDs j))))"
       proof -
-        have "LCons e es \<in># mset (take 1 (fst (lnth QDs (i' + l))))" if i'l_le: "i' + l \<le> j" for l
+        have "(e, es) \<in> set (take 1 (snd (fst (lnth QDs (i' + l)))))" if i'l_le: "i' + l \<le> j" for l
           using i'l_le
         proof (induct l)
           case (Suc l)
@@ -580,19 +625,41 @@ proof
             case (lqueue_step_fold_add_llistI Q D ess)
             note defs = this
 
-            have len_q: "length Q \<ge> 1"
-              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv list.set(1)
-                  list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1) set_mset_mset
+            have len_q: "length (snd Q) \<ge> 1"
+              using ih by (metis Suc_eq_plus1 add.commute empty_iff le_add1 length_0_conv
+                  list.set(1) list_decode.cases local.lqueue_step_fold_add_llistI(1) prod.sel(1)
                   take.simps(1))
 
-            have take: "take (Suc 0) (fold (\<lambda>es ess. ess @ [es]) ess Q) = take (Suc 0) Q"
+            have take: "take (Suc 0) (snd (fold add_llist ess Q)) = take (Suc 0) (snd Q)"
               using len_q
             proof (induct ess arbitrary: Q)
-              case (Cons es ess)
-              note ih = this(1) and len_q = this(2)
+              case Nil
               show ?case
-                using len_q by (simp add: ih)
-            qed auto
+                by (cases Q) auto
+            next
+              case (Cons es' ess')
+              note ih = this(1) and len_q = this(2)
+
+              have len_add: "length (snd (add_llist es' Q)) \<ge> 1"
+              proof (cases Q)
+                case q: (Pair num_nils ps)
+                show ?thesis
+                proof (cases es')
+                  case es': LNil
+                  show ?thesis
+                    using len_q unfolding q es' by simp
+                next
+                  case es': (LCons e'' es'')
+                  show ?thesis
+                    using len_q unfolding q es' by simp
+                qed
+              qed
+
+              note ih = ih[OF len_add]
+
+              show ?case
+                using len_q by (simp add: ih, cases Q, cases es', auto)
+            qed
 
             show ?thesis
               unfolding defs using ih take
@@ -609,15 +676,20 @@ proof
             ultimately have ees_ni: "LCons e es \<notin> set ess"
               by blast
 
-            obtain Q' :: "'e llist list" where
-              q: "Q = LCons e es # Q'"
-              using ih by (metis One_nat_def fst_eqD in_set_member in_set_takeD length_pos_if_in_set
-                  list.exhaust_sel lqueue_step_fold_remove_llistI(1) member_rec nth_Cons_0
-                  set_mset_mset take0 take_Suc_conv_app_nth)
+            obtain ps' :: "('e \<times> 'e llist) list" where
+              snd_q: "snd Q = (e, es) # ps'"
+              using ih by (metis (no_types, opaque_lifting) One_nat_def fst_eqD in_set_member
+                  in_set_takeD length_pos_if_in_set list.exhaust_sel
+                  lqueue_step_fold_remove_llistI(1) member_rec(1) member_rec(2) nth_Cons_0 take0
+                  take_Suc_conv_app_nth)
 
-            have take_1: "take 1 (fold remove1 ess Q) = take 1 Q"
+            obtain num_nils' :: nat where
+              q: "Q = (num_nils', (e, es) # ps')"
+              by (metis prod.collapse snd_q)
+
+            have take_1: "take 1 (snd (fold remove_llist ess Q)) = take 1 (snd Q)"
               unfolding q using ees_ni
-            proof (induct ess arbitrary: Q')
+            proof (induct ess arbitrary: num_nils' ps')
               case (Cons es' ess')
               note ih = this(1) and ees_ni = this(2)
 
@@ -625,10 +697,19 @@ proof
                 using ees_ni by simp
               note ih = ih[OF ees_ni']
 
-              have "es' \<noteq> LCons e es"
+              have es'_ne: "es' \<noteq> LCons e es"
                 using ees_ni by auto
-              thus ?case
-                using ih by simp
+
+              show ?case
+              proof (cases es')
+                case LNil
+                then show ?thesis
+                  using ih by auto
+              next
+                case es': (LCons e'' es'')
+                show ?thesis
+                  using ih es'_ne unfolding es' by auto
+              qed
             qed auto
 
             show ?thesis
@@ -656,29 +737,45 @@ proof
         thus ?thesis
           by (metis dual_order.refl j_ge nat_le_iff_add)
       qed
-      hence cons_in_fst: "LCons e es \<in># mset (fst (lnth QDs j))"
+      hence cons_in_fst: "(e, es) \<in> set (snd (fst (lnth QDs j)))"
         using in_set_takeD by force
 
-      obtain Q' :: "'e llist list" where
-        fst_at_j: "fst (lnth QDs j) = LCons e es # Q'"
-        using cons_at_j by (metis (no_types, lifting) One_nat_def cons_in_fst empty_iff empty_set
-            fifo_prover_lazy_list_queue.pick_elem.elims length_pos_if_in_set nth_Cons_0
-            self_append_conv2 set_ConsD set_mset_mset take0 take_Suc_conv_app_nth)
+      obtain ps' :: "('e \<times> 'e llist) list" where
+        fst_at_j: "snd (fst (lnth QDs j)) = (e, es) # ps'"
+        using cons_at_j by (metis One_nat_def cons_in_fst empty_iff empty_set length_pos_if_in_set
+            list.set_cases nth_Cons_0 self_append_conv2 set_ConsD take0 take_Suc_conv_app_nth)
 
       have fst_pick: "fst (pick_elem (fst (lnth QDs j))) = e"
-        unfolding fst_at_j by simp
-      have snd_pick: "mset (snd (pick_elem (fst (lnth QDs j)))) =
-        mset (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
-        unfolding fst_at_j by simp
+        using fst_at_j by (metis fst_conv pick_elem.simps(2) surjective_pairing)
+      have snd_pick: "llists (snd (pick_elem (fst (lnth QDs j)))) =
+        llists (fst (lnth QDs j)) - {#LCons e es#} + {#es#}"
+        by (subst (1 2) surjective_pairing[of "fst (lnth QDs j)"], unfold fst_at_j, cases es, auto)
+
+      obtain Q :: "'e fifo" and D :: "'e set" where
+        at_j: "lnth QDs j = (Q, D)"
+        by fastforce
 
       show ?thesis
-        using cons_in_fst fst_pick snd_pick
-        by (smt (verit, ccfv_SIG) pick_step_det fst_conv pick_lqueue_step_w_details.simps)
+        unfolding pick_lqueue_step_w_details.simps
+      proof (rule exI[of _ e], rule exI[of _ es], rule exI[of _ Q], rule exI[of _ D], intro conjI)
+        show "lnth QDs (Suc j) = (snd (pick_elem Q), D \<union> {e})"
+          by (smt (verit, best) at_j fst_conv fst_pick pick_lqueue_step_w_details.simps
+              pick_step_det snd_conv)
+      next
+        have "LCons e es \<in># llists (fst (lnth QDs j))"
+          by (subst surjective_pairing) (auto simp: fst_at_j)
+        thus "LCons e es \<in># llists Q"
+          unfolding at_j by simp
+      next
+        show "fst (pick_elem Q) = e"
+          using at_j fst_pick by force
+      next
+        show "llists (snd (pick_elem Q)) = llists Q - {#LCons e es#} + {#es#}"
+          using at_j snd_pick by fastforce
+      qed (rule refl at_j)+
     qed
-*)
     hence "\<exists>j \<ge> i. pick_lqueue_step_w_details (lnth QDs j) e es (lnth QDs (Suc j))"
-      (* using i'_ge j_ge le_trans by blast *)
-      sorry
+      using i'_ge j_ge le_trans by blast
   }
   thus "\<exists>j \<ge> i.
       (\<exists>ess. LCons e es \<in> set ess \<and> remove_lqueue_step_w_details (lnth QDs j) ess (lnth QDs (Suc j)))

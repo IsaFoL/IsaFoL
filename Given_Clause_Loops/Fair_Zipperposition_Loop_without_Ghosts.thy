@@ -589,7 +589,7 @@ sublocale fifo_prover_lazy_list_queue
   .
 
 sublocale fair_zipperposition_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q
-  Equiv_F Prec_F "[]" "\<lambda>es ess. ess @ [es]" remove1 pick_elem mset "[]" hd
+  Equiv_F Prec_F empty add_llist remove_llist pick_elem llists "[]" hd
   "\<lambda>y xs. if y \<in> set xs then xs else xs @ [y]" removeAll fset_of_list Prec_S
 proof
   show "po_on (\<prec>S) UNIV"

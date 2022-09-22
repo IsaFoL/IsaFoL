@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation
   imports IsaSAT_Setup
-     IsaSAT_Clauses
+     IsaSAT_Clauses IsaSAT_VMTF IsaSAT_LBD
 begin
 
 chapter \<open>Propagation: Inner Loop\<close>
@@ -519,6 +519,145 @@ qed
 
 section \<open>Updates\<close>
 
+definition mark_conflict_to_rescore :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>mark_conflict_to_rescore C S = do {
+  let M = get_trail_wl_heur S;
+  let N = get_clauses_wl_heur S;
+  let D = get_conflict_wl_heur S;
+  let vm = get_vmtf_heur S;
+  n \<leftarrow> mop_arena_length N C;
+  ASSERT (n \<le> length N);
+  (_, vm) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, vm). i < n)
+  (\<lambda>(i, vm). do{
+      ASSERT (i < n);
+     L \<leftarrow> mop_arena_lit2 N C i;
+     vm \<leftarrow> isa_vmtf_mark_to_rescore_also_reasons_cl M N C (-L) vm;
+    RETURN (i+1, vm)
+   })
+    (0, vm);
+  let lbd = get_lbd S;
+  (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
+  let S = set_vmtf_wl_heur vm S;
+  let S = set_clauses_wl_heur N S;
+  let S = set_lbd_wl_heur lbd S;
+  RETURN S
+}\<close>
+
+lemma isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf:
+  assumes \<open>(M,M')\<in>trail_pol \<A>\<close> \<open>isasat_input_bounded \<A>\<close> \<open>vm \<in> isa_vmtf \<A> M'\<close> and
+    valid: \<open>valid_arena N N' vd\<close> and
+    C: \<open>C \<in># dom_m N'\<close> and
+    H:\<open> \<forall>L\<in>set (N' \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+    \<open>\<forall>L\<in>set (N' \<propto> C).
+    \<forall>C. Propagated (- L) C \<in> set M' \<longrightarrow>
+     C \<noteq> 0 \<longrightarrow> C \<in># dom_m N' \<and> (\<forall>C\<in>set [C..<C + arena_length N C]. arena_lit N C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  shows
+    \<open>isa_vmtf_mark_to_rescore_also_reasons_cl M N C L vm \<le> RES (isa_vmtf \<A> M')\<close>
+proof -
+  obtain vm' where vm: \<open>(vm, vm') \<in> Id \<times>\<^sub>f distinct_atoms_rel \<A>\<close> and
+    vm': \<open>vm' \<in> vmtf \<A> M'\<close>
+    using assms(3) unfolding isa_vmtf_def
+    by auto
+  show ?thesis
+    apply (rule order_trans)
+    apply (rule isa_vmtf_mark_to_rescore_also_reasons_cl_vmtf_mark_to_rescore_also_reasons_cl[
+        where \<A> = \<A>,
+        THEN fref_to_Down_curry4,
+          of  _ _  _ _ _ \<open>M'\<close> \<open>N\<close> C L vm'])
+   subgoal using assms by auto
+   subgoal using assms vm by auto
+   subgoal
+     apply (rule order_trans)
+     apply (rule ref_two_step')
+     apply (rule vmtf_mark_to_rescore_also_reasons_cl_spec[OF vm' valid C H])
+     subgoal by (auto simp: isa_vmtf_def conc_fun_RES)
+     done
+  done
+qed
+
+lemma mark_conflict_to_rescore:
+  assumes \<open>(S,T)\<in>twl_st_heur_up'' \<D> r s K lcount\<close>
+    \<open>set_conflict_wl_pre C T\<close>
+  shows \<open>mark_conflict_to_rescore C S \<le> SPEC(\<lambda>S'. (S', T)\<in> twl_st_heur_up'' \<D> r s K lcount)\<close>
+proof -
+  obtain U V b where
+    TU: \<open>(T, U) \<in> state_wl_l b\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+    list: \<open>twl_list_invs U\<close>
+    using assms(2) unfolding set_conflict_wl_pre_def set_conflict_l_pre_def apply -
+    apply normalize_goal+
+    by auto
+  have valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close> and
+    vm: \<open>get_vmtf_heur S \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
+    bounded: \<open>isasat_input_bounded (all_atms_st T)\<close> and
+    trail: \<open> (get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_atms_st T)\<close>
+    using assms unfolding arena_is_valid_clause_idx_def unfolding twl_st_heur'_def
+      twl_st_heur_def by auto
+  have H:\<open> \<forall>L\<in>set (get_clauses_wl T \<propto> C). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T)\<close>
+    \<open>\<forall>L\<in>set (get_clauses_wl T \<propto> C).
+    \<forall>C. Propagated (- L) C \<in> set (get_trail_wl T) \<longrightarrow>
+    C \<noteq> 0 \<longrightarrow> C \<in># dom_m (get_clauses_wl T) \<and> (\<forall>C\<in>set [C..<C + arena_length (get_clauses_wl_heur S) C]. arena_lit (get_clauses_wl_heur S) C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T))\<close>
+    subgoal
+      using valid C by (auto simp: arena_lifting in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        all_atms_st_def all_atms_def all_lits_def all_lits_of_mm_union ran_m_def all_lits_of_mm_add_mset image_Un
+        atm_of_all_lits_of_m(2)
+        dest!: multi_member_split[of C]
+        simp del: all_atms_def[symmetric])[]
+    apply (intro ballI allI)
+    subgoal for L D
+      apply (intro conjI ballI impI)
+      subgoal
+        using TU list by (auto simp: twl_list_invs_def dest!: spec[of _ \<open>-L\<close>] spec[of _ \<open>D\<close>])
+      subgoal for C
+        apply (subgoal_tac \<open>C - D < length (get_clauses_wl T \<propto> D)\<close>)
+        using TU list arena_lifting(5)[OF valid, of D \<open>C - D\<close>,symmetric]
+        apply (auto simp: twl_list_invs_def dest!: spec[of _ \<open>-L\<close>] spec[of _ \<open>D\<close>])
+        using valid
+        apply (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+          all_atms_st_def all_atms_def all_lits_def all_lits_of_mm_union ran_m_def all_lits_of_mm_add_mset image_Un
+          atm_of_all_lits_of_m(2) arena_lifting
+          dest!: multi_member_split[of D] spec[of _ \<open>-L\<close>] spec[of _ \<open>D\<close>]
+          simp del: all_atms_def[symmetric])
+        apply (metis (no_types, opaque_lifting) \<open>\<lbrakk>D \<in># dom_m (get_clauses_wl T); C - D < length (get_clauses_wl T \<propto> D)\<rbrakk> \<Longrightarrow> arena_lit (get_clauses_wl_heur S) (D + (C - D)) = get_clauses_wl T \<propto> D ! (C - D)\<close> add.commute add.right_neutral add_diff_inverse_nat arena_lifting(4) imageI less_diff_conv2 less_nat_zero_code member_add_mset nth_mem)
+        apply (metis (no_types, opaque_lifting) \<open>\<lbrakk>D \<in># dom_m (get_clauses_wl T); C - D < length (get_clauses_wl T \<propto> D)\<rbrakk> \<Longrightarrow> arena_lit (get_clauses_wl_heur S) (D + (C - D)) = get_clauses_wl T \<propto> D ! (C - D)\<close> add.commute add.right_neutral add_diff_inverse_nat arena_lifting(4) imageI less_diff_conv2 less_nat_zero_code member_add_mset nth_mem)
+        done
+      done
+    done
+  have H': \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st T) (mset (get_clauses_wl T \<propto> C))\<close>
+    by (simp add: C literals_are_in_\<L>\<^sub>i\<^sub>n_nth2)
+  show ?thesis
+    unfolding mark_conflict_to_rescore_def mop_arena_length_def nres_monad3 mop_arena_lit2_def
+    apply (refine_vcg WHILET_rule[where \<Phi> = \<open>\<lambda>(i,vm). vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
+      I = \<open>\<lambda>(i,vm). i \<le> length (get_clauses_wl T \<propto> C) \<and> vm \<in> isa_vmtf (all_atms_st T) (get_trail_wl T)\<close> and
+      R = \<open>measure (\<lambda>(i,vm). length (get_clauses_wl T \<propto> C) -i)\<close>] trail bounded valid
+      isa_vmtf_mark_to_rescore_also_reasons_cl_isa_vmtf[THEN order_trans]
+      calculate_LBD_heur_st_calculate_LBD_st[where
+        vdom = \<open>set (get_vdom (S))\<close> and \<A> = \<open>all_atms_st T\<close> and C'=C, unfolded calculate_LBD_st_def conc_fun_RES RETURN_def, THEN order_trans])
+    subgoal using C valid unfolding arena_is_valid_clause_idx_def by auto
+    subgoal using valid C arena_lifting(7)[OF valid C, of \<open>length (get_clauses_wl T \<propto> C) - 1\<close>] by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal by auto
+    subgoal using vm by auto
+    subgoal by auto
+    subgoal using valid C by (auto simp:arena_lifting arena_lit_pre_def
+      arena_is_valid_clause_idx_and_access_def intro!: exI[of _ C] exI[of _ \<open>get_clauses_wl T\<close>])
+    subgoal by auto
+    subgoal using C by auto
+    subgoal by (rule H)
+    subgoal by (rule H)
+    subgoal using valid C by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal using valid C by (auto simp: arena_lifting)
+    subgoal by auto
+    subgoal using C by auto
+    subgoal by (rule H')
+    subgoal by auto
+    subgoal using assms unfolding twl_st_heur'_def twl_st_heur_def by auto
+    done
+qed
+
+
+
 definition set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
      (\<lambda>(C, S). True)\<close>
@@ -527,6 +666,7 @@ definition set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> isasat \<Rightarrow> isasat nres\<close>
 where
   \<open>set_conflict_wl_heur = (\<lambda>C S. do {
+    S \<leftarrow> mark_conflict_to_rescore C S;
     let n = 0;
     let M = get_trail_wl_heur S;
     let N = get_clauses_wl_heur S;
@@ -994,8 +1134,9 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_clauses[simp]: \<open>literals_are
   done
 
 lemma set_conflict_wl_alt_def:
-  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
-     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+  \<open>set_conflict_wl = (\<lambda>C S. do {
+     ASSERT(set_conflict_wl_pre C S);
+     let (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) = S;
      let D = Some (mset (N \<propto> C));
      j \<leftarrow> RETURN (length M);
      RETURN (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, {#}, W)
@@ -1073,11 +1214,12 @@ proof -
       \<open>x2a = (x1b, x2b)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>y = (x1, x2)\<close> and
-      \<open>x = (x1g, x2g)\<close> and
+      \<open>x = (x1g, S)\<close> and
+      \<open>(x2g, x2) \<in> twl_st_heur_up'' \<D> r s K lcount\<close>
       \<open>case y of (x, xa) \<Rightarrow> set_conflict_wl'_pre x xa\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q
-       x1r x2r x1s x2s x1t x2t x1g' x2g' x1h' x2h' x1i' x2i' x1j' x2j'
+       x1r x2r x1s x2s x1t x2t x1g' x2g' x1h' x2h' x1i' x2i' x1j' x2j' S
   proof -
     have [iff]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm
              (all_atms_st ([], x1b, None, x1d, x1e, x1f, xaa, af, ag, ah, ai, {#}, bb))
@@ -1089,7 +1231,7 @@ proof -
     show ?thesis
       apply (rule order_trans)
       apply (rule H[of _ _ _ _ _ _ x1a x1b x1g x1c 0 \<open>get_outlearned_heur x2g\<close> \<open>all_atms_st x2\<close>
-         \<open>set (get_vdom (snd x))\<close>])
+         \<open>set (get_vdom (x2g))\<close>])
       subgoal
         using that
         by (auto simp: twl_st_heur'_def twl_st_heur_def get_clauses_wl.simps ac_simps)
@@ -1105,28 +1247,19 @@ proof -
   qed
 
   have isa_set_lookup_conflict_aa_pre:
-   \<open>curry5 isa_set_lookup_conflict_aa_pre (get_trail_wl_heur x2g)
-  (get_clauses_wl_heur x2g) x1g (get_conflict_wl_heur x2g) 0 (get_outlearned_heur x2g)\<close>
-    if
-      \<open>case y of (x, xa) \<Rightarrow> set_conflict_wl'_pre x xa\<close> and
-      \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount\<close> and
-      \<open>x2e = (x1f, x2f)\<close> and
-      \<open>x2d = (x1e, x2e)\<close> and
-      \<open>x2c = (x1d, x2d)\<close> and
-      \<open>x2b = (x1c, x2c)\<close> and
-      \<open>x2a = (x1b, x2b)\<close> and
-      \<open>x2 = (x1a, x2a)\<close> and
-      \<open>y = (x1, x2)\<close> and
-      \<open>x = (x1g, x2g)\<close>
-    for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q x2q
-       x1r x2r x1s x2s x1t x2t
-  proof -
-    show ?thesis
-     using that unfolding isa_set_lookup_conflict_aa_pre_def set_conflict_wl'_pre_def
-     twl_st_heur'_def twl_st_heur_def
-     by (auto simp: arena_lifting)
-  qed
+    \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<Longrightarrow>
+    y = (x1, x2) \<Longrightarrow>
+    x = (x1a, x2a) \<Longrightarrow>
+    set_conflict_wl'_pre x1 x2 \<Longrightarrow>
+    inres (mark_conflict_to_rescore x1a x2a) S \<Longrightarrow>
+    (S, x2) \<in> twl_st_heur_up'' \<D> r s K lcount \<Longrightarrow>
+    curry2 (curry2 (curry isa_set_lookup_conflict_aa_pre)) (get_trail_wl_heur S)
+    (get_clauses_wl_heur S) x1a (get_conflict_wl_heur S) 0 (get_outlearned_heur S)\<close>
+    for x1 x2 x1a x2a S y x
+    unfolding isa_set_lookup_conflict_aa_pre_def set_conflict_wl'_pre_def
+      twl_st_heur'_def twl_st_heur_def
+    by (auto simp: arena_lifting)
+
 
   show ?thesis
     supply [[goals_limit=1]]
@@ -1140,8 +1273,11 @@ proof -
     apply (rewrite at \<open>let _ = get_outlearned_heur _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = get_stats_heur _ in _\<close> Let_def)
     apply (refine_vcg mop_isa_length_trail_length_u[of \<open>all_atms_st (snd y)\<close>, THEN fref_to_Down_Id_keep, unfolded length_uint32_nat_def
-         comp_def])
-    subgoal by (rule isa_set_lookup_conflict_aa_pre) (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
+      comp_def] mark_conflict_to_rescore[where \<D> = \<D> and r=r and s=s and K=K and lcount=lcount, unfolded conc_fun_RETURN[symmetric]])
+    subgoal by auto
+    subgoal by auto
+    subgoal for x1 x2 x1a x2a S
+      by (rule isa_set_lookup_conflict_aa_pre) (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     apply assumption+
     subgoal by (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal for x y

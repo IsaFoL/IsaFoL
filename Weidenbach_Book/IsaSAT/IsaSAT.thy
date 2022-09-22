@@ -1540,31 +1540,31 @@ proof -
     using 1 2 by simp
 qed
 
-definition extract_model_of_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_model_of_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> isasat_stats\<close> where
   \<open>extract_model_of_state_stat U =
-     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U))\<close>
+     (False, (fst (get_trail_wl_heur U)), (get_stats_heur U))\<close>
 
 lemma extract_model_of_state_stat_alt_def:
   \<open>extract_model_of_state_stat U =
      (let _ = print_trail_st2 U in
-     (False, (fst (get_trail_wl_heur U)), get_content (get_stats_heur U)))\<close>
+     (False, (fst (get_trail_wl_heur U)), (get_stats_heur U)))\<close>
   unfolding extract_model_of_state_stat_def print_trail_st2_def
   by auto
 
-definition extract_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
+definition extract_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat literal list \<times> isasat_stats\<close> where
   \<open>extract_state_stat U =
-     (True, [], get_content (get_stats_heur U))\<close>
+     (True, [], (get_stats_heur U))\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
 
-definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
+definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> isasat_stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, empty_stats)}\<close>
 
-definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
-  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
+definition empty_init_code :: \<open>bool \<times> _ list \<times> isasat_stats\<close> where
+  \<open>empty_init_code = (True, [], empty_stats)\<close>
 
 
 definition convert_state where
@@ -1586,7 +1586,7 @@ definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<cl
        learned_clss_count_init S < uint64_max)\<close>
 
 
-definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
+definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> isasat_stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
@@ -3536,7 +3536,7 @@ qed
 
 
 
-definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> stats)) nres\<close> where
+definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> isasat_stats)) nres\<close> where
   \<open>IsaSAT_bounded_heur opts CS = do{
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
@@ -3577,10 +3577,10 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
   }\<close>
 
 
-definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
+definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> isasat_stats) nres\<close> where
   \<open>empty_conflict_code' = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
+     RETURN (False, M0, empty_stats)}\<close>
 
 
 lemma IsaSAT_bounded_heur_alt_def:
