@@ -128,9 +128,9 @@ lemmas [sepref_fr_rules] =
 
 lemma [sepref_import_param]:
   \<open>(0, TARGET_NEVER) \<in> word_rel\<close>
-  \<open>(1, TARGET_QUIET_ONLY) \<in> word_rel\<close>
+  \<open>(1, TARGET_STABLE_ONLY) \<in> word_rel\<close>
   \<open>(2, TARGET_ALWAYS) \<in> word_rel\<close>
-  by (auto simp: TARGET_NEVER_def TARGET_ALWAYS_def TARGET_QUIET_ONLY_def)
+  by (auto simp: TARGET_NEVER_def TARGET_ALWAYS_def TARGET_STABLE_ONLY_def)
 
 
 experiment begin

@@ -282,7 +282,7 @@ definition get_next_phase_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> pha
 
 definition get_next_phase_stats :: \<open>bool \<Rightarrow> nat \<Rightarrow> phase_save_heur \<Rightarrow> bool nres\<close>  where
   \<open>get_next_phase_stats = (\<lambda>b L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
-  if b then do {
+  if \<not>b then do {
     ASSERT(L < length \<phi>);
     RETURN(\<phi> ! L)
   } else  do {
