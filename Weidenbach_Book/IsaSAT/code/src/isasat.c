@@ -773,6 +773,8 @@ int main(int argc, char *argv[]) {
       binary_proof = 0;
     else if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
+    else if(strcmp(opt, "--alwaystarget\0") == 0)
+      target_phases = 2;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
     else if(strcmp(opt, "--norestart\0") == 0)
