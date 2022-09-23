@@ -372,7 +372,7 @@ proof -
         have "trail_consistent \<Gamma>"
           using S_def trail_consistent by auto
         show "C \<in> gnd_N \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta> \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile> C"
-          using tr_true[unfolded gnd_N_lt_\<beta>_def S_def, simplified]
+          using tr_true[unfolded gnd_N_lt_\<beta>_def]
           using trail_interp_cls_if_trail_true[OF \<open>trail_consistent \<Gamma>\<close>]
           by (simp add: trail_true_clss_def)
       qed

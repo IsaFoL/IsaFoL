@@ -2045,6 +2045,30 @@ next
       trail_true_or_false_cls_if_defined by blast
 qed
 
+lemma is_ground_lit_if_true_in_ground_trail:
+  assumes "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+  shows "trail_true_lit \<Gamma> L \<Longrightarrow> is_ground_lit L"
+  using assms by (metis trail_true_lit_def)
+
+lemma is_ground_lit_if_false_in_ground_trail:
+  assumes "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+  shows "trail_false_lit \<Gamma> L \<Longrightarrow> is_ground_lit L"
+  using assms by (metis trail_false_lit_def atm_of_uminus is_ground_lit_def)
+
+lemma is_ground_lit_if_defined_in_ground_trail:
+  assumes "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+  shows "trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L"
+  using assms is_ground_lit_if_true_in_ground_trail is_ground_lit_if_false_in_ground_trail
+  unfolding trail_defined_lit_iff_true_or_false
+  by fast
+
+lemma is_ground_cls_if_false_in_ground_trail:
+  assumes "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
+  shows "trail_false_cls \<Gamma> C \<Longrightarrow> is_ground_cls C"
+  unfolding trail_false_cls_def is_ground_cls_def
+  using assms by (auto intro: is_ground_lit_if_false_in_ground_trail)
+
+
 section \<open>SCL Calculus\<close>
 
 locale scl = renaming_apart renaming_vars inv_renaming_vars
