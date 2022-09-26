@@ -3259,6 +3259,23 @@ lemma sound_trail_decide:
   unfolding trail_decide_def
   by (auto intro: sound_trail.Cons)
 
+definition trail_groundings where
+  "trail_groundings \<Gamma> \<longleftrightarrow> (\<forall>(_, n) \<in> set \<Gamma>.
+    case n of
+      None \<Rightarrow> True
+    | Some (C, L, \<gamma>) \<Rightarrow> is_ground_cls (add_mset L C \<cdot> \<gamma>))"
+
+lemma trail_groundings_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_groundings \<Gamma>"
+proof (induction \<Gamma> rule: sound_trail.induct)
+  case Nil
+  then show ?case
+    by (simp add: trail_groundings_def)
+next
+  case (Cons \<Gamma> L u)
+  then show ?case
+    by (cases u) (auto simp add: trail_groundings_def)
+qed
+
 
 subsection \<open>Sound State\<close>
 

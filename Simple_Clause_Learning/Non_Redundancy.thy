@@ -127,6 +127,129 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     unfolding S\<^sub>2_def D_def by auto
 qed
 
+lemma factorize_preserves_resolvability:
+  assumes reso: "resolve N \<beta> S\<^sub>1 S\<^sub>2" and fact: "factorize N \<beta> S\<^sub>1 S\<^sub>3" and
+    invars: "trail_groundings (state_trail S\<^sub>1)" "conflict_disjoint_vars N S\<^sub>1"
+  shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
+  using reso
+proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+
+  from fact obtain K K' \<mu>\<^sub>K \<sigma>' DD where
+    S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (DD + {#K, K'#}, \<sigma>))" and
+    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some ((DD + {#K#}) \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
+    "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
+    mimgu_\<mu>\<^sub>K: "is_mimgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
+    \<sigma>'_def: "\<sigma>' = restrict_subst (vars_cls ((DD + {#K#}) \<cdot> \<mu>\<^sub>K)) \<sigma>"
+    by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (D + {#L'#}, \<sigma>))\<close> elim: factorize.cases)
+
+  have "add_mset L' D = add_mset K (add_mset K' DD)"
+    using resolveI(1) S\<^sub>1_def by simp
+
+  from mimgu_\<mu>\<^sub>K have "\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>"
+    using \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close>
+    by (auto simp add: is_mimgu_def is_imgu_def is_unifiers_def is_unifier_alt
+        intro!: subst_atm_of_eqI)
+
+  have L_\<mu>\<^sub>K_\<sigma>'_simp: "L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>" if L_in: "L \<in># add_mset K DD" for L
+    unfolding \<sigma>'_def
+    using L_in
+    by (metis add_mset_add_single insert_DiffM subst_lit_restrict_subst_idem sup_ge1
+        vars_cls_add_mset vars_lit_subst_subset_vars_cls_substI)
+
+  have "L' \<cdot>l \<mu>\<^sub>K \<in># add_mset K DD \<cdot> \<mu>\<^sub>K"
+  proof (cases "L' = K \<or> L' = K'")
+    case True
+    moreover have "K \<cdot>l \<mu>\<^sub>K = K' \<cdot>l \<mu>\<^sub>K"
+      using mimgu_\<mu>\<^sub>K[unfolded is_mimgu_def, THEN conjunct1, unfolded is_imgu_def, THEN conjunct1,
+          unfolded is_unifiers_def, simplified]
+      by (metis (no_types, opaque_lifting) \<open>K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>\<close> atm_of_subst_lit finite.emptyI
+          finite.insertI insertCI is_unifier_subst_atm_eqI literal.expand subst_lit_is_neg)
+    ultimately have "L' \<cdot>l \<mu>\<^sub>K = K \<cdot>l \<mu>\<^sub>K"
+      by presburger
+    thus ?thesis
+      by simp
+  next
+    case False
+    hence "L' \<in># DD"
+      by (metis \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close> insert_iff set_mset_add_mset_insert)
+    thus ?thesis
+      by auto
+  qed
+  then obtain DDD where "add_mset K DD \<cdot> \<mu>\<^sub>K = add_mset L' DDD \<cdot> \<mu>\<^sub>K"
+    by (smt (verit, best) Melem_subst_cls mset_add subst_cls_add_mset)
+
+  moreover have "L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')"
+  proof -
+    have "L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>"
+      using L_\<mu>\<^sub>K_\<sigma>'_simp
+      by (metis Melem_subst_cls \<open>L' \<cdot>l \<mu>\<^sub>K \<in># add_mset K DD \<cdot> \<mu>\<^sub>K\<close>)
+    also have "... = L' \<cdot>l \<sigma>"
+      using \<open>\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>\<close>
+      by (metis subst_lit_comp_subst)
+    finally show ?thesis
+      using resolveI by simp
+  qed
+
+  moreover obtain \<mu>\<mu> where "is_mimgu \<mu>\<mu> {{atm_of L, atm_of L' \<cdot>a \<mu>\<^sub>K}}"
+  proof -
+    assume "\<And>\<mu>\<mu>. is_mimgu \<mu>\<mu> {{atm_of L, atm_of L' \<cdot>a \<mu>\<^sub>K}} \<Longrightarrow> thesis"
+    moreover have "\<exists>\<mu>. Unification.mgu (atm_of L) (atm_of L' \<cdot>a \<mu>\<^sub>K) = Some \<mu>"
+    proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
+      show "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<mu>\<^sub>K \<cdot>a \<sigma>'"
+        using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>')\<close>
+        by (metis atm_of_subst_lit atm_of_uminus)
+    next
+      have "vars_lit L \<inter> vars_lit L' = {}"
+        using invars(2)[unfolded resolveI]
+        by (auto simp: conflict_disjoint_vars_def)
+
+      have "vars_lit L \<inter> vars_cls (add_mset L' D) = {}"
+        using invars(2)[unfolded resolveI]
+        by (auto simp: conflict_disjoint_vars_def)
+
+      moreover have "vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) \<subseteq> vars_cls (add_mset L' D)"
+      proof -
+        have "vars_lit K \<union> vars_lit K' \<subseteq> vars_cls (add_mset L' D)"
+          by (simp add: \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close> subsetI)
+
+        moreover have "vars_lit L' \<subseteq> vars_cls (add_mset L' D)"
+          using \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close>
+          by (metis Un_upper1 vars_cls_add_mset)
+
+        ultimately show ?thesis
+          using mimgu_\<mu>\<^sub>K[unfolded is_mimgu_def, THEN conjunct2, simplified]
+            vars_subst_term_subset_weak
+          by fastforce
+      qed
+
+      ultimately show "vars_lit L \<inter> vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) = {}"
+        by auto
+    next
+      have "is_ground_cls (add_mset L C \<cdot> \<delta>)"
+        using invars(1)[unfolded resolveI]
+        by (simp add: trail_groundings_def trail_propagate_def)
+      hence "is_ground_lit (L \<cdot>l \<delta>)"
+        by (metis is_ground_cls_def subst_cls_add_mset union_single_eq_member)
+      hence "\<forall>x\<in>vars_lit L. vars_term (\<delta> x) = {}"
+        by (meson is_ground_atm_iff_vars_empty is_ground_lit_is_ground_on_var)
+      hence "(\<Union>x\<in>vars_lit L. if \<delta> x = Var x then {} else vars_term (\<delta> x)) = {}"
+        by force
+      thus "(\<Union>x\<in>vars_lit L. if \<delta> x = Var x then {} else vars_term (\<delta> x)) \<inter>
+        {x \<in> vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K). \<sigma>' x \<noteq> Var x} = {}"
+        by simp
+    qed
+    ultimately show ?thesis
+      using is_mimgu_if_mgu_eq_Some by blast
+  qed
+
+  ultimately show ?thesis
+    unfolding S\<^sub>3_def
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> refl,
+        of "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' _ N \<beta> U "DDD \<cdot> \<mu>\<^sub>K", simplified]
+    by auto
+qed
+
 text \<open>The following lemma corresponds to Lemma 7 in the paper.\<close>
 
 lemma no_backtrack_after_conflict_if:
