@@ -184,7 +184,7 @@ definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Right
       if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, 0, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 1
       then do {
