@@ -764,7 +764,7 @@ definition propagate_bt_wl_D_heur
       let S = set_vmtf_wl_heur vm S;
       let S = set_lbd_wl_heur lbd S;
       _ \<leftarrow> log_new_clause_heur S i;
-      S \<leftarrow> mark_added_clause_heur2 S i;
+      S \<leftarrow> maybe_mark_added_clause_heur2 S i;
       RETURN (S)
     })\<close>
 

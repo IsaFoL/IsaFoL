@@ -301,7 +301,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
         _ \<leftarrow> log_new_clause_heur S i;
-      S \<leftarrow> mark_added_clause_heur2 S i;
+      S \<leftarrow> maybe_mark_added_clause_heur2 S i;
       RETURN (S)
         })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
