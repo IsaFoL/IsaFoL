@@ -1998,7 +1998,7 @@ proof -
             S = set_count_max_wl_heur 0 S; S = set_vmtf_wl_heur vm S;
             S = set_lbd_wl_heur lbd S in
            do {_ \<leftarrow> log_new_clause_heur S i;
-           S \<leftarrow> mark_added_clause_heur2 S i;
+           S \<leftarrow> maybe_mark_added_clause_heur2 S i;
           RETURN S}
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2385,7 +2385,7 @@ proof -
            dest: valid_arena_one_notin_vdomD)
       subgoal by auto
       subgoal by auto
-      apply (rule mark_added_clause_heur2_id[unfolded conc_fun_RETURN])
+      apply (rule maybe_mark_added_clause_heur2_id[unfolded conc_fun_RETURN])
       subgoal
         apply (drule final_rel)
         apply assumption+

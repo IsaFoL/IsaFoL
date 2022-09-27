@@ -36,7 +36,7 @@ sepref_def mop_mark_added_heur_iml
   unfolding mop_mark_added_heur_def
   by sepref
 
-sepref_register mop_mark_added_heur mop_mark_added_heur_st mark_added_clause_heur2
+sepref_register mop_mark_added_heur mop_mark_added_heur_st mark_added_clause_heur2 maybe_mark_added_clause_heur2
 
 sepref_def mop_mark_added_heur_st_impl
   is \<open>uncurry mop_mark_added_heur_st\<close>
@@ -49,6 +49,12 @@ sepref_def mark_added_clause_heur2_impl
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding mark_added_clause_heur2_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def maybe_mark_added_clause_heur2_impl
+  is \<open>uncurry maybe_mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding maybe_mark_added_clause_heur2_def
   by sepref
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:

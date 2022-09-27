@@ -468,7 +468,7 @@ global_interpretation arena_get_pos: read_arena_param_adder where
     intro!: ext)
   done
 
-lemmas [sepref_fr_rules] = arena_get_lbd.refine arena_get_pos.mop_refine
+lemmas [sepref_fr_rules] = arena_get_lbd.refine arena_get_pos.mop_refine arena_get_lbd.mop_refine
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   clause_lbd_heur_code2_def[unfolded read_all_st_code_def]
