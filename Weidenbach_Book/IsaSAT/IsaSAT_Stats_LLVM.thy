@@ -52,7 +52,7 @@ definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \
   \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
-  \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition binary_stats_assn :: \<open>inprocessing_binary_stats \<Rightarrow> inprocessing_binary_stats \<Rightarrow> _\<close> where
   \<open>binary_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -80,7 +80,7 @@ sepref_def empty_binary_stats_impl
   by sepref
 
 definition empty_subsumption_stats :: \<open>inprocessing_subsumption_stats\<close> where
-  \<open>empty_subsumption_stats = (0,0,0,0)\<close>
+  \<open>empty_subsumption_stats = (0,0,0,0,0)\<close>
 
 sepref_def empty_subsumption_stats_impl
   is \<open>uncurry0 (RETURN empty_subsumption_stats)\<close>
@@ -871,6 +871,89 @@ sepref_def stats_size_limit_impl
   is \<open>RETURN o stats_size_limit\<close>
   :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding stats_size_limit_def stats_code_unfold
+  by sepref
+
+sepref_def Subsumption_Stats_incr_strengthening_impl
+  is \<open>RETURN o Subsumption_Stats_incr_strengthening\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_incr_strengthening_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def incr_forward_strengethening_impl
+  is \<open>RETURN o incr_forward_strengethening\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_forward_strengethening_def stats_code_unfold
+  by sepref
+
+sepref_def Subsumption_Stats_incr_subsumed_impl
+  is \<open>RETURN o Subsumption_Stats_incr_subsumed\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_incr_subsumed_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def Subsumption_Stats_incr_tried_impl
+  is \<open>RETURN o Subsumption_Stats_incr_tried\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_incr_tried_def subsumption_stats_assn_def
+  by sepref
+
+sepref_def incr_forward_subsumed_impl
+  is \<open>RETURN o incr_forward_subsumed\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_forward_subsumed_def stats_code_unfold
+  by sepref
+
+sepref_def incr_forward_tried_impl
+  is \<open>RETURN o incr_forward_tried\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_forward_tried_def stats_code_unfold
+  by sepref
+
+sepref_def Subsumption_Stats_rounds_impl
+  is \<open>RETURN o Subsumption_Stats_rounds\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_rounds_def
+  by sepref
+sepref_def Subsumption_Stats_strengthened_impl
+  is \<open>RETURN o Subsumption_Stats_strengthened\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_strengthened_def
+  by sepref
+sepref_def Subsumption_Stats_subsumed_impl
+  is \<open>RETURN o Subsumption_Stats_subsumed\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_subsumed_def
+  by sepref
+sepref_def Subsumption_Stats_tried_impl
+  is \<open>RETURN o Subsumption_Stats_tried\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding subsumption_stats_assn_def Subsumption_Stats_tried_def
+  by sepref
+
+sepref_def stats_forward_rounds_impl
+  is \<open>RETURN o stats_forward_rounds\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_rounds_def stats_code_unfold
+  by sepref
+
+sepref_register stats_forward_tried stats_forward_subsumed stats_forward_strengthened
+
+sepref_def stats_forward_subsumed_impl
+  is \<open>RETURN o stats_forward_subsumed\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_subsumed_def stats_code_unfold
+  by sepref
+
+sepref_def stats_forward_tried_impl
+  is \<open>RETURN o stats_forward_tried\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_tried_def stats_code_unfold
+  by sepref
+
+sepref_def stats_forward_strengthened_impl
+  is \<open>RETURN o stats_forward_strengthened\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_strengthened_def stats_code_unfold
   by sepref
 
 lemmas [llvm_inline] = Mreturn_comp_Tuple16

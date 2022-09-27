@@ -110,10 +110,23 @@ definition Binary_Stats_incr_removed :: \<open>inprocessing_binary_stats \<Right
 
 
 
-type_synonym inprocessing_subsumption_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+text \<open>\<^term>\<open>ticks\<close> is currently unused: it is supposed to be used as to limit the number of clauses to try.\<close>
+type_synonym inprocessing_subsumption_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+
+definition Subsumption_Stats_rounds where
+  \<open>Subsumption_Stats_rounds = (\<lambda>(rounds, strengthened, subsumed, _). rounds)\<close>
+
+definition Subsumption_Stats_subsumed where
+  \<open>Subsumption_Stats_subsumed = (\<lambda>(subsumed, strengthened, subsumed, _). subsumed)\<close>
+
+definition Subsumption_Stats_tried where
+  \<open>Subsumption_Stats_tried = (\<lambda>(subsumed, strengthened, subsumed, _, tried). tried)\<close>
+
+definition Subsumption_Stats_strengthened where
+  \<open>Subsumption_Stats_strengthened = (\<lambda>(rounds, strengethened, subsumed, _). strengethened)\<close>
 
 definition Subsumption_Stats_incr_rounds :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_incr_rounds = (\<lambda>(rounds, units, removed, ticks). (rounds + 1, units, removed, ticks))\<close>
+  \<open>Subsumption_Stats_incr_rounds = (\<lambda>(rounds, units, removed, ticks, tried). (rounds + 1, units, removed, ticks, tried))\<close>
 
 definition Subsumption_Stats_incr_strengthening :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
   \<open>Subsumption_Stats_incr_strengthening = (\<lambda>(rounds, units, removed). (rounds, units+1, removed))\<close>
@@ -121,13 +134,19 @@ definition Subsumption_Stats_incr_strengthening :: \<open>inprocessing_subsumpti
 definition Subsumption_Stats_incr_subsumed :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
   \<open>Subsumption_Stats_incr_subsumed = (\<lambda>(rounds, units, removed, ticks). (rounds, units, removed+1, ticks))\<close>
 
+definition Subsumption_Stats_incr_tried :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
+  \<open>Subsumption_Stats_incr_tried = (\<lambda>(rounds, units, removed, ticks, tried). (rounds, units, removed, ticks, tried+1))\<close>
+
 definition Subsumption_Stats_set_ticks_limit :: \<open>64 word \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats\<close> where
-  \<open>Subsumption_Stats_set_ticks_limit = (\<lambda>ticks (rounds, units, removed, _). (rounds, units, removed+1, ticks))\<close>
+  \<open>Subsumption_Stats_set_ticks_limit = (\<lambda>ticks (rounds, units, removed, _, tried). (rounds, units, removed+1, ticks, tried))\<close>
 
 definition Subsumption_Stats_ticks_limit :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
-  \<open>Subsumption_Stats_ticks_limit = (\<lambda>(rounds, units, removed, ticks). ticks)\<close>
+  \<open>Subsumption_Stats_ticks_limit = (\<lambda>(rounds, units, removed, ticks, tried). ticks)\<close>
 
-  type_synonym inprocessing_pure_lits_stats = \<open>64 word \<times> 64 word\<close>
+definition Subsumption_Stats_ticks_tried :: \<open>inprocessing_subsumption_stats \<Rightarrow> 64 word\<close> where
+  \<open>Subsumption_Stats_ticks_tried = (\<lambda>(rounds, units, removed, ticks, tried). tried)\<close>
+
+type_synonym inprocessing_pure_lits_stats = \<open>64 word \<times> 64 word\<close>
 
 definition Pure_lits_Stats_incr_rounds :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats\<close> where
   \<open>Pure_lits_Stats_incr_rounds = (\<lambda>(rounds, removed). (rounds + 1, removed))\<close>
@@ -236,6 +255,21 @@ definition incr_forward_strengethening :: \<open>isasat_stats \<Rightarrow> isas
 
 definition incr_forward_subsumed :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_forward_subsumed S = set_subsumption_stats (Subsumption_Stats_incr_subsumed (get_subsumption_stats S)) S\<close>
+
+definition incr_forward_tried :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_forward_tried S = set_subsumption_stats (Subsumption_Stats_incr_tried (get_subsumption_stats S)) S\<close>
+
+definition stats_forward_rounds :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_rounds = Subsumption_Stats_rounds o get_subsumption_stats\<close>
+
+definition stats_forward_subsumed :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_subsumed = Subsumption_Stats_subsumed o get_subsumption_stats\<close>
+
+definition stats_forward_strengthened :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_strengthened = Subsumption_Stats_strengthened o get_subsumption_stats\<close>
+
+definition stats_forward_tried :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>stats_forward_tried = Subsumption_Stats_tried o get_subsumption_stats\<close>
 
 definition get_restart_count where
   \<open>get_restart_count S = Search_Stats_restarts (get_search_stats S)\<close>
@@ -389,12 +423,12 @@ definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 wo
 
 definition empty_stats :: \<open>isasat_stats\<close> where
   \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0)::search_stats)
-  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
   \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n)::search_stats)
-  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0)::inprocessing_subsumption_stats)
+  ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 
 

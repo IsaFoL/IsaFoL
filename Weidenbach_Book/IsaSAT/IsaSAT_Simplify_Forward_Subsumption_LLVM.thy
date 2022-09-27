@@ -10,12 +10,6 @@ begin
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-definition incr_forward_subsumed_st  :: \<open>_\<close> where
-  \<open>incr_forward_subsumed_st S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S)\<close>
-
-definition incr_forward_strengthened_st  :: \<open>_\<close> where
-  \<open>incr_forward_strengthened_st S = (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)\<close>
-
 lemma incr_forward_subsumed_st_alt_def: \<open>incr_forward_subsumed_st S = (
   let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_subsumed stats in
     update_stats_wl_heur stats S
@@ -23,21 +17,14 @@ lemma incr_forward_subsumed_st_alt_def: \<open>incr_forward_subsumed_st S = (
   incr_forward_strengthened_st_alt_def: \<open>incr_forward_strengthened_st S = (
   let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_strengethening stats in
     update_stats_wl_heur stats S
+    )\<close> and
+  incr_forward_tried_st_alt_def: \<open>incr_forward_tried_st S = (
+  let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_tried stats in
+    update_stats_wl_heur stats S
     )\<close>
-  by (auto simp: isa_push_to_occs_list_st_def state_extractors incr_forward_subsumed_st_def incr_forward_strengthened_st_def
-         split: isasat_int_splits) 
-
-sepref_def Subsumption_Stats_incr_strengthening_impl
-  is \<open>RETURN o Subsumption_Stats_incr_strengthening\<close>
-  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
-  unfolding Subsumption_Stats_incr_strengthening_def subsumption_stats_assn_def
-  by sepref
-
-sepref_def incr_forward_strengethening_impl
-  is \<open>RETURN o incr_forward_strengethening\<close>
-  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_forward_strengethening_def stats_code_unfold
-  by sepref
+  by (auto simp: isa_push_to_occs_list_st_def state_extractors incr_forward_subsumed_st_def
+        incr_forward_strengthened_st_def incr_forward_tried_st_def
+      split: isasat_int_splits)
 
 sepref_def incr_forward_strengthened_st_impl
   is \<open>RETURN o incr_forward_strengthened_st\<close>
@@ -45,16 +32,10 @@ sepref_def incr_forward_strengthened_st_impl
   unfolding incr_forward_strengthened_st_alt_def
   by sepref
 
-sepref_def Subsumption_Stats_incr_subsumed_impl
-  is \<open>RETURN o Subsumption_Stats_incr_subsumed\<close>
-  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
-  unfolding Subsumption_Stats_incr_subsumed_def subsumption_stats_assn_def
-  by sepref
-
-sepref_def incr_forward_subsumed_impl
-  is \<open>RETURN o incr_forward_subsumed\<close>
-  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_forward_subsumed_def stats_code_unfold
+sepref_def incr_forward_tried_st_impl
+  is \<open>RETURN o incr_forward_tried_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding incr_forward_tried_st_alt_def
   by sepref
 
 sepref_def incr_forward_subsumed_st_impl

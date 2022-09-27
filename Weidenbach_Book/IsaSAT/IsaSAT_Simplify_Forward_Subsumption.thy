@@ -1421,11 +1421,20 @@ definition isa_strengthen_clause_wl2 where
      RETURN (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)
   }\<close>
 
+definition incr_forward_subsumed_st  :: \<open>_\<close> where
+  \<open>incr_forward_subsumed_st S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S)\<close>
+
+definition incr_forward_tried_st  :: \<open>_\<close> where
+  \<open>incr_forward_tried_st S = (set_stats_wl_heur (incr_forward_tried (get_stats_heur S)) S)\<close>
+
+definition incr_forward_strengthened_st  :: \<open>_\<close> where
+  \<open>incr_forward_strengthened_st S = (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)\<close>
+
 definition isa_subsume_or_strengthen_wl :: \<open>nat \<Rightarrow> nat subsumption \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>isa_subsume_or_strengthen_wl = (\<lambda>C s S. do {
    ASSERT(isa_subsume_or_strengthen_wl_pre C s S);
    (case s of
-     NONE \<Rightarrow> RETURN S
+     NONE \<Rightarrow> RETURN (incr_forward_tried_st S)
   | SUBSUMED_BY C' \<Rightarrow> do {
      st1 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C;
      st2 \<leftarrow> mop_arena_status (get_clauses_wl_heur S) C';
@@ -3025,6 +3034,13 @@ proof -
     (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
     get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
     by (auto simp: twl_st_heur_restart_occs_def)
+  have [refine, intro!]: \<open>(Sa, U)     \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T} \<Longrightarrow>
+    (incr_forward_tried_st Sa, U) \<in> {(U, V).
+    (U, V) \<in> twl_st_heur_restart_occs' r u \<and>
+    get_occs U = get_occs T \<and> get_aivdom U = get_aivdom T}\<close> for Sa U
+    by (auto simp: twl_st_heur_restart_occs_def incr_forward_tried_st_def)
   show ?thesis
     apply (rule order_trans)
     defer

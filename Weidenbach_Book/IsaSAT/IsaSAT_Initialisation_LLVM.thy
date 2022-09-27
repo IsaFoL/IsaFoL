@@ -1043,9 +1043,13 @@ lemmas [llvm_code] =
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
+
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
+  unfolding isasat_init_assn_def
+  by synthesize_free+
+
 experiment
 begin
-
   export_llvm init_state_wl_D'_code
     rewatch_heur_st_fast_code
     init_dt_wl_heur_code_b
