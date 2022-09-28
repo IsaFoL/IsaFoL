@@ -306,22 +306,22 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
          (if target_option = 2 then TARGET_ALWAYS else if target_option = 0 then TARGET_NEVER else TARGET_STABLE_ONLY)
          fema sema units;
       (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) C;
-      let _ = print_propa (stats_propagations stats);
-      let _ = print_confl (stats_conflicts stats);
-      let _ = print_dec (stats_decisions stats);
-      let _ = print_res (stats_restarts stats);
-      let _ = print_lres (stats_reductions stats);
-      let _ = print_uset (stats_fixed stats);
-      let _ = print_gcs (stats_gcs stats);
-      let _ = print_irred_clss (stats_irred stats);
-      let _ = print_binary_unit (stats_binary_units stats);
-      let _ = print_binary_red_removed (stats_binary_removed stats);
-      let _ = print_purelit_elim (stats_pure_lits_removed stats);
-      let _ = print_purelit_rounds (stats_pure_lits_rounds stats);
-      let _ = print_forward_rounds (stats_forward_rounds stats);
-      let _ = print_forward_tried (stats_forward_tried stats) (stats_forward_rounds stats);
-      let _ = print_forward_subsumed (stats_forward_subsumed stats) (stats_forward_tried stats);
-      let _ = print_forward_strengthened (stats_forward_strengthened stats) (stats_forward_tried stats);
+      let (_ :: unit) = print_propa (stats_propagations stats);
+      let (_ :: unit) = print_confl (stats_conflicts stats);
+      let (_ :: unit) = print_dec (stats_decisions stats);
+      let (_ :: unit) = print_res (stats_restarts stats) (stats_conflicts stats);
+      let (_ :: unit) = print_lres (stats_reductions stats) (stats_conflicts stats);
+      let (_ :: unit) = print_uset (stats_fixed stats);
+      let (_ :: unit) = print_gcs (stats_gcs stats) (stats_conflicts stats);
+      let (_ :: unit) = print_irred_clss (stats_irred stats);
+      let (_ :: unit) = print_binary_unit (stats_binary_units stats);
+      let (_ :: unit) = print_binary_red_removed (stats_binary_removed stats);
+      let (_ :: unit) = print_purelit_elim (stats_pure_lits_removed stats);
+      let (_ :: unit) = print_purelit_rounds (stats_pure_lits_rounds stats) (stats_conflicts stats);
+      let (_ :: unit) = print_forward_rounds (stats_forward_rounds stats) (stats_conflicts stats);
+      let (_ :: unit) = print_forward_tried (stats_forward_tried stats) (stats_forward_rounds stats);
+      let (_ :: unit) = print_forward_subsumed (stats_forward_subsumed stats) (stats_forward_tried stats);
+      let (_ :: unit) = print_forward_strengthened (stats_forward_strengthened stats) (stats_forward_tried stats);
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 

@@ -287,9 +287,9 @@ void IsaSAT_Print_LLVM_print_res_impl(int64_t props) {
 #endif
 }
 
-void IsaSAT_Print_LLVM_print_lres_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_lres_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c reductions %ld\n", props);
+  printf("c reductions %ld %10.2f interval\n", props, (double) confl / (double)props);
 #endif
 }
 
@@ -299,9 +299,9 @@ void IsaSAT_Print_LLVM_print_uset_impl(int64_t props) {
 #endif
 }
 
-void IsaSAT_Print_LLVM_print_gc_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_gc_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c GCs %ld\n", props);
+  printf("c GCs %ld %10.2f interval\n", props, (double) confl / (double)props);
 #endif
 }
 
@@ -326,26 +326,26 @@ void IsaSAT_Print_LLVM_print_purelit_elim_impl(int64_t props) {
   printf("c pure literals unit removed %ld\n", props);
 #endif
 }
-void IsaSAT_Print_LLVM_print_purelit_rounds_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_purelit_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c elimination rounds %ld\n", props);
+  printf("c elimination rounds %ld %10.2f interval\n", props, (double)conflicts / (double)props);
 #endif
 }
 
-void IsaSAT_Print_LLVM_print_forward_rounds_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_forward_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c forward rounds %ld\n", props);
+  printf("c forward rounds %ld %10.2f interval\n", props, (double)conflicts / (double)props);
 #endif
 }
 
 void IsaSAT_Print_LLVM_print_forward_subsumed_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward subsumed %ld (per tried: %.2f%%)\n", props, (double)(100*props) / (double)tried);
+  printf("c forward subsumed %ld (subsumed per tried: %10.2f)\n", props, (double)(tried) / (double)props);
 #endif
 }
 void IsaSAT_Print_LLVM_print_forward_strengthened_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward strengthened %ld (per tried: %.2f %%)\n", props, (double)(100*props) / (double)tried);
+  printf("c forward strengthened %ld (strengthened per tried: %10.2f)\n", props, (double)tried / (double)props);
 #endif
 }
 
