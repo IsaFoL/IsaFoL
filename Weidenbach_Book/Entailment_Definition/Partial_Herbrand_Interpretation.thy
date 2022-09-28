@@ -831,6 +831,9 @@ lemma not_tautology_minusD:
 lemma tautology_length_ge2: \<open>tautology C \<Longrightarrow> size C \<ge> 2\<close>
   by (auto simp: tautology_decomp add_mset_eq_add_mset dest!: multi_member_split)
 
+lemma tautology_add_subset: \<open>A \<subseteq># Aa \<Longrightarrow> tautology (A + Aa) \<longleftrightarrow> tautology Aa\<close> for A Aa
+  by (metis mset_subset_eqD subset_mset.add_diff_inverse tautology_minus tautology_union)
+
 
 
 subsubsection \<open>Entailment for clauses and propositions\<close>

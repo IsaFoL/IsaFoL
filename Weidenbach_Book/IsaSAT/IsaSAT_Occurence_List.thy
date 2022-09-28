@@ -650,4 +650,28 @@ lemma cocc_content_set_append[simp]:
   apply (metis in_set_conv_nth length_Suc_rev_conv nat_in_between_eq(1) nth_append_length)
   by (smt (verit, best) in_set_conv_nth le_imp_less_Suc length_Suc_rev_conv length_list_update less_imp_le_nat list_update_append1 list_update_id nth_list_update_neq set_update_memI)
 
+lemma all_occurrences_add_mset: \<open>all_occurrences (add_mset (atm_of L) A) occs =
+  all_occurrences (removeAll_mset (atm_of L) A) occs + mset (occ_list occs L) + mset (occ_list occs (-L))\<close>
+  by (cases L; cases occs)
+    (auto simp: all_occurrences_def occ_list_def remdups_mset_removeAll
+    remdups_mset_singleton_removeAll
+    removeAll_notin simp del: remdups_mset_singleton_sum)
+
+lemma all_occurrences_add_mset2: \<open>all_occurrences (add_mset (L) A) occs =
+  all_occurrences (removeAll_mset (L) A) occs + mset (occ_list occs (Pos L)) + mset (occ_list occs (Neg L))\<close>
+  by (cases occs)
+    (auto simp: all_occurrences_def occ_list_def remdups_mset_removeAll
+    remdups_mset_singleton_removeAll
+    removeAll_notin simp del: remdups_mset_singleton_sum)
+
+lemma all_occurrences_insert_lit:
+  \<open>all_occurrences A (insert (atm_of L) B, occs) = all_occurrences (A) (B, occs)\<close> and
+  all_occurrences_occ_list_append_r:
+  \<open>all_occurrences (removeAll_mset (atm_of L) A) (B, occ_list_append_r L C b) =
+    all_occurrences (removeAll_mset (atm_of L) A) (B, b)\<close>
+  apply (auto simp: all_occurrences_def)
+  by (smt (verit) distinct_mset_remdups_mset distinct_mset_remove1_All image_mset_cong2
+    literal.sel(1) literal.sel(2) remdups_mset_removeAll removeAll_subseteq_remove1_mset
+    subset_mset_removeAll_iff)
+
 end

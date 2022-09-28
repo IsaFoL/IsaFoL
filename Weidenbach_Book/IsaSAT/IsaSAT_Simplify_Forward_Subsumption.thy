@@ -1,10 +1,8 @@
-
 theory IsaSAT_Simplify_Forward_Subsumption
   imports IsaSAT_Setup
     Watched_Literals.Watched_Literals_Watch_List_Inprocessing
     More_Refinement_Libs.WB_More_Refinement_Loops
     IsaSAT_Restart
-  (*  IsaSAT_Simplify_Units*)
     IsaSAT_Occurence_List
 begin
 
@@ -48,9 +46,6 @@ definition subsume_clauses_match2 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 
      (0, SUBSUMED_BY C);
   RETURN st
   }\<close>
-(*TODO move*)
-lemma image_msetI: \<open>x \<in># A \<Longrightarrow> f x \<in># f `# A\<close>
-  by (auto)
 
 lemma subsume_clauses_match2_subsume_clauses_match:
   assumes
@@ -71,8 +66,7 @@ proof -
   have [intro!]: \<open>C \<in># dom_m (get_clauses_wl S) \<Longrightarrow> x1a < length (get_clauses_wl S \<propto> C) \<Longrightarrow>
     atm_of (get_clauses_wl S \<propto> C ! x1a) \<in># all_atms_st S\<close> for x1a
     unfolding all_atms_st_alt_def
-    by (auto intro!: nth_in_all_lits_stI image_msetI
-      simp del: all_atms_st_alt_def[symmetric])
+    by (auto intro!: nth_in_all_lits_stI simp del: all_atms_st_alt_def[symmetric])
   have [refine]: \<open>((0, SUBSUMED_BY C), 0, SUBSUMED_BY C) \<in> nat_rel \<times>\<^sub>f Id\<close>
     by auto
   have subsume_clauses_match_alt_def:
@@ -133,6 +127,7 @@ definition push_to_occs_list2_pre :: \<open>_\<close> where
     atm_of ` set (get_clauses_wl S \<propto> C) \<subseteq> set_mset (all_init_atms_st S) \<and>
     C \<notin># all_occurrences (mset_set (fst occs)) occs)\<close>
 
+(*TODO: we should only push if the list contains only marked literals*)
 definition push_to_occs_list2 where
   \<open>push_to_occs_list2 C S occs = do {
      ASSERT (push_to_occs_list2_pre C S occs);
@@ -161,42 +156,6 @@ definition forward_subsumption_one_wl2_rel where
      (S,T)\<in>Id
     }\<close>
 
-lemma remdups_mset_removeAll: \<open>remdups_mset (removeAll_mset a A) = removeAll_mset a (remdups_mset A)\<close>
-  by (smt (verit, ccfv_threshold) add_mset_remove_trivial count_eq_zero_iff diff_zero
-    distinct_mset_remdups_mset distinct_mset_remove1_All insert_DiffM order.refl remdups_mset_def
-    remdups_mset_singleton_sum removeAll_subseteq_remove1_mset replicate_mset_eq_empty_iff
-    set_mset_minus_replicate_mset(1) set_mset_remdups_mset subset_mset_removeAll_iff)
-
-(*TODO move*)
-text \<open>This is an alternative to @{thm [source] remdups_mset_singleton_sum}.\<close>
-lemma remdups_mset_singleton_removeAll:
-  "remdups_mset (add_mset a A) = add_mset a (removeAll_mset a (remdups_mset A))"
-  by (metis dual_order.refl finite_set_mset mset_set.insert_remove remdups_mset_def
-    remdups_mset_removeAll set_mset_add_mset_insert set_mset_minus_replicate_mset(1))
-
-lemma all_occurrences_add_mset: \<open>all_occurrences (add_mset (atm_of L) A) occs =
-  all_occurrences (removeAll_mset (atm_of L) A) occs + mset (occ_list occs L) + mset (occ_list occs (-L))\<close>
-  by (cases L; cases occs)
-    (auto simp: all_occurrences_def occ_list_def remdups_mset_removeAll
-    remdups_mset_singleton_removeAll
-    removeAll_notin simp del: remdups_mset_singleton_sum)
-
-lemma all_occurrences_add_mset2: \<open>all_occurrences (add_mset (L) A) occs =
-  all_occurrences (removeAll_mset (L) A) occs + mset (occ_list occs (Pos L)) + mset (occ_list occs (Neg L))\<close>
-  by (cases occs)
-    (auto simp: all_occurrences_def occ_list_def remdups_mset_removeAll
-    remdups_mset_singleton_removeAll
-    removeAll_notin simp del: remdups_mset_singleton_sum)
-
-lemma all_occurrences_insert_lit:
-  \<open>all_occurrences A (insert (atm_of L) B, occs) = all_occurrences (A) (B, occs)\<close> and
-  all_occurrences_occ_list_append_r:
-  \<open>all_occurrences (removeAll_mset (atm_of L) A) (B, occ_list_append_r L C b) =
-    all_occurrences (removeAll_mset (atm_of L) A) (B, b)\<close>
-  apply (auto simp: all_occurrences_def)
-  by (smt (verit) distinct_mset_remdups_mset distinct_mset_remove1_All image_mset_cong2
-    literal.sel(1) literal.sel(2) remdups_mset_removeAll removeAll_subseteq_remove1_mset
-    subset_mset_removeAll_iff)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_all_init_atms_alt_def:
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<Longrightarrow>

@@ -44,7 +44,7 @@ begin
  export_llvm isa_simplify_clauses_with_unit_st2_code
     isa_simplify_clauses_with_units_st_wl2_code
     isa_deduplicate_binary_clauses_code
-    isa_forward_subsumption_all_wl2_impl
+    isa_forward_subsumption_all_impl
 end
 
 end
