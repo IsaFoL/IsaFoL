@@ -349,9 +349,9 @@ void IsaSAT_Print_LLVM_print_forward_strengthened_impl(int64_t props, int64_t tr
 #endif
 }
 
-void IsaSAT_Print_LLVM_print_forward_tried_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_forward_tried_impl(int64_t props, int64_t rounds) {
 #ifdef PRINTSTATS
-  printf("c forward tried %ld\n", props);
+  printf("c forward tried %ld (%ld per rounds)\n", props, props / rounds);
 #endif
 }
 
@@ -382,6 +382,13 @@ void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
   printf(" %12ld ", p);
 #endif
 }
+
+void IsaSAT_Show_LLVM_print_uint32_impl(int32_t p) {
+#ifdef PRINTSTATS
+  printf(" %12ld ", p);
+#endif
+}
+
 void IsaSAT_Show_LLVM_print_open_colour_impl(int64_t c) {
 #ifdef PRINTSTATS
   printf("\e[%lim", c);

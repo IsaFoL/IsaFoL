@@ -2116,6 +2116,10 @@ qed
 text \<open>TODO Move\<close>
 
 definition reduce_interval_init :: \<open>64 word\<close> where \<open>reduce_interval_init = 300\<close>
+
+text \<open>This value is taken from CaDiCaL.\<close>
+definition inprocessing_interaval_init :: \<open>64 word\<close> where \<open>inprocessing_interaval_init = 10000\<close>
+
 text \<open>The value 160 is random (but larger than the default 16 for array lists).\<close>
 definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> isasat nres\<close> where
   \<open>finalise_init_code opts =
@@ -2126,7 +2130,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let fema = ema_init (opts_fema opts);
      let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
-     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False, replicate (length \<phi>) False, (262144, reduce_interval_init)));
+     let heur = Restart_Heuristics ((fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), reluctant_init, False, replicate (length \<phi>) False, (inprocessing_interaval_init, reduce_interval_init)));
      let vdoms = AIvdom_init vdom [] ivdom;
      let occs =  replicate (length W') [];
     RETURN (IsaSAT M' N' D' Q' W' ((ns, m, the fst_As, the lst_As, next_search), to_remove)

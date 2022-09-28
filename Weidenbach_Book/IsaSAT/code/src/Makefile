@@ -68,7 +68,7 @@ declare void @IsaSAT_Print_LLVM_print_purelit_rounds_impl(i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_rounds_impl(i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_subsumed_impl(i64,i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_strengthened_impl(i64,i64)\
-declare void @IsaSAT_Print_LLVM_print_forward_tried_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_forward_tried_impl(i64,i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\

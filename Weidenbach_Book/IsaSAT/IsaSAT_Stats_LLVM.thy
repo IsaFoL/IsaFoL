@@ -897,10 +897,22 @@ sepref_def Subsumption_Stats_incr_tried_impl
   unfolding Subsumption_Stats_incr_tried_def subsumption_stats_assn_def
   by sepref
 
+sepref_def Subsumption_Stats_incr_rounds_impl
+  is \<open>RETURN o Subsumption_Stats_incr_rounds\<close>
+  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
+  unfolding Subsumption_Stats_incr_rounds_def subsumption_stats_assn_def
+  by sepref
+
 sepref_def incr_forward_subsumed_impl
   is \<open>RETURN o incr_forward_subsumed\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding incr_forward_subsumed_def stats_code_unfold
+  by sepref
+
+sepref_def incr_forward_rounds_impl
+  is \<open>RETURN o incr_forward_rounds\<close>
+  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_forward_rounds_def stats_code_unfold
   by sepref
 
 sepref_def incr_forward_tried_impl

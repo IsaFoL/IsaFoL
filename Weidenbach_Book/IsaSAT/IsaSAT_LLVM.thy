@@ -319,7 +319,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let _ = print_purelit_elim (stats_pure_lits_removed stats);
       let _ = print_purelit_rounds (stats_pure_lits_rounds stats);
       let _ = print_forward_rounds (stats_forward_rounds stats);
-      let _ = print_forward_tried (stats_forward_tried stats);
+      let _ = print_forward_tried (stats_forward_tried stats) (stats_forward_rounds stats);
       let _ = print_forward_subsumed (stats_forward_subsumed stats) (stats_forward_tried stats);
       let _ = print_forward_strengthened (stats_forward_strengthened stats) (stats_forward_tried stats);
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
@@ -390,7 +390,7 @@ begin
 lemmas [unfolded inline_direct_return_node_case, llvm_code] = units_since_last_GC_st_code_def[unfolded read_all_st_code_def]
 lemmas [llvm_code del] = units_since_last_GC_st_code_def
 
-  export_llvm
+export_llvm
     llvm_version is \<open>STRING_VERSION llvm_version()\<close>
     IsaSAT_code
     IsaSAT_wrapped (*is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,

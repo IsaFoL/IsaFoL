@@ -44,8 +44,8 @@ definition print_forward_rounds :: \<open>64 word \<Rightarrow> unit\<close> whe
 definition print_forward_subsumed :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> unit\<close> where
   \<open>print_forward_subsumed _ _ = ()\<close>
 
-definition print_forward_tried :: \<open>64 word \<Rightarrow> unit\<close> where
-  \<open>print_forward_tried _ = ()\<close>
+definition print_forward_tried :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> unit\<close> where
+  \<open>print_forward_tried _ _ = ()\<close>
 
 definition print_forward_strengthened :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> unit\<close> where
   \<open>print_forward_strengthened _ _ = ()\<close>
@@ -138,8 +138,8 @@ sepref_def print_forward_subsumed_impl
   by sepref
 
 sepref_def print_forward_tried_impl
-  is \<open>RETURN o print_forward_tried\<close>
-  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  is \<open>uncurry (RETURN oo print_forward_tried)\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
   unfolding print_forward_tried_def
   by sepref
 

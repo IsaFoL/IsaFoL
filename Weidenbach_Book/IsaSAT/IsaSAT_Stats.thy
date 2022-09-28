@@ -259,6 +259,9 @@ definition incr_forward_subsumed :: \<open>isasat_stats \<Rightarrow> isasat_sta
 definition incr_forward_tried :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_forward_tried S = set_subsumption_stats (Subsumption_Stats_incr_tried (get_subsumption_stats S)) S\<close>
 
+definition incr_forward_rounds :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_forward_rounds S = set_subsumption_stats (Subsumption_Stats_incr_rounds (get_subsumption_stats S)) S\<close>
+
 definition stats_forward_rounds :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>stats_forward_rounds = Subsumption_Stats_rounds o get_subsumption_stats\<close>
 
