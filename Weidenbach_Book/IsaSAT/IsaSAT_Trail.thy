@@ -1237,4 +1237,23 @@ lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
      ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
       intro!: frefI nres_relI)
 
+definition trail_height_before_conflict :: \<open>trail_pol \<Rightarrow> nat nres\<close> where
+  \<open>trail_height_before_conflict = (\<lambda>(M', xs, lvls, reasons, k, cs).  do{
+     if k = 0 then RETURN 0 else do {
+       let k' = k-1;
+       ASSERT (k' < length cs);
+       RETURN (cs ! k')
+     }
+   })\<close>
+definition trail_height_before_conflict_spec where
+  \<open>trail_height_before_conflict_spec _ = RES (UNIV :: nat set)\<close> 
+
+
+lemma trail_height_before_conflict:
+  \<open>(trail_height_before_conflict, trail_height_before_conflict_spec) \<in> trail_pol \<A> \<rightarrow>\<^sub>f\<langle>nat_rel\<rangle>nres_rel\<close>
+  unfolding trail_height_before_conflict_def trail_height_before_conflict_spec_def Let_def
+  by (intro frefI, refine_vcg)
+    (auto simp: trail_pol_def control_stack_length_count_dec
+      intro!: frefI ASSERT_leI)
+
 end

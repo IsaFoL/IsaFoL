@@ -147,9 +147,9 @@ lemma unit_propagation_outer_loop_wl_D_heur_fast:
 sepref_def unit_propagation_outer_loop_wl_D_fast_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro]
+  supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro] of_nat_snat[sepref_import_param]
     unit_propagation_outer_loop_wl_D_invI[intro]
-  unfolding unit_propagation_outer_loop_wl_D_heur_def
+  unfolding unit_propagation_outer_loop_wl_D_heur_def isasat_length_trail_st_def[symmetric]
     literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 

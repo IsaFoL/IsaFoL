@@ -49,7 +49,7 @@ lemma Constructor_hnr[sepref_fr_rules]:
   by (auto simp: intro!: frefI)
 
 definition search_stats_assn :: \<open>search_stats \<Rightarrow> search_stats \<Rightarrow> _\<close> where
-  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>search_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition subsumption_stats_assn :: \<open>inprocessing_subsumption_stats \<Rightarrow> inprocessing_subsumption_stats \<Rightarrow> _\<close> where
   \<open>subsumption_stats_assn = word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -61,7 +61,7 @@ definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightar
   \<open>pure_lits_stats_assn = word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition empty_search_stats where
-  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0)\<close>
+  \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0)\<close>
 
 sepref_def empty_search_stats_impl
   is \<open>uncurry0 (RETURN empty_search_stats)\<close>
@@ -520,6 +520,24 @@ sepref_def Search_Stats_incr_propagation_impl
   unfolding search_stats_assn_def Search_Stats_incr_propagation_def
   by sepref
 
+sepref_def Search_Stats_incr_propagation_by_impl
+  is \<open>uncurry (RETURN oo Search_Stats_incr_propagation_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_propagation_by_def
+  by sepref
+
+sepref_def Search_Stats_set_not_conflict_until_impl
+  is \<open>uncurry (RETURN oo Search_Stats_set_no_conflict_until)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_set_no_conflict_until_def
+  by sepref
+
+sepref_def Search_Stats_no_conflict_until_impl
+  is \<open>RETURN o Search_Stats_no_conflict_until\<close>
+  :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_no_conflict_until_def
+  by sepref
+
 sepref_def Search_Stats_incr_conflicts_impl
   is \<open>RETURN o Search_Stats_incr_conflicts\<close>
   :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
@@ -550,10 +568,22 @@ sepref_def Search_Stats_incr_fixed_impl
   unfolding search_stats_assn_def Search_Stats_incr_fixed_def
   by sepref
 
+sepref_def Search_Stats_incr_fixed_by_impl
+  is \<open>uncurry (RETURN oo Search_Stats_incr_fixed_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_fixed_by_def
+  by sepref
+
 sepref_def Search_Stats_incr_gcs_impl
   is \<open>RETURN o Search_Stats_incr_gcs\<close>
   :: \<open>search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
   unfolding search_stats_assn_def Search_Stats_incr_gcs_def
+  by sepref
+
+sepref_def Search_Stats_incr_gcs_by_impl
+  is \<open>uncurry (RETURN oo Search_Stats_incr_units_since_gc_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a search_stats_assn\<^sup>k \<rightarrow>\<^sub>a search_stats_assn\<close>
+  unfolding search_stats_assn_def Search_Stats_incr_units_since_gc_by_def
   by sepref
 
 sepref_def Search_Stats_incr_units_since_gc_impl
@@ -733,6 +763,24 @@ sepref_def incr_propagation_stats_impl
   unfolding incr_propagation_def stats_code_unfold
   by sepref
 
+sepref_def incr_propagation_by_stats_impl
+  is \<open>uncurry (RETURN oo incr_propagation_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_propagation_by_def stats_code_unfold
+  by sepref
+
+sepref_def set_not_conflict_until_stats_impl
+  is \<open>uncurry (RETURN oo set_no_conflict_until)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding set_no_conflict_until_def stats_code_unfold
+  by sepref
+
+sepref_def no_conflict_until_stats_impl
+  is \<open>RETURN o no_conflict_until\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding no_conflict_until_def stats_code_unfold
+  by sepref
+
 sepref_def incr_conflict_stats_impl
   is \<open>RETURN o incr_conflict\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
@@ -763,6 +811,12 @@ sepref_def incr_uset_stats_impl
   unfolding incr_uset_def stats_code_unfold
   by sepref
 
+sepref_def incr_uset_by_stats_impl
+  is \<open>uncurry (RETURN oo incr_uset_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_uset_by_def stats_code_unfold
+  by sepref
+
 sepref_def incr_GC_stats_impl
   is \<open>RETURN o incr_GC\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
@@ -779,6 +833,12 @@ sepref_def incr_units_since_last_GC_impl
   is \<open>RETURN o incr_units_since_last_GC\<close>
   :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding incr_units_since_last_GC_def stats_code_unfold
+  by sepref
+
+sepref_def incr_units_since_last_GC_by_impl
+  is \<open>uncurry (RETURN oo incr_units_since_last_GC_by)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_units_since_last_GC_by_def stats_code_unfold
   by sepref
 
 sepref_def incr_purelit_rounds_impl
@@ -982,7 +1042,7 @@ sepref_def empty_stats_impl
   by sepref
 
 definition empty_search_stats_clss where
-  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n)\<close>
+  \<open>empty_search_stats_clss n = (0,0,0,0,0,0,0,0,n,0)\<close>
 
 sepref_def empty_search_stats_clss_impl
   is \<open>(RETURN o empty_search_stats_clss)\<close>

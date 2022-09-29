@@ -417,6 +417,10 @@ lemma of_nat_snat:
   \<open>(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
   by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
 
+lemma of_nat_unat:
+  \<open>(id,of_nat) \<in> unat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
+  by (auto simp: unat_rel_def unat.rel_def in_br_conv snat_eq_unat)
+
 
 type_synonym tri_bool_assn = \<open>8 word\<close>
 

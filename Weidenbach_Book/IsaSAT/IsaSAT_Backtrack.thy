@@ -2784,15 +2784,8 @@ proof -
                   \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2 \<and>
                   learned_clss_count S \<le> Suc u})\<close> for xb x'
     unfolding save_phase_st_def
-    apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])
-    subgoal
-      by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x'\<close> \<open>all_atms_st x'\<close>])
-        (auto simp: twl_st_heur_def)
-    subgoal
-      by (auto simp: twl_st_heur_def)
-    subgoal
-      by (auto simp: twl_st_heur_def learned_clss_count_def)
-    done
+    by (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])
+      (auto simp: twl_st_heur_def learned_clss_count_def)
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro frefI nres_relI)

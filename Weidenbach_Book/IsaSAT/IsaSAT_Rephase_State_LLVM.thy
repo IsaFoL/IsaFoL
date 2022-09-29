@@ -6,7 +6,7 @@ no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [
 
 sepref_def save_phase_heur_stats_impl
   is \<open>uncurry save_rephase_heur_stats\<close>
-  ::  \<open>sint64_nat_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  ::  \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   supply [[goals_limit=1]]
   unfolding save_rephase_heur_stats_def heuristic_int_assn_def
   by sepref
@@ -14,19 +14,18 @@ sepref_def save_phase_heur_stats_impl
 sepref_register save_rephase_heur_stats
 sepref_def save_phase_heur_impl
   is \<open>uncurry save_rephase_heur\<close>
-  ::  \<open>sint64_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  ::  \<open>word64_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   supply [[goals_limit=1]]
   unfolding save_rephase_heur_def
   by sepref
 
 lemma save_phase_st_alt_def:
   \<open>save_phase_st = (\<lambda>S. do {
-      let (M', S) = extract_trail_wl_heur S;
       let (heur, S) = extract_heur_wl_heur S;
-      ASSERT(isa_length_trail_pre M');
-      let n = isa_length_trail M';
+      let (stats, S) = extract_stats_wl_heur S;
+      let n = no_conflict_until stats;
       heur \<leftarrow> save_rephase_heur n heur;
-      RETURN (update_trail_wl_heur M' (update_heur_wl_heur heur S))
+      RETURN (update_heur_wl_heur heur (update_stats_wl_heur stats S))
    })\<close>
   by (auto simp: save_phase_st_def state_extractors split: isasat_int_splits intro!: ext)
 
@@ -42,7 +41,6 @@ sepref_def phase_save_rephase_impl
   :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   unfolding phase_rephase_def copy_phase2_def[symmetric] phase_heur_assn_def
   apply (subst copy_phase2_def)
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 

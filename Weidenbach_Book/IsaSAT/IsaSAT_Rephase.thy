@@ -6,7 +6,7 @@ chapter \<open>Phase Saving\<close>
 
 section \<open>Rephasing\<close>
 
-type_synonym phase_save_heur = \<open>phase_saver \<times> nat \<times> phase_saver \<times> nat \<times> phase_saver \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+type_synonym phase_save_heur = \<open>phase_saver \<times> 64 word \<times> phase_saver \<times> 64 word \<times> phase_saver \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
 \<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best,
@@ -227,7 +227,7 @@ proof -
 qed
 
 
-definition phase_save_phase :: \<open>nat \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+definition phase_save_phase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
 \<open>phase_save_phase = (\<lambda>n (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase). do {
        target \<leftarrow> (if n > target_assigned
           then copy_phase \<phi> target else RETURN target);

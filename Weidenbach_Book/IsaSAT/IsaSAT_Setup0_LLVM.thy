@@ -268,8 +268,6 @@ sepref_def bottom_heur_int_code
   apply (rewrite in \<open>(replicate _ False, _)\<close> array_fold_custom_replicate)
   apply (rewrite at \<open>(_, _, _, \<hole>, _, (_, _))\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>(_, _, \<hole>, _)\<close> array_fold_custom_replicate)
-  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite in \<open>let _ =\<hole> in _\<close> annotate_assn[where A=phase_saver_assn])
   unfolding larray_fold_custom_replicate
   apply (annot_snat_const \<open>TYPE(64)\<close>)

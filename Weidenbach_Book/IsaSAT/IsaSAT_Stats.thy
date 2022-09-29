@@ -35,67 +35,82 @@ At first we used a tuple that became longer and longer. We even had statistics b
 the wrong element of the tuple. Therefore, we changed to a structure and kept some free spots.
 \<close>
 
-type_synonym search_stats = \<open>64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word\<close>
+type_synonym search_stats = \<open>64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition Search_Stats_propagations :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_propagations = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). propa)\<close>
+  \<open>Search_Stats_propagations = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). propa)\<close>
 
 definition Search_Stats_incr_propagation :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_propagation = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa+1, confl, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_propagation = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa+1, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
+
+definition Search_Stats_incr_propagation_by :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_propagation_by = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa+p, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_conflicts :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). confl)\<close>
+  \<open>Search_Stats_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). confl)\<close>
 
 definition Search_Stats_incr_conflicts :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl+1, dec, res, reduction, uset, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_conflicts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl+1, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_decisions :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). dec)\<close>
+  \<open>Search_Stats_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). dec)\<close>
 
 definition Search_Stats_incr_decisions :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec+1, res, reduction, uset, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_decisions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec+1, res, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_restarts :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). res)\<close>
+  \<open>Search_Stats_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). res)\<close>
 
 definition Search_Stats_incr_restarts :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res+1, reduction, uset, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_restarts = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res+1, reduction, uset, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_reductions :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). reduction)\<close>
+  \<open>Search_Stats_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). reduction)\<close>
 
 definition Search_Stats_incr_reductions :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction+1, uset, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_reductions = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction+1, uset, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_fixed :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). uset)\<close>
+  \<open>Search_Stats_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). uset)\<close>
 
 definition Search_Stats_incr_fixed :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset+1, gcs, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_fixed = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset+1, gcs, units, irred_cls, no_conflict_until))\<close>
+
+definition Search_Stats_incr_fixed_by :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_fixed_by = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset+p, gcs, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_gcs :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). gcs)\<close>
+  \<open>Search_Stats_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). gcs)\<close>
 
 definition Search_Stats_incr_gcs :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs+1, units, irred_cls))\<close>
+  \<open>Search_Stats_incr_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs+1, units, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_reset_units_since_gc :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_reset_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, 0, irred_cls))\<close>
+  \<open>Search_Stats_reset_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, 0, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_units_since_gcs :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_units_since_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, units_since_gcs, units, irred_cls). units_since_gcs)\<close>
+  \<open>Search_Stats_units_since_gcs = (\<lambda>(propa, confl, dec, res, reduction, uset, units_since_gcs, units, irred_cls, no_conflict_until). units_since_gcs)\<close>
 
 definition Search_Stats_incr_units_since_gc :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units+1, irred_cls))\<close>
+  \<open>Search_Stats_incr_units_since_gc = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units+1, irred_cls, no_conflict_until))\<close>
+
+definition Search_Stats_incr_units_since_gc_by :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_incr_units_since_gc_by = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units+p, irred_cls, no_conflict_until))\<close>
 
 definition Search_Stats_incr_irred :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_incr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls+1))\<close>
+  \<open>Search_Stats_incr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls+1, no_conflict_until))\<close>
 
 definition Search_Stats_decr_irred :: \<open>search_stats \<Rightarrow> search_stats\<close> where
-  \<open>Search_Stats_decr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls-1))\<close>
+  \<open>Search_Stats_decr_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls-1, no_conflict_until))\<close>
 
 definition Search_Stats_irred :: \<open>search_stats \<Rightarrow> 64 word\<close> where
-  \<open>Search_Stats_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls). irred_cls)\<close>
+  \<open>Search_Stats_irred = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). irred_cls)\<close>
+
+definition Search_Stats_no_conflict_until :: \<open>search_stats \<Rightarrow> 64 word\<close> where
+  \<open>Search_Stats_no_conflict_until = (\<lambda>(propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). no_conflict_until)\<close>
+
+definition Search_Stats_set_no_conflict_until :: \<open>64 word \<Rightarrow> search_stats \<Rightarrow> search_stats\<close> where
+  \<open>Search_Stats_set_no_conflict_until = (\<lambda>p (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, no_conflict_until). (propa, confl, dec, res, reduction, uset, gcs, units, irred_cls, p))\<close>
 
 type_synonym inprocessing_binary_stats = \<open>64 word \<times> 64 word \<times> 64 word\<close>
 
@@ -214,6 +229,9 @@ definition set_lsize_limit_stats :: \<open>lbd_size_limit_stats \<Rightarrow> is
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation S = (set_propagation_stats (Search_Stats_incr_propagation (get_search_stats S)) S)\<close>
 
+definition incr_propagation_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_propagation_by p S = (set_propagation_stats (Search_Stats_incr_propagation_by p (get_search_stats S)) S)\<close>
+
 definition incr_conflict :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_conflict S = (set_propagation_stats (Search_Stats_incr_conflicts (get_search_stats S)) S)\<close>
 
@@ -229,6 +247,9 @@ definition incr_reduction :: \<open>isasat_stats \<Rightarrow> isasat_stats\<clo
 definition incr_uset :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_uset S = (set_propagation_stats (Search_Stats_incr_fixed (get_search_stats S)) S)\<close>
 
+definition incr_uset_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_uset_by p S = (set_propagation_stats (Search_Stats_incr_fixed_by p (get_search_stats S)) S)\<close>
+
 definition incr_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_GC S = (set_propagation_stats (Search_Stats_incr_gcs (get_search_stats S)) S)\<close>
 
@@ -240,6 +261,9 @@ definition units_since_beginning :: \<open>isasat_stats \<Rightarrow> 64 word\<c
 
 definition incr_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_units_since_last_GC S = (set_propagation_stats (Search_Stats_incr_units_since_gc (get_search_stats S)) S)\<close>
+
+definition incr_units_since_last_GC_by :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_units_since_last_GC_by p S = (set_propagation_stats (Search_Stats_incr_units_since_gc_by p (get_search_stats S)) S)\<close>
 
 definition stats_conflicts :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
   \<open>stats_conflicts = Search_Stats_conflicts o get_search_stats\<close>
@@ -365,6 +389,12 @@ definition reset_units_since_last_GC :: \<open>isasat_stats \<Rightarrow> isasat
 definition incr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_irred_clss S = set_propagation_stats (Search_Stats_incr_irred (get_search_stats S)) S\<close>
 
+definition set_no_conflict_until :: \<open>64 word \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_no_conflict_until p S = set_propagation_stats (Search_Stats_set_no_conflict_until p (get_search_stats S)) S\<close>
+
+definition no_conflict_until :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>no_conflict_until S = Search_Stats_no_conflict_until (get_search_stats S)\<close>
+
 definition decr_irred_clss :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>decr_irred_clss S = set_propagation_stats (Search_Stats_decr_irred (get_search_stats S)) S\<close>
 
@@ -425,12 +455,12 @@ definition next_reduce_schedule_info :: \<open>schedule_info \<Rightarrow> 64 wo
   \<open>next_reduce_schedule_info = (\<lambda>(inprocess, reduce). reduce)\<close>
 
 definition empty_stats :: \<open>isasat_stats\<close> where
-  \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0)::search_stats)
+  \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
-  \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n)::search_stats)
+  \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
   (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
 

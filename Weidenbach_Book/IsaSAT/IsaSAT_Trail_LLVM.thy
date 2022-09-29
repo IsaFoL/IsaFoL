@@ -207,7 +207,7 @@ sepref_definition (in -) get_the_propagation_reason_fast_code
 declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
   get_the_propagation_reason_code.refine[sepref_fr_rules]
 *)
-sepref_register isa_trail_nth
+sepref_register isa_trail_nth trail_height_before_conflict
 
 sepref_def isa_trail_nth_fast_code
   is \<open>uncurry isa_trail_nth\<close>
@@ -250,6 +250,15 @@ sepref_def get_the_propagation_reason_fast_code
     tri_bool_eq_def[symmetric]
   by sepref
 
+sepref_def trail_height_before_conflict_impl
+  is \<open>trail_height_before_conflict\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding trail_height_before_conflict_def trail_pol_fast_assn_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
+  supply [[goals_limit = 1]]
+  by sepref
+
 schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?fr\<close>
   unfolding trail_pol_fast_assn_def
   by synthesize_free
@@ -279,6 +288,7 @@ export_llvm
   trail_conv_back_imp_fast_code
   get_pos_of_level_in_trail_imp_fast_code
   get_the_propagation_reason_fast_code
+  trail_height_before_conflict_impl
 
 end
 

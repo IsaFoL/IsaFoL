@@ -672,13 +672,10 @@ where
     let N = get_clauses_wl_heur S;
     let D = get_conflict_wl_heur S;
     let outl = get_outlearned_heur S;
-    let stats = get_stats_heur S;
     ASSERT(curry5 isa_set_lookup_conflict_aa_pre M N C D n outl);
     (D, clvls, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n outl;
     j \<leftarrow> mop_isa_length_trail M;
     let S = IsaSAT_Setup.set_conflict_wl_heur D S;
-    let stats = incr_conflict stats;
-    let S = set_stats_wl_heur stats S;
     let S = set_outl_wl_heur outl S;
     let S = set_count_max_wl_heur clvls S;
     let S = set_literals_to_update_wl_heur j S;
@@ -838,16 +835,13 @@ where
       let M = get_trail_wl_heur S;
       let N = get_clauses_wl_heur S;
       let heur = get_heur S;
-      let stats = get_stats_heur S;
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       N' \<leftarrow> mop_arena_swap C 0 (1 - i) N;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       let S = set_trail_wl_heur M S;
       let S = set_clauses_wl_heur N' S;
       let S = set_heur_wl_heur heur S;
-      let S = set_stats_wl_heur stats S;
       RETURN S
   })\<close>
 
@@ -926,13 +920,10 @@ where
   \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C S. do {
       let M = get_trail_wl_heur S;
       let heur = get_heur S;
-      let stats = get_stats_heur S;
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset (incr_units_since_last_GC stats) else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       let S = set_trail_wl_heur M S;
       let S = set_heur_wl_heur heur S;
-      let S = set_stats_wl_heur stats S;
       RETURN S
   })\<close>
 
@@ -1271,7 +1262,6 @@ proof -
     apply (rewrite at \<open>let _ = get_clauses_wl_heur _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = get_conflict_wl_heur _ in _\<close> Let_def)
     apply (rewrite at \<open>let _ = get_outlearned_heur _ in _\<close> Let_def)
-    apply (rewrite at \<open>let _ = get_stats_heur _ in _\<close> Let_def)
     apply (refine_vcg mop_isa_length_trail_length_u[of \<open>all_atms_st (snd y)\<close>, THEN fref_to_Down_Id_keep, unfolded length_uint32_nat_def
       comp_def] mark_conflict_to_rescore[where \<D> = \<D> and r=r and s=s and K=K and lcount=lcount, unfolded conc_fun_RETURN[symmetric]])
     subgoal by auto
@@ -2059,9 +2049,21 @@ where
        length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0) \<and>
        isa_length_trail_pre (get_trail_wl_heur S'))\<close>
 
+definition unit_propagation_update_statistics :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>unit_propagation_update_statistics p q S = do {
+  let stats = get_stats_heur S;
+  let pq = q - p;
+  let stats = incr_propagation_by pq stats;
+  let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
+  let stats = (if count_decided_pol (get_trail_wl_heur S) = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
+  height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict (get_trail_wl_heur S); RETURN (of_nat j)});
+  let stats = set_no_conflict_until q stats;
+  RETURN (set_stats_wl_heur stats S)}\<close>
+
 definition unit_propagation_outer_loop_wl_D_heur
    :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 = do {
+    let j1 = isa_length_trail (get_trail_wl_heur S\<^sub>0);
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_propagate);
     S \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
       (\<lambda>S. literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
@@ -2072,6 +2074,8 @@ definition unit_propagation_outer_loop_wl_D_heur
         unit_propagation_inner_loop_wl_D_heur L S'
       })
     S\<^sub>0;
+  let j2 = isa_length_trail (get_trail_wl_heur S);
+  S \<leftarrow> unit_propagation_update_statistics (of_nat j1) (of_nat j2) S;
   _ \<leftarrow> RETURN (IsaSAT_Profile.stop_propagate);
   RETURN S}
   \<close>
@@ -2171,8 +2175,8 @@ proof -
 qed
 
 lemma unit_propagation_outer_loop_wl_D_heur_alt_def:
-  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 =
-  WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
+  \<open>unit_propagation_outer_loop_wl_D_heur S\<^sub>0 = do {
+  S \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0\<^esup>
   (\<lambda>S. literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S))
   (\<lambda>S. do {
   ASSERT(literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S));
@@ -2180,16 +2184,52 @@ lemma unit_propagation_outer_loop_wl_D_heur_alt_def:
   ASSERT(length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S));
   unit_propagation_inner_loop_wl_D_heur L S'
   })
-  S\<^sub>0 \<close>
+  S\<^sub>0;
+  unit_propagation_update_statistics (of_nat (isa_length_trail (get_trail_wl_heur S\<^sub>0)))
+    (of_nat (isa_length_trail (get_trail_wl_heur S))) S
+  } \<close>
   unfolding unit_propagation_outer_loop_wl_D_heur_def IsaSAT_Profile.start_def IsaSAT_Profile.stop_def
+    Let_def
   by auto
+
+lemma unit_propagation_outer_loop_wl_alt_def:
+  \<open>unit_propagation_outer_loop_wl S\<^sub>0 = do {
+    S \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_outer_loop_wl_inv\<^esup>
+      (\<lambda>S. literals_to_update_wl S \<noteq> {#})
+      (\<lambda>S. do {
+        ASSERT(literals_to_update_wl S \<noteq> {#});
+        (S', L) \<leftarrow> select_and_remove_from_literals_to_update_wl S;
+        ASSERT(L \<in># all_lits_st S');
+        unit_propagation_inner_loop_wl L S'
+      })
+      (S\<^sub>0 :: 'v twl_st_wl);
+   RETURN S}
+\<close>
+  unfolding unit_propagation_outer_loop_wl_def by auto
+
+lemma unit_propagation_update_statistics_twl_st_heur'':
+  \<open>(S, x') \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
+    unit_propagation_update_statistics a b S \<le> \<Down>(twl_st_heur'' \<D> r lcount) (RETURN x')\<close>
+  unfolding unit_propagation_update_statistics_def Let_def conc_fun_RETURN
+  apply (refine_vcg trail_height_before_conflict[where \<A> = \<open>all_atms_st x'\<close>, THEN fref_to_Down, of _ \<open>get_trail_wl x'\<close>, THEN order_trans])
+  subgoal
+    by (auto simp: twl_st_heur_def twl_st_heur'_def)
+  subgoal
+    by (auto simp: twl_st_heur_def twl_st_heur'_def)
+  subgoal
+    by (auto simp: twl_st_heur_def twl_st_heur'_def)
+  subgoal
+     by (auto simp: twl_st_heur_def twl_st_heur'_def trail_height_before_conflict_spec_def)
+  done
+
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
     twl_st_heur'' \<D> r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel\<close>
   unfolding unit_propagation_outer_loop_wl_D_heur_alt_def
-    unit_propagation_outer_loop_wl_def all_lits_alt_def2[symmetric]
+    unit_propagation_outer_loop_wl_alt_def all_lits_alt_def2[symmetric]
   apply (intro frefI nres_relI)
   apply (refine_vcg
+      unit_propagation_update_statistics_twl_st_heur''
       unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D[of r \<D> lcount, THEN fref_to_Down_curry]
       select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl
           [of _ _ \<D> r lcount])
