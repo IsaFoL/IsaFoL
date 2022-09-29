@@ -263,6 +263,12 @@ process_time (void)
   return res;
 }
 
+double relative (int64_t a, int64_t b)
+{
+  if (b)
+    return (double)a / (double)b;
+  else return 0;
+}
 void IsaSAT_Print_LLVM_print_propa_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("\nc propagations %ld (%16zu M per s)\n", props, (size_t)(props / (1000000 * process_time())));
@@ -283,13 +289,13 @@ void IsaSAT_Print_LLVM_print_dec_impl(int64_t props) {
 
 void IsaSAT_Print_LLVM_print_res_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c restarts %ld %10.2f interval\n", props, (double)confl / (double)props);
+  printf("c restarts %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
 void IsaSAT_Print_LLVM_print_lres_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c reductions %ld %10.2f interval\n", props, (double) confl / (double)props);
+  printf("c reductions %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
@@ -301,7 +307,7 @@ void IsaSAT_Print_LLVM_print_uset_impl(int64_t props) {
 
 void IsaSAT_Print_LLVM_print_gc_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c GCs %ld %10.2f interval\n", props, (double) confl / (double)props);
+  printf("c GCs %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
@@ -328,30 +334,30 @@ void IsaSAT_Print_LLVM_print_purelit_elim_impl(int64_t props) {
 }
 void IsaSAT_Print_LLVM_print_purelit_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c elimination rounds %ld %10.2f interval\n", props, (double)conflicts / (double)props);
+  printf("c elimination rounds %ld %10.2f interval\n", props, relative (conflicts, props));
 #endif
 }
 
 void IsaSAT_Print_LLVM_print_forward_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c forward rounds %ld %10.2f interval\n", props, (double)conflicts / (double)props);
+  printf("c forward rounds %ld %10.2f interval\n", props, relative (conflicts, props));
 #endif
 }
 
 void IsaSAT_Print_LLVM_print_forward_subsumed_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward subsumed %ld (subsumed per tried: %10.2f)\n", props, (double)(tried) / (double)props);
+  printf("c forward subsumed %ld (subsumed per tried: %10.2f)\n", props, relative (tried, props));
 #endif
 }
 void IsaSAT_Print_LLVM_print_forward_strengthened_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward strengthened %ld (strengthened per tried: %10.2f)\n", props, (double)tried / (double)props);
+  printf("c forward strengthened %ld (strengthened per tried: %10.2f)\n", props, relative (tried, props));
 #endif
 }
 
 void IsaSAT_Print_LLVM_print_forward_tried_impl(int64_t props, int64_t rounds) {
 #ifdef PRINTSTATS
-  printf("c forward tried %ld (%ld per rounds)\n", props, props / rounds);
+  printf("c forward tried %ld (%10.2f per rounds)\n", props, relative (props, rounds));
 #endif
 }
 
@@ -385,7 +391,7 @@ void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
 
 void IsaSAT_Show_LLVM_print_uint32_impl(int32_t p) {
 #ifdef PRINTSTATS
-  printf(" %12ld ", p);
+  printf(" %12ld ", (int64_t)p);
 #endif
 }
 

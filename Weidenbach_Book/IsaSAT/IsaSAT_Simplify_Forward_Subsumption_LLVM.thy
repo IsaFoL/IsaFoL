@@ -309,6 +309,40 @@ sepref_def isa_push_to_occs_list_st_impl
   unfolding isa_push_to_occs_list_st_alt_def isasat_fast_relaxed_def
   by sepref
 
+sepref_def find_best_subsumption_candidate_and_push_code
+  is \<open>uncurry find_best_subsumption_candidate_and_push\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn \<times>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding find_best_subsumption_candidate_and_push_def
+    mop_access_lit_in_clauses_heur_def[symmetric]
+    tri_bool_eq_def[symmetric] UNSET_def[symmetric]
+    length_occs_def[symmetric]
+    get_occs_list_at_def[symmetric]
+    mop_is_marked_added_heur_st_def[symmetric]
+    length_occs_at_def[symmetric]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+lemma isa_maybe_push_to_occs_list_st_alt_def:
+    \<open>isa_maybe_push_to_occs_list_st C S = do {
+     (L, push) \<leftarrow> find_best_subsumption_candidate_and_push C S;
+     if push then do {
+       let (occs, T) = extract_occs_wl_heur S;
+       ASSERT (length (occs ! nat_of_lit L) < length (get_clauses_wl_heur S));
+       occs \<leftarrow> mop_cocc_list_append C occs L;
+       RETURN (update_occs_wl_heur occs T)
+     } else RETURN S
+  }\<close>
+  unfolding isa_maybe_push_to_occs_list_st_def Let_def
+  by (auto simp: state_extractors cong: if_cong split: isasat_int_splits)
+
+sepref_def isa_maybe_push_to_occs_list_st_impl
+  is \<open>uncurry isa_maybe_push_to_occs_list_st\<close>
+  :: \<open>[\<lambda>(_, S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_maybe_push_to_occs_list_st_alt_def isasat_fast_relaxed_def
+  by sepref
+
 
 (*TODD move to Setup1*)
 lemmas [sepref_fr_rules] = arena_get_lbd.mop_refine
