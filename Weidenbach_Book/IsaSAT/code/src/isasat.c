@@ -281,9 +281,9 @@ void IsaSAT_Print_LLVM_print_dec_impl(int64_t props) {
 #endif
 }
 
-void IsaSAT_Print_LLVM_print_res_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_res_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c restarts %ld\n", props);
+  printf("c restarts %ld %10.2f interval\n", props, (double)confl / (double)props);
 #endif
 }
 
