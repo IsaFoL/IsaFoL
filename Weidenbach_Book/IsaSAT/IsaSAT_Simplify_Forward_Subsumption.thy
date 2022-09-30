@@ -127,7 +127,6 @@ definition push_to_occs_list2_pre :: \<open>_\<close> where
     atm_of ` set (get_clauses_wl S \<propto> C) \<subseteq> set_mset (all_init_atms_st S) \<and>
     C \<notin># all_occurrences (mset_set (fst occs)) occs)\<close>
 
-(*TODO: we should only push if the list contains only marked literals*)
 definition push_to_occs_list2 where
   \<open>push_to_occs_list2 C S occs = do {
      ASSERT (push_to_occs_list2_pre C S occs);
@@ -583,13 +582,13 @@ definition try_to_forward_subsume_wl2_inv :: \<open>_\<close> where
   (changed \<longrightarrow> (D, {#}) \<in> clause_hash_ref (all_init_atms_st T)))\<close>
 
 definition try_to_forward_subsume_wl2_pre :: \<open>_\<close> where
-  \<open>try_to_forward_subsume_wl2_pre C cands S \<longleftrightarrow>
+  \<open>try_to_forward_subsume_wl2_pre C cands shrunken S \<longleftrightarrow>
     distinct_mset cands \<and>
     try_to_forward_subsume_wl_pre C cands S\<close>
 
-definition try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> occurences \<Rightarrow> nat multiset \<Rightarrow> clause_hash \<Rightarrow> nat twl_st_wl \<Rightarrow> (occurences \<times> clause_hash \<times> nat twl_st_wl) nres\<close> where
-  \<open>try_to_forward_subsume_wl2 C occs cands D S = do {
-  ASSERT (try_to_forward_subsume_wl2_pre C cands S);
+definition try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> occurences \<Rightarrow> nat multiset \<Rightarrow> clause_hash \<Rightarrow> nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> (occurences \<times> clause_hash \<times> nat multiset \<times> nat twl_st_wl) nres\<close> where
+  \<open>try_to_forward_subsume_wl2 C occs cands D shrunken S = do {
+  ASSERT (try_to_forward_subsume_wl2_pre C cands shrunken S);
   let n = length (get_clauses_wl S \<propto> C);
   let n = 2 * n;
   ebreak \<leftarrow> RES {_::bool. True};
@@ -604,8 +603,10 @@ definition try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> occurences \<R
     })
   (0, False, ebreak, occs, D, S);
   ASSERT (\<not>changed \<longrightarrow> C \<in># dom_m (get_clauses_wl S));
-  D \<leftarrow> (if \<not>changed then mop_ch_remove_all (mset (get_clauses_wl S \<propto>  C)) D else RETURN D);
-  RETURN (occs, D, S)
+  D \<leftarrow> (if \<not>changed then mop_ch_remove_all (mset (get_clauses_wl S \<propto> C)) D else RETURN D);
+  add_to_shrunken \<leftarrow> RES (UNIV :: bool set);
+  let shrunken = (if add_to_shrunken then add_mset C shrunken else shrunken);
+  RETURN (occs, D, shrunken, S)
   }\<close>
 
 definition try_to_forward_subsume_wl2_pre0 :: \<open>_\<close> where
@@ -617,16 +618,21 @@ definition try_to_forward_subsume_wl2_pre0 :: \<open>_\<close> where
   C \<in># dom_m (get_clauses_wl S\<^sub>0) \<and>
   G = mset (get_clauses_wl S\<^sub>0 \<propto> C)\<close>
 
+definition try_to_forward_subsume_wl_rel :: \<open>_\<close> where
+  \<open>try_to_forward_subsume_wl_rel S\<^sub>0 C cands occs n shrunken \<equiv>
+  {((occs', D', shrunken', T), U). (T, U) \<in> Id \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st T) \<and>
+       correct_occurence_list U occs' (remove1_mset C cands) (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n) \<and>
+       shrunken' \<subseteq># add_mset C shrunken \<and>
+       all_occurrences (all_init_atms_st U) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S\<^sub>0) occs)}\<close>
+
 lemma try_to_forward_subsume_wl2_try_to_forward_subsume_wl:
   assumes \<open>(C, E) \<in> nat_rel\<close> and
     DG: \<open>(D, G) \<in> clause_hash_ref (all_init_atms_st T\<^sub>0)\<close> and
     pre: \<open>try_to_forward_subsume_wl2_pre0 G C occs cands D S\<^sub>0 n\<close> and
     \<open>(S\<^sub>0, T\<^sub>0) \<in> Id\<close>
     \<open>(cands, cands') \<in> Id\<close>
-  shows \<open>try_to_forward_subsume_wl2 C occs cands D S\<^sub>0 \<le>
-    \<Down>{((occs', D', T), U). (T, U) \<in> Id \<and> (D', {#}) \<in> clause_hash_ref (all_init_atms_st T) \<and>
-       correct_occurence_list U occs' (remove1_mset C cands) (max (length (get_clauses_wl S\<^sub>0 \<propto> C)) n) \<and>
-       all_occurrences (all_init_atms_st U) occs' \<subseteq># add_mset C (all_occurrences  (all_init_atms_st S\<^sub>0) occs)}
+  shows \<open>try_to_forward_subsume_wl2 C occs cands D shrunken S\<^sub>0 \<le>
+    \<Down>(try_to_forward_subsume_wl_rel S\<^sub>0 C cands occs n shrunken)
     (try_to_forward_subsume_wl E cands' T\<^sub>0)\<close>
 proof -
   have eq: \<open>T\<^sub>0 = S\<^sub>0\<close> \<open>E = C\<close> \<open>cands' = cands\<close>
@@ -745,10 +751,10 @@ proof -
     done
   show ?thesis
     unfolding try_to_forward_subsume_wl2_def try_to_forward_subsume_wl_alt_def eq mop_clauses_at_def
-      nres_monad3 bind_to_let_conv
+      nres_monad3 bind_to_let_conv try_to_forward_subsume_wl_rel_def
     apply (subst Let_def[of \<open>get_clauses_wl _ \<propto> _ ! _\<close>])
     apply (subst Let_def[of \<open>length (get_clauses_wl _ \<propto> _)\<close>])
-    apply (refine_vcg DG[unfolded G] 
+    apply (refine_vcg DG[unfolded G]
       forward_subsumption_one_wl2_forward_subsumption_one_wl[where n=n])
     subgoal using assms unfolding try_to_forward_subsume_wl2_pre_def try_to_forward_subsume_wl2_pre0_def by fast
     subgoal by fast
@@ -789,9 +795,9 @@ proof -
 qed
 
 
-definition forward_subsumption_all_wl2_inv :: \<open>nat twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<times> _ \<times> nat twl_st_wl \<times> nat \<Rightarrow> bool\<close> where
-  \<open>forward_subsumption_all_wl2_inv = (\<lambda>S xs (i, occs, D, s, n).
-  (D, {#}) \<in> clause_hash_ref (all_init_atms_st s) \<and>
+definition forward_subsumption_all_wl2_inv :: \<open>nat twl_st_wl \<Rightarrow> nat list \<Rightarrow> nat \<times> _ \<times> _ \<times> nat twl_st_wl \<times> nat \<times> nat multiset \<Rightarrow> bool\<close> where
+  \<open>forward_subsumption_all_wl2_inv = (\<lambda>S xs (i, occs, D, s, n, shrunken).
+  (D, {#}) \<in> clause_hash_ref (all_init_atms_st s) \<and> shrunken \<subseteq># mset (take i xs) \<and>
   forward_subsumption_all_wl_inv S (mset xs) (mset (drop i xs), s))
   \<close>
 
@@ -1008,17 +1014,20 @@ definition forward_subsumption_all_wl2 :: \<open>nat twl_st_wl \<Rightarrow> _ n
   (occs, xs) \<leftarrow> SPEC (populate_occs_spec S);
   let m = length xs;
   D \<leftarrow> mop_ch_create (set_mset (all_init_atms_st S));
-  (xs, occs, D, S, _) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S, n). i < m \<and> get_conflict_wl S = None)
-    (\<lambda>(i, occs, D, S, n). do {
+  let shrunken = {#};
+  (_, occs, D, S, _, shrunken) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl2_inv S xs \<^esup> (\<lambda>(i, occs, D, S, n, shrunken). i < m \<and> get_conflict_wl S = None)
+    (\<lambda>(i, occs, D, S, n, shrunken). do {
        let C = xs!i;
        ASSERT(C\<in>#dom_m (get_clauses_wl S));
        D \<leftarrow> mop_ch_add_all (mset (get_clauses_wl S \<propto> C)) D;
-       (occs, D, T) \<leftarrow> try_to_forward_subsume_wl2 C occs (mset (drop (i) xs)) D S;
-       RETURN (i+1, occs, D, T, (length (get_clauses_wl S \<propto> C)))
+       (occs, D, shrunken, T) \<leftarrow> try_to_forward_subsume_wl2 C occs (mset (drop (i) xs)) D shrunken S;
+       RETURN (i+1, occs, D, T, (length (get_clauses_wl S \<propto> C)), shrunken)
     })
-    (0, occs, D, S, 2);
+    (0, occs, D, S, 2, shrunken);
   ASSERT (fst occs = set_mset (all_init_atms_st S));
+  ASSERT (shrunken \<subseteq># mset xs);
+  ASSERT (literals_are_\<L>\<^sub>i\<^sub>n' S);
   RETURN S
   }
 )\<close>
@@ -1032,6 +1041,7 @@ proof -
     xs \<leftarrow> SPEC (forward_subsumption_wl_all_cands S);
   let _ = size xs;
    D \<leftarrow> RETURN ({#} :: nat clause);
+   let _ = ({#} :: nat multiset);
   ASSERT (D = {#});
   (xs, S) \<leftarrow>
     WHILE\<^sub>T\<^bsup> forward_subsumption_all_wl_inv S xs \<^esup> (\<lambda>(xs, S). xs \<noteq> {#} \<and> get_conflict_wl S = None)
@@ -1059,34 +1069,35 @@ proof -
     unfolding populate_occs_spec_def prod.simps forward_subsumption_wl_all_cands_def
     by (rule RES_refine)
      (auto dest: mset_le_decr_left2 mset_le_decr_left1)
-  define loop_inv where \<open>loop_inv xs = {((i, occs', D :: clause_hash, U, n), (xsa, V)). (U,V)\<in>Id \<and> i \<le> length xs \<and>
-    (D, {#}) \<in> clause_hash_ref (all_init_atms_st V) \<and>
+  define loop_inv where \<open>loop_inv xs = {((i, occs', D :: clause_hash, U, n, shrunken :: nat multiset), (xsa, V)). (U,V)\<in>Id \<and> i \<le> length xs \<and>
+    (D, {#}) \<in> clause_hash_ref (all_init_atms_st V) \<and> shrunken \<subseteq># mset (take i xs) \<and>
     (i < length xs \<longrightarrow> length (get_clauses_wl U \<propto> (xs!i)) \<ge> n)\<and>
     correct_occurence_list U occs' xsa n \<and> xsa = mset (drop i xs)}\<close> for xs
   have loop_init: \<open>(occsxs, xsa) \<in> ?populate \<Longrightarrow>
     occsxs = (occs, xs) \<Longrightarrow>
     (D, D') \<in> clause_hash_ref (all_init_atms_st S) \<Longrightarrow>
     D' = {#} \<Longrightarrow>
-    forward_subsumption_all_wl_inv S (xsa) (xsa, S) \<Longrightarrow> ((0, occs, D, S, 2), xsa, S) \<in> loop_inv xs\<close> 
+    forward_subsumption_all_wl_inv S (xsa) (xsa, S) \<Longrightarrow> ((0, occs, D, S, 2, {#}), xsa, S) \<in> loop_inv xs\<close> 
     (is \<open>_ \<Longrightarrow> _ \<Longrightarrow> _ \<Longrightarrow>_ \<Longrightarrow> _ \<Longrightarrow> _ \<in> ?loopinv\<close>) for D occs xsa aa xs occsxs uu D'
     by (cases xs) (auto simp: populate_occs_spec_def loop_inv_def)
   have [refine]: \<open>(a,b) \<in> Id \<Longrightarrow> (c, d) \<in> Id \<Longrightarrow> simplify_clause_with_unit_st_wl a c \<le>\<Down>Id (simplify_clause_with_unit_st_wl b d)\<close> for a b c d
     by auto
 
 
-  have try_to_forward_subsume_wl2_pre0:  \<open>\<And>x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db.
+  have try_to_forward_subsume_wl2_pre0:  \<open>\<And>x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db shrunken x2d'.
     forward_subsumption_all_wl_pre S \<Longrightarrow>
     (x, xs) \<in> ?populate \<Longrightarrow>
     x = (x1, x2) \<Longrightarrow>
     (D, Da) \<in> clause_hash_ref (all_init_atms_st S) \<Longrightarrow>
     Da = {#} \<Longrightarrow>
     (xa, x')  \<in> loop_inv x2 \<Longrightarrow>
-    (case xa of (i, occs, D, S, n) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None) \<Longrightarrow>
+    (case xa of (i, occs, D, S, n, shrunken) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None) \<Longrightarrow>
     (case x' of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_wl S = None) \<Longrightarrow>
     forward_subsumption_all_wl2_inv S x2 xa \<Longrightarrow>
     forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
     x' = (x1a, x2a) \<Longrightarrow>
-    x2d = (x1e, x2e) \<Longrightarrow>
+    x2d' = (x2e, shrunken) \<Longrightarrow>
+    x2d = (x1e, x2d') \<Longrightarrow>
     x2c = (x1d, x2d) \<Longrightarrow>
     x2b = (x1c, x2c) \<Longrightarrow>
     xa = (x1b, x2b) \<Longrightarrow>
@@ -1102,42 +1113,43 @@ proof -
       by (metis add_mset_add_mset_same_iff correct_occurence_list_def distinct_mem_diff_mset
         insert_DiffM set_mset_mset union_single_eq_member)
    done
-  have subsumed_postinv: \<open>\<And>x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db xb Sa a b aa ba.
+
+  have subsumed_postinv: \<open>
     forward_subsumption_all_wl_pre S \<Longrightarrow>
     (x, xs) \<in> ?populate \<Longrightarrow>
     x \<in> Collect (populate_occs_spec S) \<Longrightarrow>
     xs \<in> Collect (forward_subsumption_wl_all_cands S) \<Longrightarrow>
     x = (x1, x2) \<Longrightarrow>
     (xa, x') \<in> loop_inv x2 \<Longrightarrow>
-    case xa of (i, occs, D, S, n) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None \<Longrightarrow>
+    case xa of (i, occs, D, S, n, shrunken) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None \<Longrightarrow>
     case x' of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_wl S = None \<Longrightarrow>
     forward_subsumption_all_wl2_inv S x2 xa \<Longrightarrow>
     forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
     x' = (x1a, x2a) \<Longrightarrow>
-    x2d = (x1e, x2e) \<Longrightarrow>
+    x2d' = (x2e, shrunken) \<Longrightarrow>
+    x2d = (x1e, x2d') \<Longrightarrow>
     x2c = (x1d, x2d) \<Longrightarrow>
     x2b = (x1c, x2c) \<Longrightarrow>
     xa = (x1b, x2b) \<Longrightarrow>
     (x2 ! x1b, C) \<in> nat_rel \<Longrightarrow>
+    x2 ! x1b \<in># dom_m (get_clauses_wl x1e) \<Longrightarrow>
+    inres (mop_ch_add_all (mset (get_clauses_wl x1e \<propto> (x2 ! x1b))) x1d) Db \<Longrightarrow>
     (Db, mset (get_clauses_wl x2a \<propto> C) + {#}) \<in> clause_hash_ref (all_init_atms_st x1e) \<Longrightarrow>
-    (xb, Sa)
-    \<in> {((occs', D', T), U).
-    (T, U) \<in> Id \<and>
-    (D', {#}) \<in> clause_hash_ref (all_init_atms_st T) \<and>
-    correct_occurence_list U occs' (remove1_mset (x2 ! x1b) (mset (drop x1b x2)))
-     (max (length (get_clauses_wl x1e \<propto> (x2 ! x1b))) x2e) \<and>
-      all_occurrences (all_init_atms_st U) occs' \<subseteq># add_mset (x2 ! x1b) (all_occurrences (all_init_atms_st x1e) x1c)} \<Longrightarrow>
+    (xb, Sa) \<in> try_to_forward_subsume_wl_rel x1e (x2 ! x1b) (mset (drop x1b x2)) x1c x2e shrunken \<Longrightarrow>
     \<forall>D\<in>#remove1_mset C x1a. get_clauses_wl Sa \<propto> D = get_clauses_wl x2a \<propto> D \<Longrightarrow>
     xb = (a, b) \<Longrightarrow>
     b = (aa, ba) \<Longrightarrow>
-      ((x1b + 1, a, aa, ba, (length (get_clauses_wl x1e \<propto> (x2 ! x1b)))), remove1_mset C x1a, Sa) \<in> loop_inv x2\<close>
+    ba = (ab, bb) \<Longrightarrow>
+    ((x1b + 1, a, aa, bb, length (get_clauses_wl x1e \<propto> (x2 ! x1b)), ab), remove1_mset C x1a, Sa)
+    \<in> loop_inv x2\<close>
+    for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db xb Sa a b aa ba shrunken x2d' ab bb
     unfolding forward_subsumption_all_inv_def forward_subsumption_all_wl_inv_def
       forward_subsumption_all_wl2_inv_def loop_inv_def populate_occs_spec_def mem_Collect_eq
+      try_to_forward_subsume_wl_rel_def
     apply (hypsubst, unfold prod.simps, normalize_goal+)
-    subgoal for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db xb Sa a b aa ba xc xd xe xf
-      by (auto simp add: try_to_forward_subsume_wl2_pre0_def populate_occs_spec_def drop_Suc_nth
-        dest: sorted_wrt_nth_less[of _ _  x1b \<open>Suc x1b\<close>])
-    done
+    apply (auto simp add: try_to_forward_subsume_wl2_pre0_def populate_occs_spec_def drop_Suc_nth take_Suc_conv_app_nth
+        dest: sorted_wrt_nth_less[of _ _  x1b \<open>Suc x1b\<close>] intro: subset_mset_imp_subset_add_mset)
+    by (meson mset_subset_eq_add_mset_cancel subset_mset.dual_order.trans)
 
   have in_all_lits_in_cls: \<open>xaa \<in> set (get_clauses_wl S \<propto> C) \<Longrightarrow> C \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
     xaa \<in># all_lits_st S\<close> for C S xaa
@@ -1153,49 +1165,49 @@ proof -
     (D, Da) \<in> clause_hash_ref (all_init_atms_st S) \<Longrightarrow>
     Da = {#} \<Longrightarrow>
     (xa, x') \<in> loop_inv x2 \<Longrightarrow>
-    case xa of (i, occs, D, S, n) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None \<Longrightarrow>
+    case xa of (i, occs, D, S, n, shrunken) \<Rightarrow> i < length x2 \<and> get_conflict_wl S = None \<Longrightarrow>
     case x' of (xs, S) \<Rightarrow> xs \<noteq> {#} \<and> get_conflict_wl S = None \<Longrightarrow>
     forward_subsumption_all_wl2_inv S x2 xa \<Longrightarrow>
     forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
     x' = (x1a, x2a) \<Longrightarrow>
-    x2d = (x1e, x2e) \<Longrightarrow>
+    x2d = (x1e, x2d') \<Longrightarrow>
     x2c = (x1d, x2d) \<Longrightarrow>
     x2b = (x1c, x2c) \<Longrightarrow>
     xa = (x1b, x2b) \<Longrightarrow>
     (x2 ! x1b, C) \<in> nat_rel \<Longrightarrow>
-      atms_of (mset (get_clauses_wl x1e \<propto> (x2 ! x1b))) \<subseteq> set_mset (all_init_atms_st x1e)\<close>
-      for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C
+    atms_of (mset (get_clauses_wl x1e \<propto> (x2 ! x1b))) \<subseteq> set_mset (all_init_atms_st x1e)\<close>
+    for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C x2d' shrunken
     unfolding forward_subsumption_all_inv_def forward_subsumption_all_wl_inv_alt_def
       forward_subsumption_all_wl2_inv_def loop_inv_def populate_occs_spec_def mem_Collect_eq
       all_init_atms_st_alt_def atms_of_def
-    apply (hypsubst, unfold prod.simps, normalize_goal+)
+    apply (cases x2d', hypsubst, unfold prod.simps, normalize_goal+)
     apply (frule literals_are_\<L>\<^sub>i\<^sub>n'_all_init_atms_alt_def[of x1e])
     subgoal
-    apply (auto simp: all_init_atms_st_alt_def all_atms_st_alt_def drop_Suc_nth
-      simp del: all_atms_st_alt_def[symmetric] intro!: imageI
-      in_all_lits_in_cls[of _ _ \<open>x2 ! x1b\<close>])
+      by (auto simp: all_init_atms_st_alt_def all_atms_st_alt_def drop_Suc_nth
+        simp del: all_atms_st_alt_def[symmetric] intro!: imageI
+        in_all_lits_in_cls[of _ _ \<open>x2 ! x1b\<close>])
     done
-  done
-have distinct: \<open>forward_subsumption_all_wl_pre S \<Longrightarrow>
-    forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
-    x' = (x1a, x2a) \<Longrightarrow>
-   (C', C) \<in> nat_rel \<Longrightarrow>
-    C' \<in># dom_m (get_clauses_wl x2a) \<Longrightarrow> 
-  distinct_mset (mset (get_clauses_wl x2a \<propto> C))\<close>
-  for x' x1a x2a xa x1b x2b x1c x2c x1d x2d x1e x2e x2 C xs C'
-  unfolding forward_subsumption_all_wl_inv_alt_def case_prod_beta
-    forward_subsumption_all_inv_def
-  apply normalize_goal+
-  apply (elim rtranclp_cdcl_twl_inprocessing_l_twl_st_l)
-  apply assumption+
-  unfolding  twl_struct_invs_def twl_st_inv_alt_def
-  by (simp add: mset_take_mset_drop_mset')
+  have distinct: \<open>forward_subsumption_all_wl_pre S \<Longrightarrow>
+      forward_subsumption_all_wl_inv S xs x' \<Longrightarrow>
+      x' = (x1a, x2a) \<Longrightarrow>
+     (C', C) \<in> nat_rel \<Longrightarrow>
+      C' \<in># dom_m (get_clauses_wl x2a) \<Longrightarrow> 
+    distinct_mset (mset (get_clauses_wl x2a \<propto> C))\<close>
+    for x' x1a x2a xa x1b x2b x1c x2c x1d x2d x1e x2e x2 C xs C'
+    unfolding forward_subsumption_all_wl_inv_alt_def case_prod_beta
+      forward_subsumption_all_inv_def
+    apply normalize_goal+
+    apply (elim rtranclp_cdcl_twl_inprocessing_l_twl_st_l)
+    apply assumption+
+    unfolding  twl_struct_invs_def twl_st_inv_alt_def
+    by (simp add: mset_take_mset_drop_mset')
 
   show ?thesis
     unfolding forward_subsumption_all_wl_alt_def forward_subsumption_all_wl2_def
     apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
     apply (refine_vcg mop_occ_list_create mop_ch_create mop_ch_add_all
-      try_to_forward_subsume_wl2_try_to_forward_subsume_wl)
+      try_to_forward_subsume_wl2_try_to_forward_subsume_wl
+      WHILEIT_refine_with_inv)
     apply (rule loop_init; assumption)
     subgoal unfolding forward_subsumption_all_wl2_inv_def loop_inv_def by auto
     subgoal by (auto simp: loop_inv_def)
@@ -1211,19 +1223,25 @@ have distinct: \<open>forward_subsumption_all_wl_pre S \<Longrightarrow>
     subgoal by (auto simp: loop_inv_def)
     subgoal by auto
     subgoal apply (rule distinct)
-      by  assumption+ (simp add: loop_inv_def)
+      by  assumption+ (simp add: loop_inv_def case_prod_beta)
     apply (subst clause_hash_ref_cong)
     defer apply assumption
-    apply (rule try_to_forward_subsume_wl2_pre0; assumption)
+    apply (rule try_to_forward_subsume_wl2_pre0; assumption?)
     subgoal by (auto simp: loop_inv_def)
     subgoal by (auto simp: loop_inv_def)
-    subgoal for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e C Db xb Sa a b aa ba
+    subgoal for x xs x1 x2 D Da xa x' x1a x2a x1b x2b x1c x2c x1d x2d x1e x2d' x2e shrunken C Db
+      xb Sa a b aa ba
       by (rule subsumed_postinv)
     subgoal by (auto simp: loop_inv_def correct_occurence_list_def)
+    subgoal by (auto simp: loop_inv_def intro: subset_mset.dual_order.trans[OF mset_take_subseteq])
+    subgoal by (auto simp: forward_subsumption_all_wl2_inv_def
+      dest!: forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
     subgoal by (auto simp: loop_inv_def)
     subgoal by (auto simp: loop_inv_def)
     done
 qed
+
+find_theorems "WHILEIT _ _ _ _ \<le> \<Down>_ (_)"
 
 
 subsection \<open>Refinement to isasat.\<close>
@@ -1562,7 +1580,7 @@ definition mop_cch_remove_all_clauses where
     RETURN D
   } \<close>
 
-definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list \<Rightarrow> nat literal \<Rightarrow> isasat \<Rightarrow> (isasat \<times> bool \<times> bool list) nres\<close> where
+definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list \<Rightarrow> nat literal \<Rightarrow> isasat \<Rightarrow> (isasat \<times> nat subsumption \<times> bool list) nres\<close> where
   \<open>isa_forward_subsumption_one_wl = (\<lambda>C D L S. do {
   ASSERT (isa_forward_subsumption_one_wl_pre C L S);
   ASSERT (nat_of_lit L < length (get_occs S));
@@ -1584,7 +1602,7 @@ definition isa_forward_subsumption_one_wl :: \<open>nat \<Rightarrow> bool list 
   D \<leftarrow> (if s \<noteq> NONE then mop_cch_remove_all_clauses S C D else RETURN D);
   S \<leftarrow> (if is_strengthened s then isa_maybe_push_to_occs_list_st C S else RETURN S);
   S \<leftarrow> isa_subsume_or_strengthen_wl C s S;
-  RETURN (S, s \<noteq> NONE, D)
+  RETURN (S, s, D)
   })\<close>
 
 (*TODO: this version is much more logical than the current one*)
@@ -3294,8 +3312,8 @@ lemma isa_forward_subsumption_one_forward_subsumption_wl_one:
     occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close>
   shows \<open>isa_forward_subsumption_one_wl C D L S \<le>
     \<Down>{((U, changed, E), (S', changed', occs', E')). (get_occs U, occs') \<in> occurrence_list_ref \<and>
-          get_aivdom U = get_aivdom S \<and>
-       ((U, changed, E), (S', changed', E')) \<in> twl_st_heur_restart_occs' r u \<times>\<^sub>r bool_rel \<times>\<^sub>r clause_hash}
+          get_aivdom U = get_aivdom S \<and> changed' = (changed \<noteq> NONE) \<and>
+       ((U, E), (S', E')) \<in> twl_st_heur_restart_occs' r u \<times>\<^sub>r clause_hash}
     (forward_subsumption_one_wl2 C' cands L' occs D' S')\<close>
 proof -
   have valid: \<open>valid_occs (get_occs S) (get_aivdom S)\<close> and
@@ -3417,26 +3435,26 @@ proof -
 qed
 
 definition isa_try_to_forward_subsume_wl_pre :: \<open>_\<close> where
-  \<open>isa_try_to_forward_subsume_wl_pre C S \<longleftrightarrow>
+  \<open>isa_try_to_forward_subsume_wl_pre C shrunken S \<longleftrightarrow>
   (\<exists>T r u cands occs'. (S,T)\<in>twl_st_heur_restart_occs' r u \<and>  (get_occs S, occs') \<in> occurrence_list_ref \<and>
-  try_to_forward_subsume_wl2_pre C cands T)\<close>
+  try_to_forward_subsume_wl2_pre C cands (mset shrunken) T)\<close>
 
 
-definition isa_try_to_forward_subsume_wl_inv :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<times> bool \<times> bool \<times> bool list \<times> isasat \<Rightarrow> bool\<close> where
+definition isa_try_to_forward_subsume_wl_inv :: \<open>isasat \<Rightarrow> nat \<Rightarrow> nat \<times> nat subsumption \<times> bool \<times> bool list \<times> isasat \<Rightarrow> bool\<close> where
   \<open>isa_try_to_forward_subsume_wl_inv S C = (\<lambda>(i, changed, break, D, T).
   (\<exists>S' T' cands occs' D'. (S,S')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S) \<and>
     (T,T')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S)\<and>
   (get_occs T, occs') \<in> occurrence_list_ref \<and>
   (D,D') \<in>clause_hash \<and>
-  try_to_forward_subsume_wl2_inv S' cands C (i, changed, break, occs', D', T')))\<close>
+  try_to_forward_subsume_wl2_inv S' cands C (i, changed \<noteq> NONE, break, occs', D', T')))\<close>
 
   (*TODO: Missing ticks*)
 definition isa_try_to_forward_subsume_wl2_break :: \<open>isasat \<Rightarrow> bool nres\<close> where
   \<open>isa_try_to_forward_subsume_wl2_break S = RETURN False\<close>
 
-definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list \<Rightarrow> isasat \<Rightarrow> (bool list \<times> isasat) nres\<close> where
-  \<open>isa_try_to_forward_subsume_wl2 C D S = do {
-  ASSERT (isa_try_to_forward_subsume_wl_pre C S);
+definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list \<Rightarrow> nat list \<Rightarrow> isasat \<Rightarrow> (bool list \<times> nat list \<times> isasat) nres\<close> where
+  \<open>isa_try_to_forward_subsume_wl2 C D shrunken S = do {
+  ASSERT (isa_try_to_forward_subsume_wl_pre C shrunken S);
   n \<leftarrow> mop_arena_length_st S C;
   ASSERT (n \<le> Suc (uint32_max div 2));
   let n = 2 * n;
@@ -3449,11 +3467,14 @@ definition isa_try_to_forward_subsume_wl2 :: \<open>nat \<Rightarrow> bool list 
       let L = (if i mod 2 = 0 then L else - L);
       (S, subs, D) \<leftarrow> isa_forward_subsumption_one_wl C D L S;
       ebreak \<leftarrow> isa_try_to_forward_subsume_wl2_break S;
-      RETURN (i+1, subs, subs \<or> ebreak, D, S)
+      RETURN (i+1, subs, (subs \<noteq> NONE) \<or> ebreak, D, S)
     })
-  (0, False, ebreak, D, S);
-  D \<leftarrow> (if \<not>changed then mop_cch_remove_all_clauses S C D else RETURN D);
-  RETURN (D, S)
+  (0, NONE, ebreak, D, S);
+  D \<leftarrow> (if changed = NONE then mop_cch_remove_all_clauses S C D else RETURN D);
+  ASSERT (Suc (length shrunken) \<le> length (get_tvdom S));
+  let add_to_shunken = (is_strengthened changed);
+  let shrunken = (if add_to_shunken then shrunken @ [C] else shrunken);
+  RETURN (D, shrunken, S)
   }\<close>
 
 lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
@@ -3461,16 +3482,17 @@ lemma isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2:
     SS': \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close> and
     CC': \<open>(C,C')\<in>nat_rel\<close> and
     DD': \<open>(D,D')\<in>clause_hash\<close> and
-    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close>
-  shows \<open>isa_try_to_forward_subsume_wl2 C D S \<le>
-    \<Down>{((D, U), (occs, D', S')). (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
-       (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S}
-    (try_to_forward_subsume_wl2 C' occs cands D' S')\<close>
+    occs: \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
+    shrunken: \<open>shrunken = mset shrunken'\<close> and
+    cands: \<open>Suc (length shrunken') \<le> length (get_tvdom S)\<close>
+  shows \<open>isa_try_to_forward_subsume_wl2 C D shrunken' S \<le>
+    \<Down>{((D, shrunken, U), (occs, D', shrunken', S')). (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
+       (U, S') \<in> twl_st_heur_restart_occs' r u \<and> get_aivdom U = get_aivdom S \<and> shrunken' = mset shrunken}
+    (try_to_forward_subsume_wl2 C' occs cands D' shrunken S')\<close>
 proof -
   have le: \<open>length (get_clauses_wl S' \<propto> C) \<le> Suc (uint32_max div 2)\<close>
-    if \<open>try_to_forward_subsume_wl2_pre C' cands S'\<close>
+    if \<open>try_to_forward_subsume_wl2_pre C' cands shrunken S'\<close>
   proof -
-
     have lits:  \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_init_atms_st S') (mset (get_clauses_wl S' \<propto> C'))\<close> and
       dist: \<open>distinct_mset (mset (get_clauses_wl S' \<propto> C'))\<close> and
       tauto: \<open>\<not> tautology (mset (get_clauses_wl S' \<propto> C'))\<close>
@@ -3503,12 +3525,15 @@ proof -
   qed
   have loop_rel: \<open>(ebreak, ebreaka) \<in> bool_rel \<Longrightarrow>
     try_to_forward_subsume_wl2_inv S' cands C' (0, False, ebreaka, occs, D', S') \<Longrightarrow>
-    ((0, False, ebreak, D, S), 0, False, ebreaka, occs, D', S') \<in> 
-    {((m, b, brk, D, U),(m', b', brk', occs, D', V)). (m,m')\<in>nat_rel \<and> (b,b')\<in>bool_rel \<and> (brk,brk')\<in>bool_rel \<and>
+    ((0, NONE, ebreak, D, S), 0, False, ebreaka, occs, D', S') \<in> 
+    {((m, b, brk, D, U),(m', b', brk', occs, D', V)). (m,m')\<in>nat_rel \<and> b'=(b\<noteq>NONE) \<and> (brk,brk')\<in>bool_rel \<and>
     (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and> (U, V) \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S) \<and>
     get_aivdom U = get_aivdom S}\<close>
     for ebreak ebreaka
     using assms by auto
+  have [refine]: \<open>RETURN (is_strengthened x1f) \<le> \<Down> bool_rel (RES UNIV)\<close> for x1f
+    by (auto simp:)
+
   have [refine]: \<open>isa_try_to_forward_subsume_wl2_break S \<le> SPEC (\<lambda>_. True)\<close> for S
     unfolding isa_try_to_forward_subsume_wl2_break_def by auto
   show ?thesis
@@ -3530,8 +3555,8 @@ proof -
     subgoal using le CC' by auto
     subgoal for n ebreak ebreaka x x' using CC' SS' unfolding isa_try_to_forward_subsume_wl_inv_def case_prod_beta apply -
       by (rule exI[of _ S'], rule exI[of _ \<open>snd (snd (snd (snd (snd (x')))))\<close>],
-        rule exI[of _ cands], rule exI[of _ \<open>fst ((snd (snd (snd (x')))))\<close>], rule exI[of _ \<open>fst (snd (snd (snd (snd (x')))))\<close>])
-        simp
+        rule exI[of _ cands], rule exI[of _ \<open>fst ((snd (snd (snd (x')))))\<close>], rule exI[of _ \<open>fst (snd (snd (snd (snd (x')))))\<close>]; cases x')
+        auto
     subgoal by simp
     subgoal by auto
     subgoal for n ebreak ebreaka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g
@@ -3551,7 +3576,8 @@ proof -
     subgoal by auto
     subgoal using CC' by auto
     subgoal by auto
-    subgoal using SS' by auto
+    subgoal using cands by auto
+    subgoal using SS' CC' shrunken by auto
     done
 qed
 
@@ -4076,11 +4102,11 @@ qed
 
 definition isa_forward_subsumption_all_wl_inv :: \<open>_\<close> where
   \<open>isa_forward_subsumption_all_wl_inv R\<^sub>0 S =
-  (\<lambda>(i, D, T). \<exists>R\<^sub>0' S' T' D' occs' n. (R\<^sub>0, R\<^sub>0')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur R\<^sub>0)) (learned_clss_count R\<^sub>0) \<and>
+  (\<lambda>(i, D, shrunken, T). \<exists>R\<^sub>0' S' T' D' occs' n. (R\<^sub>0, R\<^sub>0')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur R\<^sub>0)) (learned_clss_count R\<^sub>0) \<and>
   (S, S')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur R\<^sub>0)) (learned_clss_count R\<^sub>0) \<and>
   (T,T')\<in>twl_st_heur_restart_occs' (length (get_clauses_wl_heur R\<^sub>0)) (learned_clss_count R\<^sub>0) \<and> (get_occs T, occs') \<in> occurrence_list_ref \<and>
   (D, D') \<in> clause_hash \<and>
-    forward_subsumption_all_wl2_inv S' (get_tvdom S) (i, occs', D', T', n)) \<close>
+    forward_subsumption_all_wl2_inv S' (get_tvdom S) (i, occs', D', T', n, mset shrunken)) \<close>
 
 definition mop_cch_add_all_clause :: \<open>_\<close> where
   \<open>mop_cch_add_all_clause S C D = do {
@@ -4188,11 +4214,179 @@ lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (r
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def reset_added_heur_def reset_added_heur_stats_def
     schedule_next_inprocessing_stats_def phase_saving_def)
 
+definition forward_subsumption_finalize :: \<open>nat list \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
+  \<open>forward_subsumption_finalize shrunken S = do {
+    let S = isa_forward_reset_added_and_stats S;
+    (_, S) \<leftarrow> WHILE\<^sub>T(\<lambda>(i,S). i < length shrunken) (\<lambda>(i,S). do {
+      ASSERT (i < length shrunken);
+      let C = shrunken ! i;
+      not_garbage \<leftarrow> mop_clause_not_marked_to_delete_heur S C;
+      S \<leftarrow> (if not_garbage then mark_added_clause_heur2 S C else RETURN S);
+      RETURN (i+1, S)
+    }) (0, S);
+    empty_occs2_st S
+  }\<close>
+
+
+lemma mop_mark_added_heur_st_it:
+  assumes \<open>(S,T) \<in> twl_st_heur_restart_occs' r u\<close> and \<open>A \<in># all_init_atms_st T\<close>
+  shows \<open>mop_mark_added_heur_st A S \<le> SPEC (\<lambda>c. (c, T) \<in> {(U, V). (U, V) \<in> twl_st_heur_restart_occs' r u \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S \<and> get_vdom U = get_vdom S \<and> get_occs U = get_occs S})\<close>
+proof -
+  have heur: \<open>heuristic_rel (all_init_atms_st T) (get_heur S)\<close>
+    using assms(1)
+    by (auto simp: twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def)
+
+  show ?thesis
+    unfolding mop_mark_added_heur_st_def mop_mark_added_heur_def
+    apply refine_vcg
+    subgoal
+      using heur assms(2)
+      unfolding mark_added_heur_pre_def mark_added_heur_pre_stats_def
+      by (auto simp: heuristic_rel_def heuristic_rel_stats_def
+        phase_saving_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+        dest!: multi_member_split)
+    subgoal by (use assms in \<open>auto simp add: twl_st_heur_restart_occs_def\<close>)
+    done
+qed
+lemma mark_added_clause_heur2_id:
+  assumes \<open>(S,T) \<in> twl_st_heur_restart_occs' r u\<close> and \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+  shows \<open>mark_added_clause_heur2 S C
+     \<le> \<Down>{(U, V). (U, V) \<in> twl_st_heur_restart_occs' r u \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S \<and> get_vdom U = get_vdom S \<and>
+       get_occs U = get_occs S} (RETURN T)\<close> (is \<open>_ \<le>\<Down>?R _\<close>)
+proof -
+  have 1: \<open>mark_added_clause2 T C \<le> \<Down>Id (RETURN T)\<close>
+    unfolding mark_added_clause2_def mop_clauses_at_def nres_monad3
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i,_). length (get_clauses_wl T \<propto> C) -i)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (use assms in auto)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+  have eq: \<open>set_mset (all_init_atms_st T) = set_mset (all_atms_st T)\<close>
+    using lits by (simp add: literals_are_\<L>\<^sub>i\<^sub>n'_all_init_atms_alt_def)
+  have [refine]: \<open>y' \<in># dom_m x' \<Longrightarrow>
+    ((x, y), x', y') \<in> {(N, N'). valid_arena N N' (set (get_vdom S))} \<times>\<^sub>f nat_rel \<Longrightarrow>
+    mop_arena_length x y \<le> SPEC (\<lambda>y. (y, length (x' \<propto> y')) \<in> {(a,b). (a,b)\<in>nat_rel \<and> a = length (x' \<propto> y')})\<close> for x y x' y'
+    apply (rule mop_arena_length[THEN fref_to_Down_curry, of _ _ _ _ \<open>set (get_vdom S)\<close>, unfolded comp_def conc_fun_RETURN prod.simps, THEN order_trans])
+    apply assumption
+    apply assumption
+    by auto
+  have [refine]: \<open>((0, S), 0, T) \<in> nat_rel \<times>\<^sub>r ?R\<close>
+    using assms by auto
+  have 2: \<open>mark_added_clause_heur2 S C \<le> \<Down>?R (mark_added_clause2 T C)\<close>
+    unfolding mark_added_clause_heur2_def mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
+      mark_added_clause2_def
+    apply (refine_vcg mop_mark_added_heur_st_it[where r=r and u=u])
+    subgoal by (use assms in auto)
+    subgoal by (use assms in \<open>auto simp: twl_st_heur_restart_occs_def\<close>)
+    subgoal using assms by (auto simp: twl_st_heur_restart_occs_def dest: arena_lifting(10))
+    subgoal by auto
+    subgoal by auto
+    apply (rule_tac vdom = \<open>set (get_vdom (x2a))\<close> in mop_arena_lit2)
+    subgoal by (use assms in \<open>auto simp: twl_st_heur_restart_occs_def\<close>)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (use assms in \<open>auto simp: eq all_atms_st_def all_atms_def all_lits_def ran_m_def
+        all_lits_of_mm_add_mset image_Un atm_of_all_lits_of_m(2)
+      dest!: multi_member_split\<close>)
+    subgoal by auto
+    subgoal by auto
+    done
+  show ?thesis
+    unfolding mop_arena_length_st_def mop_access_lit_in_clauses_heur_def
+    apply (rule order_trans[OF 2])
+    apply (rule ref_two_step')
+    apply (rule 1[unfolded Down_id_eq])
+    done
+qed
+
 lemma isa_forward_reset_added_and_stats:
   \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
   (isa_forward_reset_added_and_stats S, S') \<in> twl_st_heur_restart_occs' r u\<close>
   by (auto simp add: IsaSAT_Restart.all_init_atms_alt_def twl_st_heur_restart_occs_def incr_forward_rounds_st_def
     isa_forward_reset_added_and_stats_def)
+
+lemma forward_subsumption_finalize:
+  assumes
+    \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close>
+    \<open>fst occs = set_mset (all_init_atms_st S')\<close>
+    \<open>(get_occs S, occs) \<in> occurrence_list_ref\<close> and
+    shrunken: \<open>\<forall>C\<in>#mset shrunken. C \<in> set (get_vdom S)\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S'\<close>
+ shows \<open>forward_subsumption_finalize shrunken S\<le>SPEC(\<lambda>c. (c,S')\<in>twl_st_heur_restart_ana' r u)\<close> (is \<open>_ \<le> ?C\<close>)
+proof -
+  have
+    1: \<open>(RETURN S') \<ge> do {
+    let S = S;
+    (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,S). i \<le> length shrunken \<and> S=S'\<^esup>(\<lambda>(i,S). i < length shrunken) (\<lambda>(i,S). do {
+      ASSERT (i < length shrunken);
+      let C = shrunken ! i;
+      b \<leftarrow> RES (UNIV :: bool set);
+      let S = S';
+      RETURN (i+1, S)
+    }) (0, S');
+    ASSERT (S = S');
+    RETURN S
+        }\<close>
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i,_). length shrunken - i)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+
+  have [refine]: \<open>((0, isa_forward_reset_added_and_stats S), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
+    get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>)
+    using assms isa_forward_reset_added_and_stats[of S S' r u] by (auto simp: isa_forward_reset_added_and_stats_def)
+  have [refine]: \<open>RETURN (clause_not_marked_to_delete_heur x2a (shrunken ! x1a))
+    \<le> \<Down> {(b,b'). b=b' \<and> b'=(shrunken!x1a\<in>#dom_m (get_clauses_wl S'))} (RES UNIV)\<close>
+    if \<open>(x2a, S') \<in> ?state\<close> \<open>x1a < length shrunken\<close>
+    for x2a x1a
+    using that shrunken arena_dom_status_iff(1)[of \<open>get_clauses_wl_heur x2a\<close> \<open>get_clauses_wl S'\<close> \<open>set (get_vdom x2a)\<close> \<open>shrunken ! x1a\<close>]
+    by (auto simp: clause_not_marked_to_delete_heur_def IsaSAT_Restart.all_init_atms_alt_def
+      twl_st_heur_restart_occs_def conc_fun_RES)
+  show ?thesis
+    unfolding forward_subsumption_finalize_def
+      mop_clause_not_marked_to_delete_heur_def nres_monad3
+      conc_fun_RETURN[symmetric]
+    apply (rule ref_two_step[OF _ 1])
+    apply (refine_vcg clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_uncurry]
+      mark_added_clause_heur2_id[unfolded conc_fun_RETURN, of _ S' r u, THEN order_trans]
+      empty_occs2_st[where occs = occs])
+    subgoal by auto
+    subgoal by auto
+    subgoal using shrunken
+      by (auto simp: clause_not_marked_to_delete_heur_pre_def twl_st_heur_restart_occs_def
+          arena_is_valid_clause_vdom_def
+        intro!: exI[of _ \<open>get_clauses_wl S'\<close>] exI[of _  \<open>set (get_vdom S)\<close>])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using lits by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by (auto simp: isa_forward_reset_added_and_stats_def)
+    subgoal using assms by auto
+    done
+qed
 
 definition isa_forward_subsumption_all :: \<open>_ \<Rightarrow> _ nres\<close> where
   \<open>isa_forward_subsumption_all = (\<lambda>S\<^sub>0. do {
@@ -4201,18 +4395,20 @@ definition isa_forward_subsumption_all :: \<open>_ \<Rightarrow> _ nres\<close> 
   ASSERT (isasat_fast_relaxed S\<^sub>0 \<longrightarrow> isasat_fast_relaxed S);
   let m = length (get_tvdom S);
   D \<leftarrow> mop_cch_create (length (get_watched_wl_heur S));
-  (_, D, S) \<leftarrow>
-    WHILE\<^sub>T\<^bsup> isa_forward_subsumption_all_wl_inv S\<^sub>0 S \<^esup> (\<lambda>(i, D, S). i < m \<and> get_conflict_wl_is_None_heur S)
-    (\<lambda>(i, D, S). do {
+  let shrunken = [];
+  (_, D, shrunken, S) \<leftarrow>
+    WHILE\<^sub>T\<^bsup> isa_forward_subsumption_all_wl_inv S\<^sub>0 S \<^esup> (\<lambda>(i, D, shrunken, S). i < m \<and> get_conflict_wl_is_None_heur S)
+    (\<lambda>(i, D, shrunken, S). do {
        ASSERT (i < m);
        ASSERT (access_tvdom_at_pre S i);
        let C = get_tvdom S!i;
        D \<leftarrow> mop_cch_add_all_clause S C D;
-       (D, T) \<leftarrow> isa_try_to_forward_subsume_wl2 C D S;
-       RETURN (i+1, D, incr_forward_tried_st T)
+       (D, shrunken, T) \<leftarrow> isa_try_to_forward_subsume_wl2 C D shrunken S;
+       RETURN (i+1, D, shrunken, incr_forward_tried_st T)
     })
-    (0, D, S);
-  empty_occs2_st (isa_forward_reset_added_and_stats S)
+    (0, D, shrunken, S);
+  ASSERT (\<forall>C\<in>set shrunken. C \<in> set (get_vdom S));
+  forward_subsumption_finalize shrunken S
   }
 )\<close>
 
@@ -4301,8 +4497,9 @@ proof -
     by (auto simp add: valid_occs_empty)
 
   have [refine]: \<open> (get_occs x2a, occs) \<in> occurrence_list_ref \<and> (D, D') \<in>clause_hash \<and> (x2a, S') \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S) \<Longrightarrow>
-   ((0, D, x2a), 0, occs, D', S', 2) \<in>
-    {((m, D, U), (n, occs, D', U', _)). (m,n)\<in>nat_rel \<and> (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
+   ((0, D, [], x2a), 0, occs, D', S', 2, {#}) \<in>
+    {((m, D, shrunken, U), (n, occs, D', U', _, shrunken')). (m,n)\<in>nat_rel \<and> (D,D')\<in>clause_hash \<and> (get_occs U, occs) \<in> occurrence_list_ref \<and>
+      shrunken' = mset shrunken \<and>
     (U, U') \<in> twl_st_heur_restart_occs' (length (get_clauses_wl_heur S)) (learned_clss_count S)\<and> get_aivdom U = get_aivdom x2a}\<close> for x2a occs D D'
     by auto
   have H: \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
@@ -4315,6 +4512,16 @@ proof -
   have H2: \<open>(Sa, U)   \<in> twl_st_heur_restart_occs \<Longrightarrow>
     (incr_forward_tried_st Sa, U) \<in> twl_st_heur_restart_occs\<close> for Sa U
     by (auto simp: twl_st_heur_restart_occs_def incr_forward_tried_st_def)
+  have H3: \<open>C \<in> set x1h \<Longrightarrow>
+     (Sa, S') \<in> twl_st_heur_restart_occs \<Longrightarrow>
+     mset x1h \<subseteq># mset (get_tvdom Sa) \<Longrightarrow>
+     get_vdom Sa = get_vdom S \<Longrightarrow>
+     C \<in> set (get_vdom S)\<close>
+    for C x1h Sa
+    using multi_member_split[of C \<open>mset x1h\<close>] multi_member_split[of C \<open>mset (get_tvdom Sa)\<close>]
+    unfolding twl_st_heur_restart_occs_def IsaSAT_Restart.all_init_atms_alt_def
+      aivdom_inv_dec_alt_def
+    by (auto dest: mset_subset_eqD dest!: mset_subset_eq_insertD)
 
   show ?thesis
     supply [[goals_limit=1]]
@@ -4322,7 +4529,7 @@ proof -
       forward_subsumption_all_wl2_def Let_def
     apply (refine_vcg ref_two_step[OF isa_populate_occs populate_occs_populate_occs_spec,
       unfolded Down_id_eq, of _ _ \<open>length (get_clauses_wl_heur S)\<close>  \<open>(learned_clss_count S)\<close>]
-      empty_occs2_st[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
+      forward_subsumption_finalize[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
       mop_cch_create_mop_cch_create
       mop_cch_add_all_clause_mop_ch_add_all[where r=\<open>length (get_clauses_wl_heur S)\<close> and u=\<open>(learned_clss_count S)\<close>]
       isa_try_to_forward_subsume_wl2_try_to_forward_subsume_wl2[where r=\<open>length (get_clauses_wl_heur S)\<close>  and u=\<open>(learned_clss_count S)\<close>]
@@ -4338,7 +4545,7 @@ proof -
       using SS'' unfolding isa_forward_subsumption_all_wl_inv_def apply (case_tac x, hypsubst, unfold prod.simps)
       by (rule exI[of _ S'], rule exI[of _ S'], rule exI[of _ \<open>fst (snd (snd (snd x'a)))\<close>],
         rule_tac x= \<open>fst (snd (snd (x'a)))\<close> in exI, rule_tac x= \<open>fst (snd x'a)\<close> in exI,
-        rule_tac x=\<open>(snd (snd (snd (snd x'a))))\<close> in exI)
+        rule_tac x=\<open>fst (snd (snd (snd (snd x'a))))\<close> in exI)
        auto
     subgoal by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_restart_occs[THEN fref_to_Down_unRET_Id])
       (auto simp: get_conflict_wl_is_None_def)
@@ -4350,9 +4557,14 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (simp add: H2)
+    subgoal by simp
+    subgoal by (clarsimp dest!: size_mset_mono simp add: forward_subsumption_all_wl2_inv_def)
+    subgoal by (auto simp add:H2)
+    subgoal by (clarsimp simp add: H3)
     apply (solves auto)
     apply assumption
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     done

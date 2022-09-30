@@ -250,7 +250,7 @@ lemma rdomp_isasat_bounded_assn_length_avdomD:
 
 
 sepref_register isa_all_lit_clause_unset isa_push_to_occs_list_st
-  find_best_subsumption_candidate sort_cands_by_length
+  find_best_subsumption_candidate find_best_subsumption_candidate_and_push sort_cands_by_length
 
 sepref_def find_best_subsumption_candidate_code
   is \<open>uncurry find_best_subsumption_candidate\<close>
@@ -744,7 +744,7 @@ sepref_def isa_subsume_or_strengthen_wl_impl
 
 sepref_def isa_forward_subsumption_one_wl_impl
   is \<open>uncurry3 isa_forward_subsumption_one_wl\<close>
-  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>asint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a cch_assn\<close>
+  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>asint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a subsumption_assn \<times>\<^sub>a cch_assn\<close>
   supply [dest] = rdomp_isasat_bounded_assn_length_avdomD isasat_bounded_assn_length_arenaD
   supply [[goals_limit=1]]
   unfolding isa_forward_subsumption_one_wl_def get_occs_list_at_def[symmetric] fold_is_NONE
@@ -757,16 +757,31 @@ lemma isa_try_to_forward_subsume_wl_invI:
   unfolding isa_try_to_forward_subsume_wl_inv_def prod.simps
   by normalize_goal+ (auto simp add: isasat_fast_relaxed_def)
 
+lemma isasat_bounded_assn_get_vdomD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_tvdom a) < max_snat 64\<close>
+  using al_assn_boundD[of sint64_nat_assn, where 'l=\<open>64\<close>, of \<open>get_tvdom a\<close>]
+  apply -
+  unfolding rdomp_def
+  apply normalize_goal+
+  apply (cases a, case_tac xa; cases \<open>get_aivdom a\<close>)
+  apply (auto 7 5 simp: isasat_bounded_assn_def sint64_max_def max_snat_def aivdom_assn_def
+         code_hider_assn_def hr_comp_def code_hider_rel_def import_param_3 pred_lift_def
+      split: isasat_int_splits
+      dest!: mod_starD al_assn_boundD[of sint64_nat_assn, where 'l=\<open>64\<close>])
+  apply auto
+  done
+
 sepref_def isa_try_to_forward_subsume_wl2_impl
-  is \<open>uncurry2 isa_try_to_forward_subsume_wl2\<close>
-  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> cch_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry3 isa_try_to_forward_subsume_wl2\<close>
+  :: \<open>[\<lambda>(((_, _), _), S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a (al_assn' TYPE(64) sint64_nat_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+  cch_assn \<times>\<^sub>a al_assn' TYPE(64) sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_try_to_forward_subsume_wl2_def
-    mop_access_lit_in_clauses_heur_def[symmetric]
+    mop_access_lit_in_clauses_heur_def[symmetric] Let_def[of \<open>is_strengthened _\<close>] fold_is_NONE
+     Let_def[of \<open>if is_strengthened _ then _ else _\<close>]
   supply [[goals_limit=1]]
   supply [intro] = isa_try_to_forward_subsume_wl_invI
+  supply [dest] = isasat_bounded_assn_get_vdomD
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
 
 lemma empty_occs2_st_alt_def:
   \<open>empty_occs2_st S = do {
@@ -793,12 +808,27 @@ sepref_def empty_occs2_st_impl
   by sepref
 
 lemma isa_forward_subsumption_all_wl_invI:
-  \<open>isa_forward_subsumption_all_wl_inv R S (i, D, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
+  \<open>isa_forward_subsumption_all_wl_inv R S (i, D, shrunken, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
   unfolding isa_forward_subsumption_all_wl_inv_def prod.simps
   apply normalize_goal+
   by (auto simp: isasat_fast_relaxed_def)
 
-sepref_register empty_occs2_st
+sepref_register empty_occs2_st forward_subsumption_finalize
+
+sepref_def mark_added_clause_heur2_impl
+  is \<open>uncurry mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mark_added_clause_heur2_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def forward_subsumption_finalize
+  is \<open>uncurry forward_subsumption_finalize\<close>
+  :: \<open>(al_assn' TYPE(64) sint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding forward_subsumption_finalize_def
+  supply [[goals_limit=1]]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 sepref_def isa_forward_subsumption_all_impl
   is isa_forward_subsumption_all
@@ -808,6 +838,7 @@ sepref_def isa_forward_subsumption_all_impl
   unfolding isa_forward_subsumption_all_def
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     length_watchlist_raw_def[symmetric]
+    al_fold_custom_empty[where 'l=64]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

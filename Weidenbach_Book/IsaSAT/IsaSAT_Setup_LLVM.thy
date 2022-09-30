@@ -10,6 +10,19 @@ begin
 
 subsubsection \<open>Lift Operations to State\<close>
 
+sepref_def mark_added_clause_heur2_impl
+  is \<open>uncurry mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mark_added_clause_heur2_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def maybe_mark_added_clause_heur2_impl
+  is \<open>uncurry maybe_mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding maybe_mark_added_clause_heur2_def
+  by sepref
+
 experiment begin
 lemma from_bool1: "from_bool True = 1"
   by auto
