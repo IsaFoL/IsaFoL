@@ -1,6 +1,6 @@
 theory IsaSAT_Restart_Heuristics_Defs
 imports
-  IsaSAT_Restart_Reduce_Defs IsaSAT_Restart_Inprocessing
+  IsaSAT_Restart_Reduce_Defs IsaSAT_Restart_Inprocessing_Defs
 begin
 
 text \<open>
