@@ -1,5 +1,6 @@
 theory IsaSAT_Restart_Simp_Defs
   imports IsaSAT_Restart_Heuristics_Defs IsaSAT_Other_Defs IsaSAT_Propagate_Conflict_Defs IsaSAT_Restart_Inprocessing_Defs
+    Watched_Literals.Watched_Literals_Watch_List_Reduce
 begin
 
 chapter \<open>Full CDCL with Restarts\<close>

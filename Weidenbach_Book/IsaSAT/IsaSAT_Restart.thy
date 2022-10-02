@@ -64,15 +64,6 @@ lemma twl_st_heur_restartD:
   \<open>x \<in> twl_st_heur_restart \<Longrightarrow> x \<in> twl_st_heur_restart_ana (length (get_clauses_wl_heur (fst x)))\<close>
   by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
 
-lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
-  by (auto simp: bounded_def) presburger
-
-global_interpretation twl_restart_ops id
-  by unfold_locales
-
-global_interpretation twl_restart id
-  by standard (rule unbounded_id)
-
 named_theorems twl_st_heur_restart
 
 lemma [twl_st_heur_restart]:
@@ -1672,19 +1663,6 @@ qed
 lemma heuristic_rel_incr_restartI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
-
-definition rewatch_heur_st_pre :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
-
-lemma isasat_GC_clauses_wl_D_rewatch_pre:
-  assumes
-    \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
-    \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
-    \<open>\<forall>i \<in> set (get_tvdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
-  shows \<open>rewatch_heur_st_pre xc\<close>
-  using assms
-  unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
-  by auto
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>

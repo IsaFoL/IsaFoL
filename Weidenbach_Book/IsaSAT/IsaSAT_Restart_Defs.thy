@@ -4,6 +4,15 @@ theory IsaSAT_Restart_Defs
     IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting IsaSAT_Proofs
 begin
 
+lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
+  by (auto simp: bounded_def) presburger
+
+global_interpretation twl_restart_ops id
+  by unfold_locales
+
+global_interpretation twl_restart id
+  by standard (rule unbounded_id)
+
 
 
 definition twl_st_heur_restart :: \<open>(isasat \<times> nat twl_st_wl) set\<close> where
@@ -253,5 +262,19 @@ definition restart_abs_wl_heur_pre  :: \<open>isasat \<Rightarrow> bool \<Righta
 lemma valid_arena_header_size:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
   by (auto simp: arena_header_size_def header_size_def arena_lifting)
+
+
+definition rewatch_heur_st_pre :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_tvdom S). get_tvdom S ! i \<le> sint64_max)\<close>
+
+lemma isasat_GC_clauses_wl_D_rewatch_pre:
+  assumes
+    \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
+    \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
+    \<open>\<forall>i \<in> set (get_tvdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
+  shows \<open>rewatch_heur_st_pre xc\<close>
+  using assms
+  unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
+  by auto
 
 end
