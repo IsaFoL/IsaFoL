@@ -1,6 +1,6 @@
 theory IsaSAT_Simplify_Clause_Units_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
-    IsaSAT_Simplify_Units
+    IsaSAT_Simplify_Units_Defs
     IsaSAT_Proofs_LLVM
 begin
 

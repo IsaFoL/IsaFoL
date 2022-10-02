@@ -1,6 +1,6 @@
 theory IsaSAT_Inprocessing_LLVM
   imports
-    IsaSAT_Restart_Inprocessing
+    IsaSAT_Restart_Inprocessing_Defs
     IsaSAT_Simplify_Units_LLVM
     IsaSAT_Simplify_Binaries_LLVM
     IsaSAT_Simplify_Forward_Subsumption_LLVM

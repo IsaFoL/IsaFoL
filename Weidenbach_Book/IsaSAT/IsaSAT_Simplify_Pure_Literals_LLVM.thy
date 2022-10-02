@@ -1,6 +1,6 @@
 theory IsaSAT_Simplify_Pure_Literals_LLVM
-  imports IsaSAT_Restart
-    IsaSAT_Simplify_Pure_Literals
+  imports IsaSAT_Restart_Defs
+    IsaSAT_Simplify_Pure_Literals_Defs
     IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
     IsaSAT_Proofs_LLVM
 begin
@@ -86,7 +86,7 @@ sepref_def isa_pure_literal_deletion_wl_code
   is \<open>uncurry isa_pure_literal_deletion_wl\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      (larray_assn' TYPE(64) bool1_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
-  unfolding isa_pure_literal_deletion_wl_alt_def iterate_over_VMTF_def nres_monad3 nres_monad2
+  unfolding isa_pure_literal_deletion_wl_alt_def nres_monad3 nres_monad2
     get_vmtf_heur_array_nth_def[symmetric] UNSET_def[symmetric] atom.fold_option
     mop_polarity_st_heur_def[symmetric] tri_bool_eq_def[symmetric]
     get_vmtf_heur_array_nth_def[symmetric] prod.simps

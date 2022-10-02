@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation_LLVM
   imports IsaSAT_Setup_LLVM
-    IsaSAT_Inner_Propagation
+    IsaSAT_Inner_Propagation_Defs
     IsaSAT_VMTF_LLVM
     IsaSAT_LBD_LLVM
 begin
@@ -118,15 +118,25 @@ sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
 
 sepref_register isa_find_unset_lit_st
 
+lemma case_tri_bool_If:
+  \<open>(case a of
+       None \<Rightarrow> f1
+     | Some v \<Rightarrow>
+        (if v then f2 else f3)) =
+   (let b = a in if b = UNSET
+    then f1
+    else if b = SET_TRUE then f2 else f3)\<close>
+  by (auto split: option.splits)
+
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
   :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
-    find_unwatched_def fmap_rll_def[symmetric]
+    fmap_rll_def[symmetric]
     length_uint32_nat_def[symmetric] isa_find_unwatched_def
-    case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+    case_tri_bool_If
     fmap_rll_u64_def[symmetric]
     mop_arena_length_st_def[symmetric]
     mop_arena_pos_st_def[symmetric]
@@ -233,7 +243,7 @@ sepref_def propagate_lit_wl_fast_code
   unfolding PR_CONST_def propagate_lit_wl_heur_propagate_lit_wl_heur_inner
     RETURN_case_tuple16_invers comp_def propagate_lit_wl_heur_inner_def
   unfolding
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    fmap_swap_ll_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
     save_phase_def
   apply (annot_snat_const \<open>TYPE (64)\<close>)
@@ -281,11 +291,6 @@ sepref_def propagate_lit_wl_bin_fast_code
   unfolding PR_CONST_def propagate_lit_wl_bin_heur_alt2
     RETURN_case_tuple16_invers comp_def
   supply [[goals_limit=1]]  length_ll_def[simp]
-  unfolding update_clause_wl_heur_def
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
-    fmap_swap_ll_u64_def[symmetric]
-    save_phase_def propagate_lit_wl_bin_heur_def
-  unfolding fold_tuple_optimizations
   by sepref
 
 lemma update_blit_wl_heur_alt_def:
@@ -409,7 +414,6 @@ sepref_def set_conflict_wl_heur_fast_code
     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_alt_def
-    set_conflict_wl_heur_pre_def PR_CONST_def
   apply (annot_unat_const \<open>TYPE (32)\<close>)
   by sepref
 

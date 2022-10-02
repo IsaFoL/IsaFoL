@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_LLVM
-imports IsaSAT_Restart_Simp IsaSAT_Propagate_Conflict_LLVM IsaSAT_Restart_Heuristics_LLVM
+imports IsaSAT_Restart_Simp_Defs IsaSAT_Propagate_Conflict_LLVM IsaSAT_Restart_Heuristics_LLVM
 begin
 sepref_register update_all_phases
 
@@ -88,6 +88,12 @@ lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9
     uint64_max_def learned_clss_count_def)
 
 sepref_register isasat_fast
+
+(*TODO Move*)
+lemma all_count_learned[simp]: \<open>clss_size_allcount (get_learned_count S) = learned_clss_count S\<close>
+    by (auto simp: twl_st_heur'_def clss_size_allcount_def learned_clss_count_def clss_size_lcountU0_def
+      clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def clss_size_lcountUEk_def
+      split: prod.splits)
 
 sepref_def isasat_fast_code
   is \<open>RETURN o isasat_fast\<close>

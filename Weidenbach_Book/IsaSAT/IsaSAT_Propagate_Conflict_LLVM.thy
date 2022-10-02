@@ -1,5 +1,5 @@
 theory IsaSAT_Propagate_Conflict_LLVM
-  imports IsaSAT_Propagate_Conflict IsaSAT_Inner_Propagation_LLVM
+  imports IsaSAT_Propagate_Conflict_Defs IsaSAT_Inner_Propagation_LLVM
 begin
 
 (*TODO Move*)
@@ -21,7 +21,6 @@ sepref_def unit_propagation_inner_loop_wl_loop_D_fast
     length_ll_fs_heur_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
-    length_ll_fs_def[symmetric]
   unfolding fold_tuple_optimizations
   supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_fast[intro] length_ll_fs_heur_def[simp]
   apply (annot_snat_const \<open>TYPE (64)\<close>)
@@ -124,18 +123,6 @@ sepref_def select_and_remove_from_literals_to_update_wlfast_code
   by sepref
 
 
-sepref_def literals_to_update_wl_literals_to_update_wl_empty_fast_code
-  is \<open>RETURN o literals_to_update_wl_literals_to_update_wl_empty\<close>
-  :: \<open>[\<lambda>S. isa_length_trail_pre (get_trail_wl_heur S)]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
-  unfolding literals_to_update_wl_literals_to_update_wl_empty_def
-    isasat_length_trail_st_def[symmetric]
-  by sepref
-
-
-sepref_register literals_to_update_wl_literals_to_update_wl_empty
-  select_and_remove_from_literals_to_update_wl_heur
-
-
 lemma unit_propagation_outer_loop_wl_D_heur_fast:
   \<open>length (get_clauses_wl_heur x) \<le> sint64_max \<Longrightarrow>
        unit_propagation_outer_loop_wl_D_heur_inv x s' \<Longrightarrow>
@@ -144,13 +131,18 @@ lemma unit_propagation_outer_loop_wl_D_heur_fast:
        length (get_clauses_wl_heur s') \<le> sint64_max\<close>
   by (auto simp: unit_propagation_outer_loop_wl_D_heur_inv_def)
 
+lemma unit_propagation_outer_loop_wl_D_invI:
+  \<open>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 S \<Longrightarrow>
+    isa_length_trail_pre (get_trail_wl_heur S)\<close>
+  unfolding unit_propagation_outer_loop_wl_D_heur_inv_def
+  by blast
+
 sepref_def unit_propagation_outer_loop_wl_D_fast_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro] of_nat_snat[sepref_import_param]
     unit_propagation_outer_loop_wl_D_invI[intro]
   unfolding unit_propagation_outer_loop_wl_D_heur_def isasat_length_trail_st_def[symmetric]
-    literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 
 sepref_register unit_propagation_outer_loop_wl_D_heur
@@ -164,7 +156,6 @@ export_llvm
   unit_propagation_inner_loop_wl_D_fast_code
   isa_trail_nth_fast_code
   select_and_remove_from_literals_to_update_wlfast_code
-  literals_to_update_wl_literals_to_update_wl_empty_fast_code
   unit_propagation_outer_loop_wl_D_fast_code
 
 end

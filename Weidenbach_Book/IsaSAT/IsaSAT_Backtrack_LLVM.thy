@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack_LLVM
-  imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
+  imports IsaSAT_Backtrack_Defs IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
     IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM IsaSAT_Proofs_LLVM
     IsaSAT_Stats_LLVM
 begin
@@ -285,6 +285,19 @@ lemma [sepref_fr_rules]:
       sep_conj_commute pure_true_conv)
   done
 
+section \<open>Backtrack with direct extraction of literal if highest level\<close>
+
+lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint32_max_def sint64_max_def)
+
+lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
+       a < length (get_clauses_wl_heur b) \<Longrightarrow> a \<le> sint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def)
+
+lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrightarrow>
+       a \<le> length (get_clauses_wl_heur b) \<Longrightarrow> a < sint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
+
 sepref_register propagate_bt_wl_D_heur_update propagate_bt_wl_D_heur_extract two_sint64
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
@@ -340,14 +353,13 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
     split: isasat_int_splits)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
-    empty_conflict_and_extract_clause_heur
     isa_vmtf_mark_to_rescore_also_reasons
 
 sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
-  supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
+  supply [[goals_limit=1]]
   unfolding extract_shorter_conflict_list_heur_st_alt_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)

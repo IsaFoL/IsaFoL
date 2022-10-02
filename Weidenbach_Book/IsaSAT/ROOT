@@ -39,44 +39,62 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Setup_LLVM
     IsaSAT_Rephase_State
     IsaSAT_Rephase_State_LLVM
+    IsaSAT_Inner_Propagation_Defs
     IsaSAT_Inner_Propagation
     IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF
     IsaSAT_VMTF_LLVM
+    IsaSAT_Backtrack_Defs
     IsaSAT_Backtrack
     IsaSAT_Backtrack_LLVM
     IsaSAT_Initialisation
     IsaSAT_Initialisation_State_LLVM
     IsaSAT_Initialisation_LLVM
+    IsaSAT_Conflict_Analysis_Defs
     IsaSAT_Conflict_Analysis
     IsaSAT_Conflict_Analysis_LLVM
     IsaSAT_Propagate_Conflict
     IsaSAT_Propagate_Conflict_LLVM
+    IsaSAT_Decide_Defs
     IsaSAT_Decide
     IsaSAT_Decide_LLVM
+    IsaSAT_CDCL_Defs
     IsaSAT_CDCL
     IsaSAT_CDCL_LLVM
 
+    IsaSAT_Restart_Reduce_Defs
     IsaSAT_Restart_Reduce
     IsaSAT_Restart_Reduce_LLVM
     IsaSAT_Simplify_Clause_Units_LLVM
-    IsaSAT_Simplify_Units_LLVM
+    IsaSAT_Simplify_Units_Defs
     IsaSAT_Simplify_Units
+    IsaSAT_Simplify_Units_LLVM
+    IsaSAT_Simplify_Binaries_Defs
     IsaSAT_Simplify_Binaries
     IsaSAT_Simplify_Binaries_LLVM
+    IsaSAT_Simplify_Pure_Literals_Defs
     IsaSAT_Simplify_Pure_Literals
     IsaSAT_Simplify_Pure_Literals_LLVM
+    IsaSAT_Simplify_Forward_Subsumption_Defs
+    IsaSAT_Simplify_Forward_Subsumption
+    IsaSAT_Simplify_Forward_Subsumption_LLVM
+    IsaSAT_Restart_Inprocessing_LLVM
     IsaSAT_Restart_Inprocessing
     IsaSAT_Inprocessing_LLVM
+    IsaSAT_Restart_Heuristics_Defs
     IsaSAT_Restart_Heuristics
     IsaSAT_Restart_Heuristics_LLVM
+    IsaSAT_Restart_Defs
     IsaSAT_Restart
     IsaSAT_Restart_LLVM
+    IsaSAT_Restart_Simp_Defs
     IsaSAT_Restart_Simp
     IsaSAT_Restart_Simp_LLVM
 
+    IsaSAT_Defs
     IsaSAT
     IsaSAT_LLVM
+    IsaSAT_All_LLVM
 
   document_files
     "root.tex"
