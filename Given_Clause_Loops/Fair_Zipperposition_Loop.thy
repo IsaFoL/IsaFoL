@@ -15,7 +15,7 @@ begin
 
 subsection \<open>Locale\<close>
 
-type_synonym ('t, 'p, 'f) fair_ZL_state = "'t \<times> 'f inference set \<times> 'p \<times> 'f option \<times> 'f fset"
+type_synonym ('t, 'p, 'f) ZLf_state = "'t \<times> 'f inference set \<times> 'p \<times> 'f option \<times> 'f fset"
 
 locale fair_zipperposition_loop =
   discount_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
@@ -64,21 +64,21 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
 
 subsection \<open>Basic Definitions and Lemmas\<close>
 
-abbreviation todo_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 't" where
+abbreviation todo_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 't" where
   "todo_of St \<equiv> fst St"
-abbreviation done_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f inference set" where
+abbreviation done_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f inference set" where
   "done_of St \<equiv> fst (snd St)"
-abbreviation passive_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'p" where
+abbreviation passive_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst (snd (snd St))"
-abbreviation yy_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f option" where
+abbreviation yy_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd (snd St)))"
-abbreviation active_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f fset" where
+abbreviation active_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd (snd St)))"
 
-abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f set" where
+abbreviation all_formulas_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
 
-fun zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
+fun zl_fstate :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "zl_fstate (T, D, P, Y, A) = zl_state (t_llists T, D, passive.elems P, set_option Y, fset A)"
 
 lemma zl_fstate_alt_def:
@@ -87,7 +87,7 @@ lemma zl_fstate_alt_def:
   by (cases St) auto
 
 definition
-  Liminf_zl_fstate :: "('t, 'p, 'f) fair_ZL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
+  Liminf_zl_fstate :: "('t, 'p, 'f) ZLf_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
 where
   "Liminf_zl_fstate Sts =
    (Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts),
@@ -114,8 +114,7 @@ fun formulas_union :: "'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f s
   "formulas_union (P, Y, A) = P \<union> Y \<union> A"
 
 inductive
-  fair_ZL :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
-  (infix "\<leadsto>ZLf" 50)
+  fair_ZL :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" (infix "\<leadsto>ZLf" 50)
 where
   compute_infer: "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
     \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
@@ -136,9 +135,7 @@ where
 | delete_orphan_infers: "\<iota>s \<in># t_llists T \<Longrightarrow> lset \<iota>s \<inter> no_labels.Inf_from (fset A) = {} \<Longrightarrow>
     (T, D, P, Y, A) \<leadsto>ZLf (t_remove_llist \<iota>s T, D \<union> lset \<iota>s, P, Y, A)"
 
-inductive
-  compute_infer_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
-where
+inductive compute_infer_step :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
   "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
    \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
    compute_infer_step (T, D, P, None, A) (T', D \<union> {\<iota>0}, p_add C P, None, A)"
@@ -148,25 +145,23 @@ text \<open>The step below is slightly more general than the corresponding step 
 generality simplifies an argument later, when we erase the @{text D} ``ghost''
 component of the state.\<close>
 
-inductive
-  choose_p_step :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool"
-where
+inductive choose_p_step :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
   "P \<noteq> p_empty \<Longrightarrow>
    choose_p_step (T, D, P, None, A) (T, D', p_remove (p_select P) P, Some (p_select P), A)"
 
 
 subsection \<open>Initial State and Invariant\<close>
 
-inductive is_initial_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+inductive is_initial_ZLf_state :: "('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
   "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_state (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})"
+   is_initial_ZLf_state (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})"
 
-inductive fair_ZL_invariant :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
-  "flat_inferences_of (t_llists T) \<subseteq> Inf_F \<Longrightarrow> fair_ZL_invariant (T, D, P, Y, A)"
+inductive ZLf_invariant :: "('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
+  "flat_inferences_of (t_llists T) \<subseteq> Inf_F \<Longrightarrow> ZLf_invariant (T, D, P, Y, A)"
 
-lemma initial_fair_ZL_invariant:
-  assumes "is_initial_fair_ZL_state St"
-  shows "fair_ZL_invariant St"
+lemma initial_ZLf_invariant:
+  assumes "is_initial_ZLf_state St"
+  shows "ZLf_invariant St"
   using assms
 proof
   fix \<iota>ss
@@ -176,15 +171,15 @@ proof
 
   have "flat_inferences_of (t_llists (fold t_add_llist \<iota>ss t_empty)) \<subseteq> Inf_F"
     using \<iota>ss no_labels.Inf_if_Inf_from by force
-  thus "fair_ZL_invariant St"
-    unfolding st using fair_ZL_invariant.intros by blast
+  thus "ZLf_invariant St"
+    unfolding st using ZLf_invariant.intros by blast
 qed
 
-lemma step_fair_ZL_invariant:
+lemma step_ZLf_invariant:
   assumes
-    inv: "fair_ZL_invariant St" and
+    inv: "ZLf_invariant St" and
     step: "St \<leadsto>ZLf St'"
-  shows "fair_ZL_invariant St'"
+  shows "ZLf_invariant St'"
   using step inv
 proof cases
   case (compute_infer T \<iota>0 T' A C D P)
@@ -225,29 +220,29 @@ proof cases
       by blast
   qed
   finally show ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps by (simp add: lists_t')
+    using inv unfolding defs ZLf_invariant.simps by (simp add: lists_t')
 next
   case (schedule_infer \<iota>ss A C T D P)
   note defs = this(1,2) and \<iota>ss_inf_betw = this(3)
   have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in> set \<iota>ss} \<subseteq> Inf_F"
     using \<iota>ss_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   thus ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps by simp blast
+    using inv unfolding defs ZLf_invariant.simps by simp blast
 next
   case (delete_orphan_infers \<iota>s T A D P Y)
   note defs = this(1,2)
   have "\<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T - {#\<iota>s#}} \<subseteq> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
     using Union_Setcompr_member_mset_mono[of "t_llists T - {#\<iota>s#}" "t_llists T" lset] by auto
   thus ?thesis
-    using inv unfolding defs fair_ZL_invariant.simps by simp
-qed (auto simp: fair_ZL_invariant.simps)
+    using inv unfolding defs ZLf_invariant.simps by simp
+qed (auto simp: ZLf_invariant.simps)
 
-lemma chain_fair_ZL_invariant_lnth:
+lemma chain_ZLf_invariant_lnth:
   assumes
     chain: "chain (\<leadsto>ZLf) Sts" and
-    fair_hd: "fair_ZL_invariant (lhd Sts)" and
+    fair_hd: "ZLf_invariant (lhd Sts)" and
     i_lt: "enat i < llength Sts"
-  shows "fair_ZL_invariant (lnth Sts i)"
+  shows "ZLf_invariant (lnth Sts i)"
   using i_lt
 proof (induct i)
   case 0
@@ -259,21 +254,21 @@ next
 
   have "enat i < llength Sts"
     using si_lt Suc_ile_eq nless_le by blast
-  hence inv_i: "fair_ZL_invariant (lnth Sts i)"
+  hence inv_i: "ZLf_invariant (lnth Sts i)"
     by (rule ih)
   have step: "lnth Sts i \<leadsto>ZLf lnth Sts (Suc i)"
     using chain chain_lnth_rel si_lt by blast
 
   show ?case
-    by (rule step_fair_ZL_invariant[OF inv_i step])
+    by (rule step_ZLf_invariant[OF inv_i step])
 qed
 
-lemma chain_fair_ZL_invariant_llast:
+lemma chain_ZLf_invariant_llast:
   assumes
     chain: "chain (\<leadsto>ZLf) Sts" and
-    fair_hd: "fair_ZL_invariant (lhd Sts)" and
+    fair_hd: "ZLf_invariant (lhd Sts)" and
     fin: "lfinite Sts"
-  shows "fair_ZL_invariant (llast Sts)"
+  shows "ZLf_invariant (llast Sts)"
 proof -
   obtain i :: nat where
     i: "llength Sts = enat i"
@@ -284,7 +279,7 @@ proof -
         zero_enat_def)
 
   show ?thesis
-    using chain_fair_ZL_invariant_lnth[OF chain fair_hd im1_lt]
+    using chain_ZLf_invariant_lnth[OF chain fair_hd im1_lt]
     by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
         zero_enat_def)
 qed
@@ -292,17 +287,17 @@ qed
 
 subsection \<open>Final State\<close>
 
-inductive is_final_fair_ZL_state :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
-  "is_final_fair_ZL_state (t_empty, D, p_empty, None, A)"
+inductive is_final_ZLf_state :: "('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
+  "is_final_ZLf_state (t_empty, D, p_empty, None, A)"
 
-lemma is_final_fair_ZL_state_iff_no_ZLf_step:
-  assumes inv: "fair_ZL_invariant St"
-  shows "is_final_fair_ZL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ZLf St')"
+lemma is_final_ZLf_state_iff_no_ZLf_step:
+  assumes inv: "ZLf_invariant St"
+  shows "is_final_ZLf_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ZLf St')"
 proof
-  assume "is_final_fair_ZL_state St"
+  assume "is_final_ZLf_state St"
   then obtain D :: "'f inference set" and A :: "'f fset" where
     st: "St = (t_empty, D, p_empty, None, A)"
-    by (auto simp: is_final_fair_ZL_state.simps)
+    by (auto simp: is_final_ZLf_state.simps)
   show "\<forall>St'. \<not> St \<leadsto>ZLf St'"
     unfolding st
   proof (intro allI notI)
@@ -313,9 +308,9 @@ proof
   qed
 next
   assume no_step: "\<forall>St'. \<not> St \<leadsto>ZLf St'"
-  show "is_final_fair_ZL_state St"
+  show "is_final_ZLf_state St"
   proof (rule ccontr)
-    assume not_fin: "\<not> is_final_fair_ZL_state St"
+    assume not_fin: "\<not> is_final_ZLf_state St"
 
     obtain T :: 't and D :: "'f inference set" and P :: 'p and Y :: "'f option" and
       A :: "'f fset" where
@@ -323,7 +318,7 @@ next
       by (cases St)
 
     have "T \<noteq> t_empty \<or> P \<noteq> p_empty \<or> Y \<noteq> None"
-      using not_fin unfolding st is_final_fair_ZL_state.simps by auto
+      using not_fin unfolding st is_final_ZLf_state.simps by auto
     moreover {
       assume
         t: "T \<noteq> t_empty" and
@@ -345,7 +340,7 @@ next
         have "\<iota>0 \<in> \<Union> {lset \<iota> |\<iota>. \<iota> \<in># t_llists T}"
           using \<iota>0\<iota>s'_in by auto
         hence "\<iota>0 \<in> Inf_F"
-          using inv t unfolding st fair_ZL_invariant.simps by auto
+          using inv t unfolding st ZLf_invariant.simps by auto
         hence \<iota>0_red: "\<iota>0 \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>0})"
           using no_labels.empty_ord.Red_I_of_Inf_to_N by auto
 
@@ -471,7 +466,7 @@ lemma fair_ZL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-fun mset_of_zl_fstate :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> 'f multiset" where
+fun mset_of_zl_fstate :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f multiset" where
   "mset_of_zl_fstate (T, D, P, Y, A) =
    mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
 
@@ -481,7 +476,7 @@ abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool
 lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
-definition \<mu>2 :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_state \<Rightarrow> bool" where
+definition \<mu>2 :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<equiv>
    \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
    \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
@@ -625,7 +620,7 @@ lemma fair_ZL_Liminf_yy_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    inv: "fair_ZL_invariant (lhd Sts)"
+    inv: "ZLf_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
@@ -687,7 +682,7 @@ lemma fair_ZL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    init: "is_initial_ZLf_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts"
   shows "Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts) = {}"
 proof -
@@ -739,7 +734,7 @@ proof -
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = p_empty"
-    using init full full_chain_not_lnull unfolding is_initial_fair_ZL_state.simps by fastforce
+    using init full full_chain_not_lnull unfolding is_initial_ZLf_state.simps by fastforce
 
   have "Liminf_llist (lmap passive.elems (lmap passive_of Sts)) = {}"
     by (rule passive.fair[OF chain_step inf_oft hd_emp])
@@ -770,7 +765,7 @@ lemma fair_ZL_Liminf_todo_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)"
+    init: "is_initial_ZLf_state (lhd Sts)"
   shows "Liminf_llist (lmap (\<lambda>St. flat_inferences_of (t_llists (todo_of St)) - done_of St) Sts) =
     {}"
 proof -
@@ -961,7 +956,7 @@ qed
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
-    init: "is_initial_fair_ZL_state (lhd Sts)" and
+    init: "is_initial_ZLf_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
@@ -976,8 +971,8 @@ proof -
   have lgc_chain: "chain (\<leadsto>LGC) (lmap zl_fstate Sts)"
     using chain fair_ZL_step_imp_GC_step chain_lmap by (smt (verit) zl_fstate.cases)
 
-  have inv: "fair_ZL_invariant (lhd Sts)"
-    using init initial_fair_ZL_invariant by auto
+  have inv: "ZLf_invariant (lhd Sts)"
+    using init initial_ZLf_invariant by auto
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
@@ -985,7 +980,7 @@ proof -
     by (rule llist.map_sel(1))
 
   have "active_of (lhd Sts) = {||}"
-    by (metis is_initial_fair_ZL_state.cases init snd_conv)
+    by (metis is_initial_ZLf_state.cases init snd_conv)
   hence act: "active_subset (snd (lhd (lmap zl_fstate Sts))) = {}"
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
@@ -999,16 +994,16 @@ proof -
       using lfinite_Liminf_llist fin nnul
       by (metis comp_eq_dest_lhs lfinite_lmap llast_lmap llist.map_disc_iff)+
 
-    have last_inv: "fair_ZL_invariant (llast Sts)"
-      by (rule chain_fair_ZL_invariant_llast[OF chain inv fin])
+    have last_inv: "ZLf_invariant (llast Sts)"
+      by (rule chain_ZLf_invariant_llast[OF chain inv fin])
 
     have "\<forall>St'. \<not> llast Sts \<leadsto>ZLf St'"
       using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
-    hence "is_final_fair_ZL_state (llast Sts)"
-      unfolding is_final_fair_ZL_state_iff_no_ZLf_step[OF last_inv] .
+    hence "is_final_ZLf_state (llast Sts)"
+      unfolding is_final_ZLf_state_iff_no_ZLf_step[OF last_inv] .
     then obtain D :: "'f inference set" and A :: "'f fset" where
       at_l: "llast Sts = (t_empty, D, p_empty, None, A)"
-      unfolding is_final_fair_ZL_state.simps by blast
+      unfolding is_final_ZLf_state.simps by blast
 
     have ?pas_fml
       unfolding passive_subset_def lim_snd at_l by auto
@@ -1038,7 +1033,7 @@ proof -
   obtain \<iota>ss :: "'f inference llist list" where
     hd: "lhd Sts = (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})" and
     infs: "flat_inferences_of (mset \<iota>ss) = {\<iota> \<in> Inf_F. prems_of \<iota> = []}"
-    using init[unfolded is_initial_fair_ZL_state.simps no_labels.Inf_from_empty] by blast
+    using init[unfolded is_initial_ZLf_state.simps no_labels.Inf_from_empty] by blast
 
   have hd': "lhd (lmap zl_fstate Sts) =
     zl_fstate (fold t_add_llist \<iota>ss t_empty, {}, p_empty, None, {||})"

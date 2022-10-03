@@ -22,7 +22,7 @@ begin
 theorem
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
-    init: "is_initial_fair_OL_state (lhd Sts)" and
+    init: "is_initial_OLf_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -33,9 +33,8 @@ proof -
   have ilf_chain: "chain (\<leadsto>ILf) Sts"
     using Lazy_List_Chain.chain_mono fair_IL.ol full_chain_imp_chain full by blast
   hence ilf_full: "full_chain (\<leadsto>ILf) Sts"
-    by (metis chain_fair_IL_invariant_llast full_chain_iff_chain initial_fair_OL_invariant
-        is_final_fair_OL_state_iff_no_ILf_step is_final_fair_OL_state_iff_no_OLf_step full
-        init)
+    by (metis chain_ILf_invariant_llast full_chain_iff_chain initial_OLf_invariant
+        is_final_OLf_state_iff_no_ILf_step is_final_OLf_state_iff_no_OLf_step full init)
 
   show ?thesis1
     by (rule fair_IL_complete_Liminf[OF ilf_full init bot unsat])

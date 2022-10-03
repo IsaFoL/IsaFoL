@@ -14,7 +14,7 @@ begin
 
 subsection \<open>Locale\<close>
 
-type_synonym ('p, 'f) fair_OL_state = "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset"
+type_synonym ('p, 'f) OLf_state = "'f fset \<times> 'f option \<times> 'p \<times> 'f option \<times> 'f fset"
 
 locale fair_otter_loop =
   otter_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q \<G>_I_q Equiv_F Prec_F +
@@ -57,18 +57,18 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
 
 subsection \<open>Basic Definitions and Lemmas\<close>
 
-abbreviation new_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
+abbreviation new_of :: "('p, 'f) OLf_state \<Rightarrow> 'f fset" where
   "new_of St \<equiv> fst St"
-abbreviation xx_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
+abbreviation xx_of :: "('p, 'f) OLf_state \<Rightarrow> 'f option" where
   "xx_of St \<equiv> fst (snd St)"
-abbreviation passive_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'p" where
+abbreviation passive_of :: "('p, 'f) OLf_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst (snd (snd St))"
-abbreviation yy_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f option" where
+abbreviation yy_of :: "('p, 'f) OLf_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd (snd St)))"
-abbreviation active_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f fset" where
+abbreviation active_of :: "('p, 'f) OLf_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd (snd St)))"
 
-abbreviation all_formulas_of :: "('p, 'f) fair_OL_state \<Rightarrow> 'f set" where
+abbreviation all_formulas_of :: "('p, 'f) OLf_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> fset (new_of St) \<union> set_option (xx_of St) \<union> elems (passive_of St) \<union>
      set_option (yy_of St) \<union> fset (active_of St)"
 
@@ -82,7 +82,7 @@ lemma fstate_alt_def:
   by (cases St) auto
 
 definition
-  Liminf_fstate :: "('p, 'f) fair_OL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
+  Liminf_fstate :: "('p, 'f) OLf_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set"
 where
   "Liminf_fstate Sts =
    (Liminf_llist (lmap (fset \<circ> new_of) Sts),
@@ -110,9 +110,7 @@ qed
 fun state_union :: "'f set \<times> 'f set \<times> 'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
   "state_union (N, X, P, Y, A) = N \<union> X \<union> P \<union> Y \<union> A"
 
-inductive
-  fair_OL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50)
-where
+inductive fair_OL :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Rightarrow> bool" (infix "\<leadsto>OLf" 50) where
   choose_n: "C |\<notin>| N \<Longrightarrow> (N |\<union>| {|C|}, None, P, None, A) \<leadsto>OLf (N, Some C, P, None, A)"
 | delete_fwd: "C \<in> no_labels.Red_F (elems P \<union> fset A) \<or> (\<exists>C' \<in> elems P \<union> fset A. C' \<preceq>\<cdot> C) \<Longrightarrow>
     (N, Some C, P, None, A) \<leadsto>OLf (N, None, P, None, A)"
@@ -135,26 +133,26 @@ where
 
 subsection \<open>Initial State and Invariant\<close>
 
-inductive is_initial_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "is_initial_fair_OL_state (N, None, empty, None, {||})"
+inductive is_initial_OLf_state :: "('p, 'f) OLf_state \<Rightarrow> bool" where
+  "is_initial_OLf_state (N, None, empty, None, {||})"
 
-inductive fair_OL_invariant :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "(N = {||} \<and> X = None) \<or> Y = None \<Longrightarrow> fair_OL_invariant (N, X, P, Y, A)"
+inductive OLf_invariant :: "('p, 'f) OLf_state \<Rightarrow> bool" where
+  "(N = {||} \<and> X = None) \<or> Y = None \<Longrightarrow> OLf_invariant (N, X, P, Y, A)"
 
-lemma initial_fair_OL_invariant: "is_initial_fair_OL_state St \<Longrightarrow> fair_OL_invariant St"
-  unfolding is_initial_fair_OL_state.simps fair_OL_invariant.simps by auto
+lemma initial_OLf_invariant: "is_initial_OLf_state St \<Longrightarrow> OLf_invariant St"
+  unfolding is_initial_OLf_state.simps OLf_invariant.simps by auto
 
-lemma step_fair_OL_invariant:
+lemma step_OLf_invariant:
   assumes step: "St \<leadsto>OLf St'"
-  shows "fair_OL_invariant St'"
-  using step by cases (auto intro: fair_OL_invariant.intros)
+  shows "OLf_invariant St'"
+  using step by cases (auto intro: OLf_invariant.intros)
 
-lemma chain_fair_OL_invariant_lnth:
+lemma chain_OLf_invariant_lnth:
   assumes
     chain: "chain (\<leadsto>OLf) Sts" and
-    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    fair_hd: "OLf_invariant (lhd Sts)" and
     i_lt: "enat i < llength Sts"
-  shows "fair_OL_invariant (lnth Sts i)"
+  shows "OLf_invariant (lnth Sts i)"
   using i_lt
 proof (induct i)
   case 0
@@ -163,15 +161,15 @@ proof (induct i)
 next
   case (Suc i)
   thus ?case
-    using chain chain_lnth_rel step_fair_OL_invariant by blast
+    using chain chain_lnth_rel step_OLf_invariant by blast
 qed
 
-lemma chain_fair_OL_invariant_llast:
+lemma chain_OLf_invariant_llast:
   assumes
     chain: "chain (\<leadsto>OLf) Sts" and
-    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    fair_hd: "OLf_invariant (lhd Sts)" and
     fin: "lfinite Sts"
-  shows "fair_OL_invariant (llast Sts)"
+  shows "OLf_invariant (llast Sts)"
 proof -
   obtain i :: nat where
     i: "llength Sts = enat i"
@@ -182,7 +180,7 @@ proof -
         zero_enat_def)
 
   show ?thesis
-    using chain_fair_OL_invariant_lnth[OF chain fair_hd im1_lt]
+    using chain_OLf_invariant_lnth[OF chain fair_hd im1_lt]
     by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
         zero_enat_def)
 qed
@@ -190,17 +188,17 @@ qed
 
 subsection \<open>Final State\<close>
 
-inductive is_final_fair_OL_state :: "('p, 'f) fair_OL_state \<Rightarrow> bool" where
-  "is_final_fair_OL_state ({||}, None, empty, None, A)"
+inductive is_final_OLf_state :: "('p, 'f) OLf_state \<Rightarrow> bool" where
+  "is_final_OLf_state ({||}, None, empty, None, A)"
 
-lemma is_final_fair_OL_state_iff_no_OLf_step:
-  assumes inv: "fair_OL_invariant St"
-  shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
+lemma is_final_OLf_state_iff_no_OLf_step:
+  assumes inv: "OLf_invariant St"
+  shows "is_final_OLf_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>OLf St')"
 proof
-  assume "is_final_fair_OL_state St"
+  assume "is_final_OLf_state St"
   then obtain A :: "'f fset" where
     st: "St = ({||}, None, empty, None, A)"
-    by (auto simp: is_final_fair_OL_state.simps)
+    by (auto simp: is_final_OLf_state.simps)
   show "\<forall>St'. \<not> St \<leadsto>OLf St'"
     unfolding st
   proof (intro allI notI)
@@ -211,19 +209,19 @@ proof
   qed
 next
   assume no_step: "\<forall>St'. \<not> St \<leadsto>OLf St'"
-  show "is_final_fair_OL_state St"
+  show "is_final_OLf_state St"
   proof (rule ccontr)
-    assume not_fin: "\<not> is_final_fair_OL_state St"
+    assume not_fin: "\<not> is_final_OLf_state St"
 
     obtain N A :: "'f fset" and X Y :: "'f option" and P :: 'p where
       st: "St = (N, X, P, Y, A)"
       by (cases St)
 
     have inv': "(N = {||} \<and> X = None) \<or> Y = None"
-      using inv st fair_OL_invariant.simps by simp
+      using inv st OLf_invariant.simps by simp
 
     have "N \<noteq> {||} \<or> X \<noteq> None \<or> P \<noteq> empty \<or> Y \<noteq> None"
-      using not_fin unfolding st is_final_fair_OL_state.simps by auto
+      using not_fin unfolding st is_final_OLf_state.simps by auto
     moreover {
       assume
         n: "N \<noteq> {||}" and
