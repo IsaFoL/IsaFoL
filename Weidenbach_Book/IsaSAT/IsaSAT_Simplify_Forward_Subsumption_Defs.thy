@@ -1,9 +1,8 @@
 theory IsaSAT_Simplify_Forward_Subsumption_Defs
   imports IsaSAT_Setup
-    IsaSAT_Restart_Defs
     IsaSAT_Occurence_List
+    IsaSAT_Restart
 begin
-
 
 section \<open>Forward subsumption\<close>
 
