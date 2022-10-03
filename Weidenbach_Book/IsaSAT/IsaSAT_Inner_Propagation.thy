@@ -578,7 +578,7 @@ definition set_conflict_wl_heur_pre where
      (\<lambda>(C, S). True)\<close>
 
 definition update_clause_wl_pre where
-  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S).
+  \<open>update_clause_wl_pre K r = (\<lambda>((((((((L, L'), C), b), j), w), i), f), S).
      L = K)\<close>
 lemma arena_lit_pre:
   \<open>valid_arena NU N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> i < length (N \<propto> C) \<Longrightarrow> arena_lit_pre NU (C + i)\<close>
@@ -604,16 +604,17 @@ lemma mop_arena_swap[mop_arena_lit]:
     (auto simp: arena_lifting valid_arena_swap_lits op_clauses_swap_def)
 
 lemma update_clause_wl_alt_def:
-  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) L' C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
      ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and>
         correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     ASSERT(L' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in>#  all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
-     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
+     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L', b)])))
   })\<close>
-  unfolding update_clause_wl_def by (auto intro!: ext simp flip: all_lits_alt_def2)
+  unfolding update_clause_wl_def by (auto intro!: ext bind_cong[OF refl] simp flip: all_lits_alt_def2)
 
 lemma all_atms_st_simps[simp]:
    \<open>all_atms_st (M, N, D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K := WK)) =
@@ -640,9 +641,9 @@ lemma all_atms_st_simps[simp]:
 
 
 lemma update_clause_wl_heur_update_clause_wl:
-  \<open>(uncurry7 update_clause_wl_heur, uncurry7 (update_clause_wl)) \<in>
+  \<open>(uncurry8 update_clause_wl_heur, uncurry8 (update_clause_wl)) \<in>
    [update_clause_wl_pre K r]\<^sub>f
-   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
+   Id \<times>\<^sub>f Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K lcount\<rangle>nres_rel\<close>
   unfolding update_clause_wl_heur_def update_clause_wl_alt_def uncurry_def
     update_clause_wl_pre_def all_lits_of_all_atms_of all_lits_of_all_atms_of Let_def
@@ -685,7 +686,7 @@ lemma update_clause_wl_heur_update_clause_wl:
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
   subgoal for x y a b aa ba c d e f g h i j k l m n x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
-    x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x1t x1u x1v x1w x1x x1y x2s x2t x2u x2v x2w x2x x2y K' K'a N' N'a
+    x1n x2n x1o x2o x1p x2p x1q x2q x1r x2r x1s x1t x1u x1v x1w x1x x1y x2s x2t x2u x2v x2w x2x x2y _ _ _ _ K' K'a N' N'a
     by (auto dest!: length_watched_le2[of _ _ _ _ \<open>b\<close> \<D> r lcount K'a])
       (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def2)
   subgoal
@@ -1218,13 +1219,21 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
                 val_L' \<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
-                else update_clause_wl L C b j w i f S
+                else update_clause_wl L L' C b j w i f S
               }
           }
         }
       }
    }\<close>
   unfolding unit_propagation_inner_loop_body_wl_def Let_def by auto
+
+lemma fref_to_Down_curry8:
+  \<open>(uncurry8 ff, uncurry8 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y' z z' a a' b b' c c' d d' e e' f f'. P ((((((((x', y'), z'), a'), b'), c'), d'), e'), f') \<Longrightarrow>
+       (((((((((x, y), z), a), b), c), d), e), f), ((((((((x', y'), z'), a'), b'), c'), d'), e'), f')) \<in> A \<Longrightarrow>
+         ff x y z a b c d e f \<le> \<Down> B (g x' y' z' a' b' c' d' e' f'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def by auto
+
 
 lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
   \<open>(uncurry3 unit_propagation_inner_loop_body_wl_heur,
@@ -1255,7 +1264,7 @@ proof -
      isa_find_unwatched_wl_st_heur_find_unwatched_wl_st
      propagate_lit_wl_heur_propagate_lit_wl[of \<D> r lcount K s, THEN fref_to_Down_curry3, unfolded comp_def]
      isa_save_pos_is_Id
-      update_clause_wl_heur_update_clause_wl[of K r \<D> lcount s, THEN fref_to_Down_curry7]
+      update_clause_wl_heur_update_clause_wl[of K r \<D> lcount s, THEN fref_to_Down_curry8]
      other_watched_heur[of _ _ _ \<D> r lcount K s]
 
   have [simp]: \<open>is_nondeleted_clause_pre x1f x1b Sa \<Longrightarrow>

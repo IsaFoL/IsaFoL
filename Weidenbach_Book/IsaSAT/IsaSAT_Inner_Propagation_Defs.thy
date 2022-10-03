@@ -105,14 +105,14 @@ where
 
 
 definition update_clause_wl_code_pre where
-  \<open>update_clause_wl_code_pre = (\<lambda>(((((((L, C), b), j), w), i), f), S).
+  \<open>update_clause_wl_code_pre = (\<lambda>((((((((L, L'), C), b), j), w), i), f), S).
       w < length (get_watched_wl_heur S ! nat_of_lit L) )\<close>
 
 definition update_clause_wl_heur
-   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow>
+   :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> isasat \<Rightarrow>
     (nat \<times> nat \<times> isasat) nres\<close>
 where
-  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f S. do {
+  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) L' C b j w i f S. do {
      let N = get_clauses_wl_heur S;
      let W = get_watched_wl_heur S;
      K' \<leftarrow> mop_arena_lit2' (set (get_vdom S)) N C f;
@@ -120,7 +120,7 @@ where
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L', b)]];
      let S = set_watched_wl_heur W S;
      let S = set_clauses_wl_heur N' S;
      RETURN (j, w+1, S)
@@ -269,7 +269,7 @@ definition unit_propagation_inner_loop_body_wl_heur
 		  if val_L' = Some True
 		  then update_blit_wl_heur L C b j w K S
 		  else do {
-		    update_clause_wl_heur L C b j w i f S
+		    update_clause_wl_heur L L' C b j w i f S
 		  }
 	       }
 	    }

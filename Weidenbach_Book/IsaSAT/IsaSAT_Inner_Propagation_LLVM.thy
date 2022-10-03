@@ -180,7 +180,7 @@ lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < 
   by (auto simp: max_snat_def sint64_max_def)
 
 lemma update_clause_wl_heur_alt_def:
-  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f S\<^sub>0. do {
+  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) L' C b j w i f S\<^sub>0. do {
      let (N, S) = extract_arena_wl_heur S\<^sub>0;
      ASSERT (N = get_clauses_wl_heur S\<^sub>0);
      let (W, S) = extract_watchlist_wl_heur S;
@@ -190,7 +190,7 @@ lemma update_clause_wl_heur_alt_def:
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L', b)]];
      let S = update_arena_wl_heur N' S;
      let S = update_watchlist_wl_heur W S;
      RETURN (j, w+1, S)
@@ -199,9 +199,9 @@ lemma update_clause_wl_heur_alt_def:
          split: isasat_int_splits)
 
 sepref_def update_clause_wl_fast_code
-  is \<open>uncurry7 update_clause_wl_heur\<close>
-  :: \<open>[\<lambda>(((((((L, C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+  is \<open>uncurry8 update_clause_wl_heur\<close>
+  :: \<open>[\<lambda>((((((((L, L'), C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
        sint64_nat_assn\<^sup>k
         *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  arena_lit_pre_le2[intro] swap_lits_pre_def[simp]
