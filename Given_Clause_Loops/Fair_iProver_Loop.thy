@@ -29,7 +29,7 @@ inductive
   fair_IL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>ILf" 50)
 where
   ol: "St \<leadsto>OLf St' \<Longrightarrow> St \<leadsto>ILf St'"
-| red_by_children: "C \<in> no_labels.Red_F_\<G> (fset A \<union> fset M) \<or> fset M = {C'} \<and> C' \<prec>\<cdot> C \<Longrightarrow>
+| red_by_children: "C \<in> no_labels.Red_F (fset A \<union> fset M) \<or> fset M = {C'} \<and> C' \<prec>\<cdot> C \<Longrightarrow>
   ({||}, None, P, Some C, A) \<leadsto>ILf (M, None, P, None, A)"
 
 
