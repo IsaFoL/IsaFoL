@@ -613,9 +613,6 @@ qed
 
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
-(*TODO Move*)
-lemma length_update_lbd_and_mark_used[simp]: \<open>length (update_lbd_and_mark_used i glue N) = length N\<close>
-  by (auto simp: update_lbd_and_mark_used_def Let_def split: if_splits)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
@@ -1680,7 +1677,7 @@ proof -
             S = set_watched_wl_heur W S;
             S = set_learned_count_wl_heur (clss_size_incr_lcount lcount) S;
             S = set_aivdom_wl_heur (add_learned_clause_aivdom i vdom) S;
-            S = set_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
+            S = set_heur_wl_heur (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) S;
             S = set_stats_wl_heur (add_lbd (word_of_nat glue) stats) S; S = set_trail_wl_heur M S;
             S = set_clauses_wl_heur N S; S = set_literals_to_update_wl_heur j S;
             S = set_count_max_wl_heur 0 S; S = set_vmtf_wl_heur vm S;
@@ -2499,7 +2496,6 @@ proof -
     apply (rule propagate_unit_bt_wl_D_int; assumption)
     done
 qed
-
 
 
 end

@@ -1179,7 +1179,7 @@ text \<open>
 definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>incr_restart_stat = (\<lambda>S. do{
      let heur = get_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
+     let heur = unset_fully_propagated_heur (heuristic_reluctant_untrigger (restart_info_restart_done_heur heur));
      let S = set_heur_wl_heur heur S;
      let stats = get_stats_heur S;
      let S = set_stats_wl_heur (incr_restart (stats)) S;

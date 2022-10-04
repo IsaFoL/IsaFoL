@@ -462,7 +462,7 @@ proof -
     using 1 2 valid MM'
     unfolding isa_is_candidate_for_removal_def is_candidate_for_removal_def
       get_the_propagation_reason_pol_def mop_arena_lbd_def
-      mop_arena_status_def mop_marked_as_used_def
+      mop_arena_status_def mop_marked_as_used_def Let_def
     by (refine_vcg mop_arena_lit(1)
       mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,of N C _ C vdom])
      (auto simp:
@@ -473,15 +473,15 @@ proof -
 qed
 
 
-lemma isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom:
+lemma isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom:
   \<open>valid_arena arena N (set vdom) \<Longrightarrow> mset (get_avdom_aivdom avdom0) \<subseteq># mset vdom \<Longrightarrow>
   (M, M') \<in> trail_pol \<A> \<Longrightarrow> set_mset (all_atms N NUE) = set_mset \<A> \<Longrightarrow>
   length (get_avdom_aivdom avdom0) \<le> length (get_vdom_aivdom avdom0) \<Longrightarrow>
   distinct vdom \<Longrightarrow>
-  isa_remove_deleted_clauses_from_avdom M arena avdom0 \<le>
+  isa_gather_candidates_for_reduction M arena avdom0 \<le>
   \<Down>{((arena', st), st'). (st, st') \<in> Id \<and> length arena' = length arena \<and> valid_arena arena' N (set vdom)}
   (remove_deleted_clauses_from_avdom N avdom0)\<close>
-  unfolding isa_remove_deleted_clauses_from_avdom_def remove_deleted_clauses_from_avdom_def Let_def
+  unfolding isa_gather_candidates_for_reduction_def remove_deleted_clauses_from_avdom_def Let_def
   apply (refine_vcg WHILEIT_refine[where R= \<open>{((arena', st), st'). (st, st') \<in> Id \<and> length arena' = length arena \<and> valid_arena arena' N (set vdom)}\<close>]
     )
   subgoal by (auto dest!: valid_arena_vdom_le(2) size_mset_mono simp: distinct_card)
@@ -521,13 +521,13 @@ lemma bind_result_subst_iff:
   by (cases P; cases g)
    (auto simp: RETURN_def RES_RES_RETURN_RES conc_fun_RES)
 
-lemma isa_isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom2:
+lemma isa_isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom2:
   assumes \<open>valid_arena arena N (set (get_vdom_aivdom avdom))\<close>
     \<open>aivdom_inv_dec avdom (dom_m N)\<close> and
     MM': \<open>(M, M') \<in> trail_pol \<A>\<close> and
     \<A>: \<open>set_mset (all_atms N NUE) = set_mset \<A>\<close>
  shows
-  \<open>isa_remove_deleted_clauses_from_avdom M arena avdom \<le>
+  \<open>isa_gather_candidates_for_reduction M arena avdom \<le>
    (SPEC (\<lambda>(arena', aivdom). aivdom_inv_dec aivdom (dom_m N) \<and>
      get_vdom_aivdom aivdom = get_vdom_aivdom avdom\<and>
      get_ivdom_aivdom aivdom = get_ivdom_aivdom avdom\<and>
@@ -544,7 +544,7 @@ proof -
     using assms(2) by (cases avdom) (auto simp: aivdom_inv_dec_def simp del: aivdom_inv.simps)
   show ?thesis
     apply (rule order_trans)
-    apply (rule isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom)
+    apply (rule isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom)
     apply (rule assms i)+
     apply (rule order_trans)
     apply (rule ref_two_step'[OF remove_deleted_clauses_from_avdom])
@@ -634,7 +634,7 @@ proof -
       apply (rule_tac  N = \<open>get_clauses_wl y\<close> and M' = \<open>get_trail_wl y\<close> and
         \<A> = \<open>all_init_atms_st y\<close> and
         NUE = \<open>get_unit_clauses_wl y + get_subsumed_clauses_wl y + get_clauses0_wl y\<close> in
-        isa_isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
+        isa_isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
     subgoal for x y
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y
@@ -1074,7 +1074,7 @@ proof -
       apply (rule_tac  N = \<open>get_clauses_wl T\<close> and M' = \<open>get_trail_wl T\<close> and
         \<A> = \<open>all_init_atms_st T\<close> and
         NUE = \<open>get_unit_clauses_wl T + get_subsumed_clauses_wl T + get_clauses0_wl T\<close> in
-     isa_isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
+     isa_isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
     subgoal
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal
@@ -1763,7 +1763,7 @@ proof -
       apply (rule_tac  N = \<open>get_clauses_wl T\<close> and M' = \<open>get_trail_wl T\<close> and
         \<A> = \<open>all_init_atms_st T\<close> and
         NUE = \<open>get_unit_clauses_wl T + get_subsumed_clauses_wl T + get_clauses0_wl T\<close> in
-     isa_isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
+     isa_isa_gather_candidates_for_reduction_remove_deleted_clauses_from_avdom2[unfolded conc_fun_RES])
     subgoal
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal

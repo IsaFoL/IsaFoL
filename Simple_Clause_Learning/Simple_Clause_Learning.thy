@@ -2074,7 +2074,13 @@ section \<open>SCL Calculus\<close>
 locale scl = renaming_apart renaming_vars inv_renaming_vars
   for renaming_vars inv_renaming_vars :: "'v set \<Rightarrow> 'v \<Rightarrow> 'v" +
   fixes less_B :: "('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool" (infix "\<prec>\<^sub>B" 50)
-  assumes transp_less_B: "transp (\<prec>\<^sub>B)"
+  assumes
+    wfP_less_B: "wfP (\<prec>\<^sub>B)" and
+    totalp_less_B: "totalp_on {atm. is_ground_atm atm} (\<prec>\<^sub>B)" and
+    irreflp_less_B: "irreflp (\<prec>\<^sub>B)" and
+    transp_less_B: "transp (\<prec>\<^sub>B)" and
+    asymp_less_B: "asymp (\<prec>\<^sub>B)" and
+    finite_less_B: "\<And>\<beta>. finite {x. x \<prec>\<^sub>B \<beta>}"
 begin
 
 inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>

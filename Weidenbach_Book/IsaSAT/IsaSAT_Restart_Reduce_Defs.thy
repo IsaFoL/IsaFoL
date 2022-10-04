@@ -128,18 +128,19 @@ definition isa_is_candidate_for_removal where
     length \<leftarrow> mop_arena_length arena C;
     status \<leftarrow> mop_arena_status arena C;
     used \<leftarrow> mop_marked_as_used arena C;
+    D \<leftarrow> get_the_propagation_reason_pol M L;
     let can_del =
       lbd > MINIMUM_DELETION_LBD \<and>
       status = LEARNED \<and>
       length \<noteq> 2 \<and>
-      used = 0;
+      used = 0 \<and>
+      (D \<noteq> Some C);
     RETURN can_del
   }\<close>
 
 
-(*TODO rename to: accumulate candidates to tvdom or something alike*)
-definition isa_remove_deleted_clauses_from_avdom :: \<open>_\<close> where
-\<open>isa_remove_deleted_clauses_from_avdom M arena avdom0 = do {
+definition isa_gather_candidates_for_reduction :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> _ \<Rightarrow> (arena \<times> _) nres\<close> where
+\<open>isa_gather_candidates_for_reduction M arena avdom0 = do {
   ASSERT(length (get_avdom_aivdom avdom0) \<le> length arena);
   ASSERT(length (get_avdom_aivdom avdom0) \<le> length (get_vdom_aivdom avdom0));
   let n = length (get_avdom_aivdom avdom0);
@@ -169,7 +170,7 @@ definition (in -) sort_vdom_heur :: \<open>isasat \<Rightarrow> isasat nres\<clo
     let arena = get_clauses_wl_heur S;
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
     ASSERT(length (get_vdom_aivdom vdom) \<le> length arena);
-    (arena', vdom) \<leftarrow> isa_remove_deleted_clauses_from_avdom M' arena vdom;
+    (arena', vdom) \<leftarrow> isa_gather_candidates_for_reduction M' arena vdom;
     ASSERT(valid_sort_clause_score_pre arena (get_vdom_aivdom vdom));
     ASSERT(EQ (length arena) (length arena'));
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);

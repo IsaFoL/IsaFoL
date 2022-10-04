@@ -162,7 +162,7 @@ lemma propagate_unit_bt_wl_D_int_alt_def:
       let S = update_trail_wl_heur M S;
       let S = update_lbd_wl_heur lbd S;
       let S = update_literals_to_update_wl_heur j S;
-      let S = update_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
+      let S = update_heur_wl_heur (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) S;
       let S = update_lcount_wl_heur (clss_size_incr_lcountUEk lcount) S;
       let S = update_arena_wl_heur N S;
       let S = update_vmtf_wl_heur vm S;
@@ -261,7 +261,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
-          W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
+          W (clss_size_incr_lcount lcount) (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) (add_lbd (of_nat glue) stats) lbd vm j;
         _ \<leftarrow> log_new_clause_heur S i;
       S \<leftarrow> maybe_mark_added_clause_heur2 S i;
       RETURN (S)

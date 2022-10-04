@@ -226,7 +226,7 @@ sepref_register incr_restart_stat clss_size_lcountUE clss_size_lcountUS learned_
 lemma incr_restart_stat_alt_def:
   \<open>incr_restart_stat = (\<lambda>S. do{
      let (heur, S) = extract_heur_wl_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
+     let heur = unset_fully_propagated_heur (heuristic_reluctant_untrigger (restart_info_restart_done_heur heur));
      let S = update_heur_wl_heur heur S;
      let (stats, S) = extract_stats_wl_heur S;
      let stats = incr_restart (stats);
