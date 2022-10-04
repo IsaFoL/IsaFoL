@@ -2434,18 +2434,86 @@ next
     moreover
         {
       assume not_enabled_c: \<open>\<not> enabled_set {C} J\<close>
-      have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
-        sorry
+      then have \<open>M' \<union> {C} proj\<^sub>J J = M' proj\<^sub>J J\<close>
+        unfolding enabled_projection_def enabled_set_def by auto
+      then have \<open>M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+        using c_entails enabled_n unfolding AF_entails_def by (metis enabled_union2) 
+      then have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+        using entails_subsets by (metis distrib_proj image_Un sup.cobounded2) 
           }
       ultimately show \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
         by blast 
     qed
 next
   fix M N
-  assume \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+  assume m_entails_n: \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+  {
+    fix J
+    assume \<open>enabled_set N J\<close>
+    then have \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
+      using m_entails_n unfolding AF_entails_def by simp 
+    then obtain Mp Np where mp_proj: \<open>Mp \<subseteq> M proj\<^sub>J J\<close> and
+      np_proj: \<open>Np \<subseteq> F_of ` N\<close> and mp_fin: \<open>finite Mp\<close> and np_fin: \<open>finite Np\<close> and mp_entails_np: \<open>Mp \<Turnstile> Np\<close>
+      using entails_compactness by metis
+    have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. {C} proj\<^sub>J J = {Cp}\<close> 
+      using mp_proj unfolding enabled_projection_def by blast
+    then obtain f where f_is: \<open>(f Cp = (SOME C. Cp \<in> Mp \<longrightarrow> (C \<in> M \<and> {C} proj\<^sub>J J = {Cp})))\<close>
+      by simp
+    define M' where \<open>M' = f ` Mp\<close>   
+    then have \<open>M' \<subseteq> M\<close> \<open>M' proj\<^sub>J J = Mp\<close> \<open>finite M'\<close> 
+      using mp_fin f_is sorry
+  }
   show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
     sorry
 qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 end
