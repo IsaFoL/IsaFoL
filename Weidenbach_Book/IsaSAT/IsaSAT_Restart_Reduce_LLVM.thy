@@ -147,7 +147,7 @@ sepref_def isa_is_candidate_for_removal_impl
   is \<open>uncurry2 isa_is_candidate_for_removal\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isa_is_candidate_for_removal_def
-      unfolding
+  unfolding
     access_avdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
@@ -166,13 +166,13 @@ sepref_def isa_is_candidate_for_removal_impl
 sepref_register isa_is_candidate_for_removal
 
 sepref_def remove_deleted_clauses_from_avdom_fast_code
-  is \<open>uncurry2 isa_remove_deleted_clauses_from_avdom\<close>
+  is \<open>uncurry2 isa_gather_candidates_for_reduction\<close>
   :: \<open>[\<lambda>((M, N), vdom). length (get_vdom_aivdom vdom) \<le> sint64_max]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a aivdom_assn\<^sup>d \<rightarrow>
   arena_fast_assn \<times>\<^sub>a aivdom_assn\<close>
   supply [[goals_limit=1]]
   supply [simp] = length_avdom_aivdom_def
-  unfolding isa_remove_deleted_clauses_from_avdom_def
+  unfolding isa_gather_candidates_for_reduction_def
     convert_swap gen_swap if_conn(4) length_avdom_aivdom_def[symmetric]
     avdom_aivdom_at_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -275,7 +275,7 @@ lemma sort_vdom_heur_alt_def:
     ASSERT (arena = get_clauses_wl_heur S\<^sub>0);
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
     ASSERT(length (get_vdom_aivdom vdom) \<le> length arena);
-    (arena', vdom) \<leftarrow> isa_remove_deleted_clauses_from_avdom M' arena vdom;
+    (arena', vdom) \<leftarrow> isa_gather_candidates_for_reduction M' arena vdom;
     ASSERT(valid_sort_clause_score_pre arena (get_vdom_aivdom vdom));
     ASSERT(EQ (length arena) (length arena'));
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
