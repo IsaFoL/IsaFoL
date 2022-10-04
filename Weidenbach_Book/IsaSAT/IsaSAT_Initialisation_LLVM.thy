@@ -849,12 +849,18 @@ sepref_def reduce_interval_init_impl
   unfolding reduce_interval_init_def
   by sepref
 
+sepref_def inprocessing_interaval_init_impl
+  is \<open>uncurry0 (RETURN inprocessing_interaval_init)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding inprocessing_interaval_init_def
+  by sepref
+
 definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> restart_heuristics\<close> where
   \<open>empty_heuristics_stats opts \<phi> = (
   let fema = ema_init (opts_fema opts) in
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False, (262144, reduce_interval_init)))\<close>
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate n False, (inprocessing_interaval_init, reduce_interval_init)))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>
@@ -867,8 +873,6 @@ sepref_def empty_heuristics_stats_impl
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
   apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver_assn])
   apply (rewrite in \<open>replicate _ False\<close> larray_fold_custom_replicate)
-  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   by sepref
 
 lemma finalise_init_code_alt_def:
@@ -1043,9 +1047,13 @@ lemmas [llvm_code] =
 
 lemmas [unfolded Tuple15_LLVM.inline_direct_return_node_case, llvm_code] =
   get_conflict_wl_is_None_init_code_def[unfolded IsaSAT_Init.read_all_st_code_def]
+
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
+  unfolding isasat_init_assn_def
+  by synthesize_free+
+
 experiment
 begin
-
   export_llvm init_state_wl_D'_code
     rewatch_heur_st_fast_code
     init_dt_wl_heur_code_b

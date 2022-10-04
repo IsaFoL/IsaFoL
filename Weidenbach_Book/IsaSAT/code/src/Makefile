@@ -12,23 +12,24 @@ all: isallvm
 # and remove the empty definitions from the ll file
 remove-print:
 	echo "fix printing functions"
-	sed -i -e '/define void @IsaSAT_LLVM_print_gc_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_irred_clss_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_binary_unit_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_uset_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_purelit_elim_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_purelit_rounds_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_forward_rounds_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_forward_subsumed_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_forward_strengthened_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_binary_red_removed_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_lres_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_res_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_dec_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_confl_impl/,/}/d' \
-	  -e '/define void @IsaSAT_LLVM_print_propa_impl/,/}/d' \
+	sed -i -e '/define void @IsaSAT_Print_LLVM_print_gc_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_irred_clss_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_binary_unit_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_binary_red_removed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_uset_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_purelit_elim_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_purelit_rounds_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_forward_rounds_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_forward_subsumed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_forward_strengthened_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_forward_tried_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_binary_red_removed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_binary_red_removed_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_lres_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_res_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_dec_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_confl_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_propa_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_c_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_char_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_uint64_impl/,/}/d' \
@@ -52,21 +53,22 @@ declare void @IsaSAT_Show_LLVM_print_char_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)\
-declare void @IsaSAT_LLVM_print_propa_impl(i64)\
-declare void @IsaSAT_LLVM_print_confl_impl(i64)\
-declare void @IsaSAT_LLVM_print_dec_impl(i64)\
-declare void @IsaSAT_LLVM_print_res_impl(i64)\
-declare void @IsaSAT_LLVM_print_lres_impl(i64)\
-declare void @IsaSAT_LLVM_print_uset_impl(i64)\
-declare void @IsaSAT_LLVM_print_gc_impl(i64)\
-declare void @IsaSAT_LLVM_print_irred_clss_impl(i64)\
-declare void @IsaSAT_LLVM_print_binary_unit_impl(i64)\
-declare void @IsaSAT_LLVM_print_binary_red_removed_impl(i64)\
-declare void @IsaSAT_LLVM_print_purelit_elim_impl(i64)\
-declare void @IsaSAT_LLVM_print_purelit_rounds_impl(i64)\
-declare void @IsaSAT_LLVM_print_forward_rounds_impl(i64)\
-declare void @IsaSAT_LLVM_print_forward_subsumed_impl(i64)\
-declare void @IsaSAT_LLVM_print_forward_strengthened_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_propa_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_confl_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_dec_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_res_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_lres_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_uset_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_gc_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_irred_clss_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_binary_unit_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_binary_red_removed_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_purelit_elim_impl(i64)\
+declare void @IsaSAT_Print_LLVM_print_purelit_rounds_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_forward_rounds_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_forward_subsumed_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_forward_strengthened_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_forward_tried_impl(i64,i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\

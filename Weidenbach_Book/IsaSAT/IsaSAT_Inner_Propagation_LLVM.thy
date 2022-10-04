@@ -1,11 +1,35 @@
 theory IsaSAT_Inner_Propagation_LLVM
   imports IsaSAT_Setup_LLVM
-    IsaSAT_Inner_Propagation
+    IsaSAT_Inner_Propagation_Defs
     IsaSAT_VMTF_LLVM
     IsaSAT_LBD_LLVM
 begin
 
-sepref_register isa_save_pos
+sepref_register isa_save_pos unit_propagation_update_statistics
+
+lemma unit_propagation_update_statistics_alt_def:
+  \<open>unit_propagation_update_statistics p q S = do {
+  let (stats, S) = extract_stats_wl_heur S;
+  let (M, S) = extract_trail_wl_heur S;
+  let pq = q - p;
+  let stats = incr_propagation_by pq stats;
+  let stats = (if get_conflict_wl_is_None_heur S then stats else incr_conflict stats);
+  let stats = (if count_decided_pol M = 0 then incr_units_since_last_GC_by pq (incr_uset_by pq stats) else stats);
+  height \<leftarrow> (if get_conflict_wl_is_None_heur S then RETURN q else do {j \<leftarrow> trail_height_before_conflict M; RETURN (of_nat j)});
+  let stats = set_no_conflict_until q stats;
+  RETURN (update_stats_wl_heur stats (update_trail_wl_heur M S))
+  }\<close>
+  by (auto simp: unit_propagation_update_statistics_def state_extractors Let_def get_conflict_wl_is_None_heur_def
+    split: isasat_int_splits intro!: ext)
+
+sepref_def unit_propagation_update_statistics_impl
+  is \<open>uncurry2 (unit_propagation_update_statistics)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] of_nat_unat[sepref_import_param]
+  unfolding unit_propagation_update_statistics_alt_def
+  apply (annot_unat_const \<open>TYPE (32)\<close>)
+  apply (rewrite  at \<open>RETURN (word_of_nat \<hole>)\<close> annot_unat_unat_upcast[where 'l=64])
+  by sepref
 
 lemma isa_save_pos_alt_def:
   \<open>isa_save_pos C i = (\<lambda>S\<^sub>0. do {
@@ -94,15 +118,25 @@ sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
 
 sepref_register isa_find_unset_lit_st
 
+lemma case_tri_bool_If:
+  \<open>(case a of
+       None \<Rightarrow> f1
+     | Some v \<Rightarrow>
+        (if v then f2 else f3)) =
+   (let b = a in if b = UNSET
+    then f1
+    else if b = SET_TRUE then f2 else f3)\<close>
+  by (auto split: option.splits)
+
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
   :: \<open>[\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
-    find_unwatched_def fmap_rll_def[symmetric]
+    fmap_rll_def[symmetric]
     length_uint32_nat_def[symmetric] isa_find_unwatched_def
-    case_tri_bool_If find_unwatched_wl_st_heur_pre_def
+    case_tri_bool_If
     fmap_rll_u64_def[symmetric]
     mop_arena_length_st_def[symmetric]
     mop_arena_pos_st_def[symmetric]
@@ -146,7 +180,7 @@ lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < 
   by (auto simp: max_snat_def sint64_max_def)
 
 lemma update_clause_wl_heur_alt_def:
-  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f S\<^sub>0. do {
+  \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) L' C b j w i f S\<^sub>0. do {
      let (N, S) = extract_arena_wl_heur S\<^sub>0;
      ASSERT (N = get_clauses_wl_heur S\<^sub>0);
      let (W, S) = extract_watchlist_wl_heur S;
@@ -156,7 +190,7 @@ lemma update_clause_wl_heur_alt_def:
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! (nat_of_lit K')) < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L', b)]];
      let S = update_arena_wl_heur N' S;
      let S = update_watchlist_wl_heur W S;
      RETURN (j, w+1, S)
@@ -165,9 +199,9 @@ lemma update_clause_wl_heur_alt_def:
          split: isasat_int_splits)
 
 sepref_def update_clause_wl_fast_code
-  is \<open>uncurry7 update_clause_wl_heur\<close>
-  :: \<open>[\<lambda>(((((((L, C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+  is \<open>uncurry8 update_clause_wl_heur\<close>
+  :: \<open>[\<lambda>((((((((L, L'), C), b), j), w), i), f), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
        sint64_nat_assn\<^sup>k
         *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]  arena_lit_pre_le2[intro] swap_lits_pre_def[simp]
@@ -190,7 +224,6 @@ definition propagate_lit_wl_heur_inner :: \<open>_\<close> where
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       N' \<leftarrow> mop_arena_swap C 0 (1 - i) N;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       RETURN (Tuple17 M N' D j W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs)
   })\<close>
@@ -210,10 +243,9 @@ sepref_def propagate_lit_wl_fast_code
   unfolding PR_CONST_def propagate_lit_wl_heur_propagate_lit_wl_heur_inner
     RETURN_case_tuple16_invers comp_def propagate_lit_wl_heur_inner_def
   unfolding
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
+    fmap_swap_ll_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
     save_phase_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   supply [[goals_limit=1]]
   by sepref
@@ -227,7 +259,6 @@ lemma propagate_lit_wl_bin_heur_alt2:
   \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C (S\<^sub>0::isasat).
   case_isasat_int (\<lambda>M N D j W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs. do {
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset (incr_units_since_last_GC stats) else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       RETURN (Tuple17 M N D j W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs)
   })
@@ -243,13 +274,10 @@ lemma propagate_lit_wl_bin_heur_alt_def:
       ASSERT (M = get_trail_wl_heur S\<^sub>0);
       let (heur, S) = extract_heur_wl_heur S;
       ASSERT (heur = get_heur S\<^sub>0);
-      let (stats, S) = extract_stats_wl_heur S;
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
-      let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset (incr_units_since_last_GC stats) else stats);
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
       let S = update_trail_wl_heur M S;
       let S = update_heur_wl_heur heur S;
-      let S = update_stats_wl_heur stats S;
       RETURN S
   })\<close>
   by (auto intro!: ext simp: state_extractors propagate_lit_wl_bin_heur_def
@@ -263,12 +291,6 @@ sepref_def propagate_lit_wl_bin_fast_code
   unfolding PR_CONST_def propagate_lit_wl_bin_heur_alt2
     RETURN_case_tuple16_invers comp_def
   supply [[goals_limit=1]]  length_ll_def[simp]
-  unfolding update_clause_wl_heur_def
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
-    fmap_swap_ll_u64_def[symmetric]
-    save_phase_def propagate_lit_wl_bin_heur_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
-  unfolding fold_tuple_optimizations
   by sepref
 
 lemma update_blit_wl_heur_alt_def:
@@ -373,13 +395,10 @@ lemma set_conflict_wl_heur_alt_def:
     let (N, S) = extract_arena_wl_heur S;
     let (D, S) = extract_conflict_wl_heur S;
     let (outl, S) = extract_outl_wl_heur S;
-    let (stats, S) = extract_stats_wl_heur S;
     ASSERT(curry5 isa_set_lookup_conflict_aa_pre M N C D n outl);
     (D, clvls, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n outl;
     j \<leftarrow> mop_isa_length_trail M;
     let S = update_conflict_wl_heur D S;
-    let stats = incr_conflict stats;
-    let S = update_stats_wl_heur stats S;
     let S = update_outl_wl_heur outl S;
     let S = update_clvls_wl_heur clvls S;
     let S = update_literals_to_update_wl_heur j S;
@@ -395,7 +414,6 @@ sepref_def set_conflict_wl_heur_fast_code
     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_alt_def
-    set_conflict_wl_heur_pre_def PR_CONST_def
   apply (annot_unat_const \<open>TYPE (32)\<close>)
   by sepref
 

@@ -1,6 +1,6 @@
 theory IsaSAT_Simplify_Forward_Subsumption_LLVM
   imports
-    IsaSAT_Simplify_Forward_Subsumption
+    IsaSAT_Simplify_Forward_Subsumption_Defs
     IsaSAT_Setup_LLVM
     IsaSAT_Trail_LLVM
     IsaSAT_Proofs_LLVM
@@ -10,12 +10,6 @@ begin
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-definition incr_forward_subsumed_st  :: \<open>_\<close> where
-  \<open>incr_forward_subsumed_st S = (set_stats_wl_heur (incr_forward_subsumed (get_stats_heur S)) S)\<close>
-
-definition incr_forward_strengthened_st  :: \<open>_\<close> where
-  \<open>incr_forward_strengthened_st S = (set_stats_wl_heur (incr_forward_strengethening (get_stats_heur S)) S)\<close>
-
 lemma incr_forward_subsumed_st_alt_def: \<open>incr_forward_subsumed_st S = (
   let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_subsumed stats in
     update_stats_wl_heur stats S
@@ -23,21 +17,25 @@ lemma incr_forward_subsumed_st_alt_def: \<open>incr_forward_subsumed_st S = (
   incr_forward_strengthened_st_alt_def: \<open>incr_forward_strengthened_st S = (
   let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_strengethening stats in
     update_stats_wl_heur stats S
-    )\<close>
-  by (auto simp: isa_push_to_occs_list_st_def state_extractors incr_forward_subsumed_st_def incr_forward_strengthened_st_def
-         split: isasat_int_splits) 
-
-sepref_def Subsumption_Stats_incr_strengthening_impl
-  is \<open>RETURN o Subsumption_Stats_incr_strengthening\<close>
-  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
-  unfolding Subsumption_Stats_incr_strengthening_def subsumption_stats_assn_def
-  by sepref
-
-sepref_def incr_forward_strengethening_impl
-  is \<open>RETURN o incr_forward_strengethening\<close>
-  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_forward_strengethening_def stats_code_unfold
-  by sepref
+    )\<close> and
+  incr_forward_tried_st_alt_def: \<open>incr_forward_tried_st S = (
+  let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_tried stats in
+    update_stats_wl_heur stats S
+    )\<close> and
+  incr_forward_rounds_st_alt_def: \<open>incr_forward_rounds_st S = (
+  let (stats, S) = extract_stats_wl_heur S; stats = incr_forward_rounds stats in
+    update_stats_wl_heur stats S
+    )\<close> and
+  isa_forward_reset_added_and_stats_alt_def: \<open>isa_forward_reset_added_and_stats S = (
+  let (stats, S) = extract_stats_wl_heur S;
+    (heur, S) = extract_heur_wl_heur S;
+    stats = incr_forward_rounds stats;
+    heur = reset_added_heur heur in
+    update_stats_wl_heur stats (update_heur_wl_heur heur S))\<close>
+  by (auto simp: isa_push_to_occs_list_st_def state_extractors incr_forward_subsumed_st_def
+    incr_forward_strengthened_st_def incr_forward_tried_st_def incr_forward_rounds_st_def
+    isa_forward_reset_added_and_stats_def
+      split: isasat_int_splits)
 
 sepref_def incr_forward_strengthened_st_impl
   is \<open>RETURN o incr_forward_strengthened_st\<close>
@@ -45,16 +43,16 @@ sepref_def incr_forward_strengthened_st_impl
   unfolding incr_forward_strengthened_st_alt_def
   by sepref
 
-sepref_def Subsumption_Stats_incr_subsumed_impl
-  is \<open>RETURN o Subsumption_Stats_incr_subsumed\<close>
-  :: \<open>subsumption_stats_assn\<^sup>d \<rightarrow>\<^sub>a subsumption_stats_assn\<close>
-  unfolding Subsumption_Stats_incr_subsumed_def subsumption_stats_assn_def
+sepref_def incr_forward_tried_st_impl
+  is \<open>RETURN o incr_forward_tried_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding incr_forward_tried_st_alt_def
   by sepref
 
-sepref_def incr_forward_subsumed_impl
-  is \<open>RETURN o incr_forward_subsumed\<close>
-  :: \<open>isasat_stats_assn\<^sup>d \<rightarrow>\<^sub>a isasat_stats_assn\<close>
-  unfolding incr_forward_subsumed_def stats_code_unfold
+sepref_def incr_forward_rounds_st_impl
+  is \<open>RETURN o incr_forward_rounds_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding incr_forward_rounds_st_alt_def
   by sepref
 
 sepref_def incr_forward_subsumed_st_impl
@@ -63,7 +61,14 @@ sepref_def incr_forward_subsumed_st_impl
   unfolding incr_forward_subsumed_st_alt_def
   by sepref
 
-sepref_register incr_forward_subsumed_st incr_forward_strengthened_st
+sepref_def isa_forward_reset_added_and_stats_impl
+  is \<open>RETURN o isa_forward_reset_added_and_stats\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding isa_forward_reset_added_and_stats_alt_def
+  by sepref
+
+sepref_register incr_forward_subsumed_st incr_forward_strengthened_st incr_forward_rounds_st incr_forward_tried_st
+  isa_forward_reset_added_and_stats
 
 definition clause_size_sort_clauses_raw :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>clause_size_sort_clauses_raw arena N = pslice_sort_spec idx_clause_cdom clause_size_less arena N\<close>
@@ -245,7 +250,7 @@ lemma rdomp_isasat_bounded_assn_length_avdomD:
 
 
 sepref_register isa_all_lit_clause_unset isa_push_to_occs_list_st
-  find_best_subsumption_candidate sort_cands_by_length
+  find_best_subsumption_candidate find_best_subsumption_candidate_and_push sort_cands_by_length
 
 sepref_def find_best_subsumption_candidate_code
   is \<open>uncurry find_best_subsumption_candidate\<close>
@@ -304,13 +309,54 @@ sepref_def isa_push_to_occs_list_st_impl
   unfolding isa_push_to_occs_list_st_alt_def isasat_fast_relaxed_def
   by sepref
 
+sepref_def find_best_subsumption_candidate_and_push_code
+  is \<open>uncurry find_best_subsumption_candidate_and_push\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn \<times>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding find_best_subsumption_candidate_and_push_def
+    mop_access_lit_in_clauses_heur_def[symmetric]
+    tri_bool_eq_def[symmetric] UNSET_def[symmetric]
+    length_occs_def[symmetric]
+    get_occs_list_at_def[symmetric]
+    mop_is_marked_added_heur_st_def[symmetric]
+    length_occs_at_def[symmetric]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+lemma isa_maybe_push_to_occs_list_st_alt_def:
+    \<open>isa_maybe_push_to_occs_list_st C S = do {
+     (L, push) \<leftarrow> find_best_subsumption_candidate_and_push C S;
+     if push then do {
+       let (occs, T) = extract_occs_wl_heur S;
+       ASSERT (length (occs ! nat_of_lit L) < length (get_clauses_wl_heur S));
+       occs \<leftarrow> mop_cocc_list_append C occs L;
+       RETURN (update_occs_wl_heur occs T)
+     } else RETURN S
+  }\<close>
+  unfolding isa_maybe_push_to_occs_list_st_def Let_def
+  by (auto simp: state_extractors cong: if_cong split: isasat_int_splits)
+
+sepref_def isa_maybe_push_to_occs_list_st_impl
+  is \<open>uncurry isa_maybe_push_to_occs_list_st\<close>
+  :: \<open>[\<lambda>(_, S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_maybe_push_to_occs_list_st_alt_def isasat_fast_relaxed_def
+  by sepref
+
 
 (*TODD move to Setup1*)
 lemmas [sepref_fr_rules] = arena_get_lbd.mop_refine
-sepref_def isa_good_candidate_for_subsumption_impl
-  is \<open>uncurry isa_good_candidate_for_subsumption\<close>
+sepref_def isa_is_candidate_forward_subsumption_impl
+  is \<open>uncurry isa_is_candidate_forward_subsumption\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding isa_good_candidate_for_subsumption_def
+  unfolding isa_is_candidate_forward_subsumption_def
+    mop_access_lit_in_clauses_heur_def[symmetric]
+    mop_is_marked_added_heur_st_def[symmetric]
+    mop_arena_lbd_st_def[symmetric]
+    mop_arena_length_st_def[symmetric]
+    mop_arena_status_st_def[symmetric]
+    UNSET_def[symmetric] tri_bool_eq_def[symmetric]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma push_to_tvdom_st_alt_def:
@@ -331,8 +377,6 @@ sepref_def push_to_tvdom_st_impl
   unfolding push_to_tvdom_st_alt_def isasat_fast_relaxed_def
   by sepref
 
-sepref_register isa_good_candidate_for_subsumption
-
 lemma isa_populate_occs_inv_isasat_fast_relaxedI:
   \<open>isa_populate_occs_inv x cands (a1', a2') \<Longrightarrow> isasat_fast_relaxed x \<Longrightarrow> isasat_fast_relaxed a2'\<close>
   by (auto simp: isa_populate_occs_inv_def isasat_fast_relaxed_def)
@@ -349,7 +393,7 @@ sepref_def isa_populate_occs_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register isa_forward_subsumption_all_wl2 isa_populate_occs
+sepref_register isa_forward_subsumption_all isa_populate_occs
 
 sepref_register mop_cch_create mop_cch_add_all_clause mop_cch_add mop_cch_in
 
@@ -700,7 +744,7 @@ sepref_def isa_subsume_or_strengthen_wl_impl
 
 sepref_def isa_forward_subsumption_one_wl_impl
   is \<open>uncurry3 isa_forward_subsumption_one_wl\<close>
-  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>asint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a cch_assn\<close>
+  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>asint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a subsumption_assn \<times>\<^sub>a cch_assn\<close>
   supply [dest] = rdomp_isasat_bounded_assn_length_avdomD isasat_bounded_assn_length_arenaD
   supply [[goals_limit=1]]
   unfolding isa_forward_subsumption_one_wl_def get_occs_list_at_def[symmetric] fold_is_NONE
@@ -713,16 +757,31 @@ lemma isa_try_to_forward_subsume_wl_invI:
   unfolding isa_try_to_forward_subsume_wl_inv_def prod.simps
   by normalize_goal+ (auto simp add: isasat_fast_relaxed_def)
 
+lemma isasat_bounded_assn_get_vdomD: \<open>rdomp isasat_bounded_assn a \<Longrightarrow>  length (get_tvdom a) < max_snat 64\<close>
+  using al_assn_boundD[of sint64_nat_assn, where 'l=\<open>64\<close>, of \<open>get_tvdom a\<close>]
+  apply -
+  unfolding rdomp_def
+  apply normalize_goal+
+  apply (cases a, case_tac xa; cases \<open>get_aivdom a\<close>)
+  apply (auto 7 5 simp: isasat_bounded_assn_def sint64_max_def max_snat_def aivdom_assn_def
+         code_hider_assn_def hr_comp_def code_hider_rel_def import_param_3 pred_lift_def
+      split: isasat_int_splits
+      dest!: mod_starD al_assn_boundD[of sint64_nat_assn, where 'l=\<open>64\<close>])
+  apply auto
+  done
+
 sepref_def isa_try_to_forward_subsume_wl2_impl
-  is \<open>uncurry2 isa_try_to_forward_subsume_wl2\<close>
-  :: \<open>[\<lambda>((_, _), S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> cch_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>uncurry3 isa_try_to_forward_subsume_wl2\<close>
+  :: \<open>[\<lambda>(((_, _), _), S). isasat_fast_relaxed S]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a  cch_assn\<^sup>d *\<^sub>a (al_assn' TYPE(64) sint64_nat_assn)\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+  cch_assn \<times>\<^sub>a al_assn' TYPE(64) sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_try_to_forward_subsume_wl2_def
-    mop_access_lit_in_clauses_heur_def[symmetric]
+    mop_access_lit_in_clauses_heur_def[symmetric] Let_def[of \<open>is_strengthened _\<close>] fold_is_NONE
+     Let_def[of \<open>if is_strengthened _ then _ else _\<close>]
   supply [[goals_limit=1]]
   supply [intro] = isa_try_to_forward_subsume_wl_invI
+  supply [dest] = isasat_bounded_assn_get_vdomD
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
-
 
 lemma empty_occs2_st_alt_def:
   \<open>empty_occs2_st S = do {
@@ -749,19 +808,37 @@ sepref_def empty_occs2_st_impl
   by sepref
 
 lemma isa_forward_subsumption_all_wl_invI:
-  \<open>isa_forward_subsumption_all_wl_inv R S (i, D, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
+  \<open>isa_forward_subsumption_all_wl_inv R S (i, D, shrunken, T) \<Longrightarrow> isasat_fast_relaxed R \<Longrightarrow> isasat_fast_relaxed T\<close>
   unfolding isa_forward_subsumption_all_wl_inv_def prod.simps
   apply normalize_goal+
   by (auto simp: isasat_fast_relaxed_def)
 
-sepref_def isa_forward_subsumption_all_wl2_impl
-  is isa_forward_subsumption_all_wl2
+sepref_register empty_occs2_st forward_subsumption_finalize
+
+sepref_def mark_added_clause_heur2_impl
+  is \<open>uncurry mark_added_clause_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mark_added_clause_heur2_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def forward_subsumption_finalize
+  is \<open>uncurry forward_subsumption_finalize\<close>
+  :: \<open>(al_assn' TYPE(64) sint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding forward_subsumption_finalize_def
+  supply [[goals_limit=1]]
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def isa_forward_subsumption_all_impl
+  is isa_forward_subsumption_all
   :: \<open>[isasat_fast_relaxed]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   supply [intro] = isa_forward_subsumption_all_wl_invI
-  unfolding isa_forward_subsumption_all_wl2_def
+  unfolding isa_forward_subsumption_all_def
     access_tvdom_at_def[symmetric] length_tvdom_def[symmetric]
     length_watchlist_raw_def[symmetric]
+    al_fold_custom_empty[where 'l=64]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

@@ -1595,6 +1595,7 @@ definition mark_added_clause_heur2 where
       (0, S);
     RETURN S
   }\<close>
+(*TODO: there should be a maybe_mark_added*)
 
 definition mark_added_clause2 where
   \<open>mark_added_clause2 S C = do {
@@ -1807,5 +1808,40 @@ definition set_stats_size_limit_st where
 
 definition get_lsize_limit_stats_st :: \<open>_\<close> where
   \<open>get_lsize_limit_stats_st T = get_lsize_limit_stats (get_stats_heur T)\<close>
+
+definition maybe_mark_added_clause_heur2 where
+  \<open>maybe_mark_added_clause_heur2 S C = do {
+     let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;
+     lbd \<leftarrow> mop_arena_lbd_st S C;
+     sze \<leftarrow> mop_arena_length_st S C;
+     st \<leftarrow> mop_arena_status_st S C;
+     if (st = IRRED \<or> (st = LEARNED \<and> lbd \<le> lbd_limit \<and> sze \<le> size_limit))
+     then mark_added_clause_heur2 S C
+     else RETURN S
+  }\<close>
+
+lemma maybe_mark_added_clause_heur2_id:
+  assumes \<open>(S,T) \<in> twl_st_heur\<close> and \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  shows \<open>maybe_mark_added_clause_heur2 S C
+     \<le> \<Down>{(U, V). (U, V) \<in> twl_st_heur \<and> (get_clauses_wl_heur U) = get_clauses_wl_heur S \<and>
+       learned_clss_count U = learned_clss_count S} (RETURN T)\<close> (is \<open>_ \<le>\<Down>?R _\<close>)
+proof -
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close>
+    using assms unfolding all_atms_def all_lits_def
+    by (auto simp: twl_st_heur'_def twl_st_heur_def)
+  show ?thesis
+    using assms unfolding maybe_mark_added_clause_heur2_def mop_arena_lbd_st_def
+      mop_arena_lbd_def mop_arena_length_st_def mop_arena_length_def nres_monad3
+      mop_arena_status_st_def mop_arena_status_def
+    apply (refine_vcg mark_added_clause_heur2_id[OF assms(1), THEN order_trans])
+    subgoal using valid by (auto simp: get_clause_LBD_pre_def
+      arena_is_valid_clause_idx_def)
+    subgoal using valid by (auto simp: arena_is_valid_clause_idx_def)
+    subgoal using valid by (auto simp: arena_is_valid_clause_vdom_def)
+    subgoal by (auto simp: RETURN_def conc_fun_RES)
+    subgoal by auto
+    done
+qed
 
 end

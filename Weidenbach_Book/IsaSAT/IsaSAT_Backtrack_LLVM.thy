@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack_LLVM
-  imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
+  imports IsaSAT_Backtrack_Defs IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
     IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM IsaSAT_Proofs_LLVM
     IsaSAT_Stats_LLVM
 begin
@@ -17,38 +17,6 @@ sepref_def update_lbd_and_mark_used_impl
   unfolding update_lbd_and_mark_used_def LBD_SHIFT_def
   supply [dest] = update_lbd_pre_arena_act_preD
   apply (annot_unat_const \<open>TYPE(32)\<close>)
-  by sepref
-
-lemma mop_mark_added_heur_st_alt_def:
-  \<open>mop_mark_added_heur_st L S = do {
-  let (heur, S) = extract_heur_wl_heur S;
-  heur \<leftarrow> mop_mark_added_heur L True heur;
-  RETURN (update_heur_wl_heur heur S)
-  }\<close>
-  unfolding mop_mark_added_heur_st_def
-  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int_splits
-    intro!: ext)
-
-sepref_def mop_mark_added_heur_iml
-  is \<open>uncurry2 mop_mark_added_heur\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
-  supply [sepref_fr_rules] = mark_added_heur_impl_refine
-  unfolding mop_mark_added_heur_def
-  by sepref
-
-sepref_register mop_mark_added_heur mop_mark_added_heur_st mark_added_clause_heur2
-
-sepref_def mop_mark_added_heur_st_impl
-  is \<open>uncurry mop_mark_added_heur_st\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding mop_mark_added_heur_st_alt_def
-  by sepref
-
-sepref_def mark_added_clause_heur2_impl
-  is \<open>uncurry mark_added_clause_heur2\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding mark_added_clause_heur2_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
@@ -295,7 +263,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       S \<leftarrow> propagate_bt_wl_D_heur_update S M (add_learned_clause_aivdom i vdom) N
           W (clss_size_incr_lcount lcount) (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) (add_lbd (of_nat glue) stats) lbd vm j;
         _ \<leftarrow> log_new_clause_heur S i;
-      S \<leftarrow> mark_added_clause_heur2 S i;
+      S \<leftarrow> maybe_mark_added_clause_heur2 S i;
       RETURN (S)
         })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def propagate_bt_wl_D_heur_update_def
@@ -316,6 +284,19 @@ lemma [sepref_fr_rules]:
       snat_numeral max_snat_def exists_eq_star_conv Exists_eq_simp
       sep_conj_commute pure_true_conv)
   done
+
+section \<open>Backtrack with direct extraction of literal if highest level\<close>
+
+lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint32_max_def sint64_max_def)
+
+lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
+       a < length (get_clauses_wl_heur b) \<Longrightarrow> a \<le> sint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def)
+
+lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrightarrow>
+       a \<le> length (get_clauses_wl_heur b) \<Longrightarrow> a < sint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
 
 sepref_register propagate_bt_wl_D_heur_update propagate_bt_wl_D_heur_extract two_sint64
 sepref_def propagate_bt_wl_D_fast_codeXX
@@ -372,14 +353,13 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
     split: isasat_int_splits)
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
-    empty_conflict_and_extract_clause_heur
     isa_vmtf_mark_to_rescore_also_reasons
 
 sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
-  supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
+  supply [[goals_limit=1]]
   unfolding extract_shorter_conflict_list_heur_st_alt_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
   apply (annot_snat_const \<open>TYPE(64)\<close>)

@@ -244,89 +244,120 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-void IsaSAT_LLVM_print_propa_impl(int64_t props) {
+
+// Get process-time of this process.  This is not portable to Windows but
+// should work on other Unixes such as MacOS as is.
+
+#include <sys/time.h>
+#include <sys/resource.h>
+
+static double
+process_time (void)
+{
+  struct rusage u;
+  double res;
+  if (getrusage (RUSAGE_SELF, &u))
+    return 0;
+  res = u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
+  res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
+  return res;
+}
+
+double relative (int64_t a, int64_t b)
+{
+  if (b)
+    return (double)a / (double)b;
+  else return 0;
+}
+void IsaSAT_Print_LLVM_print_propa_impl(int64_t props) {
 #ifdef PRINTSTATS
-  printf("\nc propagations %ld\n", props);
+  printf("\nc propagations %ld (%16zu M per s)\n", props, (size_t)(props / (1000000 * process_time())));
 #endif
 }
 
-void IsaSAT_LLVM_print_confl_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_confl_impl(int64_t props) {
 #ifdef PRINTSTATS
-  printf("c conflicts %ld\n", props);
+  printf("c conflicts %ld (%16.2zu per s)\n", props, (size_t)(props / process_time ()));
 #endif
 }
 
-void IsaSAT_LLVM_print_dec_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_dec_impl(int64_t props) {
 #ifdef PRINTSTATS
-  printf("c decisions %ld\n", props);
+  printf("c decisions %ld (%16.2f per s)\n", props, props / process_time ());
 #endif
 }
 
-void IsaSAT_LLVM_print_res_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_res_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c restarts %ld\n", props);
+  printf("c restarts %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
-void IsaSAT_LLVM_print_lres_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_lres_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c reductions %ld\n", props);
+  printf("c reductions %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
-void IsaSAT_LLVM_print_uset_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_uset_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c uset %ld\n", props);
 #endif
 }
 
-void IsaSAT_LLVM_print_gc_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_gc_impl(int64_t props, int64_t confl) {
 #ifdef PRINTSTATS
-  printf("c GCs %ld\n", props);
+  printf("c GCs %ld %10.2f interval\n", props, relative (confl, props));
 #endif
 }
 
-void IsaSAT_LLVM_print_irred_clss_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_irred_clss_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c irred_clss %ld\n", props);
 #endif
 }
 
-void IsaSAT_LLVM_print_binary_unit_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_binary_unit_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c binary unit removed %ld\n", props);
 #endif
 }
-void IsaSAT_LLVM_print_binary_red_removed_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_binary_red_removed_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c binary redundant removed %ld\n", props);
 #endif
 }
-void IsaSAT_LLVM_print_purelit_elim_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_purelit_elim_impl(int64_t props) {
 #ifdef PRINTSTATS
   printf("c pure literals unit removed %ld\n", props);
 #endif
 }
-void IsaSAT_LLVM_print_purelit_rounds_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_purelit_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c elimination rounds %ld\n", props);
+  printf("c elimination rounds %ld %10.2f interval\n", props, relative (conflicts, props));
 #endif
 }
 
-void IsaSAT_LLVM_print_forward_rounds_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_forward_rounds_impl(int64_t props, int64_t conflicts) {
 #ifdef PRINTSTATS
-  printf("c forward rounds %ld\n", props);
+  printf("c forward rounds %ld %10.2f interval\n", props, relative (conflicts, props));
 #endif
 }
 
-void IsaSAT_LLVM_print_forward_subsumed_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_forward_subsumed_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward subsumed %ld\n", props);
+  printf("c forward subsumed %ld (subsumed per tried: %10.2f)\n", props, relative (tried, props));
 #endif
 }
-void IsaSAT_LLVM_print_forward_strengthened_impl(int64_t props) {
+void IsaSAT_Print_LLVM_print_forward_strengthened_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS
-  printf("c forward strengthened %ld\n", props);
+  printf("c forward strengthened %ld (strengthened per tried: %10.2f)\n", props, relative (tried, props));
+#endif
+}
+
+void IsaSAT_Print_LLVM_print_forward_tried_impl(int64_t props, int64_t rounds) {
+#ifdef PRINTSTATS
+  printf("c forward tried %ld (%10.2f per rounds)\n", props, relative (props, rounds));
 #endif
 }
 
@@ -357,6 +388,13 @@ void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
   printf(" %12ld ", p);
 #endif
 }
+
+void IsaSAT_Show_LLVM_print_uint32_impl(int32_t p) {
+#ifdef PRINTSTATS
+  printf(" %12ld ", (int64_t)p);
+#endif
+}
+
 void IsaSAT_Show_LLVM_print_open_colour_impl(int64_t c) {
 #ifdef PRINTSTATS
   printf("\e[%lim", c);
@@ -369,7 +407,7 @@ void IsaSAT_Show_LLVM_print_close_colour_impl(int64_t c) {
 }
 void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
 #ifdef PRINTSTATS
-  printf("%c", (char)c);
+  printf("%c %.2f", (char)c, process_time ());
 #endif
 }
 
@@ -871,8 +909,8 @@ READ_FILE:
   init_profiles();
   start_profile(&total_prof);
 #ifdef PRINTSTATS
-  printf("c    propagations                       redundant                  restarts                     level-0                       LBDS                    not-mem-reasons\n"
-	 "c                     conflicts                      irred                     reductions                      GCs                       unit-subsumed               subsumed\n");
+  printf("c            propagations                       redundant                  restarts                     level-0                       LBDS                    not-mem-reasons\n"
+	 "c                             conflicts                      irred                     reductions                      GCs                       unit-subsumed               subsumed\n");
   //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0
 
 #endif
@@ -949,3 +987,4 @@ READ_FILE:
     fflush(proof), fclose(proof);
   return res;
 }
+

@@ -1,5 +1,5 @@
 theory IsaSAT_CDCL_LLVM
-  imports IsaSAT_CDCL IsaSAT_Propagate_Conflict_LLVM IsaSAT_Other_LLVM
+  imports IsaSAT_CDCL_Defs IsaSAT_Propagate_Conflict_LLVM IsaSAT_Other_LLVM
 begin
 
 sepref_def cdcl_twl_stgy_prog_wl_D_code

@@ -1,5 +1,5 @@
 theory IsaSAT_Garbage_Collect_LLVM
-  imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
+  imports IsaSAT_Restart_Heuristics_Defs IsaSAT_Setup_LLVM
      IsaSAT_VMTF_State_LLVM IsaSAT_Rephase_State_LLVM
      IsaSAT_Arena_Sorting_LLVM
      IsaSAT_Show_LLVM
@@ -178,18 +178,18 @@ sepref_def rewatch_heur_st_code
 
 sepref_register isasat_GC_clauses_wl_D
 
-lemma reset_added_heur_st_alt_def:
-  \<open>reset_added_heur_st b S =
+lemma schedule_next_inprocessing_st_alt_def:
+  \<open>schedule_next_inprocessing_st b S =
       (let should_inprocess = should_inprocess_st S;
            (heur, S) = extract_heur_wl_heur S;
            (stats, S) = extract_stats_wl_heur S;
            (lcount, S) = extract_lcount_wl_heur S;
            bc = current_restart_phase heur;
-           heur = if b \<and> should_inprocess then (schedule_next_inprocessing (reset_added_heur heur)) else heur;
+           heur = if b \<and> should_inprocess then (schedule_next_inprocessing (heur)) else heur;
            _ = isasat_print_progress (if should_inprocess then 105 else 103) bc stats (lcount);
            S = update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)) in
   S)\<close>
-  by (auto simp: reset_added_heur_st_def state_extractors split: isasat_int_splits
+  by (auto simp: schedule_next_inprocessing_st_def state_extractors split: isasat_int_splits
     intro!: ext)
 
 (*TODO Move*)
@@ -201,10 +201,10 @@ sepref_def should_inprocess_st
   by sepref
 (*END Move*)
 
-sepref_def reset_added_heur_st_impl
-  is \<open>uncurry (RETURN oo reset_added_heur_st)\<close>
+sepref_def schedule_next_inprocessing_st_impl
+  is \<open>uncurry (RETURN oo schedule_next_inprocessing_st)\<close>
   :: \<open>bool1_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding reset_added_heur_st_alt_def
+  unfolding schedule_next_inprocessing_st_alt_def
   by sepref
 
 sepref_register rewatch_heur_and_reorder_st

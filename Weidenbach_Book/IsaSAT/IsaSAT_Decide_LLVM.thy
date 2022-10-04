@@ -1,5 +1,5 @@
 theory IsaSAT_Decide_LLVM
-  imports IsaSAT_Decide IsaSAT_VMTF_State_LLVM IsaSAT_Setup_LLVM IsaSAT_Rephase_State_LLVM
+  imports IsaSAT_Decide_Defs IsaSAT_VMTF_State_LLVM IsaSAT_Setup_LLVM IsaSAT_Rephase_State_LLVM
 begin
 lemma decide_lit_wl_heur_alt_def:
   \<open>decide_lit_wl_heur = (\<lambda>L' S. do {

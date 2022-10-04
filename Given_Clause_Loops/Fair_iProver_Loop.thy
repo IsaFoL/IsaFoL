@@ -25,36 +25,34 @@ begin
 
 subsection \<open>Basic Definition\<close>
 
-inductive
-  fair_IL :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" (infix "\<leadsto>ILf" 50)
-where
+inductive fair_IL :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Rightarrow> bool" (infix "\<leadsto>ILf" 50) where
   ol: "St \<leadsto>OLf St' \<Longrightarrow> St \<leadsto>ILf St'"
-| red_by_children: "C \<in> no_labels.Red_F_\<G> (fset A \<union> fset M) \<or> fset M = {C'} \<and> C' \<prec>\<cdot> C \<Longrightarrow>
+| red_by_children: "C \<in> no_labels.Red_F (fset A \<union> fset M) \<or> fset M = {C'} \<and> C' \<prec>\<cdot> C \<Longrightarrow>
   ({||}, None, P, Some C, A) \<leadsto>ILf (M, None, P, None, A)"
 
 
 subsection \<open>Initial State and Invariant\<close>
 
-lemma step_fair_IL_invariant:
+lemma step_ILf_invariant:
   assumes "St \<leadsto>ILf St'"
-  shows "fair_OL_invariant St'"
+  shows "OLf_invariant St'"
   using assms
 proof cases
   case ol
   then show ?thesis
-    using step_fair_OL_invariant by auto
+    using step_OLf_invariant by auto
 next
   case (red_by_children C A M C' P)
   then show ?thesis
-    using fair_OL_invariant.intros by presburger
+    using OLf_invariant.intros by presburger
 qed
 
-lemma chain_fair_IL_invariant_lnth:
+lemma chain_ILf_invariant_lnth:
   assumes
     chain: "chain (\<leadsto>ILf) Sts" and
-    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    fair_hd: "OLf_invariant (lhd Sts)" and
     i_lt: "enat i < llength Sts"
-  shows "fair_OL_invariant (lnth Sts i)"
+  shows "OLf_invariant (lnth Sts i)"
   using i_lt
 proof (induct i)
   case 0
@@ -63,15 +61,15 @@ proof (induct i)
 next
   case (Suc i)
   thus ?case
-    using chain chain_lnth_rel step_fair_IL_invariant by blast
+    using chain chain_lnth_rel step_ILf_invariant by blast
 qed
 
-lemma chain_fair_IL_invariant_llast:
+lemma chain_ILf_invariant_llast:
   assumes
     chain: "chain (\<leadsto>ILf) Sts" and
-    fair_hd: "fair_OL_invariant (lhd Sts)" and
+    fair_hd: "OLf_invariant (lhd Sts)" and
     fin: "lfinite Sts"
-  shows "fair_OL_invariant (llast Sts)"
+  shows "OLf_invariant (llast Sts)"
 proof -
   obtain i :: nat where
     i: "llength Sts = enat i"
@@ -82,7 +80,7 @@ proof -
         zero_enat_def)
 
   show ?thesis
-    using chain_fair_IL_invariant_lnth[OF chain fair_hd im1_lt]
+    using chain_ILf_invariant_lnth[OF chain fair_hd im1_lt]
     by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
         zero_enat_def)
 qed
@@ -90,14 +88,14 @@ qed
 
 subsection \<open>Final State\<close>
 
-lemma is_final_fair_OL_state_iff_no_ILf_step:
-  assumes inv: "fair_OL_invariant St"
-  shows "is_final_fair_OL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ILf St')"
+lemma is_final_OLf_state_iff_no_ILf_step:
+  assumes inv: "OLf_invariant St"
+  shows "is_final_OLf_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>ILf St')"
 proof
-  assume final: "is_final_fair_OL_state St"
+  assume final: "is_final_OLf_state St"
   then obtain A :: "'f fset" where
     st: "St = ({||}, None, empty, None, A)"
-    by (auto simp: is_final_fair_OL_state.simps)
+    by (auto simp: is_final_OLf_state.simps)
   show "\<forall>St'. \<not> St \<leadsto>ILf St'"
     unfolding st
   proof (intro allI notI)
@@ -107,15 +105,15 @@ proof
     proof cases
       case ol
       then show False
-        using final st is_final_fair_OL_state_iff_no_OLf_step[OF inv] by blast
+        using final st is_final_OLf_state_iff_no_OLf_step[OF inv] by blast
     qed
   qed
 next
   assume "\<forall>St'. \<not> St \<leadsto>ILf St'"
   hence "\<forall>St'. \<not> St \<leadsto>OLf St'"
     using fair_IL.ol by blast
-  thus "is_final_fair_OL_state St"
-    using inv is_final_fair_OL_state_iff_no_OLf_step by blast
+  thus "is_final_OLf_state St"
+    using inv is_final_OLf_state_iff_no_OLf_step by blast
 qed
 
 
@@ -149,7 +147,7 @@ lemma fair_IL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-fun mset_of_fstate :: "('p, 'f) fair_OL_state \<Rightarrow> 'f multiset" where
+fun mset_of_fstate :: "('p, 'f) OLf_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (N, X, P, Y, A) =
    mset_set (fset N) + mset_set (set_option X) + mset_set (elems P) + mset_set (set_option Y) +
    mset_set (fset A)"
@@ -160,7 +158,7 @@ abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool
 lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
-definition \<mu>2 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+definition \<mu>2 :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<equiv>
    \<mu>1 (mset_of_fstate St') (mset_of_fstate St)
    \<or> (mset_of_fstate St' = mset_of_fstate St
@@ -187,7 +185,7 @@ proof -
     unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?triple_of] wf_lex_prod by blast
 qed
 
-definition \<mu>3 :: "('p, 'f) fair_OL_state \<Rightarrow> ('p, 'f) fair_OL_state \<Rightarrow> bool" where
+definition \<mu>3 :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Rightarrow> bool" where
   "\<mu>3 St' St \<equiv>
    \<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))
    \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
@@ -216,7 +214,7 @@ qed
 lemma fair_IL_Liminf_yy_empty:
   assumes
     full: "full_chain (\<leadsto>ILf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
+    inv: "OLf_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
@@ -229,8 +227,8 @@ proof (rule ccontr)
     inter_nemp: "\<Inter> ((set_option \<circ> yy_of \<circ> lnth Sts) ` {j. i \<le> j \<and> enat j < llength Sts}) \<noteq> {}"
     using lim_nemp unfolding Liminf_llist_def by auto
 
-  have inv_at_i: "fair_OL_invariant (lnth Sts i)"
-    by (simp add: chain chain_fair_IL_invariant_lnth i_lt inv)
+  have inv_at_i: "OLf_invariant (lnth Sts i)"
+    by (simp add: chain chain_ILf_invariant_lnth i_lt inv)
 
   from inter_nemp obtain C :: 'f where
     c_in: "\<forall>P \<in> lnth Sts ` {j. i \<le> j \<and> enat j < llength Sts}. C \<in> set_option (yy_of P)"
@@ -242,18 +240,18 @@ proof (rule ccontr)
     using c_in' i_lt by blast
   have new_at_i: "new_of (lnth Sts i) = {||}" and
     xx_at_i: "new_of (lnth Sts i) = {||}"
-    using yy_at_i chain_fair_IL_invariant_lnth[OF chain inv i_lt]
-    by (force simp: fair_OL_invariant.simps)+
+    using yy_at_i chain_ILf_invariant_lnth[OF chain inv i_lt]
+    by (force simp: OLf_invariant.simps)+
 
   have "\<exists>St'. lnth Sts i \<leadsto>ILf St'"
-    using is_final_fair_OL_state_iff_no_ILf_step[OF inv_at_i]
-    by (metis fst_conv is_final_fair_OL_state.cases option.simps(3) snd_conv yy_at_i)
+    using is_final_OLf_state_iff_no_ILf_step[OF inv_at_i]
+    by (metis fst_conv is_final_OLf_state.cases option.simps(3) snd_conv yy_at_i)
   hence si_lt: "enat (Suc i) < llength Sts"
     by (metis Suc_ile_eq full full_chain_lnth_not_rel i_lt order_le_imp_less_or_eq)
 
   obtain P :: 'p and A :: "'f fset" where
     at_i: "lnth Sts i = ({||}, None, P, Some C, A)"
-    using fair_OL_invariant.simps inv_at_i yy_at_i by auto
+    using OLf_invariant.simps inv_at_i yy_at_i by auto
 
   have "lnth Sts i \<leadsto>ILf lnth Sts (Suc i)"
     by (simp add: chain chain_lnth_rel si_lt)
@@ -428,7 +426,7 @@ lemma fair_IL_Liminf_xx_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ILf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
+    inv: "OLf_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> xx_of) Sts) \<noteq> {}"
@@ -583,7 +581,7 @@ lemma fair_IL_Liminf_new_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ILf) Sts" and
-    inv: "fair_OL_invariant (lhd Sts)"
+    inv: "OLf_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (fset \<circ> new_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (fset \<circ> new_of) Sts) \<noteq> {}"
@@ -606,7 +604,7 @@ proof (rule ccontr)
     using c_in' len that by fastforce
 
   have yy: "yy_of (lnth Sts j) = None" if j_ge: "j \<ge> i" for j
-    by (smt (z3) chain_fair_IL_invariant_lnth enat_ord_code(4) fair_OL_invariant.cases fst_conv full
+    by (smt (z3) chain_ILf_invariant_lnth enat_ord_code(4) OLf_invariant.cases fst_conv full
         full_chain_imp_chain inv len new_j snd_conv j_ge)
   hence yy': "yy_of (lnth Sts (Suc j)) = None" if j_ge: "j \<ge> i" for j
     using j_ge by auto
@@ -741,7 +739,7 @@ lemma fair_IL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>ILf) Sts" and
-    init: "is_initial_fair_OL_state (lhd Sts)"
+    init: "is_initial_OLf_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain queue_step (lmap passive_of Sts)"
@@ -797,7 +795,7 @@ proof -
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
-    using init full full_chain_not_lnull unfolding is_initial_fair_OL_state.simps by fastforce
+    using init full full_chain_not_lnull unfolding is_initial_OLf_state.simps by fastforce
 
   have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
@@ -808,7 +806,7 @@ qed
 theorem
   assumes
     full: "full_chain (\<leadsto>ILf) Sts" and
-    init: "is_initial_fair_OL_state (lhd Sts)" and
+    init: "is_initial_OLf_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
     unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -821,8 +819,8 @@ proof -
   have gc_chain: "chain (\<leadsto>GC) (lmap fstate Sts)"
     using chain fair_IL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
-  have inv: "fair_OL_invariant (lhd Sts)"
-    using init initial_fair_OL_invariant by blast
+  have inv: "OLf_invariant (lhd Sts)"
+    using init initial_OLf_invariant by blast
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
@@ -830,7 +828,7 @@ proof -
     by (rule llist.map_sel(1))
 
   have "active_of (lhd Sts) = {||}"
-    by (metis is_initial_fair_OL_state.cases init snd_conv)
+    by (metis is_initial_OLf_state.cases init snd_conv)
   hence act: "active_subset (lhd (lmap fstate Sts)) = {}"
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
@@ -842,18 +840,18 @@ proof -
       using lfinite_Liminf_llist fin nnul
       by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
 
-    have last_inv: "fair_OL_invariant (llast Sts)"
-      by (rule chain_fair_IL_invariant_llast[OF chain inv fin])
+    have last_inv: "OLf_invariant (llast Sts)"
+      by (rule chain_ILf_invariant_llast[OF chain inv fin])
 
     have "\<forall>St'. \<not> llast Sts \<leadsto>ILf St'"
       using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
-    hence "is_final_fair_OL_state (llast Sts)"
-      unfolding is_final_fair_OL_state_iff_no_ILf_step[OF last_inv] .
+    hence "is_final_OLf_state (llast Sts)"
+      unfolding is_final_OLf_state_iff_no_ILf_step[OF last_inv] .
     then obtain A :: "'f fset" where
       at_l: "llast Sts = ({||}, None, empty, None, A)"
-      unfolding is_final_fair_OL_state.simps by blast
+      unfolding is_final_OLf_state.simps by blast
     show ?thesis
-      unfolding is_final_fair_OL_state.simps passive_subset_def lim at_l by auto
+      unfolding is_final_OLf_state.simps passive_subset_def lim at_l by auto
   next
     case False
     hence len: "llength Sts = \<infinity>"

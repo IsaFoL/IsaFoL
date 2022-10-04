@@ -3016,18 +3016,6 @@ definition forward_subsumption_one :: \<open>nat \<Rightarrow> nat multiset \<Ri
   }
 )\<close>
 
-(*TODO Move*)
-lemma subset_mset_removeAll_iff:
-  \<open>M \<subseteq># removeAll_mset a M' \<longleftrightarrow> a \<notin># M \<and> M \<subseteq># M'\<close>
-  by (smt (verit, ccfv_threshold) Diff_iff cancel_comm_monoid_add_class.diff_cancel count_inI
-    count_le_replicate_mset_subset_eq diff_subset_eq_self diff_zero filter_union_mset insert_iff
-    mset_le_subtract_right removeAll_mset_filter_mset replicate_mset_minus_replicate_mset_same
-    replicate_mset_subseteq_iff_le set_mset_minus_replicate_mset(1) subset_mset.diff_add)
-
-lemma tautology_add_subset: \<open>A \<subseteq># Aa \<Longrightarrow> tautology (A + Aa) \<longleftrightarrow> tautology Aa\<close> for A Aa
-  by (metis mset_subset_eqD subset_mset.add_diff_inverse tautology_minus tautology_union)
-(*End Move*)
-
 lemma forward_subsumption_one:
   assumes \<open>forward_subsumption_one_pre C cands S\<close>
   shows \<open>forward_subsumption_one C cands S \<le> \<Down>{((st, SR), st'). st = st' \<and> (\<not>SR \<longrightarrow> st = S)}

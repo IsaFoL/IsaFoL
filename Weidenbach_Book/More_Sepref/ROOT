@@ -14,5 +14,4 @@ session "More_Sepref" (Weidenbach_Book) = "Isabelle_LLVM"  +
   theories [quick_and_dirty = false, document = false]
     WB_More_Refinement
     WB_More_Refinement_List
-    WB_Word
     WB_More_Sepref_LLVM

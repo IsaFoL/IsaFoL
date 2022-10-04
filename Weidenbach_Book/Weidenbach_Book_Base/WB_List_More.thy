@@ -1600,6 +1600,9 @@ next
   qed
 qed
 
+lemma image_msetI: \<open>x \<in># A \<Longrightarrow> f x \<in># f `# A\<close>
+  by (auto)
+
 lemma inj_image_mset_eq_iff:
   assumes inj: \<open>inj f\<close>
   shows \<open>image_mset f M' = image_mset f M \<longleftrightarrow> M' = M\<close>
@@ -1739,7 +1742,6 @@ lemma sum_mset_inter_restrict:
   \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
   by (induction M) auto
 
-
 lemma sumset_diff_constant_left:
   assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
   shows \<open>(\<Sum>x\<in># A . n - f x) = size A * n - (\<Sum>x\<in># A . f x)\<close>
@@ -1781,6 +1783,24 @@ lemma distinct_mset_subset_iff_remdups:
 lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset L C'\<close>
   by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl
     subset_mset_trans_add_mset)
+
+lemma subset_mset_removeAll_iff:
+  \<open>M \<subseteq># removeAll_mset a M' \<longleftrightarrow> a \<notin># M \<and> M \<subseteq># M'\<close>
+  by (smt (verit, del_insts) count_replicate_mset diff_le_mono diff_subset_eq_self in_diff_count
+    in_replicate_mset minus_eq_id_forall_notin_mset minus_multiset.rep_eq mset_subset_eqD
+    nat_less_le subset_mset.trans subseteq_mset_def)
+
+lemma remdups_mset_removeAll: \<open>remdups_mset (removeAll_mset a A) = removeAll_mset a (remdups_mset A)\<close>
+  by (smt (verit, ccfv_threshold) add_mset_remove_trivial count_eq_zero_iff diff_zero
+    distinct_mset_remdups_mset distinct_mset_remove1_All insert_DiffM order.refl remdups_mset_def
+    remdups_mset_singleton_sum removeAll_subseteq_remove1_mset replicate_mset_eq_empty_iff
+    set_mset_minus_replicate_mset(1) set_mset_remdups_mset subset_mset_removeAll_iff)
+
+text \<open>This is an alternative to @{thm [source] remdups_mset_singleton_sum}.\<close>
+lemma remdups_mset_singleton_removeAll:
+  "remdups_mset (add_mset a A) = add_mset a (removeAll_mset a (remdups_mset A))"
+  by (metis dual_order.refl finite_set_mset mset_set.insert_remove remdups_mset_def
+    remdups_mset_removeAll set_mset_add_mset_insert set_mset_minus_replicate_mset(1))
 
 
 section \<open>Finite maps and multisets\<close>

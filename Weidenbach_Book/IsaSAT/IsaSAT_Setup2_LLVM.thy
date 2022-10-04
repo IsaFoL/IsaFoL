@@ -558,6 +558,32 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   get_vmtf_heur_fst_impl_def[unfolded read_all_st_code_def]
   get_vmtf_heur_array_nth_impl_def[unfolded read_all_st_code_def]
 
+
+lemma mop_mark_added_heur_st_alt_def:
+  \<open>mop_mark_added_heur_st L S = do {
+  let (heur, S) = extract_heur_wl_heur S;
+  heur \<leftarrow> mop_mark_added_heur L True heur;
+  RETURN (update_heur_wl_heur heur S)
+  }\<close>
+  unfolding mop_mark_added_heur_st_def
+  by (auto simp: incr_restart_stat_def state_extractors split: isasat_int_splits
+    intro!: ext)
+
+sepref_def mop_mark_added_heur_iml
+  is \<open>uncurry2 mop_mark_added_heur\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply [sepref_fr_rules] = mark_added_heur_impl_refine
+  unfolding mop_mark_added_heur_def
+  by sepref
+
+sepref_register mop_mark_added_heur mop_mark_added_heur_st mark_added_clause_heur2 maybe_mark_added_clause_heur2
+
+sepref_def mop_mark_added_heur_st_impl
+  is \<open>uncurry mop_mark_added_heur_st\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mop_mark_added_heur_st_alt_def
+  by sepref
+
 experiment
 begin
 term empty_search_stats_impl

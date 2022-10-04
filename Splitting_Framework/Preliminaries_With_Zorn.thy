@@ -2366,7 +2366,18 @@ definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<
   sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (M proj\<^sub>J J))) (Pos ` F_of ` N)))\<close>
 
 
-(*
+lemma distrib_proj: \<open>M \<union> N proj\<^sub>J J = (M proj\<^sub>J J) \<union> (N proj\<^sub>J J)\<close>
+  unfolding enabled_projection_def by auto
+
+lemma distrib_proj_singleton: \<open>M \<union> {C} proj\<^sub>J J = (M proj\<^sub>J J) \<union> ({C} proj\<^sub>J J)\<close>
+  unfolding enabled_projection_def by auto
+
+lemma enabled_union2: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set N J\<close>
+  unfolding enabled_set_def by blast
+
+lemma enabled_union1: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set M J\<close>
+  unfolding enabled_set_def by blast
+
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
@@ -2398,88 +2409,194 @@ next
       by (metis (mono_tags, lifting) q_enabled p_in_q subset_iff)
   qed
 next
-  fix M N
-  assume prem_entails_supsets_af: \<open>\<forall>M' N'. M \<subseteq> M' \<and> N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
-  show \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+  fix M N C M' N'
+  assume
+    entails_c: \<open>M \<Turnstile>\<^sub>A\<^sub>F N \<union> {C}\<close> and
+    c_entails: \<open>M' \<union> {C} \<Turnstile>\<^sub>A\<^sub>F N'\<close>
+  show \<open>M \<union> M' \<Turnstile>\<^sub>A\<^sub>F N \<union> N'\<close>
     unfolding AF_entails_def
   proof (intro allI impI)
     fix J
-    assume enabled_n: \<open>enabled_set N J\<close>
-    have \<open>\<forall>M' N'. M proj\<^sub>J J \<subseteq> M' \<and> F_of ` N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile> N'\<close>
-    proof clarsimp
-      fix M' N'
-      assume proj_m: \<open>M proj\<^sub>J J \<subseteq> M'\<close> and
-        fn_in_np: \<open>F_of ` N \<subseteq> N'\<close> and
-        m_n_partition: \<open>M' \<union> N' = UNIV\<close>
-      show \<open>M' \<Turnstile> N'\<close>
-      proof (cases "M' \<inter> N' = {}")
-        case True
-        define \<N>' where np_def: \<open>\<N>' = {C. F_of C \<in> N' \<and> enabled C J}\<close>
-        define \<M>' where mp_def: \<open>\<M>' = UNIV - \<N>'\<close>
-        have \<open>M \<subseteq> \<M>'\<close>
-        proof
-          fix x
-          assume x_in: \<open>x \<in> M\<close>
-          have \<open>\<not> enabled x J \<or> F_of x \<in> M'\<close>
-            using proj_m unfolding enabled_def enabled_projection_def using x_in by blast 
-          then have \<open>x \<notin> \<N>'\<close>
-            unfolding np_def using True by fastforce 
-          then show \<open>x \<in> \<M>'\<close>
-            unfolding mp_def by blast 
-        qed
-        moreover have \<open>N \<subseteq> \<N>'\<close>
-          using fn_in_np enabled_n unfolding np_def enabled_set_def by force 
-        ultimately have mp_entails_af_np: \<open>\<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
-          using prem_entails_supsets_af mp_def by simp 
-        moreover have enabled_np: \<open>enabled_set \<N>' J\<close>
-          unfolding np_def enabled_set_def by auto
-        moreover have \<open>F_of ` \<N>' = N'\<close>
-        proof (intro equalityI subsetI)
-          fix x
-          assume \<open>x \<in> F_of ` \<N>'\<close>
-          then show \<open>x \<in> N'\<close>
-            unfolding np_def by auto 
-        next
-          fix x
-          assume x_in: \<open>x \<in> N'\<close>
-          define C where \<open>C = Pair x (total_strip J)\<close>
-          have \<open>enabled C J\<close>
-            unfolding C_def enabled_def by auto 
-          then show \<open>x \<in> F_of ` \<N>'\<close>
-            unfolding C_def np_def using x_in by force 
-        qed
-        moreover have \<open>\<M>' proj\<^sub>J J = M'\<close>
-        proof (intro equalityI subsetI)
-          fix x
-          assume \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-          then obtain C where f_of_c: \<open>F_of C = x\<close> and c_in: \<open>C \<in> \<M>'\<close> and c_enabled: \<open>enabled C J\<close>
-            unfolding enabled_projection_def by blast 
-          then show \<open>x \<in> M'\<close>
-            using m_n_partition unfolding mp_def np_def by auto
-        next
-          fix x
-          assume x_in: \<open>x \<in> M'\<close>
-          define C where \<open>C = Pair x (total_strip J)\<close>
-          then show \<open>x \<in> \<M>' proj\<^sub>J J\<close>
-            unfolding mp_def np_def enabled_projection_def using True x_in
-            by (smt (verit, del_insts) AF.sel(1) AF.sel(2) DiffI UNIV_I disjoint_iff enabled_def
-              mem_Collect_eq order_refl)
-        qed
-        ultimately show \<open>M' \<Turnstile> N'\<close>
-          unfolding AF_entails_def by blast 
-        next
-          case False
-          assume inter_not_empty: \<open>M' \<inter> N' \<noteq> {}\<close>
-          then obtain C where \<open>C \<in> M' \<inter> N'\<close> by blast 
-          then show \<open>M' \<Turnstile> N'\<close> using entails_reflexive entails_subsets
-            by (meson Int_lower1 Int_lower2 entails_cond_reflexive inter_not_empty)
-        qed
+    assume enabled_n: \<open>enabled_set (N \<union> N') J\<close>
+    {
+      assume enabled_c: \<open>enabled_set {C} J\<close>
+      then have proj_enabled_c: \<open>{C} proj\<^sub>J J = {F_of C}\<close> 
+        unfolding enabled_projection_def using enabled_set_def by blast 
+      have cut_hyp1: \<open>M proj\<^sub>J J \<Turnstile> F_of ` N \<union> {F_of C}\<close>
+        using entails_c enabled_n enabled_c unfolding AF_entails_def by (simp add: enabled_set_def)
+      have \<open>(M' \<union> {C}) proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+        using c_entails enabled_union2[of N N' J, OF enabled_n] unfolding AF_entails_def by simp
+      then have cut_hyp2: \<open>(M' proj\<^sub>J J) \<union> {F_of C} \<Turnstile> F_of ` N'\<close>
+        using proj_enabled_c distrib_proj_singleton by metis
+      have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+        using entails_cut[OF cut_hyp1 cut_hyp2] distrib_proj by (simp add: image_Un) 
+    }
+    moreover
+        {
+      assume not_enabled_c: \<open>\<not> enabled_set {C} J\<close>
+      then have \<open>M' \<union> {C} proj\<^sub>J J = M' proj\<^sub>J J\<close>
+        unfolding enabled_projection_def enabled_set_def by auto
+      then have \<open>M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+        using c_entails enabled_n unfolding AF_entails_def by (metis enabled_union2) 
+      then have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+        using entails_subsets by (metis distrib_proj image_Un sup.cobounded2) 
+          }
+      ultimately show \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+        by blast 
     qed
-    then show \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
-      using entails_supsets by presburger 
-  qed
+next
+  fix M N
+  assume m_entails_n: \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+  {
+    fix J
+    assume \<open>enabled_set N J\<close>
+    then have \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
+      using m_entails_n unfolding AF_entails_def by simp 
+    then obtain Mp Np where mp_proj: \<open>Mp \<subseteq> M proj\<^sub>J J\<close> and
+      np_proj: \<open>Np \<subseteq> F_of ` N\<close> and mp_fin: \<open>finite Mp\<close> and np_fin: \<open>finite Np\<close> and mp_entails_np: \<open>Mp \<Turnstile> Np\<close>
+      using entails_compactness by metis
+    have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. {C} proj\<^sub>J J = {Cp}\<close> 
+      using mp_proj unfolding enabled_projection_def by blast
+    then obtain f where f_is: \<open>(f Cp = (SOME C. Cp \<in> Mp \<longrightarrow> (C \<in> M \<and> {C} proj\<^sub>J J = {Cp})))\<close>
+      by simp
+    define M' where \<open>M' = f ` Mp\<close>   
+    then have \<open>M' \<subseteq> M\<close> \<open>M' proj\<^sub>J J = Mp\<close> \<open>finite M'\<close> 
+      using mp_fin f_is sorry
+  }
+  show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
+    sorry
 qed
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end
+
+end
+
+    (* have \<open>\<forall>M' N'. M proj\<^sub>J J \<subseteq> M' \<and> F_of ` N \<subseteq> N' \<and> M' \<union> N' = UNIV \<longrightarrow> M' \<Turnstile> N'\<close>
+     * proof clarsimp
+     *   fix M' N'
+     *   assume proj_m: \<open>M proj\<^sub>J J \<subseteq> M'\<close> and
+     *     fn_in_np: \<open>F_of ` N \<subseteq> N'\<close> and
+     *     m_n_partition: \<open>M' \<union> N' = UNIV\<close>
+     *   show \<open>M' \<Turnstile> N'\<close>
+     *   proof (cases "M' \<inter> N' = {}")
+     *     case True
+     *     define \<N>' where np_def: \<open>\<N>' = {C. F_of C \<in> N' \<and> enabled C J}\<close>
+     *     define \<M>' where mp_def: \<open>\<M>' = UNIV - \<N>'\<close>
+     *     have \<open>M \<subseteq> \<M>'\<close>
+     *     proof
+     *       fix x
+     *       assume x_in: \<open>x \<in> M\<close>
+     *       have \<open>\<not> enabled x J \<or> F_of x \<in> M'\<close>
+     *         using proj_m unfolding enabled_def enabled_projection_def using x_in by blast 
+     *       then have \<open>x \<notin> \<N>'\<close>
+     *         unfolding np_def using True by fastforce 
+     *       then show \<open>x \<in> \<M>'\<close>
+     *         unfolding mp_def by blast 
+     *     qed
+     *     moreover have \<open>N \<subseteq> \<N>'\<close>
+     *       using fn_in_np enabled_n unfolding np_def enabled_set_def by force 
+     *     ultimately have mp_entails_af_np: \<open>\<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
+     *       using prem_entails_supsets_af mp_def by simp 
+     *     moreover have enabled_np: \<open>enabled_set \<N>' J\<close>
+     *       unfolding np_def enabled_set_def by auto
+     *     moreover have \<open>F_of ` \<N>' = N'\<close>
+     *     proof (intro equalityI subsetI)
+     *       fix x
+     *       assume \<open>x \<in> F_of ` \<N>'\<close>
+     *       then show \<open>x \<in> N'\<close>
+     *         unfolding np_def by auto 
+     *     next
+     *       fix x
+     *       assume x_in: \<open>x \<in> N'\<close>
+     *       define C where \<open>C = Pair x (total_strip J)\<close>
+     *       have \<open>enabled C J\<close>
+     *         unfolding C_def enabled_def by auto 
+     *       then show \<open>x \<in> F_of ` \<N>'\<close>
+     *         unfolding C_def np_def using x_in by force 
+     *     qed
+     *     moreover have \<open>\<M>' proj\<^sub>J J = M'\<close>
+     *     proof (intro equalityI subsetI)
+     *       fix x
+     *       assume \<open>x \<in> \<M>' proj\<^sub>J J\<close>
+     *       then obtain C where f_of_c: \<open>F_of C = x\<close> and c_in: \<open>C \<in> \<M>'\<close> and c_enabled: \<open>enabled C J\<close>
+     *         unfolding enabled_projection_def by blast 
+     *       then show \<open>x \<in> M'\<close>
+     *         using m_n_partition unfolding mp_def np_def by auto
+     *     next
+     *       fix x
+     *       assume x_in: \<open>x \<in> M'\<close>
+     *       define C where \<open>C = Pair x (total_strip J)\<close>
+     *       then show \<open>x \<in> \<M>' proj\<^sub>J J\<close>
+     *         unfolding mp_def np_def enabled_projection_def using True x_in
+     *         by (smt (verit, del_insts) AF.sel(1) AF.sel(2) DiffI UNIV_I disjoint_iff enabled_def
+     *           mem_Collect_eq order_refl)
+     *     qed
+     *     ultimately show \<open>M' \<Turnstile> N'\<close>
+     *       unfolding AF_entails_def by blast 
+     *     next
+     *       case False
+     *       assume inter_not_empty: \<open>M' \<inter> N' \<noteq> {}\<close>
+     *       then obtain C where \<open>C \<in> M' \<inter> N'\<close> by blast 
+     *       then show \<open>M' \<Turnstile> N'\<close> using entails_reflexive entails_subsets
+     *         by (meson Int_lower1 Int_lower2 entails_cond_reflexive inter_not_empty)
+      *     qed
+
+     *     then show \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
+     *       using entails_supsets by presburger 
+
+        *)
+
+
+  (*
 interpretation ext_cons_rel_std: consequence_relation "Pos (to_AF bot)" AF_cons_rel.entails_neg
   using AF_cons_rel.ext_cons_rel .
 
@@ -3163,7 +3280,3 @@ oops
  * qed *)
 
  *)
-
-end
-
-end

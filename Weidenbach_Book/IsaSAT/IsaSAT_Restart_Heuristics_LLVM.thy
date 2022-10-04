@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Heuristics_LLVM
-  imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
+  imports IsaSAT_Restart_Heuristics_Defs IsaSAT_Setup_LLVM
      IsaSAT_VMTF_State_LLVM IsaSAT_Rephase_State_LLVM
      IsaSAT_Arena_Sorting_LLVM
      IsaSAT_Restart_Reduce_LLVM
