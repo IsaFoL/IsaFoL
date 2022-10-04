@@ -254,4 +254,12 @@ lemma mark_lbd_from_conflict_mark_LBD_st:
     done
   done
 
+definition update_lbd_and_mark_used where
+  \<open>update_lbd_and_mark_used i glue N = 
+    (let N = update_lbd i glue N in
+    (if glue \<le> TIER_TWO_MAXIMUM then mark_used2 N i else mark_used N i))\<close>
+
+lemma length_update_lbd_and_mark_used[simp]: \<open>length (update_lbd_and_mark_used i glue N) = length N\<close>
+  by (auto simp: update_lbd_and_mark_used_def Let_def split: if_splits)
+
 end
