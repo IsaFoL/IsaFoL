@@ -2378,6 +2378,14 @@ lemma enabled_union2: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enab
 lemma enabled_union1: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set M J\<close>
   unfolding enabled_set_def by blast
 
+
+lemma finite_image_subset: "finite U \<Longrightarrow> (\<forall>C \<in> U. (\<exists>D \<in> W. P D = C \<and> Q D)) \<Longrightarrow> (\<exists>V'. (V' \<subseteq> W \<and> finite V' \<and> P ` V' = U \<and> (\<forall>D'\<in> V'. Q D')))"
+  using finite_subset_image image_iff subsetI
+  sorry
+ (* by (metis finite_subset_image image_iff subsetI) *)
+
+   thm finite_subset_image
+
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
@@ -2457,11 +2465,39 @@ next
       using entails_compactness by metis
     have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. {C} proj\<^sub>J J = {Cp}\<close> 
       using mp_proj unfolding enabled_projection_def by blast
-    then obtain f where f_is: \<open>(f Cp = (SOME C. Cp \<in> Mp \<longrightarrow> (C \<in> M \<and> {C} proj\<^sub>J J = {Cp})))\<close>
-      by simp
-    define M' where \<open>M' = f ` Mp\<close>   
-    then have \<open>M' \<subseteq> M\<close> \<open>M' proj\<^sub>J J = Mp\<close> \<open>finite M'\<close> 
-      using mp_fin f_is sorry
+    have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. F_of C = Cp \<and> enabled C J\<close> 
+      using mp_proj unfolding enabled_projection_def by blast
+    then have \<open>\<exists>V'. (V' \<subseteq> M \<and> finite V' \<and> F_of ` V' = Mp \<and> enabled_set V' J)\<close>
+      using mp_fin finite_image_subset[of Mp] finite_subset_image
+        UnCI equals0D finite.emptyI finite_image_subset rev_image_eqI
+        unfolding enabled_set_def (* sledgehammer to try at the lab *) 
+
+
+
+
+
+
+    then obtain M_fin where "finite M_fin" and "\<forall> C \<in> M_fin. C \<in> M" and "M_fin proj\<^sub>J J = Mp"
+      using mp_fin finite_subset_image 
+    define M_inf where \<open>M_inf = {C \<in> M | (\<exists>Cp. Cp \<in> Mp \<and> {C} proj\<^sub>J J = {Cp})}\<close>
+        find_theorems "SOME _. _" "_ ` _" 
+    then obtain f where f_is: \<open>f Cp = (SOME C. (C \<in> M \<and> {C} proj\<^sub>J J = {Cp}))\<close>
+      by fast
+    define M' where \<open>M' = f ` Mp\<close>
+    have \<open>M' \<subseteq> M\<close>
+    proof
+      fix C
+      assume c_in: \<open>C \<in> M'\<close>
+      then obtain Cp where \<open>f Cp = C\<close> \<open>Cp \<in> Mp\<close>
+        using M'_def by fastforce
+      then have \<open>C \<in> M \<and> {C} proj\<^sub>J J = {Cp}\<close>
+        using f_is
+      show \<open>C \<in> M\<close> sorry
+    qed
+    have \<open>M' proj\<^sub>J J = Mp\<close>
+      using f_is sorry
+    have \<open>finite M'\<close> 
+      using mp_fin f_is M'_def by blast 
   }
   show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
     sorry
