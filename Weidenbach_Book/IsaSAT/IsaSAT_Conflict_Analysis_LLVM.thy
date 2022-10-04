@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis_LLVM
-imports IsaSAT_Conflict_Analysis IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM IsaSAT_LBD_LLVM
+imports IsaSAT_Conflict_Analysis_Defs IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM IsaSAT_LBD_LLVM
 begin
 
 sepref_def maximum_level_removed_eq_count_dec_fast_code

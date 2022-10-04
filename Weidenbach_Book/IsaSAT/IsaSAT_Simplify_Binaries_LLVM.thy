@@ -1,7 +1,7 @@
 theory IsaSAT_Simplify_Binaries_LLVM
   imports 
     IsaSAT_Simplify_Clause_Units_LLVM
-    IsaSAT_Simplify_Binaries
+    IsaSAT_Simplify_Binaries_Defs
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
@@ -28,32 +28,6 @@ sepref_def ahm_is_marked_code
   apply (annot_sint_const \<open>TYPE(64)\<close>)
   by sepref
 
-
-lemma ahm_is_marked_is_marked2:
-   \<open>(uncurry ahm_is_marked, uncurry is_marked)
-    \<in>  (array_hash_map_rel R) \<times>\<^sub>f nat_lit_lit_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  apply (subst fref_param1)
-   using ahm_is_marked_is_marked
-  unfolding ahm_is_marked_def is_marked_def uncurry_def
-  apply (intro frefI nres_relI)
-  apply refine_vcg
-  apply (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
-    intro!: ASSERT_leI)[]
-  apply simp
-  by(auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
-    intro!: ASSERT_leI)
-
-lemma ahm_get_marked_get_marked:
-   \<open>(uncurry ahm_get_marked, uncurry get_marked)
-    \<in>  (array_hash_map_rel R) \<times>\<^sub>f nat_lit_lit_rel \<rightarrow> \<langle>R\<rangle>nres_rel\<close>
-  unfolding ahm_get_marked_def get_marked_def uncurry_def
-  apply refine_vcg
-  apply (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
-    intro!: ASSERT_leI)[]
-  apply clarsimp
-  apply (auto simp: array_hash_map_rel_def ahm_is_marked_def is_marked_def
-    intro!: ASSERT_leI)[]
-  done
 
 sepref_def ahm_get_marked_code
   is \<open>uncurry ahm_get_marked\<close>
@@ -186,6 +160,19 @@ sepref_def ahm_set_marked_code
   unfolding ahm_set_marked_def
   by sepref
 
+sepref_def ahm_update_marked_code
+  is \<open>uncurry2 ahm_update_marked\<close>
+  :: \<open>ahm_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow>\<^sub>a ahm_assn\<close>
+  unfolding ahm_update_marked_def
+  by sepref
+
+definition ahm_full_assn :: \<open>_\<close> where
+  \<open>ahm_full_assn =  hr_comp (larray64_assn (sint_assn' TYPE(64)) \<times>\<^sub>a Size_Ordering_it.arr_assn)
+                 (array_hash_map_rel encoded_irred_indices)\<close>
+
+schematic_goal ahm_full_assn_assn[sepref_frame_free_rules]: \<open>MK_FREE ahm_full_assn ?a\<close>
+  unfolding ahm_full_assn_def by synthesize_free
+
 lemma ahm_set_marked_set_marked:
  \<open>(uncurry2 ahm_set_marked, uncurry2 set_marked)
     \<in>  (array_hash_map_rel encoded_irred_indices) \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f encoded_irred_indices \<rightarrow> \<langle>array_hash_map_rel encoded_irred_indices\<rangle>nres_rel\<close>
@@ -198,12 +185,6 @@ proof -
     apply (rule H)
     done
 qed
-
-sepref_def ahm_update_marked_code
-  is \<open>uncurry2 ahm_update_marked\<close>
-  :: \<open>ahm_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (sint_assn' TYPE(64))\<^sup>k \<rightarrow>\<^sub>a ahm_assn\<close>
-  unfolding ahm_update_marked_def
-  by sepref
 
 lemma ahm_update_marked_update_marked:
  \<open>(uncurry2 ahm_update_marked, uncurry2 update_marked)
@@ -218,20 +199,16 @@ proof -
     done
 qed
 
-definition ahm_full_assn :: \<open>_\<close> where
-  \<open>ahm_full_assn =  hr_comp (larray64_assn (sint_assn' TYPE(64)) \<times>\<^sub>a Size_Ordering_it.arr_assn)
-                 (array_hash_map_rel encoded_irred_indices)\<close>
-
-schematic_goal ahm_full_assn_assn[sepref_frame_free_rules]: \<open>MK_FREE ahm_full_assn ?a\<close>
-  unfolding ahm_full_assn_def by synthesize_free
+thm 
+  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
 
 lemmas [unfolded ahm_full_assn_def[symmetric], sepref_fr_rules] =
-  ahm_create_code.refine[FCOMP ahm_create_create, where R11 = encoded_irred_indices]
-  ahm_empty_code.refine[FCOMP ahm_empty_empty, where R19 = encoded_irred_indices]
-  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked2[where R = encoded_irred_indices]]
+  ahm_create_code.refine[FCOMP ahm_create_create[unfolded convert_fref, where R= encoded_irred_indices]]
+  ahm_empty_code.refine[FCOMP ahm_empty_empty[unfolded convert_fref, where R = encoded_irred_indices]]
+  ahm_is_marked_code.refine[FCOMP ahm_is_marked_is_marked[unfolded convert_fref, where R = encoded_irred_indices]]
   ahm_get_marked_code.refine[FCOMP ahm_get_marked_get_marked[where R = encoded_irred_indices]]
   ahm_empty_code.refine[FCOMP ahm_empty_empty, where R19 = encoded_irred_indices]
-  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked]
+  ahm_set_marked_code.refine[FCOMP ahm_set_marked_set_marked[unfolded convert_fref]]
   ahm_update_marked_code.refine[FCOMP ahm_update_marked_update_marked]
 
 
@@ -293,8 +270,8 @@ lemma isa_binary_clause_subres_wl_alt_def:
       let _ = log_unit_clause L;
       RETURN S
   }\<close>
-  apply (subst Let_def[of \<open>log_unit_clause L\<close>])
-  by (auto simp: isa_binary_clause_subres_wl_def learned_clss_count_def
+  by (subst Let_def[of \<open>log_unit_clause L\<close>])
+   (simp add: isa_binary_clause_subres_wl_def learned_clss_count_def
         state_extractors split: isasat_int_splits)
 
 sepref_def isa_binary_clause_subres_wl_impl

@@ -1,5 +1,5 @@
 theory IsaSAT_Propagate_Conflict
-  imports IsaSAT_Setup IsaSAT_Inner_Propagation
+  imports IsaSAT_Setup IsaSAT_Inner_Propagation IsaSAT_Propagate_Conflict_Defs
 begin
 
 
@@ -53,17 +53,6 @@ lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
   apply (intro ext)
   apply (rename_tac S; case_tac S)
   by (auto intro!: ext simp: rev_trail_nth_def Let_def)
-
-definition  literals_to_update_wl_literals_to_update_wl_empty :: \<open>isasat \<Rightarrow> bool\<close> where
-  \<open>literals_to_update_wl_literals_to_update_wl_empty S \<longleftrightarrow>
-    literals_to_update_wl_heur S < isa_length_trail (get_trail_wl_heur S)\<close>
-
-
-lemma unit_propagation_outer_loop_wl_D_invI:
-  \<open>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 S \<Longrightarrow>
-    isa_length_trail_pre (get_trail_wl_heur S)\<close>
-  unfolding unit_propagation_outer_loop_wl_D_heur_inv_def
-  by blast
 
 lemma unit_propagation_outer_loop_wl_D_heur_fast:
   \<open>length (get_clauses_wl_heur x) \<le> uint64_max \<Longrightarrow>

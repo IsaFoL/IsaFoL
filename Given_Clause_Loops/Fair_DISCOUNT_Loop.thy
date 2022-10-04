@@ -15,7 +15,7 @@ begin
 
 section \<open>Locale\<close>
 
-type_synonym ('p, 'f) fair_DL_state = "'p \<times> 'f option \<times> 'f fset"
+type_synonym ('p, 'f) DLf_state = "'p \<times> 'f option \<times> 'f fset"
 
 datatype 'f passive_elem =
   is_passive_inference: Passive_Inference (passive_inference: "'f inference")
@@ -70,11 +70,11 @@ lemma irrefl_Prec_S: "irrefl {(x, y). x \<prec>S y}"
 
 subsection \<open>Basic Definitions and Lemmas\<close>
 
-abbreviation passive_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'p" where
+abbreviation passive_of :: "('p, 'f) DLf_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst St"
-abbreviation yy_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f option" where
+abbreviation yy_of :: "('p, 'f) DLf_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd St)"
-abbreviation active_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f fset" where
+abbreviation active_of :: "('p, 'f) DLf_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd St)"
 
 definition passive_inferences_of :: "'p \<Rightarrow> 'f inference set" where
@@ -98,7 +98,7 @@ proof -
     unfolding passive_formulas_of_def by (auto intro: finite_inverse_image[OF _ inj_pi])
 qed
 
-abbreviation all_formulas_of :: "('p, 'f) fair_DL_state \<Rightarrow> 'f set" where
+abbreviation all_formulas_of :: "('p, 'f) DLf_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> passive_formulas_of (passive_of St) \<union> set_option (yy_of St) \<union>
      fset (active_of St)"
 
@@ -172,7 +172,7 @@ lemma passive_formulas_of_fold_remove_Passive_Formula[simp]:
   "passive_formulas_of (fold (remove \<circ> Passive_Formula) Cs P) = passive_formulas_of P - set Cs"
   by (induct Cs arbitrary: P) auto
 
-fun fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
+fun fstate :: "('p, 'f) DLf_state \<Rightarrow> 'f inference set \<times> ('f \<times> DL_label) set" where
   "fstate (P, Y, A) = state (passive_inferences_of P, passive_formulas_of P, set_option Y, fset A)"
 
 lemma fstate_alt_def:
@@ -180,9 +180,7 @@ lemma fstate_alt_def:
      set_option (fst (snd St)), fset (snd (snd St)))"
   by (cases St) auto
 
-definition
-  Liminf_fstate :: "('p, 'f) fair_DL_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
-where
+definition Liminf_fstate :: "('p, 'f) DLf_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set" where
   "Liminf_fstate Sts =
    (Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts),
     Liminf_llist (lmap (set_option \<circ> yy_of) Sts),
@@ -207,9 +205,7 @@ qed
 fun formulas_union :: "'f set \<times> 'f set \<times> 'f set \<Rightarrow> 'f set" where
   "formulas_union (P, Y, A) = P \<union> Y \<union> A"
 
-inductive
-  fair_DL :: "('p, 'f) fair_DL_state \<Rightarrow> ('p, 'f) fair_DL_state \<Rightarrow> bool" (infix "\<leadsto>DLf" 50)
-where
+inductive fair_DL :: "('p, 'f) DLf_state \<Rightarrow> ('p, 'f) DLf_state \<Rightarrow> bool" (infix "\<leadsto>DLf" 50) where
   compute_infer: "P \<noteq> empty \<Longrightarrow> select P = Passive_Inference \<iota> \<Longrightarrow>
     \<iota> \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
     (P, None, A) \<leadsto>DLf (remove (select P) P, Some C, A)"
@@ -232,20 +228,20 @@ where
 
 subsection \<open>Initial State and Invariant\<close>
 
-inductive is_initial_fair_DL_state :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
-  "is_initial_fair_DL_state (empty, None, {||})"
+inductive is_initial_DLf_state :: "('p, 'f) DLf_state \<Rightarrow> bool" where
+  "is_initial_DLf_state (empty, None, {||})"
 
-inductive fair_DL_invariant :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
-  "passive_inferences_of P \<subseteq> Inf_F \<Longrightarrow> fair_DL_invariant (P, Y, A)"
+inductive DLf_invariant :: "('p, 'f) DLf_state \<Rightarrow> bool" where
+  "passive_inferences_of P \<subseteq> Inf_F \<Longrightarrow> DLf_invariant (P, Y, A)"
 
-lemma initial_fair_DL_invariant: "is_initial_fair_DL_state St \<Longrightarrow> fair_DL_invariant St"
-  unfolding is_initial_fair_DL_state.simps fair_DL_invariant.simps by auto
+lemma initial_DLf_invariant: "is_initial_DLf_state St \<Longrightarrow> DLf_invariant St"
+  unfolding is_initial_DLf_state.simps DLf_invariant.simps by auto
 
-lemma step_fair_DL_invariant:
+lemma step_DLf_invariant:
   assumes
-    inv: "fair_DL_invariant St" and
+    inv: "DLf_invariant St" and
     step: "St \<leadsto>DLf St'"
-  shows "fair_DL_invariant St'"
+  shows "DLf_invariant St'"
   using step inv
 proof cases
   case (schedule_infer \<iota>s A C P)
@@ -254,15 +250,15 @@ proof cases
     using \<iota>s_inf_betw unfolding no_labels.Inf_between_def no_labels.Inf_from_def by auto
   thus ?thesis
     using inv unfolding defs
-    by (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
-qed (auto simp: fair_DL_invariant.simps passive_inferences_of_def fold_map[symmetric])
+    by (auto simp: DLf_invariant.simps passive_inferences_of_def fold_map[symmetric])
+qed (auto simp: DLf_invariant.simps passive_inferences_of_def fold_map[symmetric])
 
-lemma chain_fair_DL_invariant_lnth:
+lemma chain_DLf_invariant_lnth:
   assumes
     chain: "chain (\<leadsto>DLf) Sts" and
-    fair_hd: "fair_DL_invariant (lhd Sts)" and
+    fair_hd: "DLf_invariant (lhd Sts)" and
     i_lt: "enat i < llength Sts"
-  shows "fair_DL_invariant (lnth Sts i)"
+  shows "DLf_invariant (lnth Sts i)"
   using i_lt
 proof (induct i)
   case 0
@@ -274,21 +270,21 @@ next
 
   have "enat i < llength Sts"
     using si_lt Suc_ile_eq nless_le by blast
-  hence inv_i: "fair_DL_invariant (lnth Sts i)"
+  hence inv_i: "DLf_invariant (lnth Sts i)"
     by (rule ih)
   have step: "lnth Sts i \<leadsto>DLf lnth Sts (Suc i)"
     using chain chain_lnth_rel si_lt by blast
 
   show ?case
-    by (rule step_fair_DL_invariant[OF inv_i step])
+    by (rule step_DLf_invariant[OF inv_i step])
 qed
 
-lemma chain_fair_DL_invariant_llast:
+lemma chain_DLf_invariant_llast:
   assumes
     chain: "chain (\<leadsto>DLf) Sts" and
-    fair_hd: "fair_DL_invariant (lhd Sts)" and
+    fair_hd: "DLf_invariant (lhd Sts)" and
     fin: "lfinite Sts"
-  shows "fair_DL_invariant (llast Sts)"
+  shows "DLf_invariant (llast Sts)"
 proof -
   obtain i :: nat where
     i: "llength Sts = enat i"
@@ -299,7 +295,7 @@ proof -
         zero_enat_def)
 
   show ?thesis
-    using chain_fair_DL_invariant_lnth[OF chain fair_hd im1_lt]
+    using chain_DLf_invariant_lnth[OF chain fair_hd im1_lt]
     by (metis Suc_diff_1 chain chain_length_pos eSuc_enat enat_ord_simps(2) i llast_conv_lnth
         zero_enat_def)
 qed
@@ -307,17 +303,17 @@ qed
 
 subsection \<open>Final State\<close>
 
-inductive is_final_fair_DL_state :: "('p, 'f) fair_DL_state \<Rightarrow> bool" where
-  "is_final_fair_DL_state (empty, None, A)"
+inductive is_final_DLf_state :: "('p, 'f) DLf_state \<Rightarrow> bool" where
+  "is_final_DLf_state (empty, None, A)"
 
-lemma is_final_fair_DL_state_iff_no_DLf_step:
-  assumes inv: "fair_DL_invariant St"
-  shows "is_final_fair_DL_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>DLf St')"
+lemma is_final_DLf_state_iff_no_DLf_step:
+  assumes inv: "DLf_invariant St"
+  shows "is_final_DLf_state St \<longleftrightarrow> (\<forall>St'. \<not> St \<leadsto>DLf St')"
 proof
-  assume "is_final_fair_DL_state St"
+  assume "is_final_DLf_state St"
   then obtain A :: "'f fset" where
     st: "St = (empty, None, A)"
-    by (auto simp: is_final_fair_DL_state.simps)
+    by (auto simp: is_final_DLf_state.simps)
   show "\<forall>St'. \<not> St \<leadsto>DLf St'"
     unfolding st
   proof (intro allI notI)
@@ -328,16 +324,16 @@ proof
   qed
 next
   assume no_step: "\<forall>St'. \<not> St \<leadsto>DLf St'"
-  show "is_final_fair_DL_state St"
+  show "is_final_DLf_state St"
   proof (rule ccontr)
-    assume not_fin: "\<not> is_final_fair_DL_state St"
+    assume not_fin: "\<not> is_final_DLf_state St"
 
     obtain P :: 'p and Y :: "'f option" and A :: "'f fset" where
       st: "St = (P, Y, A)"
       by (cases St)
 
     have "P \<noteq> empty \<or> Y \<noteq> None"
-      using not_fin unfolding st is_final_fair_DL_state.simps by auto
+      using not_fin unfolding st is_final_DLf_state.simps by auto
     moreover {
       assume
         p: "P \<noteq> empty" and
@@ -347,7 +343,7 @@ next
       proof (cases "select P")
         case sel: (Passive_Inference \<iota>)
         hence \<iota>_inf: "\<iota> \<in> Inf_F"
-          using inv p unfolding st by (metis fair_DL_invariant.cases fst_conv mem_Collect_eq
+          using inv p unfolding st by (metis DLf_invariant.cases fst_conv mem_Collect_eq
               passive_inferences_of_def select_in_elems subset_iff)
         have \<iota>_red: "\<iota> \<in> no_labels.Red_I_\<G> (fset A \<union> {concl_of \<iota>})"
           using \<iota>_inf no_labels.empty_ord.Red_I_of_Inf_to_N by auto
@@ -461,7 +457,7 @@ lemma fair_DL_step_imp_GC_step:
 
 subsection \<open>Completeness\<close>
 
-fun mset_of_fstate :: "('p, 'f) fair_DL_state \<Rightarrow> 'f multiset" where
+fun mset_of_fstate :: "('p, 'f) DLf_state \<Rightarrow> 'f multiset" where
   "mset_of_fstate (P, Y, A) =
    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
    mset_set (set_option Y) + mset_set (fset A)"
@@ -472,7 +468,7 @@ abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool
 lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
-definition \<mu>2 :: "('p, 'f) fair_DL_state \<Rightarrow> ('p, 'f) fair_DL_state \<Rightarrow> bool" where
+definition \<mu>2 :: "('p, 'f) DLf_state \<Rightarrow> ('p, 'f) DLf_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<equiv>
    (yy_of St' = None \<and> yy_of St \<noteq> None)
    \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_fstate St') (mset_of_fstate St))"
@@ -614,7 +610,7 @@ lemma fair_DL_Liminf_yy_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    inv: "fair_DL_invariant (lhd Sts)"
+    inv: "DLf_invariant (lhd Sts)"
   shows "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) = {}"
 proof (rule ccontr)
   assume lim_nemp: "Liminf_llist (lmap (set_option \<circ> yy_of) Sts) \<noteq> {}"
@@ -666,7 +662,7 @@ lemma fair_DL_Liminf_passive_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_fair_DL_state (lhd Sts)"
+    init: "is_initial_DLf_state (lhd Sts)"
   shows "Liminf_llist (lmap (elems \<circ> passive_of) Sts) = {}"
 proof -
   have chain_step: "chain queue_step (lmap passive_of Sts)"
@@ -721,7 +717,7 @@ proof -
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = empty"
-    using init full full_chain_not_lnull unfolding is_initial_fair_DL_state.simps by fastforce
+    using init full full_chain_not_lnull unfolding is_initial_DLf_state.simps by fastforce
 
   have "Liminf_llist (lmap elems (lmap passive_of Sts)) = {}"
     by (rule fair[of "lmap passive_of Sts", OF chain_step inf_oft hd_emp])
@@ -733,7 +729,7 @@ lemma fair_DL_Liminf_passive_formulas_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_fair_DL_state (lhd Sts)"
+    init: "is_initial_DLf_state (lhd Sts)"
   shows "Liminf_llist (lmap (passive_formulas_of \<circ> passive_of) Sts) = {}"
 proof -
   have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_formula \<circ> elems \<circ> passive_of) Sts) = {}"
@@ -764,7 +760,7 @@ lemma fair_DL_Liminf_passive_inferences_empty:
   assumes
     len: "llength Sts = \<infinity>" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_fair_DL_state (lhd Sts)"
+    init: "is_initial_DLf_state (lhd Sts)"
   shows "Liminf_llist (lmap (passive_inferences_of \<circ> passive_of) Sts) = {}"
 proof -
   have lim_filt: "Liminf_llist (lmap (Set.filter is_passive_inference \<circ> elems \<circ> passive_of) Sts) = {}"
@@ -795,7 +791,7 @@ theorem
   assumes
     inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_fair_DL_state (lhd Sts)" and
+    init: "is_initial_DLf_state (lhd Sts)" and
     bot: "B \<in> Bot_F" and
     unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
   shows
@@ -808,8 +804,8 @@ proof -
   have lgc_chain: "chain (\<leadsto>LGC) (lmap fstate Sts)"
     using chain fair_DL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
 
-  have inv: "fair_DL_invariant (lhd Sts)"
-    using init initial_fair_DL_invariant by auto
+  have inv: "DLf_invariant (lhd Sts)"
+    using init initial_DLf_invariant by auto
 
   have nnul: "\<not> lnull Sts"
     using chain chain_not_lnull by blast
@@ -817,7 +813,7 @@ proof -
     by (rule llist.map_sel(1))
 
   have "active_of (lhd Sts) = {||}"
-    by (metis is_initial_fair_DL_state.cases init snd_conv)
+    by (metis is_initial_DLf_state.cases init snd_conv)
   hence act: "active_subset (snd (lhd (lmap fstate Sts))) = {}"
     unfolding active_subset_def lhd_lmap by (cases "lhd Sts") auto
 
@@ -831,16 +827,16 @@ proof -
       using lfinite_Liminf_llist fin nnul
       by (metis comp_eq_dest_lhs lfinite_lmap llast_lmap llist.map_disc_iff)+
 
-    have last_inv: "fair_DL_invariant (llast Sts)"
-      by (rule chain_fair_DL_invariant_llast[OF chain inv fin])
+    have last_inv: "DLf_invariant (llast Sts)"
+      by (rule chain_DLf_invariant_llast[OF chain inv fin])
 
     have "\<forall>St'. \<not> llast Sts \<leadsto>DLf St'"
       using full_chain_lnth_not_rel[OF full] by (metis fin full_chain_iff_chain full)
-    hence "is_final_fair_DL_state (llast Sts)"
-      unfolding is_final_fair_DL_state_iff_no_DLf_step[OF last_inv] .
+    hence "is_final_DLf_state (llast Sts)"
+      unfolding is_final_DLf_state_iff_no_DLf_step[OF last_inv] .
     then obtain A :: "'f fset" where
       at_l: "llast Sts = (empty, None, A)"
-      unfolding is_final_fair_DL_state.simps by blast
+      unfolding is_final_DLf_state.simps by blast
 
     have ?pas_fml
       unfolding passive_subset_def lim_snd at_l by auto

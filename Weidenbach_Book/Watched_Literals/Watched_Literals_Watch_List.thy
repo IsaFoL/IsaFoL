@@ -1021,16 +1021,17 @@ lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
   by (cases S) (auto simp: keep_watch_def)
 
 
-definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
+definition update_clause_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
-  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) other_watched C b j w i f (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W). do {
      ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and>
         correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
+     ASSERT(other_watched \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W));
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in># all_lits_st (M, N,  D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
-     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, L, b)])))
+     RETURN (j, w+1, (M, N', D, NE, UE, NEk, UEk, NS, US, N0, U0, Q, W(K' := W K' @ [(C, other_watched, b)])))
   })\<close>
 
 
@@ -1735,7 +1736,7 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
                 val_L' \<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
-                else update_clause_wl L C b j w i f S
+                else update_clause_wl L L' C b j w i f S
               }
           }
         }
@@ -1793,7 +1794,7 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
                 val_L' \<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
-                else update_clause_wl L C b j w i f S
+                else update_clause_wl L L' C b j w i f S
               }
           }
         }
@@ -1849,7 +1850,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def:
                 val_L' \<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
-                else update_clause_wl L C b j w i f S
+                else update_clause_wl L L' C b j w i f S
              }
           }
         }
@@ -1895,7 +1896,7 @@ proof -
                 val_L' \<leftarrow> mop_polarity_wl S' K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S'
-                else update_clause_wl L C b j w i f S'
+                else update_clause_wl L L' C b j w i f S'
                 }
             }
           }
@@ -1932,7 +1933,7 @@ proof -
                 val_L' \<leftarrow> mop_polarity_wl S' K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S'
-                else update_clause_wl L C b j w i f S'
+                else update_clause_wl L L' C b j w i f S'
                 }
             }
           }
@@ -2114,7 +2115,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
                   val_L' \<leftarrow> mop_polarity_wl S K;
                   if val_L' = Some True
                   then update_blit_wl L C b j w K S
-                  else update_clause_wl L C b j w i f S
+                  else update_clause_wl L L' C b j w i f S
                 }
             }
           }
@@ -2144,7 +2145,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
                   val_L' \<leftarrow> mop_polarity_wl S K;
                   if val_L' = Some True
                   then update_blit_wl L C b j w K S
-                  else update_clause_wl L C b j w i f S
+                  else update_clause_wl L L' C b j w i f S
                 }
             }
           }
@@ -2215,7 +2216,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
                 val_L'\<leftarrow> mop_polarity_wl S K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
-                else update_clause_wl L C b j w i f S
+                else update_clause_wl L L' C b j w i f S
               }
           }
         }
@@ -3438,7 +3439,7 @@ proof -
 
   have find_is_nat_rel: \<open>x \<in> ?find a b c \<Longrightarrow> x \<in> \<langle>nat_rel\<rangle>option_rel\<close> for x a b c
     by auto
-  have update_clause_wl: \<open>update_clause_wl L x1 x2a j w ia xa Sa
+  have update_clause_wl: \<open>update_clause_wl L L' x1 x2a j w ia xa Sa
         \<le> \<Down>?unit
            (do{
               T \<leftarrow> update_clause_l (snd X2) va x'b (fst X2);
@@ -3463,7 +3464,7 @@ proof -
           (T, T') \<in> state_wl_l (Some(L, Suc w)) \<and>
           C = C' \<and>
           T' = set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S')) S'}\<close> and
-      \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
+      pre: \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
       \<open>(K, x) \<in> Id\<close> and
       \<open>K \<in> Collect ((=) x1a)\<close> and
       \<open>x \<in>{K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
@@ -3525,6 +3526,11 @@ proof -
     have confl: \<open>get_conflict_wl S = None\<close>
       using S_S' loop_inv cond unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
       by normalize_goal+ auto
+  have
+    alien_L'':
+       \<open>L' \<in># all_lits_st Sa\<close>
+    using L' i_le2[OF unit_T] i dom Sa w
+    by (auto intro!: nth_in_all_lits_stI)
 
     show ?thesis
       supply RETURN_as_SPEC_refine[refine2 del]
@@ -3539,6 +3545,7 @@ proof -
       subgoal using alien_L' Sa X2 j_w w_le dom corr by (cases S; auto simp: keep_watch_def)
       subgoal using alien_L' Sa X2 by (cases S; auto simp: keep_watch_def
            simp flip: all_lits_alt_def2 all_lits_def)
+      subgoal using alien_L'' by auto
       subgoal using dom Sa X2 w S_S' by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w dom by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w alien_K by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def all_lits_def)
@@ -3548,7 +3555,7 @@ proof -
       subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
 
       subgoal supply [[goals_limit=1]]
-        using Sa S_S' X2 w w_le j_w n corr LKa i L_in_watched Ka L fx' blit_in_lit alien_L'
+        using Sa S_S' X2 w w_le j_w n corr LKa i L_in_watched Ka L fx' blit_in_lit alien_L' L'
            alien_K confl x' unfolding all_lits_def[symmetric] all_lits_alt_def[symmetric]
         apply (cases S; cases S')
         apply (clarsimp simp add: state_wl_l_def  keep_watch_def op_clauses_swap_def  blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'

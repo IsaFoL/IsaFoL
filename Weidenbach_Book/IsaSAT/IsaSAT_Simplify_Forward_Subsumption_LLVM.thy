@@ -1,6 +1,6 @@
 theory IsaSAT_Simplify_Forward_Subsumption_LLVM
   imports
-    IsaSAT_Simplify_Forward_Subsumption
+    IsaSAT_Simplify_Forward_Subsumption_Defs
     IsaSAT_Setup_LLVM
     IsaSAT_Trail_LLVM
     IsaSAT_Proofs_LLVM

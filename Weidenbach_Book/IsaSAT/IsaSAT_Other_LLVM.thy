@@ -1,5 +1,5 @@
 theory IsaSAT_Other_LLVM
-  imports IsaSAT_Other IsaSAT_Conflict_Analysis_LLVM IsaSAT_Backtrack_LLVM IsaSAT_Decide_LLVM
+  imports IsaSAT_Other_Defs IsaSAT_Conflict_Analysis_LLVM IsaSAT_Backtrack_LLVM IsaSAT_Decide_LLVM
 begin
 
 

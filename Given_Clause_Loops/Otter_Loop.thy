@@ -106,7 +106,7 @@ inductive OL :: "('f \<times> OL_label) set \<Rightarrow> ('f \<times> OL_label)
 | simplify_fwd: "C \<in> no_labels.Red_F (P \<union> A \<union> {C'}) \<Longrightarrow>
     state (N, {C}, P, {}, A) \<leadsto>OL state (N, {C'}, P, {}, A)"
 | delete_bwd_p: "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>
-    state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state(N, {C}, P, {}, A)"
+    state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state (N, {C}, P, {}, A)"
 | simplify_bwd_p: "C' \<in> no_labels.Red_F {C, C''} \<Longrightarrow>
     state (N, {C}, P \<union> {C'}, {}, A) \<leadsto>OL state (N \<union> {C''}, {C}, P, {}, A)"
 | delete_bwd_a: "C' \<in> no_labels.Red_F {C} \<or> C \<prec>\<cdot> C' \<Longrightarrow>

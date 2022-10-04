@@ -5,8 +5,9 @@ theory IsaSAT_LLVM
     IsaSAT_Initialisation_LLVM
     IsaSAT_Restart_Simp_LLVM
     Version
-    IsaSAT
+    IsaSAT_Defs
 begin
+
 hide_const (open)array_assn
 
 hide_const (open)IICF_Multiset.mset_rel
@@ -69,9 +70,6 @@ lemma init_state_wl_D'_code_isasat: \<open>hr_comp isasat_init_assn
   unfolding tuple15_rel_Id
   by (auto simp:  split: tuple15.splits)
 
-definition model_assn where
-  \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
-
 definition split_trail where \<open>split_trail x =x\<close>
 
 sepref_def split_trail_impl
@@ -130,12 +128,6 @@ sepref_def extract_state_stat
     al_fold_custom_empty[where 'l=64]
   by sepref
 
-sepref_def IsaSAT_use_fast_mode_impl
-  is \<open>uncurry0 (RETURN IsaSAT_use_fast_mode)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding IsaSAT_use_fast_mode_def
-  by sepref
-
 sepref_def empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -155,7 +147,7 @@ sepref_def  empty_init_code'
 
 sepref_register init_dt_wl_heur_full
 
-sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
+sepref_register to_init_state from_init_state get_conflict_wl_is_None_init
   init_dt_wl_heur
 
 sepref_def isasat_fast_bound_impl
@@ -277,16 +269,16 @@ sepref_def IsaSAT_code
   :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
-    get_conflict_wl_is_None extract_model_of_state_def[symmetric]
-    extract_stats_def[symmetric] init_dt_wl_heur_b_def[symmetric]
-    length_get_clauses_wl_heur_init_def[symmetric]
+    get_conflict_wl_is_None (*extract_model_of_state_def[symmetric]*)
+    (*extract_stats_def[symmetric]*) init_dt_wl_heur_b_def[symmetric]
+    (*length_get_clauses_wl_heur_init_def[symmetric]*)
     init_dt_step_wl_heur_unb_def[symmetric] init_dt_wl_heur_unb_def[symmetric]
     length_0_conv[symmetric]  op_list_list_len_def[symmetric]
     isasat_information_banner_alt_def
   supply get_conflict_wl_is_None_heur_init_def[simp]
   supply  get_conflict_wl_is_None_def[simp]
    option.splits[split]
-   extract_stats_def[simp del]
+(*   extract_stats_def[simp del]*)
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -414,22 +406,5 @@ export_llvm
   file \<open>code/src/isasat_restart.ll\<close>
 
 end
-
-definition model_bounded_assn where
-  \<open>model_bounded_assn =
-   hr_comp (bool1_assn \<times>\<^sub>a model_stat_assn\<^sub>0)
-   {((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<close>
-
-definition clauses_l_assn where
-  \<open>clauses_l_assn = hr_comp (IICF_Array_of_Array_List.aal_assn unat_lit_assn)
-    (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)\<close>
-
-theorem IsaSAT_full_correctness:
-  \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable_bounded))
-     \<in> [\<lambda>(_, a). (\<forall>C\<in>#a. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>k \<rightarrow>
-      model_bounded_assn\<close>
-  using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref]]
-  unfolding model_bounded_assn_def clauses_l_assn_def
-  by auto
 
 end

@@ -1,6 +1,6 @@
 theory IsaSAT_Simplify_Clause_Units_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_Trail_LLVM
-    IsaSAT_Simplify_Units
+    IsaSAT_Simplify_Units_Defs
     IsaSAT_Proofs_LLVM
 begin
 
@@ -147,7 +147,6 @@ sepref_def isa_simplify_clause_with_unit_st2_code
   unfolding isa_simplify_clause_with_unit_st2_alt_def
     length_avdom_def[symmetric] Suc_eq_plus1[symmetric]
     mop_arena_status_st_def[symmetric]
-    fold_tuple_optimizations
   apply (rewrite at \<open>(cons_trail_Propagated_tr _ \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(mark_clause_for_unit_as_changed \<hole>)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>(mark_clause_for_unit_as_unchanged \<hole>)\<close> unat_const_fold[where 'a=64])+
