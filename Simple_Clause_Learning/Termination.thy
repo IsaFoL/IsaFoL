@@ -18,9 +18,6 @@ lemma wf_if_measurable:
   shows "wf r"
   by (metis assms in_inv_image wfE_min wfI_min wf_inv_image)
 
-find_theorems "wfP (>)"
-thm wf_bounded_measure wf_if_measurable[OF] wfP_less
-
 lemma wfP_if_measurable:
   fixes f :: "'a \<Rightarrow> 'b" and R :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and S :: "'b \<Rightarrow> 'b \<Rightarrow> bool"
   assumes
@@ -83,6 +80,81 @@ qed
 section \<open>Termination\<close>
 
 context scl begin
+
+definition ground_lits_of_lit where
+  "ground_lits_of_lit L = {L \<cdot>l \<gamma> | \<gamma> . is_ground_lit (L \<cdot>l \<gamma>)}"
+
+fun \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal set" where
+  "\<M> N \<beta> (\<Gamma>, U, D) =
+    {L \<in> \<Union>(ground_lits_of_lit ` \<Union>(set_mset ` fset N)). atm_of L \<prec>\<^sub>B \<beta>} - fst ` set \<Gamma>"
+
+lemma minus_psubset_minusI:
+  assumes "C \<subset> B" and "B \<subseteq> A"
+  shows "(A - B \<subset> A - C)"
+proof (rule Set.psubsetI)
+  show "A - B \<subseteq> A - C"
+    using assms(1) by blast
+next
+  show "A - B \<noteq> A - C"
+    using assms by blast
+qed
+  
+
+lemma "wfP (propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<inverse>\<inverse>"
+proof (rule wfP_if_measurable)
+  fix S S' :: "('f, 'v) state"
+  assume "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion>
+    resolve N \<beta>)\<inverse>\<inverse> S S'"
+
+  have "trail_atoms_lt \<beta> S'" sorry
+
+  have "(\<M> N \<beta> S) < (\<M> N \<beta> S')" if "decide N \<beta> S' S"
+    using that
+  proof (cases N \<beta> S' S rule: decide.cases)
+    case (decideI L \<gamma> \<Gamma> U)
+    show ?thesis 
+      unfolding decideI(1,2) trail_decide_def \<M>.simps
+    proof (rule minus_psubset_minusI)
+      show "fst ` set \<Gamma> \<subset> fst ` set ((L \<cdot>l \<gamma>, None) # \<Gamma>)"
+        using decideI
+        by (auto simp add: trail_decide_def trail_defined_lit_def)
+    next
+      have "L \<cdot>l \<gamma> \<in> {L \<in> \<Union> (ground_lits_of_lit ` \<Union> (set_mset ` fset N)). atm_of L \<prec>\<^sub>B \<beta>}"
+        unfolding mem_Collect_eq
+        using decideI
+        by (auto simp add: ground_lits_of_lit_def)
+      moreover have "fst ` set \<Gamma> \<subseteq>
+        {L \<in> \<Union> (ground_lits_of_lit ` \<Union> (set_mset ` fset N)). atm_of L \<prec>\<^sub>B \<beta>}"
+      proof (rule Set.subsetI, unfold mem_Collect_eq, rule conjI)
+        show "\<And>x. x \<in> fst ` set \<Gamma> \<Longrightarrow> atm_of x \<prec>\<^sub>B \<beta>"
+          using \<open>trail_atoms_lt \<beta> S'\<close>
+          by (auto simp add: trail_atoms_lt_def decideI(1))
+      next
+        show "\<And>x. x \<in> fst ` set \<Gamma> \<Longrightarrow> x \<in> \<Union> (ground_lits_of_lit ` \<Union> (set_mset ` fset N))"
+          
+          sorry
+      qed
+      ultimately show "fst ` set ((L \<cdot>l \<gamma>, None) # \<Gamma>) \<subseteq>
+        {L \<in> \<Union> (ground_lits_of_lit ` \<Union> (set_mset ` fset N)). atm_of L \<prec>\<^sub>B \<beta>}"
+        by simp
+  qed
+
+  show "(\<M> N \<beta> S) < (\<M> N \<beta> S')"
+    sorry
+next
+  show "wfP (\<subset>)"
+    oops
+
+
+
+
+
+
+
+
+
+
+
 
 thm scl_def reasonable_scl_def regular_scl_def
 
