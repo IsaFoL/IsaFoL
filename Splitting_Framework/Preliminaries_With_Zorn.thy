@@ -2477,6 +2477,12 @@ next
 next
   fix M N
   assume m_entails_n: \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+
+  define E where \<open>E = {Pair bot {Neg a} |C. C\<in>N \<and> a \<in> (A_of C)}\<close>
+
+(* find a way to express the consequence of propositional compactness to use here without introducing \<Turnstile> ?*)
+  (* have \<open>enabled set N J \<equiv> \<close> *)
+  
   {
     fix J
     assume \<open>enabled_set N J\<close>
@@ -2499,12 +2505,14 @@ next
     have n_fin_subset: \<open>\<exists>V'\<subseteq> N. finite V' \<and> Np = F_of ` V'\<close>
       using finite_subset_image[OF np_fin np_proj] .
 
-    obtain M' N' where \<open>M' \<subseteq> M\<close> \<open>N' \<subseteq> N\<close> \<open>finite M'\<close> \<open>finite N'\<close> \<open>Mp = M' proj\<^sub>J J\<close> \<open>Np = F_of ` N'\<close>
+    obtain M' N' where m_n_subs: \<open>M' \<subseteq> M\<close> \<open>N' \<subseteq> N\<close> \<open>finite M'\<close> \<open>finite N'\<close> \<open>Mp = M' proj\<^sub>J J\<close> \<open>Np = F_of ` N'\<close>
       using m_fin_subset n_fin_subset by blast 
-    have \<open>M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
-      using mp_entails_np unfolding AF_entails_def sorry
-    have \<open>True\<close> by simp
+    then have \<open>M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+      using mp_entails_np by simp
+    then have \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+      using m_n_subs by auto
   }
+  
   show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
     sorry
 qed
