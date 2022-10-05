@@ -84,4 +84,16 @@ proof -
     done
 qed
 
+lemma isa_pure_literal_eliminate:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_pure_literal_eliminate S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_eliminate_wl S')\<close>
+proof -
+  have [refine]: \<open>RETURN (should_inprocess_st S) ≤ ⇓ bool_rel (pure_literal_eliminate_wl_needed S')\<close>
+    unfolding pure_literal_eliminate_wl_needed_def by auto
+  show ?thesis
+    unfolding isa_pure_literal_eliminate_def pure_literal_eliminate_wl_def
+    by (refine_vcg isa_pure_literal_elimination_wl_pure_literal_elimination_wl)
+     (use assms in auto)
+qed
+
 end

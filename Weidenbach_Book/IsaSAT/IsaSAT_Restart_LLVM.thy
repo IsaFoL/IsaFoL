@@ -106,10 +106,5 @@ sepref_def isasat_fast_code
   by sepref
 
 sepref_register should_inprocess_st
-sepref_def should_inprocess_st
-  is \<open>RETURN o should_inprocess_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding should_inprocess_st_def
-  by sepref
 
 end

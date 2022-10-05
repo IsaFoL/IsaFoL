@@ -31,6 +31,13 @@ sepref_def isa_pure_literal_elimination_wl_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+sepref_def isa_pure_literal_eliminate_code
+  is isa_pure_literal_eliminate
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_pure_literal_eliminate_def
+  by sepref
+
 (*TODO Move*)
 lemmas [llvm_code] = is_NONE_impl_def is_subsumed_impl_def is_strengthened_impl_def
   STRENGTHENED_BY_impl_def SUBSUMED_BY_impl_def NONE_impl_def subsumed_by_impl_def

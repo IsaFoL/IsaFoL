@@ -25,6 +25,7 @@ definition isa_pure_literal_elimination_round_wl where
 }\<close>
 
 
+
 definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
   \<open>isa_pure_literal_elimination_wl_pre S = (\<exists>T u r.
     (S, T) \<in> twl_st_heur_restart_ana' r u \<and> pure_literal_elimination_wl_pre T)\<close>
@@ -50,5 +51,11 @@ definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat
     (S\<^sub>0, 0, False);
    RETURN S
   }\<close>
+
+definition isa_pure_literal_eliminate :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>isa_pure_literal_eliminate S = do {
+    let b = should_inprocess_st S;
+    if b then isa_pure_literal_elimination_wl S else RETURN S
+}\<close>
 
 end

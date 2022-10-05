@@ -3637,6 +3637,22 @@ proof -
 qed
 
 
+definition forward_subsumption_needed_l :: \<open>_\<close> where
+  \<open>forward_subsumption_needed_l S = SPEC (\<lambda>_. True)\<close>
+
+definition forward_subsume_l :: \<open>_\<close> where
+  \<open>forward_subsume_l S = do {
+     ASSERT (forward_subsumption_all_pre S);
+     b \<leftarrow> forward_subsumption_needed_l S;
+     if b then forward_subsumption_all S else RETURN S
+}\<close>
+
+lemma forward_subsume_l:
+  assumes \<open>forward_subsumption_all_pre S\<close>
+  shows \<open>forward_subsume_l S \<le> \<Down>Id (SPEC(cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S))\<close>
+  unfolding forward_subsume_l_def forward_subsumption_needed_l_def
+  by (refine_vcg forward_subsumption_all[unfolded Down_id_eq]) (use assms in auto)
+
 subsection \<open>Pure Literal Deletion\<close>
 definition propagate_pure_l_pre:: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
   \<open>propagate_pure_l_pre L S \<longleftrightarrow>
@@ -4144,5 +4160,24 @@ proof -
     subgoal by (auto simp: pure_literal_elimination_l_inv_def)
     done
 qed
+
+
+definition pure_literal_elimination_l_needed :: \<open>'v twl_st_l \<Rightarrow> bool nres\<close> where
+  \<open>pure_literal_elimination_l_needed S = SPEC (\<lambda>_. True)\<close>
+
+definition pure_literal_eliminate_l :: \<open>_\<close> where
+  \<open>pure_literal_eliminate_l S = do {
+     ASSERT (pure_literal_elimination_l_pre S);
+     b \<leftarrow> pure_literal_elimination_l_needed S;
+     if b then pure_literal_elimination_l S else RETURN S
+  }\<close>
+
+
+lemma pure_literal_eliminate_l:
+  assumes \<open>pure_literal_elimination_l_pre S\<close>
+  shows \<open>pure_literal_eliminate_l S \<le> SPEC (\<lambda>T. cdcl_twl_inprocessing_l\<^sup>*\<^sup>* S T)\<close>
+  unfolding pure_literal_eliminate_l_def pure_literal_elimination_l_needed_def
+  by (refine_vcg pure_literal_elimination_l)
+   (use assms in auto)
 
 end

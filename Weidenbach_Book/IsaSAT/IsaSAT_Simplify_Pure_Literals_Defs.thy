@@ -134,4 +134,5 @@ definition isa_pure_literal_deletion_wl :: \<open>bool list \<Rightarrow> isasat
   RETURN (eliminated, S)
 })\<close>
 
+
 end

@@ -136,8 +136,8 @@ definition cdcl_twl_full_restart_inprocess_l where
   S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
   S' \<leftarrow> remove_one_annot_true_clause_imp S';
   S' \<leftarrow> mark_duplicated_binary_clauses_as_garbage S';
-  S' \<leftarrow> forward_subsumption_all S';
-  S' \<leftarrow> pure_literal_elimination_l S';
+  S' \<leftarrow> forward_subsume_l S';
+  S' \<leftarrow> pure_literal_eliminate_l S';
   S' \<leftarrow> simplify_clauses_with_units_st S';
   if (get_conflict_l S' \<noteq> None) then do {
     ASSERT(cdcl_twl_restart_l_inp\<^sup>*\<^sup>* S S');
@@ -1153,7 +1153,7 @@ proof -
   qed
 
   have forward_subsumption_all:
-    \<open>forward_subsumption_all V \<le> SPEC (?finp V')\<close>
+    \<open>forward_subsume_l V \<le> SPEC (?finp V')\<close>
     if
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -1229,7 +1229,7 @@ proof -
        (auto simp: VV'' clss_upd list_invs struct_invs)
 
     show ?thesis
-      by (rule forward_subsumption_all[THEN order_trans, of ])
+      by (rule forward_subsume_l[THEN order_trans, of ])
        (use lev0 UU'' struct_invs list_invs confl clss ent  annot_V count_dec ent_V''
            \<open>V' = V\<close>[symmetric] clss_upd VV'' pre
         in \<open>auto dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp
@@ -1238,7 +1238,7 @@ proof -
   qed
 
   have pure_literal_elimination_round:
-    \<open>pure_literal_elimination_l V \<le> SPEC (?finp V')\<close>
+    \<open>pure_literal_eliminate_l V \<le> SPEC (?finp V')\<close>
     if
       pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre S\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close>
@@ -1317,7 +1317,7 @@ proof -
        (auto simp: VV'' clss_upd list_invs struct_invs)
 
     show ?thesis
-      by (rule pure_literal_elimination_l[THEN order_trans, of ])
+      by (rule pure_literal_eliminate_l[THEN order_trans, of ])
        (use lev0 UU'' struct_invs list_invs confl clss ent  annot_V count_dec ent_V''
            \<open>V' = V\<close>[symmetric] clss_upd VV'' pre
         in \<open>auto dest: rtranclp_cdcl_twl_inprocessing_l_cdcl_twl_l_inp

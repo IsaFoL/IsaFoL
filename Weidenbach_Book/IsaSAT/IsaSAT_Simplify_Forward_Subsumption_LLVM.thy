@@ -5,6 +5,7 @@ theory IsaSAT_Simplify_Forward_Subsumption_LLVM
     IsaSAT_Trail_LLVM
     IsaSAT_Proofs_LLVM
     IsaSAT_Arena_Sorting_LLVM
+    IsaSAT_Show_LLVM
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
@@ -840,6 +841,19 @@ sepref_def isa_forward_subsumption_all_impl
     length_watchlist_raw_def[symmetric]
     al_fold_custom_empty[where 'l=64]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+(*TODO this should become a should_forward_subsume with different scheduling than pure literals*)
+sepref_def should_inprocess_st
+  is \<open>RETURN o should_inprocess_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding should_inprocess_st_def
+  by sepref
+
+sepref_def isa_forward_subsume_impl
+  is isa_forward_subsume
+  :: \<open>[isasat_fast_relaxed]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_forward_subsume_def
   by sepref
 
 end

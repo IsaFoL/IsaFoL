@@ -114,12 +114,12 @@ definition cdcl_twl_full_restart_wl_D_inprocess_heur_prog where
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_subsumption);
-    T \<leftarrow> isa_forward_subsumption_all T;
+    T \<leftarrow> isa_forward_subsume T;
     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_subsumption);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_pure_literal);
-    T \<leftarrow> isa_pure_literal_elimination_wl T;
+    T \<leftarrow> isa_pure_literal_eliminate T;
     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_pure_literal);
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);

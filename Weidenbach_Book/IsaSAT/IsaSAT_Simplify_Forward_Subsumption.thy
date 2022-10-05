@@ -3698,6 +3698,7 @@ proof -
   have
     1: \<open>(RETURN S') \<ge> do {
     let S = S;
+    let _ = True;
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,S). i \<le> length shrunken \<and> S=S'\<^esup>(\<lambda>(i,S). i < length shrunken) (\<lambda>(i,S). do {
       ASSERT (i < length shrunken);
       let C = shrunken ! i;
@@ -3719,7 +3720,8 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-
+  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats S) ≤ SPEC (λc. (c, True) ∈ UNIV)\<close> for c
+   unfolding isasat_current_progress_def by auto
   have [refine]: \<open>((0, isa_forward_reset_added_and_stats S), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
     get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>)
     using assms isa_forward_reset_added_and_stats[of S S' r u] by (auto simp: isa_forward_reset_added_and_stats_def)
@@ -3733,7 +3735,7 @@ proof -
   show ?thesis
     unfolding forward_subsumption_finalize_def
       mop_clause_not_marked_to_delete_heur_def nres_monad3
-      conc_fun_RETURN[symmetric]
+      conc_fun_RETURN[symmetric] Let_def[of \<open>isasat_current_progress _ _\<close>]
     apply (rule ref_two_step[OF _ 1])
     apply (refine_vcg clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_uncurry]
       mark_added_clause_heur2_id[unfolded conc_fun_RETURN, of _ S' r u, THEN order_trans]
@@ -3924,5 +3926,18 @@ lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   apply (rule assms)
   apply (rule forward_subsumption_all_wl2_forward_subsumption_all_wl[unfolded Down_id_eq])
   done
+
+lemma isa_forward_subsume_forward_subsume_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_forward_subsume S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (forward_subsume_wl S')\<close>
+proof -
+  have [refine]: \<open>RETURN (should_inprocess_st S) ≤ ⇓ bool_rel (forward_subsume_wl_needed S')\<close>
+    unfolding forward_subsume_wl_needed_def by auto
+  show ?thesis
+    using assms
+    unfolding forward_subsume_wl_def isa_forward_subsume_def
+    by (refine_vcg isa_forward_subsumption_all_forward_subsumption_wl_all) auto
+qed
 
 end
