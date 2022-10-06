@@ -13,6 +13,8 @@ no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [
 sepref_register 0 1
 
 sepref_register mop_arena_update_lit isa_pure_literal_count_occs_wl
+    isa_pure_literal_elimination_round_wl incr_purelit_rounds_st
+
 
 sepref_def should_inprocess_st
   is \<open>RETURN o should_inprocess_st\<close>
