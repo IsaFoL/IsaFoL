@@ -13,14 +13,14 @@ theory Otter_Loop
 begin
 
 datatype OL_label =
-  Active | New | XX | Passive | YY
+  New | XX | Passive | YY | Active
 
 primrec nat_of_OL_label :: "OL_label \<Rightarrow> nat" where
-  "nat_of_OL_label Active = 0"
-| "nat_of_OL_label YY = 1"
-| "nat_of_OL_label Passive = 2"
+  "nat_of_OL_label New = 4"
 | "nat_of_OL_label XX = 3"
-| "nat_of_OL_label New = 4"
+| "nat_of_OL_label Passive = 2"
+| "nat_of_OL_label YY = 1"
+| "nat_of_OL_label Active = 0"
 
 definition OL_Prec_L :: "OL_label \<Rightarrow> OL_label \<Rightarrow> bool" (infix "\<sqsubset>L" 50) where
   "OL_Prec_L l l' \<longleftrightarrow> nat_of_OL_label l < nat_of_OL_label l'"

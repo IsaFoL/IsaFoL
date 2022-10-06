@@ -45,7 +45,7 @@ locale fair_discount_loop =
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
-    empty :: "'p" and
+    empty :: 'p and
     select :: "'p \<Rightarrow> 'f passive_elem" and
     add :: "'f passive_elem \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f passive_elem \<Rightarrow> 'p \<Rightarrow> 'p" and

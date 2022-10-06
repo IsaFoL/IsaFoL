@@ -1,6 +1,6 @@
 (* Title:        Given Clause Loops
    Author:       Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
-   Maintainer:   Sophie Tourret <stourret at loria.fr>, 2022
+   Maintainer:   Jasmin Blanchette <j.c.blanchette at vu.nl>, 2022
 *)
 
 section \<open>Given Clause Loops\<close>
