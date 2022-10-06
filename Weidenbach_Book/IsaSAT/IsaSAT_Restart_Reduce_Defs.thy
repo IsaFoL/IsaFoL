@@ -426,10 +426,6 @@ definition isasat_GC_clauses_pre_wl_D :: \<open>isasat \<Rightarrow> bool\<close
   \<exists>T. (S, T) \<in> twl_st_heur_restart \<and> cdcl_GC_clauses_pre_wl T
   )\<close>
 
-definition schedule_next_inprocessing_st :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>schedule_next_inprocessing_st b S =
-  (if b \<and> should_inprocess_st S then let heur = get_heur S in set_heur_wl_heur (schedule_next_inprocessing (heur)) S else S)\<close>
-
 definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
 \<open>isasat_GC_clauses_wl_D = (\<lambda>inprocessing S. do {
   ASSERT(isasat_GC_clauses_pre_wl_D S);
@@ -439,7 +435,7 @@ definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarr
     ASSERT(length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S));
     ASSERT(\<forall>i \<in> set (get_tvdom T). i < length (get_clauses_wl_heur S));
     U \<leftarrow> rewatch_heur_and_reorder_st (empty_US_heur T);
-    RETURN (schedule_next_inprocessing_st inprocessing U)
+    RETURN U
   }
   else RETURN S})\<close>
 

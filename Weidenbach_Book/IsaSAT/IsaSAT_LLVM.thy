@@ -296,7 +296,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let opts = IsaOptions (C_bool_to_bool red) (C_bool_to_bool res)
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then TARGET_ALWAYS else if target_option = 0 then TARGET_NEVER else TARGET_STABLE_ONLY)
-         fema sema units;
+         fema sema units True;
       (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let (_ :: unit) = print_propa (stats_propagations stats);
       let (_ :: unit) = print_confl (stats_conflicts stats);

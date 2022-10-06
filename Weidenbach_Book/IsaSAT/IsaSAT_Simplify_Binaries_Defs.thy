@@ -319,16 +319,11 @@ definition mark_duplicated_binary_clauses_as_garbage_pre_wl_heur :: \<open>isasa
   (\<exists>S' r u. (S, S') \<in> twl_st_heur_restart_ana' r u \<and>
     mark_duplicated_binary_clauses_as_garbage_pre_wl S')\<close>
 
-definition binary_deduplicate_required :: \<open>isasat \<Rightarrow> bool nres\<close> where
-  \<open>binary_deduplicate_required S = do {
-    RETURN (should_inprocess_st S)
- }\<close>
-
 definition isa_mark_duplicated_binary_clauses_as_garbage_wl :: \<open>isasat \<Rightarrow> _ nres\<close> where
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S\<^sub>0 = (do {
      let ns = (get_vmtf_heur_array S\<^sub>0);
      ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
-     skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
+     skip \<leftarrow> RETURN (should_eliminate_pure_st S\<^sub>0);
      CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
      (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS,S). ns = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS,S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {
@@ -358,7 +353,7 @@ definition isa_mark_duplicated_binary_clauses_as_garbage_wl2 :: \<open>isasat \<
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl2 S\<^sub>0 = (do {
     let ns = get_vmtf_heur_array S\<^sub>0;
     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
-    dedup \<leftarrow> binary_deduplicate_required S\<^sub>0;
+    dedup \<leftarrow> RETURN (should_eliminate_pure_st S\<^sub>0);
     CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
     (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {

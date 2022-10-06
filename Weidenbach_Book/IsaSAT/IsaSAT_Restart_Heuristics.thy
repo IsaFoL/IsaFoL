@@ -173,10 +173,10 @@ lemma cdcl_twl_full_restart_wl_D_inprocess_heur_prog_alt_def:
     T \<leftarrow> isa_mark_duplicated_binary_clauses_as_garbage_wl2 T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
-    T \<leftarrow> isa_forward_subsumption_all T;
+    T \<leftarrow> isa_forward_subsume T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
         ASSERT(learned_clss_count T \<le> learned_clss_count S0);
-    T \<leftarrow> isa_pure_literal_elimination_wl T;
+    T \<leftarrow> isa_pure_literal_eliminate T;
     ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S0));
     ASSERT(learned_clss_count T \<le> learned_clss_count S0);
     T \<leftarrow> isa_simplify_clauses_with_units_st_wl2 T;
@@ -251,8 +251,8 @@ proof -
       isasat_GC_clauses_wl_D[where r=r, THEN fref_to_Down]
       isa_simplify_clauses_with_unit_st2_isa_simplify_clauses_with_unit_wl[where r=r]
       isa_mark_duplicated_binary_clauses_as_garbage_wl_mark_duplicated_binary_clauses_as_garbage_wl2[where r=r]
-      isa_pure_literal_elimination_wl_pure_literal_elimination_wl[where r=r]
-      isa_forward_subsumption_all_forward_subsumption_wl_all)
+      isa_pure_literal_eliminate[where r=r]
+      isa_forward_subsume_forward_subsume_wl[where r=r])
     apply (rule H2; assumption)
     subgoal
       unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def

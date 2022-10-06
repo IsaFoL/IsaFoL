@@ -1991,6 +1991,17 @@ definition forward_subsumption_all_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
   }
 )\<close>
 
+
+definition forward_subsume_wl_needed :: \<open>'v twl_st_wl \<Rightarrow> bool nres\<close> where
+  \<open>forward_subsume_wl_needed S = SPEC (\<lambda>_. True)\<close>
+
+definition forward_subsume_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>forward_subsume_wl S = do {
+    ASSERT (forward_subsumption_all_wl_pre S);
+    b \<leftarrow> forward_subsume_wl_needed S;
+    if b then forward_subsumption_all_wl S else RETURN S
+}\<close>
+
 lemma
   assumes \<open>forward_subsumption_all_wl_inv S cands (xs, T)\<close>
   shows
@@ -2086,6 +2097,47 @@ proof -
     subgoal by auto
     subgoal by (auto dest: forward_subsumption_all_wl_inv_no_lost_clause_in_WLD
       forward_subsumption_all_wl_inv_literals_are_\<L>\<^sub>i\<^sub>n'D)
+    done
+qed
+
+lemma forward_subsume_wl:
+  assumes
+    SS': \<open>(S, S') \<in> state_wl_l None\<close> and
+    lost: \<open>correct_watching'_leaking_bin S\<close> and
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows
+   \<open>forward_subsume_wl S \<le> \<Down>({(T, T').
+    (T, T') \<in> state_wl_l None \<and> get_watched_wl T = get_watched_wl S \<and> no_lost_clause_in_WL T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T})
+    (forward_subsume_l S')\<close>
+proof -
+  have lost: \<open>no_lost_clause_in_WL S\<close> if pre: \<open>forward_subsumption_all_pre S'\<close>
+  proof -
+    obtain S'' where
+      S'S'': \<open>(S', S'') \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs S''\<close> and
+      \<open>twl_list_invs S'\<close>
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S'')\<close> and
+      \<open>set (get_all_mark_of_propagated (get_trail_l S')) \<subseteq> {0}\<close> and
+      \<open>clauses_to_update_l S' = {#}\<close> and
+      \<open>count_decided (get_trail_l S') = 0\<close>
+      using pre unfolding forward_subsumption_all_pre_def by fast
+    have \<open>correct_watching'_nobin S\<close>
+      using assms(2) by (cases S) (auto simp: correct_watching'_leaking_bin.simps
+        correct_watching'_nobin.simps)
+    then show ?thesis
+      using correct_watching'_nobin_clauses_pointed_to0[OF assms(1) _ assms(3) S'S'' struct_invs]
+      by fast
+  qed
+  show ?thesis
+    unfolding forward_subsume_wl_def forward_subsume_l_def
+      forward_subsumption_needed_l_def forward_subsume_wl_needed_def
+    apply (refine_vcg forward_subsumption_all_wl)
+    subgoal using assms unfolding forward_subsumption_all_wl_pre_def by fast
+    subgoal by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms lost by simp
     done
 qed
 
@@ -2403,5 +2455,35 @@ proof -
     subgoal by auto
     done
 qed
+
+definition pure_literal_eliminate_wl_needed :: \<open>_\<close> where
+  \<open>pure_literal_eliminate_wl_needed S = SPEC (\<lambda>_. True)\<close>
+
+definition pure_literal_eliminate_wl :: \<open>_\<close> where
+  \<open>pure_literal_eliminate_wl S = do {
+     ASSERT (pure_literal_elimination_wl_pre S);
+    b \<leftarrow> pure_literal_eliminate_wl_needed S;
+   if b then pure_literal_elimination_wl S else RETURN S
+}\<close>
+
+
+
+lemma pure_literal_eliminate_wl:
+  assumes
+    \<open>(S, S') \<in> state_wl_l None\<close>
+    \<open>no_lost_clause_in_WL S\<close>
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S\<close>
+  shows \<open>pure_literal_eliminate_wl S \<le>
+    \<Down>{(S,T). no_lost_clause_in_WL S \<and> (S,T)\<in> state_wl_l None \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} (pure_literal_eliminate_l S')\<close>
+  unfolding pure_literal_eliminate_wl_def pure_literal_eliminate_l_def
+    pure_literal_eliminate_wl_needed_def pure_literal_elimination_l_needed_def
+  apply (refine_vcg pure_literal_elimination_wl)
+  subgoal using assms unfolding pure_literal_elimination_wl_pre_def by blast
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  done
 
 end

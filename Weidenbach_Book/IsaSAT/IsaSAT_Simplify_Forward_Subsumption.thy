@@ -3594,7 +3594,7 @@ lemma empty_occs2_st:
 
 lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (reset_added_heur heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def reset_added_heur_def reset_added_heur_stats_def
-    schedule_next_inprocessing_stats_def phase_saving_def)
+    schedule_next_pure_lits_stats_def phase_saving_def)
 
 
 lemma mop_mark_added_heur_st_it:
@@ -3686,6 +3686,22 @@ lemma isa_forward_reset_added_and_stats:
   by (auto simp add: IsaSAT_Restart.all_init_atms_alt_def twl_st_heur_restart_occs_def incr_forward_rounds_st_def
     isa_forward_reset_added_and_stats_def)
 
+(*TODO Move*)
+lemma [intro!]: \<open>heuristic_rel \<A> (get_heur S) \<Longrightarrow> heuristic_rel \<A> (schedule_next_subsume delta (get_heur S))\<close>
+  by (auto simp: schedule_next_subsume_def heuristic_rel_def heuristic_rel_stats_def
+    schedule_next_subsume_stats_def)
+
+lemma schedule_next_subsume_st:
+  \<open>(S, S') \<in> twl_st_heur_restart_occs' r u \<Longrightarrow>
+  (schedule_next_subsume_st delta S, S') \<in> twl_st_heur_restart_occs' r u\<close>
+  by (auto simp add: IsaSAT_Restart.all_init_atms_alt_def twl_st_heur_restart_occs_def incr_forward_rounds_st_def
+    schedule_next_subsume_st_def)
+
+lemma
+  get_occs_schedule_next_subsume_st[simp]: \<open>get_occs (schedule_next_subsume_st delta S) = get_occs S\<close> and
+  get_vdom_schedule_next_subsume_st[simp]: \<open>get_vdom (schedule_next_subsume_st delta S) = get_vdom S\<close>
+  by (auto simp: schedule_next_subsume_st_def)
+
 lemma forward_subsumption_finalize:
   assumes
     \<open>(S, S') \<in> twl_st_heur_restart_occs' r u\<close>
@@ -3698,6 +3714,7 @@ proof -
   have
     1: \<open>(RETURN S') \<ge> do {
     let S = S;
+    let _ = True;
     (_, S) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,S). i \<le> length shrunken \<and> S=S'\<^esup>(\<lambda>(i,S). i < length shrunken) (\<lambda>(i,S). do {
       ASSERT (i < length shrunken);
       let C = shrunken ! i;
@@ -3719,10 +3736,13 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-
-  have [refine]: \<open>((0, isa_forward_reset_added_and_stats S), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
-    get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>)
-    using assms isa_forward_reset_added_and_stats[of S S' r u] by (auto simp: isa_forward_reset_added_and_stats_def)
+  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S)) ≤ SPEC (λc. (c, True) ∈ UNIV)\<close> for c delta
+   unfolding isasat_current_progress_def by auto
+  have [refine]: \<open>((0, isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S)), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
+    get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>) for delta
+    using assms isa_forward_reset_added_and_stats[of \<open>schedule_next_subsume_st delta S\<close> S' r u]
+      schedule_next_subsume_st[of S S' r u]
+    by (auto simp: isa_forward_reset_added_and_stats_def)
   have [refine]: \<open>RETURN (clause_not_marked_to_delete_heur x2a (shrunken ! x1a))
     \<le> \<Down> {(b,b'). b=b' \<and> b'=(shrunken!x1a\<in>#dom_m (get_clauses_wl S'))} (RES UNIV)\<close>
     if \<open>(x2a, S') \<in> ?state\<close> \<open>x1a < length shrunken\<close>
@@ -3733,7 +3753,7 @@ proof -
   show ?thesis
     unfolding forward_subsumption_finalize_def
       mop_clause_not_marked_to_delete_heur_def nres_monad3
-      conc_fun_RETURN[symmetric]
+      conc_fun_RETURN[symmetric] Let_def[of \<open>isasat_current_progress _ _\<close>]
     apply (rule ref_two_step[OF _ 1])
     apply (refine_vcg clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_uncurry]
       mark_added_clause_heur2_id[unfolded conc_fun_RETURN, of _ S' r u, THEN order_trans]
@@ -3924,5 +3944,18 @@ lemma isa_forward_subsumption_all_forward_subsumption_wl_all:
   apply (rule assms)
   apply (rule forward_subsumption_all_wl2_forward_subsumption_all_wl[unfolded Down_id_eq])
   done
+
+lemma isa_forward_subsume_forward_subsume_wl:
+  assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
+  shows \<open>isa_forward_subsume S \<le>
+    \<Down>(twl_st_heur_restart_ana' r u) (forward_subsume_wl S')\<close>
+proof -
+  have [refine]: \<open>RETURN (should_subsume_st S) ≤ ⇓ bool_rel (forward_subsume_wl_needed S')\<close>
+    unfolding forward_subsume_wl_needed_def by auto
+  show ?thesis
+    using assms
+    unfolding forward_subsume_wl_def isa_forward_subsume_def
+    by (refine_vcg isa_forward_subsumption_all_forward_subsumption_wl_all) auto
+qed
 
 end
