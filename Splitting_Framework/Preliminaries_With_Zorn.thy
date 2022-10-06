@@ -35,6 +35,8 @@ qed
 datatype 'a neg = Pos "'a" | Neg "'a neg"
 (* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
 
+(* datatype 'a sign = Pos "'a" | Neg "'a" *)
+
 fun to_V :: "'a neg \<Rightarrow> 'a" where
   "to_V (Pos C) = C" |
   "to_V (Neg C) = to_V C"
