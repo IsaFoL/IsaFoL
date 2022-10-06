@@ -13,7 +13,7 @@ begin
 
 subsection \<open>Locale\<close>
 
-type_synonym ('t, 'p, 'f) fair_ZL_wo_ghosts_state = "'t \<times> 'p \<times> 'f option \<times> 'f fset"
+type_synonym ('t, 'p, 'f) ZLf_wo_ghosts_state = "'t \<times> 'p \<times> 'f option \<times> 'f fset"
 
 locale fair_zipperposition_loop_wo_ghosts =
   w_ghosts?: fair_zipperposition_loop Bot_F Inf_F Bot_G Q entails_q Inf_G_q Red_I_q Red_F_q \<G>_F_q
@@ -45,12 +45,12 @@ locale fair_zipperposition_loop_wo_ghosts =
     Prec_S :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<prec>S" 50)
 begin
 
-fun wo_ghosts_of :: "('t, 'p, 'f) fair_ZL_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state" where
+fun wo_ghosts_of :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_wo_ghosts_state" where
   "wo_ghosts_of (T, D, P, Y, A) = (T, P, Y, A)"
 
 inductive
   fair_ZL_wo_ghosts ::
-  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
+  "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> bool"
   (infix "\<leadsto>ZLfw" 50)
   where
   compute_infer: "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
@@ -73,15 +73,14 @@ inductive
 
 inductive
   compute_infer_step ::
-  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
+  "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> bool"
 where
   "(\<exists>\<iota>s \<in># t_llists T. \<iota>s \<noteq> LNil) \<Longrightarrow> t_pick_elem T = (\<iota>0, T') \<Longrightarrow>
    \<iota>0 \<in> no_labels.Red_I (fset A \<union> {C}) \<Longrightarrow>
    compute_infer_step (T, P, None, A) (T', p_add C P, None, A)"
 
 inductive
-  choose_p_step ::
-  "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool"
+  choose_p_step :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> ('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> bool"
 where
   "P \<noteq> p_empty \<Longrightarrow>
    choose_p_step (T, P, None, A) (T, p_remove (p_select P) P, Some (p_select P), A)"
@@ -111,20 +110,20 @@ qed
 
 subsection \<open>Basic Definitions and Lemmas\<close>
 
-abbreviation todo_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 't" where
+abbreviation todo_of :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> 't" where
   "todo_of St \<equiv> fst St"
-abbreviation passive_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'p" where
+abbreviation passive_of :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> 'p" where
   "passive_of St \<equiv> fst (snd St)"
-abbreviation yy_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f option" where
+abbreviation yy_of :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> 'f option" where
   "yy_of St \<equiv> fst (snd (snd St))"
-abbreviation active_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f fset" where
+abbreviation active_of :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> 'f fset" where
   "active_of St \<equiv> snd (snd (snd St))"
 
-abbreviation all_formulas_of :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> 'f set" where
+abbreviation all_formulas_of :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> 'f set" where
   "all_formulas_of St \<equiv> passive.elems (passive_of St) \<union> set_option (yy_of St) \<union> fset (active_of St)"
 
 definition
-  Liminf_zl_fstate :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
+  Liminf_zl_fstate :: "('t, 'p, 'f) ZLf_wo_ghosts_state llist \<Rightarrow> 'f set \<times> 'f set \<times> 'f set"
 where
   "Liminf_zl_fstate Sts =
    (Liminf_llist (lmap (passive.elems \<circ> passive_of) Sts),
@@ -134,22 +133,22 @@ where
 
 subsection \<open>Initial States and Invariants\<close>
 
-inductive is_initial_fair_ZL_wo_ghosts_state :: "('t, 'p, 'f) fair_ZL_wo_ghosts_state \<Rightarrow> bool" where
+inductive is_initial_ZLf_wo_ghosts_state :: "('t, 'p, 'f) ZLf_wo_ghosts_state \<Rightarrow> bool" where
   "flat_inferences_of (mset \<iota>ss) = no_labels.Inf_from {} \<Longrightarrow>
-   is_initial_fair_ZL_wo_ghosts_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
+   is_initial_ZLf_wo_ghosts_state (fold t_add_llist \<iota>ss t_empty, p_empty, None, {||})"
 
-lemma is_initial_fair_ZL_state_imp_is_initial_fair_ZL_wo_ghosts_state:
-  assumes "is_initial_fair_ZL_state St"
-  shows "is_initial_fair_ZL_wo_ghosts_state (wo_ghosts_of St)"
-  using assms by cases (auto intro: is_initial_fair_ZL_wo_ghosts_state.intros)
+lemma is_initial_ZLf_state_imp_is_initial_ZLf_wo_ghosts_state:
+  assumes "is_initial_ZLf_state St"
+  shows "is_initial_ZLf_wo_ghosts_state (wo_ghosts_of St)"
+  using assms by cases (auto intro: is_initial_ZLf_wo_ghosts_state.intros)
 
-lemma is_initial_fair_ZL_wo_ghosts_state_imp_is_initial_fair_ZL_state:
+lemma is_initial_ZLf_wo_ghosts_state_imp_is_initial_ZLf_state:
   assumes
-    init: "is_initial_fair_ZL_wo_ghosts_state (wo_ghosts_of St)" and
+    init: "is_initial_ZLf_wo_ghosts_state (wo_ghosts_of St)" and
     don: "done_of St = {}"
-  shows "is_initial_fair_ZL_state St"
+  shows "is_initial_ZLf_state St"
   using init
-  by cases (smt don is_initial_fair_ZL_state.simps prod.inject prod.exhaust_sel wo_ghosts_of.elims)
+  by cases (smt don is_initial_ZLf_state.simps prod.inject prod.exhaust_sel wo_ghosts_of.elims)
 
 end
 
@@ -302,7 +301,7 @@ proof cases
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T', D \<union> {\<iota>0}, p_add C P, None, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -321,7 +320,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T, D, p_remove (p_select P) P, Some (p_select P), A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -340,7 +339,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T, D, P, None, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -359,7 +358,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T, D, P, Some C', A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -378,7 +377,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T, D, P, Some C, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -397,7 +396,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (T, D, p_add C'' P, Some C, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -416,7 +415,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (fold t_add_llist \<iota>ss T, D - flat_inferences_of (mset \<iota>ss), P, None, A |\<union>| {|C|})"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -435,7 +434,7 @@ next
 
   define D :: "'f inference set" where
     "D = done_of St0"
-  define St0' :: "('t, 'p, 'f) fair_ZL_state" where
+  define St0' :: "('t, 'p, 'f) ZLf_state" where
     "St0' = (t_remove_llist \<iota>s T, D \<union> lset \<iota>s, P, Y, A)"
 
   have wo_st0': "wo_ghosts_of St0' = St'"
@@ -457,7 +456,7 @@ lemma chain_fair_ZL_step_wo_ghosts_imp_chain_fair_ZL_step:
   assumes chain: "chain (\<leadsto>ZLfw) Sts"
   shows "\<exists>Sts0. lmap wo_ghosts_of Sts0 = Sts \<and> chain (\<leadsto>ZLf) Sts0 \<and> done_of (lhd Sts0) = {}"
 proof -
-  define St0 :: "('t, 'p, 'f) fair_ZL_state"  where
+  define St0 :: "('t, 'p, 'f) ZLf_state"  where
     "St0 = (todo_of (lhd Sts), {}, passive_of (lhd Sts), yy_of (lhd Sts), active_of (lhd Sts))"
 
   have hd: "lhd Sts = wo_ghosts_of St0"
@@ -489,7 +488,7 @@ subsection \<open>Completeness\<close>
 theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
-    init: "is_initial_fair_ZL_wo_ghosts_state (lhd Sts)" and
+    init: "is_initial_ZLf_wo_ghosts_state (lhd Sts)" and
     fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
     bot: "B \<in> Bot_F" and
     unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
@@ -499,18 +498,18 @@ theorem
     fair_ZL_wo_ghosts_complete:
       "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))" (is ?thesis2)
 proof -
-  obtain Sts0 :: "('t, 'p, 'f) fair_ZL_state llist" where
+  obtain Sts0 :: "('t, 'p, 'f) ZLf_state llist" where
     full0: "full_chain (\<leadsto>ZLf) Sts0" and
     sts0: "lmap wo_ghosts_of Sts0 = Sts" and
     don0: "done_of (lhd Sts0) = {}"
     using full_chain_fair_ZL_step_wo_ghosts_imp_full_chain_fair_ZL_step[OF full] by blast
 
-  have init0: "is_initial_fair_ZL_state (lhd Sts0)"
+  have init0: "is_initial_ZLf_state (lhd Sts0)"
   proof -
     have hd: "lhd (lmap wo_ghosts_of Sts0) = wo_ghosts_of (lhd Sts0)"
       using full0 full_chain_not_lnull llist.map_sel(1) by blast
     show ?thesis
-      by (rule is_initial_fair_ZL_wo_ghosts_state_imp_is_initial_fair_ZL_state[OF
+      by (rule is_initial_ZLf_wo_ghosts_state_imp_is_initial_ZLf_state[OF
             init[unfolded sts0[symmetric] hd] don0])
   qed
 

@@ -2378,6 +2378,36 @@ lemma enabled_union2: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enab
 lemma enabled_union1: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set M J\<close>
   unfolding enabled_set_def by blast
 
+
+lemma finite_image_subset: "finite U \<Longrightarrow> (\<forall>C \<in> U. (\<exists>D \<in> W. P D = C \<and> Q D)) \<Longrightarrow> (\<exists>V'. (V' \<subseteq> W \<and> finite V' \<and> P ` V' = U \<and> (\<forall>D'\<in> V'. Q D')))"
+  using finite_subset_image image_iff subsetI
+
+  sorry
+ (* by (metis finite_subset_image image_iff subsetI) *)
+
+
+lemma finite_subset_image_strong:
+  assumes "finite U" and
+    "(\<forall>C \<in> U. (\<exists>D \<in> W. P D = C \<and> Q D))"
+  shows "\<exists>W'\<subseteq>W. finite W' \<and> U = P ` W' \<and> (\<forall>D'\<in> W'. Q D')"
+  using assms
+proof (induction U rule: finite_induct)
+  case empty
+  then show ?case by blast
+next
+  case (insert D' U)
+  then obtain C' W'' where wpp_and_cp_assms: "W'' \<subseteq> W" "finite W''" "U = P ` W''" "\<forall>a \<in> W''. Q a"   "C' \<in> W" "P C' = D'" "Q C'"
+    by auto
+  define W' where "W' = insert C' W''"
+  then have \<open> (insert C' W') \<subseteq>W \<and> finite (insert C' W') \<and> insert D' U = P ` (insert C' W') \<and> (\<forall>a\<in>(insert C' W'). Q a)\<close>
+    using wpp_and_cp_assms by blast
+  then show ?case
+    by blast
+qed
+
+
+   thm finite_subset_image
+
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
@@ -2447,6 +2477,12 @@ next
 next
   fix M N
   assume m_entails_n: \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+
+  define E where \<open>E = {Pair bot {Neg a} |C. C\<in>N \<and> a \<in> (A_of C)}\<close>
+
+(* find a way to express the consequence of propositional compactness to use here without introducing \<Turnstile> ?*)
+  (* have \<open>enabled set N J \<equiv> \<close> *)
+  
   {
     fix J
     assume \<open>enabled_set N J\<close>
@@ -2455,14 +2491,28 @@ next
     then obtain Mp Np where mp_proj: \<open>Mp \<subseteq> M proj\<^sub>J J\<close> and
       np_proj: \<open>Np \<subseteq> F_of ` N\<close> and mp_fin: \<open>finite Mp\<close> and np_fin: \<open>finite Np\<close> and mp_entails_np: \<open>Mp \<Turnstile> Np\<close>
       using entails_compactness by metis
-    have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. {C} proj\<^sub>J J = {Cp}\<close> 
+
+    have mp_with_f_of: \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. F_of C = Cp \<and> enabled C J\<close> 
       using mp_proj unfolding enabled_projection_def by blast
-    then obtain f where f_is: \<open>(f Cp = (SOME C. Cp \<in> Mp \<longrightarrow> (C \<in> M \<and> {C} proj\<^sub>J J = {Cp})))\<close>
-      by simp
-    define M' where \<open>M' = f ` Mp\<close>   
-    then have \<open>M' \<subseteq> M\<close> \<open>M' proj\<^sub>J J = Mp\<close> \<open>finite M'\<close> 
-      using mp_fin f_is sorry
+    have \<open>\<exists>V'\<subseteq> M. finite V' \<and> Mp = F_of ` V' \<and> enabled_set V' J\<close>
+      using finite_subset_image_strong[OF mp_fin mp_with_f_of]
+      unfolding enabled_set_def by blast
+    then have m_fin_subset: \<open>\<exists>V' \<subseteq> M. finite V' \<and> Mp = V' proj\<^sub>J J\<close>
+      unfolding enabled_projection_def enabled_set_def by blast
+
+    have np_with_f_of: \<open>\<forall>Cp \<in> Np. \<exists>C \<in> N. F_of C = Cp\<close> 
+      using np_proj unfolding enabled_projection_def by blast
+    have n_fin_subset: \<open>\<exists>V'\<subseteq> N. finite V' \<and> Np = F_of ` V'\<close>
+      using finite_subset_image[OF np_fin np_proj] .
+
+    obtain M' N' where m_n_subs: \<open>M' \<subseteq> M\<close> \<open>N' \<subseteq> N\<close> \<open>finite M'\<close> \<open>finite N'\<close> \<open>Mp = M' proj\<^sub>J J\<close> \<open>Np = F_of ` N'\<close>
+      using m_fin_subset n_fin_subset by blast 
+    then have \<open>M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+      using mp_entails_np by simp
+    then have \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+      using m_n_subs by auto
   }
+  
   show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
     sorry
 qed
