@@ -18,7 +18,8 @@ definition isa_pure_literal_elimination_round_wl where
     ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
     if get_conflict_wl_is_None_heur S
     then do {
-     (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl S;
+     let S = incr_purelit_rounds_st S;
+     (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl (S);
       if \<not>abort then isa_pure_literal_deletion_wl occs S
       else RETURN (0, S)}
     else RETURN (0, S)
@@ -49,7 +50,7 @@ definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat
          RETURN (S, m+1, abort)
        })
     (S\<^sub>0, 0, False);
-   RETURN (schedule_next_inprocessing_st S)
+   RETURN (schedule_next_pure_lits_st S)
   }\<close>
 
 definition isa_pure_literal_eliminate :: \<open>isasat \<Rightarrow> isasat nres\<close> where

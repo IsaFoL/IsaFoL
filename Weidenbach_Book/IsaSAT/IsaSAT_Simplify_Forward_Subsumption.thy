@@ -3594,7 +3594,7 @@ lemma empty_occs2_st:
 
 lemma [intro!]: \<open>heuristic_rel A heur \<Longrightarrow> heuristic_rel A (reset_added_heur heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def reset_added_heur_def reset_added_heur_stats_def
-    schedule_next_inprocessing_stats_def phase_saving_def)
+    schedule_next_pure_lits_stats_def phase_saving_def)
 
 
 lemma mop_mark_added_heur_st_it:

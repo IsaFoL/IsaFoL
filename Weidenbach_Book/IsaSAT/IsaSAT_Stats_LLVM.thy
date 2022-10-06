@@ -1089,9 +1089,9 @@ abbreviation (input) schedule_info_assn where
   \<open>schedule_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 lemma schedule_info_params[sepref_import_param]:
-  "(next_inprocessing_schedule_info, next_inprocessing_schedule_info) \<in>
+  "(next_pure_lits_schedule_info, next_pure_lits_schedule_info) \<in>
     schedule_info_rel \<rightarrow> word64_rel"
-  "(schedule_next_inprocessing_info, schedule_next_inprocessing_info) \<in>
+  "(schedule_next_pure_lits_info, schedule_next_pure_lits_info) \<in>
     schedule_info_rel \<rightarrow> schedule_info_rel"
   "(next_reduce_schedule_info, next_reduce_schedule_info) \<in> schedule_info_rel \<rightarrow> word64_rel"
   "(schedule_next_reduce_info, schedule_next_reduce_info) \<in>
@@ -1292,17 +1292,17 @@ sepref_def ema_extract_value_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_def schedule_next_inprocessing_info_impl
-  is \<open>RETURN o schedule_next_inprocessing_info\<close>
+sepref_def schedule_next_pure_lits_info_impl
+  is \<open>RETURN o schedule_next_pure_lits_info\<close>
   :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a schedule_info_assn\<close>
-  unfolding schedule_next_inprocessing_info_def
+  unfolding schedule_next_pure_lits_info_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_def next_inprocessing_schedule_info_impl
-  is \<open>RETURN o next_inprocessing_schedule_info\<close>
+sepref_def next_pure_lits_schedule_info_impl
+  is \<open>RETURN o next_pure_lits_schedule_info\<close>
   :: \<open>schedule_info_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding next_inprocessing_schedule_info_def
+  unfolding next_pure_lits_schedule_info_def
   by sepref
 
 sepref_def schedule_next_reduce_info_impl
@@ -1402,10 +1402,10 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
   get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats:
   \<open>(get_conflict_count_since_last_restart_stats, get_conflict_count_since_last_restart)
   \<in> heur_rel \<rightarrow> word_rel\<close> and
-  schedule_next_inprocessing_stats_schedule_next_inprocessing:
-    \<open>(schedule_next_inprocessing_stats, schedule_next_inprocessing) \<in> heur_rel \<rightarrow> heur_rel\<close> and
-  next_inprocessing_schedule_next_inprocessing_schedule_stats:
-    \<open>(next_inprocessing_schedule_info_stats, next_inprocessing_schedule) \<in> heur_rel \<rightarrow> word64_rel\<close> and
+  schedule_next_pure_lits_stats_schedule_next_pure_lits:
+    \<open>(schedule_next_pure_lits_stats, schedule_next_pure_lits) \<in> heur_rel \<rightarrow> heur_rel\<close> and
+  next_pure_lits_schedule_next_pure_lits_schedule_stats:
+    \<open>(next_pure_lits_schedule_info_stats, next_pure_lits_schedule) \<in> heur_rel \<rightarrow> word64_rel\<close> and
   schedule_next_reduce_stats_schedule_next_reduce:
     \<open>(schedule_next_reduce_stats, schedule_next_reduce) \<in> word64_rel \<rightarrow> heur_rel \<rightarrow> heur_rel\<close> and
   next_reduce_schedule_next_reduce_schedule_stats:
@@ -1420,8 +1420,8 @@ lemma set_zero_wasted_stats_set_zero_wasted_stats:
     end_of_rephasing_phase_heur_def unset_fully_propagated_heur_def restart_info_restart_done_heur_def
     heuristic_reluctant_untrigger_def set_fully_propagated_heur_def wasted_of_def get_next_phase_heur_def
     slow_ema_of_def fast_ema_of_def current_restart_phase_def incr_wasted_def current_rephasing_phase_def
-    get_conflict_count_since_last_restart_def next_inprocessing_schedule_def
-    schedule_next_inprocessing_def schedule_next_inprocessing_stats_def next_reduce_schedule_def
+    get_conflict_count_since_last_restart_def next_pure_lits_schedule_def
+    schedule_next_pure_lits_def schedule_next_pure_lits_stats_def next_reduce_schedule_def
     schedule_next_reduce_def schedule_next_reduce_stats_def next_subsume_schedule_def
     schedule_next_subsume_def schedule_next_subsume_stats_def
     intro!: frefI nres_relI
@@ -1593,22 +1593,22 @@ sepref_def get_conflict_count_since_last_restart_stats_impl
   unfolding get_conflict_count_since_last_restart_stats_alt_def heuristic_int_assn_def
   by sepref
 
-lemma next_inprocessing_schedule_info_stats_alt_def:
-  \<open>next_inprocessing_schedule_info_stats =
+lemma next_pure_lits_schedule_info_stats_alt_def:
+  \<open>next_pure_lits_schedule_info_stats =
   (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, _)). inprocess_schedule)\<close>
-  unfolding next_inprocessing_schedule_info_stats_def next_inprocessing_schedule_info_def
+  unfolding next_pure_lits_schedule_info_stats_def next_pure_lits_schedule_info_def
   by auto
 
-sepref_def next_inprocessing_schedule_info_stats_impl
-  is \<open>RETURN o next_inprocessing_schedule_info_stats\<close>
+sepref_def next_pure_lits_schedule_info_stats_impl
+  is \<open>RETURN o next_pure_lits_schedule_info_stats\<close>
   :: \<open>heuristic_int_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding next_inprocessing_schedule_info_stats_alt_def heuristic_int_assn_def
+  unfolding next_pure_lits_schedule_info_stats_alt_def heuristic_int_assn_def
   by sepref
 
-sepref_def schedule_next_inprocessing_stats_impl
-  is \<open>RETURN o schedule_next_inprocessing_stats\<close>
+sepref_def schedule_next_pure_lits_stats_impl
+  is \<open>RETURN o schedule_next_pure_lits_stats\<close>
   :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
-  unfolding schedule_next_inprocessing_stats_def heuristic_int_assn_def
+  unfolding schedule_next_pure_lits_stats_def heuristic_int_assn_def
   by sepref
 
 
@@ -1678,8 +1678,8 @@ lemmas heur_refine[sepref_fr_rules] =
   current_rephasing_phase_stats_impl.refine[FCOMP current_rephasing_phase_stats_current_rephasing_phase]
   get_next_phase_heur_stats_impl.refine[FCOMP get_next_phase_heur_stats_get_next_phase_heur]
   get_conflict_count_since_last_restart_stats_impl.refine[FCOMP get_conflict_count_since_last_restart_stats_get_conflict_count_since_last_restart_stats]
-  schedule_next_inprocessing_stats_impl.refine[FCOMP schedule_next_inprocessing_stats_schedule_next_inprocessing]
-  next_inprocessing_schedule_info_stats_impl.refine[FCOMP next_inprocessing_schedule_next_inprocessing_schedule_stats]
+  schedule_next_pure_lits_stats_impl.refine[FCOMP schedule_next_pure_lits_stats_schedule_next_pure_lits]
+  next_pure_lits_schedule_info_stats_impl.refine[FCOMP next_pure_lits_schedule_next_pure_lits_schedule_stats]
   schedule_next_reduce_stats_impl.refine[FCOMP schedule_next_reduce_stats_schedule_next_reduce]
   next_reduce_schedule_info_stats_impl.refine[FCOMP next_reduce_schedule_next_reduce_schedule_stats]
   schedule_next_subsume_stats_impl.refine[FCOMP schedule_next_subsume_stats_schedule_next_subsume]
@@ -1694,8 +1694,8 @@ end
 
 
 sepref_register set_zero_wasted_stats save_phase_heur_stats heuristic_reluctant_tick_stats
-  heuristic_reluctant_tick is_fully_propagated_heur_stats get_content next_inprocessing_schedule_info_stats
-  schedule_next_inprocessing_stats
+  heuristic_reluctant_tick is_fully_propagated_heur_stats get_content next_pure_lits_schedule_info_stats
+  schedule_next_pure_lits_stats
 
 lemma mop_save_phase_heur_stats_alt_def:
   \<open>mop_save_phase_heur_stats = (\<lambda> L b (fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best), rel). do {

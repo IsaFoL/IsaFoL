@@ -224,7 +224,7 @@ definition should_subsume_st :: \<open>isasat \<Rightarrow> bool\<close> where
 
 definition should_eliminate_pure_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>should_eliminate_pure_st S \<longleftrightarrow>
-      (get_global_conflict_count S > next_inprocessing_schedule_st S)\<close>
+      (get_global_conflict_count S > next_pure_lits_schedule_st S)\<close>
 
 definition should_inprocess_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>should_inprocess_st S \<longleftrightarrow>

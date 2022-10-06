@@ -449,11 +449,11 @@ section \<open>Heuristics\<close>
 
 type_synonym schedule_info = \<open>64 word \<times> 64 word \<times> 64 word\<close>
 
-definition schedule_next_inprocessing_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
-  \<open>schedule_next_inprocessing_info = (\<lambda>(inprocess, reduce, forwardsubsumption). (inprocess * 3 >> 1, reduce, forwardsubsumption))\<close>
+definition schedule_next_pure_lits_info :: \<open>schedule_info \<Rightarrow> schedule_info\<close> where
+  \<open>schedule_next_pure_lits_info = (\<lambda>(inprocess, reduce, forwardsubsumption). (inprocess * 3 >> 1, reduce, forwardsubsumption))\<close>
 
-definition next_inprocessing_schedule_info :: \<open>schedule_info \<Rightarrow> 64 word\<close> where
-  \<open>next_inprocessing_schedule_info = (\<lambda>(inprocess, reduce, forwardsubsumption). inprocess)\<close>
+definition next_pure_lits_schedule_info :: \<open>schedule_info \<Rightarrow> 64 word\<close> where
+  \<open>next_pure_lits_schedule_info = (\<lambda>(inprocess, reduce, forwardsubsumption). inprocess)\<close>
 
 definition schedule_next_reduce_info :: \<open>64 word \<Rightarrow> schedule_info \<Rightarrow> schedule_info\<close> where
   \<open>schedule_next_reduce_info delta = (\<lambda>(inprocess, reduce, forwardsubsumption). (inprocess, reduce + delta, forwardsubsumption))\<close>
@@ -816,17 +816,17 @@ definition restart_info_restart_done_heur :: \<open>isasat_restart_heuristics \<
 definition schedule_info_of :: \<open>isasat_restart_heuristics \<Rightarrow> schedule_info\<close> where
   \<open>schedule_info_of = schedule_info_of_stats o get_restart_heuristics\<close>
 
-definition schedule_next_inprocessing_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>schedule_next_inprocessing_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_inprocessing_info schedule))\<close>
+definition schedule_next_pure_lits_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>schedule_next_pure_lits_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_pure_lits_info schedule))\<close>
 
-definition schedule_next_inprocessing :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
-  \<open>schedule_next_inprocessing = Restart_Heuristics o schedule_next_inprocessing_stats o get_restart_heuristics\<close>
+definition schedule_next_pure_lits :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>schedule_next_pure_lits = Restart_Heuristics o schedule_next_pure_lits_stats o get_restart_heuristics\<close>
 
-definition next_inprocessing_schedule_info_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>next_inprocessing_schedule_info_stats = next_inprocessing_schedule_info o schedule_info_of_stats\<close>
+definition next_pure_lits_schedule_info_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_pure_lits_schedule_info_stats = next_pure_lits_schedule_info o schedule_info_of_stats\<close>
 
-definition next_inprocessing_schedule :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>next_inprocessing_schedule = next_inprocessing_schedule_info_stats o get_restart_heuristics\<close>
+definition next_pure_lits_schedule :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>next_pure_lits_schedule = next_pure_lits_schedule_info_stats o get_restart_heuristics\<close>
 
 definition schedule_next_reduce_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
   \<open>schedule_next_reduce_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_reduce_info delta schedule))\<close>
@@ -893,11 +893,11 @@ lemma heuristic_rel_incr_restartI[intro!]:
 
 lemma [intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_inprocessing heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_pure_lits heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (schedule_next_reduce delta heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def heuristic_rel_stats_def heuristic_reluctant_disable_stats_def
-     next_inprocessing_schedule_def schedule_next_inprocessing_def schedule_next_inprocessing_stats_def
+     next_pure_lits_schedule_def schedule_next_pure_lits_def schedule_next_pure_lits_stats_def
      next_reduce_schedule_def schedule_next_reduce_def schedule_next_reduce_stats_def)
 
 lemma [simp]:

@@ -12,7 +12,7 @@ no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [
 
 sepref_register 0 1
 
-sepref_register mop_arena_update_lit
+sepref_register mop_arena_update_lit isa_pure_literal_count_occs_wl
 
 sepref_def should_inprocess_st
   is \<open>RETURN o should_inprocess_st\<close>
@@ -20,28 +20,30 @@ sepref_def should_inprocess_st
   unfolding should_inprocess_st_def
   by sepref
 
+lemma [simp]: \<open>get_clauses_wl_heur (incr_purelit_rounds_st S) = get_clauses_wl_heur S\<close>
+  \<open>learned_clss_count (incr_purelit_rounds_st S) = learned_clss_count S\<close>
+  by (auto simp: incr_purelit_rounds_st_def)
+
+
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_elimination_round_wl_def
   by sepref
-thm TrueI
-thm schedule_next_inprocessing_st_def
 
-
-lemma schedule_next_inprocessing_st_alt_def:
-  \<open>schedule_next_inprocessing_st S =
+lemma schedule_next_pure_lits_st_alt_def:
+  \<open>schedule_next_pure_lits_st S =
       (let (heur, S) = extract_heur_wl_heur S;
-        heur = (schedule_next_inprocessing (heur))in
+        heur = (schedule_next_pure_lits (heur))in
      update_heur_wl_heur heur S)\<close>
-  by (auto simp: schedule_next_inprocessing_st_def state_extractors split: isasat_int_splits
+  by (auto simp: schedule_next_pure_lits_st_def state_extractors split: isasat_int_splits
     intro!: ext)
 
-sepref_def schedule_next_inprocessing_st_impl
-  is \<open>RETURN o schedule_next_inprocessing_st\<close>
+sepref_def schedule_next_pure_lits_st_impl
+  is \<open>RETURN o schedule_next_pure_lits_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding schedule_next_inprocessing_st_alt_def
+  unfolding schedule_next_pure_lits_st_alt_def
   by sepref
 
 sepref_def isa_pure_literal_elimination_wl_code

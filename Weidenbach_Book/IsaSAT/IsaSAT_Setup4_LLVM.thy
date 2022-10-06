@@ -182,6 +182,7 @@ lemma set_stats_size_limit_st_alt_def:
 
 sepref_register \<open>LSize_Stats :: nat \<Rightarrow> nat \<Rightarrow> _\<close>
   IsaSAT_Stats_LLVM.update_f set_stats_size_limit_st stats_forward_rounds_st
+  incr_purelit_rounds_st
 
 lemma set_stats_size_limit_alt_def:
   \<open>RETURN ooo set_stats_size_limit = (\<lambda>lbd size' stats. RETURN (set_lsize_limit_stats (LSize_Stats lbd size') stats))\<close>
@@ -208,6 +209,16 @@ sepref_def stats_forward_rounds_st_impl
   is \<open>RETURN o stats_forward_rounds_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding stats_forward_rounds_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+lemma incr_purelit_rounds_st_alt_def:
+  \<open>incr_purelit_rounds_st S = (let (stats, S) = extract_stats_wl_heur S; stats = incr_purelit_rounds stats in update_stats_wl_heur stats S)\<close>
+  by (auto simp: incr_purelit_rounds_st_def state_extractors split: isasat_int_splits intro!: ext)
+
+sepref_def incr_purelit_rounds_st_impl
+  is \<open>RETURN o incr_purelit_rounds_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding incr_purelit_rounds_st_alt_def
   by sepref
 
 end

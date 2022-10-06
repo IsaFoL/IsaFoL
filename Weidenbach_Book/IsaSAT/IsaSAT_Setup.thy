@@ -1716,11 +1716,11 @@ proof -
     by auto
 qed
 
-definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> isasat\<close> where
-  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S)) S\<close>
-(*TODO rename to next_pure_elimination*)
-definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
-  \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
+definition schedule_next_pure_lits_st :: \<open>isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_pure_lits_st S = set_heur_wl_heur (schedule_next_pure_lits (get_heur S)) S\<close>
+
+definition next_pure_lits_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_pure_lits_schedule_st S = next_pure_lits_schedule (get_heur S)\<close>
 
 definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
@@ -1855,5 +1855,8 @@ qed
 
 definition stats_forward_rounds_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>stats_forward_rounds_st S = stats_forward_rounds (get_stats_heur S)\<close>
+
+definition incr_purelit_rounds_st :: \<open>_\<close> where
+  \<open>incr_purelit_rounds_st S = set_stats_wl_heur (incr_purelit_rounds (get_stats_heur S)) S\<close>
 
 end
