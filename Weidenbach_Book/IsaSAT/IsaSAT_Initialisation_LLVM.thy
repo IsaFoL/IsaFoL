@@ -867,13 +867,19 @@ sepref_def rephasing_initial_phase_impl
   unfolding rephasing_initial_phase_def
   by sepref
 
+sepref_def subsuming_length_initial_phase_impl
+  is \<open>uncurry0 (RETURN subsuming_length_initial_phase)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding subsuming_length_initial_phase_def
+  by sepref
+
 definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> restart_heuristics\<close> where
   \<open>empty_heuristics_stats opts \<phi> = (
   let fema = ema_init (opts_fema opts) in
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
     (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, rephasing_end_of_initial_phase, 0, rephasing_initial_phase),
-    reluctant_init, False, replicate n False, (inprocessing_interval_init, reduce_interval_init)))\<close>
+    reluctant_init, False, replicate n False, (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase)))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>

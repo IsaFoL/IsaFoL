@@ -177,7 +177,7 @@ sepref_def rewatch_heur_st_code
   by sepref
 
 sepref_register isasat_GC_clauses_wl_D
-
+(*
 lemma schedule_next_inprocessing_st_alt_def:
   \<open>schedule_next_inprocessing_st b S =
       (let should_inprocess = should_inprocess_st S;
@@ -192,6 +192,7 @@ lemma schedule_next_inprocessing_st_alt_def:
   by (auto simp: schedule_next_inprocessing_st_def state_extractors split: isasat_int_splits
     intro!: ext)
 
+
 (*TODO Move*)
 sepref_register should_inprocess_st
 sepref_def should_inprocess_st
@@ -200,13 +201,7 @@ sepref_def should_inprocess_st
   unfolding should_inprocess_st_def
   by sepref
 (*END Move*)
-
-sepref_def schedule_next_inprocessing_st_impl
-  is \<open>uncurry (RETURN oo schedule_next_inprocessing_st)\<close>
-  :: \<open>bool1_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding schedule_next_inprocessing_st_alt_def
-  by sepref
-
+*)
 sepref_register rewatch_heur_and_reorder_st
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>uncurry isasat_GC_clauses_wl_D\<close>

@@ -49,12 +49,12 @@ definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat
          RETURN (S, m+1, abort)
        })
     (S\<^sub>0, 0, False);
-   RETURN S
+   RETURN (schedule_next_inprocessing_st S)
   }\<close>
 
 definition isa_pure_literal_eliminate :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>isa_pure_literal_eliminate S = do {
-    let b = should_inprocess_st S;
+    let b = should_eliminate_pure_st S;
     if b then isa_pure_literal_elimination_wl S else RETURN S
 }\<close>
 

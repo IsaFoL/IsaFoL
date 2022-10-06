@@ -2792,13 +2792,6 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
       all_init_lits_alt_def[symmetric]
     intro!: bind_cong_nres intro: literals_are_\<L>\<^sub>i\<^sub>n'_empty)
 
-
-lemma schedule_next_inprocessing_st:
-  \<open>(S, T) \<in> twl_st_heur_restart''''u r u \<Longrightarrow>
-  (schedule_next_inprocessing_st b S, T) \<in> twl_st_heur_restart''''u r u\<close>
-  by (auto simp: schedule_next_inprocessing_st_def twl_st_heur_restart_def)
-
-
 lemma cdcl_GC_clauses_prog_wl2_st:
   assumes \<open>(T, S) \<in> state_wl_l None\<close>
   \<open>cdcl_GC_clauses_pre S \<and>
@@ -3336,7 +3329,7 @@ lemma isasat_GC_clauses_wl_D:
   unfolding prod_rel_fst_snd_iff
     isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def uncurry_def
   apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st[where r=r]
-    rewatch_heur_st_correct_watching schedule_next_inprocessing_st)
+    rewatch_heur_st_correct_watching)
   subgoal unfolding isasat_GC_clauses_pre_wl_D_def by blast
   subgoal by fast
   apply assumption

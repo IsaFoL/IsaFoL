@@ -58,6 +58,12 @@ proof -
 qed
 
 
+lemma schedule_next_inprocessing_st_twl_st_heur_restart_ana':
+  assumes \<open>(S,S') \<in> twl_st_heur_restart_ana' r u\<close> \<open>u \<le> u'\<close>
+  shows \<open>(schedule_next_inprocessing_st S, S') \<in> twl_st_heur_restart_ana' r u'\<close>
+  using assms by (auto simp: schedule_next_inprocessing_st_def twl_st_heur_restart_ana_def
+    twl_st_heur_restart_def)
+
 lemma isa_pure_literal_elimination_wl_pure_literal_elimination_wl:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_elimination_wl S')\<close>
@@ -69,7 +75,8 @@ proof -
     using assms by auto
   show ?thesis
     unfolding isa_pure_literal_elimination_wl_def pure_literal_elimination_wl_def
-    apply (refine_vcg isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl[where r=r and u=\<open>learned_clss_count S\<close>])
+    apply (refine_vcg isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl[where r=r and u=\<open>learned_clss_count S\<close>]
+      schedule_next_inprocessing_st_twl_st_heur_restart_ana'[where r=r and u=\<open>learned_clss_count S\<close> and u'=u])
     subgoal using assms unfolding isa_pure_literal_elimination_wl_pre_def by fast
     subgoal for max_rounds max_roundsa x x'
       using assms unfolding isa_pure_literal_elimination_wl_inv_def case_prod_beta prod_rel_fst_snd_iff
@@ -81,6 +88,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal using assms by auto
+    subgoal using assms by auto
     done
 qed
 
@@ -88,7 +96,7 @@ lemma isa_pure_literal_eliminate:
   assumes \<open>(S, S') \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_pure_literal_eliminate S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_eliminate_wl S')\<close>
 proof -
-  have [refine]: \<open>RETURN (should_inprocess_st S) ≤ ⇓ bool_rel (pure_literal_eliminate_wl_needed S')\<close>
+  have [refine]: \<open>RETURN (should_eliminate_pure_st S) ≤ ⇓ bool_rel (pure_literal_eliminate_wl_needed S')\<close>
     unfolding pure_literal_eliminate_wl_needed_def by auto
   show ?thesis
     unfolding isa_pure_literal_eliminate_def pure_literal_eliminate_wl_def

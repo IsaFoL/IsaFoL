@@ -283,12 +283,12 @@ sepref_def isa_binary_clause_subres_wl_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register binary_deduplicate_required
-sepref_def binary_deduplicate_required_fast_code
-  is \<open>binary_deduplicate_required\<close>
+sepref_register should_eliminate_pure_st
+
+sepref_def should_eliminate_pure_st_impl
+  is \<open>RETURN o should_eliminate_pure_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
-  unfolding binary_deduplicate_required_def should_inprocess_st_def
+  unfolding should_eliminate_pure_st_def
   by sepref
 
 sepref_def isa_deduplicate_binary_clauses_wl_code
@@ -318,7 +318,7 @@ lemma isa_mark_duplicated_binary_clauses_as_garbage_wl2_alt_def:
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl2 S\<^sub>0 = (do {
      let ns = get_vmtf_heur_array S\<^sub>0;
     ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
-    skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
+    let skip = should_eliminate_pure_st  S\<^sub>0;
     CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
     (_, CS, S) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(n,CS, S). get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S)\<^esup>(\<lambda>(n, CS, S). n \<noteq> None \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(n, CS, S). do {

@@ -14,6 +14,11 @@ sepref_register 0 1
 
 sepref_register mop_arena_update_lit
 
+sepref_def should_inprocess_st
+  is \<open>RETURN o should_inprocess_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding should_inprocess_st_def
+  by sepref
 
 sepref_def isa_pure_literal_elimination_round_wl_code
   is isa_pure_literal_elimination_round_wl
@@ -21,7 +26,23 @@ sepref_def isa_pure_literal_elimination_round_wl_code
      isasat_bounded_assn\<^sup>d \<rightarrow> word64_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding isa_pure_literal_elimination_round_wl_def
   by sepref
+thm TrueI
+thm schedule_next_inprocessing_st_def
 
+
+lemma schedule_next_inprocessing_st_alt_def:
+  \<open>schedule_next_inprocessing_st S =
+      (let (heur, S) = extract_heur_wl_heur S;
+        heur = (schedule_next_inprocessing (heur))in
+     update_heur_wl_heur heur S)\<close>
+  by (auto simp: schedule_next_inprocessing_st_def state_extractors split: isasat_int_splits
+    intro!: ext)
+
+sepref_def schedule_next_inprocessing_st_impl
+  is \<open>RETURN o schedule_next_inprocessing_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding schedule_next_inprocessing_st_alt_def
+  by sepref
 
 sepref_def isa_pure_literal_elimination_wl_code
   is isa_pure_literal_elimination_wl
@@ -41,7 +62,7 @@ sepref_def isa_pure_literal_eliminate_code
 (*TODO Move*)
 lemmas [llvm_code] = is_NONE_impl_def is_subsumed_impl_def is_strengthened_impl_def
   STRENGTHENED_BY_impl_def SUBSUMED_BY_impl_def NONE_impl_def subsumed_by_impl_def
-  strengthened_on_lit_impl_def 
+  strengthened_on_lit_impl_def
 
 lemmas [unfolded inline_direct_return_node_case, llvm_code]  =
   get_occs_list_at_impl_def[unfolded read_all_st_code_def]

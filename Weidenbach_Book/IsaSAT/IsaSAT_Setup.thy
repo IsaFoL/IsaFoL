@@ -1456,6 +1456,9 @@ subsection \<open>Lifting of Options\<close>
 definition get_target_opts :: \<open>isasat \<Rightarrow> opts_target\<close> where
   \<open>get_target_opts S = opts_target (get_opts S)\<close>
 
+definition get_subsumption_opts :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>get_subsumption_opts S = opts_subsumption (get_opts S)\<close>
+
 definition get_GC_units_opt :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_GC_units_opt S = opts_GC_units_lim (get_opts S)\<close>
 
@@ -1715,7 +1718,7 @@ qed
 
 definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> isasat\<close> where
   \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S)) S\<close>
-
+(*TODO rename to next_pure_elimination*)
 definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
 
@@ -1727,6 +1730,12 @@ definition schedule_next_reduce_st :: \<open>64 word \<Rightarrow> isasat \<Righ
 
 definition next_reduce_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>next_reduce_schedule_st S = next_reduce_schedule (get_heur S)\<close>
+
+definition schedule_next_subsume_st :: \<open>64 word \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_subsume_st b S = set_heur_wl_heur (schedule_next_subsume b (get_heur S)) S\<close>
+
+definition next_subsume_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_subsume_schedule_st S = next_subsume_schedule (get_heur S)\<close>
 
 (*TODO move/deduplicate*)
 lemma avdom_delete_index_vdom_heur[simp]:
@@ -1843,5 +1852,8 @@ proof -
     subgoal by auto
     done
 qed
+
+definition stats_forward_rounds_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>stats_forward_rounds_st S = stats_forward_rounds (get_stats_heur S)\<close>
 
 end

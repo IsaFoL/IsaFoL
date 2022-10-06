@@ -181,7 +181,7 @@ lemma set_stats_size_limit_st_alt_def:
   by (auto simp: set_stats_size_limit_st_def state_extractors split: isasat_int_splits intro!: ext)
 
 sepref_register \<open>LSize_Stats :: nat \<Rightarrow> nat \<Rightarrow> _\<close>
-  IsaSAT_Stats_LLVM.update_f set_stats_size_limit_st
+  IsaSAT_Stats_LLVM.update_f set_stats_size_limit_st stats_forward_rounds_st
 
 lemma set_stats_size_limit_alt_def:
   \<open>RETURN ooo set_stats_size_limit = (\<lambda>lbd size' stats. RETURN (set_lsize_limit_stats (LSize_Stats lbd size') stats))\<close>
@@ -198,6 +198,16 @@ sepref_def set_stats_size_limit_st_impl
   is \<open>uncurry2 (RETURN ooo set_stats_size_limit_st)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding set_stats_size_limit_st_alt_def
+  by sepref
+
+lemma stats_forward_rounds_st_alt_def:
+  \<open>stats_forward_rounds_st S = (case S of IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs \<Rightarrow> stats_forward_rounds stats)\<close>
+  by (cases S) (auto simp: stats_forward_rounds_st_def)
+
+sepref_def stats_forward_rounds_st_impl
+  is \<open>RETURN o stats_forward_rounds_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_forward_rounds_st_alt_def isasat_bounded_assn_def
   by sepref
 
 end

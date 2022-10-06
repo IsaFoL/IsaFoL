@@ -614,7 +614,7 @@ definition empty_occs2_st :: \<open>isasat \<Rightarrow> isasat nres\<close> whe
 
 definition forward_subsumption_finalize :: \<open>nat list \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>forward_subsumption_finalize shrunken S = do {
-    let S = isa_forward_reset_added_and_stats S;
+    let S = isa_forward_reset_added_and_stats (schedule_next_subsume_st ((1 + stats_forward_rounds_st S) * 10000) S);
     _ \<leftarrow> isasat_current_progress 115 S;
     (_, S) \<leftarrow> WHILE\<^sub>T(\<lambda>(i,S). i < length shrunken) (\<lambda>(i,S). do {
       ASSERT (i < length shrunken);
@@ -660,7 +660,7 @@ definition isa_forward_subsumption_all :: \<open>_ \<Rightarrow> _ nres\<close> 
 
 definition isa_forward_subsume :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>isa_forward_subsume S = do {
-    let b = should_inprocess_st S;
+    let b = should_subsume_st S;
     if b then isa_forward_subsumption_all S else RETURN S
   }\<close>
 
