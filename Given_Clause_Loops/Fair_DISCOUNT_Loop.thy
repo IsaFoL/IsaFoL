@@ -469,7 +469,7 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('p, 'f) DLf_state \<Rightarrow> ('p, 'f) DLf_state \<Rightarrow> bool" where
-  "\<mu>2 St' St \<equiv>
+  "\<mu>2 St' St \<longleftrightarrow>
    (yy_of St' = None \<and> yy_of St \<noteq> None)
    \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_fstate St') (mset_of_fstate St))"
 
