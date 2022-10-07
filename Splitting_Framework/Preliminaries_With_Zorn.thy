@@ -4,10 +4,13 @@
 
 theory Preliminaries_With_Zorn
   imports Saturation_Framework.Calculus
+    Propositional_Proof_Systems.Compactness
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
   (* Finite_Set *)
 begin
+
+no_notation Sema.formula_semantics (infix "\<Turnstile>" 51)
 
   (*useful tools for the following proofs*)
 
@@ -1572,6 +1575,25 @@ definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> (
 
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
+
+fun to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
+  \<open>to_atomic_formula (Pos v) = Atom v\<close> |
+  \<open>to_atomic_formula (Neg v) = Not (Atom v)\<close>
+
+definition to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
+  \<open>to_formula_set A = to_atomic_formula ` A\<close>
+
+(* definition to_formula :: "'v sign set \<Rightarrow> 'v formula" where
+\<open>finite A \<Longrightarrow> to_formula A = \<close> *)
+
+fun to_formula :: "'v sign list \<Rightarrow> 'v formula" where
+  \<open>to_formula A = BigAnd (map to_atomic_formula A)\<close>
+
+fun AF_to_formula :: "('f, 'v) AF \<Rightarrow> 'v formula" where
+  \<open>AF_to_formula (Pair bot A) = to_formula (list A)\<close>
+
+thm compactness
+thm compact_entailment
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow> \<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>))\<close>
