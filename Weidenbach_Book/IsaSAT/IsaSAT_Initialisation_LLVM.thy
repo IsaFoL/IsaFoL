@@ -879,7 +879,7 @@ definition empty_heuristics_stats :: \<open>_ \<Rightarrow> _ \<Rightarrow> rest
   let sema = ema_init (opts_sema opts) in let ccount = restart_info_init in
   let n = (length \<phi>)  in
     (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, rephasing_end_of_initial_phase, 0, rephasing_initial_phase),
-    reluctant_init, False, replicate n False, (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase)))\<close>
+    reluctant_init, False, replicate n False, (inprocessing_interval_init, reduce_interval_init, subsuming_length_initial_phase), fema, sema))\<close>
 
 sepref_def empty_heuristics_stats_impl
   is \<open>uncurry (RETURN oo empty_heuristics_stats)\<close>

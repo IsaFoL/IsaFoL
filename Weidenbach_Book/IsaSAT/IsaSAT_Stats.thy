@@ -477,7 +477,7 @@ lemma code_hider_rel_def[refine_rel_defs]:
   "\<langle>R\<rangle>code_hider_rel \<equiv> {(a,b). (a, get_content b) \<in> R}"
   by (simp add: code_hider_rel_def_internal relAPP_def)
 
-type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool \<times> phase_saver \<times> schedule_info\<close>
+type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur \<times> reluctant \<times> bool \<times> phase_saver \<times> schedule_info \<times> ema \<times> ema\<close>
 
 type_synonym isasat_restart_heuristics = \<open>restart_heuristics code_hider\<close>
 
@@ -499,7 +499,7 @@ fun restart_info_of_stats :: \<open>restart_heuristics \<Rightarrow> restart_inf
   \<open>restart_info_of_stats (fast_ema, slow_ema, restart_info, wasted, \<phi>) = restart_info\<close>
 
 fun schedule_info_of_stats :: \<open>restart_heuristics \<Rightarrow> schedule_info\<close> where
-  \<open>schedule_info_of_stats (fast_ema, slow_ema, restart_info, wasted, \<phi>, _, _, _, schedule) = schedule\<close>
+  \<open>schedule_info_of_stats (fast_ema, slow_ema, restart_info, wasted, \<phi>, _, _, _, schedule, _, _) = schedule\<close>
 
 fun current_restart_phase_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>current_restart_phase_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
@@ -523,6 +523,10 @@ fun wasted_of_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> w
 fun get_conflict_count_since_last_restart_stats :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
     ccount\<close>
+
+definition swap_emas_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>swap_emas_stats = (\<lambda>(fast_ema, slow_ema, restart_info, wasted, \<phi>, a, b, lit_st, schedule, other_fema, other_sema).
+  (other_fema, other_sema, restart_info, wasted, \<phi>, a, b, lit_st, schedule, fast_ema, slow_ema))\<close>
 
 definition get_conflict_count_since_last_restart :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart = get_conflict_count_since_last_restart_stats o get_content\<close>
@@ -677,9 +681,10 @@ lemma heuristic_rel_statsI[intro!]:
   \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (heuristic_reluctant_untrigger_stats heur)\<close>
   \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (set_fully_propagated_heur_stats heur)\<close>
   \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (unset_fully_propagated_heur_stats heur)\<close>
+  \<open>heuristic_rel_stats \<A> heur \<Longrightarrow> heuristic_rel_stats \<A> (swap_emas_stats heur)\<close>
   by (clarsimp_all simp: heuristic_rel_stats_def save_phase_heur_stats_def phase_save_heur_rel_def phase_saving_def
     heuristic_reluctant_tick_stats_def heuristic_reluctant_enable_stats_def heuristic_reluctant_untrigger_stats_def
-    set_fully_propagated_heur_stats_def unset_fully_propagated_heur_stats_def mark_added_heur_stats_def)
+    set_fully_propagated_heur_stats_def unset_fully_propagated_heur_stats_def mark_added_heur_stats_def swap_emas_stats_def)
 
 lemma heuristic_rel_stats_heuristic_reluctant_triggered_statsD:
   \<open>heuristic_rel_stats \<A> heur \<Longrightarrow>
@@ -715,6 +720,9 @@ definition set_zero_wasted :: \<open>isasat_restart_heuristics \<Rightarrow> isa
 
 definition wasted_of :: \<open>isasat_restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>wasted_of = wasted_of_stats o get_restart_heuristics\<close>
+
+definition swap_emas :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>swap_emas = Restart_Heuristics o swap_emas_stats o get_restart_heuristics\<close>
 
 definition heuristic_rel :: \<open>nat multiset \<Rightarrow> isasat_restart_heuristics \<Rightarrow> bool\<close> where
   \<open>heuristic_rel \<A> = heuristic_rel_stats \<A> o get_restart_heuristics\<close>
@@ -817,7 +825,8 @@ definition schedule_info_of :: \<open>isasat_restart_heuristics \<Rightarrow> sc
   \<open>schedule_info_of = schedule_info_of_stats o get_restart_heuristics\<close>
 
 definition schedule_next_pure_lits_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>schedule_next_pure_lits_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_pure_lits_info schedule))\<close>
+  \<open>schedule_next_pure_lits_stats = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule, other_fema, other_sema).
+  (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_pure_lits_info schedule, other_fema, other_sema))\<close>
 
 definition schedule_next_pure_lits :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>schedule_next_pure_lits = Restart_Heuristics o schedule_next_pure_lits_stats o get_restart_heuristics\<close>
@@ -829,7 +838,7 @@ definition next_pure_lits_schedule :: \<open>isasat_restart_heuristics \<Rightar
   \<open>next_pure_lits_schedule = next_pure_lits_schedule_info_stats o get_restart_heuristics\<close>
 
 definition schedule_next_reduce_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>schedule_next_reduce_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_reduce_info delta schedule))\<close>
+  \<open>schedule_next_reduce_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule, other_fema, other_sema). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_reduce_info delta schedule, other_fema, other_sema))\<close>
 
 definition schedule_next_reduce :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>schedule_next_reduce delta = Restart_Heuristics o schedule_next_reduce_stats delta o get_restart_heuristics\<close>
@@ -841,7 +850,7 @@ definition next_reduce_schedule :: \<open>isasat_restart_heuristics \<Rightarrow
   \<open>next_reduce_schedule = next_reduce_schedule_info_stats o get_restart_heuristics\<close>
 
 definition schedule_next_subsume_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>schedule_next_subsume_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_subsume_info delta schedule))\<close>
+  \<open>schedule_next_subsume_stats delta = (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule, other_fema, other_sema). (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, phasing, reluctant, fullyproped, lit_st, schedule_next_subsume_info delta schedule, other_fema, other_sema))\<close>
 
 definition schedule_next_subsume :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
   \<open>schedule_next_subsume delta = Restart_Heuristics o schedule_next_subsume_stats delta o get_restart_heuristics\<close>
@@ -863,10 +872,11 @@ lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_fully_propagated_heur heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (unset_fully_propagated_heur heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (mark_added_heur L b heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (swap_emas heur)\<close>
   by (auto simp: heuristic_rel_def save_phase_heur_def phase_save_heur_rel_def phase_saving_def
     heuristic_reluctant_tick_def heuristic_reluctant_enable_def heuristic_reluctant_untrigger_def
     set_fully_propagated_heur_def unset_fully_propagated_heur_def set_zero_wasted_def incr_wasted_def
-    incr_restart_phase_def mark_added_heur_def)
+    incr_restart_phase_def mark_added_heur_def swap_emas_def)
 
 lemma heuristic_rel_heuristic_reluctant_triggeredD:
   \<open>heuristic_rel \<A> heur \<Longrightarrow>
