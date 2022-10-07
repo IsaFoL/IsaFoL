@@ -6,6 +6,7 @@ theory IsaSAT_Simplify_Forward_Subsumption_LLVM
     IsaSAT_Proofs_LLVM
     IsaSAT_Arena_Sorting_LLVM
     IsaSAT_Show_LLVM
+    IsaSAT_LBD_LLVM
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)

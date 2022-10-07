@@ -4,21 +4,6 @@ theory IsaSAT_Backtrack_LLVM
     IsaSAT_Stats_LLVM
 begin
 
-lemma update_lbd_pre_arena_act_preD:
-  \<open>update_lbd_pre ((a, ba), b) \<Longrightarrow>
-  arena_act_pre (update_lbd a ba b) a\<close>
-  unfolding update_lbd_pre_def arena_act_pre_def prod.simps
-  by (auto simp: arena_is_valid_clause_idx_def intro!: valid_arena_update_lbd)
-
-sepref_register update_lbd_and_mark_used
-sepref_def update_lbd_and_mark_used_impl
-  is \<open>uncurry2 (RETURN ooo update_lbd_and_mark_used)\<close>
-    :: \<open>[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn\<close>
-  unfolding update_lbd_and_mark_used_def LBD_SHIFT_def
-  supply [dest] = update_lbd_pre_arena_act_preD
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
-  by sepref
-
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
      let C = replicate (length outl) (outl!0);

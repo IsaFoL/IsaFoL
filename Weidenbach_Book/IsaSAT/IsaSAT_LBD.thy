@@ -262,4 +262,41 @@ definition update_lbd_and_mark_used where
 lemma length_update_lbd_and_mark_used[simp]: \<open>length (update_lbd_and_mark_used i glue N) = length N\<close>
   by (auto simp: update_lbd_and_mark_used_def Let_def split: if_splits)
 
+text \<open>CaDiCaL sets the used flags of clauses only as 1, not as two.\<close>
+definition update_lbd_shrunk_clause where
+  \<open>update_lbd_shrunk_clause C N = do {
+     old_glue \<leftarrow> mop_arena_lbd N C;
+     st \<leftarrow> mop_arena_status N C;
+     le \<leftarrow> mop_arena_length N C;
+     if st = IRRED then RETURN N
+     else do {
+       let new_glue = (if le \<ge> old_glue then old_glue else le);
+       ASSERT (update_lbd_pre ((C, new_glue), N));
+       RETURN (update_lbd_and_mark_used C new_glue N)
+    }
+}\<close>
+
+
+lemma update_lbd_shrunk_clause_valid:
+  \<open>C \<in># dom_m N \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
+     update_lbd_shrunk_clause C arena \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom \<and>
+       length c = length arena})\<close>
+  unfolding update_lbd_shrunk_clause_def mop_arena_lbd_def nres_monad3 mop_arena_status_def
+    mop_arena_length_def update_lbd_and_mark_used_def
+  apply refine_vcg
+  subgoal
+    unfolding get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+    by auto
+  subgoal
+    unfolding arena_is_valid_clause_vdom_def
+    by auto
+  subgoal
+    unfolding arena_is_valid_clause_idx_def
+    by auto
+  subgoal by auto
+  subgoal by (auto simp: update_lbd_pre_def)
+  subgoal by (auto simp: Let_def intro!: valid_arena_mark_used2 valid_arena_mark_used
+    valid_arena_update_lbd)
+  done
+
 end

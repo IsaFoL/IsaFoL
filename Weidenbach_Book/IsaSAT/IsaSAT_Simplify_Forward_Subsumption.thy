@@ -2337,6 +2337,7 @@ proof -
    ASSERT (i \<ge> 2);
    let N = N(C' \<hookrightarrow> take i (N \<propto> C'));
    ASSERT (N = (get_clauses_wl S)(C' \<hookrightarrow> removeAll L (get_clauses_wl S \<propto> C')));
+   let N = N;
    RETURN (set_clauses_wl N (add_clause_to_subsumed (irred (get_clauses_wl S) C') (mset (get_clauses_wl S \<propto> C')) S))
      }\<close>
      unfolding Let_def
@@ -2433,6 +2434,25 @@ proof -
      vdom_m (all_init_atms_st S) (get_watched_wl S) ((get_clauses_wl S))\<close>
     using C_dom CC' by (auto simp: vdom_m_def)
 
+  have still_in_dom_after_shortening: \<open>C' ∈# dom_m x2c ⟹
+    x1b ≤ length (x2c ∝ C') ⟹
+    TIER_ONE_MAXIMUM ≤ x1b ⟹
+    (xb, x2c(C' ↪ take x1b (x2c ∝ C')))
+    ∈ {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} ⟹
+    C ∈# dom_m (x2c(C' ↪ take x1b (x2c ∝ C')))\<close>for x1b x2c xb x2a
+   using CC' by auto
+  have H: \<open>(xb, x2c(C' ↪ take x1b (x2c ∝ C')))
+    ∈ {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} ⟹
+    (xc, x2c(C' ↪ take x1b (x2c ∝ C')))
+    ∈ {(c, N').
+    N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
+    valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
+    length c = length xb} ⟹
+    (xc, x2c(C' ↪ take x1b (x2c ∝ C'))) ∈ {(c, N').
+    N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
+    valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
+    length c = length x2a}\<close>for x1b xb x2a xc x2c
+   by auto
   show ?thesis
    unfolding conc_fun_RETURN[symmetric]
    apply (rule ref_two_step)
@@ -2440,7 +2460,7 @@ proof -
    unfolding remove_lit_from_clause_st_def remove_lit_from_clause_def nres_monad3
    apply (refine_vcg mop_arena_length[of \<open>set (get_vdom T)\<close>, THEN fref_to_Down_curry, unfolded comp_def]
      mop_arena_lit2[of _ _ \<open>set (get_vdom T)\<close>] mop_arena_swap2[of _ _ \<open>set (get_vdom T)\<close>]
-     mop_arena_shorten[of _ _ _ _ _ C C'])
+     mop_arena_shorten[of _ _ _ _ _ C C'] update_lbd_shrunk_clause_valid[of _ _ _ \<open>set (get_vdom T)\<close>])
    subgoal using C_dom CC' by auto
    subgoal using CC' valid by auto
    subgoal using CC' C_dom by auto
@@ -2462,7 +2482,9 @@ proof -
    subgoal using CC' by auto
    subgoal by auto
    subgoal using CC' by auto
-   apply assumption
+   apply (rule still_in_dom_after_shortening; assumption)
+   subgoal by auto
+   apply (rule H; assumption)
    subgoal using T CC' C_dom
      by (clarsimp simp add: twl_st_heur_restart_occs_def cong1 IsaSAT_Restart.all_init_atms_alt_def
        simp del: isasat_input_nempty_def)
