@@ -38,7 +38,6 @@ lemma isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl:
   assumes S\<^sub>0T: \<open>(S\<^sub>0, T) \<in> twl_st_heur_restart_ana' r u\<close>
   shows \<open>isa_pure_literal_elimination_round_wl S\<^sub>0 \<le>\<Down>{((_, U), V). (U,V)\<in>twl_st_heur_restart_ana' r u} (pure_literal_elimination_round_wl T)\<close>
 proof -
-  note [intro] = incr_purelit_rounds_st_twl_st_heur_restart_ana'
   show ?thesis
     unfolding isa_pure_literal_elimination_round_wl_def pure_literal_elimination_round_wl_def Let_def[of \<open>incr_purelit_rounds_st _\<close>]
     apply (refine_rcg isa_pure_literal_deletion_wl_pure_literal_deletion_wl[where r=r and u=\<open>learned_clss_count S\<^sub>0\<close>]
@@ -51,16 +50,15 @@ proof -
     subgoal
       by (subst get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana[THEN fref_to_Down_unRET_Id])
         (use assms in \<open>auto simp: get_conflict_wl_is_None_def\<close>)
-    subgoal by (rule incr_purelit_rounds_st_twl_st_heur_restart_ana') auto
     subgoal by auto
     apply (rule order_trans[OF ])
     apply (rule isa_pure_literal_deletion_wl_pure_literal_deletion_wl[where r=r and u=\<open>learned_clss_count S\<^sub>0\<close>])
     prefer 3
     apply (rule conc_fun_R_mono)
     subgoal using assms by auto
-    subgoal by (rule incr_purelit_rounds_st_twl_st_heur_restart_ana') auto
     subgoal by auto
-    subgoal using assms incr_purelit_rounds_st_twl_st_heur_restart_ana' by auto
+    subgoal by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     done
 qed
@@ -77,12 +75,12 @@ lemma isa_pure_literal_elimination_wl_pure_literal_elimination_wl:
   shows \<open>isa_pure_literal_elimination_wl S \<le>\<Down>(twl_st_heur_restart_ana' r u) (pure_literal_elimination_wl S')\<close>
 proof -
   have [refine]: \<open>RETURN (3::nat) \<le> \<Down> {(a,b). a = b} (RES UNIV)\<close>
-    \<open>RETURN (0 < x1d) \<le> \<Down> bool_rel (RES UNIV)\<close> for x1d
+    \<open>RETURN (x1d = 0) \<le> \<Down> bool_rel (RES UNIV)\<close> for x1d
     by (auto simp: RETURN_RES_refine)
   have [refine]: \<open>((S, 0, False), S', 0, False) \<in> twl_st_heur_restart_ana' r (learned_clss_count S) \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
     using assms by auto
   show ?thesis
-    unfolding isa_pure_literal_elimination_wl_def pure_literal_elimination_wl_def
+    unfolding isa_pure_literal_elimination_wl_def pure_literal_elimination_wl_def Let_def[of \<open>incr_purelit_rounds_st _\<close>]
     apply (refine_vcg isa_pure_literal_elimination_round_wl_pure_literal_elimination_round_wl[where r=r and u=\<open>learned_clss_count S\<close>]
       schedule_next_pure_lits_st_twl_st_heur_restart_ana'[where r=r and u=\<open>learned_clss_count S\<close> and u'=u])
     subgoal using assms unfolding isa_pure_literal_elimination_wl_pre_def by fast
@@ -93,7 +91,7 @@ proof -
     subgoal by auto
     subgoal using assms by (auto simp: twl_st_heur_restart_ana_def)
     subgoal by auto
-    subgoal by auto
+    subgoal by (rule incr_purelit_rounds_st_twl_st_heur_restart_ana') auto
     subgoal by auto
     subgoal using assms by auto
     subgoal using assms by auto

@@ -2,6 +2,7 @@ theory IsaSAT_Simplify_Forward_Subsumption_Defs
   imports IsaSAT_Setup
     IsaSAT_Occurence_List
     IsaSAT_Restart
+    IsaSAT_LBD
 begin
 
 section \<open>Forward subsumption\<close>
@@ -253,6 +254,7 @@ definition remove_lit_from_clause where
       else RETURN (i, j+1, N)
     }) (0, 0, N);
    N \<leftarrow> mop_arena_shorten C i N;
+   N \<leftarrow> update_lbd_shrunk_clause C N;
    RETURN N
   }\<close>
 

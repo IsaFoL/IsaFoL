@@ -18,7 +18,6 @@ definition isa_pure_literal_elimination_round_wl where
     ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
     if get_conflict_wl_is_None_heur S
     then do {
-     let S = incr_purelit_rounds_st S;
      (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl (S);
       if \<not>abort then isa_pure_literal_deletion_wl occs S
       else RETURN (0, S)}
@@ -45,8 +44,9 @@ definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat
          ASSERT (m \<le> max_rounds);
          ASSERT (length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S\<^sub>0));
          ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
+         let S = incr_purelit_rounds_st S;
          (elim, S) \<leftarrow> isa_pure_literal_elimination_round_wl S;
-         abort \<leftarrow> RETURN (elim > 0);
+         abort \<leftarrow> RETURN (elim = 0);
          RETURN (S, m+1, abort)
        })
     (S\<^sub>0, 0, False);

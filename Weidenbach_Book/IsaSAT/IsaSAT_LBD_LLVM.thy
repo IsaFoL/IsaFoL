@@ -50,4 +50,28 @@ sepref_def mark_lbd_from_conflict_impl
   unfolding mark_lbd_from_conflict_alt_def
   by sepref
 
+lemma update_lbd_pre_arena_act_preD:
+  \<open>update_lbd_pre ((a, ba), b) \<Longrightarrow>
+  arena_act_pre (update_lbd a ba b) a\<close>
+  unfolding update_lbd_pre_def arena_act_pre_def prod.simps
+  by (auto simp: arena_is_valid_clause_idx_def intro!: valid_arena_update_lbd)
+
+sepref_register update_lbd_and_mark_used
+sepref_def update_lbd_and_mark_used_impl
+  is \<open>uncurry2 (RETURN ooo update_lbd_and_mark_used)\<close>
+    :: \<open>[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn\<close>
+  unfolding update_lbd_and_mark_used_def LBD_SHIFT_def
+  supply [dest] = update_lbd_pre_arena_act_preD
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
+sepref_def update_lbd_shrunk_clause_impl
+  is \<open>uncurry update_lbd_shrunk_clause\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding update_lbd_shrunk_clause_def
+  apply (rewrite  at \<open>If (\<hole> \<le> _)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>If (_ \<le> _) _ \<hole>\<close> annot_snat_unat_conv)
+  apply (rewrite  at \<open>If (_ \<le> _) _ \<hole>\<close> annot_unat_unat_downcast[where 'l=32])
+  by sepref
+
 end

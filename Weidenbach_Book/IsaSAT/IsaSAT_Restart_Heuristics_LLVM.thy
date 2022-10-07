@@ -92,6 +92,7 @@ lemma update_restart_phases_alt_def:
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (update_heur_wl_heur heur S)
   })\<close>
   by (auto simp: update_restart_phases_def state_extractors split: isasat_int_splits intro!: ext)
