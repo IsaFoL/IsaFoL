@@ -1472,7 +1472,6 @@ proof transfer
     using neg_prop_interp[OF v_in] by simp
 qed
 
-
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
@@ -1589,11 +1588,28 @@ definition to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
 fun to_formula :: "'v sign list \<Rightarrow> 'v formula" where
   \<open>to_formula A = BigAnd (map to_atomic_formula A)\<close>
 
-fun AF_to_formula :: "('f, 'v) AF \<Rightarrow> 'v formula" where
-  \<open>AF_to_formula (Pair bot A) = to_formula (list A)\<close>
+find_theorems name: linorder
+end
+
+term folding_on
+
+subclass (in countable) linorder
+proof
+
+qed
+
+context AF_calculus
+begin
+fun set_to_formula :: "('w::linorder) sign set \<Rightarrow> 'w formula" where
+  \<open>set_to_formula A = to_formula (sorted_list_of_set A)\<close>
+
+fun AF_to_formula :: "('f, ('v::countable)) AF \<Rightarrow> 'v formula" where
+  \<open>AF_to_formula (Pair bot A) = to_formula (sorted_list_of_set A)\<close>
 
 thm compactness
 thm compact_entailment
+thm finite_set
+thm linorder_class.set_sorted_list_of_set
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow> \<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>))\<close>
