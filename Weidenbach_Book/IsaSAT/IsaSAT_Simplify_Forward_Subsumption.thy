@@ -2434,21 +2434,21 @@ proof -
      vdom_m (all_init_atms_st S) (get_watched_wl S) ((get_clauses_wl S))\<close>
     using C_dom CC' by (auto simp: vdom_m_def)
 
-  have still_in_dom_after_shortening: \<open>C' ∈# dom_m x2c ⟹
-    x1b ≤ length (x2c ∝ C') ⟹
-    TIER_ONE_MAXIMUM ≤ x1b ⟹
+  have still_in_dom_after_shortening: \<open>C' \<in># dom_m x2c \<Longrightarrow>
+    x1b  \<le> length (x2c ∝ C') \<Longrightarrow>
+    TIER_ONE_MAXIMUM  \<le> x1b \<Longrightarrow>
     (xb, x2c(C' ↪ take x1b (x2c ∝ C')))
-    ∈ {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} ⟹
-    C ∈# dom_m (x2c(C' ↪ take x1b (x2c ∝ C')))\<close>for x1b x2c xb x2a
+    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} \<Longrightarrow>
+    C \<in># dom_m (x2c(C' ↪ take x1b (x2c ∝ C')))\<close>for x1b x2c xb x2a
    using CC' by auto
   have H: \<open>(xb, x2c(C' ↪ take x1b (x2c ∝ C')))
-    ∈ {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} ⟹
+    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} \<Longrightarrow>
     (xc, x2c(C' ↪ take x1b (x2c ∝ C')))
-    ∈ {(c, N').
+    \<in> {(c, N').
     N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
     valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
-    length c = length xb} ⟹
-    (xc, x2c(C' ↪ take x1b (x2c ∝ C'))) ∈ {(c, N').
+    length c = length xb} \<Longrightarrow>
+    (xc, x2c(C' ↪ take x1b (x2c ∝ C'))) \<in> {(c, N').
     N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
     valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
     length c = length x2a}\<close>for x1b xb x2a xc x2c
@@ -3758,7 +3758,7 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S)) ≤ SPEC (λc. (c, True) ∈ UNIV)\<close> for c delta
+  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S))  \<le> SPEC (λc. (c, True) \<in> UNIV)\<close> for c delta
    unfolding isasat_current_progress_def by auto
   have [refine]: \<open>((0, isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S)), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
     get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>) for delta
@@ -3972,7 +3972,7 @@ lemma isa_forward_subsume_forward_subsume_wl:
   shows \<open>isa_forward_subsume S \<le>
     \<Down>(twl_st_heur_restart_ana' r u) (forward_subsume_wl S')\<close>
 proof -
-  have [refine]: \<open>RETURN (should_subsume_st S) ≤ ⇓ bool_rel (forward_subsume_wl_needed S')\<close>
+  have [refine]: \<open>RETURN (should_subsume_st S)  \<le> \<Down> bool_rel (forward_subsume_wl_needed S')\<close>
     unfolding forward_subsume_wl_needed_def by auto
   show ?thesis
     using assms
