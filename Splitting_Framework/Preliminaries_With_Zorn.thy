@@ -42,6 +42,29 @@ qed
 
 datatype 'a sign = Pos "'a" | Neg "'a"
 
+thm countable_classI
+
+instance sign :: (countable) countable
+  by (rule countable_classI [of "(\<lambda>x. case x of Pos x \<Rightarrow> to_nat (True, to_nat x)
+                                                  | Neg x \<Rightarrow> to_nat (False, to_nat x))"])
+     (smt (verit, best) Pair_inject from_nat_to_nat sign.exhaust sign.simps(5) sign.simps(6))
+
+term \<open>less_eq (a::nat) b\<close>
+
+lift_definition less_eq_sign :: "'a::{countable,linorder} sign \<Rightarrow> 'a sign \<Rightarrow> bool" is
+  \<open>a \<le> b = less_eq (to_nat (a::('a::{countable, linorder}) sign)) (to_nat b)\<close>
+
+
+
+find_theorems "_ \<Longrightarrow> OFCLASS(_,linorder_class)"
+
+instance sign :: (linorder) linorder
+  apply (rule Orderings.class.Orderings.linorder.of_class.intro)
+  unfolding class.linorder_def class.order_def class.preorder_def class.order_axioms_def
+    class.linorder_axioms_def
+  apply auto
+  sorry  
+
 fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
   \<open>neg (Pos C) = Neg C\<close> |
   \<open>neg (Neg C) = Pos C\<close>
@@ -1472,7 +1495,7 @@ proof transfer
     using neg_prop_interp[OF v_in] by simp
 qed
 
-definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
+definition to_AF :: "'f \<Rightarrow> ('f, 'v::{countable, linorder}) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
 definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) where
@@ -1562,10 +1585,15 @@ definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" wher
   (* most probably overkill *)
 (* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
   \<open>F_of_set N \<equiv> F_of ` N\<close> *)
- 
+
+(* TODO: try alternative def that makes use of prop semantic from AFP to ease use of compactness *)
 definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p" 50) where
   \<open>J \<Turnstile>\<^sub>p \<N> \<equiv> bot \<notin> ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J)\<close>
+ 
+definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p2" 50) where
+  \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
 
 definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
@@ -1575,36 +1603,76 @@ definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> (
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
 
-fun to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
-  \<open>to_atomic_formula (Pos v) = Atom v\<close> |
-  \<open>to_atomic_formula (Neg v) = Not (Atom v)\<close>
+fun sign_to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
+  \<open>sign_to_atomic_formula (Pos v) = Atom v\<close> |
+  \<open>sign_to_atomic_formula (Neg v) = Not (Atom v)\<close>
 
-definition to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
-  \<open>to_formula_set A = to_atomic_formula ` A\<close>
+definition sign_set_to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
+  \<open>sign_set_to_formula_set A = sign_to_atomic_formula ` A\<close>
+
+definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
+  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (A_of \<C>)\<close>
+
+definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
+  \<open>AF_proj_to_formula_set \<N> = \<Union> (AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>))\<close>
+
+definition to_valuation :: "'v total_interpretation \<Rightarrow> 'v valuation" where
+  \<open>to_valuation J = (\<lambda>a. Pos a \<in>\<^sub>t J)\<close>
+
+lemma equiv_propositional_sema_defs:
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. Sema.formula_semantics (to_valuation J) F)\<close>
+  unfolding propositional_model2_def to_valuation_def AF_proj_to_formula_set_def
+    AF_to_formula_set_def sign_set_to_formula_set_def propositional_projection_def
+    enabled_projection_def enabled_def
+proof
+  assume \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+  show \<open>\<forall>F\<in>\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>. formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+  proof
+    fix F
+    assume \<open>F \<in> (\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>)\<close>
+    show \<open>formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+      sorry
+  qed
+next
+  assume \<open>\<forall>F\<in>\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>. formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+  show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+    sorry
+qed
+
 
 (* definition to_formula :: "'v sign set \<Rightarrow> 'v formula" where
 \<open>finite A \<Longrightarrow> to_formula A = \<close> *)
-
+(*
 fun to_formula :: "'v sign list \<Rightarrow> 'v formula" where
   \<open>to_formula A = BigAnd (map to_atomic_formula A)\<close>
 
 find_theorems name: linorder
 end
 
-term folding_on
-
+(* attempt at proving that a countable type is a linorder
 subclass (in countable) linorder
 proof
-
 qed
+ 
+*)
+
+term "a:: nat option"
+
+subclass (in countable) ord
+subclass (in countable) preorder
+subclass (in countable) linorder
+subclass (in countable) wellorder
+
 
 context AF_calculus
 begin
-fun set_to_formula :: "('w::linorder) sign set \<Rightarrow> 'w formula" where
+fun set_to_formula :: "'v sign set \<Rightarrow> 'v formula" where
   \<open>set_to_formula A = to_formula (sorted_list_of_set A)\<close>
 
 fun AF_to_formula :: "('f, ('v::countable)) AF \<Rightarrow> 'v formula" where
   \<open>AF_to_formula (Pair bot A) = to_formula (sorted_list_of_set A)\<close>
+*)
+
 
 thm compactness
 thm compact_entailment
