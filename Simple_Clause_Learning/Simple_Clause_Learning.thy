@@ -1931,6 +1931,13 @@ inductive trail_consistent where
   Nil[simp]: "trail_consistent []" |
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> trail_consistent \<Gamma> \<Longrightarrow> trail_consistent ((L, u) # \<Gamma>)"
 
+lemma trail_consistent_appendD: "trail_consistent (\<Gamma> @ \<Gamma>') \<Longrightarrow> trail_consistent \<Gamma>'"
+  by (induction \<Gamma>) (auto elim: trail_consistent.cases)
+
+lemma trail_consistent_if_suffix:
+  "trail_consistent \<Gamma> \<Longrightarrow> suffix \<Gamma>' \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>'"
+  by (auto simp: suffix_def intro: trail_consistent_appendD)
+
 lemma trail_interp_lit_if_trail_true:
   shows "trail_consistent \<Gamma> \<Longrightarrow> trail_true_lit \<Gamma> L \<Longrightarrow> trail_interp \<Gamma> \<TTurnstile>l L"
 proof (induction \<Gamma> rule: trail_consistent.induct)
@@ -2640,7 +2647,7 @@ lemma backtrack_preserves_trail_lits_ground:
   shows "trail_lits_ground S'"
   using assms by (auto simp: trail_lits_ground_def trail_decide_def elim!: backtrack.cases)
 
-lemma scl_preserves_trail_trail_lits_ground:
+lemma scl_preserves_trail_lits_ground:
   assumes "scl N \<beta> S S'" and "trail_lits_ground S"
   shows "trail_lits_ground S'"
   using assms unfolding scl_def
@@ -2660,7 +2667,7 @@ lemma trail_lits_consistent_initial_state: "trail_lits_consistent initial_state"
   by (simp add: trail_lits_consistent_def)
 
 lemma propagate_preserves_trail_lits_consistent:
-  assumes "propagate N \<beta> S S'" and "trail_lits_consistent S"
+  assumes "propagate N \<beta> S S'" and invar: "trail_lits_consistent S"
   shows "trail_lits_consistent S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: propagate.cases)
@@ -2684,7 +2691,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   finally have "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
     using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close> by metis
   
-  moreover from assms(2) have "trail_consistent \<Gamma>"
+  moreover from invar have "trail_consistent \<Gamma>"
     by (simp add: propagateI(1) trail_lits_consistent_def)
 
   moreover have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
@@ -2711,6 +2718,53 @@ proof (cases N \<beta> S S' rule: propagate.cases)
         intro: trail_consistent.Cons)
 qed
 
+lemma decide_preserves_trail_lits_consistent:
+  assumes "decide N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def trail_decide_def elim!: decide.cases
+      intro: trail_consistent.Cons)
+
+lemma conflict_preserves_trail_lits_consistent:
+  assumes "conflict N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def elim: conflict.cases)
+
+lemma skip_preserves_trail_lits_consistent:
+  assumes "skip N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def elim!: skip.cases elim: trail_consistent.cases)
+
+lemma factorize_preserves_trail_lits_consistent:
+  assumes "factorize N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def elim: factorize.cases)
+
+lemma resolve_preserves_trail_lits_consistent:
+  assumes "resolve N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def elim: resolve.cases)
+
+lemma backtrack_preserves_trail_lits_consistent:
+  assumes "backtrack N \<beta> S S'" and invar: "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms
+  by (auto simp: trail_lits_consistent_def trail_decide_def elim!: backtrack.cases
+      elim!: trail_consistent_if_suffix intro: suffixI)
+
+lemma scl_preserves_trail_lits_consistent:
+  assumes "scl N \<beta> S S'" and "trail_lits_consistent S"
+  shows "trail_lits_consistent S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_lits_consistent decide_preserves_trail_lits_consistent
+    conflict_preserves_trail_lits_consistent skip_preserves_trail_lits_consistent
+    factorize_preserves_trail_lits_consistent resolve_preserves_trail_lits_consistent
+    backtrack_preserves_trail_lits_consistent
+  by metis
 
 subsection \<open>Trail Literals Were Propagated or Decided\<close>
 
