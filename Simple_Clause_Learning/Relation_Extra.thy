@@ -13,12 +13,6 @@ lemma transp_reflclp: "transp R \<Longrightarrow> transp R\<^sup>=\<^sup>="
 lemma antisymp_reflcp: "antisymp R \<Longrightarrow> antisymp R\<^sup>=\<^sup>="
   by (simp add: antisymp_def)
 
-lemma irreflpD: "irreflp R \<Longrightarrow> \<not> R x x"
-  unfolding irreflp_def by simp
-
-lemma antisymp_if_asymp: "asymp R \<Longrightarrow> antisymp R"
-  by (metis antisympI asymp.cases)
-
 lemma asymp_if_irreflp_and_transp: "irreflp R \<Longrightarrow> transp R \<Longrightarrow> asymp R"
   by (rule asympI) (metis irreflp_def transpD)
 
