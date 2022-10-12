@@ -51,19 +51,21 @@ instance sign :: (countable) countable
 
 term \<open>less_eq (a::nat) b\<close>
 
+(*
 lift_definition less_eq_sign :: "'a::{countable,linorder} sign \<Rightarrow> 'a sign \<Rightarrow> bool" is
   \<open>a \<le> b = less_eq (to_nat (a::('a::{countable, linorder}) sign)) (to_nat b)\<close>
-
-
+*)
 
 find_theorems "_ \<Longrightarrow> OFCLASS(_,linorder_class)"
 
+(*
 instance sign :: (linorder) linorder
   apply (rule Orderings.class.Orderings.linorder.of_class.intro)
   unfolding class.linorder_def class.order_def class.preorder_def class.order_axioms_def
     class.linorder_axioms_def
   apply auto
   sorry  
+*)
 
 fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
   \<open>neg (Pos C) = Neg C\<close> |
@@ -1414,7 +1416,7 @@ locale dynamically_complete_calculus = calculus +
 datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v sign set")
 
 definition is_interpretation :: "'v sign set \<Rightarrow> bool" where
-  \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> is_Pos v1 = is_Pos v2)))\<close>
+  \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> v1 = v2)))\<close>
   
   (* TODO: find a shorter name for this type (?) *)
 typedef 'v propositional_interpretation = "{J :: 'v sign set. is_interpretation J}"
@@ -1495,7 +1497,7 @@ proof transfer
     using neg_prop_interp[OF v_in] by simp
 qed
 
-definition to_AF :: "'f \<Rightarrow> ('f, 'v::{countable, linorder}) AF" where
+definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
 definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) where
@@ -1610,31 +1612,74 @@ fun sign_to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
 definition sign_set_to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
   \<open>sign_set_to_formula_set A = sign_to_atomic_formula ` A\<close>
 
+lemma form_shape_sign_set: \<open>\<forall>f\<in>sign_set_to_formula_set A. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  unfolding sign_set_to_formula_set_def
+  by (metis image_iff sign_to_atomic_formula.elims)
+
 definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
   \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (A_of \<C>)\<close>
+
+lemma form_shape_AF: \<open>\<forall>f\<in>AF_to_formula_set \<C>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  using form_shape_sign_set unfolding AF_to_formula_set_def by simp
 
 definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
   \<open>AF_proj_to_formula_set \<N> = \<Union> (AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>))\<close>
 
+lemma form_shape_proj: \<open>\<forall>f\<in>AF_proj_to_formula_set \<N>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  using form_shape_AF unfolding AF_proj_to_formula_set_def by simp
+
 definition to_valuation :: "'v total_interpretation \<Rightarrow> 'v valuation" where
   \<open>to_valuation J = (\<lambda>a. Pos a \<in>\<^sub>t J)\<close>
 
+find_theorems strip 
+
+lemma val_strip_pos: \<open>to_valuation J a \<equiv> Pos a \<in> total_strip J\<close>
+  unfolding to_valuation_def belong_to_total_def belong_to_def by simp
+
+lemma val_strip_neg: \<open>(\<not> to_valuation J a) = (Neg a \<in> total_strip J)\<close>
+proof -
+  have \<open>(\<not> to_valuation J a) = (\<not> Pos a \<in> total_strip J)\<close>
+    using val_strip_pos by simp
+  also have \<open>(\<not> Pos a \<in> total_strip J) = (Neg a \<in> total_strip J)\<close>
+  proof
+    fix a J
+    assume not_pos: \<open>Pos (a::'v) \<notin> total_strip J\<close>
+    have \<open>is_interpretation (total_strip J)\<close>
+      using Rep_propositional_interpretation by blast 
+    then show \<open>Neg a \<in> total_strip J\<close> 
+      unfolding is_interpretation_def using total_def not_pos
+      by (metis Rep_total_interpretation belong_to.rep_eq mem_Collect_eq to_V.elims)
+  next
+    assume neg: \<open>Neg a \<in> total_strip J\<close>
+    have \<open>is_interpretation (total_strip J)\<close>
+      using Rep_propositional_interpretation by blast
+    then show \<open>Pos a \<notin> total_strip J\<close>
+      unfolding is_interpretation_def using neg
+    by (metis sign.distinct(1) to_V.simps(1) to_V.simps(2))
+  qed
+  finally show \<open>(\<not> to_valuation J a) = (Neg a \<in> total_strip J)\<close> .
+qed
+
+find_theorems sign_to_atomic_formula
+
 lemma equiv_propositional_sema_defs:
-  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. Sema.formula_semantics (to_valuation J) F)\<close>
-  unfolding propositional_model2_def to_valuation_def AF_proj_to_formula_set_def
-    AF_to_formula_set_def sign_set_to_formula_set_def propositional_projection_def
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
+  unfolding propositional_model2_def propositional_projection_def
     enabled_projection_def enabled_def
 proof
   assume \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
-  show \<open>\<forall>F\<in>\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>. formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
   proof
     fix F
-    assume \<open>F \<in> (\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>)\<close>
-    show \<open>formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+    assume \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
+    then obtain a::'v where \<open>F = Atom a \<or> F = Not (Atom a)\<close>
+      using form_shape_proj by auto
+    then show \<open>formula_semantics (to_valuation J) F\<close>
+      using val_strip_pos val_strip_neg
       sorry
   qed
 next
-  assume \<open>\<forall>F\<in>\<Union>\<C>\<in>{\<C> \<in> \<N>. F_of \<C> = bot}. sign_to_atomic_formula ` A_of \<C>. formula_semantics (\<lambda>a. Pos a \<in>\<^sub>t J) F\<close>
+  assume \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
   show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
     sorry
 qed
