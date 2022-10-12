@@ -2368,7 +2368,7 @@ definition length_get_clauses_wl_heur_init where
 
 definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>model_if_satisfiable CS = SPEC (\<lambda>M.
-           if satisfiable (set_mset CS) then M \<noteq> None \<and> set (the M) \<Turnstile>sm CS else M = None)\<close>
+           if satisfiable (set_mset CS) then M \<noteq> None \<and> consistent_interp (set (the M)) \<and> set (the M) \<Turnstile>sm CS else M = None)\<close>
 
 definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT' CS = do {
@@ -2393,7 +2393,7 @@ proof -
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
         cdcl\<^sub>W_restart_mset.no_smaller_confl_def
         distinct_mset_set_def)
-  have H: \<open>s \<in> {M. if satisfiable (set_mset CS) then M \<noteq> None \<and> set (the M) \<Turnstile>sm CS else M = None}\<close>
+  have H: \<open>s \<in> {M. if satisfiable (set_mset CS) then M \<noteq> None \<and> consistent_interp (set (the M)) \<and> set (the M) \<Turnstile>sm CS else M = None}\<close>
     if
       [simp]: \<open>CS' = CS\<close> and
       s: \<open>s \<in> (\<lambda>T. if pget_conflict T = None then Some (map lit_of (pget_trail T)) else None) `
