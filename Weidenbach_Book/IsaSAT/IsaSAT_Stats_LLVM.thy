@@ -1601,10 +1601,10 @@ sepref_def get_conflict_count_since_last_restart_stats_impl
   unfolding get_conflict_count_since_last_restart_stats_alt_def heuristic_int_assn_def
   by sepref
 
-lemma next_inprocessing_schedule_info_stats_alt_def:
-  \<open>next_inprocessing_schedule_info_stats =
+lemma next_pure_lits_schedule_info_stats_alt_def:
+  \<open>next_pure_lits_schedule_info_stats =
   (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, _), other_fema, other_sema). inprocess_schedule)\<close>
-  unfolding next_inprocessing_schedule_info_stats_def next_inprocessing_schedule_info_def
+  unfolding next_pure_lits_schedule_info_stats_def next_pure_lits_schedule_info_def
   by auto
 
 sepref_def next_pure_lits_schedule_info_stats_impl
@@ -1622,7 +1622,7 @@ sepref_def schedule_next_pure_lits_stats_impl
 
 lemma next_reduce_schedule_info_stats_alt_def:
   \<open>next_reduce_schedule_info_stats =
-  (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, reduce_schedule, _)). reduce_schedule)\<close>
+  (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, reduce_schedule, _), _). reduce_schedule)\<close>
   unfolding next_reduce_schedule_info_stats_def next_reduce_schedule_info_def
   by (auto intro!: ext)
 
@@ -1641,7 +1641,7 @@ sepref_def schedule_next_reduce_stats_impl
 
 lemma next_subsume_schedule_info_stats_alt_def:
   \<open>next_subsume_schedule_info_stats =
-  (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, reduce_schedule, subsume_schedule)). subsume_schedule)\<close>
+  (\<lambda>(fast_ema, slow_ema, _, wasted, \<phi>, _,_,lits, (inprocess_schedule, reduce_schedule, subsume_schedule), _). subsume_schedule)\<close>
   unfolding next_subsume_schedule_info_stats_def next_subsume_schedule_info_def
   by (auto intro!: ext)
 
