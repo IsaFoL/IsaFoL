@@ -1179,7 +1179,7 @@ text \<open>
 definition incr_restart_stat :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>incr_restart_stat = (\<lambda>S. do{
      let heur = get_heur S;
-     let heur = heuristic_reluctant_untrigger (restart_info_restart_done_heur heur);
+     let heur = unset_fully_propagated_heur (heuristic_reluctant_untrigger (restart_info_restart_done_heur heur));
      let S = set_heur_wl_heur heur S;
      let stats = get_stats_heur S;
      let S = set_stats_wl_heur (incr_restart (stats)) S;
@@ -1456,6 +1456,9 @@ subsection \<open>Lifting of Options\<close>
 definition get_target_opts :: \<open>isasat \<Rightarrow> opts_target\<close> where
   \<open>get_target_opts S = opts_target (get_opts S)\<close>
 
+definition get_subsumption_opts :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>get_subsumption_opts S = opts_subsumption (get_opts S)\<close>
+
 definition get_GC_units_opt :: \<open>isasat \<Rightarrow> 64 word\<close> where
   \<open>get_GC_units_opt S = opts_GC_units_lim (get_opts S)\<close>
 
@@ -1713,11 +1716,11 @@ proof -
     by auto
 qed
 
-definition schedule_next_inprocessing_st :: \<open>isasat \<Rightarrow> isasat\<close> where
-  \<open>schedule_next_inprocessing_st S = set_heur_wl_heur (schedule_next_inprocessing (get_heur S)) S\<close>
+definition schedule_next_pure_lits_st :: \<open>isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_pure_lits_st S = set_heur_wl_heur (schedule_next_pure_lits (get_heur S)) S\<close>
 
-definition next_inprocessing_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
-  \<open>next_inprocessing_schedule_st S = next_inprocessing_schedule (get_heur S)\<close>
+definition next_pure_lits_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_pure_lits_schedule_st S = next_pure_lits_schedule (get_heur S)\<close>
 
 definition schedule_info_of_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>schedule_info_of_st S = schedule_info_of (get_heur S)\<close>
@@ -1727,6 +1730,12 @@ definition schedule_next_reduce_st :: \<open>64 word \<Rightarrow> isasat \<Righ
 
 definition next_reduce_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
   \<open>next_reduce_schedule_st S = next_reduce_schedule (get_heur S)\<close>
+
+definition schedule_next_subsume_st :: \<open>64 word \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
+  \<open>schedule_next_subsume_st b S = set_heur_wl_heur (schedule_next_subsume b (get_heur S)) S\<close>
+
+definition next_subsume_schedule_st :: \<open>isasat \<Rightarrow> _\<close> where
+  \<open>next_subsume_schedule_st S = next_subsume_schedule (get_heur S)\<close>
 
 (*TODO move/deduplicate*)
 lemma avdom_delete_index_vdom_heur[simp]:
@@ -1843,5 +1852,11 @@ proof -
     subgoal by auto
     done
 qed
+
+definition stats_forward_rounds_st :: \<open>isasat \<Rightarrow> 64 word\<close> where
+  \<open>stats_forward_rounds_st S = stats_forward_rounds (get_stats_heur S)\<close>
+
+definition incr_purelit_rounds_st :: \<open>_\<close> where
+  \<open>incr_purelit_rounds_st S = set_stats_wl_heur (incr_purelit_rounds (get_stats_heur S)) S\<close>
 
 end

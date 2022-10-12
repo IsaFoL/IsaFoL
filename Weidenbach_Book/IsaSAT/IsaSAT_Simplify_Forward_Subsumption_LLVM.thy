@@ -5,6 +5,8 @@ theory IsaSAT_Simplify_Forward_Subsumption_LLVM
     IsaSAT_Trail_LLVM
     IsaSAT_Proofs_LLVM
     IsaSAT_Arena_Sorting_LLVM
+    IsaSAT_Show_LLVM
+    IsaSAT_LBD_LLVM
 begin
 
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
@@ -813,13 +815,27 @@ lemma isa_forward_subsumption_all_wl_invI:
   apply normalize_goal+
   by (auto simp: isasat_fast_relaxed_def)
 
-sepref_register empty_occs2_st forward_subsumption_finalize
+sepref_register empty_occs2_st forward_subsumption_finalize schedule_next_subsume_st
 
 sepref_def mark_added_clause_heur2_impl
   is \<open>uncurry mark_added_clause_heur2\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding mark_added_clause_heur2_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma schedule_next_subsume_st_alt_def:
+  \<open>schedule_next_subsume_st b S = (let (heur, S) = extract_heur_wl_heur S;
+      heur = schedule_next_subsume b  heur in
+      update_heur_wl_heur heur S)\<close>
+  by (auto simp: schedule_next_subsume_st_def Let_def state_extractors
+    split: isasat_int_splits)
+
+sepref_def schedule_next_subsume_st
+  is \<open>uncurry (RETURN oo schedule_next_subsume_st)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding schedule_next_subsume_st_alt_def
   by sepref
 
 sepref_def forward_subsumption_finalize
@@ -840,6 +856,39 @@ sepref_def isa_forward_subsumption_all_impl
     length_watchlist_raw_def[symmetric]
     al_fold_custom_empty[where 'l=64]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+lemma get_subsumption_opts_alt_def:
+  \<open>get_subsumption_opts S = (case S of IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs \<Rightarrow> opts_subsumption opts)\<close>
+  by (cases S) (auto simp: get_subsumption_opts_def)
+
+sepref_def get_subsumption_opts_impl
+  is \<open>RETURN o get_subsumption_opts\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding get_subsumption_opts_alt_def
+  by sepref
+
+lemma next_subsume_schedule_st_def:
+  \<open>next_subsume_schedule_st S = (case S of IsaSAT M N D i W ivmtf icount ccach lbd outl stats heur aivdom clss opts arena occs \<Rightarrow> next_subsume_schedule heur)\<close>
+  by (cases S) (auto simp: next_subsume_schedule_st_def)
+
+sepref_def next_subsume_schedule_st_impl
+  is \<open>RETURN o next_subsume_schedule_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding next_subsume_schedule_st_def
+  by sepref
+
+sepref_def should_subsume_st
+  is \<open>RETURN o should_subsume_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding should_subsume_st_def
+  by sepref
+
+sepref_def isa_forward_subsume_impl
+  is isa_forward_subsume
+  :: \<open>[isasat_fast_relaxed]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding isa_forward_subsume_def
   by sepref
 
 end

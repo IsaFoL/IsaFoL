@@ -807,6 +807,10 @@ int main(int argc, char *argv[]) {
       versionOnly = 1;
     else
 #ifndef NOOPTIONS
+
+    if(strcmp(opt, "--default\0") == 0)
+      ;
+    else
        if(strcmp(opt, "--ascii\0") == 0)
       binary_proof = 0;
     else if(strcmp(opt, "--notarget\0") == 0)

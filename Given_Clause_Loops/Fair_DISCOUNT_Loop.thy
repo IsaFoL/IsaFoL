@@ -45,7 +45,7 @@ locale fair_discount_loop =
     \<G>_I_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
     Equiv_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<doteq>\<close> 50) and
     Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix \<open>\<prec>\<cdot>\<close> 50) and
-    empty :: "'p" and
+    empty :: 'p and
     select :: "'p \<Rightarrow> 'f passive_elem" and
     add :: "'f passive_elem \<Rightarrow> 'p \<Rightarrow> 'p" and
     remove :: "'f passive_elem \<Rightarrow> 'p \<Rightarrow> 'p" and
@@ -469,7 +469,7 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('p, 'f) DLf_state \<Rightarrow> ('p, 'f) DLf_state \<Rightarrow> bool" where
-  "\<mu>2 St' St \<equiv>
+  "\<mu>2 St' St \<longleftrightarrow>
    (yy_of St' = None \<and> yy_of St \<noteq> None)
    \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_fstate St') (mset_of_fstate St))"
 

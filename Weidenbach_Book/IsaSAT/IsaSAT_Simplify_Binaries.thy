@@ -701,7 +701,7 @@ lemma lambda_split_second: \<open>(\<lambda>(a, x). f a x) = (\<lambda>(a,b,c:: 
 lemma isa_mark_duplicated_binary_clauses_as_garbage_wl_alt_def:
   \<open>isa_mark_duplicated_binary_clauses_as_garbage_wl S\<^sub>0 = do {
   ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<^sub>0);
-  skip \<leftarrow> binary_deduplicate_required S\<^sub>0;
+  let skip = should_eliminate_pure_st S\<^sub>0;
   CS \<leftarrow> create (length (get_watched_wl_heur S\<^sub>0));
   (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, S). do {ASSERT (get_vmtf_heur_array S\<^sub>0 = (get_vmtf_heur_array S));
@@ -942,8 +942,6 @@ proof -
   if 
     \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl S'\<close> and
     \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<close> and
-    \<open>inres (binary_deduplicate_required S) skip\<close> and
-    \<open>(skip, True) \<in> UNIV\<close> and
     \<open>inres (create (length (get_watched_wl_heur S))) CS\<close> and
     \<open>(CS, Map.empty) \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur S)}\<close> and
     \<open>(ns, Some fst_As) = (x1, x2)\<close> and
@@ -978,17 +976,15 @@ proof -
     \<open>the x1b \<in># atm_of `# all_init_lits_of_wl x2b\<close>
   for skip CS x1 x2 x1a x2a x x' x1b x2b x1c x2c x1d x2d skipa
     using that by auto
-  have binary_deduplicate_required: \<open>binary_deduplicate_required S \<le> SPEC (\<lambda>c. (c, True) \<in> UNIV)\<close>
+  have binary_deduplicate_required: \<open>(should_eliminate_pure_st S, True) \<in> UNIV\<close>
    for S skip v
-    by (auto simp: binary_deduplicate_required_def)
+    by (auto simp: should_eliminate_pure_st_def)
   have GC_required_skip: \<open>mop_is_marked_added_heur_st x2d (the x1c)
      \<le> \<Down> {(a,b). (\<not>skip \<or> \<not>a,b)\<in>bool_rel}
         (RES UNIV)\<close>
     if
       \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl S'\<close> and
       \<open>mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S\<close> and
-      \<open>inres (binary_deduplicate_required S) skip\<close> and
-      \<open>(skip, True) \<in> UNIV\<close> and
       \<open>inres (create (length (get_watched_wl_heur S))) CS\<close> and
       \<open>(CS, Map.empty)
     \<in> {((c, m), c'). c = c' \<and> m = length (get_watched_wl_heur S)}\<close> and
@@ -1047,9 +1043,13 @@ proof -
       unfolding mop_is_marked_added_heur_st_def mop_is_marked_added_heur_def
       by (auto intro!: RETURN_RES_refine)
   qed
+  have skip: \<open>(skip_lit, skip)
+    \<in> {(a, b). (\<not>should_eliminate_pure_st S  \<or> \<not> a, b) \<in> bool_rel} \<Longrightarrow>
+    skip \<in> UNIV \<Longrightarrow> (\<not> should_eliminate_pure_st S \<or> \<not> skip_lit) = skip\<close> for skip_lit skip
+   by auto
   have last_step: \<open>do {
    _ \<leftarrow> ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S);
-     skip \<leftarrow> binary_deduplicate_required S;
+     let skip = should_eliminate_pure_st S;
     (CS::(nat literal \<Rightarrow> (nat \<times> bool) option)\<times> nat) \<leftarrow> create (length (get_watched_wl_heur S));
     (CS, S) \<leftarrow> iterate_over_VMTFC
     (\<lambda>A (CS, Sa). do {
@@ -1097,7 +1097,6 @@ proof -
       ns = \<open>get_vmtf_heur S\<close> and lw=\<open>length (get_watched_wl_heur S)\<close>])
     subgoal using assms unfolding mark_duplicated_binary_clauses_as_garbage_pre_wl_heur_def
       by fast
-    apply (rule binary_deduplicate_required)
     apply (rule create)
     apply (rule init)
     subgoal by (use vm in \<open>auto simp: get_vmtf_heur_fst_def\<close>)
@@ -1115,7 +1114,7 @@ proof -
     subgoal by auto
     subgoal by auto
     apply (rule GC_required_skip; assumption)
-    subgoal by auto
+    apply (rule skip; assumption)
     apply (rule rel0; assumption)
     subgoal by (auto simp add: twl_st_heur_restart_ana_def)
     subgoal by (auto simp add: twl_st_heur_restart_ana_def)

@@ -477,7 +477,7 @@ lemma wfP_\<mu>1: "wfP \<mu>1"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
-  "\<mu>2 St' St \<equiv>
+  "\<mu>2 St' St \<longleftrightarrow>
    \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
    \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
       \<and> (\<mu>1 (mset_set (passive.elems (passive_of St'))) (mset_set (passive.elems (passive_of St)))

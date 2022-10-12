@@ -123,11 +123,6 @@ definition update_propagation_heuristics_stats where
 definition update_propagation_heuristics where
   \<open>update_propagation_heuristics glue = Restart_Heuristics o update_propagation_heuristics_stats glue o get_content\<close>
 
-definition update_lbd_and_mark_used where
-  \<open>update_lbd_and_mark_used i glue N = 
-    (let N = update_lbd i glue N in
-    (if glue \<le> TIER_TWO_MAXIMUM then mark_used2 N i else mark_used N i))\<close>
-
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C S\<^sub>0. do {
@@ -169,7 +164,7 @@ definition propagate_bt_wl_D_heur
       let S = set_watched_wl_heur W S\<^sub>0;
       let S = set_learned_count_wl_heur (clss_size_incr_lcount lcount) S;
       let S = set_aivdom_wl_heur (add_learned_clause_aivdom i vdom) S;
-      let S = set_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
+      let S = set_heur_wl_heur (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) S;
       let S = set_stats_wl_heur (add_lbd (of_nat glue) stats) S;
       let S = set_trail_wl_heur M S;
       let S = set_clauses_wl_heur N S;
@@ -208,7 +203,7 @@ definition propagate_unit_bt_wl_D_int
       let S = set_vmtf_wl_heur vm S;
       let S = set_lbd_wl_heur lbd S;
       let S = set_literals_to_update_wl_heur j S;
-      let S = set_heur_wl_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur)) S;
+      let S = set_heur_wl_heur (unset_fully_propagated_heur (heuristic_reluctant_tick (update_propagation_heuristics glue heur))) S;
       let S = set_learned_count_wl_heur (clss_size_incr_lcountUEk lcount) S;
       RETURN S})\<close>
 

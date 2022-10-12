@@ -2320,4 +2320,5 @@ definition mop_arena_set_status where
     ASSERT(arena_is_valid_clause_idx arena C);
     RETURN(arena_set_status arena C b)
   }\<close>
+
 end

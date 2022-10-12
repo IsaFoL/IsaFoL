@@ -128,18 +128,19 @@ definition isa_is_candidate_for_removal where
     length \<leftarrow> mop_arena_length arena C;
     status \<leftarrow> mop_arena_status arena C;
     used \<leftarrow> mop_marked_as_used arena C;
+    D \<leftarrow> get_the_propagation_reason_pol M L;
     let can_del =
       lbd > MINIMUM_DELETION_LBD \<and>
       status = LEARNED \<and>
       length \<noteq> 2 \<and>
-      used = 0;
+      used = 0 \<and>
+      (D \<noteq> Some C);
     RETURN can_del
   }\<close>
 
 
-(*TODO rename to: accumulate candidates to tvdom or something alike*)
-definition isa_remove_deleted_clauses_from_avdom :: \<open>_\<close> where
-\<open>isa_remove_deleted_clauses_from_avdom M arena avdom0 = do {
+definition isa_gather_candidates_for_reduction :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> _ \<Rightarrow> (arena \<times> _) nres\<close> where
+\<open>isa_gather_candidates_for_reduction M arena avdom0 = do {
   ASSERT(length (get_avdom_aivdom avdom0) \<le> length arena);
   ASSERT(length (get_avdom_aivdom avdom0) \<le> length (get_vdom_aivdom avdom0));
   let n = length (get_avdom_aivdom avdom0);
@@ -169,7 +170,7 @@ definition (in -) sort_vdom_heur :: \<open>isasat \<Rightarrow> isasat nres\<clo
     let arena = get_clauses_wl_heur S;
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
     ASSERT(length (get_vdom_aivdom vdom) \<le> length arena);
-    (arena', vdom) \<leftarrow> isa_remove_deleted_clauses_from_avdom M' arena vdom;
+    (arena', vdom) \<leftarrow> isa_gather_candidates_for_reduction M' arena vdom;
     ASSERT(valid_sort_clause_score_pre arena (get_vdom_aivdom vdom));
     ASSERT(EQ (length arena) (length arena'));
     ASSERT(length (get_avdom_aivdom vdom) \<le> length arena);
@@ -425,10 +426,6 @@ definition isasat_GC_clauses_pre_wl_D :: \<open>isasat \<Rightarrow> bool\<close
   \<exists>T. (S, T) \<in> twl_st_heur_restart \<and> cdcl_GC_clauses_pre_wl T
   )\<close>
 
-definition schedule_next_inprocessing_st :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat\<close> where
-  \<open>schedule_next_inprocessing_st b S =
-  (if b \<and> should_inprocess_st S then let heur = get_heur S in set_heur_wl_heur (schedule_next_inprocessing (heur)) S else S)\<close>
-
 definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarrow> isasat nres\<close> where
 \<open>isasat_GC_clauses_wl_D = (\<lambda>inprocessing S. do {
   ASSERT(isasat_GC_clauses_pre_wl_D S);
@@ -438,7 +435,7 @@ definition isasat_GC_clauses_wl_D :: \<open>bool \<Rightarrow> isasat \<Rightarr
     ASSERT(length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S));
     ASSERT(\<forall>i \<in> set (get_tvdom T). i < length (get_clauses_wl_heur S));
     U \<leftarrow> rewatch_heur_and_reorder_st (empty_US_heur T);
-    RETURN (schedule_next_inprocessing_st inprocessing U)
+    RETURN U
   }
   else RETURN S})\<close>
 

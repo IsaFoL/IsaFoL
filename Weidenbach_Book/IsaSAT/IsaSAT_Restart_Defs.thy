@@ -218,9 +218,17 @@ definition minimum_number_between_restarts :: \<open>64 word\<close> where
 definition upper_restart_bound_reached :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_reached = (\<lambda>S. get_global_conflict_count S \<ge> next_reduce_schedule_st S)\<close>
 
+definition should_subsume_st :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>should_subsume_st S \<longleftrightarrow> get_subsumption_opts S \<and>
+      (get_global_conflict_count S > next_subsume_schedule_st S)\<close>
+
+definition should_eliminate_pure_st :: \<open>isasat \<Rightarrow> bool\<close> where
+  \<open>should_eliminate_pure_st S \<longleftrightarrow>
+      (get_global_conflict_count S > next_pure_lits_schedule_st S)\<close>
+
 definition should_inprocess_st :: \<open>isasat \<Rightarrow> bool\<close> where
   \<open>should_inprocess_st S \<longleftrightarrow>
-      (get_global_conflict_count S > next_inprocessing_schedule_st S)\<close>
+      (should_subsume_st S \<or> should_eliminate_pure_st S)\<close>
 
 definition iterate_over_VMTFC where
   \<open>iterate_over_VMTFC = (\<lambda>f (I :: 'a \<Rightarrow> bool) P (ns :: (nat, nat) vmtf_node list, n) x. do {
@@ -251,6 +259,7 @@ definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<clo
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
+     heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (set_heur_wl_heur heur S)
   })\<close>
 

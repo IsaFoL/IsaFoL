@@ -18,11 +18,12 @@ definition isa_pure_literal_elimination_round_wl where
     ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
     if get_conflict_wl_is_None_heur S
     then do {
-     (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl S;
+     (abort, occs) \<leftarrow> isa_pure_literal_count_occs_wl (S);
       if \<not>abort then isa_pure_literal_deletion_wl occs S
       else RETURN (0, S)}
     else RETURN (0, S)
 }\<close>
+
 
 
 definition isa_pure_literal_elimination_wl_pre :: \<open>_\<close> where
@@ -43,12 +44,19 @@ definition isa_pure_literal_elimination_wl :: \<open>isasat \<Rightarrow> isasat
          ASSERT (m \<le> max_rounds);
          ASSERT (length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S\<^sub>0));
          ASSERT (learned_clss_count S \<le> learned_clss_count S\<^sub>0);
+         let S = incr_purelit_rounds_st S;
          (elim, S) \<leftarrow> isa_pure_literal_elimination_round_wl S;
-         abort \<leftarrow> RETURN (elim > 0);
+         abort \<leftarrow> RETURN (elim = 0);
          RETURN (S, m+1, abort)
        })
     (S\<^sub>0, 0, False);
-   RETURN S
+   RETURN (schedule_next_pure_lits_st S)
   }\<close>
+
+definition isa_pure_literal_eliminate :: \<open>isasat \<Rightarrow> isasat nres\<close> where
+  \<open>isa_pure_literal_eliminate S = do {
+    let b = should_eliminate_pure_st S;
+    if b then isa_pure_literal_elimination_wl S else RETURN S
+}\<close>
 
 end

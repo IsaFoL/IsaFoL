@@ -4,10 +4,13 @@
 
 theory Preliminaries_With_Zorn
   imports Saturation_Framework.Calculus
+    Propositional_Proof_Systems.Compactness
     "HOL-Library.Library"
     "HOL-Library.Product_Lexorder"
   (* Finite_Set *)
 begin
+
+no_notation Sema.formula_semantics (infix "\<Turnstile>" 51)
 
   (*useful tools for the following proofs*)
 
@@ -32,549 +35,64 @@ qed
 
   (* formalizing negated formulas uncovered a mistake in the corresponding paper-definition
   (sect. 2.1) *)
-datatype 'a neg = Pos "'a" | Neg "'a neg"
+
+(* old def of sign datatype, that causes *a lot* of trouble *)
+  (* datatype 'a neg = Pos "'a" | Neg "'a neg" *)
 (* ("\<sim>_" 55) (*| Pos (nval_of: "'a neg") *) term "\<sim>F" *)
 
-fun to_V :: "'a neg \<Rightarrow> 'a" where
-  "to_V (Pos C) = C" |
-  "to_V (Neg C) = to_V C"
+datatype 'a sign = Pos "'a" | Neg "'a"
 
-fun is_Pos :: "'a neg \<Rightarrow> bool" where
+thm countable_classI
+
+instance sign :: (countable) countable
+  by (rule countable_classI [of "(\<lambda>x. case x of Pos x \<Rightarrow> to_nat (True, to_nat x)
+                                                  | Neg x \<Rightarrow> to_nat (False, to_nat x))"])
+     (smt (verit, best) Pair_inject from_nat_to_nat sign.exhaust sign.simps(5) sign.simps(6))
+
+term \<open>less_eq (a::nat) b\<close>
+
+(*
+lift_definition less_eq_sign :: "'a::{countable,linorder} sign \<Rightarrow> 'a sign \<Rightarrow> bool" is
+  \<open>a \<le> b = less_eq (to_nat (a::('a::{countable, linorder}) sign)) (to_nat b)\<close>
+*)
+
+find_theorems "_ \<Longrightarrow> OFCLASS(_,linorder_class)"
+
+(*
+instance sign :: (linorder) linorder
+  apply (rule Orderings.class.Orderings.linorder.of_class.intro)
+  unfolding class.linorder_def class.order_def class.preorder_def class.order_axioms_def
+    class.linorder_axioms_def
+  apply auto
+  sorry  
+*)
+
+fun neg :: \<open>'a sign \<Rightarrow> 'a sign\<close> where
+  \<open>neg (Pos C) = Neg C\<close> |
+  \<open>neg (Neg C) = Pos C\<close>
+
+fun to_V :: "'a sign \<Rightarrow> 'a" where
+  "to_V (Pos C) = C" |
+  "to_V (Neg C) = C"
+
+fun is_Pos :: "'a sign \<Rightarrow> bool" where
   "is_Pos (Pos C) = True" |
-  "is_Pos (Neg C) = (\<not>(is_Pos C))"
+  "is_Pos (Neg C) = False"
+
+lemma is_Pos_to_V: \<open>is_Pos C \<Longrightarrow> C = Pos (to_V C)\<close>
+  by (metis is_Pos.simps(2) to_V.elims)
+
+lemma is_Neg_to_V: \<open>\<not> is_Pos C \<Longrightarrow> C = Neg (to_V C)\<close>
+  by (metis is_Pos.simps(1) to_V.elims)
+
+lemma pos_union_singleton: \<open>{D. Pos D \<in> N \<union> {Pos X}} = {D. Pos D \<in> N} \<union> {X}\<close>
+  by blast
 
 lemma tov_set[simp]: \<open>{to_V C |C. to_V C \<in> A} = A\<close>
   by (smt (verit, del_insts) mem_Collect_eq subsetI subset_antisym to_V.simps(1))
 
 lemma pos_neg_union: \<open>{P C |C. Q C \<and> is_Pos C} \<union> {P C |C. Q C \<and> \<not> is_Pos C} = {P C |C. Q C}\<close>
   by blast
-
-  (*formulas_double_induction gets only used for the theorem .induct*)
-fun formulas_double_induction :: "'a neg  \<Rightarrow> 'a neg  \<Rightarrow> 'a neg" where
-  "formulas_double_induction (Pos C1) (Pos C2) = Pos C1" |
-  "formulas_double_induction (Pos C1) (Neg (Pos C2)) = Pos C1" |
-  "formulas_double_induction (Pos C1)(Neg(Neg C2)) = formulas_double_induction (Pos C1) C2"|
-  "formulas_double_induction (Neg (Pos C1)) (Pos C2) = Neg (Pos C1)" |
-  "formulas_double_induction (Neg (Pos C1)) (Neg (Pos C2)) = (Neg (Pos C1))" |
-  "formulas_double_induction (Neg (Pos C1)) (Neg (Neg C2)) = 
-    formulas_double_induction (Neg (Pos C1)) C2" |
-  "formulas_double_induction (Neg (Neg C1))(Pos C2) = formulas_double_induction C1(Pos C2)"|
-  "formulas_double_induction (Neg (Neg C1)) (Neg (Pos C2)) = 
-    formulas_double_induction C1 (Neg (Pos C2))" |
-  "formulas_double_induction (Neg (Neg C1)) (Neg (Neg C2)) = 
-    formulas_double_induction C1 C2"
-
-fun smallest_equivalent_formula :: "'a neg \<Rightarrow> 'a neg" where
-  "smallest_equivalent_formula A = (if (is_Pos A) then (Pos (to_V A))
-                                    else (Neg (Pos (to_V A))))"
-
-  (*returns the most general formula equivalent to A which is in M, or A if there is no*)
-fun smallest_equivalent_formula_in :: "'a neg \<Rightarrow> ('a neg) set \<Rightarrow> 'a neg" where
-  "smallest_equivalent_formula_in (Pos C) M = Pos C" |
-  "smallest_equivalent_formula_in (Neg (Pos C)) M = Neg (Pos C)" |
-  "smallest_equivalent_formula_in (Neg (Neg C)) M = (if smallest_equivalent_formula_in C M \<in> M
-                                           then smallest_equivalent_formula_in C M
-                                           else (Neg(Neg C)))"
-
-fun add_Neg_Neg :: "'a neg \<Rightarrow> 'a neg" where
-  "add_Neg_Neg C = Neg (Neg C)"
-
-lemma impossible_Neg_Neg_is_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> (add_Neg_Neg^^k) C2 = Pos C\<close>
-  by (induction k) auto
-
-lemma impossible_Neg_Neg_is_Neg_Pos: \<open>k\<ge>1 \<Longrightarrow> \<not> (add_Neg_Neg^^k) C2 = Neg (Pos C)\<close>
-  by (induction k) auto
-
-lemma sub_formula_basis_Pos: \<open>(k\<ge>1) \<Longrightarrow> (add_Neg_Neg^^k) (Pos C1) = C2 \<Longrightarrow>
-                               (add_Neg_Neg^^(k+1)) (Pos C1) = Neg (Neg C2)\<close>
-  by (induction k) auto
-
-lemma sub_formula_basis_Neg_Neg: \<open>(add_Neg_Neg^^k) C1 = C2 \<Longrightarrow>
-                                  (add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2)\<close>
-proof(induction k)
-  case 0
-  then show ?case by auto
-next
-  case (Suc k)
-  then show ?case
-    by (metis add_Neg_Neg.elims funpow_swap1)
-qed
-
-  (*formulas having the same to_V and positivity must be equivalent modulo an iteration of Neg Neg
-  in their front*)
-lemma sub_formula: \<open>to_V C1 = to_V C2 \<Longrightarrow> is_Pos C1 = is_Pos C2 \<Longrightarrow>
-                    C1 \<noteq> C2 \<Longrightarrow> \<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C1 = C2 \<or> 
-                                             (add_Neg_Neg^^k) C2 = C1)\<close>
-proof(induction C1 C2 rule:formulas_double_induction.induct)
-  case (1 C1 C2)
-  then show ?case by auto
-next
-  case (2 C1 C2)
-  then show ?case by auto
-next
-  case (3 C1 C2)
-  assume induction_hypothesis_3_sub_formula:
-    \<open>to_V (Pos C1) = to_V C2 \<Longrightarrow>
-    is_Pos (Pos C1) = is_Pos C2 \<Longrightarrow>
-    Pos C1 \<noteq> C2 \<Longrightarrow> 
-    \<exists>k\<ge>1. (add_Neg_Neg^^k) (Pos C1) = C2 \<or> (add_Neg_Neg^^k) C2 = Pos C1\<close>
-  consider (a) \<open>Pos C1 = C2\<close> | (b) \<open>Pos C1 \<noteq> C2\<close>
-    by auto
-  then show ?case
-  proof (cases)
-    case a
-    have \<open>add_Neg_Neg (Pos C1) = Neg (Neg C2)\<close>
-      using a by auto
-    then have \<open>(add_Neg_Neg^^1) (Pos C1) = Neg (Neg C2)\<close>
-      by auto
-    then show ?thesis by auto
-  next
-    case b
-    have to_V_C1_equals_C2: \<open>to_V (Pos C1) = to_V C2\<close>
-      using "3.prems"(1) by fastforce
-    moreover have Pos_C1_equals_C2: \<open>is_Pos (Pos C1) = is_Pos C2\<close>
-      using "3.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C1) = C2 \<or>
-                                  (add_Neg_Neg^^k) C2 = Pos C1\<close>
-      using induction_hypothesis_3_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C1) = C2\<close>
-      using impossible_Neg_Neg_is_Pos
-      by (metis "3.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Pos C1) = Neg (Neg C2)\<close>
-      using sub_formula_basis_Pos by auto
-    then show ?thesis
-    using le_add2 by blast
-  qed
-next
-  case (4 C1 C2)
-  then show ?case by auto
-next
-  case (5 C1 C2)
-  then show ?case by auto
-next
-  case (6 C1 C2)
-  assume induction_hypothesis_6_sub_formula:
-    \<open>to_V (Neg (Pos C1)) = to_V C2 \<Longrightarrow>
-    is_Pos (Neg (Pos C1)) = is_Pos C2 \<Longrightarrow>
-    Neg (Pos C1) \<noteq> C2 \<Longrightarrow>
-    \<exists>k\<ge>1. (add_Neg_Neg^^k) (Neg (Pos C1)) = C2 \<or> (add_Neg_Neg^^k) C2 = Neg (Pos C1)\<close>
-  consider (a) \<open>Neg (Pos C1) = C2\<close> | (b) \<open>Neg (Pos C1) \<noteq> C2\<close>
-    by auto
-  then show ?case
-  proof (cases)
-    case a
-    have \<open>add_Neg_Neg (Neg (Pos C1)) = Neg (Neg C2)\<close>
-      using a by auto
-    then have \<open>(add_Neg_Neg^^1) (Neg (Pos C1)) = Neg (Neg C2)\<close>
-      by auto
-    then show ?thesis by auto
-  next
-    case b
-    have to_V_C1_equals_C2: \<open>to_V (Neg (Pos C1)) = to_V C2\<close>
-      using "6.prems"(1) by fastforce
-    moreover have Pos_C1_equals_C2: \<open>is_Pos (Neg (Pos C1)) = is_Pos C2\<close>
-      using "6.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg(Pos C1)) = C2 \<or>
-                                  (add_Neg_Neg^^k) C2 = Neg (Pos C1)\<close>
-      using induction_hypothesis_6_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg (Pos C1)) = C2\<close>
-      using impossible_Neg_Neg_is_Neg_Pos
-      by (metis "6.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Neg (Pos C1)) = Neg (Neg C2)\<close>
-      using sub_formula_basis_Pos by auto
-    then show ?thesis
-    using le_add2 by blast
-  qed
-next
-  case (7 C1 C2)
-  assume induction_hypothesis_7_sub_formula:
-    \<open>to_V C1 = to_V (Pos C2) \<Longrightarrow>
-    is_Pos C1 = is_Pos (Pos C2) \<Longrightarrow>
-    C1 \<noteq> Pos C2 \<Longrightarrow> \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = Pos C2 \<or> 
-                           (add_Neg_Neg^^k) (Pos C2) = C1\<close>
-  consider (a) \<open>Pos C2 = C1\<close> | (b) \<open>Pos C2 \<noteq> C1\<close>
-    by auto
-  then show ?case
-  proof (cases)
-    case a
-    have \<open>add_Neg_Neg (Pos C2) = Neg (Neg C1)\<close>
-      using a by auto
-    then have \<open>(add_Neg_Neg^^1) (Pos C2) = Neg (Neg C1)\<close>
-      by auto
-    then show ?thesis by auto
-  next
-    case b
-    have to_V_C1_equals_C2: \<open>to_V (Pos C2) = to_V C1\<close>
-      using "7.prems"(1) by fastforce
-    moreover have Pos_C1_equals_C2: \<open>is_Pos (Pos C2) = is_Pos C1\<close>
-      using "7.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C2) = C1 \<or>
-                                  (add_Neg_Neg^^k) C1 = Pos C2\<close>
-      using induction_hypothesis_7_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Pos C2) = C1\<close>
-      using impossible_Neg_Neg_is_Pos
-      by (metis "7.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Pos C2) = Neg (Neg C1)\<close>
-      using sub_formula_basis_Pos by auto
-    then show ?thesis
-    using le_add2 by blast
-  qed
-next
-  case (8 C1 C2)
-  assume induction_hypothesis_8_sub_formula:
-    \<open>to_V C1 = to_V (Neg (Pos C2)) \<Longrightarrow>
-    is_Pos C1 = is_Pos (Neg (Pos C2)) \<Longrightarrow>
-    C1 \<noteq> Neg (Pos C2) \<Longrightarrow>
-    \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = Neg (Pos C2) \<or> (add_Neg_Neg^^k) (Neg (Pos C2)) = C1\<close>
-  consider (a) \<open>Neg (Pos C2) = C1\<close> | (b) \<open>Neg (Pos C2) \<noteq> C1\<close>
-    by auto
-  then show ?case
-  proof (cases)
-    case a
-    have \<open>add_Neg_Neg (Neg (Pos C2)) = Neg (Neg C1)\<close>
-      using a by auto
-    then have \<open>(add_Neg_Neg^^1) (Neg (Pos C2)) = Neg (Neg C1)\<close>
-      by auto
-    then show ?thesis by auto
-  next
-    case b
-    have to_V_C1_equals_C2: \<open>to_V (Neg (Pos C2)) = to_V C1\<close>
-      using "8.prems"(1) by fastforce
-    moreover have Pos_C1_equals_C2: \<open>is_Pos (Neg (Pos C2)) = is_Pos C1\<close>
-      using "8.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg(Pos C2)) = C1 \<or>
-                                  (add_Neg_Neg^^k) C1 = Neg (Pos C2)\<close>
-      using induction_hypothesis_8_sub_formula by force
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^k) (Neg (Pos C2)) = C1\<close>
-      using impossible_Neg_Neg_is_Neg_Pos
-      by (metis "8.IH" Pos_C1_equals_C2 b to_V_C1_equals_C2)
-    then have \<open>\<exists>k. (k\<ge>1) \<and> (add_Neg_Neg^^(k+1)) (Neg (Pos C2)) = Neg (Neg C1)\<close>
-      using sub_formula_basis_Pos by auto
-    then show ?thesis
-    using le_add2 by blast
-  qed
-next
-  case (9 C1 C2)
-  assume induction_hypothesis_8_sub_formula:
-    \<open>to_V C1 = to_V C2 \<Longrightarrow>
-    is_Pos C1 = is_Pos C2 \<Longrightarrow>
-    C1 \<noteq> C2 \<Longrightarrow> \<exists>k\<ge>1. (add_Neg_Neg^^k) C1 = C2 \<or> (add_Neg_Neg^^k) C2 = C1\<close>
-  have to_V_C1_equals_C2: \<open>to_V C2 = to_V C1\<close>
-      using "9.prems"(1) by fastforce
-    moreover have Pos_C1_equals_C2: \<open>is_Pos C2 = is_Pos C1\<close>
-      using "9.prems"(2) is_Pos.simps(2) by blast
-    ultimately have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C2 = C1 \<or>
-                                  (add_Neg_Neg^^k) C1 = C2)\<close>
-      using induction_hypothesis_8_sub_formula "9.prems"(3) by auto
-    then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) (Neg (Neg C2)) = Neg (Neg C1) \<or>
-                            (add_Neg_Neg^^k) (Neg (Neg C1)) = Neg (Neg C2))\<close>
-      using sub_formula_basis_Neg_Neg by auto
-  then show ?case by fast
-qed
-
-lemma smallest_inclusion_in: \<open>C \<in> M \<Longrightarrow> smallest_equivalent_formula_in C M \<in> M\<close>
-  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma sub_formula_csq: 
-      \<open>(add_Neg_Neg^^k) C1 = C2 \<Longrightarrow> C1 \<in>  M \<Longrightarrow> smallest_equivalent_formula_in C2 M \<in> M\<close>
-proof(induction k arbitrary:C1 C2)
-  case 0
-  then show ?case using smallest_inclusion_in by simp
-next
-  case (Suc k)
-  assume iter_k_C1_C2: \<open>(add_Neg_Neg^^(Suc k)) C1 = C2\<close>
-  then have \<open>\<exists>C3. C2 = Neg (Neg C3)\<close>
-    by force
-  then obtain C3 where C3_def: \<open>C2 = Neg (Neg C3)\<close>
-    by auto
-  then have \<open>(add_Neg_Neg^^k) C1 = C3\<close>
-    using iter_k_C1_C2 by auto
-  then show ?case
-    using C3_def Suc.IH Suc.prems(2) by fastforce
-qed
-
-lemma smallest_same_to_V_in: \<open>to_V C = to_V (smallest_equivalent_formula_in C M)\<close>
-  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma smallest_same_Pos_in: \<open> is_Pos C = is_Pos (smallest_equivalent_formula_in C M)\<close>
-  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma size_neg_neg_greater: \<open>smallest_equivalent_formula_in C M \<in>  M \<Longrightarrow>
-                           size(smallest_equivalent_formula_in (Neg (Neg C)) M) < size(Neg (Neg C))\<close>
-  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma idempotent_smallest_formula_in: 
-  \<open>smallest_equivalent_formula_in (smallest_equivalent_formula_in C M) M =
-  smallest_equivalent_formula_in C M\<close>
-  by (induction C M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma smallest_reduction_basis_Pos_in : \<open>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Pos C \<in> M \<Longrightarrow>
-                                           smallest_equivalent_formula_in C1 M = Pos C\<close>
-  by (induction C1 M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma smallest_reduction_basis_Neg_in: \<open>\<not>is_Pos C1 \<Longrightarrow> to_V C1 = C \<Longrightarrow> Neg (Pos C) \<in> M \<Longrightarrow>
-                                          smallest_equivalent_formula_in C1 M = Neg (Pos C)\<close>
-  by (induction C1 M rule:smallest_equivalent_formula_in.induct) auto
-
-lemma neg_lex_size_induction: \<open>\<And>(P::'a neg \<Rightarrow> 'a neg \<Rightarrow> bool) A B. (\<And>C1 C2. P (Pos C1) (Pos C2))\<Longrightarrow>
-    (\<And>C1 C2. P (Pos C1) (Neg (Pos C2))) \<Longrightarrow>
-    (\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))) \<Longrightarrow>
-    (\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)) \<Longrightarrow>
-    (\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2))) \<Longrightarrow>
-    (\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))) \<Longrightarrow>
-    (\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)) \<Longrightarrow>
-    (\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))) \<Longrightarrow>
-    (\<And>C1 C2.(\<And>C1' C2'. 
-             (size(C1'),size (C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2)))) \<Longrightarrow> P C1' C2') \<Longrightarrow>
-       P (Neg (Neg C1)) (Neg (Neg C2))) \<Longrightarrow> 
-    P A B\<close>
-proof -
-  fix P::"'a neg \<Rightarrow> 'a neg \<Rightarrow> bool" and A B
-  assume h1_nri: \<open>\<And>C1 C2. P (Pos C1) (Pos C2)\<close> and 
-         h2_nri: \<open>\<And>C1 C2. P (Pos C1) (Neg (Pos C2))\<close> and 
-         h3_nri: \<open>\<And>C1 C2. P (Pos C1) C2 \<Longrightarrow> P (Pos C1) (Neg (Neg C2))\<close> and
-         h4_nri: \<open>\<And>C1 C2. P (Neg (Pos C1)) (Pos C2)\<close> and
-         h5_nri: \<open>(\<And>C1 C2. P (Neg (Pos C1)) (Neg (Pos C2)))\<close> and
-         h6_nri: \<open>\<And>C1 C2. P (Neg (Pos C1)) C2 \<Longrightarrow> P (Neg (Pos C1)) (Neg (Neg C2))\<close> and
-         h7_nri: \<open>\<And>C1 C2. P C1 (Pos C2) \<Longrightarrow> P (Neg (Neg C1)) (Pos C2)\<close> and
-         h8_nri: \<open>\<And>C1 C2. P C1 (Neg (Pos C2)) \<Longrightarrow> P (Neg (Neg C1)) (Neg (Pos C2))\<close> and
-         h9_nri: \<open>\<And>C1 C2.(\<And>C1' C2'.(size(C1'),size(C2')) < (size (Neg (Neg C1)),size(Neg(Neg(C2))))
-                                       \<Longrightarrow> P C1' C2')
-                   \<Longrightarrow> P (Neg (Neg C1)) (Neg (Neg C2))\<close>
-  show \<open>P A B\<close>
-  proof (induction "(size A, size B)" arbitrary: A B rule:less_induct)
-    case less
-    assume hr: \<open>\<And>Aa Ba. (size Aa, size Ba) < (size A, size B) \<Longrightarrow> P Aa Ba\<close>
-    consider (1) \<open>\<exists>C1 C2. A = Pos C1 \<and> B = Pos C2\<close> |
-             (2) \<open>\<exists>C1 C2. A = Pos C1 \<and> B = Neg (Pos C2)\<close> |
-             (3) \<open>\<exists>C1 C2. A = Pos C1 \<and> B = Neg (Neg C2)\<close> |
-             (4) \<open>\<exists>C1 C2. A = Neg (Pos C1) \<and> B = Pos C2\<close> |
-             (5) \<open>\<exists>C1 C2. A = Neg (Pos C1) \<and> B = Neg (Pos C2)\<close> |
-             (6) \<open>\<exists>C1 C2. A = Neg (Pos C1) \<and> B = Neg (Neg C2)\<close> |
-             (7) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Pos C2\<close> |
-             (8) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Neg (Pos C2)\<close> |
-             (9) \<open>\<exists>C1 C2. A = Neg (Neg C1) \<and> B = Neg (Neg C2)\<close>
-      by (metis smallest_equivalent_formula_in.elims)
-    then show ?case
-    proof(cases)
-      case 1
-      then show ?thesis using h1_nri by auto
-    next
-      case 2
-      then show ?thesis using h2_nri by auto
-    next
-      case 3
-      then obtain C1 C2 where C1_def: \<open>A = Pos C1\<close> and C2_def: \<open>B = Neg (Neg C2)\<close>
-        by auto
-      have \<open>(size A,size C2) < (size A, size (Neg (Neg C2)))\<close>
-        using C1_def C2_def by auto
-      then show ?thesis using h3_nri
-      using C1_def C2_def less by blast
-    next
-      case 4
-      then show ?thesis using h4_nri by auto
-    next
-      case 5
-      then show ?thesis using h5_nri by auto
-    next
-      case 6
-      then obtain C1 C2 where C1_def: \<open>A = Neg (Pos C1)\<close> and C2_def: \<open>B = Neg (Neg C2)\<close>
-        by auto
-      have \<open>(size A,size C2) < (size A, size (Neg (Neg C2)))\<close>
-        using C1_def C2_def by auto
-      then show ?thesis using h6_nri
-      using C1_def C2_def less by blast
-    next
-      case 7
-      then obtain C1 C2 where C1_def: \<open>A = Neg (Neg C1)\<close> and C2_def: \<open>B = Pos C2\<close>
-        by auto
-      have \<open>(size C1,size B) < (size A, size B)\<close>
-        using C1_def C2_def by auto
-      then show ?thesis using h7_nri
-      using C1_def C2_def less by blast
-    next
-      case 8
-      then obtain C1 C2 where C1_def: \<open>A = Neg (Neg C1)\<close> and C2_def: \<open>B = Neg (Pos C2)\<close>
-        by auto
-      have \<open>(size C1,size B) < (size A, size B)\<close>
-        using C1_def C2_def by auto
-      then show ?thesis using h8_nri
-      using C1_def C2_def less by blast
-    next
-      case 9
-      then obtain C1 C2 where C1_def: \<open>A = Neg (Neg C1)\<close> and C2_def: \<open>B = Neg (Neg C2)\<close>
-        by auto
-      then have \<open>\<And>Aa Ba. (size Aa, size Ba) < (size A, size B) \<Longrightarrow> P Aa Ba\<close>
-        using hr by simp
-      then have \<open>P (Neg (Neg C1)) (Neg (Neg C2))\<close>
-        using h9_nri C1_def C2_def by presburger
-      then show ?thesis using C1_def C2_def
-      by simp
-    qed
-  qed
-qed
-
-  (*formulas over a set M, which have same to_V and positivity have the same smallest formula in M*)
-lemma smallest_reduction_in: \<open>C1 \<in> M \<Longrightarrow> C2 \<in> M \<Longrightarrow>
-  (to_V C1 = to_V C2 \<and> is_Pos C1 = is_Pos C2) \<Longrightarrow> 
-  smallest_equivalent_formula_in C1 M = smallest_equivalent_formula_in C2 M\<close>
-proof (induction C1 C2  rule:neg_lex_size_induction)
-  case (1 C1 C2)
-  then show ?case by auto
-next
-  case (2 C1 C2)
-  then show ?case by auto
-next
-  case (3 C1 C2)
-  have \<open>to_V (Neg (Neg C2)) = to_V C2\<close>
-    by simp
-  moreover have \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
-    by simp
-  ultimately show ?case using smallest_reduction_basis_Pos_in
-    by (metis "3.prems"(1) "3.prems"(3) is_Pos.simps(1) to_V.simps(1))
-next
-  case (4 C1 C2)
-  then show ?case by auto
-next
-  case (5 C1 C2)
-  then show ?case by auto
-next
-  case (6 C1 C2)
-  have \<open>to_V (Neg (Neg C2)) = to_V C2\<close>
-    by simp
-  moreover have \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
-    by simp
-  ultimately show ?case using smallest_reduction_basis_Neg_in
-  by (metis "6.prems"(1) "6.prems"(3) is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1) to_V.simps(2)) 
-next
-  case (7 C1 C2)
-  have \<open>to_V (Neg (Neg C1)) = to_V C1\<close>
-    by simp
-  moreover have \<open>is_Pos (Neg (Neg C1)) = is_Pos C1\<close>
-    by simp
-  ultimately show ?case using smallest_reduction_basis_Pos_in
-  by (metis "7.prems"(2) "7.prems"(3) is_Pos.simps(1) to_V.simps(1))
-next
-  case (8 C1 C2)
-  have \<open>to_V (Neg (Neg C1)) = to_V C1\<close>
-    by simp
-  moreover have \<open>is_Pos (Neg (Neg C1)) = is_Pos C1\<close>
-    by simp
-  ultimately show ?case using smallest_reduction_basis_Neg_in
-  by (metis "8.prems"(2) "8.prems"(3) is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1) to_V.simps(2))
-next
-  case (9 C1 C2)
-  have stab_to_V_C1: \<open>to_V (Neg (Neg C1)) = to_V C1\<close>
-    by auto
-  moreover have stab_to_V_C2: \<open>to_V (Neg (Neg C2)) = to_V C2\<close>
-    by auto
-  moreover have stab_is_Pos_C1: \<open>is_Pos (Neg (Neg C1)) = is_Pos C1\<close>
-    by auto
-  moreover have stab_is_Pos_C2: \<open>is_Pos (Neg (Neg C2)) = is_Pos C2\<close>
-    by auto
-  consider (a)\<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
-           (b)\<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<in> M\<close>|
-           (c)\<open>smallest_equivalent_formula_in C1 M \<in> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>|
-           (d)\<open>smallest_equivalent_formula_in C1 M \<notin> M \<and> smallest_equivalent_formula_in C2 M \<notin> M\<close>
-    by auto
-  then show ?case
-  proof(cases)
-    case a
-    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) =
-                   is_Pos (smallest_equivalent_formula_in C2 M)\<close>
-      using "9.prems"(3) smallest_same_Pos_in by auto
-    moreover have \<open>size (smallest_equivalent_formula_in C1 M) < size (Neg (Neg C1))\<close>
-      by (metis a smallest_equivalent_formula_in.simps(3) size_neg_neg_greater)
-    ultimately have \<open>smallest_equivalent_formula_in C1 M =
-                     smallest_equivalent_formula_in C2 M\<close>
-      using a
-      by (metis "9.IH" less_prod_simp idempotent_smallest_formula_in)
-    then show ?thesis using a by simp
-  next
-    case b
-    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) = 
-                  is_Pos (smallest_equivalent_formula_in C2 M)\<close>
-      using "9.prems"(3) smallest_same_Pos_in by auto
-    moreover have \<open>size (smallest_equivalent_formula_in (Neg (Neg C1)) M) = size(Neg (Neg C1))\<close>
-      using b by auto
-    moreover have \<open>size (smallest_equivalent_formula_in C2 M) < size (Neg (Neg C2))\<close>
-      using b size_neg_neg_greater by force
-    ultimately have \<open>smallest_equivalent_formula_in( 
-                       smallest_equivalent_formula_in (Neg (Neg C1)) M) =
-                     smallest_equivalent_formula_in (smallest_equivalent_formula_in C2 M)\<close>
-      using b "9.IH"
-      by (metis "9.prems"(1) "9.prems"(3) smallest_same_Pos_in smallest_same_to_V_in
-        less_prod_simp idempotent_smallest_formula_in
-        stab_is_Pos_C2 stab_to_V_C2 verit_comp_simplify1(3))
-    then show ?thesis using b idempotent_smallest_formula_in by simp
-  next
-    case c
-    have \<open>to_V (smallest_equivalent_formula_in C1 M) = to_V (smallest_equivalent_formula_in C2 M)\<close>
-      by (metis "9.prems"(3) smallest_same_to_V_in stab_to_V_C1 stab_to_V_C2)
-    moreover have \<open>is_Pos (smallest_equivalent_formula_in C1 M) = 
-                   is_Pos (smallest_equivalent_formula_in C2 M)\<close>
-      using "9.prems"(3) smallest_same_Pos_in by auto
-    moreover have \<open>size (smallest_equivalent_formula_in (Neg (Neg C2)) M) = size(Neg (Neg C2))\<close>
-      using c by auto
-    moreover have \<open>size (smallest_equivalent_formula_in C1 M) < size (Neg (Neg C1))\<close>
-      using c size_neg_neg_greater by force
-    ultimately have \<open>smallest_equivalent_formula_in(smallest_equivalent_formula_in(Neg (Neg C2))M)=
-                     smallest_equivalent_formula_in(smallest_equivalent_formula_in C1 M)\<close>
-      using "9.IH"
-      by (metis "9.prems"(2) "9.prems"(3) c smallest_same_Pos_in
-        smallest_same_to_V_in 
-        less_prod_simp idempotent_smallest_formula_in stab_is_Pos_C1 stab_to_V_C2)
-    then show ?thesis using c idempotent_smallest_formula_in
-      by (metis smallest_equivalent_formula_in.simps(3))
-  next
-    case d
-    have \<open>C1 = C2\<close>
-    proof (rule ccontr)
-      assume C1_neq_C2: \<open>C1  \<noteq> C2\<close>
-      then have \<open>\<exists>k. (k\<ge>1) \<and> ((add_Neg_Neg^^k) C1) = C2 \<or> 
-                 ((add_Neg_Neg^^k) C2) = C1\<close>
-        using sub_formula "9.prems"(3) by auto
-      then obtain k where k_not_null: \<open>k \<ge> 1\<close> and
-                          k_def: \<open>(add_Neg_Neg^^k) C1 = C2 \<or> 
-                                  (add_Neg_Neg^^k) C2 = C1\<close>
-        using "9.prems"(3) C1_neq_C2 sub_formula by auto
-      consider (a) \<open>(add_Neg_Neg^^k)  C1 = C2\<close> | 
-               (b) \<open>(add_Neg_Neg^^k)  C2 = C1\<close>
-        using k_def by auto
-      then show \<open>False\<close>
-      proof(cases)
-        case a
-        have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C1)) = C2\<close>
-          using pow_suc
-          by (metis a add_Neg_Neg.elims k_not_null
-              ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc)
-        then have \<open>smallest_equivalent_formula_in C2 M \<in> M\<close>
-          using sub_formula_csq "9.prems"(1) by auto
-        then show ?thesis using d by auto
-      next
-        case b
-        have \<open>(add_Neg_Neg^^(k-1)) (Neg (Neg C2)) = C1\<close>
-          using pow_suc
-        by (smt (verit, del_insts) add_Neg_Neg.elims b k_not_null neg.inject(2) 
-            ordered_cancel_comm_monoid_diff_class.add_diff_inverse plus_1_eq_Suc 
-            sub_formula_basis_Neg_Neg)
-        then have \<open>smallest_equivalent_formula_in C1 M \<in> M\<close>
-          using sub_formula_csq "9.prems"(2) by auto
-        then show ?thesis using d by auto
-      qed
-    qed
-    then show ?thesis
-      by simp
-  qed
-qed
-
-fun is_in :: "'a neg \<Rightarrow> 'a neg set \<Rightarrow> bool" (infix "\<in>\<^sub>v" 90) where
-  \<open>(Pos C) \<in>\<^sub>v J = (\<exists>v\<in>J. is_Pos v \<and> to_V v = C)\<close> |
-  \<open>(Neg C) \<in>\<^sub>v J = (\<exists>v\<in>J. (is_Pos v = is_Pos (Neg C)) \<and> to_V v = to_V C)\<close>
  
 locale consequence_relation =
   fixes
@@ -1426,129 +944,8 @@ next
   qed
 qed
 
-definition entails_neg :: "'f neg set \<Rightarrow> 'f neg set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
-  "entails_neg M N \<equiv> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-  {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
-
-lemma smallest_entailment:
-  \<open>M \<Turnstile>\<^sub>\<sim> N \<Longrightarrow> {smallest_equivalent_formula_in C M |C. C\<in>M} \<Turnstile>\<^sub>\<sim> {smallest_equivalent_formula_in C N |C. C\<in>N}\<close>
-proof -
-  assume \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
-  then have M_entails_N: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-                          {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    unfolding entails_neg_def .
-  moreover have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
-                 {to_V (smallest_equivalent_formula_in C M) |C. C \<in> M  \<and> is_Pos C}\<close>
-    using smallest_same_to_V_in by metis
-  then have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} = 
-             {to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C}\<close>
-    using smallest_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    by simp
-  moreover have \<open>{to_V C |C. C \<in> N \<and> \<not> is_Pos C} = 
-                 {to_V (smallest_equivalent_formula_in C N) |C. C \<in> N  \<and> \<not>is_Pos C}\<close>
-    using smallest_same_to_V_in by metis
-  then have \<open>{to_V C |C. C \<in> N \<and> \<not>is_Pos C} = 
-             {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C}\<close>
-    using smallest_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M} \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> \<not>is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    by simp
-  moreover have \<open>{to_V C |C. C \<in> N \<and>  is_Pos C} = 
-                 {to_V (smallest_equivalent_formula_in C N) |C. C \<in> N  \<and> is_Pos C}\<close>
-    using smallest_same_to_V_in by metis
-  then have \<open>{to_V C |C. C \<in> N \<and> is_Pos C} = 
-             {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N} \<and> is_Pos C}\<close>
-    using smallest_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    by simp
-  moreover have \<open>{to_V C |C. C \<in> M \<and>  \<not>is_Pos C} = 
-                 {to_V (smallest_equivalent_formula_in C M) |C. C \<in> M  \<and> \<not>is_Pos C}\<close>
-    using smallest_same_to_V_in by metis
-  then have \<open>{to_V C |C. C \<in> M \<and> \<not>is_Pos C} = 
-             {to_V C |C. C \<in> {smallest_equivalent_formula_in C M|C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
-    using smallest_same_Pos_in by auto
-  ultimately have \<open>{to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> \<not>is_Pos C} \<Turnstile>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C N |C. C \<in> N}  \<and> is_Pos C} \<union>
-                   {to_V C |C. C \<in> {smallest_equivalent_formula_in C M |C. C \<in> M}  \<and> \<not>is_Pos C}\<close>
-    by simp
-  then show ?thesis unfolding entails_neg_def by auto
-qed
-
-(*returns the union of all extended formulas which are equivalent to an extended formula of M*)
-definition all_ext :: "'f neg set \<Rightarrow> 'f neg set" where
-  "all_ext M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D = is_Pos C})"
-
-lemma self_in_all_ext: \<open>M \<subseteq> all_ext M\<close>
-  unfolding all_ext_def by auto 
-
-lemma rm_all_ext: \<open>{to_V C |C. C \<in> all_ext M \<and> is_Pos C} = {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-  unfolding all_ext_def by blast 
-
-lemma rm_all_ext_neg: \<open>{to_V C |C. C \<in> all_ext M \<and> \<not> is_Pos C} = {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-  unfolding all_ext_def by blast 
-
-(*returns the union of all extended formulas which are opposite to an extended formula of M*)
-definition all_ext_complement :: "'f neg set \<Rightarrow> 'f neg set" where
-  "all_ext_complement M = (\<Union>C\<in>M. {D. to_V D = to_V C \<and> is_Pos D \<noteq> is_Pos C})" 
-
-
-lemma rm_all_ext_comp: \<open>{to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C} =
-  {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-proof (intro equalityI subsetI)
-  fix x
-  assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
-  then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close> and c_pos: \<open>is_Pos C\<close>
-    by blast 
-  obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>\<not> is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
-    using c_in c_pos unfolding all_ext_complement_def
-    by auto
-  then show \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-    using x_is by auto 
-next
-  fix x
-  assume \<open>x \<in> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
-  then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>\<not> is_Pos C\<close>
-    by blast 
-  then have \<open>Pos x \<in> all_ext_complement M\<close>
-    unfolding all_ext_complement_def by auto 
-  then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> is_Pos C}\<close>
-    by force 
-qed
-
-lemma rm_all_ext_comp_neg: \<open>{to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C} =
-  {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-proof (intro equalityI subsetI)
-  fix x
-  assume \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
-  then obtain C where x_is: \<open>to_V C = x\<close> and c_in: \<open>C \<in> all_ext_complement M\<close>
-    and c_pos: \<open>\<not> is_Pos C\<close>
-    by blast 
-  obtain D where tov_eq: \<open>to_V D = to_V C\<close> and d_neg: \<open>is_Pos D\<close> and d_in: \<open>D \<in> M\<close>
-    using c_in c_pos unfolding all_ext_complement_def
-    by auto
-  then show \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-    using x_is by auto 
-next
-  fix x
-  assume \<open>x \<in> {to_V C |C. C \<in> M \<and> is_Pos C}\<close>
-  then obtain C where \<open>x = to_V C\<close> and \<open>C \<in> M\<close> and \<open>is_Pos C\<close>
-    by blast 
-  then have \<open>Neg (Pos x) \<in> all_ext_complement M\<close>
-    unfolding all_ext_complement_def by auto 
-  then show \<open>x \<in> {to_V C |C. C \<in> all_ext_complement M \<and> \<not> is_Pos C}\<close>
-    by force 
-qed
-  
-lemma all_ext_and_comp: \<open>all_ext M \<union> all_ext_complement M = {C. to_V C \<in> to_V ` M}\<close>
-  unfolding all_ext_def all_ext_complement_def by auto 
+definition entails_neg :: "'f sign set \<Rightarrow> 'f sign set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<sim>" 50) where
+  "entails_neg M N \<equiv> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<Turnstile> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}"
 
 lemma ext_cons_rel: \<open>consequence_relation (Pos bot) entails_neg\<close>
 proof
@@ -1557,21 +954,19 @@ proof
 next
   fix C
   show \<open>entails_neg {C} {C}\<close>
-    unfolding entails_neg_def using entails_cond_reflexive by auto
+    unfolding entails_neg_def using entails_cond_reflexive
+    by (metis (mono_tags, lifting) Un_empty empty_Collect_eq insert_iff is_Pos.cases) 
 next
   fix M N P Q
   assume
     subs1: "M \<subseteq> N" and
     subs2: "P \<subseteq> Q" and
     entails1: "entails_neg M P"
-  have union_subs1: \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<subseteq>
-    {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> Q \<and> \<not> is_Pos C}\<close>
+  have union_subs1: \<open>{C. Pos C \<in> M} \<union> {C. Neg C \<in> P} \<subseteq> {C. Pos C \<in> N} \<union> {C. Neg C \<in> Q}\<close>
     using subs1 subs2 by auto
-  have union_subs2: \<open>{to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<subseteq>
-    {to_V C |C. C \<in> Q \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close>
+  have union_subs2: \<open>{C. Pos C \<in> P} \<union> {C. Neg C \<in> M} \<subseteq> {C. Pos C \<in> Q} \<union> {C. Neg C \<in> N}\<close>
     using subs1 subs2 by auto
-  have union_entails1: "{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> P \<and> \<not> is_Pos C} \<Turnstile>
-    {to_V C |C. C \<in> P \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}"
+  have union_entails1: "{C. Pos C \<in> M} \<union> {C. Neg C \<in> P} \<Turnstile> {C. Pos C \<in> P} \<union> {C. Neg C \<in> M}"
     using entails1 unfolding entails_neg_def .
   show \<open>entails_neg N Q\<close>
     using entails_subsets[OF union_subs1 union_subs2 union_entails1] unfolding entails_neg_def .
@@ -1584,313 +979,161 @@ next
   then show \<open>M \<union> M' \<Turnstile>\<^sub>\<sim> N \<union> N'\<close>
   proof (cases)
     case a
-    assume Pos_C: \<open>is_Pos C\<close>
+    assume Neg_C: \<open>is_Pos C\<close>
     have M_entails_NC:
-          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N \<union> {C}} \<Turnstile> {D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M}\<close>
       using cut_hypothesis_M_N entails_neg_def by force
-    moreover have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
-    ultimately have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N \<union> {C}} = {D. Pos D \<in> M} \<union> {D. Neg D \<in> N}\<close>
+      using Neg_C by force
+    ultimately have \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<Turnstile> {D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} =
-                    {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
+    moreover have \<open>{D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M} =
+        {D. Pos D \<in> N} \<union> {to_V C} \<union> {D. Neg D \<in> M}\<close>
+      using is_Pos_to_V[OF Neg_C] by force
     ultimately have M_entails_NC_reformulated:
-          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<Turnstile> {D. Pos D \<in> N} \<union> {to_V C} \<union> {D. Neg D \<in> M}\<close>
       by simp
     have M'_entails_N'C:
-          \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N'  \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M' \<union> {C}} \<union> {D. Neg D \<in> N'} \<Turnstile> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}}\<close>
       using cut_hypothesis_M'_N' entails_neg_def by force
-    moreover have \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
-    ultimately have 
-          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> M' \<union> {C}} \<union> {D. Neg D \<in> N'} =
+                    {D. Pos D \<in> M'} \<union> {to_V C} \<union> {D. Neg D \<in> N'}\<close>
+      using is_Pos_to_V[OF Neg_C] by force
+    ultimately have \<open>{D. Pos D \<in> M'} \<union> {to_V C} \<union> {D. Neg D \<in> N'} \<Turnstile>
+        {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D} =
-                    {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
+    moreover have \<open>{D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}} = {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
+      using Neg_C by force
     ultimately have M'_entails_N'C_reformulated:
-          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M'} \<union> {to_V C} \<union> {D. Neg D \<in> N'} \<Turnstile> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
       by simp
-    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
-          {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<Turnstile>
-          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+    have \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<union> {D. Pos D \<in> M'}  \<union> {D. Neg D \<in> N'}\<Turnstile>
+          {D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
       using M_entails_NC_reformulated M'_entails_N'C_reformulated entails_cut
       by (smt (verit, ccfv_threshold) M'_entails_N'C_reformulated 
           M_entails_NC_reformulated Un_assoc Un_commute)
-    moreover have  \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
-                    {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D}\<close>
+    moreover have  \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<union> {D. Pos D \<in> M'}  \<union> {D. Neg D \<in> N'} = 
+                    {D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'}\<close>
       by auto
-    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
-                     {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-                     {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+    ultimately have \<open>{D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'} \<Turnstile>
+                     {D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-                   {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D} =
-                   {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'} =
+                   {D. Pos D \<in> N \<union> N'} \<union> {D. Neg D \<in> M \<union> M'}\<close>
       by auto
-    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
-                     {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+    ultimately have \<open>{D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'} \<Turnstile>
+                     {D. Pos D \<in> N \<union> N'} \<union> {D. Neg D \<in> M \<union> M'}\<close>
       by simp 
     then show ?thesis unfolding entails_neg_def by auto
   next
     case b
-    assume Pos_C: \<open>\<not>is_Pos C\<close>
+    assume Neg_C: \<open>\<not>is_Pos C\<close>
     have M_entails_NC:
-          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N \<union> {C}} \<Turnstile> {D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M}\<close>
       using cut_hypothesis_M_N entails_neg_def by force
-    moreover have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> {C} \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
-    ultimately have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N \<union> {C}} =
+                   {D. Pos D \<in> M} \<union> {to_V C} \<union> {D. Neg D \<in> N}\<close>
+      using is_Neg_to_V[OF Neg_C] by force
+    ultimately have \<open>{D. Pos D \<in> M} \<union> {to_V C} \<union> {D. Neg D \<in> N} \<Turnstile>
+          {D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} =
-                    {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
+    moreover have \<open>{D. Pos D \<in> N \<union> {C}} \<union> {D. Neg D \<in> M} = {D. Pos D \<in> N} \<union> {D. Neg D \<in> M}\<close>
+      using Neg_C by force
     ultimately have M_entails_NC_reformulated:
-          \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M} \<union> {to_V C} \<union> {D. Neg D \<in> N} \<Turnstile> {D. Pos D \<in> N} \<union> {D. Neg D \<in> M}\<close>
       by simp
     have M'_entails_N'C:
-          \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N'  \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M' \<union> {C}} \<union> {D. Neg D \<in> N'} \<Turnstile> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}}\<close>
       using cut_hypothesis_M'_N' entails_neg_def by force
-    moreover have \<open>{to_V D |D. D \<in> M' \<union> {C} \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
-    ultimately have 
-          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> M' \<union> {C}} \<union> {D. Neg D \<in> N'} = {D. Pos D \<in> M'} \<union> {D. Neg D \<in> N'}\<close>
+      using Neg_C by force
+    ultimately have \<open>{D. Pos D \<in> M'} \<union> {D. Neg D \<in> N'} \<Turnstile> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<union> {C} \<and> \<not> is_Pos D} =
-                    {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
-      using Pos_C by force
+    moreover have \<open>{D. Pos D \<in> N'} \<union> {D. Neg D \<in> M' \<union> {C}} =
+                     {D. Pos D \<in> N'} \<union> {to_V C} \<union> {D. Neg D \<in> M'}\<close>
+      using is_Neg_to_V[OF Neg_C] by force
     ultimately have M'_entails_N'C_reformulated:
-          \<open>{to_V D |D. D \<in> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} \<Turnstile>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V C} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+          \<open>{D. Pos D \<in> M'} \<union> {D. Neg D \<in> N'} \<Turnstile> {D. Pos D \<in> N'} \<union> {to_V C} \<union> {D. Neg D \<in> M'}\<close>
       by simp
-    have \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
-          {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D}\<Turnstile>
-          {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-          {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+    have \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<union> {D. Pos D \<in> M'}  \<union> {D. Neg D \<in> N'}\<Turnstile>
+          {D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
       using M_entails_NC_reformulated M'_entails_N'C_reformulated entails_cut
       by (smt (verit, ccfv_threshold) M'_entails_N'C_reformulated 
           M_entails_NC_reformulated Un_assoc Un_commute)
-    moreover have  \<open>{to_V D |D. D \<in> M \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<and> \<not> is_Pos D} \<union>
-                    {to_V D |D. D \<in> M' \<and> is_Pos D}  \<union> {to_V D |D. D \<in> N' \<and> \<not> is_Pos D} = 
-                    {to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D}\<close>
+    moreover have  \<open>{D. Pos D \<in> M} \<union> {D. Neg D \<in> N} \<union> {D. Pos D \<in> M'}  \<union> {D. Neg D \<in> N'} = 
+                    {D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'}\<close>
       by auto
-    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
-                     {to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-                     {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D}\<close>
+    ultimately have \<open>{D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'} \<Turnstile>
+                     {D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'}\<close>
       by simp
-    moreover have \<open>{to_V D |D. D \<in> N \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<and> \<not> is_Pos D} \<union>
-                   {to_V D |D. D \<in> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M' \<and> \<not> is_Pos D} =
-                   {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+    moreover have \<open>{D. Pos D \<in> N} \<union> {D. Neg D \<in> M} \<union> {D. Pos D \<in> N'} \<union> {D. Neg D \<in> M'} =
+                   {D. Pos D \<in> N \<union> N'} \<union> {D. Neg D \<in> M \<union> M'}\<close>
       by auto
-    ultimately have \<open>{to_V D |D. D \<in> M \<union> M' \<and> is_Pos D} \<union> {to_V D |D. D \<in> N \<union> N' \<and> \<not> is_Pos D} \<Turnstile>
-                     {to_V D |D. D \<in> N \<union> N' \<and> is_Pos D} \<union> {to_V D |D. D \<in> M \<union> M' \<and> \<not> is_Pos D}\<close>
+    ultimately have \<open>{D. Pos D \<in> M \<union> M'} \<union> {D. Neg D \<in> N \<union> N'} \<Turnstile>
+                     {D. Pos D \<in> N \<union> N'} \<union> {D. Neg D \<in> M \<union> M'}\<close>
       by simp 
     then show ?thesis unfolding entails_neg_def by auto
   qed
 next
   fix M N
   assume M_entails_N: \<open>M \<Turnstile>\<^sub>\<sim> N\<close>
-  then have \<open>{to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<Turnstile>
-             {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close>
+  then have \<open>{C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<Turnstile> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}\<close>
     unfolding entails_neg_def .
-  then have \<open>\<exists> M' N'. (M' \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C} \<and>
-                       N' \<subseteq> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C} \<and> 
+  then have \<open>\<exists> M' N'. (M' \<subseteq> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N} \<and>
+                       N' \<subseteq> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M} \<and> 
                        finite M' \<and> finite N' \<and> M' \<Turnstile> N')\<close>
     using entails_compactness by auto
   then obtain M' N' where
-    M'_def: \<open>M' \<subseteq> {to_V C |C. C \<in> M \<and> is_Pos C} \<union> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}\<close> and
+    M'_def: \<open>M' \<subseteq> {C. Pos C \<in> M} \<union> {C. Neg C \<in> N}\<close> and
     M'_finite: \<open>finite M'\<close> and
-    N'_def: \<open>N' \<subseteq> {to_V C |C. C \<in> N \<and> is_Pos C} \<union> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}\<close> and
+    N'_def: \<open>N' \<subseteq> {C. Pos C \<in> N} \<union> {C. Neg C \<in> M}\<close> and
     N'_finite: \<open>finite N'\<close> and
     M'_entails_N': \<open>M' \<Turnstile> N'\<close>
     by auto
-  then have compactness_hypothesis: 
-    \<open>(M' \<inter> {to_V C |C. C \<in> M \<and> is_Pos C}) \<union> (M' \<inter> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}) \<Turnstile>
-    (N' \<inter> {to_V C |C. C \<in> N \<and> is_Pos C}) \<union> (N' \<inter> {to_V C |C. C \<in> M \<and> \<not> is_Pos C})\<close>
-    using inf.absorb_iff1 inf_sup_distrib1 by (smt (verit))
-  moreover have M'_union_N'_finite: \<open>finite (M'\<union>N')\<close>
-    using N'_finite M'_finite by simp
-  moreover have \<open>(M' \<inter> {to_V C |C. C \<in> M \<and> is_Pos C}) \<union> (M' \<inter> {to_V C |C. C \<in> N \<and> \<not> is_Pos C}) = 
-                 M' \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}\<close>
-    by blast
-  moreover have set_replacement_N:
-    \<open>(N' \<inter> {to_V C |C. C \<in> N \<and> is_Pos C}) \<union> (N' \<inter> {to_V C |C. C \<in> M \<and> \<not> is_Pos C}) =
-    (N' \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
-    by blast
-  ultimately have M'_N'_entailment_reformulated :
-    \<open>(M' \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}) \<Turnstile>
-    (N' \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
-    by auto
-  then have  \<open>((M' \<union> N') \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C) \<or> (C \<in> N \<and> \<not> is_Pos C)}) \<Turnstile>
-             ((N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)})\<close>
-    using entails_subsets by (meson equalityE inf_mono sup.cobounded1)
-  moreover have set_replacement_M'_N'_M: 
-    \<open>(M' \<union> N') \<inter> {to_V C |C. (C \<in> M \<and> is_Pos C)} =
-    {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C}\<close>
-    by blast
-  moreover have set_replacement_M'_N'_N:
-    \<open>(M' \<union> N') \<inter> {to_V C |C. (C \<in> N \<and> \<not> is_Pos C)} =
-    {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
-    by blast
-  ultimately have  \<open>{to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>
-                   {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C} \<Turnstile>
-                   (N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C) \<or> (C \<in> M \<and> \<not> is_Pos C)}\<close>
-    by (smt (verit, ccfv_SIG) Collect_mono_iff Int_mono Un_mono Un_upper1 compactness_hypothesis
-        set_replacement_N entails_subsets)
-  moreover have  \<open>(N' \<union> M') \<inter> {to_V C |C. (C \<in> N \<and> is_Pos C)} =
-                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C}\<close>
-    by blast
-  moreover have  \<open>(N' \<union> M') \<inter> {to_V C |C. (C \<in> M \<and> \<not> is_Pos C)} =
-                  {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
-    by blast
-  ultimately have M'_N'_infinite_compactness:
-                  \<open>{to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>
-                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C} \<Turnstile>
-                  {to_V C |C. (C \<in> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}) \<and> is_Pos C} \<union>                 
-                  {to_V C |C. (C \<in> {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}) \<and> \<not> is_Pos C}\<close>
-    by (smt (verit, ccfv_SIG) Collect_mono_iff Int_mono Un_mono Un_upper1 compactness_hypothesis
-      entails_subsets set_replacement_M'_N'_M set_replacement_M'_N'_N)
-  then have \<open>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<Turnstile>\<^sub>\<sim> {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
-    unfolding entails_neg_def by simp
-  then have M'_N'_finite_compactness:
-    \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                 C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<Turnstile>\<^sub>\<sim> 
-     {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} | 
-                                 C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    using smallest_entailment by blast
-  have \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                      C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
-                 {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}\<close>
-    using smallest_inclusion_in
-    by (smt (verit, best) Collect_mono mem_Collect_eq)
-  then have left_entailment_neg_in_M:
-     \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> M\<close>
-    by blast
-  have \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                      C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq>
-                 {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}\<close>
-    using smallest_inclusion_in
-    by (smt (verit, best) Collect_mono mem_Collect_eq)
-  then have right_entailment_neg_in_N:
-     \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}} \<subseteq> N\<close>
-    by blast
-  have smallest_inclusion_decomposed:
-        \<open>{smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'} \<subseteq>
-        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C} \<union>
-        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C}\<close> for S
-    by auto
-  have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> is_Pos C1 \<and>
-                C2 \<in> S \<and> (to_V C2) = D \<and> is_Pos C2) \<longrightarrow>
-      smallest_equivalent_formula_in C1 S = smallest_equivalent_formula_in C2 S)\<close> for S
-    using smallest_reduction_in by metis
-  then have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<and>
-               (C2 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C}) \<longrightarrow>
-               C1 = C2)\<close> for S
-    by blast
-  then have \<open>\<forall>D \<in> M' \<union> N'.
-    finite({smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> is_Pos C})\<close> for S
-    using finite_because_singleton by (metis (no_types, lifting))
-  then have \<open>finite(
-    {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> is_Pos C})\<close> for S
-    using M'_union_N'_finite finite_UN_I
-    finite_union_of_finite_is_finite[of "M'\<union>N'" "\<lambda>C. smallest_equivalent_formula_in C S" 
-                                  "\<lambda>C. (C \<in> S \<and> is_Pos C)" "\<lambda>C. to_V C"]
-    by (smt (verit, ccfv_threshold) Collect_cong smallest_reduction_in
-        finite_because_singleton mem_Collect_eq) 
-  moreover have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> S \<and> (to_V C1) = D \<and> \<not>is_Pos C1 \<and>
-                C2 \<in> S \<and> (to_V C2) = D \<and> \<not>is_Pos C2) \<longrightarrow>
-      smallest_equivalent_formula_in C1 S = smallest_equivalent_formula_in C2 S)\<close> for S
-    using smallest_reduction_in by metis
-  then have \<open>\<forall>D \<in> M' \<union> N'.
-    (\<forall>C1. \<forall>C2. (C1 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<and>
-               (C2 \<in> {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C}) \<longrightarrow>
-               C1 = C2)\<close> for S
-    by blast
-  then have \<open>\<forall>D \<in> M' \<union> N'.
-    finite({smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) = D \<and> \<not>is_Pos C})\<close> for S
-    using finite_because_singleton by (metis (no_types, lifting))
-  then have \<open>finite(
-    {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S
-    using M'_union_N'_finite finite_UN_I
-    finite_union_of_finite_is_finite[of "M'\<union>N'" "\<lambda>C. smallest_equivalent_formula_in C S" 
-                                  "\<lambda>C. (C \<in> S \<and> \<not>is_Pos C)" "\<lambda>C. to_V C"]
-    by (smt (verit, ccfv_threshold) Collect_cong smallest_reduction_in
-        finite_because_singleton mem_Collect_eq) 
-  ultimately have  \<open>finite(
-        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'  \<and> is_Pos C} \<union>
-        {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N' \<and> \<not>is_Pos C})\<close> for S 
-    by blast
-  then have finite_smallest_equivalent_formula_in_M'_N':
-    \<open>finite {smallest_equivalent_formula_in C S |C. C \<in> S \<and> (to_V C) \<in> M' \<union> N'}\<close> for S
-    using smallest_inclusion_decomposed
-    by (meson rev_finite_subset)
-  then have 
-    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
-    by blast
-  moreover have \<open>{smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
-                 {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    by blast
-  ultimately have right_neg_finite:
-    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> N \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> N \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    by force
-  moreover have 
-    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'}\<close>
-    using finite_smallest_equivalent_formula_in_M'_N' by blast
-  moreover have \<open>{smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} \<and> (to_V C) \<in> M' \<union> N'} =
-                 {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    by blast
-  ultimately have left_neg_finite:
-    \<open>finite {smallest_equivalent_formula_in C {C. C \<in> M \<and> (to_V C \<in> M' \<union> N')} |
-                                C. C\<in>{C. C \<in> M \<and> (to_V C \<in> M' \<union> N')}}\<close>
-    by force
-  have \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>\<sim> N'\<close>
-    using right_neg_finite left_neg_finite M'_N'_finite_compactness
-          left_entailment_neg_in_M right_entailment_neg_in_N by blast
+  define M'_pos where "M'_pos = M' \<inter> {C. Pos C \<in> M}"
+  define M'_neg where "M'_neg = M' \<inter> {C. Neg C \<in> N}"
+  define N'_pos where "N'_pos = N' \<inter> {C. Pos C \<in> N}"
+  define N'_neg where "N'_neg = N' \<inter> {C. Neg C \<in> M}"
+  have compactness_hypothesis:
+    \<open>M'_pos \<union> M'_neg \<Turnstile> N'_pos \<union> N'_neg\<close>
+    using inf.absorb_iff1 inf_sup_distrib1 M'_def N'_def M'_entails_N'
+    unfolding M'_pos_def M'_neg_def N'_pos_def N'_neg_def
+    by (smt (verit))
+  have M'_pos_finite: \<open>finite M'_pos\<close> using M'_finite unfolding M'_pos_def by blast
+  have \<open>finite M'_neg\<close> using M'_finite unfolding M'_neg_def by blast
+  have \<open>finite N'_pos\<close> using N'_finite unfolding N'_pos_def by blast
+  have \<open>finite N'_neg\<close> using N'_finite unfolding N'_neg_def by blast
+  define M_fin where "M_fin = {Pos C |C. Pos C \<in> M \<and> C \<in> M'} \<union> {Neg C |C. Neg C \<in> M \<and> C \<in> N'}"
+  then have fin_M_fin: \<open>finite M_fin\<close> using M'_finite N'_finite by auto
+  have sub_M_fin: \<open>M_fin \<subseteq> M\<close>
+    unfolding M_fin_def by blast
+  define N_fin where "N_fin = {Pos C |C. Pos C \<in> N \<and> C \<in> N'} \<union> {Neg C |C. Neg C \<in> N \<and> C \<in> M'}"
+  then have fin_N_fin: \<open>finite N_fin\<close> using N'_finite M'_finite by auto
+  have sub_N_fin: \<open>N_fin \<subseteq> N\<close>
+    unfolding N_fin_def by blast
+  have \<open>{C. Pos C \<in> M_fin} = M'_pos\<close>
+    unfolding M_fin_def M'_pos_def by blast
+  moreover have \<open>{C. Neg C \<in> M_fin} = N'_neg\<close>
+    unfolding M_fin_def N'_neg_def by blast
+  moreover have \<open>{C. Pos C \<in> N_fin} = N'_pos\<close>
+    unfolding N_fin_def N'_pos_def by blast
+  moreover have \<open>{C. Neg C \<in> N_fin} = M'_neg\<close>
+    unfolding N_fin_def M'_neg_def by blast
+  ultimately have \<open>M_fin \<Turnstile>\<^sub>\<sim> N_fin\<close>
+    unfolding entails_neg_def using compactness_hypothesis by force
   then show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>\<sim> N'\<close>
-    by auto
+    using fin_M_fin fin_N_fin sub_M_fin sub_N_fin by auto
 qed
 
 interpretation neg_ext_cons_rel: consequence_relation "Pos bot" entails_neg
   using ext_cons_rel by simp
     
     (* Splitting report Lemma 1 *)
-lemma pos_neg_entails_bot: \<open>{C} \<union> {Neg C} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
+lemma pos_neg_entails_bot: \<open>{C} \<union> {neg C} \<Turnstile>\<^sub>\<sim> {Pos bot}\<close>
 proof -
-  have \<open>{C} \<union> {Neg C} \<Turnstile>\<^sub>\<sim> {}\<close> unfolding entails_neg_def
-    by (smt (verit, ccfv_threshold) Collect_empty_eq Un_empty Un_insert_right empty_iff
-      empty_subsetI entails_reflexive entails_subsets insertI1 insert_iff insert_subset
-      is_Pos.simps(2) mem_Collect_eq singletonD sup_bot.right_neutral sup_bot_left to_V.simps(2)
-      Un_insert_left)
+  have \<open>{C} \<union> {neg C} \<Turnstile>\<^sub>\<sim> {}\<close> unfolding entails_neg_def
+    by (smt (verit, del_insts) Un_iff empty_subsetI entails_reflexive entails_subsets insertI1
+        insert_is_Un insert_subset is_Pos.cases mem_Collect_eq neg.simps(1) neg.simps(2))
   then show ?thesis using neg_ext_cons_rel.entails_subsets by blast 
 qed
 
@@ -2170,13 +1413,13 @@ locale dynamically_complete_calculus = calculus +
     (* discussions on this datatype allowed to detect a spurious assumption: 'v doesn't need to be
     infinite*)
     (* TODO: should "countable" be added as a requirement of the AF_calculus locale? *)
-datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v neg set")
+datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v sign set")
 
-definition is_interpretation :: "'v neg set \<Rightarrow> bool" where
-  \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> is_Pos v1 = is_Pos v2)))\<close>
+definition is_interpretation :: "'v sign set \<Rightarrow> bool" where
+  \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> v1 = v2)))\<close>
   
   (* TODO: find a shorter name for this type (?) *)
-typedef 'v propositional_interpretation = "{J :: 'v neg set. is_interpretation J}"
+typedef 'v propositional_interpretation = "{J :: 'v sign set. is_interpretation J}"
 proof
   show \<open>{} \<in> {J. is_interpretation J}\<close> unfolding is_interpretation_def by blast 
 qed
@@ -2190,8 +1433,8 @@ context
 begin
   setup_lifting type_definition_propositional_interpretation
 
-  lift_definition belong_to :: "'v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
-    is "(\<in>\<^sub>v)::('v neg \<Rightarrow> 'v neg set \<Rightarrow> bool)" .
+  lift_definition belong_to :: "'v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>J" 90)
+    is "(\<in>)::('v sign \<Rightarrow> 'v sign set \<Rightarrow> bool)" .
 end
 
 definition total :: "'v propositional_interpretation \<Rightarrow> bool" where
@@ -2220,49 +1463,48 @@ begin
   (* TODO : seems the command below fails. What is its impact? *)
   setup_lifting type_definition_total_interpretation
 
-  lift_definition belong_to_total :: "'v neg \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
-    is "(\<in>\<^sub>J)::('v neg \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool)" .
+  lift_definition belong_to_total :: "'v sign \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" (infix "\<in>\<^sub>t" 90)
+    is "(\<in>\<^sub>J)::('v sign \<Rightarrow> 'v propositional_interpretation \<Rightarrow> bool)" .
 end
   (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
   \<t>erm \<open>'v neg set\<close> *)
 
-lemma neg_prop_interp: \<open>(v::'v neg) \<in>\<^sub>J J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>J J)\<close>
+lemma neg_prop_interp: \<open>(v::'v sign) \<in>\<^sub>J J \<Longrightarrow> \<not> ((neg v) \<in>\<^sub>J J)\<close>
 proof transfer
   fix v J
   assume
-    j_is: \<open>is_interpretation (J:: 'v neg set)\<close> and
-    v_in: \<open>v \<in>\<^sub>v J\<close>
-  then show \<open>\<not> Neg v \<in>\<^sub>v J\<close>
-  proof (induction v)
+    j_is: \<open>is_interpretation (J:: 'v sign set)\<close> and
+    v_in: \<open>v \<in> J\<close>
+  then show \<open>\<not> (neg v) \<in> J\<close>
+  proof (cases v)
     case (Pos C)
-    then show ?case
-      using is_in.simps(2)[of "Pos C"] is_in.simps(1) unfolding is_interpretation_def
-      by (metis is_Pos.simps(1) is_Pos.simps(2) to_V.simps(1))
+    then show ?thesis
+      using is_Pos.simps
+      by (metis is_interpretation_def j_is neg.simps(1) to_V.simps v_in)
   next
-    case (Neg w)
-    then show ?case
-      unfolding is_interpretation_def 
-      by (metis is_Pos.simps(2) is_in.simps(2) to_V.simps(2))
+    case (Neg C)
+    then show ?thesis
+      using j_is v_in
+      using is_interpretation_def by fastforce
   qed
 qed
 
-lemma neg_total_interp: \<open>(v::'v neg) \<in>\<^sub>t J \<Longrightarrow> \<not> ((Neg v) \<in>\<^sub>t J)\<close>
+lemma neg_total_interp: \<open>(v::'v sign) \<in>\<^sub>t J \<Longrightarrow> \<not> ((neg v) \<in>\<^sub>t J)\<close>
 proof transfer
   fix v J
-  assume v_in: \<open>v \<in>\<^sub>J J\<close>
-  show \<open>\<not> Neg v \<in>\<^sub>J J\<close>
+  assume v_in: \<open>v \<in>\<^sub>J (J :: 'v propositional_interpretation)\<close>
+  show \<open>\<not> neg v \<in>\<^sub>J J\<close>
     using neg_prop_interp[OF v_in] by simp
 qed
-
 
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
   \<open>to_AF C = Pair C {}\<close>
 
-definition Neg_set :: "'v neg set \<Rightarrow> 'v neg set" ("\<sim>_" 55) where
-  \<open>\<sim>V \<equiv> {Neg v |v. v \<in> V}\<close>
+definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) where
+  \<open>\<sim>V \<equiv> {neg v |v. v \<in> V}\<close>
 
 definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f inference" where
-  \<open>F_of_Inf \<iota>AF = (Infer (map F_of (prems_of \<iota>AF)) (F_of (concl_of \<iota>AF)))\<close>
+  \<open>F_of_Inf \<iota>\<^sub>A\<^sub>F = (Infer (map F_of (prems_of \<iota>\<^sub>A\<^sub>F)) (F_of (concl_of \<iota>\<^sub>A\<^sub>F)))\<close>
   
 (* locale propositional_interpretations =
  *   fixes
@@ -2307,28 +1549,28 @@ definition \<iota>F_of :: "('f, 'v) AF inference \<Rightarrow> 'f inference" whe
   \<open>\<iota>F_of \<iota> = Infer (List.map F_of (prems_of \<iota>)) (F_of (concl_of \<iota>))\<close>
   
 definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set" ("proj\<^sub>\<bottom>") where
-  \<open>proj\<^sub>\<bottom> N = {C. C \<in> N \<and> F_of C = bot}\<close>
+  \<open>proj\<^sub>\<bottom> \<N> = {\<C>. \<C> \<in> \<N> \<and> F_of \<C> = bot}\<close>
 
 definition enabled :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
-  "enabled C J \<equiv> (A_of C) \<subseteq> (total_strip J)"
+  "enabled \<C> J \<equiv> (A_of \<C>) \<subseteq> (total_strip J)"
 
 definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
-  \<open>enabled_set N J = (\<forall>C\<in>N. enabled C J)\<close>
+  \<open>enabled_set \<N> J = (\<forall>\<C>\<in>\<N>. enabled \<C> J)\<close>
 
 definition enabled_inf :: "('f, 'v) AF inference \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
-  \<open>enabled_inf \<iota> J = (\<forall>C\<in> set (prems_of \<iota>). enabled C J)\<close>
+  \<open>enabled_inf \<iota> J = (\<forall>\<C>\<in> set (prems_of \<iota>). enabled \<C> J)\<close>
   
 definition enabled_projection :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> 'f set"
   (infix "proj\<^sub>J" 60)  where
-  \<open>N proj\<^sub>J J = {F_of C | C. C \<in> N \<and> enabled C J}\<close>
+  \<open>\<N> proj\<^sub>J J = {F_of \<C> |\<C>. \<C> \<in> \<N> \<and> enabled \<C> J}\<close>
 
 definition enabled_projection_Inf :: "('f, 'v) AF inference set \<Rightarrow> 'v total_interpretation \<Rightarrow>
   'f inference set" (infix "\<iota>proj\<^sub>J" 60) where
   \<open>I \<iota>proj\<^sub>J J = {\<iota>F_of \<iota> | \<iota>. \<iota> \<in> I \<and> enabled_inf \<iota> J}\<close>
 
-fun fml_ext :: "'v neg \<Rightarrow> 'f neg" where
+fun fml_ext :: "'v sign \<Rightarrow> 'f sign" where
   "fml_ext (Pos v) = Pos (fml v)" |
-  "fml_ext (Neg v) = Neg (fml_ext v)"
+  "fml_ext (Neg v) = Neg (fml v)"
 
 lemma fml_ext_preserves_sign: "is_Pos v \<equiv> is_Pos (fml_ext v)"
   by (induct v, auto)
@@ -2345,38 +1587,183 @@ definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" wher
   (* most probably overkill *)
 (* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
   \<open>F_of_set N \<equiv> F_of ` N\<close> *)
+
+(* TODO: try alternative def that makes use of prop semantic from AFP to ease use of compactness *)
+definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p" 50) where
+  \<open>J \<Turnstile>\<^sub>p \<N> \<equiv> bot \<notin> ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J)\<close>
  
-definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>p" 50)
-  where
-  \<open>J \<Turnstile>\<^sub>p N \<equiv> bot \<notin> ((proj\<^sub>\<bottom> N) proj\<^sub>J J)\<close>
+definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p2" 50) where
+  \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
 
 definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
-  \<open>J \<Turnstile>s\<^sub>p N \<equiv> (bot \<notin> ((enabled_projection (propositional_projection N) J)) \<or>
+  \<open>J \<Turnstile>s\<^sub>p \<N> \<equiv> (bot \<notin> ((enabled_projection (propositional_projection \<N>) J)) \<or>
     \<not> sound_consistent J)\<close>
 
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
-  \<open>propositionally_unsatisfiable N \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p N)\<close>
+  \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
+
+fun sign_to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
+  \<open>sign_to_atomic_formula (Pos v) = Atom v\<close> |
+  \<open>sign_to_atomic_formula (Neg v) = Not (Atom v)\<close>
+
+definition sign_set_to_formula_set :: "'v sign set \<Rightarrow> 'v formula set" where
+  \<open>sign_set_to_formula_set A = sign_to_atomic_formula ` A\<close>
+
+lemma form_shape_sign_set: \<open>\<forall>f\<in>sign_set_to_formula_set A. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  unfolding sign_set_to_formula_set_def
+  by (metis image_iff sign_to_atomic_formula.elims)
+
+definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
+  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (A_of \<C>)\<close>
+
+lemma form_shape_AF: \<open>\<forall>f\<in>AF_to_formula_set \<C>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  using form_shape_sign_set unfolding AF_to_formula_set_def by simp
+
+definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
+  \<open>AF_proj_to_formula_set \<N> = \<Union> (AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>))\<close>
+
+lemma form_shape_proj: \<open>\<forall>f\<in>AF_proj_to_formula_set \<N>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+  using form_shape_AF unfolding AF_proj_to_formula_set_def by simp
+
+definition to_valuation :: "'v total_interpretation \<Rightarrow> 'v valuation" where
+  \<open>to_valuation J = (\<lambda>a. Pos a \<in>\<^sub>t J)\<close>
+
+find_theorems strip 
+
+lemma val_strip_pos: \<open>to_valuation J a \<equiv> Pos a \<in> total_strip J\<close>
+  unfolding to_valuation_def belong_to_total_def belong_to_def by simp
+
+lemma val_strip_neg: \<open>(\<not> to_valuation J a) = (Neg a \<in> total_strip J)\<close>
+proof -
+  have \<open>(\<not> to_valuation J a) = (\<not> Pos a \<in> total_strip J)\<close>
+    using val_strip_pos by simp
+  also have \<open>(\<not> Pos a \<in> total_strip J) = (Neg a \<in> total_strip J)\<close>
+  proof
+    fix a J
+    assume not_pos: \<open>Pos (a::'v) \<notin> total_strip J\<close>
+    have \<open>is_interpretation (total_strip J)\<close>
+      using Rep_propositional_interpretation by blast 
+    then show \<open>Neg a \<in> total_strip J\<close> 
+      unfolding is_interpretation_def using total_def not_pos
+      by (metis Rep_total_interpretation belong_to.rep_eq mem_Collect_eq to_V.elims)
+  next
+    assume neg: \<open>Neg a \<in> total_strip J\<close>
+    have \<open>is_interpretation (total_strip J)\<close>
+      using Rep_propositional_interpretation by blast
+    then show \<open>Pos a \<notin> total_strip J\<close>
+      unfolding is_interpretation_def using neg
+    by (metis sign.distinct(1) to_V.simps(1) to_V.simps(2))
+  qed
+  finally show \<open>(\<not> to_valuation J a) = (Neg a \<in> total_strip J)\<close> .
+qed
+
+find_theorems sign_to_atomic_formula
+
+lemma equiv_propositional_sema_defs:
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
+  unfolding propositional_model2_def propositional_projection_def
+    enabled_projection_def enabled_def
+proof
+  assume \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  proof
+    fix F
+    assume \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
+    then obtain a::'v where \<open>F = Atom a \<or> F = Not (Atom a)\<close>
+      using form_shape_proj by auto
+    then show \<open>formula_semantics (to_valuation J) F\<close>
+      using val_strip_pos val_strip_neg
+      sorry
+  qed
+next
+  assume \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+    sorry
+qed
+
+
+(* definition to_formula :: "'v sign set \<Rightarrow> 'v formula" where
+\<open>finite A \<Longrightarrow> to_formula A = \<close> *)
+(*
+fun to_formula :: "'v sign list \<Rightarrow> 'v formula" where
+  \<open>to_formula A = BigAnd (map to_atomic_formula A)\<close>
+
+find_theorems name: linorder
+end
+
+(* attempt at proving that a countable type is a linorder
+subclass (in countable) linorder
+proof
+qed
+ 
+*)
+
+term "a:: nat option"
+
+subclass (in countable) ord
+subclass (in countable) preorder
+subclass (in countable) linorder
+subclass (in countable) wellorder
+
+
+context AF_calculus
+begin
+fun set_to_formula :: "'v sign set \<Rightarrow> 'v formula" where
+  \<open>set_to_formula A = to_formula (sorted_list_of_set A)\<close>
+
+fun AF_to_formula :: "('f, ('v::countable)) AF \<Rightarrow> 'v formula" where
+  \<open>AF_to_formula (Pair bot A) = to_formula (sorted_list_of_set A)\<close>
+*)
+
+
+thm compactness
+thm compact_entailment
+thm finite_set
+thm linorder_class.set_sorted_list_of_set
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
-  \<open>AF_entails M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow> M proj\<^sub>J J \<Turnstile> F_of ` N))\<close>
+  \<open>AF_entails \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow> \<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>))\<close>
   
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
-  \<open>AF_entails_sound M N \<equiv> (\<forall>J. (enabled_set N J \<longrightarrow>
-  sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (M proj\<^sub>J J))) (Pos ` F_of ` N)))\<close>
+  \<open>AF_entails_sound \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow>
+  sound_cons.entails_neg ((fml_ext ` (total_strip J)) \<union> (Pos ` (\<M> proj\<^sub>J J))) (Pos ` F_of ` \<N>)))\<close>
 
 
-lemma distrib_proj: \<open>M \<union> N proj\<^sub>J J = (M proj\<^sub>J J) \<union> (N proj\<^sub>J J)\<close>
+lemma distrib_proj: \<open>\<M> \<union> \<N> proj\<^sub>J J = (\<M> proj\<^sub>J J) \<union> (\<N> proj\<^sub>J J)\<close>
   unfolding enabled_projection_def by auto
 
-lemma distrib_proj_singleton: \<open>M \<union> {C} proj\<^sub>J J = (M proj\<^sub>J J) \<union> ({C} proj\<^sub>J J)\<close>
+lemma distrib_proj_singleton: \<open>\<M> \<union> {\<C>} proj\<^sub>J J = (\<M> proj\<^sub>J J) \<union> ({\<C>} proj\<^sub>J J)\<close>
   unfolding enabled_projection_def by auto
 
-lemma enabled_union2: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set N J\<close>
+lemma enabled_union2: \<open>enabled_set (\<M> \<union> \<N>) J \<Longrightarrow> enabled_set \<N> J\<close>
   unfolding enabled_set_def by blast
 
-lemma enabled_union1: \<open>enabled_set (M \<union> N) J \<Longrightarrow> enabled_set M J\<close>
+lemma enabled_union1: \<open>enabled_set (\<M> \<union> \<N>) J \<Longrightarrow> enabled_set \<M> J\<close>
   unfolding enabled_set_def by blast
+
+lemma finite_subset_image_strong:
+  assumes "finite U" and
+    "(\<forall>C \<in> U. (\<exists>D \<in> W. P D = C \<and> Q D))"
+  shows "\<exists>W'\<subseteq>W. finite W' \<and> U = P ` W' \<and> (\<forall>D'\<in> W'. Q D')"
+  using assms
+proof (induction U rule: finite_induct)
+  case empty
+  then show ?case by blast
+next
+  case (insert D' U)
+  then obtain C' W'' where wpp_and_cp_assms: "W'' \<subseteq> W" "finite W''" "U = P ` W''" "\<forall>a \<in> W''. Q a"
+    "C' \<in> W" "P C' = D'" "Q C'"
+    by auto
+  define W' where "W' = insert C' W''"
+  then have \<open>(insert C' W') \<subseteq>W \<and> finite (insert C' W') \<and> insert D' U = P ` (insert C' W') \<and>
+             (\<forall>a\<in>(insert C' W'). Q a)\<close>
+    using wpp_and_cp_assms by blast
+  then show ?case
+    by blast
+qed
 
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
@@ -2385,85 +1772,107 @@ proof
     unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def
     using bot_entails_empty by simp
 next
-  fix C
-  show \<open>{C} \<Turnstile>\<^sub>A\<^sub>F {C}\<close>
+  fix \<C>
+  show \<open>{\<C>} \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
     unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
     using entails_reflexive by simp
 next
-  fix M N P Q
-  assume m_in_n: \<open>M \<subseteq> N\<close> and
-    p_in_q: \<open>P \<subseteq> Q\<close> and
-    m_entails_p: \<open>M \<Turnstile>\<^sub>A\<^sub>F P\<close>
-  show \<open>N \<Turnstile>\<^sub>A\<^sub>F Q\<close>
+  fix \<M> \<N> \<P> \<Q>
+  assume m_in_n: \<open>\<M> \<subseteq> \<N>\<close> and
+    p_in_q: \<open>\<P> \<subseteq> \<Q>\<close> and
+    m_entails_p: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F \<P>\<close>
+  show \<open>\<N> \<Turnstile>\<^sub>A\<^sub>F \<Q>\<close>
     unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
   proof (rule allI, rule impI)
     fix J
-    assume q_enabled: \<open>\<forall>C\<in>Q. A_of C \<subseteq> total_strip J\<close>
-    have \<open>{F_of C |C. C \<in> M \<and> A_of C \<subseteq> total_strip J} \<subseteq> {F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J}\<close>
+    assume q_enabled: \<open>\<forall>\<C>\<in>\<Q>. A_of \<C> \<subseteq> total_strip J\<close>
+    have \<open>{F_of \<C> |\<C>. \<C> \<in> \<M> \<and> A_of \<C> \<subseteq> total_strip J} \<subseteq> {F_of \<C> |\<C>. \<C> \<in> \<N> \<and> A_of \<C> \<subseteq> total_strip J}\<close>
       using m_in_n by blast
-    moreover have \<open>F_of ` P \<subseteq> F_of ` Q\<close>
+    moreover have \<open>F_of ` \<P> \<subseteq> F_of ` \<Q>\<close>
       using p_in_q by blast
-    ultimately show \<open>{F_of C |C. C \<in> N \<and> A_of C \<subseteq> total_strip J} \<Turnstile> F_of ` Q\<close>
+    ultimately show \<open>{F_of \<C> |\<C>. \<C> \<in> \<N> \<and> A_of \<C> \<subseteq> total_strip J} \<Turnstile> F_of ` \<Q>\<close>
       using m_entails_p  entails_subsets
       unfolding to_AF_def AF_entails_def enabled_def enabled_projection_def enabled_set_def
       by (metis (mono_tags, lifting) q_enabled p_in_q subset_iff)
   qed
 next
-  fix M N C M' N'
+  fix \<M> \<N> \<C> \<M>' \<N>'
   assume
-    entails_c: \<open>M \<Turnstile>\<^sub>A\<^sub>F N \<union> {C}\<close> and
-    c_entails: \<open>M' \<union> {C} \<Turnstile>\<^sub>A\<^sub>F N'\<close>
-  show \<open>M \<union> M' \<Turnstile>\<^sub>A\<^sub>F N \<union> N'\<close>
+    entails_c: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F \<N> \<union> {\<C>}\<close> and
+    c_entails: \<open>\<M>' \<union> {\<C>} \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
+  show \<open>\<M> \<union> \<M>' \<Turnstile>\<^sub>A\<^sub>F \<N> \<union> \<N>'\<close>
     unfolding AF_entails_def
   proof (intro allI impI)
     fix J
-    assume enabled_n: \<open>enabled_set (N \<union> N') J\<close>
+    assume enabled_n: \<open>enabled_set (\<N> \<union> \<N>') J\<close>
     {
-      assume enabled_c: \<open>enabled_set {C} J\<close>
-      then have proj_enabled_c: \<open>{C} proj\<^sub>J J = {F_of C}\<close> 
+      assume enabled_c: \<open>enabled_set {\<C>} J\<close>
+      then have proj_enabled_c: \<open>{\<C>} proj\<^sub>J J = {F_of \<C>}\<close> 
         unfolding enabled_projection_def using enabled_set_def by blast 
-      have cut_hyp1: \<open>M proj\<^sub>J J \<Turnstile> F_of ` N \<union> {F_of C}\<close>
+      have cut_hyp1: \<open>\<M> proj\<^sub>J J \<Turnstile> F_of ` \<N> \<union> {F_of \<C>}\<close>
         using entails_c enabled_n enabled_c unfolding AF_entails_def by (simp add: enabled_set_def)
-      have \<open>(M' \<union> {C}) proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
-        using c_entails enabled_union2[of N N' J, OF enabled_n] unfolding AF_entails_def by simp
-      then have cut_hyp2: \<open>(M' proj\<^sub>J J) \<union> {F_of C} \<Turnstile> F_of ` N'\<close>
+      have \<open>(\<M>' \<union> {\<C>}) proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+        using c_entails enabled_union2[of \<N> \<N>' J, OF enabled_n] unfolding AF_entails_def by simp
+      then have cut_hyp2: \<open>(\<M>' proj\<^sub>J J) \<union> {F_of \<C>} \<Turnstile> F_of ` \<N>'\<close>
         using proj_enabled_c distrib_proj_singleton by metis
-      have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+      have \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
         using entails_cut[OF cut_hyp1 cut_hyp2] distrib_proj by (simp add: image_Un) 
     }
     moreover
         {
-      assume not_enabled_c: \<open>\<not> enabled_set {C} J\<close>
-      then have \<open>M' \<union> {C} proj\<^sub>J J = M' proj\<^sub>J J\<close>
+      assume not_enabled_c: \<open>\<not> enabled_set {\<C>} J\<close>
+      then have \<open>\<M>' \<union> {\<C>} proj\<^sub>J J = \<M>' proj\<^sub>J J\<close>
         unfolding enabled_projection_def enabled_set_def by auto
-      then have \<open>M' proj\<^sub>J J \<Turnstile> F_of ` N'\<close>
+      then have \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
         using c_entails enabled_n unfolding AF_entails_def by (metis enabled_union2) 
-      then have \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+      then have \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
         using entails_subsets by (metis distrib_proj image_Un sup.cobounded2) 
           }
-      ultimately show \<open>M \<union> M' proj\<^sub>J J \<Turnstile> F_of ` (N \<union> N')\<close>
+      ultimately show \<open>\<M> \<union> \<M>' proj\<^sub>J J \<Turnstile> F_of ` (\<N> \<union> \<N>')\<close>
         by blast 
     qed
 next
-  fix M N
-  assume m_entails_n: \<open>M \<Turnstile>\<^sub>A\<^sub>F N\<close>
+  fix \<M> \<N>
+  assume m_entails_n: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F \<N>\<close>
+
+  define \<E> where \<open>\<E> = {Pair bot {neg a} |\<C> a. \<C>\<in>\<N> \<and> a \<in> (A_of \<C>)}\<close>
+
+(* find a way to express the consequence of propositional compactness to use here without
+   introducing \<Turnstile> ?*)
+  (* have \<open>enabled set N J \<equiv> \<close> *)
+  
   {
     fix J
-    assume \<open>enabled_set N J\<close>
-    then have \<open>M proj\<^sub>J J \<Turnstile> F_of ` N\<close>
+    assume \<open>enabled_set \<N> J\<close>
+    then have \<open>\<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>\<close>
       using m_entails_n unfolding AF_entails_def by simp 
-    then obtain Mp Np where mp_proj: \<open>Mp \<subseteq> M proj\<^sub>J J\<close> and
-      np_proj: \<open>Np \<subseteq> F_of ` N\<close> and mp_fin: \<open>finite Mp\<close> and np_fin: \<open>finite Np\<close> and mp_entails_np: \<open>Mp \<Turnstile> Np\<close>
+    then obtain M' N' where mp_proj: \<open>M' \<subseteq> \<M> proj\<^sub>J J\<close> and
+      np_proj: \<open>N' \<subseteq> F_of ` \<N>\<close> and mp_fin: \<open>finite M'\<close> and np_fin: \<open>finite N'\<close> and
+      mp_entails_np: \<open>M' \<Turnstile> N'\<close>
       using entails_compactness by metis
-    have \<open>\<forall>Cp \<in> Mp. \<exists>C \<in> M. {C} proj\<^sub>J J = {Cp}\<close> 
+
+    have mp_with_f_of: \<open>\<forall>C \<in> M'. \<exists>\<C> \<in> \<M>. F_of \<C> = C \<and> enabled \<C> J\<close> 
       using mp_proj unfolding enabled_projection_def by blast
-    then obtain f where f_is: \<open>(f Cp = (SOME C. Cp \<in> Mp \<longrightarrow> (C \<in> M \<and> {C} proj\<^sub>J J = {Cp})))\<close>
-      by simp
-    define M' where \<open>M' = f ` Mp\<close>   
-    then have \<open>M' \<subseteq> M\<close> \<open>M' proj\<^sub>J J = Mp\<close> \<open>finite M'\<close> 
-      using mp_fin f_is sorry
+    have \<open>\<exists>\<M>'\<subseteq> \<M>. finite \<M>' \<and> M' = F_of ` \<M>' \<and> enabled_set \<M>' J\<close>
+      using finite_subset_image_strong[OF mp_fin mp_with_f_of]
+      unfolding enabled_set_def by blast
+    then have m_fin_subset: \<open>\<exists>\<M>' \<subseteq> \<M>. finite \<M>' \<and> M' = \<M>' proj\<^sub>J J\<close>
+      unfolding enabled_projection_def enabled_set_def by blast
+
+    have np_with_f_of: \<open>\<forall>C \<in> N'. \<exists>\<C> \<in> \<N>. F_of \<C> = C\<close> 
+      using np_proj unfolding enabled_projection_def by blast
+    have n_fin_subset: \<open>\<exists>\<N>'\<subseteq> \<N>. finite \<N>' \<and> N' = F_of ` \<N>'\<close>
+      using finite_subset_image[OF np_fin np_proj] .
+
+    obtain \<M>' \<N>' where m_n_subs: \<open>\<M>' \<subseteq> \<M>\<close> \<open>\<N>' \<subseteq> \<N>\<close> \<open>finite \<M>'\<close> \<open>finite \<N>'\<close> \<open>M' = \<M>' proj\<^sub>J J\<close> \<open>N' = F_of ` \<N>'\<close>
+      using m_fin_subset n_fin_subset by blast 
+    then have \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+      using mp_entails_np by simp
+    then have \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+      using m_n_subs by auto
   }
-  show \<open>\<exists>M' N'. M' \<subseteq> M \<and> N' \<subseteq> N \<and> finite M' \<and> finite N' \<and> M' \<Turnstile>\<^sub>A\<^sub>F N'\<close>
+  
+  show \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
     sorry
 qed
 

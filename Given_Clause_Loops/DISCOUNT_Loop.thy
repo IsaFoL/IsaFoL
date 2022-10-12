@@ -16,12 +16,12 @@ begin
 subsection \<open>Locale\<close>
 
 datatype DL_label =
-  Active | YY | Passive
+  Passive | YY | Active
 
 primrec nat_of_DL_label :: "DL_label \<Rightarrow> nat" where
-  "nat_of_DL_label Active = 0"
+  "nat_of_DL_label Passive = 2"
 | "nat_of_DL_label YY = 1"
-| "nat_of_DL_label Passive = 2"
+| "nat_of_DL_label Active = 0"
 
 definition DL_Prec_L :: "DL_label \<Rightarrow> DL_label \<Rightarrow> bool" (infix "\<sqsubset>L" 50) where
   "DL_Prec_L l l' \<longleftrightarrow> nat_of_DL_label l < nat_of_DL_label l'"

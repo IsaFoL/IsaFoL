@@ -251,13 +251,16 @@ sepref_def bottom_stats_code
   unfolding bottom_stats_def
   by sepref
 
-definition bottom_heur_int :: \<open> restart_heuristics\<close> where
+definition bottom_heur_int :: \<open>restart_heuristics\<close> where
   \<open>bottom_heur_int = (
   let \<phi> = replicate 0 False in
   let fema = ema_init (0) in
-  let sema = ema_init (0) in let ccount = restart_info_init in
+  let sema = ema_init (0) in
+  let other_fema = ema_init (0) in
+  let other_sema = ema_init (0) in
+  let ccount = restart_info_init in
   let n = 0  in
-  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate 0 False, (0, 0)))
+  (fema, sema, ccount, 0, (\<phi>, 0, replicate n False, 0, replicate n False, 10000, 1000, 1), reluctant_init, False, replicate 0 False, (0, 0, 0), other_fema, other_sema))
 \<close>
 sepref_def bottom_heur_int_code
   is \<open>uncurry0 (RETURN bottom_heur_int)\<close>
@@ -266,7 +269,6 @@ sepref_def bottom_heur_int_code
   unfolding bottom_heur_int_def heuristic_int_assn_def phase_heur_assn_def
   apply (rewrite in \<open>(replicate _ False, _)\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>(replicate _ False, _)\<close> array_fold_custom_replicate)
-  apply (rewrite at \<open>(_, _, _, \<hole>, _, (_, _))\<close> annotate_assn[where A=phase_saver'_assn])
   apply (rewrite in \<open>(_, _, \<hole>, _)\<close> array_fold_custom_replicate)
   apply (rewrite in \<open>let _ =\<hole> in _\<close> annotate_assn[where A=phase_saver_assn])
   unfolding larray_fold_custom_replicate
@@ -316,7 +318,7 @@ sepref_def bottom_lcount_code
   by sepref
 
 definition bottom_opts :: \<open>opts\<close> where
-  \<open>bottom_opts = IsaOptions False False False 0 0 0 0 0 0 0\<close>
+  \<open>bottom_opts = IsaOptions False False False 0 0 0 0 0 0 0 True\<close>
 
 definition extract_opts_wl_heur where
   \<open>extract_opts_wl_heur = isasat_state_ops.remove_o bottom_opts\<close>
