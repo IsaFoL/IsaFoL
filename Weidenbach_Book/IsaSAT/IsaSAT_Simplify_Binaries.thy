@@ -1044,8 +1044,8 @@ proof -
       by (auto intro!: RETURN_RES_refine)
   qed
   have skip: \<open>(skip_lit, skip)
-    \<in> {(a, b). (\<not>should_eliminate_pure_st S  ∨ \<not> a, b) \<in> bool_rel} \<Longrightarrow>
-    skip \<in> UNIV \<Longrightarrow> (\<not> should_eliminate_pure_st S ∨ \<not> skip_lit) = skip\<close> for skip_lit skip
+    \<in> {(a, b). (\<not>should_eliminate_pure_st S  \<or> \<not> a, b) \<in> bool_rel} \<Longrightarrow>
+    skip \<in> UNIV \<Longrightarrow> (\<not> should_eliminate_pure_st S \<or> \<not> skip_lit) = skip\<close> for skip_lit skip
    by auto
   have last_step: \<open>do {
    _ \<leftarrow> ASSERT (mark_duplicated_binary_clauses_as_garbage_pre_wl_heur S);

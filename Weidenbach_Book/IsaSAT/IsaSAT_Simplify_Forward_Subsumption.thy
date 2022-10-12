@@ -2435,22 +2435,22 @@ proof -
     using C_dom CC' by (auto simp: vdom_m_def)
 
   have still_in_dom_after_shortening: \<open>C' \<in># dom_m x2c \<Longrightarrow>
-    x1b  \<le> length (x2c ∝ C') \<Longrightarrow>
+    x1b  \<le> length (x2c \<propto> C') \<Longrightarrow>
     TIER_ONE_MAXIMUM  \<le> x1b \<Longrightarrow>
-    (xb, x2c(C' ↪ take x1b (x2c ∝ C')))
-    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} \<Longrightarrow>
-    C \<in># dom_m (x2c(C' ↪ take x1b (x2c ∝ C')))\<close>for x1b x2c xb x2a
+    (xb, x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')))
+    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) \<and> length N\<^sub>1 = length x2a} \<Longrightarrow>
+    C \<in># dom_m (x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')))\<close>for x1b x2c xb x2a
    using CC' by auto
-  have H: \<open>(xb, x2c(C' ↪ take x1b (x2c ∝ C')))
-    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) ∧ length N\<^sub>1 = length x2a} \<Longrightarrow>
-    (xc, x2c(C' ↪ take x1b (x2c ∝ C')))
+  have H: \<open>(xb, x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')))
+    \<in> {(N\<^sub>1, N\<^sub>1'). valid_arena N\<^sub>1 N\<^sub>1' (set (get_vdom T)) \<and> length N\<^sub>1 = length x2a} \<Longrightarrow>
+    (xc, x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')))
     \<in> {(c, N').
-    N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
-    valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
+    N' = x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')) \<and>
+    valid_arena c (x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C'))) (set (get_vdom T)) \<and>
     length c = length xb} \<Longrightarrow>
-    (xc, x2c(C' ↪ take x1b (x2c ∝ C'))) \<in> {(c, N').
-    N' = x2c(C' ↪ take x1b (x2c ∝ C')) ∧
-    valid_arena c (x2c(C' ↪ take x1b (x2c ∝ C'))) (set (get_vdom T)) ∧
+    (xc, x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C'))) \<in> {(c, N').
+    N' = x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C')) \<and>
+    valid_arena c (x2c(C' \<hookrightarrow> take x1b (x2c \<propto> C'))) (set (get_vdom T)) \<and>
     length c = length x2a}\<close>for x1b xb x2a xc x2c
    by auto
   show ?thesis
@@ -3758,7 +3758,7 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S))  \<le> SPEC (λc. (c, True) \<in> UNIV)\<close> for c delta
+  have [refine]: \<open>isasat_current_progress c (isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S))  \<le> SPEC (\<lambda>c. (c, True) \<in> UNIV)\<close> for c delta
    unfolding isasat_current_progress_def by auto
   have [refine]: \<open>((0, isa_forward_reset_added_and_stats (schedule_next_subsume_st delta S)), 0, S') \<in> nat_rel \<times>\<^sub>r {(U,U'). (U,U') \<in> twl_st_heur_restart_occs' r u \<and> get_vdom U = get_vdom S \<and>
     get_occs U = get_occs S}\<close> (is \<open>_ \<in> _ \<times>\<^sub>r ?state\<close>) for delta
