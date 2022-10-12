@@ -729,9 +729,8 @@ lemma restrict_subst_empty[simp]: "restrict_subst {} \<sigma> = Var"
 lemma restrict_subst_Var[simp]: "restrict_subst V Var = Var"
   unfolding restrict_subst_def by auto
 
-lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) \<subseteq> V"
-  unfolding restrict_subst_def subst_domain_def
-  by auto
+lemma subst_domain_restrict_subst: "subst_domain (restrict_subst V \<sigma>) = subst_domain \<sigma> \<inter> V"
+  unfolding restrict_subst_def subst_domain_def by auto
 
 lemma subst_restrict_subst_idem: "vars_term t \<subseteq> V \<Longrightarrow> t \<cdot> restrict_subst V \<sigma> = t \<cdot> \<sigma>"
   by (rule term_subst_eq) (simp add: restrict_subst_def subsetD)
@@ -817,6 +816,9 @@ lemma finite_vars_cls[simp]: "finite (vars_cls C)"
 
 lemma vars_cls_plus_iff: "vars_cls (C + D) = vars_cls C \<union> vars_cls D"
   unfolding vars_cls_def by simp
+
+lemma vars_cls_subset_vars_cls_if_subset_mset: "C \<subseteq># D \<Longrightarrow> vars_cls C \<subseteq> vars_cls D"
+  by (auto simp add: vars_cls_def)
 
 lemma is_ground_atm_iff_vars_empty: "is_ground_atm t \<longleftrightarrow> vars_term t = {}"
   by (metis (mono_tags, opaque_lifting) equals0D equals0I is_ground_atm_def subst_apply_term_empty
@@ -1031,6 +1033,10 @@ lemma vars_cls_add_mset[simp]: "vars_cls (add_mset L C) = vars_lit L \<union> va
 lemma vars_lit_subst_subset_vars_cls_substI[intro]:
   "vars_lit L \<subseteq> vars_cls C \<Longrightarrow> vars_lit (L \<cdot>l \<sigma>) \<subseteq> vars_cls (C \<cdot> \<sigma>)"
   by (metis subset_Un_eq subst_cls_add_mset vars_cls_add_mset vars_subst_cls_eq)
+
+lemma vars_subst_cls_subset_vars_cls_subst:
+  "vars_cls C \<subseteq> vars_cls D \<Longrightarrow> vars_cls (C \<cdot> \<sigma>) \<subseteq> vars_cls (D \<cdot> \<sigma>)"
+  by (metis subset_Un_eq subst_cls_union vars_cls_plus_iff vars_subst_cls_eq)
 
 lemma vars_cls_subst_subset:
   assumes range_vars_\<eta>: "range_vars \<eta> \<subseteq> vars_lit L \<union> vars_lit L'"
@@ -2418,6 +2424,319 @@ lemma scl_preserves_conflict_disjoint_vars:
   by metis
 
 
+subsection \<open>Initial Literals Generalize Learned, Trail, and Conflict Literals\<close>
+
+definition clss_lits_generalize_clss_lits where
+  "clss_lits_generalize_clss_lits N U \<longleftrightarrow>
+    (\<forall>L \<in> \<Union> (set_mset ` U). \<exists>K \<in> \<Union>(set_mset ` N). generalizes_lit K L)"
+
+lemma clss_lits_generalize_clss_lits_if_superset[simp]:
+  assumes "N2 \<subseteq> N1"
+  shows "clss_lits_generalize_clss_lits N1 N2"
+proof (unfold clss_lits_generalize_clss_lits_def, rule ballI)
+  fix L
+  assume L_in: "L \<in> \<Union> (set_mset ` N2)"
+  show "\<exists>K \<in> \<Union> (set_mset ` N1). generalizes_lit K L"
+    unfolding generalizes_lit_def
+  proof (intro bexI exI conjI)
+    show "L \<in> \<Union> (set_mset ` N1)"
+      using L_in \<open>N2 \<subseteq> N1\<close> by blast
+  next
+    show "L \<cdot>l Var = L"
+      by simp
+  qed
+qed
+
+lemma clss_lits_generalize_clss_lits_subset:
+  "clss_lits_generalize_clss_lits N U1 \<Longrightarrow> U2 \<subseteq> U1 \<Longrightarrow> clss_lits_generalize_clss_lits N U2"
+  unfolding clss_lits_generalize_clss_lits_def by blast
+
+lemma clss_lits_generalize_clss_lits_insert:
+  "clss_lits_generalize_clss_lits N (insert C U) \<longleftrightarrow>
+    (\<forall>L \<in># C. \<exists>K \<in> \<Union>(set_mset ` N). generalizes_lit K L) \<and> clss_lits_generalize_clss_lits N U"
+  unfolding clss_lits_generalize_clss_lits_def by blast
+
+lemma clss_lits_generalize_clss_lits_rename_clause:
+  "C \<in> N \<Longrightarrow> finite M \<Longrightarrow> clss_lits_generalize_clss_lits N {rename_clause M C}"
+  unfolding clss_lits_generalize_clss_lits_def
+  by (metis (no_types, opaque_lifting) Melem_subst_cls UN_I ccpo_Sup_singleton generalizes_lit_def
+      image_empty image_insert rename_clause_def)
+
+lemma clss_lits_generalize_clss_lits_trans:
+  assumes
+    "clss_lits_generalize_clss_lits N1 N2" and
+    "clss_lits_generalize_clss_lits N2 N3"
+  shows "clss_lits_generalize_clss_lits N1 N3"
+proof (unfold clss_lits_generalize_clss_lits_def, rule ballI)
+  fix L3
+  assume "L3 \<in> \<Union> (set_mset ` N3)"
+  then obtain L2 \<sigma>2 where "L2 \<in> \<Union> (set_mset ` N2)" and "L2 \<cdot>l \<sigma>2 = L3"
+    using assms(2)[unfolded clss_lits_generalize_clss_lits_def] generalizes_lit_def by meson
+  then obtain L1 \<sigma>1 where "L1 \<in> \<Union> (set_mset ` N1)" and "L1 \<cdot>l \<sigma>1 = L2"
+    using assms(1)[unfolded clss_lits_generalize_clss_lits_def] generalizes_lit_def by meson
+  
+  thus "\<exists>K \<in> \<Union> (set_mset ` N1). generalizes_lit K L3"
+    unfolding generalizes_lit_def
+  proof (intro bexI exI conjI)
+    show "L1 \<cdot>l (\<sigma>1 \<odot> \<sigma>2) = L3"
+      by (simp add: \<open>L1 \<cdot>l \<sigma>1 = L2\<close> \<open>L2 \<cdot>l \<sigma>2 = L3\<close>)
+  qed simp_all
+qed
+
+lemma clss_lits_generalize_clss_lits_subst_clss:
+  assumes "clss_lits_generalize_clss_lits N1 N2"
+  shows "clss_lits_generalize_clss_lits N1 ((\<lambda>C. C \<cdot> \<sigma>) ` N2)"
+  unfolding clss_lits_generalize_clss_lits_def
+proof (rule ballI)
+  fix L assume "L \<in> \<Union> (set_mset ` (\<lambda>C. C \<cdot> \<sigma>) ` N2)"
+  then obtain L\<^sub>2 where "L\<^sub>2 \<in> \<Union> (set_mset ` N2)" and L_def: "L = L\<^sub>2 \<cdot>l \<sigma>" by auto
+  then obtain L\<^sub>1 \<sigma>\<^sub>1 where L\<^sub>1_in: "L\<^sub>1 \<in> \<Union> (set_mset ` N1)" and L\<^sub>2_def: "L\<^sub>2 = L\<^sub>1 \<cdot>l \<sigma>\<^sub>1"
+    using assms[unfolded clss_lits_generalize_clss_lits_def]
+    unfolding generalizes_lit_def by metis
+
+  show "\<exists>K \<in> \<Union> (set_mset ` N1). generalizes_lit K L"
+    unfolding generalizes_lit_def
+  proof (intro bexI exI)
+    show "L\<^sub>1 \<in> \<Union> (set_mset ` N1)"
+      by (rule L\<^sub>1_in)
+  next
+    show "L\<^sub>1 \<cdot>l (\<sigma>\<^sub>1 \<odot> \<sigma>) = L"
+      unfolding L_def L\<^sub>2_def by simp
+  qed
+qed
+
+lemma clss_lits_generalize_clss_lits_singleton_subst_cls:
+  "clss_lits_generalize_clss_lits N {C} \<Longrightarrow> clss_lits_generalize_clss_lits N {C \<cdot> \<sigma>}"
+  by (rule clss_lits_generalize_clss_lits_subst_clss[of N "{C}" \<sigma>, simplified])
+
+lemma clss_lits_generalize_clss_lits_subst_cls:
+  assumes "clss_lits_generalize_clss_lits N {add_mset L1 (add_mset L2 C)}"
+  shows "clss_lits_generalize_clss_lits N {add_mset (L1 \<cdot>l \<sigma>) (C \<cdot> \<sigma>)}"
+proof (rule clss_lits_generalize_clss_lits_trans)
+  show "clss_lits_generalize_clss_lits N {add_mset L1 (add_mset L2 C) \<cdot> \<sigma>}"
+    by (rule clss_lits_generalize_clss_lits_singleton_subst_cls[of N _ \<sigma>, OF assms])
+next
+  show "clss_lits_generalize_clss_lits {add_mset L1 (add_mset L2 C) \<cdot> \<sigma>}
+    {add_mset (L1 \<cdot>l \<sigma>) (C \<cdot> \<sigma>)}"
+    apply (simp add: clss_lits_generalize_clss_lits_def generalizes_lit_def)
+    using subst_lit_id_subst by blast
+qed
+
+definition initial_lits_generalize_learned_trail_conflict where
+  "initial_lits_generalize_learned_trail_conflict N S \<longleftrightarrow> clss_lits_generalize_clss_lits (fset N)
+    (fset (state_learned S |\<union>| clss_of_trail (state_trail S) |\<union>|
+      (case state_conflict S of None \<Rightarrow> {||} | Some (C, _) \<Rightarrow> {|C|})))"
+
+lemma initial_lits_generalize_learned_trail_conflict_initial_state:
+  "initial_lits_generalize_learned_trail_conflict N initial_state"
+  unfolding initial_lits_generalize_learned_trail_conflict_def by simp
+
+lemma propagate_preserves_initial_lits_generalize_learned_trail_conflict:
+  "propagate N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: propagate.induct)
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+
+  from propagateI.prems have
+    N_generalize: "clss_lits_generalize_clss_lits (fset N) (fset (U |\<union>| clss_of_trail \<Gamma>))"
+    unfolding initial_lits_generalize_learned_trail_conflict_def by simp_all
+
+  from propagateI.hyps have
+    C_in: "C |\<in>| N |\<union>| U" and
+    C_def: "C = add_mset L C'" and
+    C\<^sub>0_def: "C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}" by simp_all
+
+  have "clss_lits_generalize_clss_lits (fset N)
+    (insert (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) (fset (U |\<union>| clss_of_trail \<Gamma>)))"
+    unfolding clss_lits_generalize_clss_lits_insert
+  proof (rule conjI)
+    show "\<forall>L \<in># add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>. \<exists>K\<in>\<Union> (set_mset ` fset N). generalizes_lit K L"
+    proof (rule ballI)
+      fix K assume "K \<in># add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>"
+      hence "K = L \<cdot>l \<mu> \<cdot>l \<rho> \<or> (\<exists>M. M \<in># C\<^sub>0 \<and> K = M \<cdot>l \<mu> \<cdot>l \<rho>)"
+        by auto
+      then obtain K' where K'_in: "K' \<in># C" and K_def: "K = K' \<cdot>l \<mu> \<cdot>l \<rho>"
+        using C\<^sub>0_def C_def by auto
+      
+      obtain D L\<^sub>D where "D |\<in>| N" and "L\<^sub>D \<in># D" and "generalizes_lit L\<^sub>D K'"
+        using K'_in C_in N_generalize[unfolded clss_lits_generalize_clss_lits_def]
+        by (metis (mono_tags, opaque_lifting) UN_iff funion_iff generalizes_lit_refl notin_fset)
+
+      show "\<exists>K'\<in>\<Union> (set_mset ` fset N). generalizes_lit K' K"
+      proof (rule bexI)
+        show "generalizes_lit L\<^sub>D K"
+          using \<open>generalizes_lit L\<^sub>D K'\<close> 
+          by (metis generalizes_lit_def K_def subst_lit_comp_subst)
+      next
+        show \<open>L\<^sub>D \<in> \<Union> (set_mset ` fset N)\<close>
+          using \<open>D |\<in>| N\<close> \<open>L\<^sub>D \<in># D\<close>
+          by (meson UN_I notin_fset)
+      qed
+    qed
+  next
+    show "clss_lits_generalize_clss_lits (fset N) (fset (U |\<union>| clss_of_trail \<Gamma>))"
+      by (rule N_generalize)
+  qed
+  thus ?case
+    by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+qed
+
+lemma decide_preserves_initial_lits_generalize_learned_trail_conflict:
+  "decide N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: decide.induct)
+  case (decideI L \<Gamma> U)
+  thus ?case
+    by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+qed
+
+lemma conflict_preserves_initial_lits_generalize_learned_trail_conflict:
+  assumes "conflict N \<beta> S S'" and "initial_lits_generalize_learned_trail_conflict N S"
+  shows "initial_lits_generalize_learned_trail_conflict N S'"
+  using assms(1)
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+  from assms(2) have "clss_lits_generalize_clss_lits (fset N) (fset (U |\<union>| clss_of_trail \<Gamma>))"
+    unfolding conflictI(1) by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+  hence ball_U_\<Gamma>_generalize:
+    "\<And>L. L \<in> \<Union> (set_mset ` fset (U |\<union>| clss_of_trail \<Gamma>)) \<Longrightarrow>
+      \<exists>K \<in> \<Union> (set_mset ` fset N). generalizes_lit K L"
+    unfolding clss_lits_generalize_clss_lits_def by blast
+
+  have "clss_lits_generalize_clss_lits (fset N) (insert (D \<cdot> \<rho>) (fset (U |\<union>| clss_of_trail \<Gamma>)))"
+    unfolding clss_lits_generalize_clss_lits_def
+  proof (rule ballI)
+    fix L assume "L \<in> \<Union> (set_mset ` insert (D \<cdot> \<rho>) (fset (U |\<union>| clss_of_trail \<Gamma>)))"
+    hence "L \<in> set_mset (D \<cdot> \<rho>) \<or> L \<in> \<Union> (set_mset ` (fset (U |\<union>| clss_of_trail \<Gamma>)))"
+      by simp
+    thus "\<exists>K \<in> \<Union> (set_mset ` fset N). generalizes_lit K L"
+    proof (elim disjE)
+      assume L_in: "L \<in># D \<cdot> \<rho>"
+      then obtain L' where "L = L' \<cdot>l \<rho>" and "L' \<in># D"
+        using Melem_subst_cls by blast
+      show "?thesis"
+        using \<open>D |\<in>| N |\<union>| U\<close>[unfolded funion_iff]
+      proof (elim disjE)
+        show "D |\<in>| N \<Longrightarrow> ?thesis"
+          using L_in
+          by (metis Un_iff Union_image_insert \<open>L = L' \<cdot>l \<rho>\<close> \<open>L' \<in># D\<close> fmember.rep_eq
+              generalizes_lit_def mk_disjoint_insert)
+      next
+        assume "D |\<in>| U"
+        hence "\<exists>K \<in> \<Union> (set_mset ` fset N). generalizes_lit K L'"
+          using ball_U_\<Gamma>_generalize[of L'] \<open>L' \<in># D\<close>
+          using mk_disjoint_finsert by fastforce
+        thus ?thesis
+          unfolding \<open>L = L' \<cdot>l \<rho>\<close>
+          by (metis (no_types, lifting) generalizes_lit_def subst_lit_comp_subst)
+      qed
+    next
+      show "L \<in> \<Union> (set_mset ` fset (U |\<union>| clss_of_trail \<Gamma>)) \<Longrightarrow> ?thesis"
+        using ball_U_\<Gamma>_generalize by simp
+    qed
+  qed
+  then show ?thesis
+    using assms(2)
+    unfolding conflictI(1,2)
+    by (simp add: initial_lits_generalize_learned_trail_conflict_def)
+qed
+
+lemma skip_preserves_initial_lits_generalize_learned_trail_conflict:
+  "skip N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: skip.induct)
+  case (skipI L D \<sigma> Cl \<Gamma> U)
+  then show ?case
+    unfolding initial_lits_generalize_learned_trail_conflict_def
+    unfolding state_learned_simp state_conflict_simp state_trail_simp option.case prod.case
+    by (auto elim: clss_lits_generalize_clss_lits_subset)
+qed
+
+lemma factorize_preserves_initial_lits_generalize_learned_trail_conflict:
+  "factorize N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: factorize.induct)
+  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  moreover have "clss_lits_generalize_clss_lits (fset N) {add_mset (L \<cdot>l \<mu>) (D \<cdot> \<mu>)}"
+    using factorizeI
+    unfolding initial_lits_generalize_learned_trail_conflict_def
+    apply (simp add: clss_lits_generalize_clss_lits_insert generalizes_lit_def)
+    by (smt (verit, best) Melem_subst_cls subst_lit_comp_subst)
+  ultimately show ?case
+    unfolding initial_lits_generalize_learned_trail_conflict_def
+    apply simp
+    using clss_lits_generalize_clss_lits_insert by blast
+qed
+
+lemma resolve_preserves_initial_lits_generalize_learned_trail_conflict:
+  "resolve N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: resolve.induct)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  moreover have "clss_lits_generalize_clss_lits (fset N) {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
+  proof -
+    from resolveI.prems have
+      N_lits_sup: "clss_lits_generalize_clss_lits (fset N)
+        (fset (U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|}))"
+      unfolding initial_lits_generalize_learned_trail_conflict_def by simp
+
+    have "clss_lits_generalize_clss_lits (fset N) {D \<cdot> \<mu> \<cdot> \<rho>}"
+    proof -
+      from N_lits_sup have "clss_lits_generalize_clss_lits (fset N) {D + {#L'#}}"
+        by (simp add: clss_lits_generalize_clss_lits_insert)
+      hence "clss_lits_generalize_clss_lits (fset N) {D}"
+        by (simp add: clss_lits_generalize_clss_lits_def)
+      thus ?thesis
+        by (auto intro: clss_lits_generalize_clss_lits_singleton_subst_cls)
+    qed
+    moreover have "clss_lits_generalize_clss_lits (fset N) {C \<cdot> \<mu> \<cdot> \<rho>}"
+    proof -
+      from N_lits_sup have "clss_lits_generalize_clss_lits (fset N) (fset (clss_of_trail \<Gamma>))"
+        by (rule clss_lits_generalize_clss_lits_subset) auto
+      hence "clss_lits_generalize_clss_lits (fset N) {add_mset L C}"
+        unfolding resolveI.hyps
+        by (simp add: clss_lits_generalize_clss_lits_insert)
+      hence "clss_lits_generalize_clss_lits (fset N) {C}"
+        by (simp add: clss_lits_generalize_clss_lits_def)
+      thus ?thesis
+        by (auto intro: clss_lits_generalize_clss_lits_singleton_subst_cls)
+    qed
+    ultimately show ?thesis
+      by (auto simp add: clss_lits_generalize_clss_lits_def)
+  qed
+  ultimately show ?case
+    unfolding initial_lits_generalize_learned_trail_conflict_def
+    unfolding state_trail_simp state_learned_simp state_conflict_simp
+    unfolding option.case prod.case
+    by (metis clss_lits_generalize_clss_lits_insert finsert.rep_eq funion_finsert_right)
+qed
+
+lemma backtrack_preserves_initial_lits_generalize_learned_trail_conflict:
+  "backtrack N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
+    initial_lits_generalize_learned_trail_conflict N S'"
+proof (induction S S' rule: backtrack.induct)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  then show ?case
+    unfolding initial_lits_generalize_learned_trail_conflict_def
+    apply (simp add: clss_of_trail_append)
+    apply (erule clss_lits_generalize_clss_lits_subset)
+    by blast
+qed
+
+lemma scl_preserves_initial_lits_generalize_learned_trail_conflict:
+  assumes "scl N \<beta> S S'" and "initial_lits_generalize_learned_trail_conflict N S"
+  shows "initial_lits_generalize_learned_trail_conflict N S'"
+  using assms unfolding scl_def
+  using propagate_preserves_initial_lits_generalize_learned_trail_conflict
+    decide_preserves_initial_lits_generalize_learned_trail_conflict
+    conflict_preserves_initial_lits_generalize_learned_trail_conflict
+    skip_preserves_initial_lits_generalize_learned_trail_conflict
+    factorize_preserves_initial_lits_generalize_learned_trail_conflict
+    resolve_preserves_initial_lits_generalize_learned_trail_conflict
+    backtrack_preserves_initial_lits_generalize_learned_trail_conflict
+  by metis
+
+
 subsection \<open>Trail Literals Come From Clauses\<close>
 
 definition trail_lits_from_clauses where
@@ -2540,6 +2859,40 @@ lemma scl_preserves_trail_lits_from_clauses:
     factorize_preserves_trail_lits_from_clauses resolve_preserves_trail_lits_from_clauses
     backtrack_preserves_trail_lits_from_clauses
   by metis
+
+
+subsection \<open>Trail Literals Come From Initial Clauses\<close>
+
+definition trail_lits_from_init_clauses where
+  "trail_lits_from_init_clauses N S \<longleftrightarrow>
+    (\<forall>L \<in> fst ` set (state_trail S). \<exists>L' \<in> \<Union>(set_mset ` fset N). generalizes_lit L' L)"
+
+lemma trail_lits_from_init_clausesI:
+  assumes "trail_lits_from_clauses N S" and "initial_lits_generalize_learned_trail_conflict N S"
+  shows "trail_lits_from_init_clauses N S"
+  unfolding trail_lits_from_init_clauses_def
+proof (rule ballI)
+  fix L assume "L \<in> fst ` set (state_trail S)"
+  with assms(1) obtain L' where
+    "L' \<in> \<Union> (set_mset ` (fset N \<union> fset (state_learned S))) \<and> generalizes_lit L' L"
+    unfolding trail_lits_from_clauses_def by metis
+  hence "(\<exists>x\<in>fset N. L' \<in># x) \<or> (\<exists>x \<in> fset (state_learned S). L' \<in># x)" and "generalizes_lit L' L"
+    by simp_all
+  thus "\<exists>L'\<in>\<Union> (set_mset ` fset N). generalizes_lit L' L"
+  proof (elim disjE bexE)
+    fix C assume "C \<in> fset N"
+    thus "L' \<in># C \<Longrightarrow> ?thesis"
+      using \<open>generalizes_lit L' L\<close> by auto
+  next
+    fix C assume "C \<in> fset (state_learned S)" and "L' \<in># C"
+    with assms(2) have "\<exists>K\<in>\<Union> (set_mset ` fset N). generalizes_lit K L'"
+      unfolding initial_lits_generalize_learned_trail_conflict_def
+        clss_lits_generalize_clss_lits_def
+      by auto
+    thus "?thesis"
+      using \<open>generalizes_lit L' L\<close> by (metis generalizes_lit_def subst_lit_comp_subst)
+  qed
+qed
 
 
 subsection \<open>Trail Literals Are Ground\<close>
@@ -3762,7 +4115,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     by auto
 
   moreover have "subst_domain \<sigma>' \<subseteq> vars_cls ((D + {#L#}) \<cdot> \<mu>)"
-    unfolding \<sigma>'_def using subst_domain_restrict_subst by metis
+    unfolding \<sigma>'_def using subst_domain_restrict_subst by fast
 
   moreover have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>')"
   proof -
@@ -3961,7 +4314,8 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   moreover have
     "subst_domain (restrict_subst (vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>))
       (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)) \<subseteq> vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>)"
-    by (meson subst_domain_restrict_subst)
+    using subst_domain_restrict_subst
+    by (metis inf.cobounded2)
 
   moreover have
     "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
