@@ -1588,6 +1588,10 @@ definition sound_consistent :: "'v total_interpretation \<Rightarrow> bool" wher
 (* abbreviation F_of_set :: "('f, 'v) AF set \<Rightarrow> 'f set" where
   \<open>F_of_set N \<equiv> F_of ` N\<close> *)
 
+
+
+
+
 (* TODO: try alternative def that makes use of prop semantic from AFP to ease use of compactness *)
 definition propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p" 50) where
@@ -1597,13 +1601,6 @@ definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, '
   (infix "\<Turnstile>\<^sub>p2" 50) where
   \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
 
-definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
-  (infix "\<Turnstile>s\<^sub>p" 50) where
-  \<open>J \<Turnstile>s\<^sub>p \<N> \<equiv> (bot \<notin> ((enabled_projection (propositional_projection \<N>) J)) \<or>
-    \<not> sound_consistent J)\<close>
-
-definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
-  \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
 
 fun sign_to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
   \<open>sign_to_atomic_formula (Pos v) = Atom v\<close> |
@@ -1617,15 +1614,26 @@ lemma form_shape_sign_set: \<open>\<forall>f\<in>sign_set_to_formula_set A. \<ex
   by (metis image_iff sign_to_atomic_formula.elims)
 
 definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
-  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (A_of \<C>)\<close>
+  (* /!\ this formula set is to be understood as a disjunction *)
+  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (neg ` (A_of \<C>))\<close>
 
 lemma form_shape_AF: \<open>\<forall>f\<in>AF_to_formula_set \<C>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
   using form_shape_sign_set unfolding AF_to_formula_set_def by simp
 
-definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
-  \<open>AF_proj_to_formula_set \<N> = \<Union> (AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>))\<close>
+definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set set" where
+  (* /!\ formula set set represents here a conjuction of disjunctions *)
+  \<open>AF_proj_to_formula_set \<N> = AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>)\<close>
 
-lemma form_shape_proj: \<open>\<forall>f\<in>AF_proj_to_formula_set \<N>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
+lemma F_to_\<C>: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>\<C>\<in>proj\<^sub>\<bottom> \<N>. F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+  unfolding AF_proj_to_formula_set_def AF_to_formula_set_def sign_set_to_formula_set_def
+  by auto
+(* TODO: show to Mathias: sledgehammer suggests "by blast" (for all provers) but this fails *)
+
+lemma \<C>_to_F: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>F\<in>AF_proj_to_formula_set \<N>. F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+  unfolding AF_proj_to_formula_set_def AF_to_formula_set_def sign_set_to_formula_set_def
+  by auto
+
+lemma form_shape_proj: \<open>\<forall>f\<in>\<Union> (AF_proj_to_formula_set \<N>). \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
   using form_shape_AF unfolding AF_proj_to_formula_set_def by simp
 
 definition to_valuation :: "'v total_interpretation \<Rightarrow> 'v valuation" where
@@ -1663,26 +1671,62 @@ qed
 find_theorems sign_to_atomic_formula
 
 lemma equiv_propositional_sema_defs:
-  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
-  unfolding propositional_model2_def propositional_projection_def
-    enabled_projection_def enabled_def
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
+  unfolding propositional_model2_def enabled_projection_def enabled_def
 proof
-  assume \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
-  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+  then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close> 
+    by (smt (verit, ccfv_SIG) empty_iff mem_Collect_eq neg.elims subsetI
+        val_strip_neg val_strip_pos)
+  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
   proof
     fix F
-    assume \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
-    then obtain a::'v where \<open>F = Atom a \<or> F = Not (Atom a)\<close>
-      using form_shape_proj by auto
-    then show \<open>formula_semantics (to_valuation J) F\<close>
-      using val_strip_pos val_strip_neg
-      sorry
+    assume F_in: \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
+    then obtain \<C> where \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close> and F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+      using F_to_\<C> by meson
+    then have \<open>\<exists>v\<in>A_of \<C>. v \<notin> total_strip J\<close>
+      using empty_proj by blast
+    then obtain v where v_in: \<open>v \<in> A_of \<C>\<close> and v_notin: \<open>v \<notin> total_strip J\<close> by auto
+    define f where \<open>f = sign_to_atomic_formula (neg v)\<close>
+    then have \<open>formula_semantics (to_valuation J) f\<close>
+      using v_notin
+      by (smt (z3) belong_to.rep_eq belong_to_total.rep_eq formula_semantics.simps neg.elims
+          sign_to_atomic_formula.simps to_valuation_def val_strip_neg)
+    moreover have \<open>f \<in> F\<close>
+      using F_from_\<C> v_in f_def by blast
+    ultimately show \<open>\<exists>f\<in>F. formula_semantics (to_valuation J) f\<close> by auto
   qed
 next
-  assume \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
-  show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<N>. F_of \<C> = bot} \<and> A_of \<C> \<subseteq> total_strip J}\<close>
-    sorry
+  assume F_sat: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
+  have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close>
+  proof
+    fix \<C>
+    assume \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close>
+    then obtain F where \<open>F \<in> AF_proj_to_formula_set \<N>\<close> and
+      F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+      using \<C>_to_F by blast
+    then have \<open>\<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
+      using F_sat by blast
+    show \<open>\<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close>
+      sorry
+  qed
+  then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+    by (smt (verit, ccfv_threshold) empty_Collect_eq is_Pos.cases neg.simps(1) neg.simps(2) subsetD
+        val_strip_neg val_strip_pos)
 qed
+
+definition propositional_model3 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>\<^sub>p3" 50) where
+  \<open>J \<Turnstile>\<^sub>p3 \<N> \<equiv> (\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
+
+definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
+  (infix "\<Turnstile>s\<^sub>p" 50) where
+  \<open>J \<Turnstile>s\<^sub>p \<N> \<equiv> (bot \<notin> ((enabled_projection (propositional_projection \<N>) J)) \<or>
+    \<not> sound_consistent J)\<close>
+
+definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
+  \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
+
 
 
 (* definition to_formula :: "'v sign set \<Rightarrow> 'v formula" where
