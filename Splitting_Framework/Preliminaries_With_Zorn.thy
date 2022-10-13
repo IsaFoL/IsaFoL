@@ -1413,7 +1413,7 @@ locale dynamically_complete_calculus = calculus +
     (* discussions on this datatype allowed to detect a spurious assumption: 'v doesn't need to be
     infinite*)
     (* TODO: should "countable" be added as a requirement of the AF_calculus locale? *)
-datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v sign set")
+datatype ('f, 'v::countable) AF = Pair (F_of: "'f") (A_of: "'v sign fset")
 
 definition is_interpretation :: "'v sign set \<Rightarrow> bool" where
   \<open>is_interpretation J = (\<forall>v1\<in>J. (\<forall>v2\<in>J. (to_V v1 = to_V v2 \<longrightarrow> v1 = v2)))\<close>
@@ -1498,7 +1498,7 @@ proof transfer
 qed
 
 definition to_AF :: "'f \<Rightarrow> ('f, 'v::countable) AF" where
-  \<open>to_AF C = Pair C {}\<close>
+  \<open>to_AF C = Pair C {||}\<close>
 
 definition Neg_set :: "'v sign set \<Rightarrow> 'v sign set" ("\<sim>_" 55) where
   \<open>\<sim>V \<equiv> {neg v |v. v \<in> V}\<close>
@@ -1552,7 +1552,7 @@ definition propositional_projection :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) A
   \<open>proj\<^sub>\<bottom> \<N> = {\<C>. \<C> \<in> \<N> \<and> F_of \<C> = bot}\<close>
 
 definition enabled :: "('f, 'v) AF \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
-  "enabled \<C> J \<equiv> (A_of \<C>) \<subseteq> (total_strip J)"
+  "enabled \<C> J \<equiv> fset (A_of \<C>) \<subseteq> (total_strip J)"
 
 definition enabled_set :: "('f, 'v) AF set \<Rightarrow> 'v total_interpretation \<Rightarrow> bool" where
   \<open>enabled_set \<N> J = (\<forall>\<C>\<in>\<N>. enabled \<C> J)\<close>
@@ -1615,7 +1615,7 @@ lemma form_shape_sign_set: \<open>\<forall>f\<in>sign_set_to_formula_set A. \<ex
 
 definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
   (* /!\ this formula set is to be understood as a disjunction *)
-  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (neg ` (A_of \<C>))\<close>
+  \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (neg ` fset (A_of \<C>))\<close>
 
 lemma form_shape_AF: \<open>\<forall>f\<in>AF_to_formula_set \<C>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
   using form_shape_sign_set unfolding AF_to_formula_set_def by simp
@@ -1624,12 +1624,14 @@ definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula s
   (* /!\ formula set set represents here a conjuction of disjunctions *)
   \<open>AF_proj_to_formula_set \<N> = AF_to_formula_set ` (proj\<^sub>\<bottom> \<N>)\<close>
 
-lemma F_to_\<C>: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>\<C>\<in>proj\<^sub>\<bottom> \<N>. F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+lemma F_to_\<C>: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>\<C>\<in>proj\<^sub>\<bottom> \<N>. F =
+  sign_to_atomic_formula ` neg ` fset (A_of \<C>)\<close>
   unfolding AF_proj_to_formula_set_def AF_to_formula_set_def sign_set_to_formula_set_def
   by auto
 (* TODO: show to Mathias: sledgehammer suggests "by blast" (for all provers) but this fails *)
 
-lemma \<C>_to_F: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>F\<in>AF_proj_to_formula_set \<N>. F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+lemma \<C>_to_F: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>F\<in>AF_proj_to_formula_set \<N>. F =
+  sign_to_atomic_formula ` neg ` fset (A_of \<C>)\<close>
   unfolding AF_proj_to_formula_set_def AF_to_formula_set_def sign_set_to_formula_set_def
   by auto
 
@@ -1670,23 +1672,28 @@ qed
 
 find_theorems sign_to_atomic_formula
 
-lemma equiv_propositional_sema_defs:
+lemma equiv_prop_entails: \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightarrow> (J \<Turnstile>\<^sub>p2 \<N>)\<close>
+  unfolding propositional_model_def propositional_model2_def propositional_projection_def
+    enabled_projection_def
+  by blast
+
+lemma equiv_prop_entail2_sema:
   \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
   unfolding propositional_model2_def enabled_projection_def enabled_def
 proof
-  assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> A_of \<C> \<subseteq> total_strip J}\<close>
-  then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close> 
+  assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+  then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close> 
     by (smt (verit, ccfv_SIG) empty_iff mem_Collect_eq neg.elims subsetI
         val_strip_neg val_strip_pos)
   show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
   proof
     fix F
     assume F_in: \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
-    then obtain \<C> where \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close> and F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+    then obtain \<C> where \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close> and F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` fset (A_of \<C>)\<close>
       using F_to_\<C> by meson
-    then have \<open>\<exists>v\<in>A_of \<C>. v \<notin> total_strip J\<close>
+    then have \<open>\<exists>v\<in>fset (A_of \<C>). v \<notin> total_strip J\<close>
       using empty_proj by blast
-    then obtain v where v_in: \<open>v \<in> A_of \<C>\<close> and v_notin: \<open>v \<notin> total_strip J\<close> by auto
+    then obtain v where v_in: \<open>v \<in> fset (A_of \<C>)\<close> and v_notin: \<open>v \<notin> total_strip J\<close> by auto
     define f where \<open>f = sign_to_atomic_formula (neg v)\<close>
     then have \<open>formula_semantics (to_valuation J) f\<close>
       using v_notin
@@ -1698,22 +1705,34 @@ proof
   qed
 next
   assume F_sat: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
-  have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close>
+  have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close>
   proof
     fix \<C>
     assume \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close>
     then obtain F where \<open>F \<in> AF_proj_to_formula_set \<N>\<close> and
-      F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` (A_of \<C>)\<close>
+      F_from_\<C>: \<open>F = sign_to_atomic_formula ` neg ` fset (A_of \<C>)\<close>
       using \<C>_to_F by blast
     then have \<open>\<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
       using F_sat by blast
-    show \<open>\<exists>v\<in>A_of \<C>. neg v \<in> total_strip J\<close>
-      sorry
+    then obtain f where f_in: \<open>f \<in> F\<close> and sat_f: \<open>formula_semantics (to_valuation J) f\<close>
+      by blast
+    then obtain v where v_is: \<open>f = sign_to_atomic_formula (neg v)\<close> and v_in: \<open>v \<in> fset (A_of \<C>)\<close>
+      using F_from_\<C> by blast
+    then have \<open>neg v \<in> total_strip J\<close>
+      using sat_f unfolding to_valuation_def
+      by (smt (z3) belong_to.rep_eq belong_to_total.rep_eq formula_semantics.simps sign.exhaust
+          sign_to_atomic_formula.simps val_strip_neg val_strip_pos)
+    then show \<open>\<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close>
+      using v_in by auto
   qed
-  then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> A_of \<C> \<subseteq> total_strip J}\<close>
+  then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
     by (smt (verit, ccfv_threshold) empty_Collect_eq is_Pos.cases neg.simps(1) neg.simps(2) subsetD
         val_strip_neg val_strip_pos)
 qed
+
+lemma equiv_prop_entail_sema:
+  \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
+  using equiv_prop_entails equiv_prop_entail2_sema by presburger
 
 definition propositional_model3 :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>\<^sub>p3" 50) where
