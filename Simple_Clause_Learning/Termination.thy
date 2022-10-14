@@ -414,7 +414,18 @@ next
           by simp
       qed
     next
-      show "skip N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+      assume "skip N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S rule: skip.cases)
+        case (skipI L D \<sigma> n \<Gamma> U)
+        have "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma>), \<M>_skip_fact_reso ((L, n) # \<Gamma>) (D \<cdot> \<sigma>)) \<in>
+          lenlex {(x, y). x < y}"
+          by (simp add: lenlex_conv)
+        thus ?thesis
+          unfolding lex_prodp_def skipI(1,2)
+          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
+          by simp
+      qed
     next
       show "factorize N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
     next
