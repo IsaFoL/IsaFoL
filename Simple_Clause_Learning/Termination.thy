@@ -234,190 +234,196 @@ lemma
       factorize N \<beta> \<squnion> resolve N \<beta>" and
     "invars \<equiv> \<lambda>S _. trail_atoms_lt \<beta> S \<and> trail_lits_ground S \<and> trail_lits_from_clauses N S \<and>
       initial_lits_generalize_learned_trail_conflict N S"
-  shows "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
-proof (rule wfP_if_convertible_to_wfP)
-  fix S S' :: "('f, 'v) state"
-  assume "(scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse> S S'"
-  hence step: "scl_without_backtrack S' S" and invars: "invars S' S"
-    by simp_all
+  shows "invars initial_state S'" and "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
+proof -
+  show "invars initial_state S'"
+    by (simp add: invars_def)
+next
+  show "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
+  proof (rule wfP_if_convertible_to_wfP)
+    fix S S' :: "('f, 'v) state"
+    assume "(scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse> S S'"
+    hence step: "scl_without_backtrack S' S" and invars: "invars S' S"
+      by simp_all
 
-  from invars have
-    "trail_atoms_lt \<beta> S'" and
-    "trail_lits_ground S'" and
-    "trail_lits_from_clauses N S'" and
-    "initial_lits_generalize_learned_trail_conflict N S'"
-    by (simp_all add: invars_def)
-  with step have
-    "trail_lits_from_clauses N S" and
-    "initial_lits_generalize_learned_trail_conflict N S"
-    unfolding scl_without_backtrack_def
-    by (auto simp add: scl_def intro: scl_preserves_trail_lits_from_clauses
-        scl_preserves_initial_lits_generalize_learned_trail_conflict)
+    from invars have
+      "trail_atoms_lt \<beta> S'" and
+      "trail_lits_ground S'" and
+      "trail_lits_from_clauses N S'" and
+      "initial_lits_generalize_learned_trail_conflict N S'"
+      by (simp_all add: invars_def)
+    with step have
+      "trail_lits_from_clauses N S" and
+      "initial_lits_generalize_learned_trail_conflict N S"
+      unfolding scl_without_backtrack_def
+      by (auto simp add: scl_def intro: scl_preserves_trail_lits_from_clauses
+          scl_preserves_initial_lits_generalize_learned_trail_conflict)
 
-  have "trail_lits_from_init_clauses N S'"
-    using \<open>trail_lits_from_clauses N S'\<close> \<open>initial_lits_generalize_learned_trail_conflict N S'\<close>
-    by (simp add: trail_lits_from_init_clausesI)
+    have "trail_lits_from_init_clauses N S'"
+      using \<open>trail_lits_from_clauses N S'\<close> \<open>initial_lits_generalize_learned_trail_conflict N S'\<close>
+      by (simp add: trail_lits_from_init_clausesI)
 
-  have "trail_lits_from_init_clauses N S"
-    using \<open>trail_lits_from_clauses N S\<close> \<open>initial_lits_generalize_learned_trail_conflict N S\<close>
-    by (simp add: trail_lits_from_init_clausesI)
+    have "trail_lits_from_init_clauses N S"
+      using \<open>trail_lits_from_clauses N S\<close> \<open>initial_lits_generalize_learned_trail_conflict N S\<close>
+      by (simp add: trail_lits_from_init_clausesI)
 
-  let ?less = "lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y})"
+    let ?less = "lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y})"
 
-  from step show "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-    unfolding scl_without_backtrack_def sup_apply sup_bool_def
-  proof (elim disjE)
-    assume "decide N \<beta> S' S"
-    thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-    proof (cases N \<beta> S' S rule: decide.cases)
-      case (decideI L \<gamma> \<Gamma> U)
-      have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, None) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
-        unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
-      proof (rule minus_pfsubset_minusI)
-        show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
-          using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>[unfolded trail_defined_lit_def]
-          by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
-              fsubset_finsertI list.set_map nless_le)
-      next
-        have "L \<cdot>l \<gamma> \<in> {L. atm_of L \<prec>\<^sub>B \<beta>}"
-          using \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close>
-          by simp
-        moreover have "fst ` set \<Gamma> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
-          using \<open>trail_atoms_lt \<beta> S'\<close>
-          by (auto simp: trail_atoms_lt_def decideI(1))
-        ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
-          by simp
-        also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-          by blast
-        finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
-          Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-          using finite_lits_less_eq_B
-          by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
-      qed
-      then show ?thesis
-        unfolding decideI(1,2) trail_decide_def \<M>_def state_proj_simp option.case
-        unfolding lex_prodp_def prod.sel by simp
-    qed
-  next
-    assume "propagate N \<beta> S' S"
-    thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-    proof (cases N \<beta> S' S rule: propagate.cases)
-      case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
-
-      have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
-        unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
-      proof (rule subst_lit_renaming_subst_adapted)
-        show "is_renaming \<rho>"
-          using propagateI(3-) by simp
-      next
-        have "add_mset L C\<^sub>0 \<subseteq># C"
-          using propagateI(3-) by simp
-        hence "add_mset L C\<^sub>0 \<cdot> \<mu> \<subseteq># C \<cdot> \<mu>"
-          by (rule subst_cls_mono_mset) thm subst_cls_mono_mset[no_vars]
-        hence "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (C \<cdot> \<mu>)"
-          by (metis mset_subset_eq_exists_conv sup_ge1 vars_cls_plus_iff)
-        also have "\<dots> \<subseteq> vars_cls C"
-        proof (rule subset_trans[OF vars_subst_cls_subset_weak])
-          have "range_vars \<mu> \<subseteq> vars_cls (add_mset L C\<^sub>1)"
-            using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
-                THEN conjunct2]
-            by (auto simp add: vars_cls_def)
-          also have "\<dots> \<subseteq> vars_cls C"
-            apply (rule vars_cls_subset_vars_cls_if_subset_mset)
-            unfolding \<open>C = add_mset L C'\<close> \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+    from step show "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      unfolding scl_without_backtrack_def sup_apply sup_bool_def
+    proof (elim disjE)
+      assume "decide N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S rule: decide.cases)
+        case (decideI L \<gamma> \<Gamma> U)
+        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, None) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
+          unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
+        proof (rule minus_pfsubset_minusI)
+          show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
+            using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>[unfolded trail_defined_lit_def]
+            by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
+                fsubset_finsertI list.set_map nless_le)
+        next
+          have "L \<cdot>l \<gamma> \<in> {L. atm_of L \<prec>\<^sub>B \<beta>}"
+            using \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close>
             by simp
-          finally show "vars_cls C \<union> range_vars \<mu> \<subseteq> vars_cls C"
-            by simp
-        qed
-        also have "\<dots> \<subseteq> subst_domain \<gamma>"
-          by (rule vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>])
-
-        finally show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
-          unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
-          unfolding subst_domain_restrict_subst
-          by simp
-      qed
-      also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-        using propagateI(3-) by (simp add: subst_lit_restrict_subst_idem)
-      also have "\<dots> = L \<cdot>l \<gamma>"
-      proof -
-        have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
-          unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
-          by (auto simp: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
-        hence "\<mu> \<odot> \<gamma> = \<gamma>"
-          using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
-              THEN conjunct1, unfolded is_imgu_def, THEN conjunct2]
-          by simp
-        thus ?thesis
-          by (metis subst_lit_comp_subst)
-      qed
-      finally have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>"
-        by assumption
-
-      have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>, L \<cdot>l \<mu> \<cdot>l \<rho>, \<gamma>\<^sub>\<rho>')) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
-        unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
-      proof (rule minus_pfsubset_minusI)
-        show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
-          using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>[unfolded trail_defined_lit_def]
-          by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
-              fsubset_finsertI list.set_map nless_le)
-      next
-        have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
-        proof (intro Set.subsetI Set.CollectI)
-          fix K assume "K \<in> insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>)"
-          thus "atm_of K \<prec>\<^sub>B \<beta>"
+          moreover have "fst ` set \<Gamma> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
             using \<open>trail_atoms_lt \<beta> S'\<close>
-            by (metis image_eqI insert_iff propagateI(1,4,6) state_trail_simp subst_cls_add_mset
-                trail_atoms_lt_def union_single_eq_member)
-        qed
-        also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-          by blast
-        finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
+            by (auto simp: trail_atoms_lt_def decideI(1))
+          ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
+            by simp
+          also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
+            by blast
+          finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
           Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
-          using finite_lits_less_eq_B
-          by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
+            using finite_lits_less_eq_B
+            by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
+        qed
+        then show ?thesis
+          unfolding decideI(1,2) trail_decide_def \<M>_def state_proj_simp option.case
+          unfolding lex_prodp_def prod.sel by simp
       qed
-      thus ?thesis
-        unfolding propagateI(1,2) trail_propagate_def \<M>_def state_proj_simp option.case
-        unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>\<close>
-        unfolding lex_prodp_def prod.sel by simp
-    qed
-  next
-    assume "conflict N \<beta> S' S"
-    thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-    proof (cases N \<beta> S' S rule: conflict.cases)
-      case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
-      have "\<And>L. L |\<in>| fst |`| fset_of_list \<Gamma> \<Longrightarrow> atm_of L \<prec>\<^sub>B \<beta>"
-        using \<open>trail_atoms_lt \<beta> S'\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
-        by (metis (no_types, opaque_lifting) fimageE fset_of_list_elem)
-      hence "Pos \<beta> |\<notin>| fst |`| fset_of_list \<Gamma> \<and> Neg \<beta> |\<notin>| fst |`| fset_of_list \<Gamma>"
-        by (metis irreflpD irreflp_less_B literal.sel(1) literal.sel(2))
-      hence "finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-|
+    next
+      assume "propagate N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S rule: propagate.cases)
+        case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+
+        have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
+          unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+        proof (rule subst_lit_renaming_subst_adapted)
+          show "is_renaming \<rho>"
+            using propagateI(3-) by simp
+        next
+          have "add_mset L C\<^sub>0 \<subseteq># C"
+            using propagateI(3-) by simp
+          hence "add_mset L C\<^sub>0 \<cdot> \<mu> \<subseteq># C \<cdot> \<mu>"
+            by (rule subst_cls_mono_mset) thm subst_cls_mono_mset[no_vars]
+          hence "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (C \<cdot> \<mu>)"
+            by (metis mset_subset_eq_exists_conv sup_ge1 vars_cls_plus_iff)
+          also have "\<dots> \<subseteq> vars_cls C"
+          proof (rule subset_trans[OF vars_subst_cls_subset_weak])
+            have "range_vars \<mu> \<subseteq> vars_cls (add_mset L C\<^sub>1)"
+              using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
+                  THEN conjunct2]
+              by (auto simp add: vars_cls_def)
+            also have "\<dots> \<subseteq> vars_cls C"
+              apply (rule vars_cls_subset_vars_cls_if_subset_mset)
+              unfolding \<open>C = add_mset L C'\<close> \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+              by simp
+            finally show "vars_cls C \<union> range_vars \<mu> \<subseteq> vars_cls C"
+              by simp
+          qed
+          also have "\<dots> \<subseteq> subst_domain \<gamma>"
+            by (rule vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>])
+
+          finally show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
+            unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+            unfolding subst_domain_restrict_subst
+            by simp
+        qed
+        also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
+          using propagateI(3-) by (simp add: subst_lit_restrict_subst_idem)
+        also have "\<dots> = L \<cdot>l \<gamma>"
+        proof -
+          have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
+            unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+            by (auto simp: is_unifiers_def is_unifier_alt intro: subst_atm_of_eqI)
+          hence "\<mu> \<odot> \<gamma> = \<gamma>"
+            using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
+                THEN conjunct1, unfolded is_imgu_def, THEN conjunct2]
+            by simp
+          thus ?thesis
+            by (metis subst_lit_comp_subst)
+        qed
+        finally have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>"
+          by assumption
+
+        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>, L \<cdot>l \<mu> \<cdot>l \<rho>, \<gamma>\<^sub>\<rho>')) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
+          unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
+        proof (rule minus_pfsubset_minusI)
+          show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
+            using \<open>\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<gamma>)\<close>[unfolded trail_defined_lit_def]
+            by (metis (no_types, lifting) finsertCI fset_of_list_elem fset_of_list_map
+                fsubset_finsertI list.set_map nless_le)
+        next
+          have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
+          proof (intro Set.subsetI Set.CollectI)
+            fix K assume "K \<in> insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>)"
+            thus "atm_of K \<prec>\<^sub>B \<beta>"
+              using \<open>trail_atoms_lt \<beta> S'\<close>
+              by (metis image_eqI insert_iff propagateI(1,4,6) state_trail_simp subst_cls_add_mset
+                  trail_atoms_lt_def union_single_eq_member)
+          qed
+          also have "\<dots> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
+            by blast
+          finally show "finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>) |\<subseteq>|
+          Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
+            using finite_lits_less_eq_B
+            by (simp add: less_eq_fset.rep_eq fimage.rep_eq fset_of_list.rep_eq Abs_fset_inverse)
+        qed
+        thus ?thesis
+          unfolding propagateI(1,2) trail_propagate_def \<M>_def state_proj_simp option.case
+          unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>\<close>
+          unfolding lex_prodp_def prod.sel by simp
+      qed
+    next
+      assume "conflict N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S rule: conflict.cases)
+        case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+        have "\<And>L. L |\<in>| fst |`| fset_of_list \<Gamma> \<Longrightarrow> atm_of L \<prec>\<^sub>B \<beta>"
+          using \<open>trail_atoms_lt \<beta> S'\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
+          by (metis (no_types, opaque_lifting) fimageE fset_of_list_elem)
+        hence "Pos \<beta> |\<notin>| fst |`| fset_of_list \<Gamma> \<and> Neg \<beta> |\<notin>| fst |`| fset_of_list \<Gamma>"
+          by (metis irreflpD irreflp_less_B literal.sel(1) literal.sel(2))
+        hence "finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-|
         fst |`| fset_of_list \<Gamma> =
         finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>} - fst |`| fset_of_list \<Gamma>))"
-        by (simp add: finsert_fminus_if)
-      hence "{||} |\<subset>| finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-| fst |`| fset_of_list \<Gamma>"
-        by auto
-      also have "\<dots> = \<M>_prop_deci \<beta> \<Gamma>"
-        unfolding \<M>_prop_deci_def
-        unfolding lits_less_eq_B_conv
-        using finite_lits_less_B
-        by (simp add: finsert_Abs_fset)
-      finally show ?thesis
-        unfolding lex_prodp_def conflictI(1,2)
-        unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-        by simp
+          by (simp add: finsert_fminus_if)
+        hence "{||} |\<subset>| finsert (Pos \<beta>) (finsert (Neg \<beta>) (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})) |-| fst |`| fset_of_list \<Gamma>"
+          by auto
+        also have "\<dots> = \<M>_prop_deci \<beta> \<Gamma>"
+          unfolding \<M>_prop_deci_def
+          unfolding lits_less_eq_B_conv
+          using finite_lits_less_B
+          by (simp add: finsert_Abs_fset)
+        finally show ?thesis
+          unfolding lex_prodp_def conflictI(1,2)
+          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
+          by simp
+      qed
+    next
+      show "skip N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+    next
+      show "factorize N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+    next
+      show "resolve N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
     qed
   next
-    show "skip N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
-  next
-    show "factorize N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
-  next
-    show "resolve N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+    show "wfP (lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y}))"
+      by (rule wfP_lex_prodp) (simp_all add: wfP_pfsubset wfP_wf_eq wf_less wf_lenlex)
   qed
-next
-  show "wfP (lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y}))"
-    by (rule wfP_lex_prodp) (simp_all add: wfP_pfsubset wfP_wf_eq wf_less wf_lenlex)
 qed
 
 

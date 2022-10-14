@@ -2362,8 +2362,7 @@ definition conflict_disjoint_vars where
   "conflict_disjoint_vars N S \<longleftrightarrow> (\<forall>C \<gamma>. state_conflict S = Some (C, \<gamma>) \<longrightarrow>
     vars_cls C \<inter> vars_clss (fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S))) = {})"
 
-lemma conflict_disjoint_vars_initial_state:
-  "conflict_disjoint_vars N initial_state"
+lemma conflict_disjoint_vars_initial_state[simp]: "conflict_disjoint_vars N initial_state"
   by (simp add: conflict_disjoint_vars_def)
 
 lemma propagate_preserves_conflict_disjoint_vars:
@@ -2568,7 +2567,7 @@ definition initial_lits_generalize_learned_trail_conflict where
     (fset (state_learned S |\<union>| clss_of_trail (state_trail S) |\<union>|
       (case state_conflict S of None \<Rightarrow> {||} | Some (C, _) \<Rightarrow> {|C|})))"
 
-lemma initial_lits_generalize_learned_trail_conflict_initial_state:
+lemma initial_lits_generalize_learned_trail_conflict_initial_state[simp]:
   "initial_lits_generalize_learned_trail_conflict N initial_state"
   unfolding initial_lits_generalize_learned_trail_conflict_def by simp
 
@@ -2785,8 +2784,7 @@ definition trail_lits_from_clauses where
     (\<forall>L \<in> fst ` set (state_trail S).
       \<exists>L' \<in> \<Union>(set_mset ` (fset N \<union> fset (state_learned S))). generalizes_lit L' L)"
 
-lemma trail_lits_from_clauses_initial_state:
-  "trail_lits_from_clauses N initial_state"
+lemma trail_lits_from_clauses_initial_state[simp]: "trail_lits_from_clauses N initial_state"
   by (simp add: trail_lits_from_clauses_def)
 
 lemma propagate_preserves_trail_lits_from_clauses:
@@ -2941,8 +2939,7 @@ subsection \<open>Trail Literals Are Ground\<close>
 definition trail_lits_ground where
   "trail_lits_ground S \<longleftrightarrow> (\<forall>L \<in> fst ` set (state_trail S). is_ground_lit L)"
 
-lemma trail_lits_ground_initial_state:
-  "trail_lits_ground initial_state"
+lemma trail_lits_ground_initial_state[simp]: "trail_lits_ground initial_state"
   by (simp add: trail_lits_ground_def)
 
 lemma propagate_preserves_trail_lits_ground:
@@ -3057,7 +3054,7 @@ subsection \<open>Trail Literals Are Defined Only Once\<close>
 definition trail_lits_consistent where
   "trail_lits_consistent S \<longleftrightarrow> trail_consistent (state_trail S)"
 
-lemma trail_lits_consistent_initial_state: "trail_lits_consistent initial_state"
+lemma trail_lits_consistent_initial_state[simp]: "trail_lits_consistent initial_state"
   by (simp add: trail_lits_consistent_def)
 
 lemma propagate_preserves_trail_lits_consistent:
@@ -3272,7 +3269,8 @@ next
   qed
 qed
 
-lemma trail_propagated_or_decided_initial_state: "trail_propagated_or_decided' N \<beta> initial_state"
+lemma trail_propagated_or_decided_initial_state[simp]:
+  "trail_propagated_or_decided' N \<beta> initial_state"
   by (auto intro: trail_propagated_or_decided.Nil)
 
 lemma propagate_preserves_trail_propagated_or_decided:
@@ -3393,7 +3391,7 @@ subsection \<open>Trail Atoms Are Less Than \<beta>\<close>
 definition trail_atoms_lt where
   "trail_atoms_lt \<beta> S \<longleftrightarrow> (\<forall>atm \<in> atm_of ` fst ` set (state_trail S). atm \<prec>\<^sub>B \<beta>)"
 
-lemma ball_trail_lt_initial_state: "trail_atoms_lt \<beta> initial_state"
+lemma ball_trail_lt_initial_state[simp]: "trail_atoms_lt \<beta> initial_state"
   by (simp add: trail_atoms_lt_def)
 
 lemma propagate_preserves_trail_atoms_lt:
@@ -3517,7 +3515,7 @@ subsection \<open>Learned Clauses Are Non-empty\<close>
 definition learned_nonempty where
   "learned_nonempty S \<longleftrightarrow> {#} |\<notin>| state_learned S"
 
-lemma learned_nonempty_initial_state: "learned_nonempty initial_state"
+lemma learned_nonempty_initial_state[simp]: "learned_nonempty initial_state"
   by (simp add: learned_nonempty_def)
 
 lemma propagate_preserves_learned_nonempty:
