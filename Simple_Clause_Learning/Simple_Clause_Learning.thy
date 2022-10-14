@@ -236,6 +236,18 @@ lemma true_clss_if_set_mset_eq: "(\<forall>D \<in> \<D>. \<exists>C \<in> \<C>. 
 lemma entails_clss_insert: "N \<TTurnstile>e insert C U \<longleftrightarrow> N \<TTurnstile>e {C} \<and> N \<TTurnstile>e U"
   by auto
 
+lemma Collect_lits_from_atms_conv: "{L. P (atm_of L)} = (\<Union>x \<in> {x. P x}. {Pos x, Neg x})"
+  (is "?lhs = ?rhs")
+proof (rule Set.equalityI; rule Set.subsetI)
+  fix L
+  show "L \<in> ?lhs \<Longrightarrow> L \<in> ?rhs"
+    by (cases L) simp_all
+next
+  fix L
+  show "L \<in> ?rhs \<Longrightarrow> L \<in> ?lhs"
+    by auto
+qed
+
 
 subsubsection \<open>Clausal_Calculus and Abstract_Substitution\<close>
 
@@ -2095,6 +2107,35 @@ locale scl = renaming_apart renaming_vars inv_renaming_vars
     asymp_less_B: "asymp (\<prec>\<^sub>B)" and
     finite_less_B: "\<And>\<beta>. finite {x. x \<prec>\<^sub>B \<beta>}"
 begin
+
+
+subsection \<open>Lemmas About @{term less_B}\<close>
+
+lemma lits_less_B_conv: "{L. atm_of L \<prec>\<^sub>B \<beta>} = (\<Union>x\<in>{x. x \<prec>\<^sub>B \<beta>}. {Pos x, Neg x})"
+  by (rule Collect_lits_from_atms_conv)
+
+lemma lits_eq_conv: "{L. atm_of L = \<beta>} = {Pos \<beta>, Neg \<beta>}"
+  by (rule Collect_lits_from_atms_conv[of "\<lambda>x. x = \<beta>", simplified])
+
+lemma lits_less_eq_B_conv:
+  "{L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} = insert (Pos \<beta>) (insert (Neg \<beta>) {L. atm_of L \<prec>\<^sub>B \<beta>})"
+  unfolding Collect_disj_eq lits_eq_conv by simp
+
+lemma finite_lits_less_B: "finite {L. atm_of L \<prec>\<^sub>B \<beta>}"
+  unfolding lits_less_B_conv
+proof (rule finite_UN_I)
+  show "finite {x. x \<prec>\<^sub>B \<beta>}"
+    by (rule finite_less_B)
+next
+  show "\<And>x. x \<in> {x. x \<prec>\<^sub>B \<beta>} \<Longrightarrow> finite {Pos x, Neg x}"
+    by simp
+qed
+
+lemma finite_lits_less_eq_B: "finite {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
+  using finite_lits_less_B by (simp add: lits_less_eq_B_conv)
+
+
+subsection \<open>Rules\<close>
 
 inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
