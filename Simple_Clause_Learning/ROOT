@@ -10,3 +10,4 @@ session Simple_Clause_Learning = First_Order_Terms +
     Initial_Literals_Generalize_Learned_Literals
     Non_Redundancy
     Simple_Clause_Learning
+    Termination
