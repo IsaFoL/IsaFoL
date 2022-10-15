@@ -7,6 +7,20 @@ begin
 section \<open>Extra Lemmas\<close>
 
 
+subsection \<open>Set_Extra\<close>
+
+lemma minus_psubset_minusI:
+  assumes "C \<subset> B" and "B \<subseteq> A"
+  shows "(A - B \<subset> A - C)"
+proof (rule Set.psubsetI)
+  show "A - B \<subseteq> A - C"
+    using assms(1) by blast
+next
+  show "A - B \<noteq> A - C"
+    using assms by blast
+qed
+
+
 subsection \<open>Prod_Extra\<close>
 
 definition lex_prodp where
@@ -173,32 +187,24 @@ subsection \<open>FSet_Extra\<close>
 lemma finsert_Abs_fset: "finite A \<Longrightarrow> finsert a (Abs_fset A) = Abs_fset (insert a A)"
   by (simp add: eq_onp_same_args finsert.abs_eq)
 
+lemma minus_pfsubset_minusI:
+  assumes "C |\<subset>| B" and "B |\<subseteq>| A"
+  shows "(A |-| B |\<subset>| A |-| C)"
+proof (rule FSet.pfsubsetI)
+  show "A |-| B |\<subseteq>| A |-| C"
+    using assms(1) by blast
+next
+  show "A |-| B \<noteq> A |-| C"
+    using assms by blast
+qed
+
 
 section \<open>Termination\<close>
 
 context scl begin
 
-definition ground_lits_of_lit where
-  "ground_lits_of_lit L = {L \<cdot>l \<gamma> | \<gamma> . is_ground_lit (L \<cdot>l \<gamma>)}"
-
-(* fun \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal set" where
-  "\<M> N \<beta> (\<Gamma>, U, D) =
-    {L \<in> \<Union>(ground_lits_of_lit ` \<Union>(set_mset ` fset N)). atm_of L \<prec>\<^sub>B \<beta>} - fst ` set \<Gamma>" *)
-
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
   "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
-
-(* primrec \<M>_skip_fact_reso where
-  "\<M>_skip_fact_reso [] C = []" |
-  "\<M>_skip_fact_reso (Lc # \<Gamma>) C = count C (fst Lc) # \<M>_skip_fact_reso \<Gamma> C" *)
-
-(*
-fun \<M>_skip_fact_reso where
-  "\<M>_skip_fact_reso [] C = []" |
-  "\<M>_skip_fact_reso ((L, None) # \<Gamma>) C = 0 # \<M>_skip_fact_reso \<Gamma> C" |
-  "\<M>_skip_fact_reso ((L\<^sub>\<gamma>, Some (D, L, \<gamma>)) # \<Gamma>) C =
-    count C L\<^sub>\<gamma> # \<M>_skip_fact_reso \<Gamma> (C + repeat_mset (count C L\<^sub>\<gamma>) (D \<cdot> \<gamma>))"
-*)
 
 primrec \<M>_skip_fact_reso where
   "\<M>_skip_fact_reso [] C = []" |
@@ -239,39 +245,11 @@ next
   qed
 qed
 
-find_consts "nat \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset"
-
 definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
   "\<M> N \<beta> S =
     (case state_conflict S of
       None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [], 0)
     | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
-
-term "lex_prodp (|\<subset>|) (List.lexordp (<))"
-term "List.lexordp (<)"
-find_consts "nat \<Rightarrow> nat \<Rightarrow> bool"
-
-lemma minus_psubset_minusI:
-  assumes "C \<subset> B" and "B \<subseteq> A"
-  shows "(A - B \<subset> A - C)"
-proof (rule Set.psubsetI)
-  show "A - B \<subseteq> A - C"
-    using assms(1) by blast
-next
-  show "A - B \<noteq> A - C"
-    using assms by blast
-qed
-
-lemma minus_pfsubset_minusI:
-  assumes "C |\<subset>| B" and "B |\<subseteq>| A"
-  shows "(A |-| B |\<subset>| A |-| C)"
-proof (rule FSet.pfsubsetI)
-  show "A |-| B |\<subseteq>| A |-| C"
-    using assms(1) by blast
-next
-  show "A |-| B \<noteq> A |-| C"
-    using assms by blast
-qed
 
 lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
   by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
@@ -284,7 +262,8 @@ lemma
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
       conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
-  shows "wfP (scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse>" and
+  shows
+    "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)" and
     "invars initial_state" and
     "\<And>S S'. scl_without_backtrack S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
 proof -
@@ -306,10 +285,10 @@ next
         scl_preserves_conflict_disjoint_vars
         scl_preserves_minimal_ground_closures)
 next
-  show "wfP (scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse>"
+  show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
   proof (rule wfP_if_convertible_to_wfP)
-    fix S S' :: "('f, 'v) state"
-    assume "(scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse> S' S"
+    fix S' S :: "('f, 'v) state"
+    assume "scl_without_backtrack S S' \<and> invars S"
     hence step: "scl_without_backtrack S S'" and invars: "invars S"
       by simp_all
 
