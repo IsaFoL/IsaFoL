@@ -188,9 +188,29 @@ definition ground_lits_of_lit where
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
   "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
 
+(* primrec \<M>_skip_fact_reso where
+  "\<M>_skip_fact_reso [] C = []" |
+  "\<M>_skip_fact_reso (Lc # \<Gamma>) C = count C (fst Lc) # \<M>_skip_fact_reso \<Gamma> C" *)
+
+(*
+fun \<M>_skip_fact_reso where
+  "\<M>_skip_fact_reso [] C = []" |
+  "\<M>_skip_fact_reso ((L, None) # \<Gamma>) C = 0 # \<M>_skip_fact_reso \<Gamma> C" |
+  "\<M>_skip_fact_reso ((L\<^sub>\<gamma>, Some (D, L, \<gamma>)) # \<Gamma>) C =
+    count C L\<^sub>\<gamma> # \<M>_skip_fact_reso \<Gamma> (C + repeat_mset (count C L\<^sub>\<gamma>) (D \<cdot> \<gamma>))"
+*)
+
 primrec \<M>_skip_fact_reso where
   "\<M>_skip_fact_reso [] C = []" |
-  "\<M>_skip_fact_reso (Lc # \<Gamma>) C = count C (fst Lc) # \<M>_skip_fact_reso \<Gamma> C"
+  "\<M>_skip_fact_reso (Ln # \<Gamma>) C =
+    (let n = count C (- (fst Ln)) in
+    (case snd Ln of None \<Rightarrow> 0 | Some _ \<Rightarrow> n) #
+      \<M>_skip_fact_reso \<Gamma> (C + (case snd Ln of None \<Rightarrow> {#} | Some (D, _, \<gamma>) \<Rightarrow> repeat_mset n (D \<cdot> \<gamma>))))"
+
+lemma length_\<M>_skip_fact_reso[simp]: "length (\<M>_skip_fact_reso \<Gamma> C) = length \<Gamma>"
+  by (induction \<Gamma> arbitrary: C) (simp_all add: Let_def)
+
+find_consts "nat \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset"
 
 definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset \<times> nat list" where
   "\<M> N \<beta> S =
@@ -232,8 +252,9 @@ lemma
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
       factorize N \<beta> \<squnion> resolve N \<beta>" and
-    "invars \<equiv> \<lambda>S _. trail_atoms_lt \<beta> S \<and> trail_lits_ground S \<and> trail_lits_from_clauses N S \<and>
-      initial_lits_generalize_learned_trail_conflict N S"
+    "invars \<equiv> \<lambda>S _. trail_atoms_lt \<beta> S \<and> trail_resolved_lits_pol S \<and> trail_lits_ground S \<and>
+      trail_lits_from_clauses N S \<and> initial_lits_generalize_learned_trail_conflict N S \<and>
+      conflict_disjoint_vars N S \<and> minimal_ground_closures S"
   shows "invars initial_state S'" and "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
 proof -
   show "invars initial_state S'"
@@ -248,9 +269,12 @@ next
 
     from invars have
       "trail_atoms_lt \<beta> S'" and
+      "trail_resolved_lits_pol S'" and
       "trail_lits_ground S'" and
       "trail_lits_from_clauses N S'" and
-      "initial_lits_generalize_learned_trail_conflict N S'"
+      "initial_lits_generalize_learned_trail_conflict N S'" and
+      "conflict_disjoint_vars N S'" and
+      "minimal_ground_closures S'"
       by (simp_all add: invars_def)
     with step have
       "trail_lits_from_clauses N S" and
@@ -420,7 +444,7 @@ next
         case (skipI L D \<sigma> n \<Gamma> U)
         have "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma>), \<M>_skip_fact_reso ((L, n) # \<Gamma>) (D \<cdot> \<sigma>)) \<in>
           lenlex {(x, y). x < y}"
-          by (simp add: lenlex_conv)
+          by (simp add: lenlex_conv Let_def)
         thus ?thesis
           unfolding lex_prodp_def skipI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
@@ -429,7 +453,90 @@ next
     next
       show "factorize N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
     next
-      show "resolve N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+      assume "resolve N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S)
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+        hence ren_\<rho>: "is_renaming \<rho>"
+          using finite_fset is_renaming_renaming_wrt by blast
+
+        from \<open>minimal_ground_closures S'\<close> have
+          ground_conflict: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
+          ground_resolvant: "is_ground_cls (add_mset L C \<cdot> \<delta>)" and
+          dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
+          dom_\<delta>: "subst_domain \<delta> \<subseteq> vars_cls (add_mset L C)"
+          unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
+          by (simp_all add: minimal_ground_closures_def trail_propagate_def)
+
+        have vars_conflict_disj_vars_resolvant:
+          "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset L C) = {}"
+          using \<open>conflict_disjoint_vars N S'\<close>
+          unfolding resolveI(1,2)
+          by (auto simp add: \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def conflict_disjoint_vars_def)
+
+        from \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close> have "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
+          by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
+        hence "atm_of L \<cdot>a \<sigma> \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma> \<cdot>a \<delta>"
+        proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI)
+          show "vars_lit L \<inter> subst_domain \<sigma> = {}"
+            using dom_\<sigma> vars_conflict_disj_vars_resolvant by auto
+        next
+          show "vars_lit L' \<inter> subst_domain \<delta> = {}"
+            using dom_\<delta> vars_conflict_disj_vars_resolvant by auto
+        next
+          have "range_vars \<sigma> = {}"
+            unfolding range_vars_def UNION_empty_conv subst_range.simps
+            using dom_\<sigma> ground_conflict is_ground_cls_is_ground_on_var is_ground_atm_iff_vars_empty
+            by fast
+          thus "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
+            by simp
+        qed
+        hence is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
+          by (simp add: is_unifiers_def is_unifier_def subst_atms_def)
+        hence "\<mu> \<odot> \<sigma> \<odot> \<delta> = \<sigma> \<odot> \<delta>"
+          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
+          by (auto simp: is_mimgu_def is_imgu_def)
+        hence "(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>"
+          by (metis subst_cls_comp_subst)
+
+        have "D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>"
+          using ground_conflict by (simp add: is_ground_cls_add_mset)
+
+        hence "subst_domain \<sigma> \<inter> vars_cls C = {}"
+          using dom_\<sigma> vars_conflict_disj_vars_resolvant by auto
+        hence "C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>"
+          by (simp add: subst_cls_idem_if_disj_vars)
+
+        have "- (L \<cdot>l \<delta>) \<notin># C \<cdot> \<delta>"
+          using \<open>trail_resolved_lits_pol S'\<close>
+          unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
+          by (simp add: trail_resolved_lits_pol_def trail_propagate_def)
+
+        have "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + C \<cdot> \<delta>), \<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + {#L'#} \<cdot> \<sigma>)) \<in>
+          lex {(x, y). x < y}"
+          unfolding \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def
+          unfolding \<M>_skip_fact_reso.simps Let_def prod.sel option.case prod.case
+          unfolding lex_conv mem_Collect_eq prod.case
+          apply (rule conjI)
+           apply simp
+          apply (rule exI[of _ "[]"])
+          apply simp
+          using \<open>L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)\<close>[unfolded uminus_lit_swap, symmetric]
+          apply simp
+          unfolding count_eq_zero_iff
+          by (rule \<open>- (L \<cdot>l \<delta>) \<notin># C \<cdot> \<delta>\<close>)
+        hence "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + C \<cdot> \<delta>), \<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma> + {#L'#} \<cdot> \<sigma>)) \<in>
+          lenlex {(x, y). x < y}"
+          unfolding lenlex_conv by simp
+        thus ?thesis
+          unfolding lex_prodp_def resolveI(1,2)
+          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
+          unfolding subst_cls_restrict_subst_idem[OF subset_refl] subst_cls_comp_subst
+            subst_cls_renaming_inv_renaming_idem[OF ren_\<rho>]
+          unfolding \<open>(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>\<close>
+          unfolding subst_cls_union \<open>D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close> \<open>C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>
+          by simp
+      qed
     qed
   next
     show "wfP (lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y}))"
