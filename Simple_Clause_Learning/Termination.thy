@@ -198,6 +198,9 @@ next
     using assms by blast
 qed
 
+lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
+  by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
+
 
 section \<open>Termination\<close>
 
@@ -250,9 +253,6 @@ definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow>
     (case state_conflict S of
       None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [], 0)
     | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
-
-lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
-  by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
 
 theorem scl_without_backtrack_terminates:
   fixes N \<beta>
