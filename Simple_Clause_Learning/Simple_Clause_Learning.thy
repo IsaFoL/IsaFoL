@@ -980,7 +980,6 @@ next
         subsumeseq_term.simps)
 qed
 
-
 lemma vars_subst_lit_eq:
   "vars_lit (L \<cdot>l \<sigma>) = vars_lit L - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_lit L. vars_term (\<sigma> x))"
   using vars_subst_term_eq by (metis atm_of_subst_lit)
@@ -1041,6 +1040,9 @@ lemma vars_cls_plus[simp]: "vars_cls (C + D) = vars_cls C \<union> vars_cls D"
 
 lemma vars_cls_add_mset[simp]: "vars_cls (add_mset L C) = vars_lit L \<union> vars_cls C"
   by (simp add: vars_cls_def)
+
+lemma UN_vars_term_atm_of_cls[simp]: "(\<Union>T\<in>{atm_of ` set_mset C}. \<Union> (vars_term ` T)) = vars_cls C"
+  by (induction C) simp_all
 
 lemma vars_lit_subst_subset_vars_cls_substI[intro]:
   "vars_lit L \<subseteq> vars_cls C \<Longrightarrow> vars_lit (L \<cdot>l \<sigma>) \<subseteq> vars_cls (C \<cdot> \<sigma>)"
@@ -3509,6 +3511,136 @@ lemma scl_preserves_trail_atoms_lt:
     backtrack_preserves_trail_atoms_lt
   by metis
 
+
+subsection \<open>Trail Resolved Literals Have Unique Polarity\<close>
+
+definition trail_resolved_lits_pol where
+  "trail_resolved_lits_pol S \<longleftrightarrow> (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> -(L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>)"
+
+lemma trail_resolved_lits_pol_initial_state[simp]: "trail_resolved_lits_pol initial_state"
+  by (simp add: trail_resolved_lits_pol_def)
+
+lemma propagate_preserves_trail_resolved_lits_pol:
+  assumes step: "propagate N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using step
+proof (cases N \<beta> S S' rule: propagate.cases)
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+
+  have C_def: "C = add_mset L (C\<^sub>0 + C\<^sub>1)"
+    using \<open>C = add_mset L C'\<close> \<open>C\<^sub>0 = {#K \<in># C'. K \<cdot>l \<gamma> \<noteq> L \<cdot>l \<gamma>#}\<close> \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+    by auto
+
+  have "is_unifier \<gamma> (atm_of ` set_mset (add_mset L C\<^sub>1))"
+    unfolding is_unifier_alt[OF finite_imageI[OF finite_set_mset]]
+    unfolding \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
+    by (auto intro: subst_atm_of_eqI)
+  hence "\<mu> \<odot> \<gamma> = \<gamma>"
+    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>
+    by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+
+  have "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (add_mset L C\<^sub>0) \<union> range_vars \<mu>"
+      by (rule vars_subst_cls_subset_weak)
+  also have "\<dots> \<subseteq> vars_cls (add_mset L C\<^sub>0) \<union> vars_cls (add_mset L C\<^sub>1)"
+    using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def
+        UN_vars_term_atm_of_cls, THEN conjunct2]
+    by auto
+  also have "\<dots> = vars_cls C"
+    by (auto simp: C_def)
+  also have "\<dots> \<subseteq> subst_domain \<gamma>"
+    using \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>
+    by (rule vars_cls_subset_subst_domain_if_grounding)
+  finally have "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'"
+    using \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+    by (simp add: subst_domain_restrict_subst)
+
+  have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
+    unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+    using \<open>is_renaming \<rho>\<close> \<open>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'\<close>
+    by (simp add: subst_lit_renaming_subst_adapted)
+  also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
+    unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+    by (rule subst_lit_restrict_subst_idem) simp
+  also have "\<dots> = L \<cdot>l \<gamma>"
+    using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
+    by (metis subst_lit_comp_subst)
+  finally have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>"
+    by assumption
+
+  have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>'"
+    unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+    using \<open>is_renaming \<rho>\<close> \<open>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> subst_domain \<gamma>'\<close>
+    by (simp add: subst_renaming_subst_adapted)
+  also have "\<dots> = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>"
+    unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+    by (rule subst_cls_restrict_subst_idem) simp
+  also have "\<dots> = C\<^sub>0 \<cdot> \<gamma>"
+    using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
+    by (metis subst_cls_comp_subst)
+  finally have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<gamma>"
+    by assumption
+
+  from invar have "\<forall>Ln \<in> set \<Gamma>. \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> - (L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>"
+    unfolding propagateI(1,2) trail_resolved_lits_pol_def
+    by simp
+
+  moreover have "- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') \<notin># C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>'"
+    unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>\<close> \<open>C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<gamma>\<close>
+    using propagateI(3-)
+    by (meson trail_defined_lit_iff_defined_uminus trail_defined_lit_iff_true_or_false
+        trail_false_cls_def)
+  
+  ultimately show ?thesis
+    unfolding propagateI(1,2)
+    unfolding trail_resolved_lits_pol_def trail_propagate_def state_proj_simp list.set
+    by fastforce
+qed
+
+lemma decide_preserves_trail_resolved_lits_pol:
+  assumes step: "decide N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def trail_decide_def elim: decide.cases)
+
+lemma conflict_preserves_trail_resolved_lits_pol:
+  assumes step: "conflict N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def elim: conflict.cases)
+
+lemma skip_preserves_trail_resolved_lits_pol:
+  assumes step: "skip N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def elim: skip.cases)
+
+lemma factorize_preserves_trail_resolved_lits_pol:
+  assumes step: "factorize N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def elim: factorize.cases)
+
+lemma resolve_preserves_trail_resolved_lits_pol:
+  assumes step: "resolve N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def elim: resolve.cases)
+
+lemma backtrack_preserves_trail_resolved_lits_pol:
+  assumes step: "backtrack N \<beta> S S'" and invar: "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms
+  by (auto simp: trail_resolved_lits_pol_def trail_decide_def ball_Un elim: backtrack.cases)
+
+lemma scl_preserves_trail_resolved_lits_pol:
+  assumes "scl N \<beta> S S'" and "trail_resolved_lits_pol S"
+  shows "trail_resolved_lits_pol S'"
+  using assms unfolding scl_def
+  using propagate_preserves_trail_resolved_lits_pol decide_preserves_trail_resolved_lits_pol
+    conflict_preserves_trail_resolved_lits_pol skip_preserves_trail_resolved_lits_pol
+    factorize_preserves_trail_resolved_lits_pol resolve_preserves_trail_resolved_lits_pol
+    backtrack_preserves_trail_resolved_lits_pol
+  by metis
 
 subsection \<open>Learned Clauses Are Non-empty\<close>
 
