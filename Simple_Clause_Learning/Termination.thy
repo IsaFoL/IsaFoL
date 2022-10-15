@@ -254,7 +254,7 @@ definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow>
 lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
   by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
 
-lemma
+theorem scl_without_backtrack_terminates:
   fixes N \<beta>
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
