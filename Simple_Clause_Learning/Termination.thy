@@ -210,13 +210,42 @@ primrec \<M>_skip_fact_reso where
 lemma length_\<M>_skip_fact_reso[simp]: "length (\<M>_skip_fact_reso \<Gamma> C) = length \<Gamma>"
   by (induction \<Gamma> arbitrary: C) (simp_all add: Let_def)
 
+lemma \<M>_skip_fact_reso_add_mset:
+  "(\<M>_skip_fact_reso \<Gamma> C, \<M>_skip_fact_reso \<Gamma> (add_mset L C)) \<in> (List.lenlex {(x, y). x < y})\<^sup>="
+proof (induction \<Gamma> arbitrary: C)
+  case Nil
+  show ?case by simp
+next
+  case (Cons Ln \<Gamma>)
+  show ?case
+  proof (cases "snd Ln")
+    case None
+    then show ?thesis
+      using Cons.IH[of C]
+      by (simp add: Cons_lenlex_iff)
+  next
+    case (Some cl)
+    show ?thesis
+    proof (cases "L = - fst Ln")
+      case True
+      then show ?thesis
+        by (simp add: Let_def Some Cons_lenlex_iff)
+    next
+      case False
+      then show ?thesis
+        using Cons.IH
+        by (auto simp add: Let_def Some Cons_lenlex_iff)
+    qed
+  qed
+qed
+
 find_consts "nat \<Rightarrow> 'a multiset \<Rightarrow> 'a multiset"
 
-definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset \<times> nat list" where
+definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset \<times> nat list \<times> nat" where
   "\<M> N \<beta> S =
     (case state_conflict S of
-      None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [])
-    | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>)))"
+      None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [], 0)
+    | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
 
 term "lex_prodp (|\<subset>|) (List.lexordp (<))"
 term "List.lexordp (<)"
@@ -255,10 +284,27 @@ lemma
     "invars \<equiv> \<lambda>S _. trail_atoms_lt \<beta> S \<and> trail_resolved_lits_pol S \<and> trail_lits_ground S \<and>
       trail_lits_from_clauses N S \<and> initial_lits_generalize_learned_trail_conflict N S \<and>
       conflict_disjoint_vars N S \<and> minimal_ground_closures S"
-  shows "invars initial_state S'" and "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
+  shows "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>" and
+    "invars initial_state S'" and
+    "\<And>S S'. scl_without_backtrack S S' \<Longrightarrow> invars S S' \<Longrightarrow> invars S' S"
 proof -
   show "invars initial_state S'"
     by (simp add: invars_def)
+next
+  fix S S'
+  assume "scl_without_backtrack S S'"
+  hence "scl N \<beta> S S'"
+    unfolding scl_without_backtrack_def sup_apply sup_bool_def
+    by (auto simp add: scl_def)
+  thus "invars S S' \<Longrightarrow> invars S' S"
+    unfolding invars_def
+    by (auto intro: scl_preserves_trail_atoms_lt
+        scl_preserves_trail_resolved_lits_pol
+        scl_preserves_trail_lits_ground
+        scl_preserves_trail_lits_from_clauses
+        scl_preserves_initial_lits_generalize_learned_trail_conflict
+        scl_preserves_conflict_disjoint_vars
+        scl_preserves_minimal_ground_closures)
 next
   show "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
   proof (rule wfP_if_convertible_to_wfP)
@@ -291,7 +337,7 @@ next
       using \<open>trail_lits_from_clauses N S\<close> \<open>initial_lits_generalize_learned_trail_conflict N S\<close>
       by (simp add: trail_lits_from_init_clausesI)
 
-    let ?less = "lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y})"
+    let ?less = "lex_prodp (|\<subset>|) (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y}) (<))"
 
     from step show "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
       unfolding scl_without_backtrack_def sup_apply sup_bool_def
@@ -451,7 +497,34 @@ next
           by simp
       qed
     next
-      show "factorize N \<beta> S' S \<Longrightarrow> ?less (\<M> N \<beta> S) (\<M> N \<beta> S')" sorry
+      assume "factorize N \<beta> S' S"
+      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+      proof (cases N \<beta> S' S)
+        case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+
+        have "is_unifier \<sigma> {atm_of L, atm_of L'}"
+          using \<open>L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>\<close>[THEN subst_atm_of_eqI]
+          by (simp add: is_unifier_alt)
+        hence "\<mu> \<odot> \<sigma> = \<sigma>"
+          using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
+          by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
+
+        have "add_mset L D \<cdot> \<mu> \<cdot> \<sigma>' = add_mset L D \<cdot> \<mu> \<cdot> \<sigma>"
+          unfolding factorizeI
+          by (rule subst_cls_restrict_subst_idem) simp
+        also have "\<dots> = add_mset L D \<cdot> \<sigma>"
+          using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
+          by (metis subst_cls_comp_subst)
+        finally have "(\<M>_skip_fact_reso \<Gamma> (add_mset L D \<cdot> \<mu> \<cdot> \<sigma>'),
+          \<M>_skip_fact_reso \<Gamma> (add_mset L' (add_mset L D) \<cdot> \<sigma>)) \<in> (lenlex {(x, y). x < y})\<^sup>="
+          using \<M>_skip_fact_reso_add_mset
+          by (metis subst_cls_add_mset)
+        thus ?thesis
+          unfolding lex_prodp_def factorizeI(1,2)
+          unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
+          unfolding add_mset_commute[of L' L]
+          by simp
+      qed
     next
       assume "resolve N \<beta> S' S"
       thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
@@ -539,10 +612,22 @@ next
       qed
     qed
   next
-    show "wfP (lex_prodp (|\<subset>|) (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y}))"
-      by (rule wfP_lex_prodp) (simp_all add: wfP_pfsubset wfP_wf_eq wf_less wf_lenlex)
+    show "wfP (lex_prodp (|\<subset>|)
+      (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x :: nat, y :: nat). x < y})
+        ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)))"
+    proof (intro wfP_lex_prodp)
+      show "wfP (|\<subset>|)"
+        by (rule wfP_pfsubset)
+    next
+      show "wfP (\<lambda>x y. (x, y) \<in> lenlex {(x :: _ :: wellorder, y). x < y})"
+        unfolding wfP_wf_eq
+        using wf_lenlex
+        using wf by blast
+    next
+      show "wfP ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
+        by simp
+    qed
   qed
 qed
-
 
 end
