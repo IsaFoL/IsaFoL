@@ -281,14 +281,14 @@ lemma
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
       factorize N \<beta> \<squnion> resolve N \<beta>" and
-    "invars \<equiv> \<lambda>S _. trail_atoms_lt \<beta> S \<and> trail_resolved_lits_pol S \<and> trail_lits_ground S \<and>
-      trail_lits_from_clauses N S \<and> initial_lits_generalize_learned_trail_conflict N S \<and>
-      conflict_disjoint_vars N S \<and> minimal_ground_closures S"
-  shows "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>" and
-    "invars initial_state S'" and
-    "\<And>S S'. scl_without_backtrack S S' \<Longrightarrow> invars S S' \<Longrightarrow> invars S' S"
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
+  shows "wfP (scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse>" and
+    "invars initial_state" and
+    "\<And>S S'. scl_without_backtrack S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
 proof -
-  show "invars initial_state S'"
+  show "invars initial_state"
     by (simp add: invars_def)
 next
   fix S S'
@@ -296,7 +296,7 @@ next
   hence "scl N \<beta> S S'"
     unfolding scl_without_backtrack_def sup_apply sup_bool_def
     by (auto simp add: scl_def)
-  thus "invars S S' \<Longrightarrow> invars S' S"
+  thus "invars S \<Longrightarrow> invars S'"
     unfolding invars_def
     by (auto intro: scl_preserves_trail_atoms_lt
         scl_preserves_trail_resolved_lits_pol
@@ -306,45 +306,45 @@ next
         scl_preserves_conflict_disjoint_vars
         scl_preserves_minimal_ground_closures)
 next
-  show "wfP (scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse>"
+  show "wfP (scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse>"
   proof (rule wfP_if_convertible_to_wfP)
     fix S S' :: "('f, 'v) state"
-    assume "(scl_without_backtrack \<sqinter> invars)\<inverse>\<inverse> S S'"
-    hence step: "scl_without_backtrack S' S" and invars: "invars S' S"
+    assume "(scl_without_backtrack \<sqinter> (\<lambda>S _. invars S))\<inverse>\<inverse> S' S"
+    hence step: "scl_without_backtrack S S'" and invars: "invars S"
       by simp_all
 
     from invars have
-      "trail_atoms_lt \<beta> S'" and
-      "trail_resolved_lits_pol S'" and
-      "trail_lits_ground S'" and
-      "trail_lits_from_clauses N S'" and
-      "initial_lits_generalize_learned_trail_conflict N S'" and
-      "conflict_disjoint_vars N S'" and
-      "minimal_ground_closures S'"
+      "trail_atoms_lt \<beta> S" and
+      "trail_resolved_lits_pol S" and
+      "trail_lits_ground S" and
+      "trail_lits_from_clauses N S" and
+      "initial_lits_generalize_learned_trail_conflict N S" and
+      "conflict_disjoint_vars N S" and
+      "minimal_ground_closures S"
       by (simp_all add: invars_def)
     with step have
-      "trail_lits_from_clauses N S" and
-      "initial_lits_generalize_learned_trail_conflict N S"
+      "trail_lits_from_clauses N S'" and
+      "initial_lits_generalize_learned_trail_conflict N S'"
       unfolding scl_without_backtrack_def
       by (auto simp add: scl_def intro: scl_preserves_trail_lits_from_clauses
           scl_preserves_initial_lits_generalize_learned_trail_conflict)
-
-    have "trail_lits_from_init_clauses N S'"
-      using \<open>trail_lits_from_clauses N S'\<close> \<open>initial_lits_generalize_learned_trail_conflict N S'\<close>
-      by (simp add: trail_lits_from_init_clausesI)
 
     have "trail_lits_from_init_clauses N S"
       using \<open>trail_lits_from_clauses N S\<close> \<open>initial_lits_generalize_learned_trail_conflict N S\<close>
       by (simp add: trail_lits_from_init_clausesI)
 
+    have "trail_lits_from_init_clauses N S'"
+      using \<open>trail_lits_from_clauses N S'\<close> \<open>initial_lits_generalize_learned_trail_conflict N S'\<close>
+      by (simp add: trail_lits_from_init_clausesI)
+
     let ?less = "lex_prodp (|\<subset>|) (lex_prodp (\<lambda>x y. (x, y) \<in> List.lenlex {(x, y). x < y}) (<))"
 
-    from step show "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
+    from step show "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       unfolding scl_without_backtrack_def sup_apply sup_bool_def
     proof (elim disjE)
-      assume "decide N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S rule: decide.cases)
+      assume "decide N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: decide.cases)
         case (decideI L \<gamma> \<Gamma> U)
         have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, None) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
           unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
@@ -358,7 +358,7 @@ next
             using \<open>atm_of L \<cdot>a \<gamma> \<prec>\<^sub>B \<beta>\<close>
             by simp
           moreover have "fst ` set \<Gamma> \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
-            using \<open>trail_atoms_lt \<beta> S'\<close>
+            using \<open>trail_atoms_lt \<beta> S\<close>
             by (auto simp: trail_atoms_lt_def decideI(1))
           ultimately have "insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>) \<subseteq> {L. atm_of L \<prec>\<^sub>B \<beta>}"
             by simp
@@ -374,9 +374,9 @@ next
           unfolding lex_prodp_def prod.sel by simp
       qed
     next
-      assume "propagate N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S rule: propagate.cases)
+      assume "propagate N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: propagate.cases)
         case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
 
         have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
@@ -441,7 +441,7 @@ next
           proof (intro Set.subsetI Set.CollectI)
             fix K assume "K \<in> insert (L \<cdot>l \<gamma>) (fst ` set \<Gamma>)"
             thus "atm_of K \<prec>\<^sub>B \<beta>"
-              using \<open>trail_atoms_lt \<beta> S'\<close>
+              using \<open>trail_atoms_lt \<beta> S\<close>
               by (metis image_eqI insert_iff propagateI(1,4,6) state_trail_simp subst_cls_add_mset
                   trail_atoms_lt_def union_single_eq_member)
           qed
@@ -458,12 +458,12 @@ next
           unfolding lex_prodp_def prod.sel by simp
       qed
     next
-      assume "conflict N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S rule: conflict.cases)
+      assume "conflict N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: conflict.cases)
         case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
         have "\<And>L. L |\<in>| fst |`| fset_of_list \<Gamma> \<Longrightarrow> atm_of L \<prec>\<^sub>B \<beta>"
-          using \<open>trail_atoms_lt \<beta> S'\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
+          using \<open>trail_atoms_lt \<beta> S\<close>[unfolded conflictI(1,2) trail_atoms_lt_def, simplified]
           by (metis (no_types, opaque_lifting) fimageE fset_of_list_elem)
         hence "Pos \<beta> |\<notin>| fst |`| fset_of_list \<Gamma> \<and> Neg \<beta> |\<notin>| fst |`| fset_of_list \<Gamma>"
           by (metis irreflpD irreflp_less_B literal.sel(1) literal.sel(2))
@@ -484,9 +484,9 @@ next
           by simp
       qed
     next
-      assume "skip N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S rule: skip.cases)
+      assume "skip N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: skip.cases)
         case (skipI L D \<sigma> n \<Gamma> U)
         have "(\<M>_skip_fact_reso \<Gamma> (D \<cdot> \<sigma>), \<M>_skip_fact_reso ((L, n) # \<Gamma>) (D \<cdot> \<sigma>)) \<in>
           lenlex {(x, y). x < y}"
@@ -497,9 +497,9 @@ next
           by simp
       qed
     next
-      assume "factorize N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S)
+      assume "factorize N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: factorize.cases)
         case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
 
         have "is_unifier \<sigma> {atm_of L, atm_of L'}"
@@ -526,14 +526,14 @@ next
           by simp
       qed
     next
-      assume "resolve N \<beta> S' S"
-      thus "?less (\<M> N \<beta> S) (\<M> N \<beta> S')"
-      proof (cases N \<beta> S' S)
+      assume "resolve N \<beta> S S'"
+      thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
+      proof (cases N \<beta> S S' rule: resolve.cases)
         case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
         hence ren_\<rho>: "is_renaming \<rho>"
           using finite_fset is_renaming_renaming_wrt by blast
 
-        from \<open>minimal_ground_closures S'\<close> have
+        from \<open>minimal_ground_closures S\<close> have
           ground_conflict: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
           ground_resolvant: "is_ground_cls (add_mset L C \<cdot> \<delta>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
@@ -543,7 +543,7 @@ next
 
         have vars_conflict_disj_vars_resolvant:
           "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset L C) = {}"
-          using \<open>conflict_disjoint_vars N S'\<close>
+          using \<open>conflict_disjoint_vars N S\<close>
           unfolding resolveI(1,2)
           by (auto simp add: \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def conflict_disjoint_vars_def)
 
@@ -581,7 +581,7 @@ next
           by (simp add: subst_cls_idem_if_disj_vars)
 
         have "- (L \<cdot>l \<delta>) \<notin># C \<cdot> \<delta>"
-          using \<open>trail_resolved_lits_pol S'\<close>
+          using \<open>trail_resolved_lits_pol S\<close>
           unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
           by (simp add: trail_resolved_lits_pol_def trail_propagate_def)
 
