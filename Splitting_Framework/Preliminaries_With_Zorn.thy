@@ -1457,7 +1457,39 @@ qed
 
 abbreviation "total_interp_of \<equiv> (\<lambda>x. Abs_total_interpretation (interp_of x))"
 abbreviation "total_strip \<equiv> (\<lambda>x. strip (Rep_total_interpretation x))"
-  
+
+lemma [simp]: \<open>(neg a \<notin> total_strip J) = (a \<in> total_strip J)\<close>
+proof
+  assume neg_a_notin: \<open>neg a \<notin> total_strip J\<close>
+  have \<open>\<exists>b. to_V a = to_V b \<and> b \<in> total_strip J\<close>
+    by (metis Rep_total_interpretation belong_to.rep_eq mem_Collect_eq total_def)
+  then show \<open>a \<in> total_strip J\<close>
+    using neg_a_notin by (metis neg.simps to_V.elims)
+next
+  assume a_in: \<open>a \<in> total_strip J\<close>
+  then have \<open>\<exists>b. to_V a = to_V b \<and> b \<notin> total_strip J\<close>
+    by (metis Rep_propositional_interpretation is_interpretation_def mem_Collect_eq sign.simps(4)
+        to_V.simps)
+  then show \<open>neg a \<notin> total_strip J\<close>
+    using a_in by (metis neg.simps to_V.elims)
+qed
+
+lemma [simp]: \<open>(neg a \<in> total_strip J) = (a \<notin> total_strip J)\<close>
+proof
+  assume neg_a_notin: \<open>neg a \<in> total_strip J\<close>
+  have \<open>\<exists>b. to_V a = to_V b \<and> b \<notin> total_strip J\<close>
+   by (metis Rep_propositional_interpretation is_interpretation_def mem_Collect_eq sign.simps(4)
+        to_V.simps)
+  then show \<open>a \<notin> total_strip J\<close>
+    using neg_a_notin by (metis neg.simps to_V.elims)
+next
+  assume a_in: \<open>a \<notin> total_strip J\<close>
+  then have \<open>\<exists>b. to_V a = to_V b \<and> b \<in> total_strip J\<close>
+    by (metis Rep_total_interpretation belong_to.rep_eq mem_Collect_eq total_def)
+  then show \<open>neg a \<in> total_strip J\<close>
+    using a_in by (metis neg.simps to_V.elims)
+qed
+
 context
 begin
   (* TODO : seems the command below fails. What is its impact? *)
@@ -1693,6 +1725,8 @@ lemma equiv_prop_entails: \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightar
     enabled_projection_def
   by blast
 
+(* The interest of this first semantic characterization is that it is computable, but it is not
+   convenient to apply the compactness results *)
 lemma equiv_prop_entail2_sema:
   \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
   unfolding propositional_model2_def enabled_projection_def enabled_def
@@ -1754,7 +1788,8 @@ proof -
     by (smt (verit, ccfv_SIG) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map someI_ex)
 qed
 
-
+(* this characterization can be used to apply the compactness from Michaelis & Nipkow but it uses
+   something that can't be computed (SOME) *)
 lemma equiv_prop_entail2_sema2:
   \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
   unfolding propositional_model2_def enabled_projection_def enabled_def
@@ -1801,10 +1836,19 @@ next
     then have \<open>\<exists>f\<in>set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>)))).
       formula_semantics (to_valuation J) f\<close>
       using BigOr_semantics[of "to_valuation J"] unfolding F_def AF_to_formula_def by simp
-    then obtain f where f_in: \<open>f\<in>set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
-      and \<open>formula_semantics (to_valuation J) f\<close> by blast
+    then obtain f where 
+      f_in: \<open>f \<in> set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
+      and val_f: \<open>formula_semantics (to_valuation J) f\<close> by blast
+    obtain v where v_in: \<open>v \<in> fset (A_of \<C>)\<close> and f_is: \<open>f = sign_to_atomic_formula (neg v)\<close>
+      using f_in unfolding list_of_fset_def
+      by (smt (z3) exists_fset_of_list fset_of_list.rep_eq image_iff list.set_map someI)
+    have \<open>neg v \<in> total_strip J\<close>
+      using f_is val_f unfolding to_valuation_def
+      by (metis (mono_tags, lifting) belong_to.rep_eq belong_to_total.rep_eq 
+          formula_semantics.simps(1) formula_semantics.simps(3) sign_to_atomic_formula.cases
+          sign_to_atomic_formula.simps(1) sign_to_atomic_formula.simps(2) val_f val_strip_neg)
     then show \<open>\<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close>
-      sorry
+      using v_in by blast
   qed
   then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
     by (smt (verit, ccfv_threshold) empty_Collect_eq is_Pos.cases neg.simps(1) neg.simps(2) subsetD
@@ -1829,7 +1873,8 @@ proof
       by (metis image_iff notin_fset)
     then show \<open>v \<in> set (map f (list_of_fset A))\<close>
       unfolding list_of_fset_def
-      by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map notin_fset someI_ex)
+      by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map
+          notin_fset someI_ex)
   qed
 next
   show \<open>set (map f (list_of_fset A)) \<subseteq> f ` fset A\<close>
@@ -1845,26 +1890,10 @@ next
   qed
 qed
 
-thm BigOr_semantics
-
 lemma equiv_prop_sema1_sema2:
   \<open>(\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f) \<longleftrightarrow>
    (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
-proof
-  assume \<open>\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
-  then show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
-    unfolding AF_proj_to_formula_set_set_def AF_to_formula_set_def sign_set_to_formula_set_def
-    AF_proj_to_formula_set_def AF_to_formula_def
-
-
-    sorry
-next
-  assume F_sat: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
-  show \<open>\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
-    sorry
-qed
-
-
+  using equiv_prop_entail2_sema2 equiv_prop_entail2_sema by auto
 
 definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
@@ -1874,6 +1903,42 @@ definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> (
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
 
+lemma compactness_unsat: \<open>(\<not> sat (S::'v formula set)) \<longleftrightarrow> (\<exists>s\<subseteq>S. finite s \<and> \<not> sat s)\<close>
+  using compactness[of S] unfolding fin_sat_def by blast
+
+definition \<E>_from :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
+  \<open>\<E>_from \<N> \<equiv> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)}\<close>
+
+lemma
+  shows \<open>J \<Turnstile>\<^sub>p2 \<E>_from \<N> \<longleftrightarrow> enabled_set \<N> J\<close>
+  unfolding propositional_model2_def enabled_set_def enabled_def propositional_projection_def
+    enabled_projection_def
+proof
+  assume empty_proj_E: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<E>_from \<N>. F_of \<C> = bot} \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+  have \<open>\<forall>\<C>\<in>\<E>_from \<N>. F_of \<C> = bot\<close> using \<E>_from_def[of \<N>] by auto
+  then have a_in_E: \<open>\<forall>\<C>\<in>\<E>_from \<N>. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+    using empty_proj_E by blast
+  then have \<open>\<forall>\<C>\<in>\<E>_from \<N>. \<forall>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+    unfolding \<E>_from_def by fastforce
+  moreover have \<open>\<forall>\<C>\<in>\<N>. \<forall>a\<in>fset (A_of \<C>). \<exists>\<C>'\<in>\<E>_from \<N>. neg a \<in> fset (A_of \<C>')\<close>
+    unfolding \<E>_from_def by fastforce
+  ultimately have \<open>\<forall>\<C>\<in>\<N>. \<forall>a\<in>fset (A_of \<C>). a \<in> total_strip J\<close>
+    by fastforce
+  then show \<open>\<forall>\<C>\<in>\<N>. fset (A_of \<C>) \<subseteq> total_strip J\<close>
+    by blast
+next
+  assume enabled_\<C>: \<open>\<forall>\<C>\<in>\<N>. fset (A_of \<C>) \<subseteq> total_strip J\<close>
+  have \<open>\<forall>\<C>\<in>\<E>_from \<N>. \<forall>a\<in>fset (A_of \<C>). \<exists>\<C>'\<in>\<N>. neg a \<in> fset (A_of \<C>')\<close>
+    unfolding \<E>_from_def
+    by (smt (verit) AF.exhaust_sel AF.inject bot_fset.rep_eq empty_iff finsert.rep_eq insertE
+        is_Pos.cases mem_Collect_eq neg.simps)
+  then have \<open>\<forall>\<C>\<in>\<E>_from \<N>. \<forall>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+    using enabled_\<C> by (meson belong_to.rep_eq neg_prop_interp subsetD)
+  then have \<open>\<forall>\<C>\<in>\<E>_from \<N>. (\<not> fset (A_of \<C>) \<subseteq> total_strip J)\<close>
+    using \<E>_from_def by fastforce
+  then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> {\<C> \<in> \<E>_from \<N>. F_of \<C> = bot} \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+    by blast
+qed
 
 
 (* definition to_formula :: "'v sign set \<Rightarrow> 'v formula" where
@@ -2027,15 +2092,13 @@ next
   fix \<M> \<N>
   assume m_entails_n: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F \<N>\<close>
 
-  define \<E> where \<open>\<E> = {Pair bot {|neg a|} |\<C> a. \<C>\<in>\<N> \<and> a \<in> fset (A_of \<C>)}\<close>
-
 (* find a way to express the consequence of propositional compactness to use here without
    introducing \<Turnstile> ?*)
   (* have \<open>enabled set N J \<equiv> \<close> *)
   
   {
     fix J
-    assume \<open>enabled_set \<N> J\<close>
+    assume enabled_N: \<open>enabled_set \<N> J\<close>
     then have \<open>\<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>\<close>
       using m_entails_n unfolding AF_entails_def by simp 
     then obtain M' N' where mp_proj: \<open>M' \<subseteq> \<M> proj\<^sub>J J\<close> and
@@ -2058,10 +2121,32 @@ next
 
     obtain \<M>' \<N>' where m_n_subs: \<open>\<M>' \<subseteq> \<M>\<close> \<open>\<N>' \<subseteq> \<N>\<close> \<open>finite \<M>'\<close> \<open>finite \<N>'\<close> \<open>M' = \<M>' proj\<^sub>J J\<close> \<open>N' = F_of ` \<N>'\<close>
       using m_fin_subset n_fin_subset by blast 
-    then have \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+    then have m_proj: \<open>\<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
       using mp_entails_np by simp
-    then have \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
-      using m_n_subs by auto
+
+    have enabled_N': \<open>enabled_set \<N>' J\<close>
+      using enabled_N m_n_subs(2) unfolding enabled_set_def by blast
+    have \<open>finite (\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})\<close> (*{a. \<exists>\<C>\<in>\<N>'. a \<in> (fset (A_of \<C>)) }\<close>*)
+      using m_n_subs(4) by auto
+    then obtain A\<^sub>\<J>\<^sub>' where AJ_is: \<open>fset A\<^sub>\<J>\<^sub>' = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'}\<close>
+      by (smt (verit, best) fset_cases mem_Collect_eq)
+    define \<J>' where \<open>\<J>' = Pair bot A\<^sub>\<J>\<^sub>' \<close>
+    have \<open>\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J\<close>
+    proof
+      fix a
+      assume \<open>a \<in> fset (A_of \<J>')\<close>
+      then have \<open>\<exists>\<C>\<in>\<N>'. a \<in> fset (A_of \<C>)\<close>
+        unfolding \<J>'_def using AJ_is by auto
+      then show \<open>a \<in>\<^sub>t J\<close> 
+        using enabled_N' unfolding enabled_set_def enabled_def belong_to_total_def belong_to_def
+        by auto
+    qed
+    moreover have \<open>F_of \<J>' = bot\<close>
+      unfolding \<J>'_def by simp
+
+    ultimately have \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
+              \<open>\<exists>\<J>'. F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J)\<close>
+      using m_n_subs m_proj by auto
   }
   
   show \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
