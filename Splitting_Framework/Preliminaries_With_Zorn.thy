@@ -1617,11 +1617,12 @@ definition AF_to_formula_set :: "('f, 'v) AF \<Rightarrow> 'v formula set" where
   (* /!\ this formula set is to be understood as a disjunction *)
   \<open>AF_to_formula_set \<C> = sign_set_to_formula_set (neg ` fset (A_of \<C>))\<close>
 
+(* to move to Fset theory? *)
 definition list_of_fset :: "'a fset \<Rightarrow> 'a list" where
   \<open>list_of_fset A = (SOME l. fset_of_list l = A)\<close>
 
 definition AF_to_formula :: "('f, 'v) AF \<Rightarrow> 'v formula" where
-  \<open>AF_to_formula \<C> = BigOr (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+  \<open>AF_to_formula \<C> = BigOr (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
 
 lemma form_shape_AF: \<open>\<forall>f\<in>AF_to_formula_set \<C>. \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
   using form_shape_sign_set unfolding AF_to_formula_set_def by simp
@@ -1640,7 +1641,7 @@ lemma F_to_\<C>_set: \<open>\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<ex
 (* TODO: show to Mathias: sledgehammer suggests "by blast" (for all provers) but this fails *)
 
 lemma F_to_\<C>: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. \<exists>\<C>\<in>proj\<^sub>\<bottom> \<N>. F =
-   BigOr (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+   BigOr (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
   unfolding AF_proj_to_formula_set_def AF_to_formula_def by auto
 
 lemma \<C>_to_F_set: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>F\<in>AF_proj_to_formula_set_set \<N>. F =
@@ -1649,7 +1650,7 @@ lemma \<C>_to_F_set: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exist
   by auto
 
 lemma \<C>_to_F: \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>F\<in>AF_proj_to_formula_set \<N>. F =
-  BigOr (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+  BigOr (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
   unfolding AF_proj_to_formula_set_def AF_to_formula_def by auto
 
 lemma form_shape_proj: \<open>\<forall>f\<in>\<Union> (AF_proj_to_formula_set_set \<N>). \<exists>v. f = Atom v \<or> f = Not (Atom v)\<close>
@@ -1745,6 +1746,71 @@ next
         val_strip_neg val_strip_pos)
 qed
 
+lemma fset_map2: \<open>v \<in> fset A \<Longrightarrow> g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
+proof -
+  assume \<open>v \<in> fset A\<close>
+  then show \<open>g (f v) \<in> set (map g (map f (list_of_fset A)))\<close>
+    unfolding list_of_fset_def
+    by (smt (verit, ccfv_SIG) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map someI_ex)
+qed
+
+
+lemma equiv_prop_entail2_sema2:
+  \<open>(J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
+  unfolding propositional_model2_def enabled_projection_def enabled_def
+proof
+  assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+  then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close> 
+    by (smt (verit, ccfv_SIG) empty_iff mem_Collect_eq neg.elims subsetI
+        val_strip_neg val_strip_pos)
+  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  proof
+    fix F
+    assume F_in: \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
+    then obtain \<C> where \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close> and 
+      F_from_\<C>: \<open>F = BigOr (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
+      using F_to_\<C> by meson
+    then have \<open>\<exists>v\<in>fset (A_of \<C>). v \<notin> total_strip J\<close>
+      using empty_proj by blast
+    then obtain v where v_in: \<open>v \<in> fset (A_of \<C>)\<close> and v_notin: \<open>v \<notin> total_strip J\<close> by auto
+    define f where \<open>f = sign_to_atomic_formula (neg v)\<close>
+    then have \<open>formula_semantics (to_valuation J) f\<close>
+      using v_notin
+      by (smt (z3) belong_to.rep_eq belong_to_total.rep_eq formula_semantics.simps neg.elims
+          sign_to_atomic_formula.simps to_valuation_def val_strip_neg)
+    moreover have \<open>f \<in> set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
+      unfolding f_def using fset_map2[OF v_in, of sign_to_atomic_formula neg] .
+    ultimately have \<open>\<exists>f\<in>set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>)))).
+     formula_semantics (to_valuation J) f\<close>
+      by blast
+    then show \<open>formula_semantics (to_valuation J) F\<close>
+      using BigOr_semantics[of "to_valuation J"
+          "map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>)))"] F_from_\<C>
+      by meson
+    qed
+next
+  assume F_sat: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close>
+  proof
+    fix \<C>
+    assume \<C>_in: \<open>\<C> \<in> proj\<^sub>\<bottom> \<N>\<close>
+    define F where \<open>F = AF_to_formula \<C>\<close>
+    then have \<open>F \<in> AF_proj_to_formula_set \<N>\<close>
+      unfolding AF_proj_to_formula_set_def using \<C>_in by blast
+    then have \<open>formula_semantics (to_valuation J) F\<close> using F_sat by blast
+    then have \<open>\<exists>f\<in>set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>)))).
+      formula_semantics (to_valuation J) f\<close>
+      using BigOr_semantics[of "to_valuation J"] unfolding F_def AF_to_formula_def by simp
+    then obtain f where f_in: \<open>f\<in>set (map sign_to_atomic_formula (map neg (list_of_fset (A_of \<C>))))\<close>
+      and \<open>formula_semantics (to_valuation J) f\<close> by blast
+    then show \<open>\<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close>
+      sorry
+  qed
+  then show \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
+    by (smt (verit, ccfv_threshold) empty_Collect_eq is_Pos.cases neg.simps(1) neg.simps(2) subsetD
+        val_strip_neg val_strip_pos)
+qed
+
 lemma equiv_prop_entail_sema:
   \<open>(J \<Turnstile>\<^sub>p \<N>) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
   using equiv_prop_entails equiv_prop_entail2_sema by presburger
@@ -1753,11 +1819,44 @@ definition propositional_model3 :: "'v total_interpretation \<Rightarrow> ('f, '
   (infix "\<Turnstile>\<^sub>p3" 50) where
   \<open>J \<Turnstile>\<^sub>p3 \<N> \<equiv> (\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f)\<close>
 
+lemma \<open>f ` fset A = set (map f (list_of_fset A))\<close>
+proof
+  show \<open>f ` fset A \<subseteq> set (map f (list_of_fset A))\<close>
+  proof
+    fix v
+    assume \<open>v \<in> f ` fset A\<close>
+    then obtain a where "a |\<in>| A" "f a = v"
+      by (metis image_iff notin_fset)
+    then show \<open>v \<in> set (map f (list_of_fset A))\<close>
+      unfolding list_of_fset_def
+      by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq imageI list.set_map notin_fset someI_ex)
+  qed
+next
+  show \<open>set (map f (list_of_fset A)) \<subseteq> f ` fset A\<close>
+  proof
+    fix v
+    assume \<open>v \<in> set (map f (list_of_fset A))\<close>
+    then obtain a where "a |\<in>| A" "f a = v"
+      unfolding list_of_fset_def
+      by (smt (verit, best) exists_fset_of_list fset_of_list.rep_eq imageE list.set_map notin_fset 
+          someI_ex)
+    then show \<open>v \<in> f ` fset A\<close>
+      by (simp add: fmember.rep_eq rev_image_eqI)
+  qed
+qed
+
+thm BigOr_semantics
+
 lemma equiv_prop_sema1_sema2:
-  \<open>(\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f) \<longleftrightarrow> (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
+  \<open>(\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f) \<longleftrightarrow>
+   (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
 proof
   assume \<open>\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>f\<in>F. formula_semantics (to_valuation J) f\<close>
-  show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  then show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+    unfolding AF_proj_to_formula_set_set_def AF_to_formula_set_def sign_set_to_formula_set_def
+    AF_proj_to_formula_set_def AF_to_formula_def
+
+
     sorry
 next
   assume F_sat: \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
