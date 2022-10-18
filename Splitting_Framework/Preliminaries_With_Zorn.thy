@@ -1501,6 +1501,9 @@ end
   (* TODO? If propositional_interpretation is never used, directly define total_interpretation from
   \<t>erm \<open>'v neg set\<close> *)
 
+lemma [simp]: \<open>a \<in>\<^sub>t J \<longleftrightarrow> a \<in> total_strip J\<close>
+  unfolding belong_to_total_def belong_to_def by simp
+
 lemma neg_prop_interp: \<open>(v::'v sign) \<in>\<^sub>J J \<Longrightarrow> \<not> ((neg v) \<in>\<^sub>J J)\<close>
 proof transfer
   fix v J
@@ -1964,7 +1967,7 @@ proof -
       N'_fin: \<open>finite \<N>'\<close>
       using F'_fin
       by (metis AF_proj_to_formula_set_def F'_sub \<F>_def finite_subset_image)
-    have \<open>proj\<^sub>\<bottom> \<N>' = \<N>'\<close>
+    have \<open>proj\<^sub>\<bottom> \<N>' = \<N>'\<close>                               
       using N'_in_proj unfolding propositional_projection_def by blast
     then have F'_is: \<open>\<F>' = AF_proj_to_formula_set \<N>'\<close>
       unfolding AF_proj_to_formula_set_def using F'_is_map by simp
@@ -1977,8 +1980,17 @@ proof -
       using N'_sub N'_fin N'_unsat by blast
   next
     assume \<open>\<exists>\<N>'\<subseteq>\<N>. finite \<N>' \<and> (\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>')\<close>
-    show \<open>\<exists>\<F>'\<subseteq>\<F>. finite \<F>' \<and> (\<forall>J. \<exists>F\<in>\<F>'. \<not> formula_semantics (to_valuation J) F)\<close>
-      sorry
+    then obtain \<N>' where N'_sub: \<open>\<N>' \<subseteq> \<N>\<close> and N'_fin: \<open>finite \<N>'\<close> and N'_unsat: \<open>\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>'\<close>
+      by auto
+    define \<F>' where \<open>\<F>' = AF_proj_to_formula_set \<N>'\<close>
+    then have \<open>\<F>' \<subseteq> \<F>\<close>
+      using N'_sub unfolding \<F>_def AF_proj_to_formula_set_def propositional_projection_def by blast
+    moreover have \<open>finite \<F>'\<close>
+      using \<F>'_def N'_fin unfolding AF_proj_to_formula_set_def propositional_projection_def by simp
+    moreover have \<open>\<forall>J. \<exists>F\<in>\<F>'. \<not> formula_semantics (to_valuation J) F\<close>
+      using N'_unsat equiv_prop_entail2_sema2[of _ \<N>'] unfolding \<F>'_def by blast
+    ultimately show \<open>\<exists>\<F>'\<subseteq>\<F>. finite \<F>' \<and> (\<forall>J. \<exists>F\<in>\<F>'. \<not> formula_semantics (to_valuation J) F)\<close>
+      by auto
   qed
   finally show \<open>(\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<exists>\<N>'\<subseteq>\<N>. finite \<N>' \<and> (\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>'))\<close>
     .
@@ -1987,7 +1999,7 @@ qed
 definition \<E>_from :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>\<E>_from \<N> \<equiv> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)}\<close>
 
-lemma
+lemma equiv_\<E>_enabled_\<N>:
   shows \<open>J \<Turnstile>\<^sub>p2 \<E>_from \<N> \<longleftrightarrow> enabled_set \<N> J\<close>
   unfolding propositional_model2_def enabled_set_def enabled_def propositional_projection_def
     enabled_projection_def
@@ -2098,6 +2110,25 @@ next
   then show ?case
     by blast
 qed
+
+(* TODO: figure out how to prove the obtain of lemma 4 proof *)
+lemma 
+  assumes \<open>P U  \<Longrightarrow> \<exists>X. Q U X\<close>
+  shows \<open>(\<And>X_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U)) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  using assms
+proof -
+  assume
+    ex_X: \<open>P U \<Longrightarrow> \<exists>X. Q U X\<close> and
+    obt_X: \<open>(\<And>X_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U)) \<Longrightarrow> thesis)\<close>
+  obtain X_of where \<open>P U \<Longrightarrow> Q U (X_of U)\<close> using ex_X by fast
+  then show thesis using obt_X[of X_of]  
+    sorry
+qed
+
+lemma 
+  assumes \<open>P U  \<Longrightarrow> \<exists>X Y Z. Q U X Y Z\<close>
+  shows \<open>(\<And>X_of Y_of Z_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U) (Y_of U) (Z_of U)) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  sorry
 
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
@@ -2221,12 +2252,67 @@ next
     qed
     moreover have \<open>F_of \<J>' = bot\<close>
       unfolding \<J>'_def by simp
+    moreover have \<open>\<forall>\<C>\<in>\<N>'. fset (A_of \<C>) \<subseteq> fset (A_of \<J>')\<close>
+      using AJ_is \<J>'_def by auto
 
-    ultimately have \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>'\<close>
-              \<open>\<exists>\<J>'. F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J)\<close>
-      using m_n_subs m_proj by auto
+    ultimately have 
+      \<open>\<exists>\<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>' \<and>
+       enabled_set \<N>' J \<and> F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J) \<and>
+      (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})\<close>
+      using enabled_N' m_n_subs m_proj AJ_is \<J>'_def
+      by (metis (mono_tags, lifting) AF.sel(2))
   }
-  
+
+  then obtain \<M>'_of \<N>'_of \<J>'_of where 
+    J'_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> \<N>'_of J \<subseteq> \<N> \<and> finite (\<M>'_of J) \<and> 
+      finite (\<N>'_of J) \<and> (\<M>'_of J) proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J) \<and> enabled_set (\<N>'_of J) J \<and>
+      F_of (\<J>'_of J) = bot \<and> (\<forall>a\<in>fset (A_of (\<J>'_of J)). a \<in>\<^sub>t J) \<and>
+      (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})
+      \<close> for J sorry
+
+  let ?\<J>'_set = \<open>{\<J>'_of J |J. enabled_set \<N> J}\<close>
+  have proj_prop_J': \<open>proj\<^sub>\<bottom> ?\<J>'_set = ?\<J>'_set\<close>
+    using J'_from_J unfolding propositional_projection_def by blast
+  have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longleftrightarrow> \<not> enabled_set \<N> J\<close> for J
+  proof (* -
+    have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longleftrightarrow> {} = ?\<J>'_set proj\<^sub>J J\<close>
+      using proj_prop_J' unfolding propositional_model2_def by argo
+    also have \<open>... \<longleftrightarrow> (\<forall>\<J>'\<in>?\<J>'_set. \<not> enabled \<J>' J)\<close>
+      unfolding enabled_projection_def by blast
+    also have \<open>... \<longleftrightarrow> (\<forall>\<J>'\<in>?\<J>'_set. \<exists>a\<in>fset (A_of \<J>'). a \<notin> total_strip J)\<close>
+      unfolding enabled_def using subsetI by (meson subset_iff)
+    also have \<open>... \<longleftrightarrow> (\<exists>\<C>\<in>\<N>. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J)\<close>
+      using J'_from_J belong_to.rep_eq belong_to_total.rep_eq enabled_def enabled_set_def
+      sorry *)
+    assume J_entails: \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set\<close>
+    then have \<open>{} = ?\<J>'_set proj\<^sub>J J\<close>
+      using proj_prop_J' unfolding propositional_model2_def by argo
+    then have \<open>\<forall>\<J>'\<in>?\<J>'_set. \<not> enabled \<J>' J\<close>
+      unfolding enabled_projection_def by blast
+    then have \<open>\<forall>\<J>'\<in>?\<J>'_set. \<exists>a\<in>fset (A_of \<J>'). a \<notin> total_strip J\<close>
+      unfolding enabled_def by (meson subsetI)
+    then have \<open>\<exists>\<C>\<in>\<N>. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+      using J'_from_J belong_to.rep_eq belong_to_total.rep_eq enabled_def enabled_set_def
+      by fastforce
+    then have \<open>\<exists>\<C>\<in>\<N>. \<not> (fset (A_of \<C>) \<subseteq> total_strip J)\<close>
+      by blast
+    then show \<open>\<not> enabled_set \<N> J\<close>
+      unfolding enabled_set_def enabled_def by blast
+  next
+    assume \<open>\<not> enabled_set \<N> J\<close>
+    then have \<open>\<exists>\<C>\<in>\<N>. \<not> (fset (A_of \<C>) \<subseteq> total_strip J)\<close>
+      unfolding enabled_set_def enabled_def by blast
+    then have \<open>\<exists>\<C>\<in>\<N>. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+      by blast
+    then obtain \<C> a where C_in: \<open>\<C> \<in> \<N>\<close> and a_in: \<open>a \<in> fset (A_of \<C>)\<close> and a_notin: \<open>a \<notin> total_strip J\<close>
+      by blast
+    have \<open>\<forall>J. enabled_set \<N> J \<longrightarrow> a \<in>\<^sub>t J\<close>
+      using a_in C_in unfolding enabled_set_def enabled_def by auto
+    then have \<open>\<forall>\<J>'\<in>?\<J>'_set. a \<in> fset (A_of \<J>')\<close>
+      using J'_from_J sorry
+    show \<open>J \<Turnstile>\<^sub>p2 {\<J>'_of J |J. enabled_set \<N> J}\<close>
+      sorry
+  qed
   show \<open>\<exists>\<M>' \<N>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' \<Turnstile>\<^sub>A\<^sub>F \<N>'\<close>
     sorry
 qed
