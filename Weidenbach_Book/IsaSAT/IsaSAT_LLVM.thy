@@ -291,12 +291,12 @@ abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> 
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
 definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
-  8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
-  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema units C = do {
+  8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 8 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
+  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema units subsume C = do {
       let opts = IsaOptions (C_bool_to_bool red) (C_bool_to_bool res)
          (C_bool_to_bool unbdd) mini res1 res2
          (if target_option = 2 then TARGET_ALWAYS else if target_option = 0 then TARGET_NEVER else TARGET_STABLE_ONLY)
-         fema sema units True;
+         fema sema units (C_bool_to_bool subsume);
       (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let (_ :: unit) = print_propa (stats_propagations stats);
       let (_ :: unit) = print_confl (stats_conflicts stats);
@@ -328,10 +328,10 @@ abbreviation bool_C_assn where
    \<open>bool_C_assn \<equiv> (word_assn' (TYPE(8)))\<close>
 
 sepref_def IsaSAT_wrapped
-  is \<open>uncurry10 IsaSAT_bounded_heur_wrapper\<close>
+  is \<open>uncurry11 IsaSAT_bounded_heur_wrapper\<close>
   :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
-      word64_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+      word64_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -354,13 +354,17 @@ termination
   apply auto
   done
 
+text \<open>Using this as version number makes our work on the cluster easier and makes the version checking
+  slightly easier (because the git hash is never up-to-date).\<close>
+definition internal_version :: \<open>string\<close> where \<open>internal_version = ''1a''\<close>
+
 sepref_definition llvm_version
   is \<open>uncurry0 (RETURN (
-        let str = map (nat_of_integer o (of_char :: _ \<Rightarrow> integer)) (String.explode Version.version) @ [0] in
+        let str = map (nat_of_integer o (of_char :: _ \<Rightarrow> integer)) (internal_version @ ''-'' @ String.explode Version.version) @ [0] in
         array_of_version 0 str (replicate (length str) 0)))\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a IICF_Array.array_assn sint32_nat_assn\<close>
   supply[[goals_limit=1]]
-  unfolding Version.version_def String.explode_code
+  unfolding Version.version_def String.explode_code internal_version_def
     String.asciis_of_Literal
   apply (auto simp: String.asciis_of_Literal of_char_of char_of_char nat_of_integer_def
     simp del: list_update.simps replicate.simps)
