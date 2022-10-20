@@ -4798,7 +4798,6 @@ next
       using L1_in by (simp add: subst_cl_conv)
   next
     have "subst_lit L2 \<gamma> \<in> cl_ecl (Ecl (subst_cl (cl_ecl P1) \<gamma>) {})"
-      using L2_
     (* have "subst_lit L1 \<gamma> \<noteq> subst_lit L2 \<gamma>"
       using orient_L1 orient_L2 t_\<gamma>_neq_v_\<gamma>
       unfolding SuperCalc.orient_lit_inst_def
@@ -4807,6 +4806,7 @@ next
       using SuperCalc.ck_unifier_thm[OF unif_t_u] u_\<gamma>_neq_v_\<gamma> t_\<gamma>_neq_s_\<gamma>
          apply simp_all
       using SuperCalc.eligible_literal_def *)
+      sorry
       
     show "subst_lit L2 \<gamma> \<in> cl_ecl (Ecl (subst_cl (cl_ecl P1) \<gamma>) {}) - {subst_lit L1 \<gamma>}"
       unfolding cl_ecl.simps
@@ -4946,6 +4946,7 @@ next
       where P_eq: "P = set Ps" and deriv_C_Ps: "derivable_list C Ps \<sigma> SuperCalc.Ground C'"
       by (auto dest: derivable_list_if_SuperCalc_derivable)
 
+    thm SuperCalc.factorization_def SuperCalc.ck_unifier_def Unifier_def
 
     have "(\<lambda>D. subst_cl (cl_ecl D) \<sigma>) ` P \<subseteq>
             (\<Union>D\<in>fset ` N'. {subst_cl D \<gamma> |\<gamma>. ground_clause (subst_cl D \<gamma>)})"
