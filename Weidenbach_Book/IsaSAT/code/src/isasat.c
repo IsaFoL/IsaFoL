@@ -95,7 +95,7 @@ static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
 
-int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -791,6 +791,7 @@ int main(int argc, char *argv[]) {
   OPTIONb target_phases = 1;
   OPTIONb reduce = 1;
   OPTIONb restart = 1;
+  OPTIONb subsume = 1;
   OPTIONu64 restartint = 10;
   OPTIONu64 restartmargin = 17;
   OPTIONu64 fema = 141733;
@@ -819,6 +820,10 @@ int main(int argc, char *argv[]) {
       target_phases = 2;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
+    else if(strcmp(opt, "--norestart\0") == 0)
+      restart = 0;
+    else if (strcmp(opt, "--nosubsume\0") == 0)
+      subsume = 0; 
     else if(strcmp(opt, "--norestart\0") == 0)
       restart = 0;
     else if (strcmp(opt, "--restartint\0") == 0 && i+1 < argc - 1 && (n = atol(argv[i+1]))) {
@@ -919,7 +924,7 @@ READ_FILE:
 
 #endif
   int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
-			     sema, unitinterval, clauses);
+			     sema, unitinterval, subsume, clauses);
   stop_profile(&total_prof);
 
   _Bool interrupted = t & 2;
