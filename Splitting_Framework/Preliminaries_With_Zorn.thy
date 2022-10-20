@@ -2111,24 +2111,11 @@ next
     by blast
 qed
 
-(* TODO: figure out how to prove the obtain of lemma 4 proof *)
-lemma 
-  assumes \<open>P U  \<Longrightarrow> \<exists>X. Q U X\<close>
-  shows \<open>(\<And>X_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U)) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-  using assms
-proof -
-  assume
-    ex_X: \<open>P U \<Longrightarrow> \<exists>X. Q U X\<close> and
-    obt_X: \<open>(\<And>X_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U)) \<Longrightarrow> thesis)\<close>
-  obtain X_of where \<open>P U \<Longrightarrow> Q U (X_of U)\<close> using ex_X by fast
-  then show thesis using obt_X[of X_of]  
-    sorry
-qed
-
-lemma 
-  assumes \<open>P U  \<Longrightarrow> \<exists>X Y Z. Q U X Y Z\<close>
+lemma three_skolems:
+  assumes \<open>\<And>U. P U  \<Longrightarrow> \<exists>X Y Z. Q U X Y Z\<close>
   shows \<open>(\<And>X_of Y_of Z_of. (\<And>U. P U \<Longrightarrow> Q U (X_of U) (Y_of U) (Z_of U)) \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-  sorry
+  using assms
+  by metis
 
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
@@ -2264,16 +2251,30 @@ next
   }
 
   then obtain \<M>'_of \<N>'_of \<J>'_of where 
-    J'_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> \<N>'_of J \<subseteq> \<N> \<and> finite (\<M>'_of J) \<and> 
+    fsets_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> \<N>'_of J \<subseteq> \<N> \<and> finite (\<M>'_of J) \<and> 
       finite (\<N>'_of J) \<and> (\<M>'_of J) proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J) \<and> enabled_set (\<N>'_of J) J \<and>
       F_of (\<J>'_of J) = bot \<and> (\<forall>a\<in>fset (A_of (\<J>'_of J)). a \<in>\<^sub>t J) \<and>
-      (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})
-      \<close> for J sorry
-
+      (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})\<close> for J 
+    using three_skolems[of "\<lambda>U. enabled_set \<N> U" 
+      "\<lambda>J \<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>' \<and> 
+      enabled_set \<N>' J \<and> F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J) \<and>
+      (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})"] by fastforce
   let ?\<J>'_set = \<open>{\<J>'_of J |J. enabled_set \<N> J}\<close>
   have proj_prop_J': \<open>proj\<^sub>\<bottom> ?\<J>'_set = ?\<J>'_set\<close>
-    using J'_from_J unfolding propositional_projection_def by blast
-  have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longleftrightarrow> \<not> enabled_set \<N> J\<close> for J
+    using fsets_from_J unfolding propositional_projection_def by blast
+  let ?\<N>'_un = \<open>\<Union>{\<N>'_of J |J. enabled_set \<N> J}\<close>
+  have A_of_enabled: \<open>enabled_set \<N> J \<Longrightarrow> (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})\<close> for J
+    using fsets_from_J by presburger
+  have A_of_eq: \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union> (fset ` A_of ` ?\<N>'_un)\<close>
+  proof -
+    have \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union>{fset (A_of (\<J>'_of J)) |J. enabled_set \<N> J}\<close>
+      by blast
+    also have \<open>... = \<Union>{\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)} |J. enabled_set \<N> J}\<close>
+      using A_of_enabled by (metis (no_types, lifting))
+    also have \<open>... = \<Union>(fset ` A_of ` ?\<N>'_un)\<close> by blast
+    finally show \<open>\<Union>(fset ` A_of ` ?\<J>'_set) = \<Union>(fset ` A_of ` ?\<N>'_un)\<close>.
+  qed
+  have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longleftrightarrow> \<not> enabled_set ?\<N>'_un J\<close> for J
   proof (* -
     have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longleftrightarrow> {} = ?\<J>'_set proj\<^sub>J J\<close>
       using proj_prop_J' unfolding propositional_model2_def by argo
@@ -2291,12 +2292,13 @@ next
       unfolding enabled_projection_def by blast
     then have \<open>\<forall>\<J>'\<in>?\<J>'_set. \<exists>a\<in>fset (A_of \<J>'). a \<notin> total_strip J\<close>
       unfolding enabled_def by (meson subsetI)
-    then have \<open>\<exists>\<C>\<in>\<N>. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
-      using J'_from_J belong_to.rep_eq belong_to_total.rep_eq enabled_def enabled_set_def
-      by fastforce
-    then have \<open>\<exists>\<C>\<in>\<N>. \<not> (fset (A_of \<C>) \<subseteq> total_strip J)\<close>
+    then have \<open>\<exists>\<C>\<in>?\<N>'_un. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
+      using A_of_eq unfolding enabled_def enabled_set_def 
+      sledgehammer
+      sorry
+    then have \<open>\<exists>\<C>\<in>?\<N>'_un. \<not> (fset (A_of \<C>) \<subseteq> total_strip J)\<close>
       by blast
-    then show \<open>\<not> enabled_set \<N> J\<close>
+    then show \<open>\<not> enabled_set ?\<N>'_un J\<close>
       unfolding enabled_set_def enabled_def by blast
   next
     assume \<open>\<not> enabled_set \<N> J\<close>
