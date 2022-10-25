@@ -1010,6 +1010,22 @@ proof -
     by simp
 qed
 
+corollary learned_clauses_in_regular_runs_static_order:
+  assumes
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant (\<subseteq>#) (fset N \<union> fset U) C)"
+  using learned_clauses_in_regular_runs[OF assms(1-6)]
+  using U_def redundant_multp_if_redundant_subset by blast
+
 end
 
 end
