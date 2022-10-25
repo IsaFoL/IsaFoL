@@ -1,6 +1,8 @@
 theory Termination
   imports
     Simple_Clause_Learning
+    "HOL-Library.Monad_Syntax"
+    (* "HOL-Library.State_Monad" *)
 begin
 
 
@@ -607,6 +609,633 @@ next
         by simp
     qed
   qed
+qed
+
+term generalizes_atm
+thm generalizes_atm_def
+
+lemma generalizes_atm_refl[simp]: "generalizes_atm t t"
+  unfolding generalizes_atm_def
+proof (rule exI)
+  show "t \<cdot>a Var = t"
+    by simp
+qed
+
+lemma
+  assumes "\<And>w. generalizes_atm w u \<longleftrightarrow> (\<exists>t \<in> T. generalizes_atm t w)"
+  shows "\<forall>t \<in> T. generalizes_atm t u"
+proof (rule ballI)
+  fix t assume "t \<in> T"
+  show "generalizes_atm t u"
+    unfolding assms
+  proof (rule bexI)
+    show "generalizes_atm t t"
+      by simp
+  next
+    show "t \<in> T"
+      by (rule \<open>t \<in> T\<close>)
+  qed
+qed
+
+lemma size_le_size_if_generalizes_atm:
+  assumes "generalizes_atm t u"
+  shows "size t \<le> size u"
+proof -
+  from assms obtain \<sigma> where "t \<cdot>a \<sigma> = u"
+    by (auto simp: generalizes_atm_def)
+  thus ?thesis
+  proof (induction t arbitrary: u)
+    case (Var x)
+    then show ?case
+      by (cases u) simp_all
+  next
+    case (Fun f args)
+    from Fun.prems show ?case
+      by (auto elim: Fun.IH intro!: size_list_pointwise)
+  qed
+qed
+
+lemma size_term_le_size_term_if_generalizes_atm:
+  assumes "generalizes_atm t u" and "m \<le> n"
+  shows "size_term (\<lambda>_. n) (\<lambda>_. m) t \<le> size_term (\<lambda>_. n) (\<lambda>_. m) u"
+proof -
+  from assms(1) obtain \<sigma> where "t \<cdot>a \<sigma> = u"
+    by (auto simp: generalizes_atm_def)
+  thus ?thesis
+  proof (induction t arbitrary: u)
+    case (Var x)
+    with assms(2) show ?case
+      by (cases u) simp_all
+  next
+    case (Fun f args)
+    from Fun.prems show ?case
+      by (auto elim: Fun.IH intro!: size_list_pointwise)
+  qed
+qed
+
+lemma size_term_lt_size_term_if_generalizes_atm:
+  assumes
+    generalizes: "t \<cdot>a \<sigma> = u" and
+    not_renaming: "\<exists>x \<in> vars_term t. \<not> is_Var (\<sigma> x)" and
+    "m < n"
+  defines "size_term' \<equiv> size_term (\<lambda>_. n) (\<lambda>_. m)"
+  shows "size_term' t < size_term' u"
+  using generalizes not_renaming
+proof (induction t arbitrary: u)
+  case (Var x)
+  with assms(3) show ?case
+    by (cases u) (simp_all add: size_term'_def)
+next
+  case (Fun f args)
+  from Fun.prems have u_def: "u = Fun f (map (\<lambda>t. t \<cdot>a \<sigma>) args)"
+    by simp
+
+  from Fun.prems obtain arg where
+    arg_in: "arg \<in> set args" and bex_arg_is_Fun: "\<exists>x\<in>vars_term arg. is_Fun (\<sigma> x)"
+    by auto
+
+  from arg_in obtain args0 args1 where args_def: "args = args0 @ arg # args1"
+    by (auto simp: in_set_conv_decomp)
+
+  have "size_term' (Fun f args) = 1 + n + size_list size_term' args"
+    by (simp add: size_term'_def)
+  also have "\<dots> = 2 + n + size_list size_term' args0 + size_term' arg + size_list size_term' args1"
+    by (simp add: args_def)
+  also have "\<dots> \<le> 2 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args0 + size_term' arg +
+      size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args1"
+  proof -
+    have "size_list size_term' xs \<le> size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) xs" for xs
+    proof (rule size_list_pointwise)
+      fix x
+      from \<open>m < n\<close> show "size_term' x \<le> (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) x"
+        unfolding size_term'_def comp_def
+        by (auto simp: generalizes_atm_def intro!: size_term_le_size_term_if_generalizes_atm)
+    qed
+    thus ?thesis
+      by (simp add: add_le_mono)
+  qed
+  also have "\<dots> < 2 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args0 + size_term' (arg \<cdot>a \<sigma>) +
+      size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args1"
+    using Fun.IH[OF arg_in refl bex_arg_is_Fun] by simp
+  also have "\<dots> = 1 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args"
+    by (simp add: args_def comp_def)
+  also have "\<dots> = size_term' u"
+    by (simp add: u_def size_term'_def)
+  finally show ?case
+    by assumption
+qed
+
+
+adhoc_overloading
+  bind FSet.fbind
+
+term set_Cons
+term Set.bind
+
+definition fset_Cons where
+  "fset_Cons A AS = do {
+    a \<leftarrow> A;
+    as \<leftarrow> AS;
+    {| a # as |}
+  }"
+
+lemma mem_fset_fset_ConsD:
+  assumes xs_in: "xs \<in> fset (fset_Cons A AS)"
+  shows "\<exists>a \<in> fset A. \<exists>as \<in> fset AS. xs = a # as"
+proof -
+  from xs_in have "xs \<in> fset A \<bind> (\<lambda>x. fset AS \<bind> (\<lambda>xs'. {x # xs'}))"
+    unfolding fset_Cons_def fbind.rep_eq comp_def id_apply finsert.rep_eq bot_fset.rep_eq
+    by simp
+
+  then show ?thesis
+    unfolding member_bind UN_iff
+    by simp
+qed
+
+term listset
+
+primrec listfset :: "'a fset list \<Rightarrow> 'a list fset" where
+  "listfset [] = {|[]|}" |
+  "listfset (A # As) = fset_Cons A (listfset As)"
+
+(* lemma
+  fixes xs
+  assumes "xs \<in> fset (listfset (A # As))"
+  shows "\<exists>x \<in> fset A. \<exists>xs' \<in> fset (listfset As). xs = x # xs'"
+  using assms
+proof (induction  *)
+
+
+lemma ball_fset_listfset_length_conv: "\<forall>xs \<in> fset (listfset As). length xs = length As"
+proof (induction As)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons A As)
+  show ?case
+  proof (rule ballI)
+    fix xs assume "xs \<in> fset (listfset (A # As))"
+    then obtain x xs' where "xs = x # xs' \<and> x \<in> fset A \<and> xs' \<in> fset (listfset As)"
+      unfolding listfset.simps
+      by (auto dest: mem_fset_fset_ConsD)
+    thus "length xs = length (A # As)"
+      using Cons.IH
+      by simp
+  qed
+qed
+
+term ffUnion
+find_consts "'a fset set \<Rightarrow> _"
+
+term "foldr"
+
+primrec generalizations :: "('a, 'b) Term.term \<Rightarrow> ('a, 'b) Term.term fset" where
+  "generalizations (Var _) = {||}" |
+  "generalizations (Fun f xs) =
+    (let T = (Fun f) |`| listfset (map generalizations xs) in
+     finsert (Var (SOME x. x \<notin> (\<Union>t \<in> fset T. vars_term t))) T)"
+
+lemma bex_not_member_if_infinite: "infinite A \<Longrightarrow> finite B \<Longrightarrow> \<exists>x\<in>A. x \<notin> B"
+  by (meson rev_finite_subset subsetI)
+
+lemma
+  fixes w :: "('f, 'v) term"
+  assumes inf_vars: "infinite (UNIV :: 'v set)"
+  shows "pairwise (\<lambda>t u. vars_term t \<inter> vars_term u = {}) (fset (generalizations w))"
+  unfolding pairwise_def
+proof (intro ballI impI)
+  fix t u assume "t \<in> fset (generalizations w)" and "u \<in> fset (generalizations w)" and "t \<noteq> u"
+  then show "vars_term t \<inter> vars_term u = {}"
+  proof (induction w arbitrary: t u)
+    case (Var x)
+    thus ?case
+      by simp
+  next
+    case (Fun f xs)
+    let ?T = "fset (Fun f |`| listfset (map generalizations xs))"
+    let ?var = "Var (SOME x. x \<notin> \<Union> (vars_term ` ?T))"
+
+    have fin_UN_vars_image_T:"finite (\<Union> (vars_term ` ?T))"
+      by simp
+    
+    from Fun.prems show ?case
+      unfolding generalizations.simps Let_def finsert.rep_eq insert_iff
+    proof (elim disjE)
+      assume t_eq: "t = ?var" and u_eq: "u = ?var"
+      thus ?thesis
+        using \<open>t \<noteq> u\<close> by simp
+    next
+      assume "t = ?var" and u_in: "u \<in> ?T"
+      then obtain y where "t = Var y \<and> y \<notin> \<Union> (vars_term ` ?T)"
+        using bex_not_member_if_infinite[OF inf_vars fin_UN_vars_image_T]
+        by (metis (no_types, lifting) someI_ex)
+      with u_in show ?thesis
+        by auto
+    next
+      assume t_in: "t \<in> ?T" and "u = ?var"
+      then obtain y where "u = Var y \<and> y \<notin> \<Union> (vars_term ` ?T)"
+        using bex_not_member_if_infinite[OF inf_vars fin_UN_vars_image_T]
+        by (metis (no_types, lifting) someI_ex)
+      with t_in show ?thesis
+        by auto
+    next
+      assume t_in: "t \<in> ?T" and u_in: "u \<in> ?T"
+      
+      from t_in obtain xs\<^sub>t where
+        t_def: "t = Fun f xs\<^sub>t" and "xs\<^sub>t |\<in>| listfset (map generalizations xs)"
+        by (meson fimageE notin_fset)
+
+      from u_in obtain xs\<^sub>u where
+        u_def: "u = Fun f xs\<^sub>u" and "xs\<^sub>u |\<in>| listfset (map generalizations xs)"
+        by (meson fimageE notin_fset)
+
+      show ?thesis
+        unfolding t_def u_def
+        unfolding term.set
+        unfolding Int_UN_distrib2 Union_empty_conv Set.ball_simps
+      proof (intro ballI)
+        fix x y assume "x \<in> set xs\<^sub>t" and "y \<in> set xs\<^sub>u"
+        then show "vars_term x \<inter> vars_term y = {}"
+          using Fun.IH
+          sorry
+      qed
+    qed
+  qed
+  oops
+
+lemma
+  assumes "\<And>x. x \<in> set xs \<Longrightarrow> \<exists>y. P x y"
+  shows "\<exists>ys. list_all2 P xs ys"
+  using assms by (induction xs) auto
+
+find_consts name: "com" "('a \<Rightarrow> 'a \<Rightarrow> _) \<Rightarrow> bool"
+print_locale monoid
+print_locale monoid_mult
+
+find_consts "(_, _) subst list"
+
+term prod_list
+term monoid_list
+term "fold (\<odot>) xs Var"
+term "(\<cdot>)"
+term foldl
+
+lemma subst_atm_foldl_comp: "t \<cdot>a foldl (\<odot>) \<sigma>_def \<sigma>s = t \<cdot>a \<sigma>_def \<cdot>a foldl (\<odot>) Var \<sigma>s"
+proof (induction \<sigma>s arbitrary: t \<sigma>_def)
+  case Nil
+  show ?case by simp
+next
+  case (Cons \<sigma> \<sigma>s)
+  show ?case
+    unfolding foldl.simps comp_def
+    unfolding Cons.IH[of t]
+    unfolding Cons.IH[of "t \<cdot>a \<sigma>_def"]
+    by simp
+qed
+
+lemma subst_atm_fold_comp_Var_ident:
+  assumes "\<forall>\<sigma> \<in> set \<sigma>s. t \<cdot>a \<sigma> = t"
+  shows "t \<cdot>a foldl (\<odot>) Var \<sigma>s = t"
+  using assms
+proof (induction \<sigma>s arbitrary: t)
+  case Nil
+  show ?case by simp
+next
+  case (Cons \<sigma> \<sigma>s)
+  from Cons.prems have "t \<cdot>a \<sigma> = t"
+    by simp
+
+  have "t \<cdot>a foldl (\<odot>) Var (\<sigma> # \<sigma>s) = t \<cdot>a foldl (\<odot>) \<sigma> \<sigma>s"
+    by simp
+  also have "\<dots> = t \<cdot>a \<sigma> \<cdot>a foldl (\<odot>) Var \<sigma>s"
+    unfolding subst_atm_foldl_comp[of t] by simp
+  also have "\<dots> = t \<cdot>a foldl (\<odot>) Var \<sigma>s"
+    using Cons.prems by simp
+  also have "\<dots> = t"
+    using Cons.prems by (simp add: Cons.IH)
+  finally show ?case
+    by assumption
+qed
+
+lemma foldl_comp_Var_is_merged_subst:
+  fixes ts :: "('f, 'v) term list" and \<sigma>s :: "('f, 'v) subst list"
+  assumes
+    same_length: "length ts = length \<sigma>s" and
+    range_vars_subset: "\<forall>\<sigma> \<in> set \<sigma>s. range_vars \<sigma> \<subseteq> A" and
+    min_domains: "list_all2 (\<lambda>t \<sigma>. subst_domain \<sigma> \<subseteq> vars_term t) ts \<sigma>s" and
+    disj_vars_wrt_A: "\<forall>t \<in> set ts. vars_term t \<inter> A = {}" and
+    disj_vars: "pairwise (\<lambda>t1 t2. vars_term t1 \<inter> vars_term t2 = {}) (set ts)" and
+    dist_terms: "distinct ts"
+  shows "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) ts \<sigma>s"
+  using assms
+proof (induction ts \<sigma>s rule: list_induct2)
+  case Nil
+  show ?case
+    by simp
+next
+  case (Cons t ts \<sigma>\<^sub>t \<sigma>s)
+  show ?case
+    unfolding foldl.simps id_subst_comp_subst
+  proof (rule list.rel_intros)
+    have vars_t_\<sigma>\<^sub>t_disj: "vars_term (t \<cdot>a \<sigma>\<^sub>t) \<inter> subst_domain \<sigma>' = {}"
+      if \<sigma>'_in: "\<sigma>' \<in> set \<sigma>s"
+      for \<sigma>'
+    proof -
+      from \<sigma>'_in obtain n where "n < length \<sigma>s" and \<sigma>'_def: "\<sigma>' = \<sigma>s ! n"
+        by (auto simp: in_set_conv_nth)
+
+      define u where
+        "u = ts ! n"
+      hence "u \<in> set ts"
+        by (simp add: Cons.hyps \<open>n < length \<sigma>s\<close>)
+      hence "t \<noteq> u"
+        using Cons.prems(5) by fastforce
+      hence vars_disj_t_u: "vars_term t \<inter> vars_term u = {}"
+        using Cons.prems(4)
+        by (meson \<open>u \<in> set ts\<close> list.set_intros(1) pairwiseD set_subset_Cons subsetD)
+      
+      have dom_\<sigma>': "subst_domain \<sigma>' \<subseteq> vars_term u"
+        using \<sigma>'_def u_def \<open>length ts = length \<sigma>s\<close> \<open>n < length \<sigma>s\<close>
+        using Cons.prems(2) list_all2_nthD2 by fastforce
+
+      have "vars_term (t \<cdot>a \<sigma>\<^sub>t) \<subseteq> vars_term t \<union> A"
+        by (meson Cons.prems(1) Diff_subset_conv list.set_intros(1) subset_trans
+            vars_subst_term_subset_weak)
+      moreover have "vars_term t \<inter> subst_domain \<sigma>' = {}"
+        using dom_\<sigma>' vars_disj_t_u by auto
+      moreover have "A \<inter> subst_domain \<sigma>' = {}"
+        using Cons.prems(3) \<open>u \<in> set ts\<close> dom_\<sigma>' by fastforce
+      ultimately show ?thesis
+        by auto
+    qed
+
+    show "t \<cdot>a \<sigma>\<^sub>t = t \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s"
+      unfolding subst_atm_foldl_comp[of t]
+      using subst_atm_fold_comp_Var_ident[of \<sigma>s "t \<cdot>a \<sigma>\<^sub>t", symmetric]
+      by (simp add: subst_apply_term_ident vars_t_\<sigma>\<^sub>t_disj)
+  next
+    have "u \<cdot>a \<sigma>\<^sub>u = u \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s"
+      if u_\<sigma>\<^sub>u_in: "(u, \<sigma>\<^sub>u) \<in> set (zip ts \<sigma>s)"
+      for u \<sigma>\<^sub>u
+    proof -
+      from u_\<sigma>\<^sub>u_in have "u \<in> set ts"
+        by (meson in_set_zipE)
+      moreover hence "t \<noteq> u"
+        using Cons.prems(5) by fastforce
+      ultimately have "vars_term u \<inter> vars_term t = {}"
+        using Cons.prems(4) by (simp add: pairwise_def)
+      moreover have "subst_domain \<sigma>\<^sub>t \<subseteq> vars_term t"
+        using Cons.prems by simp
+      ultimately have "vars_term u \<inter> subst_domain \<sigma>\<^sub>t = {}"
+        by auto
+      hence "u \<cdot>a \<sigma>\<^sub>t = u"
+        by (rule subst_apply_term_ident)
+
+      have IH: "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) ts \<sigma>s"
+        using Cons.prems by (simp_all add: pairwise_insert Cons.IH)
+
+      show ?thesis
+        unfolding subst_atm_foldl_comp[of _ \<sigma>\<^sub>t \<sigma>s] \<open>u \<cdot>a \<sigma>\<^sub>t = u\<close>
+        using IH[unfolded list_all2_iff] u_\<sigma>\<^sub>u_in
+        by auto
+    qed
+    thus "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s) ts \<sigma>s"
+      using \<open>length ts = length \<sigma>s\<close>
+      by (auto simp add: list_all2_iff)
+  qed
+qed
+
+lemma subst_domain_foldl_compose:
+  "subst_domain (foldl (\<odot>) \<sigma>\<^sub>0 \<sigma>s) \<subseteq> subst_domain \<sigma>\<^sub>0 \<union> \<Union>(subst_domain ` set \<sigma>s)"
+proof (induction \<sigma>s arbitrary: \<sigma>\<^sub>0)
+  case Nil
+  show ?case by simp
+next
+  case (Cons \<sigma> \<sigma>s)
+  show ?case
+    apply simp
+    using Cons.IH[of "\<sigma>\<^sub>0 \<odot> \<sigma>"] subst_domain_compose
+    by fastforce
+qed
+
+lemma range_vars_fold_compose:
+  "range_vars (foldl (\<odot>) \<sigma>\<^sub>0 \<sigma>s) \<subseteq> range_vars \<sigma>\<^sub>0 \<union> \<Union>(range_vars ` set \<sigma>s)"
+proof (induction \<sigma>s arbitrary: \<sigma>\<^sub>0)
+  case Nil
+  show ?case by simp
+next
+  case (Cons \<sigma> \<sigma>s)
+  show ?case
+    apply simp
+    using Cons.IH[of "\<sigma>\<^sub>0 \<odot> \<sigma>"] range_vars_subst_compose_subset
+    by force
+qed
+  
+
+lemma strong_generalizes_if_fmember_generalizations:
+  fixes t u :: "('f, 'v) term"
+  assumes "infinite (UNIV :: 'v set)"
+  shows "t |\<in>| generalizations u \<Longrightarrow> \<exists>\<sigma>. t \<cdot>a \<sigma> = u \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
+    range_vars \<sigma> \<subseteq> vars_term u"
+proof (induction u arbitrary: t)
+  case (Var x)
+  hence False by simp
+  thus ?case ..
+next
+  case (Fun f xs)
+  let ?XS = "Fun f |`| listfset (map generalizations xs)"
+  have "finite (\<Union>t \<in> fset ?XS. vars_term t)"
+    by simp
+  with Fun.prems obtain y where "t = Var y \<and> y \<notin> (\<Union>t \<in> fset ?XS. vars_term t) \<or> t |\<in>| ?XS"
+    unfolding generalizations.simps Let_def finsert_iff
+    by (metis (mono_tags, lifting) assms bex_not_member_if_infinite someI_ex)
+  then show ?case
+  proof (elim disjE exE conjE)
+    fix y assume "t = Var y" and "y \<notin> (\<Union>t \<in> fset ?XS. vars_term t)"
+    show "\<exists>\<sigma>. t \<cdot>a \<sigma> = Fun f xs \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
+        range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
+    proof (intro exI[of _ "Var(y := Fun f xs)"] conjI)
+      show "t \<cdot>a Var(y := Fun f xs) = Fun f xs"
+        by (simp add: \<open>t = Var y\<close>)
+    next
+      show "subst_domain (Var(y := Fun f xs)) \<subseteq> vars_term t"
+        by (simp add: \<open>t = Var y\<close> subst_domain_def)
+    next
+      show "range_vars (Var(y := Fun f xs)) \<subseteq> vars_term (Fun f xs)"
+        by (simp add: range_vars_def subst_domain_def)
+    qed
+  next
+    assume "t |\<in>| Fun f |`| listfset (map generalizations xs)"
+    then obtain xs' where
+      t_def: "t = Fun f xs'" and xs'_in: "xs' |\<in>| listfset (map generalizations xs)"
+      by auto
+
+    have "length xs' = length xs"
+      using xs'_in[unfolded fmember_iff_member_fset]
+      by (simp add: ball_fset_listfset_length_conv[rule_format])
+
+    have ball_fmember_generalizations:
+      "\<forall>n < length xs. xs' ! n |\<in>| generalizations (xs ! n)"
+      using xs'_in[unfolded fmember_iff_member_fset]
+    proof (induction xs arbitrary: xs')
+      case Nil
+      show ?case by simp
+    next
+      case (Cons x xs)
+      from Cons.prems have "xs' \<in>
+        fset (fset_Cons (generalizations x) (listfset (map generalizations xs)))"
+        unfolding list.map listfset.simps
+        by simp
+      then obtain a as where
+        a_in: "a \<in> fset (generalizations x)" and
+        as_in: "as \<in> fset (listfset (map generalizations xs))" and
+        "xs' = a # as"
+        by (auto dest: mem_fset_fset_ConsD)
+
+      show ?case
+        unfolding \<open>xs' = a # as\<close>
+        using a_in Cons.IH[OF as_in]
+        by (metis One_nat_def diff_less length_Cons less_Suc_eq less_imp_diff_less linorder_neqE_nat
+            not_less0 notin_fset nth_Cons')
+    qed
+    with \<open>length xs' = length xs\<close> have "\<exists>\<sigma>s. length \<sigma>s = length xs \<and>
+      (\<forall>n < length xs. (xs' ! n) \<cdot>a (\<sigma>s ! n) = xs ! n \<and>
+      subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs' ! n) \<and>
+      range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f xs))"
+      using Fun.IH[unfolded generalizes_atm_def]
+    proof (induction xs' xs rule: list_induct2)
+      case Nil
+      show ?case
+        by simp
+    next
+      case (Cons x xs y ys)
+
+      from Cons.prems(1) have
+        "x |\<in>| generalizations y" and
+        ball_fmember_gen:"\<forall>n<length ys. xs ! n |\<in>| generalizations (ys ! n)"
+        by auto
+
+      with Cons.prems(2)[of y x, simplified] obtain \<sigma> where
+        x_\<sigma>: "x \<cdot>a \<sigma> = y" and dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_term x" and
+        range_\<sigma>: "range_vars \<sigma> \<subseteq> vars_term y"
+        by auto
+      
+      moreover from Cons.prems(2) obtain \<sigma>s where
+        "length \<sigma>s = length ys" and ball_ys: "\<forall>n<length ys. xs ! n \<cdot>a \<sigma>s ! n = ys ! n \<and>
+          subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs ! n) \<and> range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f ys)"
+        using Cons.IH[OF ball_fmember_gen] by auto
+      
+      show ?case
+      proof (intro exI[of _ "\<sigma> # \<sigma>s"] conjI allI)
+        show "length (\<sigma> # \<sigma>s) = length (y # ys)"
+          using \<open>length \<sigma>s = length ys\<close> by simp
+      next
+        fix n show "n < length (y # ys) \<longrightarrow>
+          (x # xs) ! n \<cdot>a (\<sigma> # \<sigma>s) ! n = (y # ys) ! n \<and>
+          subst_domain ((\<sigma> # \<sigma>s) ! n) \<subseteq> vars_term ((x # xs) ! n) \<and>
+          range_vars ((\<sigma> # \<sigma>s) ! n) \<subseteq> vars_term (Fun f (y # ys)) "
+          using x_\<sigma> dom_\<sigma> range_\<sigma> ball_ys
+          by (cases n) auto
+      qed
+    qed
+    then obtain \<sigma>s where "length \<sigma>s = length xs" and
+      ball_subst_eq: "\<forall>n<length xs. xs' ! n \<cdot>a \<sigma>s ! n = xs ! n \<and>
+        subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs' ! n) \<and>
+        range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f xs)"
+      by auto
+
+    have "length xs' = length \<sigma>s"
+      using \<open>length \<sigma>s = length xs\<close> \<open>length xs' = length xs\<close> by simp
+
+    have ball_\<sigma>s_range_vars: "\<forall>\<sigma>\<in>set \<sigma>s. range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
+      using ball_subst_eq
+      by (metis \<open>length \<sigma>s = length xs\<close> in_set_conv_nth)
+
+    have "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' \<sigma>s"
+    proof (rule foldl_comp_Var_is_merged_subst[of xs' \<sigma>s])
+      show "length xs' = length \<sigma>s"
+        by (rule \<open>length xs' = length \<sigma>s\<close>)
+    next
+      show "\<forall>\<sigma>\<in>set \<sigma>s. range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
+        by (rule ball_\<sigma>s_range_vars)
+    next
+      show "list_all2 (\<lambda>t \<sigma>. subst_domain \<sigma> \<subseteq> vars_term t) xs' \<sigma>s"
+        using ball_subst_eq
+        by (metis \<open>length xs' = length \<sigma>s\<close> \<open>length xs' = length xs\<close> list_all2_all_nthI)
+    next
+      show "\<forall>t\<in>set xs'. vars_term t \<inter> vars_term (Fun f xs) = {}"
+        sorry
+    next
+      show "pairwise (\<lambda>t1 t2. vars_term t1 \<inter> vars_term t2 = {}) (set xs')"
+        sorry
+    next
+      show "distinct xs'"
+        sorry
+    qed
+
+    show "\<exists>\<sigma>. t \<cdot>a \<sigma> = Fun f xs \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
+        range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
+      unfolding t_def generalizes_atm_def subst_apply_term.simps term.inject
+    proof (intro exI conjI)
+      show "map (\<lambda>t. t \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' = xs"
+        using ball_subst_eq \<open>length xs' = length xs\<close>
+          \<open>list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' \<sigma>s\<close>
+        by (smt (verit, del_insts) length_map list_all2_conv_all_nth list_eq_iff_nth_eq nth_map)
+    next
+      have "subst_domain (foldl (\<odot>) Var \<sigma>s) \<subseteq> \<Union> (subst_domain ` set \<sigma>s)"
+        by (rule subst_domain_foldl_compose[of Var, simplified])
+      also have "\<dots> \<subseteq> \<Union> (vars_term ` set xs')"
+      using ball_subst_eq
+      by (smt (verit, best) \<open>length \<sigma>s = length xs\<close> \<open>length xs' = length xs\<close>
+          complete_lattice_class.Sup_mono image_iff in_set_conv_nth)
+      also have "\<dots> = vars_term (Fun f xs')"
+        by simp
+      finally show "subst_domain (foldl (\<odot>) Var \<sigma>s) \<subseteq> vars_term (Fun f xs')"
+        by assumption
+    next
+      have "range_vars (foldl (\<odot>) Var \<sigma>s) \<subseteq> \<Union> (range_vars ` set \<sigma>s)"
+        by (rule range_vars_fold_compose[of Var, simplified])
+      also have "\<dots> \<subseteq> vars_term (Fun f xs)"
+        using ball_\<sigma>s_range_vars
+        by blast
+      finally show "range_vars (foldl (\<odot>) Var \<sigma>s) \<subseteq> vars_term (Fun f xs)"
+        by assumption
+    qed simp
+  qed
+qed
+
+lemma generalizes_atm_if_fmember_generalizations:
+  fixes t u :: "('f, 'v) term"
+  assumes "infinite (UNIV :: 'v set)"
+  shows "t |\<in>| generalizations u \<Longrightarrow> generalizes_atm t u"
+  by (auto simp: generalizes_atm_def dest: strong_generalizes_if_fmember_generalizations[OF assms])
+
+lemma renamed_fmember_generalizations_if_generalizes_atm:
+  fixes t u :: "('f, 'v) term"
+  assumes "infinite (UNIV :: 'v set)" and "generalizes_atm t u"
+  shows "\<exists>\<rho>. is_renaming \<rho> \<and> t \<cdot>a \<rho> |\<in>| generalizations u"
+  unfolding generalizes_atm_def
+  sorry
+
+find_theorems name: "Finite_Set" "\<exists>B. _"
+
+find_consts "'a set list \<Rightarrow> 'a list set"
+
+lemma
+  fixes u :: "('f, 'v) term"
+  assumes "infinite (UNIV :: 'v set)"
+  shows "\<exists>T. finite T \<and> (\<forall>w. generalizes_atm w u \<longleftrightarrow> (\<exists>t \<in> T. generalizes_atm t w))"
+  thm size_le_size_if_generalizes_atm
+proof (intro exI conjI allI)
+  show "finite (fset (generalizations u))"
+    by simp
+next
+  fix w
+  show "generalizes_atm w u = (\<exists>t\<in>fset (generalizations u). generalizes_atm t w)"
+  using renamed_fmember_generalizations_if_generalizes_atm
+    generalizes_atm_if_fmember_generalizations
+  by (metis assms fempty_iff generalizations.simps(1) generalizes_atm_refl) 
 qed
 
 end

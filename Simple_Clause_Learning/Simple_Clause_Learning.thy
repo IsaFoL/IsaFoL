@@ -266,6 +266,23 @@ declare Unification.mgu.simps[simp del]
 
 subsubsection \<open>First_Order_Terms Only\<close>
 
+lemma range_vars_Var[simp]: "range_vars Var = {}"
+  by (simp add: range_vars_def)
+
+lemma subst_apply_term_ident:
+  assumes "vars_term t \<inter> subst_domain \<sigma> = {}"
+  shows "t \<cdot> \<sigma> = t"
+  using assms
+proof (induction t)
+  case (Var x)
+  thus ?case
+    by (simp add: subst_domain_def)
+next
+  case (Fun f ts)
+  thus ?case
+    by (auto intro: list.map_ident_strong)
+qed
+
 lemma ex_unify_if_unifiers_not_empty:
   "unifiers es \<noteq> {} \<Longrightarrow> set xs = es \<Longrightarrow> \<exists>ys. unify xs [] = Some ys"
   using unify_complete by auto
