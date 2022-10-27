@@ -552,7 +552,9 @@ theorem learned_clauses_in_regular_runs:
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
     "U \<equiv> state_learned S1"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
-    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant trail_ord (fset N \<union> fset U) C)"
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
@@ -758,25 +760,18 @@ proof -
     "trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     by auto
 
-  have "\<not> redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
-    (fset N \<union> fset (state_learned S1)) Cn"
+  from sound_Sn conflict_Sn have Cn_\<gamma>n_in: "Cn \<cdot> \<gamma>n \<in> grounding_of_cls Cn"
+    unfolding sound_state_def
+    using grounding_of_cls_ground grounding_of_subst_cls_subset
+    by fastforce
+
+  have not_gr_red_Cn_\<gamma>n: "\<not> ground_redundant trail_ord (grounding_of_clss (fset N \<union> fset U)) (Cn \<cdot> \<gamma>n)"
   proof (rule notI)
-    assume "redundant (multp (trail_less_ex lt (map fst (state_trail S1))))
-      (fset N \<union> fset (state_learned S1)) Cn"
-    moreover from sound_Sn conflict_Sn have "Cn \<cdot> \<gamma>n \<in> grounding_of_cls Cn"
-      unfolding sound_state_def
-      using grounding_of_cls_ground grounding_of_subst_cls_subset 
-      by fastforce
-    ultimately have gr_red_Cn_\<gamma>n: "ground_redundant
-      (multp (trail_less_ex lt (map fst (state_trail S1))))
-      (grounding_of_clss (fset N \<union> fset (state_learned S1))) (Cn \<cdot> \<gamma>n)"
-      by (simp add: redundant_def)
-
     define S where
-      "S = {D \<in> grounding_of_clss (fset N \<union> fset (state_learned S1)).
-        (multp (trail_less_ex lt (map fst (state_trail S1))))\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)}"
+      "S = {D \<in> grounding_of_clss (fset N \<union> fset U). trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)}"
 
-    from gr_red_Cn_\<gamma>n have "S \<TTurnstile>e {Cn \<cdot> \<gamma>n}"
+    assume "ground_redundant trail_ord (grounding_of_clss (fset N \<union> fset U)) (Cn \<cdot> \<gamma>n)"
+    then have "S \<TTurnstile>e {Cn \<cdot> \<gamma>n}"
       unfolding ground_redundant_def S_def by simp
 
     from sound_S1 have sound_trail_S1: "sound_trail N (state_trail S1)"
@@ -805,17 +800,17 @@ proof -
       using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close> trail_defined_cls_def by blast
 
     from \<open>D \<in> S\<close> have
-      D_in: "D \<in> grounding_of_clss (fset N \<union> fset (state_learned S1))" and
-      D_le_Cn_\<gamma>n: "(multp (trail_less_ex lt (map fst (state_trail S1))))\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)"
+      D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
+      D_le_Cn_\<gamma>n: "trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)"
       unfolding S_def by simp_all
     hence "trail_defined_cls (state_trail S1) D"
       unfolding Lattices.sup_apply Boolean_Algebras.sup_bool_def
     proof (elim disjE)
-      assume multp_D_Cn_\<gamma>n: "multp (trail_less_ex lt (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
+      assume multp_D_Cn_\<gamma>n: "trail_ord D (Cn \<cdot> \<gamma>n)"
       show "trail_defined_cls (state_trail S1) D"
         using \<open>sound_trail N (state_trail S1)\<close> multp_D_Cn_\<gamma>n
           \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close> \<open>transp lt\<close>
-        by (auto intro: trail_defined_cls_if_lt_defined)
+        by (auto simp add: trail_ord_def intro: trail_defined_cls_if_lt_defined)
     next
       assume "D = Cn \<cdot> \<gamma>n"
       then show "trail_defined_cls (state_trail S1) D"
@@ -825,12 +820,6 @@ proof -
       using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
       using \<open>trail_consistent (state_trail S1)\<close> trail_interp_cls_if_trail_true
         trail_true_or_false_cls_if_defined by blast
-
-    have "trail_false_cls (state_trail S1) D"
-      apply (rule trail_false_cls_iff_not_trail_interp_entails[THEN iffD2,
-          OF trail_consistent_if_sound[OF sound_trail_S1] _
-            \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>])
-      using \<open>trail_defined_cls (state_trail S1) D\<close> trail_defined_cls_def by blast
 
     from backtrack have "C1 \<noteq> {#}"
       using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
@@ -857,10 +846,6 @@ proof -
 
     obtain L C \<gamma> where trail_S0_eq: "state_trail S0 = trail_propagate (state_trail S) L C \<gamma>"
       using \<open>propagate N \<beta> S S0\<close> unfolding propagate.simps by auto
-    (* hence "(\<exists>Sn. resolve N \<beta> S1 Sn)"
-      using resolve_before_conflict_with_propagated_literal[OF fin_N disj_vars_N
-          regular_run conflict]
-      by (simp add: trail_propagate_def) *)
 
     with backtrack have "strict_suffix (state_trail Sn) (state_trail S0)"
       using conflict_with_literal_gets_resolved[OF disj_vars_N regular_run _ conflict]
@@ -895,8 +880,9 @@ proof -
       show "D = Cn \<cdot> \<gamma>n \<Longrightarrow> ?thesis"
         using \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close> by argo
     next
-      assume "multp (trail_less_ex lt (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
+      assume "trail_ord D (Cn \<cdot> \<gamma>n)"
       hence D_lt_Cn_\<gamma>n': "multp (trail_less (map fst (state_trail S1))) D (Cn \<cdot> \<gamma>n)"
+        unfolding trail_ord_def
       proof (rule multp_mono_strong)
         from \<open>transp lt\<close> show "transp (trail_less_ex lt (map fst (state_trail S1)))"
           by (rule transp_trail_less_ex_if_sound[OF \<open>sound_trail N (state_trail S1)\<close>])
@@ -995,7 +981,7 @@ proof -
     proof -
       show ?thesis
         using ex_conflict_if_trail_false_cls[OF \<open>trail_false_cls (state_trail S) D\<close> D_in]
-        unfolding \<open>state_learned S = state_learned S1\<close>[symmetric]
+        unfolding U_def \<open>state_learned S = state_learned S1\<close>[symmetric]
           \<open>state_conflict S = None\<close>[symmetric]
         by simp
     qed
@@ -1003,11 +989,28 @@ proof -
       using \<open>regular_scl N \<beta> S S0\<close> \<open>propagate N \<beta> S S0\<close>
       using conflict_well_defined(1) regular_scl_def by blast
   qed
+  hence "\<not> redundant trail_ord (fset N \<union> fset U) Cn"
+    unfolding redundant_def
+    using Cn_\<gamma>n_in by auto
 
-  with conflict_Sn show ?thesis
-    unfolding trail_ord_def U_def
-    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'\<close>
-    by simp
+  moreover have "Cn \<cdot> \<gamma>n \<notin> grounding_of_clss (fset N \<union> fset U)"
+  proof -
+    have "is_ground_cls (Cn \<cdot> \<gamma>n)"
+      using Cn_\<gamma>n_in is_ground_cls_if_in_grounding_of_cls by blast
+
+    moreover have "is_ground_clss (grounding_of_clss (fset N \<union> fset U))"
+      by simp
+
+    ultimately have "\<not> ({D \<in> grounding_of_clss (fset N \<union> fset U). trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)} \<TTurnstile>e {Cn \<cdot> \<gamma>n})"
+      using not_gr_red_Cn_\<gamma>n unfolding ground_redundant_def
+      by simp
+    then show ?thesis
+      apply (simp add: true_clss_def)
+      by blast
+  qed
+
+  ultimately show ?thesis
+    using conflict_Sn \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'\<close> by simp
 qed
 
 corollary learned_clauses_in_regular_runs_static_order:
@@ -1022,9 +1025,9 @@ corollary learned_clauses_in_regular_runs_static_order:
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
     "U \<equiv> state_learned S1"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
-    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant (\<subseteq>#) (fset N \<union> fset U) C)"
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
   using learned_clauses_in_regular_runs[OF assms(1-6)]
-  using U_def redundant_multp_if_redundant_subset by blast
+  using U_def redundant_multp_if_redundant_strict_subset by blast
 
 end
 
