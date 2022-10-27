@@ -213,6 +213,14 @@ lemma (in substitution_ops) subst_atm_of_eq_compI:
 lemma (in substitution_ops) set_mset_subst_cls_conv: "set_mset (C \<cdot> \<sigma>) = (\<lambda>L. L \<cdot>l \<sigma>) ` set_mset C"
   by (simp add: subst_cls_def)
 
+lemma (in substitution_ops) grounding_of_clss_union[simp]:
+  "grounding_of_clss (A \<union> B) = grounding_of_clss A \<union> grounding_of_clss B"
+  by (simp add: grounding_of_clss_def)
+
+lemma (in substitution_ops) grounding_of_clss_insert[simp]:
+  "grounding_of_clss (insert C N) = grounding_of_cls C \<union> grounding_of_clss N"
+  by (simp add: grounding_of_clss_def)
+
 lemma (in substitution) is_ground_clss_grounding_of_clss[simp]:
   "is_ground_clss (grounding_of_clss N)"
   using grounding_of_clss_def union_grounding_of_cls_ground by presburger
