@@ -3548,7 +3548,8 @@ lemma scl_preserves_trail_atoms_lt:
 subsection \<open>Trail Resolved Literals Have Unique Polarity\<close>
 
 definition trail_resolved_lits_pol where
-  "trail_resolved_lits_pol S \<longleftrightarrow> (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> -(L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>)"
+  "trail_resolved_lits_pol S \<longleftrightarrow>
+  (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> -(L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>)"
 
 lemma trail_resolved_lits_pol_initial_state[simp]: "trail_resolved_lits_pol initial_state"
   by (simp add: trail_resolved_lits_pol_def)
