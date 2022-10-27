@@ -1,6 +1,7 @@
 theory Termination
   imports
     Simple_Clause_Learning
+    Non_Redundancy
     "HOL-Library.Monad_Syntax"
     (* "HOL-Library.State_Monad" *)
 begin
@@ -138,50 +139,36 @@ qed
 
 subsection \<open>Wellfounded_Extra\<close>
 
-lemma wf_union_if_measurable:
+lemma wf_union_if_convertible_to_wf:
   fixes
     f :: "'a \<Rightarrow> 'b" and g :: "'a \<Rightarrow> 'c" and
     R S :: "('a \<times> 'a) set" and Q :: "('b \<times> 'b) set" and T :: "('c \<times> 'c) set"
   assumes
-    "wf T"
-    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (g x, g y) \<in> T"
+    "wf S"
     "wf Q"
-    "\<And>x y. (x, y) \<in> S \<Longrightarrow> (f x, f y) \<in> Q"
-    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (f x, f y) \<in> Q \<or> f x = f y"
+    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (f x, f y) \<in> Q"
+    "\<And>x y. (x, y) \<in> S \<Longrightarrow> (f x, f y) \<in> Q \<or> f x = f y"
   shows "wf (R \<union> S)"
 proof (rule wf_if_convertible_to_wf)
-  show "wf (Q <*lex*> T)"
-    by (rule wf_lex_prod[OF \<open>wf Q\<close> \<open>wf T\<close>])
+  show "wf (Q <*lex*> S)"
+    by (rule wf_lex_prod[OF \<open>wf Q\<close> \<open>wf S\<close>])
 next
   define h where
-    "h \<equiv> \<lambda>z. (f z, g z)"
+    "h \<equiv> \<lambda>z. (f z, z)"
   
   fix x y assume "(x, y) \<in> R \<union> S"
-  with assms(2,4,5) show "(h x, h y) \<in> Q <*lex*> T"
+  with assms show "(h x, h y) \<in> Q <*lex*> S"
     unfolding h_def by fastforce
 qed
 
-
-lemma wfP_union_if_measurable:
-  fixes
-    f :: "'a \<Rightarrow> 'b" and g :: "'a \<Rightarrow> 'c" and
-    R S :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and Q :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and T :: "'c \<Rightarrow> 'c \<Rightarrow> bool"
+lemma wfP_union_if_convertible_to_wfP:
   assumes
-    "wfP T"
-    "\<And>x y. R x y \<Longrightarrow> T (g x) (g y)"
+    "wfP S"
     "wfP Q"
-    "\<And>x y. S x y \<Longrightarrow> Q (f x) (f y)"
-    "\<And>x y. R x y \<Longrightarrow> Q (f x) (f y) \<or> f x = f y"
+    "\<And>x y. R x y \<Longrightarrow> Q (f x) (f y)"
+    "\<And>x y. S x y \<Longrightarrow> Q (f x) (f y) \<or> f x = f y"
   shows "wfP (R \<squnion> S)"
-proof -
-  have "wf ({(xa, x). R xa x} \<union> {(xa, x). S xa x})"
-    using wf_union_if_measurable[to_pred, OF \<open>wfP T\<close> _ \<open>wfP Q\<close>,
-        of R g "{(xa, x). S xa x}" f, simplified] assms(2,4,5)
-    by simp
-  thus ?thesis
-    by (smt (verit, ccfv_threshold) CollectD CollectI UnCI case_prod_conv sup2E wfE_min wfI_min
-        wfP_def)
-qed
+  using assms by (rule wf_union_if_convertible_to_wf[to_pred])
 
 
 subsection \<open>FSet_Extra\<close>
@@ -203,10 +190,16 @@ qed
 lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
   by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
 
+lemma fminus_conv: "A |\<subset>| B \<longleftrightarrow> fset A \<subset> fset B \<and> finite (fset A) \<and> finite (fset B)"
+  by (simp add: less_eq_fset.rep_eq less_le_not_le)
+
 
 section \<open>Termination\<close>
 
 context scl begin
+
+
+subsection \<open>SCL without backtracking terminates\<close>
 
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
   "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
@@ -611,632 +604,269 @@ next
   qed
 qed
 
-term generalizes_atm
-thm generalizes_atm_def
 
-lemma generalizes_atm_refl[simp]: "generalizes_atm t t"
-  unfolding generalizes_atm_def
-proof (rule exI)
-  show "t \<cdot>a Var = t"
-    by simp
+subsection \<open>Backtracking can only be done finitely often\<close>
+
+thm learned_clauses_in_regular_runs_static_order
+
+lemma ex_new_grounding_if_not_redudant:
+  assumes not_redundant: "\<not> redundant R N C"
+  shows "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss N"
+proof -
+  from not_redundant obtain C' I where
+    C'_in: "C' \<in> grounding_of_cls C" and
+    I_entails: "I \<TTurnstile>s {D \<in> grounding_of_clss N. R D C' \<or> D = C'}" and
+    not_I_entails: "\<not> I \<TTurnstile> C'"
+    using not_redundant[unfolded redundant_def ground_redundant_def, rule_format, simplified]
+    by (auto simp: is_ground_cls_if_in_grounding_of_cls)
+
+  from I_entails have "C' \<in> grounding_of_clss N \<Longrightarrow> I \<TTurnstile> C'"
+    by (simp add: true_clss_def)
+  with not_I_entails have "C' \<notin> grounding_of_clss N"
+    by argo
+  with C'_in show ?thesis
+    by metis
 qed
 
 lemma
-  assumes "\<And>w. generalizes_atm w u \<longleftrightarrow> (\<exists>t \<in> T. generalizes_atm t w)"
-  shows "\<forall>t \<in> T. generalizes_atm t u"
-proof (rule ballI)
-  fix t assume "t \<in> T"
-  show "generalizes_atm t u"
-    unfolding assms
-  proof (rule bexI)
-    show "generalizes_atm t t"
-      by simp
-  next
-    show "t \<in> T"
-      by (rule \<open>t \<in> T\<close>)
-  qed
-qed
-
-lemma size_le_size_if_generalizes_atm:
-  assumes "generalizes_atm t u"
-  shows "size t \<le> size u"
-proof -
-  from assms obtain \<sigma> where "t \<cdot>a \<sigma> = u"
-    by (auto simp: generalizes_atm_def)
-  thus ?thesis
-  proof (induction t arbitrary: u)
-    case (Var x)
-    then show ?case
-      by (cases u) simp_all
-  next
-    case (Fun f args)
-    from Fun.prems show ?case
-      by (auto elim: Fun.IH intro!: size_list_pointwise)
-  qed
-qed
-
-lemma size_term_le_size_term_if_generalizes_atm:
-  assumes "generalizes_atm t u" and "m \<le> n"
-  shows "size_term (\<lambda>_. n) (\<lambda>_. m) t \<le> size_term (\<lambda>_. n) (\<lambda>_. m) u"
-proof -
-  from assms(1) obtain \<sigma> where "t \<cdot>a \<sigma> = u"
-    by (auto simp: generalizes_atm_def)
-  thus ?thesis
-  proof (induction t arbitrary: u)
-    case (Var x)
-    with assms(2) show ?case
-      by (cases u) simp_all
-  next
-    case (Fun f args)
-    from Fun.prems show ?case
-      by (auto elim: Fun.IH intro!: size_list_pointwise)
-  qed
-qed
-
-lemma size_term_lt_size_term_if_generalizes_atm:
   assumes
-    generalizes: "t \<cdot>a \<sigma> = u" and
-    not_renaming: "\<exists>x \<in> vars_term t. \<not> is_Var (\<sigma> x)" and
-    "m < n"
-  defines "size_term' \<equiv> size_term (\<lambda>_. n) (\<lambda>_. m)"
-  shows "size_term' t < size_term' u"
-  using generalizes not_renaming
-proof (induction t arbitrary: u)
-  case (Var x)
-  with assms(3) show ?case
-    by (cases u) (simp_all add: size_term'_def)
-next
-  case (Fun f args)
-  from Fun.prems have u_def: "u = Fun f (map (\<lambda>t. t \<cdot>a \<sigma>) args)"
-    by simp
-
-  from Fun.prems obtain arg where
-    arg_in: "arg \<in> set args" and bex_arg_is_Fun: "\<exists>x\<in>vars_term arg. is_Fun (\<sigma> x)"
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+    (\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U))) \<and>
+    grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
+proof -
+  from  learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5,6)]
+  obtain C \<gamma> where
+    conf_Sn: "state_conflict Sn = Some (C, \<gamma>)" and
+    not_redundant: "\<not> redundant (\<subset>#) (fset N \<union> fset (state_learned S1)) C"
     by auto
 
-  from arg_in obtain args0 args1 where args_def: "args = args0 @ arg # args1"
-    by (auto simp: in_set_conv_decomp)
+  moreover have bex_grounding_not_in_U: "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U)"
+    using ex_new_grounding_if_not_redudant[OF not_redundant, folded U_def]
+    by auto
 
-  have "size_term' (Fun f args) = 1 + n + size_list size_term' args"
-    by (simp add: size_term'_def)
-  also have "\<dots> = 2 + n + size_list size_term' args0 + size_term' arg + size_list size_term' args1"
-    by (simp add: args_def)
-  also have "\<dots> \<le> 2 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args0 + size_term' arg +
-      size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args1"
+  moreover have "grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
   proof -
-    have "size_list size_term' xs \<le> size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) xs" for xs
-    proof (rule size_list_pointwise)
-      fix x
-      from \<open>m < n\<close> show "size_term' x \<le> (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) x"
-        unfolding size_term'_def comp_def
-        by (auto simp: generalizes_atm_def intro!: size_term_le_size_term_if_generalizes_atm)
+    have "state_learned Sn = state_learned S1"
+      using resolution
+    proof (induction Sn rule: tranclp_induct)
+      case (base y)
+      thus ?case
+        by (auto elim: skip.cases factorize.cases resolve.cases)
+    next
+      case (step y z)
+      from step.hyps have "state_learned z = state_learned y"
+        by (auto elim: skip.cases factorize.cases resolve.cases)
+      with step.IH show ?case
+        by simp
     qed
-    thus ?thesis
-      by (simp add: add_le_mono)
+
+    moreover have "state_learned Sn' = finsert C (state_learned Sn)"
+      using backtrack conf_Sn
+      by (auto elim: backtrack.cases)
+
+    ultimately have "state_learned Sn' = finsert C U"
+      by (simp add: U_def)
+
+    show ?thesis
+      unfolding \<open>state_learned Sn' = finsert C U\<close>
+    proof (rule Set.psubsetI)
+      show "grounding_of_clss (fset U) \<subseteq> grounding_of_clss (fset (finsert C U))"
+        by simp
+    next
+      show "grounding_of_clss (fset U) \<noteq> grounding_of_clss (fset (finsert C U))"
+        using bex_grounding_not_in_U by auto
+    qed
   qed
-  also have "\<dots> < 2 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args0 + size_term' (arg \<cdot>a \<sigma>) +
-      size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args1"
-    using Fun.IH[OF arg_in refl bex_arg_is_Fun] by simp
-  also have "\<dots> = 1 + n + size_list (size_term' \<circ> (\<lambda>t. t \<cdot>a \<sigma>)) args"
-    by (simp add: args_def comp_def)
-  also have "\<dots> = size_term' u"
-    by (simp add: u_def size_term'_def)
-  finally show ?case
-    by assumption
+
+  ultimately show ?thesis
+    by simp
 qed
 
+definition clss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term clause fset" where
+  "clss_no_dup \<beta> = (mset_set \<circ> fset) |`| fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
 
-adhoc_overloading
-  bind FSet.fbind
+(* lemma finite_if_member_Pow_finite: "x \<in> Pow A \<Longrightarrow> finite A \<Longrightarrow> finite x"
+  using rev_finite_subset by auto *)
 
-term set_Cons
-term Set.bind
+lemma image_fset_fset_fPow_eq: "fset ` fset (fPow A) = Pow (fset A)"
+proof (rule Set.equalityI)
+  show "fset ` fset (fPow A) \<subseteq> Pow (fset A)"
+    by (meson PowI fPowD image_subset_iff less_eq_fset.rep_eq notin_fset)
+next
+  show "Pow (fset A) \<subseteq> fset ` fset (fPow A)"
+  proof (rule Set.subsetI)
+    fix x assume "x \<in> Pow (fset A)"
+    moreover hence "finite x"
+      by (metis PowD finite_fset rev_finite_subset)
+    ultimately show "x \<in> fset ` fset (fPow A)"
+      unfolding image_iff
+      by (metis PowD fPowI fset_cases less_eq_fset.rep_eq mem_Collect_eq notin_fset)
+  qed
+qed
 
-definition fset_Cons where
-  "fset_Cons A AS = do {
-    a \<leftarrow> A;
-    as \<leftarrow> AS;
-    {| a # as |}
-  }"
+lemma
+  assumes "\<forall>L \<in># C. count C L = 1"
+  shows "\<exists>C'. C = mset_set C'"
+  using assms
+  by (metis count_eq_zero_iff count_mset_set(1) count_mset_set(3) finite_set_mset multiset_eqI)
 
-lemma mem_fset_fset_ConsD:
-  assumes xs_in: "xs \<in> fset (fset_Cons A AS)"
-  shows "\<exists>a \<in> fset A. \<exists>as \<in> fset AS. xs = a # as"
+lemma fmember_clss_no_dup_if:
+  assumes "\<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>" and "\<forall>L \<in># C. count C L = 1"
+  shows "C |\<in>| clss_no_dup \<beta>"
 proof -
-  from xs_in have "xs \<in> fset A \<bind> (\<lambda>x. fset AS \<bind> (\<lambda>xs'. {x # xs'}))"
-    unfolding fset_Cons_def fbind.rep_eq comp_def id_apply finsert.rep_eq bot_fset.rep_eq
-    by simp
-
-  then show ?thesis
-    unfolding member_bind UN_iff
-    by simp
-qed
-
-term listset
-
-primrec listfset :: "'a fset list \<Rightarrow> 'a list fset" where
-  "listfset [] = {|[]|}" |
-  "listfset (A # As) = fset_Cons A (listfset As)"
-
-(* lemma
-  fixes xs
-  assumes "xs \<in> fset (listfset (A # As))"
-  shows "\<exists>x \<in> fset A. \<exists>xs' \<in> fset (listfset As). xs = x # xs'"
-  using assms
-proof (induction  *)
-
-
-lemma ball_fset_listfset_length_conv: "\<forall>xs \<in> fset (listfset As). length xs = length As"
-proof (induction As)
-  case Nil
-  show ?case
-    by simp
-next
-  case (Cons A As)
-  show ?case
-  proof (rule ballI)
-    fix xs assume "xs \<in> fset (listfset (A # As))"
-    then obtain x xs' where "xs = x # xs' \<and> x \<in> fset A \<and> xs' \<in> fset (listfset As)"
-      unfolding listfset.simps
-      by (auto dest: mem_fset_fset_ConsD)
-    thus "length xs = length (A # As)"
-      using Cons.IH
-      by simp
-  qed
-qed
-
-term ffUnion
-find_consts "'a fset set \<Rightarrow> _"
-
-term "foldr"
-
-primrec generalizations :: "('a, 'b) Term.term \<Rightarrow> ('a, 'b) Term.term fset" where
-  "generalizations (Var _) = {||}" |
-  "generalizations (Fun f xs) =
-    (let T = (Fun f) |`| listfset (map generalizations xs) in
-     finsert (Var (SOME x. x \<notin> (\<Union>t \<in> fset T. vars_term t))) T)"
-
-lemma bex_not_member_if_infinite: "infinite A \<Longrightarrow> finite B \<Longrightarrow> \<exists>x\<in>A. x \<notin> B"
-  by (meson rev_finite_subset subsetI)
-
-lemma
-  fixes w :: "('f, 'v) term"
-  assumes inf_vars: "infinite (UNIV :: 'v set)"
-  shows "pairwise (\<lambda>t u. vars_term t \<inter> vars_term u = {}) (fset (generalizations w))"
-  unfolding pairwise_def
-proof (intro ballI impI)
-  fix t u assume "t \<in> fset (generalizations w)" and "u \<in> fset (generalizations w)" and "t \<noteq> u"
-  then show "vars_term t \<inter> vars_term u = {}"
-  proof (induction w arbitrary: t u)
-    case (Var x)
-    thus ?case
-      by simp
+  show ?thesis
+    unfolding fmember_iff_member_fset clss_no_dup_def fimage.rep_eq image_comp[symmetric]
+    unfolding image_fset_fset_fPow_eq Abs_fset_inverse[simplified, OF finite_lits_less_B]
+  proof (rule image_eqI)
+    show "C = mset_set (set_mset C)"
+      using assms(2)
+      by (simp add: count_mset_set' leI mset_subset_eqI subset_mset.eq_iff)
   next
-    case (Fun f xs)
-    let ?T = "fset (Fun f |`| listfset (map generalizations xs))"
-    let ?var = "Var (SOME x. x \<notin> \<Union> (vars_term ` ?T))"
-
-    have fin_UN_vars_image_T:"finite (\<Union> (vars_term ` ?T))"
-      by simp
-    
-    from Fun.prems show ?case
-      unfolding generalizations.simps Let_def finsert.rep_eq insert_iff
-    proof (elim disjE)
-      assume t_eq: "t = ?var" and u_eq: "u = ?var"
-      thus ?thesis
-        using \<open>t \<noteq> u\<close> by simp
-    next
-      assume "t = ?var" and u_in: "u \<in> ?T"
-      then obtain y where "t = Var y \<and> y \<notin> \<Union> (vars_term ` ?T)"
-        using bex_not_member_if_infinite[OF inf_vars fin_UN_vars_image_T]
-        by (metis (no_types, lifting) someI_ex)
-      with u_in show ?thesis
-        by auto
-    next
-      assume t_in: "t \<in> ?T" and "u = ?var"
-      then obtain y where "u = Var y \<and> y \<notin> \<Union> (vars_term ` ?T)"
-        using bex_not_member_if_infinite[OF inf_vars fin_UN_vars_image_T]
-        by (metis (no_types, lifting) someI_ex)
-      with t_in show ?thesis
-        by auto
-    next
-      assume t_in: "t \<in> ?T" and u_in: "u \<in> ?T"
-      
-      from t_in obtain xs\<^sub>t where
-        t_def: "t = Fun f xs\<^sub>t" and "xs\<^sub>t |\<in>| listfset (map generalizations xs)"
-        by (meson fimageE notin_fset)
-
-      from u_in obtain xs\<^sub>u where
-        u_def: "u = Fun f xs\<^sub>u" and "xs\<^sub>u |\<in>| listfset (map generalizations xs)"
-        by (meson fimageE notin_fset)
-
-      show ?thesis
-        unfolding t_def u_def
-        unfolding term.set
-        unfolding Int_UN_distrib2 Union_empty_conv Set.ball_simps
-      proof (intro ballI)
-        fix x y assume "x \<in> set xs\<^sub>t" and "y \<in> set xs\<^sub>u"
-        then show "vars_term x \<inter> vars_term y = {}"
-          using Fun.IH
-          sorry
-      qed
-    qed
+    show "set_mset C \<in> Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
+      apply (rule PowI)
+      using assms(1)
+      by blast
   qed
-  oops
+qed
+
+definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term clause fset" where
+  "\<M>_back \<beta> S = Abs_fset (fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned S)))"
+
+term "mset_set ` Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
+thm wfP_union_if_convertible_to_wfP[of scl_no_backt "(|\<subset>|)" backt "\<M>_back \<beta>"]
 
 lemma
-  assumes "\<And>x. x \<in> set xs \<Longrightarrow> \<exists>y. P x y"
-  shows "\<exists>ys. list_all2 P xs ys"
-  using assms by (induction xs) auto
-
-find_consts name: "com" "('a \<Rightarrow> 'a \<Rightarrow> _) \<Rightarrow> bool"
-print_locale monoid
-print_locale monoid_mult
-
-find_consts "(_, _) subst list"
-
-term prod_list
-term monoid_list
-term "fold (\<odot>) xs Var"
-term "(\<cdot>)"
-term foldl
-
-lemma subst_atm_foldl_comp: "t \<cdot>a foldl (\<odot>) \<sigma>_def \<sigma>s = t \<cdot>a \<sigma>_def \<cdot>a foldl (\<odot>) Var \<sigma>s"
-proof (induction \<sigma>s arbitrary: t \<sigma>_def)
-  case Nil
-  show ?case by simp
-next
-  case (Cons \<sigma> \<sigma>s)
-  show ?case
-    unfolding foldl.simps comp_def
-    unfolding Cons.IH[of t]
-    unfolding Cons.IH[of "t \<cdot>a \<sigma>_def"]
-    by simp
-qed
-
-lemma subst_atm_fold_comp_Var_ident:
-  assumes "\<forall>\<sigma> \<in> set \<sigma>s. t \<cdot>a \<sigma> = t"
-  shows "t \<cdot>a foldl (\<odot>) Var \<sigma>s = t"
-  using assms
-proof (induction \<sigma>s arbitrary: t)
-  case Nil
-  show ?case by simp
-next
-  case (Cons \<sigma> \<sigma>s)
-  from Cons.prems have "t \<cdot>a \<sigma> = t"
-    by simp
-
-  have "t \<cdot>a foldl (\<odot>) Var (\<sigma> # \<sigma>s) = t \<cdot>a foldl (\<odot>) \<sigma> \<sigma>s"
-    by simp
-  also have "\<dots> = t \<cdot>a \<sigma> \<cdot>a foldl (\<odot>) Var \<sigma>s"
-    unfolding subst_atm_foldl_comp[of t] by simp
-  also have "\<dots> = t \<cdot>a foldl (\<odot>) Var \<sigma>s"
-    using Cons.prems by simp
-  also have "\<dots> = t"
-    using Cons.prems by (simp add: Cons.IH)
-  finally show ?case
-    by assumption
-qed
-
-lemma foldl_comp_Var_is_merged_subst:
-  fixes ts :: "('f, 'v) term list" and \<sigma>s :: "('f, 'v) subst list"
   assumes
-    same_length: "length ts = length \<sigma>s" and
-    range_vars_subset: "\<forall>\<sigma> \<in> set \<sigma>s. range_vars \<sigma> \<subseteq> A" and
-    min_domains: "list_all2 (\<lambda>t \<sigma>. subst_domain \<sigma> \<subseteq> vars_term t) ts \<sigma>s" and
-    disj_vars_wrt_A: "\<forall>t \<in> set ts. vars_term t \<inter> A = {}" and
-    disj_vars: "pairwise (\<lambda>t1 t2. vars_term t1 \<inter> vars_term t2 = {}) (set ts)" and
-    dist_terms: "distinct ts"
-  shows "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) ts \<sigma>s"
-  using assms
-proof (induction ts \<sigma>s rule: list_induct2)
-  case Nil
-  show ?case
-    by simp
-next
-  case (Cons t ts \<sigma>\<^sub>t \<sigma>s)
-  show ?case
-    unfolding foldl.simps id_subst_comp_subst
-  proof (rule list.rel_intros)
-    have vars_t_\<sigma>\<^sub>t_disj: "vars_term (t \<cdot>a \<sigma>\<^sub>t) \<inter> subst_domain \<sigma>' = {}"
-      if \<sigma>'_in: "\<sigma>' \<in> set \<sigma>s"
-      for \<sigma>'
-    proof -
-      from \<sigma>'_in obtain n where "n < length \<sigma>s" and \<sigma>'_def: "\<sigma>' = \<sigma>s ! n"
-        by (auto simp: in_set_conv_nth)
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt" and
 
-      define u where
-        "u = ts ! n"
-      hence "u \<in> set ts"
-        by (simp add: Cons.hyps \<open>n < length \<sigma>s\<close>)
-      hence "t \<noteq> u"
-        using Cons.prems(5) by fastforce
-      hence vars_disj_t_u: "vars_term t \<inter> vars_term u = {}"
-        using Cons.prems(4)
-        by (meson \<open>u \<in> set ts\<close> list.set_intros(1) pairwiseD set_subset_Cons subsetD)
-      
-      have dom_\<sigma>': "subst_domain \<sigma>' \<subseteq> vars_term u"
-        using \<sigma>'_def u_def \<open>length ts = length \<sigma>s\<close> \<open>n < length \<sigma>s\<close>
-        using Cons.prems(2) list_all2_nthD2 by fastforce
+    conf: "state_conflict Sn = Some (C, \<gamma>)" and
+    no_dup: "\<forall>L \<in># C \<cdot> \<gamma>. count (C \<cdot> \<gamma>) L = 1" and
 
-      have "vars_term (t \<cdot>a \<sigma>\<^sub>t) \<subseteq> vars_term t \<union> A"
-        by (meson Cons.prems(1) Diff_subset_conv list.set_intros(1) subset_trans
-            vars_subst_term_subset_weak)
-      moreover have "vars_term t \<inter> subst_domain \<sigma>' = {}"
-        using dom_\<sigma>' vars_disj_t_u by auto
-      moreover have "A \<inter> subst_domain \<sigma>' = {}"
-        using Cons.prems(3) \<open>u \<in> set ts\<close> dom_\<sigma>' by fastforce
-      ultimately show ?thesis
-        by auto
-    qed
+    invars: "minimal_ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
+  shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
+proof -
+  have 1: "state_learned Sn' = finsert C (state_learned Sn)"
+    using backtrack conf by (auto elim: backtrack.cases)
 
-    show "t \<cdot>a \<sigma>\<^sub>t = t \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s"
-      unfolding subst_atm_foldl_comp[of t]
-      using subst_atm_fold_comp_Var_ident[of \<sigma>s "t \<cdot>a \<sigma>\<^sub>t", symmetric]
-      by (simp add: subst_apply_term_ident vars_t_\<sigma>\<^sub>t_disj)
+  have 2: "state_learned Sn = state_learned S1"
+    using resolution
+  proof (induction Sn rule: tranclp_induct)
+    case (base y)
+    thus ?case
+      by (auto elim: skip.cases factorize.cases resolve.cases)
   next
-    have "u \<cdot>a \<sigma>\<^sub>u = u \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s"
-      if u_\<sigma>\<^sub>u_in: "(u, \<sigma>\<^sub>u) \<in> set (zip ts \<sigma>s)"
-      for u \<sigma>\<^sub>u
-    proof -
-      from u_\<sigma>\<^sub>u_in have "u \<in> set ts"
-        by (meson in_set_zipE)
-      moreover hence "t \<noteq> u"
-        using Cons.prems(5) by fastforce
-      ultimately have "vars_term u \<inter> vars_term t = {}"
-        using Cons.prems(4) by (simp add: pairwise_def)
-      moreover have "subst_domain \<sigma>\<^sub>t \<subseteq> vars_term t"
-        using Cons.prems by simp
-      ultimately have "vars_term u \<inter> subst_domain \<sigma>\<^sub>t = {}"
-        by auto
-      hence "u \<cdot>a \<sigma>\<^sub>t = u"
-        by (rule subst_apply_term_ident)
-
-      have IH: "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) ts \<sigma>s"
-        using Cons.prems by (simp_all add: pairwise_insert Cons.IH)
-
-      show ?thesis
-        unfolding subst_atm_foldl_comp[of _ \<sigma>\<^sub>t \<sigma>s] \<open>u \<cdot>a \<sigma>\<^sub>t = u\<close>
-        using IH[unfolded list_all2_iff] u_\<sigma>\<^sub>u_in
-        by auto
-    qed
-    thus "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) \<sigma>\<^sub>t \<sigma>s) ts \<sigma>s"
-      using \<open>length ts = length \<sigma>s\<close>
-      by (auto simp add: list_all2_iff)
+    case (step y z)
+    from step.hyps(2) have "state_learned z = state_learned y"
+      by (auto elim: skip.cases factorize.cases resolve.cases)
+    with step.IH show ?case
+      by simp
   qed
-qed
 
-lemma subst_domain_foldl_compose:
-  "subst_domain (foldl (\<odot>) \<sigma>\<^sub>0 \<sigma>s) \<subseteq> subst_domain \<sigma>\<^sub>0 \<union> \<Union>(subst_domain ` set \<sigma>s)"
-proof (induction \<sigma>s arbitrary: \<sigma>\<^sub>0)
-  case Nil
-  show ?case by simp
-next
-  case (Cons \<sigma> \<sigma>s)
-  show ?case
-    apply simp
-    using Cons.IH[of "\<sigma>\<^sub>0 \<odot> \<sigma>"] subst_domain_compose
-    by fastforce
-qed
+  from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
+    unfolding minimal_ground_closures_def conf
+    using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
 
-lemma range_vars_fold_compose:
-  "range_vars (foldl (\<odot>) \<sigma>\<^sub>0 \<sigma>s) \<subseteq> range_vars \<sigma>\<^sub>0 \<union> \<Union>(range_vars ` set \<sigma>s)"
-proof (induction \<sigma>s arbitrary: \<sigma>\<^sub>0)
-  case Nil
-  show ?case by simp
-next
-  case (Cons \<sigma> \<sigma>s)
-  show ?case
-    apply simp
-    using Cons.IH[of "\<sigma>\<^sub>0 \<odot> \<sigma>"] range_vars_subst_compose_subset
+  moreover have "C \<cdot> \<gamma> \<notin> grounding_of_clss (fset (state_learned Sn))"
+    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5,6)] 
+    unfolding 2 conf
     by force
-qed
-  
 
-lemma strong_generalizes_if_fmember_generalizations:
-  fixes t u :: "('f, 'v) term"
-  assumes "infinite (UNIV :: 'v set)"
-  shows "t |\<in>| generalizations u \<Longrightarrow> \<exists>\<sigma>. t \<cdot>a \<sigma> = u \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
-    range_vars \<sigma> \<subseteq> vars_term u"
-proof (induction u arbitrary: t)
-  case (Var x)
-  hence False by simp
-  thus ?case ..
-next
-  case (Fun f xs)
-  let ?XS = "Fun f |`| listfset (map generalizations xs)"
-  have "finite (\<Union>t \<in> fset ?XS. vars_term t)"
-    by simp
-  with Fun.prems obtain y where "t = Var y \<and> y \<notin> (\<Union>t \<in> fset ?XS. vars_term t) \<or> t |\<in>| ?XS"
-    unfolding generalizations.simps Let_def finsert_iff
-    by (metis (mono_tags, lifting) assms bex_not_member_if_infinite someI_ex)
-  then show ?case
-  proof (elim disjE exE conjE)
-    fix y assume "t = Var y" and "y \<notin> (\<Union>t \<in> fset ?XS. vars_term t)"
-    show "\<exists>\<sigma>. t \<cdot>a \<sigma> = Fun f xs \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
-        range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
-    proof (intro exI[of _ "Var(y := Fun f xs)"] conjI)
-      show "t \<cdot>a Var(y := Fun f xs) = Fun f xs"
-        by (simp add: \<open>t = Var y\<close>)
-    next
-      show "subst_domain (Var(y := Fun f xs)) \<subseteq> vars_term t"
-        by (simp add: \<open>t = Var y\<close> subst_domain_def)
-    next
-      show "range_vars (Var(y := Fun f xs)) \<subseteq> vars_term (Fun f xs)"
-        by (simp add: range_vars_def subst_domain_def)
-    qed
+  moreover have "C \<cdot> \<gamma> \<in> fset (clss_no_dup \<beta>)"
+    unfolding fmember_iff_member_fset[symmetric]
+  proof (rule fmember_clss_no_dup_if)
+    have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
+      using invars(3) conf by (auto simp: sound_state_def)
+    thus "\<forall>L\<in>#C \<cdot> \<gamma>. atm_of L \<prec>\<^sub>B \<beta>"
+      by (rule ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)])
   next
-    assume "t |\<in>| Fun f |`| listfset (map generalizations xs)"
-    then obtain xs' where
-      t_def: "t = Fun f xs'" and xs'_in: "xs' |\<in>| listfset (map generalizations xs)"
-      by auto
-
-    have "length xs' = length xs"
-      using xs'_in[unfolded fmember_iff_member_fset]
-      by (simp add: ball_fset_listfset_length_conv[rule_format])
-
-    have ball_fmember_generalizations:
-      "\<forall>n < length xs. xs' ! n |\<in>| generalizations (xs ! n)"
-      using xs'_in[unfolded fmember_iff_member_fset]
-    proof (induction xs arbitrary: xs')
-      case Nil
-      show ?case by simp
-    next
-      case (Cons x xs)
-      from Cons.prems have "xs' \<in>
-        fset (fset_Cons (generalizations x) (listfset (map generalizations xs)))"
-        unfolding list.map listfset.simps
-        by simp
-      then obtain a as where
-        a_in: "a \<in> fset (generalizations x)" and
-        as_in: "as \<in> fset (listfset (map generalizations xs))" and
-        "xs' = a # as"
-        by (auto dest: mem_fset_fset_ConsD)
-
-      show ?case
-        unfolding \<open>xs' = a # as\<close>
-        using a_in Cons.IH[OF as_in]
-        by (metis One_nat_def diff_less length_Cons less_Suc_eq less_imp_diff_less linorder_neqE_nat
-            not_less0 notin_fset nth_Cons')
-    qed
-    with \<open>length xs' = length xs\<close> have "\<exists>\<sigma>s. length \<sigma>s = length xs \<and>
-      (\<forall>n < length xs. (xs' ! n) \<cdot>a (\<sigma>s ! n) = xs ! n \<and>
-      subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs' ! n) \<and>
-      range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f xs))"
-      using Fun.IH[unfolded generalizes_atm_def]
-    proof (induction xs' xs rule: list_induct2)
-      case Nil
-      show ?case
-        by simp
-    next
-      case (Cons x xs y ys)
-
-      from Cons.prems(1) have
-        "x |\<in>| generalizations y" and
-        ball_fmember_gen:"\<forall>n<length ys. xs ! n |\<in>| generalizations (ys ! n)"
-        by auto
-
-      with Cons.prems(2)[of y x, simplified] obtain \<sigma> where
-        x_\<sigma>: "x \<cdot>a \<sigma> = y" and dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_term x" and
-        range_\<sigma>: "range_vars \<sigma> \<subseteq> vars_term y"
-        by auto
-      
-      moreover from Cons.prems(2) obtain \<sigma>s where
-        "length \<sigma>s = length ys" and ball_ys: "\<forall>n<length ys. xs ! n \<cdot>a \<sigma>s ! n = ys ! n \<and>
-          subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs ! n) \<and> range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f ys)"
-        using Cons.IH[OF ball_fmember_gen] by auto
-      
-      show ?case
-      proof (intro exI[of _ "\<sigma> # \<sigma>s"] conjI allI)
-        show "length (\<sigma> # \<sigma>s) = length (y # ys)"
-          using \<open>length \<sigma>s = length ys\<close> by simp
-      next
-        fix n show "n < length (y # ys) \<longrightarrow>
-          (x # xs) ! n \<cdot>a (\<sigma> # \<sigma>s) ! n = (y # ys) ! n \<and>
-          subst_domain ((\<sigma> # \<sigma>s) ! n) \<subseteq> vars_term ((x # xs) ! n) \<and>
-          range_vars ((\<sigma> # \<sigma>s) ! n) \<subseteq> vars_term (Fun f (y # ys)) "
-          using x_\<sigma> dom_\<sigma> range_\<sigma> ball_ys
-          by (cases n) auto
-      qed
-    qed
-    then obtain \<sigma>s where "length \<sigma>s = length xs" and
-      ball_subst_eq: "\<forall>n<length xs. xs' ! n \<cdot>a \<sigma>s ! n = xs ! n \<and>
-        subst_domain (\<sigma>s ! n) \<subseteq> vars_term (xs' ! n) \<and>
-        range_vars (\<sigma>s ! n) \<subseteq> vars_term (Fun f xs)"
-      by auto
-
-    have "length xs' = length \<sigma>s"
-      using \<open>length \<sigma>s = length xs\<close> \<open>length xs' = length xs\<close> by simp
-
-    have ball_\<sigma>s_range_vars: "\<forall>\<sigma>\<in>set \<sigma>s. range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
-      using ball_subst_eq
-      by (metis \<open>length \<sigma>s = length xs\<close> in_set_conv_nth)
-
-    have "list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' \<sigma>s"
-    proof (rule foldl_comp_Var_is_merged_subst[of xs' \<sigma>s])
-      show "length xs' = length \<sigma>s"
-        by (rule \<open>length xs' = length \<sigma>s\<close>)
-    next
-      show "\<forall>\<sigma>\<in>set \<sigma>s. range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
-        by (rule ball_\<sigma>s_range_vars)
-    next
-      show "list_all2 (\<lambda>t \<sigma>. subst_domain \<sigma> \<subseteq> vars_term t) xs' \<sigma>s"
-        using ball_subst_eq
-        by (metis \<open>length xs' = length \<sigma>s\<close> \<open>length xs' = length xs\<close> list_all2_all_nthI)
-    next
-      show "\<forall>t\<in>set xs'. vars_term t \<inter> vars_term (Fun f xs) = {}"
-        sorry
-    next
-      show "pairwise (\<lambda>t1 t2. vars_term t1 \<inter> vars_term t2 = {}) (set xs')"
-        sorry
-    next
-      show "distinct xs'"
-        sorry
-    qed
-
-    show "\<exists>\<sigma>. t \<cdot>a \<sigma> = Fun f xs \<and> subst_domain \<sigma> \<subseteq> vars_term t \<and>
-        range_vars \<sigma> \<subseteq> vars_term (Fun f xs)"
-      unfolding t_def generalizes_atm_def subst_apply_term.simps term.inject
-    proof (intro exI conjI)
-      show "map (\<lambda>t. t \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' = xs"
-        using ball_subst_eq \<open>length xs' = length xs\<close>
-          \<open>list_all2 (\<lambda>x \<sigma>\<^sub>x. x \<cdot>a \<sigma>\<^sub>x = x \<cdot>a foldl (\<odot>) Var \<sigma>s) xs' \<sigma>s\<close>
-        by (smt (verit, del_insts) length_map list_all2_conv_all_nth list_eq_iff_nth_eq nth_map)
-    next
-      have "subst_domain (foldl (\<odot>) Var \<sigma>s) \<subseteq> \<Union> (subst_domain ` set \<sigma>s)"
-        by (rule subst_domain_foldl_compose[of Var, simplified])
-      also have "\<dots> \<subseteq> \<Union> (vars_term ` set xs')"
-      using ball_subst_eq
-      by (smt (verit, best) \<open>length \<sigma>s = length xs\<close> \<open>length xs' = length xs\<close>
-          complete_lattice_class.Sup_mono image_iff in_set_conv_nth)
-      also have "\<dots> = vars_term (Fun f xs')"
-        by simp
-      finally show "subst_domain (foldl (\<odot>) Var \<sigma>s) \<subseteq> vars_term (Fun f xs')"
-        by assumption
-    next
-      have "range_vars (foldl (\<odot>) Var \<sigma>s) \<subseteq> \<Union> (range_vars ` set \<sigma>s)"
-        by (rule range_vars_fold_compose[of Var, simplified])
-      also have "\<dots> \<subseteq> vars_term (Fun f xs)"
-        using ball_\<sigma>s_range_vars
-        by blast
-      finally show "range_vars (foldl (\<odot>) Var \<sigma>s) \<subseteq> vars_term (Fun f xs)"
-        by assumption
-    qed simp
+    show "\<forall>L\<in>#C \<cdot> \<gamma>. count (C \<cdot> \<gamma>) L = 1"
+      by (rule no_dup)
   qed
+
+  ultimately have "fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned Sn')) \<subset>
+    fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned Sn))"
+    unfolding 1 finsert.rep_eq grounding_of_clss_insert
+    by blast
+    
+  then show ?thesis
+    unfolding \<M>_back_def
+    unfolding fminus_conv
+    by (simp add: Abs_fset_inverse[simplified])
 qed
-
-lemma generalizes_atm_if_fmember_generalizations:
-  fixes t u :: "('f, 'v) term"
-  assumes "infinite (UNIV :: 'v set)"
-  shows "t |\<in>| generalizations u \<Longrightarrow> generalizes_atm t u"
-  by (auto simp: generalizes_atm_def dest: strong_generalizes_if_fmember_generalizations[OF assms])
-
-lemma renamed_fmember_generalizations_if_generalizes_atm:
-  fixes t u :: "('f, 'v) term"
-  assumes "infinite (UNIV :: 'v set)" and "generalizes_atm t u"
-  shows "\<exists>\<rho>. is_renaming \<rho> \<and> t \<cdot>a \<rho> |\<in>| generalizations u"
-  unfolding generalizes_atm_def
-  sorry
-
-find_theorems name: "Finite_Set" "\<exists>B. _"
-
-find_consts "'a set list \<Rightarrow> 'a list set"
 
 lemma
-  fixes u :: "('f, 'v) term"
-  assumes "infinite (UNIV :: 'v set)"
-  shows "\<exists>T. finite T \<and> (\<forall>w. generalizes_atm w u \<longleftrightarrow> (\<exists>t \<in> T. generalizes_atm t w))"
-  thm size_le_size_if_generalizes_atm
-proof (intro exI conjI allI)
-  show "finite (fset (generalizations u))"
-    by simp
+  fixes N \<beta> scl_without_backtrack
+  defines
+    "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
+      factorize N \<beta> \<squnion> resolve N \<beta>" and
+    "full_scl \<equiv> scl_without_backtrack \<squnion> backtrack N \<beta>" and
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
+  shows
+    "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)" and
+    "invars initial_state" and
+    "\<And>S S'. full_scl S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+proof -
+  show "invars initial_state"
+    by (simp add: invars_def)
 next
-  fix w
-  show "generalizes_atm w u = (\<exists>t\<in>fset (generalizations u). generalizes_atm t w)"
-  using renamed_fmember_generalizations_if_generalizes_atm
-    generalizes_atm_if_fmember_generalizations
-  by (metis assms fempty_iff generalizations.simps(1) generalizes_atm_refl) 
-qed
+  fix S S'
+  assume "full_scl S S'"
+  hence "scl N \<beta> S S'"
+    unfolding full_scl_def scl_without_backtrack_def sup_apply sup_bool_def
+    by (auto simp add: scl_def)
+  thus "invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    by (auto intro: scl_preserves_trail_atoms_lt
+        scl_preserves_trail_resolved_lits_pol
+        scl_preserves_trail_lits_ground
+        scl_preserves_trail_lits_from_clauses
+        scl_preserves_initial_lits_generalize_learned_trail_conflict
+        scl_preserves_conflict_disjoint_vars
+        scl_preserves_minimal_ground_closures)
+next
+  have *: "(\<lambda>S' S. full_scl S S' \<and> invars S) =
+    (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion> (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
+    by (auto simp add: full_scl_def)
+
+  show "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)"
+    unfolding *
+  proof (rule wfP_union_if_convertible_to_wfP)
+    show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
+      by (rule scl_without_backtrack_terminates(1)[of N \<beta>,
+            folded scl_without_backtrack_def invars_def])
+  next
+    show "wfP (|\<subset>|)"
+      by (rule wfP_pfsubset)
+  next
+    fix S S' assume "backtrack N \<beta> S S' \<and> invars S"
+    show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
+      sorry
+  next
+    fix S S' assume "scl_without_backtrack S S' \<and> invars S"
+    hence "state_learned S' = state_learned S"
+      by (auto simp add: scl_without_backtrack_def
+          elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases resolve.cases)
+    then show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S"
+      by (simp add: \<M>_back_def)
+  qed
 
 end
 
