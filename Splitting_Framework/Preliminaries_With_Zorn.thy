@@ -749,10 +749,10 @@ proof (rule ccontr)
     qed
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> M \<subseteq> fst (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def fst_eqD
-      by fastforce
+      by metis
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> N \<subseteq> snd (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def snd_eqD
-      by fastforce
+      by metis      
     ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
       unfolding A_def using M_N_less_than_max_chain case_prod_beta
       by force
@@ -2261,7 +2261,10 @@ next
         by auto
     qed
     moreover have \<open>F_of \<J>' = bot\<close>
-      unfolding \<J>'_def by simp
+      unfolding \<J>'_def
+       
+ (* by simp *) (* seem to be broken by upgrade to isabelle 2022, see if this is only emacs or also jedit problem *)
+   sorry
     moreover have \<open>\<forall>\<C>\<in>\<N>'. fset (A_of \<C>) \<subseteq> fset (A_of \<J>')\<close>
       using AJ_is \<J>'_def by auto
 
