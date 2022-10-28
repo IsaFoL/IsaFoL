@@ -691,8 +691,8 @@ proof -
     by simp
 qed
 
-definition clss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term clause fset" where
-  "clss_no_dup \<beta> = (mset_set \<circ> fset) |`| fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
+definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
+  "fclss_no_dup \<beta> = fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
 
 (* lemma finite_if_member_Pow_finite: "x \<in> Pow A \<Longrightarrow> finite A \<Longrightarrow> finite x"
   using rev_finite_subset by auto *)
@@ -719,32 +719,29 @@ lemma
   using assms
   by (metis count_eq_zero_iff count_mset_set(1) count_mset_set(3) finite_set_mset multiset_eqI)
 
-lemma fmember_clss_no_dup_if:
-  assumes "\<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>" and "\<forall>L \<in># C. count C L = 1"
-  shows "C |\<in>| clss_no_dup \<beta>"
+lemma fmember_fclss_no_dup_if:
+  assumes "\<forall>L |\<in>| C. atm_of L \<prec>\<^sub>B \<beta>"
+  shows "C |\<in>| fclss_no_dup \<beta>"
 proof -
   show ?thesis
-    unfolding fmember_iff_member_fset clss_no_dup_def fimage.rep_eq image_comp[symmetric]
-    unfolding image_fset_fset_fPow_eq Abs_fset_inverse[simplified, OF finite_lits_less_B]
-  proof (rule image_eqI)
-    show "C = mset_set (set_mset C)"
-      using assms(2)
-      by (simp add: count_mset_set' leI mset_subset_eqI subset_mset.eq_iff)
-  next
-    show "set_mset C \<in> Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
-      apply (rule PowI)
-      using assms(1)
-      by blast
+    unfolding fclss_no_dup_def fPow_iff
+  proof (rule fsubsetI)
+    fix K assume "K |\<in>| C"
+    with assms show "K |\<in>| Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>}"
+      by (auto simp: fmember_iff_member_fset Abs_fset_inverse[simplified, OF finite_lits_less_B])
   qed
 qed
 
-definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term clause fset" where
-  "\<M>_back \<beta> S = Abs_fset (fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned S)))"
+definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
+  "\<M>_back \<beta> S = Abs_fset (fset (fclss_no_dup \<beta>) -
+    Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned S)))"
 
 term "mset_set ` Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
 thm wfP_union_if_convertible_to_wfP[of scl_no_backt "(|\<subset>|)" backt "\<M>_back \<beta>"]
 
-lemma
+term multp
+
+lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
   assumes
     disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
@@ -753,14 +750,18 @@ lemma
     backtrack: "backtrack N \<beta> Sn Sn'" and
     "transp lt" and
 
-    conf: "state_conflict Sn = Some (C, \<gamma>)" and
-    no_dup: "\<forall>L \<in># C \<cdot> \<gamma>. count (C \<cdot> \<gamma>) L = 1" and
-
     invars: "minimal_ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
   defines
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
   shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
 proof -
+  obtain C \<gamma> where
+    conf: "state_conflict Sn = Some (C, \<gamma>)" and
+    set_conf_not_in_set_groundings:
+      "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
+    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5,6)]
+    by auto
+
   have 1: "state_learned Sn' = finsert C (state_learned Sn)"
     using backtrack conf by (auto elim: backtrack.cases)
 
@@ -778,33 +779,62 @@ proof -
       by simp
   qed
 
-  from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
-    unfolding minimal_ground_closures_def conf
-    using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
+  have Diff_strict_subsetI: "x \<in> A \<Longrightarrow> x \<in> B \<Longrightarrow> A - B \<subset> A" for x A B
+    by auto
 
-  moreover have "C \<cdot> \<gamma> \<notin> grounding_of_clss (fset (state_learned Sn))"
-    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5,6)] 
-    unfolding 2 conf
-    by force
+  have "fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn')) =
+    fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn)) -
+      Abs_fset ` set_mset ` grounding_of_cls C"
+    unfolding 1 finsert.rep_eq grounding_of_clss_insert image_Un
+    by auto
 
-  moreover have "C \<cdot> \<gamma> \<in> fset (clss_no_dup \<beta>)"
-    unfolding fmember_iff_member_fset[symmetric]
-  proof (rule fmember_clss_no_dup_if)
-    have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
-      using invars(3) conf by (auto simp: sound_state_def)
-    thus "\<forall>L\<in>#C \<cdot> \<gamma>. atm_of L \<prec>\<^sub>B \<beta>"
-      by (rule ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)])
+  also have "\<dots> \<subset>
+    fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+  proof (rule Diff_strict_subsetI)
+    from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
+      unfolding minimal_ground_closures_def conf
+      using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
+    thus "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> Abs_fset ` set_mset ` grounding_of_cls C"
+      by blast
   next
-    show "\<forall>L\<in>#C \<cdot> \<gamma>. count (C \<cdot> \<gamma>) L = 1"
-      by (rule no_dup)
+    have Abs_fset_in_image_Abs_fset_iff: "Abs_fset A \<in> Abs_fset ` AA \<longleftrightarrow> A \<in> AA"
+      if "finite A \<and> (\<forall>B \<in> AA. finite B)"
+      for A AA
+      apply (rule iffI)
+      using that
+       apply (metis Abs_fset_inverse imageE mem_Collect_eq)
+      using that
+      by blast
+
+    have "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset (state_learned S1))"
+      using set_conf_not_in_set_groundings
+      by auto
+    then have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<notin>
+      Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+      unfolding 2
+      using Abs_fset_in_image_Abs_fset_iff
+      by (metis finite_set_mset image_iff)
+
+    moreover have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> fset (fclss_no_dup \<beta>)"
+      unfolding fmember_iff_member_fset[symmetric]
+    proof (intro fmember_fclss_no_dup_if fBallI)
+      fix L assume "L |\<in>| Abs_fset (set_mset (C \<cdot> \<gamma>))"
+      hence "L \<in># C \<cdot> \<gamma>"
+        unfolding fmember_iff_member_fset
+        by (metis fset_fset_mset fset_inverse)
+      moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
+        using invars(3) conf by (auto simp: sound_state_def)
+      ultimately show "atm_of L \<prec>\<^sub>B \<beta>"
+        using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)]
+        by metis
+    qed
+
+    ultimately show "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> fset (fclss_no_dup \<beta>) -
+      Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+      by simp
   qed
 
-  ultimately have "fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned Sn')) \<subset>
-    fset (clss_no_dup \<beta>) - grounding_of_clss (fset (state_learned Sn))"
-    unfolding 1 finsert.rep_eq grounding_of_clss_insert
-    by blast
-    
-  then show ?thesis
+  finally show ?thesis
     unfolding \<M>_back_def
     unfolding fminus_conv
     by (simp add: Abs_fset_inverse[simplified])
@@ -856,17 +886,19 @@ next
     show "wfP (|\<subset>|)"
       by (rule wfP_pfsubset)
   next
-    fix S S' assume "backtrack N \<beta> S S' \<and> invars S"
-    show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
-      sorry
-  next
     fix S S' assume "scl_without_backtrack S S' \<and> invars S"
     hence "state_learned S' = state_learned S"
       by (auto simp add: scl_without_backtrack_def
           elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases resolve.cases)
     then show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S"
       by (simp add: \<M>_back_def)
-  qed
+  next
+    fix S S' assume "backtrack N \<beta> S S' \<and> invars S"
+    show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
+      using \<M>_back_pfsubset_\<M>_back_after_regular_backtrack
+      \<comment> \<open>This would be the last step but would require to rephrase the non-redundancy lemma in term
+        of invariants instead of regular run.orr\<close>
+      oops
 
 end
 
