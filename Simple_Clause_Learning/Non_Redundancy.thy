@@ -365,10 +365,18 @@ lemma redundant_multp_if_redundant_subset:
   "redundant (\<subseteq>#) N C \<Longrightarrow> redundant (multp (trail_less_ex lt Ls)) N C"
   by (auto intro: subset_implies_multp elim!: redundant_mono_strong)
 
-lemma
-  assumes "\<exists>C \<in> N. \<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D"
-  shows "\<exists>C \<in> {C \<in> N. multp (trail_less_ex lt Ls) C D}. \<exists>\<sigma>. C \<cdot> \<sigma> \<subseteq># D"
-  oops
+lemma not_bex_subset_mset_if_not_ground_redundant:
+  assumes "is_ground_cls C" and "is_ground_clss N"
+  shows "\<not> ground_redundant (\<subset>#) N C \<Longrightarrow> \<not> (\<exists>D \<in> N. D \<subseteq># C)"
+  using assms unfolding ground_redundant_def
+  apply (simp add: true_cls_def true_clss_def)
+  apply (elim exE conjE)
+  apply (rule ballI)
+  subgoal premises prems for I D
+    using prems(3)[rule_format, of D] prems(1,2,4-)
+    apply simp
+    by (meson mset_subset_eqD subset_mset.nless_le)
+  done
 
 
 section \<open>Trail-Induced Ordering\<close>
@@ -554,6 +562,7 @@ theorem learned_clauses_in_regular_runs:
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
@@ -757,7 +766,7 @@ proof -
   then obtain Cn \<gamma>n where
     "suffix (state_trail Sn) (state_trail S1)" and
     conflict_Sn: "state_conflict Sn = Some (Cn, \<gamma>n)" and
-    "trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
+    tr_false_S1_Cn_\<gamma>n: "trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     by auto
 
   from sound_Sn conflict_Sn have Cn_\<gamma>n_in: "Cn \<cdot> \<gamma>n \<in> grounding_of_cls Cn"
@@ -765,45 +774,108 @@ proof -
     using grounding_of_cls_ground grounding_of_subst_cls_subset
     by fastforce
 
-  have not_gr_red_Cn_\<gamma>n: "\<not> ground_redundant trail_ord (grounding_of_clss (fset N \<union> fset U)) (Cn \<cdot> \<gamma>n)"
+  from sound_S1 have sound_trail_S1: "sound_trail N (state_trail S1)"
+    by (auto simp add: sound_state_def)
+  hence tr_consistent_S1: "trail_consistent (state_trail S1)"
+    by (rule trail_consistent_if_sound)
+
+  have "\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L"
+    using tr_false_S1_Cn_\<gamma>n trail_defined_lit_iff_true_or_false trail_false_cls_def by blast
+  hence "trail_interp (state_trail S1) \<TTurnstile> Cn \<cdot> \<gamma>n \<longleftrightarrow> trail_true_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
+    using tr_consistent_S1 trail_true_cls_iff_trail_interp_entails by auto
+  hence not_trail_S1_entails_Cn_\<gamma>n: "\<not> trail_interp (state_trail S1) \<TTurnstile>s {Cn \<cdot> \<gamma>n}"
+    using tr_false_S1_Cn_\<gamma>n not_trail_true_and_false_cls[OF sound_trail_S1] by auto
+
+  have "trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
+    using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close> trail_defined_cls_def by blast
+
+  from backtrack have "C1 \<noteq> {#}"
+    using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
+    by (metis converse_rtranclpE scl_def reasonable_if_regular reg_run_S1_Sn scl_if_reasonable)
+  hence "{#} |\<notin>| N"
+    using mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict
+    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1\<close> conflict_S1 by blast
+  then obtain S where
+    "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "regular_scl N \<beta> S S0" and "propagate N \<beta> S S0"
+    using before_regular_conflict[OF regular_run conflict] by auto
+
+  have "state_learned S = state_learned S0"
+    using \<open>propagate N \<beta> S S0\<close> by (auto simp add: propagate.simps)
+  also from conflict have "... = state_learned S1"
+    by (auto simp add: conflict.simps)
+  finally have "state_learned S = state_learned S1"
+    by assumption
+
+  have "state_conflict S = None"
+    using \<open>propagate N \<beta> S S0\<close> by (auto simp add: propagate.simps)
+
+  from conflict have "state_trail S1 = state_trail S0"
+    by (smt (verit) conflict.cases state_trail_simp)
+
+  obtain L C \<gamma> where trail_S0_eq: "state_trail S0 = trail_propagate (state_trail S) L C \<gamma>"
+    using \<open>propagate N \<beta> S S0\<close> unfolding propagate.simps by auto
+
+  with backtrack have "strict_suffix (state_trail Sn) (state_trail S0)"
+    using conflict_with_literal_gets_resolved[OF disj_vars_N regular_run _ conflict]
+      resolution
+    by (metis (no_types, lifting) trail_propagate_def tranclp_into_rtranclp)
+  hence "suffix (state_trail Sn) (state_trail S)"
+    unfolding trail_S0_eq trail_propagate_def
+    by (metis suffix_Cons suffix_order.le_less suffix_order.less_irrefl)
+
+  moreover have "\<not> trail_defined_lit (state_trail S) (L \<cdot>l \<gamma>)"
+  proof -
+    have  "trail_consistent (state_trail S0)"
+      using \<open>state_trail S1 = state_trail S0\<close> \<open>trail_consistent (state_trail S1)\<close> by simp
+    thus ?thesis
+      by (smt (verit, best) Pair_inject list.distinct(1) list.inject trail_S0_eq
+          trail_consistent.cases trail_propagate_def)
+  qed
+
+  ultimately have "\<not> trail_defined_lit (state_trail Sn) (L \<cdot>l \<gamma>)"
+    by (metis trail_defined_lit_def trail_false_lit_def trail_false_lit_if_trail_false_suffix
+        uminus_of_uminus_id)
+
+  moreover have "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
+    using sound_Sn conflict_Sn by (auto simp add: sound_state_def)
+
+  ultimately have "L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n"
+    unfolding trail_false_cls_def trail_false_lit_def trail_defined_lit_def
+    by (metis uminus_of_uminus_id)
+
+  have no_conf_at_S: "\<nexists>S'. conflict N \<beta> S S'"
+    using \<open>regular_scl N \<beta> S S0\<close> \<open>propagate N \<beta> S S0\<close>
+    using conflict_well_defined(1) regular_scl_def by blast
+
+  have conf_at_S_if: "\<exists>S'. conflict N \<beta> S S'"
+    if D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
+      tr_false_D: "trail_false_cls (state_trail S) D"
+    for D
+    using ex_conflict_if_trail_false_cls[OF tr_false_D D_in]
+    unfolding U_def \<open>state_learned S = state_learned S1\<close>[symmetric]
+      \<open>state_conflict S = None\<close>[symmetric]
+    by simp
+
+  have not_gr_red_Cn_\<gamma>n:
+    "\<not> ground_redundant trail_ord (grounding_of_clss (fset N \<union> fset U)) (Cn \<cdot> \<gamma>n)"
   proof (rule notI)
-    define S where
-      "S = {D \<in> grounding_of_clss (fset N \<union> fset U). trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)}"
+    define gnds_le_Cn_\<gamma>n where
+      "gnds_le_Cn_\<gamma>n = {D \<in> grounding_of_clss (fset N \<union> fset U). trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)}"
 
     assume "ground_redundant trail_ord (grounding_of_clss (fset N \<union> fset U)) (Cn \<cdot> \<gamma>n)"
-    then have "S \<TTurnstile>e {Cn \<cdot> \<gamma>n}"
-      unfolding ground_redundant_def S_def by simp
-
-    from sound_S1 have sound_trail_S1: "sound_trail N (state_trail S1)"
-      by (auto simp add: sound_state_def)
-    hence "trail_consistent (state_trail S1)"
-      by (rule trail_consistent_if_sound)
-
-    moreover have "\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L"
-      using \<open>trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close> trail_defined_lit_iff_true_or_false
-        trail_false_cls_def by blast
-
-    ultimately have "trail_interp (state_trail S1) \<TTurnstile> Cn \<cdot> \<gamma>n \<longleftrightarrow>
-      trail_true_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
-      using trail_true_cls_iff_trail_interp_entails by auto
-    hence "\<not> trail_interp (state_trail S1) \<TTurnstile>s {Cn \<cdot> \<gamma>n}"
-      using \<open>trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close>
-      using not_trail_true_and_false_cls[OF sound_trail_S1]
-      by auto
-    hence "\<not> trail_interp (state_trail S1) \<TTurnstile>s S"
-      using \<open>S \<TTurnstile>e {Cn \<cdot> \<gamma>n}\<close>[rule_format, of "trail_interp (state_trail S1)"]
-      by argo
-    then obtain D where D_in: "D \<in> S" and "\<not> trail_interp (state_trail S1) \<TTurnstile> D"
+    hence "gnds_le_Cn_\<gamma>n \<TTurnstile>e {Cn \<cdot> \<gamma>n}"
+      unfolding ground_redundant_def gnds_le_Cn_\<gamma>n_def by simp
+    hence "\<not> trail_interp (state_trail S1) \<TTurnstile>s gnds_le_Cn_\<gamma>n"
+      using not_trail_S1_entails_Cn_\<gamma>n by auto
+    then obtain D where D_in: "D \<in> gnds_le_Cn_\<gamma>n" and "\<not> trail_interp (state_trail S1) \<TTurnstile> D"
       by (auto simp: true_clss_def)
 
-    have "trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
-      using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close> trail_defined_cls_def by blast
-
-    from \<open>D \<in> S\<close> have
+    from D_in have
       D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
       D_le_Cn_\<gamma>n: "trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)"
-      unfolding S_def by simp_all
-    hence "trail_defined_cls (state_trail S1) D"
+      unfolding gnds_le_Cn_\<gamma>n_def by simp_all
+
+    from D_le_Cn_\<gamma>n have "trail_defined_cls (state_trail S1) D"
       unfolding Lattices.sup_apply Boolean_Algebras.sup_bool_def
     proof (elim disjE)
       assume multp_D_Cn_\<gamma>n: "trail_ord D (Cn \<cdot> \<gamma>n)"
@@ -816,64 +888,10 @@ proof -
       then show "trail_defined_cls (state_trail S1) D"
         using \<open>trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)\<close> by simp
     qed
-    then have "trail_false_cls (state_trail S1) D"
+    hence "trail_false_cls (state_trail S1) D"
       using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
       using \<open>trail_consistent (state_trail S1)\<close> trail_interp_cls_if_trail_true
         trail_true_or_false_cls_if_defined by blast
-
-    from backtrack have "C1 \<noteq> {#}"
-      using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
-      by (metis converse_rtranclpE scl_def reasonable_if_regular reg_run_S1_Sn scl_if_reasonable)
-    hence "{#} |\<notin>| N"
-      using mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict
-      using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1\<close> conflict_S1 by blast
-    then obtain S where
-      "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "regular_scl N \<beta> S S0" and "propagate N \<beta> S S0"
-      using before_regular_conflict[OF regular_run conflict] by auto
-
-    have "state_learned S = state_learned S0"
-      using \<open>propagate N \<beta> S S0\<close> by (auto simp add: propagate.simps)
-    also from conflict have "... = state_learned S1"
-      by (auto simp add: conflict.simps)
-    finally have "state_learned S = state_learned S1"
-      by assumption
-
-    have "state_conflict S = None"
-      using \<open>propagate N \<beta> S S0\<close> by (auto simp add: propagate.simps)
-
-    from conflict have "state_trail S1 = state_trail S0"
-      by (smt (verit) conflict.cases state_trail_simp)
-
-    obtain L C \<gamma> where trail_S0_eq: "state_trail S0 = trail_propagate (state_trail S) L C \<gamma>"
-      using \<open>propagate N \<beta> S S0\<close> unfolding propagate.simps by auto
-
-    with backtrack have "strict_suffix (state_trail Sn) (state_trail S0)"
-      using conflict_with_literal_gets_resolved[OF disj_vars_N regular_run _ conflict]
-        resolution
-      by (metis (no_types, lifting) trail_propagate_def tranclp_into_rtranclp)
-    hence "suffix (state_trail Sn) (state_trail S)"
-      unfolding trail_S0_eq trail_propagate_def
-      by (metis suffix_Cons suffix_order.le_less suffix_order.less_irrefl)
-
-    moreover have "\<not> trail_defined_lit (state_trail S) (L \<cdot>l \<gamma>)"
-    proof -
-      have  "trail_consistent (state_trail S0)"
-        using \<open>state_trail S1 = state_trail S0\<close> \<open>trail_consistent (state_trail S1)\<close> by simp
-      thus ?thesis
-        by (smt (verit, best) Pair_inject list.distinct(1) list.inject trail_S0_eq
-            trail_consistent.cases trail_propagate_def)
-    qed
-
-    ultimately have "\<not> trail_defined_lit (state_trail Sn) (L \<cdot>l \<gamma>)"
-      by (metis trail_defined_lit_def trail_false_lit_def trail_false_lit_if_trail_false_suffix
-          uminus_of_uminus_id)
-
-    moreover have "trail_false_cls (state_trail Sn) (Cn \<cdot> \<gamma>n)"
-      using sound_Sn conflict_Sn by (auto simp add: sound_state_def)
-
-    ultimately have "L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n"
-      unfolding trail_false_cls_def trail_false_lit_def trail_defined_lit_def
-      by (metis uminus_of_uminus_id)
 
     from D_le_Cn_\<gamma>n have "L \<cdot>l \<gamma> \<notin># D \<and> - (L \<cdot>l \<gamma>) \<notin># D"
     proof (rule sup2E)
@@ -976,18 +994,8 @@ proof -
       unfolding \<open>state_trail S1 = state_trail S0\<close>
         \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
       by (simp add: trail_propagate_def subtrail_falseI)
-    
-    have "\<exists>S'. conflict N \<beta> S S'"
-    proof -
-      show ?thesis
-        using ex_conflict_if_trail_false_cls[OF \<open>trail_false_cls (state_trail S) D\<close> D_in]
-        unfolding U_def \<open>state_learned S = state_learned S1\<close>[symmetric]
-          \<open>state_conflict S = None\<close>[symmetric]
-        by simp
-    qed
     thus False
-      using \<open>regular_scl N \<beta> S S0\<close> \<open>propagate N \<beta> S S0\<close>
-      using conflict_well_defined(1) regular_scl_def by blast
+      using no_conf_at_S conf_at_S_if[OF D_in] by metis
   qed
   hence "\<not> redundant trail_ord (fset N \<union> fset U) Cn"
     unfolding redundant_def
@@ -1002,11 +1010,45 @@ proof -
       by simp
 
     ultimately have "\<not> ({D \<in> grounding_of_clss (fset N \<union> fset U). trail_ord\<^sup>=\<^sup>= D (Cn \<cdot> \<gamma>n)} \<TTurnstile>e {Cn \<cdot> \<gamma>n})"
-      using not_gr_red_Cn_\<gamma>n unfolding ground_redundant_def
+      using not_gr_red_Cn_\<gamma>n
+      by (simp add: ground_redundant_def)
+    thus ?thesis
+      by (auto simp add: true_clss_def)
+  qed
+
+  moreover have "set_mset (Cn \<cdot> \<gamma>n) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U)"
+  proof (rule notI)
+    assume "set_mset (Cn \<cdot> \<gamma>n) \<in> set_mset ` grounding_of_clss (fset N \<union> fset U)"
+    then obtain D where
+      D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
+      set_mset_eq_D_Cn_\<gamma>n: "set_mset D = set_mset (Cn \<cdot> \<gamma>n)"
+      by (auto simp add: image_iff)
+
+    have "\<not> trail_interp (state_trail S1) \<TTurnstile> D"
+      unfolding true_cls_iff_set_mset_eq[OF set_mset_eq_D_Cn_\<gamma>n]
+      using not_trail_S1_entails_Cn_\<gamma>n
       by simp
-    then show ?thesis
-      apply (simp add: true_clss_def)
+
+    have "trail_defined_cls (state_trail S1) D"
+      using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close>
+      unfolding set_mset_eq_D_Cn_\<gamma>n[symmetric]
+      by (simp add: trail_defined_cls_def)
+    hence "trail_false_cls (state_trail S1) D"
+      using \<open>\<not> trail_interp (state_trail S1) \<TTurnstile> D\<close>
+      using tr_consistent_S1 trail_interp_cls_if_trail_true trail_true_or_false_cls_if_defined
       by blast
+
+    have "L \<cdot>l \<gamma> \<notin># D \<and> - (L \<cdot>l \<gamma>) \<notin># D"
+      using \<open>L \<cdot>l \<gamma> \<notin># Cn \<cdot> \<gamma>n \<and> - (L \<cdot>l \<gamma>) \<notin># Cn \<cdot> \<gamma>n\<close>
+      unfolding set_mset_eq_D_Cn_\<gamma>n[symmetric]
+      by assumption
+    hence "trail_false_cls (state_trail S) D"
+      using D_in \<open>trail_false_cls (state_trail S1) D\<close>
+      unfolding \<open>state_trail S1 = state_trail S0\<close>
+        \<open>state_trail S0 = trail_propagate (state_trail S) L C \<gamma>\<close>
+      by (simp add: trail_propagate_def subtrail_falseI)
+    thus False
+      using no_conf_at_S conf_at_S_if[OF D_in] by metis
   qed
 
   ultimately show ?thesis
