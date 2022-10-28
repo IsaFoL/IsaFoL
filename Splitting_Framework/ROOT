@@ -2,5 +2,6 @@ session "Splitting_Framework" = Saturation_Framework +
   options [timeout=300, quick_and_dirty=true]
   sessions
     "HOL-Library"
+    Propositional_Proof_Systems
   theories
 	  Preliminaries_With_Zorn
