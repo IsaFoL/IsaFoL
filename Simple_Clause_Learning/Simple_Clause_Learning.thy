@@ -213,6 +213,14 @@ lemma (in substitution_ops) subst_atm_of_eq_compI:
 lemma (in substitution_ops) set_mset_subst_cls_conv: "set_mset (C \<cdot> \<sigma>) = (\<lambda>L. L \<cdot>l \<sigma>) ` set_mset C"
   by (simp add: subst_cls_def)
 
+lemma (in substitution_ops) grounding_of_clss_union[simp]:
+  "grounding_of_clss (A \<union> B) = grounding_of_clss A \<union> grounding_of_clss B"
+  by (simp add: grounding_of_clss_def)
+
+lemma (in substitution_ops) grounding_of_clss_insert[simp]:
+  "grounding_of_clss (insert C N) = grounding_of_cls C \<union> grounding_of_clss N"
+  by (simp add: grounding_of_clss_def)
+
 lemma (in substitution) is_ground_clss_grounding_of_clss[simp]:
   "is_ground_clss (grounding_of_clss N)"
   using grounding_of_clss_def union_grounding_of_cls_ground by presburger
@@ -265,6 +273,23 @@ declare Unification.mgu.simps[simp del]
 
 
 subsubsection \<open>First_Order_Terms Only\<close>
+
+lemma range_vars_Var[simp]: "range_vars Var = {}"
+  by (simp add: range_vars_def)
+
+lemma subst_apply_term_ident:
+  assumes "vars_term t \<inter> subst_domain \<sigma> = {}"
+  shows "t \<cdot> \<sigma> = t"
+  using assms
+proof (induction t)
+  case (Var x)
+  thus ?case
+    by (simp add: subst_domain_def)
+next
+  case (Fun f ts)
+  thus ?case
+    by (auto intro: list.map_ident_strong)
+qed
 
 lemma ex_unify_if_unifiers_not_empty:
   "unifiers es \<noteq> {} \<Longrightarrow> set xs = es \<Longrightarrow> \<exists>ys. unify xs [] = Some ys"
@@ -2152,6 +2177,27 @@ qed
 lemma finite_lits_less_eq_B: "finite {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>}"
   using finite_lits_less_B by (simp add: lits_less_eq_B_conv)
 
+lemma Collect_ball_eq_Pow_Collect: "{X. \<forall>x \<in> X. P x} = Pow {x. P x}"
+  by blast
+
+lemma finite_lit_clss_nodup_less_B: "finite {C. \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta> \<and> count C L = 1}"
+proof -
+  have 1: "(\<forall>L \<in># C. P L \<and> count C L = 1) \<longleftrightarrow> (\<exists>C'. C = mset_set C' \<and> finite C' \<and> (\<forall>L \<in> C'. P L))"
+    for C P
+    by (smt (verit) count_eq_zero_iff count_mset_set' finite_set_mset finite_set_mset_mset_set
+        multiset_eqI)
+
+  have 2: "finite {C'. \<forall>L\<in>C'. atm_of L \<prec>\<^sub>B \<beta>}"
+    unfolding Collect_ball_eq_Pow_Collect finite_Pow_iff
+    by (rule finite_lits_less_B)
+
+  show ?thesis
+    unfolding 1
+    unfolding setcompr_eq_image
+    apply (rule finite_imageI)
+    using 2 by simp
+qed
+
 
 subsection \<open>Rules\<close>
 
@@ -3531,7 +3577,8 @@ lemma scl_preserves_trail_atoms_lt:
 subsection \<open>Trail Resolved Literals Have Unique Polarity\<close>
 
 definition trail_resolved_lits_pol where
-  "trail_resolved_lits_pol S \<longleftrightarrow> (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> -(L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>)"
+  "trail_resolved_lits_pol S \<longleftrightarrow>
+  (\<forall>Ln \<in> set (state_trail S). \<forall>C L \<gamma>. snd Ln = Some (C, L, \<gamma>) \<longrightarrow> -(L \<cdot>l \<gamma>) \<notin># C \<cdot> \<gamma>)"
 
 lemma trail_resolved_lits_pol_initial_state[simp]: "trail_resolved_lits_pol initial_state"
   by (simp add: trail_resolved_lits_pol_def)
@@ -3990,6 +4037,12 @@ proof (cases N \<beta> S1 S2 rule: conflict.cases)
     thus ?thesis by simp
   qed
 qed
+
+lemma ball_less_B_if_trail_false_and_trail_atoms_lt:
+  "trail_false_cls (state_trail S) C \<Longrightarrow> trail_atoms_lt \<beta> S \<Longrightarrow> \<forall>L \<in># C. atm_of L \<prec>\<^sub>B \<beta>"
+  unfolding trail_atoms_lt_def
+  by (meson atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set trail_false_cls_def
+      trail_false_lit_def)
 
 
 section \<open>Soundness\<close>

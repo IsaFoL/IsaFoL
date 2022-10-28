@@ -1,6 +1,9 @@
 theory Termination
   imports
     Simple_Clause_Learning
+    Non_Redundancy
+    "HOL-Library.Monad_Syntax"
+    (* "HOL-Library.State_Monad" *)
 begin
 
 
@@ -136,50 +139,36 @@ qed
 
 subsection \<open>Wellfounded_Extra\<close>
 
-lemma wf_union_if_measurable:
+lemma wf_union_if_convertible_to_wf:
   fixes
     f :: "'a \<Rightarrow> 'b" and g :: "'a \<Rightarrow> 'c" and
     R S :: "('a \<times> 'a) set" and Q :: "('b \<times> 'b) set" and T :: "('c \<times> 'c) set"
   assumes
-    "wf T"
-    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (g x, g y) \<in> T"
+    "wf S"
     "wf Q"
-    "\<And>x y. (x, y) \<in> S \<Longrightarrow> (f x, f y) \<in> Q"
-    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (f x, f y) \<in> Q \<or> f x = f y"
+    "\<And>x y. (x, y) \<in> R \<Longrightarrow> (f x, f y) \<in> Q"
+    "\<And>x y. (x, y) \<in> S \<Longrightarrow> (f x, f y) \<in> Q \<or> f x = f y"
   shows "wf (R \<union> S)"
 proof (rule wf_if_convertible_to_wf)
-  show "wf (Q <*lex*> T)"
-    by (rule wf_lex_prod[OF \<open>wf Q\<close> \<open>wf T\<close>])
+  show "wf (Q <*lex*> S)"
+    by (rule wf_lex_prod[OF \<open>wf Q\<close> \<open>wf S\<close>])
 next
   define h where
-    "h \<equiv> \<lambda>z. (f z, g z)"
+    "h \<equiv> \<lambda>z. (f z, z)"
   
   fix x y assume "(x, y) \<in> R \<union> S"
-  with assms(2,4,5) show "(h x, h y) \<in> Q <*lex*> T"
+  with assms show "(h x, h y) \<in> Q <*lex*> S"
     unfolding h_def by fastforce
 qed
 
-
-lemma wfP_union_if_measurable:
-  fixes
-    f :: "'a \<Rightarrow> 'b" and g :: "'a \<Rightarrow> 'c" and
-    R S :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and Q :: "'b \<Rightarrow> 'b \<Rightarrow> bool" and T :: "'c \<Rightarrow> 'c \<Rightarrow> bool"
+lemma wfP_union_if_convertible_to_wfP:
   assumes
-    "wfP T"
-    "\<And>x y. R x y \<Longrightarrow> T (g x) (g y)"
+    "wfP S"
     "wfP Q"
-    "\<And>x y. S x y \<Longrightarrow> Q (f x) (f y)"
-    "\<And>x y. R x y \<Longrightarrow> Q (f x) (f y) \<or> f x = f y"
+    "\<And>x y. R x y \<Longrightarrow> Q (f x) (f y)"
+    "\<And>x y. S x y \<Longrightarrow> Q (f x) (f y) \<or> f x = f y"
   shows "wfP (R \<squnion> S)"
-proof -
-  have "wf ({(xa, x). R xa x} \<union> {(xa, x). S xa x})"
-    using wf_union_if_measurable[to_pred, OF \<open>wfP T\<close> _ \<open>wfP Q\<close>,
-        of R g "{(xa, x). S xa x}" f, simplified] assms(2,4,5)
-    by simp
-  thus ?thesis
-    by (smt (verit, ccfv_threshold) CollectD CollectI UnCI case_prod_conv sup2E wfE_min wfI_min
-        wfP_def)
-qed
+  using assms by (rule wf_union_if_convertible_to_wf[to_pred])
 
 
 subsection \<open>FSet_Extra\<close>
@@ -201,10 +190,16 @@ qed
 lemma Abs_fset_minus: "finite A \<Longrightarrow> finite B \<Longrightarrow> Abs_fset (A - B) = Abs_fset A |-| Abs_fset B"
   by (metis Abs_fset_inverse fset_inverse mem_Collect_eq minus_fset)
 
+lemma fminus_conv: "A |\<subset>| B \<longleftrightarrow> fset A \<subset> fset B \<and> finite (fset A) \<and> finite (fset B)"
+  by (simp add: less_eq_fset.rep_eq less_le_not_le)
+
 
 section \<open>Termination\<close>
 
 context scl begin
+
+
+subsection \<open>SCL without backtracking terminates\<close>
 
 definition \<M>_prop_deci :: "_ \<Rightarrow> _ \<Rightarrow> (_, _) Term.term literal fset" where
   "\<M>_prop_deci \<beta> \<Gamma> = Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta> \<or> atm_of L = \<beta>} |-| (fst |`| fset_of_list \<Gamma>)"
@@ -608,6 +603,302 @@ next
     qed
   qed
 qed
+
+
+subsection \<open>Backtracking can only be done finitely often\<close>
+
+thm learned_clauses_in_regular_runs_static_order
+
+lemma ex_new_grounding_if_not_redudant:
+  assumes not_redundant: "\<not> redundant R N C"
+  shows "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss N"
+proof -
+  from not_redundant obtain C' I where
+    C'_in: "C' \<in> grounding_of_cls C" and
+    I_entails: "I \<TTurnstile>s {D \<in> grounding_of_clss N. R D C' \<or> D = C'}" and
+    not_I_entails: "\<not> I \<TTurnstile> C'"
+    using not_redundant[unfolded redundant_def ground_redundant_def, rule_format, simplified]
+    by (auto simp: is_ground_cls_if_in_grounding_of_cls)
+
+  from I_entails have "C' \<in> grounding_of_clss N \<Longrightarrow> I \<TTurnstile> C'"
+    by (simp add: true_clss_def)
+  with not_I_entails have "C' \<notin> grounding_of_clss N"
+    by argo
+  with C'_in show ?thesis
+    by metis
+qed
+
+lemma
+  assumes
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+    (\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U))) \<and>
+    grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
+proof -
+  from  learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5,6)]
+  obtain C \<gamma> where
+    conf_Sn: "state_conflict Sn = Some (C, \<gamma>)" and
+    not_redundant: "\<not> redundant (\<subset>#) (fset N \<union> fset (state_learned S1)) C"
+    by auto
+
+  moreover have bex_grounding_not_in_U: "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U)"
+    using ex_new_grounding_if_not_redudant[OF not_redundant, folded U_def]
+    by auto
+
+  moreover have "grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
+  proof -
+    have "state_learned Sn = state_learned S1"
+      using resolution
+    proof (induction Sn rule: tranclp_induct)
+      case (base y)
+      thus ?case
+        by (auto elim: skip.cases factorize.cases resolve.cases)
+    next
+      case (step y z)
+      from step.hyps have "state_learned z = state_learned y"
+        by (auto elim: skip.cases factorize.cases resolve.cases)
+      with step.IH show ?case
+        by simp
+    qed
+
+    moreover have "state_learned Sn' = finsert C (state_learned Sn)"
+      using backtrack conf_Sn
+      by (auto elim: backtrack.cases)
+
+    ultimately have "state_learned Sn' = finsert C U"
+      by (simp add: U_def)
+
+    show ?thesis
+      unfolding \<open>state_learned Sn' = finsert C U\<close>
+    proof (rule Set.psubsetI)
+      show "grounding_of_clss (fset U) \<subseteq> grounding_of_clss (fset (finsert C U))"
+        by simp
+    next
+      show "grounding_of_clss (fset U) \<noteq> grounding_of_clss (fset (finsert C U))"
+        using bex_grounding_not_in_U by auto
+    qed
+  qed
+
+  ultimately show ?thesis
+    by simp
+qed
+
+definition fclss_no_dup :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
+  "fclss_no_dup \<beta> = fPow (Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>})"
+
+(* lemma finite_if_member_Pow_finite: "x \<in> Pow A \<Longrightarrow> finite A \<Longrightarrow> finite x"
+  using rev_finite_subset by auto *)
+
+lemma image_fset_fset_fPow_eq: "fset ` fset (fPow A) = Pow (fset A)"
+proof (rule Set.equalityI)
+  show "fset ` fset (fPow A) \<subseteq> Pow (fset A)"
+    by (meson PowI fPowD image_subset_iff less_eq_fset.rep_eq notin_fset)
+next
+  show "Pow (fset A) \<subseteq> fset ` fset (fPow A)"
+  proof (rule Set.subsetI)
+    fix x assume "x \<in> Pow (fset A)"
+    moreover hence "finite x"
+      by (metis PowD finite_fset rev_finite_subset)
+    ultimately show "x \<in> fset ` fset (fPow A)"
+      unfolding image_iff
+      by (metis PowD fPowI fset_cases less_eq_fset.rep_eq mem_Collect_eq notin_fset)
+  qed
+qed
+
+lemma
+  assumes "\<forall>L \<in># C. count C L = 1"
+  shows "\<exists>C'. C = mset_set C'"
+  using assms
+  by (metis count_eq_zero_iff count_mset_set(1) count_mset_set(3) finite_set_mset multiset_eqI)
+
+lemma fmember_fclss_no_dup_if:
+  assumes "\<forall>L |\<in>| C. atm_of L \<prec>\<^sub>B \<beta>"
+  shows "C |\<in>| fclss_no_dup \<beta>"
+proof -
+  show ?thesis
+    unfolding fclss_no_dup_def fPow_iff
+  proof (rule fsubsetI)
+    fix K assume "K |\<in>| C"
+    with assms show "K |\<in>| Abs_fset {L. atm_of L \<prec>\<^sub>B \<beta>}"
+      by (auto simp: fmember_iff_member_fset Abs_fset_inverse[simplified, OF finite_lits_less_B])
+  qed
+qed
+
+definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) Term.term literal fset fset" where
+  "\<M>_back \<beta> S = Abs_fset (fset (fclss_no_dup \<beta>) -
+    Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned S)))"
+
+term "mset_set ` Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
+thm wfP_union_if_convertible_to_wfP[of scl_no_backt "(|\<subset>|)" backt "\<M>_back \<beta>"]
+
+term multp
+
+lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
+  assumes
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt" and
+
+    invars: "minimal_ground_closures Sn" "trail_atoms_lt \<beta> Sn" "sound_state N \<beta> Sn"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))"
+  shows "\<M>_back \<beta> Sn' |\<subset>| \<M>_back \<beta> Sn"
+proof -
+  obtain C \<gamma> where
+    conf: "state_conflict Sn = Some (C, \<gamma>)" and
+    set_conf_not_in_set_groundings:
+      "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
+    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5,6)]
+    by auto
+
+  have 1: "state_learned Sn' = finsert C (state_learned Sn)"
+    using backtrack conf by (auto elim: backtrack.cases)
+
+  have 2: "state_learned Sn = state_learned S1"
+    using resolution
+  proof (induction Sn rule: tranclp_induct)
+    case (base y)
+    thus ?case
+      by (auto elim: skip.cases factorize.cases resolve.cases)
+  next
+    case (step y z)
+    from step.hyps(2) have "state_learned z = state_learned y"
+      by (auto elim: skip.cases factorize.cases resolve.cases)
+    with step.IH show ?case
+      by simp
+  qed
+
+  have Diff_strict_subsetI: "x \<in> A \<Longrightarrow> x \<in> B \<Longrightarrow> A - B \<subset> A" for x A B
+    by auto
+
+  have "fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn')) =
+    fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn)) -
+      Abs_fset ` set_mset ` grounding_of_cls C"
+    unfolding 1 finsert.rep_eq grounding_of_clss_insert image_Un
+    by auto
+
+  also have "\<dots> \<subset>
+    fset (fclss_no_dup \<beta>) - Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+  proof (rule Diff_strict_subsetI)
+    from invars(1) have "C \<cdot> \<gamma> \<in> grounding_of_cls C"
+      unfolding minimal_ground_closures_def conf
+      using grounding_of_cls_ground grounding_of_subst_cls_subset by blast
+    thus "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> Abs_fset ` set_mset ` grounding_of_cls C"
+      by blast
+  next
+    have Abs_fset_in_image_Abs_fset_iff: "Abs_fset A \<in> Abs_fset ` AA \<longleftrightarrow> A \<in> AA"
+      if "finite A \<and> (\<forall>B \<in> AA. finite B)"
+      for A AA
+      apply (rule iffI)
+      using that
+       apply (metis Abs_fset_inverse imageE mem_Collect_eq)
+      using that
+      by blast
+
+    have "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset (state_learned S1))"
+      using set_conf_not_in_set_groundings
+      by auto
+    then have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<notin>
+      Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+      unfolding 2
+      using Abs_fset_in_image_Abs_fset_iff
+      by (metis finite_set_mset image_iff)
+
+    moreover have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> fset (fclss_no_dup \<beta>)"
+      unfolding fmember_iff_member_fset[symmetric]
+    proof (intro fmember_fclss_no_dup_if fBallI)
+      fix L assume "L |\<in>| Abs_fset (set_mset (C \<cdot> \<gamma>))"
+      hence "L \<in># C \<cdot> \<gamma>"
+        unfolding fmember_iff_member_fset
+        by (metis fset_fset_mset fset_inverse)
+      moreover have "trail_false_cls (state_trail Sn) (C \<cdot> \<gamma>)"
+        using invars(3) conf by (auto simp: sound_state_def)
+      ultimately show "atm_of L \<prec>\<^sub>B \<beta>"
+        using ball_less_B_if_trail_false_and_trail_atoms_lt[OF _ invars(2)]
+        by metis
+    qed
+
+    ultimately show "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<in> fset (fclss_no_dup \<beta>) -
+      Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
+      by simp
+  qed
+
+  finally show ?thesis
+    unfolding \<M>_back_def
+    unfolding fminus_conv
+    by (simp add: Abs_fset_inverse[simplified])
+qed
+
+lemma
+  fixes N \<beta> scl_without_backtrack
+  defines
+    "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
+      factorize N \<beta> \<squnion> resolve N \<beta>" and
+    "full_scl \<equiv> scl_without_backtrack \<squnion> backtrack N \<beta>" and
+    "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
+      trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
+      conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
+  shows
+    "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)" and
+    "invars initial_state" and
+    "\<And>S S'. full_scl S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+proof -
+  show "invars initial_state"
+    by (simp add: invars_def)
+next
+  fix S S'
+  assume "full_scl S S'"
+  hence "scl N \<beta> S S'"
+    unfolding full_scl_def scl_without_backtrack_def sup_apply sup_bool_def
+    by (auto simp add: scl_def)
+  thus "invars S \<Longrightarrow> invars S'"
+    unfolding invars_def
+    by (auto intro: scl_preserves_trail_atoms_lt
+        scl_preserves_trail_resolved_lits_pol
+        scl_preserves_trail_lits_ground
+        scl_preserves_trail_lits_from_clauses
+        scl_preserves_initial_lits_generalize_learned_trail_conflict
+        scl_preserves_conflict_disjoint_vars
+        scl_preserves_minimal_ground_closures)
+next
+  have *: "(\<lambda>S' S. full_scl S S' \<and> invars S) =
+    (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion> (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
+    by (auto simp add: full_scl_def)
+
+  show "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)"
+    unfolding *
+  proof (rule wfP_union_if_convertible_to_wfP)
+    show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
+      by (rule scl_without_backtrack_terminates(1)[of N \<beta>,
+            folded scl_without_backtrack_def invars_def])
+  next
+    show "wfP (|\<subset>|)"
+      by (rule wfP_pfsubset)
+  next
+    fix S S' assume "scl_without_backtrack S S' \<and> invars S"
+    hence "state_learned S' = state_learned S"
+      by (auto simp add: scl_without_backtrack_def
+          elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases resolve.cases)
+    then show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S"
+      by (simp add: \<M>_back_def)
+  next
+    fix S S' assume "backtrack N \<beta> S S' \<and> invars S"
+    show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
+      using \<M>_back_pfsubset_\<M>_back_after_regular_backtrack
+      \<comment> \<open>This would be the last step but would require to rephrase the non-redundancy lemma in term
+        of invariants instead of regular run.orr\<close>
+      oops
 
 end
 

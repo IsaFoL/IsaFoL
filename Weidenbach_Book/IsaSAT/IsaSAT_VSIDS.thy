@@ -6,6 +6,8 @@ theory IsaSAT_VSIDS
     Isabelle_LLVM.LLVM_DS_Array_List_Pure*)
 begin
 
+typ \<open>'v clauses\<close>
+
 text \<open>We first tried to use the heapmap, but this attempt was a terrible failure, because as useful
 the heapmap is parametrized by the size. This might be useful in some contexts, but I consider this
 to be the most terrible idea ever, based on past experience. So instead I went for a modification
@@ -16,7 +18,6 @@ order to avoid allocation yet another array. As a side effect, it also avoids in
 inside the node (because per definition, the label is exactly the index).
 But maybe pointers are actually better, because by definition in Isabelle no graph is shared.
 \<close>
-
 
 fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
 "mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
@@ -282,42 +283,90 @@ qed
 
 
 definition vsids_merge_pairs where
-  \<open>vsids_merge_pairs arr (xs :: nat list) i j = do {
-    ASSERT (i \<le> j \<and> j < length xs);
+  \<open>vsids_merge_pairs arr (xs :: nat list) j = do {
+  ASSERT (j < length xs);
   REC\<^sub>T (\<lambda>f (arr, j). do {
-  if i = j then RETURN (arr, xs!i)
-  else if i = j - 1 then do {
+  if 0 = j then RETURN (arr, xs!j)
+  else if j = 1 then do {
     ASSERT (j < length xs);
     ASSERT (j > 0);
-    vsids_link2 arr (xs!j) (xs!(j-1))
+    vsids_link2 arr (xs!(j-1)) (xs!j)
   }
   else do {
     ASSERT (j < length xs);
     ASSERT (j > 0);
-    (arr, m) \<leftarrow> vsids_link2 arr (xs!j) (xs!(j-1));
-    (arr, n) \<leftarrow> f (arr, j-2);
-    arr \<leftarrow> vsids_link arr m n;
-    RETURN (arr, n)}
+    (arr, m) \<leftarrow> f (arr, j-2);
+    (arr, n) \<leftarrow> vsids_link2 arr (xs!(j-1)) (xs!j);
+    (arr, p) \<leftarrow> vsids_link2 arr m n;
+    RETURN (arr, p)}
   }) (arr, j)
   }\<close>
 
+
+lemma merge_pairs_empty_iff[simp, iff]: \<open>VSIDS.merge_pairs xs = None \<longleftrightarrow> xs = []\<close>
+  by (cases xs rule: VSIDS.merge_pairs.cases) auto
+
+(*TODO: we are going over hp in the wrong order *)
 lemma
   assumes \<open>encoded_pairheap arr (mset hp\<^sub>s + trees)\<close>
-    \<open>map node hp\<^sub>s = Misc.slice i j xs\<close>
-    \<open>i \<le> j\<close>
+    \<open>(map node hp\<^sub>s) = take (Suc j) xs\<close>
     \<open>j < length xs\<close>
-  shows \<open>vsids_merge_pairs arr xs i j \<le> \<Down> Id (SPEC (\<lambda>(arr', n). n = node (the (VSIDS.merge_pairs hp\<^sub>s)) \<and> encoded_pairheap arr' (add_mset (the (VSIDS.merge_pairs hp\<^sub>s)) trees)))\<close>
+  shows \<open>vsids_merge_pairs arr xs j \<le> \<Down> Id (SPEC (\<lambda>(arr', n). n = node (the (VSIDS.merge_pairs (rev hp\<^sub>s))) \<and>
+      encoded_pairheap arr' (add_mset (the (VSIDS.merge_pairs (rev hp\<^sub>s))) trees)))\<close>
 proof -
-  define pre where
-    \<open>pre = (\<lambda>(arr, j\<^sub>0). encoded_pairheap arr (mset (take (j\<^sub>0 - i) hp\<^sub>s) + trees) \<and> j\<^sub>0 \<le> j)\<close>
+  have take2: \<open>i \<le> length xs \<Longrightarrow> i > 0 \<Longrightarrow> take i xs = xs ! 0 # take (i-1) (tl xs)\<close> for i xs
+    apply (cases xs; cases i)
+    apply (auto)
+    done
+  define pre  :: \<open>nat pairing_heap list \<times> nat \<Rightarrow> bool\<close> where
+    \<open>pre = (\<lambda>(arr, j\<^sub>0). j\<^sub>0 \<le> j \<and> encoded_pairheap arr (mset hp\<^sub>s + trees))\<close>
+  define spec :: \<open>nat pairing_heap list \<times> nat \<Rightarrow> nat pairing_heap list \<times> nat \<Rightarrow> _\<close> where
+    \<open>spec = (\<lambda>(old_arr, j\<^sub>0) (arr, n). (case (VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s))) of Some a \<Rightarrow> n = node a |_ \<Rightarrow>True) \<and>
+    encoded_pairheap arr ((case (VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s))) of Some a \<Rightarrow> {#a#} | _ \<Rightarrow> {#}) + mset (drop (Suc j\<^sub>0) hp\<^sub>s) + trees))\<close> for x
+  have [simp]: \<open>j > 0 \<Longrightarrow> (Hp (xs ! 0) (score (hp\<^sub>s ! 0)) (hps (hp\<^sub>s ! 0))) = hd hp\<^sub>s\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases xs; cases j; auto)
+  have [simp]: \<open>hd hp\<^sub>s = hp\<^sub>s ! 0\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases xs; cases \<open>tl xs\<close>; cases j; cases \<open>j-1\<close>; auto)
+  have [simp]: \<open>j \<ge> Suc 0 \<Longrightarrow> (add_mset (hp\<^sub>s ! 0) (add_mset (hp\<^sub>s ! Suc 0) (mset (drop (Suc (Suc 0)) hp\<^sub>s) + trees))) = mset hp\<^sub>s + trees\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>j \<ge> Suc 0 \<Longrightarrow> VSIDS.merge_pairs (take (Suc 0) hp\<^sub>s) = Some (hd hp\<^sub>s)\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>j > 0 \<Longrightarrow> add_mset (hd hp\<^sub>s) (mset (drop (Suc 0) hp\<^sub>s)) = mset hp\<^sub>s\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>VSIDS.merge_pairs (rev (take (Suc 0) hp\<^sub>s)) = Some (hd hp\<^sub>s)\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>node (hp\<^sub>s ! 0) = xs ! 0\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>(add_mset (hp\<^sub>s!0) (mset (drop (Suc 0) hp\<^sub>s) + trees)) = (mset hp\<^sub>s + trees)\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have [simp]: \<open>j > 0 \<Longrightarrow> VSIDS.merge_pairs (rev (take (Suc (Suc 0)) hp\<^sub>s)) = Some (VSIDS.link (hp\<^sub>s ! 1) (hd hp\<^sub>s))\<close>
+    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
+  have Hp_hps [simp]: \<open>j \<ge> y \<Longrightarrow> (Hp (xs ! y) (score (hp\<^sub>s ! y)) (hps (hp\<^sub>s ! y))) = hp\<^sub>s!y\<close> for y
+    using assms(3)  arg_cong[OF assms(2), of \<open>\<lambda>xs. xs ! y\<close>] arg_cong[OF assms(2), of length]
+    by (cases \<open>hp\<^sub>s ! y\<close>) (auto simp: nth_map)
+  have VSIDS_merge_pairs_simps2: \<open>j\<^sub>0 > 1 \<Longrightarrow> j\<^sub>0 < length hp\<^sub>s \<Longrightarrow> VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s)) =
+    Some (VSIDS.link (VSIDS.link (hp\<^sub>s ! j\<^sub>0) (hp\<^sub>s ! (j\<^sub>0 - 1)))
+    (the (VSIDS.merge_pairs (rev (take (j\<^sub>0 - Suc 0) (hp\<^sub>s))))))\<close> for j\<^sub>0
+    by (cases j\<^sub>0)
+     (auto simp: take_Suc_conv_app_nth Let_def split: option.splits)
+
+  have [simp]: \<open>length hp\<^sub>s = Suc j\<close>
+    using arg_cong[OF assms(2), of length] assms(3) by auto
+  have H1: \<open>[a] = take n xs \<longleftrightarrow> (n = 1 \<or> (length xs = 1 \<and> n \<ge> 1)) \<and> length xs>0 \<and> hd xs = a\<close> for a n xs
+    by (cases xs; cases n) auto
+  have [simp]: \<open>y \<noteq> Suc 0 \<Longrightarrow> 0 < y \<Longrightarrow> y \<le> j \<Longrightarrow> add_mset (hp\<^sub>s ! (y - Suc 0)) (add_mset (hp\<^sub>s ! y) (A + mset (drop (Suc y) hp\<^sub>s) + trees)) =
+    A + mset (drop (y - Suc 0) hp\<^sub>s) + trees\<close> for y A
+    using assms(3) arg_cong[OF assms(2), of length]
+    by (cases y; cases \<open>y - Suc 0\<close>) (auto simp flip: Cons_nth_drop_Suc)
+
   have pre0: \<open>pre (arr, j)\<close>
-    using assms arg_cong[OF assms(2), of length, simplified, symmetric] unfolding pre_def by auto
+    using assms arg_cong[OF assms(2), of length, simplified, symmetric] unfolding pre_def by (auto split: option.splits)
   show ?thesis
-    unfolding vsids_merge_pairs_def
+    using assms
+    unfolding vsids_merge_pairs_def Let_def
     apply refine_vcg
-    subgoal using assms by auto
-    subgoal using assms by auto
-    apply (rule RECT_rule[of _ \<open>measure (\<lambda>(arr, j). j)\<close> pre])
+    apply (rule order_trans)
+    apply (rule RECT_rule[of _ \<open>measure (\<lambda>(arr, j). j)\<close> pre _ \<open> \<lambda>x. SPEC (spec x)\<close>])
     subgoal
       unfolding case_prod_beta
       by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
@@ -328,13 +377,71 @@ proof -
     subgoal for f x
       unfolding case_prod_beta
       apply (refine_vcg)
-      apply (auto simp: )
-        apply (rule mono)
-find_theorems "trimono _"
-find_theorems "REC\<^sub>T _ _ \<le> _"
-  
+      subgoal premises p
+        using p(1,3-) p(2)
+        by (auto simp: pre_def spec_def split: option.splits)
+      subgoal premises p
+        using p by (auto simp: pre_def)
+      subgoal premises p
+        using p by (auto simp: pre_def)
+      subgoal premises p
+        apply (rule vsids_link2[THEN order_trans, of _ _ \<open>score (hp\<^sub>s ! 1)\<close> \<open>hps (hp\<^sub>s ! 1)\<close>
+          _ \<open>score (hp\<^sub>s ! 0)\<close> \<open>hps (hp\<^sub>s ! 0)\<close> \<open>mset (drop (Suc (Suc 0)) hp\<^sub>s) + trees\<close>])
+        using p(1,2,3-4,6,8-) assms(2)
+        by (auto simp: pre_def spec_def H1 add_mset_commute[of \<open>hp\<^sub>s ! Suc 0\<close>]
+          simp del: VSIDS.link.simps hd_conv_nth simp flip: Cons_nth_drop_Suc)
+      subgoal
+        by (auto simp: pre_def)
+      subgoal
+        by (auto simp: pre_def)
+      subgoal premises p
+        using p(1-4,6,8-) apply -
+        apply (rule order_trans)
+        apply (rule p)
+        subgoal
+          by (auto simp: pre_def)
+        subgoal
+          by (auto)
+        apply (refine_vcg)
+        apply (rule vsids_link2[THEN order_trans, of _ 
+          _ \<open>score (hp\<^sub>s ! (snd x))\<close> \<open>hps (hp\<^sub>s ! (snd x))\<close>
+          _ \<open>score (hp\<^sub>s ! (snd x -1))\<close> \<open>hps (hp\<^sub>s ! (snd x -1))\<close>
+          \<open>(case VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s)) of None \<Rightarrow> {#}
+          | Some a \<Rightarrow> {#a#}) + mset (drop (Suc (snd x)) hp\<^sub>s) + trees\<close>])
+        subgoal
+          by (auto simp: spec_def pre_def add_mset_commute[of _ "hp\<^sub>s ! (_ - Suc 0)"] simp del: VSIDS.link.simps VSIDS.merge_pairs.simps)
+        apply (refine_vcg)
+        subgoal for arrm arrn
+          apply (rule vsids_link2[THEN order_trans, of _ 
+            _
+            \<open>score ((VSIDS.link 
+            (Hp (xs ! snd x) (score (hp\<^sub>s ! snd x)) (hps (hp\<^sub>s ! snd x)))
+            (Hp (xs ! (snd x - 1)) (score (hp\<^sub>s ! (snd x - 1))) (hps (hp\<^sub>s ! (snd x - 1))))))\<close>
+            \<open>hps (VSIDS.link 
+              (Hp (xs ! snd x) (score (hp\<^sub>s ! snd x)) (hps (hp\<^sub>s ! snd x)))
+              (Hp (xs ! (snd x - 1)) (score (hp\<^sub>s ! (snd x - 1))) (hps (hp\<^sub>s ! (snd x - 1)))))\<close>
+            _
+            \<open>score (the (VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))))\<close>
+            \<open>hps (the (VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))))\<close>
+              \<open>mset (drop (Suc (snd x)) hp\<^sub>s) + trees\<close>])
+          subgoal
+            unfolding case_prod_beta
+            by (cases \<open>VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))\<close>)
+              (auto simp add: spec_def pre_def add_mset_commute add_mset_commute[of _ "hp\<^sub>s ! (_ - Suc 0)"]
+              simp del: VSIDS.link.simps VSIDS.merge_pairs.simps)
+          subgoal
+            by (auto simp add: spec_def VSIDS_merge_pairs_simps2 pre_def
+              simp del: VSIDS.link.simps VSIDS.merge_pairs.simps
+              split: option.splits)
+          done
+       done
+    done
+    subgoal by (auto simp: spec_def split: option.splits)
+    done
+qed
+
 definition vsids_del_min where
-  \<open>vsids_del_min arr m =
+  \<open>vsids_del_min arr m = undefined
     \<close>
 thm VSIDS.merge_pairs.simps
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN
