@@ -1911,25 +1911,27 @@ definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> (
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
 
+(* TODO: move in Sema? *)
 lemma unsat_simp: 
   assumes 
-    \<open>\<not> sat ({F} \<union> S::'v formula set)\<close>
-    \<open>sat {F}\<close>
-    \<open>atoms F \<inter> \<Union> (atoms ` S) = {}\<close>
+    \<open>\<not> sat (S' \<union> S::'v formula set)\<close>
+    \<open>sat S'\<close>
+    \<open>\<Union> (atoms ` S') \<inter> \<Union> (atoms ` S) = {}\<close>
   shows
     \<open>\<not> sat S\<close>
   unfolding sat_def
 proof
   assume contra: \<open>\<exists>\<A>. \<forall>F\<in>S. formula_semantics \<A> F\<close>
   then obtain \<A>S where AS_is: \<open>\<forall>F\<in>S. formula_semantics \<A>S F\<close> by blast
-  obtain \<A>F where AF_is: \<open>formula_semantics \<A>F F\<close> using assms(2) unfolding sat_def by blast
-  define \<A> where \<open>\<A> = (\<lambda>a. if a \<in> atoms F then \<A>F a else \<A>S a)\<close>
-  have \<open>formula_semantics \<A> F\<close> using AF_is unfolding \<A>_def
-    by (smt (verit, best) relevant_atoms_same_semantics)
+  obtain \<A>F where AF_is: \<open>\<forall>F\<in>S'. formula_semantics \<A>F F\<close> using assms(2) unfolding sat_def by blast
+  define \<A> where \<open>\<A> = (\<lambda>a. if a \<in> \<Union> (atoms ` S') then \<A>F a else \<A>S a)\<close>
+  have \<open>\<forall>F\<in>S'. formula_semantics \<A> F\<close>
+    using AF_is relevant_atoms_same_semantics unfolding \<A>_def
+    by (smt (verit, best) UN_I)
   moreover have \<open>\<forall>F\<in>S. formula_semantics \<A> F\<close>
     using AS_is relevant_atoms_same_semantics assms(3) unfolding \<A>_def
     by (smt (verit, del_insts) Int_iff UN_I empty_iff)
-  ultimately have \<open>\<forall>F'\<in>({F}\<union>S). formula_semantics \<A> F'\<close> by blast
+  ultimately have \<open>\<forall>F'\<in>(S'\<union>S). formula_semantics \<A> F'\<close> by blast
   then show False
     using assms(1) unfolding sat_def by blast
 qed
