@@ -4953,7 +4953,7 @@ theorem scl_sound_state:
   by metis
 
 
-section \<open>Reasonable And Regular Runs\<close>
+section \<open>Reasonable Steps\<close>
 
 definition reasonable_scl where
   "reasonable_scl N \<beta> S S' \<longleftrightarrow>
@@ -4961,6 +4961,122 @@ definition reasonable_scl where
 
 lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   unfolding reasonable_scl_def scl_def by simp
+
+
+subsection \<open>Invariants\<close>
+
+
+subsubsection \<open>No Conflict After Decide\<close>
+
+inductive no_conflict_after_decide for N \<beta> U where
+  Nil: "no_conflict_after_decide N \<beta> U []" |
+  Cons: "(is_decision_lit Ln \<longrightarrow> (\<nexists>S'. conflict N \<beta> (Ln # \<Gamma>, U, None) S')) \<Longrightarrow>
+    no_conflict_after_decide N \<beta> U \<Gamma> \<Longrightarrow> no_conflict_after_decide N \<beta> U (Ln # \<Gamma>)"
+
+definition no_conflict_after_decide' where
+  "no_conflict_after_decide' N \<beta> S = no_conflict_after_decide N \<beta> (state_learned S) (state_trail S)"
+
+lemma no_conflict_after_decide'_initial_state[simp]: "no_conflict_after_decide' N \<beta> initial_state"
+  by (simp add: no_conflict_after_decide'_def no_conflict_after_decide.Nil)
+
+lemma propagate_preserves_no_conflict_after_decide':
+  assumes "propagate N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def trail_propagate_def is_decision_lit_def
+      elim!: propagate.cases intro!: no_conflict_after_decide.Cons)
+
+lemma decide_preserves_no_conflict_after_decide':
+  assumes "decide N \<beta> S S'" and "\<nexists>S''. conflict N \<beta> S' S''" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def trail_decide_def is_decision_lit_def
+      elim!: decide.cases intro!: no_conflict_after_decide.Cons)
+
+lemma conflict_preserves_no_conflict_after_decide':
+  assumes "conflict N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def elim: conflict.cases)
+
+lemma skip_preserves_no_conflict_after_decide':
+  assumes "skip N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def
+      elim!: skip.cases elim: no_conflict_after_decide.cases)
+
+lemma factorize_preserves_no_conflict_after_decide':
+  assumes "factorize N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def elim: factorize.cases)
+
+lemma resolve_preserves_no_conflict_after_decide':
+  assumes "resolve N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms
+  by (auto simp: no_conflict_after_decide'_def elim: resolve.cases)
+
+lemma backtrack_preserves_no_conflict_after_decide':
+  assumes step: "backtrack N \<beta> S S'" and invar: "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using step
+proof (cases N \<beta> S S' rule: backtrack.cases)
+  case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  have "no_conflict_after_decide N \<beta> U (\<Gamma>' @ \<Gamma>'')"
+    using invar
+    unfolding backtrackI(1,2,3) no_conflict_after_decide'_def
+    by (auto simp: trail_decide_def elim: no_conflict_after_decide.cases)
+  hence "no_conflict_after_decide N \<beta> U \<Gamma>''"
+    by (induction \<Gamma>') (auto elim: no_conflict_after_decide.cases)
+  have "no_conflict_after_decide N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
+    using backtrackI(4)
+  proof (induction \<Gamma>'')
+    case Nil
+    show ?case
+      by (auto intro: no_conflict_after_decide.Nil)
+  next
+    case (Cons Ln \<Gamma>'')
+    have "\<nexists>S'. conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S'"
+    proof (rule notI, erule exE)
+      fix S' assume "conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S'"
+      then obtain C \<gamma> where
+        C_in: "C |\<in>| N |\<union>| finsert (add_mset L D) U" and
+        dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C" and
+        ground_C_\<gamma>: "is_ground_cls (C \<cdot> \<gamma>)" and
+        tr_false_C_\<gamma>: "trail_false_cls \<Gamma>'' (C \<cdot> \<gamma>)"
+        by (auto elim!: conflict.cases)
+
+      from tr_false_C_\<gamma> have "trail_false_cls (Ln # \<Gamma>'') (C \<cdot> \<gamma>)"
+        by (simp add: trail_false_cls_def trail_false_lit_def)
+      hence "\<exists>a. conflict N \<beta> (Ln # \<Gamma>'', finsert (add_mset L D) U, None) a"
+        using C_in dom_\<gamma> ground_C_\<gamma> by (meson conflict.intros)
+      thus False
+        using Cons.prems by argo
+    qed
+    hence "no_conflict_after_decide N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
+      by (rule Cons.IH)
+    thus ?case
+      using Cons.prems
+      by (simp add: no_conflict_after_decide.Cons)
+  qed
+  thus ?thesis
+    unfolding backtrackI(1,2) no_conflict_after_decide'_def by simp
+qed
+
+lemma scl_preserves_no_conflict_after_decide':
+  assumes "reasonable_scl N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
+  shows "no_conflict_after_decide' N \<beta> S'"
+  using assms unfolding reasonable_scl_def scl_def
+  using propagate_preserves_no_conflict_after_decide' decide_preserves_no_conflict_after_decide'
+    conflict_preserves_no_conflict_after_decide' skip_preserves_no_conflict_after_decide'
+    factorize_preserves_no_conflict_after_decide' resolve_preserves_no_conflict_after_decide'
+    backtrack_preserves_no_conflict_after_decide'
+  by metis
+
+
+section \<open>Reasonable Steps\<close>
 
 definition regular_scl where
   "regular_scl N \<beta> S S' \<longleftrightarrow>
