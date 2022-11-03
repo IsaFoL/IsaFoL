@@ -98,7 +98,7 @@ We had several attempts over time:
   \<^item> in the first we could not prove that lists are also well-formed, because we did no keep enough
   information about the order of the construction.
   \<^item> in the second version, we kept enough information but could not save trees in order to work 
-  on other parts of the tree. We also could not construct tree.
+  on other parts of the tree. We also could not construct only one list of children at a time.
 
 TODO: unclear if reusing prev for parent and previous is the best idea.
 \<close>
@@ -433,6 +433,7 @@ definition vsids_link where
 }\<close>
 
 inductive_cases  encoded_ph_add_msetE: \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n child\<^sub>n) trees) treeLists\<close>
+inductive_cases  encoded_ph_add_msetE2: \<open>encoded_pairheap arr trees (add_mset (Hp n w\<^sub>n child\<^sub>n#eth) treeLists)\<close>
 
 lemma hp_set_prev_next_children_commute[simp]:
   \<open>hp_set_prev' a (hp_set_child b x) = hp_set_child b (hp_set_prev' a x)\<close>
@@ -445,7 +446,7 @@ lemma hp_set_prev_next_children_commute[simp]:
   \<open>ph_next x =a \<Longrightarrow> hp_set_next' a x = x\<close>
   by (solves \<open>cases x;auto\<close>)+
 
-lemma
+lemma encoded_pairheap_move_children_to_treeLists:
   assumes \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n child\<^sub>n) trees) treeLists\<close> \<open>child\<^sub>n \<noteq> []\<close>
   shows \<open>encoded_pairheap (arr[node (hd child\<^sub>n) := hp_set_prev' None (arr!node (hd child\<^sub>n)),
         n := hp_set_child' None (hp_set_prev' None (arr!n))])
@@ -454,12 +455,39 @@ lemma
     encoded_pairheap_le_lengthI[OF assms(1), of \<open>node (hd child\<^sub>n)\<close>]
     encoded_pairheap_no_next_at_toplevel[OF assms(1), of \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>]
     encoded_pairheap_no_next_at_toplevel[OF assms(1), of \<open>n\<close> \<open>w\<^sub>n\<close> \<open>child\<^sub>n\<close>]
-    encoded_pairheap_distinct_nodes[OF assms(1)] encoded_pairheap_no_next_at_toplevel[OF assms(1), of n w\<^sub>n child\<^sub>n, simplified]
+    encoded_pairheap_distinct_nodes[OF assms(1)] encoded_pairheap_no_next_at_toplevel[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset child\<^sub>n treeLists\<close> n w\<^sub>n child\<^sub>n]
   apply -
   apply (rule encoded_ph_add_msetE, assumption)
-  by (auto dest: encoded_pairheap_atmost_one
-    simp: list_update_swap hp_prev_next_children_update_self encoded_pairheap_no_next_at_head_list
-    encoded_pairheap_no_next_at_toplevel)
+  apply (auto dest: encoded_pairheap_atmost_one
+    simp: list_update_swap hp_prev_next_children_update_self
+    encoded_pairheap_no_next_at_toplevel split: if_splits
+    dest: encoded_pairheap_no_next_at_head_list(2)[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset (_ # _) treeLists\<close> \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>])
+  apply (frule encoded_pairheap_no_next_at_head_list(2)[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset (_ # _) treeLists\<close> \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>])
+  apply (auto split: if_splits simp: hp_prev_next_children_update_self)
+  done
+
+lemma encoded_pairheap_move_children_to_treeLists:
+  assumes \<open>encoded_pairheap arr {#} treeLists\<close> and
+    \<open>(Hp n w\<^sub>n child\<^sub>n # other)  \<in># treeLists\<close>
+  shows \<open>encoded_pairheap (arr[n := hp_set_next' None (arr ! n)]) {#Hp n w\<^sub>n child\<^sub>n#} (add_mset other treeLists)\<close>
+  using assms  encoded_pairheap_atmost_one[OF assms(1)] encoded_pairheap_le_lengthI[OF assms(1), of n]
+  apply -
+  apply (induction arr \<open>{#} :: (nat, 'a) hp multiset\<close> \<open>treeLists\<close> rule: encoded_pairheap.induct)
+  subgoal
+    by (auto dest: encoded_pairheap_atmost_one
+      simp: list_update_swap hp_prev_next_children_update_self
+      encoded_pairheap_no_next_at_toplevel split: if_splits)
+  subgoal
+    by (auto dest: encoded_pairheap_atmost_one
+      simp: list_update_swap hp_prev_next_children_update_self
+      encoded_pairheap_no_next_at_toplevel split: if_splits)
+  subgoal
+    apply (auto dest: encoded_pairheap_atmost_one
+      simp: list_update_swap hp_prev_next_children_update_self add_mset_eq_add_mset
+      encoded_pairheap_no_next_at_toplevel split: if_splits)
+    apply (metis encoded_pairheap.intros(3) encoded_pairheap_no_next_at_head_list(2) length_list_update nth_list_update_eq option.simps(3) ph_child_prev_next_simp(18) union_single_eq_member)
+      oops
+
 
 lemma vsids_link:
   assumes vsids: \<open>encoded_pairheap arr trees (add_mset (Hp n w\<^sub>n child\<^sub>n # Hp m w\<^sub>m child\<^sub>m # []) treeLists)\<close>
