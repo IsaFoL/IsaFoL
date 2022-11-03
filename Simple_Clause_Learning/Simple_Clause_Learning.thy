@@ -156,30 +156,6 @@ lemma multp_singleton_rightD:
   using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M {#x#}\<close>]
   by (metis add_cancel_left_left set_mset_single single_is_union singletonD)
 
-lemma multp_mono_strong:
-  assumes "multp R M1 M2" and "transp R" and
-    S_if_R: "\<And>x y. x \<in> set_mset M1 \<Longrightarrow> y \<in> set_mset M2 \<Longrightarrow> R x y \<Longrightarrow> S x y"
-  shows "multp S M1 M2"
-proof -
-  obtain I J K where "M2 = I + J" and "M1 = I + K" and "J \<noteq> {#}" and "\<forall>k\<in>#K. \<exists>x\<in>#J. R k x"
-    using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M1 M2\<close>] by auto
-  show ?thesis
-    unfolding \<open>M2 = I + J\<close> \<open>M1 = I + K\<close>
-  proof (rule one_step_implies_multp[OF \<open>J \<noteq> {#}\<close>])
-    show "\<forall>k\<in>#K. \<exists>j\<in>#J. S k j"
-      using S_if_R
-      by (metis \<open>M1 = I + K\<close> \<open>M2 = I + J\<close> \<open>\<forall>k\<in>#K. \<exists>x\<in>#J. R k x\<close> union_iff)
-  qed
-qed
-
-lemma mult_mono_strong:
-  assumes "(M1, M2) \<in> mult r" and "trans r" and
-    S_if_R: "\<And>x y. x \<in> set_mset M1 \<Longrightarrow> y \<in> set_mset M2 \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> (x, y) \<in> s"
-  shows "(M1, M2) \<in> mult s"
-  using assms multp_mono_strong[of "\<lambda>x y. (x, y) \<in> r" M1 M2 "\<lambda>x y. (x, y) \<in> s",
-      unfolded multp_def transp_trans_eq, simplified]
-  by blast
-
 lemma ball_image_mset_iff: "(\<forall>x \<in># image_mset f M. P x) \<longleftrightarrow> (\<forall>x \<in># M. P (f x))"
   by blast
 
