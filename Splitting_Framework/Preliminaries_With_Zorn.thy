@@ -1674,6 +1674,12 @@ definition AF_proj_to_formula_set_set :: "('f, 'v) AF set \<Rightarrow> 'v formu
 definition AF_proj_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
   \<open>AF_proj_to_formula_set \<N> = AF_to_formula ` (proj\<^sub>\<bottom> \<N>)\<close>
 
+definition AF_assertions_to_formula :: "('f, 'v) AF \<Rightarrow> 'v formula" where
+  \<open>AF_assertions_to_formula \<C> = BigAnd (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+
+definition AF_assertions_to_formula_set :: "('f, 'v) AF set \<Rightarrow> 'v formula set" where
+  \<open>AF_assertions_to_formula_set \<N> = AF_assertions_to_formula ` \<N>\<close>
+
 lemma F_to_\<C>_set: \<open>\<forall>F\<in>AF_proj_to_formula_set_set \<N>. \<exists>\<C>\<in>proj\<^sub>\<bottom> \<N>. F =
   sign_to_atomic_formula ` neg ` fset (A_of \<C>)\<close>
   unfolding AF_proj_to_formula_set_set_def AF_to_formula_set_def sign_set_to_formula_set_def
@@ -1803,9 +1809,6 @@ lemma equiv_prop_entail2_sema2:
   unfolding propositional_model2_def enabled_projection_def enabled_def
 proof
   assume empty_proj: \<open>{} = {F_of \<C> |\<C>. \<C> \<in> proj\<^sub>\<bottom> \<N> \<and> fset (A_of \<C>) \<subseteq> total_strip J}\<close>
-  then have \<open>\<forall>\<C>\<in>proj\<^sub>\<bottom> \<N>. \<exists>v\<in>fset (A_of \<C>). neg v \<in> total_strip J\<close> 
-    by (smt (verit, ccfv_SIG) empty_iff mem_Collect_eq neg.elims subsetI
-        val_strip_neg val_strip_pos)
   show \<open>\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
   proof
     fix F
@@ -1903,6 +1906,82 @@ lemma equiv_prop_sema1_sema2:
    (\<forall>F\<in>AF_proj_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
   using equiv_prop_entail2_sema2 equiv_prop_entail2_sema by auto
 
+
+lemma equiv_enabled_assertions_sema:
+  \<open>(enabled_set \<N> J) \<longleftrightarrow> (\<forall>F\<in>AF_assertions_to_formula_set \<N>. formula_semantics (to_valuation J) F)\<close>
+  unfolding enabled_projection_def enabled_def enabled_set_def
+proof
+  assume enab_N: \<open>\<forall>\<C>\<in>\<N>. fset (A_of \<C>) \<subseteq> total_strip J\<close> 
+  show \<open>\<forall>F\<in>AF_assertions_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  proof
+    fix F
+    assume F_in: \<open>F \<in> AF_assertions_to_formula_set \<N>\<close>
+    then obtain \<C> where \<C>_in: \<open>\<C> \<in> \<N>\<close> and 
+      F_from_\<C>: \<open>F = BigAnd (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+      unfolding AF_assertions_to_formula_def AF_assertions_to_formula_set_def by auto
+    have \<open>\<forall>f\<in>set (map sign_to_atomic_formula (list_of_fset (A_of \<C>))).
+      formula_semantics (to_valuation J) f\<close>
+    proof
+      fix f
+      assume f_in: \<open>f \<in> set (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+      define L where \<open>L = (list_of_fset (A_of \<C>))\<close>
+      then obtain a v where f_is: \<open>sign_to_atomic_formula a = f\<close> and a_in: \<open>a \<in> set L\<close>
+        and v_is: \<open>to_V a = v\<close>
+        using f_in by auto
+      have \<open>a \<in> fset (A_of \<C>)\<close>
+        using a_in unfolding L_def by (smt (verit, ccfv_threshold) exists_fset_of_list
+            fset_of_list.rep_eq list_of_fset_def someI_ex)
+      then have a_in: \<open>a \<in> total_strip J\<close>
+        using enab_N \<C>_in by blast
+      consider (Pos) "a = Pos v" | (Neg) \<open>a = Neg v\<close>
+        using v_is is_Neg_to_V is_Pos_to_V by blast
+      then show \<open>formula_semantics (to_valuation J) f\<close>
+      proof cases
+        case Pos
+        then have \<open>f = Atom v\<close> using f_is by auto
+        then show ?thesis
+          using a_in unfolding to_valuation_def belong_to_total_def belong_to_def
+          by (simp add: Pos)
+      next
+        case Neg
+        then have \<open>f = Not (Atom v)\<close> using f_is by auto
+        then show ?thesis
+          using a_in Neg to_valuation_def val_strip_neg by force
+      qed
+    qed
+    then show \<open>formula_semantics (to_valuation J) F\<close>
+      using BigAnd_semantics[of "to_valuation J"
+          "map sign_to_atomic_formula (list_of_fset (A_of \<C>))"] F_from_\<C> by blast
+  qed
+next
+  assume F_sat: \<open>\<forall>F\<in>AF_assertions_to_formula_set \<N>. formula_semantics (to_valuation J) F\<close>
+  have \<open>\<forall>\<C>\<in>\<N>. \<forall>a\<in>fset (A_of \<C>). a \<in> total_strip J\<close>
+  proof clarify
+    fix \<C> a
+    assume 
+      \<C>_in: \<open>\<C> \<in> \<N>\<close> and
+      a_in: \<open>a \<in> fset (A_of \<C>)\<close>
+    define F where \<open>F = AF_assertions_to_formula \<C>\<close>
+    then have \<open>F \<in> AF_assertions_to_formula_set \<N>\<close>
+      unfolding AF_assertions_to_formula_set_def using \<C>_in by blast
+    then have \<open>formula_semantics (to_valuation J) F\<close> using F_sat by blast
+    then have all_f_sat: \<open>\<forall>f\<in>set (map sign_to_atomic_formula (list_of_fset (A_of \<C>))).
+      formula_semantics (to_valuation J) f\<close>
+      using BigAnd_semantics[of "to_valuation J"] unfolding F_def AF_assertions_to_formula_def
+      by simp
+    define f where \<open>f = sign_to_atomic_formula a\<close>
+    then have \<open>f \<in> set (map sign_to_atomic_formula (list_of_fset (A_of \<C>)))\<close>
+      using a_in fset_map2 by fastforce
+    then have f_sat: \<open>formula_semantics (to_valuation J) f\<close>
+      using all_f_sat by auto
+    then show \<open>a \<in> total_strip J\<close>
+      using f_def unfolding to_valuation_def
+      by (metis f_sat belong_to.rep_eq belong_to_total.rep_eq formula_semantics.simps(1)
+          formula_semantics.simps(3) sign_to_atomic_formula.elims val_strip_neg)
+  qed
+  then show \<open>\<forall>\<C>\<in>\<N>. fset (A_of \<C>) \<subseteq> total_strip J\<close> by blast
+qed
+
 definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool"
   (infix "\<Turnstile>s\<^sub>p" 50) where
   \<open>J \<Turnstile>s\<^sub>p \<N> \<equiv> (bot \<notin> ((enabled_projection (propositional_projection \<N>) J)) \<or>
@@ -1936,9 +2015,7 @@ proof
     using assms(1) unfolding sat_def by blast
 qed
 
-(* TODO: move in Compactness? *)
-lemma compactness_unsat: \<open>(\<not> sat (S::'v formula set)) \<longleftrightarrow> (\<exists>s\<subseteq>S. finite s \<and> \<not> sat s)\<close>
-  using compactness[of S] unfolding fin_sat_def by blast
+
 
 lemma val_from_interp: \<open>\<forall>\<A>. \<exists>J. \<A> = to_valuation J\<close>
 proof
@@ -1966,6 +2043,32 @@ qed
 
 lemma interp_from_val: \<open>\<forall>J. \<exists>\<A>. \<A> = to_valuation J\<close>
   unfolding to_valuation_def by auto
+
+
+(* TODO: move in Compactness? *)
+lemma compactness_unsat: \<open>(\<not> sat (S::'v formula set)) \<longleftrightarrow> (\<exists>s\<subseteq>S. finite s \<and> \<not> sat s)\<close>
+  using compactness[of S] unfolding fin_sat_def by blast
+
+lemma never_enabled_finite_subset: 
+  \<open>\<forall>J. \<not> enabled_set \<N> J \<Longrightarrow> \<exists>\<N>'\<subseteq>\<N>. finite \<N>' \<and> (\<forall>J. \<not> enabled_set \<N>' J)\<close>
+proof -
+  assume not_enab_N: \<open>\<forall>J. \<not> enabled_set \<N> J\<close>
+  then have \<open>\<not> sat (AF_assertions_to_formula_set \<N>)\<close>
+    unfolding sat_def using equiv_enabled_assertions_sema[of \<N>] val_from_interp
+    by metis
+  then obtain S' where S'_sub: \<open>S' \<subseteq> AF_assertions_to_formula ` \<N>\<close> and S'_fin: \<open>finite S'\<close> and
+    S'_unsat: \<open>\<not> sat S'\<close>
+    using compactness_unsat unfolding AF_assertions_to_formula_set_def by metis
+  obtain \<N>' where N'_sub: \<open>\<N>' \<subseteq> \<N>\<close> and N'_fin: \<open>finite \<N>'\<close>
+    and S'_im: \<open>S' = AF_assertions_to_formula ` \<N>'\<close>
+    using finite_subset_image[OF S'_fin S'_sub] by blast
+  have not_enab_N': \<open>\<forall>J. \<not> enabled_set \<N>' J\<close>
+    using equiv_enabled_assertions_sema[of \<N>'] S'_unsat S'_im interp_from_val 
+    unfolding sat_def AF_assertions_to_formula_set_def by blast
+  then show \<open>\<exists>\<N>' \<subseteq> \<N>. finite \<N>' \<and> (\<forall>J. \<not> enabled_set \<N>' J)\<close>
+    using N'_sub N'_fin by auto
+qed
+
 
 lemma compactness_AF_proj: \<open>(\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<exists>\<N>'\<subseteq>\<N>. finite \<N>' \<and> (\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>'))\<close>
 proof -
@@ -2023,6 +2126,7 @@ proof -
   finally show \<open>(\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>) \<longleftrightarrow> (\<exists>\<N>'\<subseteq>\<N>. finite \<N>' \<and> (\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<N>'))\<close>
     .
 qed
+
 
 definition \<E>_from :: \<open>('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set\<close> where
   \<open>\<E>_from \<N> \<equiv> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)}\<close>
@@ -2100,6 +2204,13 @@ thm linorder_class.set_sorted_list_of_set
  
 definition AF_entails :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow> \<M> proj\<^sub>J J \<Turnstile> F_of ` \<N>))\<close>
+
+
+lemma \<open>enabled_set {} J\<close>
+  unfolding enabled_set_def by blast
+
+lemma \<open>(\<forall>J. \<not> (enabled_set \<N> J)) \<Longrightarrow> (\<M> \<Turnstile>\<^sub>A\<^sub>F \<N>)\<close>
+  unfolding AF_entails_def by blast
   
 definition AF_entails_sound :: "('f, 'v) AF set \<Rightarrow> ('f, 'v) AF set \<Rightarrow> bool" (infix "\<Turnstile>s\<^sub>A\<^sub>F" 50) where
   \<open>AF_entails_sound \<M> \<N> \<equiv> (\<forall>J. (enabled_set \<N> J \<longrightarrow>
