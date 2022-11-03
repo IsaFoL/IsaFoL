@@ -749,10 +749,10 @@ proof (rule ccontr)
     qed
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> M \<subseteq> fst (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def fst_eqD
-      by fastforce
+      by metis
     moreover have \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> N \<subseteq> snd (max_chain C)\<close>
       using M_N_less_than_max_chain order_double_subsets_def snd_eqD
-      by fastforce
+      by metis      
     ultimately have max_chain_in_A : \<open>\<And>C. C \<in> Chains zorn_relation \<Longrightarrow> max_chain C \<in> A\<close>
       unfolding A_def using M_N_less_than_max_chain case_prod_beta
       by force
@@ -1911,6 +1911,31 @@ definition sound_propositional_model :: "'v total_interpretation \<Rightarrow> (
 definition propositionally_unsatisfiable :: "('f, 'v) AF set \<Rightarrow> bool" where
   \<open>propositionally_unsatisfiable \<N> \<equiv> \<forall>J. \<not> (J \<Turnstile>\<^sub>p \<N>)\<close>
 
+(* TODO: move in Sema? *)
+lemma unsat_simp: 
+  assumes 
+    \<open>\<not> sat (S' \<union> S::'v formula set)\<close>
+    \<open>sat S'\<close>
+    \<open>\<Union> (atoms ` S') \<inter> \<Union> (atoms ` S) = {}\<close>
+  shows
+    \<open>\<not> sat S\<close>
+  unfolding sat_def
+proof
+  assume contra: \<open>\<exists>\<A>. \<forall>F\<in>S. formula_semantics \<A> F\<close>
+  then obtain \<A>S where AS_is: \<open>\<forall>F\<in>S. formula_semantics \<A>S F\<close> by blast
+  obtain \<A>F where AF_is: \<open>\<forall>F\<in>S'. formula_semantics \<A>F F\<close> using assms(2) unfolding sat_def by blast
+  define \<A> where \<open>\<A> = (\<lambda>a. if a \<in> \<Union> (atoms ` S') then \<A>F a else \<A>S a)\<close>
+  have \<open>\<forall>F\<in>S'. formula_semantics \<A> F\<close>
+    using AF_is relevant_atoms_same_semantics unfolding \<A>_def
+    by (smt (verit, best) UN_I)
+  moreover have \<open>\<forall>F\<in>S. formula_semantics \<A> F\<close>
+    using AS_is relevant_atoms_same_semantics assms(3) unfolding \<A>_def
+    by (smt (verit, del_insts) Int_iff UN_I empty_iff)
+  ultimately have \<open>\<forall>F'\<in>(S'\<union>S). formula_semantics \<A> F'\<close> by blast
+  then show False
+    using assms(1) unfolding sat_def by blast
+qed
+
 (* TODO: move in Compactness? *)
 lemma compactness_unsat: \<open>(\<not> sat (S::'v formula set)) \<longleftrightarrow> (\<exists>s\<subseteq>S. finite s \<and> \<not> sat s)\<close>
   using compactness[of S] unfolding fin_sat_def by blast
@@ -2261,7 +2286,8 @@ next
         by auto
     qed
     moreover have \<open>F_of \<J>' = bot\<close>
-      unfolding \<J>'_def by simp
+      unfolding \<J>'_def
+      by simp
     moreover have \<open>\<forall>\<C>\<in>\<N>'. fset (A_of \<C>) \<subseteq> fset (A_of \<J>')\<close>
       using AJ_is \<J>'_def by auto
 
