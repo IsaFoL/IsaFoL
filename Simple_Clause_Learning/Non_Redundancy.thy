@@ -260,33 +260,16 @@ conflict in reg run \<Longrightarrow> ALL following runs have the following shap
 
 lemma conflict_with_literal_gets_resolved:
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
-    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1" and
     trail_lit: "state_trail S1 = Lc # \<Gamma>" and
     conf: "conflict N \<beta> S1 S2" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S2 Sn" and
-    backtrack: "\<exists>Sn'. backtrack N \<beta> Sn Sn'"
+    backtrack: "\<exists>Sn'. backtrack N \<beta> Sn Sn'" and
+    mempty_not_in_init_clss: "{#} |\<notin>| N" and
+    invars: "learned_nonempty S1" "trail_propagated_or_decided' N \<beta> S1" "no_conflict_after_decide' N \<beta> S1"
   shows "\<not> is_decision_lit Lc \<and> strict_suffix (state_trail Sn) (state_trail S1)"
 proof -
-  note scl_if_reaso = reasonable_if_regular[THEN scl_if_reasonable]
-
-  from reg_run have "learned_nonempty S1"
-    by (induction S1 rule: rtranclp_induct)
-      (simp_all add: scl_if_reaso[THEN scl_preserves_learned_nonempty])
-
-  from reg_run have "conflict_disjoint_vars N S1" and "trail_propagated_or_decided' N \<beta> S1"
-    by (induction S1 rule: rtranclp_induct)
-      (simp_all add: scl_if_reaso[THEN scl_preserves_conflict_disjoint_vars]
-        scl_if_reaso[THEN scl_preserves_trail_propagated_or_decided])
-
-  from reg_run have "no_conflict_after_decide' N \<beta> S1"
-    by (induction S1 rule: rtranclp_induct)
-      (simp_all add: reasonable_if_regular[THEN reasonable_scl_preserves_no_conflict_after_decide'])
-
-  have "{#} |\<notin>| N"
-    by (rule mempty_not_in_initial_clauses_if_run_leads_to_trail[OF reg_run trail_lit])
-  then obtain S0 where propa: "propagate N \<beta> S0 S1"
-    using before_reasonable_conflict[OF conf \<open>learned_nonempty S1\<close>
+  obtain S0 where propa: "propagate N \<beta> S0 S1"
+    using mempty_not_in_init_clss before_reasonable_conflict[OF conf \<open>learned_nonempty S1\<close>
         \<open>trail_propagated_or_decided' N \<beta> S1\<close> \<open>no_conflict_after_decide' N \<beta> S1\<close>] by metis
 
   from trail_lit propa have "\<not> is_decision_lit Lc"
@@ -826,9 +809,10 @@ proof -
     using \<open>propagate N \<beta> S S0\<close> unfolding propagate.simps by auto
 
   with backtrack have "strict_suffix (state_trail Sn) (state_trail S0)"
-    using conflict_with_literal_gets_resolved[OF disj_vars_N regular_run _ conflict]
-      resolution
-    by (metis (no_types, lifting) trail_propagate_def tranclp_into_rtranclp)
+    using conflict_with_literal_gets_resolved[OF _ conflict resolution[THEN tranclp_into_rtranclp] _
+        \<open>{#} |\<notin>| N\<close> \<open>learned_nonempty S0\<close> \<open>trail_propagated_or_decided' N \<beta> S0\<close>
+        \<open>no_conflict_after_decide' N \<beta> S0\<close>]
+    by (metis (no_types, lifting) trail_propagate_def)
   hence "suffix (state_trail Sn) (state_trail S)"
     unfolding trail_S0_eq trail_propagate_def
     by (metis suffix_Cons suffix_order.le_less suffix_order.less_irrefl)
