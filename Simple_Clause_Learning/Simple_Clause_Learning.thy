@@ -5273,7 +5273,33 @@ fun almost_no_conflict_with_trail where
   "almost_no_conflict_with_trail N \<beta> (Ln # \<Gamma>, U, _) =
     no_conflict_with_trail N \<beta> U (if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
 
-lemma no_conflict_with_trail_if_no_conflict:
+lemma nex_conflict_if_no_conflict_with_trail:
+  assumes no_conf: "state_conflict S = None" and "{#} |\<notin>| N" and "learned_nonempty S"
+    "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
+  shows "\<nexists>S'. conflict N \<beta> S S'"
+proof -
+  from no_conf obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
+    by (metis state_simp)
+
+  from \<open>learned_nonempty S\<close> have "{#} |\<notin>| U"
+    by (simp add: S_def learned_nonempty_def)
+
+  show ?thesis
+    using assms(4)
+    unfolding S_def state_proj_simp
+  proof (cases N \<beta> U \<Gamma> rule: no_conflict_with_trail.cases)
+    case Nil
+    then show "\<nexists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
+      using \<open>{#} |\<notin>| N\<close> \<open>{#} |\<notin>| U\<close>
+      by (auto simp: trail_false_cls_def elim: conflict.cases)
+  next
+    case (Cons Ln \<Gamma>')
+    then show "\<nexists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
+      by (auto intro: no_conflict_tail_trail)
+  qed
+qed
+
+lemma no_conflict_with_trail_if_nex_conflict:
   assumes no_conf: "\<nexists>S'. conflict N \<beta> S S'" "state_conflict S = None"
   shows "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
 proof -
@@ -5321,7 +5347,7 @@ next
   proof (cases N \<beta> S S' rule: propagate.cases)
     case step_hyps: (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
     have "no_conflict_with_trail N \<beta> U \<Gamma>"
-      by (rule no_conflict_with_trail_if_no_conflict[OF no_conf,
+      by (rule no_conflict_with_trail_if_nex_conflict[OF no_conf,
             unfolded step_hyps state_proj_simp, OF refl])
     thus ?thesis
       unfolding step_hyps(1,2)
@@ -5340,7 +5366,7 @@ proof -
     by (auto elim: decide.cases)
 
   have "no_conflict_with_trail N \<beta> (state_learned S') (state_trail S')"
-  proof (rule no_conflict_with_trail_if_no_conflict)
+  proof (rule no_conflict_with_trail_if_nex_conflict)
     show "\<nexists>S''. conflict N \<beta> S' S''"
       using step res_step[unfolded reasonable_scl_def] by argo
   next
@@ -5411,7 +5437,7 @@ lemma backtrack_preserves_almost_no_conflict_with_trail:
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case step_hyps: (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   have "no_conflict_with_trail N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
-    by (rule no_conflict_with_trail_if_no_conflict[OF step_hyps(4), simplified])
+    by (rule no_conflict_with_trail_if_nex_conflict[OF step_hyps(4), simplified])
   thus ?thesis
     unfolding step_hyps(1,2)
     by (rule almost_no_conflict_with_trail_if_no_conflict_with_trail)

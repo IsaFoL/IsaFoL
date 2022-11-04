@@ -10,47 +10,6 @@ context scl begin
 
 section \<open>Resolve in Regular Runs\<close>
 
-lemma before_regular_conflict:
-  assumes
-    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1" and
-    conf: "conflict N \<beta> S1 S2"
-  shows "S1 = initial_state \<and> {#} |\<in>| N \<or>
-    (\<exists>S0. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and> regular_scl N \<beta> S0 S1 \<and>
-    (propagate N \<beta> S0 S1))"
-  (is "?lhs \<or> ?rhs")
-  using reg_run conf
-proof (induction rule: rtranclp_induct)
-  case base
-  hence "{#} |\<in>| N"
-    by (cases rule: conflict.cases)
-      (metis not_trail_false_Nil(2) subst_cls_empty_iff sup_bot.right_neutral)
-  thus ?case
-    by simp
-next
-  case (step S0 S1)
-  show ?case
-  proof (rule disjI2, intro exI conjI)
-    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
-      using step.hyps by simp
-  next
-    show "regular_scl N \<beta> S0 S1"
-      using step.hyps by simp
-  next
-    from step.prems obtain \<Gamma> U C \<gamma> where
-      S1_def: "S1 = (\<Gamma>, U, None)" and
-      S2_def: "S2 = (\<Gamma>, U, Some (C, \<gamma>))"
-      unfolding conflict.simps by auto
-    with step.hyps have "\<not> conflict N \<beta> S0 S1" and "reasonable_scl N \<beta> S0 S1"
-      unfolding regular_scl_def by (simp_all add: conflict.simps)
-    with step.prems have "scl N \<beta> S0 S1" and "\<not> decide N \<beta> S0 S1"
-      unfolding reasonable_scl_def by blast+
-    moreover from step.prems have "\<not> backtrack N \<beta> S0 S1"
-      unfolding backtrack.simps by blast
-    ultimately show "propagate N \<beta> S0 S1"
-      by (simp add: scl_def S1_def skip.simps conflict.simps factorize.simps resolve.simps)
-  qed
-qed
-
 lemma resolve_if_conflict_follows_propagate:
   assumes
     no_conf: "\<nexists>S\<^sub>1. conflict N \<beta> S\<^sub>0 S\<^sub>1" and
@@ -272,6 +231,24 @@ lemma factorize_state_trail: "factorize N \<beta> S S' \<Longrightarrow> state_t
 lemma resolve_state_trail: "resolve N \<beta> S S' \<Longrightarrow> state_trail S' = state_trail S"
   by (auto elim: resolve.cases)
 
+lemma mempty_not_in_initial_clauses_if_run_leads_to_trail:
+  assumes
+    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1" and
+    trail_lit: "state_trail S1 = Lc # \<Gamma>"
+  shows "{#} |\<notin>| N"
+proof (rule notI)
+  assume "{#} |\<in>| N"
+  hence "conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
+    by (rule conflict_initial_state_if_mempty_in_intial_clauses)
+  moreover hence "\<nexists>S'. local.scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
+    using no_more_step_if_conflict_mempty by simp
+  ultimately show False
+    using trail_lit
+    by (metis (no_types, opaque_lifting) conflict_initial_state_only_with_mempty converse_rtranclpE
+        list.discI prod.sel(1) reasonable_if_regular reg_run regular_scl_def scl_if_reasonable
+        state_trail_def)
+qed
+
 (*
 after conflict, one can apply factorize arbitrarily often,
 but resolve must be applied at least once.
@@ -291,11 +268,26 @@ lemma conflict_with_literal_gets_resolved:
     backtrack: "\<exists>Sn'. backtrack N \<beta> Sn Sn'"
   shows "\<not> is_decision_lit Lc \<and> strict_suffix (state_trail Sn) (state_trail S1)"
 proof -
-  from trail_lit obtain S0 where
-    reg_run': "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
-    reg_step: "regular_scl N \<beta> S0 S1" and
-    propa: "propagate N \<beta> S0 S1"
-    using trail_lit before_regular_conflict[OF reg_run conf] by force
+  note scl_if_reaso = reasonable_if_regular[THEN scl_if_reasonable]
+
+  from reg_run have "learned_nonempty S1"
+    by (induction S1 rule: rtranclp_induct)
+      (simp_all add: scl_if_reaso[THEN scl_preserves_learned_nonempty])
+
+  from reg_run have "conflict_disjoint_vars N S1" and "trail_propagated_or_decided' N \<beta> S1"
+    by (induction S1 rule: rtranclp_induct)
+      (simp_all add: scl_if_reaso[THEN scl_preserves_conflict_disjoint_vars]
+        scl_if_reaso[THEN scl_preserves_trail_propagated_or_decided])
+
+  from reg_run have "no_conflict_after_decide' N \<beta> S1"
+    by (induction S1 rule: rtranclp_induct)
+      (simp_all add: reasonable_if_regular[THEN reasonable_scl_preserves_no_conflict_after_decide'])
+
+  have "{#} |\<notin>| N"
+    by (rule mempty_not_in_initial_clauses_if_run_leads_to_trail[OF reg_run trail_lit])
+  then obtain S0 where propa: "propagate N \<beta> S0 S1"
+    using before_reasonable_conflict[OF conf \<open>learned_nonempty S1\<close>
+        \<open>trail_propagated_or_decided' N \<beta> S1\<close> \<open>no_conflict_after_decide' N \<beta> S1\<close>] by metis
 
   from trail_lit propa have "\<not> is_decision_lit Lc"
     by (auto simp: trail_propagate_def is_decision_lit_def elim!: propagate.cases)
@@ -565,6 +557,23 @@ theorem learned_clauses_in_regular_runs:
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
+  from regular_run have "learned_nonempty S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_learned_nonempty reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have "conflict_disjoint_vars N S0" and "trail_propagated_or_decided' N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_conflict_disjoint_vars scl_preserves_trail_propagated_or_decided
+        reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have "no_conflict_after_decide' N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: reasonable_scl_preserves_no_conflict_after_decide' reasonable_if_regular)
+
+  from regular_run have "almost_no_conflict_with_trail N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+     (simp_all add: regular_scl_preserves_almost_no_conflict_with_trail)
+
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
@@ -795,9 +804,10 @@ proof -
   hence "{#} |\<notin>| N"
     using mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict
     using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1\<close> conflict_S1 by blast
-  then obtain S where
-    "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "regular_scl N \<beta> S S0" and "propagate N \<beta> S S0"
-    using before_regular_conflict[OF regular_run conflict] by auto
+  then obtain S where "propagate N \<beta> S S0"
+    using before_reasonable_conflict[OF conflict \<open>learned_nonempty S0\<close>
+        \<open>trail_propagated_or_decided' N \<beta> S0\<close> \<open>no_conflict_after_decide' N \<beta> S0\<close>]
+    by auto
 
   have "state_learned S = state_learned S0"
     using \<open>propagate N \<beta> S S0\<close> by (auto simp add: propagate.simps)
@@ -844,8 +854,23 @@ proof -
     by (metis uminus_of_uminus_id)
 
   have no_conf_at_S: "\<nexists>S'. conflict N \<beta> S S'"
-    using \<open>regular_scl N \<beta> S S0\<close> \<open>propagate N \<beta> S S0\<close>
-    using conflict_well_defined(1) regular_scl_def by blast
+  proof (rule nex_conflict_if_no_conflict_with_trail)
+    show "state_conflict S = None"
+      using \<open>propagate N \<beta> S S0\<close> by (auto elim: propagate.cases)
+  next
+    show "{#} |\<notin>| N"
+      by (rule \<open>{#} |\<notin>| N\<close>)
+  next
+    show "learned_nonempty S"
+      using \<open>learned_nonempty S0\<close> \<open>state_learned S = state_learned S0\<close>
+      by (simp add: learned_nonempty_def)
+  next
+    show "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
+      using \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
+      using \<open>propagate N \<beta> S S0\<close>
+      by (auto simp: \<open>state_learned S = state_learned S0\<close> trail_propagate_def is_decision_lit_def
+          elim!: propagate.cases)
+  qed
 
   have conf_at_S_if: "\<exists>S'. conflict N \<beta> S S'"
     if D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)" and
