@@ -2392,6 +2392,126 @@ proof (rule notI)
     by (simp add: S_def)
 qed
 
+lemma scl_mempty_not_in_sate_learned:
+  "scl N \<beta> S S' \<Longrightarrow> {#} |\<notin>| state_learned S \<Longrightarrow> {#} |\<notin>| state_learned S'"
+  unfolding scl_def
+  by (elim disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+      resolve.cases backtrack.cases) simp_all
+
+
+lemma conflict_if_mempty_in_initial_clauses_and_no_conflict:
+  assumes "{#} |\<in>| N" and "state_conflict S = None"
+  shows "conflict N \<beta> S (state_trail S, state_learned S, Some ({#}, Var))"
+proof -
+  from assms(2) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
+    by (metis snd_conv state_conflict_def surj_pair)
+
+  show ?thesis
+    unfolding S_def state_trail_simp state_learned_simp
+  proof (rule conflictI[of "{#}" N _  Var _ _, unfolded subst_cls_empty])
+    from assms(1) show "{#} |\<in>| N |\<union>| U"
+      by simp
+  next
+    show "Var = adapt_subst_to_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
+      by (rule ext) (simp add: adapt_subst_to_renaming_def)
+  qed simp_all
+qed
+
+lemma conflict_initial_state_if_mempty_in_intial_clauses:
+  "{#} |\<in>| N \<Longrightarrow> conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
+  using conflict_if_mempty_in_initial_clauses_and_no_conflict by auto
+
+lemma conflict_initial_state_only_with_mempty:
+  assumes "conflict N \<beta> initial_state S"
+  shows "S = ([], {||}, Some ({#}, Var))"
+  using assms(1)
+proof (cases rule: conflict.cases)
+  case (conflictI D \<gamma> \<rho> \<gamma>\<^sub>\<rho>)
+
+  from \<open>trail_false_cls [] (D \<cdot> \<gamma>)\<close> have "D \<cdot> \<gamma> = {#}"
+    using not_trail_false_Nil(2) by blast
+  hence "D = {#}"
+    by simp
+  moreover with \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close> have "\<gamma> = Var"
+    using subst_ident_if_not_in_domain by fastforce
+  ultimately show ?thesis
+    using \<open>S = ([], {||}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> by simp
+qed
+
+lemma no_more_step_if_conflict_mempty:
+  assumes "state_conflict S = Some ({#}, \<gamma>)"
+  shows "\<nexists>S'. scl N \<beta> S S'"
+  apply (rule notI)
+  unfolding scl_def
+  apply (insert assms)
+  by (elim exE disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+      resolve.cases backtrack.cases) simp_all
+
+lemma ex_conflict_if_trail_false_cls:
+  assumes tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)"
+  shows "\<exists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
+proof -
+  from D_in obtain D' \<gamma>' where
+    D'_in: "D' |\<in>| N |\<union>| U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
+    unfolding grounding_of_clss_def grounding_of_cls_def
+    by (smt (verit, ccfv_threshold) D_in UN_iff grounding_ground mem_Collect_eq notin_fset
+        union_fset)
+
+  define \<gamma> where
+    "\<gamma> \<equiv> restrict_subst (vars_cls D') \<gamma>'"
+
+  define \<rho> where
+    "\<rho> \<equiv> renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
+
+  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, adapt_subst_to_renaming \<rho> \<gamma>))"
+  proof (rule conflictI[OF D'_in])
+    show "subst_domain \<gamma> \<subseteq> vars_cls D'"
+      by (simp add: \<gamma>_def subst_domain_restrict_subst)
+  next
+    show "is_ground_cls (D' \<cdot> \<gamma>)"
+      using gr_D_\<gamma> by (simp add: \<gamma>_def subst_cls_restrict_subst_idem)
+  next
+    show "trail_false_cls \<Gamma> (D' \<cdot> \<gamma>)"
+      using tr_false_\<Gamma>_D by (simp add: D_def \<gamma>_def subst_cls_restrict_subst_idem)
+  qed (simp_all add: \<rho>_def)
+  thus ?thesis
+    by auto
+qed
+
+lemma no_conflict_tail_trail:
+  assumes "\<nexists>S. conflict N \<beta> (Ln # \<Gamma>, U, None) S"
+  shows "\<nexists>S. conflict N \<beta> (\<Gamma>, U, None) S"
+proof (rule notI, erule exE)
+  fix S assume "conflict N \<beta> (\<Gamma>, U, None) S"
+  hence "\<exists>S. conflict N \<beta> (Ln # \<Gamma>, U, None) S"
+  proof (cases N \<beta> _ S rule: conflict.cases)
+    case (conflictI D \<gamma> \<rho> \<gamma>\<^sub>\<rho>)
+    define \<rho>' where
+      "\<rho>' = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail (Ln # \<Gamma>)))"
+
+    have "conflict N \<beta> (Ln # \<Gamma>, U, None) (Ln # \<Gamma>, U, Some (D \<cdot> \<rho>', adapt_subst_to_renaming \<rho>' \<gamma>))"
+    proof (rule conflict.conflictI)
+      show "D |\<in>| N |\<union>| U"
+        by (rule conflictI)
+    next
+      show "subst_domain \<gamma> \<subseteq> vars_cls D"
+        by (rule conflictI)
+    next
+      show "is_ground_cls (D \<cdot> \<gamma>)"
+        by (rule conflictI)
+    next
+      show "trail_false_cls (Ln # \<Gamma>) (D \<cdot> \<gamma>)"
+        using \<open>trail_false_cls \<Gamma> (D \<cdot> \<gamma>)\<close>
+        by (simp add: trail_false_cls_def trail_false_lit_def)
+    qed (simp_all add: \<rho>'_def)
+    thus ?thesis
+      by metis
+  qed
+  with assms show False
+    by argo
+qed
+
 
 section \<open>Invariants\<close>
 
@@ -3225,8 +3345,8 @@ inductive trail_propagated_or_decided for N \<beta> U where
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
 
-abbreviation trail_propagated_or_decided' where
-  "trail_propagated_or_decided' N \<beta> S \<equiv>
+definition trail_propagated_or_decided' where
+  "trail_propagated_or_decided' N \<beta> S =
     trail_propagated_or_decided N \<beta> (state_learned S) (state_trail S)"
 
 lemma trail_propagated_or_decided_learned_finsert:
@@ -3311,7 +3431,7 @@ qed
 
 lemma trail_propagated_or_decided_initial_state[simp]:
   "trail_propagated_or_decided' N \<beta> initial_state"
-  by (auto intro: trail_propagated_or_decided.Nil)
+  by (auto simp: trail_propagated_or_decided'_def intro: trail_propagated_or_decided.Nil)
 
 lemma propagate_preserves_trail_propagated_or_decided:
   assumes "propagate N \<beta> S S'" and "trail_propagated_or_decided' N \<beta> S"
@@ -3321,11 +3441,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
 
   from propagateI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
-    by simp
+    by (simp add: trail_propagated_or_decided'_def)
 
   show ?thesis
     unfolding propagateI(2)
-    apply simp
+    apply (simp add: trail_propagated_or_decided'_def)
     by (rule trail_propagated_or_decided.Propagate[rotated -1, OF IH])
       (rule propagateI)+
 qed
@@ -3338,10 +3458,10 @@ proof (cases N \<beta> S S' rule: decide.cases)
   case (decideI L \<gamma> \<Gamma> U)
 
   from decideI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
-    by simp
+    by (simp add: trail_propagated_or_decided'_def)
   show ?thesis
     unfolding decideI(2)
-    apply simp
+    apply (simp add: trail_propagated_or_decided'_def)
     by (rule trail_propagated_or_decided.Decide[rotated -1, OF IH])
       (rule decideI)+
 qed
@@ -3349,7 +3469,7 @@ qed
 lemma conflict_preserves_trail_propagated_or_decided:
   assumes "conflict N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: conflict.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: conflict.cases)
 
 lemma skip_preserves_trail_propagated_or_decided:
   assumes "skip N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
@@ -3359,23 +3479,23 @@ proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> n \<Gamma> U)
 
   from invar have "trail_propagated_or_decided N \<beta> U ((L, n) # \<Gamma>)"
-    unfolding skipI(1) by simp
+    unfolding skipI(1) by (simp add: trail_propagated_or_decided'_def)
   hence "trail_propagated_or_decided N \<beta> U \<Gamma>"
     by (cases N \<beta> U "(L, n) # \<Gamma>" rule: trail_propagated_or_decided.cases)
       (simp_all add: trail_propagate_def trail_decide_def)
   thus ?thesis
-    unfolding skipI(2) by simp
+    unfolding skipI(2) by (simp add: trail_propagated_or_decided'_def)
 qed
 
 lemma factorize_preserves_trail_propagated_or_decided:
   assumes "factorize N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: factorize.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: factorize.cases)
 
 lemma resolve_preserves_trail_propagated_or_decided:
   assumes "resolve N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: resolve.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: resolve.cases)
 
 lemma disjoint_vars_set_insert_iff:
   "disjoint_vars_set (insert C N) \<longleftrightarrow> vars_cls C \<inter> vars_clss (N - {C}) = {} \<and> disjoint_vars_set N"
@@ -3400,7 +3520,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   have "trail_propagated_or_decided N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
   proof (rule trail_propagated_or_decided_learned_finsert)
     from invars(1) have "trail_propagated_or_decided N \<beta> U (trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
-      unfolding backtrackI by simp
+      unfolding backtrackI by (simp add: trail_propagated_or_decided'_def)
     then show "trail_propagated_or_decided N \<beta> U \<Gamma>''"
       by (induction "(trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
           rule: trail_propagated_or_decided.induct)
@@ -3412,7 +3532,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
       unfolding backtrackI by (simp add: clss_of_trail_append Int_Un_distrib vars_clss_def)
   qed
   thus ?thesis
-    unfolding backtrackI by simp
+    unfolding backtrackI by (simp add: trail_propagated_or_decided'_def)
 qed
 
 lemma scl_preserves_trail_propagated_or_decided:
@@ -3986,7 +4106,7 @@ lemma before_conflict:
 proof (cases N \<beta> S1 S2 rule: conflict.cases)
   case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
   with invars(2) have "trail_propagated_or_decided N \<beta> U \<Gamma>"
-    by simp
+    by (simp add: trail_propagated_or_decided'_def)
   thus ?thesis
   proof (cases N \<beta> U \<Gamma> rule: trail_propagated_or_decided.cases)
     case Nil
@@ -4962,6 +5082,14 @@ definition reasonable_scl where
 lemma scl_if_reasonable: "reasonable_scl N \<beta> S S' \<Longrightarrow> scl N \<beta> S S'"
   unfolding reasonable_scl_def scl_def by simp
 
+lemma reasonable_scl_sound_state:
+  "reasonable_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+  using scl_sound_state reasonable_scl_def by blast
+
+lemma reasonable_run_sound_state:
+  "(reasonable_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
+  by (smt (verit, best) reasonable_scl_sound_state rtranclp_induct)
+
 
 subsection \<open>Invariants\<close>
 
@@ -5065,7 +5193,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     unfolding backtrackI(1,2) no_conflict_after_decide'_def by simp
 qed
 
-lemma scl_preserves_no_conflict_after_decide':
+lemma reasonable_scl_preserves_no_conflict_after_decide':
   assumes "reasonable_scl N \<beta> S S'" and "no_conflict_after_decide' N \<beta> S"
   shows "no_conflict_after_decide' N \<beta> S'"
   using assms unfolding reasonable_scl_def scl_def
@@ -5076,7 +5204,31 @@ lemma scl_preserves_no_conflict_after_decide':
   by metis
 
 
-section \<open>Reasonable Steps\<close>
+subsection \<open>Miscellaneous Lemmas\<close>
+
+lemma before_reasonable_conflict:
+  assumes conf: "conflict N \<beta> S1 S2" and
+    invars: "learned_nonempty S1" "trail_propagated_or_decided' N \<beta> S1"
+      "no_conflict_after_decide' N \<beta> S1"
+  shows "{#} |\<in>| N \<or> (\<exists>S0. propagate N \<beta> S0 S1)"
+  using before_conflict[OF conf invars(1,2)]
+proof (elim disjE exE)
+  fix S0 assume "decide N \<beta> S0 S1"
+  hence False
+  proof (cases N \<beta> S0 S1 rule: decide.cases)
+    case (decideI L \<gamma> \<Gamma> U)
+    with invars(3) have "no_conflict_after_decide N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
+      by (simp add: no_conflict_after_decide'_def)
+    hence "\<nexists>S'. conflict N \<beta> (trail_decide \<Gamma> (L \<cdot>l \<gamma>), U, None) S'"
+      by (rule no_conflict_after_decide.cases) (simp_all add: trail_decide_def is_decision_lit_def)
+    then show ?thesis
+      using conf unfolding decideI(1,2) by metis
+  qed
+  thus ?thesis ..
+qed auto
+
+
+section \<open>Regular Steps\<close>
 
 definition regular_scl where
   "regular_scl N \<beta> S S' \<longleftrightarrow>
@@ -5098,76 +5250,186 @@ next
   thus ?thesis by simp
 qed
 
-lemma reasonable_scl_sound_state:
-  "reasonable_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
-  using scl_sound_state reasonable_scl_def by blast
-
 lemma regular_scl_sound_state: "regular_scl N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   by (rule reasonable_scl_sound_state[OF reasonable_if_regular])
-
-lemma reasonable_run_sound_state:
-  "(reasonable_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
-  by (smt (verit, best) reasonable_scl_sound_state rtranclp_induct)
 
 lemma regular_run_sound_state:
   "(regular_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
 
-lemma scl_mempty_not_in_sate_learned:
-  "scl N \<beta> S S' \<Longrightarrow> {#} |\<notin>| state_learned S \<Longrightarrow> {#} |\<notin>| state_learned S'"
-  unfolding scl_def
-  by (elim disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-      resolve.cases backtrack.cases) simp_all
+
+subsection \<open>Invariants\<close>
 
 
-lemma conflict_if_mempty_in_initial_clauses_and_no_conflict:
-  assumes "{#} |\<in>| N" and "state_conflict S = None"
-  shows "conflict N \<beta> S (state_trail S, state_learned S, Some ({#}, Var))"
+subsubsection \<open>Almost No Conflict With Trail\<close>
+
+inductive no_conflict_with_trail for N \<beta> U where
+  Nil[simp]: "no_conflict_with_trail N \<beta> U []" |
+  Cons: "(\<nexists>S'. conflict N \<beta> (Ln # \<Gamma>, U, None) S') \<Longrightarrow>
+    no_conflict_with_trail N \<beta> U \<Gamma> \<Longrightarrow> no_conflict_with_trail N \<beta> U (Ln # \<Gamma>)"
+
+fun almost_no_conflict_with_trail where
+  "almost_no_conflict_with_trail N \<beta> ([], _, _) = True" |
+  "almost_no_conflict_with_trail N \<beta> (Ln # \<Gamma>, U, _) =
+    no_conflict_with_trail N \<beta> U (if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
+
+lemma no_conflict_with_trail_if_no_conflict:
+  assumes no_conf: "\<nexists>S'. conflict N \<beta> S S'" "state_conflict S = None"
+  shows "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
 proof -
-  from assms(2) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
-    by (metis snd_conv state_conflict_def surj_pair)
+  from no_conf(2) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, None)"
+    by (metis state_simp)
 
   show ?thesis
-    unfolding S_def state_trail_simp state_learned_simp
-  proof (rule conflictI[of "{#}" N _  Var _ _, unfolded subst_cls_empty])
-    from assms(1) show "{#} |\<in>| N |\<union>| U"
-      by simp
+    using no_conf(1)
+    unfolding S_def state_proj_simp
+  proof (induction \<Gamma>)
+    case Nil
+    show ?case by simp
   next
-    show "Var = adapt_subst_to_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
-      by (rule ext) (simp add: adapt_subst_to_renaming_def)
-  qed simp_all
+    case (Cons Ln \<Gamma>)
+    have "\<nexists>a. conflict N \<beta> (\<Gamma>, U, None) a"
+      by (rule no_conflict_tail_trail[OF Cons.prems])
+    hence "no_conflict_with_trail N \<beta> U \<Gamma>"
+      by (rule Cons.IH)
+    then show ?case
+      using Cons.prems
+      by (auto intro: no_conflict_with_trail.Cons)
+  qed
 qed
 
-lemma conflict_initial_state_if_mempty_in_intial_clauses:
-  "{#} |\<in>| N \<Longrightarrow> conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
-  using conflict_if_mempty_in_initial_clauses_and_no_conflict by auto
+lemma almost_no_conflict_with_trail_if_no_conflict_with_trail:
+  "no_conflict_with_trail N \<beta> U \<Gamma> \<Longrightarrow> almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl)"
+  by (cases \<Gamma>) (auto elim: no_conflict_with_trail.cases)
 
-lemma conflict_initial_state_only_with_mempty:
-  assumes "conflict N \<beta> initial_state S"
-  shows "S = ([], {||}, Some ({#}, Var))"
-  using assms(1)
-proof (cases rule: conflict.cases)
-  case (conflictI D \<gamma> \<rho> \<gamma>\<^sub>\<rho>)
+lemma almost_no_conflict_with_trail_initial_state[simp]:
+  "almost_no_conflict_with_trail N \<beta> initial_state"
+  by simp
 
-  from \<open>trail_false_cls [] (D \<cdot> \<gamma>)\<close> have "D \<cdot> \<gamma> = {#}"
-    using not_trail_false_Nil(2) by blast
-  hence "D = {#}"
-    by simp
-  moreover with \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close> have "\<gamma> = Var"
-    using subst_ident_if_not_in_domain by fastforce
-  ultimately show ?thesis
-    using \<open>S = ([], {||}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
-    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> by simp
+lemma propagate_preserves_almost_no_conflict_with_trail:
+  assumes step: "propagate N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+  using reg_step[unfolded regular_scl_def]
+proof (elim disjE conjE)
+  assume "conflict N \<beta> S S'"
+  with step have False
+    using conflict_well_defined by blast
+  thus ?thesis ..
+next
+  assume no_conf: "\<nexists>S'. conflict N \<beta> S S'" and "reasonable_scl N \<beta> S S'"
+  from step show ?thesis
+  proof (cases N \<beta> S S' rule: propagate.cases)
+    case step_hyps: (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+    have "no_conflict_with_trail N \<beta> U \<Gamma>"
+      by (rule no_conflict_with_trail_if_no_conflict[OF no_conf,
+            unfolded step_hyps state_proj_simp, OF refl])
+    thus ?thesis
+      unfolding step_hyps(1,2)
+      by (simp add: trail_propagate_def is_decision_lit_def)
+  qed
 qed
 
-lemma no_more_step_if_conflict_mempty:
-  assumes "state_conflict S = Some ({#}, \<gamma>)"
-  shows "\<nexists>S'. scl N \<beta> S S'"
-  apply (rule notI)
-  unfolding scl_def
-  apply (insert assms)
-  by (elim exE disjE propagate.cases decide.cases conflict.cases skip.cases factorize.cases
-      resolve.cases backtrack.cases) simp_all
+lemma decide_preserves_almost_no_conflict_with_trail:
+  assumes step: "decide N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+proof -
+  from reg_step have res_step: "reasonable_scl N \<beta> S S'"
+    by (rule reasonable_if_regular)
+
+  from step obtain \<Gamma> U where S'_def: "S' = (\<Gamma>, U, None)"
+    by (auto elim: decide.cases)
+
+  have "no_conflict_with_trail N \<beta> (state_learned S') (state_trail S')"
+  proof (rule no_conflict_with_trail_if_no_conflict)
+    show "\<nexists>S''. conflict N \<beta> S' S''"
+      using step res_step[unfolded reasonable_scl_def] by argo
+  next
+    show "state_conflict S' = None"
+      by (simp add: S'_def)
+  qed
+  thus ?thesis
+    unfolding S'_def
+    by (simp add: almost_no_conflict_with_trail_if_no_conflict_with_trail)
+qed
+
+lemma almost_no_conflict_with_trail_conflict_not_relevant:
+  "almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl1) \<longleftrightarrow>
+   almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl2)"
+  by (metis almost_no_conflict_with_trail.simps(2)
+      almost_no_conflict_with_trail_if_no_conflict_with_trail list.exhaust
+      no_conflict_with_trail.Nil)
+
+lemma conflict_preserves_almost_no_conflict_with_trail:
+  assumes step: "conflict N \<beta> S S'" and invar: "almost_no_conflict_with_trail N \<beta> S"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+proof -
+  from step obtain \<Gamma> U Cl where "S = (\<Gamma>, U, None)" and "S' = (\<Gamma>, U, Some Cl)"
+    by (auto elim: conflict.cases)
+  with invar show ?thesis
+    using almost_no_conflict_with_trail_conflict_not_relevant by metis
+qed
+
+lemma skip_preserves_almost_no_conflict_with_trail:
+  assumes step: "skip N \<beta> S S'" and invar: "almost_no_conflict_with_trail N \<beta> S"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+  using step
+proof (cases N \<beta> S S' rule: skip.cases)
+  case step_hyps: (skipI L D \<sigma> n \<Gamma> U)
+  have "no_conflict_with_trail N \<beta> U (if is_decision_lit (L, n) then (L, n) # \<Gamma> else \<Gamma>)"
+    using invar unfolding step_hyps(1,2) by simp
+  hence "no_conflict_with_trail N \<beta> U \<Gamma>"
+    by (cases "is_decision_lit (L, n)") (auto elim: no_conflict_with_trail.cases)
+  then show ?thesis
+    unfolding step_hyps(1,2)
+    by (rule almost_no_conflict_with_trail_if_no_conflict_with_trail)
+qed
+
+lemma factorize_preserves_almost_no_conflict_with_trail:
+  assumes step: "factorize N \<beta> S S'" and invar: "almost_no_conflict_with_trail N \<beta> S"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+proof -
+  from step obtain \<Gamma> U Cl1 Cl2 where "S = (\<Gamma>, U, Some Cl1)" and "S' = (\<Gamma>, U, Some Cl2)"
+    by (auto elim: factorize.cases)
+  with invar show ?thesis
+    using almost_no_conflict_with_trail_conflict_not_relevant by metis
+qed
+
+lemma resolve_preserves_almost_no_conflict_with_trail:
+  assumes step: "resolve N \<beta> S S'" and invar: "almost_no_conflict_with_trail N \<beta> S"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+proof -
+  from step obtain \<Gamma> U Cl1 Cl2 where "S = (\<Gamma>, U, Some Cl1)" and "S' = (\<Gamma>, U, Some Cl2)"
+    by (auto elim: resolve.cases)
+  with invar show ?thesis
+    using almost_no_conflict_with_trail_conflict_not_relevant by metis
+qed
+
+lemma backtrack_preserves_almost_no_conflict_with_trail:
+  assumes step: "backtrack N \<beta> S S'"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+  using step
+proof (cases N \<beta> S S' rule: backtrack.cases)
+  case step_hyps: (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
+  have "no_conflict_with_trail N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
+    by (rule no_conflict_with_trail_if_no_conflict[OF step_hyps(4), simplified])
+  thus ?thesis
+    unfolding step_hyps(1,2)
+    by (rule almost_no_conflict_with_trail_if_no_conflict_with_trail)
+qed
+
+lemma regular_scl_preserves_almost_no_conflict_with_trail:
+  assumes "regular_scl N \<beta> S S'" and "almost_no_conflict_with_trail N \<beta> S"
+  shows "almost_no_conflict_with_trail N \<beta> S'"
+  using assms
+  using propagate_preserves_almost_no_conflict_with_trail decide_preserves_almost_no_conflict_with_trail
+    conflict_preserves_almost_no_conflict_with_trail skip_preserves_almost_no_conflict_with_trail
+    factorize_preserves_almost_no_conflict_with_trail resolve_preserves_almost_no_conflict_with_trail
+    backtrack_preserves_almost_no_conflict_with_trail
+  by (metis scl_def reasonable_if_regular scl_if_reasonable)
+  
+
+
+subsection \<open>Miscellaneous Lemmas\<close>
 
 lemma mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict:
   assumes "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}"
@@ -5198,37 +5460,6 @@ proof (rule notI)
     using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S' S\<close> unfolding S'_def
     by (metis converse_rtranclpE)
   with assms(2,3) show False by (simp add: S'_def)
-qed
-
-lemma ex_conflict_if_trail_false_cls:
-  assumes tr_false_\<Gamma>_D: "trail_false_cls \<Gamma> D" and D_in: "D \<in> grounding_of_clss (fset N \<union> fset U)"
-  shows "\<exists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
-proof -
-  from D_in obtain D' \<gamma>' where
-    D'_in: "D' |\<in>| N |\<union>| U" and D_def: "D = D' \<cdot> \<gamma>'" and gr_D_\<gamma>: "is_ground_cls (D' \<cdot> \<gamma>')"
-    unfolding grounding_of_clss_def grounding_of_cls_def
-    by (smt (verit, ccfv_threshold) D_in UN_iff grounding_ground mem_Collect_eq notin_fset
-        union_fset)
-
-  define \<gamma> where
-    "\<gamma> \<equiv> restrict_subst (vars_cls D') \<gamma>'"
-
-  define \<rho> where
-    "\<rho> \<equiv> renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
-
-  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, adapt_subst_to_renaming \<rho> \<gamma>))"
-  proof (rule conflictI[OF D'_in])
-    show "subst_domain \<gamma> \<subseteq> vars_cls D'"
-      by (simp add: \<gamma>_def subst_domain_restrict_subst)
-  next
-    show "is_ground_cls (D' \<cdot> \<gamma>)"
-      using gr_D_\<gamma> by (simp add: \<gamma>_def subst_cls_restrict_subst_idem)
-  next
-    show "trail_false_cls \<Gamma> (D' \<cdot> \<gamma>)"
-      using tr_false_\<Gamma>_D by (simp add: D_def \<gamma>_def subst_cls_restrict_subst_idem)
-  qed (simp_all add: \<rho>_def)
-  thus ?thesis
-    by auto
 qed
 
 end
