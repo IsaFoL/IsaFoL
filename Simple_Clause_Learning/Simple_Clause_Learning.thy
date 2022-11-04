@@ -3225,8 +3225,8 @@ inductive trail_propagated_or_decided for N \<beta> U where
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_decide \<Gamma> (L \<cdot>l \<gamma>))"
 
-abbreviation trail_propagated_or_decided' where
-  "trail_propagated_or_decided' N \<beta> S \<equiv>
+definition trail_propagated_or_decided' where
+  "trail_propagated_or_decided' N \<beta> S =
     trail_propagated_or_decided N \<beta> (state_learned S) (state_trail S)"
 
 lemma trail_propagated_or_decided_learned_finsert:
@@ -3311,7 +3311,7 @@ qed
 
 lemma trail_propagated_or_decided_initial_state[simp]:
   "trail_propagated_or_decided' N \<beta> initial_state"
-  by (auto intro: trail_propagated_or_decided.Nil)
+  by (auto simp: trail_propagated_or_decided'_def intro: trail_propagated_or_decided.Nil)
 
 lemma propagate_preserves_trail_propagated_or_decided:
   assumes "propagate N \<beta> S S'" and "trail_propagated_or_decided' N \<beta> S"
@@ -3321,11 +3321,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
 
   from propagateI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
-    by simp
+    by (simp add: trail_propagated_or_decided'_def)
 
   show ?thesis
     unfolding propagateI(2)
-    apply simp
+    apply (simp add: trail_propagated_or_decided'_def)
     by (rule trail_propagated_or_decided.Propagate[rotated -1, OF IH])
       (rule propagateI)+
 qed
@@ -3338,10 +3338,10 @@ proof (cases N \<beta> S S' rule: decide.cases)
   case (decideI L \<gamma> \<Gamma> U)
 
   from decideI(1) assms(2) have IH: "trail_propagated_or_decided N \<beta> U \<Gamma>"
-    by simp
+    by (simp add: trail_propagated_or_decided'_def)
   show ?thesis
     unfolding decideI(2)
-    apply simp
+    apply (simp add: trail_propagated_or_decided'_def)
     by (rule trail_propagated_or_decided.Decide[rotated -1, OF IH])
       (rule decideI)+
 qed
@@ -3349,7 +3349,7 @@ qed
 lemma conflict_preserves_trail_propagated_or_decided:
   assumes "conflict N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: conflict.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: conflict.cases)
 
 lemma skip_preserves_trail_propagated_or_decided:
   assumes "skip N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
@@ -3359,23 +3359,23 @@ proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> n \<Gamma> U)
 
   from invar have "trail_propagated_or_decided N \<beta> U ((L, n) # \<Gamma>)"
-    unfolding skipI(1) by simp
+    unfolding skipI(1) by (simp add: trail_propagated_or_decided'_def)
   hence "trail_propagated_or_decided N \<beta> U \<Gamma>"
     by (cases N \<beta> U "(L, n) # \<Gamma>" rule: trail_propagated_or_decided.cases)
       (simp_all add: trail_propagate_def trail_decide_def)
   thus ?thesis
-    unfolding skipI(2) by simp
+    unfolding skipI(2) by (simp add: trail_propagated_or_decided'_def)
 qed
 
 lemma factorize_preserves_trail_propagated_or_decided:
   assumes "factorize N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: factorize.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: factorize.cases)
 
 lemma resolve_preserves_trail_propagated_or_decided:
   assumes "resolve N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto elim: resolve.cases)
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: resolve.cases)
 
 lemma disjoint_vars_set_insert_iff:
   "disjoint_vars_set (insert C N) \<longleftrightarrow> vars_cls C \<inter> vars_clss (N - {C}) = {} \<and> disjoint_vars_set N"
@@ -3400,7 +3400,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   have "trail_propagated_or_decided N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
   proof (rule trail_propagated_or_decided_learned_finsert)
     from invars(1) have "trail_propagated_or_decided N \<beta> U (trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
-      unfolding backtrackI by simp
+      unfolding backtrackI by (simp add: trail_propagated_or_decided'_def)
     then show "trail_propagated_or_decided N \<beta> U \<Gamma>''"
       by (induction "(trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)))"
           rule: trail_propagated_or_decided.induct)
@@ -3412,7 +3412,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
       unfolding backtrackI by (simp add: clss_of_trail_append Int_Un_distrib vars_clss_def)
   qed
   thus ?thesis
-    unfolding backtrackI by simp
+    unfolding backtrackI by (simp add: trail_propagated_or_decided'_def)
 qed
 
 lemma scl_preserves_trail_propagated_or_decided:
@@ -5076,7 +5076,7 @@ lemma scl_preserves_no_conflict_after_decide':
   by metis
 
 
-section \<open>Reasonable Steps\<close>
+section \<open>Regular Steps\<close>
 
 definition regular_scl where
   "regular_scl N \<beta> S S' \<longleftrightarrow>
