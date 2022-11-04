@@ -2346,11 +2346,11 @@ next
 next
   fix \<M> \<N>
   assume m_entails_n: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F \<N>\<close>
+  consider (NotEnabled) \<open>\<forall>J. \<not> enabled_set \<N> J\<close> | (Enabled) \<open>\<exists>J. enabled_set \<N> J\<close> by blast
+    proof
 
-(* find a way to express the consequence of propositional compactness to use here without
-   introducing \<Turnstile> ?*)
-  (* have \<open>enabled set N J \<equiv> \<close> *)
-  
+
+    
   {
     fix J
     assume enabled_N: \<open>enabled_set \<N> J\<close>
