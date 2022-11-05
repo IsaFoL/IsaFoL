@@ -2421,6 +2421,29 @@ lemma conflict_initial_state_if_mempty_in_intial_clauses:
   "{#} |\<in>| N \<Longrightarrow> conflict N \<beta> initial_state ([], {||}, Some ({#}, Var))"
   using conflict_if_mempty_in_initial_clauses_and_no_conflict by auto
 
+lemma conflict_empty_trail:
+  assumes conf: "conflict N \<beta> S S'" and empty_trail: "state_trail S = []"
+  shows "{#} |\<in>| N |\<union>| state_learned S"
+  using conf
+proof (cases N \<beta> S S' rule: conflict.cases)
+  case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
+  from empty_trail have "\<Gamma> = []"
+    unfolding conflictI(1,2) by simp
+  with \<open>trail_false_cls \<Gamma> (D \<cdot> \<gamma>)\<close> have "D = {#}"
+    using not_trail_false_Nil(2) subst_cls_empty_iff by blast
+  with \<open>D |\<in>| N |\<union>| U\<close> show ?thesis
+    unfolding conflictI(1,2) by simp
+qed
+
+lemma conflict_empty_trail':
+  assumes "{#} |\<in>| N |\<union>| U"
+  shows "\<exists>S'. conflict N \<beta> ([], U, None) S'"
+  by (metis assms is_ground_cls_empty not_trail_false_ground_cls_if_no_conflict state_conflict_simp
+      state_learned_simp subst_cls_empty trail_false_cls_mempty)
+
+lemma mempty_in_iff_ex_conflict: "{#} |\<in>| N |\<union>| U \<longleftrightarrow> (\<exists>S'. conflict N \<beta> ([], U, None) S')"
+  by (metis conflict_empty_trail conflict_empty_trail' state_learned_simp state_trail_simp)
+
 lemma conflict_initial_state_only_with_mempty:
   assumes "conflict N \<beta> initial_state S"
   shows "S = ([], {||}, Some ({#}, Var))"
@@ -5264,16 +5287,28 @@ subsection \<open>Invariants\<close>
 subsubsection \<open>Almost No Conflict With Trail\<close>
 
 inductive no_conflict_with_trail for N \<beta> U where
-  Nil[simp]: "no_conflict_with_trail N \<beta> U []" |
+  Nil: "(\<nexists>S'. conflict N \<beta> ([], U, None) S') \<Longrightarrow> no_conflict_with_trail N \<beta> U []" |
   Cons: "(\<nexists>S'. conflict N \<beta> (Ln # \<Gamma>, U, None) S') \<Longrightarrow>
     no_conflict_with_trail N \<beta> U \<Gamma> \<Longrightarrow> no_conflict_with_trail N \<beta> U (Ln # \<Gamma>)"
 
-fun almost_no_conflict_with_trail where
-  "almost_no_conflict_with_trail N \<beta> ([], _, _) = True" |
-  "almost_no_conflict_with_trail N \<beta> (Ln # \<Gamma>, U, _) =
-    no_conflict_with_trail N \<beta> U (if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
-
 lemma nex_conflict_if_no_conflict_with_trail:
+  assumes "no_conflict_with_trail N \<beta> U \<Gamma>"
+  shows "\<nexists>S'. conflict N \<beta> (\<Gamma>, U, None) S'"
+  using assms by (auto elim: no_conflict_with_trail.cases)
+
+lemma nex_conflict_if_no_conflict_with_trail':
+  assumes "no_conflict_with_trail N \<beta> U \<Gamma>"
+  shows "\<nexists>S'. conflict N \<beta> ([], U, None) S'"
+  using assms
+  by (induction \<Gamma> rule: no_conflict_with_trail.induct) simp_all
+
+definition almost_no_conflict_with_trail where
+  "almost_no_conflict_with_trail N \<beta> S \<longleftrightarrow>
+    {#} |\<in>| N \<and> state_trail S = [] \<or>
+    no_conflict_with_trail N \<beta> (state_learned S)
+      (case state_trail S of [] \<Rightarrow> [] | Ln # \<Gamma> \<Rightarrow> if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
+
+lemma nex_conflict_if_no_conflict_with_trail'':
   assumes no_conf: "state_conflict S = None" and "{#} |\<notin>| N" and "learned_nonempty S"
     "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
   shows "\<nexists>S'. conflict N \<beta> S S'"
@@ -5311,7 +5346,7 @@ proof -
     unfolding S_def state_proj_simp
   proof (induction \<Gamma>)
     case Nil
-    show ?case by simp
+    thus ?case by simp
   next
     case (Cons Ln \<Gamma>)
     have "\<nexists>a. conflict N \<beta> (\<Gamma>, U, None) a"
@@ -5326,11 +5361,12 @@ qed
 
 lemma almost_no_conflict_with_trail_if_no_conflict_with_trail:
   "no_conflict_with_trail N \<beta> U \<Gamma> \<Longrightarrow> almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl)"
-  by (cases \<Gamma>) (auto elim: no_conflict_with_trail.cases)
+  by (cases \<Gamma>) (auto simp: almost_no_conflict_with_trail_def elim: no_conflict_with_trail.cases)
 
 lemma almost_no_conflict_with_trail_initial_state[simp]:
   "almost_no_conflict_with_trail N \<beta> initial_state"
-  by simp
+  by (cases "{#} |\<in>| N") (auto simp: almost_no_conflict_with_trail_def trail_false_cls_def
+      elim!: conflict.cases intro: no_conflict_with_trail.Nil)
 
 lemma propagate_preserves_almost_no_conflict_with_trail:
   assumes step: "propagate N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'"
@@ -5351,7 +5387,7 @@ next
             unfolded step_hyps state_proj_simp, OF refl])
     thus ?thesis
       unfolding step_hyps(1,2)
-      by (simp add: trail_propagate_def is_decision_lit_def)
+      by (simp add: almost_no_conflict_with_trail_def trail_propagate_def is_decision_lit_def)
   qed
 qed
 
@@ -5381,9 +5417,7 @@ qed
 lemma almost_no_conflict_with_trail_conflict_not_relevant:
   "almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl1) \<longleftrightarrow>
    almost_no_conflict_with_trail N \<beta> (\<Gamma>, U, Cl2)"
-  by (metis almost_no_conflict_with_trail.simps(2)
-      almost_no_conflict_with_trail_if_no_conflict_with_trail list.exhaust
-      no_conflict_with_trail.Nil)
+  by (simp add: almost_no_conflict_with_trail_def)
 
 lemma conflict_preserves_almost_no_conflict_with_trail:
   assumes step: "conflict N \<beta> S S'" and invar: "almost_no_conflict_with_trail N \<beta> S"
@@ -5402,7 +5436,7 @@ lemma skip_preserves_almost_no_conflict_with_trail:
 proof (cases N \<beta> S S' rule: skip.cases)
   case step_hyps: (skipI L D \<sigma> n \<Gamma> U)
   have "no_conflict_with_trail N \<beta> U (if is_decision_lit (L, n) then (L, n) # \<Gamma> else \<Gamma>)"
-    using invar unfolding step_hyps(1,2) by simp
+    using invar unfolding step_hyps(1,2) by (simp add: almost_no_conflict_with_trail_def)
   hence "no_conflict_with_trail N \<beta> U \<Gamma>"
     by (cases "is_decision_lit (L, n)") (auto elim: no_conflict_with_trail.cases)
   then show ?thesis
@@ -5456,6 +5490,31 @@ lemma regular_scl_preserves_almost_no_conflict_with_trail:
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
+
+lemma mempty_not_in_initial_clauses_if_non_empty_regular_conflict:
+  assumes "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}" and
+    invars: "almost_no_conflict_with_trail N \<beta> S" "sound_state N \<beta> S"
+  shows "{#} |\<notin>| N"
+proof -
+  from assms(1) obtain \<Gamma> U where S_def: "S = (\<Gamma>, U, Some (C, \<gamma>))"
+    by (metis state_simp)
+
+  from assms(2) obtain L C' where C_def: "C = add_mset L C'"
+    using multi_nonempty_split by metis
+
+  from invars(2) have "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
+    by (simp add: S_def sound_state_def)
+  then obtain Ln \<Gamma>' where "\<Gamma> = Ln # \<Gamma>'"
+    by (metis assms(2) neq_Nil_conv not_trail_false_Nil(2) subst_cls_empty_iff)
+  with invars(1) have "no_conflict_with_trail N \<beta> U (if is_decision_lit Ln then Ln # \<Gamma>' else \<Gamma>')"
+    by (simp add: S_def almost_no_conflict_with_trail_def)
+  hence "\<nexists>S'. conflict N \<beta> ([], U, None) S'"
+    by (rule nex_conflict_if_no_conflict_with_trail')
+  hence "{#} |\<notin>| N |\<union>| U"
+    unfolding mempty_in_iff_ex_conflict[symmetric] by assumption
+  thus ?thesis
+    by simp
+qed
 
 lemma mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict:
   assumes "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and "state_conflict S = Some (C, \<gamma>)" and "C \<noteq> {#}"

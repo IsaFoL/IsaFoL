@@ -556,6 +556,8 @@ proof -
   from regular_run have "almost_no_conflict_with_trail N \<beta> S0"
     by (induction S0 rule: rtranclp_induct)
      (simp_all add: regular_scl_preserves_almost_no_conflict_with_trail)
+  with conflict have "almost_no_conflict_with_trail N \<beta> S1"
+    by (rule conflict_preserves_almost_no_conflict_with_trail)
 
   from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
@@ -785,8 +787,8 @@ proof -
     using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
     by (metis converse_rtranclpE scl_def reasonable_if_regular reg_run_S1_Sn scl_if_reasonable)
   hence "{#} |\<notin>| N"
-    using mempty_not_in_initial_clauses_if_regular_run_reaches_non_empty_conflict
-    using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1\<close> conflict_S1 by blast
+    by (rule mempty_not_in_initial_clauses_if_non_empty_regular_conflict[OF conflict_S1 _
+          \<open>almost_no_conflict_with_trail N \<beta> S1\<close> sound_S1])
   then obtain S where "propagate N \<beta> S S0"
     using before_reasonable_conflict[OF conflict \<open>learned_nonempty S0\<close>
         \<open>trail_propagated_or_decided' N \<beta> S0\<close> \<open>no_conflict_after_decide' N \<beta> S0\<close>]
@@ -838,7 +840,7 @@ proof -
     by (metis uminus_of_uminus_id)
 
   have no_conf_at_S: "\<nexists>S'. conflict N \<beta> S S'"
-  proof (rule nex_conflict_if_no_conflict_with_trail)
+  proof (rule nex_conflict_if_no_conflict_with_trail'')
     show "state_conflict S = None"
       using \<open>propagate N \<beta> S S0\<close> by (auto elim: propagate.cases)
   next
@@ -852,8 +854,8 @@ proof -
     show "no_conflict_with_trail N \<beta> (state_learned S) (state_trail S)"
       using \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
       using \<open>propagate N \<beta> S S0\<close>
-      by (auto simp: \<open>state_learned S = state_learned S0\<close> trail_propagate_def is_decision_lit_def
-          elim!: propagate.cases)
+      by (auto simp: almost_no_conflict_with_trail_def \<open>state_learned S = state_learned S0\<close>
+          trail_propagate_def is_decision_lit_def elim!: propagate.cases)
   qed
 
   have conf_at_S_if: "\<exists>S'. conflict N \<beta> S S'"
