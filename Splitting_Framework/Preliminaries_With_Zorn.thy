@@ -2028,9 +2028,39 @@ lemma unsat_AF_simp:
     \<open>\<not> sat (AF_proj_to_formula_set S)\<close>
   using unsat_simp assms proj_to_form_un by metis
 
+lemma set_list_of_fset[simp]: \<open>set (list_of_fset A) = fset A\<close>
+  unfolding list_of_fset_def
+  by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq someI_ex)
+    (* /!\ sledgehammer on this proof proposes metis proofs that don't terminate
+by (metis exists_fset_of_list fset_of_list.rep_eq)  *)
 
-lemma \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\<close>
-  sorry
+lemma vars_in_assertion: \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\<close>
+  by simp
+
+    term \<open>BigOr L\<close>
+
+
+lemma atoms_bigor: \<open>atoms (BigOr L) = ⋃ (atoms ` (set L))\<close>
+  unfolding BigOr_def by (induction L) auto
+
+lemma atoms_neg: \<open>atoms (sign_to_atomic_formula (neg A)) = atoms (sign_to_atomic_formula A)\<close>
+  by (metis formula.simps(92) neg.elims sign_to_atomic_formula.simps(1) sign_to_atomic_formula.simps(2))
+
+find_theorems set  list_of_fset
+
+lemma set_maps_list_of_fset: \<open>set (map sign_to_atomic_formula (map neg (list_of_fset A))) = sign_to_atomic_formula ` neg ` fset A\<close>
+  using set_map unfolding list_of_fset_def 
+
+    
+    sorry
+
+
+lemma \<open>atoms (AF_to_formula (Pair C A)) = to_V ` (fset A)\<close> 
+  using atoms_bigor unfolding AF_to_formula_def sorry
+(*  proof -
+    have \<open>v \<in> atoms (AF_to_formula (Pair C A)) \<longleftrightarrow> v \<in> atoms (map sign_to_atomic_formula (list_of_fset (A_of (AF.Pair C A))))\<close>
+sorry *)
+
 
 lemma atoms_simp: \<open>\<Union> (atoms ` (AF_proj_to_formula_set S)) = to_V ` \<Union> (fset ` (A_of ` (proj\<^sub>\<bottom> S)))\<close>
 proof
@@ -2039,7 +2069,7 @@ proof
     fix v
     assume \<open>v \<in> \<Union> (atoms ` AF_proj_to_formula_set S)\<close>
     then show \<open>v \<in> to_V ` \<Union> (fset ` A_of ` (proj\<^sub>\<bottom> S))\<close>
-      unfolding atoms_def AF_proj_to_formula_set_def AF_to_formula_def
+      unfolding atoms_def AF_proj_to_formula_set_def AF_to_formula_def list_of_fset_def
       sorry
   qed
 next
