@@ -523,10 +523,12 @@ lemma not_trail_true_and_false_cls: "sound_trail N \<Gamma> \<Longrightarrow> \<
   using not_trail_true_and_false_lit
   by (metis trail_false_cls_def trail_true_cls_def)
 
-theorem learned_clauses_in_regular_runs:
+theorem learned_clauses_in_regular_runs_invars:
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
-    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    sound_S0: "sound_state N \<beta> S0" and
+    invars: "learned_nonempty S0" "conflict_disjoint_vars N S0"
+      "trail_propagated_or_decided' N \<beta> S0" "no_conflict_after_decide' N \<beta> S0"
+      "almost_no_conflict_with_trail N \<beta> S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
     backtrack: "backtrack N \<beta> Sn Sn'" and
@@ -534,57 +536,35 @@ theorem learned_clauses_in_regular_runs:
   defines
     "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
     "U \<equiv> state_learned S1"
-  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
-    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+  shows "(\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
       C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
-  from regular_run have "learned_nonempty S0"
-    by (induction S0 rule: rtranclp_induct)
-      (auto intro: scl_preserves_learned_nonempty reasonable_if_regular scl_if_reasonable)
-
-  from regular_run have "conflict_disjoint_vars N S0" and "trail_propagated_or_decided' N \<beta> S0"
-    by (induction S0 rule: rtranclp_induct)
-      (auto intro: scl_preserves_conflict_disjoint_vars scl_preserves_trail_propagated_or_decided
-        reasonable_if_regular scl_if_reasonable)
-
-  from regular_run have "no_conflict_after_decide' N \<beta> S0"
-    by (induction S0 rule: rtranclp_induct)
-      (auto intro: reasonable_scl_preserves_no_conflict_after_decide' reasonable_if_regular)
-
-  from regular_run have "almost_no_conflict_with_trail N \<beta> S0"
-    by (induction S0 rule: rtranclp_induct)
-     (simp_all add: regular_scl_preserves_almost_no_conflict_with_trail)
-  with conflict have "almost_no_conflict_with_trail N \<beta> S1"
+  from conflict have "almost_no_conflict_with_trail N \<beta> S1"
+    using \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
     by (rule conflict_preserves_almost_no_conflict_with_trail)
-
-  from regular_run conflict have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
-    by (meson regular_scl_def rtranclp.simps)
-  also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
-    using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by metis
-  also have "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn'"
-  proof (rule r_into_rtranclp)
-    from backtrack have "scl N \<beta> Sn Sn'"
-      by (simp add: scl_def)
-    with backtrack have "reasonable_scl N \<beta> Sn Sn'"
-      using reasonable_scl_def decide_well_defined(6) by blast
-    with backtrack show "regular_scl N \<beta> Sn Sn'"
-      unfolding regular_scl_def
-      by (smt (verit) conflict.simps option.simps(3) backtrack.cases state_conflict_simp)
-  qed
-  finally have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'" by assumption
 
   from conflict obtain C1 \<gamma>1 where conflict_S1: "state_conflict S1 = Some (C1, \<gamma>1)"
     by (smt (verit, best) conflict.simps state_conflict_simp)
-  with backtrack obtain Cn \<gamma>n where conflict_Sn: "state_conflict Sn = Some (Cn, \<gamma>n)"
-    by (smt (verit) backtrack.simps state_conflict_simp)
+  with backtrack obtain Cn \<gamma>n where conflict_Sn: "state_conflict Sn = Some (Cn, \<gamma>n)" and "Cn \<noteq> {#}"
+    by (auto elim: backtrack.cases)
+  with resolution conflict_S1 have "C1 \<noteq> {#}"
+  proof (induction Sn arbitrary: C1 \<gamma>1 Cn \<gamma>n rule: tranclp_induct)
+    case (base y)
+    then show ?case
+      by (auto elim: skip.cases factorize.cases resolve.cases)
+  next
+    case (step y z)
+    from step.prems step.hyps obtain Cy \<gamma>y where
+      conf_y: "state_conflict y = Some (Cy, \<gamma>y)" and "Cy \<noteq> {#}"
+      by (auto elim: skip.cases factorize.cases resolve.cases)
+    show ?case
+      using step.IH[OF _ conf_y \<open>Cy \<noteq> {#}\<close>] step.prems
+      by simp
+  qed
 
-  from disj_vars_N have "sound_state N \<beta> initial_state"
-    by (rule sound_initial_state)
-  with regular_run have sound_S0: "sound_state N \<beta> S0"
-    by (simp add: regular_run_sound_state)
-  with conflict have sound_S1: "sound_state N \<beta> S1"
+  from conflict sound_S0 have sound_S1: "sound_state N \<beta> S1"
     by (simp add: conflict_sound_state)
   with resolution have sound_Sn: "sound_state N \<beta> Sn"
     by (induction rule: tranclp_induct)
@@ -757,9 +737,8 @@ proof -
     qed
   qed
 
-  then obtain Cn \<gamma>n where
+  with conflict_Sn have
     "suffix (state_trail Sn) (state_trail S1)" and
-    conflict_Sn: "state_conflict Sn = Some (Cn, \<gamma>n)" and
     tr_false_S1_Cn_\<gamma>n: "trail_false_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     by auto
 
@@ -783,11 +762,8 @@ proof -
   have "trail_defined_cls (state_trail S1) (Cn \<cdot> \<gamma>n)"
     using \<open>\<forall>L\<in>#Cn \<cdot> \<gamma>n. trail_defined_lit (state_trail S1) L\<close> trail_defined_cls_def by blast
 
-  from backtrack have "C1 \<noteq> {#}"
-    using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
-    by (metis converse_rtranclpE scl_def reasonable_if_regular scl_if_reasonable)
-  hence "{#} |\<notin>| N"
-    by (rule mempty_not_in_initial_clauses_if_non_empty_regular_conflict[OF conflict_S1 _
+  have "{#} |\<notin>| N"
+    by (rule mempty_not_in_initial_clauses_if_non_empty_regular_conflict[OF conflict_S1 \<open>C1 \<noteq> {#}\<close>
           \<open>almost_no_conflict_with_trail N \<beta> S1\<close> sound_S1])
   then obtain S where "propagate N \<beta> S S0"
     using before_reasonable_conflict[OF conflict \<open>learned_nonempty S0\<close>
@@ -1063,7 +1039,69 @@ proof -
   qed
 
   ultimately show ?thesis
-    using conflict_Sn \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'\<close> by simp
+    using conflict_Sn by simp
+qed
+
+theorem learned_clauses_in_regular_runs:
+  assumes
+    disj_vars_N: "disjoint_vars_set (fset N)" and
+    regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    conflict: "conflict N \<beta> S0 S1" and
+    resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
+    backtrack: "backtrack N \<beta> Sn Sn'" and
+    "transp lt"
+  defines
+    "trail_ord \<equiv> multp (trail_less_ex lt (map fst (state_trail S1)))" and
+    "U \<equiv> state_learned S1"
+  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
+    (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and>
+      C \<cdot> \<gamma> \<notin> grounding_of_clss (fset N \<union> fset U) \<and>
+      set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
+      \<not> redundant trail_ord (fset N \<union> fset U) C)"
+proof -
+  from disj_vars_N have "sound_state N \<beta> initial_state"
+    by (rule sound_initial_state)
+  with regular_run have sound_S0: "sound_state N \<beta> S0"
+    by (rule regular_run_sound_state)
+
+  from regular_run have "learned_nonempty S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_learned_nonempty reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have "conflict_disjoint_vars N S0" and "trail_propagated_or_decided' N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: scl_preserves_conflict_disjoint_vars scl_preserves_trail_propagated_or_decided
+        reasonable_if_regular scl_if_reasonable)
+
+  from regular_run have "no_conflict_after_decide' N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+      (auto intro: reasonable_scl_preserves_no_conflict_after_decide' reasonable_if_regular)
+
+  from regular_run have "almost_no_conflict_with_trail N \<beta> S0"
+    by (induction S0 rule: rtranclp_induct)
+     (simp_all add: regular_scl_preserves_almost_no_conflict_with_trail)
+
+  from regular_run conflict have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+    by (meson regular_scl_def rtranclp.simps)
+  also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
+    using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by metis
+  also have "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn'"
+  proof (rule r_into_rtranclp)
+    from backtrack have "scl N \<beta> Sn Sn'"
+      by (simp add: scl_def)
+    with backtrack have "reasonable_scl N \<beta> Sn Sn'"
+      using reasonable_scl_def decide_well_defined(6) by blast
+    with backtrack show "regular_scl N \<beta> Sn Sn'"
+      unfolding regular_scl_def
+      by (smt (verit) conflict.simps option.simps(3) backtrack.cases state_conflict_simp)
+  qed
+  finally have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn'" by assumption
+  thus ?thesis
+    using learned_clauses_in_regular_runs_invars[OF sound_S0 \<open>learned_nonempty S0\<close>
+        \<open>conflict_disjoint_vars N S0\<close> \<open>trail_propagated_or_decided' N \<beta> S0\<close>
+        \<open>no_conflict_after_decide' N \<beta> S0\<close> \<open>almost_no_conflict_with_trail N \<beta> S0\<close>
+        conflict resolution backtrack \<open>transp lt\<close>, folded trail_ord_def U_def]
+    by argo
 qed
 
 corollary learned_clauses_in_regular_runs_static_order:

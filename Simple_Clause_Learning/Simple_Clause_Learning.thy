@@ -6127,29 +6127,14 @@ qed *)
   
 
 lemma before_regular_backtrack:
-  assumes reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and backt: "backtrack N \<beta> S S'" and
-    invar: "disjoint_vars_set (fset N)"
-  shows "\<exists>S0 S1 S2 S3 S4. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and> propagate N \<beta> S0 S1 \<and>
+  assumes
+    backt: "backtrack N \<beta> S S'" and
+    invars: "sound_state N \<beta> S" "almost_no_conflict_with_trail N \<beta> S"
+      "regular_conflict_resolution N \<beta> S"
+  shows "\<exists>S0 S1 S2 S3 S4. propagate N \<beta> S0 S1 \<and>
     conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> resolve N \<beta> S3 S4 \<and>
     (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
 proof -
-  note reg_to_rea = reasonable_if_regular
-  note rea_to_scl = scl_if_reasonable
-  note reg_to_scl = reg_to_rea[THEN rea_to_scl]
-
-  from reg_run have "learned_nonempty S" "conflict_disjoint_vars N S"
-    "trail_propagated_or_decided' N \<beta> S" "no_conflict_after_decide' N \<beta> S"
-    "almost_no_conflict_with_trail N \<beta> S" "regular_conflict_resolution N \<beta> S"
-    "sound_state N \<beta> S"
-    using reg_to_scl[THEN scl_preserves_learned_nonempty]
-    using reg_to_scl[THEN scl_preserves_conflict_disjoint_vars]
-    using reg_to_scl[THEN scl_preserves_trail_propagated_or_decided]
-    using reg_to_rea[THEN reasonable_scl_preserves_no_conflict_after_decide']
-    using regular_scl_preserves_almost_no_conflict_with_trail
-    using reg_to_scl[THEN regular_scl_preserves_regular_conflict_resolution]
-    using reg_to_scl[THEN scl_preserves_sound_state, rotated] invar
-    by (induction S rule: rtranclp_induct) simp_all
-
   from backt obtain L C \<gamma> where "state_conflict S = Some (add_mset L C, \<gamma>)"
     by (auto elim: backtrack.cases)
   
@@ -6292,9 +6277,8 @@ proof -
   next
     show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
       by (rule \<open>(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S\<close>)
-  next
-    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
-      oops
+  qed
+qed
     
 end
 
