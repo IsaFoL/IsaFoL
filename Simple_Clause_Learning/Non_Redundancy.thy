@@ -559,7 +559,7 @@ proof -
   with conflict have "almost_no_conflict_with_trail N \<beta> S1"
     by (rule conflict_preserves_almost_no_conflict_with_trail)
 
-  from regular_run conflict have reg_run_init_S1: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+  from regular_run conflict have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
     by (meson regular_scl_def rtranclp.simps)
   also from resolution have reg_run_S1_Sn: "(regular_scl N \<beta>)\<^sup>*\<^sup>* ... Sn"
     using regular_run_if_skip_factorize_resolve_run tranclp_into_rtranclp by metis
@@ -785,7 +785,7 @@ proof -
 
   from backtrack have "C1 \<noteq> {#}"
     using reg_run_S1_Sn conflict_S1 no_more_step_if_conflict_mempty
-    by (metis converse_rtranclpE scl_def reasonable_if_regular reg_run_S1_Sn scl_if_reasonable)
+    by (metis converse_rtranclpE scl_def reasonable_if_regular scl_if_reasonable)
   hence "{#} |\<notin>| N"
     by (rule mempty_not_in_initial_clauses_if_non_empty_regular_conflict[OF conflict_S1 _
           \<open>almost_no_conflict_with_trail N \<beta> S1\<close> sound_S1])
