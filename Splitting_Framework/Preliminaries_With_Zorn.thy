@@ -2031,8 +2031,6 @@ lemma unsat_AF_simp:
 lemma set_list_of_fset[simp]: \<open>set (list_of_fset A) = fset A\<close>
   unfolding list_of_fset_def
   by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq someI_ex)
-    (* /!\ sledgehammer on this proof proposes metis proofs that don't terminate
-by (metis exists_fset_of_list fset_of_list.rep_eq)  *)
 
 lemma vars_in_assertion: \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\<close>
   by simp
@@ -2040,7 +2038,7 @@ lemma vars_in_assertion: \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\
     term \<open>BigOr L\<close>
 
 
-lemma atoms_bigor: \<open>atoms (BigOr L) = ⋃ (atoms ` (set L))\<close>
+lemma atoms_bigor: \<open>atoms (BigOr L) = \<Union> (atoms ` (set L))\<close>
   unfolding BigOr_def by (induction L) auto
 
 lemma atoms_neg: \<open>atoms (sign_to_atomic_formula (neg A)) = atoms (sign_to_atomic_formula A)\<close>
