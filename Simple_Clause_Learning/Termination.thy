@@ -897,7 +897,7 @@ next
     show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
       using \<M>_back_pfsubset_\<M>_back_after_regular_backtrack
       \<comment> \<open>This would be the last step but would require to rephrase the non-redundancy lemma in term
-        of invariants instead of regular run.orr\<close>
+        of invariants instead of regular run.\<close>
       oops
 
 end

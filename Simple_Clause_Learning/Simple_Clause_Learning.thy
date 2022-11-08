@@ -6278,9 +6278,6 @@ proof -
     by metis
   show ?thesis
   proof (intro exI conjI)
-    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
-      sorry
-  next
     show "propagate N \<beta> S0 S1"
       by (rule \<open>propagate N \<beta> S0 S1\<close>)
   next
@@ -6295,8 +6292,9 @@ proof -
   next
     show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
       by (rule \<open>(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S\<close>)
-  qed
-  oops
+  next
+    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      oops
     
 end
 
