@@ -2028,23 +2028,68 @@ lemma unsat_AF_simp:
     \<open>\<not> sat (AF_proj_to_formula_set S)\<close>
   using unsat_simp assms proj_to_form_un by metis
 
+lemma set_list_of_fset[simp]: \<open>set (list_of_fset A) = fset A\<close>
+  unfolding list_of_fset_def
+  by (smt (verit, del_insts) exists_fset_of_list fset_of_list.rep_eq someI_ex)
 
-lemma \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\<close>
-  sorry
+lemma vars_in_assertion: \<open>to_V ` (set (list_of_fset A)) = to_V ` (fset A)\<close>
+  by simp
+
+lemma atoms_bigor: \<open>atoms (BigOr L) = \<Union> (atoms ` (set L))\<close>
+  unfolding BigOr_def by (induction L) auto
+
+lemma atoms_neg: \<open>atoms (sign_to_atomic_formula (neg A)) = atoms (sign_to_atomic_formula A)\<close>
+  by (metis formula.simps(92) neg.elims sign_to_atomic_formula.simps(1)
+      sign_to_atomic_formula.simps(2))
+
+find_theorems set  list_of_fset
+
+lemma set_maps_list_of_fset: \<open>set (map sign_to_atomic_formula (map neg (list_of_fset A))) = 
+  sign_to_atomic_formula ` neg ` fset A\<close>
+  using set_map by auto
+
+lemma atoms_to_V_mono: \<open>atoms (sign_to_atomic_formula A) = {to_V A}\<close>
+  by (metis formula.set(1) formula.set(3) sign_to_atomic_formula.simps(1)
+      sign_to_atomic_formula.simps(2) to_V.elims)
+
+lemma atoms_to_V: \<open>\<Union>(atoms ` sign_to_atomic_formula ` A) = to_V ` A\<close>
+proof -
+  have \<open>\<Union>(atoms ` sign_to_atomic_formula ` A) = \<Union>{{to_V a} |a. a \<in> A}\<close>
+    using atoms_to_V_mono by auto
+  also have \<open>... = to_V ` A\<close>
+    by blast
+  finally show \<open>\<Union>(atoms ` sign_to_atomic_formula ` A) = to_V ` A\<close> .
+qed
+
+lemma atoms_to_V_AF: \<open>atoms (AF_to_formula (Pair C A)) = to_V ` (fset A)\<close>
+proof -
+  have \<open>atoms (AF_to_formula (Pair C A)) = \<Union> (atoms ` sign_to_atomic_formula ` fset A)\<close>
+    using atoms_bigor set_maps_list_of_fset atoms_neg unfolding AF_to_formula_def
+    by (smt (z3) AF.sel(2) image_iff subsetI subset_antisym)
+  also have \<open>... = to_V ` (fset A)\<close>
+    using atoms_to_V by auto
+  ultimately show \<open>atoms (AF_to_formula (Pair C A)) = to_V ` (fset A)\<close> by simp
+qed
+
+lemma atoms_to_V_A_of: \<open>atoms (AF_to_formula \<C>) = to_V ` (fset (A_of \<C>))\<close>
+  using atoms_to_V_AF
+  by (metis AF.collapse)
+
+lemma atoms_to_V_un: \<open>\<Union>(atoms ` AF_to_formula ` \<S>) = \<Union>{to_V ` fset A |A. A \<in> A_of ` \<S>}\<close>
+proof -
+  have \<open>(x \<in> (atoms ` AF_to_formula ` \<S>)) = (x \<in> {to_V ` (fset A) |A. A \<in> A_of ` \<S>})\<close> for x
+    using atoms_to_V_A_of by blast
+  then show ?thesis
+    by (smt (verit, ccfv_SIG) Collect_cong Sup_set_def UNION_singleton_eq_range mem_Collect_eq)
+qed
 
 lemma atoms_simp: \<open>\<Union> (atoms ` (AF_proj_to_formula_set S)) = to_V ` \<Union> (fset ` (A_of ` (proj\<^sub>\<bottom> S)))\<close>
-proof
-  show \<open>\<Union> (atoms ` AF_proj_to_formula_set S) \<subseteq> to_V ` \<Union> (fset ` A_of ` (proj\<^sub>\<bottom> S))\<close>
-  proof
-    fix v
-    assume \<open>v \<in> \<Union> (atoms ` AF_proj_to_formula_set S)\<close>
-    then show \<open>v \<in> to_V ` \<Union> (fset ` A_of ` (proj\<^sub>\<bottom> S))\<close>
-      unfolding atoms_def AF_proj_to_formula_set_def AF_to_formula_def
-      sorry
-  qed
-next
-  show \<open>to_V ` \<Union> (fset ` A_of ` proj\<^sub>\<bottom>  S) \<subseteq> \<Union> (atoms ` AF_proj_to_formula_set S)\<close>
-    sorry
+proof -
+  have \<open>\<Union> (atoms ` (AF_proj_to_formula_set S)) = \<Union>{to_V ` fset A | A. A \<in> A_of ` (proj\<^sub>\<bottom> S)}\<close>
+    unfolding AF_proj_to_formula_set_def using atoms_to_V_un by auto
+  also have \<open>... = to_V ` \<Union> (fset ` (A_of ` (proj\<^sub>\<bottom> S)))\<close>
+    by blast
+  finally show ?thesis .
 qed
 
 lemma val_from_interp: \<open>\<forall>\<A>. \<exists>J. \<A> = to_valuation J\<close>
@@ -2315,6 +2360,9 @@ proof -
     by blast
 qed
 
+lemma to_V_neg [simp]: \<open>to_V (neg a) = to_V a\<close>
+  by (metis is_Neg_to_V is_Pos_to_V neg.simps(1) neg.simps(2) to_V.simps(1) to_V.simps(2))
+
   (* Splitting report Lemma 4, 1/2 *)
 sublocale AF_cons_rel: consequence_relation "to_AF bot" AF_entails
 proof
@@ -2530,25 +2578,44 @@ next
     define \<S>\<^sub>\<E> where \<open>\<S>\<^sub>\<E> = \<S> \<inter> (\<E>_from \<N>)\<close>
     define \<S>\<^sub>\<E>' where \<open>\<S>\<^sub>\<E>' = \<S>\<^sub>\<E> \<inter> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}\<close>
     define \<S>' where \<open>\<S>' = \<S>\<^sub>\<J> \<union> \<S>\<^sub>\<E>'\<close>
-    find_theorems "proj\<^sub>\<bottom> _ = _"
     have proj_S':  \<open>proj\<^sub>\<bottom>  \<S>' = \<S>'\<close>
       using proj_prop_J' prop_proj_\<E>_from S_sub prop_proj_sub prop_proj_distrib
       unfolding \<S>'_def \<S>\<^sub>\<J>_def \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def by (smt (verit, best) inf_le1)
     have S_is: \<open>\<S> = (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>') \<union> \<S>'\<close>
       using S_sub \<S>\<^sub>\<J>_def \<S>\<^sub>\<E>_def \<S>'_def \<S>\<^sub>\<E>'_def by blast
     have \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') = {}\<close>
-    proof -
-      {
-        fix v
-        assume \<open>v \<in> to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))\<close>
-        then have \<open>v \<notin> to_V ` \<Union> (fset ` A_of ` \<S>')\<close> sorry
-      }
-      moreover {
-        fix v
-        assume \<open>v \<notin> to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))\<close>
-        then have \<open>v \<in> to_V ` \<Union> (fset ` A_of ` \<S>')\<close> sorry
-      }
-      ultimately show ?thesis by blast
+    proof (rule ccontr)
+      assume \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') \<noteq> {}\<close>
+      then obtain v where v_in1: \<open>v \<in> to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))\<close>
+        and v_in2: \<open>v \<in> to_V ` \<Union> (fset ` A_of ` \<S>')\<close> by blast
+      obtain \<C> where C_in: \<open>\<C> \<in> \<S>\<^sub>\<E> - \<S>\<^sub>\<E>'\<close> and v_in_C: \<open>v \<in> to_V ` (fset (A_of \<C>))\<close>
+        using v_in1 by blast
+      obtain a where C_is1: \<open>\<C> = Pair bot {|neg a|}\<close>
+        using C_in unfolding \<S>\<^sub>\<E>_def \<E>_from_def by blast
+      then have v_is: \<open>v = to_V a\<close>
+        using v_in_C by simp
+      obtain \<C>' where C'_in: \<open>\<C>' \<in> \<S>'\<close> and v_in_C': \<open>v \<in> to_V ` (fset (A_of \<C>'))\<close>
+        using v_in2 by blast
+      consider (J) \<open>\<C>' \<in> \<S>\<^sub>\<J>\<close> | (E') \<open>\<C>' \<in> \<S>\<^sub>\<E>'\<close>
+        using C'_in \<S>'_def by blast
+      then have \<open>\<exists>\<C>''\<in>{Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}. v \<in> to_V ` fset (A_of \<C>'')\<close>
+      proof cases
+        case J
+        then obtain a' \<C>'' where C'_is1: \<open>\<C>'' = Pair bot {|neg a'|}\<close> and
+          C''_in: \<open>\<C>'' \<in> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)} \<close> and
+          a'_in: \<open>a' \<in> fset (A_of \<C>')\<close> and \<open>v = to_V a'\<close>
+          using v_in_C' unfolding \<S>\<^sub>\<E>'_def by blast
+        then show ?thesis
+          using C''_in a'_in sorry
+      next
+        case E'
+        then show ?thesis
+          using v_in_C' unfolding \<S>\<^sub>\<E>'_def by auto
+      qed
+      then obtain \<C>'' where \<open>\<C>''\<in>\<S>\<^sub>\<J>\<close> and \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> sorry
+
+      then show False
+        sorry
     qed
     then have empty_inter: \<open>\<Union> (atoms ` (AF_proj_to_formula_set (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))) \<inter>
         \<Union> (atoms ` (AF_proj_to_formula_set \<S>')) = {}\<close>
