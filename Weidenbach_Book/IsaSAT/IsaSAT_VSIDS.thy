@@ -64,12 +64,14 @@ find_theorems HM.h.swim_invar
     *)
 
 fun hp_next where
-  \<open>hp_next a (Hp m s (x # y # children)) = (if a = node x then Some y else hp_next a (Hp m s (y # children)))\<close> |
-  \<open>hp_next a (Hp m s _) = None\<close>
+  \<open>hp_next a (Hp m s (x # y # children)) = (if a = node x then Some y else (case hp_next a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_next a (Hp m s (y # children))))\<close> |
+  \<open>hp_next a (Hp m s [b]) = hp_next a b\<close> |
+  \<open>hp_next a (Hp m s []) = None\<close>
 
 fun hp_prev where
-  \<open>hp_prev a (Hp m s (x # y # children)) = (if a = node y then Some x else hp_prev a (Hp m s (y # children)))\<close> |
-  \<open>hp_prev a (Hp m s _) = None\<close>
+  \<open>hp_prev a (Hp m s (x # y # children)) = (if a = node y then Some x else (case hp_prev a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_prev a (Hp m s (y # children))))\<close> |
+  \<open>hp_prev a (Hp m s [b]) = hp_prev a b\<close> |
+  \<open>hp_prev a (Hp m s []) = None\<close>
 
 fun hp_child where
   \<open>hp_child a (Hp m s (x # children)) = (if a = m then Some x else (case hp_child a x of None \<Rightarrow> hp_child a (Hp m s children) | Some a \<Rightarrow> Some a))\<close> |
@@ -101,9 +103,83 @@ fun hp_set_child' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarro
 
 definition encoded_hp_prop :: \<open>('e,'f) hp multiset \<Rightarrow> _\<close> where
   \<open>encoded_hp_prop m = (\<lambda>(nxts,prevs,children). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
-     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option score (hp_next x m')) \<and>
-     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option score (hp_prev x m)) \<and>
-     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option score (hp_child x m)))\<close>
+     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)))\<close>
+
+lemma node_in_mset_nodes[simp]: \<open>node x \<in># mset_nodes x\<close>
+  by (cases x; auto)
+
+lemma hp_next_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_next m a = None\<close>
+  by (induction m a rule: hp_next.induct) auto
+
+lemma hp_prev_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_prev m a = None\<close>
+  by (induction m a rule: hp_prev.induct) auto
+
+lemma hp_child_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_child m a = None\<close>
+  by (induction m a rule: hp_child.induct) auto
+
+lemma hp_next_None_notin_children[simp]: \<open>a \<notin># sum_list (map mset_nodes children) \<Longrightarrow>
+  hp_next a (Hp m w\<^sub>m (children)) = None\<close>
+  by (induction a \<open>Hp m w\<^sub>m children\<close> arbitrary:children rule: hp_next.induct) auto
+
+lemma hp_prev_None_notin_children[simp]: \<open>a \<notin># sum_list (map mset_nodes children) \<Longrightarrow>
+  hp_prev a (Hp m w\<^sub>m (children)) = None\<close>
+  by (induction a \<open>Hp m w\<^sub>m children\<close> arbitrary:children rule: hp_prev.induct) auto
+
+lemma hp_child_None_notin_children[simp]: \<open>a \<notin># sum_list (map mset_nodes children) \<Longrightarrow> a \<noteq> m \<Longrightarrow>
+  hp_child a (Hp m w\<^sub>m (children)) = None\<close>
+  by (induction a \<open>Hp m w\<^sub>m children\<close> arbitrary:children rule: hp_next.induct) auto
+
+lemma encoded_hp_prop_irrelevant:
+  assumes \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# m)\<close> and
+    \<open>encoded_hp_prop m (nxts, prevs, children)\<close>
+  shows
+    \<open>encoded_hp_prop (add_mset (Hp a sc []) m) (nxts(a:= None), prevs(a:=None), children(a:=None))\<close>
+  using assms by (auto simp: encoded_hp_prop_def)
+
+lemma [simp]: \<open>distinct_mset (mset_nodes a) \<Longrightarrow> hp_next (node a) a = None\<close>
+  by (induction a) auto
+
+lemma [simp]:
+  \<open>ch\<^sub>m \<noteq> [] \<Longrightarrow> hp_next (node a) (Hp m w\<^sub>m (a # ch\<^sub>m)) = Some (hd ch\<^sub>m)\<close>
+  by (cases ch\<^sub>m) auto
+
+lemma hp_next_in_first_child [simp]: \<open>distinct_mset
+  (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># mset_nodes a \<Longrightarrow>
+  xa \<noteq> node a \<Longrightarrow>
+(hp_next xa (Hp m w\<^sub>m (a # ch\<^sub>m))) = (hp_next xa a)\<close>
+  by (cases ch\<^sub>m) (auto split: option.splits dest!: multi_member_split)
+
+lemma \<open>distinct_mset
+  (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset ch\<^sub>m) \<Longrightarrow>
+  xa \<noteq> node a \<Longrightarrow>
+(hp_next xa (Hp m w\<^sub>m (a # ch\<^sub>m))) = hp_next xa (Hp m w\<^sub>m (ch\<^sub>m))\<close>
+apply (cases ch\<^sub>m)
+apply (auto split: option.splits dest!: multi_member_split)
+  done
+lemma encoded_hp_prop_link:
+  assumes \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (nxts, prevs, children)\<close>
+  shows
+    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))), prevs, children(m := Some (node a)))\<close>
+  using assms unfolding encoded_hp_prop_def prod.simps
+  apply (intro conjI impI ballI)
+  subgoal by (auto simp: ac_simps)
+  subgoal apply simp
+    apply (intro conjI impI allI)
+  subgoal apply (auto dest!: multi_member_split)[]
+    using add_diff_cancel_left' distinct_mset_union by fastforce
+  subgoal by (auto dest: multi_member_split)[]
+  subgoal by (auto dest!: multi_member_split)[]
+  subgoal apply (auto dest: multi_member_split)[]
+    using distinct_mset_union apply (metis add.assoc hp_next_in_first_child)
+sorry
+
+oops
+  subgoal by (auto dest!: multi_member_split)[]
+  subgoal by (auto dest!: multi_member_split)[]
+  subgoal apply (auto dest!: multi_member_split)[]
+
 
 text \<open>
 The choice of the current rule sets took a very long time and I am still unsure that this is the
