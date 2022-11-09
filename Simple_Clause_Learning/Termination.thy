@@ -249,7 +249,7 @@ definition \<M> :: "_ \<Rightarrow> _ \<Rightarrow> ('f, 'v) state \<Rightarrow>
       None \<Rightarrow> (\<M>_prop_deci \<beta> (state_trail S), [], 0)
     | Some (C, \<gamma>) \<Rightarrow> ({||}, \<M>_skip_fact_reso (state_trail S) (C \<cdot> \<gamma>), size C))"
 
-theorem scl_without_backtrack_terminates:
+lemma scl_without_backtrack_terminates:
   fixes N \<beta>
   defines
     "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
@@ -736,11 +736,6 @@ definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) 
   "\<M>_back \<beta> S = Abs_fset (fset (fclss_no_dup \<beta>) -
     Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned S)))"
 
-term "mset_set ` Pow {L. atm_of L \<prec>\<^sub>B \<beta>}"
-thm wfP_union_if_convertible_to_wfP[of scl_no_backt "(|\<subset>|)" backt "\<M>_back \<beta>"]
-
-term multp
-
 lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
   assumes
     disj_vars_N: "disjoint_vars_set (fset N)" and
@@ -840,65 +835,148 @@ proof -
     by (simp add: Abs_fset_inverse[simplified])
 qed
 
-lemma
-  fixes N \<beta> scl_without_backtrack
+
+subsection \<open>Regular SCL terminates\<close>
+
+theorem regular_scl_terminates:
+  fixes
+    N :: "('f, 'v) Term.term clause fset" and
+    \<beta> :: "('f, 'v) Term.term" and
+    lt :: "('f, 'v) Term.term literal \<Rightarrow> ('f, 'v) Term.term literal \<Rightarrow> bool"
   defines
-    "scl_without_backtrack \<equiv> propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion>
-      factorize N \<beta> \<squnion> resolve N \<beta>" and
-    "full_scl \<equiv> scl_without_backtrack \<squnion> backtrack N \<beta>" and
     "invars \<equiv> trail_atoms_lt \<beta> \<sqinter> trail_resolved_lits_pol \<sqinter> trail_lits_ground \<sqinter>
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
-      conflict_disjoint_vars N \<sqinter> minimal_ground_closures"
+      conflict_disjoint_vars N \<sqinter> minimal_ground_closures \<sqinter> sound_state N \<beta> \<sqinter>
+      almost_no_conflict_with_trail N \<beta> \<sqinter> regular_conflict_resolution N \<beta>"
+  assumes "disjoint_vars_set (fset N)" and "transp lt"
   shows
-    "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)" and
+    "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)" and
     "invars initial_state" and
-    "\<And>S S'. full_scl S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
+    "\<And>S S'. regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
 proof -
   show "invars initial_state"
-    by (simp add: invars_def)
+    using \<open>disjoint_vars_set (fset N)\<close> by (simp add: invars_def)
 next
+  note rea_to_scl = scl_if_reasonable
+  note reg_to_rea = reasonable_if_regular
+  note reg_to_scl = reg_to_rea[THEN rea_to_scl]
   fix S S'
-  assume "full_scl S S'"
-  hence "scl N \<beta> S S'"
-    unfolding full_scl_def scl_without_backtrack_def sup_apply sup_bool_def
-    by (auto simp add: scl_def)
+  assume "regular_scl N \<beta> S S'"
   thus "invars S \<Longrightarrow> invars S'"
     unfolding invars_def
-    by (auto intro: scl_preserves_trail_atoms_lt
-        scl_preserves_trail_resolved_lits_pol
-        scl_preserves_trail_lits_ground
-        scl_preserves_trail_lits_from_clauses
-        scl_preserves_initial_lits_generalize_learned_trail_conflict
-        scl_preserves_conflict_disjoint_vars
-        scl_preserves_minimal_ground_closures)
+    using
+      reg_to_scl[THEN scl_preserves_trail_atoms_lt]
+      reg_to_scl[THEN scl_preserves_trail_resolved_lits_pol]
+      reg_to_scl[THEN scl_preserves_trail_lits_ground]
+      reg_to_scl[THEN scl_preserves_trail_lits_from_clauses]
+      reg_to_scl[THEN scl_preserves_initial_lits_generalize_learned_trail_conflict]
+      reg_to_scl[THEN scl_preserves_conflict_disjoint_vars]
+      reg_to_scl[THEN scl_preserves_minimal_ground_closures]
+      reg_to_scl[THEN scl_preserves_sound_state]
+      regular_scl_preserves_almost_no_conflict_with_trail
+      regular_scl_preserves_regular_conflict_resolution
+    by simp
 next
-  have *: "(\<lambda>S' S. full_scl S S' \<and> invars S) =
-    (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion> (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
-    by (auto simp add: full_scl_def)
+  have "(\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S) =
+    (\<lambda>S' S. (backtrack N \<beta> S S' \<or> \<not> backtrack N \<beta> S S' \<and> regular_scl N \<beta> S S') \<and> invars S)"
+    by (auto simp: fun_eq_iff)
+  also have "\<dots> = (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S \<or>
+    regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
+    by auto
+  also have "\<dots> = (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion>
+    (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
+    by auto
+  finally have *: "(\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S) =
+    (\<lambda>S' S. backtrack N \<beta> S S' \<and> invars S) \<squnion>
+    (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
+    by assumption
 
-  show "wfP (\<lambda>S' S. full_scl S S' \<and> invars S)"
+  show "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)"
     unfolding *
-  proof (rule wfP_union_if_convertible_to_wfP)
-    show "wfP (\<lambda>S' S. scl_without_backtrack S S' \<and> invars S)"
-      by (rule scl_without_backtrack_terminates(1)[of N \<beta>,
-            folded scl_without_backtrack_def invars_def])
+  proof (rule wfP_union_if_convertible_to_wfP; (elim conjE)?)
+    show "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> \<not> backtrack N \<beta> S S' \<and> invars S)"
+      using scl_without_backtrack_terminates(1)[of N \<beta>]
+    proof (rule wfP_subset, unfold le_fun_def le_bool_def inf_fun_def, intro allI impI conjI; elim conjE)
+      fix S' S
+      assume "regular_scl N \<beta> S S'" and "\<not> backtrack N \<beta> S S'"
+      thus "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>) S S'"
+        by (auto simp: regular_scl_def reasonable_scl_def scl_def)
+    next
+      fix S' S assume "invars S"
+      then show "trail_atoms_lt \<beta> S \<sqinter> trail_resolved_lits_pol S \<sqinter> trail_lits_ground S \<sqinter>
+       trail_lits_from_clauses N S \<sqinter> initial_lits_generalize_learned_trail_conflict N S \<sqinter>
+       conflict_disjoint_vars N S \<sqinter> minimal_ground_closures S"
+        by (simp add: invars_def)
+    qed
   next
     show "wfP (|\<subset>|)"
       by (rule wfP_pfsubset)
   next
-    fix S S' assume "scl_without_backtrack S S' \<and> invars S"
+    fix S S' assume "regular_scl N \<beta> S S'" and "\<not> backtrack N \<beta> S S'"
+    hence "(propagate N \<beta> \<squnion> decide N \<beta> \<squnion> conflict N \<beta> \<squnion> skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>) S S'"
+      by (auto simp add: regular_scl_def reasonable_scl_def scl_def)
     hence "state_learned S' = state_learned S"
-      by (auto simp add: scl_without_backtrack_def
-          elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases resolve.cases)
+      by (auto elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases
+          resolve.cases)
     then show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S \<or> \<M>_back \<beta> S' = \<M>_back \<beta> S"
       by (simp add: \<M>_back_def)
   next
-    fix S S' assume "backtrack N \<beta> S S' \<and> invars S"
+    fix S S' assume backt: "backtrack N \<beta> S S'" and "invars S"
+    
+    moreover from \<open>invars S\<close> have "sound_state N \<beta> S"
+      by (simp add: invars_def)
+
+    moreover from \<open>invars S\<close> have "almost_no_conflict_with_trail N \<beta> S"
+      by (simp add: invars_def)
+
+    moreover from \<open>invars S\<close> have "regular_conflict_resolution N \<beta> S"
+      by (simp add: invars_def)
+
+    ultimately obtain S0 S1 S2 S3 S4 where
+      reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+      propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+      confl: "conflict N \<beta> S1 S2" and
+      facto: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+      resol: "resolve N \<beta> S3 S4" and
+      reg_res: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
+      using before_regular_backtrack by blast
+
     show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
-      using \<M>_back_pfsubset_\<M>_back_after_regular_backtrack
-      \<comment> \<open>This would be the last step but would require to rephrase the non-redundancy lemma in term
-        of invariants instead of regular run.\<close>
-      oops
+    proof (rule \<M>_back_pfsubset_\<M>_back_after_regular_backtrack)
+      show "disjoint_vars_set (fset N)"
+        by (rule \<open>disjoint_vars_set (fset N)\<close>)
+    next
+      show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+        using reg_run propa(2) by simp
+    next
+      show "conflict N \<beta> S1 S2"
+        by (rule confl)
+    next
+      have "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S2 S3"
+        using facto
+        by (rule mono_rtranclp[rule_format, rotated]) simp
+      also have "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S3 S4"
+        using resol by auto
+      finally show "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S2 S"
+        using reg_res by simp
+    next
+      show "backtrack N \<beta> S S'"
+        by (rule backt)
+    next
+      show "transp lt"
+        by (rule \<open>transp lt\<close>)
+    next
+      from \<open>invars S\<close> show "minimal_ground_closures S"
+        by (simp add: invars_def)
+    next
+      from \<open>invars S\<close> show "trail_atoms_lt \<beta> S"
+        by (simp add: invars_def)
+    next
+      show "sound_state N \<beta> S"
+        by (rule \<open>sound_state N \<beta> S\<close>)
+    qed
+  qed
+qed
 
 end
 

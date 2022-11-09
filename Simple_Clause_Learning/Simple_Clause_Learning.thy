@@ -5467,6 +5467,21 @@ definition regular_scl where
   "regular_scl N \<beta> S S' \<longleftrightarrow>
     conflict N \<beta> S S' \<or> \<not> (\<exists>S''. conflict N \<beta> S S'') \<and> reasonable_scl N \<beta> S S'"
 
+lemma regular_scl_if_conflict[simp]: "conflict N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (simp add: regular_scl_def)
+
+lemma regular_scl_if_skip[simp]: "skip N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (auto simp: regular_scl_def reasonable_scl_def scl_def elim: conflict.cases skip.cases)
+
+lemma regular_scl_if_factorize[simp]: "factorize N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (auto simp: regular_scl_def reasonable_scl_def scl_def elim: conflict.cases factorize.cases)
+
+lemma regular_scl_if_resolve[simp]: "resolve N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (auto simp: regular_scl_def reasonable_scl_def scl_def elim: conflict.cases resolve.cases)
+
+lemma regular_scl_if_backtrack[simp]: "backtrack N \<beta> S S' \<Longrightarrow> regular_scl N \<beta> S S'"
+  by (auto simp: regular_scl_def reasonable_scl_def scl_def elim: conflict.cases backtrack.cases)
+
 lemma reasonable_if_regular:
   "regular_scl N \<beta> S S' \<Longrightarrow> reasonable_scl N \<beta> S S'"
   unfolding regular_scl_def
@@ -5489,6 +5504,47 @@ lemma regular_scl_sound_state: "regular_scl N \<beta> S S' \<Longrightarrow> sou
 lemma regular_run_sound_state:
   "(regular_scl N \<beta>)\<^sup>*\<^sup>* S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
   by (smt (verit, best) regular_scl_sound_state rtranclp_induct)
+
+lemma before_conflict_in_regular_run:
+  assumes
+    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1" and
+    conf: "conflict N \<beta> S1 S2"
+  shows "S1 = initial_state \<and> {#} |\<in>| N \<or>
+    (\<exists>S0. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and> regular_scl N \<beta> S0 S1 \<and>
+    (propagate N \<beta> S0 S1))"
+  (is "?lhs \<or> ?rhs")
+  using reg_run conf
+proof (induction rule: rtranclp_induct)
+  case base
+  hence "{#} |\<in>| N"
+    by (cases rule: conflict.cases)
+      (metis not_trail_false_Nil(2) subst_cls_empty_iff sup_bot.right_neutral)
+  thus ?case
+    by simp
+next
+  case (step S0 S1)
+  show ?case
+  proof (rule disjI2, intro exI conjI)
+    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      using step.hyps by simp
+  next
+    show "regular_scl N \<beta> S0 S1"
+      using step.hyps by simp
+  next
+    from step.prems obtain \<Gamma> U C \<gamma> where
+      S1_def: "S1 = (\<Gamma>, U, None)" and
+      S2_def: "S2 = (\<Gamma>, U, Some (C, \<gamma>))"
+      unfolding conflict.simps by auto
+    with step.hyps have "\<not> conflict N \<beta> S0 S1" and "reasonable_scl N \<beta> S0 S1"
+      unfolding regular_scl_def by (simp_all add: conflict.simps)
+    with step.prems have "scl N \<beta> S0 S1" and "\<not> decide N \<beta> S0 S1"
+      unfolding reasonable_scl_def by blast+
+    moreover from step.prems have "\<not> backtrack N \<beta> S0 S1"
+      unfolding backtrack.simps by blast
+    ultimately show "propagate N \<beta> S0 S1"
+      by (simp add: scl_def S1_def skip.simps conflict.simps factorize.simps resolve.simps)
+  qed
+qed
 
 
 subsection \<open>Invariants\<close>
@@ -5720,43 +5776,88 @@ lemma regular_scl_preserves_almost_no_conflict_with_trail:
 subsubsection \<open>Backtrack Follows Regular Conflict Resolution\<close>
 
 definition regular_conflict_resolution where
-  "regular_conflict_resolution N \<beta> S \<longleftrightarrow> (state_conflict S \<noteq> None \<longrightarrow> {#} |\<notin>| N \<longrightarrow>
-    (\<exists>S0 S1 S2 S3. propagate N \<beta> S0 S1 \<and> conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
-      (S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S))))"
+  "regular_conflict_resolution N \<beta> S \<longleftrightarrow> {#} |\<notin>| N \<longrightarrow>
+    (case state_conflict S of
+      None \<Rightarrow> (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S |
+      Some _ \<Rightarrow> (\<exists>S0 S1 S2 S3. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+        propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+        conflict N \<beta> S1 S2 \<and> regular_scl N \<beta> S1 S2 \<and>
+        (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> (regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
+        (S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S))))"
 
 lemma regular_conflict_resolution_initial_state[simp]:
   "regular_conflict_resolution N \<beta> initial_state"
   by (simp add: regular_conflict_resolution_def)
 
 lemma propagate_preserves_regular_conflict_resolution:
-  assumes step: "propagate N \<beta> S S'"
+  assumes step: "propagate N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
-  using step by (auto simp: regular_conflict_resolution_def elim: propagate.cases)
+proof -
+  from step have "state_conflict S = None" and "state_conflict S' = None"
+    by (auto elim: propagate.cases)
 
-lemma decide_preserves_regular_conflict_resolution:
-  assumes step: "decide N \<beta> S S'"
-  shows "regular_conflict_resolution N \<beta> S'"
-  using step by (auto simp: regular_conflict_resolution_def elim: decide.cases)
-
-lemma conflict_preserves_regular_conflict_resolution:
-  assumes step: "conflict N \<beta> S S'" and
-    invars: "learned_nonempty S" "trail_propagated_or_decided' N \<beta> S"
-      "no_conflict_after_decide' N \<beta> S"
-  shows "regular_conflict_resolution N \<beta> S'"
-  unfolding regular_conflict_resolution_def
-proof (intro impI)
-  assume "{#} |\<notin>| N"
-  then obtain S0 where "propagate N \<beta> S0 S"
-    using before_reasonable_conflict[OF step invars] by metis
-  with step show "\<exists>S0 S1 S2 S3.
-    propagate N \<beta> S0 S1 \<and>
-    conflict N \<beta> S1 S2 \<and>
-    (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
-    (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
-    by blast
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = None\<close>
+    unfolding option.case
+  proof (rule impI)
+    assume "{#} |\<notin>| N"
+    with invar have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = None\<close> by simp
+    thus "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
+      using reg_step by (rule rtranclp.rtrancl_into_rtrancl)
+  qed
 qed
 
-term almost_no_conflict_with_trail
+lemma decide_preserves_regular_conflict_resolution:
+  assumes step: "decide N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
+  shows "regular_conflict_resolution N \<beta> S'"
+proof -
+  from step have "state_conflict S = None" and "state_conflict S' = None"
+    by (auto elim: decide.cases)
+
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = None\<close>
+    unfolding option.case
+  proof (rule impI)
+    assume "{#} |\<notin>| N"
+    with invar have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = None\<close> by simp
+    thus "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
+      using reg_step by (rule rtranclp.rtrancl_into_rtrancl)
+  qed
+qed
+
+lemma conflict_preserves_regular_conflict_resolution:
+  assumes step: "conflict N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
+  shows "regular_conflict_resolution N \<beta> S'"
+proof -
+  from step obtain C \<gamma> where "state_conflict S = None" and "state_conflict S' = Some (C, \<gamma>)"
+    by (auto elim!: conflict.cases)
+
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = Some (C, \<gamma>)\<close>
+    unfolding option.cases
+  proof (rule impI)
+    assume "{#} |\<notin>| N"
+    with invar have reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = None\<close> by simp
+
+    from \<open>{#} |\<notin>| N\<close> obtain S0 where
+      "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" "propagate N \<beta> S0 S" "regular_scl N \<beta> S0 S"
+      using before_conflict_in_regular_run[OF reg_run step] by metis
+
+    with step show "\<exists>S0 S1 S2 S3. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+      propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+      conflict N \<beta> S1 S2 \<and> regular_scl N \<beta> S1 S2 \<and>
+      (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> (regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
+      (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
+      using regular_scl_if_conflict
+      by blast
+  qed
+qed
 
 lemma
   assumes "almost_no_conflict_with_trail N \<beta> S" and "{#} |\<notin>| N"
@@ -5791,260 +5892,320 @@ lemma mempty_not_in_learned_if_almost_no_conflict_with_trail:
   by simp
 
 lemma skip_preserves_regular_conflict_resolution:
-  assumes step: "skip N \<beta> S S'" and
-    invars: "regular_conflict_resolution N \<beta> S" "almost_no_conflict_with_trail N \<beta> S"
+  assumes step: "skip N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
-  unfolding regular_conflict_resolution_def
-proof (intro impI)
-  assume "{#} |\<notin>| N"
+proof -
+  from step obtain C \<gamma> where
+    "state_conflict S = Some (C, \<gamma>)" and "state_conflict S' = Some (C, \<gamma>)"
+    by (auto elim!: skip.cases)
 
-  moreover from step have "state_conflict S \<noteq> None"
-    by (auto elim: skip.cases)
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = Some (C, \<gamma>)\<close>
+    unfolding option.cases
+  proof (intro impI)
+    assume "{#} |\<notin>| N"
+    with invar obtain S0 S1 S2 S3 where
+      reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+      propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+      confl: "conflict N \<beta> S1 S2" "regular_scl N \<beta> S1 S2" and
+      facto: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" "(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+      maybe_reso: "S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = Some (C, \<gamma>)\<close>
+      unfolding option.cases
+      by metis
 
-  ultimately obtain S0 S1 S2 S3 where
-    "propagate N \<beta> S0 S1" and
-    "conflict N \<beta> S1 S2" and
-    "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
-    maybe_reso: "S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
-    using invars(1) unfolding regular_conflict_resolution_def by metis
+    from reg_run have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
+      using \<open>regular_scl N \<beta> S0 S1\<close> by simp
+    hence "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S2"
+      using \<open>regular_scl N \<beta> S1 S2\<close> by simp
+    hence "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S3"
+      using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> by simp
 
-  from \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> have "state_trail S3 = state_trail S2"
-    by (induction S3 rule: rtranclp_induct) (auto elim: factorize.cases)
-  also from \<open>conflict N \<beta> S1 S2\<close> have "\<dots> = state_trail S1"
-    by (auto elim: conflict.cases)
-  finally have "state_trail S3 = state_trail S1"
-    by assumption
+    from \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> have "state_trail S3 = state_trail S2"
+      by (induction S3 rule: rtranclp_induct) (auto elim: factorize.cases)
+    also from \<open>conflict N \<beta> S1 S2\<close> have "\<dots> = state_trail S1"
+      by (auto elim: conflict.cases)
+    finally have "state_trail S3 = state_trail S1"
+      by assumption
 
-  from \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> have "state_learned S3 = state_learned S2"
-  proof (induction S3 rule: rtranclp_induct)
-    case base
-    show ?case by simp
-  next
-    case (step y z)
-    thus ?case
-      by (elim factorize.cases) simp
-  qed
-  also from \<open>conflict N \<beta> S1 S2\<close> have "\<dots> = state_learned S1"
-    by (auto elim: conflict.cases)
-  finally have "state_learned S3 = state_learned S1"
-    by assumption
-
-  from \<open>propagate N \<beta> S0 S1\<close> have "state_learned S1 = state_learned S0"
-    by (auto elim: propagate.cases)
-
-  from \<open>propagate N \<beta> S0 S1\<close> obtain L C \<gamma> where
-    "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
-    by (auto elim: propagate.cases)
-
-  from invars(2) \<open>{#} |\<notin>| N\<close> have no_conf_with_trail: "no_conflict_with_trail N \<beta> (state_learned S)
-    (case state_trail S of [] \<Rightarrow> [] | Ln # \<Gamma> \<Rightarrow> if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
-    by (simp add: almost_no_conflict_with_trail_def)
-  hence "{#} |\<notin>| state_learned S"
-    using nex_conflict_if_no_conflict_with_trail'[folded mempty_in_iff_ex_conflict]
-    by simp
-  
-  show "\<exists>S0 S1 S2 S3.
-       propagate N \<beta> S0 S1 \<and>
-       conflict N \<beta> S1 S2 \<and>
-       (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
-       (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
-  proof (intro impI exI conjI)
-    show "propagate N \<beta> S0 S1"
-      by (rule \<open>propagate N \<beta> S0 S1\<close>)
-  next
-    show "conflict N \<beta> S1 S2"
-      by (rule \<open>conflict N \<beta> S1 S2\<close>)
-  next
-    show "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3"
-      by (rule \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close>)
-  next
-    show "S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
-      using maybe_reso
-    proof (elim disjE exE conjE)
-      fix S4 assume "resolve N \<beta> S3 S4" and "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
-      with step have "\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'"
-        by (meson rtranclp.rtrancl_into_rtrancl sup2CI)
-      thus ?thesis ..
+    from \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> have "state_learned S3 = state_learned S2"
+    proof (induction S3 rule: rtranclp_induct)
+      case base
+      show ?case by simp
     next
-      assume "S3 = S"
-      hence no_conf_with_trail': "no_conflict_with_trail N \<beta> (state_learned S1) (state_trail S0)"
-        using no_conf_with_trail \<open>state_trail S3 = state_trail S1\<close>
-          \<open>state_learned S3 = state_learned S1\<close>
-          \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-        by (simp add: trail_propagate_def is_decision_lit_def)
-      
-      have "\<exists>D \<gamma>\<^sub>D. state_conflict S2 = Some (D, \<gamma>\<^sub>D) \<and> - (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-        using \<open>conflict N \<beta> S1 S2\<close>
-      proof (cases N \<beta> S1 S2 rule: conflict.cases)
-        case (conflictI D U \<gamma>\<^sub>D \<Gamma> \<rho> \<gamma>\<^sub>D\<^sub>\<rho>)
-        hence "trail_false_cls (trail_propagate (state_trail S0) L C \<gamma>) (D \<cdot> \<gamma>\<^sub>D)"
-          using \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-          by simp
-        
-        moreover from no_conf_with_trail' have "\<not> trail_false_cls (state_trail S0) (D \<cdot> \<gamma>\<^sub>D)"
-          unfolding \<open>state_learned S1 = state_learned S0\<close>
-        proof (rule not_trail_false_cls_if_no_conflict_with_trail)
-          show "D |\<in>| N |\<union>| state_learned S0"
-            using \<open>state_learned S1 = state_learned S0\<close> local.conflictI(1) local.conflictI(3)
-            by fastforce
-        next
-          have "{#} |\<notin>| U"
-            using \<open>{#} |\<notin>| state_learned S\<close> \<open>S3 = S\<close> \<open>state_learned S3 = state_learned S1\<close>
-            unfolding conflictI(1,2)
-            by simp
-          thus "D \<noteq> {#}"
-            using \<open>{#} |\<notin>| N\<close> \<open>D |\<in>| N |\<union>| U\<close>
-            by auto
-        next
-          show "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)"
-            by (rule \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>)
-        next
-          show "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D"
-            by (rule \<open>subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D\<close>)
-        qed
+      case (step y z)
+      thus ?case
+        by (elim factorize.cases) simp
+    qed
+    also from \<open>conflict N \<beta> S1 S2\<close> have "\<dots> = state_learned S1"
+      by (auto elim: conflict.cases)
+    finally have "state_learned S3 = state_learned S1"
+      by assumption
 
-        ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-          by (metis subtrail_falseI trail_propagate_def)
+    from \<open>propagate N \<beta> S0 S1\<close> have "state_learned S1 = state_learned S0"
+      by (auto elim: propagate.cases)
 
-        then show ?thesis
-          by (metis finite_fset is_renaming_renaming_wrt conflictI(2,5,7,8) state_conflict_simp
-              subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
-      qed
-      then obtain D \<gamma>\<^sub>D where "state_conflict S2 = Some (D, \<gamma>\<^sub>D)" and "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
-        by metis
+    from \<open>propagate N \<beta> S0 S1\<close> obtain L C \<gamma> where
+      "state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>"
+      by (auto elim: propagate.cases)
 
-      with \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close>
-      have "\<exists>D' \<gamma>\<^sub>D'. state_conflict S3 = Some (D', \<gamma>\<^sub>D') \<and> - (L \<cdot>l \<gamma>) \<in># D' \<cdot> \<gamma>\<^sub>D'"
-      proof (induction S3 arbitrary: rule: rtranclp_induct)
-        case base
-        thus ?case by simp
+    from \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S3\<close> have "almost_no_conflict_with_trail N \<beta> S3"
+      using regular_scl_preserves_almost_no_conflict_with_trail
+      by (induction S3 rule: rtranclp_induct) simp_all
+
+    show "\<exists>S0 S1 S2 S3. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+      propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+      conflict N \<beta> S1 S2 \<and> regular_scl N \<beta> S1 S2 \<and>
+      (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> (regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
+      (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
+      using reg_run propa confl facto
+    proof (intro impI exI conjI)
+      show "S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
+        using maybe_reso
+      proof (elim disjE exE conjE)
+        fix S4 assume "resolve N \<beta> S3 S4" and "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
+        with step have "\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'"
+          by (meson rtranclp.rtrancl_into_rtrancl sup2CI)
+        thus ?thesis ..
       next
-        case (step y z)
-        then obtain D' \<gamma>\<^sub>D' where "state_conflict y = Some (D', \<gamma>\<^sub>D')" and "- (L \<cdot>l \<gamma>) \<in># D' \<cdot> \<gamma>\<^sub>D'"
-          by auto
-        then show ?case
-          using step.hyps(2)
-          by (metis conflict_set_after_factorization)
+        assume "S3 = S"
+        with \<open>almost_no_conflict_with_trail N \<beta> S3\<close> \<open>{#} |\<notin>| N\<close>
+        have no_conf_with_trail: "no_conflict_with_trail N \<beta> (state_learned S)
+          (case state_trail S of [] \<Rightarrow> [] | Ln # \<Gamma> \<Rightarrow> if is_decision_lit Ln then Ln # \<Gamma> else \<Gamma>)"
+          by (simp add: almost_no_conflict_with_trail_def)
+        hence "{#} |\<notin>| state_learned S"
+          using nex_conflict_if_no_conflict_with_trail'[folded mempty_in_iff_ex_conflict]
+          by simp
+
+        from no_conf_with_trail
+        have no_conf_with_trail': "no_conflict_with_trail N \<beta> (state_learned S1) (state_trail S0)"
+          using \<open>S3 = S\<close> \<open>state_trail S3 = state_trail S1\<close>
+            \<open>state_learned S3 = state_learned S1\<close>
+            \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
+          by (simp add: trail_propagate_def is_decision_lit_def)
+
+        have "\<exists>D \<gamma>\<^sub>D. state_conflict S2 = Some (D, \<gamma>\<^sub>D) \<and> - (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
+          using \<open>conflict N \<beta> S1 S2\<close>
+        proof (cases N \<beta> S1 S2 rule: conflict.cases)
+          case (conflictI D U \<gamma>\<^sub>D \<Gamma> \<rho> \<gamma>\<^sub>D\<^sub>\<rho>)
+          hence "trail_false_cls (trail_propagate (state_trail S0) L C \<gamma>) (D \<cdot> \<gamma>\<^sub>D)"
+            using \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
+            by simp
+
+          moreover from no_conf_with_trail' have "\<not> trail_false_cls (state_trail S0) (D \<cdot> \<gamma>\<^sub>D)"
+            unfolding \<open>state_learned S1 = state_learned S0\<close>
+          proof (rule not_trail_false_cls_if_no_conflict_with_trail)
+            show "D |\<in>| N |\<union>| state_learned S0"
+              using \<open>state_learned S1 = state_learned S0\<close> local.conflictI(1) local.conflictI(3)
+              by fastforce
+          next
+            have "{#} |\<notin>| U"
+              using \<open>{#} |\<notin>| state_learned S\<close> \<open>S3 = S\<close> \<open>state_learned S3 = state_learned S1\<close>
+              unfolding conflictI(1,2)
+              by simp
+            thus "D \<noteq> {#}"
+              using \<open>{#} |\<notin>| N\<close> \<open>D |\<in>| N |\<union>| U\<close>
+              by auto
+          next
+            show "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)"
+              by (rule \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>)
+          next
+            show "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D"
+              by (rule \<open>subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D\<close>)
+          qed
+
+          ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
+            by (metis subtrail_falseI trail_propagate_def)
+
+          then show ?thesis
+            by (metis finite_fset is_renaming_renaming_wrt conflictI(2,5,7,8) state_conflict_simp
+                subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+        qed
+        then obtain D \<gamma>\<^sub>D where "state_conflict S2 = Some (D, \<gamma>\<^sub>D)" and "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
+          by metis
+
+        with \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close>
+        have "\<exists>D' \<gamma>\<^sub>D'. state_conflict S3 = Some (D', \<gamma>\<^sub>D') \<and> - (L \<cdot>l \<gamma>) \<in># D' \<cdot> \<gamma>\<^sub>D'"
+        proof (induction S3 arbitrary: rule: rtranclp_induct)
+          case base
+          thus ?case by simp
+        next
+          case (step y z)
+          then obtain D' \<gamma>\<^sub>D' where "state_conflict y = Some (D', \<gamma>\<^sub>D')" and "- (L \<cdot>l \<gamma>) \<in># D' \<cdot> \<gamma>\<^sub>D'"
+            by auto
+          then show ?case
+            using step.hyps(2)
+            by (metis conflict_set_after_factorization)
+        qed
+        with step have False
+          using \<open>state_trail S3 = state_trail S1\<close>
+          unfolding \<open>S3 = S\<close> \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
+          by (auto simp add: trail_propagate_def elim!: skip.cases)
+        thus ?thesis ..
       qed
-      with step have False
-        using \<open>state_trail S3 = state_trail S1\<close>
-        unfolding \<open>S3 = S\<close> \<open>state_trail S1 = trail_propagate (state_trail S0) L C \<gamma>\<close>
-        by (auto simp add: trail_propagate_def elim!: skip.cases)
-      thus ?thesis ..
     qed
   qed
 qed
 
 lemma factorize_preserves_regular_conflict_resolution:
-  assumes step: "factorize N \<beta> S S'" and invar: "regular_conflict_resolution N \<beta> S"
+  assumes step: "factorize N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
-  unfolding regular_conflict_resolution_def
-proof (intro impI)
-  from step have "state_conflict S \<noteq> None"
-    by (auto elim: factorize.cases)
+proof -
+  from step obtain C \<gamma> C' \<gamma>' where
+    "state_conflict S = Some (C, \<gamma>)" and "state_conflict S' = Some (C', \<gamma>')"
+    by (auto elim!: factorize.cases)
 
-  assume "{#} |\<notin>| N"
-  with invar obtain S0 S1 S2 S3 where
-    "propagate N \<beta> S0 S1" and
-    "conflict N \<beta> S1 S2" and
-    "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
-    maybe_reso: "(S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S))"
-    using \<open>state_conflict S \<noteq> None\<close>
-    unfolding regular_conflict_resolution_def by metis
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = Some (C', \<gamma>')\<close>
+    unfolding option.cases
+  proof (intro impI)
+    assume "{#} |\<notin>| N"
+    with invar obtain S0 S1 S2 S3 where
+      reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+      propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+      confl: "conflict N \<beta> S1 S2" "regular_scl N \<beta> S1 S2" and
+      facto: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" "(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+      maybe_reso: "S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = Some (C, \<gamma>)\<close>
+      unfolding option.cases
+      by metis
 
-  show "\<exists>S0 S1 S2 S3. propagate N \<beta> S0 S1 \<and> conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
-    (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
-    using maybe_reso
+    show "\<exists>S0 S1 S2 S3. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+      propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+      conflict N \<beta> S1 S2 \<and> regular_scl N \<beta> S1 S2 \<and>
+      (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> (regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
+      (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
+      using maybe_reso
     proof (elim disjE exE conjE)
       assume "S3 = S"
       show ?thesis
+        using reg_run propa confl
       proof (intro exI conjI)
-        show "propagate N \<beta> S0 S1"
-          by (rule \<open>propagate N \<beta> S0 S1\<close>)
-      next
-        show "conflict N \<beta> S1 S2"
-          by (rule \<open>conflict N \<beta> S1 S2\<close>)
-      next
         show "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S'"
-          using \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> step \<open>S3 = S\<close> by simp
+          using \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> step
+          by (simp add: \<open>S3 = S\<close>)
+      next
+        show "(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S'"
+          using \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3\<close> reg_step
+          by (simp add: \<open>S3 = S\<close>)
       next
         show "S' = S' \<or> (\<exists>S4. resolve N \<beta> S' S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
           by simp
       qed
     next
-      fix S4 assume 1: "resolve N \<beta> S3 S4" and 2: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
+      fix S4 assume hyps: "resolve N \<beta> S3 S4" "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
       show ?thesis
+        using reg_run propa confl facto
       proof (intro exI conjI)
-        show "propagate N \<beta> S0 S1"
-          by (rule \<open>propagate N \<beta> S0 S1\<close>)
-      next
-        show "conflict N \<beta> S1 S2"
-          by (rule \<open>conflict N \<beta> S1 S2\<close>)
-      next
-        show "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3"
-          by (rule \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close>)
-      next
         show "S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
-          using 1 2 step
+          using hyps step
           by (meson rtranclp.rtrancl_into_rtrancl sup2CI)
       qed
     qed
+  qed
 qed
 
 lemma resolve_preserves_regular_conflict_resolution:
-  assumes step: "resolve N \<beta> S S'" and invar: "regular_conflict_resolution N \<beta> S"
+  assumes step: "resolve N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
-    unfolding regular_conflict_resolution_def
-proof (intro impI)
-  from step have "state_conflict S \<noteq> None"
-    by (auto elim: resolve.cases)
+proof -
+  from step obtain C \<gamma> C' \<gamma>' where
+    "state_conflict S = Some (C, \<gamma>)" and "state_conflict S' = Some (C', \<gamma>')"
+    by (auto elim!: resolve.cases)
 
-  assume "{#} |\<notin>| N"
-  with invar obtain S0 S1 S2 S3 where
-    "propagate N \<beta> S0 S1" and
-    "conflict N \<beta> S1 S2" and
-    "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
-    maybe_reso: "(S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S))"
-    using \<open>state_conflict S \<noteq> None\<close>
-    unfolding regular_conflict_resolution_def by metis
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = Some (C', \<gamma>')\<close>
+    unfolding option.cases
+  proof (intro impI)
+    from step have "state_conflict S \<noteq> None"
+      by (auto elim: resolve.cases)
 
-  show "\<exists>S0 S1 S2 S3. propagate N \<beta> S0 S1 \<and> conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
-    (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
-  proof (intro exI conjI)
-    show "propagate N \<beta> S0 S1"
-      by (rule \<open>propagate N \<beta> S0 S1\<close>)
-  next
-    show "conflict N \<beta> S1 S2"
-      by (rule \<open>conflict N \<beta> S1 S2\<close>)
-  next
-    show "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3"
-      by (rule \<open>(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3\<close>)
-  next
-    show "S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
-      using maybe_reso step
-      by (metis (no_types, opaque_lifting) rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl
-          sup2I2)
+    assume "{#} |\<notin>| N"
+    with invar obtain S0 S1 S2 S3 where
+      reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+      "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+      "conflict N \<beta> S1 S2" "regular_scl N \<beta> S1 S2" and
+      "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" "(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+      maybe_reso: "S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = Some (C, \<gamma>)\<close>
+      unfolding option.cases
+      by metis
+
+    then show "\<exists>S0 S1 S2 S3. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+      propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
+      conflict N \<beta> S1 S2 \<and> regular_scl N \<beta> S1 S2 \<and>
+      (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> (regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and>
+      (S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S'))"
+    proof (intro exI conjI)
+      show "S3 = S' \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S')"
+        using maybe_reso step
+        by (metis (no_types, opaque_lifting) rtranclp.rtrancl_into_rtrancl rtranclp.rtrancl_refl
+            sup2I2)
+    qed
   qed
 qed
 
 lemma backtrack_preserves_regular_conflict_resolution:
-  assumes step: "backtrack N \<beta> S S'" and invar: "regular_conflict_resolution N \<beta> S"
+  assumes step: "backtrack N \<beta> S S'" and reg_step: "regular_scl N \<beta> S S'" and
+    invar: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
-  using step invar
-  by (auto simp: regular_conflict_resolution_def elim: backtrack.cases)
+proof -
+  from step obtain C \<gamma> where
+    "state_conflict S = Some (C, \<gamma>)" and "state_conflict S' = None"
+    by (auto elim!: backtrack.cases)
+
+  show ?thesis
+    unfolding regular_conflict_resolution_def \<open>state_conflict S' = None\<close>
+    unfolding option.case
+  proof (rule impI)
+    assume "{#} |\<notin>| N"
+    with invar obtain S0 S1 S2 S3 where
+      reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+      propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+      confl: "conflict N \<beta> S1 S2" "regular_scl N \<beta> S1 S2" and
+      facto: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" "(regular_scl N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+      maybe_reso: "S3 = S \<or> (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
+      unfolding regular_conflict_resolution_def \<open>state_conflict S = Some (C, \<gamma>)\<close>
+      unfolding option.cases
+      by metis
+
+    from reg_run propa(2) confl(2) facto(2) have reg_run_S3: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S3"
+      by simp
+
+    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
+      using maybe_reso
+    proof (elim disjE exE conjE)
+      show "S3 = S \<Longrightarrow> (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
+        using reg_run_S3 reg_step by simp
+    next
+      fix S4 assume hyps: "resolve N \<beta> S3 S4" "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
+      have "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S4"
+        using reg_run_S3 regular_scl_if_resolve[OF hyps(1)]
+        by (rule rtranclp.rtrancl_into_rtrancl)
+      also have "(regular_scl N \<beta>)\<^sup>*\<^sup>* S4 S"
+        using hyps(2)
+        by (rule mono_rtranclp[rule_format, rotated]) auto
+      also have "(regular_scl N \<beta>)\<^sup>*\<^sup>* S S'"
+        using reg_step by simp
+      finally show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'"
+        by assumption
+    qed
+  qed
+qed
 
 lemma regular_scl_preserves_regular_conflict_resolution:
-  assumes step: "scl N \<beta> S S'" and
-    invars: "regular_conflict_resolution N \<beta> S" "learned_nonempty S"
-      "trail_propagated_or_decided' N \<beta> S" "no_conflict_after_decide' N \<beta> S"
-      "almost_no_conflict_with_trail N \<beta> S"
+  assumes reg_step: "regular_scl N \<beta> S S'" and
+    invars: "regular_conflict_resolution N \<beta> S"
   shows "regular_conflict_resolution N \<beta> S'"
   using assms
   using propagate_preserves_regular_conflict_resolution decide_preserves_regular_conflict_resolution
     conflict_preserves_regular_conflict_resolution skip_preserves_regular_conflict_resolution
     factorize_preserves_regular_conflict_resolution resolve_preserves_regular_conflict_resolution
     backtrack_preserves_regular_conflict_resolution
-  by (metis scl_def)
+  by (metis regular_scl_def reasonable_scl_def scl_def)
 
 subsection \<open>Miscellaneous Lemmas\<close>
 
@@ -6104,38 +6265,17 @@ proof (rule notI)
   with assms(2,3) show False by (simp add: S'_def)
 qed
 
-(* lemma
-  assumes run: "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S'" and step: "scl N \<beta> S S'"
-  shows "(scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
-  using assms
-proof (induction S' arbitrary: S rule: rtranclp_induct)
-  case base
-  then show ?case
-    by (auto simp add: scl_def trail_propagate_def trail_decide_def
-        elim: propagate.cases decide.cases conflict.cases skip.cases factorize.cases resolve.cases
-          backtrack.cases)
-next
-  case (step y z)
-  then show ?case
-    sorry
-qed *)
-
-(* lemma
-  assumes reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S'" and reg_step: "regular_scl N \<beta> S S'"
-  shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S"
-  oops *)
-  
-
 lemma before_regular_backtrack:
   assumes
     backt: "backtrack N \<beta> S S'" and
     invars: "sound_state N \<beta> S" "almost_no_conflict_with_trail N \<beta> S"
       "regular_conflict_resolution N \<beta> S"
-  shows "\<exists>S0 S1 S2 S3 S4. propagate N \<beta> S0 S1 \<and>
+  shows "\<exists>S0 S1 S2 S3 S4. (regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0 \<and>
+    propagate N \<beta> S0 S1 \<and> regular_scl N \<beta> S0 S1 \<and>
     conflict N \<beta> S1 S2 \<and> (factorize N \<beta>)\<^sup>*\<^sup>* S2 S3 \<and> resolve N \<beta> S3 S4 \<and>
     (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S"
 proof -
-  from backt obtain L C \<gamma> where "state_conflict S = Some (add_mset L C, \<gamma>)"
+  from backt obtain L C \<gamma> where conflict_S: "state_conflict S = Some (add_mset L C, \<gamma>)"
     by (auto elim: backtrack.cases)
   
   have "{#} |\<notin>| N"
@@ -6154,14 +6294,26 @@ proof -
   qed
 
   then obtain S0 S1 S2 S3 where
-    "propagate N \<beta> S0 S1" and
-    "conflict N \<beta> S1 S2" and
-    "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
+    reg_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
+    propa: "propagate N \<beta> S0 S1" "regular_scl N \<beta> S0 S1" and
+    confl: "conflict N \<beta> S1 S2" and
+    fact: "(factorize N \<beta>)\<^sup>*\<^sup>* S2 S3" and
     maybe_resolution: "S3 = S \<or>
       (\<exists>S4. resolve N \<beta> S3 S4 \<and> (skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S)"
     using \<open>regular_conflict_resolution N \<beta> S\<close> \<open>state_conflict S = Some (add_mset L C, \<gamma>)\<close>
-    unfolding regular_conflict_resolution_def
-    by blast
+    unfolding regular_conflict_resolution_def conflict_S option.case
+    by metis
+
+  (* from reg_run have "almost_no_conflict_with_trail N \<beta> S0"
+    using regular_scl_preserves_almost_no_conflict_with_trail
+    by (induction S0 rule: rtranclp_induct) simp_all
+  hence "almost_no_conflict_with_trail N \<beta> S1"
+    by (rule regular_scl_preserves_almost_no_conflict_with_trail[OF propa(2)])
+  hence "almost_no_conflict_with_trail N \<beta> S2"
+    using confl by (auto elim: conflict_preserves_almost_no_conflict_with_trail)
+  with fact have "almost_no_conflict_with_trail N \<beta> S3"
+    using regular_scl_preserves_almost_no_conflict_with_trail
+    by (induction S3 rule: rtranclp_induct) (auto elim: factorize_preserves_almost_no_conflict_with_trail) *)
 
   have "S3 \<noteq> S"
   proof (rule notI)
@@ -6263,8 +6415,14 @@ proof -
     by metis
   show ?thesis
   proof (intro exI conjI)
+    show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0"
+      by (rule \<open>(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0\<close>)
+  next
     show "propagate N \<beta> S0 S1"
       by (rule \<open>propagate N \<beta> S0 S1\<close>)
+  next
+    show "regular_scl N \<beta> S0 S1"
+      by (rule propa(2))
   next
     show "conflict N \<beta> S1 S2"
       by (rule \<open>conflict N \<beta> S1 S2\<close>)
@@ -6279,7 +6437,7 @@ proof -
       by (rule \<open>(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>*\<^sup>* S4 S\<close>)
   qed
 qed
-    
+
 end
 
 end
