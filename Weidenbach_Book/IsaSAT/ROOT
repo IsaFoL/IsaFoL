@@ -9,7 +9,9 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Show
     Isabelle_LLVM
     Word_Lib
+    "HOL-Data_Structures"
   theories
+    Ordered_Pairing_Heap_List2
     IsaSAT_Arena
     IsaSAT_Arena_LLVM
     IsaSAT_Clauses

@@ -35,7 +35,7 @@ global_interpretation VSIDS: heap_impl where
         and h_prio_of_impl = prio_of_impl
         and h_append_impl = append_impl
         and h_swim_impl = swim_impl
-        and h_sink_impl = sink_impl
+  and h_sink_impl = sink_impl
         and h_empty_impl = empty_impl
         and h_is_empty_impl = is_empty_impl
         and h_insert_impl = insert_impl
@@ -61,7 +61,21 @@ find_theorems update_impl
 find_theorems append_impl
 find_theorems HM.h.swim_invar
   thm HM.h.heap_invar_def
-*)
+    *)
+
+fun hp_next where
+  \<open>hp_next a (Hp m s (x # y # children)) = (if a = node x then Some y else hp_next a (Hp m s (y # children)))\<close> |
+  \<open>hp_next a (Hp m s _) = None\<close>
+
+fun hp_prev where
+  \<open>hp_prev a (Hp m s (x # y # children)) = (if a = node y then Some x else hp_prev a (Hp m s (y # children)))\<close> |
+  \<open>hp_prev a (Hp m s _) = None\<close>
+
+fun hp_child where
+  \<open>hp_child a (Hp m s (x # children)) = (if a = m then Some x else (case hp_child a x of None \<Rightarrow> hp_child a (Hp m s children) | Some a \<Rightarrow> Some a))\<close> |
+  \<open>hp_child a (Hp m s _) = None\<close>
+
+
 fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
 "mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
 
@@ -84,6 +98,12 @@ fun hp_set_next' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarrow
 
 fun hp_set_child' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
   \<open>hp_set_child' child (PHeap sc prev nxt _) = PHeap sc prev nxt (child)\<close>
+
+definition encoded_hp_prop :: \<open>('e,'f) hp multiset \<Rightarrow> _\<close> where
+  \<open>encoded_hp_prop m = (\<lambda>(nxts,prevs,children). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
+     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option score (hp_next x m')) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option score (hp_prev x m)) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option score (hp_child x m)))\<close>
 
 text \<open>
 The choice of the current rule sets took a very long time and I am still unsure that this is the
