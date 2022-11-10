@@ -156,12 +156,6 @@ lemma multp_singleton_rightD:
   using multp_implies_one_step[OF \<open>transp R\<close> \<open>multp R M {#x#}\<close>]
   by (metis add_cancel_left_left set_mset_single single_is_union singletonD)
 
-lemma ball_image_mset_iff: "(\<forall>x \<in># image_mset f M. P x) \<longleftrightarrow> (\<forall>x \<in># M. P (f x))"
-  by blast
-
-lemma ball_filter_mset_iff: "(\<forall>x \<in># filter_mset P M. Q x) \<longleftrightarrow> (\<forall>x \<in># M. P x \<longrightarrow> Q x)"
-  by fastforce
-
 
 subsubsection \<open>Calculus_Extra\<close>
 
