@@ -366,67 +366,6 @@ lemma subst_comp_in_unifiersI':
   using subst_subst_eq_subst_subst_if_subst_eq_substI(2)[OF assms]
   by (simp add: unifiers_def)
 
-lemma mgu_ball_codom_is_Var:
-  assumes mgu_\<mu>: "is_mgu \<mu> E"
-  shows "\<forall>x \<in> - (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e)). is_Var (\<mu> x)"
-proof (rule ballI)
-  fix x
-  assume x_in: "x \<in> - (\<Union>e\<in>E. vars_term (fst e) \<union> vars_term (snd e))"
-
-  from mgu_\<mu> have unif_\<mu>: "\<mu> \<in> unifiers E" and minimal_\<mu>: "\<forall>\<tau> \<in> unifiers E. \<exists>\<gamma>. \<tau> = \<mu> \<circ>\<^sub>s \<gamma>"
-    by (simp_all add: is_mgu_def)
-
-  define \<tau> where
-    "\<tau> = (\<lambda>x. if x \<in> (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e)) then \<mu> x else Var x)"
-
-  have \<open>\<tau> \<in> unifiers E\<close>
-    unfolding unifiers_def mem_Collect_eq
-  proof (rule ballI)
-    fix e
-    assume "e \<in> E"
-    with unif_\<mu> have "fst e \<cdot> \<mu> = snd e \<cdot> \<mu>" by blast
-    moreover from \<open>e \<in> E\<close> have "fst e \<cdot> \<tau> = fst e \<cdot> \<mu>" and "snd e \<cdot> \<tau> = snd e \<cdot> \<mu>"
-      unfolding term_subst_eq_conv by (auto simp: \<tau>_def)
-    ultimately show "fst e \<cdot> \<tau> = snd e \<cdot> \<tau>" by simp
-  qed
-  with minimal_\<mu> obtain \<gamma> where "\<tau> = \<mu> \<circ>\<^sub>s \<gamma>" by auto
-  then show "is_Var (\<mu> x)"
-    using x_in[THEN ComplD]
-    by (metis (no_types, lifting) \<tau>_def subst_apply_eq_Var subst_compose_def term.disc(1))
-qed
-
-lemma mgu_inj_on:
-  assumes mgu_\<mu>: "is_mgu \<mu> E"
-  shows "inj_on \<mu> (- (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e)))"
-proof (rule inj_onI)
-  fix x y
-  assume
-    x_in: "x \<in> - (\<Union>e\<in>E. vars_term (fst e) \<union> vars_term (snd e))" and
-    y_in: "y \<in> - (\<Union>e\<in>E. vars_term (fst e) \<union> vars_term (snd e))" and
-    "\<mu> x = \<mu> y"
-
-  from mgu_\<mu> have unif_\<mu>: "\<mu> \<in> unifiers E" and minimal_\<mu>: "\<forall>\<tau> \<in> unifiers E. \<exists>\<gamma>. \<tau> = \<mu> \<circ>\<^sub>s \<gamma>"
-    by (simp_all add: is_mgu_def)
-
-  define \<tau> where
-    "\<tau> = (\<lambda>x. if x \<in> (\<Union>e \<in> E. vars_term (fst e) \<union> vars_term (snd e)) then \<mu> x else Var x)"
-
-  have \<open>\<tau> \<in> unifiers E\<close>
-    unfolding unifiers_def mem_Collect_eq
-  proof (rule ballI)
-    fix e
-    assume "e \<in> E"
-    with unif_\<mu> have "fst e \<cdot> \<mu> = snd e \<cdot> \<mu>" by blast
-    moreover from \<open>e \<in> E\<close> have "fst e \<cdot> \<tau> = fst e \<cdot> \<mu>" and "snd e \<cdot> \<tau> = snd e \<cdot> \<mu>"
-      unfolding term_subst_eq_conv by (auto simp: \<tau>_def)
-    ultimately show "fst e \<cdot> \<tau> = snd e \<cdot> \<tau>" by simp
-  qed
-  with minimal_\<mu> obtain \<gamma> where "\<tau> = \<mu> \<circ>\<^sub>s \<gamma>" by auto
-  then show "x = y"
-    using ComplD[OF x_in] ComplD[OF y_in] \<open>\<mu> x = \<mu> y\<close>
-    by (metis (no_types, lifting) \<tau>_def subst_compose_def term.inject(1))
-qed
-
 lemma inv_renaming_sound:
   assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
   shows "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv (the_Var \<circ> \<sigma>))) = Var"
