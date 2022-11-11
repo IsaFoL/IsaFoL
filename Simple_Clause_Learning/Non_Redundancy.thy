@@ -24,7 +24,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
 
   from conf obtain \<gamma>\<^sub>D D \<rho>\<^sub>D where
     S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U,
-      Some (D \<cdot> \<rho>\<^sub>D, adapt_subst_to_renaming \<rho>\<^sub>D \<gamma>\<^sub>D))" and
+      Some (D \<cdot> \<rho>\<^sub>D, rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D))" and
     D_in: "D |\<in>| N |\<union>| U" and
     dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D" and
     gr_D_\<gamma>\<^sub>D: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
@@ -43,17 +43,17 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
   hence 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
     by (metis uminus_of_uminus_id)
 
-  moreover have L'_\<rho>\<^sub>D_adapt_\<gamma>\<^sub>D: "L' \<cdot>l \<rho>\<^sub>D \<cdot>l adapt_subst_to_renaming \<rho>\<^sub>D \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D"
+  moreover have L'_\<rho>\<^sub>D_adapt_\<gamma>\<^sub>D: "L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D"
     by (metis D_def \<rho>\<^sub>D_def finite_fset gr_D_\<gamma>\<^sub>D le_sup_iff is_renaming_renaming_wrt
         subst_lit_renaming_subst_adapted vars_cls_add_mset
         vars_cls_subset_subst_domain_if_grounding)
 
-  ultimately have 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<rho>\<^sub>D \<cdot>l adapt_subst_to_renaming \<rho>\<^sub>D \<gamma>\<^sub>D)"
+  ultimately have 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
     by argo
 
   have "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) (atm_of L' \<cdot>a \<rho>\<^sub>D) = Some \<mu>'"
   proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
-    show "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L' \<cdot>a \<rho>\<^sub>D \<cdot>a adapt_subst_to_renaming \<rho>\<^sub>D \<gamma>\<^sub>D"
+    show "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L' \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
       using 1 by (metis atm_of_subst_lit atm_of_uminus)
   next
     have fin: "finite (\<Union> (vars_cls ` (fset (N |\<union>| U |\<union>|
@@ -75,7 +75,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
           is_ground_atm_is_ground_on_var is_ground_cls_imp_is_ground_lit is_ground_lit_def
           atm_of_subst_lit)
     thus "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>). if \<gamma>\<^sub>\<rho>' x = Var x then {} else vars_term (\<gamma>\<^sub>\<rho>' x)) \<inter>
-      {x \<in> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D). adapt_subst_to_renaming \<rho>\<^sub>D \<gamma>\<^sub>D x \<noteq> Var x} = {}"
+      {x \<in> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D). rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D x \<noteq> Var x} = {}"
       by simp
   qed
   then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu> \<cdot>l \<rho>), atm_of (L' \<cdot>l \<rho>\<^sub>D)}}"

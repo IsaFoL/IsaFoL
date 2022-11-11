@@ -340,6 +340,44 @@ lemma member_image_the_Var_image_subst:
   shows "x \<in> the_Var ` \<sigma> ` V \<longleftrightarrow> Var x \<in> \<sigma> ` V"
   using is_var_\<sigma> image_iff by fastforce
 
+definition rename_subst_domain where
+  "rename_subst_domain \<rho> \<sigma> x =
+    (if Var x \<in> \<rho> ` subst_domain \<sigma> then
+      \<sigma> (the_inv \<rho> (Var x))
+    else
+      Var x)"
+
+lemma rename_subst_domain_Var_eq[simp]: "rename_subst_domain \<rho> Var = Var"
+  by (rule ext) (simp add: rename_subst_domain_def)
+
+lemma renaming_cancels_rename_subst_domain:
+  assumes is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>" and vars_t: "vars_term t \<subseteq> subst_domain \<sigma>"
+  shows "t \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> = t \<cdot> \<sigma>"
+  unfolding subst_subst
+proof (intro term_subst_eq ballI)
+  fix x assume "x \<in> vars_term t"
+  with vars_t have x_in: "x \<in> subst_domain \<sigma>"
+    by blast
+
+  obtain x' where \<rho>_x: "\<rho> x = Var x'"
+    using is_var_\<rho> by (meson is_Var_def)
+  with x_in have x'_in: "Var x' \<in> \<rho> ` subst_domain \<sigma>"
+    by (metis image_eqI)
+
+  have "(\<rho> \<circ>\<^sub>s rename_subst_domain \<rho> \<sigma>) x = \<rho> x \<cdot> rename_subst_domain \<rho> \<sigma>"
+    by (simp add: subst_compose_def)
+  also have "... = rename_subst_domain \<rho> \<sigma> x'"
+    using \<rho>_x by simp
+  also have "... = \<sigma> (the_inv \<rho> (Var x'))"
+    by (simp add: rename_subst_domain_def if_P[OF x'_in])
+  also have "... = \<sigma> (the_inv \<rho> (\<rho> x))"
+    by (simp add: \<rho>_x)
+  also have "... = \<sigma> x"
+    using \<open>inj \<rho>\<close> by (simp add: the_inv_f_f)
+  finally show "(\<rho> \<circ>\<^sub>s rename_subst_domain \<rho> \<sigma>) x = \<sigma> x"
+    by simp
+qed
+
 definition lift_subst_wrt_renaming where
   "lift_subst_wrt_renaming \<rho> \<sigma> x =
     (if Var x \<in> \<rho> ` subst_domain \<sigma> then
@@ -1134,69 +1172,45 @@ lemma unifiers_without_refl: "unifiers E = unifiers {e \<in> E. fst e \<noteq> s
   (is "?lhs = ?rhs")
   unfolding unifiers_def by fastforce
 
-definition adapt_subst_to_renaming where
-  "adapt_subst_to_renaming \<rho> \<sigma> x =
-    (if x \<in> the_Var ` \<rho> ` subst_domain \<sigma> then
-      \<sigma> (the_inv \<rho> (Var x))
-    else
-      Var x)"
-
-lemma adapt_subst_to_renaming_Var_eq[simp]: "adapt_subst_to_renaming \<rho> Var = Var"
-  by (rule ext) (simp add: adapt_subst_to_renaming_def)
-
 lemma subst_lit_renaming_subst_adapted:
   assumes ren_\<rho>: "is_renaming \<rho>" and vars_L: "vars_lit L \<subseteq> subst_domain \<sigma>"
-  shows "L \<cdot>l \<rho> \<cdot>l adapt_subst_to_renaming \<rho> \<sigma> = L \<cdot>l \<sigma>"
-  unfolding subst_lit_comp_subst[symmetric]
-proof (intro same_on_vars_lit ballI)
-  fix x assume "x \<in> vars_lit L"
-  with vars_L have x_in: "x \<in> subst_domain \<sigma>"
-    by blast
+  shows "L \<cdot>l \<rho> \<cdot>l rename_subst_domain \<rho> \<sigma> = L \<cdot>l \<sigma>"
+proof -
+  from ren_\<rho> have is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+    by (simp_all add: is_renaming_iff)
 
-  obtain x' where \<rho>_x: "\<rho> x = Var x'"
-    using ren_\<rho>[unfolded is_renaming_iff]
-    by (meson is_Var_def)
-  with x_in have x'_in: "x' \<in> the_Var ` \<rho> ` subst_domain \<sigma>"
-    by (metis image_eqI term.sel(1))
-
-  have "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<rho> x \<cdot>a adapt_subst_to_renaming \<rho> \<sigma>"
-    by (simp add: subst_compose_def)
-  also have "... = adapt_subst_to_renaming \<rho> \<sigma> x'"
-    using \<rho>_x by simp
-  also have "... = \<sigma> (the_inv \<rho> (Var x'))"
-    by (simp add: adapt_subst_to_renaming_def if_P[OF x'_in])
-  also have "... = \<sigma> (the_inv \<rho> (\<rho> x))"
-    by (simp add: \<rho>_x)
-  also have "... = \<sigma> x"
-    using ren_\<rho>[unfolded is_renaming_iff]
-    by (simp add: the_inv_f_f)
-  finally show "(\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) x = \<sigma> x"
-    by simp
+  show ?thesis
+    using vars_L renaming_cancels_rename_subst_domain[OF is_var_\<rho> \<open>inj \<rho>\<close>]
+    by (cases L) (simp_all add: subst_lit_def)
 qed
 
 lemma subst_renaming_subst_adapted:
   assumes ren_\<rho>: "is_renaming \<rho>" and vars_D: "vars_cls D \<subseteq> subst_domain \<sigma>"
-  shows "D \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<sigma> = D \<cdot> \<sigma>"
+  shows "D \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> = D \<cdot> \<sigma>"
   unfolding subst_cls_comp_subst[symmetric]
 proof (intro same_on_lits_clause ballI)
   fix L assume "L \<in># D"
   with vars_D have "vars_lit L \<subseteq> subst_domain \<sigma>"
     by (auto dest!: multi_member_split)
-  thus "L \<cdot>l (\<rho> \<odot> adapt_subst_to_renaming \<rho> \<sigma>) = L \<cdot>l \<sigma>"
+  thus "L \<cdot>l (\<rho> \<odot> rename_subst_domain \<rho> \<sigma>) = L \<cdot>l \<sigma>"
     unfolding subst_lit_comp_subst
     by (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>])
 qed
 
-lemma subst_domain_adapt_subst_to_renaming_subset:
-  "subst_domain (adapt_subst_to_renaming \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
-  by (auto simp add: subst_domain_def adapt_subst_to_renaming_def)
+lemma subst_domain_rename_subst_domain_subset:
+  assumes is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)"
+  shows "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
+  by (auto simp add: subst_domain_def rename_subst_domain_def
+      member_image_the_Var_image_subst[OF is_var_\<rho>])
 
-lemma subst_domain_adapt_subst_to_renaming_subset':
+lemma subst_domain_rename_subst_domain_subset':
   assumes ren_\<rho>: "is_renaming \<rho>"
-  shows "subst_domain (adapt_subst_to_renaming \<rho> \<sigma>) \<subseteq> (\<Union>x \<in> subst_domain \<sigma>. vars_term (\<rho> x))"
+  shows "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> (\<Union>x \<in> subst_domain \<sigma>. vars_term (\<rho> x))"
 proof (rule subset_trans)
-  show "subst_domain (adapt_subst_to_renaming \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
-    by (rule subst_domain_adapt_subst_to_renaming_subset)
+  from ren_\<rho> have "\<forall>x. is_Var (\<rho> x)"
+    by (simp add: is_renaming_iff)
+  thus "subst_domain (rename_subst_domain \<rho> \<sigma>) \<subseteq> the_Var ` \<rho> ` subst_domain \<sigma>"
+    by (rule subst_domain_rename_subst_domain_subset)
 next
   show "the_Var ` \<rho> ` subst_domain \<sigma> \<subseteq> (\<Union>x\<in>subst_domain \<sigma>. vars_term (\<rho> x))"
     using ren_\<rho>
@@ -2035,7 +2049,7 @@ inductive propagate :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     is_renaming \<rho> \<Longrightarrow>
     vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
-    \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
+    \<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>' \<Longrightarrow>
     propagate N \<beta> (\<Gamma>, U, None) (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U, None)"
 
 (* Whatch out for equality! *)
@@ -2050,7 +2064,7 @@ inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<R
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   conflictI: "D |\<in>| N |\<union>| U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
     trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> \<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<Longrightarrow>
-    \<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma> \<Longrightarrow>
+    \<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
 (* Why is there this supplementary assumption "D noq {#}? " *)
@@ -2254,7 +2268,7 @@ proof (rule notI)
   define \<rho> where
     "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
-  have C_\<rho>_adapt_\<gamma>_simp: "C \<cdot> \<rho> \<cdot> adapt_subst_to_renaming \<rho> \<gamma> = C \<cdot> \<gamma>"
+  have C_\<rho>_adapt_\<gamma>_simp: "C \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<gamma> = C \<cdot> \<gamma>"
   proof (rule subst_renaming_subst_adapted)
     show "is_renaming \<rho>"
       unfolding \<rho>_def
@@ -2265,7 +2279,7 @@ proof (rule notI)
   qed
 
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U,
-    Some (C \<cdot> \<rho>, adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C) \<gamma>)))"
+    Some (C \<cdot> \<rho>, rename_subst_domain \<rho> (restrict_subst (vars_cls C) \<gamma>)))"
   proof (rule conflictI)
     show "C |\<in>| N |\<union>| U"
       using C_in by (simp add: S_def)
@@ -2303,8 +2317,8 @@ proof -
     from assms(1) show "{#} |\<in>| N |\<union>| U"
       by simp
   next
-    show "Var = adapt_subst_to_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
-      by (rule ext) (simp add: adapt_subst_to_renaming_def)
+    show "Var = rename_subst_domain (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
+      by (rule ext) (simp add: rename_subst_domain_def)
   qed simp_all
 qed
 
@@ -2350,7 +2364,7 @@ proof (cases rule: conflict.cases)
     using subst_ident_if_not_in_domain by fastforce
   ultimately show ?thesis
     using \<open>S = ([], {||}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
-    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> by simp
+    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close> by simp
 qed
 
 lemma no_more_step_if_conflict_mempty:
@@ -2378,7 +2392,7 @@ proof -
   define \<rho> where
     "\<rho> \<equiv> renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
-  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, adapt_subst_to_renaming \<rho> \<gamma>))"
+  have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, rename_subst_domain \<rho> \<gamma>))"
   proof (rule conflictI[OF D'_in])
     show "subst_domain \<gamma> \<subseteq> vars_cls D'"
       by (simp add: \<gamma>_def subst_domain_restrict_subst)
@@ -2404,7 +2418,7 @@ proof (rule notI, erule exE)
     define \<rho>' where
       "\<rho>' = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail (Ln # \<Gamma>)))"
 
-    have "conflict N \<beta> (Ln # \<Gamma>, U, None) (Ln # \<Gamma>, U, Some (D \<cdot> \<rho>', adapt_subst_to_renaming \<rho>' \<gamma>))"
+    have "conflict N \<beta> (Ln # \<Gamma>, U, None) (Ln # \<Gamma>, U, Some (D \<cdot> \<rho>', rename_subst_domain \<rho>' \<gamma>))"
     proof (rule conflict.conflictI)
       show "D |\<in>| N |\<union>| U"
         by (rule conflictI)
@@ -3061,7 +3075,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   qed
 
   ultimately have "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
-    unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close>
     using subst_lit_renaming_subst_adapted[of \<rho>] by simp
 
   moreover have "\<forall>L \<in> fst ` set \<Gamma>. is_ground_lit L"
@@ -3160,7 +3174,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     by (simp add: propagateI(1) trail_lits_consistent_def)
 
   moreover have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
-    unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close>
   proof (rule subst_lit_renaming_subst_adapted)
     show "is_renaming \<rho>"
       using propagateI by argo
@@ -3248,7 +3262,7 @@ inductive trail_propagated_or_decided for N \<beta> U where
     \<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
     is_renaming \<rho> \<Longrightarrow>
     vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
-    \<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>' \<Longrightarrow>
+    \<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>' \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U \<Gamma> \<Longrightarrow>
     trail_propagated_or_decided N \<beta> U (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')" |
   Decide: "
@@ -3565,7 +3579,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     qed
 
     ultimately show ?thesis
-      unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
+      unfolding \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close>
       using subst_lit_renaming_subst_adapted[of \<rho> "L \<cdot>l \<mu>" \<gamma>']
       by (metis atm_of_subst_lit)
   qed
@@ -3652,7 +3666,7 @@ lemma mgu_and_renaming_cancel:
     mgu_\<mu>: \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close> and
     ground_C_\<gamma>: \<open>is_ground_cls (C \<cdot> \<gamma>)\<close> and
     \<gamma>'_def: \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close> and
-    \<gamma>\<^sub>\<rho>'_def: \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close> and
+    \<gamma>\<^sub>\<rho>'_def: \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close> and
     ren_\<rho>: \<open>is_renaming \<rho>\<close>
   shows "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma> \<and> C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>' = C\<^sub>0 \<cdot> \<gamma>"
 proof (rule conjI)
@@ -3813,8 +3827,8 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   moreover have "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)"
   proof (rule subset_trans)
     show "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> (\<Union>x\<in>subst_domain \<gamma>'. vars_term (\<rho> x))"
-      unfolding \<open>\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'\<close>
-      by (rule subst_domain_adapt_subst_to_renaming_subset'[OF \<open>is_renaming \<rho>\<close>])
+      unfolding \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close>
+      by (rule subst_domain_rename_subst_domain_subset'[OF \<open>is_renaming \<rho>\<close>])
   next
     show "(\<Union>x\<in>subst_domain \<gamma>'. vars_term (\<rho> x)) \<subseteq> vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)"
       unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
@@ -3844,7 +3858,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     using conflictI(3-) finite_fset is_renaming_renaming_wrt by metis
 
   have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>"
-    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close>
   proof (rule subst_renaming_subst_adapted[OF ren_\<rho>])
     show "vars_cls D \<subseteq> subst_domain \<gamma>"
       using conflictI(3-) vars_cls_subset_subst_domain_if_grounding by metis
@@ -3854,8 +3868,8 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   moreover have "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> vars_cls (D \<cdot> \<rho>)"
   proof (rule subset_trans)
     show "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> (\<Union>x\<in>subst_domain \<gamma>. vars_term (\<rho> x))"
-    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close>
-    by (rule subst_domain_adapt_subst_to_renaming_subset'[OF ren_\<rho>])
+    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close>
+    by (rule subst_domain_rename_subst_domain_subset'[OF ren_\<rho>])
   next
     show "(\<Union>x\<in>subst_domain \<gamma>. vars_term (\<rho> x)) \<subseteq> vars_cls (D \<cdot> \<rho>)"
       unfolding vars_subst_cls_eq
@@ -4453,7 +4467,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     ren_\<rho>: "is_renaming \<rho>" and
     vars_L_C\<^sub>0_\<mu>_\<rho>: "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<inter>
       vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}" and
-    \<gamma>\<^sub>\<rho>'_def: "\<gamma>\<^sub>\<rho>' = adapt_subst_to_renaming \<rho> \<gamma>'"
+    \<gamma>\<^sub>\<rho>'_def: "\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'"
     by simp_all
 
   from sound have
@@ -4487,7 +4501,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma> = C\<^sub>0 \<cdot> \<gamma>"
     using \<mu>_\<gamma>_simp by (metis subst_cls_comp_subst)
 
-  have "\<forall>x. is_Var (\<rho> x)"
+  have all_var_\<rho>: "\<forall>x. is_Var (\<rho> x)"
     using is_renaming_iff ren_\<rho> by fastforce
 
   have "vars_lit (L \<cdot>l \<mu>) \<subseteq>  subst_domain \<gamma>'"
@@ -4533,10 +4547,10 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     thus "\<not> trail_defined_lit \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
       by (simp add: \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'\<close> \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>\<close>)
   next
-    have "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> subst_domain (adapt_subst_to_renaming \<rho> \<gamma>')"
+    have "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> subst_domain (rename_subst_domain \<rho> \<gamma>')"
       using \<gamma>\<^sub>\<rho>'_def by simp
     also have "\<dots> \<subseteq> the_Var ` \<rho> ` subst_domain \<gamma>'"
-      by (rule subst_domain_adapt_subst_to_renaming_subset)
+      by (rule subst_domain_rename_subst_domain_subset[OF all_var_\<rho>])
     also have "\<dots> \<subseteq> the_Var ` \<rho> ` vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)"
       unfolding \<gamma>'_def using subst_domain_restrict_subst by fast
     also have "\<dots> = (\<Union>x\<in>vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>). vars_term (\<rho> x))"
@@ -4552,10 +4566,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
         by (erule mem_vars_cls_subst_clsD)
     qed
     finally show "subst_domain \<gamma>\<^sub>\<rho>' \<subseteq> vars_cls (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_lit (L \<cdot>l \<mu> \<cdot>l \<rho>)"
-      unfolding \<gamma>\<^sub>\<rho>'_def
-      using subst_domain_adapt_subst_to_renaming_subset
-      using subst_domain_restrict_subst
-      by (simp add: subst_domain_restrict_subst sup_commute)
+      by auto
   next
     have "add_mset L C\<^sub>0 \<subseteq># C"
       by (simp add: C_def C\<^sub>0_def)
@@ -4671,7 +4682,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     unfolding sound_state_def by auto
 
   have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>"
-    unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close>
+    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close>
     by (metis (opaque_lifting) \<rho>_def finite_fset is_renaming_renaming_wrt conflictI(5)
         subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
 
@@ -4697,10 +4708,10 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   moreover have "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> vars_cls (D \<cdot> \<rho>)"
   proof (rule Set.subsetI)
     fix x assume "x \<in> subst_domain \<gamma>\<^sub>\<rho>"
-    hence "adapt_subst_to_renaming \<rho> \<gamma> x \<noteq> Var x"
-      unfolding \<open>\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<gamma>\<close> subst_domain_def mem_Collect_eq by assumption
-    hence x_in: "x \<in> the_Var ` \<rho> ` subst_domain \<gamma>" and "\<gamma> (the_inv \<rho> (Var x)) \<noteq> Var x"
-      unfolding adapt_subst_to_renaming_def by metis+
+    hence "rename_subst_domain \<rho> \<gamma> x \<noteq> Var x"
+      unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close> subst_domain_def mem_Collect_eq by assumption
+    hence x_in: "Var x \<in> \<rho> ` subst_domain \<gamma>" and "\<gamma> (the_inv \<rho> (Var x)) \<noteq> Var x"
+      unfolding rename_subst_domain_def by metis+
 
     from x_in obtain x' where x'_in: "x' \<in> subst_domain \<gamma>" and \<rho>_x': "\<rho> x' = Var x"
       using \<rho>_def is_renaming_iff by auto

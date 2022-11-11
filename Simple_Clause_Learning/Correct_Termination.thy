@@ -35,7 +35,7 @@ proof -
     ground_D_\<sigma>: "is_ground_cls (D \<cdot> \<sigma>)" and
     tr_\<Gamma>_L_false_D: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<sigma>)" and
     \<rho>_def: "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>))))" and
-    \<sigma>\<^sub>\<rho>_def: "\<sigma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> \<sigma>"
+    \<sigma>\<^sub>\<rho>_def: "\<sigma>\<^sub>\<rho> = rename_subst_domain \<rho> \<sigma>"
     by (elim conflict.cases) blast
 
   have ren_\<rho>: "is_renaming \<rho>"
@@ -325,7 +325,7 @@ proof -
             "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
           define \<gamma>\<^sub>\<rho> where
-            "\<gamma>\<^sub>\<rho> = adapt_subst_to_renaming \<rho> (restrict_subst (vars_cls C') \<gamma>)"
+            "\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> (restrict_subst (vars_cls C') \<gamma>)"
 
           have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (C' \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
           proof (rule conflictI)
