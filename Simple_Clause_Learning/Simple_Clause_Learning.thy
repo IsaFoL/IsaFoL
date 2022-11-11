@@ -244,23 +244,6 @@ declare Unification.mgu.simps[simp del]
 
 subsubsection \<open>First_Order_Terms Only\<close>
 
-lemma range_vars_Var[simp]: "range_vars Var = {}"
-  by (simp add: range_vars_def)
-
-lemma subst_apply_term_ident:
-  assumes "vars_term t \<inter> subst_domain \<sigma> = {}"
-  shows "t \<cdot> \<sigma> = t"
-  using assms
-proof (induction t)
-  case (Var x)
-  thus ?case
-    by (simp add: subst_domain_def)
-next
-  case (Fun f ts)
-  thus ?case
-    by (auto intro: list.map_ident_strong)
-qed
-
 lemma ex_unify_if_unifiers_not_empty:
   "unifiers es \<noteq> {} \<Longrightarrow> set xs = es \<Longrightarrow> \<exists>ys. unify xs [] = Some ys"
   using unify_complete by auto
@@ -279,48 +262,6 @@ next
     by (simp_all add: subst_domain_def)
 qed
 
-lemma subst_apply_term_eq_subst_apply_term_composeI:
-  assumes
-    "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
-    "x \<notin> subst_domain \<delta>"
-  shows "\<sigma> x = (\<sigma> \<circ>\<^sub>s \<delta>) x"
-proof (cases "\<sigma> x")
-  case (Var y)
-  show ?thesis
-  proof (cases "x = y")
-    case True
-    with Var have \<open>\<sigma> x = Var x\<close> by simp
-    moreover from \<open>x \<notin> subst_domain \<delta>\<close> have "\<delta> x = Var x"
-      by (simp add: disjoint_iff subst_domain_def)
-    ultimately show ?thesis
-      by (simp add: subst_compose_def)
-  next
-    case False
-    with Var have "y \<in> range_vars \<sigma>"
-      by (auto intro: mem_range_varsI)
-    hence "y \<notin> subst_domain \<delta>"
-      using \<open>range_vars \<sigma> \<inter> subst_domain \<delta> = {}\<close>
-      by (simp add: disjoint_iff)
-    with Var show ?thesis
-      unfolding subst_compose_def
-      by (simp add: subst_domain_def)
-  qed
-next
-  case (Fun f ys)
-  hence "Fun f ys \<in> subst_range \<sigma> \<or> (\<forall>y\<in>set ys. y \<in> subst_range \<sigma>)"
-    using subst_domain_def by fastforce
-  hence " \<forall>x\<in>vars_term (Fun f ys). x \<in> range_vars \<sigma>"
-    by (metis UN_I range_vars_def term.distinct(1) term.sel(4) term.set_cases(2))
-  hence "Fun f ys \<cdot> \<delta> = Fun f ys \<cdot> Var"
-    unfolding term_subst_eq_conv
-    using \<open>range_vars \<sigma> \<inter> subst_domain \<delta> = {}\<close>
-    by (simp add: disjoint_iff subst_domain_def)
-  hence "Fun f ys \<cdot> \<delta> = Fun f ys"
-    by simp
-  with Fun show ?thesis
-    by (simp add: subst_compose_def)
-qed
-
 lemma subst_subst_eq_subst_subst_if_subst_eq_substI:
   assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
     t_inter_\<delta>_empty: "vars_term t \<inter> subst_domain \<delta> = {}" and
@@ -329,23 +270,17 @@ lemma subst_subst_eq_subst_subst_if_subst_eq_substI:
     "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> t \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
     "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> t \<cdot> \<delta> \<cdot> \<sigma> = u \<cdot> \<delta> \<cdot> \<sigma>"
 proof -
-  have "u \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
-    unfolding term_subst_eq_conv[of u \<delta> "\<sigma> \<circ>\<^sub>s \<delta>", simplified]
-    using u_inter_\<sigma>_empty
-    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
-  thus "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> t \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
-    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> t_inter_\<delta>_empty
-    by (metis (no_types, opaque_lifting)  disjoint_iff subst_apply_term_eq_subst_apply_term_composeI
-        subst_subst term_subst_eq_conv)
+  from u_inter_\<sigma>_empty have "u \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<delta>"
+    by (simp add: subst_apply_term_ident)
+  with \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> show "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> t \<cdot> \<sigma> \<cdot> \<delta> = u \<cdot> \<sigma> \<cdot> \<delta>"
+    unfolding subst_apply_term_subst_apply_term_eq_subst_apply_term_lhs[OF _ t_inter_\<delta>_empty]
+    by simp
 
-  have "t \<cdot> \<sigma> = t \<cdot> \<delta> \<cdot> \<sigma>"
-    unfolding term_subst_eq_conv[of t \<sigma> "\<delta> \<circ>\<^sub>s \<sigma>", simplified]
-    using t_inter_\<delta>_empty
-    by (simp add: disjoint_iff subst_compose_def subst_domain_def)
-  thus "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> t \<cdot> \<delta> \<cdot> \<sigma> = u \<cdot> \<delta> \<cdot> \<sigma>"
-    using \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> u_inter_\<sigma>_empty
-    by (metis (no_types, opaque_lifting) disjoint_iff subst_apply_term_eq_subst_apply_term_composeI
-        subst_subst term_subst_eq_conv)
+  from t_inter_\<delta>_empty have "t \<cdot> \<delta> \<cdot> \<sigma> = t \<cdot> \<sigma>"
+    by (simp add: subst_apply_term_ident)
+  with \<open>t \<cdot> \<sigma> = u \<cdot> \<delta>\<close> show "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> t \<cdot> \<delta> \<cdot> \<sigma> = u \<cdot> \<delta> \<cdot> \<sigma>"
+    unfolding subst_apply_term_subst_apply_term_eq_subst_apply_term_lhs[OF _ u_inter_\<sigma>_empty]
+    by simp
 qed
 
 lemma subst_comp_in_unifiersI:
@@ -366,43 +301,9 @@ lemma subst_comp_in_unifiersI':
   using subst_subst_eq_subst_subst_if_subst_eq_substI(2)[OF assms]
   by (simp add: unifiers_def)
 
-lemma inv_renaming_sound:
-  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
-  shows "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv (the_Var \<circ> \<sigma>))) = Var"
-proof -
-  define \<sigma>' where "\<sigma>' = the_Var \<circ> \<sigma>"
-  have \<sigma>_def: "\<sigma> = Var \<circ> \<sigma>'"
-    unfolding \<sigma>'_def using is_var_\<sigma> by auto
-
-  from is_var_\<sigma> inj_\<sigma> have "inj \<sigma>'"
-    unfolding inj_on_def \<sigma>_def comp_def by fast
-  hence "inv \<sigma>' \<circ> \<sigma>' = id"
-    using inv_o_cancel[of \<sigma>'] by simp
-  hence "Var \<circ> (inv \<sigma>' \<circ> \<sigma>') = Var"
-    by simp
-  hence "\<forall>x. (Var \<circ> (inv \<sigma>' \<circ> \<sigma>')) x = Var x"
-    by metis
-  hence "\<forall>x. ((Var \<circ> \<sigma>') \<circ>\<^sub>s (Var \<circ> (inv \<sigma>'))) x = Var x"
-    unfolding subst_compose_def by auto
-  thus "\<sigma> \<circ>\<^sub>s (Var \<circ> (inv \<sigma>')) = Var"
-    using \<sigma>_def by auto
-qed
-
-lemma ex_inv_subst:
-  assumes is_var_\<sigma>: "\<And>x. is_Var (\<sigma> x)" and inj_\<sigma>: "inj \<sigma>"
-  shows "\<exists>\<tau>. \<sigma> \<circ>\<^sub>s \<tau> = Var"
-  using inv_renaming_sound[OF assms] by blast
-
-lemma vars_subst_term_subset_weak: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
-proof (induction t)
-  case (Var x)
-  show ?case
-    apply (simp add: range_vars_def subst_domain_def)
-    by force
-next
-  case (Fun f xs)
-  thus ?case by auto
-qed
+lemma vars_term_subst_apply_term:
+  "vars_term (t \<cdot> \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"
+  by (induction t) (auto simp add: insert_Diff_if subst_domain_def)
 
 lemma vars_subst_term_subset: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t - subst_domain \<sigma> \<union> range_vars \<sigma>"
 proof (induction t)
@@ -416,36 +317,8 @@ next
   thus ?case by auto
 qed
 
-lemma vars_subst_term_eq:
-  "vars_term (t \<cdot> \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"
-proof (induction t)
-  case (Var x)
-  show ?case
-    by (simp add: insert_Diff_if subst_domain_def)
-next
-  case (Fun f xs)
-  thus ?case
-    apply simp by blast
-qed
-
-lemma mgu_subst_range_vars:
-  assumes "Unification.mgu s t = Some \<sigma>"
-  shows "range_vars \<sigma> \<subseteq> vars_term s \<union> vars_term t"
-proof -
-  obtain xs where *: "unify [(s, t)] [] = Some xs" and [simp]: "subst_of xs = \<sigma>"
-    using assms by (simp add: mgu.simps split: option.splits)
-  from unify_Some_UNIF [OF *] obtain ss
-    where "compose ss = \<sigma>" and "UNIF ss {#(s, t)#} {#}" by auto
-  with UNIF_range_vars_subset [of ss "{#(s, t)#}" "{#}"]
-  show ?thesis using vars_mset_singleton by force
-qed
-
-lemma subst_term_eq_if_mgu:
-  assumes mgu_t_u: "Unification.mgu t u = Some \<mu>"
-  shows "t \<cdot> \<mu> = u \<cdot> \<mu>"
-  using mgu_sound[OF mgu_t_u]
-  unfolding Unifiers.is_imgu_def unifiers_def mem_Collect_eq
-  by simp
+lemma vars_subst_term_subset_weak: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
+  using vars_subst_term_subset by fast
 
 lemma unify_subst_domain:
   assumes "unify E [] = Some xs"
@@ -462,68 +335,110 @@ qed
 lemma subst_ident_if_not_in_domain: "x \<notin> subst_domain \<mu> \<Longrightarrow> \<mu> x = Var x"
   by (simp add: subst_domain_def)
 
-lemma is_imgu_subst_inj_renaming_if_is_imgu:
-  assumes mgu_\<mu>: "is_imgu \<mu> {(t, u)}" and ren_\<rho>: "is_renaming \<rho>" and inj_\<rho>: "inj \<rho>"
-  defines "\<mu>' \<equiv> (\<lambda>x.
-    if x \<in> the_Var ` \<rho> ` subst_domain \<mu> then
-      ((Var o the_inv \<rho>) \<circ>\<^sub>s \<mu> \<circ>\<^sub>s \<rho>) (Var x)
+lemma member_image_the_Var_image_subst:
+  assumes is_var_\<sigma>: "\<forall>x. is_Var (\<sigma> x)"
+  shows "x \<in> the_Var ` \<sigma> ` V \<longleftrightarrow> Var x \<in> \<sigma> ` V"
+  using is_var_\<sigma> image_iff by fastforce
+
+definition lift_subst_wrt_renaming where
+  "lift_subst_wrt_renaming \<rho> \<sigma> x =
+    (if Var x \<in> \<rho> ` subst_domain \<sigma> then
+      ((Var o the_inv \<rho>) \<circ>\<^sub>s \<sigma> \<circ>\<^sub>s \<rho>) (Var x)
     else
       Var x)"
-  shows "is_imgu \<mu>' {(t \<cdot> \<rho>, u \<cdot> \<rho>)}"
-proof (unfold is_imgu_def, intro conjI ballI)
-  have *: "t \<cdot> \<rho> \<cdot> \<mu>' = t \<cdot> \<mu> \<cdot> \<rho>" for t
-    unfolding subst_subst
-  proof (rule term_subst_eq)
-    fix x
-    assume "x \<in> vars_term t"
-    obtain x' where "\<rho> x = Var x'"
-      using ren_\<rho> by (meson is_Var_def is_renaming_def)
-    hence inv_\<rho>_x': "the_inv \<rho> (Var x') = x"
-      using inj_\<rho> by (metis the_inv_f_f)
-      
-    show "(\<rho> \<circ>\<^sub>s \<mu>') x = (\<mu> \<circ>\<^sub>s \<rho>) x"
-    proof (cases "x \<in> subst_domain \<mu>")
-      case True
-      hence "x' \<in> the_Var ` \<rho> ` subst_domain \<mu>"
-        using \<open>\<rho> x = Var x'\<close> by (metis imageI term.sel(1))
-      then show ?thesis
-        by (simp add: \<open>\<rho> x = Var x'\<close> \<mu>'_def subst_compose_def inv_\<rho>_x')
-    next
-      case False
-      moreover hence "x' \<notin> the_Var ` \<rho> ` subst_domain \<mu>"
-        by (smt (verit, best) \<open>\<rho> x = Var x'\<close> image_iff inj_\<rho> inj_image_mem_iff is_renaming_def ren_\<rho>
-            term.collapse(1))
-      ultimately show ?thesis
-        by (simp add: subst_compose_def subst_ident_if_not_in_domain[of x \<mu>] \<mu>'_def \<open>\<rho> x = Var x'\<close>)
+
+lemma lift_subst_to_renamed_terms:
+  fixes t :: "('f, 'v) term" and \<sigma> \<rho> :: "('f, 'v) subst"
+  assumes is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+  shows "t \<cdot> \<rho> \<cdot> lift_subst_wrt_renaming \<rho> \<sigma> = t \<cdot> \<sigma> \<cdot> \<rho>"
+  unfolding subst_subst
+proof (rule term_subst_eq)
+  fix x
+  assume "x \<in> vars_term t"
+  from is_var_\<rho> obtain x' where "\<rho> x = Var x'"
+    by (meson is_Var_def is_renaming_def)
+  with \<open>inj \<rho>\<close> have inv_\<rho>_x': "the_inv \<rho> (Var x') = x"
+    by (metis the_inv_f_f)
+
+  show "(\<rho> \<circ>\<^sub>s lift_subst_wrt_renaming \<rho> \<sigma>) x = (\<sigma> \<circ>\<^sub>s \<rho>) x"
+  proof (cases "x \<in> subst_domain \<sigma>")
+    case True
+    hence "Var x' \<in> \<rho> ` subst_domain \<sigma>"
+      using \<open>\<rho> x = Var x'\<close> by (metis imageI)
+    thus ?thesis
+      by (simp add: \<open>\<rho> x = Var x'\<close> lift_subst_wrt_renaming_def subst_compose_def inv_\<rho>_x')
+  next
+    case False
+    hence "Var x' \<notin> \<rho> ` subst_domain \<sigma>"
+    proof (rule contrapos_nn)
+      assume "Var x' \<in> \<rho> ` subst_domain \<sigma>"
+      hence "\<rho> x \<in> \<rho> ` subst_domain \<sigma>"
+        unfolding \<open>\<rho> x = Var x'\<close> .
+      thus "x \<in> subst_domain \<sigma>"
+        unfolding inj_image_mem_iff[OF \<open>inj \<rho>\<close>] .
     qed
-  qed
-
-  from mgu_\<mu> have "t \<cdot> \<mu> = u \<cdot> \<mu>"
-    using is_imgu_def by fastforce
-  then show "\<mu>' \<in> unifiers {(t \<cdot> \<rho>, u \<cdot> \<rho>)}"
-    unfolding unifiers_def mem_Collect_eq
-    by (simp add: *)
-next
-  fix \<upsilon>
-  assume "\<upsilon> \<in> unifiers {(t \<cdot> \<rho>, u \<cdot> \<rho>)}"
-  hence "t \<cdot> \<rho> \<cdot> \<upsilon> = u \<cdot> \<rho> \<cdot> \<upsilon>"
-    by fastforce
-
-  with mgu_\<mu> have "\<rho> \<circ>\<^sub>s \<upsilon> = \<mu> \<circ>\<^sub>s \<rho> \<circ>\<^sub>s \<upsilon>"
-    unfolding is_imgu_def
-    by (simp add: subst_monoid_mult.mult_assoc unifiers_insert)
-
-  show "\<upsilon> = \<mu>' \<circ>\<^sub>s \<upsilon>"
-  proof (rule ext)
-    fix x
-    show "\<upsilon> x = (\<mu>' \<circ>\<^sub>s \<upsilon>) x"
-      apply (cases " x \<in> the_Var ` \<rho> ` subst_domain \<mu>")
-      apply (simp_all add: \<mu>'_def subst_compose_def)
-      using \<open>\<rho> \<circ>\<^sub>s \<upsilon> = \<mu> \<circ>\<^sub>s \<rho> \<circ>\<^sub>s \<upsilon>\<close>
-      by (smt (verit, del_insts) imageE inj_\<rho> is_renaming_def ren_\<rho> subst_compose
-          subst_monoid_mult.mult.left_neutral term.collapse(1) the_inv_f_f)
+    with False show ?thesis
+      by (simp add: subst_compose_def subst_ident_if_not_in_domain[of x \<sigma>]
+          lift_subst_wrt_renaming_def \<open>\<rho> x = Var x'\<close>)
   qed
 qed
+
+lemma lift_imgu_to_renamed_terms:
+  fixes E :: "('f, 'v) equations" and \<mu> \<rho> :: "('f, 'v) subst"
+  assumes imgu_\<mu>: "is_imgu \<mu> E" and is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+  shows "is_imgu (lift_subst_wrt_renaming \<rho> \<mu>) (subst_set \<rho> E)"
+proof (unfold is_imgu_def, intro conjI ballI)
+  from imgu_\<mu> have unif_\<mu>: "\<mu> \<in> unifiers E"
+    by (simp add: is_imgu_def)
+
+  show "lift_subst_wrt_renaming \<rho> \<mu> \<in> unifiers (subst_set \<rho> E)"
+    unfolding unifiers_subst_set unifiers_def mem_Collect_eq
+  proof (rule ballI)
+    fix e\<^sub>\<rho> assume "e\<^sub>\<rho> \<in> subst_set \<rho> E"
+    then obtain e where "e \<in> E" and "e\<^sub>\<rho> = (fst e \<cdot> \<rho>, snd e \<cdot> \<rho>)"
+      by (auto simp: subst_set_def)
+    then show "fst e\<^sub>\<rho> \<cdot> lift_subst_wrt_renaming \<rho> \<mu> = snd e\<^sub>\<rho> \<cdot> lift_subst_wrt_renaming \<rho> \<mu>"
+      using unif_\<mu> lift_subst_to_renamed_terms[OF is_var_\<rho> \<open>inj \<rho>\<close>, of _ \<mu>]
+      by (simp add: unifiers_def)
+  qed
+next
+  fix \<upsilon> :: "('f, 'v) subst"
+  assume "\<upsilon> \<in> unifiers (subst_set \<rho> E)"
+  hence "(\<rho> \<circ>\<^sub>s \<upsilon>) \<in> unifiers E"
+    by (simp add: subst_set_def unifiers_def)
+  with imgu_\<mu> have \<mu>_\<rho>_\<upsilon>: "\<mu> \<circ>\<^sub>s \<rho> \<circ>\<^sub>s \<upsilon> = \<rho> \<circ>\<^sub>s \<upsilon>"
+    by (simp add: is_imgu_def subst_compose_assoc)
+
+  show "\<upsilon> = lift_subst_wrt_renaming \<rho> \<mu> \<circ>\<^sub>s \<upsilon>"
+  proof (rule ext)
+    fix x
+    show "\<upsilon> x = (lift_subst_wrt_renaming \<rho> \<mu> \<circ>\<^sub>s \<upsilon>) x"
+    proof (cases "Var x \<in> \<rho> ` subst_domain \<mu>")
+      case True
+      hence "(lift_subst_wrt_renaming \<rho> \<mu> \<circ>\<^sub>s \<upsilon>) x = (\<mu> \<circ>\<^sub>s \<rho> \<circ>\<^sub>s \<upsilon>) (the_inv \<rho> (Var x))"
+        by (simp add: lift_subst_wrt_renaming_def subst_compose_def)
+      also have "\<dots> = (\<rho> \<circ>\<^sub>s \<upsilon>) (the_inv \<rho> (Var x))"
+        by (simp add: \<mu>_\<rho>_\<upsilon>)
+      also have "\<dots> = (\<rho> (the_inv \<rho> (Var x))) \<cdot> \<upsilon>"
+        by (simp add: subst_compose)
+      also have "\<dots> = Var x \<cdot> \<upsilon>"
+        using True f_the_inv_into_f[OF \<open>inj \<rho>\<close>, of "Var x"] by force
+      finally show ?thesis
+        by simp
+    next
+      case False
+      thus ?thesis
+        by (simp add: lift_subst_wrt_renaming_def subst_compose)
+    qed
+  qed
+qed
+
+lemma lift_imgu_to_renamed_terms_single_equation:
+  fixes t u :: "('f, 'v) term" and \<mu> \<rho> :: "('f, 'v) subst"
+  assumes imgu_\<mu>: "is_imgu \<mu> {(t, u)}" and is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>"
+  shows "is_imgu (lift_subst_wrt_renaming \<rho> \<mu>) {(t \<cdot> \<rho>, u \<cdot> \<rho>)}"
+  by (rule lift_imgu_to_renamed_terms[OF imgu_\<mu> is_var_\<rho> \<open>inj \<rho>\<close>,
+        unfolded subst_set_def, simplified])
 
 (* lemma fixes \<upsilon> :: "'a \<Rightarrow> ('b, 'a) Term.term" assumes "\<upsilon> \<in> unifiers E" shows "\<exists>\<mu>. is_mgu \<mu> E"
   unfolding is_mgu_def
@@ -919,7 +834,7 @@ lemma is_ground_cls_add_mset: "is_ground_cls (add_mset L C) \<longleftrightarrow
 
 lemma vars_subst_lit_eq:
   "vars_lit (L \<cdot>l \<sigma>) = vars_lit L - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_lit L. vars_term (\<sigma> x))"
-  using vars_subst_term_eq by (metis atm_of_subst_lit)
+  using vars_term_subst_apply_term by (metis atm_of_subst_lit)
 
 lemma vars_subst_cls_eq:
   "vars_cls (C \<cdot> \<sigma>) = vars_cls C - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_cls C. vars_term (\<sigma> x))"
@@ -1062,7 +977,7 @@ proof (rule iffI)
     by (metis injI subst_compose_def term.sel(1))
 next
   show "?rhs \<Longrightarrow> ?lhs"
-    by (auto simp: is_renaming_def intro: ex_inv_subst)
+    by (auto simp: is_renaming_def intro: ex_inverse_of_renaming)
 qed
 
 lemma disjoint_vars_set_mgu:
@@ -1325,7 +1240,7 @@ proof (rule conjI)
 next
   show "range_vars \<mu> \<subseteq> (\<Union>T\<in>{{t, u}}. \<Union> (vars_term ` T))"
     using mgu_t_u
-    by (simp add: mgu_subst_range_vars)
+    by (simp add: mgu_range_vars)
 qed
 
 primrec pairs where
@@ -1563,7 +1478,7 @@ qed
 
 lemma ex_inv_rename_clause: "finite N \<Longrightarrow> \<exists>\<rho>. rename_clause N C \<cdot> \<rho> = C"
   unfolding rename_clause_def
-  using ex_inv_subst[OF _ inj_Var_renaming]
+  using ex_inverse_of_renaming[OF _ inj_Var_renaming]
   by (metis comp_apply finite_UN finite_vars_cls subst_cls_comp_subst subst_cls_id_subst
       term.disc(1))
 
@@ -4580,7 +4495,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     by (smt (verit, ccfv_threshold) C_def Diff_eq_empty_iff \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close>
         bot.extremum_uniqueI gr_C_\<gamma> inf_sup_ord(3) is_ground_cls_iff_vars_empty
         subst_restrict_subst_idem atm_of_subst_lit vars_cls_add_mset
-        vars_lit_subst_subset_vars_cls_substI vars_subst_term_eq)
+        vars_lit_subst_subset_vars_cls_substI vars_term_subst_apply_term)
   hence "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
     by (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>, of "L \<cdot>l \<mu>" \<gamma>', folded \<gamma>\<^sub>\<rho>'_def])
 
