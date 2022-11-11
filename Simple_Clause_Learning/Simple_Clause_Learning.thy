@@ -482,105 +482,6 @@ next
     by presburger
 qed
 
-lemma zip_option_same: "zip_option xs xs = Some (zip xs xs)"
-  by (induction xs)  (simp_all add: zip_option.simps)
-
-lemma decompose_same:
-  "\<And>f. decompose (Fun f ss) (Fun f ss) = Some (zip ss ss)"
-  by (simp add: decompose_def zip_option_same)
-
-lemma unify_append_eq_unify_if_prefix_same:
-  "(\<forall>e \<in> set es1. fst e = snd e) \<Longrightarrow> unify (es1 @ es2) bs = unify es2 bs"
-proof (induction "es1 @ es2" bs arbitrary: es1 es2 bs rule: unify.induct)
-  case (1 bs)
-  thus ?case by simp
-next
-  case (2 f ss g ts E bs)
-  show ?case
-  proof (cases es1)
-    case Nil
-    thus ?thesis by simp
-  next
-    case (Cons e es1')
-    hence e_def: "e = (Fun f ss, Fun g ts)" and E_def: "E = es1' @ es2"
-      using "2" by simp_all
-    hence "f = g" and "ss = ts"
-      using "2.prems" local.Cons by auto
-    then show ?thesis
-      apply (simp add: Cons e_def decompose_same)
-      apply (rule "2"(1)[of _ "zip ts ts @ es1'" es2, simplified])
-      apply simp
-        apply (rule decompose_same)
-      unfolding E_def apply simp
-      by (metis "2.prems" UnE in_set_zip list.set_intros(2) local.Cons)
-    qed
-next
-  case (3 x t E bs)
-  show ?case
-  proof (cases es1)
-    case Nil
-    thus ?thesis by simp
-  next
-    case (Cons e es1')
-    hence e_def: "e = (Var x, t)" and E_def: "E = es1' @ es2"
-      using 3 by simp_all
-    show ?thesis
-    proof (cases "t = Var x")
-      case True
-      show ?thesis
-        using 3(1)[OF True E_def]
-        using "3.hyps"(3) "3.prems" local.Cons by fastforce
-    next
-      case False
-      then show ?thesis
-        using "3.prems" e_def local.Cons by force
-    qed
-  qed
-next
-  case (4 v va x E bs)
-  then show ?case
-  proof (cases es1)
-    case Nil
-    thus ?thesis by simp
-  next
-    case (Cons e es1')
-    hence e_def: "e = (Fun v va, Var x)" and E_def: "E = es1' @ es2"
-      using 4 by simp_all
-    then show ?thesis
-      using "4.prems" local.Cons by fastforce
-  qed
-qed
-
-lemma unify_Cons_eq[simp]: "fst e = snd e \<Longrightarrow> unify (e # es) bs = unify es bs"
-  by (rule unify_append_eq_unify_if_prefix_same[of "[e]" for e, simplified])
-
-lemma unify_eq_Some_if_same:
-  "(\<forall>e \<in> set es. fst e = snd e) \<Longrightarrow> unify es bs = Some bs"
-  by (rule unify_append_eq_unify_if_prefix_same[of _ "[]", simplified])
-
-lemma mgu_same: "Unification.mgu t t = Some Var"
-  unfolding Unification.mgu.simps
-  unfolding unify_eq_Some_if_same[of "[(t, t)]" for t, simplified]
-  by simp
-
-lemma ex_mgu_if_subst_eq_subst:
-  fixes t u :: "('f, 'v) Term.term" and \<sigma> :: "('f, 'v) subst"
-  assumes t_eq_u: "t \<cdot> \<sigma> = u \<cdot> \<sigma>"
-  shows "\<exists>\<mu> :: ('f, 'v) subst. Unification.mgu t u = Some \<mu>"
-proof -
-  from t_eq_u have "unifiers {(t, u)} \<noteq> {}"
-    unfolding unifiers_def by auto
-  then obtain xs :: "('v \<times> ('f, 'v) Term.term) list" where
-    unify: "unify [(t, u)] [] = Some xs"
-    using ex_unify_if_unifiers_not_empty[of "{(t, u)}" "[(t, u)]"] by auto
-
-  show ?thesis
-  proof (rule exI)
-    show "Unification.mgu t u = Some (subst_of xs)"
-      using unify by (simp add: Unification.mgu.simps)
-  qed
-qed
-
 definition restrict_subst where
   "restrict_subst V \<sigma> x \<equiv> (if x \<in> V then \<sigma> x else Var x)"
 
@@ -637,7 +538,7 @@ proof -
       using codom_\<sigma>\<^sub>t_inter_dom_\<sigma>\<^sub>u by simp
   qed
   thus ?thesis
-    using ex_mgu_if_subst_eq_subst by (metis subst_subst_compose)
+    using ex_mgu_if_subst_apply_term_eq_subst_apply_term by (metis subst_subst_compose)
 qed
 
 
@@ -2326,7 +2227,7 @@ proof (cases rule: conflict.cases)
     using subst_ident_if_not_in_domain by fastforce
   ultimately show ?thesis
     using \<open>S = ([], {||}, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))\<close>
-    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close> by simp
+    unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close> by (simp add: rename_subst_domain_Var_rhs)
 qed
 
 lemma no_more_step_if_conflict_mempty:

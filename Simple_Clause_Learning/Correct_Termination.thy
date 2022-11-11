@@ -489,7 +489,7 @@ proof -
                 by simp
             qed
             then obtain \<mu> where "Unification.mgu (atm_of L') (atm_of K) = Some \<mu>"
-              using ex_mgu_if_subst_eq_subst by blast
+              using ex_mgu_if_subst_apply_term_eq_subst_apply_term by blast
             hence 3: "is_mimgu \<mu> {{atm_of L', atm_of K}}"
               by (rule is_mimgu_if_mgu_eq_Some)
 
