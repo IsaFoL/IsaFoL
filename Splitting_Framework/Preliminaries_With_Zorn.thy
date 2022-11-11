@@ -2616,8 +2616,11 @@ next
         then show ?thesis
           using v_in_C' unfolding \<S>\<^sub>\<E>'_def by auto
       qed
-      then obtain \<C>'' where \<open>\<C>''\<in>\<S>\<^sub>\<J>\<close> and \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> sorry
-
+      then obtain \<C>'' where \<open>\<C>'' \<in> {AF.Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}\<close> and
+        \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> by blast
+      then consider (Posa) \<open>\<C>'' = Pair bot {|a|}\<close> | (Nega) \<open>\<C>'' = Pair bot {|neg a|}\<close>
+        using v_in_C C_is1 sorry
+        sorry
       then show False
         sorry
     qed
