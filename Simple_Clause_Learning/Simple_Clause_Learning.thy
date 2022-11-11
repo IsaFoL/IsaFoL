@@ -283,23 +283,16 @@ proof -
     by simp
 qed
 
-lemma subst_comp_in_unifiersI:
+lemma subst_compose_in_unifiersI:
   assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
     "vars_term t \<inter> subst_domain \<delta> = {}" and
-    "vars_term u \<inter> subst_domain \<sigma> = {}" and
-    "range_vars \<sigma> \<inter> subst_domain \<delta> = {}"
-  shows "\<sigma> \<circ>\<^sub>s \<delta> \<in> unifiers {(t, u)}"
+    "vars_term u \<inter> subst_domain \<sigma> = {}"
+  shows
+    "range_vars \<sigma> \<inter> subst_domain \<delta> = {} \<Longrightarrow> \<sigma> \<circ>\<^sub>s \<delta> \<in> unifiers {(t, u)}"
+    "range_vars \<delta> \<inter> subst_domain \<sigma> = {} \<Longrightarrow> \<delta> \<circ>\<^sub>s \<sigma> \<in> unifiers {(t, u)}"
   using subst_subst_eq_subst_subst_if_subst_eq_substI(1)[OF assms]
-  by (simp add: unifiers_def)
-
-lemma subst_comp_in_unifiersI':
-  assumes "t \<cdot> \<sigma> = u \<cdot> \<delta>" and
-    "vars_term t \<inter> subst_domain \<delta> = {}" and
-    "vars_term u \<inter> subst_domain \<sigma> = {}" and
-    "range_vars \<delta> \<inter> subst_domain \<sigma> = {}"
-  shows "\<delta> \<circ>\<^sub>s \<sigma> \<in> unifiers {(t, u)}"
   using subst_subst_eq_subst_subst_if_subst_eq_substI(2)[OF assms]
-  by (simp add: unifiers_def)
+  by (simp_all add: unifiers_def)
 
 lemma vars_term_subst_apply_term:
   "vars_term (t \<cdot> \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"

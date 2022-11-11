@@ -677,7 +677,7 @@ proof -
         hence "(atm_of L) \<cdot>a \<delta> = (atm_of L') \<cdot>a \<sigma>" by simp
 
         have \<sigma>_\<delta>_in_unif: "\<sigma> \<odot> \<delta> \<in> unifiers {(atm_of L, atm_of L')}"
-        proof (rule subst_comp_in_unifiersI')
+        proof (rule subst_compose_in_unifiersI(2))
           show "atm_of L \<cdot>a \<delta> = atm_of L' \<cdot>a \<sigma>"
             using resolveI by (metis atm_of_eq_uminus_if_lit_eq atm_of_subst_lit)
         next
