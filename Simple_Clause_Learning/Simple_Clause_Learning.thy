@@ -294,24 +294,8 @@ lemma subst_compose_in_unifiersI:
   using subst_subst_eq_subst_subst_if_subst_eq_substI(2)[OF assms]
   by (simp_all add: unifiers_def)
 
-lemma vars_term_subst_apply_term:
-  "vars_term (t \<cdot> \<sigma>) = vars_term t - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_term t. vars_term (\<sigma> x))"
-  by (induction t) (auto simp add: insert_Diff_if subst_domain_def)
-
-lemma vars_subst_term_subset: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t - subst_domain \<sigma> \<union> range_vars \<sigma>"
-proof (induction t)
-  case (Var x)
-  show ?case
-    apply (simp add: range_vars_def subst_domain_def)
-    by (smt (verit, best) SUP_upper Term.term.simps(17) empty_Diff insert_Diff_if le_supI1
-        mem_Collect_eq sup_bot_left sup_ge2)
-next
-  case (Fun f xs)
-  thus ?case by auto
-qed
-
 lemma vars_subst_term_subset_weak: "vars_term (t \<cdot> \<sigma>) \<subseteq> vars_term t \<union> range_vars \<sigma>"
-  using vars_subst_term_subset by fast
+  using vars_term_subst_apply_term_subset by fast
 
 lemma unify_subst_domain:
   assumes "unify E [] = Some xs"
@@ -624,6 +608,13 @@ proof -
     using L_p is_ground_lit_is_ground_on_var by metis
 qed
 
+lemma vars_lit_subset_subst_domain_if_grounding:
+  assumes "is_ground_lit (L \<cdot>l \<gamma>)"
+  shows "vars_lit L \<subseteq> subst_domain \<gamma>"
+  using assms
+  by (metis empty_iff is_ground_atm_iff_vars_empty is_ground_lit_is_ground_on_var subsetI
+      subst_ident_if_not_in_domain term.set_intros(3))
+
 lemma vars_cls_subset_subst_domain_if_grounding:
   assumes "is_ground_cls (C \<cdot> \<sigma>)"
   shows "vars_cls C \<subseteq> subst_domain \<sigma>"
@@ -726,45 +717,20 @@ qed
 lemma is_ground_cls_add_mset: "is_ground_cls (add_mset L C) \<longleftrightarrow> is_ground_lit L \<and> is_ground_cls C"
   by (auto simp: is_ground_cls_def)
 
+lemma vars_subst_lit_eq_vars_subst_atm: "vars_lit (L \<cdot>l \<sigma>) = vars_term (atm_of L \<cdot>a \<sigma>)"
+  by (cases L) simp_all
+
 lemma vars_subst_lit_eq:
-  "vars_lit (L \<cdot>l \<sigma>) = vars_lit L - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_lit L. vars_term (\<sigma> x))"
+  "vars_lit (L \<cdot>l \<sigma>) = (\<Union>x \<in> vars_lit L. vars_term (\<sigma> x))"
   using vars_term_subst_apply_term by (metis atm_of_subst_lit)
 
 lemma vars_subst_cls_eq:
-  "vars_cls (C \<cdot> \<sigma>) = vars_cls C - subst_domain \<sigma> \<union> (\<Union>x \<in> vars_cls C. vars_term (\<sigma> x))"
-  unfolding vars_cls_def subst_cls_def
-  apply simp
-proof -
-  have f1: "\<forall>l f. vars_lit (l \<cdot>l f) = vars_lit l - subst_domain f \<union> (\<Union>a\<in>vars_lit l. vars_term (f a::('b, 'a) Term.term))"
-    by (smt (verit) vars_subst_lit_eq)
-  obtain AA :: "('a \<Rightarrow> ('b, 'a) Term.term) \<Rightarrow> 'a \<Rightarrow> 'a set" where
-    f2: "\<forall>X1 X2. AA X1 X2 = vars_term (X1 X2)"
-    by moura
-  obtain AAa :: "(('b, 'a) Term.term literal \<Rightarrow> 'a set) \<Rightarrow> 'a set \<Rightarrow> ('b, 'a) Term.term literal \<Rightarrow> 'a set" where
-    f3: "\<forall>X0 X2 X3. AAa X0 X2 X3 = X0 X3 - X2"
-    by moura
-  obtain AAb :: "(('b, 'a) Term.term literal \<Rightarrow> 'a set) \<Rightarrow> (('b, 'a) Term.term literal \<Rightarrow> 'a set) \<Rightarrow> ('b, 'a) Term.term literal \<Rightarrow> 'a set" where
-    f4: "\<forall>X0 X1 X3. AAb X0 X1 X3 = X0 X3 \<union> X1 X3"
-    by moura
-  obtain AAc :: "('b, 'a) Term.term literal \<Rightarrow> 'a set" where
-    f5: "\<forall>X3. AAc X3 = \<Union> (AA \<sigma> ` vars_lit X3)"
-    by moura
-  obtain AAd :: "('b, 'a) Term.term literal \<Rightarrow> 'a set" where
-    f6: "\<forall>X2. AAd X2 = vars_lit X2"
-    by moura
-  obtain AAe :: "('b, 'a) Term.term literal \<Rightarrow> 'a set" where
-    f7: "\<forall>X1. AAe X1 = vars_term (atm_of X1 \<cdot>a \<sigma>)"
-    by moura
-  then have "\<Union> (AAe ` set_mset C) = \<Union> (AAb (AAa AAd (subst_domain \<sigma>)) AAc ` set_mset C)"
-    using f6 f5 f4 f3 f2 f1 by simp
-  then have "\<Union> (AAe ` set_mset C) = \<Union> (AAa AAd (subst_domain \<sigma>) ` set_mset C) \<union> \<Union> (AAc ` set_mset C)"
-    using f4 by (simp add: complete_lattice_class.SUP_sup_distrib)
-  then show "(\<Union>l\<in>set_mset C. vars_term (atm_of l \<cdot>a \<sigma>)) = \<Union> (vars_lit ` set_mset C) - subst_domain \<sigma> \<union> (\<Union>l\<in>set_mset C. \<Union>a\<in>vars_lit l. vars_term (\<sigma> a))"
-    using f7 f6 f5 f3 f2 by simp
-qed
+  "vars_cls (C \<cdot> \<sigma>) = (\<Union>x \<in> vars_cls C. vars_term (\<sigma> x))"
+  by (simp add: vars_cls_def multiset.set_map UN_UN_flatten subst_cls_def
+      vars_subst_lit_eq[symmetric])
 
 lemma vars_subst_lit_subset: "vars_lit (L \<cdot>l \<sigma>) \<subseteq> vars_lit L - subst_domain \<sigma> \<union> range_vars \<sigma>"
-  using vars_subst_term_subset[of "atm_of L"] by simp
+  using vars_term_subst_apply_term_subset[of "atm_of L"] by simp
 
 lemma vars_subst_cls_subset: "vars_cls (C \<cdot> \<sigma>) \<subseteq> vars_cls C - subst_domain \<sigma> \<union> range_vars \<sigma>"
   unfolding vars_cls_def subst_cls_def
@@ -2926,8 +2892,9 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       by (smt (verit, del_insts) filter_mset_add_mset multiset_partition sup_ge1 vars_cls_add_mset
           vars_cls_plus_iff)
     finally show ?thesis
-      by (metis Diff_eq_empty_iff Un_empty \<open>is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')\<close>
-          is_ground_lit_iff_vars_empty vars_subst_lit_eq)
+      using \<open>is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')\<close>
+      by (metis is_ground_cls_add_mset is_ground_cls_empty subst_cls_single sup_bot.right_neutral
+          vars_cls_add_mset vars_cls_empty vars_cls_subset_subst_domain_if_grounding)
   qed
 
   ultimately have "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>')"
@@ -3035,17 +3002,13 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     show "is_renaming \<rho>"
       using propagateI by argo
   next
-    have "vars_lit (L \<cdot>l \<gamma>) = {}"
+    have "is_ground_lit (L \<cdot>l \<gamma>)"
       using \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>
-      by (simp add: \<open>C = add_mset L C'\<close> is_ground_cls_iff_vars_empty)
-    hence "vars_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>') = {}"
+      by (simp add: \<open>C = add_mset L C'\<close> is_ground_cls_def)
+    hence "is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')"
       by (simp add: \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close> \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>\<close>)
-    hence "{} = vars_lit (L \<cdot>l \<mu>) - subst_domain \<gamma>' \<union> (\<Union>x\<in>vars_lit (L \<cdot>l \<mu>). vars_term (\<gamma>' x))"
-      unfolding vars_subst_lit_eq by argo
-    hence "{} = vars_lit (L \<cdot>l \<mu>) - subst_domain \<gamma>'"
-      by blast
-    then show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
-      by blast
+    thus "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
+      by (rule vars_lit_subset_subst_domain_if_grounding)
   qed
 
   ultimately show ?thesis
@@ -3430,8 +3393,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
         by (smt (verit, del_insts) filter_mset_add_mset multiset_partition sup_ge1 vars_cls_add_mset
             vars_cls_plus_iff)
       finally show ?thesis
-        by (metis Diff_eq_empty_iff Un_empty \<open>is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')\<close>
-            is_ground_lit_iff_vars_empty vars_subst_lit_eq)
+        using \<open>is_ground_lit (L \<cdot>l \<mu> \<cdot>l \<gamma>')\<close> vars_lit_subset_subst_domain_if_grounding by blast
     qed
 
     ultimately show ?thesis
@@ -4362,10 +4324,9 @@ proof (cases N \<beta> S S' rule: propagate.cases)
 
   have "vars_lit (L \<cdot>l \<mu>) \<subseteq>  subst_domain \<gamma>'"
     unfolding \<gamma>'_def
-    by (smt (verit, ccfv_threshold) C_def Diff_eq_empty_iff \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close>
-        bot.extremum_uniqueI gr_C_\<gamma> inf_sup_ord(3) is_ground_cls_iff_vars_empty
-        subst_restrict_subst_idem atm_of_subst_lit vars_cls_add_mset
-        vars_lit_subst_subset_vars_cls_substI vars_term_subst_apply_term)
+    by (metis C_def Int_subset_iff \<open>L \<cdot>l \<mu> \<cdot>l \<gamma> = L \<cdot>l \<gamma>\<close> gr_C_\<gamma> is_ground_cls_add_mset
+        subst_cls_add_mset subst_domain_restrict_subst sup_ge1 vars_cls_add_mset
+        vars_lit_subset_subst_domain_if_grounding)
   hence "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
     by (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>, of "L \<cdot>l \<mu>" \<gamma>', folded \<gamma>\<^sub>\<rho>'_def])
 
