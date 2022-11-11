@@ -340,44 +340,6 @@ lemma member_image_the_Var_image_subst:
   shows "x \<in> the_Var ` \<sigma> ` V \<longleftrightarrow> Var x \<in> \<sigma> ` V"
   using is_var_\<sigma> image_iff by fastforce
 
-definition rename_subst_domain where
-  "rename_subst_domain \<rho> \<sigma> x =
-    (if Var x \<in> \<rho> ` subst_domain \<sigma> then
-      \<sigma> (the_inv \<rho> (Var x))
-    else
-      Var x)"
-
-lemma rename_subst_domain_Var_eq[simp]: "rename_subst_domain \<rho> Var = Var"
-  by (rule ext) (simp add: rename_subst_domain_def)
-
-lemma renaming_cancels_rename_subst_domain:
-  assumes is_var_\<rho>: "\<forall>x. is_Var (\<rho> x)" and "inj \<rho>" and vars_t: "vars_term t \<subseteq> subst_domain \<sigma>"
-  shows "t \<cdot> \<rho> \<cdot> rename_subst_domain \<rho> \<sigma> = t \<cdot> \<sigma>"
-  unfolding subst_subst
-proof (intro term_subst_eq ballI)
-  fix x assume "x \<in> vars_term t"
-  with vars_t have x_in: "x \<in> subst_domain \<sigma>"
-    by blast
-
-  obtain x' where \<rho>_x: "\<rho> x = Var x'"
-    using is_var_\<rho> by (meson is_Var_def)
-  with x_in have x'_in: "Var x' \<in> \<rho> ` subst_domain \<sigma>"
-    by (metis image_eqI)
-
-  have "(\<rho> \<circ>\<^sub>s rename_subst_domain \<rho> \<sigma>) x = \<rho> x \<cdot> rename_subst_domain \<rho> \<sigma>"
-    by (simp add: subst_compose_def)
-  also have "... = rename_subst_domain \<rho> \<sigma> x'"
-    using \<rho>_x by simp
-  also have "... = \<sigma> (the_inv \<rho> (Var x'))"
-    by (simp add: rename_subst_domain_def if_P[OF x'_in])
-  also have "... = \<sigma> (the_inv \<rho> (\<rho> x))"
-    by (simp add: \<rho>_x)
-  also have "... = \<sigma> x"
-    using \<open>inj \<rho>\<close> by (simp add: the_inv_f_f)
-  finally show "(\<rho> \<circ>\<^sub>s rename_subst_domain \<rho> \<sigma>) x = \<sigma> x"
-    by simp
-qed
-
 definition lift_subst_wrt_renaming where
   "lift_subst_wrt_renaming \<rho> \<sigma> x =
     (if Var x \<in> \<rho> ` subst_domain \<sigma> then
