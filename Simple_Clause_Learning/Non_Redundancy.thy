@@ -178,7 +178,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
         ultimately show ?thesis
           using mimgu_\<mu>\<^sub>K[unfolded is_mimgu_def, THEN conjunct2, simplified]
-            vars_subst_term_subset_weak
+            vars_term_subst_apply_term_subset
           by fastforce
       qed
 

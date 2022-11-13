@@ -366,7 +366,7 @@ next
           hence "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (C \<cdot> \<mu>)"
             by (metis mset_subset_eq_exists_conv sup_ge1 vars_cls_plus_iff)
           also have "\<dots> \<subseteq> vars_cls C"
-          proof (rule subset_trans[OF vars_subst_cls_subset_weak])
+          proof (rule subset_trans[OF vars_subst_cls_subset])
             have "range_vars \<mu> \<subseteq> vars_cls (add_mset L C\<^sub>1)"
               using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
                   THEN conjunct2]
@@ -375,7 +375,7 @@ next
               apply (rule vars_cls_subset_vars_cls_if_subset_mset)
               unfolding \<open>C = add_mset L C'\<close> \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
               by simp
-            finally show "vars_cls C \<union> range_vars \<mu> \<subseteq> vars_cls C"
+            finally show "vars_cls C - subst_domain \<mu> \<union> range_vars \<mu> \<subseteq> vars_cls C"
               by simp
           qed
           also have "\<dots> \<subseteq> subst_domain \<gamma>"
