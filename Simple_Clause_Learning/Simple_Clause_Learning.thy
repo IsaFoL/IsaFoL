@@ -229,10 +229,10 @@ qed
 
 subsubsection \<open>Clausal_Calculus and Abstract_Substitution\<close>
 
-lemma (in substitution) is_ground_lit_Pos[simp]: "is_ground_atm L \<Longrightarrow> is_ground_lit (Pos L)"
+lemma (in substitution) is_ground_lit_Pos[simp]: "is_ground_atm atm \<Longrightarrow> is_ground_lit (Pos atm)"
   by (simp add: is_ground_lit_def)
 
-lemma (in substitution) is_ground_lit_Neg[simp]: "is_ground_atm L \<Longrightarrow> is_ground_lit (Neg L)"
+lemma (in substitution) is_ground_lit_Neg[simp]: "is_ground_atm atm \<Longrightarrow> is_ground_lit (Neg atm)"
   by (simp add: is_ground_lit_def)
 
 
