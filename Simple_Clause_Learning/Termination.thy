@@ -651,7 +651,7 @@ proof -
 
   moreover have bex_grounding_not_in_U: "\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U)"
     using ex_new_grounding_if_not_redudant[OF not_redundant, folded U_def]
-    by auto
+    by (auto simp: grounding_of_clss_union)
 
   moreover have "grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
   proof -
@@ -680,10 +680,10 @@ proof -
       unfolding \<open>state_learned Sn' = finsert C U\<close>
     proof (rule Set.psubsetI)
       show "grounding_of_clss (fset U) \<subseteq> grounding_of_clss (fset (finsert C U))"
-        by simp
+        by (simp add: grounding_of_clss_insert)
     next
       show "grounding_of_clss (fset U) \<noteq> grounding_of_clss (fset (finsert C U))"
-        using bex_grounding_not_in_U by auto
+        using bex_grounding_not_in_U by (auto simp: grounding_of_clss_insert)
     qed
   qed
 
@@ -803,7 +803,7 @@ proof -
 
     have "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset (state_learned S1))"
       using set_conf_not_in_set_groundings
-      by auto
+      by (auto simp: grounding_of_clss_union)
     then have "Abs_fset (set_mset (C \<cdot> \<gamma>)) \<notin>
       Abs_fset ` set_mset ` grounding_of_clss (fset (state_learned Sn))"
       unfolding 2

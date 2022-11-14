@@ -165,13 +165,6 @@ lemma (in consequence_relation) entails_one_formula: "N \<Turnstile> U \<Longrig
 
 subsection \<open>Abstract_Substitution_Extra\<close>
 
-lemma (in substitution_ops) grounding_of_clss_empty[simp]: "grounding_of_clss {} = {}"
-  by (simp add: grounding_of_clss_def)
-
-lemma (in substitution_ops) grounding_of_clss_singleton[simp]:
-  "grounding_of_clss {C} = grounding_of_cls C"
-  by (simp add: grounding_of_clss_def)
-
 lemma (in substitution_ops) subst_atm_of_eqI:
   "L \<cdot>l \<sigma>\<^sub>L = K \<cdot>l \<sigma>\<^sub>K \<Longrightarrow> atm_of L \<cdot>a \<sigma>\<^sub>L = atm_of K \<cdot>a \<sigma>\<^sub>K"
   by (cases L; cases K) (simp_all add: subst_lit_def)
@@ -182,22 +175,6 @@ lemma (in substitution_ops) subst_atm_of_eq_compI:
 
 lemma (in substitution_ops) set_mset_subst_cls_conv: "set_mset (C \<cdot> \<sigma>) = (\<lambda>L. L \<cdot>l \<sigma>) ` set_mset C"
   by (simp add: subst_cls_def)
-
-lemma (in substitution_ops) grounding_of_clss_union[simp]:
-  "grounding_of_clss (A \<union> B) = grounding_of_clss A \<union> grounding_of_clss B"
-  by (simp add: grounding_of_clss_def)
-
-lemma (in substitution_ops) grounding_of_clss_insert[simp]:
-  "grounding_of_clss (insert C N) = grounding_of_cls C \<union> grounding_of_clss N"
-  by (simp add: grounding_of_clss_def)
-
-lemma (in substitution) is_ground_clss_grounding_of_clss[simp]:
-  "is_ground_clss (grounding_of_clss N)"
-  using grounding_of_clss_def union_grounding_of_cls_ground by presburger
-
-lemma (in substitution) is_ground_cls_if_in_grounding_of_cls:
-  "C' \<in> grounding_of_cls C \<Longrightarrow> is_ground_cls C'"
-  using grounding_ground grounding_of_clss_singleton by blast
 
 
 subsection \<open>Clausal_Calculus_Extra\<close>
