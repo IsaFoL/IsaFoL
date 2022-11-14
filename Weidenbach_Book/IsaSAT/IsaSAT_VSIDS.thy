@@ -62,6 +62,8 @@ find_theorems append_impl
 find_theorems HM.h.swim_invar
   thm HM.h.heap_invar_def
     *)
+fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
+"mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
 
 fun hp_next where
   \<open>hp_next a (Hp m s (x # y # children)) = (if a = node x then Some y else (case hp_next a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_next a (Hp m s (y # children))))\<close> |
@@ -76,10 +78,6 @@ fun hp_prev where
 fun hp_child where
   \<open>hp_child a (Hp m s (x # children)) = (if a = m then Some x else (case hp_child a x of None \<Rightarrow> hp_child a (Hp m s children) | Some a \<Rightarrow> Some a))\<close> |
   \<open>hp_child a (Hp m s _) = None\<close>
-
-
-fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
-"mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
 
 datatype 'a pairing_heap = PHeap (ph_score: 'a) (ph_prev: \<open>nat option\<close>) (ph_next: \<open>nat option\<close>) (ph_child: \<open>nat option\<close>)
 
@@ -131,6 +129,138 @@ lemma hp_child_None_notin_children[simp]: \<open>a \<notin># sum_list (map mset_
   hp_child a (Hp m w\<^sub>m (children)) = None\<close>
   by (induction a \<open>Hp m w\<^sub>m children\<close> arbitrary:children rule: hp_next.induct) auto
 
+text \<open>The function above are nicer for definition than for usage. Instead we define the list version
+and change the simplification lemmas. We initially tried to use a recursive function, but the
+proofs did not go through (and it seemed that the induction principle were to weak).\<close>
+fun hp_next_children where
+  \<open>hp_next_children a (x # y # children) = (if a = node x then Some y else (case hp_next a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_next_children a (y # children)))\<close> |
+  \<open>hp_next_children a [b] = hp_next a b\<close> |
+  \<open>hp_next_children a [] = None\<close>
+
+lemma hp_next_simps[simp]:
+  \<open>hp_next a (Hp m s children) = hp_next_children a children\<close>
+  by (induction a children rule: hp_next_children.induct) (auto split: option.splits)
+
+lemma hp_next_children_None_notin[simp]: \<open>m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children) \<Longrightarrow> hp_next_children m children = None\<close>
+  by (induction m children rule: hp_next_children.induct) auto
+
+lemma [simp]: \<open>distinct_mset (mset_nodes a) \<Longrightarrow> hp_next (node a) a = None\<close>
+  by (induction a) auto
+
+lemma [simp]:
+  \<open>ch\<^sub>m \<noteq> [] \<Longrightarrow> hp_next_children (node a) (a # ch\<^sub>m) = Some (hd ch\<^sub>m)\<close>
+  by (cases ch\<^sub>m) auto
+
+fun hp_prev_children where
+  \<open>hp_prev_children a (x # y # children) = (if a = node y then Some x else (case hp_prev a x of Some a \<Rightarrow> Some a | None \<Rightarrow> hp_prev_children a (y # children)))\<close> |
+  \<open>hp_prev_children a [b] = hp_prev a b\<close> |
+  \<open>hp_prev_children a [] = None\<close>
+
+lemma hp_prev_simps[simp]:
+  \<open>hp_prev a (Hp m s children) = hp_prev_children a children\<close>
+  by (induction a children rule: hp_prev_children.induct) (auto split: option.splits)
+
+lemma hp_prev_children_None_notin[simp]: \<open>m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children) \<Longrightarrow> hp_prev_children m children = None\<close>
+  by (induction m children rule: hp_prev_children.induct) auto
+
+lemma [simp]: \<open>distinct_mset (mset_nodes a) \<Longrightarrow> hp_prev (node a) a = None\<close>
+  by (induction a) auto
+
+lemma hp_next_in_first_child [simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow>
+  xa \<in># mset_nodes a \<Longrightarrow> xa \<noteq> node a \<Longrightarrow>
+  hp_next_children xa (a # ch\<^sub>m) = (hp_next xa a)\<close>
+  by (cases ch\<^sub>m) (auto split: option.splits dest!: multi_member_split)
+
+lemma hp_next_skip_hd_children:
+  \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset ch\<^sub>m) \<Longrightarrow>
+  xa \<noteq> node a \<Longrightarrow> hp_next_children xa (a # ch\<^sub>m) = hp_next_children xa (ch\<^sub>m)\<close>
+  apply (cases ch\<^sub>m)
+  apply (auto split: option.splits dest!: multi_member_split)
+  done
+
+lemma hp_prev_in_first_child [simp]: \<open>distinct_mset
+  (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># mset_nodes a \<Longrightarrow> hp_prev_children xa (a # ch\<^sub>m) = hp_prev xa a\<close>
+  by (cases ch\<^sub>m) (auto split: option.splits dest!: multi_member_split)
+
+lemma hp_prev_skip_hd_children:
+  \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset ch\<^sub>m) \<Longrightarrow>
+  xa \<noteq> node (hd ch\<^sub>m) \<Longrightarrow> hp_prev_children xa (a # ch\<^sub>m) = hp_prev_children xa ch\<^sub>m\<close>
+  apply (cases ch\<^sub>m)
+  apply (auto split: option.splits dest!: multi_member_split)
+  done
+
+lemma node_hd_in_sum[simp]: \<open>ch\<^sub>m \<noteq> [] \<Longrightarrow> node (hd ch\<^sub>m) \<in># sum_list (map mset_nodes ch\<^sub>m)\<close>
+  by (cases ch\<^sub>m) auto
+
+lemma hp_prev_cadr_node[simp]: \<open>ch\<^sub>m \<noteq> [] \<Longrightarrow> hp_prev_children (node (hd ch\<^sub>m)) (a # ch\<^sub>m) = Some a\<close>
+  by (cases ch\<^sub>m) auto
+
+lemma hp_next_children_simps[simp]:
+   \<open>a = node x \<Longrightarrow> hp_next_children a (x # y # children) = Some y\<close>
+   \<open>a \<noteq> node x \<Longrightarrow> hp_next a x \<noteq> None \<Longrightarrow> hp_next_children a (x # children) = hp_next a x\<close>
+   \<open>a \<noteq> node x \<Longrightarrow> hp_next a x = None \<Longrightarrow> hp_next_children a (x # children) = hp_next_children a (children)\<close>
+  apply (solves auto)
+  apply (solves \<open>cases children; auto\<close>)+
+  done
+
+lemma hp_prev_children_simps[simp]:
+   \<open>a = node y \<Longrightarrow> hp_prev_children a (x # y # children) = Some x\<close>
+   \<open>a \<noteq> node y \<Longrightarrow> hp_prev a x \<noteq> None \<Longrightarrow> hp_prev_children a (x # y # children) = hp_prev a x\<close>
+   \<open>a \<noteq> node y \<Longrightarrow> hp_prev a x = None \<Longrightarrow> hp_prev_children a (x # y # children) = hp_prev_children a (y # children)\<close>
+  by auto
+
+lemmas [simp del] =  hp_next_children.simps(1) hp_next.simps(1) hp_prev.simps(1) hp_prev_children.simps(1)
+
+lemma hp_next_children_skip_first_append[simp]:
+  \<open>xa \<notin># \<Sum>\<^sub># (mset_nodes `# mset ch) \<Longrightarrow> hp_next_children xa (ch @ ch') = hp_next_children xa ch'\<close>
+  apply (induction xa ch rule: hp_next_children.induct)
+  subgoal
+    by (auto simp: hp_next_children.simps(1))
+  subgoal
+    by (cases ch')
+      (auto simp: hp_next_children.simps(1))
+  subgoal by auto
+  done
+
+lemma hp_prev_children_skip_first_append[simp]:
+  \<open>xa \<notin># \<Sum>\<^sub># (mset_nodes `# mset ch) \<Longrightarrow> xa \<noteq> node m \<Longrightarrow> hp_prev_children xa (ch @ m # ch') = hp_prev_children xa (m#ch')\<close>
+  apply (induction xa ch rule: hp_prev_children.induct)
+  subgoal
+    by (auto simp: hp_prev_children.simps(1))
+  subgoal
+    by (auto simp: hp_prev_children.simps(1))
+  subgoal by auto
+  done
+
+lemma hp_prev_children_skip_Cons[simp]:
+  \<open>xa \<notin># \<Sum>\<^sub># (mset_nodes `# mset ch') \<Longrightarrow> xa \<in># mset_nodes m \<Longrightarrow> hp_prev_children xa (m # ch') = hp_prev xa m\<close>
+  apply (induction ch')
+  subgoal
+    by (auto simp: hp_prev_children.simps(1) split: option.splits)
+  subgoal
+    by (auto simp: hp_prev_children.simps(1) split: option.splits)
+  done
+
+definition hp_child_children where
+  \<open>hp_child_children a = option_hd o (List.map_filter (hp_child a))\<close>
+
+lemma hp_child_children_Cons_if:
+  \<open>hp_child_children a (x # y) = (if hp_child a x = None then hp_child_children a y else hp_child a x)\<close>
+  by (auto simp: hp_child_children_def List.map_filter_def split: list.splits)
+
+lemma hp_child_children_simps[simp]:
+  \<open>hp_child_children a [] = None\<close>
+  \<open>hp_child a x =None \<Longrightarrow> hp_child_children a (x # y) = hp_child_children a y\<close>
+  \<open>hp_child a x \<noteq> None \<Longrightarrow> hp_child_children a (x # y) = hp_child a x\<close>
+  by (auto simp: hp_child_children_def List.map_filter_def split: list.splits)
+
+lemma hp_child_hp_children_simps2[simp]:
+  \<open>x \<noteq> a \<Longrightarrow> hp_child x (Hp a b child) = hp_child_children x child\<close>
+  by (induction child) (auto split: option.splits)
+
+lemma hp_child_children_None_notin[simp]: \<open>m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children) \<Longrightarrow> hp_child_children m children = None\<close>
+  by (induction children) auto
+
 lemma encoded_hp_prop_irrelevant:
   assumes \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# m)\<close> and
     \<open>encoded_hp_prop m (nxts, prevs, children)\<close>
@@ -138,48 +268,498 @@ lemma encoded_hp_prop_irrelevant:
     \<open>encoded_hp_prop (add_mset (Hp a sc []) m) (nxts(a:= None), prevs(a:=None), children(a:=None))\<close>
   using assms by (auto simp: encoded_hp_prop_def)
 
-lemma [simp]: \<open>distinct_mset (mset_nodes a) \<Longrightarrow> hp_next (node a) a = None\<close>
-  by (induction a) auto
-
-lemma [simp]:
-  \<open>ch\<^sub>m \<noteq> [] \<Longrightarrow> hp_next (node a) (Hp m w\<^sub>m (a # ch\<^sub>m)) = Some (hd ch\<^sub>m)\<close>
-  by (cases ch\<^sub>m) auto
-
-lemma hp_next_in_first_child [simp]: \<open>distinct_mset
-  (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># mset_nodes a \<Longrightarrow>
-  xa \<noteq> node a \<Longrightarrow>
-(hp_next xa (Hp m w\<^sub>m (a # ch\<^sub>m))) = (hp_next xa a)\<close>
-  by (cases ch\<^sub>m) (auto split: option.splits dest!: multi_member_split)
-
-lemma \<open>distinct_mset
-  (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a)) \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset ch\<^sub>m) \<Longrightarrow>
-  xa \<noteq> node a \<Longrightarrow>
-(hp_next xa (Hp m w\<^sub>m (a # ch\<^sub>m))) = hp_next xa (Hp m w\<^sub>m (ch\<^sub>m))\<close>
-apply (cases ch\<^sub>m)
-apply (auto split: option.splits dest!: multi_member_split)
-  done
 lemma encoded_hp_prop_link:
+  fixes ch\<^sub>m a prevs
+  defines \<open>prevs' \<equiv> (if ch\<^sub>m = [] then prevs else prevs (node (hd ch\<^sub>m) := Some (node a)))\<close>
   assumes \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (nxts, prevs, children)\<close>
   shows
-    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))), prevs, children(m := Some (node a)))\<close>
-  using assms unfolding encoded_hp_prop_def prod.simps
-  apply (intro conjI impI ballI)
-  subgoal by (auto simp: ac_simps)
-  subgoal apply simp
+    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))), prevs', children(m := Some (node a)))\<close>
+proof -
+  have H[simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a))\<close> \<open>distinct_mset (mset_nodes a)\<close>
+    using assms unfolding encoded_hp_prop_def prod.simps
+    by (metis distinct_mset_add mset_nodes.simps sum_mset.insert sum_mset_sum_list union_assoc)+
+  have K: \<open>xa \<in># mset_nodes a \<Longrightarrow> xa \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>xa \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> xa \<notin># mset_nodes a\<close> for xa
+    using H by (auto simp del: H dest!: multi_member_split)
+  show ?thesis
+    using assms unfolding encoded_hp_prop_def prod.simps
+    apply (intro conjI impI ballI)
+    subgoal by (auto simp: ac_simps)
+    subgoal apply simp
+      apply (intro conjI impI allI)
+      subgoal by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
+        subgoal by (auto dest: multi_member_split)[]
+        subgoal by (auto dest!: multi_member_split)[]
+        subgoal
+          by (auto dest: multi_member_split distinct_mset_union simp: hp_next_skip_hd_children)
+        done
+      subgoal
+        apply (auto simp: prevs'_def hp_prev_skip_hd_children dest: multi_member_split)
+        by (metis add_mset_disjoint(1) distinct_mset_add image_msetI in_Union_mset_iff mset_add node_hd_in_sum union_iff)
+      subgoal
+        by (auto split: option.splits simp: K)
+      done
+qed
+
+
+definition encoded_hp_prop_list :: \<open>('e::linorder,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
+  \<open>encoded_hp_prop_list m xs  = (\<lambda>(nxts,prevs,children). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
+     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)) \<and>
+     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). nxts x = map_option node (hp_next_children x xs)) \<and>
+     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). prevs x = map_option node (hp_prev_children x xs)) \<and>
+     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). children x = map_option node (hp_child_children x xs))
+  )\<close>
+
+
+lemma encoded_hp_prop_list_remove_min:
+  assumes \<open>encoded_hp_prop_list (add_mset (Hp a b child) xs) [] (nxts, prevs, children)\<close>
+  shows \<open>encoded_hp_prop_list xs child (nxts, prevs, children(a:=None))\<close>
+  using assms
+  unfolding encoded_hp_prop_list_def
+  by (auto simp: ac_simps)
+
+
+lemma hp_next_children_hd_simps[simp]:
+  \<open>a = node x \<Longrightarrow> distinct_mset (sum_list (map mset_nodes (x # children))) \<Longrightarrow>
+  hp_next_children a (x # children) = option_hd children\<close>
+  by (cases children) auto
+
+lemma hp_next_children_skip_end[simp]:
+  \<open>n \<in># mset_nodes a \<Longrightarrow> n \<noteq> node a \<Longrightarrow> n \<notin># sum_list (map mset_nodes b) \<Longrightarrow> 
+  distinct_mset (mset_nodes a) \<Longrightarrow>
+  hp_next_children n (a # b) = hp_next n a\<close>
+  by (induction b) (auto simp add: hp_next_children.simps(1) split: option.splits)
+
+lemma hp_next_children_append2[simp]:
+  \<open>x \<noteq> n \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> hp_next_children x (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) = hp_next_children x ch\<^sub>n\<close>
+  by (cases ch\<^sub>m) (auto simp: hp_next_children.simps(1) split: option.splits)
+
+lemma hp_next_children_skip_Cons_append[simp]:
+  \<open>NO_MATCH [] b \<Longrightarrow> x \<in># sum_list (map mset_nodes a) \<Longrightarrow>
+  distinct_mset (sum_list (map mset_nodes (a @ m # b))) \<Longrightarrow>
+  hp_next_children x (a @ m # b) = hp_next_children x (a @ m # [])\<close>
+  apply (induction x a rule: hp_next_children.induct)
+  apply (auto simp: hp_next_children.simps(1) distinct_mset_add split: option.splits)
+  apply (metis (no_types, lifting) add_mset_disjoint(1) hp_next_children.simps(2)
+    hp_next_children_None_notin hp_next_children_simps(2) hp_next_children_simps(3)
+    hp_next_children_skip_first_append mset_add node_in_mset_nodes sum_image_mset_sum_map union_iff)
+  by (metis add_mset_disjoint(1) hp_next_None_notin hp_next_children_None_notin
+    hp_next_children_simps(3) insert_DiffM node_in_mset_nodes sum_image_mset_sum_map union_iff)
+
+lemma hp_next_children_append_single_remove_children:
+  \<open>NO_MATCH [] ch\<^sub>m \<Longrightarrow> x \<in># sum_list (map mset_nodes a) \<Longrightarrow>
+     distinct_mset (sum_list (map mset_nodes (a @ [Hp m w\<^sub>m ch\<^sub>m]))) \<Longrightarrow>
+     map_option node (hp_next_children x (a @ [Hp m w\<^sub>m ch\<^sub>m])) =
+     map_option node (hp_next_children x (a @ [Hp m w\<^sub>m []]))\<close>
+  apply (induction x a rule: hp_next_children.induct)
+  apply (auto simp: hp_next_children.simps(1) distinct_mset_add split: option.splits)
+  apply (smt (verit, ccfv_threshold) distinct_mset_add hp_next_None_notin hp_next_children.simps(2)
+    hp_next_children_simps(3) hp_next_children_skip_first_append hp_next_in_first_child hp_next_simps
+    node_in_mset_nodes sum_image_mset_sum_map union_assoc union_commute)
+  apply (simp add: disjunct_not_in)
+  done
+
+lemma hp_prev_children_first_child[simp]:
+  \<open>m \<noteq> n \<Longrightarrow> n \<notin># sum_list (map mset_nodes b) \<Longrightarrow>  n \<notin># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow>
+   n \<in># sum_list (map mset_nodes child) \<Longrightarrow>
+  hp_prev_children n (Hp m w\<^sub>m child # b) = hp_prev_children n child\<close>
+  by (cases b) (auto simp: hp_prev_children.simps(1) split: option.splits)
+
+lemma hp_prev_children_skip_last_append[simp]:
+  \<open>NO_MATCH [] ch' ⟹
+     distinct_mset (sum_list (map mset_nodes (ch @ch'))) \<Longrightarrow>
+  xa \<notin># \<Sum>\<^sub># (mset_nodes `# mset ch') \<Longrightarrow> xa \<in># \<Sum>\<^sub># (mset_nodes `# mset (ch )) \<Longrightarrow> hp_prev_children xa (ch @ ch') = hp_prev_children xa (ch)\<close>
+  apply (induction xa ch rule: hp_prev_children.induct)
+  subgoal for a x y children
+    by (subgoal_tac \<open>distinct_mset (sum_list (map mset_nodes ((y # children) @ ch')))\<close>)
+     (auto simp: hp_prev_children.simps(1) dest!: multi_member_split split: option.splits
+      dest: WB_List_More.distinct_mset_union2)
+  subgoal
+    by (auto simp: hp_prev_children.simps(1) split: option.splits dest: multi_member_split)
+  subgoal by auto
+  done
+
+lemma hp_prev_children_Cons_append_found[simp]:
+  \<open>m \<notin># sum_list (map mset_nodes a) \<Longrightarrow> m \<notin># sum_list (map mset_nodes ch) \<Longrightarrow>  m \<notin># sum_list (map mset_nodes b) \<Longrightarrow> hp_prev_children m (a @ Hp m w\<^sub>m ch # b) = option_last a\<close>
+  by (induction m a rule: hp_prev_children.induct)
+   (auto simp: hp_prev_children.simps(1))
+
+
+lemma hp_prev_children_append_single_remove_children:
+  \<open>NO_MATCH [] ch\<^sub>m \<Longrightarrow> x \<in># sum_list (map mset_nodes a) \<Longrightarrow>
+     distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m ch\<^sub>m # a))) \<Longrightarrow>
+     map_option node (hp_prev_children x (Hp m w\<^sub>m ch\<^sub>m # a)) =
+     map_option node (hp_prev_children x (Hp m w\<^sub>m [] # a))\<close>
+  by (induction a) (auto simp: hp_prev_children.simps(1) distinct_mset_add split: option.splits
+    dest!: multi_member_split)
+
+lemma map_option_skip_in_child:
+  \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes a))) \<Longrightarrow> m \<notin># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow>
+  ch\<^sub>m \<noteq> [] \<Longrightarrow>
+  hp_prev_children (node (hd ch\<^sub>m)) (a @ [Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m)]) = Some (Hp n w\<^sub>n ch\<^sub>n)\<close>
+  apply (induction \<open>node (hd ch\<^sub>m)\<close> a rule: hp_prev_children.induct)
+  subgoal for x y children
+    by (cases x; cases y)
+     (auto simp add: hp_prev_children.simps(1) disjunct_not_in distinct_mset_add
+      split: option.splits)
+  subgoal for b
+    by (cases b)
+     (auto simp: hp_prev_children.simps(1) disjunct_not_in distinct_mset_add
+      split: option.splits)
+  subgoal by auto
+  done
+
+
+
+lemma hp_child_children_skip_first[simp]:
+  \<open>x \<in># sum_list (map mset_nodes ch') \<Longrightarrow>
+  distinct_mset (sum_list (map mset_nodes ch) + sum_list (map mset_nodes ch')) \<Longrightarrow>
+  hp_child_children x (ch @ ch') = hp_child_children x ch'\<close>
+  apply (induction ch)
+  apply (auto simp: hp_child_children_Cons_if dest!: multi_member_split)
+  by (metis WB_List_More.distinct_mset_union2 union_ac(1))
+
+lemma hp_child_children_skip_last[simp]:
+  \<open>x \<in># sum_list (map mset_nodes ch) \<Longrightarrow>
+  distinct_mset (sum_list (map mset_nodes ch) + sum_list (map mset_nodes ch')) \<Longrightarrow>
+  hp_child_children x (ch @ ch') = hp_child_children x ch\<close>
+  apply (induction ch)
+  apply (auto simp: hp_child_children_Cons_if dest!: multi_member_split)
+  by (metis WB_List_More.distinct_mset_union2 union_ac(1))
+
+lemma hp_child_children_skip_last_in_first:
+  \<open> distinct_mset (sum_list (map mset_nodes (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b))) ⟹
+  hp_child_children n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m) # b) = hp_child n (Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m))\<close>
+  by (auto simp: hp_child_children_Cons_if split: option.splits)
+
+lemma hp_child_children_hp_child[simp]: \<open>hp_child_children x [a] = hp_child x a\<close>
+  by (auto simp: hp_child_children_def List.map_filter_def)
+
+lemma hp_next_children_last[simp]:
+  \<open>distinct_mset (sum_list (map mset_nodes a)) \<Longrightarrow> a \<noteq> [] \<Longrightarrow>
+  hp_next_children (node (last a)) (a @ b) = option_hd b\<close>
+  apply (induction \<open>node (last a)\<close> a rule: hp_next_children.induct)
+  apply (auto simp: hp_next_children.simps(1) dest: multi_member_split)
+  apply (metis add_diff_cancel_right' distinct_mset_in_diff node_in_mset_nodes)
+  apply (metis add_diff_cancel_right' distinct_mset_in_diff node_in_mset_nodes)
+  apply (metis Duplicate_Free_Multiset.distinct_mset_union2 add_diff_cancel_right' distinct_mset_in_diff empty_append_eq_id hp_next_None_notin node_in_mset_nodes option.simps(4))
+  apply (metis Misc.last_in_set add_diff_cancel_left' distinct_mem_diff_mset node_in_mset_nodes sum_list_map_remove1 union_iff)
+  apply (metis (no_types, lifting) add_diff_cancel_left' append_butlast_last_id distinct_mem_diff_mset distinct_mset_add inter_mset_empty_distrib_right list.distinct(2) list.sel(1) map_append node_hd_in_sum node_in_mset_nodes sum_list.append)
+  apply (metis add_diff_cancel_right' append_butlast_last_id distinct_mset_add distinct_mset_in_diff hp_next_None_notin list.sel(1) map_append node_hd_in_sum not_Cons_self2 option.case(1) sum_list.append union_iff)
+  by (metis (no_types, lifting) arith_simps(50) hp_next_children_hd_simps hp_next_children_simps(1) list.exhaust list.sel(1) list.simps(8) list.simps(9) option_hd_Some_iff(1) sum_list.Cons sum_list.Nil)
+
+
+
+lemma hp_next_children_skip_last_not_last:
+  \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes b))  \<Longrightarrow>
+  a \<noteq> [] \<Longrightarrow>
+     x \<noteq> node (last a) \<Longrightarrow> x \<in># sum_list (map mset_nodes a) \<Longrightarrow>
+  hp_next_children x (a @ b) = hp_next_children x a\<close>
+  apply (cases a rule: rev_cases)
+  subgoal by auto
+  subgoal for ys y
+    apply (cases \<open>x \<notin># mset_nodes (last a)\<close>)
+    subgoal by (auto simp: ac_simps)
+    subgoal
+      apply auto
+      apply (subst hp_next_children_skip_first_append)
+      apply (auto simp: ac_simps)
+      using distinct_mset_in_diff apply fastforce
+      using distinct_mset_in_diff distinct_mset_union by fastforce
+      done
+  done
+
+
+lemma encoded_hp_prop_list_link:
+  fixes m ch\<^sub>m prevs b hp\<^sub>m n nxts children
+  defines \<open>prevs\<^sub>0 \<equiv> (if ch\<^sub>m = [] then prevs else prevs (node (hd ch\<^sub>m) := Some n))\<close>
+  defines \<open>prevs' \<equiv> (if b = [] then prevs\<^sub>0 else prevs\<^sub>0 (node (hd b) := Some m)) (n:= None)\<close>
+  defines \<open>nxts' \<equiv> nxts (m := map_option node (option_hd b), n := map_option node (option_hd ch\<^sub>m))\<close>
+  defines \<open>children' \<equiv> children (m := Some n)\<close>
+  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (nxts, prevs, children)\<close>
+  shows \<open>encoded_hp_prop_list xs (a @ [Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m)] @ b)
+       (nxts', prevs', children')\<close>
+proof -
+  have dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) +
+    (\<Sum>\<^sub># (mset_nodes `# xs) + (sum_list (map mset_nodes a) + sum_list (map mset_nodes b)))))\<close>
+    and notin:
+    \<open>n \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes a)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes a)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>n \<noteq> m\<close> and
+    nxts1: \<open>(\<forall>m'\<in>#xs. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
+    prevs1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
+    child1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. children x = map_option node (hp_child x m))\<close> and
+    nxts2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+     nxts x = map_option node (hp_next_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    prevs2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+     prevs x = map_option node (hp_prev_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    child2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+    children x = map_option node (hp_child_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    dist2: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# xs + mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close>
+    using assms unfolding encoded_hp_prop_list_def by auto
+  have [simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes ch\<^sub>n))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes a)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b)))\<close>
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis distinct_mset_add union_ac(3))
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    done
+  have [simp]: \<open>m \<noteq> node (hd ch\<^sub>m)\<close> \<open>n \<noteq> node (hd ch\<^sub>m)\<close> \<open>(node (hd ch\<^sub>m)) \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []›
+    using dist that notin by (cases ch\<^sub>m; auto dest: multi_member_split; fail)+
+  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []›
+    using dist that notin unfolding encoded_hp_prop_list_def by (cases b; auto; fail)+
+  
+  define NOTIN where
+    \<open>NOTIN x ch\<^sub>n \<equiv> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close> for x and  ch\<^sub>n :: \<open>('a, 'b) hp list\<close>
+  have K[unfolded NOTIN_def[symmetric]]: \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes a)\<close>
+      \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes b)\<close>
+      \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> m\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> n\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> NOTIN x a\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> NOTIN x b\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<noteq> m\<close> 
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<noteq> n\<close> 
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close> and
+    K'[unfolded NOTIN_def[symmetric]]:
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes b)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<noteq> m\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<noteq> n\<close> and
+   K''[unfolded NOTIN_def[symmetric]]:
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> (x \<notin># sum_list (map mset_nodes a))\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<noteq> m\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<noteq> n\<close>
+    for x
+    using dist notin by (auto dest!: multi_member_split simp: NOTIN_def)
+  note [simp] = NOTIN_def[symmetric]
+  show ?thesis
+    using dist2 unfolding encoded_hp_prop_list_def prod.simps assms(1,2,3,4)
     apply (intro conjI impI allI)
-  subgoal apply (auto dest!: multi_member_split)[]
-    using add_diff_cancel_left' distinct_mset_union by fastforce
-  subgoal by (auto dest: multi_member_split)[]
-  subgoal by (auto dest!: multi_member_split)[]
-  subgoal apply (auto dest: multi_member_split)[]
-    using distinct_mset_union apply (metis add.assoc hp_next_in_first_child)
-sorry
+    subgoal using assms unfolding encoded_hp_prop_list_def
+      by (auto simp: ac_simps simp del: NOTIN_def[symmetric])
+    subgoal using nxts1
+      by auto
+    subgoal using prevs1
+      apply (cases ch\<^sub>m; cases b)
+      apply (auto)
+      apply (metis WB_List_More.distinct_mset_union2 add_diff_cancel_right' distinct_mem_diff_mset mset_add node_in_mset_nodes sum_mset.insert union_iff)
+      apply (metis (no_types, lifting) add_mset_disjoint(1) distinct_mset_add mset_add node_in_mset_nodes sum_mset.insert union_iff)+
+      done
+    subgoal
+      using child1
+      by auto
+    subgoal
+      using nxts2
+      by (auto dest: multi_member_split simp: K hp_next_children_append_single_remove_children)
+    subgoal
+      using prevs2 supply [cong del] = image_mset_cong
+      by (auto simp add:  K K' K'' hp_prev_children_append_single_remove_children hp_prev_skip_hd_children map_option_skip_in_child)
+    subgoal
+      using child2
+      by (auto simp add: K K' K'' hp_child_children_skip_first[of _ \<open>[_]\<close>, simplified]
+        hp_child_children_skip_first[of _ \<open>_ # _\<close>, simplified]
+        hp_child_children_skip_last[of _ _ \<open>[_]\<close>, simplified]
+        hp_child_children_skip_last[of _ \<open>[_]\<close>, simplified] notin
+        hp_child_children_skip_last[of _ \<open>[_, _]\<close>, simplified]
+        hp_child_children_skip_first[of _ _ \<open>[_]\<close>, simplified]
+        split: option.splits)
+    done
+qed
 
-oops
-  subgoal by (auto dest!: multi_member_split)[]
-  subgoal by (auto dest!: multi_member_split)[]
-  subgoal apply (auto dest!: multi_member_split)[]
 
+lemma encoded_hp_prop_list_link2:
+  fixes m ch\<^sub>m prevs b hp\<^sub>m n nxts children ch\<^sub>n a
+  defines \<open>prevs' \<equiv> (if ch\<^sub>n = [] then prevs else prevs (node (hd ch\<^sub>n) := Some m))(m := None, n := map_option node (option_last a))\<close>
+  defines \<open>nxts\<^sub>0 \<equiv> (if a = [] then nxts else nxts(node (last a) := Some n))\<close>
+  defines \<open>nxts' \<equiv> nxts\<^sub>0 (n := map_option node (option_hd b), m := map_option node (option_hd ch\<^sub>n))\<close>
+  defines \<open>children' \<equiv> children (n := Some m)\<close>
+  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (nxts, prevs, children)\<close>
+  shows \<open>encoded_hp_prop_list xs (a @ [Hp n w\<^sub>n (Hp m w\<^sub>m ch\<^sub>m # ch\<^sub>n)] @ b)
+       (nxts', prevs', children')\<close>
+proof -
+  have dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) +
+    (\<Sum>\<^sub># (mset_nodes `# xs) + (sum_list (map mset_nodes a) + sum_list (map mset_nodes b)))))\<close>
+    and notin:
+    \<open>n \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes a)\<close>
+    \<open>n \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes a)\<close>
+    \<open>m \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>n \<noteq> m\<close> \<open>m \<noteq> n\<close> and
+    nxts1: \<open>(\<forall>m'\<in>#xs. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
+    prevs1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
+    child1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. children x = map_option node (hp_child x m))\<close> and
+    nxts2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+     nxts x = map_option node (hp_next_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    prevs2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+     prevs x = map_option node (hp_prev_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    child2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+    children x = map_option node (hp_child_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    dist2: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# xs + mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close>
+    using assms unfolding encoded_hp_prop_list_def by auto
+  have [simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + sum_list (map mset_nodes ch\<^sub>n))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes a)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes b) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n))))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes a) + (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b)))\<close>
+    \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + sum_list (map mset_nodes b))\<close>
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis distinct_mset_add union_ac(3))
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    done
+  have [simp]: \<open>m \<noteq> node (hd ch\<^sub>m)\<close> \<open>n \<noteq> node (hd ch\<^sub>m)\<close> \<open>(node (hd ch\<^sub>m)) \<notin># sum_list (map mset_nodes b)\<close>
+    \<open>node (hd ch\<^sub>m) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>if \<open>ch\<^sub>m \<noteq> []›
+    using dist that notin by (cases ch\<^sub>m; auto dest: multi_member_split; fail)+
+  have [simp]: \<open>m \<noteq> node (hd b)\<close> \<open>n \<noteq> node (hd b)\<close> if \<open>b \<noteq> []›
+    using dist that notin unfolding encoded_hp_prop_list_def by (cases b; auto; fail)+
+
+  define NOTIN where
+    \<open>NOTIN x ch\<^sub>n \<equiv> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close> for x and  ch\<^sub>n :: \<open>('a, 'b) hp list\<close>
+  have K[unfolded NOTIN_def[symmetric]]: \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes a)\<close>
+      \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes b)\<close>
+      \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> m\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> n\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> NOTIN x a\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> NOTIN x b\<close>
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<noteq> m\<close> 
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<noteq> n\<close> 
+    \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close> and
+    K'[unfolded NOTIN_def[symmetric]]:
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<notin># sum_list (map mset_nodes b)\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<noteq> m\<close>
+      \<open>x \<in># sum_list (map mset_nodes a) \<Longrightarrow> x \<noteq> n\<close> and
+   K''[unfolded NOTIN_def[symmetric]]:
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> (x \<notin># sum_list (map mset_nodes a))\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<noteq> m\<close>
+      \<open>x \<in># sum_list (map mset_nodes b) \<Longrightarrow> x \<noteq> n\<close>
+    for x
+    using dist notin by (auto dest!: multi_member_split simp: NOTIN_def)
+  have [simp]: \<open>node (last a) \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+    \<open>node (last a) \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close> if \<open>a \<noteq> []\<close>
+    using that dist by (cases a rule: rev_cases; cases \<open>last a\<close>; auto; fail)+
+  note [simp] = NOTIN_def[symmetric]
+  have [iff]: \<open> ch\<^sub>n \<noteq> [] \<Longrightarrow> ma \<in># xs \<Longrightarrow> node (hd ch\<^sub>n) \<in># mset_nodes ma \<longleftrightarrow> False\<close> for ma
+    using dist2 apply auto
+    by (metis (no_types, lifting) add_mset_disjoint(1) distinct_mset_add insert_DiffM inter_mset_empty_distrib_right node_hd_in_sum sum_mset.insert)
+  show ?thesis
+    using dist2 unfolding encoded_hp_prop_list_def prod.simps assms(1,2,3,4)
+    apply (intro conjI impI allI)
+    subgoal using assms unfolding encoded_hp_prop_list_def
+      by (auto simp: ac_simps simp del: NOTIN_def[symmetric])
+    subgoal using nxts1
+      apply (cases a rule: rev_cases)
+      apply auto
+      by (metis (no_types, lifting) add_diff_cancel_right' distinct_mset_in_diff mset_add node_in_mset_nodes sum_mset.insert union_iff)
+    subgoal using prevs1
+      by auto
+    subgoal
+      using child1
+      by auto
+    subgoal
+      using nxts2
+      by (auto dest: multi_member_split simp: K hp_next_children_append_single_remove_children
+        hp_next_children_skip_last_not_last
+        notin)
+    subgoal
+      using prevs2 supply [cong del] = image_mset_cong
+      by (auto simp add:  K K' K'' hp_prev_children_append_single_remove_children hp_prev_skip_hd_children map_option_skip_in_child hp_prev_children_skip_first_append[of _ \<open>[_]\<close>, simplified])
+    subgoal
+      using child2
+      by (auto simp add: K K' K'' hp_child_children_skip_first[of _ \<open>[_]\<close>, simplified]
+        hp_child_children_skip_first[of _ \<open>_ # _\<close>, simplified]
+        hp_child_children_skip_last[of _ _ \<open>[_]\<close>, simplified]
+        hp_child_children_skip_last[of _ \<open>[_]\<close>, simplified] notin
+        hp_child_children_skip_last[of _ \<open>[_, _]\<close>, simplified]
+        hp_child_children_skip_first[of _ _ \<open>[_,_]\<close>, simplified]
+        hp_child_children_skip_first[of _ _ \<open>[_]\<close>, simplified]
+        split: option.splits)
+    done
+qed
 
 text \<open>
 The choice of the current rule sets took a very long time and I am still unsure that this is the
