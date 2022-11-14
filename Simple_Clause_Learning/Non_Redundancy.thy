@@ -69,14 +69,6 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
 
     ultimately show "vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D) = {}"
       by auto
-  next
-    have "\<And>x. x \<in> vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<Longrightarrow> vars_term (\<gamma>\<^sub>\<rho>' x) = {}"
-      by (metis \<open>- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') \<in># D \<cdot> \<gamma>\<^sub>D\<close> atm_of_uminus gr_D_\<gamma>\<^sub>D is_ground_atm_iff_vars_empty
-          is_ground_atm_is_ground_on_var is_ground_cls_imp_is_ground_lit is_ground_lit_def
-          atm_of_subst_lit)
-    thus "(\<Union>x\<in>vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>). if \<gamma>\<^sub>\<rho>' x = Var x then {} else vars_term (\<gamma>\<^sub>\<rho>' x)) \<inter>
-      {x \<in> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D). rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D x \<noteq> Var x} = {}"
-      by simp
   qed
   then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu> \<cdot>l \<rho>), atm_of (L' \<cdot>l \<rho>\<^sub>D)}}"
     using is_mimgu_if_mgu_eq_Some by auto
@@ -99,7 +91,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some ((DD + {#K#}) \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
     "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
     mimgu_\<mu>\<^sub>K: "is_mimgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
-    \<sigma>'_def: "\<sigma>' = restrict_subst (vars_cls ((DD + {#K#}) \<cdot> \<mu>\<^sub>K)) \<sigma>"
+    \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls ((DD + {#K#}) \<cdot> \<mu>\<^sub>K)) \<sigma>"
     by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (D + {#L'#}, \<sigma>))\<close> elim: factorize.cases)
 
   have "add_mset L' D = add_mset K (add_mset K' DD)"
@@ -113,7 +105,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   have L_\<mu>\<^sub>K_\<sigma>'_simp: "L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>' = L \<cdot>l \<mu>\<^sub>K \<cdot>l \<sigma>" if L_in: "L \<in># add_mset K DD" for L
     unfolding \<sigma>'_def
     using L_in
-    by (metis add_mset_add_single insert_DiffM subst_lit_restrict_subst_idem sup_ge1
+    by (metis add_mset_add_single insert_DiffM subst_lit_restrict_subst_domain_idem sup_ge1
         vars_cls_add_mset vars_lit_subst_subset_vars_cls_substI)
 
   have "L' \<cdot>l \<mu>\<^sub>K \<in># add_mset K DD \<cdot> \<mu>\<^sub>K"
@@ -184,19 +176,6 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
       ultimately show "vars_lit L \<inter> vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) = {}"
         by auto
-    next
-      have "is_ground_cls (add_mset L C \<cdot> \<delta>)"
-        using invars(1)[unfolded resolveI]
-        by (simp add: trail_groundings_def trail_propagate_def)
-      hence "is_ground_lit (L \<cdot>l \<delta>)"
-        by (metis is_ground_cls_def subst_cls_add_mset union_single_eq_member)
-      hence "\<forall>x\<in>vars_lit L. vars_term (\<delta> x) = {}"
-        by (meson is_ground_atm_iff_vars_empty is_ground_lit_is_ground_on_var)
-      hence "(\<Union>x\<in>vars_lit L. if \<delta> x = Var x then {} else vars_term (\<delta> x)) = {}"
-        by force
-      thus "(\<Union>x\<in>vars_lit L. if \<delta> x = Var x then {} else vars_term (\<delta> x)) \<inter>
-        {x \<in> vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K). \<sigma>' x \<noteq> Var x} = {}"
-        by simp
     qed
     ultimately show ?thesis
       using is_mimgu_if_mgu_eq_Some by blast
@@ -638,7 +617,7 @@ proof -
           by (smt (verit, best) atm_of_subst_lit finite.emptyI finite.insertI insertE is_unifier_alt
               is_unifiers_def singletonD)
         with factorizeI(5) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>')"
-          by (metis subsetI subst_cls_restrict_subst_idem)
+          by (metis subsetI subst_cls_restrict_subst_domain_idem)
         with factorizeI(2) show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
           using state_conflict_simp by blast
@@ -726,8 +705,8 @@ proof -
             using is_unifiers_def by blast
         qed
         then have "trail_false_cls (state_trail S1) ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot>
-          restrict_subst (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
-          unfolding subst_cls_restrict_subst_idem[OF subset_refl]
+          restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
+          unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
           unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
           by assumption
         then show ?thesis
