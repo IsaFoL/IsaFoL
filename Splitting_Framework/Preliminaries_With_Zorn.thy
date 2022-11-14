@@ -2601,19 +2601,26 @@ next
       then have \<open>\<exists>\<C>''\<in>{Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}. v \<in> to_V ` fset (A_of \<C>'')\<close>
       proof cases
         case J
-        then obtain a' \<C>'' where C'_is1: \<open>\<C>'' = Pair bot {|neg a'|}\<close> and
+        then obtain a' \<C>'' where C''_is: \<open>\<C>'' = Pair bot {|neg a'|}\<close> and
           C''_in: \<open>\<C>'' \<in> {Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)} \<close> and
-          a'_in: \<open>a' \<in> fset (A_of \<C>')\<close> and \<open>v = to_V a'\<close>
+          a'_in: \<open>a' \<in> fset (A_of \<C>')\<close> and v_from_a': \<open>v = to_V a'\<close>
           using v_in_C' unfolding \<S>\<^sub>\<E>'_def by blast
+        have neg_a'_in: \<open>neg a' \<in> fset (A_of \<C>'')\<close>
+          using  C''_is by simp
+        then have v_in_C'': \<open>v \<in> to_V ` fset (A_of \<C>'')\<close>
+          using v_from_a' by (metis imageI to_V_neg)
         then show ?thesis
-          using C''_in a'_in sorry
+          using C''_in by blast
       next
         case E'
         then show ?thesis
           using v_in_C' unfolding \<S>\<^sub>\<E>'_def by auto
       qed
-      then obtain \<C>'' where \<open>\<C>''\<in>\<S>\<^sub>\<J>\<close> and \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> sorry
-
+      then obtain \<C>'' where \<open>\<C>'' \<in> {AF.Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}\<close> and
+        \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> by blast
+      then consider (Posa) \<open>\<C>'' = Pair bot {|a|}\<close> | (Nega) \<open>\<C>'' = Pair bot {|neg a|}\<close>
+        using v_in_C C_is1 sorry
+        sorry
       then show False
         sorry
     qed
