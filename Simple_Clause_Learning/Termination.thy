@@ -382,12 +382,12 @@ next
             by (rule vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>])
 
           finally show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
-            unfolding \<open>\<gamma>' = restrict_subst (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
-            unfolding subst_domain_restrict_subst
+            unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
+            unfolding subst_domain_restrict_subst_domain
             by simp
         qed
         also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-          using propagateI(3-) by (simp add: subst_lit_restrict_subst_idem)
+          using propagateI(3-) by (simp add: subst_lit_restrict_subst_domain_idem)
         also have "\<dots> = L \<cdot>l \<gamma>"
         proof -
           have "is_unifiers \<gamma> {atm_of ` set_mset (add_mset L C\<^sub>1)}"
@@ -485,7 +485,7 @@ next
 
         have "add_mset L D \<cdot> \<mu> \<cdot> \<sigma>' = add_mset L D \<cdot> \<mu> \<cdot> \<sigma>"
           unfolding factorizeI
-          by (rule subst_cls_restrict_subst_idem) simp
+          by (rule subst_cls_restrict_subst_domain_idem) simp
         also have "\<dots> = add_mset L D \<cdot> \<sigma>"
           using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
           by (metis subst_cls_comp_subst)
@@ -578,7 +578,7 @@ next
         thus ?thesis
           unfolding lex_prodp_def resolveI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
-          unfolding subst_cls_restrict_subst_idem[OF subset_refl] subst_cls_comp_subst
+          unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl] subst_cls_comp_subst
             subst_cls_renaming_inv_renaming_idem[OF ren_\<rho>]
           unfolding \<open>(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>\<close>
           unfolding subst_cls_union \<open>D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close> \<open>C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>

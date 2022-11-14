@@ -325,23 +325,23 @@ proof -
             "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
           define \<gamma>\<^sub>\<rho> where
-            "\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> (restrict_subst (vars_cls C') \<gamma>)"
+            "\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> (restrict_subst_domain (vars_cls C') \<gamma>)"
 
           have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (C' \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
           proof (rule conflictI)
             show "C' |\<in>| N |\<union>| U"
               using C'_in by simp
           next
-            show "subst_domain (restrict_subst (vars_cls C') \<gamma>) \<subseteq> vars_cls C'"
-              by (simp add: subst_domain_restrict_subst)
+            show "subst_domain (restrict_subst_domain (vars_cls C') \<gamma>) \<subseteq> vars_cls C'"
+              by (simp add: subst_domain_restrict_subst_domain)
           next
-            show "is_ground_cls (C' \<cdot> restrict_subst (vars_cls C') \<gamma>)"
+            show "is_ground_cls (C' \<cdot> restrict_subst_domain (vars_cls C') \<gamma>)"
               using \<open>is_ground_cls C\<close>[unfolded C_def]
-              by (simp add: subst_cls_restrict_subst_idem)
+              by (simp add: subst_cls_restrict_subst_domain_idem)
           next
-            show "trail_false_cls \<Gamma> (C' \<cdot> restrict_subst (vars_cls C') \<gamma>)"
+            show "trail_false_cls \<Gamma> (C' \<cdot> restrict_subst_domain (vars_cls C') \<gamma>)"
               using \<open>trail_false_cls \<Gamma> C\<close>[unfolded C_def]
-              by (simp add: subst_cls_restrict_subst_idem)
+              by (simp add: subst_cls_restrict_subst_domain_idem)
           qed (simp_all add: \<rho>_def \<gamma>\<^sub>\<rho>_def)
           with no_new_conflict have False
             by (simp add: S_def u_def)
@@ -494,7 +494,7 @@ proof -
               by (rule is_mimgu_if_mgu_eq_Some)
 
             have "resolve N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) (\<Gamma>, U, Some ((C' + D) \<cdot> \<mu> \<cdot> \<rho>,
-              restrict_subst (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
+              restrict_subst_domain (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
               by (rule resolveI[OF 1 \<rho>_def 2 3])
             with no_more_regular_step have False
               unfolding regular_scl_def reasonable_scl_def scl_def
