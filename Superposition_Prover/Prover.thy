@@ -648,7 +648,7 @@ lemma singleton_subst_lit_conv: "{equational_clausal_logic.subst_lit L1 \<sigma>
   unfolding subst_cl.simps
   by simp
 
-lemma
+lemma minus_subst_cl_subst_cl:
   assumes "renaming \<rho> (vars_of_cl C \<union> vars_of_cl D)"
   shows "subst_cl C \<rho> - subst_cl D \<rho> = subst_cl (C - D) \<rho>"
     (is "?lhs = ?rhs")
@@ -1577,6 +1577,66 @@ proof -
     by simp
 qed
 
+lemma ground_superposition_main_premise_greater:
+  assumes super: "superposition P1 P2 C \<sigma> Ground C'" and
+    fin_P1: "finite (cl_ecl P1)" and fin_P2: "finite (cl_ecl P2)"
+  shows "((cl_ecl P2, \<sigma>), (cl_ecl P1, \<sigma>)) \<in> cl_ord"
+proof -
+  from super obtain L M where
+    L_in: "L \<in> cl_ecl P1" and
+    M_in: "M \<in> cl_ecl P2" and
+    M_\<sigma>_lt_L_\<sigma>: "(subst_lit M \<sigma>, subst_lit L \<sigma>) \<in> lit_ord" and
+    max_P2_M_\<sigma>: "strictly_maximal_literal P2 M \<sigma>"
+    unfolding superposition_def by auto
+
+  show ?thesis
+    unfolding cl_ord_def mem_Collect_eq prod.case
+  proof (intro one_step_implies_mult[of _ _ _ "{#}", unfolded Multiset.empty_neutral] ballI)
+    from L_in have "cl_ecl P1 \<noteq> {}"
+      by blast
+    with fin_P1 have "mset_set (cl_ecl P1) \<noteq> {#}"
+      by (simp add: mset_set_empty_iff)
+    then show "mset_cl (cl_ecl P1, \<sigma>) \<noteq> {#}"
+      by simp
+  next
+    fix k assume "k \<in># mset_cl (cl_ecl P2, \<sigma>)"
+    then obtain k' where
+      k'_in: "k' \<in># mset_set (cl_ecl P2)" and k_def: "k = mset_lit (subst_lit k' \<sigma>)"
+      unfolding mset_cl.simps
+      by auto
+
+    have M_\<sigma>_lt_L_\<sigma>': "(mset_lit (subst_lit M \<sigma>), mset_lit (subst_lit L \<sigma>)) \<in> mult trm_ord"
+      using M_\<sigma>_lt_L_\<sigma>
+      unfolding lit_ord_def mem_Collect_eq prod.case
+      by argo
+
+    have "(k, mset_lit (subst_lit L \<sigma>)) \<in> mult trm_ord"
+    proof (cases "k' = M")
+      case True
+      thus ?thesis
+        using M_\<sigma>_lt_L_\<sigma>' k_def by argo
+    next
+      case False
+      show ?thesis
+      proof (rule trans_mult[OF trm_ord_trans, THEN transD, OF _ M_\<sigma>_lt_L_\<sigma>'])
+        have "(subst_lit k' \<sigma>, subst_lit M \<sigma>) \<in> lit_ord"
+          using False k'_in max_P2_M_\<sigma>[unfolded strictly_maximal_literal_def]
+          using fin_P2 finite_set_mset_mset_set by blast
+        then show "(k, mset_lit (subst_lit M \<sigma>)) \<in> mult trm_ord"
+          unfolding k_def
+          using lit_ord_def by blast
+      qed
+    qed
+
+    moreover have "mset_lit (subst_lit L \<sigma>) \<in># mset_cl (cl_ecl P1, \<sigma>)"
+      using L_in
+      by (simp add: fin_P1)
+
+    ultimately show "\<exists>j\<in>#mset_cl (cl_ecl P1, \<sigma>). (k, j) \<in> mult trm_ord"
+      by metis
+  qed
+qed
+
 end
 
 
@@ -1787,6 +1847,14 @@ lemma G_derivable_list_imp_derivable:
   unfolding G_derivable_list_def G_SuperCalc.derivable_def
   by (auto simp: insert_commute)
 
+
+lemma derivable_imp_G_derivable_list:
+  assumes "G_SuperCalc.derivable M C P N \<sigma> k C'"
+  shows "\<exists>Ps. P = set Ps \<and> G_derivable_list M C Ps \<sigma> k C'"
+  using assms
+  unfolding G_SuperCalc.derivable_def G_derivable_list_def
+  by (metis doubleton_eq_iff list.simps(15) set_empty2)
+
 lemma G_derivable_list_non_empty_premises: "G_derivable_list M C Ps \<sigma> k C' \<Longrightarrow> Ps \<noteq> []"
   by (auto simp add: G_derivable_list_def)
 
@@ -1809,6 +1877,30 @@ lemma G_derivable_list_concl_conv:
   unfolding G_derivable_list_def G_SuperCalc.derivable_def
   by (auto simp: G_SuperCalc.reflexion_def G_SuperCalc.factorization_def
       G_SuperCalc.superposition_def)
+
+lemma ball_side_prems_less_than_main_prem_if_G_derivable_list:
+  assumes
+    deriv: "G_derivable_list M C Ps \<sigma> G_SuperCalc.Ground C'" and
+    ball_Ps_finite: "\<forall>C\<in>set Ps. finite (cl_ecl C)"
+  shows "\<forall>D \<in> set (butlast Ps). ((cl_ecl D, \<sigma>), cl_ecl (last Ps), \<sigma>) \<in> G_SuperCalc.cl_ord"
+  using deriv
+  unfolding G_derivable_list_def
+proof (elim disjE exE conjE)
+  fix P1 P2
+  assume
+    Ps_def: "Ps = [P2, P1]" and
+    super: "G_SuperCalc.superposition M P1 P2 C \<sigma> G_SuperCalc.Ground C'"
+  then show "\<forall>D\<in>set (butlast Ps).
+          ((cl_ecl D, \<sigma>), cl_ecl (last Ps), \<sigma>) \<in> G_SuperCalc.cl_ord"
+    using G_SuperCalc.ground_superposition_main_premise_greater
+    by (simp add: ball_Ps_finite)
+next
+  show "\<And>P1. Ps = [P1] \<Longrightarrow> G_SuperCalc.factorization M P1 C \<sigma> G_SuperCalc.Ground C' \<Longrightarrow> ?thesis"
+    by simp
+next
+  show "\<And>P1. Ps = [P1] \<Longrightarrow> G_SuperCalc.reflexion M P1 C \<sigma> G_SuperCalc.Ground C' \<Longrightarrow> ?thesis"
+    by simp
+qed
 
 
 subsubsection \<open>Ground calculus\<close>
@@ -2034,6 +2126,251 @@ qed
 interpretation G: calculus_with_finitary_standard_redundancy "G_Inf M" "{{||}}" "(\<TTurnstile>e)" fclause_ord
   using wfP_fclause_ord transp_fclause_ord G_Inf_have_prems G_Inf_reductive
   by (unfold_locales)
+
+sublocale statically_complete_calculus "{{||}}" "G_Inf M" "(\<TTurnstile>e)" "G.Red_I M" G.Red_F
+proof unfold_locales
+  fix B :: "'a fclause" and N :: "'a fclause set"
+  assume B_in: "B \<in> {{||}}" and satur_N: "G.saturated M N" and N_entails_B: "N \<TTurnstile>e {B}"
+
+  have ground_fclause: "ground_clause (fset C)" for C :: "'a fclause"
+    sorry
+
+  have gr_inf_satur_N: "G_SuperCalc.ground_inference_saturated M ((\<lambda>C. Ecl (fset C) {}) ` N)"
+    unfolding G_SuperCalc.ground_inference_saturated_def
+  proof (intro allI impI)
+    fix C P \<sigma> C'
+    assume
+      deriv_C_P: "G_SuperCalc.derivable M C P ((\<lambda>C. Ecl (fset C) {}) ` N) \<sigma> G_SuperCalc.Ground C'" and
+      ground_C: "ground_clause (cl_ecl C)" and
+      grounding_P: "G_SuperCalc.grounding_set P \<sigma>"
+
+    from deriv_C_P have P_subset: "P \<subseteq> ((\<lambda>C. Ecl (fset C) {}) ` N)"
+      by (simp add: G_SuperCalc.derivable_premisses)
+    hence ball_P_fin: "\<forall>C \<in> P. finite (cl_ecl C)"
+      by auto
+    with deriv_C_P have fin_cl_C: "finite (cl_ecl C)"
+      using G_SuperCalc.derivable_clauses_are_finite by metis
+
+    from deriv_C_P obtain Ps
+      where P_eq: "P = set Ps" and deriv_C_Ps: "G_derivable_list M C Ps \<sigma> G_SuperCalc.Ground C'"
+      by (auto dest: derivable_imp_G_derivable_list)
+
+    from deriv_C_Ps obtain P1 Ps' where Ps_eq: "Ps = Ps' @ [P1]"
+      unfolding G_derivable_list_def by auto
+
+    from P_eq have ball_Ps_finite: "\<forall>C\<in>set Ps. finite (cl_ecl C)"
+      using ball_P_fin by fastforce
+      
+    define \<iota> :: "'a fclause inference" where
+      "\<iota> = Infer (map (Abs_fset \<circ> cl_ecl) Ps) (Abs_fset (cl_ecl C))"
+
+    have foo: "\<exists>D. G_derivable_list M D (map (\<lambda>D. Ecl (fset D) {}) (map (Abs_fset \<circ> cl_ecl) Ps)) \<sigma>
+        G_SuperCalc.Ground (cl_ecl C)"
+      using deriv_C_Ps
+      unfolding G_derivable_list_def
+      (* by (smt (verit, del_insts) Abs_fset_inverse G_SuperCalc.derivable_clauses_lemma G_SuperCalc.derivable_finite_conclusion P_eq P_subset ball_P_fin cl_ecl.simps comp_apply deriv_C_P fset_inverse ground_fclause image_iff insert_subset list.simps(15) list.simps(8) list.simps(9) mem_Collect_eq substs_preserve_ground_clause) *)
+      apply (elim disjE exE conjE)
+        apply (smt (verit) Abs_fset_inverse G_SuperCalc.derivable_clauses_lemma
+          G_SuperCalc.derivable_finite_conclusion P_eq P_subset ball_P_fin cl_ecl.simps deriv_C_P
+          fset_inverse ground_fclause image_iff insert_subset list.map_comp list.simps(15)
+          list.simps(8) list.simps(9) mem_Collect_eq substs_preserve_ground_clause)
+       apply (smt (verit, ccfv_threshold) Abs_fset_inverse G_SuperCalc.derivable_clauses_lemma
+          G_SuperCalc.derivable_finite_conclusion P_eq P_subset ball_P_fin cl_ecl.simps comp_apply
+          deriv_C_P fset_inverse ground_fclause image_iff insert_subset list.simps(15) list.simps(8)
+          list.simps(9) mem_Collect_eq substs_preserve_ground_clause)
+      by (smt (verit, ccfv_threshold) G_SuperCalc.derivable_clauses_lemma
+          G_SuperCalc.ground_clause_reflexion P_eq P_subset cl_ecl.simps deriv_C_P fset_inverse
+          ground_fclause image_iff insert_subset list.map_comp list.simps(15) list.simps(8)
+          list.simps(9) substs_preserve_ground_clause)
+    then have "\<iota> \<in> G_Inf M"
+      unfolding G_Inf_def mem_Collect_eq
+      using \<iota>_def ground_fclause by blast
+
+    moreover from P_subset have prems_\<iota>_subset: "set (prems_of \<iota>) \<subseteq> N"
+      by (auto simp: \<iota>_def P_eq[symmetric] subset_image_iff image_subset_iff image_iff subset_iff
+          fset_inverse)
+
+    ultimately have "G.redundant_infer N \<iota>"
+      using satur_N[unfolded G.saturated_def G.Inf_from_def G.Red_I_def G.Red_I_def] by blast
+    then obtain DD :: "'a fclause set" where
+      "DD \<subseteq> N" and "finite DD" and "DD \<union> set (side_prems_of \<iota>) \<TTurnstile>e {concl_of \<iota>}" and
+      ball_D_less: "\<forall>D\<in>DD. fclause_ord D (main_prem_of \<iota>)"
+      unfolding G.redundant_infer_def by metis
+
+    define S  :: "('a eclause \<times> 'a subst) set" where
+      "S = (\<lambda>D. (Ecl (fset D) {}, [])) ` (DD \<union> set (side_prems_of \<iota>))"
+
+    show "G_SuperCalc.redundant_inference C ((\<lambda>C. Ecl (fset C) {}) ` N) P \<sigma>"
+      unfolding G_SuperCalc.redundant_inference_def
+    proof (intro exI conjI)
+      show "S \<subseteq> G_SuperCalc.instances ((\<lambda>C. Ecl (fset C) {}) ` N)"
+      proof (rule Set.subsetI)
+        have inj_mk_instance: "inj (\<lambda>D. (Ecl (fset D) {}, []))"
+          by (rule injI) (simp add: fset_inject)
+
+        fix x assume "x \<in> S"
+        then obtain D where
+          "D \<in> DD \<or> D \<in> set (side_prems_of \<iota>)" and x_def: "x = (Ecl (fset D) {}, [])"
+          by (auto simp add: S_def image_Un image_iff)
+        thus "x \<in> G_SuperCalc.instances ((\<lambda>C. Ecl (fset C) {}) ` N)"
+        proof (elim disjE)
+          assume "D \<in> DD"
+          thus ?thesis
+            using \<open>DD \<subseteq> N\<close>
+            by (auto simp add: x_def G_SuperCalc.instances_def ground_fclause)
+        next
+          assume "D \<in> set (side_prems_of \<iota>)"
+          hence "D \<in> N"
+            using prems_\<iota>_subset
+            by (meson in_set_butlastD subsetD)
+          thus ?thesis
+            by (auto simp add: x_def G_SuperCalc.instances_def ground_fclause)
+        qed
+      qed
+    next
+      have "set_entails_clause (fset ` (DD \<union> set (side_prems_of \<iota>))) (fset (concl_of \<iota>))"
+        using \<open>DD \<union> set (side_prems_of \<iota>) \<TTurnstile>e {concl_of \<iota>}\<close>
+        by (simp add: entails_def image_Un)
+
+      moreover have "(fset (concl_of \<iota>)) = cl_ecl C"
+        using fin_cl_C
+        by (simp add: \<iota>_def Abs_fset_inverse)
+
+      moreover have "fset ` (DD \<union> set (side_prems_of \<iota>)) = G_SuperCalc.clset_instances S"
+        unfolding S_def \<iota>_def inference.sel
+        unfolding Ps_eq map_append list.map butlast_snoc
+        by (auto simp: G_SuperCalc.clset_instances_def)
+
+      ultimately show "set_entails_clause (G_SuperCalc.clset_instances S) (cl_ecl C)"
+        by simp
+    next
+      show "\<forall>x \<in> S. G_SuperCalc.subterms_inclusion (subst_set (trms_ecl (fst x)) (snd x))
+        (trms_ecl C)"
+        by (simp add: S_def)
+    next
+      show "\<forall>x \<in> S. \<exists>D' \<in> cl_ecl ` P. ((cl_ecl (fst x), snd x), D', \<sigma>) \<in> G_SuperCalc.cl_ord"
+      proof (intro ballI bexI)
+        from ball_P_fin show "fset (main_prem_of \<iota>) \<in> cl_ecl ` P"
+          unfolding \<iota>_def inference.sel P_eq
+          unfolding Ps_eq map_append list.map last_snoc
+          by (simp add: Abs_fset_inverse)
+      next
+        fix x assume "x \<in> S"
+        then obtain D where
+          "D \<in> DD \<or> D \<in> set (side_prems_of \<iota>)" and x_def: "x = (Ecl (fset D) {}, [])"
+          by (auto simp add: S_def image_Un image_iff)
+        thus "((cl_ecl (fst x), snd x), fset (main_prem_of \<iota>), \<sigma>) \<in> G_SuperCalc.cl_ord"
+        proof (elim disjE)
+          assume "D \<in> DD"
+          hence "fclause_ord D (main_prem_of \<iota>)"
+            using ball_D_less by simp
+          thus ?thesis
+            by (smt (verit, ccfv_threshold) CollectD CollectI G_SuperCalc.cl_ord_def
+                G_SuperCalc.mset_cl.simps case_prodD case_prodI cl_ecl.simps equal_image_mset
+                fclause_ord_def fst_conv ground_fclause substs_preserve_ground_lit x_def)
+        next
+          have fin_P1: "finite (cl_ecl P1)"
+            by (simp add: Ps_eq ball_Ps_finite)
+
+          assume "D \<in> set (side_prems_of \<iota>)"
+          hence "D \<in> set (map (Abs_fset \<circ> cl_ecl) Ps')"
+            unfolding \<iota>_def inference.sel Ps_eq map_append list.map butlast_snoc .
+          then obtain D' where "D' \<in> set Ps'" and D_def: "D = Abs_fset (cl_ecl D')"
+            by auto
+          hence "((cl_ecl D', \<sigma>), cl_ecl P1, \<sigma>) \<in> G_SuperCalc.cl_ord"
+            using ball_side_prems_less_than_main_prem_if_G_derivable_list[OF deriv_C_Ps
+                ball_Ps_finite]
+            by (simp add: Ps_eq)
+          hence "((cl_ecl D', []), (cl_ecl P1, \<sigma>)) \<in> G_SuperCalc.cl_ord"
+            by (smt (verit, best) Abs_fset_inverse CollectD CollectI G_SuperCalc.cl_ord_def
+                G_SuperCalc.mset_cl.simps Ps_eq \<open>D' \<in> set Ps'\<close> append.assoc append_Cons
+                ball_Ps_finite case_prodD case_prodI equal_image_mset ground_fclause
+                in_set_conv_decomp substs_preserve_ground_lit)
+          moreover have "(cl_ecl (fst x), snd x) = (cl_ecl D', [])"
+            by (simp add: x_def D_def Abs_fset_inverse P_eq Ps_eq \<open>D' \<in> set Ps'\<close> ball_P_fin)
+          moreover have "fset (main_prem_of \<iota>) = cl_ecl P1"
+            using fin_P1
+            by (simp add: \<iota>_def Ps_eq Abs_fset_inverse)
+          ultimately show ?thesis
+            by simp
+        qed
+      qed
+    qed
+  qed
+
+  have ball_N_finite: "\<forall>x\<in>(\<lambda>C. Ecl (fset C) {}) ` N. finite (cl_ecl x)"
+    by simp
+
+  have ball_N_well_const: "\<forall>x \<in> ((\<lambda>C. Ecl (fset C) {}) ` N). G_SuperCalc.well_constrained x"
+    by (simp add: G_SuperCalc.well_constrained_def)
+
+  have closed_under_ren_N: "closed_under_renaming ((\<lambda>C. Ecl (fset C) {}) ` N)"
+    unfolding closed_under_renaming_def
+    using ground_fclause
+    by (metis (no_types, lifting) image_iff renaming_cl_def subst_ecl.simps subst_set.simps
+        subst_set_empty substs_preserve_ground_clause)
+
+  define I where
+    "I = G_SuperCalc.same_values (\<lambda>t. G_SuperCalc.trm_rep M t ((\<lambda>C. Ecl (fset C) {}) ` N))"
+
+  have int_clset_is_a_model': "(\<And>x. x \<in> N \<Longrightarrow> fset x \<noteq> {}) \<Longrightarrow> C \<in> (\<lambda>C. Ecl (fset C) {}) ` N \<Longrightarrow>
+    ground_clause (subst_cl (cl_ecl C) \<sigma>) \<Longrightarrow>
+    G_SuperCalc.all_trms_irreducible (subst_set (trms_ecl C) \<sigma>)
+      (\<lambda>t. G_SuperCalc.trm_rep M t ((\<lambda>C. Ecl (fset C) {}) ` N)) \<Longrightarrow>
+    validate_ground_clause I (subst_cl (cl_ecl C) \<sigma>)"
+    for C \<sigma>
+    using G_SuperCalc.int_clset_is_a_model[OF gr_inf_satur_N ball_N_finite ball_N_well_const _
+      closed_under_ren_N, folded I_def, of "(_, _)"]
+    by simp
+
+  have fo_int_I: "fo_interpretation I"
+    unfolding I_def
+    using G_SuperCalc.same_values_fo_int G_SuperCalc.trm_rep_compatible_with_structure by blast
+
+  from B_in N_entails_B have "set_entails_clause (fset ` N) {}"
+    by (simp add: entails_def)
+  hence "{||} \<in> N"
+  proof (rule contrapos_pp)
+    assume "{||} \<notin> N"
+    hence ball_N_not_empty: "\<forall>C \<in> N. C \<noteq> {||}"
+      by auto
+  
+    have validate_I_N: "validate_clause_set I (fset ` N)"
+      unfolding validate_clause_set.simps validate_clause.simps
+    proof (intro allI impI)
+      fix C \<sigma>
+      assume C_in: "C \<in> fset ` N" and gr_cl_C_\<sigma>: "ground_clause (subst_cl C \<sigma>)"
+      show "validate_ground_clause I (subst_cl C \<sigma>)"
+      proof (rule int_clset_is_a_model'[of "Ecl C {}" \<sigma>, unfolded cl_ecl.simps])
+        show "\<And>x. x \<in> N \<Longrightarrow> fset x \<noteq> {}"
+          using \<open>{||} \<notin> N\<close>
+          by (metis bot_fset.rep_eq fset_cong)
+      next
+        show "Ecl C {} \<in> (\<lambda>C. Ecl (fset C) {}) ` N"
+          using C_in by auto
+      next
+        show "ground_clause (subst_cl C \<sigma>)"
+          by (rule gr_cl_C_\<sigma>)
+      next
+        show "G_SuperCalc.all_trms_irreducible (subst_set (trms_ecl (Ecl C {})) \<sigma>)
+     (\<lambda>t. G_SuperCalc.trm_rep M t ((\<lambda>C. Ecl (fset C) {}) ` N))"
+          by simp
+      qed
+    qed
+  
+    show "\<not> set_entails_clause (fset ` N) {}"
+    proof (rule notI)
+      assume "set_entails_clause (fset ` N) {}"
+      hence "validate_ground_clause I {}"
+        using fo_int_I validate_I_N
+        by (simp add: set_entails_clause_def)
+      thus False
+        by (simp add: validate_ground_clause.simps)
+    qed
+  qed
+  thus "\<exists>B'\<in>{{||}}. B' \<in> N"
+    by simp
+qed
 
 
 subsubsection \<open>First-Order SuperCalc\<close>
