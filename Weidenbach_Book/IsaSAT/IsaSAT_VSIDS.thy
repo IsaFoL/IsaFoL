@@ -79,31 +79,16 @@ fun hp_child where
   \<open>hp_child a (Hp m s (x # children)) = (if a = m then Some x else (case hp_child a x of None \<Rightarrow> hp_child a (Hp m s children) | Some a \<Rightarrow> Some a))\<close> |
   \<open>hp_child a (Hp m s _) = None\<close>
 
-datatype 'a pairing_heap = PHeap (ph_score: 'a) (ph_prev: \<open>nat option\<close>) (ph_next: \<open>nat option\<close>) (ph_child: \<open>nat option\<close>)
-
-fun hp_set_prev :: \<open>nat \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_prev prev (PHeap sc _ nxt child) = PHeap sc (Some prev) nxt child\<close>
-
-fun hp_set_next :: \<open>nat \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_next nxt (PHeap sc prev _ child) = PHeap sc prev (Some nxt) child\<close>
-
-fun hp_set_child :: \<open>nat \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_child child (PHeap sc prev nxt _) = PHeap sc prev nxt (Some child)\<close>
-
-fun hp_set_prev' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_prev' prev (PHeap sc _ nxt child) = PHeap sc (prev) nxt child\<close>
-
-fun hp_set_next' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_next' nxt (PHeap sc prev _ child) = PHeap sc prev nxt child\<close>
-
-fun hp_set_child' :: \<open>nat option \<Rightarrow> 'a pairing_heap \<Rightarrow> 'a pairing_heap\<close> where
-  \<open>hp_set_child' child (PHeap sc prev nxt _) = PHeap sc prev nxt (child)\<close>
+fun hp_node where
+  \<open>hp_node a (Hp m s (x#children)) = (if a = m then Some (Hp m s (x#children)) else (case hp_node a x of None \<Rightarrow> hp_node a (Hp m s children) | Some a \<Rightarrow> Some a))\<close> |
+  \<open>hp_node a (Hp m s []) = (if a = m then Some (Hp m s []) else None)\<close>
 
 definition encoded_hp_prop :: \<open>('e,'f) hp multiset \<Rightarrow> _\<close> where
-  \<open>encoded_hp_prop m = (\<lambda>(nxts,prevs,children). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
-     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
+  \<open>encoded_hp_prop m = (\<lambda>(prevs,nxts,children, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m)) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
-     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)))\<close>
+     (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. scores x = map_option score (hp_node x m)))\<close>
 
 lemma node_in_mset_nodes[simp]: \<open>node x \<in># mset_nodes x\<close>
   by (cases x; auto)
@@ -116,6 +101,12 @@ lemma hp_prev_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow
 
 lemma hp_child_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_child m a = None\<close>
   by (induction m a rule: hp_child.induct) auto
+
+lemma hp_node_None_notin2[iff]: \<open>hp_node m a = None \<longleftrightarrow> m \<notin># mset_nodes a\<close>
+  by (induction m a rule: hp_node.induct) auto
+
+lemma hp_node_None_notin[simp]: \<open>m \<notin># mset_nodes a \<Longrightarrow> hp_node m a = None\<close>
+  by auto
 
 lemma hp_next_None_notin_children[simp]: \<open>a \<notin># sum_list (map mset_nodes children) \<Longrightarrow>
   hp_next a (Hp m w\<^sub>m (children)) = None\<close>
@@ -261,19 +252,47 @@ lemma hp_child_hp_children_simps2[simp]:
 lemma hp_child_children_None_notin[simp]: \<open>m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children) \<Longrightarrow> hp_child_children m children = None\<close>
   by (induction children) auto
 
+definition hp_node_children where
+  \<open>hp_node_children a = option_hd o (List.map_filter (hp_node a))\<close>
+
+lemma hp_node_children_Cons_if:
+  \<open>hp_node_children a (x # y) = (if hp_node a x = None then hp_node_children a y else hp_node a x)\<close>
+  by (auto simp: hp_node_children_def List.map_filter_def split: list.splits)
+
+lemma hp_node_children_simps[simp]:
+  \<open>hp_node_children a [] = None\<close>
+  \<open>hp_node a x =None \<Longrightarrow> hp_node_children a (x # y) = hp_node_children a y\<close>
+  \<open>hp_node a x \<noteq> None \<Longrightarrow> hp_node_children a (x # y) = hp_node a x\<close>
+  by (auto simp: hp_node_children_def List.map_filter_def split: list.splits)
+
+lemma hp_node_children_simps2[simp]:
+  \<open>x \<noteq> a \<Longrightarrow> hp_node x (Hp a b child) = hp_node_children x child\<close>
+  by (induction child) (auto split: option.splits)
+
+lemma hp_node_children_None_notin2: \<open>hp_node_children m children = None \<longleftrightarrow> m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children)\<close>
+  apply (induction children)
+  apply auto
+  by (metis hp_node_children_simps(2) hp_node_children_simps(3) option_last_Nil option_last_Some_iff(2))
+
+lemma hp_node_children_None_notin[simp]: \<open>m \<notin># \<Sum>\<^sub># (mset_nodes `# mset children) \<Longrightarrow> hp_node_children m children = None\<close>
+  by (induction children) auto
+
 lemma encoded_hp_prop_irrelevant:
   assumes \<open>a \<notin># \<Sum>\<^sub># (mset_nodes `# m)\<close> and
-    \<open>encoded_hp_prop m (nxts, prevs, children)\<close>
+    \<open>encoded_hp_prop m (nxts, prevs, children, scores)\<close>
   shows
-    \<open>encoded_hp_prop (add_mset (Hp a sc []) m) (nxts(a:= None), prevs(a:=None), children(a:=None))\<close>
+    \<open>encoded_hp_prop (add_mset (Hp a sc []) m) (nxts(a:= None), prevs(a:=None), children(a:=None), scores(a:=Some sc))\<close>
   using assms by (auto simp: encoded_hp_prop_def)
+
+lemma hp_node_simps[simp]: \<open>hp_node m (Hp m w\<^sub>m ch\<^sub>m) = Some (Hp m w\<^sub>m ch\<^sub>m)\<close>
+  by (cases ch\<^sub>m) auto
 
 lemma encoded_hp_prop_link:
   fixes ch\<^sub>m a prevs
   defines \<open>prevs' \<equiv> (if ch\<^sub>m = [] then prevs else prevs (node (hd ch\<^sub>m) := Some (node a)))\<close>
-  assumes \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (nxts, prevs, children)\<close>
+  assumes \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m ch\<^sub>m) (add_mset a x)) (prevs, nxts, children, scores)\<close>
   shows
-    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))), prevs', children(m := Some (node a)))\<close>
+    \<open>encoded_hp_prop (add_mset (Hp m w\<^sub>m (a # ch\<^sub>m)) x) (prevs', nxts(node a:= if ch\<^sub>m = [] then None else Some (node (hd ch\<^sub>m))), children(m := Some (node a)), scores(m:=Some w\<^sub>m))\<close>
 proof -
   have H[simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (mset_nodes a))\<close> \<open>distinct_mset (mset_nodes a)\<close>
     using assms unfolding encoded_hp_prop_def prod.simps
@@ -285,37 +304,41 @@ proof -
     using assms unfolding encoded_hp_prop_def prod.simps
     apply (intro conjI impI ballI)
     subgoal by (auto simp: ac_simps)
+    subgoal
+      apply (auto simp: prevs'_def hp_prev_skip_hd_children dest: multi_member_split)
+      by (metis add_mset_disjoint(1) distinct_mset_add image_msetI in_Union_mset_iff mset_add node_hd_in_sum union_iff)
     subgoal apply simp
       apply (intro conjI impI allI)
       subgoal by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
-        subgoal by (auto dest: multi_member_split)[]
-        subgoal by (auto dest!: multi_member_split)[]
-        subgoal
-          by (auto dest: multi_member_split distinct_mset_union simp: hp_next_skip_hd_children)
-        done
+      subgoal by (auto dest: multi_member_split)[]
+      subgoal by (auto dest!: multi_member_split)[]
       subgoal
-        apply (auto simp: prevs'_def hp_prev_skip_hd_children dest: multi_member_split)
-        by (metis add_mset_disjoint(1) distinct_mset_add image_msetI in_Union_mset_iff mset_add node_hd_in_sum union_iff)
-      subgoal
-        by (auto split: option.splits simp: K)
+        by (auto dest: multi_member_split distinct_mset_union simp: hp_next_skip_hd_children)
       done
+    subgoal
+      by (auto split: option.splits simp: K)
+    subgoal
+      by (auto split: option.splits simp: K(2))
+    done
 qed
 
 
-definition encoded_hp_prop_list :: \<open>('e::linorder,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
-  \<open>encoded_hp_prop_list m xs  = (\<lambda>(nxts,prevs,children). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
+definition encoded_hp_prop_list :: \<open>('e,'f) hp multiset \<Rightarrow> ('e,'f) hp list \<Rightarrow> _\<close> where
+  \<open>encoded_hp_prop_list m xs  = (\<lambda>(prevs,nxts,children, scores). distinct_mset (\<Sum>\<^sub># (mset_nodes `# m + mset_nodes `# (mset xs))) \<and>
      (\<forall>m'\<in>#m. \<forall>x \<in># mset_nodes m'. nxts x = map_option node (hp_next x m')) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. prevs x = map_option node (hp_prev x m)) \<and>
      (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. children x = map_option node (hp_child x m)) \<and>
+     (\<forall>m\<in># m. \<forall>x \<in># mset_nodes m. scores x = map_option score (hp_node x m)) \<and>
      (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). nxts x = map_option node (hp_next_children x xs)) \<and>
      (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). prevs x = map_option node (hp_prev_children x xs)) \<and>
-     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). children x = map_option node (hp_child_children x xs))
+     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). children x = map_option node (hp_child_children x xs)) \<and>
+     (\<forall>x \<in># \<Sum>\<^sub># (mset_nodes `# mset xs). scores x = map_option score (hp_node_children x xs))
   )\<close>
 
 
 lemma encoded_hp_prop_list_remove_min:
-  assumes \<open>encoded_hp_prop_list (add_mset (Hp a b child) xs) [] (nxts, prevs, children)\<close>
-  shows \<open>encoded_hp_prop_list xs child (nxts, prevs, children(a:=None))\<close>
+  assumes \<open>encoded_hp_prop_list (add_mset (Hp a b child) xs) [] (prevs, nxts, children, scores)\<close>
+  shows \<open>encoded_hp_prop_list xs child (prevs, nxts, children(a:=None), scores(a:=None))\<close>
   using assms
   unfolding encoded_hp_prop_list_def
   by (auto simp: ac_simps)
@@ -471,16 +494,29 @@ lemma hp_next_children_skip_last_not_last:
       done
   done
 
+lemma hp_node_children_append_case:
+  \<open>hp_node_children x (a @ b) = (case hp_node_children x a of None \<Rightarrow> hp_node_children x b | x \<Rightarrow> x)\<close>
+   by (auto simp: hp_node_children_def List.map_filter_def split: option.splits)
 
+lemma hp_node_children_append[simp]:
+  \<open>hp_node_children x a = None \<Longrightarrow> hp_node_children x (a @ b) = hp_node_children x b\<close>
+  \<open>hp_node_children x a \<noteq> None \<Longrightarrow> hp_node_children x (a @ b) = hp_node_children x a\<close>
+   by (auto simp: hp_node_children_append_case)
+
+lemma ex_hp_node_children_Some_in_mset_nodes:
+  \<open>(\<exists>y. hp_node_children xa a = Some y) \<longleftrightarrow> xa \<in># sum_list (map mset_nodes a)\<close>
+  using hp_node_children_None_notin2[of xa a] by auto
+
+  
 lemma encoded_hp_prop_list_link:
   fixes m ch\<^sub>m prevs b hp\<^sub>m n nxts children
   defines \<open>prevs\<^sub>0 \<equiv> (if ch\<^sub>m = [] then prevs else prevs (node (hd ch\<^sub>m) := Some n))\<close>
   defines \<open>prevs' \<equiv> (if b = [] then prevs\<^sub>0 else prevs\<^sub>0 (node (hd b) := Some m)) (n:= None)\<close>
   defines \<open>nxts' \<equiv> nxts (m := map_option node (option_hd b), n := map_option node (option_hd ch\<^sub>m))\<close>
   defines \<open>children' \<equiv> children (m := Some n)\<close>
-  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (nxts, prevs, children)\<close>
+  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (prevs, nxts, children, scores)\<close>
   shows \<open>encoded_hp_prop_list xs (a @ [Hp m w\<^sub>m (Hp n w\<^sub>n ch\<^sub>n # ch\<^sub>m)] @ b)
-       (nxts', prevs', children')\<close>
+       (prevs', nxts', children', scores)\<close>
 proof -
   have dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) +
     (\<Sum>\<^sub># (mset_nodes `# xs) + (sum_list (map mset_nodes a) + sum_list (map mset_nodes b)))))\<close>
@@ -497,12 +533,15 @@ proof -
     nxts1: \<open>(\<forall>m'\<in>#xs. \<forall>x\<in>#mset_nodes m'. nxts x = map_option node (hp_next x m'))\<close> and
     prevs1: ‹(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. prevs x = map_option node (hp_prev x m))\<close> and
     child1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. children x = map_option node (hp_child x m))\<close> and
+    scores1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. scores x = map_option score (hp_node x m))\<close> and
     nxts2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
      nxts x = map_option node (hp_next_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
     prevs2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
      prevs x = map_option node (hp_prev_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
     child2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
     children x = map_option node (hp_child_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    scores2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+    scores x = map_option score (hp_node_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
     dist2: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# xs + mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close>
     using assms unfolding encoded_hp_prop_list_def by auto
   have [simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m))\<close>
@@ -549,6 +588,7 @@ proof -
   have K[unfolded NOTIN_def[symmetric]]: \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes a)\<close>
       \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes b)\<close>
       \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<notin># sum_list (map mset_nodes ch\<^sub>m)\<close>
+      \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> \<not>x \<notin># sum_list (map mset_nodes ch\<^sub>n)\<close>
     \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> m\<close>
     \<open>x \<in># sum_list (map mset_nodes ch\<^sub>n) \<Longrightarrow> x \<noteq> n\<close>
     \<open>x \<in># sum_list (map mset_nodes ch\<^sub>m) \<Longrightarrow> NOTIN x a\<close>
@@ -587,6 +627,9 @@ proof -
       using child1
       by auto
     subgoal
+      using scores1
+      by auto
+    subgoal
       using nxts2
       by (auto dest: multi_member_split simp: K hp_next_children_append_single_remove_children)
     subgoal
@@ -601,6 +644,11 @@ proof -
         hp_child_children_skip_last[of _ \<open>[_, _]\<close>, simplified]
         hp_child_children_skip_first[of _ _ \<open>[_]\<close>, simplified]
         split: option.splits)
+    subgoal
+      using scores2
+      by (auto split: option.splits simp: K K' K'' hp_node_children_Cons_if
+        ex_hp_node_children_Some_in_mset_nodes
+        dest: multi_member_split)
     done
 qed
 
@@ -611,9 +659,9 @@ lemma encoded_hp_prop_list_link2:
   defines \<open>nxts\<^sub>0 \<equiv> (if a = [] then nxts else nxts(node (last a) := Some n))\<close>
   defines \<open>nxts' \<equiv> nxts\<^sub>0 (n := map_option node (option_hd b), m := map_option node (option_hd ch\<^sub>n))\<close>
   defines \<open>children' \<equiv> children (n := Some m)\<close>
-  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (nxts, prevs, children)\<close>
+  assumes \<open>encoded_hp_prop_list (xs) (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b) (prevs, nxts, children, scores)\<close>
   shows \<open>encoded_hp_prop_list xs (a @ [Hp n w\<^sub>n (Hp m w\<^sub>m ch\<^sub>m # ch\<^sub>n)] @ b)
-       (nxts', prevs', children')\<close>
+       (prevs', nxts', children', scores)\<close>
 proof -
   have dist: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>m) + (sum_list (map mset_nodes ch\<^sub>n) +
     (\<Sum>\<^sub># (mset_nodes `# xs) + (sum_list (map mset_nodes a) + sum_list (map mset_nodes b)))))\<close>
@@ -636,6 +684,9 @@ proof -
      prevs x = map_option node (hp_prev_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
     child2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
     children x = map_option node (hp_child_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    scores2: \<open>(\<forall>x\<in>#\<Sum>\<^sub># (mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)).
+      scores x = map_option score (hp_node_children x (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close> and
+    scores1: \<open>(\<forall>m\<in>#xs. \<forall>x\<in>#mset_nodes m. scores x = map_option score (hp_node x m))\<close> and
     dist2: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# xs + mset_nodes `# mset (a @ [Hp m w\<^sub>m ch\<^sub>m, Hp n w\<^sub>n ch\<^sub>n] @ b)))\<close>
     using assms unfolding encoded_hp_prop_list_def by auto
   have [simp]: \<open>distinct_mset (sum_list (map mset_nodes ch\<^sub>n) + sum_list (map mset_nodes ch\<^sub>m))\<close>
@@ -741,6 +792,9 @@ proof -
       using child1
       by auto
     subgoal
+      using scores1
+      by auto
+    subgoal
       using nxts2
       by (auto dest: multi_member_split simp: K hp_next_children_append_single_remove_children
         hp_next_children_skip_last_not_last
@@ -758,8 +812,580 @@ proof -
         hp_child_children_skip_first[of _ _ \<open>[_,_]\<close>, simplified]
         hp_child_children_skip_first[of _ _ \<open>[_]\<close>, simplified]
         split: option.splits)
+    subgoal
+      using scores2
+      by (auto split: option.splits simp: K K' K'' hp_node_children_Cons_if
+        ex_hp_node_children_Some_in_mset_nodes
+        dest: multi_member_split)
     done
 qed
+
+type_synonym ('a, 'b) hp_fun = \<open>(('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'a option) \<times> ('a \<Rightarrow> 'b option))\<close>
+
+definition encoded_hp_prop_list_conc
+  :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
+     ('a, 'b) hp option \<Rightarrow> bool"
+  where
+  \<open>encoded_hp_prop_list_conc = (\<lambda>(\<V>, arr, h) x.
+  (case x of None \<Rightarrow> encoded_hp_prop_list {#} ([]:: ('a, 'b) hp list) arr \<and> h = None
+  | Some x \<Rightarrow> encoded_hp_prop_list {#x#} [] arr \<and> set_mset (mset_nodes x) \<subseteq> \<V> \<and> h = Some (node x)))\<close>
+
+definition encoded_hp_prop_list2_conc
+  :: "'a::linorder set \<times> ('a, 'b) hp_fun \<times> 'a option \<Rightarrow>
+     ('a, 'b) hp list \<Rightarrow> bool"
+  where
+  \<open>encoded_hp_prop_list2_conc = (\<lambda>(\<V>, arr, h) x.
+  (encoded_hp_prop_list {#} x arr \<and> set_mset (sum_list (map mset_nodes x)) \<subseteq> \<V> \<and> h = None))\<close>
+
+
+interpretation VSIDS: pairing_heap where
+  le = \<open>(\<ge>) :: nat \<Rightarrow> nat \<Rightarrow> bool\<close> and
+  lt = \<open>(>)\<close>
+  apply unfold_locales
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: transp_def)
+  subgoal by (auto simp: totalp_on_def)
+  done
+hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
+
+
+definition hp_set_all where
+  \<open>hp_set_all i prev nxt child sc = (\<lambda>(prevs, nxts, childs, scores). (prevs(i:=prev), nxts(i:=nxt), childs(i:=child), scores(i:=sc)))\<close>
+
+
+definition hp_update_prev where
+  \<open>hp_update_prev i prev = (\<lambda>(prevs, nxts, childs, scores). (prevs(i:=prev), nxts, childs, scores))\<close>
+
+definition hp_update_nxt where
+  \<open>hp_update_nxt i nxt = (\<lambda>(prevs, nxts, childs, scores). (prevs, nxts(i:=nxt), childs, scores))\<close>
+
+
+abbreviation hp_read_nxt :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_nxt i \<equiv> (\<lambda>(prevs, nxts, childs). nxts i)\<close>
+abbreviation hp_read_prev :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_prev i \<equiv> (\<lambda>(prevs, nxts, childs). prevs i)\<close>
+abbreviation hp_read_child :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_child i \<equiv> (\<lambda>(prevs, nxts, childs, scores). childs i)\<close>
+abbreviation hp_read_score :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_score i \<equiv> (\<lambda>(prevs, nxts, childs, scores). scores i)\<close>
+
+definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a set \<times> ('a,'b) hp_fun \<times> 'a option \<Rightarrow> ('a set \<times> ('a,'b) hp_fun \<times> 'a option) nres\<close> where
+  \<open>hp_insert = (\<lambda>(i::'a) (w::'b) (\<V>::'a set, arr :: ('a, 'b) hp_fun, h :: 'a option). do {
+  if h = None then do {
+    ASSERT (i \<in> \<V>);
+    RETURN (\<V>, hp_set_all i None None None (Some w) arr, Some i)
+   } else do {
+    ASSERT (i \<in> \<V>);
+    let (j::'a) = ((the h) :: 'a);
+    ASSERT (j \<in> (\<V>::'a set) \<and> j \<noteq> i);
+    ASSERT (hp_read_score j (arr :: ('a, 'b) hp_fun) \<noteq> None);
+    ASSERT (hp_read_prev j arr = None \<and> hp_read_nxt j arr = None);
+    let y = (the (hp_read_score j arr)::'b);
+    if y < w
+    then do {
+      let arr = hp_set_all i None None (Some j) (Some (w::'b)) (arr::('a, 'b) hp_fun);
+      RETURN (\<V>, arr :: ('a, 'b) hp_fun, Some i)
+    }
+    else do {
+      let child = hp_read_child j arr;
+      let arr = hp_set_all j None None (Some i) (Some y) arr;
+      let arr = hp_set_all i None child None (Some (w::'b)) arr;
+      let arr = (if child = None then arr else hp_update_prev (the child) (Some i) arr);
+      RETURN (\<V>, arr :: ('a, 'b) hp_fun, h)
+    }
+   }
+  })\<close>
+
+lemma hp_node_node_itself[simp]: \<open>hp_node (node x2) x2 = Some x2\<close>
+  by (cases x2) auto
+
+lemma hp_child_hd[simp]: \<open>hp_child x1 (Hp x1 x2 x3) = option_hd x3\<close>
+  by (cases x3) auto
+
+lemma encoded_hp_prop_list_encoded_hp_prop[simp]: \<open>encoded_hp_prop_list arr [] h = encoded_hp_prop arr h\<close>
+  unfolding encoded_hp_prop_list_def encoded_hp_prop_def by auto
+
+
+lemma hp_insert_spec:
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close> and
+    \<open>h \<noteq> None \<Longrightarrow> i \<notin># mset_nodes (the h)\<close> and
+    \<open>i \<in> fst arr\<close>
+  shows \<open>hp_insert i w arr \<le> SPEC (\<lambda>arr. encoded_hp_prop_list_conc arr (VSIDS.insert i w h))\<close>
+proof -
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), map_option node h)\<close>
+    by (cases arr; cases h) (use assms in \<open>auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+
+  have enc: \<open>encoded_hp_prop {#Hp i w [the h]#}
+    (prevs(i := None), nxts(i := None, node (the h) := None), childs(i \<mapsto> node (the h)), scores(i \<mapsto> w))\<close> and
+    enc2: \<open>encoded_hp_prop {#Hp (node (the h)) (score (the h)) (Hp i w [] # hps (the h))#}
+   (if hps (the h) = [] then prevs(i := None) else prevs(i := None)(node (hd (hps (the h))) \<mapsto> node (Hp i w [])),
+    nxts  (i := None,  node (Hp i w []) := if hps (the h) = [] then None else Some (node (hd (hps (the h))))),
+    childs(i := None)(node (the h) \<mapsto> node (Hp i w [])), scores(i \<mapsto> w, node (the h) \<mapsto> score (the h)))\<close> (is ?G)if \<open>h \<noteq> None\<close>
+  proof -
+    have \<open>encoded_hp_prop {#the h#} (prevs, nxts, childs, scores)\<close>
+      using that assms by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def arr)
+    then have 0: \<open>encoded_hp_prop {#Hp i w [], the h#}
+      (prevs(i := None), nxts(i := None), childs(i := None), scores(i \<mapsto> w))\<close>
+      using encoded_hp_prop_irrelevant[of i \<open>{#the h#}\<close> prevs nxts childs scores w] that assms
+      by auto
+    from encoded_hp_prop_link[OF this]
+    show \<open>encoded_hp_prop {#Hp i w [the h]#}
+      (prevs(i := None), nxts(i := None, node (the h) := None), childs(i \<mapsto> node (the h)), scores(i \<mapsto> w))\<close>
+      by auto
+    from 0 have \<open>encoded_hp_prop {#Hp (node (the h)) (score (the h)) (hps (the h)), Hp i w []#}
+      (prevs(i := None), nxts(i := None), childs(i := None), scores(i \<mapsto> w))\<close>
+      by (cases \<open>the h\<close>) (auto simp: add_mset_commute)
+    from encoded_hp_prop_link[OF this]
+    show ?G .
+  qed
+
+  have [simp]: \<open>encoded_hp_prop {#Hp x1a x2 x3#} (prevs, nxts, childs, scores) \<Longrightarrow> scores x1a = Some x2\<close>
+    \<open>encoded_hp_prop {#Hp x1a x2 x3#} (prevs, nxts, childs, scores) \<Longrightarrow> childs x1a = map_option node (option_hd x3)\<close> for x1a x2 x3
+    by (auto simp: encoded_hp_prop_def)
+  show ?thesis
+    using assms
+    unfolding hp_insert_def arr prod.simps
+    apply refine_vcg
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      by (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list_def hp_set_all_def
+        split: option.splits prod.splits)
+    subgoal
+      using enc
+      by (cases h, simp; cases \<open>the h\<close>)
+        (auto simp: hp_set_all_def encoded_hp_prop_list_conc_def fun_upd_idem)
+    subgoal
+      using enc2
+      by (cases h, simp; cases \<open>the h\<close>)
+       (auto simp: hp_set_all_def encoded_hp_prop_list_conc_def fun_upd_idem hp_update_prev_def
+        fun_upd_twist)
+     done
+qed
+
+thm hp_insert_def
+definition hp_link :: \<open>'a \<Rightarrow> 'a \<Rightarrow> 'a set \<times> ('a,'b::order) hp_fun \<times> 'a option \<Rightarrow> (('a set \<times> ('a,'b) hp_fun \<times> 'a option) \<times> 'a) nres\<close> where
+  \<open>hp_link = (\<lambda>(i::'a) j (\<V>::'a set, arr :: ('a, 'b) hp_fun, h :: 'a option). do {
+    ASSERT (i \<noteq> j);
+    ASSERT (i \<in> \<V>);
+    ASSERT (j \<in> \<V>);
+    let x = (the (hp_read_score i arr)::'b);
+    let y = (the (hp_read_score j arr)::'b);
+    let prev = hp_read_prev i arr;
+    let nxt = hp_read_nxt j arr;
+    ASSERT (nxt \<noteq> Some i \<and> nxt \<noteq> Some j);
+    ASSERT (prev \<noteq> Some i \<and> prev \<noteq> Some j);
+    let (parent,ch,w\<^sub>p, w\<^sub>c\<^sub>h) = (if y < x then (i, j, x, y) else (j, i, y, x));
+    let child = hp_read_child parent arr;
+    ASSERT (child \<noteq> Some i \<and> child \<noteq> Some j);
+    let child\<^sub>c\<^sub>h = hp_read_child ch arr;
+    ASSERT (child\<^sub>c\<^sub>h \<noteq> Some i \<and> child\<^sub>c\<^sub>h \<noteq> Some j \<and> (child\<^sub>c\<^sub>h \<noteq> None \<longrightarrow> child\<^sub>c\<^sub>h \<noteq> child));
+    ASSERT (distinct ([i, j] @ (if child\<^sub>c\<^sub>h \<noteq> None then [the child\<^sub>c\<^sub>h] else [])
+      @ (if child \<noteq> None then [the child] else [])
+      @ (if prev \<noteq> None then [the prev] else [])
+      @ (if nxt \<noteq> None then [the nxt] else []))
+      );
+    let arr = hp_set_all parent prev nxt (Some ch) (Some (w\<^sub>p::'b)) (arr::('a, 'b) hp_fun);
+    let arr = hp_set_all ch None child child\<^sub>c\<^sub>h (Some (w\<^sub>c\<^sub>h::'b)) (arr::('a, 'b) hp_fun);
+    let arr = (if child = None then arr else hp_update_prev (the child) (Some ch) arr);
+    let arr = (if nxt = None then arr else hp_update_prev (the nxt) (Some parent) arr);
+    let arr = (if prev = None then arr else hp_update_nxt (the prev) (Some parent) arr);
+    RETURN ((\<V>, arr :: ('a, 'b) hp_fun, h), parent)
+ })\<close>
+
+
+lemma fun_upd_twist2: "a \<noteq> c \<Longrightarrow> a \<noteq> e \<Longrightarrow> c \<noteq> e \<Longrightarrow> m(a := b, c := d, e := f) = (m(e := f, c := d))(a := b)"
+  by auto
+
+lemma hp_link:
+  assumes enc: \<open>encoded_hp_prop_list2_conc arr (xs @ x # y # ys)\<close> and
+    \<open>i = node x\<close> and
+    \<open>j = node y\<close>
+  shows \<open>hp_link i j arr \<le> SPEC (\<lambda>(arr, n). encoded_hp_prop_list2_conc arr (xs @ VSIDS.link x y # ys) \<and>
+    n = node (VSIDS.link x y))\<close>
+proof -
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
+    dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (xs @ x # y # ys))))\<close> and
+    \<V>: \<open>set_mset (sum_list (map mset_nodes (xs @ x # y # ys))) \<subseteq> \<V>\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+
+  have ij: \<open>i \<noteq> j\<close>
+    using dist assms(2,3) by (cases x; cases y) auto
+  have xy: \<open>Hp (node x) (score x) (hps x) = x\<close>  \<open>Hp (node y) (score y) (hps y) = y\<close> and
+    sc: \<open>score x = the (scores i)\<close> \<open>score y = the (scores j)\<close> and
+    link_x_y: \<open>VSIDS.link x y = VSIDS.link (Hp i (the (scores i)) (hps x))
+     (Hp j (the (scores j)) (hps y))\<close>
+    by (cases x; cases y; use assms in \<open>auto simp: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def arr
+      simp del: VSIDS.link.simps\<close>; fail)+
+  obtain ch\<^sub>x w\<^sub>x ch\<^sub>y w\<^sub>y where
+    x: \<open>x = Hp i w\<^sub>x ch\<^sub>x\<close> and
+    y: \<open>y = Hp j w\<^sub>y ch\<^sub>y\<close>
+    using assms(2-3)
+    by (cases y; cases x) auto
+  have sc':
+    \<open>scores i = Some w\<^sub>x\<close>
+    \<open>scores j = Some w\<^sub>y\<close>
+    \<open>prevs i = map_option node (option_last xs)\<close>
+    \<open>nxts i = Some j\<close>
+    \<open>prevs j = Some i\<close>
+    \<open>nxts j = map_option node (option_hd ys)\<close>
+    \<open>childs i = map_option node (option_hd ch\<^sub>x)\<close>
+    \<open>childs j = map_option node (option_hd ch\<^sub>y)\<close>
+    \<open>xs \<noteq> [] \<Longrightarrow> nxts (node (last xs)) = Some i\<close>
+    \<open>ys \<noteq> [] \<Longrightarrow> prevs (node (hd ys)) = Some j\<close>
+    using assms(1) x y apply (auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def arr hp_child_children_Cons_if)
+    apply (smt (verit) assms(3) hp_next_None_notin_children hp_next_children.elims list.discI list.inject list.sel(1) option_hd_Nil option_hd_Some_hd)
+    using assms(1) x y apply (cases xs rule: rev_cases; auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def arr)
+    apply (metis WB_List_More.distinct_mset_union2 add_diff_cancel_right' assms(2) distinct_mset_in_diff
+      hp_next_children_simps(1) hp_next_children_skip_first_append node_in_mset_nodes option.map(2)
+      sum_image_mset_sum_map)
+    using assms(1) x y apply (cases ys;auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+      encoded_hp_prop_def arr)
+      apply (cases \<open>hd ys\<close>)
+      apply (auto simp:)
+      done
+
+  have diff:
+    \<open>nxts j \<noteq> Some j\<close>  \<open>nxts j \<noteq> Some i\<close>  \<open>nxts i \<noteq> Some i\<close>
+    \<open>prevs i \<noteq> Some i\<close> \<open>prevs i \<noteq> Some j\<close>
+    \<open>childs i \<noteq> Some i\<close> \<open>childs i \<noteq> Some j\<close>
+    \<open>childs j \<noteq> Some i\<close> \<open>childs j \<noteq> Some j\<close> \<open>childs i \<noteq> None \<Longrightarrow> childs i \<noteq> childs j\<close>
+    \<open>childs j \<noteq> None \<Longrightarrow> childs i \<noteq> childs j\<close>
+    \<open>prevs i \<noteq> None \<Longrightarrow> prevs i \<noteq> nxts j\<close>
+    using dist sc' unfolding x y apply (cases ys; cases xs rule: rev_cases; auto split: if_splits; fail)+
+    using dist sc' unfolding x y apply (cases ys; cases xs rule: rev_cases; cases \<open>last xs\<close>; cases \<open>hd ys\<close>;
+      cases ch\<^sub>x; cases ch\<^sub>y; cases \<open>hd ch\<^sub>x\<close>; cases \<open>hd ch\<^sub>y\<close>; auto split: if_splits; fail)+
+    done
+  have dist2:
+    \<open>distinct([i, j]
+      @ (if childs i \<noteq> None then [the (childs i)] else [])
+      @ (if childs j \<noteq> None then [the (childs j)] else [])
+      @ (if prevs i \<noteq> None then [the (prevs i)] else [])
+      @ (if nxts j \<noteq> None then [the (nxts j)] else []))\<close>
+    using dist sc' unfolding x y by (cases ys; cases xs rule: rev_cases; cases \<open>last xs\<close>; cases \<open>hd ys\<close>;
+      cases ch\<^sub>x; cases ch\<^sub>y; cases \<open>hd ch\<^sub>x\<close>; cases \<open>hd ch\<^sub>y\<close>)
+       (auto split: if_splits)
+  have if_pair: \<open>(if a then (b, c) else (d,f)) = (if a then b else d, if a then c else f)\<close> for a b c d f
+    by auto
+  have enc0: \<open>encoded_hp_prop_list {#} (xs @ [Hp (node x) (score x) (hps x), Hp (node y) (score y) (hps y)] @ ys) (prevs, nxts, childs, scores)\<close>
+    using enc unfolding x y by (auto simp: encoded_hp_prop_list2_conc_def arr)
+  then have H: \<open>fst x1= \<V> \<Longrightarrow> snd (snd x1) = None\<Longrightarrow> encoded_hp_prop_list2_conc x1 (xs @ VSIDS.link x y # ys) \<longleftrightarrow>
+    encoded_hp_prop_list {#} (xs @ VSIDS.link x y # ys) (fst (snd x1))\<close> for x1
+    using dist \<V> unfolding x y
+    by (cases x1)
+     (simp add: encoded_hp_prop_list2_conc_def)
+  show ?thesis
+    unfolding hp_link_def arr prod.simps
+    apply refine_vcg
+    subgoal using ij by auto
+    subgoal using dist \<V> by (auto simp: x)
+    subgoal using dist \<V> by (auto simp: y)
+    subgoal using diff by auto
+    subgoal using diff by auto
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using diff by (auto split: if_splits)
+    subgoal using dist2 by (clarsimp split: if_splits)
+    subgoal premises p for parent b ch ba w\<^sub>p w\<^sub>c x1 x2
+      apply (cases \<open>the (scores j) < the (scores i)\<close>)
+      subgoal
+        apply (subst H)
+        using p(1-10) p(12)[symmetric] dist2 \<V>
+        apply simp
+        using p(1-10) p(12)[symmetric] dist2 \<V>
+        apply simp
+        apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
+          prevs nxts childs scores, OF enc0]])
+        subgoal
+          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          by (simp add: x y)
+        subgoal
+          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          apply (simp add: x y)
+          apply (intro conjI impI)
+          subgoal apply (simp add: fun_upd_idem fun_upd_twist  fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>] hp_set_all_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+            apply auto
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_idem[of \<open>nxts(parent := None)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply blast
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist[of _ _ prevs])
+              apply force
+              apply blast
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist[of _ _ prevs])
+              apply force
+              apply (subst fun_upd_idem[of \<open>nxts(ch := None)(parent \<mapsto> node (hd ys))\<close>])
+              apply (simp (no_asm_simp))
+              apply argo
+              apply blast
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist[of _ _ prevs])
+              apply force
+              apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist[of _ _ prevs])
+              apply force
+              apply (subst fun_upd_idem[of \<open>nxts(parent := None)(ch \<mapsto> node (hd ch\<^sub>x))\<close>])
+              apply (simp (no_asm_simp))
+              apply argo
+              apply blast
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist2)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (subst fun_upd_twist[of _ _ \<open>prevs(ch := None)\<close>])
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (simp (no_asm))
+              done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>])
+              apply (simp (no_asm_simp))
+              apply force
+              apply (subst fun_upd_twist2)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (subst fun_upd_twist[of _ _ \<open>prevs(ch := None)\<close>])
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (subst fun_upd_idem[of \<open>nxts(ch \<mapsto> node (hd ch\<^sub>x), parent \<mapsto> node (hd ys))\<close>])
+              apply (simp (no_asm_simp))
+              apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+              apply (simp (no_asm_simp))
+            done
+          done
+          apply (rule TrueI)
+          done
+        subgoal
+          supply [[goals_limit=1]]
+        apply (subst H)
+        using p(1-10) p(12)[symmetric] dist2 \<V>
+        apply simp
+        using p(1-10) p(12)[symmetric] dist2 \<V>
+        apply simp
+        apply (subst arg_cong2[THEN iffD1, of _ _ _ _ \<open>encoded_hp_prop_list {#}\<close>, OF _ _ encoded_hp_prop_list_link2[of \<open>{#}\<close> xs \<open>node x\<close> \<open>score x\<close> \<open>hps x\<close> \<open>node y\<close> \<open>score y\<close> \<open>hps y\<close> ys
+          prevs nxts childs scores, OF enc0]])
+        subgoal
+          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          by (simp add: x y)
+        subgoal
+          using sc' p(1-10) p(12)[symmetric] dist2 \<V>
+          apply (simp add: x y)
+          apply (intro conjI impI)
+          subgoal by (simp add: fun_upd_idem fun_upd_twist  fun_upd_idem[of \<open>childs(parent \<mapsto> ch)\<close>] hp_set_all_def)
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist)
+            apply (subst fun_upd_idem[of \<open>(nxts(node (last xs) \<mapsto> parent))\<close>])
+            apply (simp (no_asm_simp))
+            apply force
+            apply (subst fun_upd_twist[of _ _ prevs])
+            apply force
+            apply (subst fun_upd_twist[of _ _ nxts])
+            apply force
+            apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>prevs(parent := None)\<close>])
+            apply (simp (no_asm_simp))
+            apply force
+            apply force
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>(prevs(parent \<mapsto> node (last xs)))(ch := None)\<close>])
+            apply (metis fun_upd_apply)
+            apply (subst fun_upd_twist[of _ _ prevs])
+            apply force
+            apply (subst fun_upd_twist2)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_idem[of \<open>nxts(ch := None)\<close>])
+            apply (simp (no_asm_simp))
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>prevs(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
+            apply (simp (no_asm_simp))
+            apply force
+            apply (subst fun_upd_twist[of _ _ prevs])
+            apply force
+            apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_twist2)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_idem[of \<open>nxts(_ := _)\<close>])
+            apply (simp (no_asm_simp))
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_twist[of _ _ nxts])
+            apply force
+            apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>prevs(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
+            apply (simp (no_asm_simp))
+            apply force
+            apply (subst fun_upd_idem[of \<open>prevs(parent := None)(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
+            apply (simp (no_asm_simp))
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_twist[of _ _ prevs])
+            apply force
+            apply (simp (no_asm_simp))
+            done
+          subgoal
+            apply (simp (no_asm_simp) add: hp_set_all_def hp_update_nxt_def fun_upd_idem fun_upd_twist
+              hp_update_prev_def)
+            apply (subst fun_upd_idem[of \<open>(prevs(parent \<mapsto> node (last xs)))(ch := None)(node (hd ch\<^sub>y) \<mapsto> ch)\<close>])
+            apply (simp (no_asm_simp))
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_twist2)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_idem[of \<open>nxts(node (last xs) \<mapsto> parent)\<close>])
+            apply (simp (no_asm_simp))
+            apply (smt (z3) IntI Un_iff empty_iff mem_Collect_eq option.simps(9) option_hd_Some_hd)
+            apply (subst fun_upd_twist[of _ _ nxts])
+            apply force
+            apply (simp (no_asm))
+            done
+          done
+          apply (rule TrueI)
+          done
+        done
+      subgoal premises p
+        using p(1-10) p(12)[symmetric] dist2 \<V>
+        using sc'
+        by (cases \<open>the (scores j) < the (scores i)\<close>)
+         (simp_all add: x y split: if_split)
+      done
+qed
+
+definition vsids_merge_pairs where
+  \<open>vsids_merge_pairs = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) j. do {
+  REC\<^sub>T (\<lambda>f (arr, j). do {
+    ASSERT (hp_read_nxt j arr \<noteq> None);
+    ASSERT (j \<in> \<V>);
+    let curr = the (hp_read_nxt j arr);
+    let maybe_next = hp_read_nxt curr arr;
+    if maybe_next = None then RETURN ((\<V>, arr, h), curr)
+    else do {
+      ASSERT (maybe_next \<noteq> None);
+      let next = the (maybe_next);
+      if hp_read_nxt next arr = None then hp_link curr next (\<V>, arr, h)
+      else do {
+       ASSERT (hp_read_nxt next arr \<noteq> None);
+       ((\<V>, arr, h), m) \<leftarrow> f (arr, the (hp_read_nxt next arr));
+       ((\<V>, arr, h), n) \<leftarrow> hp_link curr next (\<V>, arr, h);
+       ((\<V>, arr, h), p) \<leftarrow> hp_link m n (\<V>, arr, h);
+       RETURN ((\<V>, arr, h), p)
+    }
+   }
+  }) (arr, j)
+  })\<close>
+
+lemma
+  assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
+  shows \<open>vsids_merge_pairs arr j \<le> SPEC(\<lambda>(arr, n). encoded_hp_prop_list2_conc arr [the (VSIDS.merge_pairs xs)])\<close>
+proof -
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
+    dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (xs))))\<close> and
+    \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+  show ?thesis
+    unfolding vsids_merge_pairs_def arr prod.simps
+    apply (rule RECT_rule)
+   subgoal
+      unfolding case_prod_beta
+      by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
+
+oops
+thm RECT_rule
+
+  term VSIDS.insert
+thm VSIDS.insert.simps[unfolded VSIDS.link.simps]
+  VSIDS.link.simps[unfolded VSIDS.insert.simps]
 
 text \<open>
 The choice of the current rule sets took a very long time and I am still unsure that this is the
