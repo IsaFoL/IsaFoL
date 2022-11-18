@@ -1641,6 +1641,14 @@ definition propositional_model2 :: "'v total_interpretation \<Rightarrow> ('f, '
   (infix "\<Turnstile>\<^sub>p2" 50) where
   \<open>J \<Turnstile>\<^sub>p2 \<N> \<equiv> ({} = ((proj\<^sub>\<bottom> \<N>) proj\<^sub>J J))\<close>
 
+lemma subset_model_p2: \<open>\<N>' \<subseteq> \<N> \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N> \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N>'\<close>
+  by (simp add: enabled_projection_def propositional_model2_def propositional_projection_def subset_eq)
+
+lemma subset_not_model: \<open>\<not> J \<Turnstile>\<^sub>p2 \<N> \<Longrightarrow> \<N> = \<N>\<^sub>1 \<union> \<N>\<^sub>2 \<Longrightarrow> J \<Turnstile>\<^sub>p2 \<N>\<^sub>1 \<Longrightarrow> \<not> J \<Turnstile>\<^sub>p2 \<N>\<^sub>2›
+  unfolding propositional_model2_def propositional_projection_def enabled_projection_def by blast
+
+lemma supset_not_model_p2: \<open>\<N>' \<subseteq> \<N> \<Longrightarrow> \<not> J \<Turnstile>\<^sub>p2 \<N>' \<Longrightarrow> \<not> J \<Turnstile>\<^sub>p2 \<N>\<close>
+  using subset_model_p2 by blast
 
 fun sign_to_atomic_formula :: "'v sign \<Rightarrow> 'v formula" where
   \<open>sign_to_atomic_formula (Pos v) = Atom v\<close> |
@@ -2475,20 +2483,23 @@ next
     
         have enabled_N': \<open>enabled_set \<N>' J\<close>
           using enabled_N m_n_subs(2) unfolding enabled_set_def by blast
-        have \<open>finite (\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})\<close> (*{a. \<exists>\<C>\<in>\<N>'. a \<in> (fset (A_of \<C>)) }\<close>*)
-          using m_n_subs(4) by auto
-        then obtain A\<^sub>\<J>\<^sub>' where AJ_is: \<open>fset A\<^sub>\<J>\<^sub>' = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'}\<close>
+
+        let ?\<M>'_sel\<^sub>J = \<open>{\<C>. \<C> \<in> \<M>' \<and> enabled \<C> J}\<close>
+        have \<open>?\<M>'_sel\<^sub>J \<subseteq> \<M>'› by simp
+        have \<open>finite (\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>' \<union> ?\<M>'_sel\<^sub>J})\<close> (*{a. \<exists>\<C>\<in>\<N>'. a \<in> (fset (A_of \<C>)) }\<close>*)
+          using m_n_subs(3) m_n_subs(4) by auto
+        then obtain A\<^sub>\<J>\<^sub>' where AJ_is: \<open>fset A\<^sub>\<J>\<^sub>' = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>' \<union> ?\<M>'_sel\<^sub>J}\<close>
           by (smt (verit, best) fset_cases mem_Collect_eq)
         define \<J>' where \<open>\<J>' = Pair bot A\<^sub>\<J>\<^sub>' \<close>
         have \<open>\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J\<close>
         proof
           fix a
           assume \<open>a \<in> fset (A_of \<J>')\<close>
-          then have \<open>\<exists>\<C>\<in>\<N>'. a \<in> fset (A_of \<C>)\<close>
+          then have \<open>\<exists>\<C>\<in>\<N>' \<union> ?\<M>'_sel\<^sub>J. a \<in> fset (A_of \<C>)\<close>
             unfolding \<J>'_def using AJ_is by auto
           then show \<open>a \<in>\<^sub>t J\<close> 
             using enabled_N' unfolding enabled_set_def enabled_def belong_to_total_def belong_to_def
-            by auto
+            by auto 
         qed
         moreover have \<open>F_of \<J>' = bot\<close>
           unfolding \<J>'_def
@@ -2499,7 +2510,7 @@ next
         ultimately have 
           \<open>\<exists>\<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>' \<and>
            enabled_set \<N>' J \<and> F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J) \<and>
-          (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})\<close>
+          (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>' \<union> {\<C>. \<C> \<in> \<M>' \<and> enabled \<C> J}})\<close>
           using enabled_N' m_n_subs m_proj AJ_is \<J>'_def
           by (metis (mono_tags, lifting) AF.sel(2))
       }
@@ -2508,11 +2519,12 @@ next
       fsets_from_J: \<open>enabled_set \<N> J \<Longrightarrow> \<M>'_of J \<subseteq> \<M> \<and> \<N>'_of J \<subseteq> \<N> \<and> finite (\<M>'_of J) \<and> 
         finite (\<N>'_of J) \<and> (\<M>'_of J) proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J) \<and> enabled_set (\<N>'_of J) J \<and>
         F_of (\<J>'_of J) = bot \<and> (\<forall>a\<in>fset (A_of (\<J>'_of J)). a \<in>\<^sub>t J) \<and>
-        (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})\<close> for J 
+        (fset (A_of (\<J>'_of J)) = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}})\<close> for J 
       using three_skolems[of "\<lambda>U. enabled_set \<N> U" 
         "\<lambda>J \<M>' \<N>' \<J>'. \<M>' \<subseteq> \<M> \<and> \<N>' \<subseteq> \<N> \<and> finite \<M>' \<and> finite \<N>' \<and> \<M>' proj\<^sub>J J \<Turnstile> F_of ` \<N>' \<and> 
         enabled_set \<N>' J \<and> F_of \<J>' = bot \<and> (\<forall>a\<in>fset (A_of \<J>'). a \<in>\<^sub>t J) \<and>
-        (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'})"] by fastforce
+        (fset (A_of \<J>') = \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> \<N>' \<union> {\<C>. \<C> \<in> \<M>' \<and> enabled \<C> J}})"]
+      by force
   
     let ?\<J>'_set = \<open>{\<J>'_of J |J. enabled_set \<N> J}\<close>
     have ex_Js: \<open>\<exists>Js. ?\<J>'_set = \<J>'_of ` Js \<and> (\<forall>J\<in>Js. enabled_set \<N> J)\<close>
@@ -2520,55 +2532,48 @@ next
     have proj_prop_J': \<open>proj\<^sub>\<bottom> ?\<J>'_set = ?\<J>'_set\<close>
       using fsets_from_J unfolding propositional_projection_def by blast
     let ?\<N>'_un = \<open>\<Union>{\<N>'_of J |J. enabled_set \<N> J}\<close>
+    let ?\<M>'_un = \<open>\<Union>{{\<C>. \<C> \<in> \<M>'_of J \<and> enabled \<C> J} |J. enabled_set \<N> J}\<close>
     have A_of_enabled: \<open>enabled_set \<N> J \<Longrightarrow> (fset (A_of (\<J>'_of J)) =
-      \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)})\<close> for J
+      \<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}})\<close> for J
       using fsets_from_J by presburger
-    have A_of_eq: \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union> (fset ` A_of ` ?\<N>'_un)\<close>
+    have A_of_eq: \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union> (fset ` A_of ` ?\<N>'_un) \<union> \<Union> (fset ` A_of ` ?\<M>'_un)\<close>
     proof -
       have \<open>\<Union> (fset ` A_of ` ?\<J>'_set) = \<Union>{fset (A_of (\<J>'_of J)) |J. enabled_set \<N> J}\<close>
         by blast
-      also have \<open>... = \<Union>{\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in> (\<N>'_of J)} |J. enabled_set \<N> J}\<close>
+      also have \<open>... = \<Union>{\<Union>{fset (A_of \<C>) |\<C>. \<C> \<in>
+        (\<N>'_of J) \<union> {\<C>. \<C> \<in> (\<M>'_of J) \<and> enabled \<C> J}} |J. enabled_set \<N> J}\<close>
         using A_of_enabled by (metis (no_types, lifting))
-      also have \<open>... = \<Union>(fset ` A_of ` ?\<N>'_un)\<close> by blast
-      finally show \<open>\<Union>(fset ` A_of ` ?\<J>'_set) = \<Union>(fset ` A_of ` ?\<N>'_un)\<close>.
+      also have \<open>... = \<Union>(fset ` A_of ` (?\<N>'_un \<union> ?\<M>'_un))\<close> by blast
+      finally show \<open>\<Union>(fset ` A_of ` ?\<J>'_set) = \<Union>(fset ` A_of ` ?\<N>'_un) \<union> \<Union> (fset ` A_of ` ?\<M>'_un)\<close>
+        by simp
     qed
   
+    have \<open>\<forall>J. \<not> (enabled_set \<N> J) \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 (\<E>_from \<N>))\<close>
+      using equiv_\<E>_enabled_\<N> by blast
+    then have not_enab_case: \<open>\<forall>J. \<not> (enabled_set \<N> J) \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 ?\<J>'_set \<union> (\<E>_from \<N>))\<close>
+      using supset_not_model_p2 Un_upper2 by blast
+    have \<open>\<forall>J. enabled_set \<N> J \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 ?\<J>'_set)\<close>
+    proof clarsimp
+      fix J
+      assume
+        enab_N_loc: \<open>enabled_set \<N> J\<close> and
+        entails_J: \<open>(J \<Turnstile>\<^sub>p2 ?\<J>'_set)\<close>
+      have A_ok: \<open>fset (A_of (\<J>'_of J)) \<subseteq> total_strip J\<close>
+        using enab_N_loc fsets_from_J by force
+      then have \<open>proj\<^sub>⊥ {\<J>'_of J} proj\<^sub>J J = {bot}\<close>
+        using enab_N_loc fsets_from_J unfolding propositional_projection_def enabled_projection_def
+          by (simp add: enabled_def)
+      then have \<open>\<not> J \<Turnstile>\<^sub>p2 ?\<J>'_set›
+        using A_ok enab_N_loc unfolding propositional_model2_def enabled_def enabled_projection_def proj_prop_J'
+        by auto
+      then show False 
+        using entails_J by auto
+    qed
+    then have enab_case: \<open>\<forall>J. (enabled_set \<N> J) \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 ?\<J>'_set \<union> (\<E>_from \<N>))\<close>
+      using supset_not_model_p2 Un_upper2 by blast
     have \<open>\<forall>J. \<not> (J \<Turnstile>\<^sub>p2 (?\<J>'_set \<union> (\<E>_from \<N>)))\<close>
-    proof -
-      have \<open>\<forall>J. (J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longrightarrow> \<not> enabled_set ?\<N>'_un J)\<close>
-      proof (intro allI impI)
-        fix J
-        assume \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set\<close>
-        then have \<open>{} = ?\<J>'_set proj\<^sub>J J\<close>
-          using proj_prop_J' unfolding propositional_model2_def by argo
-        then have \<open>\<forall>\<J>'\<in>?\<J>'_set. \<not> enabled \<J>' J\<close>
-          unfolding enabled_projection_def by blast
-        then have \<open>\<forall>\<J>'\<in>?\<J>'_set. \<exists>a\<in>fset (A_of \<J>'). a \<notin> total_strip J\<close>
-          unfolding enabled_def by (meson subsetI)
-        then have \<open>\<forall>J'. enabled_set \<N> J' \<longrightarrow> (\<exists>a\<in>fset (A_of (\<J>'_of J')). a \<notin> total_strip J)\<close>
-          using fsets_from_J by blast
-        then obtain a where a_is: \<open>a \<in> fset (A_of (\<J>'_of J'))\<close> \<open>a \<notin> total_strip J\<close> 
-          using J'_is by blast
-        then have \<open>\<exists>\<C>\<in>(\<N>'_of J'). a \<in> fset (A_of \<C>) \<and> a \<notin> total_strip J\<close>
-          using A_of_enabled fsets_from_J J'_is by auto
-        then have \<open>\<exists>\<C>\<in>?\<N>'_un. \<exists>a\<in>fset (A_of \<C>). a \<notin> total_strip J\<close>
-          unfolding enabled_def enabled_set_def
-          using J'_is enabled_def enabled_set_def by auto
-        then have \<open>\<exists>\<C>\<in>?\<N>'_un. \<not> (fset (A_of \<C>) \<subseteq> total_strip J)\<close>
-          by blast
-        then show \<open>\<not> enabled_set ?\<N>'_un J\<close>
-          unfolding enabled_set_def enabled_def by blast
-      qed
-      then have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longrightarrow> \<not> enabled_set \<N> J\<close> for J
-        by (smt (verit) Union_iff enabled_set_def fsets_from_J mem_Collect_eq subset_eq)
-      then have \<open>J \<Turnstile>\<^sub>p2 ?\<J>'_set \<longrightarrow> \<not> (J \<Turnstile>\<^sub>p2 (\<E>_from \<N>))\<close> for J
-        using equiv_\<E>_enabled_\<N>[of J \<N>] by blast
-      then have \<open>\<forall>J. \<not> (J \<Turnstile>\<^sub>p2 ?\<J>'_set \<and> J \<Turnstile>\<^sub>p2 (\<E>_from \<N>))\<close> by blast
-      then show ?thesis
-        unfolding propositional_model2_def enabled_projection_def propositional_projection_def
-        by fast
-    qed
-  
+      using not_enab_case enab_case by blast
+
     then obtain \<S> where S_sub: \<open>\<S> \<subseteq> ?\<J>'_set \<union> (\<E>_from \<N>)\<close> and S_fin: \<open>finite \<S>\<close> and
       S_unsat: \<open>\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<S>\<close>
       using compactness_AF_proj by meson
@@ -2616,9 +2621,7 @@ next
         then show ?thesis
           using v_in_C' unfolding \<S>\<^sub>\<E>'_def by auto
       qed
-(*      then have \<open>\<exists>\<C>''\<in>{Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}.
-        {v} = to_V ` fset (A_of \<C>'')\<close>
-        by force *)
+        thm \<S>\<^sub>\<J>_def
       then obtain \<C>'' where C''_in: \<open>\<C>'' \<in> {AF.Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}\<close> and
         \<open>v \<in> to_V ` fset (A_of \<C>'')\<close> by blast
       then have \<open>\<C>'' = Pair bot {|Pos v|} \<or> \<C>'' = Pair bot {|Neg v|}\<close>
@@ -2638,12 +2641,13 @@ next
             by blast
           then obtain Jc where \<open>\<C>j = \<J>'_of Jc\<close> and enab_jc: \<open>enabled_set \<N> Jc\<close>
             by blast
-          then have \<open>x \<in> \<Union> {fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'_of Jc}\<close>
+          then have \<open>x \<in> \<Union> {fset (A_of \<C>) |\<C>. \<C> \<in> \<N>'_of Jc \<union> {\<C>. \<C> \<in> \<M>'_of Jc \<and> enabled \<C> Jc}}\<close>
             using fsets_from_J x_in by presburger
-          then obtain \<C>n where \<C>n_in: \<open>\<C>n \<in> \<N>'_of Jc\<close> and x_in_goal: \<open>x \<in> fset (A_of \<C>n)\<close> by blast
+          then obtain \<C>n where \<C>n_in: \<open>\<C>n \<in> \<N>'_of Jc\<close> and x_in_goal: \<open>x \<in> fset (A_of \<C>n)\<close> sorry
           have \<open>\<C>n \<in> \<N>\<close> using \<C>n_in fsets_from_J enab_jc by fast
           then show \<open>x \<in> {a. \<exists>\<C>\<in>\<N>. a \<in> fset (A_of \<C>)}\<close>
             using x_in_goal by blast
+              (* this is no longer true, another path must be found *)
         qed
         then have \<open>\<C>'' \<in> \<E>_from \<N>\<close>
           unfolding \<E>_from_def using in_J'_set C''_in unfolding \<S>\<^sub>\<J>_def by blast
@@ -2678,7 +2682,7 @@ next
     have sat_rest: \<open>sat (AF_proj_to_formula_set (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))\<close>
       using E_sat unfolding \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def AF_proj_to_formula_set_def
         propositional_projection_def sat_def by blast
-    have \<open>\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<S>'\<close>
+    have S'_unsat: \<open>\<forall>J. \<not> J \<Turnstile>\<^sub>p2 \<S>'\<close>
       using unsat_AF_simp[OF _ sat_rest empty_inter] S_unsat equiv_prop_entail2_sema2 S_is
       val_from_interp unfolding sat_def by metis
     have ex_fin_Js: \<open>\<exists>Js. \<S>\<^sub>\<J> = \<J>'_of ` Js \<and> (\<forall>J\<in>Js. enabled_set \<N> J) \<and> finite Js\<close>
@@ -2703,18 +2707,39 @@ next
       assume enab_N': \<open>enabled_set \<N>' J\<close>
       thm \<S>'_def
       thm \<S>\<^sub>\<J>_def
+        thm \<S>\<^sub>\<E>'_def
       thm propositional_model2_def
       thm fsets_from_J
-      then have \<open>J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<E>'\<close> sorry
-      then have \<open>\<not> J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<J>\<close> sorry
-      then have  \<open>\<exists>J'\<in>Js. fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close> sorry
-      then obtain J' where J'_in: \<open>J' \<in> Js\<close> and \<open>fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close>
+        find_theorems \<open>_ \<Turnstile>\<^sub>p2 _\<close>
+      then have \<open>J \<Turnstile>\<^sub>p2 \<E>_from \<N>'›
+        using equiv_\<E>_enabled_\<N> by auto
+      moreover have \<open>\<S> \<inter> \<E>_from \<N> \<subseteq> \<E>_from \<N>'›
+        sorry
+      then have \<open>J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<E>'\<close>
+        unfolding \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def using subset_model_p2 by (meson calculation le_infI1)
+      then have \<open>\<not> J \<Turnstile>\<^sub>p2 \<S>\<^sub>\<J>\<close>
+        using subset_not_model S'_unsat unfolding \<S>'_def by blast
+      then have  \<open>\<exists>J'\<in>Js. fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close>
+        unfolding propositional_model2_def \<S>\<^sub>\<J>_def propositional_projection_def enabled_projection_def using Js_is
+        by (smt (verit) Collect_cong Set.empty_def \<S>\<^sub>\<J>_def enabled_def image_iff mem_Collect_eq)
+      then obtain J' where J'_in: \<open>J' \<in> Js\<close> and A_of_J'_in: \<open>fset (A_of (\<J>'_of J')) \<subseteq> total_strip J\<close>
         by blast
       then have \<open>enabled_set \<N> J'\<close>
         using Js_enab by blast
       then have \<open>(\<M>'_of J') proj\<^sub>J J' \<Turnstile> F_of ` (\<N>'_of J')\<close>
         using fsets_from_J by auto
-      moreover have \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close> sorry
+      moreover have \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close>
+      proof -
+        have \<open>\<C> ∈ \<M>'_of J' \<Longrightarrow> enabled \<C> J' \<equiv> enabled \<C> J\<close> for \<C>
+          using A_of_J'_in fsets_from_J Js_enab J'_in
+          sorry
+        then have \<open>(\<C> \<in> \<M>'_of J' \<and> enabled \<C> J') \<equiv> (\<C> \<in> \<M>'_of J' \<and> enabled \<C> J)\<close> for \<C>
+          by (smt (verit, ccfv_threshold))
+        then have \<open>{\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J'} = {\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J}›
+          by simp
+        then show \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close>
+          unfolding enabled_projection_def by blast
+      qed
       ultimately have entails_one: \<open>(\<M>'_of J') proj\<^sub>J J \<Turnstile> F_of ` (\<N>'_of J')\<close> by simp
       have subs_M: \<open>\<M>'_of J' proj\<^sub>J J \<subseteq> \<M>' proj\<^sub>J J\<close>
         using J'_in using enabled_projection_def unfolding \<M>'_def by auto
