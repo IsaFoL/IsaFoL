@@ -521,9 +521,6 @@ next
         subsumeseq_term.simps)
 qed
 
-lemma is_ground_cls_add_mset: "is_ground_cls (add_mset L C) \<longleftrightarrow> is_ground_lit L \<and> is_ground_cls C"
-  by (auto simp: is_ground_cls_def)
-
 lemma vars_subst_lit_eq_vars_subst_atm: "vars_lit (L \<cdot>l \<sigma>) = vars_term (atm_of L \<cdot>a \<sigma>)"
   by (cases L) simp_all
 
@@ -697,22 +694,6 @@ lemma disjoint_vars_set_minus_empty_vars:
   shows "disjoint_vars_set (N - {C}) \<longleftrightarrow> disjoint_vars_set N"
   using assms unfolding disjoint_vars_set_def disjoint_vars_iff_inter_empty by blast
 
-lemma grounding_of_subst_cls_subset:
-  shows "grounding_of_cls (C \<cdot> \<mu>) \<subseteq> grounding_of_cls C"
-    (is "?lhs \<subseteq> ?rhs")
-proof (rule subsetI)
-  fix D
-  assume "D \<in> ?lhs"
-  then obtain \<gamma> where D_def: "D = C \<cdot> \<mu> \<cdot> \<gamma>" and gr_\<gamma>: "is_ground_subst \<gamma>"
-    unfolding grounding_of_cls_def mem_Collect_eq by auto
-
-  show "D \<in> ?rhs"
-    unfolding grounding_of_cls_def mem_Collect_eq
-    unfolding D_def
-    using is_ground_comp_subst[OF gr_\<gamma>, of \<mu>]
-    by force
-qed
-
 lemma subst_cls_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_cls C = {} \<Longrightarrow> C \<cdot> \<sigma> = C"
   by (metis (mono_tags, lifting) Int_iff empty_iff mem_Collect_eq same_on_vars_clause
       subst_cls_id_subst subst_domain_def)
@@ -733,9 +714,8 @@ lemma valid_grounding_of_renaming:
   assumes "is_renaming \<rho>"
   shows "I \<TTurnstile>s grounding_of_cls (C \<cdot> \<rho>) \<longleftrightarrow> I \<TTurnstile>s grounding_of_cls C"
 proof -
-  have "grounding_of_cls (C \<cdot> \<rho>) = grounding_of_cls C" (is "?lhs = ?rhs")
-    by (metis (no_types, lifting) assms subset_antisym subst_cls_comp_subst
-        subst_cls_eq_grounding_of_cls_subset_eq subst_cls_id_subst substitution_ops.is_renaming_def)
+  have "grounding_of_cls (C \<cdot> \<rho>) = grounding_of_cls C"
+    by (rule grounding_of_subst_cls_renaming_ident[OF \<open>is_renaming \<rho>\<close>])
   thus ?thesis
     by simp
 qed
