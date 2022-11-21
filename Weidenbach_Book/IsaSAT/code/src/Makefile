@@ -89,7 +89,7 @@ declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(i64)\
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
-	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) $(CFLAGS) -static -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
 
 competition:
 	$(CLANG) $(CFLAGS) -DNOOPTIONS=1 -DNOPROFILING -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat

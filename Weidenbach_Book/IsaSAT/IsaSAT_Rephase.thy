@@ -175,8 +175,8 @@ definition current_phase_letter :: \<open>64 word \<Rightarrow> 64 word\<close> 
       else 70)
      \<close>
 
-definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase,
+definition phase_rephase :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>phase_rephase = (\<lambda>end_of_phase b (\<phi>, target_assigned, target, best_assigned, best, _, curr_phase,
      length_phase).
   do {
       let target_assigned = 0;
@@ -210,7 +210,7 @@ definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Right
 
 lemma phase_rephase_spec:
   assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
-  shows \<open>phase_rephase b \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+  shows \<open>phase_rephase end_of_phase b \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
 proof -
   obtain \<phi>' target_assigned target best_assigned best end_of_phase curr_phase where
     \<phi>: \<open>\<phi> = (\<phi>', target_assigned, target, best_assigned, best, end_of_phase, curr_phase)\<close>

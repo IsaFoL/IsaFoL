@@ -1793,21 +1793,21 @@ lemmas end_of_restart_phase_impl_refine[sepref_fr_rules] =
     unfolded heuristic_assn_alt_def[symmetric]]
 
 lemma incr_restart_phase_end_stats_alt_def:
-  \<open>incr_restart_phase_end_stats = (\<lambda>(fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted).
+  \<open>incr_restart_phase_end_stats = (\<lambda>end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted).
   (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted))\<close>
-  by auto
+  by (auto intro!: ext)
 
 sepref_def incr_restart_phase_end_stats_impl [llvm_inline]
-  is \<open>RETURN o incr_restart_phase_end_stats\<close>
-  :: \<open>heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  is \<open>uncurry (RETURN oo incr_restart_phase_end_stats)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   supply[[goals_limit=1]]
   unfolding heuristic_int_assn_def incr_restart_phase_end_stats_alt_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def incr_restart_phase_end_impl
-  is \<open>RETURN o incr_restart_phase_end\<close>
-  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  is \<open>uncurry (RETURN oo incr_restart_phase_end)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   supply[[goals_limit=1]]
   unfolding incr_restart_phase_end_def
   by sepref
@@ -1840,7 +1840,7 @@ sepref_def reset_added_heur_stats2_impl
 
 
 lemma reset_added_heur_stats2_reset_added_heur_stats:
-  \<open>(reset_added_heur_stats2, RETURN o (reset_added_heur_stats)) \<in> heur_int_rel \<rightarrow> \<langle>heur_int_rel\<rangle>nres_rel\<close>
+  \<open>(reset_added_heur_stats2, RETURN o reset_added_heur_stats) \<in> heur_int_rel \<rightarrow> \<langle>heur_int_rel\<rangle>nres_rel\<close>
   unfolding fref_param1
   apply (intro frefI fref_param1 nres_relI)
   apply (subst comp_def)
