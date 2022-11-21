@@ -53,6 +53,7 @@ proof -
     subgoal by simp
     apply assumption
     subgoal by simp
+    subgoal by simp
     done
    show \<open>(S, S') \<in> twl_st_heur_loop''''uu r u\<Longrightarrow>
      update_all_phases S \<le> \<Down> ({(T, T'). (T,T')\<in>twl_st_heur_loop''''uu r u \<and> T' = S'}) (RETURN (id S'))\<close> for S S'
@@ -67,6 +68,7 @@ proof -
     apply assumption
     subgoal by simp
     apply assumption
+    subgoal by simp
     subgoal by simp
     done
 qed

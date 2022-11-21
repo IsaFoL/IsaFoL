@@ -16,14 +16,17 @@ definition cdcl_twl_stgy_restart_abs_wl_heur_inv2 where
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur_loop \<and> (T, T') \<in> twl_st_heur_loop \<and>
       (\<not>brk\<longrightarrow>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' (brk, T', last_GC, last_Rephase))))\<close>
 
-(*TODO FIX rephasing probably does not work after GC*)
+text \<open>It would be better to add a backtrack to level 0 before instead of delaying the restart.\<close>
 definition update_all_phases :: \<open>isasat \<Rightarrow> (isasat) nres\<close> where
   \<open>update_all_phases = (\<lambda>S. do {
-     let lcount = get_global_conflict_count S;
-     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
-     S \<leftarrow> (if end_of_restart_phase > lcount then RETURN S else update_restart_phases S);
-     S \<leftarrow> (if end_of_rephasing_phase_st S > lcount then RETURN S else rephase_heur_st S);
-     RETURN S
+     if (isa_count_decided_st S = 0) then do {
+       let lcount = get_global_conflict_count S;
+       end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
+       S \<leftarrow> (if end_of_restart_phase > lcount then RETURN S else update_restart_phases S);
+       S \<leftarrow> (if end_of_rephasing_phase_st S > lcount then RETURN S else rephase_heur_st S);
+       RETURN S
+    }
+    else RETURN S
   })\<close>
 
 definition isasat_fast_slow :: \<open>isasat \<Rightarrow> isasat nres\<close> where

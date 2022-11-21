@@ -1363,6 +1363,31 @@ definition vsids_merge_pairs where
   }) (arr, j)
   })\<close>
 
+thm VSIDS.pass\<^sub>1.simps VSIDS.pass\<^sub>2.simps
+text \<open>In an imperative setting use the two pass approaches is better than the alternative.\<close>
+definition vsids_pass\<^sub>1 where
+  \<open>vsids_pass\<^sub>1 = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) (j::'a). do {
+
+  ((\<V>, arr, h), j, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, finished). \<not>finished)
+  (\<lambda>((\<V>, arr, h), j, _). do {
+    if j = None then RETURN ((\<V>, arr, h), j, True)
+    else do {
+    let j = the j;
+    let nxt = hp_read_nxt j arr;
+    if nxt = None then RETURN ((\<V>, arr, h), nxt, True)
+    else do {
+      ASSERT (nxt \<noteq> None);
+      let nnxt = hp_read_nxt (the nxt) arr;
+      ((\<V>, arr, h), n) \<leftarrow> hp_link j (the nxt) (\<V>, arr, h);
+      RETURN ((\<V>, arr, h), nnxt, False)
+   }}
+  })
+  ((\<V>, arr, h), Some j, False);
+  RETURN (\<V>, arr, h)
+  })\<close>
+
+
+thm VSIDS.pass\<^sub>1.simps VSIDS.pass\<^sub>2.simps
 lemma
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
   shows \<open>vsids_merge_pairs arr j \<le> SPEC(\<lambda>(arr, n). encoded_hp_prop_list2_conc arr [the (VSIDS.merge_pairs xs)])\<close>
@@ -1376,9 +1401,11 @@ proof -
   show ?thesis
     unfolding vsids_merge_pairs_def arr prod.simps
     apply (rule RECT_rule)
-   subgoal
+    subgoal
       unfolding case_prod_beta
       by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
+    subgoal
+      
 
 oops
 thm RECT_rule
