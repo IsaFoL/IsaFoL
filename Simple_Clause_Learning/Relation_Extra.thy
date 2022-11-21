@@ -6,12 +6,6 @@ lemma totalp_on_insert:
   "totalp_on (insert a A) R \<longleftrightarrow> (\<forall>b \<in> A. a \<noteq> b \<longrightarrow> R a b \<or> R b a) \<and> totalp_on A R"
   by (auto simp add: totalp_on_def)
 
-lemma reflclp_ident_if_reflp: "reflp R \<Longrightarrow> R\<^sup>=\<^sup>= = R"
-  by (auto dest: reflpD)
-
-lemma reflp_reflclp[simp]: "reflp R\<^sup>=\<^sup>="
-  by (simp add: reflp_def)
-
 lemma transp_reflclp: "transp R \<Longrightarrow> transp R\<^sup>=\<^sup>="
   unfolding transp_def by blast
 
@@ -32,7 +26,7 @@ lemma partial_orderp_reflclp_if_strict_orderp:
   shows "partial_orderp R\<^sup>=\<^sup>="
 proof -
   have "reflp R\<^sup>=\<^sup>="
-    by (rule reflp_reflclp)
+    by (rule reflp_on_reflclp)
   moreover have "transp R\<^sup>=\<^sup>="
     using assms transp_reflclp by blast
   moreover have "antisymp R\<^sup>=\<^sup>="
