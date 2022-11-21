@@ -2120,8 +2120,8 @@ definition reduce_interval_init :: \<open>64 word\<close> where \<open>reduce_in
 text \<open>This value is taken from CaDiCaL.\<close>
 definition inprocessing_interval_init :: \<open>64 word\<close> where \<open>inprocessing_interval_init = 100000\<close>
 
-definition rephasing_initial_phase :: \<open>64 word\<close> where \<open>rephasing_initial_phase = 10\<close>
-definition rephasing_end_of_initial_phase :: \<open>64 word\<close> where \<open>rephasing_end_of_initial_phase = 10000\<close>
+definition rephasing_initial_phase :: \<open>64 word\<close> where \<open>rephasing_initial_phase = 3\<close>
+definition rephasing_end_of_initial_phase :: \<open>64 word\<close> where \<open>rephasing_end_of_initial_phase = 50000\<close>
 
 definition subsuming_length_initial_phase :: \<open>64 word\<close> where \<open>subsuming_length_initial_phase = 10000\<close>
 
