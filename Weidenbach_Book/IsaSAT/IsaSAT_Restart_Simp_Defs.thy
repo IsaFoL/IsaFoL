@@ -22,8 +22,8 @@ definition update_all_phases :: \<open>isasat \<Rightarrow> (isasat) nres\<close
      if (isa_count_decided_st S = 0) then do {
        let lcount = get_global_conflict_count S;
        end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
-       S \<leftarrow> (if end_of_restart_phase > lcount then RETURN S else update_restart_phases S);
-       S \<leftarrow> (if end_of_rephasing_phase_st S > lcount then RETURN S else rephase_heur_st S);
+       S \<leftarrow> (if end_of_restart_phase < lcount then update_restart_phases S else RETURN S);
+       S \<leftarrow> (if get_restart_phase S = STABLE_MODE \<and> end_of_rephasing_phase_st S < lcount then rephase_heur_st S else RETURN S);
        RETURN S
     }
     else RETURN S

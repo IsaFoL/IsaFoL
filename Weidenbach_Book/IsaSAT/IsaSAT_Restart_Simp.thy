@@ -46,12 +46,12 @@ proof -
     apply (intro frefI nres_relI)
     apply (simp only: uncurry_def prod.case comp_def)
     apply refine_vcg
+    apply assumption
+    apply assumption
+    subgoal by simp
     subgoal by simp
     apply assumption
     subgoal by simp
-    apply assumption
-    subgoal by simp
-    apply assumption
     subgoal by simp
     subgoal by simp
     done
@@ -62,12 +62,12 @@ proof -
     apply (subst (1) Let_def)
     apply (subst (1) Let_def)
     apply refine_vcg
+    apply assumption
+    apply assumption
+    subgoal by simp
     subgoal by simp
     apply assumption
     subgoal by simp
-    apply assumption
-    subgoal by simp
-    apply assumption
     subgoal by simp
     subgoal by simp
     done
