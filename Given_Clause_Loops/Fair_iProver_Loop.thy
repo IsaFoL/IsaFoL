@@ -878,9 +878,9 @@ proof -
 
     have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
       using IL_complete_Liminf[OF il_chain act pas bot unsat'] .
-    thus "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
+    thus "\<exists>B' \<in> Bot_F. B' \<in> state_union (Liminf_fstate Sts)"
       unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
       unfolding Liminf_fstate_def Liminf_llist_def by auto
   }
 qed
