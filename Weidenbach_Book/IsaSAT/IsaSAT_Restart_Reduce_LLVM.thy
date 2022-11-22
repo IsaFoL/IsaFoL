@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Reduce_LLVM
-  imports IsaSAT_Restart_Reduce IsaSAT_Setup_LLVM IsaSAT_VMTF_State_LLVM
+  imports IsaSAT_Restart_Reduce_Defs IsaSAT_Setup_LLVM IsaSAT_VMTF_State_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI
@@ -287,8 +287,7 @@ lemma sort_vdom_heur_alt_def:
 sepref_def sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
-    [[goals_limit=1]]
+  supply [[goals_limit=1]]
   unfolding sort_vdom_heur_alt_def EQ_def
   by sepref
 
