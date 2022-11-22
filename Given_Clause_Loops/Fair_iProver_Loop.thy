@@ -816,8 +816,8 @@ theorem
 proof -
   have chain: "chain (\<leadsto>ILf) Sts"
     by (rule full_chain_imp_chain[OF full])
-  have gc_chain: "chain (\<leadsto>GC) (lmap fstate Sts)"
-    using chain fair_IL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
+  have il_chain: "chain (\<leadsto>IL) (lmap fstate Sts)"
+    by (rule chain_lmap[OF _ chain]) (use fair_IL_step_imp_IL_step in force)
 
   have inv: "OLf_invariant (lhd Sts)"
     using init initial_OLf_invariant by blast
@@ -838,7 +838,7 @@ proof -
 
     have lim: "Liminf_llist (lmap fstate Sts) = fstate (llast Sts)"
       using lfinite_Liminf_llist fin nnul
-      by (metis chain_not_lnull gc_chain lfinite_lmap llast_lmap)
+      by (metis chain_not_lnull il_chain lfinite_lmap llast_lmap)
 
     have last_inv: "OLf_invariant (llast Sts)"
       by (rule chain_ILf_invariant_llast[OF chain inv fin])
@@ -866,8 +866,7 @@ proof -
   qed
 
   show "saturated (state (Liminf_fstate Sts))"
-    using act fair_otter_loop.Liminf_fstate_commute fair_otter_loop_axioms
-      gc.fair_implies_Liminf_saturated gc_chain gc_fair gc_to_red pas by fastforce
+    using IL_Liminf_saturated act Liminf_fstate_commute il_chain pas by fastforce
 
   {
     assume
@@ -878,7 +877,7 @@ proof -
       using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
     have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
-      by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
+      using IL_complete_Liminf[OF il_chain act pas bot unsat'] .
     thus "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
       unfolding Liminf_fstate_def Liminf_fstate_commute by auto
     thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
