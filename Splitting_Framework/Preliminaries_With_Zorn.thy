@@ -2223,6 +2223,31 @@ lemma prop_proj_sub: \<open>proj\<^sub>\<bottom> \<N> = \<N> \<Longrightarrow> \
 lemma prop_proj_distrib: \<open>proj\<^sub>\<bottom> (A \<union> B) = proj\<^sub>\<bottom> A \<union> proj\<^sub>\<bottom> B\<close>
   unfolding propositional_projection_def by blast
 
+lemma v_in_\<E>: \<open>Pair bot {|Pos v|} \<in> \<E>_from \<N> \<or> Pair bot {|Neg v|} \<in> \<E>_from \<N> ⟹
+  \<exists>\<C>\<in>\<N>. v \<in> to_V ` (fset (A_of \<C>))\<close>
+  unfolding \<E>_from_def by (smt (verit, ccfv_threshold) AF.sel(2) fthe_felem_eq image_iff
+    mem_Collect_eq neg.simps(1) neg.simps(2) to_V.elims to_V.simps(1) to_V.simps(2))
+
+lemma a_in_\<E>: \<open>\<exists>J. J \<Turnstile>\<^sub>p2 \<E>_from \<N> \<Longrightarrow> Pair bot {|neg a|} \<in> \<E>_from \<N> \<Longrightarrow> \<not> (Pair bot {|a|} \<in> \<E>_from \<N>)\<close>
+proof
+  assume
+    e_sat: \<open>\<exists>J. J \<Turnstile>\<^sub>p2 \<E>_from \<N>\<close>  and
+    neg_a_in: \<open>Pair bot {|neg a|} \<in> \<E>_from \<N>\<close> and
+    a_in: \<open>AF.Pair bot {|a|} \<in> \<E>_from \<N>\<close>
+  obtain J where J_sat_e: \<open>J \<Turnstile>\<^sub>p2 \<E>_from \<N>\<close>
+    using e_sat by blast
+  have neg_a_in_J: \<open>neg a \<in> total_strip J\<close>
+    using a_in J_sat_e unfolding propositional_model2_def \<E>_from_def enabled_projection_def
+      propositional_projection_def enabled_def by (smt (verit, ccfv_SIG) AF.collapse AF.inject
+      bot_fset.rep_eq empty_iff empty_subsetI finsert.rep_eq insert_subset mem_Collect_eq
+      neg.simps(1) neg.simps(2) to_V.elims val_strip_neg val_strip_pos)
+  have \<open>neg a \<in> total_strip J \<Longrightarrow> \<not> J \<Turnstile>\<^sub>p2 \<E>_from \<N>\<close>
+    using neg_a_in J_sat_e enabled_def
+      enabled_projection_def prop_proj_\<E>_from propositional_model2_def by fastforce
+  then show False
+    using neg_a_in_J J_sat_e by blast
+qed
+
 lemma equiv_\<E>_enabled_\<N>:
   shows \<open>J \<Turnstile>\<^sub>p2 \<E>_from \<N> \<longleftrightarrow> enabled_set \<N> J\<close>
   unfolding propositional_model2_def enabled_set_def enabled_def propositional_projection_def
@@ -2588,9 +2613,9 @@ next
       unfolding \<S>'_def \<S>\<^sub>\<J>_def \<S>\<^sub>\<E>'_def \<S>\<^sub>\<E>_def by (smt (verit, best) inf_le1)
     have S_is: \<open>\<S> = (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>') \<union> \<S>'\<close>
       using S_sub \<S>\<^sub>\<J>_def \<S>\<^sub>\<E>_def \<S>'_def \<S>\<^sub>\<E>'_def by blast
-    have \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') = {}\<close>
+    have empty_inter_in_S: \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') = {}\<close>
     proof (rule ccontr)
-      assume \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') \<noteq> {}\<close>
+      assume contra: \<open>to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>')) \<inter> to_V ` \<Union> (fset ` A_of ` \<S>') \<noteq> {}\<close>
       then obtain v where v_in1: \<open>v \<in> to_V ` \<Union> (fset ` A_of ` (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))\<close>
         and v_in2: \<open>v \<in> to_V ` \<Union> (fset ` A_of ` \<S>')\<close> by blast
       obtain \<C> where C_in: \<open>\<C> \<in> \<S>\<^sub>\<E> - \<S>\<^sub>\<E>'\<close> and v_in_C: \<open>v \<in> to_V ` (fset (A_of \<C>))\<close>
@@ -2603,7 +2628,27 @@ next
         using v_in2 by blast
       consider (J) \<open>\<C>' \<in> \<S>\<^sub>\<J>\<close> | (E') \<open>\<C>' \<in> \<S>\<^sub>\<E>'\<close>
         using C'_in \<S>'_def by blast
-      then have \<open>\<exists>\<C>''\<in>{Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}. v \<in> to_V ` fset (A_of \<C>'')\<close>
+      then show False
+      proof cases
+        case J
+        then obtain J1 where C'_is: \<open>\<C>' = \<J>'_of J1\<close> and enab1: \<open>enabled_set \<N> J1\<close>
+          unfolding \<S>\<^sub>\<J>_def by blast
+        obtain \<C>2 where \<open>v \<in> to_V ` (fset (A_of \<C>2))\<close> and \<open>\<C>2 \<in> \<N>›
+          using fsets_from_J[OF enab1] C'_is v_in_\<E>  C_in C_is1 by (metis (no_types, lifting) DiffE
+            IntE \<S>\<^sub>\<E>_def neg.simps(1) neg.simps(2) to_V.elims v_in_\<E> v_is)
+        then have \<open>Pair bot {|Pos v|} \<in> \<E>_from \<N> \<or> Pair bot {|Neg v|} \<in> \<E>_from \<N>\<close>
+          by (metis C_in C_is1 DiffE IntE \<S>\<^sub>\<E>_def neg.simps(1) neg.simps(2) to_V.elims v_is)
+        then have  \<open>Pair bot {|a|} \<in> \<E>_from \<N> \<or> Pair bot {|neg a|} \<in> \<E>_from \<N>\<close>
+          using v_is C_in C_is1 \<S>\<^sub>\<E>_def by force
+           
+        then show False
+          sorry
+      next
+        case E'
+        show False
+          sorry
+      qed
+    (*  then have \<open>\<exists>\<C>''\<in>{Pair bot {|neg a|} |a. \<exists>\<C>\<in>\<S>\<^sub>\<J>. a \<in> fset (A_of \<C>)}. v \<in> to_V ` fset (A_of \<C>'')\<close>
       proof cases
         case J
         then obtain a' \<C>'' where C''_is: \<open>\<C>'' = Pair bot {|neg a'|}\<close> and
@@ -2673,7 +2718,7 @@ next
           unfolding \<S>\<^sub>\<E>'_def using C''_in c_c''_eq by simp
         then show ?thesis using C_in by auto
       qed
-    qed
+    qed *)
     then have empty_inter: \<open>\<Union> (atoms ` (AF_proj_to_formula_set (\<S>\<^sub>\<E> - \<S>\<^sub>\<E>'))) \<inter>
         \<Union> (atoms ` (AF_proj_to_formula_set \<S>')) = {}\<close>
       using atoms_simp proj_S' prop_proj_distrib prop_proj_sub
@@ -2731,8 +2776,8 @@ next
       moreover have \<open>(\<M>'_of J') proj\<^sub>J J' = (\<M>'_of J') proj\<^sub>J J\<close>
       proof -
         have \<open>\<C> ∈ \<M>'_of J' \<Longrightarrow> enabled \<C> J' \<equiv> enabled \<C> J\<close> for \<C>
-          using A_of_J'_in fsets_from_J Js_enab J'_in
-          sorry
+          using A_of_J'_in fsets_from_J Js_enab J'_in 
+          by (smt (verit, del_insts) S_is S_sub atoms_simp empty_inter le_sup_iff proj_prop_J' prop_proj_\<E>_from prop_proj_distrib prop_proj_sub contra)
         then have \<open>(\<C> \<in> \<M>'_of J' \<and> enabled \<C> J') \<equiv> (\<C> \<in> \<M>'_of J' \<and> enabled \<C> J)\<close> for \<C>
           by (smt (verit, ccfv_threshold))
         then have \<open>{\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J'} = {\<C>. \<C> \<in> \<M>'_of J' \<and> enabled \<C> J}›
