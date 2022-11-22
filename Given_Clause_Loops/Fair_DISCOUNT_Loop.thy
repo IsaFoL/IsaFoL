@@ -789,9 +789,8 @@ qed
 
 theorem
   assumes
-    inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_DLf_state (lhd Sts)" 
+    init: "is_initial_DLf_state (lhd Sts)"
   shows
     fair_DL_Liminf_saturated: "saturated (labeled_formulas_of (Liminf_fstate Sts))" and
     fair_DL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
