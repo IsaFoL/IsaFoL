@@ -967,8 +967,8 @@ theorem
 proof -
   have chain: "chain (\<leadsto>ZLf) Sts"
     by (rule full_chain_imp_chain[OF full])
-  have lgc_chain: "chain (\<leadsto>LGC) (lmap zl_fstate Sts)"
-    using chain fair_ZL_step_imp_GC_step chain_lmap by (smt (verit) zl_fstate.cases)
+  have zl_chain: "chain (\<leadsto>ZL) (lmap zl_fstate Sts)"
+    using chain fair_ZL_step_imp_ZL_step chain_lmap by (smt (verit) zl_fstate.cases)
 
   have inv: "ZLf_invariant (lhd Sts)"
     using init initial_ZLf_invariant by auto
@@ -1042,7 +1042,9 @@ proof -
     unfolding zl_fstate_alt_def hd' zl_state_alt_def prod.sel using infs by simp
 
   show "saturated (labeled_formulas_of (Liminf_zl_fstate Sts))"
-    sorry
+    using ZL_Liminf_saturated[of "lmap zl_fstate Sts", unfolded llist.map_comp,
+          OF zl_chain act pas_fml no_prems_init t_inf]
+    unfolding Liminf_zl_fstate_commute .
 
   {
     assume
@@ -1053,8 +1055,8 @@ proof -
       using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
 
     have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
-      by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
-            OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
+      using ZL_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
+          OF zl_chain act pas_fml no_prems_init t_inf bot unsat'] .
     thus "\<exists>B' \<in> Bot_F. B' \<in> formulas_union (Liminf_zl_fstate Sts)"
       unfolding Liminf_zl_fstate_def Liminf_zl_fstate_commute by auto
     thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
