@@ -1364,33 +1364,53 @@ definition vsids_merge_pairs where
   })\<close>
 
 thm VSIDS.pass\<^sub>1.simps VSIDS.pass\<^sub>2.simps
-text \<open>In an imperative setting use the two pass approaches is better than the alternative.\<close>
+text \<open>In an imperative setting use the two pass approaches is better than the alternative.
+
+The \<^term>\<open>e::nat\<close> of the loop is a dummy counter.\<close>
 definition vsids_pass\<^sub>1 where
   \<open>vsids_pass\<^sub>1 = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) (j::'a). do {
 
-  ((\<V>, arr, h), j, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, finished). \<not>finished)
-  (\<lambda>((\<V>, arr, h), j, _). do {
-    if j = None then RETURN ((\<V>, arr, h), j, True)
+  ((\<V>, arr, h), j, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, e). j \<noteq> None)
+  (\<lambda>((\<V>, arr, h), j, e::nat). do {
+    if j = None then RETURN ((\<V>, arr, h), None, e)
     else do {
     let j = the j;
     let nxt = hp_read_nxt j arr;
-    if nxt = None then RETURN ((\<V>, arr, h), nxt, True)
+    if nxt = None then RETURN ((\<V>, arr, h), nxt, e+1)
     else do {
       ASSERT (nxt \<noteq> None);
       let nnxt = hp_read_nxt (the nxt) arr;
       ((\<V>, arr, h), n) \<leftarrow> hp_link j (the nxt) (\<V>, arr, h);
-      RETURN ((\<V>, arr, h), nnxt, False)
+      RETURN ((\<V>, arr, h), nnxt, e+2)
    }}
   })
-  ((\<V>, arr, h), Some j, False);
+  ((\<V>, arr, h), Some j, 0::nat);
   RETURN (\<V>, arr, h)
   })\<close>
 
+lemma sum_list_mset_nodes_pass\<^sub>1 [simp]: \<open>sum_list (map mset_nodes (VSIDS.pass\<^sub>1 (xs))) = sum_list (map mset_nodes xs)\<close>
+  apply (induction xs rule: VSIDS.pass\<^sub>1.induct)
+  apply auto
+  apply (case_tac h1, case_tac h2)
+  apply auto
+  done
 
-thm VSIDS.pass\<^sub>1.simps VSIDS.pass\<^sub>2.simps
+lemma drop_is_single_iff: \<open>drop e xs = [a] \<longleftrightarrow> last xs = a \<and> e = length xs - 1 \<and> xs \<noteq> []\<close>
+  apply auto
+  apply (metis append_take_drop_id last_snoc)
+  by (metis diff_diff_cancel diff_is_0_eq' length_drop length_list_Suc_0 n_not_Suc_n nat_le_linear)
+
+
+lemma distinct_mset_mono': \<open>distinct_mset D \<Longrightarrow> D' \<subseteq># D \<Longrightarrow> distinct_mset D'\<close>
+  by (metis distinct_mset_union subset_mset.le_iff_add)
+
+lemma pass\<^sub>1_append_even: \<open>even (length xs) \<Longrightarrow> VSIDS.pass\<^sub>1 (xs @ ys) = VSIDS.pass\<^sub>1 xs @ VSIDS.pass\<^sub>1 ys\<close>
+  by (induction xs rule: VSIDS.pass\<^sub>1.induct) auto
+
 lemma
+  fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
-  shows \<open>vsids_merge_pairs arr j \<le> SPEC(\<lambda>(arr, n). encoded_hp_prop_list2_conc arr [the (VSIDS.merge_pairs xs)])\<close>
+  shows \<open>vsids_pass\<^sub>1 arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1 xs))\<close>
 proof -
   obtain prevs nxts childs scores \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
@@ -1398,13 +1418,124 @@ proof -
     \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
     by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
         encoded_hp_prop_def\<close>)
+  define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, e).
+    encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1(take e xs) @ drop e xs) \<and> nnxt = map_option node (option_hd (drop e xs)) \<and>
+    e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = length xs) \<and> (nnxt \<noteq> None \<longrightarrow> even e))\<close>
+  have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), Some j, 0)\<close>
+    using assms unfolding I_def by (auto simp: arr)
+  have I_no_next: \<open>I ((\<V>, arr, ch'), None, Suc e)\<close>
+    if \<open>I ((\<V>, arr, ch'), Some y, e)\<close> and
+      \<open>hp_read_nxt y arr = None\<close>
+    for s a b prevs x2 nxts children x1b x2b x1c x2c x1d x2d arr e y ch' \<V>
+  proof -
+    have \<open>e = length xs - 1\<close> \<open>xs \<noteq> []\<close>
+      using that
+      apply (cases \<open>drop e xs\<close>; cases \<open>hd (drop e xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def)
+      apply (subst (asm) hp_next_children_hd_simps)
+      apply simp
+      apply simp
+      apply (rule distinct_mset_mono)
+        prefer 2
+      apply assumption
+      apply (auto simp: drop_is_single_iff)
+      using that
+      apply (auto simp: I_def)
+      done
+    then show ?thesis
+      using that pass\<^sub>1_append_even[of \<open>butlast xs\<close> \<open>[last xs]\<close>]
+      by (auto simp: I_def)
+  qed
+
+  have link_pre1: \<open>encoded_hp_prop_list2_conc (x1, x1a, x2a)
+    (VSIDS.pass\<^sub>1 (take x2b xs) @
+    xs!x2b # xs!(Suc x2b) # drop (x2b+2) xs)\<close> (is ?H1) and
+    link_pre2: \<open>the x1b = node (xs ! x2b)\<close>  (is ?H2) and
+    link_pre3: \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close> (is ?H3) 
+    if \<open>I s\<close> and
+      s: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, e). j \<noteq> None) xa\<close>
+      \<open>s = (a, b)\<close>
+      \<open>b = (x1b, x2b)\<close>
+      ‹x2 = (x1a, x2a)\<close>
+      \<open>a = (x1, x2)\<close>
+      ‹x1b \<noteq> None\<close> and
+      nxt: ‹hp_read_nxt (the x1b) x1a \<noteq> None\<close>
+    for s a b x1 x2 x1a x2a x1b x2b
+  proof -
+    have \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take x2b xs) @ drop x2b xs) x1a\<close>
+      \<open>x2b < length xs\<close>
+      \<open>x1b = Some (node (hd (drop x2b xs)))\<close>
+      using that
+      by (auto simp: I_def encoded_hp_prop_list2_conc_def)
+    then have \<open>drop x2b xs \<noteq> []\<close> \<open>tl (drop x2b xs) \<noteq> []\<close> \<open>Suc x2b < length xs\<close> \<open>the x1b = node (xs ! x2b)\<close>
+      \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close>
+      using nxt unfolding s apply -
+      apply (cases \<open>drop x2b xs\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (cases \<open>drop x2b xs\<close>; cases \<open>hd (drop x2b xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (cases \<open>drop x2b xs\<close>; cases \<open>hd (drop x2b xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (smt (verit) Suc_le_eq append_eq_conv_conj hp_next_None_notin_children
+        hp_next_children.elims length_Suc_conv_rev list.discI list.inject nat_less_le
+        option_last_Nil option_last_Some_iff(2))
+      apply (cases \<open>drop x2b xs\<close>; cases \<open>hd (drop x2b xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (subst (asm) hp_next_children_hd_simps)
+      apply simp
+      apply simp
+      apply (rule distinct_mset_mono)
+        prefer 2
+      apply assumption
+      apply (auto simp: drop_is_single_iff)
+      apply (metis hd_drop_conv_nth hp.sel(1) list.sel(1))
+      apply (cases \<open>drop x2b xs\<close>; cases \<open>tl (drop x2b xs)\<close>; cases \<open>hd (drop x2b xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      by (metis Cons_nth_drop_Suc list.inject nth_via_drop)
+      
+    then show ?H1
+      using that \<open>x2b < length xs\<close>
+      by (cases \<open>drop x2b xs\<close>; cases \<open>tl (drop x2b xs)\<close>)
+        (auto simp: I_def encoded_hp_prop_list2_conc_def Cons_nth_drop_Suc)
+    show ?H2 ?H3 using \<open>the x1b = node (xs ! x2b)\<close>
+      \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close> by fast+
+  qed
+
   show ?thesis
-    unfolding vsids_merge_pairs_def arr prod.simps
-    apply (rule RECT_rule)
+    unfolding vsids_pass\<^sub>1_def arr prod.simps
+    apply (refine_vcg WHILET_rule[where I=I and R = \<open>measure (\<lambda>(arr, nnxt::'a option, e). length xs -e)\<close>]
+      hp_link)
+    subgoal by auto
+    subgoal by (rule I0)
+    subgoal by (auto simp: I_def)
+    subgoal by (auto simp: I_def)
+    subgoal for s a b prevs' x2 nxts' children' x1b x2b x1c x2c x1d
+      by (auto simp: I_no_next)
+    subgoal by (auto simp: I_def)
+    apply (rule link_pre1; assumption)
+    apply (rule link_pre2; assumption)
+    subgoal premises p for s a b x1 x2 x1a x2a x1b x2b
+      using link_pre3[OF p(1-8)] p(9-)
+      by auto
+    subgoal for s a b x1 x2 x1a x2a x1b x2b x aa ba x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+      apply (auto simp: I_def)
+      sorry
+    subgoal
+      by (auto simp: I_def)
+    subgoal
+      by (auto simp: I_def)
+      oops
+      
+apply (rule WHILET_rule)
     subgoal
       unfolding case_prod_beta
       by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
-    subgoal
+supply [[unify_trace_failure]]
+    apply (rule wf)
+    apply (rule pre)
+      subgoal
+        using pre
+        apply (rule pre)
       
 
 oops
