@@ -957,14 +957,10 @@ theorem
   assumes
     full: "full_chain (\<leadsto>ZLf) Sts" and
     init: "is_initial_ZLf_state (lhd Sts)" and
-    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
-    bot: "B \<in> Bot_F" and
-    unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts"
   shows
-    fair_ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
-      (is ?thesis1) and
+    fair_ZL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)" and
     fair_ZL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-      (is ?thesis2)
 proof -
   have chain: "chain (\<leadsto>ZLf) Sts"
     by (rule full_chain_imp_chain[OF full])
@@ -1042,16 +1038,23 @@ proof -
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap zl_fstate Sts))"
     unfolding zl_fstate_alt_def hd' zl_state_alt_def prod.sel using infs by simp
 
-  have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
-    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+  {
+    fix B
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
 
-  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
-    by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
-          OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
-  thus ?thesis1
-    unfolding Liminf_zl_fstate_def Liminf_zl_fstate_commute by auto
-  thus ?thesis2
-    unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+    have unsat': "fst ` snd (lhd (lmap zl_fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
+      using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+
+    have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> zl_fstate) Sts)"
+      by (rule lgc_complete_Liminf[of "lmap zl_fstate Sts", unfolded llist.map_comp,
+            OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
+    thus "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
+      unfolding Liminf_zl_fstate_def Liminf_zl_fstate_commute by auto
+    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+  }
 qed
 
 end

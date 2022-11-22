@@ -806,13 +806,13 @@ qed
 theorem
   assumes
     full: "full_chain (\<leadsto>ILf) Sts" and
-    init: "is_initial_OLf_state (lhd Sts)" and
-    bot: "B \<in> Bot_F" and
-    unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    init: "is_initial_OLf_state (lhd Sts)"
   shows
-    fair_IL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" (is ?thesis1) and
-    fair_IL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-      (is ?thesis2)
+    fair_IL_Liminf_saturated: "saturated (state (Liminf_fstate Sts))" and
+    fair_IL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>B' \<in> Bot_F. B' \<in> state_union (Liminf_fstate Sts)" and
+    fair_IL_complete: "B \<in> Bot_F \<Longrightarrow> fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
 proof -
   have chain: "chain (\<leadsto>ILf) Sts"
     by (rule full_chain_imp_chain[OF full])
@@ -865,15 +865,25 @@ proof -
       by simp
   qed
 
-  have unsat': "fst ` lhd (lmap fstate Sts) \<Turnstile>\<inter>\<G> {B}"
-    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+  show "saturated (state (Liminf_fstate Sts))"
+    using act fair_otter_loop.Liminf_fstate_commute fair_otter_loop_axioms
+      gc.fair_implies_Liminf_saturated gc_chain gc_fair gc_to_red pas by fastforce
 
-  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
-    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
-  thus ?thesis1
-    unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-  thus ?thesis2
-    unfolding Liminf_fstate_def Liminf_llist_def by auto
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+
+    have unsat': "fst ` lhd (lmap fstate Sts) \<Turnstile>\<inter>\<G> {B}"
+      using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+
+    have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap fstate Sts)"
+      by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat'])
+    thus "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)"
+      unfolding Liminf_fstate_def Liminf_fstate_commute by auto
+    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      unfolding Liminf_fstate_def Liminf_llist_def by auto
+  }
 qed
 
 end
