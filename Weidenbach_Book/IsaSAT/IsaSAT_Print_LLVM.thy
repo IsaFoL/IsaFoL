@@ -50,6 +50,9 @@ definition print_forward_tried :: \<open>64 word \<Rightarrow> 64 word \<Rightar
 definition print_forward_strengthened :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> unit\<close> where
   \<open>print_forward_strengthened _ _ = ()\<close>
 
+definition print_rephased :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> unit\<close> where
+  \<open>print_rephased _ _ = ()\<close>
+
 sepref_def print_propa_impl
   is \<open>RETURN o print_propa\<close>
   :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
@@ -147,6 +150,12 @@ sepref_def print_forward_strengthened_impl
   is \<open>uncurry (RETURN oo print_forward_strengthened)\<close>
   :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
   unfolding print_forward_strengthened_def
+  by sepref
+
+sepref_def print_rephased_impl
+  is \<open>uncurry (RETURN oo print_rephased)\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_rephased_def
   by sepref
 
 end

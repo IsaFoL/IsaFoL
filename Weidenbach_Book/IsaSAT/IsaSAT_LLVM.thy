@@ -314,6 +314,7 @@ definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<R
       let (_ :: unit) = print_forward_tried (stats_forward_tried stats) (stats_forward_rounds stats);
       let (_ :: unit) = print_forward_subsumed (stats_forward_subsumed stats) (stats_forward_tried stats);
       let (_ :: unit) = print_forward_strengthened (stats_forward_strengthened stats) (stats_forward_tried stats);
+      let (_ :: unit) = print_rephased (stats_rephase stats) (stats_conflicts stats);
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 

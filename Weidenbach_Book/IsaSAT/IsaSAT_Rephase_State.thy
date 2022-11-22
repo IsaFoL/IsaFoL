@@ -30,11 +30,12 @@ definition rephase_heur_st :: \<open>isasat \<Rightarrow> isasat nres\<close> wh
       let lcount = get_global_conflict_count S;
       let heur = get_heur S;
       let stats = get_stats_heur S;
+      let stats = incr_rephase_total stats;
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur lcount b heur;
       let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
                   b stats (get_learned_count S);
-      RETURN (set_heur_wl_heur heur S)
+      RETURN (set_stats_wl_heur stats (set_heur_wl_heur heur S))
    })\<close>
 
 lemma rephase_heur_st_spec:

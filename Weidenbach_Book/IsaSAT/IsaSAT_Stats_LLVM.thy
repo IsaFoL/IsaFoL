@@ -60,6 +60,9 @@ definition binary_stats_assn :: \<open>inprocessing_binary_stats \<Rightarrow> i
 definition pure_lits_stats_assn :: \<open>inprocessing_pure_lits_stats \<Rightarrow> inprocessing_pure_lits_stats \<Rightarrow> _\<close> where
   \<open>pure_lits_stats_assn = word64_assn \<times>\<^sub>a word64_assn\<close>
 
+definition rephase_stats_assn :: \<open>rephase_stats \<Rightarrow> rephase_stats \<Rightarrow> _\<close> where
+  \<open>rephase_stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>aword64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+
 definition empty_search_stats where
   \<open>empty_search_stats = (0,0,0,0,0,0,0,0,0,0)\<close>
 
@@ -124,13 +127,22 @@ lemma stats_bottom:
   \<open>(uncurry0 (return\<^sub>M 0), uncurry0 (RETURN 0)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a word32_assn\<close>
   by (sepref_to_hoare; vcg; fail)+
 
+definition empty_rephase_stats :: \<open>rephase_stats\<close> where
+  \<open>empty_rephase_stats = (0,0,0,0,0,0)\<close>
+
+sepref_def empty_rephase_stats_impl
+  is \<open>uncurry0 (RETURN empty_rephase_stats)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a rephase_stats_assn\<close>
+  unfolding empty_rephase_stats_def rephase_stats_assn_def by sepref
+
 schematic_goal mk_free_search_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE search_stats_assn ?fr\<close> and
   mk_free_binary_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE binary_stats_assn ?fr2\<close> and
   mk_free_subsumption_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE subsumption_stats_assn ?fr3\<close> and
   mk_free_ema_assn[sepref_frame_free_rules]: \<open>MK_FREE ema_assn ?fr4\<close>and
-  mk_free_pure_lits_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE pure_lits_stats_assn ?fr5\<close>
+  mk_free_pure_lits_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE pure_lits_stats_assn ?fr5\<close> and
+  mk_free_rephase_stats_assn[sepref_frame_free_rules]: \<open>MK_FREE rephase_stats_assn ?fr6\<close>
   unfolding search_stats_assn_def binary_stats_assn_def subsumption_stats_assn_def
-    pure_lits_stats_assn_def
+    pure_lits_stats_assn_def rephase_stats_assn_def
   by synthesize_free+
 
 sepref_def free_search_stats_assn
@@ -175,6 +187,11 @@ sepref_def free_lbd_size_limit_assn
   unfolding lbd_size_limit_assn_def
   by sepref
 
+sepref_def free_rephase_stats_assn
+  is \<open>mop_free\<close>
+  :: \<open>rephase_stats_assn\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+  by sepref
+
 lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a unit_assn \<Longrightarrow> MK_FREE R f\<close>
   unfolding mop_free_def
   apply (rule MK_FREEI)
@@ -194,13 +211,13 @@ lemma mop_free_hnr': \<open>(f, mop_free) \<in> R\<^sup>d \<rightarrow>\<^sub>a 
 
 
 type_synonym isasat_stats_assn = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
-  inprocessing_pure_lits_stats, 32 word \<times> 64 word, 64 word, 64 word,
+  inprocessing_pure_lits_stats, 32 word \<times> 64 word, rephase_stats, 64 word,
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
 
 definition isasat_stats_assn :: \<open>isasat_stats \<Rightarrow> isasat_stats_assn \<Rightarrow> _ \<Rightarrow> bool\<close> where
   \<open>isasat_stats_assn = tuple16_assn search_stats_assn binary_stats_assn subsumption_stats_assn ema_assn
- pure_lits_stats_assn lbd_size_limit_assn word64_assn word64_assn word64_assn word64_assn
+ pure_lits_stats_assn lbd_size_limit_assn rephase_stats_assn word64_assn word64_assn word64_assn
  word64_assn word64_assn word64_assn word64_assn word32_assn word64_assn\<close>
 
 definition extract_search_strategy_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
@@ -221,6 +238,9 @@ definition extract_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> _\<close
 definition extract_lbd_size_limit_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
   \<open>extract_lbd_size_limit_stats = tuple16_ops.remove_f empty_lsize_limit_stats\<close>
 
+definition extract_rephase_stats :: \<open>isasat_stats \<Rightarrow> _\<close> where
+  \<open>extract_rephase_stats = tuple16_ops.remove_g empty_rephase_stats\<close>
+
 global_interpretation tuple16 where
   a_assn = search_stats_assn and
   b_assn = binary_stats_assn and
@@ -228,7 +248,7 @@ global_interpretation tuple16 where
   d_assn = ema_assn and
   e_assn = pure_lits_stats_assn and
   f_assn = lbd_size_limit_assn and
-  g_assn = word64_assn and
+  g_assn = rephase_stats_assn and
   h_assn = word64_assn and
   i_assn = word64_assn and
   j_assn = word64_assn and
@@ -250,8 +270,8 @@ global_interpretation tuple16 where
   e = empty_pure_lits_stats_impl and
   f_default = \<open>empty_lsize_limit_stats\<close> and
   f = \<open>empty_lsize_limit_stats_impl\<close> and
-  g_default = \<open>0\<close> and
-  g = \<open>Mreturn 0\<close> and
+  g_default = \<open>empty_rephase_stats\<close> and
+  g = \<open>empty_rephase_stats_impl\<close> and
   h_default = \<open>0\<close> and
   h = \<open>Mreturn 0\<close> and
   i_default = \<open>0\<close> and
@@ -276,7 +296,7 @@ global_interpretation tuple16 where
   d_free = free_ema_assn and
   e_free = free_pure_lits_stats_assn and
   f_free = free_lbd_size_limit_assn and
-  g_free = free_word64_assn and
+  g_free = free_rephase_stats_assn and
   h_free = free_word64_assn and
   i_free = free_word64_assn and
   j_free = free_word64_assn and
@@ -292,7 +312,8 @@ global_interpretation tuple16 where
     \<open>remove_c = extract_subsumption_stats\<close> and
     \<open>remove_d = extract_avg_lbd\<close> and
     \<open>remove_e = extract_pure_lits_stats\<close> and
-    \<open>remove_f = extract_lbd_size_limit_stats\<close>
+    \<open>remove_f = extract_lbd_size_limit_stats\<close> and
+    \<open>remove_g = extract_rephase_stats\<close>
   apply unfold_locales
   apply (rule empty_search_stats_impl.refine empty_binary_stats_impl.refine
     empty_subsumption_stats_impl.refine ema_init_bottom_impl.refine empty_pure_lits_stats_impl.refine
@@ -306,6 +327,8 @@ global_interpretation tuple16 where
     free_word64_assn.refine[THEN mop_free_hnr']
     free_word32_assn.refine[THEN mop_free_hnr']
     free_lbd_size_limit_assn.refine[THEN mop_free_hnr']
+    free_rephase_stats_assn.refine[THEN mop_free_hnr']
+    empty_rephase_stats_impl.refine
     )+
   subgoal unfolding isasat_stats_assn_def tuple16_ops.isasat_assn_def ..
   subgoal unfolding extract_search_strategy_stats_def ..
@@ -314,6 +337,7 @@ global_interpretation tuple16 where
   subgoal unfolding extract_avg_lbd_def ..
   subgoal unfolding extract_pure_lits_stats_def ..
   subgoal unfolding extract_lbd_size_limit_stats_def ..
+  subgoal unfolding extract_rephase_stats_def ..
   done
 
 sepref_register
@@ -366,7 +390,7 @@ lemma "is_pure R \<Longrightarrow> R\<^sup>k = R\<^sup>d"
 lemma isasat_stats_assn_pure_keep:
   \<open>isasat_stats_assn\<^sup>d = isasat_stats_assn\<^sup>k\<close>
   unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def lbd_size_limit_assn_def
-    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def
+    prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def rephase_stats_assn_def
     binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy ..
 
 lemmas [unfolded isasat_stats_assn_pure_keep, sepref_fr_rules] =
@@ -376,6 +400,8 @@ lemmas [unfolded isasat_stats_assn_pure_keep, sepref_fr_rules] =
   remove_d_code.refine
   remove_e_code.refine
   remove_f_code.refine
+  remove_g_code.refine
+
 
 named_theorems stats_extractors \<open>Definition of all functions modifying the state\<close>
 
@@ -391,12 +417,14 @@ lemmas [stats_extractors] =
   tuple16_ops.remove_d_def
   tuple16_ops.remove_e_def
   tuple16_ops.remove_f_def
+  tuple16_ops.remove_g_def
   tuple16_ops.update_a_def
   tuple16_ops.update_b_def
   tuple16_ops.update_c_def
   tuple16_ops.update_d_def
   tuple16_ops.update_e_def
   tuple16_ops.update_f_def
+  tuple16_ops.update_g_def
 
 
 text \<open>We do some cheating to simplify code generation, instead of using our alternative definitions
@@ -408,16 +436,18 @@ lemma stats_code_unfold:
   \<open>get_pure_lits_stats x = fst (extract_pure_lits_stats x)\<close>
   \<open>get_avg_lbd_stats x = fst (extract_avg_lbd x)\<close>
   \<open>get_lsize_limit_stats x = fst (extract_lbd_size_limit_stats x)\<close>
+  \<open>get_rephase_stats x = fst (extract_rephase_stats x)\<close>
   \<open>set_propagation_stats a x = update_a a x\<close>
   \<open>set_binary_stats b x = update_b b x\<close>
   \<open>set_subsumption_stats c x = update_c c x\<close>
   \<open>set_avg_lbd_stats lbd x = update_d lbd x\<close>
   \<open>set_pure_lits_stats e x = update_e e x\<close>
   \<open>set_lsize_limit_stats f x = update_f f x\<close>
+  \<open>set_rephase_stats g x = update_g g x\<close>
   by (cases x; auto simp: get_search_stats_def get_avg_lbd_stats_def
-    set_avg_lbd_stats_def set_propagation_stats_def set_binary_stats_def
+    set_avg_lbd_stats_def set_propagation_stats_def set_binary_stats_def get_rephase_stats_def
     set_subsumption_stats_def set_pure_lits_stats_def get_lsize_limit_stats_def
-    extract_lbd_size_limit_stats_def
+    extract_lbd_size_limit_stats_def set_rephase_stats_def extract_rephase_stats_def
     get_subsumption_stats_def get_pure_lits_stats_def set_lsize_limit_stats_def
     get_binary_stats_def stats_extractors; fail)+
 
@@ -433,11 +463,12 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
   remove_d_code_alt_def[unfolded tuple16.remove_d_code_alt_def Mreturn_comp_Tuple16]
   remove_e_code_alt_def[unfolded tuple16.remove_e_code_alt_def Mreturn_comp_Tuple16]
   remove_f_code_alt_def[unfolded tuple16.remove_f_code_alt_def Mreturn_comp_Tuple16]
+  remove_g_code_alt_def[unfolded tuple16.remove_g_code_alt_def Mreturn_comp_Tuple16]
 
 lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure isasat_stats_assn\<close>
   unfolding isasat_stats_assn_def tuple16_assn_tuple16_rel search_stats_assn_def
     prod_assn_pure_conv pure_lits_stats_assn_def subsumption_stats_assn_def lbd_size_limit_assn_def
-    binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy by auto
+    binary_stats_assn_def pure_lits_stats_assn_def pure_keep_detroy rephase_stats_assn_def by auto
 
 lemma id_unat[sepref_fr_rules]:
   \<open>(Mreturn o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -1008,6 +1039,19 @@ sepref_def stats_forward_rounds_impl
   unfolding stats_forward_rounds_def stats_code_unfold
   by sepref
 
+sepref_def Rephase_Stats_incr_total_impl
+  is \<open>RETURN o Rephase_Stats_incr_total\<close>
+  :: \<open>rephase_stats_assn\<^sup>d \<rightarrow>\<^sub>a rephase_stats_assn\<close>
+  unfolding rephase_stats_assn_def Rephase_Stats_incr_total_def
+  by sepref
+
+
+sepref_def Rephase_Stats_total_impl
+  is \<open>RETURN o Rephase_Stats_total\<close>
+  :: \<open>rephase_stats_assn\<^sup>d \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding rephase_stats_assn_def Rephase_Stats_total_def
+  by sepref
+
 sepref_register stats_forward_tried stats_forward_subsumed stats_forward_strengthened
 
 sepref_def stats_forward_subsumed_impl
@@ -1035,6 +1079,7 @@ sepref_def empty_stats_impl
   is \<open>uncurry0 (RETURN empty_stats)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding empty_stats_def empty_search_stats_def[symmetric]
+  apply (subst empty_rephase_stats_def[symmetric])
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
   apply (subst empty_pure_lits_stats_def[symmetric])
@@ -1054,10 +1099,24 @@ sepref_def empty_stats_clss_impl
   is \<open>(RETURN o empty_stats_clss)\<close>
   :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
   unfolding empty_stats_clss_def empty_search_stats_clss_def[symmetric]
+  apply (subst empty_rephase_stats_def[symmetric])
   unfolding empty_subsumption_stats_def[symmetric]
   unfolding empty_binary_stats_def[symmetric]
   apply (subst empty_pure_lits_stats_def[symmetric])
   apply (subst empty_lsize_limit_stats_def[symmetric])
+  by sepref
+
+sepref_register Rephase_Stats_incr_total Rephase_Stats_total stats_rephase incr_rephase_total
+sepref_def stats_rephase_impl
+  is \<open>RETURN o stats_rephase\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding stats_rephase_def stats_code_unfold
+  by sepref
+
+sepref_def incr_rephase_total_impl
+  is \<open>RETURN o incr_rephase_total\<close>
+  :: \<open>isasat_stats_assn\<^sup>k \<rightarrow>\<^sub>a isasat_stats_assn\<close>
+  unfolding incr_rephase_total_def stats_code_unfold
   by sepref
 
 export_llvm empty_stats_impl

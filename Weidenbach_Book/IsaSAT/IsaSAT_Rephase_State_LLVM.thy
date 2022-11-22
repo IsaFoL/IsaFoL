@@ -64,6 +64,7 @@ lemma rephase_heur_st_alt_def:
       let lc = get_global_conflict_count S;
       let (heur, S) = extract_heur_wl_heur S;
       let (stats, S) = extract_stats_wl_heur S;
+      let stats = incr_rephase_total stats;
       let (lcount, S) = extract_lcount_wl_heur S;
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur lc b heur;
