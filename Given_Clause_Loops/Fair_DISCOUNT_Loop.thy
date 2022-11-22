@@ -791,18 +791,18 @@ theorem
   assumes
     inf_have_prems: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> \<noteq> []" and
     full: "full_chain (\<leadsto>DLf) Sts" and
-    init: "is_initial_DLf_state (lhd Sts)" and
-    bot: "B \<in> Bot_F" and
-    unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    init: "is_initial_DLf_state (lhd Sts)" 
   shows
-    fair_DL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_fstate Sts)" (is ?thesis1) and
-    fair_DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-      (is ?thesis2)
+    fair_DL_Liminf_saturated: "saturated (labeled_formulas_of (Liminf_fstate Sts))" and
+    fair_DL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>B' \<in> Bot_F. B' \<in> formulas_union (Liminf_fstate Sts)" and
+    fair_DL_complete: "B \<in> Bot_F \<Longrightarrow> passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
 proof -
   have chain: "chain (\<leadsto>DLf) Sts"
     by (rule full_chain_imp_chain[OF full])
-  have lgc_chain: "chain (\<leadsto>LGC) (lmap fstate Sts)"
-    using chain fair_DL_step_imp_GC_step chain_lmap by (smt (verit) fstate.cases)
+  hence dl_chain: "chain (\<leadsto>DL) (lmap fstate Sts)"
+    by (smt (verit, del_insts) chain_lmap fair_DL_step_imp_DL_step mset_of_fstate.cases)
 
   have inv: "DLf_invariant (lhd Sts)"
     using init initial_DLf_invariant by auto
@@ -863,19 +863,33 @@ proof -
   note pas_fml = pas_fml_and_t_inf[THEN conjunct1] and
     t_inf = pas_fml_and_t_inf[THEN conjunct2]
 
+  have pas_fml': "passive_subset (Liminf_llist (lmap snd (lmap fstate Sts))) = {}"
+    using pas_fml by (simp add: llist.map_comp)
+  have t_inf': "Liminf_llist (lmap fst (lmap fstate Sts)) = {}"
+    using t_inf by (simp add: llist.map_comp)
+
   have no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd (lmap fstate Sts))"
     using inf_have_prems by blast
 
-  have unsat': "fst ` snd (lhd (lmap fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
-    using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+  show "saturated (labeled_formulas_of (Liminf_fstate Sts))"
+    using DL_Liminf_saturated[OF dl_chain act pas_fml' no_prems_init t_inf']
+    unfolding Liminf_fstate_commute[folded llist.map_comp] .
 
-  have "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap (snd \<circ> fstate) Sts)"
-    by (rule lgc_complete_Liminf[of "lmap fstate Sts", unfolded llist.map_comp,
-          OF lgc_chain act pas_fml no_prems_init t_inf bot unsat'])
-  thus ?thesis1
-    unfolding Liminf_fstate_def Liminf_fstate_commute by auto
-  thus ?thesis2
-    unfolding Liminf_fstate_def Liminf_llist_def by auto
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "passive_formulas_of (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+
+    have unsat': "fst ` snd (lhd (lmap fstate Sts)) \<Turnstile>\<inter>\<G> {B}"
+      using unsat unfolding lhd_lmap by (cases "lhd Sts") (auto intro: no_labels_entails_mono_left)
+
+    show "\<exists>B' \<in> Bot_F. B' \<in> formulas_union (Liminf_fstate Sts)"
+      using DL_complete_Liminf[OF dl_chain act pas_fml' no_prems_init t_inf' bot unsat']
+      unfolding Liminf_fstate_commute[folded llist.map_comp]
+      by (cases "Liminf_fstate Sts") auto
+    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
+      unfolding Liminf_fstate_def Liminf_llist_def by auto
+  }
 qed
 
 end
