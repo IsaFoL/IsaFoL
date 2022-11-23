@@ -6,6 +6,7 @@ theory IsaSAT_VSIDS
     Isabelle_LLVM.IICF
     Isabelle_LLVM.LLVM_DS_Open_List
     Isabelle_LLVM.LLVM_DS_Array_List_Pure*)
+    Weidenbach_Book_Base.Explorer
 begin
 
 text \<open>We first tried to use the heapmap, but this attempt was a terrible failure, because as useful
@@ -861,10 +862,10 @@ definition hp_update_nxt where
   \<open>hp_update_nxt i nxt = (\<lambda>(prevs, nxts, childs, scores). (prevs, nxts(i:=nxt), childs, scores))\<close>
 
 
-abbreviation hp_read_nxt :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_nxt i \<equiv> (\<lambda>(prevs, nxts, childs). nxts i)\<close>
-abbreviation hp_read_prev :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_prev i \<equiv> (\<lambda>(prevs, nxts, childs). prevs i)\<close>
-abbreviation hp_read_child :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_child i \<equiv> (\<lambda>(prevs, nxts, childs, scores). childs i)\<close>
-abbreviation hp_read_score :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_score i \<equiv> (\<lambda>(prevs, nxts, childs, scores). scores i)\<close>
+fun hp_read_nxt :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_nxt i (prevs, nxts, childs) = nxts i\<close>
+fun hp_read_prev :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_prev i (prevs, nxts, childs) = prevs i\<close>
+fun hp_read_child :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_child i (prevs, nxts, childs, scores) = childs i\<close>
+fun hp_read_score :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_score i (prevs, nxts, childs, scores) = scores i\<close>
 
 definition hp_insert :: \<open>'a \<Rightarrow> 'b::linorder \<Rightarrow> 'a set \<times> ('a,'b) hp_fun \<times> 'a option \<Rightarrow> ('a set \<times> ('a,'b) hp_fun \<times> 'a option) nres\<close> where
   \<open>hp_insert = (\<lambda>(i::'a) (w::'b) (\<V>::'a set, arr :: ('a, 'b) hp_fun, h :: 'a option). do {
@@ -902,6 +903,8 @@ lemma hp_child_hd[simp]: \<open>hp_child x1 (Hp x1 x2 x3) = option_hd x3\<close>
 lemma encoded_hp_prop_list_encoded_hp_prop[simp]: \<open>encoded_hp_prop_list arr [] h = encoded_hp_prop arr h\<close>
   unfolding encoded_hp_prop_list_def encoded_hp_prop_def by auto
 
+lemma encoded_hp_prop_list_encoded_hp_prop_single[simp]: \<open>encoded_hp_prop_list {#} [arr] h = encoded_hp_prop {#arr#} h\<close>
+  unfolding encoded_hp_prop_list_def encoded_hp_prop_def by auto
 
 lemma hp_insert_spec:
   assumes \<open>encoded_hp_prop_list_conc arr h\<close> and
@@ -1340,28 +1343,6 @@ proof -
       done
 qed
 
-definition vsids_merge_pairs where
-  \<open>vsids_merge_pairs = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) j. do {
-  REC\<^sub>T (\<lambda>f (arr, j). do {
-    ASSERT (hp_read_nxt j arr \<noteq> None);
-    ASSERT (j \<in> \<V>);
-    let curr = the (hp_read_nxt j arr);
-    let maybe_next = hp_read_nxt curr arr;
-    if maybe_next = None then RETURN ((\<V>, arr, h), curr)
-    else do {
-      ASSERT (maybe_next \<noteq> None);
-      let next = the (maybe_next);
-      if hp_read_nxt next arr = None then hp_link curr next (\<V>, arr, h)
-      else do {
-       ASSERT (hp_read_nxt next arr \<noteq> None);
-       ((\<V>, arr, h), m) \<leftarrow> f (arr, the (hp_read_nxt next arr));
-       ((\<V>, arr, h), n) \<leftarrow> hp_link curr next (\<V>, arr, h);
-       ((\<V>, arr, h), p) \<leftarrow> hp_link m n (\<V>, arr, h);
-       RETURN ((\<V>, arr, h), p)
-    }
-   }
-  }) (arr, j)
-  })\<close>
 
 thm VSIDS.pass\<^sub>1.simps VSIDS.pass\<^sub>2.simps
 text \<open>In an imperative setting use the two pass approaches is better than the alternative.
@@ -1369,23 +1350,22 @@ text \<open>In an imperative setting use the two pass approaches is better than 
 The \<^term>\<open>e::nat\<close> of the loop is a dummy counter.\<close>
 definition vsids_pass\<^sub>1 where
   \<open>vsids_pass\<^sub>1 = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) (j::'a). do {
-
-  ((\<V>, arr, h), j, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, e). j \<noteq> None)
-  (\<lambda>((\<V>, arr, h), j, e::nat). do {
-    if j = None then RETURN ((\<V>, arr, h), None, e)
+  ((\<V>, arr, h), j, _, n) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, e, n). j \<noteq> None)
+  (\<lambda>((\<V>, arr, h), j, e::nat, n). do {
+    if j = None then RETURN ((\<V>, arr, h), None, e, n)
     else do {
     let j = the j;
     let nxt = hp_read_nxt j arr;
-    if nxt = None then RETURN ((\<V>, arr, h), nxt, e+1)
+    if nxt = None then RETURN ((\<V>, arr, h), nxt, e+1, j)
     else do {
       ASSERT (nxt \<noteq> None);
       let nnxt = hp_read_nxt (the nxt) arr;
       ((\<V>, arr, h), n) \<leftarrow> hp_link j (the nxt) (\<V>, arr, h);
-      RETURN ((\<V>, arr, h), nnxt, e+2)
+      RETURN ((\<V>, arr, h), nnxt, e+2, n)
    }}
   })
-  ((\<V>, arr, h), Some j, 0::nat);
-  RETURN (\<V>, arr, h)
+  ((\<V>, arr, h), Some j, 0::nat, j);
+  RETURN ((\<V>, arr, h), n)
   })\<close>
 
 lemma sum_list_mset_nodes_pass\<^sub>1 [simp]: \<open>sum_list (map mset_nodes (VSIDS.pass\<^sub>1 (xs))) = sum_list (map mset_nodes xs)\<close>
@@ -1395,22 +1375,27 @@ lemma sum_list_mset_nodes_pass\<^sub>1 [simp]: \<open>sum_list (map mset_nodes (
   apply auto
   done
 
+(*TODO Move*)
 lemma drop_is_single_iff: \<open>drop e xs = [a] \<longleftrightarrow> last xs = a \<and> e = length xs - 1 \<and> xs \<noteq> []\<close>
   apply auto
   apply (metis append_take_drop_id last_snoc)
   by (metis diff_diff_cancel diff_is_0_eq' length_drop length_list_Suc_0 n_not_Suc_n nat_le_linear)
 
-
+(*TODO this is the right ordering for the theorems*)
 lemma distinct_mset_mono': \<open>distinct_mset D \<Longrightarrow> D' \<subseteq># D \<Longrightarrow> distinct_mset D'\<close>
   by (metis distinct_mset_union subset_mset.le_iff_add)
 
 lemma pass\<^sub>1_append_even: \<open>even (length xs) \<Longrightarrow> VSIDS.pass\<^sub>1 (xs @ ys) = VSIDS.pass\<^sub>1 xs @ VSIDS.pass\<^sub>1 ys\<close>
   by (induction xs rule: VSIDS.pass\<^sub>1.induct) auto
 
-lemma
+lemma last_pass\<^sub>1[simp]: "odd (length xs) \<Longrightarrow> last (VSIDS.pass\<^sub>1 xs) = last xs"
+  by (metis VSIDS.pass\<^sub>1.simps(2) append_butlast_last_id even_Suc last_snoc length_append_singleton
+    length_greater_0_conv odd_pos pass\<^sub>1_append_even)
+
+lemma vsids_pass\<^sub>1:
   fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
   assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
-  shows \<open>vsids_pass\<^sub>1 arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1 xs))\<close>
+  shows \<open>vsids_pass\<^sub>1 arr j \<le> SPEC(\<lambda>(arr, j). encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1 xs) \<and> j = node (last (VSIDS.pass\<^sub>1 xs)))\<close>
 proof -
   obtain prevs nxts childs scores \<V> where
     arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
@@ -1418,15 +1403,17 @@ proof -
     \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
     by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
         encoded_hp_prop_def\<close>)
-  define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, e).
-    encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1(take e xs) @ drop e xs) \<and> nnxt = map_option node (option_hd (drop e xs)) \<and>
-    e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = length xs) \<and> (nnxt \<noteq> None \<longrightarrow> even e))\<close>
-  have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), Some j, 0)\<close>
-    using assms unfolding I_def by (auto simp: arr)
-  have I_no_next: \<open>I ((\<V>, arr, ch'), None, Suc e)\<close>
-    if \<open>I ((\<V>, arr, ch'), Some y, e)\<close> and
+  define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, e, k).
+    encoded_hp_prop_list2_conc arr (VSIDS.pass\<^sub>1(take e xs) @ drop e xs) \<and> nnxt = map_option node (option_hd (drop (e) xs)) \<and>
+    e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = length xs) \<and> (nnxt \<noteq> None \<longrightarrow> even e) \<and>
+    k = (if e=0 then j else node (last (VSIDS.pass\<^sub>1(take e xs)))))\<close>
+  have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), Some j, 0, j)\<close>
+    using assms unfolding I_def prod.simps
+    by (cases xs, auto simp: arr; fail)+
+  have I_no_next: \<open>I ((\<V>, arr, ch'), None, Suc e, y)\<close>
+    if \<open>I ((\<V>, arr, ch'), Some y, e, n)\<close> and
       \<open>hp_read_nxt y arr = None\<close>
-    for s a b prevs x2 nxts children x1b x2b x1c x2c x1d x2d arr e y ch' \<V>
+    for s a b prevs x2 nxts children x1b x2b x1c x2c x1d x2d arr e y ch' \<V> n
   proof -
     have \<open>e = length xs - 1\<close> \<open>xs \<noteq> []\<close>
       using that
@@ -1453,14 +1440,15 @@ proof -
     link_pre2: \<open>the x1b = node (xs ! x2b)\<close>  (is ?H2) and
     link_pre3: \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close> (is ?H3) 
     if \<open>I s\<close> and
-      s: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, e). j \<noteq> None) xa\<close>
+      s: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, e, n). j \<noteq> None) xa\<close>
       \<open>s = (a, b)\<close>
-      \<open>b = (x1b, x2b)\<close>
+      "x2b' = (x2b, j)"
+      \<open>b = (x1b, x2b')\<close>
       ‹x2 = (x1a, x2a)\<close>
       \<open>a = (x1, x2)\<close>
       ‹x1b \<noteq> None\<close> and
       nxt: ‹hp_read_nxt (the x1b) x1a \<noteq> None\<close>
-    for s a b x1 x2 x1a x2a x1b x2b
+    for s a b x1 x2 x1a x2a x1b x2b j x2b'
   proof -
     have \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take x2b xs) @ drop x2b xs) x1a\<close>
       \<open>x2b < length xs\<close>
@@ -1484,15 +1472,13 @@ proof -
       apply (subst (asm) hp_next_children_hd_simps)
       apply simp
       apply simp
-      apply (rule distinct_mset_mono)
-        prefer 2
+      apply (rule distinct_mset_mono')
       apply assumption
       apply (auto simp: drop_is_single_iff)
       apply (metis hd_drop_conv_nth hp.sel(1) list.sel(1))
       apply (cases \<open>drop x2b xs\<close>; cases \<open>tl (drop x2b xs)\<close>; cases \<open>hd (drop x2b xs)\<close>)
       apply (auto simp: I_def encoded_hp_prop_list_def)
       by (metis Cons_nth_drop_Suc list.inject nth_via_drop)
-      
     then show ?H1
       using that \<open>x2b < length xs\<close>
       by (cases \<open>drop x2b xs\<close>; cases \<open>tl (drop x2b xs)\<close>)
@@ -1500,940 +1486,276 @@ proof -
     show ?H2 ?H3 using \<open>the x1b = node (xs ! x2b)\<close>
       \<open>the (hp_read_nxt (the x1b) x1a) = node (xs ! Suc x2b)\<close> by fast+
   qed
+  have I_Suc_Suc: \<open>I ((x2c, x2d, xe), hp_read_nxt (the (hp_read_nxt (the nxt) x2a)) x2a, k + 2, n)\<close>
+    if 
+      inv: \<open>I s\<close> and
+      brk: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, e, n). j \<noteq> None) xa\<close> and
+      st: \<open>s = (arr2, b)\<close>
+        \<open>b = (nxt, k')\<close>
+        \<open>k' = (k, j)\<close>
+        \<open>x1a = (x2a, x1b)\<close>
+        \<open>arr2 = (\<V>', x1a)\<close> 
+        \<open>linkedn = (linked, n)\<close>
+        \<open>x1d = (x2d, xe)\<close>
+        \<open>linked = (x2c, x1d)\<close> and
+      nxt: \<open>nxt \<noteq> None\<close> and
+      nxts: \<open>hp_read_nxt (the nxt) x2a \<noteq> None\<close>
+        \<open>hp_read_nxt (the nxt) x2a \<noteq> None\<close> and
+      linkedn: \<open>case linkedn of
+      (arr, n) \<Rightarrow>
+      encoded_hp_prop_list2_conc arr
+      (VSIDS.pass\<^sub>1 (take k xs) @ VSIDS.link (xs ! k) (xs ! Suc k) # drop (k + 2) xs) \<and>
+      n = node (VSIDS.link (xs ! k) (xs ! Suc k))\<close>
+    for s arr2 b \<V>' x1a x2a x1b nxt k linkedn linked n x2c x1d x2d xe j k'
+  proof -
+    have enc: \<open>encoded_hp_prop_list {#} (VSIDS.pass\<^sub>1 (take k xs) @ drop k xs) x2a\<close>
+      \<open>k < length xs\<close>
+      \<open>nxt = Some (node (hd (drop k xs)))\<close> and
+      dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (VSIDS.pass\<^sub>1 (take k xs) @ drop k xs))))\<close>
+      using that
+      by (auto simp: I_def encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def)
+
+    then have \<open>drop k xs \<noteq> []\<close> \<open>tl (drop k xs) \<noteq> []\<close> \<open>Suc k < length xs\<close> \<open>the nxt = node (xs ! k)\<close>
+      using nxt unfolding st apply -
+      apply (cases \<open>drop k xs\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (cases \<open>drop k xs\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (cases \<open>drop k xs\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (metis hp_read_nxt.simps option.sel that(12))
+      apply (cases \<open>drop k xs\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (subst (asm) hp_next_children_hd_simps)
+      apply simp
+      apply simp
+      apply (rule distinct_mset_mono')
+      apply assumption
+      apply (auto simp: drop_is_single_iff)
+      apply (metis Some_to_the Suc_lessI drop_eq_ConsD drop_eq_Nil2 hp_read_nxt.simps nat_in_between_eq(1) option.map(1) option_hd_Nil that(12))
+      apply (cases \<open>drop k xs\<close>; cases \<open>tl (drop k xs)\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      apply (metis hp.sel(1) nth_via_drop)
+      by (metis hp.sel(1) nth_via_drop)
+    then have le: \<open>Suc (Suc k) \<le> length xs\<close>
+      using enc nxts unfolding st nxt apply -
+      apply (cases \<open>drop k xs\<close>; cases \<open>tl (drop k xs)\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def)
+      done
+    have take_nth: \<open>take (Suc (Suc k)) xs = take k xs @ [xs!k, xs!Suc k]\<close>
+      using le by (auto simp: take_Suc_conv_app_nth)
+    have nnxts: \<open>hp_read_nxt (the (hp_read_nxt (node (hd (drop k xs))) x2a)) x2a =
+      map_option node (option_hd (drop (Suc (Suc k)) xs))\<close>
+      using enc nxts le  \<open>tl (drop k xs) \<noteq> []\<close> unfolding st nxt apply -
+      apply (cases \<open>drop k xs\<close>; cases \<open>tl (drop k xs)\<close>; cases \<open>hd (tl (drop k xs))\<close>; cases \<open>hd (drop k xs)\<close>)
+      apply (auto simp: I_def encoded_hp_prop_list_def arr)
+      apply (subst hp_next_children_hd_simps)
+      apply (solves simp)
+      apply (rule distinct_mset_mono'[OF dist])
+      by (auto simp: drop_is_single_iff drop_Suc_nth)
+    show ?thesis
+      using inv nxt le linkedn nnxts
+      unfolding st
+      by (auto simp: I_def take_Suc take_nth pass\<^sub>1_append_even)
+  qed
 
   show ?thesis
     unfolding vsids_pass\<^sub>1_def arr prod.simps
-    apply (refine_vcg WHILET_rule[where I=I and R = \<open>measure (\<lambda>(arr, nnxt::'a option, e). length xs -e)\<close>]
+    apply (refine_vcg WHILET_rule[where I=I and R = \<open>measure (\<lambda>(arr, nnxt::'a option, e, _). length xs -e)\<close>]
       hp_link)
     subgoal by auto
     subgoal by (rule I0)
     subgoal by (auto simp: I_def)
     subgoal by (auto simp: I_def)
-    subgoal for s a b prevs' x2 nxts' children' x1b x2b x1c x2c x1d
+    subgoal for s a b x1 x2 x1a x2a x1b x2b
       by (auto simp: I_no_next)
     subgoal by (auto simp: I_def)
-    apply (rule link_pre1; assumption)
+    apply (rule link_pre1; assumption?)
     apply (rule link_pre2; assumption)
     subgoal premises p for s a b x1 x2 x1a x2a x1b x2b
       using link_pre3[OF p(1-8)] p(9-)
       by auto
-    subgoal for s a b x1 x2 x1a x2a x1b x2b x aa ba x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-      apply (auto simp: I_def)
-      sorry
+    subgoal for s arr2 b \<V>' x1a x2a x1b nxt k linkedn linked n x2c x1d x2d xe
+      by (rule I_Suc_Suc)
     subgoal
       by (auto simp: I_def)
     subgoal
       by (auto simp: I_def)
-      oops
-      
-apply (rule WHILET_rule)
     subgoal
-      unfolding case_prod_beta
-      by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
-supply [[unify_trace_failure]]
-    apply (rule wf)
-    apply (rule pre)
-      subgoal
-        using pre
-        apply (rule pre)
-      
-
-oops
-thm RECT_rule
-
-  term VSIDS.insert
-thm VSIDS.insert.simps[unfolded VSIDS.link.simps]
-  VSIDS.link.simps[unfolded VSIDS.insert.simps]
-
-text \<open>
-The choice of the current rule sets took a very long time and I am still unsure that this is the
-best set of rules. In essence, the rules are doing two things:
-  \<^item> flattening the representation to make it fit into a list;
-  \<^item> representing everything into an array.
-
-Those could be split but I did not find a nice way to do that.
-
-
-We had several attempts over time:
-  \<^item> in the first we could not prove that lists are also well-formed, because we did no keep enough
-  information about the order of the construction.
-  \<^item> in the second version, we kept enough information but could not save trees in order to work 
-  on other parts of the tree. We also could not construct only one list of children at a time.
-
-TODO: unclear if reusing prev for parent and previous is the best idea.
-\<close>
-inductive encoded_pairheap :: \<open>'a pairing_heap list \<Rightarrow> (nat, 'a) hp multiset \<Rightarrow> (nat, 'a) hp list multiset \<Rightarrow> bool\<close> where
-  empty: \<open>encoded_pairheap arr {#} {#}\<close> |
-  leaf: \<open>encoded_pairheap (arr[n := PHeap x None None None]) (add_mset (Hp n x []) {#}) treeLists\<close>
-  if  \<open>encoded_pairheap arr {#} treeLists\<close> \<open>n < length arr\<close> \<open>n \<notin># \<Sum>\<^sub># (mset_nodes `# \<Sum>\<^sub># (mset `# treeLists))\<close>|
-  comb: \<open>encoded_pairheap (arr[m := hp_set_next p (arr!m), p := hp_set_prev m (arr!p)])
-              trees  (add_mset ((Hp m w\<^sub>m child\<^sub>m # Hp p w\<^sub>p child\<^sub>p # child\<^sub>n)) treeLists)\<close>
-  if  \<open>encoded_pairheap arr (add_mset (Hp m w\<^sub>m child\<^sub>m) trees) (add_mset (Hp p w\<^sub>p child\<^sub>p # child\<^sub>n) treeLists)\<close>|
-
-  comb_single: \<open>encoded_pairheap (arr) trees (add_mset (Hp m w\<^sub>m child\<^sub>m # []) treeLists)\<close>
-  if  \<open>encoded_pairheap arr (add_mset (Hp m w\<^sub>m child\<^sub>m) trees) treeLists\<close>|
-
-  add_child: \<open>encoded_pairheap (arr[n := hp_set_child m (arr!n), m := hp_set_prev n (arr!m)]) (add_mset (Hp n w\<^sub>n ((Hp m w\<^sub>m child\<^sub>m # oth))) trees) treeLists\<close>
-  if  \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n []) trees) (add_mset (Hp m w\<^sub>m child\<^sub>m # oth) treeLists)\<close>
-
-lemma encoded_pairheap_distinct_nodes:
-  \<open>encoded_pairheap arr trees treeLists \<Longrightarrow>
-  distinct_mset (\<Sum>\<^sub># (mset_nodes `# trees + mset_nodes `# \<Sum>\<^sub># (mset `# treeLists)))\<close>
-  by (induction rule: encoded_pairheap.induct)
-   (auto simp: ac_simps)
-
-lemma encoded_pairheap_change_irrelevant:
-  \<open>encoded_pairheap arr trees treeLists \<Longrightarrow> n < length arr \<Longrightarrow>
-  n \<notin># \<Sum>\<^sub># (mset_nodes `# trees + mset_nodes `# \<Sum>\<^sub># (mset `# treeLists)) \<Longrightarrow> encoded_pairheap (arr [n := a]) trees treeLists\<close>
-  apply (induction rule: encoded_pairheap.induct)
-  subgoal
-    by (rule encoded_pairheap.empty)
-  subgoal for arr treeLists na x
-    using encoded_pairheap.leaf[of \<open>arr[n := a]\<close> treeLists na x]
-    by (auto simp add: list_update_swap encoded_pairheap.intros(1))
-  subgoal for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-    using encoded_pairheap.comb[of \<open>arr[n := a]\<close> m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists]
-    by (auto simp: list_update_swap)
-  subgoal for arr m w\<^sub>m child\<^sub>m trees
-    using encoded_pairheap.comb_single[of \<open>arr[n := a]\<close> m w\<^sub>m child\<^sub>m trees]
-    by (auto simp: list_update_swap split: if_splits)
-  subgoal for arr na w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists
-    using encoded_pairheap.add_child[of \<open>arr[n := a]\<close> na w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists]
-    by (auto simp: list_update_swap split: if_splits)
-  done
-
-lemma encoded_pairheap_atmost_one:
-  \<open>encoded_pairheap arr trees treeLists \<Longrightarrow> size trees \<le> 1›
-  by (solves \<open>induction rule: encoded_pairheap.induct; auto\<close>)+
-
-
-interpretation VSIDS: pairing_heap where
-  le = \<open>(\<ge>) :: nat \<Rightarrow> nat \<Rightarrow> bool\<close> and
-  lt = \<open>(>)\<close>
-  apply unfold_locales
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: transp_def)
-  subgoal by (auto simp: totalp_on_def)
-  done
-
-fun nodes where
-  \<open>nodes (Hp m w children) = add_mset (Hp m w children) (\<Sum>\<^sub># (nodes `# mset children))\<close>
-
-lemma  encoded_pairheap_le_lengthI: \<open>encoded_pairheap arr trees treeLists \<Longrightarrow> m \<in># \<Sum>\<^sub># (mset_nodes `# trees + mset_nodes `# \<Sum>\<^sub># (mset `# treeLists)) \<Longrightarrow> m < length arr\<close>
-  by (induction arr trees treeLists arbitrary:  rule: encoded_pairheap.induct) auto
-
-lemma mset_nodes_nodes: \<open>set_mset (\<Sum>\<^sub># (mset_nodes `# nodes x)) = set_mset (mset_nodes x)\<close>
-  by (induction x)  (force simp: in_mset_sum_list_iff)
-
-lemma mset_nodes_nodes_indirect: \<open>nodes x = A \<Longrightarrow> set_mset (mset_nodes x) = set_mset ( \<Sum>\<^sub>#(mset_nodes  `# A))\<close>
-  unfolding mset_nodes_nodes[symmetric]
-  by simp
-
-lemma in_mset_nodes_iff: \<open>n \<in># mset_nodes x \<Longrightarrow> \<exists>m a. Hp n m a \<in># nodes x\<close>
-  by (induction x)
-   (fastforce simp: mset_nodes_nodes in_mset_sum_list_iff)
-
-lemma ph_child_prev_next_simp[simp]:
-  \<open>ph_child (hp_set_child c a) = Some c\<close>
-  \<open>ph_prev (hp_set_child c a) = ph_prev a\<close>
-  \<open>ph_next (hp_set_child c a) = ph_next a\<close>
-  \<open>ph_score (hp_set_child c a) = ph_score a\<close>
-
-  \<open>ph_child (hp_set_next c a) = ph_child a\<close>
-  \<open>ph_prev (hp_set_next c a) = ph_prev a\<close>
-  \<open>ph_next (hp_set_next c a) = Some c\<close>
-  \<open>ph_score (hp_set_next c a) = ph_score a\<close>
-
-  \<open>ph_child (hp_set_child' c' a) = c'\<close>
-  \<open>ph_prev (hp_set_child' c' a) = ph_prev a\<close>
-  \<open>ph_next (hp_set_child' c' a) = ph_next a\<close>
-  \<open>ph_score (hp_set_child' c' a) = ph_score a\<close>
-
-  \<open>ph_child (hp_set_next' c' a) = ph_child a\<close>
-  \<open>ph_prev (hp_set_next' c' a) = ph_prev a\<close>
-  \<open>ph_next (hp_set_next' c' a) = c'\<close>
-  \<open>ph_score (hp_set_next' c' a) = ph_score a\<close>
-
-  \<open>ph_child (hp_set_prev c a) = ph_child a\<close>
-  \<open>ph_prev (hp_set_prev c a) = Some c\<close>
-  \<open>ph_next (hp_set_prev c a) = ph_next a\<close>
-  \<open>ph_score (hp_set_prev c a) = ph_score a\<close>
-
-  \<open>ph_child (hp_set_prev' c' a) = ph_child a\<close>
-  \<open>ph_prev (hp_set_prev' c' a) = c'\<close>
-  \<open>ph_next (hp_set_prev' c' a) = ph_next a\<close>
-  \<open>ph_score (hp_set_prev' c' a) = ph_score a\<close>
-  by (cases a; auto; fail)+
-
-
-
-lemma encoded_pairheap_no_next_at_toplevel:
-  assumes \<open>encoded_pairheap arr trees treeLists\<close>
-    \<open>Hp m w\<^sub>m child\<^sub>m \<in># trees\<close>
-  shows \<open>ph_next (arr!m) = None\<close>\<open>ph_prev (arr!m) = None\<close>
-    \<open>ph_child (arr!m) = (if child\<^sub>m = [] then None else Some (node (hd child\<^sub>m)))\<close>
-proof -
-  have trees: \<open>trees = {#Hp m w\<^sub>m child\<^sub>m#}\<close>
-    by (metis One_nat_def assms(1) assms(2) encoded_pairheap_atmost_one in_multiset_nempty member_add_mset mset_size_le1_cases)
-  show \<open>ph_next (arr!m) = None\<close>\<open>ph_prev (arr!m) = None\<close>
-    \<open>ph_child (arr!m) = (if child\<^sub>m = [] then None else Some (node (hd child\<^sub>m)))\<close>
-    using assms(1) encoded_pairheap_le_lengthI[OF assms(1), of m] unfolding trees
-    apply (induction arr \<open>{#Hp m w\<^sub>m child\<^sub>m#}\<close> treeLists arbitrary: m w\<^sub>m child\<^sub>m rule: encoded_pairheap.induct)
-    subgoal
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-
-    subgoal for arr m w\<^sub>m child\<^sub>m treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists
-      by (auto dest: encoded_pairheap_atmost_one)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists ma w\<^sub>m' child\<^sub>m'
-      by (auto dest: encoded_pairheap_atmost_one encoded_pairheap_distinct_nodes)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists ma w\<^sub>m' child\<^sub>m'
-      by (auto dest: encoded_pairheap_atmost_one encoded_pairheap_distinct_nodes)
+      using assms
+      by (auto simp: I_def)
     done
 qed
 
-text \<open>The simplifier is too stupid to use the previous version...\<close>
-lemma encoded_pairheap_no_next_at_toplevel2:
-  assumes \<open>encoded_pairheap arr (add_mset (Hp m w\<^sub>m child\<^sub>m) trees) treeLists\<close>
-  shows \<open>ph_next (arr!m) = None\<close>\<open>ph_prev (arr!m) = None\<close>
-    \<open>ph_child (arr!m) = (if child\<^sub>m = [] then None else Some (node (hd child\<^sub>m)))\<close>
-  using encoded_pairheap_no_next_at_toplevel[of arr \<open>add_mset (Hp m w\<^sub>m child\<^sub>m) trees\<close> treeLists m w\<^sub>m child\<^sub>m] assms
-  by auto
-
-lemma encoded_pairheap_no_next_at_head_list:
-  assumes \<open>encoded_pairheap arr trees treeLists\<close>
-    \<open>Hp m w\<^sub>m child\<^sub>m # stuff \<in># treeLists\<close>
-  shows \<open>ph_next (arr!m) = (if stuff = [] then None else Some (node (hd stuff)))\<close>
-    \<open>ph_prev (arr!m) = None\<close>
-    \<open>ph_child (arr!m) = (if child\<^sub>m = [] then None else Some (node (hd child\<^sub>m)))\<close>
-proof -
-  have \<open>m < length arr\<close>
-    using encoded_pairheap_le_lengthI[OF assms(1), of m] assms by (auto dest!: multi_member_split)
-  show \<open>ph_next (arr!m) = (if stuff = [] then None else Some (node (hd stuff)))\<close>
-    \<open>ph_prev (arr!m) = None\<close>
-    \<open>ph_child (arr!m) = (if child\<^sub>m = [] then None else Some (node (hd child\<^sub>m)))\<close>
-    using assms
-      encoded_pairheap_atmost_one[OF assms(1)] \<open>m < length arr\<close>
-    apply (induction arr trees \<open>treeLists\<close> rule: encoded_pairheap.induct)
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal for arr
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr trees na x
-      by auto
-    subgoal for arr ma w\<^sub>m' child\<^sub>m' trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (frule encoded_pairheap_distinct_nodes)
-        (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one
-        split: if_splits)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (frule encoded_pairheap_distinct_nodes)
-        (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal  for arr m w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists
-      by (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees treeLists
-      by (auto intro: encoded_pairheap_no_next_at_toplevel dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m trees treeLists
-      by (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal for arr m w\<^sub>m child\<^sub>m treeLists
-      by (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth treeLists
-      by (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth
-      by (frule encoded_pairheap_distinct_nodes)
-        (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    subgoal for arr n w\<^sub>n trees m w\<^sub>m child\<^sub>m oth
-      by (frule encoded_pairheap_distinct_nodes)
-        (auto simp: encoded_pairheap_no_next_at_toplevel2 dest: encoded_pairheap_atmost_one)
-    done
-qed
-
-lemma ph_next_update_self:
-  \<open>ph_next a = n \<Longrightarrow> hp_set_next' n a = a\<close>
-  by (cases a; auto)
-
-(*
-lemma encoded_pairheap_comb_general:
-   \<open>encoded_pairheap (arr[n := hp_set_child m (arr!n), m := hp_set_next' (if child\<^sub>n = [] then None else Some (node (hd child\<^sub>n))) (arr!m)])
-              (add_mset (Hp n w\<^sub>n (Hp m w\<^sub>m child\<^sub>m # child\<^sub>n)) trees)\<close>
-  if  \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n (child\<^sub>n)) (add_mset (Hp m w\<^sub>m child\<^sub>m) trees))\<close>
-  for child\<^sub>n :: \<open>(nat, 'a) hp list\<close>
-  using encoded_pairheap.comb[of arr n w\<^sub>n \<open>(node (hd child\<^sub>n))\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close> \<open>tl child\<^sub>n\<close>
-    m w\<^sub>m child\<^sub>m trees] encoded_pairheap_distinct_nodes[OF that(1)] that
-    encoded_pairheap.comb_single[of arr n w\<^sub>n m w\<^sub>m child\<^sub>m trees]
-    encoded_pairheap_no_next_at_toplevel[OF that, of n w\<^sub>n child\<^sub>n]
-    encoded_pairheap_no_next_at_toplevel[OF that, of m w\<^sub>m child\<^sub>m]
-    apply (cases child\<^sub>n)
-    apply (auto simp: ph_next_update_self list_update_swap)
-    by (metis hp_set_next'.simps hp_set_next.elims)
-*)
-lemma in_sum_mset_nodes_iff: \<open>(\<exists>m a. Hp n m a \<in>#  \<Sum>\<^sub># (nodes `# trees + nodes `# \<Sum>\<^sub># (mset `# treeLists))) \<longleftrightarrow> n \<in># \<Sum>\<^sub># (mset_nodes `# trees + mset_nodes `# \<Sum>\<^sub># (mset `# treeLists))\<close>
-  apply (rule iffI)
-  subgoal
-    apply (induction trees)
-    apply (auto simp: mset_nodes_nodes)
-    using mset_nodes_nodes apply fastforce+
-    done
-  subgoal
-    by (induction trees)
-     (fastforce simp: mset_nodes_nodes dest!: in_mset_nodes_iff)+
-  done
-
-
-lemma encoded_pairheap_correct_annot:
-  assumes 1: \<open>encoded_pairheap arr trees treeLists\<close> and
-    \<open>Hp n m a \<in>#  \<Sum>\<^sub># (nodes `# trees + nodes `# \<Sum>\<^sub># (mset `# treeLists))\<close>
-  shows \<open>ph_score (arr!n) = m\<close>
-    \<open>ph_child (arr!n) = (if a = [] then None else Some (node (hd a)))\<close>
-proof -
-  have 2: \<open>n \<in># \<Sum>\<^sub># (mset_nodes `# trees + mset_nodes `# \<Sum>\<^sub># (mset `# treeLists))\<close>
-    by (rule in_sum_mset_nodes_iff[THEN iffD1]) (use assms(2) in fast)
-  show \<open>ph_score (arr!n) = m\<close>
-    using 1 assms(2) encoded_pairheap_le_lengthI[OF 1 2]
-    apply (induction arr trees treeLists arbitrary:  a rule: encoded_pairheap.induct)
-    subgoal by auto
-    subgoal for arr trees m' w
-      apply auto
-      by (metis (full_types) mset_nodes.simps mset_nodes_nodes multi_member_split multi_member_this sum_mset.insert union_iff)
-    subgoal for arr ma w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists a
-      by auto
-    subgoal for arr ma w\<^sub>m child\<^sub>m treeLists a
-      apply auto
-      done
-    subgoal for arr na w\<^sub>n trees ma w\<^sub>m child\<^sub>m oth treeLists a
-      by auto
-    done
-  show \<open>ph_child (arr!n) = (if a = [] then None else Some (node (hd a)))\<close>
-    using 1 assms(2) encoded_pairheap_le_lengthI[OF 1 2]
-    apply (induction arr trees treeLists arbitrary:  a rule: encoded_pairheap.induct)
-    subgoal by auto
-    subgoal for arr trees m' w
-      by auto (use mset_nodes_nodes in force)+
-    subgoal for arr ma w\<^sub>m child\<^sub>m trees p w\<^sub>p child\<^sub>p child\<^sub>n treeLists a
-      apply auto apply metis+ done
-    subgoal for arr ma w\<^sub>m child\<^sub>m treeLists a
-      by auto
-    subgoal for arr na w\<^sub>n trees ma w\<^sub>m child\<^sub>m oth treeLists a
-      apply (frule encoded_pairheap_distinct_nodes)
-      apply auto
-      apply force
-      apply force
-      apply (smt (verit, ccfv_threshold) add_0 member_add_mset mset_add mset_map mset_nodes.simps
-        mset_nodes_nodes nodes.simps sum_image_mset_sum_map sum_mset.insert union_mset_add_mset_left)
-      apply (metis (no_types, opaque_lifting) add.right_neutral image_mset_empty
-        in_sum_mset_nodes_iff list.simps(8) mset_map sum_list_simps(1) sum_mset_sum_list)
-      apply (metis union_assoc union_lcomm)
-      apply (metis union_assoc union_lcomm)
-      apply (metis (no_types, opaque_lifting) add.right_neutral image_mset_empty
-        in_sum_mset_nodes_iff list.simps(8) mset_map sum_list_simps(1) sum_mset_sum_list)
-      apply (metis (no_types, opaque_lifting) add.right_neutral image_mset_empty
-        in_sum_mset_nodes_iff list.simps(8) mset_map sum_list_simps(1) sum_mset_sum_list)
-      apply (metis union_assoc union_lcomm)
-      apply (metis union_assoc union_lcomm)
-      apply (smt (verit, ccfv_threshold) add_0 member_add_mset mset_add mset_map mset_nodes.simps
-        mset_nodes_nodes nodes.simps sum_image_mset_sum_map sum_mset.insert union_mset_add_mset_left)
-      apply (smt (verit, ccfv_threshold) add_0 member_add_mset mset_add mset_map mset_nodes.simps
-        mset_nodes_nodes nodes.simps sum_image_mset_sum_map sum_mset.insert union_mset_add_mset_left)
-      apply (metis union_assoc union_lcomm)
-      apply (metis union_assoc union_lcomm)
-      apply (smt (verit, ccfv_threshold) add_0 member_add_mset mset_add mset_map mset_nodes.simps
-        mset_nodes_nodes nodes.simps sum_image_mset_sum_map sum_mset.insert union_mset_add_mset_left)
-      apply (smt (verit, ccfv_threshold) add_0 member_add_mset mset_add mset_map mset_nodes.simps
-        mset_nodes_nodes nodes.simps sum_image_mset_sum_map sum_mset.insert union_mset_add_mset_left)
-      apply (metis union_assoc union_lcomm)
-      by (metis (no_types, lifting) union_assoc union_lcomm)
-    done
-qed
-hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
-
-definition vsids_push_to_child where
-  \<open>vsids_push_to_child arr m n = do {
-    let c = ph_child (arr!m);
-    if ph_child (arr!m) = None then RETURN (arr[m := hp_set_child n (arr ! m), n := hp_set_prev m (arr!n)])
+definition vsids_pass\<^sub>2 where
+  \<open>vsids_pass\<^sub>2 = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option) (j::'a). do {
+  let nxt = hp_read_prev j arr;
+  ((\<V>, arr, h), j, leader, _) \<leftarrow> WHILE\<^sub>T(\<lambda>((\<V>, arr, h), j, leader, e). j \<noteq> None)
+  (\<lambda>((\<V>, arr, h), j, leader, e::nat). do {
+    if j = None then RETURN ((\<V>, arr, h), None, leader, e)
     else do {
-      ASSERT (c \<noteq> None);
-      RETURN (arr[m := hp_set_child n (arr ! m), n := hp_set_next' c (arr!n), the c := hp_set_prev n (arr!the c)])}
-  }\<close>
-definition vsids_link where
-  \<open>vsids_link arr m n = do {
-     ASSERT (m < length arr);
-     ASSERT (n < length arr);
-     if ph_score (arr ! n) \<le> ph_score (arr ! m)
-     then vsids_push_to_child arr m n
-     else do{
-        vsids_push_to_child arr n m
-    }
-}\<close>
-
-inductive_cases  encoded_ph_add_msetE: \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n child\<^sub>n) trees) treeLists\<close>
-inductive_cases  encoded_ph_add_msetE2: \<open>encoded_pairheap arr trees (add_mset (Hp n w\<^sub>n child\<^sub>n#eth) treeLists)\<close>
-
-lemma hp_set_prev_next_children_commute[simp]:
-  \<open>hp_set_prev' a (hp_set_child b x) = hp_set_child b (hp_set_prev' a x)\<close>
-  \<open>hp_set_next' a (hp_set_child b x) = hp_set_child b (hp_set_next' a x)\<close>
-  \<open>hp_set_child' a (hp_set_child b x) = hp_set_child' a x\<close> 
-  \<open>hp_set_prev' a (hp_set_prev b x) = hp_set_prev' a x\<close> and
-  hp_prev_next_children_update_self:
-  \<open>ph_child x =a \<Longrightarrow> hp_set_child' a x = x\<close>
-  \<open>ph_prev x =a \<Longrightarrow> hp_set_prev' a x = x\<close>
-  \<open>ph_next x =a \<Longrightarrow> hp_set_next' a x = x\<close>
-  by (solves \<open>cases x;auto\<close>)+
-
-lemma encoded_pairheap_move_children_to_treeLists:
-  assumes \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n child\<^sub>n) trees) treeLists\<close> \<open>child\<^sub>n \<noteq> []\<close>
-  shows \<open>encoded_pairheap (arr[node (hd child\<^sub>n) := hp_set_prev' None (arr!node (hd child\<^sub>n)),
-        n := hp_set_child' None (hp_set_prev' None (arr!n))])
-    (add_mset (Hp n w\<^sub>n []) trees) (add_mset child\<^sub>n treeLists)\<close>
-  using assms  encoded_pairheap_atmost_one[OF assms(1)] encoded_pairheap_le_lengthI[OF assms(1), of n]
-    encoded_pairheap_le_lengthI[OF assms(1), of \<open>node (hd child\<^sub>n)\<close>]
-    encoded_pairheap_no_next_at_toplevel[OF assms(1), of \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>]
-    encoded_pairheap_no_next_at_toplevel[OF assms(1), of \<open>n\<close> \<open>w\<^sub>n\<close> \<open>child\<^sub>n\<close>]
-    encoded_pairheap_distinct_nodes[OF assms(1)] encoded_pairheap_no_next_at_toplevel[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset child\<^sub>n treeLists\<close> n w\<^sub>n child\<^sub>n]
-  apply -
-  apply (rule encoded_ph_add_msetE, assumption)
-  apply (auto dest: encoded_pairheap_atmost_one
-    simp: list_update_swap hp_prev_next_children_update_self
-    encoded_pairheap_no_next_at_toplevel split: if_splits
-    dest: encoded_pairheap_no_next_at_head_list(2)[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset (_ # _) treeLists\<close> \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>])
-  apply (frule encoded_pairheap_no_next_at_head_list(2)[of _ \<open>{#Hp n w\<^sub>n []#}\<close> \<open>add_mset (_ # _) treeLists\<close> \<open>node (hd child\<^sub>n)\<close> \<open>score (hd child\<^sub>n)\<close> \<open>hps (hd child\<^sub>n)\<close>])
-  apply (auto split: if_splits simp: hp_prev_next_children_update_self)
-  done
-
-lemma encoded_pairheap_move_children_to_treeLists:
-  assumes \<open>encoded_pairheap arr {#} treeLists\<close> and
-    \<open>(Hp n w\<^sub>n child\<^sub>n # other)  \<in># treeLists\<close>
-  shows \<open>encoded_pairheap (arr[n := hp_set_next' None (arr ! n)]) {#Hp n w\<^sub>n child\<^sub>n#} (add_mset other treeLists)\<close>
-  using assms  encoded_pairheap_atmost_one[OF assms(1)] encoded_pairheap_le_lengthI[OF assms(1), of n]
-  apply -
-  apply (induction arr \<open>{#} :: (nat, 'a) hp multiset\<close> \<open>treeLists\<close> rule: encoded_pairheap.induct)
-  subgoal
-    by (auto dest: encoded_pairheap_atmost_one
-      simp: list_update_swap hp_prev_next_children_update_self
-      encoded_pairheap_no_next_at_toplevel split: if_splits)
-  subgoal
-    by (auto dest: encoded_pairheap_atmost_one
-      simp: list_update_swap hp_prev_next_children_update_self
-      encoded_pairheap_no_next_at_toplevel split: if_splits)
-  subgoal
-    apply (auto dest: encoded_pairheap_atmost_one
-      simp: list_update_swap hp_prev_next_children_update_self add_mset_eq_add_mset
-      encoded_pairheap_no_next_at_toplevel split: if_splits)
-    apply (metis encoded_pairheap.intros(3) encoded_pairheap_no_next_at_head_list(2) length_list_update nth_list_update_eq option.simps(3) ph_child_prev_next_simp(18) union_single_eq_member)
-      oops
-
-
-lemma vsids_link:
-  assumes vsids: \<open>encoded_pairheap arr trees (add_mset (Hp n w\<^sub>n child\<^sub>n # Hp m w\<^sub>m child\<^sub>m # []) treeLists)\<close>
-  shows \<open>vsids_link arr m n \<le> SPEC (\<lambda>arr'. encoded_pairheap arr' (add_mset (VSIDS.link (Hp n w\<^sub>n child\<^sub>n) (Hp m w\<^sub>m child\<^sub>m)) trees) treeLists)\<close>
-proof -
-  show ?thesis
-    using assms
-    unfolding vsids_link_def vsids_push_to_child_def
-    apply (refine_vcg if_refine)
-    subgoal using encoded_pairheap_le_lengthI[OF vsids, of m] by auto
-    subgoal using encoded_pairheap_le_lengthI[OF vsids, of n] by auto
-    subgoal
-      using encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-      by (auto intro!: encoded_pairheap.comb_single encoded_pairheap.add_child split: if_splits)
-    subgoal
-      using encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap.comb_single[of arr m w\<^sub>m child\<^sub>m \<open>add_mset (Hp n w\<^sub>n child\<^sub>n) trees\<close> treeLists,
-        unfolded add_mset_commute[of _ \<open>Hp n _ _\<close>]]
-        encoded_pairheap.add_child[of arr n w\<^sub>n ]
-        
-      apply (auto intro!: encoded_pairheap.comb encoded_pairheap.add_child split: if_splits)
-
-    subgoal
-      using encoded_pairheap_comb_general[OF vsids]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-      by (auto intro: encoded_pairheap.intros)
-    done
-qed
-
-definition vsids_insert where
-  \<open>vsids_insert m n arr = do {
-    ASSERT (n < length arr);
-    vsids_link (arr[n:= PHeap (ph_score (arr!n)) None None]) m n
-  }\<close>
-
-lemma vsids_insert:
-  assumes \<open>encoded_pairheap arr {#Hp m w\<^sub>m children#}\<close> \<open>n \<notin># mset_nodes (Hp m w\<^sub>m children)\<close> \<open>n < length arr\<close>
-  shows \<open>vsids_insert m n arr \<le> SPEC (\<lambda>arr'. encoded_pairheap arr' {#the (VSIDS.insert n (ph_score (arr!n)) (Some (Hp m w\<^sub>m children)))#}) \<close>
-proof -
-  have 1: \<open>encoded_pairheap (arr[n:= PHeap (ph_score (arr!n)) None None]) {#Hp n (ph_score (arr!n)) [], Hp m w\<^sub>m children#}\<close>
-    using assms encoded_pairheap.leaf[OF assms(1), of n True \<open>ph_score (arr!n)\<close>]
-    by (auto intro!: )
-  show ?thesis
-    unfolding vsids_insert_def
-    apply (refine_vcg vsids_link[OF 1, THEN order_trans])
-    subgoal using assms by auto
-    subgoal by auto
-    done
-qed
-
-
-definition vsids_link2 where
-  \<open>vsids_link2 arr m n = do {
-     ASSERT (m < length arr);
-     ASSERT (n < length arr);
-     if ph_score (arr ! n) \<le> ph_score (arr ! m)
-     then do{
-        let c = ph_child (arr!m);
-        RETURN (arr[m := hp_set_child n (arr ! m), n := hp_set_next' c (arr!n)], m)
-     }
-     else do{
-        let c = ph_child (arr!n);
-        RETURN (arr [n :=  hp_set_child m (arr ! n), m := hp_set_next' c (arr!m)], n)
-    }
-}\<close>
-
-lemma vsids_link2:
-  assumes vsids: \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n child\<^sub>n) (add_mset (Hp m w\<^sub>m child\<^sub>m) trees))\<close>
-  shows \<open>vsids_link2 arr m n \<le> SPEC (\<lambda>(arr', k). k = node (VSIDS.link (Hp n w\<^sub>n child\<^sub>n) (Hp m w\<^sub>m child\<^sub>m))  \<and>
-    encoded_pairheap arr' (add_mset (VSIDS.link (Hp n w\<^sub>n child\<^sub>n) (Hp m w\<^sub>m child\<^sub>m)) trees))\<close>
-proof -
-  show ?thesis
-    unfolding vsids_link2_def
-    unfolding vsids_link_def
-    apply (refine_vcg if_refine)
-    subgoal using encoded_pairheap_le_lengthI[OF vsids, of m] by auto
-    subgoal using encoded_pairheap_le_lengthI[OF vsids, of n] by auto
-    subgoal
-      using encoded_pairheap_comb_general[OF vsids[unfolded add_mset_commute[of \<open>Hp n _ _\<close>]]]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-      by (auto intro: encoded_pairheap.intros)
-    subgoal
-      using encoded_pairheap_comb_general[OF vsids[unfolded add_mset_commute[of \<open>Hp n _ _\<close>]]]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-      by (auto intro: encoded_pairheap.intros)
-    subgoal
-      using encoded_pairheap_comb_general[OF vsids]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-      by (auto intro: encoded_pairheap.intros)
-    subgoal
-      using encoded_pairheap_comb_general[OF vsids]
-        encoded_pairheap_correct_annot[OF vsids, of n w\<^sub>n child\<^sub>n]
-        encoded_pairheap_correct_annot[OF vsids, of m w\<^sub>m child\<^sub>m]
-      by (auto intro: encoded_pairheap.intros)
-    done
-qed
-
-inductive_cases encoded_pairheapE: \<open>encoded_pairheap arr trees\<close>
-(*
-lemma encoded_pairheap_array_cong:
-  assumes \<open>encoded_pairheap arr trees\<close>
-    \<open>length arr = length arr'\<close>
-    \<open>\<forall>m\<in>#\<Sum>\<^sub># (mset_nodes`#trees). arr!m = arr'!m\<close>
-    \<open>\<forall>m< length arr . m\<notin>#\<Sum>\<^sub># (mset_nodes`#trees) \<longrightarrow> \<not>ph_contained (arr'!m)\<close>
-  shows \<open>encoded_pairheap arr' trees\<close>
-  using assms 
-proof (induction arbitrary: arr' rule: encoded_pairheap.induct)
-  case (empty arr)
-  then show ?case apply -
-    apply (rule  encoded_pairheap.empty)
-    by (auto intro!: simp: )
-next
-  case (leaf arr trees n intree x arr')
-  let ?arr' = \<open>arr' [n := PHeap (ph_score (arr'!n)) False (ph_children (arr'!n))]\<close>
-  have \<open>\<forall>y\<in>#trees. \<forall>m\<in>#mset_nodes y. arr ! m = ?arr' ! m\<close> and
-    \<open>\<forall>m<length arr. m \<notin># \<Sum>\<^sub># (mset_nodes `# trees) \<longrightarrow> \<not> ph_contained (?arr' ! m)\<close>
-    using leaf apply (auto; metis; fail)
-    by (use leaf in \<open>auto split: if_splits\<close>)
-  then show ?case
-    using encoded_pairheap.leaf[of ?arr' trees n intree x] leaf
-    by (auto split: if_splits)
-next
-  case (comb arr n w\<^sub>n child\<^sub>n m w\<^sub>m child\<^sub>m trees)
-  let ?arr' = \<open>arr'[n := PHeap (ph_score (arr ! n)) (ph_contained (arr ! n)) (ph_children (arr ! n))]\<close>
-  have 1: \<open>\<forall>m\<in>#\<Sum>\<^sub># (mset_nodes `# add_mset (Hp n w\<^sub>n child\<^sub>n) (add_mset (Hp m w\<^sub>m child\<^sub>m) trees)).
-    arr ! m = ?arr' ! m\<close>
-    using comb(1,3-) encoded_pairheap_distinct_nodes[OF comb(1)]
-      encoded_pairheap_le_lengthI[OF comb(1), of m]
-      encoded_pairheap_le_lengthI[OF comb(1), of n]
-    apply auto
-    apply (meson Un_iff)
-    apply (meson Un_iff)
-    by (meson Un_iff UnionI image_eqI)
-  have 2: \<open>\<forall>ma<length arr.
-    ma \<notin># \<Sum>\<^sub># (mset_nodes `# add_mset (Hp n w\<^sub>n child\<^sub>n) (add_mset (Hp m w\<^sub>m child\<^sub>m) trees)) \<longrightarrow>
-    \<not> ph_contained (?arr' ! ma)\<close>
-    using comb(1,3-) encoded_pairheap_distinct_nodes[OF comb(1)]
-      encoded_pairheap_le_lengthI[OF comb(1), of m]
-      encoded_pairheap_le_lengthI[OF comb(1), of n]
-    by auto
-  have [simp]: \<open>(arr'
-   [n := PHeap (ph_score (arr'[n := arr ! n] ! n)) (ph_contained (arr'[n := arr ! n] ! n))
-       (ph_children (arr'[n := arr ! n] ! n) @ [m])]) = arr'\<close>
-    using comb(1,3-) encoded_pairheap_distinct_nodes[OF comb(1)]
-      encoded_pairheap_le_lengthI[OF comb(1), of m]
-      encoded_pairheap_le_lengthI[OF comb(1), of n]
-    by auto
-
-  show ?case
-    using comb.IH[of ?arr', OF _ 1 2] comb(3-5)
-    using encoded_pairheap.comb[of ?arr' n w\<^sub>n child\<^sub>n m w\<^sub>m child\<^sub>m trees]
-    by (auto split: if_splits)
-qed
-*)
-
-definition vsids_merge_pairs where
-  \<open>vsids_merge_pairs arr j = do {
-  REC\<^sub>T (\<lambda>f (arr, j). do {
-    ASSERT (ph_next (arr !j) \<noteq> None);
-    let curr = the (ph_next (arr !j));
-    let maybe_next = ph_next (arr ! curr);
-    if maybe_next = None then RETURN (arr, curr)
-    else do {
-      ASSERT (maybe_next \<noteq> None);
-      let next = the (maybe_next);
-      if ph_next (arr ! next) = None then vsids_link2 arr curr next
-      else do {
-       ASSERT (ph_next (arr!next) \<noteq> None);
-       (arr, m) \<leftarrow> f (arr, the (ph_next (arr!next)));
-       (arr, n) \<leftarrow> vsids_link2 arr curr next;
-      (arr, p) \<leftarrow> vsids_link2 arr m n;
-       RETURN (arr, p)
-    }
+    let j = the j;
+      let nnxt = hp_read_prev j arr;
+      ((\<V>, arr, h), n) \<leftarrow> hp_link j leader (\<V>, arr, h);
+      RETURN ((\<V>, arr, h), nnxt, n, e+1)
    }
-  }) (arr, j)
-  }\<close>
+  })
+  ((\<V>, arr, h), nxt, j, 1::nat);
+  RETURN (\<V>, arr, Some leader)
+  })\<close>
 
-lemma merge_pairs_empty_iff[simp, iff]: \<open>VSIDS.merge_pairs xs = None \<longleftrightarrow> xs = []\<close>
-  by (cases xs rule: VSIDS.merge_pairs.cases) auto
+lemma pass\<^sub>2_None_iff[simp]: \<open>VSIDS.pass\<^sub>2 list = None \<longleftrightarrow> list = []\<close>
+  by (cases list)
+   auto
 
-(*TODO: we have to link the order of the nodes and hp\<^sub>s *)
-lemma
-  assumes \<open>encoded_pairheap arr (mset hp\<^sub>s + trees)\<close>
-    \<open>j < length xs\<close>
-  shows \<open>vsids_merge_pairs arr j \<le> \<Down> Id (SPEC (\<lambda>(arr', n). n = node (the (VSIDS.merge_pairs (rev hp\<^sub>s))) \<and>
-    encoded_pairheap arr' (add_mset (the (VSIDS.merge_pairs (rev hp\<^sub>s))) trees)))\<close>
+lemma vsids_pass\<^sub>2:
+  fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (last xs)\<close>
+  shows \<open>vsids_pass\<^sub>2 arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (VSIDS.pass\<^sub>2 xs))\<close>
 proof -
-  have take2: \<open>i \<le> length xs \<Longrightarrow> i > 0 \<Longrightarrow> take i xs = xs ! 0 # take (i-1) (tl xs)\<close> for i xs
-    apply (cases xs; cases i)
-    apply (auto)
-    done
-  define pre  :: \<open>nat pairing_heap list \<times> nat \<Rightarrow> bool\<close> where
-    \<open>pre = (\<lambda>(arr, j\<^sub>0). j\<^sub>0 \<le> j \<and> encoded_pairheap arr (mset hp\<^sub>s + trees))\<close>
-  define spec :: \<open>nat pairing_heap list \<times> nat \<Rightarrow> nat pairing_heap list \<times> nat \<Rightarrow> _\<close> where
-    \<open>spec = (\<lambda>(old_arr, j\<^sub>0) (arr, n). (case (VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s))) of Some a \<Rightarrow> n = node a |_ \<Rightarrow>True) \<and>
-    encoded_pairheap arr ((case (VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s))) of Some a \<Rightarrow> {#a#} | _ \<Rightarrow> {#}) + mset (drop (Suc j\<^sub>0) hp\<^sub>s) + trees))\<close> for x
-(*  have [simp]: \<open>j > 0 \<Longrightarrow> (Hp (node (hp\<^sub>s ! 0)) (score (hp\<^sub>s ! 0)) (hps (hp\<^sub>s ! 0))) = hd hp\<^sub>s\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases j; auto)
-  have [simp]: \<open>hd hp\<^sub>s = hp\<^sub>s ! 0\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases xs; cases \<open>tl xs\<close>; cases j; cases \<open>j-1\<close>; auto)
-  have [simp]: \<open>j \<ge> Suc 0 \<Longrightarrow> (add_mset (hp\<^sub>s ! 0) (add_mset (hp\<^sub>s ! Suc 0) (mset (drop (Suc (Suc 0)) hp\<^sub>s) + trees))) = mset hp\<^sub>s + trees\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>j \<ge> Suc 0 \<Longrightarrow> VSIDS.merge_pairs (take (Suc 0) hp\<^sub>s) = Some (hd hp\<^sub>s)\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>j > 0 \<Longrightarrow> add_mset (hd hp\<^sub>s) (mset (drop (Suc 0) hp\<^sub>s)) = mset hp\<^sub>s\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>VSIDS.merge_pairs (rev (take (Suc 0) hp\<^sub>s)) = Some (hd hp\<^sub>s)\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>node (hp\<^sub>s ! 0) = xs ! 0\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>(add_mset (hp\<^sub>s!0) (mset (drop (Suc 0) hp\<^sub>s) + trees)) = (mset hp\<^sub>s + trees)\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have [simp]: \<open>j > 0 \<Longrightarrow> VSIDS.merge_pairs (rev (take (Suc (Suc 0)) hp\<^sub>s)) = Some (VSIDS.link (hp\<^sub>s ! 1) (hd hp\<^sub>s))\<close>
-    using assms(2,3) by (cases hp\<^sub>s; cases \<open>tl hp\<^sub>s\<close>; cases xs; cases \<open>tl xs\<close>; cases j; auto)
-  have Hp_hps [simp]: \<open>j \<ge> y \<Longrightarrow> (Hp (xs ! y) (score (hp\<^sub>s ! y)) (hps (hp\<^sub>s ! y))) = hp\<^sub>s!y\<close> for y
-    using assms(3)  arg_cong[OF assms(2), of \<open>\<lambda>xs. xs ! y\<close>] arg_cong[OF assms(2), of length]
-    by (cases \<open>hp\<^sub>s ! y\<close>) (auto simp: nth_map)
-  have VSIDS_merge_pairs_simps2: \<open>j\<^sub>0 > 1 \<Longrightarrow> j\<^sub>0 < length hp\<^sub>s \<Longrightarrow> VSIDS.merge_pairs (rev (take (Suc j\<^sub>0) hp\<^sub>s)) =
-    Some (VSIDS.link (VSIDS.link (hp\<^sub>s ! j\<^sub>0) (hp\<^sub>s ! (j\<^sub>0 - 1)))
-    (the (VSIDS.merge_pairs (rev (take (j\<^sub>0 - Suc 0) (hp\<^sub>s))))))\<close> for j\<^sub>0
-    by (cases j\<^sub>0)
-     (auto simp: take_Suc_conv_app_nth Let_def split: option.splits)
-*)
-
-
-  have pre0: \<open>pre (arr, j)\<close>
-    using assms unfolding pre_def by (auto split: option.splits)
-  show ?thesis
+  obtain prevs nxts childs scores \<V> where
+    arr: \<open>arr = (\<V>, (prevs, nxts, childs, scores), None)\<close> and
+    dist: \<open>distinct_mset (\<Sum>\<^sub># (mset_nodes `# (mset (xs))))\<close> and
+    \<V>: \<open>set_mset (sum_list (map mset_nodes xs)) \<subseteq> \<V>\<close>
+    by (cases arr) (use assms in \<open>auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
+        encoded_hp_prop_def\<close>)
+  have prevs_lastxs: \<open>prevs (node (last xs)) = map_option node (option_last (butlast xs))\<close>
     using assms
-    unfolding vsids_merge_pairs_def Let_def
-    apply refine_vcg
-    apply (rule order_trans)
-    apply (rule RECT_rule[of _ \<open>measure (\<lambda>(arr, j). j)\<close> pre _ \<open> \<lambda>x. SPEC (spec x)\<close>])
+    by (cases xs rule: rev_cases; cases \<open>last xs\<close>)
+     (auto simp: encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def arr)
+
+  define I where \<open>I \<equiv> (\<lambda>(arr, nnxt::'a option, leader, e'). let e = length xs - e' in
+    encoded_hp_prop_list2_conc arr (take e xs @ [the (VSIDS.pass\<^sub>2 (drop e xs))]) \<and> nnxt = map_option node (option_last (take e xs)) \<and>
+    leader = node (the (VSIDS.pass\<^sub>2 (drop e xs))) \<and>
+    e \<le> (length xs) \<and> (nnxt = None \<longleftrightarrow> e = 0) \<and> e' > 0)\<close>
+  have I0: \<open>I ((\<V>, (prevs, nxts, childs, scores), None), hp_read_prev j (prevs, nxts, childs, scores), j, 1)\<close>
+    using assms prevs_lastxs unfolding I_def prod.simps Let_def
+    by (auto simp: arr butlast_Nil_iff)
+  have links_pre1: \<open>encoded_hp_prop_list2_conc (\<V>', arr', h')
+    (take (length xs - Suc e) xs @
+    xs ! (length xs - Suc e) #
+    the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)) # [])\<close> (is ?H1) and
+    links_pre2: \<open>the x1b = node (xs ! (length xs - Suc e))\<close> (is ?H2) and
+    links_pre3: \<open>leader = node (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))\<close> (is ?H3)
+    if 
+      I: \<open>I s\<close> and
+      brk: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, leader, e). j \<noteq> None) xa\<close> and
+      st: \<open>s = (a, b)\<close>
+        \<open>x2b = (leader, e)\<close>
+        \<open>b = (x1b, x2b)\<close>
+        \<open>xy = (arr', h')\<close>
+        \<open>a = (\<V>', xy)\<close> and
+      no_None: \<open>x1b \<noteq> None\<close>
+    for s a b \<V>' xy arr' h' x1b x2b x1c x2c e leader
+  proof -
+    have \<open>e < length xs\<close> \<open>length xs - e < length xs\<close>
+      using I brk no_None
+      unfolding st I_def
+      by (auto simp: I_def Let_def)
+    then have take_Suc: \<open>take (length xs - e) xs = take (length xs - Suc e) xs @ [xs ! (length xs - Suc e)]\<close>
+      using I brk take_Suc_conv_app_nth[of "length xs - Suc e" xs]
+      unfolding st
+      apply (cases \<open>take (length xs - e) xs\<close> rule: rev_cases)
+      apply (auto simp: I_def Let_def)
+      done
+
+    then show ?H1
+      using I brk unfolding st
+      apply (cases \<open>take (length xs - e) xs\<close> rule: rev_cases)
+      apply (auto simp: I_def Let_def)
+      done
+    show ?H2
+      using I brk unfolding st I_def Let_def
+      by (auto simp: take_Suc)
+    show ?H3
+      using I brk unfolding st I_def Let_def
+      by (auto simp: take_Suc)
+  qed
+  have I_Suc: \<open>I ((x1d, x1e, x2e), hp_read_prev (the x1b) x1a, new_leader, e + 1)\<close>
+    if 
+      I: \<open>I s\<close> and
+      brk: \<open>case s of (x, xa) \<Rightarrow> (case x of (\<V>, arr, h) \<Rightarrow> \<lambda>(j, leader, e). j \<noteq> None) xa\<close> and
+      st: \<open>s = (a, b)\<close>
+        \<open>x2b = (x1c, e)\<close>
+        \<open>b = (x1b, x2b)\<close>
+        \<open>x2 = (x1a, x2a)\<close>
+        \<open>a = (\<V>', x2)\<close>
+        \<open>linkedn = (linked, new_leader)\<close>
+        \<open>x2d = (x1e, x2e)\<close>
+        \<open>linked = (x1d, x2d)\<close> and
+      no_None: \<open>x1b \<noteq> None\<close> and
+      \<open>case linkedn of
+      (arr, n) \<Rightarrow>
+      encoded_hp_prop_list2_conc arr
+      (take (length xs - Suc e) xs @
+      [VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))]) \<and>
+      n =
+      node
+      (VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs))))\<close>
+    for s a b \<V>' x2 x1a x2a x1b x2b x1c e linkedn linked new_leader x1d x2d x1e x2e
+  proof -
+    have e: \<open>e < length xs\<close> \<open>length xs - e < length xs\<close>
+      using I brk no_None
+      unfolding st I_def
+      by (auto simp: I_def Let_def)
+    then have [simp]: \<open>VSIDS.link (xs ! (length xs - Suc e)) (the (VSIDS.pass\<^sub>2 (drop (length xs - e) xs)))  =
+      the (VSIDS.pass\<^sub>2 (drop (length xs - Suc e) xs))\<close>
+      using that
+      by (auto simp: I_def Let_def simp flip: Cons_nth_drop_Suc split: option.split)
+    have [simp]: \<open>hp_read_prev (node (last (take (length xs - e) xs))) x1a = map_option node (option_last (take (length xs - Suc e) xs))\<close>
+      using e I  take_Suc_conv_app_nth[of "length xs - Suc e" xs] unfolding I_def st Let_def
+      by (cases \<open>(take (length xs - e) xs)\<close> rule: rev_cases; cases \<open>last (take (length xs - e) xs)\<close>)
+       (auto simp: encoded_hp_prop_list2_conc_def
+        encoded_hp_prop_list_def)
+    show ?thesis
+      using that e by (auto simp: I_def Let_def)
+  qed
+
+  show ?thesis
+    unfolding vsids_pass\<^sub>2_def arr prod.simps
+    apply (refine_vcg WHILET_rule[where I=I and R = \<open>measure (\<lambda>(arr, nnxt::'a option, _, e). length xs -e)\<close>]
+      hp_link)
+    subgoal by auto
+    subgoal by (rule I0)
+    subgoal by auto
+    subgoal by auto
+    apply (rule links_pre1; assumption)
     subgoal
-      unfolding case_prod_beta
-      by (rule refine_mono) (auto intro!: refine_mono dest: le_funD)
+      by (rule links_pre2)
     subgoal
-      by auto
+      by (rule links_pre3)
     subgoal
-      by (rule pre0)
-    subgoal for f x
-      unfolding case_prod_beta
-      apply (refine_vcg)
-      subgoal sorry
-      subgoal premises p
-        using p(1-4,6-)
-        apply (auto simp: pre_def spec_def split: option.splits)
-oops
-      subgoal premises p
-        using p by (auto simp: pre_def)
-      subgoal premises p
-        using p by (auto simp: pre_def)
-      subgoal premises p
-        apply (rule vsids_link2[THEN order_trans, of _ _ \<open>score (hp\<^sub>s ! 1)\<close> \<open>hps (hp\<^sub>s ! 1)\<close>
-          _ \<open>score (hp\<^sub>s ! 0)\<close> \<open>hps (hp\<^sub>s ! 0)\<close> \<open>mset (drop (Suc (Suc 0)) hp\<^sub>s) + trees\<close>])
-        using p(1,2,3-4,6,8-) assms(2)
-        by (auto simp: pre_def spec_def H1 add_mset_commute[of \<open>hp\<^sub>s ! Suc 0\<close>]
-          simp del: VSIDS.link.simps hd_conv_nth simp flip: Cons_nth_drop_Suc)
-      subgoal
-        by (auto simp: pre_def)
-      subgoal
-        by (auto simp: pre_def)
-      subgoal premises p
-        using p(1-4,6,8-) apply -
-        apply (rule order_trans)
-        apply (rule p)
-        subgoal
-          by (auto simp: pre_def)
-        subgoal
-          by (auto)
-        apply (refine_vcg)
-        apply (rule vsids_link2[THEN order_trans, of _ 
-          _ \<open>score (hp\<^sub>s ! (snd x))\<close> \<open>hps (hp\<^sub>s ! (snd x))\<close>
-          _ \<open>score (hp\<^sub>s ! (snd x -1))\<close> \<open>hps (hp\<^sub>s ! (snd x -1))\<close>
-          \<open>(case VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s)) of None \<Rightarrow> {#}
-          | Some a \<Rightarrow> {#a#}) + mset (drop (Suc (snd x)) hp\<^sub>s) + trees\<close>])
-        subgoal
-          by (auto simp: spec_def pre_def add_mset_commute[of _ "hp\<^sub>s ! (_ - Suc 0)"] simp del: VSIDS.link.simps VSIDS.merge_pairs.simps)
-        apply (refine_vcg)
-        subgoal for arrm arrn
-          apply (rule vsids_link2[THEN order_trans, of _ 
-            _
-            \<open>score ((VSIDS.link 
-            (Hp (xs ! snd x) (score (hp\<^sub>s ! snd x)) (hps (hp\<^sub>s ! snd x)))
-            (Hp (xs ! (snd x - 1)) (score (hp\<^sub>s ! (snd x - 1))) (hps (hp\<^sub>s ! (snd x - 1))))))\<close>
-            \<open>hps (VSIDS.link 
-              (Hp (xs ! snd x) (score (hp\<^sub>s ! snd x)) (hps (hp\<^sub>s ! snd x)))
-              (Hp (xs ! (snd x - 1)) (score (hp\<^sub>s ! (snd x - 1))) (hps (hp\<^sub>s ! (snd x - 1)))))\<close>
-            _
-            \<open>score (the (VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))))\<close>
-            \<open>hps (the (VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))))\<close>
-              \<open>mset (drop (Suc (snd x)) hp\<^sub>s) + trees\<close>])
-          subgoal
-            unfolding case_prod_beta
-            by (cases \<open>VSIDS.merge_pairs (rev (take (snd x - Suc 0) hp\<^sub>s))\<close>)
-              (auto simp add: spec_def pre_def add_mset_commute add_mset_commute[of _ "hp\<^sub>s ! (_ - Suc 0)"]
-              simp del: VSIDS.link.simps VSIDS.merge_pairs.simps)
-          subgoal
-            by (auto simp add: spec_def VSIDS_merge_pairs_simps2 pre_def
-              simp del: VSIDS.link.simps VSIDS.merge_pairs.simps
-              split: option.splits)
-          done
-       done
-    done
-    subgoal by (auto simp: spec_def split: option.splits)
+      by (rule I_Suc)
+    subgoal for s a b \<V>' x2 x1a x2a x1b x2b x1c e linkedn linked new_leader x1d x2d x1e x2e
+      by (auto simp: I_def Let_def)
+    subgoal using assms by (auto simp: I_def Let_def
+      encoded_hp_prop_list_conc_def encoded_hp_prop_list2_conc_def
+      split: option.split)
     done
 qed
 
-definition vsids_del_min where
-  \<open>vsids_del_min arr m = undefined
-    \<close>
-thm VSIDS.merge_pairs.simps
-hide_const (open) NEMonad.ASSERT NEMonad.RETURN
-
-
-term Node
-interpretation VSIDS: pairing_heap where
-  le = \<open>(\<ge>) :: nat \<Rightarrow> nat \<Rightarrow> bool\<close> and
-  lt = \<open>(>)\<close>
-  apply unfold_locales
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: transp_def)
-  subgoal by (auto simp: totalp_on_def)
-  done
-term lseg
-term pure_list_assn
-find_theorems lseg 
-  term os_list_assn
-  thm os_list_assn_def
-  term "mk_assn"
-term \<open>\<upharpoonleft>arl_assn\<close>
-lemma [termination_simp]: \<open>size_list size (hps a) < size a\<close>
-  by (cases a) auto
-
-term al_assn
-fun lseg :: \<open>_ \<Rightarrow> _ \<Rightarrow> ('a, 'b) hp \<Rightarrow> _ \<Rightarrow> ll_assn\<close> and
-  lseg_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> ('a, 'b) hp list \<Rightarrow> _ \<Rightarrow> ll_assn\<close>
-  where
-  "lseg containt_assn score_assn a p = (EXS xn' p'. prod_assn containt_assn score_assn (node a, score a) xn' \<and>* lseg_l containt_assn score_assn (hps a) p')" |
-  \<open>lseg_l containt_assn score_assn [] p = \<up>True\<close> |
-  \<open>lseg_l containt_assn score_assn (a # as) p = (if p=null then sep_false else (EXS r. lseg containt_assn score_assn a p \<and>* lseg_l containt_assn score_assn as r))\<close>
-
-term "\<upharpoonleft>(mk_assn (λl p. lseg atom_assn word64_assn l p))"
-term node.next
-
-
-
-partial_function (M) vsids_delete :: "'a::llvm_rep ptr \<Rightarrow> unit llM" where
-  "vsids_delete p = doM { 
-    if p=null then Mreturn () 
-    else doM {
-      n \<leftarrow> ll_load p;
-      ll_free p;
-      vsids_delete (hd(hps n))    }
+definition merge_pairs where
+  "merge_pairs arr j = do {
+    (arr, j) \<leftarrow> vsids_pass\<^sub>1 arr j;
+    vsids_pass\<^sub>2 arr j
   }"
 
-lemma os_delete_rule[vcg_rules]: 
-  "llvm_htriple (\<upharpoonleft>os_list_assn xs p) (os_delete p) (\<lambda>_. \<box>)"  
-proof (induction xs arbitrary: p)
-  case Nil
-  note [simp] = os_list_assn_simps
-  show ?case 
-    apply (subst os_delete.simps)
-    by vcg
-next
-  case (Cons a xs)
-  
-  note [vcg_rules] = Cons.IH
-  note [simp] = os_list_assn_simps
-  
-  interpret llvm_prim_ctrl_setup .
-  
-  show ?case 
-    apply (subst os_delete.simps)
-    apply vcg
+
+lemma vsids_merge_pairs:
+  fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>encoded_hp_prop_list2_conc arr xs\<close> and \<open>xs \<noteq> []\<close> and \<open>j = node (hd xs)\<close>
+  shows \<open>merge_pairs arr j \<le> SPEC(\<lambda>(arr). encoded_hp_prop_list_conc arr (VSIDS.merge_pairs xs))\<close>
+proof -
+  show ?thesis
+    unfolding merge_pairs_def
+    apply (refine_vcg vsids_pass\<^sub>1 vsids_pass\<^sub>2[of _ "VSIDS.pass\<^sub>1 xs"])
+    apply (rule assms)+
+    subgoal by auto
+    subgoal using assms by (cases xs rule: VSIDS.pass\<^sub>1.cases) auto
+    subgoal using assms by auto
+    subgoal by (auto simp: VSIDS.pass12_merge_pairs)
     done
-    
-  
 qed
 
-
-fun mset_nodes :: "('b, 'a) hp \<Rightarrow>'b multiset" where
-"mset_nodes (Hp x _ hs) = {#x#} + sum_mset(mset(map mset_nodes hs))"
-
-(*TODO: do we need to ensure that there are no cycle already here?*)
-inductive encoded_pairheap where
-  empty: \<open>encoded_pairheap [] {#}\<close> |
-  leaf: \<open>encoded_pairheap (arr[n := (x, [])]) (add_mset (Hp n x []) trees)\<close>
-  if  \<open>encoded_pairheap arr trees\<close> \<open>n \<notin># \<Sum>\<^sub># (mset_nodes `# trees)\<close>|
-  comb: \<open>encoded_pairheap (arr[n := (x, snd (arr!n)@[m])]) (add_mset (Hp n w\<^sub>n (Hp m w\<^sub>m child\<^sub>m # child\<^sub>n)) trees)\<close>
-  if  \<open>encoded_pairheap arr (add_mset (Hp n w\<^sub>n (child\<^sub>n)) (add_mset (Hp m w\<^sub>m child\<^sub>m) trees))\<close> and
-    \<open>n < length arr\<close>
-
-lemma encoded_pairheap_distinct_nodes: \<open>encoded_pairheap arr trees \<Longrightarrow> distinct_mset (\<Sum>\<^sub># (mset_nodes `# trees))\<close>
-  by (induction rule: encoded_pairheap.induct)
-   (auto simp: ac_simps)
-
-lemma \<open>encoded_pairheap arr trees \<Longrightarrow> n \<notin># \<Sum>\<^sub># (mset_nodes `# trees) \<Longrightarrow> encoded_pairheap (arr [n := a]) trees\<close>
-  apply (induction rule: encoded_pairheap.induct)
-  apply (auto intro: encoded_pairheap.intros)
-
-(*
-From here we need:
-  - how to distinguish empty from no children? \<rightarrow> probably easy: by default only a single tree.
-  - the node names are not already present
-  - congruence on array
-*)
-lemma drop_tree:
-  assumes \<open>encoded_pairheap arr (add_mset (Hp m w child) trees)\<close>
-  shows \<open>encoded_pairheap arr (trees)\<close>
-  using assms apply (induction arr "add_mset (Hp m w child) trees" rule: encoded_pairheap.induct)
-  apply (auto simp: add_mset_eq_add_mset dest!: multi_member_split
-    intro: encoded_pairheap.intros)
-
-term VSIDS.link
-
-type_synonym vsids = \<open>(nat \<Rightarrow> nat option) \<times> nat list\<close>
-
-definition vsids :: \<open>nat multiset \<Rightarrow> (nat, 'a) ann_lits \<Rightarrow> vsids \<Rightarrow> bool\<close> where
-  \<open>vsids \<A> M \<equiv> (\<lambda>(x, scores). (\<forall>L\<in>#\<A>. undefined_lit M (Pos L) \<longrightarrow> x L \<noteq> None) \<and> (\<forall>L\<in>#\<A>. L < length scores))\<close>
-
-lemma vsids_push_lit:
-  \<open>vsids \<A> M x \<Longrightarrow> vsids \<A> (L # M) x\<close>
-  by (auto simp: vsids_def)
-
-
-definition vsids_push_back_if_needed where
-  \<open>vsids_push_back_if_needed L = (\<lambda>(heap, scores). do {
-      ASSERT (L < length scores);
-     ASSERT (pre_map_contains_key (L, heap));
-     if (L \<in> dom heap) then RETURN (heap, scores)
-     else RETURN (heap(L\<mapsto>scores!L), scores)
-  })\<close>
-term VSIDS.hm2_assn
-definition vsids_assn where
-  \<open>vsids_assn N = VSIDS.hm_assn N \<times>\<^sub>a array_assn (unat_assn' TYPE(32))\<close>
-
-lemma op_map_contains_key[pat_rules]: 
-  "op_set_member $ k $ (dom$m) \<equiv> op_map_contains_key$'k$'m"
-  by (auto intro!: eq_reflection)
-
-sepref_register op_map_contains_key
-
-find_theorems op_map_contains_key
-sepref_def vsids_push_back_if_needed_impl
-  is \<open>uncurry vsids_push_back_if_needed\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a (vsids_assn N)\<^sup>k \<rightarrow>\<^sub>a vsids_assn N\<close>
-  unfolding vsids_assn_def vsids_push_back_if_needed_def
-    op_map_contains_key is_None_def
-  supply [sepref_fr_rules] = snatb_hnr
-  apply annot_all_atm_idxs
-  apply (rewrite at \<open>\<hole> \<in> _\<close> value_of_atm_def[symmetric])
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id_keep
-  unfolding op_map_contains_key
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_trans
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve_cp
-  apply sepref_dbg_constraints
-
-  apply apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-term op_map_contains_key
-
-thm VSIDS.hm12_assn_def
-  term VSIDS.hm_assn
-term op_map_empty
-    term VSIDS.hm_assn
-  term mop_map_update
-  term VSIDS.hm_pop_min_op
-thm VSIDS.hm_pm_peek_min_def
-  term mop_pm_peek_min
 end
+
