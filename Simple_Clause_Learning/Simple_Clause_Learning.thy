@@ -570,17 +570,17 @@ lemma vars_subst_cls_subset_vars_cls_subst:
 
 lemma vars_cls_subst_subset:
   assumes range_vars_\<eta>: "range_vars \<eta> \<subseteq> vars_lit L \<union> vars_lit L'"
-  shows "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L, L'#})"
+  shows "vars_cls (add_mset L D \<cdot> \<eta>) \<subseteq> vars_cls (add_mset L' (add_mset L D))"
 proof -
-  have "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L#}) - subst_domain \<eta> \<union> range_vars \<eta>"
-    by (rule vars_subst_cls_subset[of "(D + {#L#})" \<eta>])
-  also have "... \<subseteq> vars_cls (D + {#L#}) - (vars_lit L \<union> vars_lit L') \<union> vars_lit L \<union> vars_lit L'"
+  have "vars_cls ((add_mset L D) \<cdot> \<eta>) \<subseteq> vars_cls (add_mset L D) - subst_domain \<eta> \<union> range_vars \<eta>"
+    by (rule vars_subst_cls_subset[of "add_mset L D" \<eta>])
+  also have "... \<subseteq> vars_cls (add_mset L D) - (vars_lit L \<union> vars_lit L') \<union> vars_lit L \<union> vars_lit L'"
     using range_vars_\<eta> by blast
-  also have "... \<subseteq> vars_cls (D + {#L#}) \<union> vars_lit L \<union> vars_lit L'"
-    by fast
-  also have "... \<subseteq> vars_cls D \<union> vars_lit L \<union> vars_lit L'"
-    unfolding vars_cls_plus unfolding vars_cls_def by simp
-  also have "... \<subseteq> vars_cls (D + {#L, L'#})"
+  also have "... \<subseteq> vars_cls (add_mset L D) \<union> vars_lit L' \<union> vars_lit L"
+    by auto
+  also have "... \<subseteq> vars_cls D \<union> vars_lit L' \<union> vars_lit L"
+    by auto
+  also have "... \<subseteq> vars_cls (add_mset L' (add_mset L D))"
     by auto
   finally show ?thesis
     by assumption
@@ -652,7 +652,7 @@ lemma disjoint_vars_set_mgu:
   shows "disjoint_vars_set (N - {D + {#L, L'#}} \<union> {(D + {#L#}) \<cdot> \<eta>})"
 proof -
   have vars_D_L_\<eta>_subset: "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L, L'#})"
-    by (rule vars_cls_subst_subset[OF range_vars_\<eta>])
+    using vars_cls_subst_subset[OF range_vars_\<eta>] by (simp add: add_mset_commute)
 
   have disj_D_L_\<eta>: "disjoint_vars ((D + {#L#}) \<cdot> \<eta>) C" if C_in: "C \<in> N - {D + {#L, L'#}}" for C
   proof -
@@ -1613,7 +1613,7 @@ inductive backtrack :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   backtrackI: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>)) \<Longrightarrow>
     \<nexists>S'. conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S' \<Longrightarrow>
-    backtrack N \<beta> (\<Gamma>, U, Some (D + {#L#}, \<sigma>)) (\<Gamma>'', finsert (add_mset L D) U, None)"
+    backtrack N \<beta> (\<Gamma>, U, Some (add_mset L D, \<sigma>)) (\<Gamma>'', finsert (add_mset L D) U, None)"
 
 definition scl :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" where
@@ -3772,8 +3772,9 @@ inductive sound_trail for N where
   Cons: "\<not> trail_defined_lit \<Gamma> L \<Longrightarrow> is_ground_lit L \<Longrightarrow>
     (case u of
       None \<Rightarrow> True |
-      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
-        is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C + {#L'#}}) \<Longrightarrow>
+      Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_lit L' \<union> vars_cls C \<and>
+        is_ground_cls (add_mset L' C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and>
+        fset N \<TTurnstile>\<G>e {add_mset L' C}) \<Longrightarrow>
     sound_trail N \<Gamma> \<Longrightarrow> sound_trail N ((L, u) # \<Gamma>)"
 
 lemma trail_consistent_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_consistent \<Gamma>"
@@ -3793,8 +3794,8 @@ next
     show
       "case u of
         None \<Rightarrow> True
-      | Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_cls C \<union> vars_lit L' \<and>
-          is_ground_cls ((C + {#L'#}) \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {C + {#L'#}}"
+      | Some (C, L', \<gamma>) \<Rightarrow> L = L' \<cdot>l \<gamma> \<and> subst_domain \<gamma> \<subseteq> vars_lit L' \<union> vars_cls C \<and>
+          is_ground_cls (add_mset L' C \<cdot> \<gamma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset NN \<TTurnstile>\<G>e {add_mset L' C}"
     proof (cases u)
       case None
       then show ?thesis by simp
@@ -3856,9 +3857,9 @@ next
   show "sound_trail N \<Gamma>"
     by (rule sound_\<Gamma>)
 next
-  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> subst_domain \<sigma> \<subseteq> vars_cls C \<union> vars_lit L \<and>
-    is_ground_cls ((C + {#L#}) \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {C + {#L#}}"
-    using domain_\<sigma> gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> N_entails_C_L by simp
+  show "L \<cdot>l \<sigma> = L \<cdot>l \<sigma> \<and> subst_domain \<sigma> \<subseteq> vars_lit L \<union> vars_cls C \<and>
+    is_ground_cls (add_mset L C \<cdot> \<sigma>) \<and> trail_false_cls \<Gamma> (C \<cdot> \<sigma>) \<and> fset N \<TTurnstile>\<G>e {add_mset L C}"
+    using domain_\<sigma> gr_C_L_\<sigma> tr_false_\<Gamma>_C_\<sigma> N_entails_C_L by auto
 qed
 
 lemma sound_trail_decide:
@@ -4311,9 +4312,10 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   proof -
     have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
       using gr_D_L_L'_\<gamma>
-      by (smt (verit) range_vars_\<mu> Diff_eq_empty_iff UN_Un Un_empty dom_\<gamma>
-          is_ground_cls_iff_vars_empty subset_antisym sup.orderE vars_cls_subst_subset
-          vars_subst_cls_eq)
+      unfolding is_ground_cls_iff_vars_empty
+      using vars_cls_subst_subset
+      by (smt (verit, ccfv_SIG) add_mset_commute bot.extremum_uniqueI range_vars_\<mu>
+          union_mset_add_mset_right vars_cls_subst_subset vars_subst_cls_subset_vars_cls_subst)
     thus ?thesis
       unfolding \<gamma>'_def using subst_cls_restrict_subst_domain_idem by (metis subsetI)
   qed

@@ -661,7 +661,7 @@ proof -
           show "vars_lit L \<inter> subst_domain \<sigma> = {}"
             using dom_\<sigma> \<open>vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}\<close> by fastforce
         next
-          have "subst_domain \<delta> \<subseteq> vars_cls C \<union> vars_lit L"
+          have "subst_domain \<delta> \<subseteq> vars_lit L \<union> vars_cls C"
             using \<open>sound_trail N \<Gamma>\<close>
             unfolding sound_trail.simps[of N \<Gamma>]
             unfolding resolveI(3)
