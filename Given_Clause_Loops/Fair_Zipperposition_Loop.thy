@@ -470,38 +470,39 @@ fun mset_of_zl_fstate :: "('t, 'p, 'f) ZLf_state \<Rightarrow> 'f multiset" wher
   "mset_of_zl_fstate (T, D, P, Y, A) =
    mset_set (passive.elems P) + mset_set (set_option Y) + mset_set (fset A)"
 
-abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
-  "\<mu>1 \<equiv> multp (\<prec>S)"
+abbreviation Precprec_S :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" (infix "\<prec>\<prec>S" 50)  where
+  "(\<prec>\<prec>S) \<equiv> multp (\<prec>S)"
 
-lemma wfP_\<mu>1: "wfP \<mu>1"
+lemma wfP_Precprec_S: "wfP (\<prec>\<prec>S)"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<longleftrightarrow>
-   \<mu>1 (mset_of_zl_fstate St') (mset_of_zl_fstate St)
+   mset_of_zl_fstate St' \<prec>\<prec>S mset_of_zl_fstate St
    \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
-      \<and> (\<mu>1 (mset_set (passive.elems (passive_of St'))) (mset_set (passive.elems (passive_of St)))
+      \<and> (mset_set (passive.elems (passive_of St')) \<prec>\<prec>S mset_set (passive.elems (passive_of St))
          \<or> (passive.elems (passive_of St') = passive.elems (passive_of St)
-            \<and> (\<mu>1 (mset_set (set_option (yy_of St'))) (mset_set (set_option (yy_of St)))
+            \<and> (mset_set (set_option (yy_of St')) \<prec>\<prec>S mset_set (set_option (yy_of St))
                \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
                   \<and> size (t_llists (todo_of St')) < size (t_llists (todo_of St)))))))"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
-  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?msetset = "{(M', M). M' \<prec>\<prec>S M}"
   let ?natset = "{(n', n :: nat). n' < n}"
   let ?quad_of = "\<lambda>St. (mset_of_zl_fstate St, mset_set (passive.elems (passive_of St)),
     mset_set (set_option (yy_of St)), size (t_llists (todo_of St)))"
 
-  have wf_\<mu>1set: "wf ?\<mu>1set"
-    using wfP_\<mu>1 wfP_def by auto
+  have wf_msetset: "wf ?msetset"
+    using wfP_Precprec_S wfP_def by auto
   have wf_natset: "wf ?natset"
     by (rule Wellfounded.wellorder_class.wf)
-  have wf_lex_prod: "wf (?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?natset)"
-    by (rule wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_lex_prod[OF wf_\<mu>1set wf_natset]]])
+  have wf_lex_prod: "wf (?msetset <*lex*> ?msetset <*lex*> ?msetset <*lex*> ?natset)"
+    by (rule wf_lex_prod[OF wf_msetset wf_lex_prod[OF wf_msetset
+        wf_lex_prod[OF wf_msetset wf_natset]]])
 
   have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
-    (?quad_of St', ?quad_of St) \<in> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?\<mu>1set <*lex*> ?natset"
+    (?quad_of St', ?quad_of St) \<in> ?msetset <*lex*> ?msetset <*lex*> ?msetset <*lex*> ?natset"
     unfolding \<mu>2_def by auto
 
   show ?thesis
@@ -527,7 +528,7 @@ next
   have all: "add_mset (p_select P) (mset_set (passive.elems P - {p_select P})) =
     mset_set (passive.elems P)"
     by (metis finite_fset local.choose_p(3) mset_set.remove passive.select_in_elems)
-  have pas: "\<mu>1 (mset_set (passive.elems P - {p_select P})) (mset_set (passive.elems P))"
+  have pas: "mset_set (passive.elems P - {p_select P}) \<prec>\<prec>S mset_set (passive.elems P)"
     by (metis all multi_psub_of_add_self subset_implies_multp)
 
   show ?thesis
@@ -544,10 +545,10 @@ next
   let ?new_bef = "mset_set (passive.elems P) + mset_set (fset A) + {#C#}"
   let ?new_aft = "mset_set (passive.elems P) + mset_set (fset A) + {#C'#}"
 
-  have "\<mu>1 ?new_aft ?new_bef"
+  have "?new_aft \<prec>\<prec>S ?new_bef"
     unfolding multp_def
   proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-    show "\<mu>1 {#C'#} {#C#}"
+    show "{#C'#} \<prec>\<prec>S {#C#}"
       unfolding multp_def using prec by (auto intro: singletons_in_mult)
   qed
   thus ?thesis
@@ -579,14 +580,14 @@ next
       (is "?old_aft = ?new_aft")
       using c''_ni by simp
 
-    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+    have "?new_aft \<prec>\<prec>S ?new_bef"
       unfolding multp_def
     proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-      show "\<mu>1 {#C''#} {#C'#}"
+      show "{#C''#} \<prec>\<prec>S {#C'#}"
         unfolding multp_def using prec by (auto intro: singletons_in_mult)
     qed
-    show ?thesis
-      unfolding defs \<mu>2_def by simp (use \<mu>1_new in \<open>simp add: bef aft\<close>)
+    thus ?thesis
+      unfolding defs \<mu>2_def by (simp add: bef aft)
   qed
 next
   case (schedule_infer \<iota>ss A C T D P)
