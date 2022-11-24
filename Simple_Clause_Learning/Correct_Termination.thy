@@ -517,7 +517,7 @@ proof -
         next
           case False \<comment> \<open>Literal can be skipped\<close>
           hence "skip N \<beta> ((L, n) # \<Gamma>', U, Some (C, \<gamma>)) (\<Gamma>', U, Some (C, \<gamma>))"
-            by (rule skipI[of L C \<gamma> N \<beta> n \<Gamma>' U, OF _ C_not_empty])
+            by (rule skipI[of L C \<gamma> N \<beta> n \<Gamma>' U])
           with no_more_regular_step have False
             by (metis S_def \<Gamma>_def local.scl_def reasonable_scl_def regular_scl_def
                 skip_well_defined(2) u_def)

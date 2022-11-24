@@ -1589,11 +1589,9 @@ inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<R
     \<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
-(* Why is there this supplementary assumption "D noq {#}? " *)
 inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow> D \<noteq> {#} \<Longrightarrow>
-    skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
+  skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow> skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
 (* replace \<sigma> by \<gamma> *)
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
@@ -1900,7 +1898,7 @@ proof (cases rule: conflict.cases)
 qed
 
 lemma no_more_step_if_conflict_mempty:
-  assumes "state_conflict S = Some ({#}, \<gamma>)"
+  assumes "state_trail S = []" "state_conflict S = Some ({#}, \<gamma>)"
   shows "\<nexists>S'. scl N \<beta> S S'"
   apply (rule notI)
   unfolding scl_def
@@ -5600,7 +5598,7 @@ proof (rule notI)
     by blast
 
   have "\<nexists>S'. scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
-    by (rule no_more_step_if_conflict_mempty) simp
+    using no_more_step_if_conflict_mempty by simp
   hence "\<nexists>S'. regular_scl N \<beta> ([], {||}, Some ({#}, Var)) S'"
     using scl_if_reasonable[OF reasonable_if_regular] by blast
   hence "S = S'"
