@@ -1029,114 +1029,12 @@ lemma vars_cls_subst_renaming_disj:
 abbreviation renaming_wrt :: "('f, _) Term.term clause set \<Rightarrow> _ \<Rightarrow> ('f, _) Term.term" where
   "renaming_wrt N \<equiv> Var \<circ> renaming (\<Union> (vars_cls ` N))"
 
-abbreviation inv_renaming_wrt where
-  "inv_renaming_wrt N \<equiv> Var \<circ> inv_renaming (\<Union> (vars_cls ` N))"
-
-definition inv_renaming' :: "('v \<Rightarrow> ('f, 'v) Term.term) \<Rightarrow> 'v \<Rightarrow> ('f, 'v) Term.term" where
-  "inv_renaming' \<rho> \<equiv> Var \<circ> inv (the_Var \<circ> \<rho>)"
-
-lemma inv_renaming'_sound: "is_renaming \<rho> \<Longrightarrow> \<rho> \<odot> inv_renaming' \<rho> = Var"
-  unfolding is_renaming_iff inv_renaming'_def
-  by (auto intro: inv_renaming_sound)
-
-lemma subst_cls_renaming_inv_renaming_idem: "is_renaming \<rho> \<Longrightarrow> C \<cdot> \<rho> \<cdot> inv_renaming' \<rho> = C"
-  using inv_renaming'_sound
-  by (metis subst_cls_comp_subst subst_cls_id_subst)
-
-lemma inv_renaming'_Var[simp]: "inv_renaming' Var = Var"
-  unfolding inv_renaming'_def
-  by (metis id_subst_comp_subst is_renaming_id_subst inv_renaming'_def inv_renaming'_sound)
-
 lemma is_renaming_renaming_wrt: "finite N \<Longrightarrow> is_renaming (renaming_wrt N)"
   by (simp add: inj_Var_renaming is_renaming_iff)
 
-lemma range_vars_renaming_subset_domain_inv:
-  "is_renaming \<rho> \<Longrightarrow> range_vars \<rho> \<subseteq> subst_domain (inv_renaming' \<rho>)"
-  apply (rule subsetI)
-  subgoal for x
-  unfolding range_vars_def subst_range.simps subst_domain_def
-  apply simp
-  by (metis is_renaming_iff local.inv_renaming'_sound subst_apply_eq_Var subst_compose term.disc(2)
-      term.sel(1) term.set_cases(2))
-  done
-
-definition rename_clause ::
-  "('f, 'a) term clause set \<Rightarrow> ('f, 'a) term clause \<Rightarrow> ('f, 'a) term clause" where
-  "rename_clause N C = C \<cdot> renaming_wrt N"
-
-lemma rename_clause_mempty[simp]: "rename_clause N {#} = {#}"
-  by (simp add: rename_clause_def)
-
-lemma disjoint_vars_rename_clause:
-  assumes fin_N: "finite N" and D_in: "D \<in> N"
-  shows "disjoint_vars (rename_clause N C) D"
-proof -
-  from fin_N have "finite (\<Union> (vars_cls ` N))"
-    by auto
-  hence "vars_cls (C \<cdot> renaming_wrt N) \<inter> \<Union> (vars_cls ` N) = {}"
-    by (rule vars_cls_subst_renaming_disj)
-  thus ?thesis
-    unfolding disjoint_vars_iff_inter_empty rename_clause_def
-    using D_in by blast
-qed
-
-lemma disjoint_vars_set_insert_rename_clause:
-  assumes fin_N: "finite N" and disj_N: "disjoint_vars_set N"
-  shows "disjoint_vars_set (insert (rename_clause N C) N)"
-  unfolding disjoint_vars_set_def
-proof (intro ballI impI)
-  fix D E
-  assume D_in: "D \<in> insert (rename_clause N C) N" and E_in: "E \<in> insert (rename_clause N C) N" and
-    D_neq_E: "D \<noteq> E"
-  from fin_N have fin_vars_N: "finite (\<Union> (vars_cls ` N))" by simp
-  show "disjoint_vars D E"
-    using D_in E_in D_neq_E
-    apply simp
-    apply safe
-    unfolding rename_clause_def disjoint_vars_iff_inter_empty
-    using vars_cls_subst_renaming_disj[OF fin_vars_N]
-    using disj_N[unfolded disjoint_vars_set_def disjoint_vars_iff_inter_empty, rule_format]
-    by auto
-qed
-
-lemma ex_inv_rename_clause: "finite N \<Longrightarrow> \<exists>\<rho>. rename_clause N C \<cdot> \<rho> = C"
-  unfolding rename_clause_def
-  using ex_inverse_of_renaming[OF _ inj_Var_renaming]
-  by (metis comp_apply finite_UN finite_vars_cls subst_cls_comp_subst subst_cls_id_subst
-      term.disc(1))
-
-lemma grounding_of_cls_rename_clause:
-  "finite N \<Longrightarrow> grounding_of_cls (rename_clause N C) = grounding_of_cls C"
-  unfolding grounding_of_cls_def
-  apply (rule Set.equalityI; rule subsetI)
-   apply (metis (no_types) grounding_of_cls_def rename_clause_def subsetD
-      subst_cls_eq_grounding_of_cls_subset_eq)
-  using ex_inv_rename_clause
-  by (smt (verit, ccfv_threshold) Collect_mono_iff grounding_of_cls_def mem_Collect_eq
-      subst_cls_eq_grounding_of_cls_subset_eq)
-
-lemma subst_domain_renaming_wrt:
-  fixes N
-  shows "finite N \<Longrightarrow> subst_domain (renaming_wrt N) = UNIV"
+lemma subst_domain_renaming_wrt: "finite N \<Longrightarrow> subst_domain (renaming_wrt N) = UNIV"
   unfolding subst_domain_def
   using renaming_all by force
-
-lemma vars_cls_rename_clause_eq_empty:
-  fixes N C
-  shows "finite N \<Longrightarrow> vars_cls (rename_clause N C) = {} \<longleftrightarrow> vars_cls C = {}"
-  by (simp add: rename_clause_def vars_subst_cls_eq subst_domain_renaming_wrt)
-
-lemma is_ground_cls_rename_clause[simp]:
-  fixes N C
-  shows "finite N \<Longrightarrow> is_ground_cls (rename_clause N C) \<longleftrightarrow> is_ground_cls C"
-  by (simp add: is_ground_cls_iff_vars_empty vars_cls_rename_clause_eq_empty)
-
-lemma rename_clause_ident_if_ground[simp]:
-  fixes N C
-  shows "is_ground_cls C \<Longrightarrow> rename_clause N C = C"
-  by (simp add: rename_clause_def)
-
-
 
 lemma ex_renaming_to_disjoint_vars:
   fixes C :: "('f, 'a) Term.term clause" and N :: "('f, 'a) Term.term clause set"
@@ -2226,12 +2124,6 @@ lemma clss_lits_generalize_clss_lits_insert:
   "clss_lits_generalize_clss_lits N (insert C U) \<longleftrightarrow>
     (\<forall>L \<in># C. \<exists>K \<in> \<Union>(set_mset ` N). generalizes_lit K L) \<and> clss_lits_generalize_clss_lits N U"
   unfolding clss_lits_generalize_clss_lits_def by blast
-
-lemma clss_lits_generalize_clss_lits_rename_clause:
-  "C \<in> N \<Longrightarrow> finite M \<Longrightarrow> clss_lits_generalize_clss_lits N {rename_clause M C}"
-  unfolding clss_lits_generalize_clss_lits_def
-  by (metis (no_types, opaque_lifting) Melem_subst_cls UN_I ccpo_Sup_singleton generalizes_lit_def
-      image_empty image_insert rename_clause_def)
 
 lemma clss_lits_generalize_clss_lits_trans:
   assumes
@@ -3631,10 +3523,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
     using ground_conf minimal_ground_trail
     by (simp add: \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def)
-  moreover have "subst_domain (restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
-    (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)) \<subseteq> vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)"
-    by simp
-  ultimately show ?thesis
+  then show ?thesis
     using minimal_ground_trail
     unfolding resolveI(1,2)
     by (simp add: minimal_ground_closures_def)
@@ -3835,7 +3724,7 @@ proof (cases N \<beta> S1 S2 rule: conflict.cases)
     hence "D \<cdot> \<gamma> = {#}"
       using \<open>trail_false_cls \<Gamma> (D \<cdot> \<gamma>)\<close> not_trail_false_Nil(2) by blast
     hence "D = {#}"
-      by (simp add: local.conflictI(4) rename_clause_def)
+      by (simp add: local.conflictI(4))
     moreover from invars(1) have "{#} |\<notin>| U"
       by (simp add: conflictI(1) learned_nonempty_def)
     ultimately have "{#} |\<in>| N"
@@ -4589,12 +4478,6 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss
       (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) = {}\<close>
     by (smt (verit, best) UN_I Un_iff disjoint_iff union_fset vars_clss_def)
-
-  moreover have
-    "subst_domain (restrict_subst_domain (vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>))
-      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)) \<subseteq> vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>)"
-    using subst_domain_restrict_subst_domain
-    by (metis inf.cobounded2)
 
   moreover have
     "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
