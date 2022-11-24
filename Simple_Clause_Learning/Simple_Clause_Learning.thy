@@ -1596,8 +1596,8 @@ inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Right
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   factorizeI: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
-    \<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
-    factorize N \<beta> (\<Gamma>, U, Some (D + {#L,L'#}, \<gamma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<gamma>'))"
+    \<gamma>' = restrict_subst_domain (vars_cls (add_mset L D \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
+    factorize N \<beta> (\<Gamma>, U, Some (add_mset L' (add_mset L D), \<gamma>)) (\<Gamma>, U, Some (add_mset L D \<cdot> \<mu>, \<gamma>'))"
 
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -1734,6 +1734,8 @@ lemma conflict_set_after_factorization:
   using fact
 proof (cases N \<beta> S S' rule: factorize.cases)
   case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
+  hence \<gamma>'_def: "\<gamma>' = restrict_subst_domain (vars_cls (add_mset L D \<cdot> \<mu>)) \<gamma>"
+    by simp
 
   from \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close> have "is_unifier \<gamma> {atm_of L, atm_of L'}"
     by (auto intro!: is_unifier_alt[THEN iffD2] intro: subst_atm_of_eqI)
@@ -1744,8 +1746,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>"
   proof -
     have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
-      unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
-      by (simp add: subst_lit_restrict_subst_domain_idem)
+      by (simp add: \<gamma>'_def subst_lit_restrict_subst_domain_idem)
     also have "\<dots> = L \<cdot>l \<gamma>"
       using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
       by (metis subst_lit_comp_subst)
@@ -1756,8 +1757,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   moreover have "D \<cdot> \<mu> \<cdot> \<gamma>' = D \<cdot> \<gamma>"
   proof -
     have "D \<cdot> \<mu> \<cdot> \<gamma>' = D \<cdot> \<mu> \<cdot> \<gamma>"
-      unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
-      by (simp add: subst_cls_restrict_subst_domain_idem)
+      by (simp add: \<gamma>'_def subst_cls_restrict_subst_domain_idem)
     also have "\<dots> = D \<cdot> \<gamma>"
       using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
       by (metis subst_cls_comp_subst)
@@ -3429,7 +3429,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
 
   have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
-    unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
+    unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls (add_mset L D \<cdot> \<mu>)) \<gamma>\<close>
     by (rule subst_cls_restrict_subst_domain_idem) simp
   also have "\<dots> = add_mset L D \<cdot> \<gamma>"
     using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
@@ -4278,7 +4278,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     gr_D_L_L'_\<gamma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
-    unfolding sound_state_def by simp_all
+    unfolding sound_state_def by (simp_all add: add_mset_commute)
 
   from factorizeI have
     imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and

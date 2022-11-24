@@ -82,14 +82,14 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
 
   from fact obtain K K' \<mu>\<^sub>K \<sigma>' DD where
-    S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (DD + {#K, K'#}, \<sigma>))" and
-    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some ((DD + {#K#}) \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
+    S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (add_mset K' (add_mset K DD), \<sigma>))" and
+    S\<^sub>3_def: "S\<^sub>3 = (\<Gamma>, U, Some (add_mset K DD \<cdot> \<mu>\<^sub>K, \<sigma>'))" and
     "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
     mimgu_\<mu>\<^sub>K: "is_mimgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
     \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls ((DD + {#K#}) \<cdot> \<mu>\<^sub>K)) \<sigma>"
     by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (D + {#L'#}, \<sigma>))\<close> elim: factorize.cases)
 
-  have "add_mset L' D = add_mset K (add_mset K' DD)"
+  have "add_mset L' D = add_mset K' (add_mset K DD)"
     using resolveI(1) S\<^sub>1_def by simp
 
   from mimgu_\<mu>\<^sub>K have "\<sigma> = \<mu>\<^sub>K \<odot> \<sigma>"
@@ -118,7 +118,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
   next
     case False
     hence "L' \<in># DD"
-      by (metis \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close> insert_iff set_mset_add_mset_insert)
+      by (metis \<open>add_mset L' D = add_mset K' (add_mset K DD)\<close> insert_iff set_mset_add_mset_insert)
     thus ?thesis
       by auto
   qed
@@ -157,10 +157,10 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
       moreover have "vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) \<subseteq> vars_cls (add_mset L' D)"
       proof -
         have "vars_lit K \<union> vars_lit K' \<subseteq> vars_cls (add_mset L' D)"
-          by (simp add: \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close> subsetI)
+          by (simp add: \<open>add_mset L' D = add_mset K' (add_mset K DD)\<close> subsetI)
 
         moreover have "vars_lit L' \<subseteq> vars_cls (add_mset L' D)"
-          using \<open>add_mset L' D = add_mset K (add_mset K' DD)\<close>
+          using \<open>add_mset L' D = add_mset K' (add_mset K DD)\<close>
           by (metis Un_upper1 vars_cls_add_mset)
 
         ultimately show ?thesis
@@ -604,7 +604,7 @@ proof -
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: factorize.cases)
         case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
-        with conflict_Sm have Cm_def: "Cm = D + {#L, L'#}" and \<gamma>m_def: "\<gamma>m = \<gamma>"
+        with conflict_Sm have Cm_def: "Cm = add_mset L' (add_mset L D)" and \<gamma>m_def: "\<gamma>m = \<gamma>"
           by simp_all
         with factorizeI(3,4) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
           apply -
@@ -614,10 +614,11 @@ proof -
           by (smt (verit, best) atm_of_subst_lit finite.emptyI finite.insertI insertE is_unifier_alt
               is_unifiers_def singletonD)
         with factorizeI(5) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
-          by (metis subsetI subst_cls_restrict_subst_domain_idem)
+          using subst_cls_restrict_subst_domain_idem
+          by (metis add_mset_add_single order_refl)
         with factorizeI(2) show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
-          using state_conflict_simp by blast
+          by (metis add_mset_add_single state_conflict_simp)
       qed
     next
       assume "resolve N \<beta> Sm Sm'"
