@@ -476,8 +476,9 @@ abbreviation Precprec_S :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> 
 lemma wfP_Precprec_S: "wfP (\<prec>\<prec>S)"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
-definition \<mu>2 :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" where
-  "\<mu>2 St' St \<longleftrightarrow>
+definition Less_state :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_state \<Rightarrow> bool" (infix "\<sqsubset>" 50)
+where
+  "St' \<sqsubset> St \<longleftrightarrow>
    mset_of_zl_fstate St' \<prec>\<prec>S mset_of_zl_fstate St
    \<or> (mset_of_zl_fstate St' = mset_of_zl_fstate St
       \<and> (mset_set (passive.elems (passive_of St')) \<prec>\<prec>S mset_set (passive.elems (passive_of St))
@@ -486,7 +487,7 @@ definition \<mu>2 :: "('t, 'p, 'f) ZLf_state \<Rightarrow> ('t, 'p, 'f) ZLf_stat
                \<or> (mset_set (set_option (yy_of St')) = mset_set (set_option (yy_of St))
                   \<and> size (t_llists (todo_of St')) < size (t_llists (todo_of St)))))))"
 
-lemma wfP_\<mu>2: "wfP \<mu>2"
+lemma wfP_Less_state: "wfP (\<sqsubset>)"
 proof -
   let ?msetset = "{(M', M). M' \<prec>\<prec>S M}"
   let ?natset = "{(n', n :: nat). n' < n}"
@@ -501,19 +502,19 @@ proof -
     by (rule wf_lex_prod[OF wf_msetset wf_lex_prod[OF wf_msetset
         wf_lex_prod[OF wf_msetset wf_natset]]])
 
-  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
+  have Less_state_alt_def: "\<And>St' St. St' \<sqsubset> St \<longleftrightarrow>
     (?quad_of St', ?quad_of St) \<in> ?msetset <*lex*> ?msetset <*lex*> ?msetset <*lex*> ?natset"
-    unfolding \<mu>2_def by auto
+    unfolding Less_state_def by auto
 
   show ?thesis
-    unfolding wfP_def \<mu>2_alt_def using wf_app[of _ ?quad_of] wf_lex_prod by blast
+    unfolding wfP_def Less_state_alt_def using wf_app[of _ ?quad_of] wf_lex_prod by blast
 qed
 
-lemma non_compute_infer_ZLf_step_imp_\<mu>2:
+lemma non_compute_infer_ZLf_step_imp_Less_state:
   assumes
     step: "St \<leadsto>ZLf St'" and
     non_ci: "\<not> compute_infer_step St St'"
-  shows "\<mu>2 St' St"
+  shows "St' \<sqsubset> St"
   using step
 proof cases
   case (compute_infer T \<iota>0 \<iota>s A C D P)
@@ -532,12 +533,12 @@ next
     by (metis all multi_psub_of_add_self subset_implies_multp)
 
   show ?thesis
-    unfolding defs \<mu>2_def by (simp add: all pas)
+    unfolding defs Less_state_def by (simp add: all pas)
 next
   case (delete_fwd C A T D P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs \<mu>2_def by (auto intro!: subset_implies_multp)
+    unfolding defs Less_state_def by (auto intro!: subset_implies_multp)
 next
   case (simplify_fwd C' C A T D P)
   note defs = this(1,2) and prec = this(3)
@@ -552,12 +553,13 @@ next
       unfolding multp_def using prec by (auto intro: singletons_in_mult)
   qed
   thus ?thesis
-    unfolding defs \<mu>2_def by simp
+    unfolding defs Less_state_def by simp
 next
   case (delete_bwd C' A C T D P)
   note defs = this(1,2) and c_ni = this(3)
   show ?thesis
-    unfolding defs \<mu>2_def using c_ni by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
+    unfolding defs Less_state_def using c_ni
+    by (auto simp: fmember.rep_eq intro!: subset_implies_multp)
 next
   case (simplify_bwd C' A C'' C T D P)
   note defs = this(1,2) and c'_ni = this(3) and prec = this(4)
@@ -566,7 +568,7 @@ next
   proof (cases "C'' \<in> passive.elems P")
     case c''_in: True
     show ?thesis
-      unfolding defs \<mu>2_def using c'_ni
+      unfolding defs Less_state_def using c'_ni
       by (auto simp: fmember.rep_eq insert_absorb[OF c''_in] intro!: subset_implies_multp)
   next
     case c''_ni: False
@@ -587,13 +589,13 @@ next
         unfolding multp_def using prec by (auto intro: singletons_in_mult)
     qed
     thus ?thesis
-      unfolding defs \<mu>2_def by (simp add: bef aft)
+      unfolding defs Less_state_def by (simp add: bef aft)
   qed
 next
   case (schedule_infer \<iota>ss A C T D P)
   note defs = this(1,2)
   show ?thesis
-    unfolding defs \<mu>2_def
+    unfolding defs Less_state_def
     by simp (metis finite_fset insert_absorb mset_set.insert multi_psub_of_add_self
         subset_implies_multp)
 next
@@ -602,19 +604,19 @@ next
   have "size (t_llists T - {#\<iota>s#}) < size (t_llists T)"
     using \<iota>s by (simp add: size_Diff1_less)
   thus ?thesis
-    unfolding defs \<mu>2_def by simp
+    unfolding defs Less_state_def by simp
 qed
 
-lemma yy_nonempty_ZLf_step_imp_\<mu>2:
+lemma yy_nonempty_ZLf_step_imp_Less_state:
   assumes
     step: "St \<leadsto>ZLf St'" and
     yy: "yy_of St \<noteq> None"
-  shows "\<mu>2 St' St"
+  shows "St' \<sqsubset> St"
 proof -
   have "\<not> compute_infer_step St St'"
     using yy unfolding compute_infer_step.simps by auto
   thus ?thesis
-    using non_compute_infer_ZLf_step_imp_\<mu>2[OF step] by blast
+    using non_compute_infer_ZLf_step_imp_Less_state[OF step] by blast
 qed
 
 lemma fair_ZL_Liminf_yy_empty:
@@ -646,19 +648,20 @@ proof (rule ccontr)
     using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
     by blast
 
-  have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-    using yy_nonempty_ZLf_step_imp_\<mu>2 by (meson step j_ge yy_j)
-  hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))"
+  have "lnth Sts (Suc j) \<sqsubset> lnth Sts j" if j_ge: "j \<ge> i" for j
+    using yy_nonempty_ZLf_step_imp_Less_state by (meson step j_ge yy_j)
+  hence "(\<sqsubset>)\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))"
     if j_ge: "j \<ge> i" for j
     using j_ge by blast
-  hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+  hence inf_down_chain: "chain (\<sqsubset>)\<inverse>\<inverse> (ldropn i Sts)"
     by (simp add: chain_ldropnI si_lt)
 
   have inf_i: "\<not> lfinite (ldropn i Sts)"
     using len by (simp add: llength_eq_infty_conv_lfinite)
 
   show False
-    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by metis
+    using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "(\<sqsubset>)"] wfP_Less_state
+    by metis
 qed
 
 lemma ZLf_step_imp_passive_queue_step:
@@ -722,16 +725,17 @@ proof -
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
       by blast
 
-    have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-      by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] not_ci[OF j_ge]])
-    hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+    have "lnth Sts (Suc j) \<sqsubset> lnth Sts j" if j_ge: "j \<ge> i" for j
+      by (rule non_compute_infer_ZLf_step_imp_Less_state[OF step[OF j_ge] not_ci[OF j_ge]])
+    hence "(\<sqsubset>)\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
       using j_ge by blast
-    hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+    hence inf_down_chain: "chain (\<sqsubset>)\<inverse>\<inverse> (ldropn i Sts)"
       using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
     have inf_i: "\<not> lfinite (ldropn i Sts)"
       using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
     show False
-      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
+      using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "(\<sqsubset>)"] wfP_Less_state
+      by blast
   qed
 
   have hd_emp: "lhd (lmap passive_of Sts) = p_empty"
@@ -857,18 +861,19 @@ proof -
           using no_pick by blast
       qed
 
-      have "\<mu>2 (lnth Sts (Suc j)) (lnth Sts j)" if j_ge: "j \<ge> i" for j
-        by (rule non_compute_infer_ZLf_step_imp_\<mu>2[OF step[OF j_ge] non_ci[OF j_ge]])
-      hence "\<mu>2\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
+      have "lnth Sts (Suc j) \<sqsubset> lnth Sts j" if j_ge: "j \<ge> i" for j
+        by (rule non_compute_infer_ZLf_step_imp_Less_state[OF step[OF j_ge] non_ci[OF j_ge]])
+      hence "(\<sqsubset>)\<inverse>\<inverse> (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
         using j_ge by blast
-      hence inf_down_chain: "chain \<mu>2\<inverse>\<inverse> (ldropn i Sts)"
+      hence inf_down_chain: "chain (\<sqsubset>)\<inverse>\<inverse> (ldropn i Sts)"
         using chain_ldropn_lmapI[OF _ si_lt, of _ id, simplified llist.map_id] by simp
 
       have inf_i: "\<not> lfinite (ldropn i Sts)"
         using len lfinite_ldropn llength_eq_infty_conv_lfinite by blast
 
       show False
-        using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of \<mu>2] wfP_\<mu>2 by blast
+        using inf_i inf_down_chain wfP_iff_no_infinite_down_chain_llist[of "(\<sqsubset>)"] wfP_Less_state
+        by blast
     qed
 
     have "\<iota> \<in> lnth flat_Ts i"
@@ -877,7 +882,7 @@ proof -
       \<iota>s_in: "\<iota>s \<in># t_llists (fst (lnth TDs i))" and
       \<iota>_in_\<iota>s: "\<iota> \<in> lset \<iota>s"
       using lnth_lmap[OF lt_sts] unfolding flat_Ts_def TDs_def
-      by (smt Union_iff flat_inferences_of.elims fst_conv mem_Collect_eq)
+      by (smt (verit, ccfv_SIG) Union_iff flat_inferences_of.simps fst_conv mem_Collect_eq)
 
     obtain k :: nat where
       k_lt: "enat k < llength \<iota>s" and
