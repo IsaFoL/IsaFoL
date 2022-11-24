@@ -34,18 +34,16 @@ proof -
     dom_\<sigma>_subset:"subst_domain \<sigma> \<subseteq> vars_cls D" and
     ground_D_\<sigma>: "is_ground_cls (D \<cdot> \<sigma>)" and
     tr_\<Gamma>_L_false_D: "trail_false_cls (trail_decide \<Gamma> (L \<cdot>l \<gamma>)) (D \<cdot> \<sigma>)" and
-    \<rho>_def: "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>))))" and
+    ren_\<rho>: "is_renaming \<rho>" and
+    vars_D_\<rho>_disjoint: "vars_cls (D \<cdot> \<rho>) \<inter> vars_clss
+      (fset (N |\<union>| U |\<union>| clss_of_trail (trail_decide \<Gamma> (L \<cdot>l \<gamma>)))) = {}" and
     \<sigma>\<^sub>\<rho>_def: "\<sigma>\<^sub>\<rho> = rename_subst_domain \<rho> \<sigma>"
-    by (elim conflict.cases) blast
+    by (auto elim: conflict.cases)
 
-  have ren_\<rho>: "is_renaming \<rho>"
-    unfolding \<rho>_def by (rule is_renaming_renaming_wrt[OF finite_fset])
-
-  moreover have "vars_cls D \<subseteq> subst_domain \<sigma>"
+  have "vars_cls D \<subseteq> subst_domain \<sigma>"
     using ground_D_\<sigma> vars_cls_subset_subst_domain_if_grounding by blast
-
-  ultimately have "D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>"
-    unfolding \<sigma>\<^sub>\<rho>_def by (rule subst_renaming_subst_adapted)
+  hence "D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>"
+    unfolding \<sigma>\<^sub>\<rho>_def using ren_\<rho> by (metis subst_renaming_subst_adapted)
 
   have gr_D_\<rho>_\<sigma>\<^sub>\<rho>: "is_ground_cls (D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho>)"
     unfolding \<open>D \<cdot> \<rho> \<cdot> \<sigma>\<^sub>\<rho> = D \<cdot> \<sigma>\<close> by (rule ground_D_\<sigma>)
@@ -342,6 +340,13 @@ proof -
             show "trail_false_cls \<Gamma> (C' \<cdot> restrict_subst_domain (vars_cls C') \<gamma>)"
               using \<open>trail_false_cls \<Gamma> C\<close>[unfolded C_def]
               by (simp add: subst_cls_restrict_subst_domain_idem)
+          next
+            show "is_renaming \<rho>"
+              using \<rho>_def finite_fset is_renaming_renaming_wrt by metis
+          next
+            show "vars_cls (C' \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+              by (metis \<rho>_def finite_UN finite_fset finite_vars_cls vars_cls_subst_renaming_disj
+                  vars_clss_def)
           qed (simp_all add: \<rho>_def \<gamma>\<^sub>\<rho>_def)
           with no_new_conflict have False
             by (simp add: S_def u_def)

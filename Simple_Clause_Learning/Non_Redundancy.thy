@@ -29,8 +29,9 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D" and
     gr_D_\<gamma>\<^sub>D: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
     tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>') (D \<cdot> \<gamma>\<^sub>D)" and
-    \<rho>\<^sub>D_def: "\<rho>\<^sub>D = renaming_wrt (fset (N |\<union>| U |\<union>|
-      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')))"
+    ren_\<rho>\<^sub>D: "is_renaming \<rho>\<^sub>D" and
+    vars_D_\<rho>\<^sub>D_distinct: "vars_cls (D \<cdot> \<rho>\<^sub>D) \<inter> vars_clss (fset (N |\<union>| U |\<union>|
+      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))) = {}"
     by (elim conflict.cases) (unfold propagateI(1,2), blast)
 
   from no_conf have "\<not> trail_false_cls \<Gamma> (D \<cdot> \<gamma>\<^sub>D)"
@@ -44,9 +45,10 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     by (metis uminus_of_uminus_id)
 
   moreover have L'_\<rho>\<^sub>D_adapt_\<gamma>\<^sub>D: "L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D"
-    by (metis D_def \<rho>\<^sub>D_def finite_fset gr_D_\<gamma>\<^sub>D le_sup_iff is_renaming_renaming_wrt
-        subst_lit_renaming_subst_adapted vars_cls_add_mset
-        vars_cls_subset_subst_domain_if_grounding)
+  proof (rule subst_lit_renaming_subst_adapted[OF ren_\<rho>\<^sub>D])
+    show "vars_lit L' \<subseteq> subst_domain \<gamma>\<^sub>D"
+      using D_def gr_D_\<gamma>\<^sub>D by (auto intro!: vars_lit_subset_subst_domain_if_grounding)
+  qed
 
   ultimately have 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
     by argo
@@ -56,19 +58,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     show "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L' \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
       using 1 by (metis atm_of_subst_lit atm_of_uminus)
   next
-    have fin: "finite (\<Union> (vars_cls ` (fset (N |\<union>| U |\<union>|
-      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')))))"
-      by auto
-    hence "\<And>t. vars_term (t \<cdot>a \<rho>\<^sub>D) \<inter> (\<Union> (vars_cls ` (fset (N |\<union>| U |\<union>|
-      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))))) = {}"
-      unfolding \<rho>\<^sub>D_def by (rule vars_term_subst_term_Var_comp_renaming_disj)
-
-    moreover have "vars_lit (L \<cdot>l \<mu> \<cdot>l \<rho>) \<subseteq> (\<Union> (vars_cls ` (fset (N |\<union>| U |\<union>|
-      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')))))"
-      by force
-
-    ultimately show "vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D) = {}"
-      by auto
+    show "vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D) = {}"
+      using vars_D_\<rho>\<^sub>D_distinct by (auto simp: D_def)
   qed
   then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu> \<cdot>l \<rho>), atm_of (L' \<cdot>l \<rho>\<^sub>D)}}"
     using is_mimgu_if_mgu_eq_Some by auto

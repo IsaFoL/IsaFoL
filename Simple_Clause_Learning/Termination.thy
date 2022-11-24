@@ -122,7 +122,8 @@ proof intro_classes
   fix x y :: "'a \<times> 'b"
   show "x \<le> y \<or> y \<le> x"
     unfolding less_eq_prod_def less_prod_def
-    using totalp_on_lex_prodp[OF totalp_less totalp_less, of UNIV UNIV, simplified, THEN totalpD]
+    using totalp_on_lex_prodp[OF totalp_on_less totalp_on_less, of UNIV UNIV, simplified,
+        THEN totalpD]
     by metis
 qed
 

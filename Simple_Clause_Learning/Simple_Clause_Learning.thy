@@ -354,6 +354,9 @@ definition vars_clss :: "('f, 'v) term clause set \<Rightarrow> 'v set" where
 lemma vars_clss_insert[simp]: "vars_clss (insert C N) = vars_cls C \<union> vars_clss N"
   by (simp add: vars_clss_def)
 
+lemma vars_clss_union[simp]: "vars_clss (CC \<union> DD) = vars_clss CC \<union> vars_clss DD"
+  by (simp add: vars_clss_def)
+
 lemma vars_cls_empty[simp]: "vars_cls {#} = {}"
   unfolding vars_cls_def by simp
 
@@ -1669,7 +1672,8 @@ inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rig
 inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   conflictI: "D |\<in>| N |\<union>| U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
-    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> \<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<Longrightarrow>
+    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow>
+    is_renaming \<rho> \<Longrightarrow> vars_cls (D \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
@@ -1898,7 +1902,14 @@ proof (rule notI)
   next
     show "trail_false_cls \<Gamma> (C \<cdot> restrict_subst_domain (vars_cls C) \<gamma>)"
       using tr_false by (simp add: S_def subst_cls_restrict_subst_domain_idem)
-  qed (simp_all add: \<rho>_def)
+  next
+    show "is_renaming \<rho>"
+      unfolding \<rho>_def
+      using finite_fset is_renaming_renaming_wrt by metis
+  next
+    show "vars_cls (C \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+      by (simp add: \<rho>_def vars_cls_subst_renaming_disj vars_clss_def)
+  qed simp_all
   with no_conf show False
     by (simp add: S_def)
 qed
@@ -1925,6 +1936,9 @@ proof -
   next
     show "Var = rename_subst_domain (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) Var"
       by (rule ext) (simp add: rename_subst_domain_def)
+  next
+    show "is_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)))"
+      using finite_fset is_renaming_renaming_wrt by metis
   qed simp_all
 qed
 
@@ -2001,14 +2015,21 @@ proof -
   have "conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D' \<cdot> \<rho>, rename_subst_domain \<rho> \<gamma>))"
   proof (rule conflictI[OF D'_in])
     show "subst_domain \<gamma> \<subseteq> vars_cls D'"
-      by (simp add: \<gamma>_def subst_domain_restrict_subst_domain)
+      by (simp add: \<gamma>_def)
   next
     show "is_ground_cls (D' \<cdot> \<gamma>)"
       using gr_D_\<gamma> by (simp add: \<gamma>_def subst_cls_restrict_subst_domain_idem)
   next
     show "trail_false_cls \<Gamma> (D' \<cdot> \<gamma>)"
       using tr_false_\<Gamma>_D by (simp add: D_def \<gamma>_def subst_cls_restrict_subst_domain_idem)
-  qed (simp_all add: \<rho>_def)
+  next
+    show "is_renaming \<rho>"
+      unfolding \<rho>_def
+      using finite_fset is_renaming_renaming_wrt by metis
+  next
+    show "vars_cls (D' \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+      by (simp add: \<rho>_def vars_cls_subst_renaming_disj vars_clss_def)
+  qed simp_all
   thus ?thesis
     by auto
 qed
@@ -2038,7 +2059,14 @@ proof (rule notI, erule exE)
       show "trail_false_cls (Ln # \<Gamma>) (D \<cdot> \<gamma>)"
         using \<open>trail_false_cls \<Gamma> (D \<cdot> \<gamma>)\<close>
         by (simp add: trail_false_cls_def trail_false_lit_def)
-    qed (simp_all add: \<rho>'_def)
+    next
+      show "is_renaming \<rho>'"
+        unfolding \<rho>'_def
+        using finite_fset is_renaming_renaming_wrt by metis
+    next
+      show "vars_cls (D \<cdot> \<rho>') \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail (Ln # \<Gamma>))) = {}"
+        by (simp add: \<rho>'_def vars_cls_subst_renaming_disj vars_clss_def)
+    qed simp_all
     thus ?thesis
       by metis
   qed
@@ -2081,7 +2109,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     unfolding conflictI(2)
     unfolding conflict_disjoint_vars_def
     unfolding state_trail_simp state_learned_simp state_conflict_simp option.inject prod.inject
-    by (metis finite_UN finite_fset finite_vars_cls vars_cls_subst_renaming_disj vars_clss_def)
+    by metis
 qed
 
 lemma skip_preserves_conflict_disjoint_vars:
@@ -4271,10 +4299,7 @@ lemma conflict_sound_state:
   using assms(1)
 proof (cases N \<beta> S S' rule: conflict.cases)
   case (conflictI D U \<gamma> \<Gamma> \<rho> \<gamma>\<^sub>\<rho>)
-  hence
-    D_in: "D |\<in>| N |\<union>| U" and
-    \<rho>_def: "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
-    by simp_all
+  hence D_in: "D |\<in>| N |\<union>| U" by simp
   
   from conflictI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
@@ -4284,18 +4309,20 @@ proof (cases N \<beta> S S' rule: conflict.cases)
 
   have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>"
     unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close>
-    by (metis (opaque_lifting) \<rho>_def finite_fset is_renaming_renaming_wrt conflictI(5)
-        subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+    using subst_renaming_subst_adapted[OF \<open>is_renaming \<rho>\<close>]
+    by (metis \<open>is_ground_cls (D \<cdot> \<gamma>)\<close> vars_cls_subset_subst_domain_if_grounding)
 
   have disj_N_U_D': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D \<cdot> \<rho>) C"
-    by (metis \<rho>_def finite_fset disjoint_vars_rename_clause rename_clause_def)
+    using \<open>vars_cls (D \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}\<close>
+    unfolding disjoint_vars_iff_inter_empty
+    by (smt (verit, ccfv_SIG) UN_I disjoint_iff vars_clss_def)
 
   moreover have N_entails_D': "fset N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
   proof (intro allI impI)
     fix I
     assume valid_N: "I \<TTurnstile>s grounding_of_clss (fset N)"
     moreover have "grounding_of_cls (D \<cdot> \<rho>) = grounding_of_cls D"
-      by (metis (opaque_lifting) \<rho>_def finite_fset grounding_of_cls_rename_clause rename_clause_def)
+      by (rule grounding_of_subst_cls_renaming_ident[OF \<open>is_renaming \<rho>\<close>])
     ultimately show "I \<TTurnstile>s grounding_of_clss {D \<cdot> \<rho>}"
       using D_in
       unfolding grounding_of_clss_singleton
@@ -4315,7 +4342,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       unfolding rename_subst_domain_def by metis+
 
     from x_in obtain x' where x'_in: "x' \<in> subst_domain \<gamma>" and \<rho>_x': "\<rho> x' = Var x"
-      using \<rho>_def is_renaming_iff by auto
+      using \<open>is_renaming \<rho>\<close> is_renaming_iff by auto
     hence "x' \<in> vars_cls D"
       using \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close>[THEN subsetD] by metis
     thus "x \<in> vars_cls (D \<cdot> \<rho>)"
@@ -4859,23 +4886,8 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
       by (auto intro: no_conflict_after_decide.Nil)
   next
     case (Cons Ln \<Gamma>'')
-    have "\<nexists>S'. conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S'"
-    proof (rule notI, erule exE)
-      fix S' assume "conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S'"
-      then obtain C \<gamma> where
-        C_in: "C |\<in>| N |\<union>| finsert (add_mset L D) U" and
-        dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C" and
-        ground_C_\<gamma>: "is_ground_cls (C \<cdot> \<gamma>)" and
-        tr_false_C_\<gamma>: "trail_false_cls \<Gamma>'' (C \<cdot> \<gamma>)"
-        by (auto elim!: conflict.cases)
-
-      from tr_false_C_\<gamma> have "trail_false_cls (Ln # \<Gamma>'') (C \<cdot> \<gamma>)"
-        by (simp add: trail_false_cls_def trail_false_lit_def)
-      hence "\<exists>a. conflict N \<beta> (Ln # \<Gamma>'', finsert (add_mset L D) U, None) a"
-        using C_in dom_\<gamma> ground_C_\<gamma> by (meson conflict.intros)
-      thus False
-        using Cons.prems by argo
-    qed
+    hence "\<nexists>S'. conflict N \<beta> (\<Gamma>'', finsert (add_mset L D) U, None) S'"
+      using no_conflict_tail_trail by metis
     hence "no_conflict_after_decide N \<beta> (finsert (add_mset L D) U) \<Gamma>''"
       by (rule Cons.IH)
     thus ?case
@@ -5042,7 +5054,8 @@ proof (induction \<Gamma> rule: no_conflict_with_trail.induct)
 next
   case (Cons Ln \<Gamma>)
   hence "\<not> trail_false_cls (Ln # \<Gamma>) (D \<cdot> \<gamma>)"
-    by (auto simp: conflict.simps)
+    by (metis fst_conv scl.not_trail_false_ground_cls_if_no_conflict scl_axioms state_conflict_simp
+        state_learned_simp state_trail_def)
   thus ?case
     by simp
 qed
@@ -5478,9 +5491,17 @@ proof -
           ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
             by (metis subtrail_falseI trail_propagate_def)
 
-          then show ?thesis
-            by (metis finite_fset is_renaming_renaming_wrt conflictI(2,5,7,8) state_conflict_simp
-                subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+          moreover have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>D\<^sub>\<rho> = D \<cdot> \<gamma>\<^sub>D"
+            unfolding \<open>\<gamma>\<^sub>D\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<^sub>D\<close>
+            using subst_renaming_subst_adapted[OF \<open>is_renaming \<rho>\<close>]
+              vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>]
+            by metis
+
+          moreover have "state_conflict S2 = Some (D \<cdot> \<rho>, \<gamma>\<^sub>D\<^sub>\<rho>)"
+            unfolding conflictI(1,2) by simp
+
+          ultimately show ?thesis
+            by metis
         qed
         then obtain D \<gamma>\<^sub>D where "state_conflict S2 = Some (D, \<gamma>\<^sub>D)" and "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
           by metis
@@ -5846,9 +5867,17 @@ proof -
       ultimately have "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
         by (metis subtrail_falseI trail_propagate_def)
 
-      then show ?thesis
-        by (metis finite_fset is_renaming_renaming_wrt conflictI(2,5,7,8) state_conflict_simp
-            subst_renaming_subst_adapted vars_cls_subset_subst_domain_if_grounding)
+      moreover have "D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>D\<^sub>\<rho> = D \<cdot> \<gamma>\<^sub>D"
+        unfolding \<open>\<gamma>\<^sub>D\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<^sub>D\<close>
+        using subst_renaming_subst_adapted[OF \<open>is_renaming \<rho>\<close>]
+          vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (D \<cdot> \<gamma>\<^sub>D)\<close>]
+        by metis
+
+      moreover have "state_conflict S2 = Some (D \<cdot> \<rho>, \<gamma>\<^sub>D\<^sub>\<rho>)"
+        unfolding conflictI(1,2) by simp
+
+      ultimately show ?thesis
+        by metis
     qed
     then obtain D \<gamma>\<^sub>D where "state_conflict S2 = Some (D, \<gamma>\<^sub>D)" and "- (L \<cdot>l \<gamma>) \<in># D \<cdot> \<gamma>\<^sub>D"
       by metis
