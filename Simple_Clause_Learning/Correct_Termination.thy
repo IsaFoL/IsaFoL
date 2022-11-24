@@ -468,13 +468,13 @@ proof -
               by (simp add: S_def trail_groundings_def 1 trail_propagate_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
-              "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|C' + {#K#}|}))"
+              "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"
 
             have ren_\<rho>: "is_renaming \<rho>"
               using \<rho>_def finite_fset is_renaming_renaming_wrt by metis
 
             have vars_subst_\<rho>_disj:
-              "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|C' + {#K#}|})) = {}"
+              "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
               by (metis \<rho>_def finite_UN finite_fset finite_vars_cls vars_cls_subst_renaming_disj
                   vars_clss_def)
 

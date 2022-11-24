@@ -1605,8 +1605,7 @@ inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
-    vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter>
-      vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) = {} \<Longrightarrow>
+    vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
@@ -4475,8 +4474,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   moreover have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E"
     if E_in: "E \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for E
     unfolding disjoint_vars_iff_inter_empty
-    using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss
-      (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) = {}\<close>
+    using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}\<close>
     by (smt (verit, best) UN_I Un_iff disjoint_iff union_fset vars_clss_def)
 
   moreover have

@@ -69,8 +69,8 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using resolveI[OF refl, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" \<mu>' N U \<Gamma> "L \<cdot>l \<mu> \<cdot>l \<rho>" \<gamma>\<^sub>\<rho>' "L' \<cdot>l \<rho>\<^sub>D"
         "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D" \<beta>, OF _ _ 1 2]
     using ex_renaming_to_disjoint_vars[
-        of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>') |\<union>|
-          {|D' \<cdot> \<rho>\<^sub>D + {#L' \<cdot>l \<rho>\<^sub>D#}|})" "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<cdot> \<mu>'", OF finite_fset]
+        of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))"
+          "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<cdot> \<mu>'", OF finite_fset]
     by auto
 qed
 
@@ -181,8 +181,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     unfolding S\<^sub>3_def
     using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>, of _ "DDD \<cdot> \<mu>\<^sub>K" \<mu>\<mu> N U "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' \<beta>]
     using ex_renaming_to_disjoint_vars[
-        of "fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|DDD \<cdot> \<mu>\<^sub>K + {#L' \<cdot>l \<mu>\<^sub>K#}|})"
-          "(DDD \<cdot> \<mu>\<^sub>K + C) \<cdot> \<mu>\<mu>", simplified]
+        of "fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" "(DDD \<cdot> \<mu>\<^sub>K + C) \<cdot> \<mu>\<mu>", OF finite_fset]
     by auto
 qed
 
