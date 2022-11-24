@@ -704,22 +704,15 @@ proof -
     hence fin_ci: "finitely_often compute_infer_step Sts"
       using fair by blast
 
-    obtain i_ci :: nat where
-      i_ci: "\<forall>j \<ge> i_ci. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
+    obtain i :: nat where
+      i: "\<forall>j \<ge> i. \<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))"
       using fin_ci len unfolding finitely_often_def by auto
-    obtain i_cp :: nat where
-      i_cp: "\<forall>j \<ge> i_cp. \<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))"
-      using fin_cp len unfolding finitely_often_def by auto
-    define i :: nat where
-      i: "i = max i_cp i_ci"
 
     have si_lt: "enat (Suc i) < llength Sts"
       unfolding len by auto
 
     have not_ci: "\<not> compute_infer_step (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
-      using i i_ci j_ge by auto
-    have not_cp: "\<not> choose_p_step (lnth Sts j) (lnth Sts (Suc j))" if j_ge: "j \<ge> i" for j
-      using i i_cp j_ge by auto
+      using i j_ge by auto
 
     have step: "lnth Sts j \<leadsto>ZLf lnth Sts (Suc j)" if j_ge: "j \<ge> i" for j
       using full_chain_imp_chain[OF full] infinite_chain_lnth_rel len llength_eq_infty_conv_lfinite
