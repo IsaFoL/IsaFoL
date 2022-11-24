@@ -861,6 +861,9 @@ definition hp_update_prev where
 definition hp_update_nxt where
   \<open>hp_update_nxt i nxt = (\<lambda>(prevs, nxts, childs, scores). (prevs, nxts(i:=nxt), childs, scores))\<close>
 
+definition hp_update_score where
+  \<open>hp_update_score i nxt = (\<lambda>(prevs, nxts, childs, scores). (prevs, nxts, childs, scores(i:=nxt)))\<close>
+
 
 fun hp_read_nxt :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_nxt i (prevs, nxts, childs) = nxts i\<close>
 fun hp_read_prev :: \<open>_ \<Rightarrow> ('a, 'b) hp_fun  \<Rightarrow> _\<close> where \<open>hp_read_prev i (prevs, nxts, childs) = prevs i\<close>
@@ -1754,6 +1757,60 @@ proof -
     subgoal using assms by (cases xs rule: VSIDS.pass\<^sub>1.cases) auto
     subgoal using assms by auto
     subgoal by (auto simp: VSIDS.pass12_merge_pairs)
+    done
+qed
+
+
+definition hp_update_child where
+  \<open>hp_update_child i nxt = (\<lambda>(prevs, nxts, childs, scores). (prevs, nxts, childs(i:=nxt), scores))\<close>
+
+definition vsids_pop_min :: \<open>_\<close> where
+  \<open>vsids_pop_min = (\<lambda>(\<V>::'a set, arr :: ('a, 'b::order) hp_fun, h :: 'a option). do {
+  if h = None then RETURN (None, (\<V>, arr, h))
+  else do {
+      let j = hp_read_child (the h) arr;
+      if j = None then RETURN (h, (\<V>, arr, None))
+      else do {
+        let arr = hp_update_child (the h) None arr;
+        let arr = hp_update_score (the h) None arr;
+        arr \<leftarrow> merge_pairs (\<V>, arr, None) (the j);
+        RETURN (h, arr)
+      }
+    }
+  })\<close>
+
+
+lemma get_min2_alt_def: \<open>get_min2 (Some h) = node h\<close>
+  by (cases h) auto
+
+lemma vsids_pop_min:
+  fixes arr :: \<open>'a::linorder set \<times> ('a, nat) hp_fun \<times> 'a option\<close>
+  assumes \<open>encoded_hp_prop_list_conc arr h\<close>
+  shows \<open>vsids_pop_min arr \<le> SPEC(\<lambda>(j, arr). j = (if h = None then None else Some (get_min2 h)) \<and> encoded_hp_prop_list_conc arr (VSIDS.del_min h))\<close>
+proof -
+  show ?thesis
+    unfolding vsids_pop_min_def
+    apply (refine_vcg vsids_merge_pairs[of _ \<open>case the h of Hp _ _ child \<Rightarrow> child\<close>])
+    subgoal using assms by (cases h) (auto simp: encoded_hp_prop_list_conc_def)
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def split: option.splits)
+    subgoal using assms by (auto simp: encoded_hp_prop_list_conc_def get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms encoded_hp_prop_list_remove_min[of \<open>node (the h)\<close> \<open>score (the h)\<close> \<open>hps (the h)\<close> \<open>{#}\<close>
+      \<open>fst (fst (snd arr))\<close> \<open>(fst o snd) (fst (snd arr))\<close> \<open>(fst o snd o snd) (fst (snd arr))\<close>
+      \<open>(snd o snd o snd) (fst (snd arr))\<close>]
+      by (cases \<open>the h\<close>; cases \<open>fst (snd arr)\<close>)
+       (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_list2_conc_def
+        hp_update_nxt_def hp_update_score_def hp_update_child_def
+        get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>the h\<close>) (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def
+      get_min2_alt_def split: option.splits)
+    subgoal using assms by (cases \<open>h\<close>; cases \<open>the h\<close>)
+      (auto simp: get_min2_alt_def VSIDS.pass12_merge_pairs encoded_hp_prop_list_conc_def split: option.splits)
     done
 qed
 
