@@ -1593,12 +1593,11 @@ inductive skip :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Right
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   skipI: "-L \<notin># D \<cdot> \<sigma> \<Longrightarrow> skip N \<beta> ((L, n) # \<Gamma>, U, Some (D, \<sigma>)) (\<Gamma>, U, Some (D, \<sigma>))"
 
-(* replace \<sigma> by \<gamma> *)
 inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  factorizeI: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
-    \<sigma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma> \<Longrightarrow>
-    factorize N \<beta> (\<Gamma>, U, Some (D + {#L,L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<sigma>'))"
+  factorizeI: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma> \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
+    \<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma> \<Longrightarrow>
+    factorize N \<beta> (\<Gamma>, U, Some (D + {#L,L'#}, \<gamma>)) (\<Gamma>, U, Some ((D + {#L#}) \<cdot> \<mu>, \<gamma>'))"
 
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
@@ -1734,33 +1733,33 @@ lemma conflict_set_after_factorization:
   shows "\<exists>C' \<gamma>'. state_conflict S' = Some (C', \<gamma>') \<and> set_mset (C \<cdot> \<gamma>) = set_mset (C' \<cdot> \<gamma>')"
   using fact
 proof (cases N \<beta> S S' rule: factorize.cases)
-  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
 
-  from \<open>L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>\<close> have "is_unifier \<sigma> {atm_of L, atm_of L'}"
+  from \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close> have "is_unifier \<gamma> {atm_of L, atm_of L'}"
     by (auto intro!: is_unifier_alt[THEN iffD2] intro: subst_atm_of_eqI)
-  hence "\<mu> \<odot> \<sigma> = \<sigma>"
+  hence "\<mu> \<odot> \<gamma> = \<gamma>"
     using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
     by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
 
-  have "L \<cdot>l \<mu> \<cdot>l \<sigma>' = L \<cdot>l \<sigma>"
+  have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>"
   proof -
-    have "L \<cdot>l \<mu> \<cdot>l \<sigma>' = L \<cdot>l \<mu> \<cdot>l \<sigma>"
-      unfolding \<open>\<sigma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma>\<close>
+    have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
+      unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
       by (simp add: subst_lit_restrict_subst_domain_idem)
-    also have "\<dots> = L \<cdot>l \<sigma>"
-      using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
+    also have "\<dots> = L \<cdot>l \<gamma>"
+      using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
       by (metis subst_lit_comp_subst)
     finally show ?thesis
       by assumption
   qed
 
-  moreover have "D \<cdot> \<mu> \<cdot> \<sigma>' = D \<cdot> \<sigma>"
+  moreover have "D \<cdot> \<mu> \<cdot> \<gamma>' = D \<cdot> \<gamma>"
   proof -
-    have "D \<cdot> \<mu> \<cdot> \<sigma>' = D \<cdot> \<mu> \<cdot> \<sigma>"
-      unfolding \<open>\<sigma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma>\<close>
+    have "D \<cdot> \<mu> \<cdot> \<gamma>' = D \<cdot> \<mu> \<cdot> \<gamma>"
+      unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
       by (simp add: subst_cls_restrict_subst_domain_idem)
-    also have "\<dots> = D \<cdot> \<sigma>"
-      using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
+    also have "\<dots> = D \<cdot> \<gamma>"
+      using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
       by (metis subst_cls_comp_subst)
     finally show ?thesis
       by assumption
@@ -1769,7 +1768,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   ultimately show ?thesis
     using conflict_S[symmetric]
     unfolding factorizeI(1,2)
-    by (simp add: \<open>L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>\<close>)
+    by (simp add: \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close>)
 qed
 
 lemma not_trail_false_ground_cls_if_no_conflict:
@@ -2042,7 +2041,7 @@ lemma factorize_preserves_conflict_disjoint_vars:
   shows "conflict_disjoint_vars N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: factorize.cases)
-  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
   
   from invar have "vars_cls (add_mset L (add_mset L' D)) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
     unfolding factorizeI(1)
@@ -2473,7 +2472,7 @@ lemma factorize_preserves_trail_lits_from_clauses:
   shows "trail_lits_from_clauses N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: factorize.cases)
-  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
   thus ?thesis
     using assms(2) by (simp add: trail_lits_from_clauses_def)
 qed
@@ -3421,25 +3420,25 @@ lemma factorize_preserves_minimal_ground_closures:
   shows "minimal_ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: factorize.cases)
-  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
-  have "is_unifier \<sigma> {atm_of L, atm_of L'}"
-    using \<open>L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>\<close>[THEN subst_atm_of_eqI]
+  case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
+  have "is_unifier \<gamma> {atm_of L, atm_of L'}"
+    using \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close>[THEN subst_atm_of_eqI]
     by (simp add: is_unifier_alt)
-  hence "\<mu> \<odot> \<sigma> = \<sigma>"
+  hence "\<mu> \<odot> \<gamma> = \<gamma>"
     using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
     by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
 
-  have "add_mset L D \<cdot> \<mu> \<cdot> \<sigma>' = add_mset L D \<cdot> \<mu> \<cdot> \<sigma>"
-    unfolding \<open>\<sigma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma>\<close>
+  have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
+    unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>\<close>
     by (rule subst_cls_restrict_subst_domain_idem) simp
-  also have "\<dots> = add_mset L D \<cdot> \<sigma>"
-    using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
+  also have "\<dots> = add_mset L D \<cdot> \<gamma>"
+    using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
     by (metis subst_cls_comp_subst)
-  finally have "is_ground_cls (add_mset L D \<cdot> \<mu> \<cdot> \<sigma>')"
+  finally have "is_ground_cls (add_mset L D \<cdot> \<mu> \<cdot> \<gamma>')"
     using factorizeI(3-) invar
     unfolding factorizeI(1,2)
     by (simp add: is_ground_cls_add_mset minimal_ground_closures_def)
-  moreover have "subst_domain \<sigma>' \<subseteq> vars_cls (add_mset L D \<cdot> \<mu>)"
+  moreover have "subst_domain \<gamma>' \<subseteq> vars_cls (add_mset L D \<cdot> \<mu>)"
     by (metis Int_lower2 add_mset_add_single local.factorizeI(5) subst_domain_restrict_subst_domain)
   ultimately show ?thesis
     using invar
@@ -4268,16 +4267,16 @@ lemma factorize_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: factorize.cases)
-  case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+  case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
 
   from factorizeI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     disj_N_U_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L, L'#}) C" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
-    dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L, L'#})" and
-    gr_D_L_L'_\<sigma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<sigma>)" and
-    tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<sigma>)" and
+    dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls (D + {#L, L'#})" and
+    gr_D_L_L'_\<gamma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<gamma>)" and
+    tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
     unfolding sound_state_def by simp_all
 
@@ -4285,19 +4284,19 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
     range_vars_\<mu>: "range_vars \<mu> \<subseteq> vars_lit L \<union> vars_lit L'"
     by (simp_all add: is_mimgu_def)
-  from factorizeI have L_eq_L'_\<sigma>: "L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>" by simp
-  from factorizeI have \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<sigma>" by simp
+  from factorizeI have L_eq_L'_\<gamma>: "L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>" by simp
+  from factorizeI have \<gamma>'_def: "\<gamma>' = restrict_subst_domain (vars_cls ((D + {#L#}) \<cdot> \<mu>)) \<gamma>" by simp
 
-  from L_eq_L'_\<sigma> have unif_\<sigma>: "is_unifier \<sigma> {atm_of L, atm_of L'}"
+  from L_eq_L'_\<gamma> have unif_\<gamma>: "is_unifier \<gamma> {atm_of L, atm_of L'}"
     by (auto simp: is_unifier_alt intro: subst_atm_of_eqI)
-  hence unifs_\<sigma>: "is_unifiers \<sigma> {{atm_of L, atm_of L'}}"
+  hence unifs_\<gamma>: "is_unifiers \<gamma> {{atm_of L, atm_of L'}}"
     by (simp add: is_unifiers_def)
 
   from imgu_\<mu> have "is_unifier \<mu> {atm_of L, atm_of L'}"
     by (auto simp add: is_unifiers_def dest: is_imgu_is_mgu[THEN is_mgu_is_unifiers])
   hence L_eq_L'_\<mu>: "L \<cdot>l \<mu> = L' \<cdot>l \<mu>"
     apply (simp add: is_unifier_alt)
-    by (metis L_eq_L'_\<sigma> atm_of_subst_lit literal.expand subst_lit_is_neg)
+    by (metis L_eq_L'_\<gamma> atm_of_subst_lit literal.expand subst_lit_is_neg)
 
   have "disjoint_vars ((D + {#L#}) \<cdot> \<mu>) C" if C_in: "C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for C
     using disj_N_U_D_L_L'[rule_format, OF C_in]
@@ -4305,26 +4304,26 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     using range_vars_\<mu> vars_subst_cls_subset[of "D + {#L#}" \<mu>]
     by auto
 
-  moreover have "subst_domain \<sigma>' \<subseteq> vars_cls ((D + {#L#}) \<cdot> \<mu>)"
-    unfolding \<sigma>'_def using subst_domain_restrict_subst_domain by fast
+  moreover have "subst_domain \<gamma>' \<subseteq> vars_cls ((D + {#L#}) \<cdot> \<mu>)"
+    unfolding \<gamma>'_def using subst_domain_restrict_subst_domain by fast
 
-  moreover have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>')"
+  moreover have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
   proof -
-    have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>)"
-      using gr_D_L_L'_\<sigma>
-      by (smt (verit) range_vars_\<mu> Diff_eq_empty_iff UN_Un Un_empty dom_\<sigma>
+    have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
+      using gr_D_L_L'_\<gamma>
+      by (smt (verit) range_vars_\<mu> Diff_eq_empty_iff UN_Un Un_empty dom_\<gamma>
           is_ground_cls_iff_vars_empty subset_antisym sup.orderE vars_cls_subst_subset
           vars_subst_cls_eq)
     thus ?thesis
-      unfolding \<sigma>'_def using subst_cls_restrict_subst_domain_idem by (metis subsetI)
+      unfolding \<gamma>'_def using subst_cls_restrict_subst_domain_idem by (metis subsetI)
   qed
 
-  moreover have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>')"
+  moreover have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
   proof -
     show ?thesis
-      unfolding \<sigma>'_def
+      unfolding \<gamma>'_def
       using subst_cls_restrict_subst_domain_idem
-      using trail_false_cls_subst_mgu_before_grounding[OF tr_false_cls imgu_\<mu> unifs_\<sigma>]
+      using trail_false_cls_subst_mgu_before_grounding[OF tr_false_cls imgu_\<mu> unifs_\<gamma>]
       by (metis subsetI)
   qed
 

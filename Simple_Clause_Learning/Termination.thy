@@ -475,23 +475,23 @@ next
       assume "factorize N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: factorize.cases)
-        case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
+        case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
 
-        have "is_unifier \<sigma> {atm_of L, atm_of L'}"
-          using \<open>L \<cdot>l \<sigma> = L' \<cdot>l \<sigma>\<close>[THEN subst_atm_of_eqI]
+        have "is_unifier \<gamma> {atm_of L, atm_of L'}"
+          using \<open>L \<cdot>l \<gamma> = L' \<cdot>l \<gamma>\<close>[THEN subst_atm_of_eqI]
           by (simp add: is_unifier_alt)
-        hence "\<mu> \<odot> \<sigma> = \<sigma>"
+        hence "\<mu> \<odot> \<gamma> = \<gamma>"
           using \<open>is_mimgu \<mu> {{atm_of L, atm_of L'}}\<close>
           by (simp add: is_mimgu_def is_imgu_def is_unifiers_def)
 
-        have "add_mset L D \<cdot> \<mu> \<cdot> \<sigma>' = add_mset L D \<cdot> \<mu> \<cdot> \<sigma>"
+        have "add_mset L D \<cdot> \<mu> \<cdot> \<gamma>' = add_mset L D \<cdot> \<mu> \<cdot> \<gamma>"
           unfolding factorizeI
           by (rule subst_cls_restrict_subst_domain_idem) simp
-        also have "\<dots> = add_mset L D \<cdot> \<sigma>"
-          using \<open>\<mu> \<odot> \<sigma> = \<sigma>\<close>
+        also have "\<dots> = add_mset L D \<cdot> \<gamma>"
+          using \<open>\<mu> \<odot> \<gamma> = \<gamma>\<close>
           by (metis subst_cls_comp_subst)
-        finally have "(\<M>_skip_fact_reso \<Gamma> (add_mset L D \<cdot> \<mu> \<cdot> \<sigma>'),
-          \<M>_skip_fact_reso \<Gamma> (add_mset L' (add_mset L D) \<cdot> \<sigma>)) \<in> (lenlex {(x, y). x < y})\<^sup>="
+        finally have "(\<M>_skip_fact_reso \<Gamma> (add_mset L D \<cdot> \<mu> \<cdot> \<gamma>'),
+          \<M>_skip_fact_reso \<Gamma> (add_mset L' (add_mset L D) \<cdot> \<gamma>)) \<in> (lenlex {(x, y). x < y})\<^sup>="
           using \<M>_skip_fact_reso_add_mset
           by (metis subst_cls_add_mset)
         thus ?thesis

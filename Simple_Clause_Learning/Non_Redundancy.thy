@@ -603,17 +603,17 @@ proof -
       assume "factorize N \<beta> Sm Sm'"
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: factorize.cases)
-        case (factorizeI L \<sigma> L' \<mu> \<sigma>' D \<Gamma> U)
-        with conflict_Sm have Cm_def: "Cm = D + {#L, L'#}" and \<gamma>m_def: "\<gamma>m = \<sigma>"
+        case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
+        with conflict_Sm have Cm_def: "Cm = D + {#L, L'#}" and \<gamma>m_def: "\<gamma>m = \<gamma>"
           by simp_all
-        with factorizeI(3,4) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>)"
+        with factorizeI(3,4) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
           apply -
           apply (rule trail_false_cls_subst_mgu_before_grounding[of _ _ L L'])
           using trail_false_Cm_\<gamma>m apply simp
            apply auto
           by (smt (verit, best) atm_of_subst_lit finite.emptyI finite.insertI insertE is_unifier_alt
               is_unifiers_def singletonD)
-        with factorizeI(5) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<sigma>')"
+        with factorizeI(5) have "trail_false_cls (state_trail S1) ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
           by (metis subsetI subst_cls_restrict_subst_domain_idem)
         with factorizeI(2) show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>
