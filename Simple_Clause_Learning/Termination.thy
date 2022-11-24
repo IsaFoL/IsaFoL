@@ -504,7 +504,7 @@ next
       assume "resolve N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
         hence ren_\<rho>: "is_renaming \<rho>"
           using finite_fset is_renaming_renaming_wrt by blast
 

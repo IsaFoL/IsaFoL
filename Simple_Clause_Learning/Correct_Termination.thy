@@ -508,7 +508,7 @@ proof -
 
             have "resolve N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) (\<Gamma>, U, Some ((C' + D) \<cdot> \<mu> \<cdot> \<rho>,
               restrict_subst_domain (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
-              using resolveI[OF 1 ren_\<rho> vars_subst_\<rho>_disj 2 3, of \<beta>] .
+              using resolveI[OF 1 2 3 ren_\<rho> vars_subst_\<rho>_disj, of \<beta>] .
             with no_more_regular_step have False
               unfolding regular_scl_def reasonable_scl_def scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def by blast

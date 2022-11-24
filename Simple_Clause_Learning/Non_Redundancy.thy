@@ -66,8 +66,7 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
 
   show ?thesis
     unfolding S\<^sub>2_def D_def
-    using resolveI[OF refl, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" \<mu>' N U \<Gamma> "L \<cdot>l \<mu> \<cdot>l \<rho>" \<gamma>\<^sub>\<rho>' "L' \<cdot>l \<rho>\<^sub>D"
-        "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D" \<beta>, OF _ _ 1 2]
+    using resolveI[OF refl 1 2, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" N U \<Gamma> \<beta>]
     using ex_renaming_to_disjoint_vars[
         of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))"
           "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<cdot> \<mu>'", OF finite_fset]
@@ -80,7 +79,7 @@ lemma factorize_preserves_resolvability:
   shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
   using reso
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
 
   from fact obtain K K' \<mu>\<^sub>K \<sigma>' DD where
     S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (DD + {#K, K'#}, \<sigma>))" and
@@ -179,7 +178,8 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
   ultimately show ?thesis
     unfolding S\<^sub>3_def
-    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>, of _ "DDD \<cdot> \<mu>\<^sub>K" \<mu>\<mu> N U "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' \<beta>]
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>,
+        of "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' \<mu>\<mu> _ "DDD \<cdot> \<mu>\<^sub>K" N U \<beta>]
     using ex_renaming_to_disjoint_vars[
         of "fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" "(DDD \<cdot> \<mu>\<^sub>K + C) \<cdot> \<mu>\<mu>", OF finite_fset]
     by auto
@@ -623,7 +623,7 @@ proof -
       assume "resolve N \<beta> Sm Sm'"
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
         have "is_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})))"
           apply (rule is_renaming_renaming_wrt)
           using resolveI

@@ -1602,9 +1602,9 @@ inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
 
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
+  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow>
+    is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
     vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
-    (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
@@ -2065,9 +2065,9 @@ lemma resolve_preserves_conflict_disjoint_vars:
   shows "conflict_disjoint_vars N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
-  have "vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
-    using local.resolveI(5) by auto
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
+  hence "vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    by auto
   thus ?thesis
     unfolding resolveI(2)
     by (simp add: conflict_disjoint_vars_def)
@@ -2332,7 +2332,7 @@ lemma resolve_preserves_initial_lits_generalize_learned_trail_conflict:
   "resolve N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
     initial_lits_generalize_learned_trail_conflict N S'"
 proof (induction S S' rule: resolve.induct)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
   moreover have "clss_lits_generalize_clss_lits (fset N) {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
   proof -
     from resolveI.prems have
@@ -3454,7 +3454,7 @@ lemma resolve_preserves_minimal_ground_closures:
   shows "minimal_ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
 
   from invars(1) have
     ground_conf: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
@@ -3509,7 +3509,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     (D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming \<rho> \<cdot> \<sigma> \<cdot> \<delta>"
     by (simp add: subst_cls_restrict_subst_domain_idem)
   also have "\<dots> = (D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
-    by (simp add: local.resolveI(4))
+    using \<open>is_renaming \<rho>\<close> by simp
   also have "\<dots> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>"
     using \<open>\<mu> \<odot> \<sigma> \<odot> \<delta> = \<sigma> \<odot> \<delta>\<close>
     by (metis subst_cls_comp_subst)
@@ -4407,7 +4407,7 @@ lemma resolve_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
   from resolveI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
