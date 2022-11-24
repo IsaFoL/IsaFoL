@@ -22,13 +22,13 @@ begin
 theorem
   assumes
     full: "full_chain (\<leadsto>OLf) Sts" and
-    init: "is_initial_OLf_state (lhd Sts)" and
-    bot: "B \<in> Bot_F" and
-    unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    init: "is_initial_OLf_state (lhd Sts)"
   shows
-    fair_OL_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> state_union (Liminf_fstate Sts)" (is ?thesis1) and
-    fair_OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
-      (is ?thesis2)
+    fair_OL_Liminf_saturated: "saturated (state (Liminf_fstate Sts))" and
+    fair_OL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>B' \<in> Bot_F. B' \<in> state_union (Liminf_fstate Sts)" and
+    fair_OL_complete: "B \<in> Bot_F \<Longrightarrow> fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
 proof -
   have ilf_chain: "chain (\<leadsto>ILf) Sts"
     using Lazy_List_Chain.chain_mono fair_IL.ol full_chain_imp_chain full by blast
@@ -36,10 +36,19 @@ proof -
     by (metis chain_ILf_invariant_llast full_chain_iff_chain initial_OLf_invariant
         is_final_OLf_state_iff_no_ILf_step is_final_OLf_state_iff_no_OLf_step full init)
 
-  show ?thesis1
-    by (rule fair_IL_complete_Liminf[OF ilf_full init bot unsat])
-  show ?thesis2
-    by (rule fair_IL_complete[OF ilf_full init bot unsat])
+  show "saturated (state (Liminf_fstate Sts))"
+    by (rule fair_IL_Liminf_saturated[OF ilf_full init])
+
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "fset (new_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+
+    show "\<exists>B' \<in> Bot_F. B' \<in> state_union (Liminf_fstate Sts)"
+      by (rule fair_IL_complete_Liminf[OF ilf_full init bot unsat])
+    show "\<exists>i. enat i < llength Sts \<and> (\<exists>B' \<in> Bot_F. B' \<in> all_formulas_of (lnth Sts i))"
+      by (rule fair_IL_complete[OF ilf_full init bot unsat])
+  }
 qed
 
 end

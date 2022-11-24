@@ -50,7 +50,8 @@ locale discount_loop = labeled_lifting_intersection Bot_F Inf_F Bot_G Q entails_
     equiv_F_grounding: "q \<in> Q \<Longrightarrow> C1 \<doteq> C2 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
     prec_F_grounding: "q \<in> Q \<Longrightarrow> C2 \<prec>\<cdot> C1 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
     static_ref_comp: "statically_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>\<G>)
-      no_labels.Red_I_\<G> no_labels.Red_F_\<G>_empty"
+      no_labels.Red_I_\<G> no_labels.Red_F_\<G>_empty" and
+    inf_have_prems: "\<iota>F \<in> Inf_F \<Longrightarrow> prems_of \<iota>F \<noteq> []"
 begin
 
 lemma po_on_DL_Prec_L: "po_on (\<sqsubset>L) UNIV"
@@ -373,19 +374,30 @@ theorem
     act: "active_subset (snd (lhd Sts)) = {}" and
     pas: "passive_subset (Liminf_llist (lmap snd Sts)) = {}" and
     no_prems_init: "\<forall>\<iota> \<in> Inf_F. prems_of \<iota> = [] \<longrightarrow> \<iota> \<in> fst (lhd Sts)" and
-    final_sched: "Liminf_llist (lmap fst Sts) = {}" and
-    bot: "B \<in> Bot_F" and
-    unsat: "fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+    final_sched: "Liminf_llist (lmap fst Sts) = {}"
   shows
-    DL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)" and
-    DL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+    DL_Liminf_saturated: "saturated (Liminf_llist (lmap snd Sts))" and
+    DL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)" and
+    DL_complete: "B \<in> Bot_F \<Longrightarrow> fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
 proof -
   have lgc_chain: "chain (\<leadsto>LGC) Sts"
     using dl_chain DL_step_imp_LGC_step chain_mono by blast
-  show DL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)"
-    by (rule lgc_complete_Liminf[OF lgc_chain act pas no_prems_init final_sched bot unsat])
-  then show OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
-    unfolding Liminf_llist_def by auto
+
+  show "saturated (Liminf_llist (lmap snd Sts))"
+    using act final_sched lgc.fair_implies_Liminf_saturated lgc_chain lgc_fair lgc_to_red
+      no_prems_init pas by blast
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "fst ` snd (lhd Sts) \<Turnstile>\<inter>\<G> {B}"
+
+    show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist (lmap snd Sts)"
+      by (rule lgc_complete_Liminf[OF lgc_chain act pas no_prems_init final_sched bot unsat])
+    then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> snd (lnth Sts i))"
+      unfolding Liminf_llist_def by auto
+  }
 qed
 
 end

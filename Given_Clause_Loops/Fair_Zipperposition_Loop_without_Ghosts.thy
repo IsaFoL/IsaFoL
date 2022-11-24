@@ -489,14 +489,14 @@ theorem
   assumes
     full: "full_chain (\<leadsto>ZLfw) Sts" and
     init: "is_initial_ZLf_wo_ghosts_state (lhd Sts)" and
-    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts" and
-    bot: "B \<in> Bot_F" and
-    unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+    fair: "infinitely_often compute_infer_step Sts \<longrightarrow> infinitely_often choose_p_step Sts"
   shows
-    fair_ZL_wo_ghosts_complete_Liminf: "\<exists>B \<in> Bot_F. B \<in> formulas_union (Liminf_zl_fstate Sts)"
-      (is ?thesis1) and
-    fair_ZL_wo_ghosts_complete:
-      "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))" (is ?thesis2)
+    fair_ZL_wo_ghosts_Liminf_saturated: "saturated (labeled_formulas_of (Liminf_zl_fstate Sts))" and
+    fair_ZL_wo_ghosts_complete_Liminf: "B \<in> Bot_F \<Longrightarrow>
+      passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>B' \<in> Bot_F. B' \<in> formulas_union (Liminf_zl_fstate Sts)" and
+    fair_ZL_wo_ghosts_complete: "B \<in> Bot_F \<Longrightarrow> passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
 proof -
   obtain Sts0 :: "('t, 'p, 'f) ZLf_state llist" where
     full0: "full_chain (\<leadsto>ZLf) Sts0" and
@@ -531,23 +531,35 @@ proof -
         (use choose_p_step_imp_w_ghosts_choose_p_step in auto)
   qed
 
-  have unsat0: "passive.elems (w_ghosts.passive_of (lhd Sts0)) \<Turnstile>\<inter>\<G> {B}"
-  proof -
-    have "lhd (lmap wo_ghosts_of Sts0) = wo_ghosts_of (lhd Sts0)"
-      using full0 full_chain_not_lnull llist.map_sel(1) by blast
-    hence "passive_of (lhd (lmap wo_ghosts_of Sts0)) = w_ghosts.passive_of (lhd Sts0)"
-      by simp
-    thus ?thesis
-      using unsat unfolding sts0[symmetric] by auto
-  qed
-
-  have "\<exists>B \<in> Bot_F. B \<in> formulas_union (w_ghosts.Liminf_zl_fstate Sts0)"
-    by (rule fair_ZL_complete_Liminf[OF full0 init0 fair0 bot unsat0])
-  thus ?thesis1
+  have "saturated (labeled_formulas_of (w_ghosts.Liminf_zl_fstate Sts0))"
+    using fair_ZL_Liminf_saturated[OF full0 init0 fair0] .
+  thus "saturated (labeled_formulas_of (Liminf_zl_fstate Sts))"
     unfolding w_ghosts.Liminf_zl_fstate_def Liminf_zl_fstate_def sts0[symmetric]
     by (simp add: llist.map_comp)
-  thus ?thesis2
-    unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "passive.elems (passive_of (lhd Sts)) \<Turnstile>\<inter>\<G> {B}"
+
+    have unsat0: "passive.elems (w_ghosts.passive_of (lhd Sts0)) \<Turnstile>\<inter>\<G> {B}"
+    proof -
+      have "lhd (lmap wo_ghosts_of Sts0) = wo_ghosts_of (lhd Sts0)"
+        using full0 full_chain_not_lnull llist.map_sel(1) by blast
+      hence "passive_of (lhd (lmap wo_ghosts_of Sts0)) = w_ghosts.passive_of (lhd Sts0)"
+        by simp
+      thus ?thesis
+        using unsat unfolding sts0[symmetric] by auto
+    qed
+
+    have "\<exists>B' \<in> Bot_F. B' \<in> formulas_union (w_ghosts.Liminf_zl_fstate Sts0)"
+      by (rule fair_ZL_complete_Liminf[OF full0 init0 fair0 bot unsat0])
+    thus "\<exists>B' \<in> Bot_F. B' \<in> formulas_union (Liminf_zl_fstate Sts)"
+      unfolding w_ghosts.Liminf_zl_fstate_def Liminf_zl_fstate_def sts0[symmetric]
+      by (simp add: llist.map_comp)
+    thus "\<exists>i. enat i < llength Sts \<and> (\<exists>B \<in> Bot_F. B \<in> all_formulas_of (lnth Sts i))"
+      unfolding Liminf_zl_fstate_def Liminf_llist_def by auto
+  }
 qed
 
 end

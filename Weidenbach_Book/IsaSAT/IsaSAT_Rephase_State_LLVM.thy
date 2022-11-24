@@ -38,24 +38,25 @@ sepref_def save_phase_heur_st
   by sepref
 
 sepref_def phase_save_rephase_impl
-  is \<open>uncurry2 phase_rephase\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  is \<open>uncurry3 phase_rephase\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   unfolding phase_rephase_def copy_phase2_def[symmetric] phase_heur_assn_def
+  supply of_nat_snat[sepref_import_param]
   apply (subst copy_phase2_def)
   by sepref
 
 
 sepref_def rephase_heur_stats_impl
-  is \<open>uncurry2 rephase_heur_stats\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
+  is \<open>uncurry3 rephase_heur_stats\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a heuristic_int_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_int_assn\<close>
   unfolding rephase_heur_stats_def heuristic_int_assn_def
   by sepref
 
 sepref_register rephase_heur_stats isasat_print_progress
 
 sepref_def rephase_heur_impl
-  is \<open>uncurry2 rephase_heur\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  is \<open>uncurry3 rephase_heur\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding rephase_heur_def
   by sepref
 
@@ -64,10 +65,11 @@ lemma rephase_heur_st_alt_def:
       let lc = get_global_conflict_count S;
       let (heur, S) = extract_heur_wl_heur S;
       let (stats, S) = extract_stats_wl_heur S;
+      let lrephase = stats_rephase stats;
       let stats = incr_rephase_total stats;
       let (lcount, S) = extract_lcount_wl_heur S;
       let b = current_restart_phase heur;
-      heur \<leftarrow> rephase_heur lc b heur;
+      heur \<leftarrow> rephase_heur lc lrephase b heur;
       let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
                   b stats (lcount);
       RETURN (update_heur_wl_heur heur (update_stats_wl_heur stats (update_lcount_wl_heur lcount S)))
