@@ -1604,7 +1604,7 @@ inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Ri
   resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow>
     is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
     vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
-    resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
+    resolve N \<beta> (\<Gamma>, U, Some (add_mset L' D, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
       restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
 (* Think about showing that the more specific rule from the paper is an instance of this generic rule. *)

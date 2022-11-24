@@ -419,7 +419,7 @@ proof -
         show ?thesis
         proof (cases "- L \<in># C \<cdot> \<gamma>")
           case True \<comment> \<open>Literal cannot be skipped\<close>
-          then obtain C' K where C_def: "C = C' + {#K#}" and K_\<gamma>: "K \<cdot>l \<gamma> = - L"
+          then obtain C' K where C_def: "C = add_mset K C'" and K_\<gamma>: "K \<cdot>l \<gamma> = - L"
             by (metis Melem_subst_cls add.right_neutral multi_member_split
                 union_mset_add_mset_right)
           hence L_eq_uminus_K_\<gamma>: "L = - (K \<cdot>l \<gamma>)"
@@ -442,12 +442,12 @@ proof -
               using mempty_not_in_N mempty_not_in_learned_S[unfolded S_def, simplified]
               by (metis empty_not_add_mset finsertE not_trail_false_Nil(2) subst_cls_empty_iff)
 
-            have "backtrack N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) ([], finsert (add_mset K C') U, None)"
-              by (rule backtrackI[OF \<Gamma>_def' no_new_new_conflict])
+            have "backtrack N \<beta> (\<Gamma>, U, Some (add_mset K C', \<gamma>)) ([], finsert (add_mset K C') U, None)"
+              using backtrackI[OF \<Gamma>_def' no_new_new_conflict] by simp
 
             with no_more_regular_step have False
               unfolding regular_scl_def reasonable_scl_def scl_def
-              unfolding S_def[unfolded u_def C_def, symmetric]
+              using S_def[unfolded u_def C_def, symmetric]
               using backtrack_well_defined(2) by blast
             thus ?thesis ..
           next
@@ -506,12 +506,13 @@ proof -
             hence 3: "is_mimgu \<mu> {{atm_of L', atm_of K}}"
               by (rule is_mimgu_if_mgu_eq_Some)
 
-            have "resolve N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) (\<Gamma>, U, Some ((C' + D) \<cdot> \<mu> \<cdot> \<rho>,
+            have "resolve N \<beta> (\<Gamma>, U, Some (add_mset K C', \<gamma>)) (\<Gamma>, U, Some ((C' + D) \<cdot> \<mu> \<cdot> \<rho>,
               restrict_subst_domain (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
               using resolveI[OF 1 2 3 ren_\<rho> vars_subst_\<rho>_disj, of \<beta>] .
             with no_more_regular_step have False
               unfolding regular_scl_def reasonable_scl_def scl_def
-              using S_def \<Gamma>_def C_def decide_well_defined(5) u_def by blast
+              using S_def \<Gamma>_def C_def decide_well_defined(5) u_def
+              by blast
             thus ?thesis ..
           qed
         next

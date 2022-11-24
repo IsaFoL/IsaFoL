@@ -87,7 +87,7 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
     "K \<cdot>l \<sigma> = K' \<cdot>l \<sigma>" and
     mimgu_\<mu>\<^sub>K: "is_mimgu \<mu>\<^sub>K {{atm_of K, atm_of K'}}" and
     \<sigma>'_def: "\<sigma>' = restrict_subst_domain (vars_cls ((DD + {#K#}) \<cdot> \<mu>\<^sub>K)) \<sigma>"
-    by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (D + {#L'#}, \<sigma>))\<close> elim: factorize.cases)
+    by (auto simp: \<open>S\<^sub>1 = (\<Gamma>, U, Some (add_mset L' D, \<sigma>))\<close> elim: factorize.cases)
 
   have "add_mset L' D = add_mset K' (add_mset K DD)"
     using resolveI(1) S\<^sub>1_def by simp
