@@ -168,17 +168,17 @@ definition \<mu>2 :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Righ
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
-  let ?set1 = "{(M', M). M' \<prec>\<prec>S M}"
+  let ?msetset = "{(M', M). M' \<prec>\<prec>S M}"
   let ?triple_of =
     "\<lambda>St. (mset_of_fstate St, mset_set (fset (new_of St)), mset_set (set_option (xx_of St)))"
 
-  have wf_set1: "wf ?set1"
+  have wf_msetset: "wf ?msetset"
     using wfP_Precprec_S wfP_def by auto
-  have wf_lex_prod: "wf (?set1 <*lex*> ?set1 <*lex*> ?set1)"
-    by (rule wf_lex_prod[OF wf_set1 wf_lex_prod[OF wf_set1 wf_set1]])
+  have wf_lex_prod: "wf (?msetset <*lex*> ?msetset <*lex*> ?msetset)"
+    by (rule wf_lex_prod[OF wf_msetset wf_lex_prod[OF wf_msetset wf_msetset]])
 
   have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow>
-    (?triple_of St', ?triple_of St) \<in> ?set1 <*lex*> ?set1 <*lex*> ?set1"
+    (?triple_of St', ?triple_of St) \<in> ?msetset <*lex*> ?msetset <*lex*> ?msetset"
     unfolding \<mu>2_def by simp
 
   show ?thesis
@@ -193,18 +193,18 @@ definition \<mu>3 :: "('p, 'f) OLf_state \<Rightarrow> ('p, 'f) OLf_state \<Righ
 
 lemma wfP_\<mu>3: "wfP \<mu>3"
 proof -
-  let ?set1 = "{(M', M). M' \<prec>\<prec>S M}"
+  let ?msetset = "{(M', M). M' \<prec>\<prec>S M}"
   let ?\<mu>2set = "{(St', St). \<mu>2 St' St}"
   let ?pair_of = "\<lambda>St. (mset_set (set_option (yy_of St)), St)"
 
-  have wf_set1: "wf ?set1"
+  have wf_msetset: "wf ?msetset"
     using wfP_Precprec_S wfP_def by auto
   have wf_\<mu>2set: "wf ?\<mu>2set"
     using wfP_\<mu>2 wfP_def by auto
-  have wf_lex_prod: "wf (?set1 <*lex*> ?\<mu>2set)"
-    by (rule wf_lex_prod[OF wf_set1 wf_\<mu>2set])
+  have wf_lex_prod: "wf (?msetset <*lex*> ?\<mu>2set)"
+    by (rule wf_lex_prod[OF wf_msetset wf_\<mu>2set])
 
-  have \<mu>3_alt_def: "\<And>St' St. \<mu>3 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?set1 <*lex*> ?\<mu>2set"
+  have \<mu>3_alt_def: "\<And>St' St. \<mu>3 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?msetset <*lex*> ?\<mu>2set"
     unfolding \<mu>3_def by simp
 
   show ?thesis

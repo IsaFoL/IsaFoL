@@ -462,31 +462,31 @@ fun mset_of_fstate :: "('p, 'f) DLf_state \<Rightarrow> 'f multiset" where
    image_mset concl_of (mset_set (passive_inferences_of P)) + mset_set (passive_formulas_of P) +
    mset_set (set_option Y) + mset_set (fset A)"
 
-abbreviation \<mu>1 :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" where
-  "\<mu>1 \<equiv> multp (\<prec>S)"
+abbreviation Precprec_S :: "'f multiset \<Rightarrow> 'f multiset \<Rightarrow> bool" (infix "\<prec>\<prec>S" 50) where
+  "(\<prec>\<prec>S) \<equiv> multp (\<prec>S)"
 
-lemma wfP_\<mu>1: "wfP \<mu>1"
+lemma wfP_Precprec_S: "wfP (\<prec>\<prec>S)"
   using minimal_element_def wfP_multp wf_Prec_S wfp_on_UNIV by blast
 
 definition \<mu>2 :: "('p, 'f) DLf_state \<Rightarrow> ('p, 'f) DLf_state \<Rightarrow> bool" where
   "\<mu>2 St' St \<longleftrightarrow>
    (yy_of St' = None \<and> yy_of St \<noteq> None)
-   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> \<mu>1 (mset_of_fstate St') (mset_of_fstate St))"
+   \<or> ((yy_of St' = None \<longleftrightarrow> yy_of St = None) \<and> mset_of_fstate St' \<prec>\<prec>S mset_of_fstate St)"
 
 lemma wfP_\<mu>2: "wfP \<mu>2"
 proof -
   let ?boolset = "{(b', b :: bool). b' < b}"
-  let ?\<mu>1set = "{(M', M). \<mu>1 M' M}"
+  let ?msetset = "{(M', M). M' \<prec>\<prec>S M}"
   let ?pair_of = "\<lambda>St. (yy_of St \<noteq> None, mset_of_fstate St)"
 
   have wf_boolset: "wf ?boolset"
     by (rule Wellfounded.wellorder_class.wf)
-  have wf_\<mu>1set: "wf ?\<mu>1set"
-    using wfP_\<mu>1 wfP_def by auto
-  have wf_lex_prod: "wf (?boolset <*lex*> ?\<mu>1set)"
-    by (rule wf_lex_prod[OF wf_boolset wf_\<mu>1set])
+  have wf_msetset: "wf ?msetset"
+    using wfP_Precprec_S wfP_def by auto
+  have wf_lex_prod: "wf (?boolset <*lex*> ?msetset)"
+    by (rule wf_lex_prod[OF wf_boolset wf_msetset])
 
-  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?boolset <*lex*> ?\<mu>1set"
+  have \<mu>2_alt_def: "\<And>St' St. \<mu>2 St' St \<longleftrightarrow> (?pair_of St', ?pair_of St) \<in> ?boolset <*lex*> ?msetset"
     unfolding \<mu>2_def by auto
 
   show ?thesis
@@ -527,10 +527,10 @@ next
   let ?new_aft = "image_mset concl_of (mset_set (passive_inferences_of P)) +
     mset_set (passive_formulas_of P) + mset_set (fset A) + {#C'#}"
 
-  have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+  have lt_new: "?new_aft \<prec>\<prec>S ?new_bef"
     unfolding multp_def
   proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-    show "\<mu>1 {#C'#} {#C#}"
+    show "{#C'#} \<prec>\<prec>S {#C#}"
       unfolding multp_def using prec by (auto intro: singletons_in_mult)
   qed
   thus ?thesis
@@ -567,14 +567,14 @@ next
          mset_set (passive_formulas_of P) + mset_set (fset A)) + {#C''#}" (is "?old_aft = ?new_aft")
       using c''_ni by (simp add: finite_passive_formulas_of)
 
-    have \<mu>1_new: "\<mu>1 ?new_aft ?new_bef"
+    have lt_new: "?new_aft \<prec>\<prec>S ?new_bef"
       unfolding multp_def
     proof (subst mult_cancelL[OF trans_Prec_S irrefl_Prec_S], fold multp_def)
-      show "\<mu>1 {#C''#} {#C'#}"
+      show "{#C''#} \<prec>\<prec>S {#C'#}"
         unfolding multp_def using prec by (auto intro: singletons_in_mult)
     qed
     show ?thesis
-      unfolding defs \<mu>2_def by simp (simp only: bef aft \<mu>1_new)
+      unfolding defs \<mu>2_def by simp (simp only: bef aft lt_new)
   qed
 next
   case (schedule_infer \<iota>s A C P)
