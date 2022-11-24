@@ -65,8 +65,13 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
     using is_mimgu_if_mgu_eq_Some by auto
 
   show ?thesis
-    using resolveI[OF refl refl 1 2, of N \<beta> \<Gamma> "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" U "D' \<cdot> \<rho>\<^sub>D"]
-    unfolding S\<^sub>2_def D_def by auto
+    unfolding S\<^sub>2_def D_def
+    using resolveI[OF refl, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" \<mu>' N U \<Gamma> "L \<cdot>l \<mu> \<cdot>l \<rho>" \<gamma>\<^sub>\<rho>' "L' \<cdot>l \<rho>\<^sub>D"
+        "rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D" \<beta>, OF _ _ 1 2]
+    using ex_renaming_to_disjoint_vars[
+        of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>') |\<union>|
+          {|D' \<cdot> \<rho>\<^sub>D + {#L' \<cdot>l \<rho>\<^sub>D#}|})" "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<cdot> \<mu>'", OF finite_fset]
+    by auto
 qed
 
 lemma factorize_preserves_resolvability:
@@ -75,7 +80,7 @@ lemma factorize_preserves_resolvability:
   shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
   using reso
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
 
   from fact obtain K K' \<mu>\<^sub>K \<sigma>' DD where
     S\<^sub>1_def: "S\<^sub>1 = (\<Gamma>, U, Some (DD + {#K, K'#}, \<sigma>))" and
@@ -174,8 +179,10 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
 
   ultimately show ?thesis
     unfolding S\<^sub>3_def
-    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> refl,
-        of "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' _ N \<beta> U "DDD \<cdot> \<mu>\<^sub>K", simplified]
+    using resolve.resolveI[OF \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>, of _ "DDD \<cdot> \<mu>\<^sub>K" \<mu>\<mu> N U "L' \<cdot>l \<mu>\<^sub>K" \<sigma>' \<beta>]
+    using ex_renaming_to_disjoint_vars[
+        of "fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|DDD \<cdot> \<mu>\<^sub>K + {#L' \<cdot>l \<mu>\<^sub>K#}|})"
+          "(DDD \<cdot> \<mu>\<^sub>K + C) \<cdot> \<mu>\<mu>", simplified]
     by auto
 qed
 
@@ -617,12 +624,12 @@ proof -
       assume "resolve N \<beta> Sm Sm'"
       thus ?thesis
       proof (cases N \<beta> Sm Sm' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
         have "is_renaming (renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})))"
           apply (rule is_renaming_renaming_wrt)
           using resolveI
           by (smt (verit, best) finite_fset sound_Sm sound_state_def state_learned_simp)
-        with resolveI have is_renaming_\<rho>: "is_renaming \<rho>"
+        with resolveI have ren_\<rho>: "is_renaming \<rho>"
           by simp
 
         from resolveI conflict_Sm have Cm_def: "Cm = D + {#L'#}" and \<gamma>m_def: "\<gamma>m = \<sigma>"
@@ -696,9 +703,9 @@ proof -
             using is_unifiers_def by blast
         qed
         then have "trail_false_cls (state_trail S1) ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot>
-          restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
+          restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
           unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
-          unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
+          unfolding subst_cls_comp_subst is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
           by assumption
         then show ?thesis
           using \<open>suffix (state_trail Sm') (state_trail S1)\<close>

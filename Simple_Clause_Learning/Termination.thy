@@ -504,7 +504,7 @@ next
       assume "resolve N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: resolve.cases)
-        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+        case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
         hence ren_\<rho>: "is_renaming \<rho>"
           using finite_fset is_renaming_renaming_wrt by blast
 
@@ -580,7 +580,7 @@ next
           unfolding lex_prodp_def resolveI(1,2)
           unfolding \<M>_def state_proj_simp option.case prod.case prod.sel
           unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl] subst_cls_comp_subst
-            subst_cls_renaming_inv_renaming_idem[OF ren_\<rho>]
+            is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
           unfolding \<open>(D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>\<close>
           unfolding subst_cls_union \<open>D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close> \<open>C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>
           by simp

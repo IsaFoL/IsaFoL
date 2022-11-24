@@ -1136,6 +1136,20 @@ lemma rename_clause_ident_if_ground[simp]:
   shows "is_ground_cls C \<Longrightarrow> rename_clause N C = C"
   by (simp add: rename_clause_def)
 
+
+
+lemma ex_renaming_to_disjoint_vars:
+  fixes C :: "('f, 'a) Term.term clause" and N :: "('f, 'a) Term.term clause set"
+  assumes fin: "finite N"
+  shows "\<exists>\<rho>. is_renaming \<rho> \<and> vars_cls (C \<cdot> \<rho>) \<inter> vars_clss N = {}"
+proof (intro exI conjI)
+  show "Simple_Clause_Learning.is_renaming (renaming_wrt N)"
+    using fin is_renaming_renaming_wrt by metis
+next
+  show "vars_cls (C \<cdot> renaming_wrt N) \<inter> vars_clss N = {}"
+    by (simp add: fin vars_cls_subst_renaming_disj vars_clss_def)
+qed
+
 end
 
 
@@ -1672,8 +1686,8 @@ inductive decide :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rig
 inductive conflict :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
   conflictI: "D |\<in>| N |\<union>| U \<Longrightarrow> subst_domain \<gamma> \<subseteq> vars_cls D \<Longrightarrow> is_ground_cls (D \<cdot> \<gamma>) \<Longrightarrow>
-    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow>
-    is_renaming \<rho> \<Longrightarrow> vars_cls (D \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
+    trail_false_cls \<Gamma> (D \<cdot> \<gamma>) \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
+    vars_cls (D \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {} \<Longrightarrow>
     \<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma> \<Longrightarrow>
     conflict N \<beta> (\<Gamma>, U, None) (\<Gamma>, U, Some (D \<cdot> \<rho>, \<gamma>\<^sub>\<rho>))"
 
@@ -1692,11 +1706,12 @@ inductive factorize :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<
 
 inductive resolve :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow>
   ('f, 'v) state \<Rightarrow> bool" for N \<beta> where
-  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow>
-    \<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) \<Longrightarrow>
+  resolveI: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta> \<Longrightarrow> is_renaming \<rho> \<Longrightarrow>
+    vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter>
+      vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) = {} \<Longrightarrow>
     (L \<cdot>l \<delta>) = -(L' \<cdot>l \<sigma>) \<Longrightarrow> is_mimgu \<mu> {{atm_of L, atm_of L'}} \<Longrightarrow>
     resolve N \<beta> (\<Gamma>, U, Some (D + {#L'#}, \<sigma>)) (\<Gamma>, U, Some ((D + C) \<cdot> \<mu> \<cdot> \<rho>,
-      restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
+      restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>)))"
 
 (* Think about showing that the more specific rule from the paper is an instance of this generic rule. *)
 
@@ -2151,19 +2166,13 @@ proof (cases N \<beta> S S' rule: factorize.cases)
 qed
 
 lemma resolve_preserves_conflict_disjoint_vars:
-  assumes "resolve N \<beta> S S'" and invar: "conflict_disjoint_vars N S"
+  assumes "resolve N \<beta> S S'"
   shows "conflict_disjoint_vars N S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
-
-  from invar have "vars_cls (add_mset L' D) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
-    unfolding resolveI(1)
-    by (auto simp add: conflict_disjoint_vars_def)
-  hence "vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
-    using \<open>\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|}))\<close>
-    by (smt (verit) Int_Un_distrib2 Int_Un_eq(1) Int_assoc UN_Un finite_UN finite_fset
-        finite_vars_cls inf_sup_absorb union_fset vars_cls_subst_renaming_disj vars_clss_def)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
+  have "vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    using local.resolveI(5) by auto
   thus ?thesis
     unfolding resolveI(2)
     by (simp add: conflict_disjoint_vars_def)
@@ -2434,7 +2443,7 @@ lemma resolve_preserves_initial_lits_generalize_learned_trail_conflict:
   "resolve N \<beta> S S' \<Longrightarrow> initial_lits_generalize_learned_trail_conflict N S \<Longrightarrow>
     initial_lits_generalize_learned_trail_conflict N S'"
 proof (induction S S' rule: resolve.induct)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
   moreover have "clss_lits_generalize_clss_lits (fset N) {(D + C) \<cdot> \<mu> \<cdot> \<rho>}"
   proof -
     from resolveI.prems have
@@ -3556,7 +3565,7 @@ lemma resolve_preserves_minimal_ground_closures:
   shows "minimal_ground_closures S'"
   using step
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
 
   from invars(1) have
     ground_conf: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)" and
@@ -3607,12 +3616,11 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence "C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>"
     by (simp add: subst_cls_idem_if_disj_vars)
 
-  have "(D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>) =
-    (D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming' \<rho> \<cdot> \<sigma> \<cdot> \<delta>"
+  have "(D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>) =
+    (D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> inv_renaming \<rho> \<cdot> \<sigma> \<cdot> \<delta>"
     by (simp add: subst_cls_restrict_subst_domain_idem)
   also have "\<dots> = (D + C) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>"
-    by (metis finite_fset is_renaming_renaming_wrt local.resolveI(4)
-        subst_cls_renaming_inv_renaming_idem)
+    by (simp add: local.resolveI(4))
   also have "\<dots> = (D + C) \<cdot> \<sigma> \<cdot> \<delta>"
     using \<open>\<mu> \<odot> \<sigma> \<odot> \<delta> = \<sigma> \<odot> \<delta>\<close>
     by (metis subst_cls_comp_subst)
@@ -3620,12 +3628,12 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     using \<open>D \<cdot> \<sigma> \<cdot> \<delta> = D \<cdot> \<sigma>\<close> \<open>C \<cdot> \<sigma> \<cdot> \<delta> = C \<cdot> \<delta>\<close>
     by simp
   finally have "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot>
-    restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
+    restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
     using ground_conf minimal_ground_trail
-    by (simp add: is_ground_cls_add_mset \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def)
+    by (simp add: \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close> trail_propagate_def)
   moreover have "subst_domain (restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
     (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>)) \<subseteq> vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)"
-    by (simp add: subst_domain_restrict_subst_domain)
+    by simp
   ultimately show ?thesis
     using minimal_ground_trail
     unfolding resolveI(1,2)
@@ -4513,7 +4521,7 @@ lemma resolve_sound_state:
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: resolve.cases)
-  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> U D L' \<sigma> \<mu>)
+  case (resolveI \<Gamma> \<Gamma>' L C \<delta> \<rho> D \<mu> U L' \<sigma>)
   from resolveI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
@@ -4529,7 +4537,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   from resolveI have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
   hence is_imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" by (simp add: is_mimgu_def)
   from resolveI have \<Gamma>_def: "\<Gamma> = trail_propagate \<Gamma>' L C \<delta>" by simp
-  from resolveI have is_renaming_\<rho>: "is_renaming \<rho>"
+  from resolveI have ren_\<rho>: "is_renaming \<rho>"
     using is_renaming_renaming_wrt by (metis finite_fset)
 
   have "C + {#L#} |\<in>| clss_of_trail \<Gamma>"
@@ -4577,36 +4585,10 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   moreover have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E"
     if E_in: "E \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for E
-  proof -
-    have
-      inter_D_E: "vars_cls D \<inter> vars_cls E = {}" and
-      inter_L'_E: "vars_cls {#L'#} \<inter> vars_cls E = {}"
-      using disj_N_U_\<Gamma>_D_L_L'[rule_format, OF E_in]
-      unfolding disjoint_vars_plus_iff
-      unfolding disjoint_vars_iff_inter_empty
-      by simp_all
-
-    have inter_L_\<rho>_E: "vars_term (atm_of L \<cdot>a \<rho>) \<inter> vars_cls E = {}"
-      unfolding resolveI(4)
-      apply (rule vars_term_subst_term_Var_comp_renaming_disj'[of "\<Union> (vars_cls ` N)" for N])
-      using E_in by auto
-
-    show ?thesis
-      unfolding subst_cls_union disjoint_vars_plus_iff
-    proof (rule conjI)
-      show "disjoint_vars (D \<cdot> \<mu> \<cdot> \<rho>) E"
-        unfolding disjoint_vars_iff_inter_empty
-        by (smt (verit, ccfv_SIG) Int_Un_distrib2 Int_commute UnI1 Union_image_insert finite_UN
-            finite_fset finite_vars_cls inf.bounded_iff insert_absorb inter_L'_E resolveI(4)
-            set_eq_subset sup.order_iff that union_fset vars_cls_subst_renaming_disj)
-    next
-      show "disjoint_vars (C \<cdot> \<mu> \<cdot> \<rho>) E"
-        unfolding disjoint_vars_iff_inter_empty
-        by (smt (verit, ccfv_SIG) Int_Un_distrib2 Int_commute UnI1 Union_image_insert finite_UN
-            finite_fset finite_vars_cls inf.bounded_iff insert_absorb inter_L'_E resolveI(4)
-            set_eq_subset sup.order_iff that union_fset vars_cls_subst_renaming_disj)
-    qed
-  qed
+    unfolding disjoint_vars_iff_inter_empty
+    using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss
+      (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|D + {#L'#}|})) = {}\<close>
+    by (smt (verit, best) UN_I Un_iff disjoint_iff union_fset vars_clss_def)
 
   moreover have
     "subst_domain (restrict_subst_domain (vars_cls (D \<cdot> \<mu> \<cdot> \<rho>) \<union> vars_cls (C \<cdot> \<mu> \<cdot> \<rho>))
@@ -4616,9 +4598,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   moreover have
     "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
-      (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
+      (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
     unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
-    unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
+    unfolding subst_cls_comp_subst is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
     unfolding subst_cls_union is_ground_cls_union
   proof (rule conjI)
     from gr_D_L'_\<sigma> have "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<delta>)"
@@ -4641,9 +4623,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   qed
 
   moreover have "trail_false_cls \<Gamma>
-    ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<sigma> \<odot> \<delta>))"
+    ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
     unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
-    unfolding subst_cls_comp_subst subst_cls_renaming_inv_renaming_idem[OF is_renaming_\<rho>]
+    unfolding subst_cls_comp_subst is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
   proof -
     have "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)"
       using sound_\<Gamma>

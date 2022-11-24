@@ -470,6 +470,14 @@ proof -
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|C' + {#K#}|}))"
 
+            have ren_\<rho>: "is_renaming \<rho>"
+              using \<rho>_def finite_fset is_renaming_renaming_wrt by metis
+
+            have vars_subst_\<rho>_disj:
+              "\<And>C. vars_cls (C \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma> |\<union>| {|C' + {#K#}|})) = {}"
+              by (metis \<rho>_def finite_UN finite_fset finite_vars_cls vars_cls_subst_renaming_disj
+                  vars_clss_def)
+
             have *: "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset K C') = {}"
               using disj_vars_conflict[unfolded C_def 1]
               by (simp add: disjoint_vars_iff_inter_empty inf.commute)
@@ -499,8 +507,8 @@ proof -
               by (rule is_mimgu_if_mgu_eq_Some)
 
             have "resolve N \<beta> (\<Gamma>, U, Some (C' + {#K#}, \<gamma>)) (\<Gamma>, U, Some ((C' + D) \<cdot> \<mu> \<cdot> \<rho>,
-              restrict_subst_domain (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming' \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
-              by (rule resolveI[OF 1 \<rho>_def 2 3])
+              restrict_subst_domain (vars_cls ((C' + D) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<gamma> \<odot> \<sigma>)))"
+              using resolveI[OF 1 ren_\<rho> vars_subst_\<rho>_disj 2 3, of \<beta>] .
             with no_more_regular_step have False
               unfolding regular_scl_def reasonable_scl_def scl_def
               using S_def \<Gamma>_def C_def decide_well_defined(5) u_def by blast
