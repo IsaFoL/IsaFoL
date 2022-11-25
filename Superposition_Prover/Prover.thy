@@ -1,6 +1,6 @@
 theory Prover
   imports
-    (* Ordered_Resolution_Prover.Abstract_Substitution *)
+    Ordered_Resolution_Prover.Abstract_Substitution
     SuperCalc.superposition
     Saturation_Framework.Calculus
     Saturation_Framework.Lifting_to_Non_Ground_Calculi
@@ -10,7 +10,135 @@ theory Prover
     "HOL-Library.FSet"
 begin
 
-term fset
+primrec subst_trm :: "'a trm \<Rightarrow> ('a \<Rightarrow> 'a trm) \<Rightarrow> 'a trm" where
+  "subst_trm (Var v) \<sigma> = \<sigma> v" |
+  "subst_trm (Const c) \<sigma> = Const c" |
+  "subst_trm (M \<cdot> N) \<sigma> = subst_trm M \<sigma> \<cdot> subst_trm N \<sigma>"
+
+lemma subst_trm_Var[simp]: "subst_trm t Var = t"
+  by (induction t) simp_all
+
+lemma all_subst_trm_ident_iff_vars_empty: "(\<forall>\<sigma>. atm = subst_trm atm \<sigma>) \<longleftrightarrow> vars_of atm = {}"
+  by (induction atm) auto
+
+hide_const subst_eq
+
+primrec subst_eq :: "'a trm \<times> 'a trm \<Rightarrow> ('a \<Rightarrow> 'a trm) \<Rightarrow> 'a trm \<times> 'a trm" where
+  "subst_eq (t, u) \<sigma> = (subst_trm t \<sigma>, subst_trm u \<sigma>)"
+
+lemma subst_eq_Var[simp]: "subst_eq eq Var = eq"
+  by (cases eq) simp
+
+definition subst_compose :: "('a \<Rightarrow> 'a trm) \<Rightarrow> ('a \<Rightarrow> 'a trm) \<Rightarrow> 'a \<Rightarrow> 'a trm" where
+  "subst_compose \<sigma> \<tau> x = subst_trm (\<sigma> x) \<tau>"
+
+lemma subst_trm_subst_compose: "subst_trm t (subst_compose \<sigma> \<tau>) = subst_trm (subst_trm t \<sigma>) \<tau>"
+  by (induction t) (simp_all add: subst_compose_def)
+
+global_interpretation substitution_eq_trm: substitution subst_eq Var subst_compose
+proof unfold_locales
+  show "\<And>A. subst_eq A Var = A"
+    by simp
+next
+  show "\<And>A \<sigma> \<tau>. subst_eq A (subst_compose \<sigma> \<tau>) = subst_eq (subst_eq A \<sigma>) \<tau>"
+    by (auto simp: subst_trm_subst_compose subst_eq_def)
+next
+  fix \<sigma> \<tau> assume hyp: "\<And>A. subst_eq A \<sigma> = subst_eq A \<tau>"
+  show "\<sigma> = \<tau>"
+  proof (rule ext)
+    fix x show "\<sigma> x = \<tau> x"
+      using hyp[of "(Var x, Var x)"]
+      by (simp add: subst_eq_def)
+  qed
+next
+  fix C :: "('v trm \<times> 'v trm) Clausal_Logic.clause" and \<gamma>
+  assume hyps: "substitution_ops.is_ground_cls subst_eq (substitution_ops.subst_cls subst_eq C \<gamma>)"
+
+  define vars_of_C where
+    "vars_of_C = (\<Union>L \<in> set_mset C. vars_of (fst (atm_of L)) \<union> vars_of (snd (atm_of L)))"
+
+  define some_ground_trm :: "'v trm" where
+    "some_ground_trm = (Const undefined)"
+
+  define \<gamma>' where
+    "\<gamma>' = (\<lambda>x. if x \<in> vars_of_C then \<gamma> x else some_ground_trm)"
+
+  show "\<exists>\<tau>. substitution_ops.is_ground_subst subst_eq \<tau> \<and>
+    substitution_ops.subst_cls subst_eq C \<tau> = substitution_ops.subst_cls subst_eq C \<gamma>"
+  proof (intro exI conjI)
+    show "substitution_ops.subst_cls subst_eq C \<gamma>' = substitution_ops.subst_cls subst_eq C \<gamma>"
+      unfolding substitution_ops.subst_cls_def
+    proof (rule multiset.map_cong0)
+      fix L assume L_in: "L \<in># C"
+      obtain t u where atm_of_L: "atm_of L = (t, u)"
+        by fastforce
+
+      moreover have "vars_of t \<subseteq> vars_of_C \<and> vars_of u \<subseteq> vars_of_C"
+        using L_in atm_of_L
+        by (auto simp: vars_of_C_def)
+
+      moreover have "vars_of t \<subseteq> vars_of_C \<Longrightarrow> subst_trm t \<gamma>' = subst_trm t \<gamma>" for t
+        by (induction t) (simp_all add: \<gamma>'_def)
+
+      ultimately show "substitution_ops.subst_lit subst_eq L \<gamma>' = substitution_ops.subst_lit subst_eq L \<gamma>"
+        unfolding substitution_ops.subst_lit_def
+        by (metis (mono_tags, lifting) literal.expand literal.map_disc_iff literal.map_sel(1)
+            literal.map_sel(2) subst_eq.simps)
+    qed
+  next
+    have is_ground_atm_iff_vars_empty: "substitution_ops.is_ground_atm subst_eq eq \<longleftrightarrow>
+      vars_of (fst eq) \<union> vars_of (snd eq) = {}" for eq :: "'v trm \<times> 'v trm"
+      unfolding substitution_ops.is_ground_atm_def
+      by (cases eq) (auto simp: subst_eq_def all_subst_trm_ident_iff_vars_empty[symmetric])
+
+    have vars_of_apply_\<gamma>: "vars_of (\<gamma> x) = {}" if "x \<in> vars_of_C" for x :: 'v
+    proof -
+      from that obtain L where
+        "L \<in># C" and x_in_disj: "x \<in> vars_of (fst (atm_of L)) \<or> x \<in> vars_of (snd (atm_of L))"
+        unfolding vars_of_C_def by auto
+      with hyps have "substitution_ops.is_ground_lit subst_eq
+        (substitution_ops.subst_lit subst_eq L \<gamma>)"
+        by (metis multi_member_split substitution_ops.is_ground_cls_def
+            substitution_ops.subst_cls_add_mset union_single_eq_member)
+      hence "substitution_ops.is_ground_atm subst_eq (subst_eq (atm_of L) \<gamma>)"
+        by (simp add: substitution_ops.atm_of_subst_lit substitution_ops.is_ground_lit_def)
+      hence *: "vars_of (fst (subst_eq (atm_of L) \<gamma>)) \<union> vars_of (snd (subst_eq (atm_of L) \<gamma>)) = {}"
+        unfolding is_ground_atm_iff_vars_empty .
+
+      obtain t u where atm_of_L: "atm_of L = (t, u)"
+        by fastforce
+
+      from x_in_disj show ?thesis
+      proof (elim disjE)
+        show "x \<in> vars_of (fst (atm_of L)) \<Longrightarrow> vars_of (\<gamma> x) = {}"
+          using * unfolding atm_of_L prod.sel subst_eq.simps
+          by (induction t) auto
+      next
+        show "x \<in> vars_of (snd (atm_of L)) \<Longrightarrow> vars_of (\<gamma> x) = {}"
+          using * unfolding atm_of_L prod.sel subst_eq.simps
+          by (induction u) auto
+      qed
+    qed
+
+    have vars_of_subst_trm_\<gamma>': "vars_of (subst_trm t \<gamma>') = {}" for t :: "'v trm"
+      by (induction t) (auto simp: \<gamma>'_def some_ground_trm_def vars_of_apply_\<gamma>)
+
+    show "substitution_ops.is_ground_subst subst_eq \<gamma>'"
+      unfolding substitution_ops.is_ground_subst_def
+    proof (rule allI)
+      fix atm :: "'v trm \<times> 'v trm"
+      obtain t u :: "'v trm" where atm_def: "atm = (t, u)"
+        by fastforce
+      show "substitution_ops.is_ground_atm subst_eq (subst_eq atm \<gamma>')"
+        unfolding is_ground_atm_iff_vars_empty
+        by (simp add: atm_def subst_eq_def vars_of_subst_trm_\<gamma>')
+    qed
+  qed
+next
+  show "wfP (substitution_ops.strictly_generalizes_atm subst_eq)"
+    unfolding substitution_ops.strictly_generalizes_atm_def substitution_ops.generalizes_atm_def
+    sorry
+qed
 
 (* sledgehammer_params [verbose, slices = 24] *)
 
@@ -519,7 +647,7 @@ lemma subst_Var_eq_map_of_or_default: "Var x \<lhd> \<sigma> = (case map_of \<si
   by (induction \<sigma>) auto
 
 lemma canonical_map_subst_eq: "canonical_map \<sigma> \<doteq> \<sigma>"
-  unfolding subst_eq_def
+  unfolding Unification.subst_eq_def
 proof (rule allI)
   fix t
   show "t \<lhd> canonical_map \<sigma> = t \<lhd> \<sigma>"
@@ -549,7 +677,7 @@ proof (rule ccontr)
     using subst_filter_comp_fst[unfolded comp_def, of _ "\<lambda>x. x \<in> vars_of t \<union> vars_of u"]
     by (simp add: \<theta>_def)
   with \<open>\<And>\<theta>. t \<lhd> \<theta> = u \<lhd> \<theta> \<Longrightarrow> \<exists>\<gamma>. \<theta> \<doteq> \<mu> \<lozenge> \<gamma>\<close> obtain \<gamma> where "\<theta> \<doteq> \<mu> \<lozenge> \<gamma>" by auto
-  hence "\<forall>t. t \<lhd> \<theta> = t \<lhd> \<mu> \<lhd> \<gamma>" by (simp add: subst_eq_def)
+  hence "\<forall>t. t \<lhd> \<theta> = t \<lhd> \<mu> \<lhd> \<gamma>" by (simp add: Unification.subst_eq_def)
   hence "Var x \<lhd> \<theta> = Var x \<lhd> \<mu> \<lhd> \<gamma>" by simp
   with z_not_in have "Var x = Var x \<lhd> \<mu> \<lhd> \<gamma>"
     using map_of_filter_comp_fst[unfolded comp_def, of "\<lambda>x. x \<in> vars_of t \<union> vars_of u" \<mu>]
@@ -578,7 +706,7 @@ proof (rule inj_onI)
     using subst_filter_comp_fst[unfolded comp_def, of _ "\<lambda>x. x \<in> vars_of t \<union> vars_of u" \<mu>]
     by (simp add: \<theta>_def)
   with \<open>\<And>\<theta>. t \<lhd> \<theta> = u \<lhd> \<theta> \<Longrightarrow> \<exists>\<gamma>. \<theta> \<doteq> \<mu> \<lozenge> \<gamma>\<close> obtain \<gamma> where "\<theta> \<doteq> \<mu> \<lozenge> \<gamma>" by auto
-  hence "\<forall>t. t \<lhd> \<theta> = t \<lhd> \<mu> \<lhd> \<gamma>" by (simp add: subst_eq_def)
+  hence "\<forall>t. t \<lhd> \<theta> = t \<lhd> \<mu> \<lhd> \<gamma>" by (simp add: Unification.subst_eq_def)
   hence "Var x \<lhd> \<theta> = Var x \<lhd> \<mu> \<lhd> \<gamma>" and "Var y \<lhd> \<theta> = Var y \<lhd> \<mu> \<lhd> \<gamma>" by simp_all
   with x_in y_in have "Var x = Var x \<lhd> \<mu> \<lhd> \<gamma>" and "Var y = Var y \<lhd> \<mu> \<lhd> \<gamma>"
     using map_of_filter_comp_fst[unfolded comp_def, of "\<lambda>x. x \<in> vars_of t \<union> vars_of u" \<mu>]
@@ -1639,17 +1767,54 @@ qed
 
 end
 
+
+section \<open>Conversion between Clausal_Logic and SuperCalc\<close>
+
+definition subst_fun_of_subst_list where
+  "subst_fun_of_subst_list \<sigma> x = (case map_of \<sigma> x of None \<Rightarrow> Var x | Some t \<Rightarrow> t)"
+
+primrec to_SuperCalc_equation where
+  "to_SuperCalc_equation (t, u) = Eq t u"
+
+primrec from_SuperCalc_equation where
+  "from_SuperCalc_equation (Eq t u) = (t, u)"
+
+lemma to_from_SuperCalc_equation[simp]: "to_SuperCalc_equation (from_SuperCalc_equation eq) = eq"
+  by (cases eq) simp_all
+
+primrec to_SuperCalc_lit where
+  "to_SuperCalc_lit (Clausal_Logic.Pos eq) = Pos (to_SuperCalc_equation eq)" |
+  "to_SuperCalc_lit (Clausal_Logic.Neg eq) = Neg (to_SuperCalc_equation eq)"
+
+primrec from_SuperCalc_lit where
+  "from_SuperCalc_lit (Pos eq) = Clausal_Logic.Pos (from_SuperCalc_equation eq)" |
+  "from_SuperCalc_lit (Neg eq) = Clausal_Logic.Neg (from_SuperCalc_equation eq)"
+
+lemma to_from_SuperCalc_lit[simp]: "to_SuperCalc_lit (from_SuperCalc_lit L) = L"
+  by (cases L) simp_all
+
+abbreviation to_SuperCalc_cl where
+  "to_SuperCalc_cl C \<equiv> to_SuperCalc_lit ` set_mset C"
+
+abbreviation from_SuperCalc_cl where
+  "from_SuperCalc_cl C \<equiv> mset_set (from_SuperCalc_lit ` C)"
+
+lemma to_from_SuperCalc_cls[simp]: "finite C \<Longrightarrow> to_SuperCalc_cl (from_SuperCalc_cl C) = C"
+  by (simp add: image_image)
+
+
 subsection \<open>Ground, Finite Clauses\<close>
 
-typedef 'a gfclause = "{C :: 'a literal multiset. ground_clause (set_mset C)}"
+typedef 'a gfclause = "{C :: ('a trm \<times> 'a trm) Clausal_Logic.clause.
+  ground_clause (to_SuperCalc_cl C)}"
   morphisms cls_gfclause Abs_gfclause
 proof -
-  show "\<exists>x. x \<in> {C. ground_clause (set_mset C)}"
+  show "\<exists>x. x \<in> {C. ground_clause (to_SuperCalc_cl C)}"
     by (rule exI[of _ "{#}"]) simp
 qed
 
 abbreviation cl_gfclause :: "'a gfclause \<Rightarrow> 'a clause" where
-  "cl_gfclause C \<equiv> set_mset (cls_gfclause C)"
+  "cl_gfclause C \<equiv> to_SuperCalc_cl (cls_gfclause C)"
 
 lemma finite_cl_gfclause[simp]:
   fixes C :: "'a gfclause"
@@ -1669,13 +1834,13 @@ lemma cl_gfclause_bot_gfclause[simp]: "cl_gfclause bot_gfclause = {}"
 
 subsection \<open>Finite Clauses\<close>
 
-type_synonym 'a fclause = "'a literal fset"
+type_synonym 'a fclause = "('a trm \<times> 'a trm) Clausal_Logic.clause"
 
 
 subsection \<open>Prover\<close>
 
 
-locale renamings =
+(* locale renamings =
   fixes renamings_apart :: "'a fclause list \<Rightarrow> 'a subst list"
   assumes
     renamings_apart_length: "length (renamings_apart Cs) = length Cs" and
@@ -1683,11 +1848,11 @@ locale renamings =
       "list_all2 (\<lambda>C \<rho>. renaming \<rho> (vars_of_cl (fset C))) Cs (renamings_apart Cs)" and
     renamings_apart_var_disjoint: "\<forall>i < length Cs. \<forall>j < length Cs. i \<noteq> i \<longrightarrow>
       range_vars (renamings_apart Cs ! i) \<inter> range_vars (renamings_apart Cs ! j) = {}" and
-    renamings_apart_singleton: "renamings_apart [C] = [[]]"
+    renamings_apart_singleton: "renamings_apart [C] = [[]]" *)
 
-locale superposition_prover = renamings renamings_apart
+locale superposition_prover = (* renamings renamings_apart
   for
-    renamings_apart :: "'a fclause list \<Rightarrow> 'a subst list" +
+    renamings_apart :: "'a fclause list \<Rightarrow> 'a subst list" + *)
   fixes
     \<comment> \<open>For SuperCalc\<close>
     trm_ord :: "('a trm \<times> 'a trm) set" and
@@ -1939,7 +2104,7 @@ qed
 subsubsection \<open>Ground calculus\<close>
 
 definition G_Inf :: "'a clause set \<Rightarrow> 'a gfclause inference set" where
-  "G_Inf M \<equiv> {Infer Ps (Abs_gfclause (mset_set C')) | Ps C \<sigma> C'.
+  "G_Inf M \<equiv> {Infer Ps (Abs_gfclause (from_SuperCalc_cl C')) | Ps C \<sigma> C'.
     G_derivable_list M C (map (\<lambda>D. Ecl (cl_gfclause D) {}) Ps) \<sigma> G_SuperCalc.Ground C'}"
 
 lemma G_Inf_have_prems: "\<iota> \<in> G_Inf M \<Longrightarrow> prems_of \<iota> \<noteq> []"
@@ -1962,7 +2127,7 @@ lemma G_Inf_reductive:
   shows "gfclause_ord (concl_of \<iota>) (main_prem_of \<iota>)"
 proof -
   from \<iota>_in[unfolded G_Inf_def mem_Collect_eq] obtain Ps C \<sigma> C' where
-    \<iota>_def: "\<iota> = Infer Ps (Abs_gfclause (mset_set C'))" and
+    \<iota>_def: "\<iota> = Infer Ps (Abs_gfclause (from_SuperCalc_cl C'))" and
     deriv_Ps: "G_derivable_list M C (map (\<lambda>C. Ecl (cl_gfclause C) {}) Ps) \<sigma> G_SuperCalc.Ground C'"
     by blast
 
@@ -1971,11 +2136,13 @@ proof -
 
   from deriv_Ps have ground_C': "ground_clause C'"
     by (auto elim!: G_derivable_list_ground_premises[rotated])
+  hence "ground_clause (to_SuperCalc_cl (from_SuperCalc_cl C'))"
+    by (metis fin_C' to_from_SuperCalc_cls)
+  hence [simp]: "cl_gfclause (Abs_gfclause (from_SuperCalc_cl C')) = C'"
+    using fin_C'
+    by (simp add: Abs_gfclause_inverse[simplified] image_image)
 
-  have [simp]: "cl_gfclause (Abs_gfclause (mset_set C')) = C'"
-    by (simp add: Abs_gfclause_inverse fin_C' ground_C')
-
-  have "gfclause_ord (Abs_gfclause (mset_set C')) (last Ps)"
+  have "gfclause_ord (Abs_gfclause (from_SuperCalc_cl C')) (last Ps)"
     using deriv_Ps[unfolded G_derivable_list_def]
   proof (elim disjE exE conjE)
     fix P1
@@ -2219,7 +2386,8 @@ proof unfold_locales
   proof (intro allI impI)
     fix C P \<sigma> C'
     assume
-      deriv_C_P: "G_SuperCalc.derivable M C P ((\<lambda>C. Ecl (cl_gfclause C) {}) ` N) \<sigma> G_SuperCalc.Ground C'" and
+      deriv_C_P: "G_SuperCalc.derivable M C P ((\<lambda>C. Ecl (cl_gfclause C) {}) ` N) \<sigma>
+        G_SuperCalc.Ground C'" and
       ground_C: "ground_clause (cl_ecl C)" and
       grounding_P: "G_SuperCalc.grounding_set P \<sigma>"
 
@@ -3132,7 +3300,7 @@ next
     qed
   qed
   thus "\<upsilon> \<doteq> \<mu>' \<lozenge> \<upsilon>"
-    by (metis agreement subst_comp subst_eq_def)
+    by (metis agreement subst_comp Unification.subst_eq_def)
 qed
 
 lemma ex_MGU_if_Unifier:
@@ -4374,10 +4542,14 @@ Renaming is performed here in order to keep @{const G_derivable_list} as similar
 
 thm G_Inf_def
 
+term distinct
+term pairwise
+
 definition F_Inf :: "'a fclause inference set" where
-  "F_Inf \<equiv> {Infer Ps (Abs_fset (subst_cl C' \<sigma>)) | Ps C \<sigma> C'.
-    let Ps' = map2 (\<lambda>D \<rho>. Ecl (subst_cl (fset D) \<rho>) {}) Ps (renamings_apart Ps) in
-    derivable_list C Ps' \<sigma> SuperCalc.FirstOrder C'}"
+  "F_Inf \<equiv> {Infer Ps (substitution_eq_trm.subst_cls (from_SuperCalc_cl C') (subst_fun_of_subst_list \<sigma>))
+    | Ps C \<sigma> C'.
+      substitution_eq_trm.var_disjoint Ps \<and>
+      derivable_list C (map (\<lambda>D. Ecl (to_SuperCalc_cl D) {}) Ps) \<sigma> SuperCalc.FirstOrder C'}"
 
 lemma F_Inf_have_prems: "\<iota> \<in> F_Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
   by (auto simp: F_Inf_def derivable_list_def)
