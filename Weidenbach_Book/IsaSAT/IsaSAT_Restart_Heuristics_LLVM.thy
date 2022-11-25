@@ -86,11 +86,13 @@ lemmas [unfolded inline_direct_return_node_case, llvm_code] =
 sepref_register incr_restart_phase incr_restart_phase_end
   update_restart_phases
 
+
 lemma update_restart_phases_alt_def:
   \<open>update_restart_phases = (\<lambda>S. do {
+     let lcount = get_global_conflict_count S;
      let (heur, S) = extract_heur_wl_heur S;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
-     heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (update_heur_wl_heur heur S)

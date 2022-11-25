@@ -343,6 +343,11 @@ void IsaSAT_Print_LLVM_print_forward_rounds_impl(int64_t props, int64_t conflict
   printf("c forward rounds %ld %10.2f interval\n", props, relative (conflicts, props));
 #endif
 }
+void IsaSAT_Print_LLVM_print_rephased_impl(int64_t props, int64_t conflicts) {
+#ifdef PRINTSTATS
+  printf("c rephasing rounds %ld %10.2f interval\n", props, relative (conflicts, props));
+#endif
+}
 
 void IsaSAT_Print_LLVM_print_forward_subsumed_impl(int64_t props, int64_t tried) {
 #ifdef PRINTSTATS

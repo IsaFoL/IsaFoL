@@ -30,6 +30,7 @@ remove-print:
 	  -e '/define void @IsaSAT_Print_LLVM_print_dec_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Print_LLVM_print_confl_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Print_LLVM_print_propa_impl/,/}/d' \
+	  -e '/define void @IsaSAT_Print_LLVM_print_rephase/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_c_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_char_impl/,/}/d' \
 	  -e '/define void @IsaSAT_Show_LLVM_print_uint64_impl/,/}/d' \
@@ -69,6 +70,7 @@ declare void @IsaSAT_Print_LLVM_print_forward_rounds_impl(i64,i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_subsumed_impl(i64,i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_strengthened_impl(i64,i64)\
 declare void @IsaSAT_Print_LLVM_print_forward_tried_impl(i64,i64)\
+declare void @IsaSAT_Print_LLVM_print_rephased_impl(i64,i64)\
 declare void @IsaSAT_Profile_LLVM_start_profile(i8)\
 declare void @IsaSAT_Profile_LLVM_stop_profile(i8)\
 declare void @IsaSAT_Setup3_LLVM_print_encoded_lit_code(i32)\
@@ -89,7 +91,7 @@ declare void @IsaSAT_Proofs_LLVM_mark_clause_for_unit_as_unchanged_impl(i64)\
 
 isallvm:
 	#llvm-as -disable-output isasat_restart.ll
-	$(CLANG) $(CFLAGS) -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
+	$(CLANG) $(CFLAGS) -static -DPRINTSTATS=1 -O3 -flto isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat
 
 competition:
 	$(CLANG) $(CFLAGS) -DNOOPTIONS=1 -DNOPROFILING -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat

@@ -256,8 +256,9 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
 definition update_restart_phases :: \<open>isasat \<Rightarrow> isasat nres\<close> where
   \<open>update_restart_phases = (\<lambda>S. do {
      let heur = get_heur S;
+     let lcount = get_global_conflict_count S;
      heur \<leftarrow> RETURN (incr_restart_phase heur);
-     heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end lcount heur);
      heur \<leftarrow> RETURN (if current_restart_phase heur = STABLE_MODE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      heur \<leftarrow> RETURN (swap_emas heur);
      RETURN (set_heur_wl_heur heur S)

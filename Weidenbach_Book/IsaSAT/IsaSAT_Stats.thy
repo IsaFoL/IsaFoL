@@ -180,8 +180,18 @@ definition LSize_Stats_size where
 definition LSize_Stats where
   \<open>LSize_Stats lbd size' = (lbd, size')\<close>
 
+
+type_synonym rephase_stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+
+definition Rephase_Stats_total :: \<open>rephase_stats \<Rightarrow> _\<close> where
+  \<open>Rephase_Stats_total = (\<lambda>(rephased, original, best, invert, flipped, random). rephased)\<close>
+
+definition Rephase_Stats_incr_total :: \<open>rephase_stats \<Rightarrow> rephase_stats\<close> where
+  \<open>Rephase_Stats_incr_total = (\<lambda>(rephased, original, best, invert, flipped, random). (rephased+1, original, best, invert, flipped, random))\<close>
+
+
 type_synonym isasat_stats = \<open>(search_stats, inprocessing_binary_stats, inprocessing_subsumption_stats, ema,
-  inprocessing_pure_lits_stats, lbd_size_limit_stats, 64 word, 64 word,
+  inprocessing_pure_lits_stats, lbd_size_limit_stats, rephase_stats, 64 word,
   64 word, 64 word,64 word, 64 word,
   64 word, 64 word, 32 word, 64 word) tuple16\<close>
 
@@ -208,6 +218,9 @@ definition get_pure_lits_stats :: \<open>isasat_stats \<Rightarrow> inprocessing
 definition get_lsize_limit_stats :: \<open>isasat_stats \<Rightarrow> lbd_size_limit_stats\<close> where
   \<open>get_lsize_limit_stats \<equiv> Tuple16.Tuple16_get_f\<close>
 
+definition get_rephase_stats :: \<open>isasat_stats \<Rightarrow> rephase_stats\<close> where
+  \<open>get_rephase_stats \<equiv> Tuple16.Tuple16_get_g\<close>
+
 definition set_propagation_stats :: \<open>search_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_propagation_stats \<equiv> Tuple16.set_a\<close>
 
@@ -225,6 +238,9 @@ definition set_pure_lits_stats :: \<open>inprocessing_pure_lits_stats \<Rightarr
 
 definition set_lsize_limit_stats :: \<open>lbd_size_limit_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>set_lsize_limit_stats \<equiv> Tuple16.set_f\<close>
+
+definition set_rephase_stats :: \<open>rephase_stats \<Rightarrow> isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>set_rephase_stats \<equiv> Tuple16.set_g\<close>
 
 definition incr_propagation :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
   \<open>incr_propagation S = (set_propagation_stats (Search_Stats_incr_propagation (get_search_stats S)) S)\<close>
@@ -304,6 +320,11 @@ definition get_restart_count where
 definition get_reduction_count where
   \<open>get_reduction_count S = Search_Stats_reductions (get_search_stats S)\<close>
 
+definition incr_rephase_total :: \<open>isasat_stats \<Rightarrow> isasat_stats\<close> where
+  \<open>incr_rephase_total S = (set_rephase_stats (Rephase_Stats_incr_total (get_rephase_stats S)) S)\<close>
+
+definition stats_rephase :: \<open>isasat_stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_rephase = Rephase_Stats_total o get_rephase_stats\<close>
 
 definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_open_colour _ = ()\<close>
@@ -437,12 +458,12 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 definition empty_stats :: \<open>isasat_stats\<close> where
   \<open>empty_stats = Tuple16( (0,0,0,0,0,0,0,0,0,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0) 0 0 0 0 0 0 0 0 0\<close>
 
 definition empty_stats_clss :: \<open>64 word \<Rightarrow> isasat_stats\<close> where
   \<open>empty_stats_clss n = Tuple16( (0,0,0,0,0,0,0,0,n,0)::search_stats)
   ((0,0,0)::inprocessing_binary_stats) ((0,0,0,0,0)::inprocessing_subsumption_stats)
-  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) 0 0 0 0 0 0 0 0 0 0\<close>
+  (ema_fast_init::ema) ((0,0)::inprocessing_pure_lits_stats) (0,0) (0,0,0,0,0,0) 0 0 0 0 0 0 0 0 0\<close>
 
 
 section \<open>Heuristics\<close>
@@ -890,15 +911,15 @@ lemma save_phase_heur_preI:
      phase_save_heur_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
-fun incr_restart_phase_end_stats :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end_stats (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted) =
+fun incr_restart_phase_end_stats :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase_end_stats end_of_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, _, length_phase), wasted) =
   (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
 
-definition incr_restart_phase_end :: \<open>isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
-  \<open>incr_restart_phase_end = Restart_Heuristics o incr_restart_phase_end_stats o get_content\<close>
+definition incr_restart_phase_end :: \<open>64 word \<Rightarrow> isasat_restart_heuristics \<Rightarrow> isasat_restart_heuristics\<close> where
+  \<open>incr_restart_phase_end end_of_phase = Restart_Heuristics o (incr_restart_phase_end_stats end_of_phase) o get_content\<close>
 
 lemma heuristic_rel_incr_restartI[intro!]:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end lcount heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
 
 lemma [intro!]:

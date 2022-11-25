@@ -1660,7 +1660,7 @@ proof -
 qed
 
 lemma heuristic_rel_incr_restartI[intro!]:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end end_of_phase heur)\<close>
   by (auto simp: heuristic_rel_def heuristic_rel_stats_def incr_restart_phase_end_def)
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None_ana:

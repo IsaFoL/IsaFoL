@@ -7,6 +7,7 @@ sepref_def update_all_phases_impl
   is \<open>update_all_phases\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding update_all_phases_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -24,7 +25,7 @@ proof -
       get_the_propagation_reason_heur_def)
   then show  \<open>get_the_propagation_reason_heur \<equiv> get_the_propagation_reason_pol_st\<close>
    by auto
-qed 
+qed
 
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>

@@ -175,42 +175,45 @@ definition current_phase_letter :: \<open>64 word \<Rightarrow> 64 word\<close> 
       else 70)
      \<close>
 
-definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase,
+definition phase_rephase :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>phase_rephase = (\<lambda>end_of_phase lrephase b (\<phi>, target_assigned, target, best_assigned, best, _, curr_phase,
      length_phase).
   do {
+      let rephaselength = (500 :: 64 word);
       let target_assigned = 0;
       target \<leftarrow> copy_phase \<phi> target;
       if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, 0, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, 0, best, length_phase*rephaselength+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 1
       then do {
          \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*rephaselength+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 3
       then do {
          \<phi> \<leftarrow> rephase_random end_of_phase \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*rephaselength+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 5
       then do {
          \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*rephaselength+end_of_phase, curr_phase + 1, length_phase)
       }
       else do {
          \<phi> \<leftarrow> rephase_flipped \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0,
-            length_phase+1)
+         let loglength = (if lrephase+10 > 0 then of_nat (word_log2 (lrephase+10)) else 1);
+         let new_length = (lrephase+1)*loglength*loglength;
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, new_length*rephaselength+end_of_phase, 0,
+            new_length)
       }
     })\<close>
 
 lemma phase_rephase_spec:
   assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
-  shows \<open>phase_rephase b \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+  shows \<open>phase_rephase end_of_phase lrephase b \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
 proof -
   obtain \<phi>' target_assigned target best_assigned best end_of_phase curr_phase where
     \<phi>: \<open>\<phi> = (\<phi>', target_assigned, target, best_assigned, best, end_of_phase, curr_phase)\<close>

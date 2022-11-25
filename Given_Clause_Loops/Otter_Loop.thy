@@ -457,19 +457,30 @@ theorem
   assumes
     ol_chain: "chain (\<leadsto>OL) Sts" and
     act: "active_subset (lhd Sts) = {}" and
-    pas: "passive_subset (Liminf_llist Sts) = {}" and
-    bot: "B \<in> Bot_F" and
-    unsat: "fst ` lhd Sts \<Turnstile>\<inter>\<G> {B}"
+    pas: "passive_subset (Liminf_llist Sts) = {}"
   shows
-    OL_complete_Liminf: "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts" and
-    OL_complete: "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+    OL_Liminf_saturated: "saturated (Liminf_llist Sts)" and
+    OL_complete_Liminf: "B \<in> Bot_F \<Longrightarrow> fst ` lhd Sts \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts" and
+    OL_complete: "B \<in> Bot_F \<Longrightarrow> fst ` lhd Sts \<Turnstile>\<inter>\<G> {B} \<Longrightarrow>
+      \<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
 proof -
   have gc_chain: "chain (\<leadsto>GC) Sts"
     using ol_chain OL_step_imp_GC_step chain_mono by blast
-  show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts"
-    by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
-  then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
-    unfolding Liminf_llist_def by auto
+
+  show "saturated (Liminf_llist Sts)"
+    using assms(2) gc.fair_implies_Liminf_saturated gc_chain gc_fair gc_to_red pas by blast
+
+  {
+    assume
+      bot: "B \<in> Bot_F" and
+      unsat: "fst ` lhd Sts \<Turnstile>\<inter>\<G> {B}"
+
+    show "\<exists>BL \<in> Bot_FL. BL \<in> Liminf_llist Sts"
+      by (rule gc_complete_Liminf[OF gc_chain act pas bot unsat])
+    then show "\<exists>i. enat i < llength Sts \<and> (\<exists>BL \<in> Bot_FL. BL \<in> lnth Sts i)"
+      unfolding Liminf_llist_def by auto
+  }
 qed
 
 end
