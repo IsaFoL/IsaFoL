@@ -3771,10 +3771,8 @@ subsection \<open>Sound State\<close>
 
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow>
-    conflict_disjoint_vars N S \<and> trail_atoms_lt \<beta> S \<and> minimal_ground_closures S \<and> (\<exists>\<Gamma> U u.
-    S = (\<Gamma>, U, u) \<and>
-    sound_trail N \<Gamma> \<and>
-    fset N \<TTurnstile>\<G>e fset U \<and>
+    conflict_disjoint_vars N S \<and> trail_atoms_lt \<beta> S \<and> minimal_ground_closures S \<and>
+    (\<exists>\<Gamma> U u. S = (\<Gamma>, U, u) \<and> sound_trail N \<Gamma> \<and> fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
     | Some (C, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
 
