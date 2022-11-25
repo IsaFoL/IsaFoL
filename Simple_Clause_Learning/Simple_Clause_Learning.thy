@@ -3439,7 +3439,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     unfolding factorizeI(1,2)
     by (simp add: is_ground_cls_add_mset minimal_ground_closures_def)
   moreover have "subst_domain \<gamma>' \<subseteq> vars_cls (add_mset L D \<cdot> \<mu>)"
-    by (metis Int_lower2 add_mset_add_single local.factorizeI(5) subst_domain_restrict_subst_domain)
+    by (simp add: local.factorizeI(5))
   ultimately show ?thesis
     using invar
     unfolding factorizeI(1,2)
@@ -3888,18 +3888,15 @@ qed
 
 subsection \<open>Sound State\<close>
 
-(* Send a list of invariants that are implicit in the paper to Simon Schwarz et al.! *)
-
 definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) state \<Rightarrow> bool" where
   "sound_state N \<beta> S \<longleftrightarrow> (\<exists>\<Gamma> U u.
     S = (\<Gamma>, U, u) \<and>
     disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<and>
     (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars C D) \<and>
     sound_trail N \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
-    fset N \<TTurnstile>\<G>e fset U \<and>
+    fset N \<TTurnstile>\<G>e fset U \<and> minimal_ground_closures S \<and>
     (case u of None \<Rightarrow> True
-    | Some (C, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls C \<and> is_ground_cls (C \<cdot> \<gamma>) \<and>
-      trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
+    | Some (C, \<gamma>) \<Rightarrow> trail_false_cls \<Gamma> (C \<cdot> \<gamma>) \<and> fset N \<TTurnstile>\<G>e {C}))"
 
 
 subsection \<open>Miscellaneous Lemmas\<close>
@@ -3907,6 +3904,25 @@ subsection \<open>Miscellaneous Lemmas\<close>
 lemma trail_atoms_lt_if_sound_state:
   "sound_state N \<beta> S \<Longrightarrow> trail_atoms_lt \<beta> S"
   unfolding sound_state_def by auto
+
+lemma minimal_ground_closures_if_sound_state:
+  "sound_state N \<beta> S \<Longrightarrow> minimal_ground_closures S"
+  unfolding sound_state_def by auto
+
+lemma conflict_disjoint_vars_if_sound_state:
+  assumes sound: "sound_state N \<beta> S"
+  shows "conflict_disjoint_vars N S"
+  unfolding conflict_disjoint_vars_def
+proof (intro allI impI)
+  fix C \<gamma>
+  assume "state_conflict S = Some (C, \<gamma>)"
+  with sound have "\<forall>D\<in>fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S)).
+    vars_cls C \<inter> vars_cls D = {}"
+    unfolding sound_state_def disjoint_vars_iff_inter_empty
+    by force
+  thus "vars_cls C \<inter> vars_clss (fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S))) = {}"
+    by (auto simp: vars_clss_def)
+qed
 
 lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
   assumes sound_\<Gamma>: "sound_trail N \<Gamma>"
@@ -4157,7 +4173,13 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using step[THEN propagate_preserves_trail_atoms_lt] sound[THEN trail_atoms_lt_if_sound_state]
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN propagate_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN propagate_preserves_minimal_ground_closures]
     by argo
 
   ultimately show ?thesis
@@ -4166,7 +4188,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
 qed
 
 lemma decide_sound_state:
-  assumes "decide N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "decide N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: decide.cases)
@@ -4181,14 +4203,21 @@ proof (cases N \<beta> S S' rule: decide.cases)
     by (simp add: local.decideI(4) local.decideI(5) sound_\<Gamma> sound_trail_decide)
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms decide_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN decide_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN decide_preserves_minimal_ground_closures]
+    by argo
 
   ultimately show ?thesis
     unfolding decideI sound_state_def by simp
 qed
 
 lemma conflict_sound_state:
-  assumes "conflict N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "conflict N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: conflict.cases)
@@ -4224,47 +4253,49 @@ proof (cases N \<beta> S S' rule: conflict.cases)
           notin_fset true_clss_def)
   qed
 
-  moreover have "trail_atoms_lt \<beta> S'"
-    using assms conflict_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
-
-  moreover have "subst_domain \<gamma>\<^sub>\<rho> \<subseteq> vars_cls (D \<cdot> \<rho>)"
-  proof (rule Set.subsetI)
-    fix x assume "x \<in> subst_domain \<gamma>\<^sub>\<rho>"
-    hence "rename_subst_domain \<rho> \<gamma> x \<noteq> Var x"
-      unfolding \<open>\<gamma>\<^sub>\<rho> = rename_subst_domain \<rho> \<gamma>\<close> subst_domain_def mem_Collect_eq by assumption
-    hence x_in: "Var x \<in> \<rho> ` subst_domain \<gamma>" and "\<gamma> (the_inv \<rho> (Var x)) \<noteq> Var x"
-      unfolding rename_subst_domain_def by metis+
-
-    from x_in obtain x' where x'_in: "x' \<in> subst_domain \<gamma>" and \<rho>_x': "\<rho> x' = Var x"
-      using \<open>is_renaming \<rho>\<close> is_renaming_iff by auto
-    hence "x' \<in> vars_cls D"
-      using \<open>subst_domain \<gamma> \<subseteq> vars_cls D\<close>[THEN subsetD] by metis
-    thus "x \<in> vars_cls (D \<cdot> \<rho>)"
-      using \<rho>_x' vars_subst_cls_eq by fastforce
-  qed
-
-  moreover have "is_ground_cls (D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>)"
-    unfolding \<open>D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>\<close>
-    using conflictI by simp
-
   moreover have "trail_false_cls \<Gamma> (D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho>)"
     unfolding \<open>D \<cdot> \<rho> \<cdot> \<gamma>\<^sub>\<rho> = D \<cdot> \<gamma>\<close>
     using conflictI by simp
+
+  moreover have "trail_atoms_lt \<beta> S'"
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN conflict_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN conflict_preserves_minimal_ground_closures]
+    by argo
 
   ultimately show ?thesis
     unfolding conflictI(1,2) sound_state_def
     using disj_N_U sound_\<Gamma> N_entails_U by simp
 qed
 
-lemma skip_sound_state: "skip N \<beta> S S' \<Longrightarrow> sound_state N \<beta> S \<Longrightarrow> sound_state N \<beta> S'"
-proof (induction S S' rule: skip.induct)
+lemma skip_sound_state:
+  assumes step: "skip N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  shows "sound_state N \<beta> S'"
+  using step
+proof (cases N \<beta> S S' rule: skip.cases)
   case (skipI L D \<sigma> Cl \<Gamma> U)
-  thus ?case
+
+  moreover have "trail_atoms_lt \<beta> S'"
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN skip_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN skip_preserves_minimal_ground_closures]
+    by argo
+
+  ultimately show ?thesis
+    using sound
     by (auto simp: sound_state_def trail_atoms_lt_def elim!: subtrail_falseI)
 qed
 
 lemma factorize_sound_state:
-  assumes "factorize N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "factorize N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: factorize.cases)
@@ -4279,7 +4310,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     gr_D_L_L'_\<gamma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
-    unfolding sound_state_def by (simp_all add: add_mset_commute)
+    unfolding sound_state_def by (simp_all add: add_mset_commute minimal_ground_closures_def)
 
   from factorizeI have
     imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
@@ -4304,21 +4335,6 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     unfolding disjoint_vars_iff_inter_empty
     using range_vars_\<mu> vars_subst_cls_subset[of "D + {#L#}" \<mu>]
     by auto
-
-  moreover have "subst_domain \<gamma>' \<subseteq> vars_cls ((D + {#L#}) \<cdot> \<mu>)"
-    unfolding \<gamma>'_def using subst_domain_restrict_subst_domain by fast
-
-  moreover have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
-  proof -
-    have "is_ground_cls ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>)"
-      using gr_D_L_L'_\<gamma>
-      unfolding is_ground_cls_iff_vars_empty
-      using vars_cls_subst_subset
-      by (smt (verit, ccfv_SIG) add_mset_commute bot.extremum_uniqueI range_vars_\<mu>
-          union_mset_add_mset_right vars_cls_subst_subset vars_subst_cls_subset_vars_cls_subst)
-    thus ?thesis
-      unfolding \<gamma>'_def using subst_cls_restrict_subst_domain_idem by (metis subsetI)
-  qed
 
   moreover have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
   proof -
@@ -4350,7 +4366,14 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   qed
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms factorize_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN factorize_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN factorize_preserves_minimal_ground_closures]
+    by argo
 
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
@@ -4404,7 +4427,7 @@ proof (rule ballI)
 qed
 
 lemma resolve_sound_state:
-  assumes "resolve N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "resolve N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: resolve.cases)
@@ -4418,7 +4441,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     gr_D_L'_\<sigma>: "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
     N_entails_D_L': "fset N \<TTurnstile>\<G>e {D + {#L'#}}"
-    unfolding sound_state_def by simp_all
+    unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
   from resolveI have L_eq_comp_L': "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" by simp
   from resolveI have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
@@ -4475,32 +4498,6 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     unfolding disjoint_vars_iff_inter_empty
     using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}\<close>
     by (smt (verit, best) UN_I Un_iff disjoint_iff union_fset vars_clss_def)
-
-  moreover have
-    "is_ground_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>))
-      (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
-    unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
-    unfolding subst_cls_comp_subst is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
-    unfolding subst_cls_union is_ground_cls_union
-  proof (rule conjI)
-    from gr_D_L'_\<sigma> have "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma> \<cdot> \<delta>)"
-      by (metis is_ground_subst_cls)
-    hence "is_ground_cls ((D + {#L'#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      using is_imgu_\<mu>[unfolded is_imgu_def, THEN conjunct2] is_unifs_\<sigma>_\<delta>
-      by (metis subst_cls_comp_subst)
-    thus "is_ground_cls (D \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      by (metis is_ground_cls_union subst_cls_union)
-  next
-    from gr_C_L_\<delta> have "is_ground_cls ((C + {#L#}) \<cdot> \<sigma> \<cdot> \<delta>)"
-      using subst_cls_idem_if_disj_vars[of \<sigma> C]
-      using dom_\<sigma> vars_D_L'_vars_C_L_disj
-      by (smt (verit, best) Int_assoc inf.orderE inf_bot_right subst_cls_idem_if_disj_vars)
-    hence "is_ground_cls ((C + {#L#}) \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      using is_imgu_\<mu>[unfolded is_imgu_def, THEN conjunct2] is_unifs_\<sigma>_\<delta>
-      by (metis subst_cls_comp_subst)
-    thus "is_ground_cls (C \<cdot> \<mu> \<cdot> \<sigma> \<cdot> \<delta>)"
-      by (metis is_ground_cls_union subst_cls_union)
-  qed
 
   moreover have "trail_false_cls \<Gamma>
     ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
@@ -4579,7 +4576,15 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     using \<Gamma>_def sound_\<Gamma> by blast
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms resolve_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN resolve_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN resolve_preserves_minimal_ground_closures]
+    by metis
 
   ultimately show ?thesis
     unfolding resolveI sound_state_def
@@ -4587,7 +4592,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 qed
 
 lemma backtrack_sound_state:
-  assumes "backtrack N \<beta> S S'" and sound: "sound_state N \<beta> S"
+  assumes step: "backtrack N \<beta> S S'" and sound: "sound_state N \<beta> S"
   shows "sound_state N \<beta> S'"
   using assms(1)
 proof (cases N \<beta> S S' rule: backtrack.cases)
@@ -4601,7 +4606,7 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     gr_D_L_\<sigma>: "is_ground_cls ((D + {#L#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<sigma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L#}}"
-    unfolding sound_state_def by simp_all
+    unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
   from backtrackI have \<Gamma>_def: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>))" by simp
 
@@ -4640,7 +4645,14 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
     using N_entails_U N_entails_D_L_L' by (metis UN_Un grounding_of_clss_def true_clss_union)
 
   moreover have "trail_atoms_lt \<beta> S'"
-    using assms backtrack_preserves_trail_atoms_lt trail_atoms_lt_if_sound_state by simp
+    using sound[THEN trail_atoms_lt_if_sound_state]
+      step[THEN backtrack_preserves_trail_atoms_lt]
+    by argo
+
+  moreover have "minimal_ground_closures S'"
+    using sound[THEN minimal_ground_closures_if_sound_state]
+      step[THEN backtrack_preserves_minimal_ground_closures]
+    by argo
 
   ultimately show ?thesis
     unfolding backtrackI sound_state_def by simp

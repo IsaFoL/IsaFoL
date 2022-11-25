@@ -643,7 +643,7 @@ proof -
           "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
           "sound_trail N \<Gamma>"
-          unfolding sound_state_def by simp_all
+          unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
         have "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
           apply(rule disj_N_U_\<Gamma>_D_L'[unfolded disjoint_vars_iff_inter_empty,
@@ -720,7 +720,7 @@ proof -
     by auto
 
   from sound_Sn conflict_Sn have Cn_\<gamma>n_in: "Cn \<cdot> \<gamma>n \<in> grounding_of_cls Cn"
-    unfolding sound_state_def
+    unfolding sound_state_def minimal_ground_closures_def
     using grounding_of_cls_ground grounding_of_subst_cls_subset
     by fastforce
 

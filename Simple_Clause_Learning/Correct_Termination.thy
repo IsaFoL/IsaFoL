@@ -386,7 +386,7 @@ proof -
       by (simp add: S_def u_def sound_state_def)
 
     from sound_S have domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C"
-      by (simp add: S_def u_def sound_state_def)
+      by (simp add: S_def u_def sound_state_def minimal_ground_closures_def)
 
     from sound_S have \<Gamma>_false_C_\<gamma>: "trail_false_cls \<Gamma> (C \<cdot> \<gamma>)"
       by (simp add: S_def u_def sound_state_def)
