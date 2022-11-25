@@ -352,42 +352,9 @@ next
       assume "propagate N \<beta> S S'"
       thus "?less (\<M> N \<beta> S') (\<M> N \<beta> S)"
       proof (cases N \<beta> S S' rule: propagate.cases)
-        case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+        case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
 
-        have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<mu> \<cdot>l \<gamma>'"
-          unfolding \<open>\<gamma>\<^sub>\<rho>' = rename_subst_domain \<rho> \<gamma>'\<close>
-        proof (rule subst_lit_renaming_subst_adapted)
-          show "is_renaming \<rho>"
-            using propagateI(3-) by simp
-        next
-          have "add_mset L C\<^sub>0 \<subseteq># C"
-            using propagateI(3-) by simp
-          hence "add_mset L C\<^sub>0 \<cdot> \<mu> \<subseteq># C \<cdot> \<mu>"
-            by (rule subst_cls_mono_mset) thm subst_cls_mono_mset[no_vars]
-          hence "vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>) \<subseteq> vars_cls (C \<cdot> \<mu>)"
-            by (metis mset_subset_eq_exists_conv sup_ge1 vars_cls_plus_iff)
-          also have "\<dots> \<subseteq> vars_cls C"
-          proof (rule subset_trans[OF vars_subst_cls_subset])
-            have "range_vars \<mu> \<subseteq> vars_cls (add_mset L C\<^sub>1)"
-              using \<open>is_mimgu \<mu> {atm_of ` set_mset (add_mset L C\<^sub>1)}\<close>[unfolded is_mimgu_def,
-                  THEN conjunct2]
-              by (auto simp add: vars_cls_def)
-            also have "\<dots> \<subseteq> vars_cls C"
-              apply (rule vars_cls_subset_vars_cls_if_subset_mset)
-              unfolding \<open>C = add_mset L C'\<close> \<open>C\<^sub>1 = {#K \<in># C'. K \<cdot>l \<gamma> = L \<cdot>l \<gamma>#}\<close>
-              by simp
-            finally show "vars_cls C - subst_domain \<mu> \<union> range_vars \<mu> \<subseteq> vars_cls C"
-              by simp
-          qed
-          also have "\<dots> \<subseteq> subst_domain \<gamma>"
-            by (rule vars_cls_subset_subst_domain_if_grounding[OF \<open>is_ground_cls (C \<cdot> \<gamma>)\<close>])
-
-          finally show "vars_lit (L \<cdot>l \<mu>) \<subseteq> subst_domain \<gamma>'"
-            unfolding \<open>\<gamma>' = restrict_subst_domain (vars_cls (add_mset L C\<^sub>0 \<cdot> \<mu>)) \<gamma>\<close>
-            unfolding subst_domain_restrict_subst_domain
-            by simp
-        qed
-        also have "\<dots> = L \<cdot>l \<mu> \<cdot>l \<gamma>"
+        have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<mu> \<cdot>l \<gamma>"
           using propagateI(3-) by (simp add: subst_lit_restrict_subst_domain_idem)
         also have "\<dots> = L \<cdot>l \<gamma>"
         proof -
@@ -401,10 +368,10 @@ next
           thus ?thesis
             by (metis subst_lit_comp_subst)
         qed
-        finally have "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>"
+        finally have "L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>"
           by assumption
 
-        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>, L \<cdot>l \<mu> \<cdot>l \<rho>, \<gamma>\<^sub>\<rho>')) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
+        have "\<M>_prop_deci \<beta> ((L \<cdot>l \<gamma>, Some (C\<^sub>0 \<cdot> \<mu>, L \<cdot>l \<mu>, \<gamma>')) # \<Gamma>) |\<subset>| \<M>_prop_deci \<beta> \<Gamma>"
           unfolding \<M>_prop_deci_def fset_of_list_simps fimage_finsert prod.sel
         proof (rule minus_pfsubset_minusI)
           show "fst |`| fset_of_list \<Gamma> |\<subset>| finsert (L \<cdot>l \<gamma>) (fst |`| fset_of_list \<Gamma>)"
@@ -429,7 +396,7 @@ next
         qed
         thus ?thesis
           unfolding propagateI(1,2) trail_propagate_def \<M>_def state_proj_simp option.case
-          unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = L \<cdot>l \<gamma>\<close>
+          unfolding \<open>L \<cdot>l \<mu> \<cdot>l \<gamma>' = L \<cdot>l \<gamma>\<close>
           unfolding lex_prodp_def prod.sel by simp
       qed
     next

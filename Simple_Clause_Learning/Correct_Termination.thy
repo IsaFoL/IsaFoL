@@ -175,8 +175,7 @@ proof -
 
   show ?thesis
     using propagateI[OF D_in D_def, of "\<rho> \<odot> \<sigma>\<^sub>\<rho>", unfolded subst_cls_comp_subst subst_lit_comp_subst,
-      OF gr_D_\<rho>_\<sigma>\<^sub>\<rho> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> mimgu_\<mu> refl is_ren_wrt
-      vars_cls_subst_renaming[OF finite_fset] refl]   
+      OF gr_D_\<rho>_\<sigma>\<^sub>\<rho> ball_atms_lt_\<beta> C\<^sub>0_def C\<^sub>1_def tr_false_C\<^sub>1 not_def_L'_\<rho>_\<sigma>\<^sub>\<rho> mimgu_\<mu> refl]   
     unfolding S\<^sub>0_def by blast
 qed
 

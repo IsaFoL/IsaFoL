@@ -18,30 +18,30 @@ lemma resolve_if_conflict_follows_propagate:
   shows "\<exists>S\<^sub>3. resolve N \<beta> S\<^sub>2 S\<^sub>3"
   using propa
 proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
-  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>' \<rho> \<gamma>\<^sub>\<rho>')
+  case (propagateI C U L C' \<gamma> C\<^sub>0 C\<^sub>1 \<Gamma> \<mu> \<gamma>')
   hence S\<^sub>0_def: "S\<^sub>0 = (\<Gamma>, U, None)"
     by simp
 
   from conf obtain \<gamma>\<^sub>D D \<rho>\<^sub>D where
-    S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>', U,
+    S\<^sub>2_def: "S\<^sub>2 = (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>', U,
       Some (D \<cdot> \<rho>\<^sub>D, rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D))" and
     D_in: "D |\<in>| N |\<union>| U" and
     dom_\<gamma>\<^sub>D: "subst_domain \<gamma>\<^sub>D \<subseteq> vars_cls D" and
     gr_D_\<gamma>\<^sub>D: "is_ground_cls (D \<cdot> \<gamma>\<^sub>D)" and
-    tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>') (D \<cdot> \<gamma>\<^sub>D)" and
+    tr_false_\<Gamma>_L_\<mu>: "trail_false_cls (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>') (D \<cdot> \<gamma>\<^sub>D)" and
     ren_\<rho>\<^sub>D: "is_renaming \<rho>\<^sub>D" and
     vars_D_\<rho>\<^sub>D_distinct: "vars_cls (D \<cdot> \<rho>\<^sub>D) \<inter> vars_clss (fset (N |\<union>| U |\<union>|
-      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))) = {}"
+      clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'))) = {}"
     by (elim conflict.cases) (unfold propagateI(1,2), blast)
 
   from no_conf have "\<not> trail_false_cls \<Gamma> (D \<cdot> \<gamma>\<^sub>D)"
     using gr_D_\<gamma>\<^sub>D D_in not_trail_false_ground_cls_if_no_conflict[of N \<beta> _ D \<gamma>\<^sub>D]
     using S\<^sub>0_def by force
-  with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') \<in># D \<cdot> \<gamma>\<^sub>D"
+  with tr_false_\<Gamma>_L_\<mu> have "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') \<in># D \<cdot> \<gamma>\<^sub>D"
     unfolding trail_propagate_def by (metis subtrail_falseI)
-  then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>') = L' \<cdot>l \<gamma>\<^sub>D"
+  then obtain D' L' where D_def: "D = add_mset L' D'" and "- (L \<cdot>l \<mu> \<cdot>l \<gamma>') = L' \<cdot>l \<gamma>\<^sub>D"
     by (meson Melem_subst_cls multi_member_split)
-  hence 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
+  hence 1: "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<gamma>\<^sub>D)"
     by (metis uminus_of_uminus_id)
 
   moreover have L'_\<rho>\<^sub>D_adapt_\<gamma>\<^sub>D: "L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D = L' \<cdot>l \<gamma>\<^sub>D"
@@ -50,26 +50,26 @@ proof (cases N \<beta> S\<^sub>0 S\<^sub>1 rule: propagate.cases)
       using D_def gr_D_\<gamma>\<^sub>D by (auto intro!: vars_lit_subset_subst_domain_if_grounding)
   qed
 
-  ultimately have 1: "L \<cdot>l \<mu> \<cdot>l \<rho> \<cdot>l \<gamma>\<^sub>\<rho>' = - (L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
+  ultimately have 1: "L \<cdot>l \<mu> \<cdot>l \<gamma>' = - (L' \<cdot>l \<rho>\<^sub>D \<cdot>l rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D)"
     by argo
 
-  have "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) (atm_of L' \<cdot>a \<rho>\<^sub>D) = Some \<mu>'"
+  have "\<exists>\<mu>'. Unification.mgu (atm_of L \<cdot>a \<mu>) (atm_of L' \<cdot>a \<rho>\<^sub>D) = Some \<mu>'"
   proof (rule ex_mgu_if_subst_eq_subst_and_disj_vars)
-    show "atm_of L \<cdot>a \<mu> \<cdot>a \<rho> \<cdot>a \<gamma>\<^sub>\<rho>' = atm_of L' \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
+    show "atm_of L \<cdot>a \<mu> \<cdot>a \<gamma>' = atm_of L' \<cdot>a \<rho>\<^sub>D \<cdot>a rename_subst_domain \<rho>\<^sub>D \<gamma>\<^sub>D"
       using 1 by (metis atm_of_subst_lit atm_of_uminus)
   next
-    show "vars_term (atm_of L \<cdot>a \<mu> \<cdot>a \<rho>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D) = {}"
+    show "vars_term (atm_of L \<cdot>a \<mu>) \<inter> vars_term (atm_of L' \<cdot>a \<rho>\<^sub>D) = {}"
       using vars_D_\<rho>\<^sub>D_distinct by (auto simp: D_def)
   qed
-  then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu> \<cdot>l \<rho>), atm_of (L' \<cdot>l \<rho>\<^sub>D)}}"
+  then obtain \<mu>' where 2: "is_mimgu \<mu>' {{atm_of (L \<cdot>l \<mu>), atm_of (L' \<cdot>l \<rho>\<^sub>D)}}"
     using is_mimgu_if_mgu_eq_Some by auto
 
   show ?thesis
     unfolding S\<^sub>2_def D_def
-    using resolveI[OF refl 1 2, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>" N U \<Gamma> \<beta>]
+    using resolveI[OF refl 1 2, of _ "D' \<cdot> \<rho>\<^sub>D" "C\<^sub>0 \<cdot> \<mu>" N U \<Gamma> \<beta>]
     using ex_renaming_to_disjoint_vars[
-        of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>'))"
-          "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<cdot> \<mu>'", OF finite_fset]
+        of "fset (N |\<union>| U |\<union>| clss_of_trail (trail_propagate \<Gamma> (L \<cdot>l \<mu>) (C\<^sub>0 \<cdot> \<mu>) \<gamma>'))"
+          "(D' \<cdot> \<rho>\<^sub>D + C\<^sub>0 \<cdot> \<mu>) \<cdot> \<mu>'", OF finite_fset]
     by auto
 qed
 
