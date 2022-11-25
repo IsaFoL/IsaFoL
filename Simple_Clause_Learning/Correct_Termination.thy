@@ -363,8 +363,9 @@ proof -
     case (Some Cl)
     then obtain C \<gamma> where u_def: "u = Some (C, \<gamma>)" by force
 
-    from sound_S have disj_vars_conflict: "\<forall>D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars C D"
-      by (simp add: S_def u_def sound_state_def)
+    from sound_S have
+      vars_conf_disjoint: "vars_cls C \<inter> (vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))) = {}"
+      by (simp add: S_def u_def sound_state_def conflict_disjoint_vars_def)
 
     from sound_S have domain_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls C"
       by (simp add: S_def u_def sound_state_def minimal_ground_closures_def)
@@ -458,8 +459,7 @@ proof -
                   vars_clss_def)
 
             have *: "vars_cls (add_mset L' D) \<inter> vars_cls (add_mset K C') = {}"
-              using disj_vars_conflict[unfolded C_def 1]
-              by (simp add: disjoint_vars_iff_inter_empty inf.commute)
+              using vars_conf_disjoint[unfolded C_def 1] by auto
 
             have 2: "L' \<cdot>l \<sigma> = - (K \<cdot>l \<gamma>)"
               using K_\<gamma> L_def by fastforce
@@ -469,11 +469,11 @@ proof -
               unfolding subst_subst_compose
             proof (rule subst_subst_eq_subst_subst_if_subst_eq_substI(1))
               show "vars_lit L' \<inter> subst_domain \<gamma> = {}"
-                using * domain_\<gamma> disj_vars_conflict
+                using * domain_\<gamma> vars_conf_disjoint
                 by (auto simp: C_def)
             next
               show "vars_lit K \<inter> subst_domain \<sigma> = {}"
-                using * domain_\<sigma> disj_vars_conflict by auto
+                using * domain_\<sigma> vars_conf_disjoint by auto
             next
               have "range_vars \<sigma> = {}"
                 by (rule range_vars_eq_empty_if_is_ground[OF ground_L'_D_\<sigma> domain_\<sigma>])

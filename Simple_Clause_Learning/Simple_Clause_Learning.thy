@@ -3857,7 +3857,7 @@ definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term
   "sound_state N \<beta> S \<longleftrightarrow> (\<exists>\<Gamma> U u.
     S = (\<Gamma>, U, u) \<and>
     disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<and>
-    (case u of None \<Rightarrow> True | Some (C, _) \<Rightarrow> \<forall>D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars C D) \<and>
+    conflict_disjoint_vars N S \<and>
     sound_trail N \<Gamma> \<and> trail_atoms_lt \<beta> S \<and>
     fset N \<TTurnstile>\<G>e fset U \<and> minimal_ground_closures S \<and>
     (case u of None \<Rightarrow> True
@@ -3875,19 +3875,8 @@ lemma minimal_ground_closures_if_sound_state:
   unfolding sound_state_def by auto
 
 lemma conflict_disjoint_vars_if_sound_state:
-  assumes sound: "sound_state N \<beta> S"
-  shows "conflict_disjoint_vars N S"
-  unfolding conflict_disjoint_vars_def
-proof (intro allI impI)
-  fix C \<gamma>
-  assume "state_conflict S = Some (C, \<gamma>)"
-  with sound have "\<forall>D\<in>fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S)).
-    vars_cls C \<inter> vars_cls D = {}"
-    unfolding sound_state_def disjoint_vars_iff_inter_empty
-    by force
-  thus "vars_cls C \<inter> vars_clss (fset (N |\<union>| state_learned S |\<union>| clss_of_trail (state_trail S))) = {}"
-    by (auto simp: vars_clss_def)
-qed
+  "sound_state N \<beta> S \<Longrightarrow> conflict_disjoint_vars N S"
+  unfolding sound_state_def by auto
 
 lemma not_trail_defined_lit_backtrack_if_level_lit_gt_level_backtrack:
   assumes sound_\<Gamma>: "sound_trail N \<Gamma>"
@@ -4116,6 +4105,11 @@ proof (cases N \<beta> S S' rule: propagate.cases)
       step[THEN propagate_preserves_minimal_ground_closures]
     by argo
 
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN propagate_preserves_conflict_disjoint_vars]
+    by argo
+
   ultimately show ?thesis
     unfolding S'_def sound_state_def
     using N_entails_U by simp
@@ -4146,6 +4140,11 @@ proof (cases N \<beta> S S' rule: decide.cases)
       step[THEN decide_preserves_minimal_ground_closures]
     by argo
 
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN decide_preserves_conflict_disjoint_vars]
+    by argo
+
   ultimately show ?thesis
     unfolding decideI sound_state_def by simp
 qed
@@ -4169,12 +4168,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
     using subst_renaming_subst_adapted[OF \<open>is_renaming \<rho>\<close>]
     by (metis \<open>is_ground_cls (D \<cdot> \<gamma>)\<close> vars_cls_subset_subst_domain_if_grounding)
 
-  have disj_N_U_D': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D \<cdot> \<rho>) C"
-    using \<open>vars_cls (D \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}\<close>
-    unfolding disjoint_vars_iff_inter_empty
-    by (smt (verit, ccfv_SIG) UN_I disjoint_iff vars_clss_def)
-
-  moreover have N_entails_D': "fset N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
+  have N_entails_D': "fset N \<TTurnstile>\<G>e {D \<cdot> \<rho>}"
   proof (intro allI impI)
     fix I
     assume valid_N: "I \<TTurnstile>s grounding_of_clss (fset N)"
@@ -4201,6 +4195,11 @@ proof (cases N \<beta> S S' rule: conflict.cases)
       step[THEN conflict_preserves_minimal_ground_closures]
     by argo
 
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN conflict_preserves_conflict_disjoint_vars]
+    by argo
+
   ultimately show ?thesis
     unfolding conflictI(1,2) sound_state_def
     using disj_N_U sound_\<Gamma> N_entails_U by simp
@@ -4223,6 +4222,11 @@ proof (cases N \<beta> S S' rule: skip.cases)
       step[THEN skip_preserves_minimal_ground_closures]
     by argo
 
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN skip_preserves_conflict_disjoint_vars]
+    by argo
+
   ultimately show ?thesis
     using sound
     by (auto simp: sound_state_def trail_atoms_lt_def elim!: subtrail_falseI)
@@ -4237,14 +4241,11 @@ proof (cases N \<beta> S S' rule: factorize.cases)
 
   from factorizeI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
-    disj_N_U_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L, L'#}) C" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
-    dom_\<gamma>: "subst_domain \<gamma> \<subseteq> vars_cls (D + {#L, L'#})" and
-    gr_D_L_L'_\<gamma>: "is_ground_cls ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<gamma>)" and
     N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L, L'#}}"
-    unfolding sound_state_def by (simp_all add: add_mset_commute minimal_ground_closures_def)
+    unfolding sound_state_def by (simp_all add: add_mset_commute)
 
   from factorizeI have
     imgu_\<mu>: "is_imgu \<mu> {{atm_of L, atm_of L'}}" and
@@ -4264,13 +4265,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
     apply (simp add: is_unifier_alt)
     by (metis L_eq_L'_\<gamma> atm_of_subst_lit literal.expand subst_lit_is_neg)
 
-  have "disjoint_vars ((D + {#L#}) \<cdot> \<mu>) C" if C_in: "C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for C
-    using disj_N_U_D_L_L'[rule_format, OF C_in]
-    unfolding disjoint_vars_iff_inter_empty
-    using range_vars_\<mu> vars_subst_cls_subset[of "D + {#L#}" \<mu>]
-    by auto
-
-  moreover have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
+  have "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<mu> \<cdot> \<gamma>')"
   proof -
     show ?thesis
       unfolding \<gamma>'_def
@@ -4307,6 +4302,11 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
       step[THEN factorize_preserves_minimal_ground_closures]
+    by argo
+
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN factorize_preserves_conflict_disjoint_vars]
     by argo
 
   ultimately show ?thesis
@@ -4368,12 +4368,12 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
   from resolveI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
-    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
     N_entails_D_L': "fset N \<TTurnstile>\<G>e {D + {#L'#}}" and
-    "minimal_ground_closures S"
+    "minimal_ground_closures S" and
+    "conflict_disjoint_vars N S"
     unfolding sound_state_def by simp_all
 
   from \<open>minimal_ground_closures S\<close> have
@@ -4383,6 +4383,12 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     gr_C_L_\<delta>: "is_ground_cls ((C + {#L#}) \<cdot> \<delta>)"
     unfolding resolveI(1,2) \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
     by (simp_all add: trail_propagate_def minimal_ground_closures_def)
+
+  from \<open>conflict_disjoint_vars N S\<close> have
+    vars_conf_disjoint: "vars_cls (add_mset L' D) \<inter>
+      vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    unfolding resolveI(1,2) conflict_disjoint_vars_def state_proj_simp
+    by simp
 
   from resolveI have L_eq_comp_L': "L \<cdot>l \<delta> = - (L' \<cdot>l \<sigma>)" by simp
   from resolveI have is_mimgu_\<mu>: "is_mimgu \<mu> {{atm_of L, atm_of L'}}" by simp
@@ -4398,9 +4404,9 @@ proof (cases N \<beta> S S' rule: resolve.cases)
     by (auto simp: trail_propagate_def elim: sound_trail.cases)
 
   have vars_D_L'_vars_C_L_disj: "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
-    apply(rule disj_N_U_\<Gamma>_D_L_L'[unfolded disjoint_vars_iff_inter_empty,
-          rule_format, of "C + {#L#}"])
-    by (simp add: \<Gamma>_def)
+    using vars_conf_disjoint
+    unfolding \<Gamma>_def trail_propagate_def
+    by (auto simp: vars_clss_def)
 
   from sound_\<Gamma> have
     tr_false_cls_C: "trail_false_cls \<Gamma>' (C \<cdot> \<delta>)" and
@@ -4431,12 +4437,6 @@ proof (cases N \<beta> S S' rule: resolve.cases)
 
   have "disjoint_vars_set (insert (add_mset L C) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>')))"
     using \<Gamma>_def disj_N_U by fastforce
-
-  moreover have "disjoint_vars ((D + C) \<cdot> \<mu> \<cdot> \<rho>) E"
-    if E_in: "E \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)" for E
-    unfolding disjoint_vars_iff_inter_empty
-    using that \<open>vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>) \<inter> vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}\<close>
-    by (smt (verit, best) UN_I Un_iff disjoint_iff union_fset vars_clss_def)
 
   moreover have "trail_false_cls \<Gamma>
     ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
@@ -4525,6 +4525,11 @@ proof (cases N \<beta> S S' rule: resolve.cases)
       step[THEN resolve_preserves_minimal_ground_closures]
     by metis
 
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN resolve_preserves_conflict_disjoint_vars]
+    by argo
+
   ultimately show ?thesis
     unfolding resolveI sound_state_def
     using N_entails_U by simp
@@ -4538,16 +4543,22 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   from backtrackI(1) sound have
     disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
-    disj_N_U_\<Gamma>_D_L_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L#}) C" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
     gr_D_L_\<sigma>: "is_ground_cls ((D + {#L#}) \<cdot> \<sigma>)" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L#}) \<cdot> \<sigma>)" and
-    N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L#}}"
+    N_entails_D_L_L': "fset N \<TTurnstile>\<G>e {D + {#L#}}" and
+    "conflict_disjoint_vars N S"
     unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
   from backtrackI have \<Gamma>_def: "\<Gamma> = trail_decide (\<Gamma>' @ \<Gamma>'') (- (L \<cdot>l \<sigma>))" by simp
+
+  from \<open>conflict_disjoint_vars N S\<close> have
+    vars_conf_disjoint: "vars_cls (add_mset L D) \<inter>
+      vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
+    unfolding backtrackI(1,2) conflict_disjoint_vars_def
+    by simp
 
   have "disjoint_vars_set (insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>'')))"
     unfolding disjoint_vars_set_def
@@ -4568,8 +4579,9 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
 
     from C_in' E_in' C_neq_E show "disjoint_vars C E"
       using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
-      using disj_N_U_\<Gamma>_D_L_L' disjoint_vars_sym
-      by (metis add_mset_add_single notin_fset)
+      using vars_conf_disjoint
+      by (smt (verit, del_insts) UN_I disjoint_iff disjoint_vars_iff_inter_empty notin_fset
+          vars_clss_def)
   qed
 
   moreover have "sound_trail N \<Gamma>''"
@@ -4591,6 +4603,11 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
   moreover have "minimal_ground_closures S'"
     using sound[THEN minimal_ground_closures_if_sound_state]
       step[THEN backtrack_preserves_minimal_ground_closures]
+    by argo
+
+  moreover have "conflict_disjoint_vars N S'"
+    using sound[THEN conflict_disjoint_vars_if_sound_state]
+      step[THEN backtrack_preserves_conflict_disjoint_vars]
     by argo
 
   ultimately show ?thesis

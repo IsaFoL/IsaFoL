@@ -639,17 +639,17 @@ proof -
 
         from resolveI sound_Sm have
           "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
-          disj_N_U_\<Gamma>_D_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
           "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
           "sound_trail N \<Gamma>" and
-          "minimal_ground_closures Sm"
+          "minimal_ground_closures Sm" and
+          "conflict_disjoint_vars N Sm"
           unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
         have "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
-          apply(rule disj_N_U_\<Gamma>_D_L'[unfolded disjoint_vars_iff_inter_empty,
-                rule_format, of "C + {#L#}"])
-          by (simp add: resolveI(3))
+          using \<open>conflict_disjoint_vars N Sm\<close>
+          unfolding \<open>Sm = (\<Gamma>, U, Some (add_mset L' D, \<sigma>))\<close> \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
+          by (auto simp add: conflict_disjoint_vars_def)
 
         from resolveI have "atm_of (L \<cdot>l \<delta>) = atm_of (L' \<cdot>l \<sigma>)" by simp
         hence "(atm_of L) \<cdot>a \<delta> = (atm_of L') \<cdot>a \<sigma>" by simp
