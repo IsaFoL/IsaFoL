@@ -200,7 +200,6 @@ qed
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
-    disj_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S" and
     no_more_regular_step: "\<nexists>S'. regular_scl N \<beta> S S'"
   defines
@@ -221,7 +220,7 @@ proof -
     using prod_cases3 by blast
 
   have sound_S: "sound_state N \<beta> S"
-    using regular_run_sound_state[OF regular_run] sound_initial_state[OF disj_N] by blast
+    using regular_run_sound_state[OF regular_run] sound_initial_state by blast
   hence
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     "minimal_ground_closures S"

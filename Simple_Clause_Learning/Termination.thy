@@ -631,7 +631,6 @@ qed
 
 lemma
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
@@ -644,7 +643,7 @@ lemma
     (\<exists>C' \<in> grounding_of_cls C. C' \<notin> grounding_of_clss (fset U))) \<and>
     grounding_of_clss (fset U) \<subset> grounding_of_clss (fset (state_learned Sn'))"
 proof -
-  from  learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5,6)]
+  from  learned_clauses_in_regular_runs_static_order[OF assms(1,2,3,4,5)]
   obtain C \<gamma> where
     conf_Sn: "state_conflict Sn = Some (C, \<gamma>)" and
     not_redundant: "\<not> redundant (\<subset>#) (fset N \<union> fset (state_learned S1)) C"
@@ -739,7 +738,6 @@ definition \<M>_back :: " _ \<Rightarrow> ('f, 'v) state \<Rightarrow> ('f, 'v) 
 
 lemma \<M>_back_pfsubset_\<M>_back_after_regular_backtrack:
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
@@ -755,7 +753,7 @@ proof -
     conf: "state_conflict Sn = Some (C, \<gamma>)" and
     set_conf_not_in_set_groundings:
       "set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset (state_learned S1))"
-    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5,6)]
+    using learned_clauses_in_regular_runs[OF assms(1,2,3,4,5)]
     by auto
 
   have 1: "state_learned Sn' = finsert C (state_learned Sn)"
@@ -849,14 +847,14 @@ theorem regular_scl_terminates:
       trail_lits_from_clauses N \<sqinter> initial_lits_generalize_learned_trail_conflict N \<sqinter>
       conflict_disjoint_vars N \<sqinter> minimal_ground_closures \<sqinter> sound_state N \<beta> \<sqinter>
       almost_no_conflict_with_trail N \<beta> \<sqinter> regular_conflict_resolution N \<beta>"
-  assumes "disjoint_vars_set (fset N)" and "transp lt"
+  assumes "transp lt"
   shows
     "wfP (\<lambda>S' S. regular_scl N \<beta> S S' \<and> invars S)" and
     "invars initial_state" and
     "\<And>S S'. regular_scl N \<beta> S S' \<Longrightarrow> invars S \<Longrightarrow> invars S'"
 proof -
   show "invars initial_state"
-    using \<open>disjoint_vars_set (fset N)\<close> by (simp add: invars_def)
+    by (simp add: invars_def)
 next
   note rea_to_scl = scl_if_reasonable
   note reg_to_rea = reasonable_if_regular
@@ -944,9 +942,6 @@ next
 
     show "\<M>_back \<beta> S' |\<subset>| \<M>_back \<beta> S"
     proof (rule \<M>_back_pfsubset_\<M>_back_after_regular_backtrack)
-      show "disjoint_vars_set (fset N)"
-        by (rule \<open>disjoint_vars_set (fset N)\<close>)
-    next
       show "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S1"
         using reg_run propa(2) by simp
     next

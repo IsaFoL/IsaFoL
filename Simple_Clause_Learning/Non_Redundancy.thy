@@ -643,7 +643,6 @@ proof -
           using trail_false_Cm_\<gamma>m by simp
 
         from resolveI sound_Sm have
-          "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
           "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
           "sound_trail N \<Gamma>" and
@@ -1029,7 +1028,6 @@ qed
 
 theorem learned_clauses_in_regular_runs:
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
@@ -1044,7 +1042,7 @@ theorem learned_clauses_in_regular_runs:
       set_mset (C \<cdot> \<gamma>) \<notin> set_mset ` grounding_of_clss (fset N \<union> fset U) \<and>
       \<not> redundant trail_ord (fset N \<union> fset U) C)"
 proof -
-  from disj_vars_N have "sound_state N \<beta> initial_state"
+  have "sound_state N \<beta> initial_state"
     by (rule sound_initial_state)
   with regular_run have sound_S0: "sound_state N \<beta> S0"
     by (rule regular_run_sound_state)
@@ -1096,7 +1094,6 @@ qed
 
 corollary learned_clauses_in_regular_runs_static_order:
   assumes
-    disj_vars_N: "disjoint_vars_set (fset N)" and
     regular_run: "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state S0" and
     conflict: "conflict N \<beta> S0 S1" and
     resolution: "(skip N \<beta> \<squnion> factorize N \<beta> \<squnion> resolve N \<beta>)\<^sup>+\<^sup>+ S1 Sn" and
@@ -1107,7 +1104,7 @@ corollary learned_clauses_in_regular_runs_static_order:
     "U \<equiv> state_learned S1"
   shows "(regular_scl N \<beta>)\<^sup>*\<^sup>* initial_state Sn' \<and>
     (\<exists>C \<gamma>. state_conflict Sn = Some (C, \<gamma>) \<and> \<not> redundant (\<subset>#) (fset N \<union> fset U) C)"
-  using learned_clauses_in_regular_runs[OF assms(1-6)]
+  using learned_clauses_in_regular_runs[OF assms(1-5)]
   using U_def redundant_multp_if_redundant_strict_subset by blast
 
 end

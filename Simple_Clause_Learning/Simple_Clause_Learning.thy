@@ -611,26 +611,6 @@ lemma disjoint_vars_subst_clsI:
   by (smt (verit, best) Diff_subset Un_iff disjoint_iff image_cong subsetD vars_subst_cls_eq
       vars_subst_cls_subset)
 
-definition disjoint_vars_set where
-  "disjoint_vars_set N \<longleftrightarrow> (\<forall>C \<in> N. \<forall>D \<in> N. C \<noteq> D \<longrightarrow> disjoint_vars C D)"
-
-lemma disjoint_vars_set_substetI[intro]: "disjoint_vars_set N \<Longrightarrow> M \<subseteq> N \<Longrightarrow> disjoint_vars_set M"
-  unfolding disjoint_vars_set_def by auto
-
-lemma disjoint_vars_set_insertI:
-  assumes disj_N: "disjoint_vars_set N" and ball_disj_C: "\<forall>D \<in> N. C \<noteq> D \<longrightarrow> disjoint_vars C D"
-  shows "disjoint_vars_set (insert C N)"
-  unfolding disjoint_vars_set_def
-proof (intro ballI impI)
-  fix D\<^sub>0 D\<^sub>1
-  assume "D\<^sub>0 \<in> insert C N" and "D\<^sub>1 \<in> insert C N" and "D\<^sub>0 \<noteq> D\<^sub>1"
-  then show "disjoint_vars D\<^sub>0 D\<^sub>1"
-    unfolding Set.insert_iff
-    by (auto intro: disj_N[unfolded disjoint_vars_set_def, rule_format]
-        intro: ball_disj_C[rule_format]
-        intro: ball_disj_C[rule_format, unfolded disjoint_vars_sym[of C]])
-qed
-
 lemma is_renaming_iff: "is_renaming \<rho> \<longleftrightarrow> (\<forall>x. is_Var (\<rho> x)) \<and> inj \<rho>"
   (is "?lhs \<longleftrightarrow> ?rhs")
 proof (rule iffI)
@@ -643,59 +623,6 @@ next
   show "?rhs \<Longrightarrow> ?lhs"
     by (auto simp: is_renaming_def intro: ex_inverse_of_renaming)
 qed
-
-lemma disjoint_vars_set_mgu:
-  assumes
-    disj_N_D_L_L': "disjoint_vars_set N" and
-    D_L_L'_in: "D + {#L, L'#} \<in> N" and
-    range_vars_\<eta>: "range_vars \<eta> \<subseteq> vars_lit L \<union> vars_lit L'"
-  shows "disjoint_vars_set (N - {D + {#L, L'#}} \<union> {(D + {#L#}) \<cdot> \<eta>})"
-proof -
-  have vars_D_L_\<eta>_subset: "vars_cls ((D + {#L#}) \<cdot> \<eta>) \<subseteq> vars_cls (D + {#L, L'#})"
-    using vars_cls_subst_subset[OF range_vars_\<eta>] by (simp add: add_mset_commute)
-
-  have disj_D_L_\<eta>: "disjoint_vars ((D + {#L#}) \<cdot> \<eta>) C" if C_in: "C \<in> N - {D + {#L, L'#}}" for C
-  proof -
-    from C_in have "C \<noteq> D + {#L, L'#}" by force
-    hence "disjoint_vars C (D + {#L, L'#})"
-        by (meson D_L_L'_in DiffD1 \<open>C \<in> N - {D + {#L, L'#}}\<close> disj_N_D_L_L' disjoint_vars_set_def)
-    thus ?thesis
-      unfolding disjoint_vars_iff_inter_empty
-      using vars_D_L_\<eta>_subset by blast
-  qed
-
-  show ?thesis
-    unfolding disjoint_vars_set_def
-  proof (intro ballI impI)
-    fix C E
-    assume
-      C_D_in:
-        "C \<in> N - {D + {#L, L'#}} \<union> {(D + {#L#}) \<cdot> \<eta>}"
-        "E \<in> N - {D + {#L, L'#}} \<union> {(D + {#L#}) \<cdot> \<eta>}" and
-      C_neq_E: "C \<noteq> E"
-
-    from C_D_in[unfolded Un_iff] show "disjoint_vars C E"
-    proof (elim disjE)
-      assume "C \<in> N - {D + {#L, L'#}}" and "E \<in> N - {D + {#L, L'#}}"
-      thus "disjoint_vars C E" by (meson C_neq_E DiffE disj_N_D_L_L' disjoint_vars_set_def)
-    next
-      assume "C \<in> {(D + {#L#}) \<cdot> \<eta>}" and "E \<in> {(D + {#L#}) \<cdot> \<eta>}"
-      with \<open>C \<noteq> E\<close> have False by blast
-      thus "disjoint_vars C E" by (rule FalseE)
-    next
-      assume C_in: "C \<in> N - {D + {#L, L'#}}" and E_in: "E \<in> {(D + {#L#}) \<cdot> \<eta>}"
-      thus ?thesis using disj_D_L_\<eta> disjoint_vars_sym by blast
-    next
-      assume C_in: "C \<in> {(D + {#L#}) \<cdot> \<eta>}" and E_in: "E \<in> N - {D + {#L, L'#}}"
-      thus ?thesis using disj_D_L_\<eta> by blast
-    qed
-  qed
-qed
-
-lemma disjoint_vars_set_minus_empty_vars:
-  assumes "vars_cls C = {}"
-  shows "disjoint_vars_set (N - {C}) \<longleftrightarrow> disjoint_vars_set N"
-  using assms unfolding disjoint_vars_set_def disjoint_vars_iff_inter_empty by blast
 
 lemma subst_cls_idem_if_disj_vars: "subst_domain \<sigma> \<inter> vars_cls C = {} \<Longrightarrow> C \<cdot> \<sigma> = C"
   by (metis (mono_tags, lifting) Int_iff empty_iff mem_Collect_eq same_on_vars_clause
@@ -3001,11 +2928,7 @@ lemma factorize_preserves_trail_propagated_or_decided:
 lemma resolve_preserves_trail_propagated_or_decided:
   assumes "resolve N \<beta> S S'" and invar: "trail_propagated_or_decided' N \<beta> S"
   shows "trail_propagated_or_decided' N \<beta> S'"
-  using assms by (auto simp: trail_propagated_or_decided'_def elim: resolve.cases)
-
-lemma disjoint_vars_set_insert_iff:
-  "disjoint_vars_set (insert C N) \<longleftrightarrow> vars_cls C \<inter> vars_clss (N - {C}) = {} \<and> disjoint_vars_set N"
-  by (rule iffI) (auto simp add: disjoint_vars_set_def vars_clss_def disjoint_vars_iff_inter_empty)  
+  using assms by (auto simp: trail_propagated_or_decided'_def elim: resolve.cases) 
 
 lemma backtrack_preserves_trail_propagated_or_decided:
   assumes "backtrack N \<beta> S S'" and
@@ -3850,7 +3773,6 @@ definition sound_state :: "('f, 'v) term clause fset \<Rightarrow> ('f, 'v) term
   "sound_state N \<beta> S \<longleftrightarrow>
     conflict_disjoint_vars N S \<and> trail_atoms_lt \<beta> S \<and> minimal_ground_closures S \<and> (\<exists>\<Gamma> U u.
     S = (\<Gamma>, U, u) \<and>
-    disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) \<and>
     sound_trail N \<Gamma> \<and>
     fset N \<TTurnstile>\<G>e fset U \<and>
     (case u of None \<Rightarrow> True
@@ -3874,8 +3796,7 @@ lemma conflict_disjoint_vars_if_sound_state:
 
 subsection \<open>Initial State Is Sound\<close>
 
-lemma sound_initial_state[simp]:
-  "disjoint_vars_set (fset N) \<Longrightarrow> sound_state N \<beta> initial_state"
+lemma sound_initial_state[simp]: "sound_state N \<beta> initial_state"
   by (simp add: sound_state_def trail_atoms_lt_def)
 
 
@@ -3921,7 +3842,6 @@ proof (cases N \<beta> S S' rule: propagate.cases)
     by simp_all
 
   from sound have
-    disj_N_U_\<Gamma>: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def S_def by auto
@@ -3977,16 +3897,7 @@ proof (cases N \<beta> S S' rule: propagate.cases)
   have "C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>' = C\<^sub>0 \<cdot> \<mu> \<cdot> \<gamma>"
     by (simp add: \<gamma>'_def subst_cls_restrict_subst_domain_idem)
 
-  have "disjoint_vars_set (insert (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>)
-    (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)))"
-  proof (intro disjoint_vars_set_insertI[OF disj_N_U_\<Gamma>] ballI impI)
-    fix D assume D_in: "D \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)"
-    thus "disjoint_vars (add_mset L C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) D"
-      unfolding disjoint_vars_iff_inter_empty
-      using vars_L_C\<^sub>0_\<mu>_\<rho> by (smt (verit, best) UN_I disjoint_iff vars_clss_def)
-  qed
-
-  moreover have "sound_trail N (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')"
+  have "sound_trail N (trail_propagate \<Gamma> (L \<cdot>l \<mu> \<cdot>l \<rho>) (C\<^sub>0 \<cdot> \<mu> \<cdot> \<rho>) \<gamma>\<^sub>\<rho>')"
   proof (rule sound_trail_propagate)
     show "sound_trail N \<Gamma>"
       by (rule sound_\<Gamma>)
@@ -4073,7 +3984,6 @@ lemma decide_sound_state:
 proof (cases N \<beta> S S' rule: decide.cases)
   case (decideI L \<gamma> \<Gamma> U)
   from decideI(1) sound have
-    disj_N_U_\<Gamma>: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def by auto
@@ -4109,7 +4019,6 @@ proof (cases N \<beta> S S' rule: conflict.cases)
   hence D_in: "D |\<in>| N |\<union>| U" by simp
   
   from conflictI(1) sound have
-    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U"
     unfolding sound_state_def by auto
@@ -4153,7 +4062,7 @@ proof (cases N \<beta> S S' rule: conflict.cases)
 
   ultimately show ?thesis
     unfolding conflictI(1,2) sound_state_def
-    using disj_N_U sound_\<Gamma> N_entails_U by simp
+    using sound_\<Gamma> N_entails_U by simp
 qed
 
 lemma skip_sound_state:
@@ -4191,7 +4100,6 @@ proof (cases N \<beta> S S' rule: factorize.cases)
   case (factorizeI L \<gamma> L' \<mu> \<gamma>' D \<Gamma> U)
 
   from factorizeI(1) sound have
-    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L, L'#}) \<cdot> \<gamma>)" and
@@ -4262,7 +4170,7 @@ proof (cases N \<beta> S S' rule: factorize.cases)
 
   ultimately show ?thesis
     unfolding factorizeI sound_state_def
-    using disj_N_U sound_\<Gamma> N_entails_U by simp
+    using sound_\<Gamma> N_entails_U by simp
 qed
 
 lemma trail_false_cls_plus_subst_mgu_before_groundings:
@@ -4318,7 +4226,6 @@ lemma resolve_sound_state:
 proof (cases N \<beta> S S' rule: resolve.cases)
   case (resolveI \<Gamma> \<Gamma>' L C \<delta> L' \<sigma> \<mu> \<rho> D U)
   from resolveI(1) sound have
-    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     tr_false_cls: "trail_false_cls \<Gamma> ((D + {#L'#}) \<cdot> \<sigma>)" and
@@ -4379,10 +4286,7 @@ proof (cases N \<beta> S S' rule: resolve.cases)
   hence is_unifs_\<sigma>_\<delta>: "is_unifiers (\<sigma> \<odot> \<delta>) {{atm_of L, atm_of L'}}"
     by (simp add: is_unifiers_def is_unifier_def subst_atms_def)
 
-  have "disjoint_vars_set (insert (add_mset L C) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>')))"
-    using \<Gamma>_def disj_N_U by fastforce
-
-  moreover have "trail_false_cls \<Gamma>
+  have "trail_false_cls \<Gamma>
     ((D + C) \<cdot> \<mu> \<cdot> \<rho> \<cdot> restrict_subst_domain (vars_cls ((D + C) \<cdot> \<mu> \<cdot> \<rho>)) (inv_renaming \<rho> \<odot> \<sigma> \<odot> \<delta>))"
     unfolding subst_cls_restrict_subst_domain_idem[OF subset_refl]
     unfolding subst_cls_comp_subst is_renaming_inv_renaming_cancel_cls[OF ren_\<rho>]
@@ -4486,7 +4390,6 @@ lemma backtrack_sound_state:
 proof (cases N \<beta> S S' rule: backtrack.cases)
   case (backtrackI \<Gamma> \<Gamma>' \<Gamma>'' L \<sigma> D U)
   from backtrackI(1) sound have
-    disj_N_U: "disjoint_vars_set (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))" and
     sound_\<Gamma>: "sound_trail N \<Gamma>" and
     N_entails_U: "fset N \<TTurnstile>\<G>e fset U" and
     dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L#})" and
@@ -4503,30 +4406,6 @@ proof (cases N \<beta> S S' rule: backtrack.cases)
       vars_clss (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>)) = {}"
     unfolding backtrackI(1,2) conflict_disjoint_vars_def
     by simp
-
-  have "disjoint_vars_set (insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>'')))"
-    unfolding disjoint_vars_set_def
-  proof (intro ballI impI)
-    fix C E
-    assume
-      C_in: "C \<in> insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>''))" and
-      E_in: "E \<in> insert (add_mset L D) (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>''))" and
-      C_neq_E: "C \<noteq> E"
-
-    from C_in have C_in': "C = add_mset L D \<or> C |\<in>| N |\<union>| U |\<union>| clss_of_trail \<Gamma>"
-      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append
-      using notin_fset by fastforce
-
-    from E_in have E_in': "E = add_mset L D \<or> E |\<in>| N |\<union>| U |\<union>| clss_of_trail \<Gamma>"
-      unfolding \<Gamma>_def clss_of_trail_trail_decide clss_of_trail_append
-      using notin_fset by fastforce
-
-    from C_in' E_in' C_neq_E show "disjoint_vars C E"
-      using disj_N_U[unfolded disjoint_vars_set_def, rule_format]
-      using vars_conf_disjoint
-      by (smt (verit, del_insts) UN_I disjoint_iff disjoint_vars_iff_inter_empty notin_fset
-          vars_clss_def)
-  qed
 
   moreover have "sound_trail N \<Gamma>''"
   proof -
