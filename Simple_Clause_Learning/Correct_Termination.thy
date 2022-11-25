@@ -197,23 +197,6 @@ next
     by (cases u) (auto simp add: trail_propagated_wf_def)
 qed
 
-definition trail_minimal_subst_domains where
-  "trail_minimal_subst_domains \<Gamma> \<longleftrightarrow> (\<forall>(_, n) \<in> set \<Gamma>.
-    case n of
-      None \<Rightarrow> True
-    | Some (C, L, \<gamma>) \<Rightarrow> subst_domain \<gamma> \<subseteq> vars_cls (add_mset L C))"
-
-lemma trail_minimal_subst_domains_if_sound: "sound_trail N \<Gamma> \<Longrightarrow> trail_minimal_subst_domains \<Gamma>"
-proof (induction \<Gamma> rule: sound_trail.induct)
-  case Nil
-  then show ?case
-    by (simp add: trail_minimal_subst_domains_def)
-next
-  case (Cons \<Gamma> L u)
-  then show ?case
-    by (cases u) (auto simp add: trail_minimal_subst_domains_def)
-qed
-
 theorem correct_termination:
   fixes gnd_N and gnd_N_lt_\<beta>
   assumes
@@ -239,8 +222,10 @@ proof -
 
   have sound_S: "sound_state N \<beta> S"
     using regular_run_sound_state[OF regular_run] sound_initial_state[OF disj_N] by blast
-  hence sound_\<Gamma>: "sound_trail N \<Gamma>"
-    by (simp add: S_def sound_state_def)
+  hence
+    sound_\<Gamma>: "sound_trail N \<Gamma>" and
+    "minimal_ground_closures S"
+    by (simp_all add: S_def sound_state_def)
 
   from no_more_regular_step have no_new_conflict: "\<nexists>S'. conflict N \<beta> S S'"
     using regular_scl_def by blast
@@ -254,10 +239,6 @@ proof -
 
   from sound_\<Gamma> have trail_propagate_wf: "trail_propagated_wf (state_trail S)"
     by (simp add: S_def trail_propagated_wf_if_sound)
-  from sound_\<Gamma> have trail_min_subst_dom: "trail_minimal_subst_domains (state_trail S)"
-    by (simp add: S_def trail_minimal_subst_domains_if_sound)
-  from sound_\<Gamma> have trail_groundings: "trail_groundings (state_trail S)"
-    by (simp add: S_def trail_groundings_if_sound)
   from sound_\<Gamma> have trail_consistent: "trail_consistent (state_trail S)"
     by (simp add: S_def trail_consistent_if_sound)
 
@@ -460,12 +441,10 @@ proof -
               using \<Gamma>_def n_def
               by (simp add: trail_propagate_def)
 
-            have domain_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)"
-              using trail_min_subst_dom
-              by (simp add: S_def trail_minimal_subst_domains_def 1 trail_propagate_def)
-            have ground_L'_D_\<sigma>: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)"
-              using trail_groundings
-              by (simp add: S_def trail_groundings_def 1 trail_propagate_def)
+            from \<open>minimal_ground_closures S\<close> have
+              domain_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (add_mset L' D)" and
+              ground_L'_D_\<sigma>: "is_ground_cls (add_mset L' D \<cdot> \<sigma>)"
+              by (simp_all add: S_def 1 trail_propagate_def minimal_ground_closures_def)
 
             define \<rho> :: "'v \<Rightarrow> ('f, 'v) Term.term" where
               "\<rho> = renaming_wrt (fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>))"

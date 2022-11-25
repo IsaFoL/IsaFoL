@@ -75,7 +75,7 @@ qed
 
 lemma factorize_preserves_resolvability:
   assumes reso: "resolve N \<beta> S\<^sub>1 S\<^sub>2" and fact: "factorize N \<beta> S\<^sub>1 S\<^sub>3" and
-    invars: "trail_groundings (state_trail S\<^sub>1)" "conflict_disjoint_vars N S\<^sub>1"
+    invar: "conflict_disjoint_vars N S\<^sub>1"
   shows "\<exists>S\<^sub>4. resolve N \<beta> S\<^sub>3 S\<^sub>4"
   using reso
 proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
@@ -147,11 +147,11 @@ proof (cases N \<beta> S\<^sub>1 S\<^sub>2 rule: resolve.cases)
         by (metis atm_of_subst_lit atm_of_uminus)
     next
       have "vars_lit L \<inter> vars_lit L' = {}"
-        using invars(2)[unfolded resolveI]
+        using invar[unfolded resolveI]
         by (auto simp: conflict_disjoint_vars_def)
 
       have "vars_lit L \<inter> vars_cls (add_mset L' D) = {}"
-        using invars(2)[unfolded resolveI]
+        using invar[unfolded resolveI]
         by (auto simp: conflict_disjoint_vars_def)
 
       moreover have "vars_term (atm_of L' \<cdot>a \<mu>\<^sub>K) \<subseteq> vars_cls (add_mset L' D)"
@@ -642,7 +642,8 @@ proof -
           disj_N_U_\<Gamma>_D_L': "\<forall>C \<in> fset (N |\<union>| U |\<union>| clss_of_trail \<Gamma>). disjoint_vars (D + {#L'#}) C" and
           "is_ground_cls ((D + {#L'#}) \<cdot> \<sigma>)" and
           dom_\<sigma>: "subst_domain \<sigma> \<subseteq> vars_cls (D + {#L'#})" and
-          "sound_trail N \<Gamma>"
+          "sound_trail N \<Gamma>" and
+          "minimal_ground_closures Sm"
           unfolding sound_state_def by (simp_all add: minimal_ground_closures_def)
 
         have "vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}"
@@ -662,10 +663,9 @@ proof -
             using dom_\<sigma> \<open>vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}\<close> by fastforce
         next
           have "subst_domain \<delta> \<subseteq> vars_lit L \<union> vars_cls C"
-            using \<open>sound_trail N \<Gamma>\<close>
-            unfolding sound_trail.simps[of N \<Gamma>]
-            unfolding resolveI(3)
-            by (simp add: trail_propagate_def)
+            using \<open>minimal_ground_closures Sm\<close>
+            unfolding \<open>Sm = (\<Gamma>, U, Some (add_mset L' D, \<sigma>))\<close> \<open>\<Gamma> = trail_propagate \<Gamma>' L C \<delta>\<close>
+            by (simp add: trail_propagate_def minimal_ground_closures_def)
           then show "vars_lit L' \<inter> subst_domain \<delta> = {}"
             using \<open>vars_cls (D + {#L'#}) \<inter> vars_cls (C + {#L#}) = {}\<close> by auto
         next
